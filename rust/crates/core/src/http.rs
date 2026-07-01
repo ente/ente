@@ -1,7 +1,14 @@
-//! HTTP client for communicating with the Ente API.
+//! HTTP client for the Ente API.
+//!
+//! [`HttpClient`] is an Ente API client bound to one base URL. It sends Ente's
+//! client headers on every request, and the auth token once one is set.
+//! [`ObjectStoreHttpClient`], from [`HttpClient::object_store`], is a bare
+//! client for presigned object-store transfers, sending only the headers it is
+//! given.
 
 use std::error::Error as StdError;
 use std::fmt::Write as _;
+use std::future::Future;
 use std::sync::RwLock;
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
@@ -18,6 +25,8 @@ use zeroize::Zeroizing;
 const TOKEN_HEADER: &str = "X-Auth-Token";
 const CLIENT_PKG_HEADER: &str = "X-Client-Package";
 const CLIENT_VERSION_HEADER: &str = "X-Client-Version";
+
+const MAX_REDIRECTS: usize = 5;
 
 /// HTTP client errors.
 #[derive(Error, Debug)]
@@ -71,17 +80,13 @@ impl Error {
         }
     }
 
-    fn with_request_context(self, request_context: &str) -> Self {
-        fn append_context(message: String, request_context: &str) -> String {
-            if message.contains("[request:") {
-                message
-            } else {
-                format!("{message} {request_context}")
-            }
+    fn with_request_context(self, context: &str) -> Self {
+        fn append(message: String, context: &str) -> String {
+            format!("{message} {context}")
         }
 
         match self {
-            Error::Network(message) => Error::Network(append_context(message, request_context)),
+            Error::Network(message) => Error::Network(append(message, context)),
             Error::Http {
                 status,
                 code,
@@ -89,12 +94,10 @@ impl Error {
             } => Error::Http {
                 status,
                 code,
-                message: append_context(message, request_context),
+                message: append(message, context),
             },
-            Error::Parse(message) => Error::Parse(append_context(message, request_context)),
-            Error::InvalidUrl(message) => {
-                Error::InvalidUrl(append_context(message, request_context))
-            }
+            Error::Parse(message) => Error::Parse(append(message, context)),
+            Error::InvalidUrl(message) => Error::InvalidUrl(append(message, context)),
         }
     }
 }
@@ -114,6 +117,12 @@ impl From<reqwest::Error> for Error {
     }
 }
 
+impl From<serde_json::Error> for Error {
+    fn from(e: serde_json::Error) -> Self {
+        Error::Parse(e.to_string())
+    }
+}
+
 #[derive(Deserialize)]
 struct ApiErrorBody {
     code: Option<String>,
@@ -121,22 +130,14 @@ struct ApiErrorBody {
 }
 
 fn parse_api_error_body(body: &str) -> (Option<String>, String) {
-    if let Ok(error_body) = serde_json::from_str::<ApiErrorBody>(body) {
-        let message = error_body
-            .message
-            .clone()
-            .or_else(|| error_body.code.clone())
-            .unwrap_or_else(|| body.to_string());
-        return (error_body.code, message);
-    }
-
-    (None, body.to_string())
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(e: serde_json::Error) -> Self {
-        Error::Parse(e.to_string())
-    }
+    let Ok(parsed) = serde_json::from_str::<ApiErrorBody>(body) else {
+        return (None, body.to_string());
+    };
+    let message = parsed
+        .message
+        .or_else(|| parsed.code.clone())
+        .unwrap_or_else(|| body.to_string());
+    (parsed.code, message)
 }
 
 fn format_reqwest_error(error: &reqwest::Error) -> String {
@@ -179,40 +180,25 @@ fn format_reqwest_error(error: &reqwest::Error) -> String {
     message
 }
 
-fn request_context(method: &str, url: &str) -> String {
-    format!("[request: {method} {}]", request_target(url))
+fn request_context(method: &str, url: &str, query: &[(&str, String)]) -> String {
+    format!("[request: {method} {}]", request_target(url, query))
 }
 
-fn request_context_with_query(method: &str, url: &str, query: &[(&str, String)]) -> String {
-    if query.is_empty() {
-        return request_context(method, url);
-    }
-
-    let Ok(mut parsed_url) = Url::parse(url) else {
-        return request_context(method, url);
-    };
-
-    {
-        let mut query_pairs = parsed_url.query_pairs_mut();
-        for (key, value) in query {
-            query_pairs.append_pair(key, value);
-        }
-    }
-
-    format!(
-        "[request: {method} {}]",
-        request_target(parsed_url.as_ref())
-    )
-}
-
-fn request_target(url: &str) -> String {
-    let Ok(parsed_url) = Url::parse(url) else {
+fn request_target(url: &str, query: &[(&str, String)]) -> String {
+    let Ok(mut parsed) = Url::parse(url) else {
         return url.to_string();
     };
 
-    match parsed_url.query() {
-        Some(query) => format!("{}?{query}", parsed_url.path()),
-        None => parsed_url.path().to_string(),
+    if !query.is_empty() {
+        let mut pairs = parsed.query_pairs_mut();
+        for (key, value) in query {
+            pairs.append_pair(key, value);
+        }
+    }
+
+    match parsed.query() {
+        Some(query) => format!("{}?{query}", parsed.path()),
+        None => parsed.path().to_string(),
     }
 }
 
@@ -258,12 +244,17 @@ impl std::fmt::Debug for HttpConfig {
     }
 }
 
-/// HTTP client for making requests to the Ente API.
+/// HTTP client for the Ente API.
+///
+/// The client is bound to one base URL during creation. It sends Ente's
+/// required HTTP headers on every request, and the auth token once one is set.
+///
+/// Request `path`s are trusted endpoints, joined to the base URL verbatim, so
+/// they must not be attacker-controlled.
 pub struct HttpClient {
     client: reqwest::Client,
     no_redirect_client: reqwest::Client,
     base_url: String,
-    base_origin: Option<Url>,
     auth_token: RwLock<Option<Zeroizing<String>>>,
     #[cfg(not(target_arch = "wasm32"))]
     user_agent: Option<String>,
@@ -287,15 +278,20 @@ impl HttpClient {
     }
 
     /// Create a client with auth/header configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidUrl`] if the base URL does not parse, or if it
+    /// carries a query or fragment.
     pub fn new_with_config(config: HttpConfig) -> Result<Self, Error> {
         let base_url = config.base_url.trim_end_matches('/').to_string();
-        let base_origin = Url::parse(&base_url).ok().and_then(|base| {
-            if base.query().is_none() && base.fragment().is_none() {
-                Some(base)
-            } else {
-                None
-            }
-        });
+        let base = Url::parse(&base_url)
+            .map_err(|e| Error::InvalidUrl(format!("invalid base URL: {e}")))?;
+        if base.query().is_some() || base.fragment().is_some() {
+            return Err(Error::InvalidUrl(
+                "base URL must not contain a query or fragment".to_string(),
+            ));
+        }
 
         #[cfg(not(target_arch = "wasm32"))]
         let mut builder = reqwest::Client::builder();
@@ -305,8 +301,8 @@ impl HttpClient {
         if let Some(timeout) = config.timeout_secs {
             builder = builder.timeout(Duration::from_secs(timeout));
         }
-
         let client = builder.build().map_err(Error::from)?;
+
         #[cfg(not(target_arch = "wasm32"))]
         let mut no_redirect_builder = reqwest::Client::builder().redirect(Policy::none());
         #[cfg(target_arch = "wasm32")]
@@ -321,7 +317,6 @@ impl HttpClient {
             client,
             no_redirect_client,
             base_url,
-            base_origin,
             auth_token: RwLock::new(config.auth_token.map(Zeroizing::new)),
             #[cfg(not(target_arch = "wasm32"))]
             user_agent: config.user_agent,
@@ -345,25 +340,12 @@ impl HttpClient {
         }
     }
 
-    /// GET request, returns response body as text.
-    ///
-    /// `path` is expected to be a trusted API endpoint path chosen by the
-    /// caller. This helper intentionally preserves the request path verbatim
-    /// after basic validation, so attacker-controlled paths must not be passed.
+    /// GET request, returning the response body as text.
     pub async fn get(&self, path: &str) -> Result<String, Error> {
         let url = self.request_url(path)?;
-        let request_context = request_context("GET", &url);
-        let response = self
-            .client
-            .get(&url)
-            .headers(self.build_headers()?)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        parse_text_response(response)
-            .await
-            .map_err(|error| error.with_request_context(&request_context))
+        let context = request_context("GET", &url, &[]);
+        let request = self.client.get(&url).headers(self.build_headers()?);
+        send_and_parse(request, &context, parse_text_response).await
     }
 
     /// GET request returning JSON.
@@ -373,19 +355,13 @@ impl HttpClient {
         query: &[(&str, String)],
     ) -> Result<T, Error> {
         let url = self.request_url(path)?;
-        let request_context = request_context_with_query("GET", &url, query);
-        let response = self
+        let context = request_context("GET", &url, query);
+        let request = self
             .client
             .get(&url)
             .headers(self.build_headers()?)
-            .query(query)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        parse_json_response(response)
-            .await
-            .map_err(|error| error.with_request_context(&request_context))
+            .query(query);
+        send_and_parse(request, &context, parse_json_response).await
     }
 
     /// GET request returning `None` for 404.
@@ -395,23 +371,20 @@ impl HttpClient {
         query: &[(&str, String)],
     ) -> Result<Option<T>, Error> {
         let url = self.request_url(path)?;
-        let request_context = request_context_with_query("GET", &url, query);
-        let response = self
+        let context = request_context("GET", &url, query);
+        let request = self
             .client
             .get(&url)
             .headers(self.build_headers()?)
-            .query(query)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        if response.status().as_u16() == 404 {
-            return Ok(None);
-        }
-        parse_json_response(response)
-            .await
-            .map(Some)
-            .map_err(|error| error.with_request_context(&request_context))
+            .query(query);
+        send_and_parse(request, &context, |response| async move {
+            if response.status().as_u16() == 404 {
+                Ok(None)
+            } else {
+                parse_json_response(response).await.map(Some)
+            }
+        })
+        .await
     }
 
     /// POST JSON request.
@@ -421,19 +394,13 @@ impl HttpClient {
         body: &B,
     ) -> Result<T, Error> {
         let url = self.request_url(path)?;
-        let request_context = request_context("POST", &url);
-        let response = self
+        let context = request_context("POST", &url, &[]);
+        let request = self
             .client
             .post(&url)
             .headers(self.build_headers()?)
-            .json(body)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        parse_json_response(response)
-            .await
-            .map_err(|error| error.with_request_context(&request_context))
+            .json(body);
+        send_and_parse(request, &context, parse_json_response).await
     }
 
     /// POST JSON request expecting an empty response body.
@@ -443,19 +410,13 @@ impl HttpClient {
         body: &B,
     ) -> Result<(), Error> {
         let url = self.request_url(path)?;
-        let request_context = request_context("POST", &url);
-        let response = self
+        let context = request_context("POST", &url, &[]);
+        let request = self
             .client
             .post(&url)
             .headers(self.build_headers()?)
-            .json(body)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        parse_empty_response(response)
-            .await
-            .map_err(|error| error.with_request_context(&request_context))
+            .json(body);
+        send_and_parse(request, &context, parse_empty_response).await
     }
 
     /// PUT JSON request.
@@ -465,19 +426,13 @@ impl HttpClient {
         body: &B,
     ) -> Result<T, Error> {
         let url = self.request_url(path)?;
-        let request_context = request_context("PUT", &url);
-        let response = self
+        let context = request_context("PUT", &url, &[]);
+        let request = self
             .client
             .put(&url)
             .headers(self.build_headers()?)
-            .json(body)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        parse_json_response(response)
-            .await
-            .map_err(|error| error.with_request_context(&request_context))
+            .json(body);
+        send_and_parse(request, &context, parse_json_response).await
     }
 
     /// PUT JSON request expecting an empty response body.
@@ -487,37 +442,25 @@ impl HttpClient {
         body: &B,
     ) -> Result<(), Error> {
         let url = self.request_url(path)?;
-        let request_context = request_context("PUT", &url);
-        let response = self
+        let context = request_context("PUT", &url, &[]);
+        let request = self
             .client
             .put(&url)
             .headers(self.build_headers()?)
-            .json(body)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        parse_empty_response(response)
-            .await
-            .map_err(|error| error.with_request_context(&request_context))
+            .json(body);
+        send_and_parse(request, &context, parse_empty_response).await
     }
 
     /// DELETE request expecting an empty response body.
     pub async fn delete_empty(&self, path: &str, query: &[(&str, String)]) -> Result<(), Error> {
         let url = self.request_url(path)?;
-        let request_context = request_context_with_query("DELETE", &url, query);
-        let response = self
+        let context = request_context("DELETE", &url, query);
+        let request = self
             .client
             .delete(&url)
             .headers(self.build_headers()?)
-            .query(query)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        parse_empty_response(response)
-            .await
-            .map_err(|error| error.with_request_context(&request_context))
+            .query(query);
+        send_and_parse(request, &context, parse_empty_response).await
     }
 
     /// DELETE request returning JSON.
@@ -527,37 +470,18 @@ impl HttpClient {
         query: &[(&str, String)],
     ) -> Result<T, Error> {
         let url = self.request_url(path)?;
-        let request_context = request_context_with_query("DELETE", &url, query);
-        let response = self
+        let context = request_context("DELETE", &url, query);
+        let request = self
             .client
             .delete(&url)
             .headers(self.build_headers()?)
-            .query(query)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        parse_json_response(response)
-            .await
-            .map_err(|error| error.with_request_context(&request_context))
+            .query(query);
+        send_and_parse(request, &context, parse_json_response).await
     }
 
-    /// Download bytes from a URL, following redirects safely.
-    pub async fn get_bytes(&self, url: &str) -> Result<Vec<u8>, Error> {
-        get_bytes_with_client(&self.no_redirect_client, url, |current_url| {
-            self.build_headers_for_url(current_url)
-        })
-        .await
-    }
-
-    /// Upload raw bytes to a presigned URL, following redirects safely.
-    pub async fn put_bytes(
-        &self,
-        url: &str,
-        body: &[u8],
-        headers: &[(&str, String)],
-    ) -> Result<(), Error> {
-        put_bytes_with_client(&self.no_redirect_client, url, body, headers).await
+    /// Ping the API, returns [PingResponse].
+    pub async fn ping(&self) -> Result<PingResponse, Error> {
+        self.get_json("/ping", &[]).await
     }
 
     fn request_url(&self, path: &str) -> Result<String, Error> {
@@ -571,36 +495,7 @@ impl HttpClient {
             "request paths must be trusted endpoint paths without dot segments"
         );
 
-        let base = Url::parse(&self.base_url)
-            .map_err(|e| Error::InvalidUrl(format!("invalid base URL: {e}")))?;
-        if base.query().is_some() || base.fragment().is_some() {
-            return Err(Error::InvalidUrl(
-                "base URL must not contain a query or fragment".to_string(),
-            ));
-        }
-
         Ok(format!("{}{}", self.base_url, path))
-    }
-
-    /// Ping the API, returns [PingResponse].
-    pub async fn ping(&self) -> Result<PingResponse, Error> {
-        self.get_json("/ping", &[]).await
-    }
-
-    fn is_same_origin(&self, url: &Url) -> bool {
-        self.base_origin.as_ref().is_some_and(|base| {
-            base.scheme() == url.scheme()
-                && base.host_str() == url.host_str()
-                && base.port_or_known_default() == url.port_or_known_default()
-        })
-    }
-
-    fn build_headers_for_url(&self, url: &Url) -> Result<HeaderMap, Error> {
-        if self.is_same_origin(url) {
-            self.build_headers()
-        } else {
-            self.build_public_headers()
-        }
     }
 
     fn build_headers(&self) -> Result<HeaderMap, Error> {
@@ -643,7 +538,7 @@ impl HttpClient {
 impl ObjectStoreHttpClient {
     /// Download bytes from a presigned URL without Ente headers.
     pub async fn get_bytes(&self, url: &str) -> Result<Vec<u8>, Error> {
-        get_bytes_with_client(&self.client, url, |_| Ok(HeaderMap::new())).await
+        get_bytes_with_client(&self.client, url).await
     }
 
     /// Upload raw bytes to a presigned URL without Ente headers.
@@ -657,22 +552,27 @@ impl ObjectStoreHttpClient {
     }
 }
 
-async fn get_bytes_with_client<F>(
-    client: &reqwest::Client,
-    url: &str,
-    headers_for_url: F,
-) -> Result<Vec<u8>, Error>
+async fn send_and_parse<T, F, Fut>(
+    request: reqwest::RequestBuilder,
+    context: &str,
+    parse: F,
+) -> Result<T, Error>
 where
-    F: Fn(&Url) -> Result<HeaderMap, Error>,
+    F: FnOnce(Response) -> Fut,
+    Fut: Future<Output = Result<T, Error>>,
 {
+    let outcome = async {
+        let response = request.send().await?;
+        parse(response).await
+    }
+    .await;
+    outcome.map_err(|error| error.with_request_context(context))
+}
+
+async fn get_bytes_with_client(client: &reqwest::Client, url: &str) -> Result<Vec<u8>, Error> {
     let mut current_url = parse_url(url)?;
-    for _ in 0..5 {
-        let headers = headers_for_url(&current_url)?;
-        let response = client
-            .get(current_url.clone())
-            .headers(headers)
-            .send()
-            .await?;
+    for _ in 0..MAX_REDIRECTS {
+        let response = client.get(current_url.clone()).send().await?;
         if response.status().is_redirection()
             && let Some(location) = response.headers().get(LOCATION)
         {
@@ -693,7 +593,7 @@ async fn put_bytes_with_client(
 ) -> Result<(), Error> {
     let header_map = build_header_map(headers)?;
     let mut current_url = parse_url(url)?;
-    for _ in 0..5 {
+    for _ in 0..MAX_REDIRECTS {
         let response = client
             .put(current_url.clone())
             .headers(header_map.clone())
@@ -863,24 +763,27 @@ mod tests {
     }
 
     #[test]
-    fn test_request_url_rejects_invalid_base_url() {
-        let client = test_client("not a url");
-        let err = client.request_url("/ping").unwrap_err();
-        assert!(matches!(err, Error::InvalidUrl(_)));
+    fn test_new_rejects_invalid_base_url() {
+        assert!(matches!(
+            HttpClient::new("not a url"),
+            Err(Error::InvalidUrl(_))
+        ));
     }
 
     #[test]
-    fn test_request_url_rejects_base_url_with_query() {
-        let client = test_client("https://api.ente.com/v1?stale=true");
-        let err = client.request_url("/ping").unwrap_err();
-        assert!(matches!(err, Error::InvalidUrl(_)));
+    fn test_new_rejects_base_url_with_query() {
+        assert!(matches!(
+            HttpClient::new("https://api.ente.com/v1?stale=true"),
+            Err(Error::InvalidUrl(_))
+        ));
     }
 
     #[test]
-    fn test_request_url_rejects_base_url_with_fragment() {
-        let client = test_client("https://api.ente.com/v1#old");
-        let err = client.request_url("/ping").unwrap_err();
-        assert!(matches!(err, Error::InvalidUrl(_)));
+    fn test_new_rejects_base_url_with_fragment() {
+        assert!(matches!(
+            HttpClient::new("https://api.ente.com/v1#old"),
+            Err(Error::InvalidUrl(_))
+        ));
     }
 
     #[test]
@@ -906,39 +809,6 @@ mod tests {
                 .map(|token| token.as_str()),
             None
         );
-    }
-
-    #[tokio::test]
-    async fn api_download_includes_auth_and_public_headers_for_same_origin_urls() {
-        let mut server = Server::new_async().await;
-        let mock = server
-            .mock("GET", "/download")
-            .match_header("x-auth-token", "auth-token")
-            .match_header("x-client-package", "io.ente.photos")
-            .match_header("x-client-version", "1.0.0")
-            .match_header("user-agent", "ente-core-test")
-            .with_status(200)
-            .with_body("ok")
-            .create_async()
-            .await;
-
-        let client = HttpClient::new_with_config(HttpConfig {
-            base_url: server.url(),
-            auth_token: Some("auth-token".to_string()),
-            user_agent: Some("ente-core-test".to_string()),
-            client_package: Some("io.ente.photos".to_string()),
-            client_version: Some("1.0.0".to_string()),
-            timeout_secs: None,
-        })
-        .unwrap();
-
-        let bytes = client
-            .get_bytes(&format!("{}/download", server.url()))
-            .await
-            .unwrap();
-
-        mock.assert_async().await;
-        assert_eq!(bytes, b"ok");
     }
 
     #[tokio::test]
@@ -1036,52 +906,5 @@ mod tests {
         target_mock.assert_async().await;
         assert_eq!(response.message, "pong");
         assert_eq!(response.id, "redirected");
-    }
-
-    #[tokio::test]
-    async fn api_download_drops_auth_header_on_cross_origin_redirect() {
-        let mut origin_server = Server::new_async().await;
-        let mut redirect_server = Server::new_async().await;
-
-        let redirect_mock = origin_server
-            .mock("GET", "/download")
-            .match_header("x-auth-token", "auth-token")
-            .match_header("x-client-package", "io.ente.photos")
-            .match_header("x-client-version", "1.0.0")
-            .match_header("user-agent", "ente-core-test")
-            .with_status(302)
-            .with_header("location", &format!("{}/redirected", redirect_server.url()))
-            .create_async()
-            .await;
-
-        let target_mock = redirect_server
-            .mock("GET", "/redirected")
-            .match_header("x-auth-token", Matcher::Missing)
-            .match_header("x-client-package", "io.ente.photos")
-            .match_header("x-client-version", "1.0.0")
-            .match_header("user-agent", "ente-core-test")
-            .with_status(200)
-            .with_body("ok")
-            .create_async()
-            .await;
-
-        let client = HttpClient::new_with_config(HttpConfig {
-            base_url: origin_server.url(),
-            auth_token: Some("auth-token".to_string()),
-            user_agent: Some("ente-core-test".to_string()),
-            client_package: Some("io.ente.photos".to_string()),
-            client_version: Some("1.0.0".to_string()),
-            timeout_secs: None,
-        })
-        .unwrap();
-
-        let bytes = client
-            .get_bytes(&format!("{}/download", origin_server.url()))
-            .await
-            .unwrap();
-
-        redirect_mock.assert_async().await;
-        target_mock.assert_async().await;
-        assert_eq!(bytes, b"ok");
     }
 }
