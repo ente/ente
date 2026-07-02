@@ -68,8 +68,10 @@ abstract class BaseConfiguration {
         accessibility: KeychainAccessibility.first_unlock_this_device,
       ),
     );
-    await _setupKeys();
+    // Set up folders before keys so the cache directory is initialized before
+    // _setupKeys() can trigger an auto-logout whose cleanup needs it.
     await _setupFolders();
+    await _setupKeys();
     _logger.info("User ID: ${getUserID()}");
   }
 

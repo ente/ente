@@ -3,10 +3,13 @@ import 'package:ente_lock_screen/lock_screen_host.dart';
 import 'package:locker/services/collections/collections_service.dart';
 import 'package:locker/services/favorites_service.dart';
 import 'package:locker/services/files/offline/offline_file_storage.dart';
+import 'package:logging/logging.dart';
 
 class Configuration extends BaseConfiguration implements LockScreenHost {
   Configuration._privateConstructor();
   static final Configuration instance = Configuration._privateConstructor();
+
+  final _logger = Logger('Configuration');
 
   @override
   EnteAppIdentity get appIdentity => const EnteAppIdentity(
@@ -26,7 +29,11 @@ class Configuration extends BaseConfiguration implements LockScreenHost {
   Future<void> logout({bool autoLogout = false}) async {
     CollectionService.instance.clearCache();
     FavoritesService.instance.clearCache();
-    await clearAllOfflineFileCopies();
     await super.logout(autoLogout: autoLogout);
+    try {
+      await clearAllOfflineFileCopies();
+    } catch (e, s) {
+      _logger.warning('Failed to clear offline file copies on logout', e, s);
+    }
   }
 }
