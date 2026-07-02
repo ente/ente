@@ -117,6 +117,7 @@ dependencies:
     path: ../../packages/scoped_dir_access
   sentry: 8.14.2
   sentry_flutter: 8.14.2
+  screen_retriever: 0.2.1
   share_plus: 11.1.0
   shared_preferences: 2.5.3
   sqflite: 2.4.2

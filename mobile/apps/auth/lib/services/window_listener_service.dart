@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:ente_auth/services/preference_service.dart';
 import 'package:flutter/widgets.dart';
+import 'package:screen_retriever/screen_retriever.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:win32/win32.dart';
@@ -122,12 +122,35 @@ class WindowListenerService with WindowListener, TrayListener {
     if (tray != null) {
       double x = tray.center.dx - w / 2;
       final y = tray.bottom + 4;
-      final display = PlatformDispatcher.instance.displays.first;
-      final screenW = display.size.width / display.devicePixelRatio;
-      x = x.clamp(8.0, screenW - w - 8.0);
+      final displayBounds = await _boundsOfDisplayContaining(tray.center);
+      if (displayBounds != null) {
+        x = x.clamp(
+          displayBounds.left + 8.0,
+          displayBounds.right - w - 8.0,
+        );
+      }
       await windowManager.setBounds(Rect.fromLTWH(x, y, w, h));
     }
     await windowManager.show();
+  }
+
+  Future<Rect?> _boundsOfDisplayContaining(Offset point) async {
+    try {
+      final displays = await screenRetriever.getAllDisplays();
+      Rect? fallback;
+      for (final display in displays) {
+        final position = display.visiblePosition;
+        final size = display.visibleSize ?? display.size;
+        if (position == null) continue;
+        final bounds =
+            Rect.fromLTWH(position.dx, position.dy, size.width, size.height);
+        fallback ??= bounds;
+        if (bounds.contains(point)) return bounds;
+      }
+      return fallback;
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
@@ -202,6 +225,10 @@ class WindowListenerService with WindowListener, TrayListener {
   Future<void> _showAsWindow() async {
     _isOneOffWindowed = true;
     await windowManager.setAlwaysOnTop(false);
+    await windowManager.setVisibleOnAllWorkspaces(
+      false,
+      visibleOnFullScreen: false,
+    );
     await windowManager.setTitleBarStyle(TitleBarStyle.normal);
     await windowManager.setMinimumSize(const Size(200, 400));
     await windowManager.setMaximumSize(const Size(maxWindowWidth, maxWindowHeight));
@@ -222,6 +249,10 @@ class WindowListenerService with WindowListener, TrayListener {
     await windowManager.setMinimumSize(popoverSize);
     await windowManager.setMaximumSize(popoverSize);
     await windowManager.setAlwaysOnTop(true);
+    await windowManager.setVisibleOnAllWorkspaces(
+      true,
+      visibleOnFullScreen: true,
+    );
   }
 
   Future<void> _showWindow() async {
