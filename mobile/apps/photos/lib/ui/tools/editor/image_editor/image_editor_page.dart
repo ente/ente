@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import "package:flutter/services.dart";
 import "package:flutter_image_compress/flutter_image_compress.dart";
 import "package:hugeicons/hugeicons.dart";
+import 'package:image/image.dart' as img;
 import "package:logging/logging.dart";
 import 'package:path/path.dart' as path;
 import "package:photo_manager/photo_manager.dart";
@@ -18,6 +19,7 @@ import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/file/file.dart' as ente;
 import "package:photos/models/location/location.dart";
+import "package:photos/service_locator.dart";
 import "package:photos/services/sync/sync_service.dart";
 import "package:photos/ui/components/action_sheet_widget.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
@@ -33,6 +35,7 @@ import "package:photos/ui/tools/editor/image_editor/image_editor_text_bar.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_tune_bar.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/utils/dialog_util.dart";
+import 'package:photos/utils/file_util.dart';
 import 'package:pro_image_editor/pro_image_editor.dart';
 
 class ImageEditorPage extends StatefulWidget {
@@ -71,13 +74,68 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
 
     try {
       final ui.Image decodedResult = await decodeImageFromList(bytes);
-      final result = await FlutterImageCompress.compressWithList(
+      var result = await FlutterImageCompress.compressWithList(
         bytes,
         minWidth: decodedResult.width,
         minHeight: decodedResult.height,
         quality: 95,
         format: CompressFormat.jpeg,
       );
+      img.Image? image;
+      img.ExifData? originalImageExif;
+      if (flagService.internalUser) {
+        originalImageExif = await _readOriginalImageExif(widget.originalFile);
+        image = img.decodeJpg(result);
+      }
+      if (originalImageExif != null && image != null) {
+        image.exif = originalImageExif;
+        for (final key in [
+          "Orientation",
+          "WhitePoint",
+          "PrimaryChromaticities",
+          "PhotometricInterpretation",
+          "BitsPerSample",
+          "SamplesPerPixel",
+          "Compression",
+          "ImageWidth",
+          "ImageHeight",
+          "YCbCrPositioning",
+          "YCbCrSubSampling",
+          "YCbCrCoefficients",
+          "ReferenceBlackWhite",
+          "XResolution",
+          "YResolution",
+          "ResolutionUnit",
+        ]) {
+          image.exif.imageIfd[key] = null;
+        }
+        for (final key in [
+          "JPEGInterchangeFormat",
+          "JPEGInterchangeFormatLength",
+        ]) {
+          image.exif.thumbnailIfd[key] = null;
+        }
+        for (final key in [
+          "ColorSpace",
+          "Gamma",
+          "ExifImageWidth",
+          "ExifImageHeight",
+          "ComponentsConfiguration",
+          "CustomRendered",
+          "SceneCaptureType",
+          "WhiteBalance",
+          "LightSource",
+          "Flash",
+          "GainControl",
+          "Contrast",
+          "Saturation",
+          "Sharpness",
+          "SubjectDistanceRange",
+        ]) {
+          image.exif.exifIfd[key] = null;
+        }
+        result = img.encodeJpg(image);
+      }
       _logger.info('Size after compression = ${result.length}');
       final Duration diff = DateTime.now().difference(start);
       _logger.info('image_editor time : $diff');
@@ -147,6 +205,28 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     } finally {
       if (hasStoppedChangeNotify) {
         await PhotoManager.startChangeNotify();
+      }
+    }
+  }
+
+  Future<img.ExifData?> _readOriginalImageExif(ente.EnteFile enteFile) async {
+    final file = await getFile(enteFile, isOrigin: true);
+    if (file == null) {
+      return null;
+    }
+    try {
+      final bytes = await file.readAsBytes();
+      final image = img.decodeImage(bytes);
+      if (image == null) {
+        return null;
+      }
+      return image.exif;
+    } catch (e, s) {
+      _logger.warning("Image Editor: _readOriginalImageExif failed: ", e, s);
+      return null;
+    } finally {
+      if (!enteFile.isRemoteFile && Platform.isIOS) {
+        await file.delete();
       }
     }
   }
