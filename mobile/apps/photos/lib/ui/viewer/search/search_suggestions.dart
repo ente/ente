@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import "package:flutter_animate/flutter_animate.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
+import "package:photos/data/months.dart";
 import "package:photos/generated/l10n.dart";
+import "package:photos/models/file/file_type.dart";
 import "package:photos/models/search/album_search_result.dart";
 import "package:photos/models/search/device_album_search_result.dart";
 import "package:photos/models/search/generic_search_result.dart";
@@ -14,11 +16,13 @@ import "package:photos/models/search/index_of_indexed_stack.dart";
 import 'package:photos/models/search/search_result.dart';
 import "package:photos/models/search/search_types.dart";
 import "package:photos/services/collections_service.dart";
+import "package:photos/services/date_parse_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/thumbnail_list_item.dart";
 import "package:photos/ui/viewer/gallery/collection_page.dart";
 import "package:photos/ui/viewer/gallery/device/device_folder_page.dart";
 import "package:photos/ui/viewer/search/result/search_result_widget.dart";
+import "package:photos/ui/viewer/search/search_query_utils.dart";
 import "package:photos/ui/viewer/search/search_widget.dart";
 
 ///Not using StreamBuilder in this widget for rebuilding on every new event as
@@ -40,6 +44,9 @@ class _SearchSuggestionsWidgetState extends State<SearchSuggestionsWidget> {
   StreamSubscription<List<SearchResult>>? subscription;
   Timer? timer;
   late final VoidCallback _searchResultsStreamNotifierListener;
+  String? _cachedSectionOrderQuery;
+  Locale? _cachedSectionOrderLocale;
+  List<_SearchResultsSection>? _cachedSectionOrder;
 
   ///This is the interval at which the queue is checked for new events and
   ///the search result widgets are generated from the queue.
@@ -185,7 +192,7 @@ class _SearchSuggestionsWidgetState extends State<SearchSuggestionsWidget> {
 
   List<Widget> _buildSectionWidgets(BuildContext context) {
     final widgets = <Widget>[];
-    for (final section in _sectionOrder) {
+    for (final section in _sectionOrderForCurrentQuery(context)) {
       final results = _sectionedResults[section] ?? [];
       if (results.isEmpty) {
         continue;
@@ -202,6 +209,25 @@ class _SearchSuggestionsWidgetState extends State<SearchSuggestionsWidget> {
       );
     }
     return widgets;
+  }
+
+  List<_SearchResultsSection> _sectionOrderForCurrentQuery(
+    BuildContext context,
+  ) {
+    final query = SearchWidgetState.query;
+    final locale = Localizations.localeOf(context);
+    final cachedSectionOrder = _cachedSectionOrder;
+    if (_cachedSectionOrderQuery == query &&
+        _cachedSectionOrderLocale == locale &&
+        cachedSectionOrder != null) {
+      return cachedSectionOrder;
+    }
+
+    final sectionOrder = _sectionOrderForQuery(context, query);
+    _cachedSectionOrderQuery = query;
+    _cachedSectionOrderLocale = locale;
+    _cachedSectionOrder = sectionOrder;
+    return sectionOrder;
   }
 }
 
@@ -268,15 +294,163 @@ enum _SearchResultsSection {
   moments,
 }
 
-const List<_SearchResultsSection> _sectionOrder = [
-  _SearchResultsSection.files,
+const List<_SearchResultsSection> _defaultSectionOrder = [
+  _SearchResultsSection.magic,
+  _SearchResultsSection.people,
+  _SearchResultsSection.locations,
   _SearchResultsSection.moments,
   _SearchResultsSection.albums,
-  _SearchResultsSection.locations,
-  _SearchResultsSection.people,
   _SearchResultsSection.shared,
-  _SearchResultsSection.magic,
+  _SearchResultsSection.files,
 ];
+
+final List<_SearchResultsSection> _fileIntentSectionOrder =
+    _sectionOrderPromoting(_SearchResultsSection.files);
+
+final List<_SearchResultsSection> _momentIntentSectionOrder =
+    _sectionOrderPromoting(_SearchResultsSection.moments);
+
+List<_SearchResultsSection> _sectionOrderPromoting(
+  _SearchResultsSection promotedSection,
+) {
+  return List.unmodifiable([
+    promotedSection,
+    ..._defaultSectionOrder.where((section) => section != promotedSection),
+  ]);
+}
+
+const Set<String> _commonFileExtensions = {
+  "3fr",
+  "arw",
+  "avi",
+  "avif",
+  "bmp",
+  "cr2",
+  "cr3",
+  "dcr",
+  "dng",
+  "erf",
+  "fff",
+  "gif",
+  "heic",
+  "heif",
+  "iiq",
+  "jpeg",
+  "jpg",
+  "kdc",
+  "m4v",
+  "mef",
+  "mkv",
+  "mov",
+  "mp4",
+  "mrw",
+  "nef",
+  "nrw",
+  "orf",
+  "pef",
+  "png",
+  "raf",
+  "raw",
+  "rwl",
+  "rw2",
+  "srw",
+  "tif",
+  "tiff",
+  "webp",
+  "x3f",
+};
+
+const Set<String> _filenamePrefixes = {
+  ".",
+  "img_",
+  "img-",
+  "pxl_",
+  "screenshot_",
+  "screenshot-",
+  "vid_",
+  "vid-",
+};
+
+final RegExp _cameraFilenamePrefixRegex = RegExp(
+  r"^(?:dsc(?:[_\d]|n|f)|\d{8}_)",
+);
+
+const Set<String> _fileTypeIntentAliases = {"live", "photo", "video"};
+
+const List<FileType> _fileTypesForIntent = [
+  FileType.image,
+  FileType.video,
+  FileType.livePhoto,
+];
+
+List<_SearchResultsSection> _sectionOrderForQuery(
+  BuildContext context,
+  String query,
+) {
+  final normalizedQuery = query.trim().toLowerCase();
+  if (_looksLikeFileQuery(context, normalizedQuery)) {
+    return _fileIntentSectionOrder;
+  }
+  if (_looksLikeMomentQuery(context, normalizedQuery)) {
+    return _momentIntentSectionOrder;
+  }
+  return _defaultSectionOrder;
+}
+
+bool _looksLikeFileQuery(BuildContext context, String query) {
+  if (query.isEmpty) {
+    return false;
+  }
+  if (_filenamePrefixes.any(query.startsWith) ||
+      _cameraFilenamePrefixRegex.hasMatch(query)) {
+    return true;
+  }
+
+  if (_commonFileExtensions.contains(query)) {
+    return true;
+  }
+
+  if (query.length < 3) {
+    return false;
+  }
+  return _isFileTypeQuery(context, query);
+}
+
+bool _isFileTypeQuery(BuildContext context, String query) {
+  if (_fileTypeIntentAliases.contains(query)) {
+    return true;
+  }
+  return _fileTypesForIntent.any((fileType) {
+    final typeName = getHumanReadableString(context, fileType).toLowerCase();
+    return typeName == query;
+  });
+}
+
+bool _looksLikeMomentQuery(BuildContext context, String query) {
+  if (query.isEmpty) {
+    return false;
+  }
+  return isYearSearchQuery(query) ||
+      _isParsedDateQuery(query) ||
+      _isLocalizedMonthQuery(context, query);
+}
+
+bool _isParsedDateQuery(String query) {
+  final parsedDate = DateParseService.instance.parse(query);
+  if (parsedDate.isEmpty) {
+    return false;
+  }
+  return parsedDate.day != null || parsedDate.month != null;
+}
+
+bool _isLocalizedMonthQuery(BuildContext context, String query) {
+  if (query.length < 3) {
+    return false;
+  }
+  return getMonthData(
+    context,
+  ).any((monthData) => monthData.name.toLowerCase().startsWith(query));
+}
 
 _SearchResultsSection _sectionForResult(SearchResult result) {
   switch (result.type()) {
