@@ -1,5 +1,7 @@
 {
   "@@locale ": "en",
+  "onboardingTitle": "For everything you don't want to forget",
+  "onboardingDesc": "Save your photos and videos. Every memory, in one place.",
   "enterYourEmailAddress": "Enter your email address",
   "enterYourNewEmailAddress": "Enter your new email address",
   "accountWelcomeBack": "Welcome back!",
@@ -3195,7 +3197,7 @@
   "deleteHiddenFilesFromDeviceDescription": "Delete local copies of hidden files from your device",
   "deleteOnDeviceFiles": "Delete on device files",
   "noHiddenFilesOnDevice": "No hidden files on device",
-  "welcome": "Welcome",
+  "grantGalleryPermissionTitle": "Let's find your favourites",
   "grantGalleryPermissionDesc": "Grant permission to access and organize photos with face recognition. All processing happens on your device.",
   "grantPermission": "Grant permission",
   "privateAI": "Private AI",

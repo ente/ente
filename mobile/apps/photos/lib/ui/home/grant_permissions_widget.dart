@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:ente_components/ente_components.dart";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -22,6 +23,7 @@ import "package:photos/ui/components/alert_bottom_sheet.dart";
 import "package:photos/ui/components/buttons/button_widget_v2.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/utils/dialog_util.dart";
+import "package:rive/rive.dart" as rive;
 import "package:styled_text/styled_text.dart";
 
 class GrantPermissionsWidget extends StatefulWidget {
@@ -39,9 +41,20 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget> {
     const Duration(milliseconds: 500),
     leading: true,
   );
+  late final rive.FileLoader _permissionsAnimationLoader;
+
+  @override
+  void initState() {
+    super.initState();
+    _permissionsAnimationLoader = rive.FileLoader.fromAsset(
+      "assets/home_tab.riv",
+      riveFactory: rive.Factory.flutter,
+    );
+  }
 
   @override
   void dispose() {
+    _permissionsAnimationLoader.dispose();
     _onlyNewActionDebouncer.cancelDebounceTimer();
     super.dispose();
   }
@@ -102,7 +115,7 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget> {
         Center(
           child: Padding(
             padding: const EdgeInsets.only(top: 28),
-            child: Image.asset("assets/photo_backup.png", height: 252),
+            child: _buildPermissionsAnimation(context),
           ),
         ),
         const SizedBox(height: 22),
@@ -132,6 +145,26 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPermissionsAnimation(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.2,
+      ),
+      child: rive.RiveWidgetBuilder(
+        fileLoader: _permissionsAnimationLoader,
+        builder: (BuildContext context, rive.RiveState state) {
+          if (state is rive.RiveLoaded) {
+            return rive.RiveWidget(
+              controller: state.controller,
+              fit: rive.Fit.contain,
+            );
+          }
+          return const SizedBox.shrink();
+        },
+      ),
     );
   }
 
@@ -317,37 +350,41 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Image.asset(
-                          "assets/ducky_permission.png",
-                          height: 164,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const SizedBox(height: 164);
-                          },
-                        ),
-                        const SizedBox(height: 22),
-                        Text(
-                          AppLocalizations.of(context).welcome,
-                          style: TextStyle(
-                            fontFamily: "Nunito",
-                            fontWeight: FontWeight.w900,
-                            fontSize: 32,
-                            letterSpacing: -1.4,
-                            color: colorScheme.textBase,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 32),
+                        _buildPermissionsAnimation(context),
+                        const Flexible(child: SizedBox(height: 22)),
                         Text(
                           AppLocalizations.of(
                             context,
-                          ).grantGalleryPermissionDesc,
-                          textAlign: TextAlign.center,
-                          style: textTheme.body.copyWith(
-                            color: colorScheme.textMuted,
+                          ).grantGalleryPermissionTitle,
+                          textAlign: .center,
+                          textScaler: .noScaling,
+                          style: TextStyle(
+                            fontWeight: .w900,
+                            fontFamily: TextStyles.outfitFontFamily,
+                            package: TextStyles.fontPackage,
+                            fontSize: MediaQuery.of(context).size.width * 0.125,
+                            height: 1,
+                            color: colorScheme.textBase,
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const Flexible(child: SizedBox(height: 24)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            AppLocalizations.of(
+                              context,
+                            ).grantGalleryPermissionDesc,
+                            textAlign: TextAlign.center,
+                            style: textTheme.body.copyWith(
+                              color: colorScheme.textMuted,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        const Flexible(child: SizedBox(height: 32)),
                         ButtonWidgetV2(
                           buttonType: ButtonTypeV2.neutral,
                           labelText: AppLocalizations.of(
@@ -355,9 +392,9 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget> {
                           ).grantPermission,
                           onTap: _onTapOfflineGrantPermission,
                         ),
-                        const SizedBox(height: 20),
+                        const Flexible(child: SizedBox(height: 20)),
                         _buildOfflineTermsAndPrivacy(context),
-                        const SizedBox(height: 24),
+                        const Flexible(child: SizedBox(height: 24)),
                       ],
                     ),
                   ),
