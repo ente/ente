@@ -8,8 +8,6 @@ import "package:flutter/foundation.dart";
 import "package:logging/logging.dart";
 import "package:path_provider/path_provider.dart";
 import "package:photos/core/network/network.dart";
-import "package:photos/service_locator.dart"
-    show flagService, isLocalGalleryMode;
 import "package:synchronized/synchronized.dart";
 
 class RemoteAssetsService {
@@ -221,8 +219,7 @@ class RemoteAssetsService {
 
   Dio get _dio => NetworkClient.instance.downloadDio;
 
-  bool get _resumableDownloadsEnabled =>
-      isLocalGalleryMode || flagService.internalUser;
+  bool get _resumableDownloadsEnabled => true;
 
   Lock _lockFor(String remotePath) =>
       _assetLocks.putIfAbsent(remotePath, Lock.new);
