@@ -17,13 +17,13 @@ type Repository struct {
 	DB *sql.DB
 }
 
-func (r *Repository) AddCode(ctx context.Context, pubKey string, ip string) (string, error) {
+func (r *Repository) AddCode(ctx context.Context, pubKey string, ip string, deviceName string) (string, error) {
 	codeValue, err := random.GenerateAlphaNumString(6)
 	if err != nil {
 		return "", err
 	}
 	codeValue = strings.ToUpper(codeValue)
-	_, err = r.DB.ExecContext(ctx, "INSERT INTO casting (code, public_key, id, ip) VALUES ($1, $2, $3, $4)", codeValue, pubKey, uuid.New(), ip)
+	_, err = r.DB.ExecContext(ctx, "INSERT INTO casting (code, public_key, id, ip, device_name) VALUES ($1, $2, $3, $4, $5)", codeValue, pubKey, uuid.New(), ip, deviceName)
 	if err != nil {
 		return "", err
 	}
@@ -31,7 +31,7 @@ func (r *Repository) AddCode(ctx context.Context, pubKey string, ip string) (str
 }
 
 func (r *Repository) GetAllDevices(ctx context.Context, userID int64) ([]cast.CastInfo, error) {
-	rows, err := r.DB.QueryContext(ctx, "SELECT id, collection_id, ip, last_used_at FROM casting WHERE cast_user = $1 and is_deleted=false ORDER BY created_at DESC", userID)
+	rows, err := r.DB.QueryContext(ctx, "SELECT id, collection_id, ip, last_used_at, device_name FROM casting WHERE cast_user = $1 and is_deleted=false ORDER BY created_at DESC", userID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to query devices")
 	}
@@ -39,7 +39,7 @@ func (r *Repository) GetAllDevices(ctx context.Context, userID int64) ([]cast.Ca
 	devices := make([]cast.CastInfo, 0)
 	for rows.Next() {
 		var device cast.CastInfo
-		if err := rows.Scan(&device.DeviceID, &device.CollectionID, &device.DeviceIP, &device.LastUsedAt); err != nil {
+		if err := rows.Scan(&device.DeviceID, &device.CollectionID, &device.DeviceIP, &device.LastUsedAt, &device.DeviceName); err != nil {
 			return nil, stacktrace.Propagate(err, "failed to scan device row")
 		}
 		devices = append(devices, device)

@@ -5,12 +5,14 @@ class CastInfo {
   final String deviceIP;
   final String deviceID;
   final DateTime lastUsedAt;
+  final String? deviceName;
 
   CastInfo({
     required this.collectionID,
     required this.deviceIP,
     required this.deviceID,
     required this.lastUsedAt,
+    required this.deviceName,
   });
 
   factory CastInfo.fromJson(dynamic json) {
@@ -19,6 +21,7 @@ class CastInfo {
       deviceIP: json["deviceIP"],
       deviceID: json["deviceID"],
       lastUsedAt: DateTime.fromMicrosecondsSinceEpoch(json["lastUsedAt"]),
+      deviceName: json["deviceName"],
     );
   }
 }

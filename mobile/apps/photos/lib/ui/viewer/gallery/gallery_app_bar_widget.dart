@@ -3,7 +3,6 @@ import 'dart:io';
 
 import "package:ente_components/ente_components.dart";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
-import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import "package:hugeicons/hugeicons.dart";
 import "package:local_auth/local_auth.dart";
@@ -11,16 +10,12 @@ import 'package:logging/logging.dart';
 import 'package:photos/core/configuration.dart';
 import "package:photos/core/constants.dart";
 import 'package:photos/core/event_bus.dart';
-import "package:photos/core/network/network.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/collection_meta_event.dart";
 import "package:photos/events/guest_view_event.dart";
 import "package:photos/events/magic_sort_change_event.dart";
 import 'package:photos/events/subscription_purchased_event.dart';
-import "package:photos/gateways/cast/cast_gateway.dart";
 import "package:photos/generated/l10n.dart";
-import "package:photos/l10n/l10n.dart";
-import "package:photos/models/button_result.dart";
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/device_collection.dart';
 import "package:photos/models/file/file.dart";
@@ -34,8 +29,7 @@ import "package:photos/services/files_service.dart";
 import "package:photos/states/location_screen_state.dart";
 import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/actions/collection/collection_sharing_actions.dart';
-import "package:photos/ui/cast/auto.dart";
-import "package:photos/ui/cast/choose.dart";
+import "package:photos/ui/cast/cast.dart";
 import "package:photos/ui/collections/album/smart_album_people.dart";
 import "package:photos/ui/common/web_page.dart";
 import 'package:photos/ui/components/action_sheet_widget.dart';
@@ -59,7 +53,6 @@ import 'package:photos/utils/delete_file_util.dart';
 import 'package:photos/utils/dialog_util.dart';
 import "package:photos/utils/file_download_util.dart";
 import 'package:photos/utils/magic_util.dart';
-import "package:uuid/uuid.dart";
 
 class GalleryAppBarWidget extends StatefulWidget {
   static const double toolbarHeight = kToolbarHeight;
@@ -568,7 +561,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
           } else if (value == AlbumPopupAction.leave) {
             await _leaveAlbum(context);
           } else if (value == AlbumPopupAction.castAlbum) {
-            await _castChoiceDialog();
+            await showCastSheet(context, widget.collection!);
           } else if (value == AlbumPopupAction.autoAddPhotos) {
             await routeToPage(
               context,
@@ -1186,135 +1179,6 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       prevVisibility: prevVisiblity,
     );
     setState(() {});
-  }
-
-  Future<void> _castChoiceDialog() async {
-    final gw = CastGateway(NetworkClient.instance.enteDio);
-
-    if (!flagService.enableMultiCast) {
-      if (castService.getActiveSessions().isNotEmpty) {
-        await showChoiceDialog(
-          context,
-          title: AppLocalizations.of(context).stopCastingTitle,
-          firstButtonLabel: AppLocalizations.of(context).yes,
-          secondButtonLabel: AppLocalizations.of(context).no,
-          body: AppLocalizations.of(context).stopCastingBody,
-          firstButtonOnTap: () async {
-            gw.revokeAllTokens().ignore();
-            await castService.closeActiveCasts();
-          },
-        );
-        return;
-      }
-      // stop any existing cast session
-      gw.revokeAllTokens().ignore();
-    } else {
-      await castService.closeActiveCasts();
-    }
-
-    if (!Platform.isAndroid && !kDebugMode) {
-      await _pairWithPin(gw, '');
-    } else {
-      final result = await showDialog<ButtonResult?>(
-        context: context,
-        barrierDismissible: true,
-        useRootNavigator: false,
-        builder: (BuildContext context) {
-          return const CastChooseDialog();
-        },
-      );
-      if (result == null) {
-        return;
-      }
-      // wait to allow the dialog to close
-      await Future.delayed(const Duration(milliseconds: 100));
-      if (result.action == ButtonAction.first) {
-        await showDialog(
-          useRootNavigator: false,
-          context: context,
-          barrierDismissible: true,
-          builder: (BuildContext bContext) {
-            return AutoCastDialog((device) async {
-              await _castPair(bContext, gw, device);
-              Navigator.pop(bContext);
-            });
-          },
-        );
-      }
-      if (result.action == ButtonAction.second) {
-        await _pairWithPin(gw, '');
-      }
-    }
-  }
-
-  Future<void> _pairWithPin(CastGateway gw, String code) async {
-    await showTextInputDialog(
-      context,
-      title: context.l10n.playOnTv,
-      body: AppLocalizations.of(
-        context,
-      ).castInstruction(castUrl: flagService.castUrl),
-      submitButtonLabel: AppLocalizations.of(context).pair,
-      textInputType: TextInputType.streetAddress,
-      hintText: context.l10n.deviceCodeHint,
-      showOnlyLoadingState: true,
-      alwaysShowSuccessState: false,
-      initialValue: code,
-      onSubmit: (String text) async {
-        final bool paired = await _castPair(context, gw, text);
-        if (!paired) {
-          Future.delayed(Duration.zero, () => _pairWithPin(gw, code));
-        }
-      },
-    );
-  }
-
-  String lastCode = '';
-  Future<bool> _castPair(
-    BuildContext bContext,
-    CastGateway gw,
-    String code,
-  ) async {
-    try {
-      if (lastCode == code) {
-        return false;
-      }
-      lastCode = code;
-      _logger.info("Casting album to device with code $code");
-      final String? publicKey = await gw.getPublicKey(code);
-      if (publicKey == null) {
-        showToast(context, AppLocalizations.of(context).deviceNotFound);
-
-        return false;
-      }
-      final String castToken = const Uuid().v4().toString();
-      final castPayload = CollectionsService.instance.getCastData(
-        castToken,
-        widget.collection!,
-        publicKey,
-      );
-      await gw.publishCastPayload(
-        code,
-        castPayload,
-        widget.collection!.id,
-        castToken,
-      );
-      _logger.info("cast album completed");
-      return true;
-    } catch (e, s) {
-      lastCode = '';
-      _logger.severe("Failed to cast album", e, s);
-      if (e is CastIPMismatchException) {
-        await showErrorDialog(
-          context,
-          AppLocalizations.of(context).castIPMismatchTitle,
-          AppLocalizations.of(context).castIPMismatchBody,
-        );
-      } else {
-        await showGenericErrorDialog(context: bContext, error: e);
-      }
-      return false;
-    }
   }
 
   Future<void> _onGalleryGuestViewClick() async {

@@ -431,8 +431,8 @@ class _SettingsBody extends StatelessWidget {
         ),
         if (flagService.enableMultiCast)
           _buildMenuItem(
-            title: AppLocalizations.of(context).cast,
-            icon: HugeIcons.strokeRoundedTv02,
+            title: AppLocalizations.of(context).castSessions,
+            icon: HugeIcons.strokeRoundedTvSmart,
             onTap: () async {
               await routeToPage(context, const CastSettingsPage());
             },

@@ -24,4 +24,5 @@ type CastInfo struct {
 	CollectionID int64     `json:"collectionID"`
 	DeviceIP     string    `json:"deviceIP"`
 	LastUsedAt   int64     `json:"lastUsedAt"`
+	DeviceName   *string   `json:"deviceName"`
 }

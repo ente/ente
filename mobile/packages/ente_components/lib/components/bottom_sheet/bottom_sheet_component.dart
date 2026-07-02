@@ -66,6 +66,7 @@ class _BottomSheetHeaderComponent extends StatelessWidget {
     }
 
     final colors = context.componentColors;
+
     return SizedBox(
       height: _headerHeight,
       child: Row(
@@ -117,6 +118,10 @@ class BottomSheetComponent extends StatelessWidget {
     this.actionsTopSpacing,
     this.backgroundColor,
     this.isKeyboardAware = false,
+    this.isScrollable = false,
+    this.initialChildSize = 0.5,
+    this.snap = false,
+    this.snapSizes,
   });
 
   final String? title;
@@ -140,6 +145,16 @@ class BottomSheetComponent extends StatelessWidget {
   final double? actionsTopSpacing;
   final Color? backgroundColor;
   final bool isKeyboardAware;
+  final bool isScrollable;
+
+  /// Initial sheet height fraction when [isScrollable] is true.
+  final double initialChildSize;
+
+  /// Whether the sheet snaps to [snapSizes] when [isScrollable] is true.
+  final bool snap;
+
+  /// Sheet height fractions to snap to when [isScrollable] and [snap] are true.
+  final List<double>? snapSizes;
 
   @override
   Widget build(BuildContext context) {
@@ -147,8 +162,10 @@ class BottomSheetComponent extends StatelessWidget {
     final bottomInset = isKeyboardAware
         ? MediaQuery.viewInsetsOf(context).bottom
         : 0.0;
+
     final usesCenteredLayout =
         illustration != null || (message != null && content == null);
+
     final effectiveHeader =
         header ??
         ((title != null || showCloseButton || usesCenteredLayout)
@@ -163,6 +180,7 @@ class BottomSheetComponent extends StatelessWidget {
                 isCentered: usesCenteredLayout,
               )
             : null);
+
     final effectiveContent =
         content ??
         (message == null
@@ -172,14 +190,53 @@ class BottomSheetComponent extends StatelessWidget {
                 textAlign: usesCenteredLayout ? TextAlign.center : textAlign,
                 style: TextStyles.body.copyWith(color: colors.textLight),
               ));
+
     final effectiveCrossAxisAlignment = usesCenteredLayout
         ? CrossAxisAlignment.stretch
         : crossAxisAlignment;
+
     final effectiveContentSpacing = usesCenteredLayout
         ? Spacing.lg
         : contentSpacing;
+
     final effectiveActionsTopSpacing =
         actionsTopSpacing ?? (usesCenteredLayout ? Spacing.xxl : Spacing.lg);
+
+    final children = <Widget>[
+      ?effectiveHeader,
+      if (effectiveContent != null) ...[
+        if (effectiveHeader != null) SizedBox(height: effectiveContentSpacing),
+        effectiveContent,
+      ],
+      if (actions.isNotEmpty) ...[
+        SizedBox(height: effectiveActionsTopSpacing),
+        _BottomSheetActions(actions: actions),
+      ],
+    ];
+
+    final sheetBody = isScrollable
+        ? DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: initialChildSize,
+            snap: snap,
+            snapSizes: snapSizes,
+            builder: (context, scrollController) {
+              return ListView(
+                controller: scrollController,
+                padding: padding,
+                shrinkWrap: true,
+                children: children,
+              );
+            },
+          )
+        : Padding(
+            padding: padding,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: effectiveCrossAxisAlignment,
+              children: children,
+            ),
+          );
 
     return AnimatedPadding(
       duration: const Duration(milliseconds: 200),
@@ -194,28 +251,7 @@ class BottomSheetComponent extends StatelessWidget {
             topRight: Radius.circular(Radii.bottomSheet),
           ),
         ),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: padding,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: effectiveCrossAxisAlignment,
-              children: [
-                ?effectiveHeader,
-                if (effectiveContent != null) ...[
-                  if (effectiveHeader != null)
-                    SizedBox(height: effectiveContentSpacing),
-                  effectiveContent,
-                ],
-                if (actions.isNotEmpty) ...[
-                  SizedBox(height: effectiveActionsTopSpacing),
-                  _BottomSheetActions(actions: actions),
-                ],
-              ],
-            ),
-          ),
-        ),
+        child: SafeArea(top: false, child: sheetBody),
       ),
     );
   }
@@ -232,6 +268,7 @@ Future<T?> showBottomSheetComponent<T>({
   Color? barrierColor,
 }) {
   final colors = context.componentColors;
+
   return showModalBottomSheet<T>(
     context: context,
     useRootNavigator: useRootNavigator,
@@ -240,6 +277,7 @@ Future<T?> showBottomSheetComponent<T>({
     enableDrag: enableDrag,
     backgroundColor: Colors.transparent,
     barrierColor: barrierColor ?? colors.specialScrim.withValues(alpha: 0.55),
+    useSafeArea: true,
     builder: (context) {
       return PopScope(canPop: isDismissible, child: builder(context));
     },
