@@ -51,16 +51,14 @@ Future<void> initSystemTray() async {
       ? 'assets/icons/auth-icon-monochrome-padded.png'
       : _linuxTrayIconPath();
   await trayManager.setIcon(path, isTemplate: true);
-  final Menu menu = WindowListenerService.instance.isMenubarMode()
-      ? Menu(items: [MenuItem(key: 'exit_app', label: 'Exit App')])
-      : Menu(
-          items: [
-            MenuItem(key: 'hide_window', label: 'Hide Window'),
-            MenuItem(key: 'show_window', label: 'Show Window'),
-            MenuItem.separator(),
-            MenuItem(key: 'exit_app', label: 'Exit App'),
-          ],
-        );
+  Menu menu = Menu(
+    items: [
+      MenuItem(key: 'hide_window', label: 'Hide Window'),
+      MenuItem(key: 'show_window', label: 'Show Window'),
+      MenuItem.separator(),
+      MenuItem(key: 'exit_app', label: 'Exit App'),
+    ],
+  );
   await trayManager.setContextMenu(menu);
 }
 

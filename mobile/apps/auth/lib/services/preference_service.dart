@@ -110,11 +110,10 @@ class PreferenceService {
   }
 
   bool isMenubarModeEnabled() {
-    // Prototype default; must become opt-in (false) before upstreaming.
     if (_prefs.containsKey(kMenubarMode)) {
       return _prefs.getBool(kMenubarMode)!;
     } else {
-      return true;
+      return false;
     }
   }
 

@@ -181,7 +181,8 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   }
 
   Widget _wrapForMenubarMode(BuildContext context, Widget child) {
-    if (!WindowListenerService.instance.isMenubarMode()) {
+    if (!WindowListenerService.instance.isMenubarMode() ||
+        WindowListenerService.instance.isOneOffWindowed) {
       return child;
     }
     // Render at a larger logical size scaled down to the popover, so screens

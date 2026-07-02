@@ -20,6 +20,9 @@ class WindowListenerService with WindowListener, TrayListener {
   late SharedPreferences _preferences;
   bool _isListening = false;
   bool _isQuitting = false;
+  bool _isOneOffWindowed = false;
+
+  bool get isOneOffWindowed => _isOneOffWindowed;
 
   WindowListenerService._privateConstructor();
 
@@ -36,13 +39,17 @@ class WindowListenerService with WindowListener, TrayListener {
 
   bool isMenubarMode() {
     return Platform.isMacOS &&
-        (_preferences.getBool(PreferenceService.kMenubarMode) ?? true);
+        (_preferences.getBool(PreferenceService.kMenubarMode) ?? false);
   }
 
   Size getWindowSize() {
     if (isMenubarMode()) {
       return const Size(menubarPopoverWidth, menubarPopoverHeight);
     }
+    return _savedWindowSize();
+  }
+
+  Size _savedWindowSize() {
     final double windowWidth =
         _preferences.getDouble('windowWidth') ?? initialWindowWidth;
     final double windowHeight =
@@ -59,7 +66,7 @@ class WindowListenerService with WindowListener, TrayListener {
 
   @override
   void onWindowResize() {
-    if (isMenubarMode()) return;
+    if (isMenubarMode() && !_isOneOffWindowed) return;
     unawaited(_saveWindowSize());
   }
 
@@ -135,7 +142,7 @@ class WindowListenerService with WindowListener, TrayListener {
 
   @override
   void onWindowBlur() {
-    if (!isMenubarMode() || _isQuitting) return;
+    if (!isMenubarMode() || _isOneOffWindowed || _isQuitting) return;
     // A sheet of our own app (e.g. the file picker) also takes key status;
     // only hide when focus actually moved to another app.
     Future.delayed(const Duration(milliseconds: 150), () async {
@@ -155,7 +162,7 @@ class WindowListenerService with WindowListener, TrayListener {
         unawaited(_hideWindow());
         break;
       case 'show_window':
-        unawaited(_showWindow());
+        unawaited(isMenubarMode() ? _showAsWindow() : _showWindow());
         break;
       case 'exit_app':
         unawaited(_quitApp());
@@ -181,7 +188,40 @@ class WindowListenerService with WindowListener, TrayListener {
 
   Future<void> _hideWindow() async {
     await windowManager.hide();
+    if (isMenubarMode()) {
+      if (_isOneOffWindowed) {
+        await _applyPopoverWindowStyle();
+      }
+      return;
+    }
     await windowManager.setSkipTaskbar(true);
+  }
+
+  // One-off regular window from the tray menu, for when the popover is not
+  // enough. Hiding it restores the popover style.
+  Future<void> _showAsWindow() async {
+    _isOneOffWindowed = true;
+    await windowManager.setAlwaysOnTop(false);
+    await windowManager.setTitleBarStyle(TitleBarStyle.normal);
+    await windowManager.setMinimumSize(const Size(200, 400));
+    await windowManager.setMaximumSize(const Size(maxWindowWidth, maxWindowHeight));
+    await windowManager.setResizable(true);
+    await windowManager.setSize(_savedWindowSize());
+    await windowManager.center();
+    await windowManager.show();
+  }
+
+  Future<void> _applyPopoverWindowStyle() async {
+    _isOneOffWindowed = false;
+    const popoverSize = Size(menubarPopoverWidth, menubarPopoverHeight);
+    await windowManager.setTitleBarStyle(
+      TitleBarStyle.hidden,
+      windowButtonVisibility: false,
+    );
+    await windowManager.setResizable(false);
+    await windowManager.setMinimumSize(popoverSize);
+    await windowManager.setMaximumSize(popoverSize);
+    await windowManager.setAlwaysOnTop(true);
   }
 
   Future<void> _showWindow() async {
