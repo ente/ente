@@ -118,11 +118,26 @@ class WindowListenerService with WindowListener, TrayListener {
   Future<void> _positionAndShowPopover() async {
     const w = menubarPopoverWidth;
     const h = menubarPopoverHeight;
+    // The status item is mirrored on every display's menubar, but
+    // trayManager.getBounds() reports a single static instance, so the click
+    // display has to come from the cursor. Only the horizontal coordinate is
+    // used: it needs no coordinate-space conversion, and vertically a menubar
+    // popover always sits just below the top of its display.
+    Offset? cursor;
+    try {
+      cursor = await screenRetriever.getCursorScreenPoint();
+    } catch (_) {}
     final tray = await trayManager.getBounds();
-    if (tray != null) {
-      double x = tray.center.dx - w / 2;
-      final y = tray.bottom + 4;
-      final displayBounds = await _boundsOfDisplayContaining(tray.center);
+    final anchorX = cursor?.dx ?? tray?.center.dx;
+    if (anchorX != null) {
+      final displayBounds = await _boundsOfDisplayAtX(anchorX);
+      final trayOnSameDisplay = tray != null &&
+          displayBounds != null &&
+          tray.center.dx >= displayBounds.left &&
+          tray.center.dx < displayBounds.right;
+      double x = (trayOnSameDisplay ? tray.center.dx : anchorX) - w / 2;
+      final double y =
+          trayOnSameDisplay ? tray.bottom + 4 : (displayBounds?.top ?? 0) + 4;
       if (displayBounds != null) {
         x = x.clamp(
           displayBounds.left + 8.0,
@@ -134,7 +149,7 @@ class WindowListenerService with WindowListener, TrayListener {
     await windowManager.show();
   }
 
-  Future<Rect?> _boundsOfDisplayContaining(Offset point) async {
+  Future<Rect?> _boundsOfDisplayAtX(double x) async {
     try {
       final displays = await screenRetriever.getAllDisplays();
       Rect? fallback;
@@ -145,7 +160,7 @@ class WindowListenerService with WindowListener, TrayListener {
         final bounds =
             Rect.fromLTWH(position.dx, position.dy, size.width, size.height);
         fallback ??= bounds;
-        if (bounds.contains(point)) return bounds;
+        if (x >= bounds.left && x < bounds.right) return bounds;
       }
       return fallback;
     } catch (_) {
