@@ -1,4 +1,5 @@
 import "dart:async";
+import "dart:math";
 
 import 'package:flutter/material.dart';
 import "package:flutter_animate/flutter_animate.dart";
@@ -65,10 +66,14 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final screenWidth = MediaQuery.sizeOf(context).width;
-    //factor will be 2 for most phones in portrait mode
-    final factor = (screenWidth / 220).ceil();
-    _memoryWidth = screenWidth / (factor * 2);
-    _memoryheight = _memoryWidth / MemoryCoverWidget.aspectRatio;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    if (screenWidth < screenHeight) {
+      _memoryWidth = min(screenWidth * .4352, 240);
+      _memoryheight = _memoryWidth * MemoryCoverWidget.aspectRatio;
+    } else {
+      _memoryWidth = min(screenHeight * .35, 240);
+      _memoryheight = _memoryWidth * MemoryCoverWidget.aspectRatio;
+    }
   }
 
   @override
@@ -198,6 +203,9 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
     return SizedBox(
       height: _memoryheight + MemoryCoverWidget.outerStrokeWidth * 2,
       child: ListView.builder(
+        padding: const EdgeInsets.symmetric(
+          horizontal: MemoryCoverWidget.gap / 2.0,
+        ),
         physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),

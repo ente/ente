@@ -1,0 +1,1 @@
+- Updated Memories cards with larger rounded corners, wider title padding, and a 240 px max size so cards stay balanced across portrait and landscape screens.

@@ -1,3 +1,4 @@
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:photos/models/memories/memory.dart";
@@ -15,8 +16,8 @@ class MemoryCoverWidget extends StatefulWidget {
   final double height;
   final double width;
   static const outerStrokeWidth = 1.0;
-  static const aspectRatio = 0.68;
-  static const horizontalPadding = 2.5;
+  static const aspectRatio = 236.924 / 163.214;
+  static const gap = 5.0;
   final String title;
   final List<String> allTitle;
   final int currentMemoryIndex;
@@ -54,7 +55,7 @@ class _MemoryCoverWidgetState extends State<MemoryCoverWidget> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: MemoryCoverWidget.horizontalPadding,
+        horizontal: MemoryCoverWidget.gap / 2.0,
       ),
       child: GestureDetector(
         onTap: () async {
@@ -83,10 +84,10 @@ class _MemoryCoverWidgetState extends State<MemoryCoverWidget> {
                     ),
                   ]
                 : [...shadowFloatFaintestLight],
-            borderRadius: BorderRadius.circular(5),
+            borderRadius: BorderRadius.circular(22),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(5),
+            borderRadius: BorderRadius.circular(22),
             child: Container(
               foregroundDecoration: isSeen
                   ? const BoxDecoration(
@@ -120,24 +121,23 @@ class _MemoryCoverWidgetState extends State<MemoryCoverWidget> {
                     ),
                   ),
                   Positioned(
-                    bottom: 8,
+                    bottom: 0,
                     child: SizedBox(
                       width: widget.width,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        padding: const EdgeInsets.all(16.0),
                         child: Hero(
                           tag: title,
-                          child: Center(
-                            child: Text(
-                              title,
-                              style: getEnteTextTheme(context).miniBold
-                                  .copyWith(
-                                    color: isSeen
-                                        ? textFaintDark
-                                        : Colors.white,
-                                  ),
-                              textAlign: TextAlign.left,
+                          child: Text(
+                            title,
+                            style: getEnteTextTheme(context).body.copyWith(
+                              fontSize: widget.height * 0.095,
+                              fontFamily: TextStyles.outfitFontFamily,
+                              package: TextStyles.fontPackage,
+                              color: isSeen ? textFaintDark : Colors.white,
+                              fontWeight: .w400,
                             ),
+                            textAlign: TextAlign.left,
                           ),
                         ),
                       ),
