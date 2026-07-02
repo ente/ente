@@ -26,6 +26,7 @@ class PreferenceService {
   static const kShouldMinimizeToTrayOnClose =
       "should_minimize_to_tray_on_close";
   static const kCompactMode = "vi.compactMode";
+  static const kMenubarMode = "menubar_mode";
   static const kAppInstallTime = "appInstallTime";
 
   Future<void> init() async {
@@ -106,6 +107,19 @@ class PreferenceService {
 
   Future<void> setShouldMinimizeOnCopy(bool value) async {
     await _prefs.setBool(kShouldMinimizeOnCopy, value);
+  }
+
+  bool isMenubarModeEnabled() {
+    // Prototype default; must become opt-in (false) before upstreaming.
+    if (_prefs.containsKey(kMenubarMode)) {
+      return _prefs.getBool(kMenubarMode)!;
+    } else {
+      return true;
+    }
+  }
+
+  Future<void> setMenubarModeEnabled(bool value) async {
+    await _prefs.setBool(kMenubarMode, value);
   }
 
   bool shouldMinimizeToTrayOnClose() {

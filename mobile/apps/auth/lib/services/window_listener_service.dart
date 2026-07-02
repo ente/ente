@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:ente_auth/services/preference_service.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:win32/win32.dart';
@@ -11,6 +12,8 @@ import 'package:window_manager/window_manager.dart';
 class WindowListenerService with WindowListener, TrayListener {
   static const double initialWindowHeight = 1200.0;
   static const double initialWindowWidth = 800.0;
+  static const double menubarPopoverWidth = 380.0;
+  static const double menubarPopoverHeight = 600.0;
   static const bool initialIsMaximized = false;
   static const double maxWindowHeight = 8192.0;
   static const double maxWindowWidth = 8192.0;
@@ -31,7 +34,15 @@ class WindowListenerService with WindowListener, TrayListener {
     _isListening = true;
   }
 
+  bool isMenubarMode() {
+    return Platform.isMacOS &&
+        (_preferences.getBool(PreferenceService.kMenubarMode) ?? true);
+  }
+
   Size getWindowSize() {
+    if (isMenubarMode()) {
+      return const Size(menubarPopoverWidth, menubarPopoverHeight);
+    }
     final double windowWidth =
         _preferences.getDouble('windowWidth') ?? initialWindowWidth;
     final double windowHeight =
@@ -42,11 +53,13 @@ class WindowListenerService with WindowListener, TrayListener {
   }
 
   bool getIsMaximized() {
+    if (isMenubarMode()) return false;
     return _preferences.getBool('is_maximized') ?? initialIsMaximized;
   }
 
   @override
   void onWindowResize() {
+    if (isMenubarMode()) return;
     unawaited(_saveWindowSize());
   }
 
@@ -71,6 +84,8 @@ class WindowListenerService with WindowListener, TrayListener {
   void onTrayIconMouseDown() {
     if (Platform.isWindows) {
       unawaited(_showWindow());
+    } else if (isMenubarMode()) {
+      unawaited(_togglePopover());
     } else {
       unawaited(trayManager.popUpContextMenu());
     }
@@ -78,11 +93,34 @@ class WindowListenerService with WindowListener, TrayListener {
 
   @override
   void onTrayIconRightMouseDown() {
-    if (Platform.isWindows) {
+    if (Platform.isWindows || isMenubarMode()) {
       unawaited(trayManager.popUpContextMenu());
     } else {
       unawaited(_showWindow());
     }
+  }
+
+  Future<void> _togglePopover() async {
+    if (await windowManager.isVisible()) {
+      await _hideWindow();
+    } else {
+      await _positionAndShowPopover();
+    }
+  }
+
+  Future<void> _positionAndShowPopover() async {
+    const w = menubarPopoverWidth;
+    const h = menubarPopoverHeight;
+    final tray = await trayManager.getBounds();
+    if (tray != null) {
+      double x = tray.center.dx - w / 2;
+      final y = tray.bottom + 4;
+      final display = PlatformDispatcher.instance.displays.first;
+      final screenW = display.size.width / display.devicePixelRatio;
+      x = x.clamp(8.0, screenW - w - 8.0);
+      await windowManager.setBounds(Rect.fromLTWH(x, y, w, h));
+    }
+    await windowManager.show();
   }
 
   @override
@@ -94,6 +132,21 @@ class WindowListenerService with WindowListener, TrayListener {
 
   @override
   void onTrayIconRightMouseUp() {}
+
+  @override
+  void onWindowBlur() {
+    if (!isMenubarMode() || _isQuitting) return;
+    // A sheet of our own app (e.g. the file picker) also takes key status;
+    // only hide when focus actually moved to another app.
+    Future.delayed(const Duration(milliseconds: 150), () async {
+      if (_isQuitting) return;
+      if (WidgetsBinding.instance.lifecycleState ==
+          AppLifecycleState.resumed) {
+        return;
+      }
+      await _hideWindow();
+    });
+  }
 
   @override
   void onTrayMenuItemClick(MenuItem menuItem) {
@@ -112,7 +165,7 @@ class WindowListenerService with WindowListener, TrayListener {
 
   @override
   void onWindowClose() {
-    if (_shouldMinimizeToTrayOnClose()) {
+    if (isMenubarMode() || _shouldMinimizeToTrayOnClose()) {
       unawaited(_hideWindow());
     } else {
       unawaited(_quitApp());
@@ -132,6 +185,12 @@ class WindowListenerService with WindowListener, TrayListener {
   }
 
   Future<void> _showWindow() async {
+    if (isMenubarMode()) {
+      // setSkipTaskbar(false) on macOS resets activation policy to .regular
+      // and brings the dock icon back.
+      await _positionAndShowPopover();
+      return;
+    }
     await windowManager.show();
     await windowManager.setSkipTaskbar(false);
   }

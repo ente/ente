@@ -51,14 +51,16 @@ Future<void> initSystemTray() async {
       ? 'assets/icons/auth-icon-monochrome-padded.png'
       : _linuxTrayIconPath();
   await trayManager.setIcon(path, isTemplate: true);
-  Menu menu = Menu(
-    items: [
-      MenuItem(key: 'hide_window', label: 'Hide Window'),
-      MenuItem(key: 'show_window', label: 'Show Window'),
-      MenuItem.separator(),
-      MenuItem(key: 'exit_app', label: 'Exit App'),
-    ],
-  );
+  final Menu menu = WindowListenerService.instance.isMenubarMode()
+      ? Menu(items: [MenuItem(key: 'exit_app', label: 'Exit App')])
+      : Menu(
+          items: [
+            MenuItem(key: 'hide_window', label: 'Hide Window'),
+            MenuItem(key: 'show_window', label: 'Show Window'),
+            MenuItem.separator(),
+            MenuItem(key: 'exit_app', label: 'Exit App'),
+          ],
+        );
   await trayManager.setContextMenu(menu);
 }
 
@@ -78,20 +80,46 @@ void main() async {
     await windowManager.ensureInitialized();
     await WindowListenerService.instance.init();
     await windowManager.setPreventClose(true);
-    WindowOptions windowOptions = WindowOptions(
-      size: WindowListenerService.instance.getWindowSize(),
-      maximumSize: const Size(8192, 8192),
-    );
-    bool isMaximized = WindowListenerService.instance.getIsMaximized();
-    await windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await auth_dir_utils.DirectoryUtils.migrateNamingChanges();
-      await windowManager.show();
-      if (isMaximized) {
-        await windowManager.maximize();
-      }
-      await windowManager.focus();
-      initSystemTray().ignore();
-    });
+    if (WindowListenerService.instance.isMenubarMode()) {
+      const popoverSize = Size(
+        WindowListenerService.menubarPopoverWidth,
+        WindowListenerService.menubarPopoverHeight,
+      );
+      const windowOptions = WindowOptions(
+        size: popoverSize,
+        skipTaskbar: true,
+        titleBarStyle: TitleBarStyle.hidden,
+        windowButtonVisibility: false,
+      );
+      await windowManager.waitUntilReadyToShow(windowOptions, () async {
+        await auth_dir_utils.DirectoryUtils.migrateNamingChanges();
+        // Starts hidden: the tray icon toggle is the only way to show it.
+        await windowManager.setResizable(false);
+        await windowManager.setMinimumSize(popoverSize);
+        await windowManager.setMaximumSize(popoverSize);
+        await windowManager.setAlwaysOnTop(true);
+        await windowManager.setVisibleOnAllWorkspaces(
+          true,
+          visibleOnFullScreen: true,
+        );
+        initSystemTray().ignore();
+      });
+    } else {
+      WindowOptions windowOptions = WindowOptions(
+        size: WindowListenerService.instance.getWindowSize(),
+        maximumSize: const Size(8192, 8192),
+      );
+      bool isMaximized = WindowListenerService.instance.getIsMaximized();
+      await windowManager.waitUntilReadyToShow(windowOptions, () async {
+        await auth_dir_utils.DirectoryUtils.migrateNamingChanges();
+        await windowManager.show();
+        if (isMaximized) {
+          await windowManager.maximize();
+        }
+        await windowManager.focus();
+        initSystemTray().ignore();
+      });
+    }
   }
 
   await _runInForeground();
