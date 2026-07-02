@@ -9,6 +9,7 @@ import 'package:ente_auth/onboarding/view/onboarding_page.dart';
 import 'package:ente_auth/services/auth_theme_preferences.dart';
 import 'package:ente_auth/services/authenticator_service.dart';
 import 'package:ente_auth/services/update_service.dart';
+import 'package:ente_auth/services/window_listener_service.dart';
 import 'package:ente_auth/ui/home_page.dart';
 import 'package:ente_auth/ui/settings/app_update_dialog.dart';
 import 'package:ente_events/event_bus.dart';
@@ -174,8 +175,31 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     }
 
     if (widget != null) {
-      return widget;
+      return _wrapForMenubarMode(context, widget);
     }
     throw StateError('widget is null');
+  }
+
+  Widget _wrapForMenubarMode(BuildContext context, Widget child) {
+    if (!WindowListenerService.instance.isMenubarMode() ||
+        WindowListenerService.instance.isOneOffWindowed) {
+      return child;
+    }
+    // Render at a larger logical size scaled down to the popover, so screens
+    // designed for the full window fit without per-page changes.
+    const scale = 0.85;
+    final size = MediaQuery.of(context).size;
+    final scaledSize = Size(size.width / scale, size.height / scale);
+    return FittedBox(
+      fit: BoxFit.fill,
+      child: SizedBox(
+        width: scaledSize.width,
+        height: scaledSize.height,
+        child: MediaQuery(
+          data: MediaQuery.of(context).copyWith(size: scaledSize),
+          child: child,
+        ),
+      ),
+    );
   }
 }

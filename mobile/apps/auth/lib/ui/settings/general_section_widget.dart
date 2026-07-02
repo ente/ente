@@ -168,6 +168,25 @@ class _AdvancedSectionWidgetState extends State<AdvancedSectionWidget> {
           ),
           sectionOptionSpacing,
         ],
+        if (Platform.isMacOS) ...[
+          MenuItemWidget(
+            captionedTextWidget: CaptionedTextWidget(
+              title: l10n.menubarMode,
+              subTitle: l10n.menubarModeDescription,
+            ),
+            trailingWidget: ToggleSwitchWidget(
+              value: () => PreferenceService.instance.isMenubarModeEnabled(),
+              onChanged: () async {
+                await PreferenceService.instance.setMenubarModeEnabled(
+                  !PreferenceService.instance.isMenubarModeEnabled(),
+                );
+                showToast(context, l10n.restartAppToApplyChanges);
+                setState(() {});
+              },
+            ),
+          ),
+          sectionOptionSpacing,
+        ],
         MenuItemWidget(
           captionedTextWidget: CaptionedTextWidget(
             title: l10n.crashAndErrorReporting,
