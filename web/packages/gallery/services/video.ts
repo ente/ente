@@ -524,6 +524,46 @@ const savedFailedVideoFileIDs = () =>
     // See: [Note: Avoiding Zod parsing for large DB arrays]
     getKV("videoPreviewFailedFileIDs").then((v) => new Set(v as number[]));
 
+export const hlsGenerationProgress = async () => {
+    const userID = ensureLocalUser().id;
+    let processed = await savedProcessedVideoFileIDs();
+    if (processed.size == 0) {
+        await pullProcessedFileIDs();
+        processed = await savedProcessedVideoFileIDs();
+    }
+    const allCollectionFiles = await savedCollectionFiles();
+    const localTrashFileIDs = await savedTrashItemFileIDs();
+    const total = new Set(processed);
+
+    for (const file of allCollectionFiles) {
+        if (
+            file.ownerID != userID ||
+            file.metadata.fileType != FileType.video ||
+            localTrashFileIDs.has(file.id)
+        ) {
+            continue;
+        }
+
+        const fileSize = file.info?.fileSize;
+        const duration = file.metadata.duration;
+        if (
+            fileSize == undefined ||
+            fileSize > 500 * 1024 * 1024 ||
+            duration == undefined ||
+            duration <= 0 ||
+            duration > 60
+        ) {
+            continue;
+        }
+
+        if (file.pubMagicMetadata?.data.sv == 1) continue;
+
+        total.add(file.id);
+    }
+
+    return total.size == 0 ? 1 : Math.min(processed.size / total.size, 1);
+};
+
 /**
  * Update the persisted set of IDs of files which have already been processed
  * and have a video preview generated (either on this client, or elsewhere).

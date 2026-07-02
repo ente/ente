@@ -66,6 +66,7 @@ import { savedLogs } from "ente-base/log-web";
 import { customAPIHost } from "ente-base/origins";
 import { saveStringAsFile } from "ente-base/utils/web";
 import {
+    hlsGenerationProgress,
     isHLSGenerationSupported,
     toggleHLSGeneration,
 } from "ente-gallery/services/video";
@@ -1249,10 +1250,29 @@ const Preferences: React.FC<PreferencesProps> = ({
 
     const hlsGenStatusSnapshot = useHLSGenerationStatusSnapshot();
     const isHLSGenerationEnabled = !!hlsGenStatusSnapshot?.enabled;
+    const hlsGenerationStatus = hlsGenStatusSnapshot?.enabled
+        ? hlsGenStatusSnapshot.status
+        : undefined;
+    const [streamableVideoProgress, setStreamableVideoProgress] =
+        useState<number>();
 
     useEffect(() => {
         if (open) void pullSettings();
     }, [open]);
+
+    useEffect(() => {
+        if (!open || !isHLSGenerationEnabled) {
+            setStreamableVideoProgress(undefined);
+            return;
+        }
+
+        setStreamableVideoProgress(undefined);
+        void hlsGenerationProgress()
+            .then(setStreamableVideoProgress)
+            .catch((e: unknown) =>
+                log.error("Failed to calculate HLS generation progress", e),
+            );
+    }, [hlsGenerationStatus, isHLSGenerationEnabled, open]);
 
     useEffect(() => {
         if (!open || !pendingAction) return;
@@ -1339,6 +1359,40 @@ const Preferences: React.FC<PreferencesProps> = ({
                             checked={isHLSGenerationEnabled}
                             onClick={() => void toggleHLSGeneration()}
                         />
+                        {isHLSGenerationEnabled && (
+                            <>
+                                <RowButtonDivider />
+                                <Stack
+                                    direction="row"
+                                    sx={{
+                                        flex: 1,
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        px: "16px",
+                                        pr: "12px",
+                                    }}
+                                >
+                                    <Typography sx={{ py: "14px", px: "2px" }}>
+                                        {t("processed")}
+                                    </Typography>
+                                    {streamableVideoProgress == undefined ? (
+                                        <RowButtonEndActivityIndicator />
+                                    ) : (
+                                        <Typography
+                                            variant="small"
+                                            sx={{
+                                                color: "text.muted",
+                                                textAlign: "right",
+                                            }}
+                                        >
+                                            {streamableVideoProgress == 0
+                                                ? "0%"
+                                                : `${(streamableVideoProgress * 100).toFixed(2)}%`}
+                                        </Typography>
+                                    )}
+                                </Stack>
+                            </>
+                        )}
                     </RowButtonGroup>
                 )}
             </Stack>
