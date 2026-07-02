@@ -100,7 +100,18 @@ extension CollectionFileActions on CollectionActions {
         : null;
     await dialog?.show();
     final int currentUserID = Configuration.instance.getUserID()!;
-    for (final collection in collections) {
+    for (
+      int collectionIndex = 0;
+      collectionIndex < collections.length;
+      collectionIndex++
+    ) {
+      final collection = collections[collectionIndex];
+      // Pending-upload entries are keyed by generatedID (the primary key) in
+      // the files table. Reusing the same generatedID across collections would
+      // REPLACE the previous collection's pending entry, leaving the file
+      // queued for only the last collection. For collections after the first,
+      // null out generatedID so a distinct pending row is created per album.
+      final bool isFirstCollection = collectionIndex == 0;
       try {
         final List<EnteFile> files = [];
         final List<EnteFile> filesPendingUpload = [];
@@ -123,6 +134,9 @@ extension CollectionFileActions on CollectionActions {
 
           if (currentFile.uploadedFileID == null) {
             currentFile.collectionID = collection.id;
+            if (!isFirstCollection) {
+              currentFile.generatedID = null;
+            }
             filesPendingUpload.add(currentFile);
           } else {
             files.add(currentFile);
