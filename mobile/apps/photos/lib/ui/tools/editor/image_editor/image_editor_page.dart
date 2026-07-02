@@ -81,8 +81,8 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         quality: 95,
         format: CompressFormat.jpeg,
       );
-      late final img.Image? image;
-      late final img.ExifData? originalImageExif;
+      img.Image? image;
+      img.ExifData? originalImageExif;
       if (flagService.internalUser) {
         originalImageExif = await _readOriginalImageExif(widget.originalFile);
         image = img.decodeJpg(result);
