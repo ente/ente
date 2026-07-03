@@ -8,10 +8,10 @@ dependencies = [
     "numpy>=2.1.2",
     "onnxruntime>=1.19.2",
     "opencv-python>=4.10.0.84",
-    "pillow-heif>=0.21.0",
-    "pillow>=10.4.0",
+    "pillow-heif>=0.22.0",
+    "pillow>=12.3.0",
     "pyyaml>=6.0.2",
-    "requests>=2.32.3",
+    "requests>=2.34.2",
 ]
 
 [dependency-groups]

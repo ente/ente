@@ -88,10 +88,10 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.1.2" },
     { name = "onnxruntime", specifier = ">=1.19.2" },
     { name = "opencv-python", specifier = ">=4.10.0.84" },
-    { name = "pillow", specifier = ">=10.4.0" },
-    { name = "pillow-heif", specifier = ">=0.21.0" },
+    { name = "pillow", specifier = ">=12.3.0" },
+    { name = "pillow-heif", specifier = ">=0.22.0" },
     { name = "pyyaml", specifier = ">=6.0.2" },
-    { name = "requests", specifier = ">=2.32.3" },
+    { name = "requests", specifier = ">=2.34.2" },
 ]
 
 [package.metadata.requires-dev]
