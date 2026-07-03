@@ -146,10 +146,12 @@ class _AiErasePageState extends State<AiErasePage> {
           imagePath: widget.file.path,
           maskPath: maskPath,
           modelPaths: modelPaths,
-          // Plain CPU only. NNAPI struggles with the huge diffusion graph, and
-          // ORT rc.4 cannot extract tensor outputs allocated by the XNNPACK EP
-          // ("Unknown allocation device XnnpackExecutionProvider"), so both are
-          // disabled. This matches the EP the working CLIP/face path uses.
+          // Plain CPU EP (multithreaded on the Rust side). XNNPACK must stay
+          // off: it computes measurably wrong output on the fp16 U-Net
+          // (max|delta| ~4.4 vs the fp32 reference, i.e. garbage), gives no
+          // speedup on this graph, and ORT rc.4 cannot extract its outputs
+          // ("Unknown allocation device"). NNAPI stays off: deprecated since
+          // Android 15 and partitions the diffusion graph poorly.
           providerPolicy: const RustExecutionProviderPolicy(
             preferCoreml: false,
             preferNnapi: false,
