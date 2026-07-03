@@ -5,12 +5,9 @@ import argparse
 from datetime import UTC, datetime
 import json
 from pathlib import Path
-import sys
 from typing import Any
 
-ML_DIR = Path(__file__).resolve().parents[1]
-if str(ML_DIR) not in sys.path:
-    sys.path.insert(0, str(ML_DIR))
+import _paths  # noqa: F401  # puts the ML test dir on sys.path
 
 from comparator.compare import ThresholdConfig, compare_platform_matrix
 from ground_truth.schema import load_results_document

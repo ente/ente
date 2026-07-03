@@ -5,22 +5,30 @@ import itertools
 import math
 from typing import Any, Mapping, Sequence
 
-from ground_truth.schema import FaceResult, ParityResult
+from ground_truth.schema import FaceResult, ParityResult, l2_norm
 
 STATUS_PASS = "pass"
 STATUS_WARNING = "warning"
 STATUS_FAIL = "fail"
 
 
-def _l2_norm(values: Sequence[float]) -> float:
-    return math.sqrt(sum(value * value for value in values))
+def _threshold_status(
+    value: float,
+    threshold: float,
+    warning_threshold: float | None = None,
+) -> str:
+    if value <= threshold:
+        return STATUS_PASS
+    if warning_threshold is not None and value <= warning_threshold:
+        return STATUS_WARNING
+    return STATUS_FAIL
 
 
 def cosine_distance(left: Sequence[float], right: Sequence[float]) -> float:
     if len(left) != len(right):
         raise ValueError("cosine distance vectors must have equal dimensions")
     dot = sum(x * y for x, y in zip(left, right, strict=True))
-    denominator = _l2_norm(left) * _l2_norm(right)
+    denominator = l2_norm(left) * l2_norm(right)
     if denominator == 0:
         raise ValueError("cosine distance cannot be computed for zero vectors")
     similarity = dot / denominator
@@ -467,6 +475,44 @@ def compare_result_sets(
             )
         )
 
+    def add_matched_max_metric(
+        *,
+        file_id: str,
+        metric: str,
+        values: list[float],
+        threshold: float,
+        passes_when_empty: bool,
+        warning_threshold: float | None = None,
+        message: str,
+    ) -> None:
+        if values:
+            maximum = max(values)
+            status = _threshold_status(maximum, threshold, warning_threshold)
+            add_file_metric(
+                file_id=file_id,
+                metric=metric,
+                value=maximum,
+                threshold=threshold,
+                status=status,
+                passed=status != STATUS_FAIL,
+                direction="<=",
+                count=len(values),
+                message=message,
+            )
+        else:
+            add_file_metric(
+                file_id=file_id,
+                metric=metric,
+                value=None,
+                threshold=threshold,
+                status=STATUS_PASS if passes_when_empty else STATUS_FAIL,
+                passed=passes_when_empty,
+                direction="<=",
+                count=0,
+                applicable=False,
+                message="No matched faces",
+            )
+
     for missing_file in missing_files:
         add_failure(
             ComparisonFinding(
@@ -530,12 +576,7 @@ def compare_result_sets(
 
         clip_distance = cosine_distance(reference.clip.embedding, candidate.clip.embedding)
         clip_distances.append(clip_distance)
-        if clip_distance <= clip_threshold:
-            clip_status = STATUS_PASS
-        elif clip_distance <= clip_warning_threshold:
-            clip_status = STATUS_WARNING
-        else:
-            clip_status = STATUS_FAIL
+        clip_status = _threshold_status(clip_distance, clip_threshold, clip_warning_threshold)
         add_file_metric(
             file_id=file_id,
             metric="clip_cosine_distance",
@@ -574,6 +615,7 @@ def compare_result_sets(
 
         reference_face_count = len(reference_faces)
         candidate_face_count = len(candidate_faces)
+        no_faces = reference_face_count == 0 and candidate_face_count == 0
         add_file_metric(
             file_id=file_id,
             metric="reference_face_count",
@@ -783,197 +825,94 @@ def compare_result_sets(
                     ),
                 )
 
-            if embedding_distance > thresholds.face_embedding_cosine_distance:
-                if embedding_distance <= thresholds.face_embedding_warning_cosine_distance:
-                    add_warning(
-                        ComparisonFinding(
-                            file_id=file_id,
-                            metric="face_embedding_cosine_distance",
-                            message=(
-                                "Face embedding cosine distance in warning band "
-                                f"({thresholds.face_embedding_cosine_distance:.3f} - "
-                                f"{thresholds.face_embedding_warning_cosine_distance:.3f})"
-                            ),
-                            value=embedding_distance,
-                            threshold=thresholds.face_embedding_warning_cosine_distance,
-                            severity=STATUS_WARNING,
+            embedding_status = _threshold_status(
+                embedding_distance,
+                thresholds.face_embedding_cosine_distance,
+                thresholds.face_embedding_warning_cosine_distance,
+            )
+            if embedding_status == STATUS_WARNING:
+                add_warning(
+                    ComparisonFinding(
+                        file_id=file_id,
+                        metric="face_embedding_cosine_distance",
+                        message=(
+                            "Face embedding cosine distance in warning band "
+                            f"({thresholds.face_embedding_cosine_distance:.3f} - "
+                            f"{thresholds.face_embedding_warning_cosine_distance:.3f})"
                         ),
-                    )
-                else:
-                    add_failure(
-                        ComparisonFinding(
-                            file_id=file_id,
-                            metric="face_embedding_cosine_distance",
-                            message="Face embedding cosine distance exceeded threshold",
-                            value=embedding_distance,
-                            threshold=thresholds.face_embedding_cosine_distance,
-                            severity=STATUS_FAIL,
-                        ),
-                    )
+                        value=embedding_distance,
+                        threshold=thresholds.face_embedding_warning_cosine_distance,
+                        severity=STATUS_WARNING,
+                    ),
+                )
+            elif embedding_status == STATUS_FAIL:
+                add_failure(
+                    ComparisonFinding(
+                        file_id=file_id,
+                        metric="face_embedding_cosine_distance",
+                        message="Face embedding cosine distance exceeded threshold",
+                        value=embedding_distance,
+                        threshold=thresholds.face_embedding_cosine_distance,
+                        severity=STATUS_FAIL,
+                    ),
+                )
 
         if file_ious:
-            min_iou = min(file_ious)
             add_file_metric(
                 file_id=file_id,
                 metric="face_box_iou_min",
-                value=min_iou,
+                value=min(file_ious),
                 threshold=None,
                 status=STATUS_PASS,
                 passed=True,
                 count=len(file_ious),
                 message="Minimum IoU across matched faces",
             )
-            max_iou_shortfall = max(file_iou_shortfalls)
-            add_file_metric(
-                file_id=file_id,
-                metric="face_box_iou_shortfall_max",
-                value=max_iou_shortfall,
-                threshold=0.0,
-                status=STATUS_PASS if max_iou_shortfall <= 0.0 else STATUS_FAIL,
-                passed=max_iou_shortfall <= 0.0,
-                direction="<=",
-                count=len(file_iou_shortfalls),
-                message="Maximum IoU shortfall against configured threshold",
-            )
         else:
             add_file_metric(
                 file_id=file_id,
                 metric="face_box_iou_min",
                 value=None,
                 threshold=None,
-                status=(
-                    STATUS_PASS
-                    if reference_face_count == 0 and candidate_face_count == 0
-                    else STATUS_FAIL
-                ),
-                passed=reference_face_count == 0 and candidate_face_count == 0,
+                status=STATUS_PASS if no_faces else STATUS_FAIL,
+                passed=no_faces,
                 count=0,
                 applicable=False,
                 message="No matched faces",
             )
-            add_file_metric(
-                file_id=file_id,
-                metric="face_box_iou_shortfall_max",
-                value=None,
-                threshold=0.0,
-                status=(
-                    STATUS_PASS
-                    if reference_face_count == 0 and candidate_face_count == 0
-                    else STATUS_FAIL
-                ),
-                passed=reference_face_count == 0 and candidate_face_count == 0,
-                direction="<=",
-                count=0,
-                applicable=False,
-                message="No matched faces",
-            )
-
-        if file_landmark_errors:
-            max_landmark_error = max(file_landmark_errors)
-            add_file_metric(
-                file_id=file_id,
-                metric="landmark_error_max",
-                value=max_landmark_error,
-                threshold=thresholds.landmark_error_threshold,
-                status=(
-                    STATUS_PASS
-                    if max_landmark_error <= thresholds.landmark_error_threshold
-                    else STATUS_FAIL
-                ),
-                passed=max_landmark_error <= thresholds.landmark_error_threshold,
-                direction="<=",
-                count=len(file_landmark_errors),
-                message="Maximum landmark error across matched faces",
-            )
-        else:
-            add_file_metric(
-                file_id=file_id,
-                metric="landmark_error_max",
-                value=None,
-                threshold=thresholds.landmark_error_threshold,
-                status=(
-                    STATUS_PASS
-                    if reference_face_count == 0 and candidate_face_count == 0
-                    else STATUS_FAIL
-                ),
-                passed=reference_face_count == 0 and candidate_face_count == 0,
-                direction="<=",
-                count=0,
-                applicable=False,
-                message="No matched faces",
-            )
-
-        if file_score_deltas:
-            max_score_delta = max(file_score_deltas)
-            add_file_metric(
-                file_id=file_id,
-                metric="score_delta_max",
-                value=max_score_delta,
-                threshold=thresholds.score_delta_threshold,
-                status=(
-                    STATUS_PASS
-                    if max_score_delta <= thresholds.score_delta_threshold
-                    else STATUS_FAIL
-                ),
-                passed=max_score_delta <= thresholds.score_delta_threshold,
-                direction="<=",
-                count=len(file_score_deltas),
-                message="Maximum face score delta across matched faces",
-            )
-        else:
-            add_file_metric(
-                file_id=file_id,
-                metric="score_delta_max",
-                value=None,
-                threshold=thresholds.score_delta_threshold,
-                status=(
-                    STATUS_PASS
-                    if reference_face_count == 0 and candidate_face_count == 0
-                    else STATUS_FAIL
-                ),
-                passed=reference_face_count == 0 and candidate_face_count == 0,
-                direction="<=",
-                count=0,
-                applicable=False,
-                message="No matched faces",
-            )
-
-        if file_embedding_distances:
-            max_embedding_distance = max(file_embedding_distances)
-            if max_embedding_distance <= thresholds.face_embedding_cosine_distance:
-                embedding_status = STATUS_PASS
-            elif max_embedding_distance <= thresholds.face_embedding_warning_cosine_distance:
-                embedding_status = STATUS_WARNING
-            else:
-                embedding_status = STATUS_FAIL
-            add_file_metric(
-                file_id=file_id,
-                metric="face_embedding_cosine_distance_max",
-                value=max_embedding_distance,
-                threshold=thresholds.face_embedding_cosine_distance,
-                status=embedding_status,
-                passed=embedding_status != STATUS_FAIL,
-                direction="<=",
-                count=len(file_embedding_distances),
-                message="Maximum face embedding cosine distance across matched faces",
-            )
-        else:
-            add_file_metric(
-                file_id=file_id,
-                metric="face_embedding_cosine_distance_max",
-                value=None,
-                threshold=thresholds.face_embedding_cosine_distance,
-                status=(
-                    STATUS_PASS
-                    if reference_face_count == 0 and candidate_face_count == 0
-                    else STATUS_FAIL
-                ),
-                passed=reference_face_count == 0 and candidate_face_count == 0,
-                direction="<=",
-                count=0,
-                applicable=False,
-                message="No matched faces",
-            )
+        add_matched_max_metric(
+            file_id=file_id,
+            metric="face_box_iou_shortfall_max",
+            values=file_iou_shortfalls,
+            threshold=0.0,
+            passes_when_empty=no_faces,
+            message="Maximum IoU shortfall against configured threshold",
+        )
+        add_matched_max_metric(
+            file_id=file_id,
+            metric="landmark_error_max",
+            values=file_landmark_errors,
+            threshold=thresholds.landmark_error_threshold,
+            passes_when_empty=no_faces,
+            message="Maximum landmark error across matched faces",
+        )
+        add_matched_max_metric(
+            file_id=file_id,
+            metric="score_delta_max",
+            values=file_score_deltas,
+            threshold=thresholds.score_delta_threshold,
+            passes_when_empty=no_faces,
+            message="Maximum face score delta across matched faces",
+        )
+        add_matched_max_metric(
+            file_id=file_id,
+            metric="face_embedding_cosine_distance_max",
+            values=file_embedding_distances,
+            threshold=thresholds.face_embedding_cosine_distance,
+            passes_when_empty=no_faces,
+            warning_threshold=thresholds.face_embedding_warning_cosine_distance,
+            message="Maximum face embedding cosine distance across matched faces",
+        )
 
     aggregates = {
         "clip_cosine_distance": _make_aggregate(
@@ -1134,8 +1073,6 @@ def compare_platform_matrix(
                 reference_results=reference,
                 candidate_results=by_platform[platform],
                 thresholds=thresholds,
-                clip_threshold=thresholds.clip_cosine_distance,
-                clip_warning_threshold=thresholds.clip_warning_cosine_distance,
             ),
         )
 

@@ -2,92 +2,20 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 from typing import Any
 
-IST = timezone(timedelta(hours=5, minutes=30), name="IST")
-_STATUS_ORDER = {"fail": 0, "warning": 1, "pass": 2}
-
-
-def _format_value(value: object) -> str:
-    if isinstance(value, float):
-        return f"{value:.6f}"
-    if isinstance(value, int):
-        return str(value)
-    if value is None:
-        return "-"
-    return str(value)
-
-
-def _optional_bool(value: object) -> bool | None:
-    return value if isinstance(value, bool) else None
-
-
-def _normalize_status(value: object, *, passed: bool | None = None) -> str:
-    if isinstance(value, str):
-        normalized = value.strip().lower()
-        if normalized in _STATUS_ORDER:
-            return normalized
-    if passed is not None:
-        return "pass" if passed else "fail"
-    return "fail"
-
-
-def _status_label(value: object, *, passed: bool | None = None) -> str:
-    return _normalize_status(value, passed=passed).upper()
-
-
-def _status_rank(value: object, *, passed: bool | None = None) -> int:
-    return _STATUS_ORDER[_normalize_status(value, passed=passed)]
-
-
-def _format_generated_timestamp(value: object) -> str:
-    if value is None:
-        return "-"
-
-    raw = str(value).strip()
-    if not raw:
-        return "-"
-
-    normalized = raw[:-1] + "+00:00" if raw.endswith("Z") else raw
-    try:
-        parsed = datetime.fromisoformat(normalized)
-    except ValueError:
-        return raw
-
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(IST).strftime("%Y-%m-%d %H:%M:%S")
-
-
-def _platform_stats(report_dir: Path) -> dict[str, dict[str, Any]]:
-    stats: dict[str, dict[str, Any]] = {}
-    for platform in ("python", "desktop", "android", "ios"):
-        path = report_dir / platform / "results.json"
-        if not path.exists():
-            stats[platform] = {
-                "path": str(path),
-                "available": False,
-                "result_count": None,
-                "error_count": None,
-                "errors": [],
-            }
-            continue
-
-        payload = json.loads(path.read_text())
-        results = payload.get("results", [])
-        errors = payload.get("errors", [])
-        stats[platform] = {
-            "path": str(path),
-            "available": True,
-            "result_count": len(results) if isinstance(results, list) else None,
-            "error_count": len(errors) if isinstance(errors, list) else None,
-            "errors": errors if isinstance(errors, list) else [],
-        }
-
-    return stats
+from _report_common import (
+    PLATFORMS,
+    format_generated_timestamp,
+    format_value,
+    normalize_status,
+    optional_bool,
+    platform_stats,
+    status_label,
+    status_rank,
+)
 
 
 def _escape_cell(value: object) -> str:
@@ -97,15 +25,15 @@ def _escape_cell(value: object) -> str:
     return text
 
 
-def _render_platform_outputs(platform_stats: dict[str, dict[str, Any]]) -> list[str]:
+def _render_platform_outputs(stats: dict[str, dict[str, Any]]) -> list[str]:
     lines = [
         "## Platform Outputs",
         "",
         "| Platform | Output File | Results | Runner Errors | Status |",
         "| --- | --- | ---: | ---: | --- |",
     ]
-    for platform in ("python", "desktop", "android", "ios"):
-        info = platform_stats[platform]
+    for platform in PLATFORMS:
+        info = stats[platform]
         status = "generated" if info["available"] else "missing"
         lines.append(
             "| "
@@ -113,8 +41,8 @@ def _render_platform_outputs(platform_stats: dict[str, dict[str, Any]]) -> list[
                 [
                     platform,
                     f"`{_escape_cell(info['path'])}`",
-                    _escape_cell(_format_value(info.get("result_count"))),
-                    _escape_cell(_format_value(info.get("error_count"))),
+                    _escape_cell(format_value(info.get("result_count"))),
+                    _escape_cell(format_value(info.get("error_count"))),
                     status,
                 ]
             )
@@ -136,22 +64,22 @@ def _render_aggregate_table(aggregates: dict[str, Any]) -> list[str]:
         metric = aggregates[metric_name]
         if not isinstance(metric, dict):
             continue
-        status = _normalize_status(
+        status = normalize_status(
             metric.get("status"),
-            passed=_optional_bool(metric.get("passed")),
+            passed=optional_bool(metric.get("passed")),
         )
         lines.append(
             "| "
             + " | ".join(
                 [
                     _escape_cell(metric_name),
-                    _escape_cell(_format_value(metric.get("count"))),
-                    _escape_cell(_format_value(metric.get("p95"))),
-                    _escape_cell(_format_value(metric.get("p99"))),
-                    _escape_cell(_format_value(metric.get("max"))),
-                    _escape_cell(_format_value(metric.get("threshold"))),
-                    _escape_cell(_format_value(metric.get("warning_threshold"))),
-                    _status_label(status),
+                    _escape_cell(format_value(metric.get("count"))),
+                    _escape_cell(format_value(metric.get("p95"))),
+                    _escape_cell(format_value(metric.get("p99"))),
+                    _escape_cell(format_value(metric.get("max"))),
+                    _escape_cell(format_value(metric.get("threshold"))),
+                    _escape_cell(format_value(metric.get("warning_threshold"))),
+                    status_label(status),
                 ]
             )
             + " |"
@@ -173,20 +101,20 @@ def _render_metric_rows(metrics: list[dict[str, Any]]) -> list[str]:
     for metric in metrics:
         if not isinstance(metric, dict):
             continue
-        status = _normalize_status(
+        status = normalize_status(
             metric.get("status"),
-            passed=_optional_bool(metric.get("passed")),
+            passed=optional_bool(metric.get("passed")),
         )
         lines.append(
             "| "
             + " | ".join(
                 [
                     _escape_cell(metric.get("metric", "-")),
-                    _escape_cell(_format_value(metric.get("value"))),
-                    _escape_cell(_format_value(metric.get("threshold"))),
-                    _escape_cell(_format_value(metric.get("direction"))),
-                    _status_label(status),
-                    _escape_cell(_format_value(metric.get("count"))),
+                    _escape_cell(format_value(metric.get("value"))),
+                    _escape_cell(format_value(metric.get("threshold"))),
+                    _escape_cell(format_value(metric.get("direction"))),
+                    status_label(status),
+                    _escape_cell(format_value(metric.get("count"))),
                     "yes" if bool(metric.get("applicable", True)) else "no",
                     _escape_cell(metric.get("message", "")),
                 ]
@@ -210,18 +138,18 @@ def _render_finding_rows(findings: list[dict[str, Any]]) -> list[str]:
     for finding in findings:
         if not isinstance(finding, dict):
             continue
-        severity = _normalize_status(
+        severity = normalize_status(
             finding.get("severity"),
-            passed=_optional_bool(finding.get("passed")),
+            passed=optional_bool(finding.get("passed")),
         )
         lines.append(
             "| "
             + " | ".join(
                 [
                     _escape_cell(finding.get("metric", "-")),
-                    _escape_cell(_format_value(finding.get("value"))),
-                    _escape_cell(_format_value(finding.get("threshold"))),
-                    _status_label(severity),
+                    _escape_cell(format_value(finding.get("value"))),
+                    _escape_cell(format_value(finding.get("threshold"))),
+                    status_label(severity),
                     _escape_cell(finding.get("message", "")),
                 ]
             )
@@ -239,9 +167,9 @@ def _render_file_statuses(statuses: list[dict[str, Any]]) -> list[str]:
     statuses = sorted(
         statuses,
         key=lambda status: (
-            _status_rank(
+            status_rank(
                 status.get("status"),
-                passed=_optional_bool(status.get("passed")),
+                passed=optional_bool(status.get("passed")),
             ),
             str(status.get("file_id", "")),
         ),
@@ -258,18 +186,18 @@ def _render_file_statuses(statuses: list[dict[str, Any]]) -> list[str]:
     for status in statuses:
         if not isinstance(status, dict):
             continue
-        file_status = _normalize_status(
+        file_status = normalize_status(
             status.get("status"),
-            passed=_optional_bool(status.get("passed")),
+            passed=optional_bool(status.get("passed")),
         )
         lines.append(
             "| "
             + " | ".join(
                 [
                     _escape_cell(status.get("file_id", "-")),
-                    _status_label(file_status),
-                    _escape_cell(_format_value(status.get("failure_count"))),
-                    _escape_cell(_format_value(status.get("warning_count"))),
+                    status_label(file_status),
+                    _escape_cell(format_value(status.get("failure_count"))),
+                    _escape_cell(format_value(status.get("warning_count"))),
                 ]
             )
             + " |"
@@ -282,9 +210,9 @@ def _render_file_statuses(statuses: list[dict[str, Any]]) -> list[str]:
         if not isinstance(status, dict):
             continue
         file_id = str(status.get("file_id", "-"))
-        file_status = _normalize_status(
+        file_status = normalize_status(
             status.get("status"),
-            passed=_optional_bool(status.get("passed")),
+            passed=optional_bool(status.get("passed")),
         )
         metrics = status.get("metrics", [])
         if not isinstance(metrics, list):
@@ -296,7 +224,7 @@ def _render_file_statuses(statuses: list[dict[str, Any]]) -> list[str]:
         if not isinstance(warnings, list):
             warnings = []
 
-        lines.append(f"#### `{file_id}` ({_status_label(file_status)})")
+        lines.append(f"#### `{file_id}` ({status_label(file_status)})")
         lines.append("")
         lines.append("Metrics:")
         lines.extend(_render_metric_rows(metrics))
@@ -378,12 +306,12 @@ def _render_comparison(comparison: dict[str, Any]) -> list[str]:
     return lines
 
 
-def _render_runner_errors(platform_stats: dict[str, dict[str, Any]]) -> list[str]:
+def _render_runner_errors(stats: dict[str, dict[str, Any]]) -> list[str]:
     lines = ["## Runner Errors", ""]
     for platform in ("desktop", "ios", "android", "python"):
         lines.append(f"### {platform}")
         lines.append("")
-        info = platform_stats[platform]
+        info = stats[platform]
         errors = info.get("errors") if info.get("available") else None
         if not errors:
             lines.append("None")
@@ -437,8 +365,8 @@ def render_report(
         ),
     )
 
-    platform_stats = _platform_stats(report_path.parent)
-    generated_at = _format_generated_timestamp(payload.get("generated_at"))
+    stats = platform_stats(report_path.parent)
+    generated_at = format_generated_timestamp(payload.get("generated_at"))
 
     lines: list[str] = [
         "# ML Indexing Parity Report (LLM-Optimized Markdown)",
@@ -451,7 +379,7 @@ def render_report(
         "",
     ]
 
-    lines.extend(_render_platform_outputs(platform_stats))
+    lines.extend(_render_platform_outputs(stats))
 
     if not comparisons:
         lines.extend(["## Comparisons", "", "No comparisons available.", ""])
@@ -461,7 +389,7 @@ def render_report(
         for comparison in comparisons:
             lines.extend(_render_comparison(comparison))
 
-    lines.extend(_render_runner_errors(platform_stats))
+    lines.extend(_render_runner_errors(stats))
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text("\n".join(lines))
