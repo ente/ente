@@ -105,10 +105,10 @@ class FlagService {
 
   bool get enableMemoryShareLink => true;
 
-  bool get useRustForML => 
+  bool get useRustForML =>
       internalUser || _isInUserRollout(_rustMlRolloutPercent);
 
-  bool get enableMLInBackground => 
+  bool get enableMLInBackground =>
       internalUser || _isInUserRollout(_rustMlRolloutPercent);
 
   bool get useRustForFaceThumbnails => true;
