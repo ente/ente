@@ -86,8 +86,10 @@ pub fn inpaint(req: InpaintRequest) -> MlResult<Vec<u8>> {
         req.guidance
     };
 
+    let t = std::time::Instant::now();
     let image = decode_image_from_path(&req.image_path)?;
     let mask = decode_image_from_path(&req.mask_path)?;
+    ilog(&format!("inputs decoded in {} ms", t.elapsed().as_millis()));
 
     let result = pipeline::run(
         &image,
@@ -101,7 +103,8 @@ pub fn inpaint(req: InpaintRequest) -> MlResult<Vec<u8>> {
         req.seed,
     )?;
 
-    image_compression::encode_rgb(
+    let t = std::time::Instant::now();
+    let jpeg = image_compression::encode_rgb(
         &result.rgb,
         result.width,
         result.height,
@@ -109,5 +112,7 @@ pub fn inpaint(req: InpaintRequest) -> MlResult<Vec<u8>> {
             quality: pipeline::OUTPUT_JPEG_QUALITY,
         },
     )
-    .map_err(MlError::from)
+    .map_err(MlError::from)?;
+    ilog(&format!("jpeg encode done in {} ms", t.elapsed().as_millis()));
+    Ok(jpeg)
 }

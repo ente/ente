@@ -25,6 +25,11 @@ use crate::ml::{
 
 pub const SCALING_FACTOR: f32 = 0.13025;
 pub const NOISE_OFFSET: f32 = 0.0357;
+/// 20 -> 19 effective steps, matching the reference pipeline. NOTE: lowering
+/// this with the current `1000 // num_steps` "leading" timestep spacing also
+/// lowers the starting timestep (e.g. 12 steps starts at t=830 instead of
+/// t=900), which mismatches the pure-noise init and produces noisy output —
+/// fix the schedule before trying fewer steps.
 pub const DEFAULT_NUM_STEPS: usize = 20;
 pub const DEFAULT_GUIDANCE: f32 = 2.0;
 /// Gaussian blur radius (in 512-space pixels) used to feather the mask edge.
@@ -68,8 +73,12 @@ pub fn run(
     }
 
     let total_start = Instant::now();
+    let tuning = onnx::SessionTuning {
+        intra_threads: inpaint_threads(),
+    };
     ilog(&format!(
-        "start: {width}x{height}, num_steps={num_steps}, guidance={guidance}"
+        "start: {width}x{height}, num_steps={num_steps}, guidance={guidance}, threads={}",
+        tuning.intra_threads
     ));
 
     // --- preprocess: image -> 512 CHW [-1,1], mask -> 512 binary {0,255} ---
@@ -123,7 +132,7 @@ pub fn run(
     // --- VAE encode (masked image only; clean latent is unused by the loop) ---
     let masked_lat = {
         let t = Instant::now();
-        let encoder = onnx::build_session(vae_encoder_path, policy)?;
+        let encoder = onnx::build_session_tuned(vae_encoder_path, policy, tuning)?;
         ilog(&format!("vae_encoder loaded in {} ms", t.elapsed().as_millis()));
         let t = Instant::now();
         let lat = encode_latent(&encoder, &masked_chw)?;
@@ -148,7 +157,7 @@ pub fn run(
     let input_ids = cfg_input_ids();
     {
         let t0 = Instant::now();
-        let unet = onnx::build_session(unet_path, policy)?;
+        let unet = onnx::build_session_tuned(unet_path, policy, tuning)?;
         ilog(&format!("unet loaded in {} ms", t0.elapsed().as_millis()));
         let total_steps = schedule.timesteps.len();
         for i in 0..schedule.timesteps.len() {
@@ -187,7 +196,7 @@ pub fn run(
     // --- VAE decode -> 512 RGB8 ---
     let decoded_512 = {
         let t = Instant::now();
-        let decoder = onnx::build_session(vae_decoder_path, policy)?;
+        let decoder = onnx::build_session_tuned(vae_decoder_path, policy, tuning)?;
         ilog(&format!("vae_decoder loaded in {} ms", t.elapsed().as_millis()));
         let t = Instant::now();
         let img = decode_latent(&decoder, &latents)?;
@@ -196,6 +205,7 @@ pub fn run(
     };
 
     // --- full-resolution feathered composite ---
+    let t = Instant::now();
     let composite = composite_full_res(
         &image.rgb,
         width,
@@ -203,6 +213,7 @@ pub fn run(
         &decoded_512,
         &mask_512_bin,
     )?;
+    ilog(&format!("composite done in {} ms", t.elapsed().as_millis()));
 
     ilog(&format!(
         "done: total {} ms",
