@@ -5,12 +5,17 @@
 - `playground/`: exploratory ML notebooks, model prep experiments, and sample assets.
 - `test/`: ML indexing parity framework (Python ground truth, desktop/mobile runners, comparator, and CI entrypoints).
 
-Shared Python project configuration stays at this root:
+Parity Python project configuration stays at this root:
 
 - `pyproject.toml`
 - `uv.lock`
 - `.python-version`
 - `.gitignore`
+
+Playground notebooks use their own Python project:
+
+- `infra/ml/playground/pyproject.toml`
+- `infra/ml/playground/uv.lock`
 
 Use the directory-specific READMEs for day-to-day work:
 
