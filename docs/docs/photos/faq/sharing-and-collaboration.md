@@ -461,7 +461,7 @@ Yes! Quick links automatically create a special album behind the scenes. You can
 
 1. Open the Albums tab in the Ente app
 2. Tap on 'v' icon at the right.
-3. Tap "Quick links"
+3. Tap "Links"
 4. Find the quick link and select the option to convert it to a regular album
 
 This gives you more control over the album, including the ability to rename it and organize it like any other album.
