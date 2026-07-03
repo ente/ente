@@ -36,7 +36,7 @@ If Pillow decode fails, Python ground truth now fails by default instead of sile
 ## Generate Goldens
 
 ```sh
-uv run --project infra/ml --no-sync --with pillow-heif python infra/ml/test/tools/generate_goldens.py \
+uv run --project infra/ml python infra/ml/test/tools/generate_goldens.py \
   --manifest infra/ml/test/ground_truth/manifest.json \
   --output-dir infra/ml/test/out/parity/python
 ```

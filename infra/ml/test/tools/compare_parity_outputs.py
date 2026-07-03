@@ -22,10 +22,6 @@ def _load_results(path: Path) -> tuple[str | None, tuple[Any, ...]]:
     return platform, load_results_document(payload)
 
 
-def _serialize_reports(reports: tuple[Any, ...]) -> list[dict[str, Any]]:
-    return [report.to_dict() for report in reports]
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Compare platform ML indexing results against Python ground truth.",
@@ -99,7 +95,7 @@ def main() -> int:
         "all_files_passed": all_files_passed,
         "status": overall_status,
         "passed": all_files_passed,
-        "comparisons": _serialize_reports(reports),
+        "comparisons": [report.to_dict() for report in reports],
     }
 
     if args.output:

@@ -83,22 +83,6 @@ def _correct_for_aspect_ratio(
     if scaled_width <= 0 or scaled_height <= 0:
         raise ValueError("scaled_width and scaled_height must be positive")
 
-    if scaled_width == YOLO_INPUT_WIDTH and scaled_height == YOLO_INPUT_HEIGHT:
-        corrected_box = tuple(np.clip(np.asarray(box_xyxy, dtype=np.float32), 0.0, 1.0).tolist())
-        corrected_landmarks = tuple(
-            tuple(np.clip(np.asarray(point, dtype=np.float32), 0.0, 1.0).tolist())
-            for point in landmarks
-        )
-        return (
-            (
-                float(corrected_box[0]),
-                float(corrected_box[1]),
-                float(corrected_box[2]),
-                float(corrected_box[3]),
-            ),
-            tuple((float(x), float(y)) for x, y in corrected_landmarks),
-        )
-
     scale_x = YOLO_INPUT_WIDTH / scaled_width
     scale_y = YOLO_INPUT_HEIGHT / scaled_height
 

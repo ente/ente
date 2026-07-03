@@ -37,7 +37,6 @@ Usage: infra/ml/test/run_ml_parity_tests.sh [flags]
 Flags:
   --platforms all|desktop|android|ios   (default: all)
   --strict                              (optional future mode; enforces full pass and complete platform coverage)
-  --continue-on-missing-devices         (default: enabled, except in --strict mode; continue when android/ios devices are unavailable)
   --fail-on-missing-platform            (default: disabled)
   --fail-on-platform-runner-error       (default: disabled)
   --allow-empty-comparison              (default: disabled)
@@ -59,10 +58,6 @@ while (($# > 0)); do
       ;;
     --strict)
       STRICT=true
-      shift
-      ;;
-    --continue-on-missing-devices)
-      CONTINUE_ON_MISSING_DEVICES=true
       shift
       ;;
     --fail-on-missing-platform)
@@ -276,51 +271,10 @@ ensure_goldens_python_runtime_deps() {
     return 1
   fi
 
-  local venv_python="$UV_PROJECT_DIR/.venv/bin/python"
-  if [[ ! -x "$venv_python" ]]; then
-    echo "Initializing Python environment for parity goldens"
-    if ! uv run --project "$UV_PROJECT_DIR" --no-sync python -c "import sys" >/dev/null 2>&1; then
-      echo "Failed to initialize Python environment for parity goldens." >&2
-      return 1
-    fi
-  fi
-
-  local missing_modules=""
-  missing_modules="$(
-    "$venv_python" - <<'PY'
-import importlib.util
-
-required_modules = ("cv2", "onnxruntime", "requests", "numpy", "PIL", "pillow_heif")
-missing = [module for module in required_modules if importlib.util.find_spec(module) is None]
-print(" ".join(missing))
-PY
-  )"
-
-  if [[ -z "$missing_modules" ]]; then
-    return 0
-  fi
-
-  echo "Installing missing Python parity runtime dependencies (modules: $missing_modules)"
-  if ! uv pip install --python "$venv_python" opencv-python onnxruntime requests pillow-heif; then
-    echo "Failed to install Python parity runtime dependencies." >&2
+  if ! uv sync --project "$UV_PROJECT_DIR" --quiet; then
+    echo "Failed to sync Python environment for parity goldens." >&2
     return 1
   fi
-
-  if ! "$venv_python" - <<'PY'
-import importlib.util
-import sys
-
-required_modules = ("cv2", "onnxruntime", "requests", "numpy", "PIL", "pillow_heif")
-missing = [module for module in required_modules if importlib.util.find_spec(module) is None]
-if missing:
-    print(f"Missing Python parity runtime modules after installation: {', '.join(missing)}", file=sys.stderr)
-    sys.exit(1)
-PY
-  then
-    return 1
-  fi
-
-  return 0
 }
 
 reserve_localhost_port() {
@@ -1168,22 +1122,22 @@ run_preflight_checks() {
             1)
               if $CONTINUE_ON_MISSING_DEVICES; then
                 preflight_warnings+=(
-                  "$platform device id '$explicit_device_id' is unavailable; continuing due to --continue-on-missing-devices"
+                  "$platform device id '$explicit_device_id' is unavailable; continuing"
                 )
               else
                 preflight_errors+=(
-                  "$platform device id '$explicit_device_id' is unavailable (set --continue-on-missing-devices to continue anyway)"
+                  "$platform device id '$explicit_device_id' is unavailable (strict mode requires available devices)"
                 )
               fi
               ;;
             *)
               if $CONTINUE_ON_MISSING_DEVICES; then
                 preflight_warnings+=(
-                  "could not verify $platform device id '$explicit_device_id'; continuing due to --continue-on-missing-devices"
+                  "could not verify $platform device id '$explicit_device_id'; continuing"
                 )
               else
                 preflight_errors+=(
-                  "could not verify $platform device id '$explicit_device_id' (set --continue-on-missing-devices to continue anyway)"
+                  "could not verify $platform device id '$explicit_device_id' (strict mode requires available devices)"
                 )
               fi
               ;;
@@ -1201,22 +1155,22 @@ run_preflight_checks() {
             1)
               if $CONTINUE_ON_MISSING_DEVICES; then
                 preflight_warnings+=(
-                  "no connected $platform device/simulator detected; continuing due to --continue-on-missing-devices"
+                  "no connected $platform device/simulator detected; continuing"
                 )
               else
                 preflight_errors+=(
-                  "no connected $platform device/simulator detected (set --continue-on-missing-devices to continue anyway)"
+                  "no connected $platform device/simulator detected (strict mode requires available devices)"
                 )
               fi
               ;;
             *)
               if $CONTINUE_ON_MISSING_DEVICES; then
                 preflight_warnings+=(
-                  "could not determine $platform device availability; continuing due to --continue-on-missing-devices"
+                  "could not determine $platform device availability; continuing"
                 )
               else
                 preflight_errors+=(
-                  "could not determine $platform device availability (set --continue-on-missing-devices to continue anyway)"
+                  "could not determine $platform device availability (strict mode requires available devices)"
                 )
               fi
               ;;
@@ -1399,11 +1353,11 @@ fi
 echo "Generating Python goldens"
 goldens_log="$LOG_DIR/generate_goldens.log"
 if $VERBOSE; then
-  uv run --project "$UV_PROJECT_DIR" --no-sync --with pillow-heif python "$ML_DIR/tools/generate_goldens.py" \
+  uv run --project "$UV_PROJECT_DIR" --no-sync python "$ML_DIR/tools/generate_goldens.py" \
     --manifest "infra/ml/test/ground_truth/manifest.json" \
     --output-dir "$PYTHON_OUTPUT_DIR"
 else
-  if ! uv run --project "$UV_PROJECT_DIR" --no-sync --with pillow-heif python "$ML_DIR/tools/generate_goldens.py" \
+  if ! uv run --project "$UV_PROJECT_DIR" --no-sync python "$ML_DIR/tools/generate_goldens.py" \
     --manifest "infra/ml/test/ground_truth/manifest.json" \
     --output-dir "$PYTHON_OUTPUT_DIR" >"$goldens_log" 2>&1; then
     echo "Python golden generation failed. Log: $goldens_log" >&2
@@ -1464,11 +1418,6 @@ run_desktop_runner() {
   return 0
 }
 
-platform_device_available() {
-  local platform="$1"
-  preflight_platform_device_available "$platform"
-}
-
 run_mobile_runner() {
   local platform="$1"
   local target="$2"
@@ -1499,7 +1448,7 @@ run_mobile_runner() {
 
   if [[ -z "$resolved_device_id" ]]; then
     local platform_available_exit=0
-    if platform_device_available "$platform"; then
+    if preflight_platform_device_available "$platform"; then
       platform_available_exit=0
     else
       platform_available_exit=$?
@@ -2041,7 +1990,7 @@ render_detection_overlays() {
   local overlays_output_dir="$DETECTION_OVERLAYS_OUTPUT_DIR"
   local -a overlay_platforms=("${selected_platforms[@]}" "python")
   local -a overlay_cmd=(
-    uv run --project "$UV_PROJECT_DIR" --no-sync --with pillow-heif
+    uv run --project "$UV_PROJECT_DIR" --no-sync
     python "$ML_DIR/tools/render_face_detection_overlays.py"
     --manifest "$MANIFEST_PATH"
     --parity-dir "$OUTPUT_DIR"

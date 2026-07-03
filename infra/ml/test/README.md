@@ -54,7 +54,7 @@ Optional mobile reuse env vars:
 Render face detection overlays (box + score + landmarks) for each platform output:
 
 ```sh
-uv run --project infra/ml --no-sync --with pillow-heif \
+uv run --project infra/ml \
   python infra/ml/test/tools/render_face_detection_overlays.py \
   --parity-dir infra/ml/test/out/parity \
   --platform ios \
@@ -75,7 +75,7 @@ Useful optional filters:
 Render the exact Python ground-truth decode output (including EXIF orientation handling) for every manifest fixture, then review the generated gallery.
 
 ```sh
-uv run --project infra/ml --no-sync --with pillow-heif \
+uv run --project infra/ml \
   python infra/ml/test/tools/visualize_ground_truth_decodes.py \
   --manifest infra/ml/test/ground_truth/manifest.json \
   --output-dir infra/ml/test/out/parity/python_decode_preview \
@@ -95,7 +95,7 @@ Goldens are runtime artifacts and are not committed.
 
 Use this process when corpus/threshold/model behavior changes intentionally:
 
-1. Update corpus metadata or thresholds in `infra/ml/test/ground_truth/manifest.json` (and comparator logic if needed).
+1. Update corpus metadata in `infra/ml/test/ground_truth/manifest.json`; thresholds live in `ThresholdConfig` in `infra/ml/test/comparator/compare.py`.
 2. Regenerate and compare with a real run:
 
 ```sh
