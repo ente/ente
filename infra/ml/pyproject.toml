@@ -1,7 +1,7 @@
 [project]
 name = "ente-clean-ml"
 version = "0.1.0"
-description = "Add your description here"
+description = "Python project for testing and running ML models for Ente"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
