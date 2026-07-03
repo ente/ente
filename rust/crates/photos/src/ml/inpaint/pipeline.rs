@@ -25,11 +25,9 @@ use crate::ml::{
 
 pub const SCALING_FACTOR: f32 = 0.13025;
 pub const NOISE_OFFSET: f32 = 0.0357;
-/// 20 -> 19 effective steps, matching the reference pipeline. NOTE: lowering
-/// this with the current `1000 // num_steps` "leading" timestep spacing also
-/// lowers the starting timestep (e.g. 12 steps starts at t=830 instead of
-/// t=900), which mismatches the pure-noise init and produces noisy output —
-/// fix the schedule before trying fewer steps.
+/// 20 -> 19 effective steps, matching the reference pipeline. The schedule
+/// pins the starting timestep at t=900 for any step count (see scheduler.rs),
+/// so lower counts trade quality for speed gracefully.
 pub const DEFAULT_NUM_STEPS: usize = 20;
 pub const DEFAULT_GUIDANCE: f32 = 2.0;
 /// Gaussian blur radius (in 512-space pixels) used to feather the mask edge.

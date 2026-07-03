@@ -66,6 +66,9 @@ class _AiErasePageState extends State<AiErasePage> {
   ui.Image? _image;
   final List<_Stroke> _strokes = [];
   double _brushNorm = 0.05;
+  // TEMP(debug): user-tunable diffusion step count for speed/quality testing;
+  // remove (or hide behind an internal flag) before rollout.
+  int _numSteps = 20;
   Rect _destRect = Rect.zero;
   bool _running = false;
 
@@ -158,7 +161,7 @@ class _AiErasePageState extends State<AiErasePage> {
             preferXnnpack: false,
             allowCpuFallback: true,
           ),
-          numSteps: 0, // 0 => pipeline default (20)
+          numSteps: _numSteps,
           guidance: 0, // 0 => pipeline default (2.0)
           seed: BigInt.from(42),
         ),
@@ -463,6 +466,30 @@ class _AiErasePageState extends State<AiErasePage> {
                       ? null
                       : (v) => setState(() => _brushNorm = v),
                 ),
+              ),
+            ],
+          ),
+          // TEMP(debug): diffusion step-count slider, see _numSteps.
+          Row(
+            children: [
+              const Icon(Icons.tune, color: Colors.white, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Slider(
+                  value: _numSteps.toDouble(),
+                  min: 4,
+                  max: 20,
+                  divisions: 16,
+                  activeColor: colorScheme.primary300,
+                  onChanged: _running
+                      ? null
+                      : (v) => setState(() => _numSteps = v.round()),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                "$_numSteps steps",
+                style: textTheme.mini.copyWith(color: Colors.white),
               ),
             ],
           ),

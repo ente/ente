@@ -40,14 +40,26 @@ impl DdimSchedule {
             alphas_cumprod.push(running);
         }
 
-        // timesteps = (arange(num_steps) * (1000 // num_steps)).round()[::-1][1:]
-        let step_ratio = (NUM_TRAIN_TIMESTEPS / num_steps.max(1)) as i64;
-        let mut timesteps: Vec<i64> = (0..num_steps as i64).map(|i| i * step_ratio).collect();
-        timesteps.reverse();
-        if !timesteps.is_empty() {
-            // Drop the first (highest) timestep => effective strength ~0.99.
-            timesteps.remove(0);
-        }
+        // The reference recipe at 20 steps is `(arange(20) * 50)[::-1][1:]`
+        // = [900, 850, ..., 0]: the first timestep is dropped to emulate
+        // strength ~0.99, leaving a start at t=900. Naively reusing that
+        // formula at lower step counts also lowers the start (e.g. 12 steps
+        // -> t=830), which mismatches the pure-noise init latent and degrades
+        // output badly. Instead, pin the start at T_START and spread the
+        // effective steps evenly down to 0 — identical to the reference
+        // schedule at 20 steps, and correct at lower counts.
+        const T_START: i64 = 900;
+        let effective = num_steps.saturating_sub(1).max(1);
+        let timesteps: Vec<i64> = if effective == 1 {
+            vec![T_START]
+        } else {
+            (0..effective)
+                .map(|i| {
+                    let remaining = (effective - 1 - i) as f64;
+                    (T_START as f64 * remaining / (effective - 1) as f64).round() as i64
+                })
+                .collect()
+        };
 
         Self {
             alphas_cumprod,
@@ -91,10 +103,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn schedule_drops_first_timestep_and_descends() {
+    fn schedule_matches_reference_at_20_steps() {
         let schedule = DdimSchedule::new(20);
-        // 20 steps, first dropped => 19 timesteps, descending, ending at 0.
-        assert_eq!(schedule.timesteps.len(), 19);
+        // Must be bit-identical to the reference recipe: [900, 850, ..., 0].
+        let expected: Vec<i64> = (0..19).map(|i| 900 - i * 50).collect();
+        assert_eq!(schedule.timesteps, expected);
+    }
+
+    #[test]
+    fn schedule_keeps_high_start_at_low_step_counts() {
+        let schedule = DdimSchedule::new(12);
+        // 12 steps, first dropped => 11 timesteps, still starting at t=900.
+        assert_eq!(schedule.timesteps.len(), 11);
         assert_eq!(schedule.timesteps[0], 900);
         assert_eq!(*schedule.timesteps.last().unwrap(), 0);
         for pair in schedule.timesteps.windows(2) {
