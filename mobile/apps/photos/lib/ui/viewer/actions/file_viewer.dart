@@ -253,7 +253,12 @@ class FileViewerState extends State<FileViewer> {
         fileSelectedIndex,
         "external_review_gallery",
         isLocalOnlyContext: true,
-        showEditAction: false,
+        // Files opened via an external VIEW intent (screenshot, camera,
+        // Files app, etc.) still resolve to a real on-device asset here, so
+        // editing works just like it does for a local folder inside the app -
+        // the edited copy is saved back to the device gallery. Keep the edit
+        // action available so the external viewer matches the in-app one.
+        showEditAction: true,
         galleryType: GalleryType.localFolder,
         onBackPressed: (_) => _closeViewer(),
       );
