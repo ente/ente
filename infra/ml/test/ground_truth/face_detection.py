@@ -27,9 +27,17 @@ class FaceDetection:
         return (x_min, y_min, max(0.0, x_max - x_min), max(0.0, y_max - y_min))
 
 
+@dataclass(frozen=True)
+class YoloFacePreprocessInfo:
+    scaled_width: int
+    scaled_height: int
+    pad_left: int
+    pad_top: int
+
+
 def preprocess_image_yolo_face(
     image_rgb: np.ndarray,
-) -> tuple[np.ndarray, tuple[int, int]]:
+) -> tuple[np.ndarray, YoloFacePreprocessInfo]:
     if image_rgb.ndim != 3 or image_rgb.shape[2] != 3:
         raise ValueError("face detection expects an RGB image with shape [H, W, 3]")
 
@@ -49,10 +57,17 @@ def preprocess_image_yolo_face(
         DEFAULT_PADDING_RGB,
         dtype=np.uint8,
     )
-    canvas[:scaled_height, :scaled_width] = resized
+    pad_left = (YOLO_INPUT_WIDTH - scaled_width) // 2
+    pad_top = (YOLO_INPUT_HEIGHT - scaled_height) // 2
+    canvas[pad_top : pad_top + scaled_height, pad_left : pad_left + scaled_width] = resized
 
     chw = np.transpose(canvas.astype(np.float32) / 255.0, (2, 0, 1))
-    return np.ascontiguousarray(chw), (scaled_width, scaled_height)
+    return np.ascontiguousarray(chw), YoloFacePreprocessInfo(
+        scaled_width=scaled_width,
+        scaled_height=scaled_height,
+        pad_left=pad_left,
+        pad_top=pad_top,
+    )
 
 
 def _normalize_xyxy(row: np.ndarray) -> tuple[float, float, float, float]:
@@ -77,27 +92,41 @@ def _correct_for_aspect_ratio(
     *,
     box_xyxy: tuple[float, float, float, float],
     landmarks: tuple[tuple[float, float], ...],
-    scaled_width: int,
-    scaled_height: int,
+    preprocess_info: YoloFacePreprocessInfo,
 ) -> tuple[tuple[float, float, float, float], tuple[tuple[float, float], ...]]:
-    if scaled_width <= 0 or scaled_height <= 0:
+    if preprocess_info.scaled_width <= 0 or preprocess_info.scaled_height <= 0:
         raise ValueError("scaled_width and scaled_height must be positive")
 
-    scale_x = YOLO_INPUT_WIDTH / scaled_width
-    scale_y = YOLO_INPUT_HEIGHT / scaled_height
+    def transform_x(x: float) -> float:
+        return float(
+            np.clip(
+                (x * YOLO_INPUT_WIDTH - preprocess_info.pad_left) / preprocess_info.scaled_width,
+                0.0,
+                1.0,
+            )
+        )
+
+    def transform_y(y: float) -> float:
+        return float(
+            np.clip(
+                (y * YOLO_INPUT_HEIGHT - preprocess_info.pad_top) / preprocess_info.scaled_height,
+                0.0,
+                1.0,
+            )
+        )
 
     x_min, y_min, x_max, y_max = box_xyxy
     corrected_box = (
-        float(np.clip(x_min * scale_x, 0.0, 1.0)),
-        float(np.clip(y_min * scale_y, 0.0, 1.0)),
-        float(np.clip(x_max * scale_x, 0.0, 1.0)),
-        float(np.clip(y_max * scale_y, 0.0, 1.0)),
+        transform_x(x_min),
+        transform_y(y_min),
+        transform_x(x_max),
+        transform_y(y_max),
     )
 
     corrected_landmarks = tuple(
         (
-            float(np.clip(x * scale_x, 0.0, 1.0)),
-            float(np.clip(y * scale_y, 0.0, 1.0)),
+            transform_x(x),
+            transform_y(y),
         )
         for x, y in landmarks
     )
@@ -128,8 +157,7 @@ def _nms_faces(candidates: list[FaceDetection]) -> list[FaceDetection]:
 def postprocess_yolo_output(
     *,
     raw_output: np.ndarray,
-    scaled_width: int,
-    scaled_height: int,
+    preprocess_info: YoloFacePreprocessInfo,
 ) -> list[FaceDetection]:
     output = np.asarray(raw_output, dtype=np.float32)
     if output.ndim == 3:
@@ -148,8 +176,7 @@ def postprocess_yolo_output(
         corrected_box, corrected_landmarks = _correct_for_aspect_ratio(
             box_xyxy=box_xyxy,
             landmarks=landmarks,
-            scaled_width=scaled_width,
-            scaled_height=scaled_height,
+            preprocess_info=preprocess_info,
         )
         candidates.append(
             FaceDetection(
@@ -180,7 +207,7 @@ class FaceDetectionModel:
 
     def detect(self, image_rgb: np.ndarray) -> tuple[tuple[FaceDetection, ...], dict[str, float]]:
         preprocess_start = perf_counter()
-        input_tensor, (scaled_width, scaled_height) = preprocess_image_yolo_face(image_rgb)
+        input_tensor, preprocess_info = preprocess_image_yolo_face(image_rgb)
         preprocess_ms = (perf_counter() - preprocess_start) * 1000.0
 
         inference_start = perf_counter()
@@ -190,8 +217,7 @@ class FaceDetectionModel:
         postprocess_start = perf_counter()
         detections = postprocess_yolo_output(
             raw_output=np.asarray(outputs[0], dtype=np.float32),
-            scaled_width=scaled_width,
-            scaled_height=scaled_height,
+            preprocess_info=preprocess_info,
         )
         postprocess_ms = (perf_counter() - postprocess_start) * 1000.0
 
