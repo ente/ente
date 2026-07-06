@@ -426,6 +426,143 @@ def test_compare_result_sets_ignores_faces_below_min_score_threshold() -> None:
     assert not any(finding.metric == "face_count" for finding in report.findings)
 
 
+def test_compare_result_sets_includes_matched_face_when_either_score_crosses_threshold() -> None:
+    reference_face = _face(520, x=0.34, y=0.18, score=0.79)
+    candidate_face = _face(520, x=0.3405, y=0.1805, score=0.83)
+    reference = _result(
+        file_id="near-threshold-face.jpeg",
+        platform="python",
+        clip_seed=42,
+        faces=(reference_face,),
+    )
+    candidate = _result(
+        file_id="near-threshold-face.jpeg",
+        platform="ios",
+        clip_seed=42,
+        faces=(candidate_face,),
+    )
+
+    report = compare_result_sets(
+        reference_platform="python",
+        candidate_platform="ios",
+        reference_results={reference.file_id: reference},
+        candidate_results={candidate.file_id: candidate},
+    )
+
+    assert report.passed is True
+    assert report.findings == ()
+    file_status = _status_for_file(report, "near-threshold-face.jpeg")
+    reference_count = next(
+        metric for metric in file_status.metrics if metric.metric == "reference_face_count"
+    )
+    candidate_count = next(
+        metric for metric in file_status.metrics if metric.metric == "candidate_face_count"
+    )
+    score_delta = next(
+        metric for metric in file_status.metrics if metric.metric == "score_delta_max"
+    )
+    assert reference_count.value == pytest.approx(1.0)
+    assert candidate_count.value == pytest.approx(1.0)
+    assert score_delta.value == pytest.approx(0.04)
+    assert score_delta.passed is True
+
+
+def test_compare_result_sets_dedupes_platform_faces_before_matching() -> None:
+    reference_face = _face_with_box(
+        540,
+        x=0.20,
+        y=0.20,
+        width=0.20,
+        height=0.20,
+        score=0.92,
+    )
+    low_score_duplicate = _face_with_box(
+        999,
+        x=0.20,
+        y=0.20,
+        width=0.20,
+        height=0.20,
+        score=0.20,
+    )
+    valid_candidate_face = _face_with_box(
+        540,
+        x=0.202,
+        y=0.202,
+        width=0.20,
+        height=0.20,
+        score=0.91,
+    )
+    reference = _result(
+        file_id="duplicate-face.jpeg",
+        platform="python",
+        clip_seed=44,
+        faces=(reference_face,),
+    )
+    candidate = _result(
+        file_id="duplicate-face.jpeg",
+        platform="ios",
+        clip_seed=44,
+        faces=(low_score_duplicate, valid_candidate_face),
+    )
+
+    report = compare_result_sets(
+        reference_platform="python",
+        candidate_platform="ios",
+        reference_results={reference.file_id: reference},
+        candidate_results={candidate.file_id: candidate},
+    )
+
+    assert report.passed is True
+    assert report.findings == ()
+    file_status = _status_for_file(report, "duplicate-face.jpeg")
+    candidate_count = next(
+        metric for metric in file_status.metrics if metric.metric == "candidate_face_count"
+    )
+    matched_count = next(
+        metric for metric in file_status.metrics if metric.metric == "matched_face_count"
+    )
+    score_delta = next(
+        metric for metric in file_status.metrics if metric.metric == "score_delta_max"
+    )
+    assert candidate_count.value == pytest.approx(1.0)
+    assert matched_count.value == pytest.approx(1.0)
+    assert score_delta.value == pytest.approx(0.01)
+
+
+def test_compare_result_sets_fails_large_score_delta_for_matched_threshold_face() -> None:
+    reference_face = _face(530, x=0.34, y=0.18, score=0.79)
+    candidate_face = _face(530, x=0.3405, y=0.1805, score=0.86)
+    reference = _result(
+        file_id="score-delta-face.jpeg",
+        platform="python",
+        clip_seed=43,
+        faces=(reference_face,),
+    )
+    candidate = _result(
+        file_id="score-delta-face.jpeg",
+        platform="ios",
+        clip_seed=43,
+        faces=(candidate_face,),
+    )
+
+    report = compare_result_sets(
+        reference_platform="python",
+        candidate_platform="ios",
+        reference_results={reference.file_id: reference},
+        candidate_results={candidate.file_id: candidate},
+    )
+
+    assert report.passed is False
+    assert any(finding.metric == "score_delta" for finding in report.findings)
+    file_status = _status_for_file(report, "score-delta-face.jpeg")
+    score_delta = next(
+        metric for metric in file_status.metrics if metric.metric == "score_delta_max"
+    )
+    assert score_delta.value == pytest.approx(0.07)
+    assert score_delta.threshold == pytest.approx(0.05)
+    assert score_delta.passed is False
+
+
 def test_compare_result_sets_marks_face_embedding_warning_band() -> None:
     reference_face = _face(620, x=0.24, y=0.20, score=0.93)
     candidate_face = FaceResult(

@@ -107,9 +107,10 @@ class ThresholdConfig:
     face_embedding_cosine_distance: float = 0.015
     face_embedding_warning_cosine_distance: float = 0.035
     box_iou_threshold: float = 0.80
+    face_duplicate_iou_threshold: float = 0.80
     face_match_iou_floor: float = 0.05
     landmark_error_threshold: float = 0.03
-    score_delta_threshold: float = 0.10
+    score_delta_threshold: float = 0.05
     min_face_score_for_comparison: float = 0.80
 
     def __post_init__(self) -> None:
@@ -141,6 +142,7 @@ class ThresholdConfig:
             "face_embedding_cosine_distance": self.face_embedding_cosine_distance,
             "face_embedding_warning_cosine_distance": self.face_embedding_warning_cosine_distance,
             "box_iou_threshold": self.box_iou_threshold,
+            "face_duplicate_iou_threshold": self.face_duplicate_iou_threshold,
             "face_match_iou_floor": self.face_match_iou_floor,
             "landmark_error_threshold": self.landmark_error_threshold,
             "score_delta_threshold": self.score_delta_threshold,
@@ -396,6 +398,27 @@ def _match_faces(
     return matches
 
 
+def _dedupe_faces(
+    faces: Sequence[FaceResult],
+    *,
+    min_iou_for_duplicate: float,
+) -> tuple[FaceResult, ...]:
+    kept: list[tuple[int, FaceResult]] = []
+    for face_index, face in sorted(
+        enumerate(faces),
+        key=lambda entry: (-entry[1].score, entry[0]),
+    ):
+        if any(
+            _box_iou(face.box, kept_face.box) >= min_iou_for_duplicate
+            for _, kept_face in kept
+        ):
+            continue
+        kept.append((face_index, face))
+
+    kept.sort(key=lambda entry: entry[0])
+    return tuple(face for _, face in kept)
+
+
 def compare_result_sets(
     *,
     reference_platform: str,
@@ -563,15 +586,13 @@ def compare_result_sets(
         reference = reference_results[file_id]
         candidate = candidate_results[file_id]
 
-        reference_faces = tuple(
-            face
-            for face in reference.faces
-            if face.score >= thresholds.min_face_score_for_comparison
+        reference_faces = _dedupe_faces(
+            reference.faces,
+            min_iou_for_duplicate=thresholds.face_duplicate_iou_threshold,
         )
-        candidate_faces = tuple(
-            face
-            for face in candidate.faces
-            if face.score >= thresholds.min_face_score_for_comparison
+        candidate_faces = _dedupe_faces(
+            candidate.faces,
+            min_iou_for_duplicate=thresholds.face_duplicate_iou_threshold,
         )
 
         clip_distance = cosine_distance(reference.clip.embedding, candidate.clip.embedding)
@@ -613,8 +634,52 @@ def compare_result_sets(
                 ),
             )
 
-        reference_face_count = len(reference_faces)
-        candidate_face_count = len(candidate_faces)
+        all_matches = _match_faces(
+            reference_faces,
+            candidate_faces,
+            min_iou_for_match=thresholds.face_match_iou_floor,
+        )
+        matched_reference_indices = {
+            reference_index for reference_index, _, _ in all_matches
+        }
+        matched_candidate_indices = {
+            candidate_index for _, candidate_index, _ in all_matches
+        }
+        relevant_matches = tuple(
+            (reference_index, candidate_index, iou)
+            for reference_index, candidate_index, iou in all_matches
+            if (
+                reference_faces[reference_index].score
+                >= thresholds.min_face_score_for_comparison
+                or candidate_faces[candidate_index].score
+                >= thresholds.min_face_score_for_comparison
+            )
+        )
+        unmatched_reference_indices = tuple(
+            reference_index
+            for reference_index, face in enumerate(reference_faces)
+            if (
+                face.score >= thresholds.min_face_score_for_comparison
+                and reference_index not in matched_reference_indices
+            )
+        )
+        unmatched_candidate_indices = tuple(
+            candidate_index
+            for candidate_index, face in enumerate(candidate_faces)
+            if (
+                face.score >= thresholds.min_face_score_for_comparison
+                and candidate_index not in matched_candidate_indices
+            )
+        )
+        comparable_reference_indices = {
+            reference_index for reference_index, _, _ in relevant_matches
+        } | set(unmatched_reference_indices)
+        comparable_candidate_indices = {
+            candidate_index for _, candidate_index, _ in relevant_matches
+        } | set(unmatched_candidate_indices)
+
+        reference_face_count = len(comparable_reference_indices)
+        candidate_face_count = len(comparable_candidate_indices)
         no_faces = reference_face_count == 0 and candidate_face_count == 0
         add_file_metric(
             file_id=file_id,
@@ -624,8 +689,8 @@ def compare_result_sets(
             status=STATUS_PASS,
             passed=True,
             message=(
-                f"{reference_platform} face count (score >= "
-                f"{thresholds.min_face_score_for_comparison:.2f})"
+                f"{reference_platform} comparable face count "
+                f"(matched if either score >= {thresholds.min_face_score_for_comparison:.2f})"
             ),
         )
         add_file_metric(
@@ -636,8 +701,8 @@ def compare_result_sets(
             status=STATUS_PASS,
             passed=True,
             message=(
-                f"{candidate_platform} face count (score >= "
-                f"{thresholds.min_face_score_for_comparison:.2f})"
+                f"{candidate_platform} comparable face count "
+                f"(matched if either score >= {thresholds.min_face_score_for_comparison:.2f})"
             ),
         )
         face_count_delta = abs(reference_face_count - candidate_face_count)
@@ -663,30 +728,25 @@ def compare_result_sets(
                 ),
             )
 
-        matches = _match_faces(
-            reference_faces,
-            candidate_faces,
-            min_iou_for_match=thresholds.face_match_iou_floor,
-        )
         maximum_possible_matches = min(reference_face_count, candidate_face_count)
         add_file_metric(
             file_id=file_id,
             metric="matched_face_count",
-            value=float(len(matches)),
+            value=float(len(relevant_matches)),
             threshold=float(maximum_possible_matches),
-            status=STATUS_PASS if len(matches) == maximum_possible_matches else STATUS_FAIL,
-            passed=len(matches) == maximum_possible_matches,
+            status=(
+                STATUS_PASS
+                if len(relevant_matches) == maximum_possible_matches
+                else STATUS_FAIL
+            ),
+            passed=len(relevant_matches) == maximum_possible_matches,
             direction="==",
-            count=len(matches),
+            count=len(relevant_matches),
             message="Greedy IoU-gated face matches",
         )
 
-        unmatched_reference_face_count = reference_face_count - len(
-            {reference_index for reference_index, _, _ in matches}
-        )
-        unmatched_candidate_face_count = candidate_face_count - len(
-            {candidate_index for _, candidate_index, _ in matches}
-        )
+        unmatched_reference_face_count = len(unmatched_reference_indices)
+        unmatched_candidate_face_count = len(unmatched_candidate_indices)
         add_file_metric(
             file_id=file_id,
             metric="unmatched_reference_face_count",
@@ -752,7 +812,7 @@ def compare_result_sets(
         file_landmark_errors: list[float] = []
         file_score_deltas: list[float] = []
         file_embedding_distances: list[float] = []
-        for reference_index, candidate_index, iou in matches:
+        for reference_index, candidate_index, iou in relevant_matches:
             reference_face = reference_faces[reference_index]
             candidate_face = candidate_faces[candidate_index]
 
