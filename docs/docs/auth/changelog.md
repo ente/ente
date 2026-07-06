@@ -7,6 +7,24 @@ description: Release notes of recent updates to Ente Auth
 
 A short summary list of changes to the Ente Auth mobile and desktop apps. For a more descriptive list with screenshots and blog post links, see the [news](https://ente.com/news).
 
+## v4.4.24 - Jul 2026
+
+- Added a way to view and delete Auth codes that could not be parsed.
+- Added support for importing 2FA codes from QR code images on desktop.
+- Improved support for importing codes from Google Authenticator QR exports.
+- Fixed Auth AppImage startup on Linux systems where bundled C++ runtime libraries could conflict with host graphics drivers.
+- Fixed Auth AppImage startup on Linux systems where bundled dependencies could not find libffi.
+- Fixed Auth deb installs missing Linux runtime dependencies on fresh systems.
+- Matched the Auth Linux title bar to GNOME's dark mode preference.
+- Fixed Auth Linux pacman package dependency metadata so libsodium is installed for crypto initialization.
+- Improved Linux setup guidance when system authentication needs extra setup.
+- Fixed Auth startup crashes on Linux X11 sessions caused by Xlib threading initialization.
+- Improved QR code detection when importing from low-resolution gallery images.
+- Improved QR scanner camera focusing and device compatibility.
+- Added a scan frame and torch control to the QR scanner.
+- Fixed QR scanner black screens when adding codes.
+- Improved animation smoothness for Auth on Windows high-refresh-rate displays.
+
 ## v4.4.23 - Jun 2026
 
 - Newly added codes now stay in view, so an active search or tag filter no longer hides a code you just added.
