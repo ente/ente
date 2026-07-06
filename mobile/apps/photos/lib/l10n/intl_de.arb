@@ -1,25 +1,25 @@
 {
   "@@locale ": "en",
   "enterYourEmailAddress": "Gib deine E-Mail-Adresse ein",
-  "enterYourNewEmailAddress": "Gib Deine neue E-Mail-Adresse ein",
+  "enterYourNewEmailAddress": "Geben Sie Ihre neue E-Mail-Adresse ein",
   "accountWelcomeBack": "Willkommen zurück!",
   "emailAlreadyRegistered": "E-Mail ist bereits registriert.",
   "emailNotRegistered": "E-Mail nicht registriert.",
-  "accountSetupIncompleteCreateAccount": "Kontoeinrichtung unvollständig. Erstelle ein Konto, um die Einrichtung abzuschließen.",
+  "accountSetupIncompleteCreateAccount": "Kontoeinrichtung unvollständig. Erstellen Sie ein Konto, um die Einrichtung abzuschließen.",
   "email": "E-Mail",
   "cancel": "Abbrechen",
   "cast": "Streamen",
   "verify": "Überprüfen",
   "invalidEmailAddress": "Ungültige E-Mail-Adresse",
   "validEmailAddress": "Gültige E-Mail-Adresse",
-  "enterValidEmail": "Bitte gib eine gültige E-Mail-Adresse ein.",
+  "enterValidEmail": "Bitte geben Sie eine gültige E-Mail Adresse ein.",
   "deleteAccount": "Konto löschen",
-  "deleteAccountWarning": "Hiermit wird dein Account bei Ente Auth, Ente Photos und Ente Locker gelöscht.",
+  "deleteAccountWarning": "Hiermit wird Ihr Konto für Ente Auth, Ente Photos und Ente Locker gelöscht.",
   "askDeleteReason": "Was ist der Hauptgrund für die Löschung deines Kontos?",
   "deleteAccountFeedbackPrompt": "Wir bedauern sehr, dass du dein Konto löschen möchtest. Du würdest uns sehr helfen, wenn du uns kurz einige Gründe hierfür nennen könntest.",
   "feedback": "Rückmeldung",
-  "kindlyHelpUsWithThisInformation": "Bitte gib diese Daten ein",
-  "confirmDeletePrompt": "Ja, ich möchte dieses Konto und alle enthaltenen Daten über alle Apps hinweg endgültig löschen.",
+  "kindlyHelpUsWithThisInformation": "Bitte helfen Sie uns mit diesen Informationen",
+  "confirmDeletePrompt": "Ja, ich möchte dieses Konto und seine Daten in allen Apps endgültig löschen.",
   "confirmAccountDeletion": "Kontolöschung bestätigen",
   "deleteAccountPermanentlyButton": "Konto unwiderruflich löschen",
   "yourAccountHasBeenDeleted": "Dein Benutzerkonto wurde gelöscht",
@@ -29,7 +29,7 @@
   "deleteReason3": "Ich habe einen anderen Dienst gefunden, der mir mehr zusagt",
   "deleteReason4": "Mein Grund ist nicht aufgeführt",
   "sendEmail": "E-Mail senden",
-  "deleteRequestSLAText": "Deine Anfrage wird innerhalb von 72 Stunden bearbeitet.",
+  "deleteRequestSLAText": "Ihre Anfrage wird innerhalb von 72 Stunden bearbeitet.",
   "entePhotosPerm": "Ente <i> benötigt Berechtigung, um </i> Ihre Fotos zu sichern",
   "ok": "Ok",
   "createAccount": "Konto erstellen",
@@ -67,7 +67,7 @@
   "noRecoveryKeyNoDecryption": "Aufgrund unseres Ende-zu-Ende-Verschlüsselungsprotokolls können deine Daten nicht ohne dein Passwort oder deinen Wiederherstellungs-Schlüssel entschlüsselt werden",
   "verifyEmail": "E-Mail-Adresse verifizieren",
   "toResetVerifyEmail": "Um dein Passwort zurückzusetzen, verifiziere bitte zuerst deine E-Mail-Adresse.",
-  "checkInboxAndSpamFolder": "Bitte überprüfe deinen E-Mail-Posteingang (und Spam), um die Verifizierung abzuschließen",
+  "checkInboxAndSpamFolder": "Bitte überprüfen Sie Ihren Posteingang (und Spam), um die Verifizierung abzuschließen",
   "tapToEnterCode": "Antippen, um den Code einzugeben",
   "resendEmail": "E-Mail erneut senden",
   "resendCode": "Code erneut senden",
@@ -97,8 +97,8 @@
   "changePasswordTitle": "Passwort ändern",
   "resetPasswordTitle": "Passwort zurücksetzen",
   "encryptionKeys": "Verschlüsselungscode",
-  "passwordWarning": "Wir speichern dieses Passwort nicht. Wenn du es vergisst, <underline>können wir deine Daten nicht entschlüsseln</underline>",
-  "enterPasswordToEncrypt": "Gib ein Passwort ein, mit dem wir deine Daten verschlüsseln können",
+  "passwordWarning": "Wir speichern dieses Passwort nicht. Wenn Sie es vergessen, <underline>können wir Ihre Daten nicht entschlüsseln</underline>",
+  "enterPasswordToEncrypt": "Geben Sie ein Passwort ein, mit dem wir Ihre Daten verschlüsseln können",
   "enterNewPasswordToEncrypt": "Gib ein neues Passwort ein, mit dem wir deine Daten verschlüsseln können",
   "weakStrength": "Schwach",
   "strongStrength": "Stark",
@@ -443,12 +443,53 @@
   "videoSmallCase": "Video",
   "photoSmallCase": "Foto",
   "singleFileDeleteHighlight": "Es wird aus allen Alben gelöscht.",
+  "singleFileInBothLocalAndRemote": "Dieses Element ist auf Ihrem Gerät und bei Ente verfügbar.",
+  "@singleFileInBothLocalAndRemote": {
+    "description": "Delete confirmation message for a single item that exists both on the device and in Ente."
+  },
+  "singleFileInRemoteOnly": "Dieses Element wird aus allen Alben gelöscht. Sie können es aus dem Papierkorb wiederherstellen.",
+  "@singleFileInRemoteOnly": {
+    "description": "Delete confirmation message for a single item that exists only in Ente."
+  },
+  "singleFileDeleteFromDevice": "Element nicht gesichert. Endgültig vom Gerät löschen?",
+  "@singleFileDeleteFromDevice": {
+    "description": "Delete confirmation message for a single item that exists only on the device."
+  },
+  "deleteItemsQuestion": "{count, plural, one {Element löschen?} other {{count} Elemente löschen?}}",
+  "@deleteItemsQuestion": {
+    "description": "Delete confirmation title for one or more selected items.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "selectedFilesSavedOnDeviceOnly": "Elemente nicht gesichert. Endgültig vom Gerät löschen?",
+  "@selectedFilesSavedOnDeviceOnly": {
+    "description": "Delete confirmation message for selected items that exist only on the device."
+  },
+  "selectedFilesBackedUpToEnte": "Diese Elemente werden aus allen Alben gelöscht. Sie können sie aus dem Papierkorb wiederherstellen.",
+  "@selectedFilesBackedUpToEnte": {
+    "description": "Delete confirmation message for selected items that are backed up to Ente."
+  },
+  "someSelectedFilesBackedUpToEnte": "Diese Elemente sind auf dem Gerät und bei Ente verfügbar.",
+  "@someSelectedFilesBackedUpToEnte": {
+    "description": "Delete confirmation message for selected items that exist both on the device and in Ente."
+  },
   "deleteFromEnte": "Von Ente löschen",
   "yesDelete": "Ja, löschen",
   "movedToTrash": "In den Papierkorb verschoben",
   "deleteFromDeviceQuestion": "Vom Gerät löschen?",
   "deleteFromDevice": "Vom Gerät löschen",
   "deleteFromBoth": "Aus beidem löschen",
+  "moreOptions": "Weitere Optionen",
+  "@moreOptions": {
+    "description": "Button label for showing additional delete options."
+  },
+  "setAsMyDefaultChoice": "Als meine Standardauswahl festlegen",
+  "@setAsMyDefaultChoice": {
+    "description": "Checkbox label for saving the selected delete action as the default choice."
+  },
   "newAlbum": "Neues Album",
   "albums": "Alben",
   "ente": "Ente",
@@ -625,6 +666,7 @@
   "backup": "Backup",
   "freeUpDeviceSpace": "Gerätespeicher freiräumen",
   "freeUpDeviceSpaceDesc": "Spare Speicherplatz auf deinem Gerät, indem du Dateien löschst, die bereits gesichert wurden.",
+  "freeUpDeviceSpaceConfirmDesc": "{count, plural, one{{count} gesicherte Datei wird} other{{count} gesicherte Dateien werden}} endgültig von diesem Gerät gelöscht.",
   "freeUpDeviceSpaceDescICloud": "Dateien in mit iCloud geteilten Alben können nicht gelöscht werden.",
   "@freeUpDeviceSpaceDescICloud": {
     "description": "Here 'cleared' means 'deleted' from the device"
@@ -633,6 +675,14 @@
   "noDeviceThatCanBeDeleted": "Du hast keine Dateien auf diesem Gerät, die gelöscht werden können",
   "removeDuplicates": "Duplikate entfernen",
   "removeDuplicatesDesc": "Überprüfe und lösche Dateien, die exakte Duplikate sind.",
+  "mediaManagementHintTitle": "Sind Sie es leid, jedes Löschen zu bestätigen?",
+  "@mediaManagementHintTitle": {
+    "description": "Title of a sheet prompting Android users to enable media management permission."
+  },
+  "mediaManagementHintMessage": "Aktivieren Sie die Medienverwaltung für Ente in den Einstellungen, und die Abfragen enden.",
+  "@mediaManagementHintMessage": {
+    "description": "Message explaining that enabling Android media management permission avoids repeated delete confirmations."
+  },
   "viewLargeFiles": "Große Dateien",
   "viewLargeFilesDesc": "Dateien anzeigen, die den meisten Speicherplatz belegen.",
   "deleteSuggestions": "Vorschläge löschen",
@@ -2898,6 +2948,8 @@
   "ritualPickEmojiTitle": "Emoji auswählen",
   "ritualCustomKeyboardLabel": "Benutzerdefiniert (Tastatur)",
   "ritualEmojiKeyboardHint": "Tippe, um die Emoji-Tastatur zu öffnen",
+  "ritualEmojiUseAction": "Verwenden",
+  "ritualSearchEmpty": "Bauen Sie ein Ritual auf, um Ihre Foto-Gewohnheit beizubehalten.",
   "feed": "Feed",
   "newCommentNotificationTitle": "Du hast einen Kommentar erhalten",
   "@newCommentNotificationTitle": {

@@ -5,13 +5,16 @@
   "accountWelcomeBack": "Sveiki sugrįžę!",
   "emailAlreadyRegistered": "El. paštas jau užregistruotas.",
   "emailNotRegistered": "El. paštas neregistruotas.",
+  "accountSetupIncompleteCreateAccount": "Paskyros sąranka neužbaigta. Sukurkite paskyrą, kad užbaigtumėte sąranką.",
   "email": "El. paštas",
   "cancel": "Atšaukti",
+  "cast": "Perduoti",
   "verify": "Patvirtinti",
   "invalidEmailAddress": "Netinkamas el. pašto adresas",
+  "validEmailAddress": "Tinkamas el. pašto adresas",
   "enterValidEmail": "Įveskite tinkamą el. pašto adresą.",
   "deleteAccount": "Ištrinti paskyrą",
-  "deleteAccountWarning": "Tai ištrins jūsų „Ente Auth“, „Ente“ nuotraukos ir „Ente“ sandėlio paskyras.",
+  "deleteAccountWarning": "Tai ištrins jūsų „Ente Auth“, „Ente“ nuotraukos ir „Ente“ spintelės paskyras.",
   "askDeleteReason": "Kokia yra pagrindinė priežastis, dėl kurios ištrinate savo paskyrą?",
   "deleteAccountFeedbackPrompt": "Apgailestaujame, kad išeinate. Pasidalykite savo atsiliepimais, kad padėtumėte mums tobulėti.",
   "feedback": "Atsiliepimai",
@@ -1854,8 +1857,249 @@
   "@newLikeNotificationTitle": {
     "description": "Notification title when someone likes a shared photo or comment."
   },
+  "likedAPhoto": "patiko nuotrauka",
+  "@likedAPhoto": {
+    "description": "Social action text shown after a person's name, for example 'John liked a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourVideo": "patiko jūsų vaizdo įrašas",
+  "@likedYourVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John liked your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAVideo": "patiko vaizdo įrašas",
+  "@likedAVideo": {
+    "description": "Social action text shown after a person's name, for example 'John liked a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnYourPhoto": "pakomentavo ant jūsų nuotraukos",
+  "@commentedOnYourPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on your photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnAPhoto": "pakomentavo ant nuotraukos",
+  "@commentedOnAPhoto": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a photo'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnYourVideo": "pakomentavo ant jūsų vaizdo įrašo",
+  "@commentedOnYourVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on your video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "commentedOnAVideo": "pakomentavo ant vaizdo įrašo",
+  "@commentedOnAVideo": {
+    "description": "Social notification action text shown after a person's name, for example 'John commented on a video'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "repliedToYourComment": "atsakė į jūsų komentarą",
+  "@repliedToYourComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "repliedToAComment": "atsakė į komentarą",
+  "@repliedToAComment": {
+    "description": "Social notification action text shown after a person's name, for example 'John replied to a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourComment": "patiko jūsų komentaras",
+  "@likedYourComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked your comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAComment": "patiko komentaras",
+  "@likedAComment": {
+    "description": "Social action text shown after a person's name, for example 'John liked a comment'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedYourReply": "patiko jūsų atsakymas",
+  "@likedYourReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked your reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "likedAReply": "patiko atsakymas",
+  "@likedAReply": {
+    "description": "Social action text shown after a person's name, for example 'John liked a reply'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter."
+  },
+  "addedAMemoryTo": "įtraukė prisiminimą į „{albumName}“",
+  "@addedAMemoryTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added a memory to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "addedNMemoriesTo": "įtraukė {count} prisiminimus (-ų) į „{albumName}“",
+  "@addedNMemoriesTo": {
+    "description": "Social notification action text shown after a person's name, for example 'John added 4 memories to Recents'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedAlbumWithYou": "bendrino „{albumName}“ su jumis",
+  "@sharedAlbumWithYou": {
+    "description": "Social notification action text shown after a person's name, for example 'John shared Recents with you'. Make sure the translation reads naturally with a name before it, and do not capitalize the first letter.",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "and1Other": "ir dar 1",
+  "andXOthers": "ir dar {count}",
+  "@andXOthers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noActivityYet": "Dar nėra veiklos.",
+  "nothingHereYet": "Čia dar nieko nėra.",
+  "like": "Patinka",
+  "comments": "Komentarai",
+  "commentHint": "Pasakykite kažką malonaus!",
+  "@commentHint": {
+    "description": "Placeholder text for comment input field"
+  },
+  "reply": "Atsakyti",
+  "@reply": {
+    "description": "Reply action button label"
+  },
+  "areYouSure": "Ar esate tikri?",
+  "@areYouSure": {
+    "description": "Confirmation dialog title"
+  },
+  "deleteComment": "Ištrinti komentarą",
+  "@deleteComment": {
+    "description": "Delete comment button label"
+  },
+  "likesCount": "{count, plural, one {{count} patiktukas} few {{count} patiktukai} many {{count} patiktuko} other {{count} patiktukų}}",
+  "@likesCount": {
+    "description": "Number of likes with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noLikesYet": "Dar nėra patiktukų.",
+  "@noLikesYet": {
+    "description": "Empty state when no likes exist"
+  },
+  "couldNotLoadLikes": "Nepavyko įkelti patiktukus.",
+  "@couldNotLoadLikes": {
+    "description": "Error when likes fail to load"
+  },
+  "failedToUpdateLike": "Nepavyko atnaujinti patiktuko.",
+  "@failedToUpdateLike": {
+    "description": "Toast when like update fails"
+  },
+  "failedToLikeAlbums": "{count, plural, one {Nepavyko patikti {count} albumo} few {Nepavyko patikti {count} albumų} many {Nepavyko patikti {count} albumo} other {Nepavyko patikti {count} albumų}}",
+  "@failedToLikeAlbums": {
+    "description": "Error when liking albums fails",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "couldNotLoadAlbums": "Nepavyko įkelti albumus.",
+  "@couldNotLoadAlbums": {
+    "description": "Error when albums fail to load"
+  },
+  "likeAll": "Patikti visas",
+  "@likeAll": {
+    "description": "Button to like in all shared albums"
+  },
+  "deletedComment": "(ištrintas)",
+  "@deletedComment": {
+    "description": "Label for deleted comments"
+  },
+  "replyingToYou": "Atsakymas į jus",
+  "@replyingToYou": {
+    "description": "Label when replying to own comment"
+  },
+  "replyingTo": "Atsakymas į {name}",
+  "@replyingTo": {
+    "description": "Label when replying to someone's comment",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "commentsCount": "{count, plural, =0{Komentarų nėra} one {{count} komentaras} few {{count} komentarai} many {{count} komentaro} other {{count} komentarų}}",
+  "@commentsCount": {
+    "description": "Number of comments with pluralization",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchSettings": "Paieškos nustatymai",
+  "suggestions": "Pasiūlymai",
   "smartSuggestions": "Išmanūs pasiūlymai",
+  "cleanupHiddenFiles": "Valyti paslėptus failus",
+  "cleanupHiddenFilesDescription": "Kai kurie failai paslėptuose albumuose vis dar egzistuoja nepaslėptuose albumuose, todėl jie matomi už paslėptos dalies ribų. Išvalant juos bus pašalinta iš nepaslėptų albumų.",
+  "cleanupComplete": "Valymas baigtas",
+  "deleteHiddenFilesFromDevice": "Ištrinti paslėptus failus iš įrenginio",
+  "deleteHiddenFilesFromDeviceDescription": "Ištrinti paslėptų failų vietines kopijas iš savo įrenginio",
+  "deleteOnDeviceFiles": "Ištrinti failus įrenginyje",
+  "noHiddenFilesOnDevice": "Nėra paslėptų failų įrenginyje.",
+  "welcome": "Sveiki atvykę",
+  "grantGalleryPermissionDesc": "Suteikite leidimą pasiekti ir tvarkyti nuotraukas su veido atpažinimu. Visas apdorojimas vyksta jūsų įrenginyje.",
   "grantPermission": "Suteikti leidimą",
+  "privateAI": "Privatus DI",
+  "privateAIDescription": "„Ente“ naudoja įrenginyje esantį DI, kad išanalizuotų jūsų nuotraukas dėl veidų, objektų, vietų ir tekstų. Šie duomenys naudojami tokioms funkcijoms kaip veido atpažinimas ir išmanioji paieška. Viskas apdorojama ir saugoma lokaliai jūsų įrenginyje – niekas niekada nėra įkeliama į mūsų serverius.",
+  "byAgreeing": "Tęsiant sutinkate su <terms>paslaugų sąlygomis<terms> ir <policy>privatumo politika</policy>.",
+  "moreThanJustAGallery": "Daugiau nei tik galerija.",
+  "encryptedBackupDescription": "Užšifruota atsarginės kopijos, išmanus paieška, bendrinamos nuorodos ir sklandus sinchronizavimas tarp visų jūsų įrenginių.",
+  "getStarted": "Pradėti",
+  "offlineHomeSignupBannerTitle": "Apsaugokite savo prisiminimus amžinai",
+  "offlineHomeSignupBannerDescription": "Užšifruotos atsarginės kopijos tarp 3 vietų, kad jūsų prisiminimai būtų saugūs.",
+  "offlineHomeSignupBannerAction": "Kurti atsarginę kopiją dabar",
+  "unlockSmartFeatures": "Atrakinti išmaniąsias funkcijas",
+  "enableOnDeviceMLDescription": "Įjunkite įrenginyje mašininį mokymąsi, kad būtų galima ieškoti pagal veidus, vietas ir daugiau. Jūsų nuotraukos niekada nepaliks jūsų įrenginio.",
+  "offlineEnableSharingTitle": "Bendrinimas prasideda čia",
+  "offlineEnableSharingDesc": "Užsiregistruokite, kad bendrinumėte nuotraukomis su visais – netgi su tais, kurie nėra „Ente“ platformoje.",
+  "offlineEnableBackupTitle": "Čia bus rodomi sukurtos atsarginės kopijos albumai",
+  "offlineEnableBackupDesc": "Užsiregistruokite, kad išsaugotumėte savo prisiminimus su „Ente“.",
+  "offlineEnableBackupTagLabel": "10 GB NEMOKAMAI!",
+  "offlineEnableBackupAction": "Pradėti su 10 GB NEMOKAMAI",
+  "organizeYourMemories": "Sutvarkykite savo prisiminimus",
+  "groupPhotosTheWayYouThinkAboutThem": "Grupuokite nuotraukas taip, kaip manote apie jas.",
+  "endToEndEncryptedOnlyYourPeopleCanSeeIt": "Visapusiškai užšifruota, todėl ją gali matyti tik jūsų asmenys.",
+  "backedUpSafelyAcrossDevices": "Saugiai sukurtos atsarginės kopijos visuose jūsų įrenginiuose.",
+  "smartAlbumsOrganizePhotosForYou": "Išmanieji albumai tvarko nuotraukas už jus.",
+  "createAlbum": "Kurti albumą",
+  "createASmartAlbum": "Kurti išmanųjį albumą",
+  "offlineSettingsBannerTitle": "Mes nematome jūsų nuotraukų. Niekad.",
+  "offlineSettingsBannerDesc": "Nulinio žinojimo šifravimas reiškia jūsų prisiminimai lieka tik jūsų.",
+  "alreadyHaveAnAccount": "Jau turite paskyrą?",
+  "dontHaveAnAccount": "Neturite paskyros?",
+  "loginToEnte": "Prisijungti prie „Ente“",
+  "searchAndDiscover": "Paieška ir atradimas",
+  "searchAndDiscoverDesc": "Ieškokite nuotraukų ir atraskite prisiminimus su įrenginyje veikiančiu mašininio mokymosi.",
+  "shareYourMemories": "Bendrinkite savo prisiminimus",
+  "shareYourMemoriesDesc": "Bendrinkite albumus, rinkite nuotraukas ir gaukite komentarus viešais nuorodomis.",
+  "privateAndSecureBackups": "Kurkite atsargines kopijas su privatumu",
+  "privateAndSecureBackupsDesc": "Visapusiškai užšifruota, nepriklausomai audituota ir visiškai atviro kodo.",
+  "mlProgressBannerTitle": "Laukite ramiai!",
+  "mlProgressBannerDescription": "Jūsų nuotraukos yra apdorojamos įrenginyje, kad aptiktų veidus, objektus ir kitus elementus.",
+  "mlProgressBannerStatus": "{indexed} iš {total} apdorotų nuotraukų",
+  "@mlProgressBannerStatus": {
+    "placeholders": {
+      "indexed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "offlineFacesBannerTitle": "Norite išsaugoti šiuos veidus?",
+  "offlineFacesBannerSubtitle": "Užsiregistruokite, kad pažymėtumėte asmenis ir vėliau juos lengvai rastumėte.",
+  "offlineNameFaceBannerTitle": "Duokite šiam veidui vardą",
+  "offlineNameFaceBannerSubtitle": "Užsiregistruokite, kad juos pažymėtumėte ir vėliau lengvai rastumėte jų nuotraukas.",
+  "signUp": "Registruotis",
+  "dog": "Šuo",
+  "cat": "Katė",
   "archiveCollectionName": "Archyvas",
   "@archiveCollectionName": {
     "description": "Name of the 'Archive' collection"
