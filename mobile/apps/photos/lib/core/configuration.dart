@@ -9,6 +9,7 @@ import 'package:ente_contacts/contacts.dart';
 import "package:ente_crypto/ente_crypto.dart";
 import 'package:ente_lock_screen/lock_screen_host.dart';
 import "package:flutter/services.dart";
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
@@ -234,6 +235,13 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     // Clear all in-memory caches
     ThumbnailInMemoryLruCache.clearAll();
     FileLruCache.clearAll();
+
+    // Clear image cache
+    try {
+      await DefaultCacheManager().emptyCache();
+    } catch (e) {
+      _logger.warning("Failed to clear image cache", e);
+    }
 
     // Clear video cache
     try {
