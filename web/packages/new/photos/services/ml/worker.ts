@@ -8,6 +8,7 @@ import type { ElectronMLWorker } from "ente-base/types/ipc";
 import { isNetworkDownloadError } from "ente-gallery/services/download";
 import type { ProcessableUploadItem } from "ente-gallery/services/upload";
 import { fileLogID, type EnteFile } from "ente-media/file";
+import { FileType } from "ente-media/file-type";
 import { savedTrashItemFileIDs } from "ente-new/photos/services/trash";
 import { wait } from "ente-utils/promise";
 import { savedCollectionFiles } from "../photos-fdb";
@@ -454,6 +455,22 @@ const syncWithLocalFilesAndGetFilesToIndex = async (
 };
 
 /**
+ * The maximum size (in bytes) of files that we will index.
+ *
+ * The same limit is used by the mobile app.
+ */
+const maxIndexableFileSize = 100 * 1000 * 1000; /* 100 MB */
+
+/**
+ * The maximum number of pixels in an image that we will index.
+ *
+ * ONNX runtime's conversion of the image into a float tensor makes a single
+ * allocation of 12 bytes per pixel, and Electron's allocator aborts the
+ * process on single allocations of 2 GiB or more (~179 megapixels).
+ */
+const maxIndexablePixels = 150 * 1000 * 1000; /* 150 MP */
+
+/**
  * Index file, save the persist the results locally, and put them on remote.
  *
  * Indexing a file involves computing its various ML embeddings: faces and CLIP.
@@ -542,6 +559,16 @@ const index = async (
 
     let renderableBlob: Blob;
     try {
+        // Videos are indexed using their thumbnails, so the size of the video
+        // file itself does not matter.
+        if (
+            file.metadata.fileType != FileType.video &&
+            (file.info?.fileSize ?? 0) > maxIndexableFileSize
+        ) {
+            throw new Error(
+                `File too large to index (${file.info?.fileSize} bytes)`,
+            );
+        }
         renderableBlob = await fetchRenderableBlob(
             file,
             processableUploadItem,
@@ -557,7 +584,10 @@ const index = async (
 
     let image: ImageBitmapAndData;
     try {
-        image = await createImageBitmapAndData(renderableBlob);
+        image = await createImageBitmapAndData(
+            renderableBlob,
+            maxIndexablePixels,
+        );
     } catch (e) {
         // If we cannot get the raw image data for the file, then retrying again
         // won't help (if in the future we enhance the underlying code for
