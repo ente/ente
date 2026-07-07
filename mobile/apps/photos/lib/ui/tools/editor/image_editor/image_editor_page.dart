@@ -34,6 +34,7 @@ import "package:photos/ui/tools/editor/image_editor/image_editor_main_bottom_bar
 import "package:photos/ui/tools/editor/image_editor/image_editor_paint_bar.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_text_bar.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_tune_bar.dart";
+import 'package:photos/ui/tools/editor/image_editor/lossless_edits.dart';
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/exif_util.dart";
@@ -61,7 +62,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   final editorKey = GlobalKey<ProImageEditorState>();
   final _logger = Logger("ImageEditor");
 
-  Future<void> saveImage(Uint8List? bytes) async {
+  Future<void> saveImage(Uint8List? bytes, {bool isLossless = false}) async {
     if (bytes == null) return;
 
     final dialog = createProgressDialog(
@@ -75,15 +76,20 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     bool hasStoppedChangeNotify = false;
 
     try {
-      final ui.Image decodedResult = await decodeImageFromList(bytes);
-      var result = await FlutterImageCompress.compressWithList(
-        bytes,
-        minWidth: decodedResult.width,
-        minHeight: decodedResult.height,
-        quality: 95,
-        format: CompressFormat.jpeg,
-      );
-      if (flagService.internalUser) {
+      Uint8List result;
+      if (isLossless) {
+        result = bytes;
+      } else {
+        final ui.Image decodedResult = await decodeImageFromList(bytes);
+        result = await FlutterImageCompress.compressWithList(
+          bytes,
+          minWidth: decodedResult.width,
+          minHeight: decodedResult.height,
+          quality: 95,
+          format: CompressFormat.jpeg,
+        );
+      }
+      if (flagService.internalUser && !isLossless) {
         final image = img.decodePng(bytes);
         if (image != null) {
           final originalExifTags = await _getOriginalExifTags(
@@ -94,8 +100,8 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           );
           if (originalImageExif != null || originalExifTags.isNotEmpty) {
             image.exif = originalImageExif ?? img.ExifData();
-            _clearEditorExifTags(image.exif);
-            _copyCameraExif(originalExifTags, image.exif);
+            clearEditorExifTags(image.exif);
+            copyCameraExif(originalExifTags, image.exif);
             result = img.encodeJpg(image, quality: 95);
           }
         }
@@ -200,90 +206,6 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       if (!enteFile.isRemoteOnlyFile && Platform.isIOS) {
         await file.delete();
       }
-    }
-  }
-
-  void _clearEditorExifTags(img.ExifData exif) {
-    final imageIfdKeys = [
-      "Orientation",
-      "WhitePoint",
-      "PrimaryChromaticities",
-      "PhotometricInterpretation",
-      "BitsPerSample",
-      "SamplesPerPixel",
-      "Compression",
-      "ImageWidth",
-      "ImageHeight",
-      "YCbCrPositioning",
-      "YCbCrSubSampling",
-      "YCbCrCoefficients",
-      "ReferenceBlackWhite",
-      "XResolution",
-      "YResolution",
-      "ResolutionUnit",
-    ];
-    final thumbnailIfdKeys = [
-      "JPEGInterchangeFormat",
-      "JPEGInterchangeFormatLength",
-    ];
-    final exifIfdKeys = [
-      "ColorSpace",
-      "Gamma",
-      "ExifImageWidth",
-      "ExifImageHeight",
-      "ExifImageLength",
-      "ComponentsConfiguration",
-      "CustomRendered",
-      "SceneCaptureType",
-      "WhiteBalance",
-      "LightSource",
-      "Flash",
-      "GainControl",
-      "Contrast",
-      "Saturation",
-      "Sharpness",
-      "SubjectDistanceRange",
-    ];
-
-    void clear(img.IfdDirectory ifd, List<String> keys) {
-      for (final key in keys) {
-        ifd[key] = null;
-      }
-    }
-
-    clear(exif.imageIfd, imageIfdKeys);
-    clear(exif.thumbnailIfd, thumbnailIfdKeys);
-    clear(exif.exifIfd, exifIfdKeys);
-  }
-
-  void _copyCameraExif(Map<String, IfdTag> tags, img.ExifData exif) {
-    for (final entry in {
-      "Image Make": "Make",
-      "Image Model": "Model",
-    }.entries) {
-      final value = tags[entry.key]?.toString();
-      if (value != null) {
-        exif.imageIfd[entry.value] = value;
-      }
-    }
-
-    for (final entry in {
-      "EXIF FocalLength": "FocalLength",
-      "EXIF FNumber": "FNumber",
-      "EXIF ExposureTime": "ExposureTime",
-    }.entries) {
-      final value = tags[entry.key]?.values.toList().firstOrNull;
-      if (value is Ratio) {
-        exif.exifIfd[entry.value] = img.IfdValueRational(
-          value.numerator,
-          value.denominator,
-        );
-      }
-    }
-
-    final iso = tags["EXIF ISOSpeedRatings"]?.values;
-    if (iso != null && iso.length > 0) {
-      exif.exifIfd["ISOSpeed"] = iso.firstAsInt();
     }
   }
 
@@ -459,9 +381,36 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                         undo: () => editor.undoAction(),
                         configs: editor.configs,
                         done: () async {
-                          final Uint8List bytes = await editorKey.currentState!
+                          Uint8List? bytes;
+                          if (flagService.internalUser) {
+                            final turns = getTurnsIfOnlyRotated(
+                              editorKey.currentState!,
+                            );
+                            if (turns != null) {
+                              bytes = await tryRotateFileLossless(
+                                widget.originalFile,
+                                turns,
+                              );
+                              if (bytes == null) {
+                                print(
+                                  "[aspizu] lossless rotation failed: "
+                                  "tryRotateFileLossless returned null",
+                                );
+                              }
+                            } else {
+                              print(
+                                "[aspizu] lossless rotation skipped: "
+                                "edit is not rotation-only",
+                              );
+                            }
+                            if (bytes != null) {
+                              await saveImage(bytes, isLossless: true);
+                              return;
+                            }
+                          }
+                          bytes = await editorKey.currentState!
                               .captureEditorImage();
-                          await saveImage(bytes);
+                          await saveImage(bytes, isLossless: false);
                         },
                         close: () {
                           _showExitConfirmationDialog(context);
