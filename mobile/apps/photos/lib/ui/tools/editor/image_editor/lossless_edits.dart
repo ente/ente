@@ -35,6 +35,14 @@ bool isTransformOnlyRotation(TransformConfigs t) {
 }
 
 int? getTurnsIfOnlyRotated(ProImageEditorState editorState) {
+  if (editorState.activeLayers.isNotEmpty) {
+    print(
+      "[aspizu] lossless rotation skipped: "
+      "editor has ${editorState.activeLayers.length} layers",
+    );
+    return null;
+  }
+
   final blur =
       editorState.stateHistory.lastWhere((e) => e.blur != null).blur ?? 0.0;
 
