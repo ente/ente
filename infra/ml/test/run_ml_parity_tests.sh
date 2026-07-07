@@ -12,12 +12,6 @@ TEST_DATA_DIR="$ML_DIR/test_data/ml-indexing/v1"
 PARITY_HELPERS="$ML_DIR/tools/parity_shell_helpers.py"
 
 PLATFORMS="all"
-FAIL_ON_MISSING_PLATFORM=false
-FAIL_ON_PLATFORM_RUNNER_ERROR=false
-ALLOW_EMPTY_COMPARISON=false
-STRICT=false
-CONTINUE_ON_MISSING_DEVICES=true
-REQUIRE_COMPARISON_PASS=false
 OUTPUT_DIR="$ROOT_DIR/infra/ml/test/out/parity"
 VERBOSE=false
 RENDER_DETECTION_OVERLAYS=false
@@ -36,10 +30,6 @@ Usage: infra/ml/test/run_ml_parity_tests.sh [flags]
 
 Flags:
   --platforms all|desktop|android|ios   (default: all)
-  --strict                              (optional future mode; enforces full pass and complete platform coverage)
-  --fail-on-missing-platform            (default: disabled)
-  --fail-on-platform-runner-error       (default: disabled)
-  --allow-empty-comparison              (default: disabled)
   --output-dir <path>                   (default: infra/ml/test/out/parity)
   --verbose                             (default: disabled)
   --render-detection-overlays           (default: disabled; render annotated face detection images to out/parity/detections/<platform>/)
@@ -54,22 +44,6 @@ while (($# > 0)); do
     --platforms)
       PLATFORMS="$2"
       shift 2
-      ;;
-    --strict)
-      STRICT=true
-      shift
-      ;;
-    --fail-on-missing-platform)
-      FAIL_ON_MISSING_PLATFORM=true
-      shift
-      ;;
-    --fail-on-platform-runner-error)
-      FAIL_ON_PLATFORM_RUNNER_ERROR=true
-      shift
-      ;;
-    --allow-empty-comparison)
-      ALLOW_EMPTY_COMPARISON=true
-      shift
       ;;
     --output-dir)
       OUTPUT_DIR="$2"
@@ -106,13 +80,6 @@ while (($# > 0)); do
       ;;
   esac
 done
-
-if $STRICT; then
-  CONTINUE_ON_MISSING_DEVICES=false
-  FAIL_ON_MISSING_PLATFORM=true
-  FAIL_ON_PLATFORM_RUNNER_ERROR=true
-  REQUIRE_COMPARISON_PASS=true
-fi
 
 if [[ "$OUTPUT_DIR" != /* ]]; then
   OUTPUT_DIR="$ROOT_DIR/$OUTPUT_DIR"
@@ -302,11 +269,6 @@ echo "Running ML parity suite"
 print_kv "platforms:" "$PLATFORMS"
 print_kv "output_dir:" "$OUTPUT_DIR"
 print_kv "verbose:" "$VERBOSE"
-print_kv "strict:" "$STRICT"
-print_kv "continue_on_missing_devices:" "$CONTINUE_ON_MISSING_DEVICES"
-print_kv "fail_on_missing_platform:" "$FAIL_ON_MISSING_PLATFORM"
-print_kv "fail_on_platform_runner_error:" "$FAIL_ON_PLATFORM_RUNNER_ERROR"
-print_kv "allow_empty_comparison:" "$ALLOW_EMPTY_COMPARISON"
 print_kv "render_detection_overlays:" "$RENDER_DETECTION_OVERLAYS"
 print_kv "android_build_mode:" "${ML_PARITY_ANDROID_BUILD_MODE:-profile}"
 print_kv "reuse_mobile_application_binary:" "$REUSE_MOBILE_APPLICATION_BINARY"
@@ -593,7 +555,7 @@ ensure_selected_mobile_devices_running() {
 
   if ((${#auto_boot_failures[@]} > 0)); then
     echo "Auto-boot did not guarantee device availability for: ${auto_boot_failures[*]}"
-    echo "Proceeding to preflight checks with configured strictness."
+    echo "Proceeding to preflight checks."
   fi
 }
 
@@ -658,26 +620,14 @@ run_preflight_checks() {
             0)
               ;;
             1)
-              if $CONTINUE_ON_MISSING_DEVICES; then
-                preflight_warnings+=(
-                  "$platform device id '$explicit_device_id' is unavailable; continuing"
-                )
-              else
-                preflight_errors+=(
-                  "$platform device id '$explicit_device_id' is unavailable (strict mode requires available devices)"
-                )
-              fi
+              preflight_warnings+=(
+                "$platform device id '$explicit_device_id' is unavailable; continuing"
+              )
               ;;
             *)
-              if $CONTINUE_ON_MISSING_DEVICES; then
-                preflight_warnings+=(
-                  "could not verify $platform device id '$explicit_device_id'; continuing"
-                )
-              else
-                preflight_errors+=(
-                  "could not verify $platform device id '$explicit_device_id' (strict mode requires available devices)"
-                )
-              fi
+              preflight_warnings+=(
+                "could not verify $platform device id '$explicit_device_id'; continuing"
+              )
               ;;
           esac
         else
@@ -691,26 +641,14 @@ run_preflight_checks() {
             0)
               ;;
             1)
-              if $CONTINUE_ON_MISSING_DEVICES; then
-                preflight_warnings+=(
-                  "no connected $platform device/simulator detected; continuing"
-                )
-              else
-                preflight_errors+=(
-                  "no connected $platform device/simulator detected (strict mode requires available devices)"
-                )
-              fi
+              preflight_warnings+=(
+                "no connected $platform device/simulator detected; continuing"
+              )
               ;;
             *)
-              if $CONTINUE_ON_MISSING_DEVICES; then
-                preflight_warnings+=(
-                  "could not determine $platform device availability; continuing"
-                )
-              else
-                preflight_errors+=(
-                  "could not determine $platform device availability (strict mode requires available devices)"
-                )
-              fi
+              preflight_warnings+=(
+                "could not determine $platform device availability; continuing"
+              )
               ;;
           esac
         fi
@@ -1163,10 +1101,6 @@ render_detection_overlays() {
   return 0
 }
 
-comparison_report_passed() {
-  python3 "$PARITY_HELPERS" report-passed "$1"
-}
-
 LAST_HTML_REPORT=""
 declare -a failed_platform_runners=()
 
@@ -1273,15 +1207,10 @@ done
 
 if ((${#failed_platform_runners[@]} > 0)); then
   echo "One or more platform runners failed: ${failed_platform_runners[*]}" >&2
-  if $FAIL_ON_PLATFORM_RUNNER_ERROR; then
-    echo "Failing because --fail-on-platform-runner-error is set" >&2
-    exit 1
-  fi
   echo "Continuing with available platform outputs."
 fi
 
 declare -a compare_args=()
-missing_platform_count=0
 
 for platform in "${selected_platforms[@]}"; do
   platform_output="$OUTPUT_DIR/$platform/results.json"
@@ -1294,22 +1223,12 @@ for platform in "${selected_platforms[@]}"; do
     if $VERBOSE; then
       echo "Platform output unavailable for $platform at $platform_output"
     fi
-    missing_platform_count=$((missing_platform_count + 1))
   fi
 done
 
-if $FAIL_ON_MISSING_PLATFORM && ((missing_platform_count > 0)); then
-  echo "Missing platform outputs and --fail-on-missing-platform is set" >&2
-  exit 1
-fi
-
 if ((${#compare_args[@]} == 0)); then
-  if $ALLOW_EMPTY_COMPARISON; then
-    echo "No platform outputs available; continuing because --allow-empty-comparison is set"
-  else
-    echo "No platform outputs available for comparison. Provide at least one platform result or use --allow-empty-comparison." >&2
-    exit 1
-  fi
+  echo "No platform outputs available for comparison." >&2
+  exit 1
 fi
 
 compare_output="$OUTPUT_DIR/comparison_report.json"
@@ -1354,20 +1273,6 @@ fi
 if ((compare_exit != 0)); then
   echo "Parity comparison command failed. Log: $compare_log"
   exit "$compare_exit"
-fi
-
-if $REQUIRE_COMPARISON_PASS; then
-  if comparison_report_passed "$compare_output"; then
-    echo "Strict mode: comparison report passed."
-  else
-    comparison_pass_exit=$?
-    if ((comparison_pass_exit == 2)); then
-      echo "Strict mode failed: comparison report is missing at $compare_output" >&2
-    else
-      echo "Strict mode failed: comparison report contains parity failures." >&2
-    fi
-    exit 1
-  fi
 fi
 
 echo

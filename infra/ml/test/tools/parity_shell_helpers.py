@@ -637,15 +637,6 @@ def cmd_compact_summary(args: list[str]) -> None:
             print(f"  {platform}: unavailable (no platform results)")
 
 
-def cmd_report_passed(args: list[str]) -> None:
-    report_path = Path(args[0])
-    if not report_path.exists():
-        sys.exit(2)
-
-    payload = json.loads(report_path.read_text())
-    sys.exit(0 if bool(payload.get("passed", False)) else 1)
-
-
 COMMANDS = {
     "b64-file": cmd_b64_file,
     "sha256-file": cmd_sha256_file,
@@ -660,7 +651,6 @@ COMMANDS = {
     "wait-android-boot": cmd_wait_android_boot,
     "file-level-tables": cmd_file_level_tables,
     "compact-summary": cmd_compact_summary,
-    "report-passed": cmd_report_passed,
 }
 
 

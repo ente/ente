@@ -25,9 +25,6 @@ bash infra/ml/test/run_ml_parity_tests.sh
 Common flags:
 
 - `--platforms all|desktop|android|ios`
-- `--fail-on-missing-platform`
-- `--fail-on-platform-runner-error`
-- `--allow-empty-comparison`
 - `--output-dir <path>`
 - `--verbose` (stream full runner/comparator logs to terminal)
 - `--render-detection-overlays` (generate annotated detection images under `out/parity/detections/<platform>/`; includes selected platforms plus `python` ground truth)
