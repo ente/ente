@@ -18,7 +18,8 @@ bool isTransformOnlyRotation(TransformConfigs t) {
     t.originalSize.height,
   );
 
-  return t.originalSize.width.isFinite &&
+  final isRotationOnly =
+      t.originalSize.width.isFinite &&
       t.originalSize.height.isFinite &&
       t.cropRect.left.isFinite &&
       t.cropRect.top.isFinite &&
@@ -31,6 +32,19 @@ bool isTransformOnlyRotation(TransformConfigs t) {
       t.flipX == false &&
       t.flipY == false &&
       t.offset == Offset.zero;
+
+  if (!isRotationOnly) {
+    print(
+      "[aspizu] lossless rotation transform rejected: "
+      "originalSize=${t.originalSize}, cropRect=${t.cropRect}, "
+      "fullImageRect=$fullImageRect, angle=${t.angle}, "
+      "scaleUser=${t.scaleUser}, scaleRotation=${t.scaleRotation}, "
+      "aspectRatio=${t.aspectRatio}, flipX=${t.flipX}, flipY=${t.flipY}, "
+      "offset=${t.offset}",
+    );
+  }
+
+  return isRotationOnly;
 }
 
 int? getTurnsIfOnlyRotated(ProImageEditorState editorState) {
@@ -69,6 +83,11 @@ int? getTurnsIfOnlyRotated(ProImageEditorState editorState) {
       TransformConfigs.empty();
 
   if (blur != 0.0 || filters.isNotEmpty || tuneAdjustments.isNotEmpty) {
+    print(
+      "[aspizu] lossless rotation skipped: "
+      "blur=$blur, filters=${filters.length}, "
+      "tuneAdjustments=${tuneAdjustments.length}",
+    );
     return null;
   }
 
@@ -77,7 +96,14 @@ int? getTurnsIfOnlyRotated(ProImageEditorState editorState) {
   const quarterTurn = pi / 2;
   final rotations = transformConfigs.angle / quarterTurn;
 
-  if (rotations != rotations.roundToDouble()) return null;
+  if (rotations != rotations.roundToDouble()) {
+    print(
+      "[aspizu] lossless rotation skipped: "
+      "angle is not quarter turn, angle=${transformConfigs.angle}, "
+      "rotations=$rotations",
+    );
+    return null;
+  }
 
   return rotations.toInt();
 }
@@ -222,6 +248,11 @@ Future<Uint8List?> tryRotateFileLossless(EnteFile file, int turns) async {
     final result = img.injectJpgExif(bytes, exif);
     if (result == null) {
       print("[aspizu] lossless rotation failed to inject exif");
+    } else {
+      print(
+        "[aspizu] lossless rotation produced bytes: "
+        "input=${bytes.length}, output=${result.length}",
+      );
     }
     return result;
   } catch (e, s) {
@@ -236,6 +267,12 @@ Future<Uint8List?> tryRotateFileLossless(EnteFile file, int turns) async {
       } on PathNotFoundException {
         print("[aspizu] lossless rotation cleanup skipped: temp file missing");
       }
+    } else {
+      print(
+        "[aspizu] lossless rotation cleanup skipped: "
+        "isRemoteOnly=${file.isRemoteOnlyFile}, "
+        "isIOS=${Platform.isIOS}, fileIsNull=${f == null}",
+      );
     }
   }
 }

@@ -63,7 +63,10 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   final _logger = Logger("ImageEditor");
 
   Future<void> saveImage(Uint8List? bytes, {bool isLossless = false}) async {
-    if (bytes == null) return;
+    if (bytes == null) {
+      print("[aspizu] saveImage skipped: bytes is null");
+      return;
+    }
 
     final dialog = createProgressDialog(
       context,
@@ -72,6 +75,10 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     await dialog.show();
 
     debugPrint("Image saved with size: ${bytes.length} bytes");
+    print(
+      "[aspizu] saveImage started: "
+      "isLossless=$isLossless, inputBytes=${bytes.length}",
+    );
     final DateTime start = DateTime.now();
     bool hasStoppedChangeNotify = false;
 
@@ -89,6 +96,10 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           format: CompressFormat.jpeg,
         );
       }
+      print(
+        "[aspizu] saveImage prepared result: "
+        "isLossless=$isLossless, resultBytes=${result.length}",
+      );
       if (flagService.internalUser && !isLossless) {
         final image = img.decodePng(bytes);
         if (image != null) {
@@ -119,10 +130,15 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       //files db before triggering a sync.
       await PhotoManager.stopChangeNotify();
       hasStoppedChangeNotify = true;
+      print("[aspizu] saveImage calling PhotoManager.editor.saveImage");
       final AssetEntity newAsset = await (PhotoManager.editor.saveImage(
         result,
         filename: fileName,
       ));
+      print(
+        "[aspizu] saveImage PhotoManager returned asset: "
+        "id=${newAsset.id}, title=${newAsset.title}",
+      );
       final newFile = await ente.EnteFile.fromAsset(
         widget.originalFile.deviceFolder ?? '',
         newAsset,
@@ -142,6 +158,10 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         }
       }
       newFile.generatedID = await FilesDB.instance.insertAndGetId(newFile);
+      print(
+        "[aspizu] saveImage inserted file: "
+        "generatedID=${newFile.generatedID}, title=${newFile.title}",
+      );
       Bus.instance.fire(LocalPhotosUpdatedEvent([newFile], source: "editSave"));
       unawaited(SyncService.instance.sync());
       showShortToast(context, AppLocalizations.of(context).editsSaved);
@@ -159,6 +179,10 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         selectionIndex = files.length - 1;
       }
       await dialog.hide();
+      print(
+        "[aspizu] saveImage navigating to saved file: "
+        "selectionIndex=$selectionIndex",
+      );
       replacePage(
         context,
         DetailPage(
@@ -169,6 +193,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         ),
       );
     } catch (e, s) {
+      print("[aspizu] saveImage failed: $e\n$s");
       await dialog.hide();
       showToast(context, AppLocalizations.of(context).oopsCouldNotSaveEdits);
       _logger.severe("Failed to save image edits", e, s);
@@ -404,7 +429,14 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                               );
                             }
                             if (bytes != null) {
+                              print(
+                                "[aspizu] lossless rotation calling saveImage: "
+                                "bytes=${bytes.length}",
+                              );
                               await saveImage(bytes, isLossless: true);
+                              print(
+                                "[aspizu] lossless rotation saveImage done",
+                              );
                               return;
                             }
                           }
