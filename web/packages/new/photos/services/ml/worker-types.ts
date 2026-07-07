@@ -26,6 +26,12 @@ export interface MLWorkerDelegate {
      * some extra code to avoid updating the dependent state twice.
      */
     workerDidUnawaitedIndex: () => void;
+    /**
+     * Called when the port that the worker was using to communicate with the
+     * ML utility process closes, which happens if the utility process exits
+     * (e.g. if it crashes). The worker is unusable after this point.
+     */
+    workerDidLoseElectronPort: () => void;
 }
 
 /**

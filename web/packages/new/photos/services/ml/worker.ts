@@ -116,8 +116,11 @@ export class MLWorker {
     private liveQ: IndexableItem[] = [];
     private idleTimeout: ReturnType<typeof setTimeout> | undefined;
     private idleDuration = idleDurationStart; /* unit: seconds */
-    /** Resolvers for pending promises returned from calls to {@link index}. */
-    private onNextIdles: ((count: number) => void)[] = [];
+    /** Settlers for pending promises returned from calls to {@link index}. */
+    private onNextIdles: {
+        resolve: (count: number) => void;
+        reject: (e: Error) => void;
+    }[] = [];
     /**
      * Number of items processed since the last time {@link onNextIdles} was
      * drained.
@@ -141,6 +144,27 @@ export class MLWorker {
     init(port: MessagePort, delegate: MLWorkerDelegate) {
         this.electron = wrap<ElectronMLWorker>(port);
         this.delegate = delegate;
+        port.addEventListener("close", () => this.electronPortDidClose(), {
+            once: true,
+        });
+    }
+
+    /**
+     * Called when the port to the ML utility process closes, which happens if
+     * the utility process exits (e.g. if it crashes).
+     *
+     * Reject any pending promises returned by {@link index} so that a sync
+     * awaiting us doesn't hang forever, then inform the main thread, which
+     * will discard us. Anything else in flight dies with us; the next sync
+     * will retry with a new worker.
+     */
+    private electronPortDidClose() {
+        const onNextIdles = this.onNextIdles;
+        this.onNextIdles = [];
+        onNextIdles.forEach(({ reject }) =>
+            reject(new Error("The ML utility process exited")),
+        );
+        this.delegate?.workerDidLoseElectronPort();
     }
 
     /**
@@ -152,11 +176,12 @@ export class MLWorker {
      * save it locally. Otherwise we index them.
      *
      * @return The count of items processed since the last last time we were
-     * idle.
+     * idle. The returned promise rejects if the port to the ML utility process
+     * closes while we're indexing.
      */
     index() {
-        const nextIdle = new Promise<number>((resolve) =>
-            this.onNextIdles.push(resolve),
+        const nextIdle = new Promise<number>((resolve, reject) =>
+            this.onNextIdles.push({ resolve, reject }),
         );
         this.wakeUp();
         return nextIdle;
@@ -275,7 +300,7 @@ export class MLWorker {
         const countSinceLastIdle = this.countSinceLastIdle;
         this.onNextIdles = [];
         this.countSinceLastIdle = 0;
-        onNextIdles.forEach((f) => f(countSinceLastIdle));
+        onNextIdles.forEach(({ resolve }) => resolve(countSinceLastIdle));
 
         // If no one was waiting, then let the main thread know via a different
         // channel so that it can update the clusters and people.

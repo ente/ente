@@ -132,14 +132,12 @@ const forkWatchedUtilityProcess = (scriptName: string, logTag: string) => {
     const child = utilityProcess.fork(path.join(__dirname, scriptName), [], {
         stdio: "pipe",
     });
-    child.stdout?.on("data", (chunk: Buffer) => {
-        process.stdout.write(chunk);
-        log.info(`${logTag} ${String(chunk).trimEnd()}`);
-    });
-    child.stderr?.on("data", (chunk: Buffer) => {
-        process.stderr.write(chunk);
-        log.error(`${logTag} ${String(chunk).trimEnd()}`);
-    });
+    child.stdout?.on("data", (chunk: Buffer) =>
+        log.info(`${logTag} ${String(chunk).trimEnd()}`),
+    );
+    child.stderr?.on("data", (chunk: Buffer) =>
+        log.warn(`${logTag} ${String(chunk).trimEnd()}`),
+    );
     child.on("exit", (code) => {
         log.error(`${logTag} utility process exited with code ${code}`);
     });
