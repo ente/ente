@@ -50,6 +50,8 @@ dev_dependencies:
   melos: 7.8.1
 
 dependency_overrides:
+  # cached_network_image still resolves the hosted package; this override
+  # moves all flutter_cache_manager uses to the upstream delete fix.
   flutter_cache_manager:
     git:
       url: https://github.com/Baseflow/flutter_cache_manager.git
