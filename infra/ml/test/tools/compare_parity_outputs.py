@@ -9,7 +9,11 @@ from typing import Any
 
 import _paths  # noqa: F401  # puts the ML test dir on sys.path
 
-from comparator.compare import ThresholdConfig, compare_platform_matrix
+from comparator.compare import (
+    AGGREGATE_FILE_ID,
+    ThresholdConfig,
+    compare_platform_matrix,
+)
 from ground_truth.schema import load_results_document
 
 
@@ -17,6 +21,15 @@ def _load_results(path: Path) -> tuple[str | None, tuple[Any, ...]]:
     payload = json.loads(path.read_text())
     platform = payload.get("platform") if isinstance(payload, dict) else None
     return platform, load_results_document(payload)
+
+
+def _finding_counts(report_findings: tuple[Any, ...]) -> tuple[int, int]:
+    file_count = sum(
+        1
+        for finding in report_findings
+        if getattr(finding, "file_id", "") != AGGREGATE_FILE_ID
+    )
+    return file_count, len(report_findings) - file_count
 
 
 def main() -> int:
@@ -114,18 +127,22 @@ def main() -> int:
             f"(total: {report.total_reference_files})"
         )
     if failed_reports:
-        print("Comparisons with failing files:")
+        print("Comparisons with failing findings:")
         for report in failed_reports:
+            file_findings, aggregate_findings = _finding_counts(report.findings)
             print(
                 f"  {report.reference_platform} -> {report.candidate_platform} "
-                f"({len(report.findings)} findings)"
+                f"({file_findings} file findings, "
+                f"{aggregate_findings} aggregate findings)"
             )
     if warning_reports:
-        print("Comparisons with warning files:")
+        print("Comparisons with warning findings:")
         for report in warning_reports:
+            file_warnings, aggregate_warnings = _finding_counts(report.warnings)
             print(
                 f"  {report.reference_platform} -> {report.candidate_platform} "
-                f"({len(report.warnings)} warnings)"
+                f"({file_warnings} file warnings, "
+                f"{aggregate_warnings} aggregate warnings)"
             )
 
     if args.fail_on_any_file_failure and failed_reports:

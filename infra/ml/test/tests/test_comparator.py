@@ -202,7 +202,7 @@ def test_compare_result_sets_marks_clip_warning_band() -> None:
     assert report.status == "warning"
     assert report.passed is True
     assert report.findings == ()
-    assert report.warning_files == ("*aggregate*", "clip-warning.jpeg")
+    assert report.warning_files == ("clip-warning.jpeg",)
     assert report.failing_files == ()
     assert any(
         warning.metric == "clip_cosine_distance"
@@ -213,6 +213,10 @@ def test_compare_result_sets_marks_clip_warning_band() -> None:
         warning.metric == "clip_cosine_distance" and warning.file_id == "*aggregate*"
         for warning in report.warnings
     )
+    aggregate_status = next(
+        status for status in report.file_statuses if status.file_id == "*aggregate*"
+    )
+    assert aggregate_status.status == "warning"
 
     file_status = _status_for_file(report, "clip-warning.jpeg")
     assert file_status.status == "warning"
@@ -595,7 +599,7 @@ def test_compare_result_sets_marks_face_embedding_warning_band() -> None:
     assert report.passed is True
     assert report.findings == ()
     assert report.failing_files == ()
-    assert report.warning_files == ("*aggregate*", "embedding-warning.jpeg")
+    assert report.warning_files == ("embedding-warning.jpeg",)
     assert report.passing_files == ()
     assert any(
         warning.metric == "face_embedding_cosine_distance"
@@ -603,6 +607,10 @@ def test_compare_result_sets_marks_face_embedding_warning_band() -> None:
         for warning in report.warnings
     )
     assert any(warning.file_id == "*aggregate*" for warning in report.warnings)
+    aggregate_status = next(
+        status for status in report.file_statuses if status.file_id == "*aggregate*"
+    )
+    assert aggregate_status.status == "warning"
 
     file_status = _status_for_file(report, "embedding-warning.jpeg")
     assert file_status.status == "warning"
@@ -654,7 +662,7 @@ def test_compare_result_sets_fails_face_embedding_above_warning_band() -> None:
 
     assert report.status == "fail"
     assert report.passed is False
-    assert report.failing_files == ("*aggregate*", "embedding-fail.jpeg")
+    assert report.failing_files == ("embedding-fail.jpeg",)
     assert report.warning_files == ()
     assert any(
         finding.metric == "face_embedding_cosine_distance" for finding in report.findings
@@ -780,12 +788,14 @@ def test_aggregate_gate_failure_is_reported() -> None:
 
     assert report.passed is False
     assert any(finding.file_id == "*aggregate*" for finding in report.findings)
-    assert "*aggregate*" in report.failing_files
+    assert report.failing_files == ("file-2.jpeg",)
     aggregate_status = next(
         status for status in report.file_statuses if status.file_id == "*aggregate*"
     )
     assert aggregate_status.status == "fail"
     assert any(metric.metric == "clip_cosine_distance" for metric in aggregate_status.metrics)
+    assert report.to_dict()["file_summary"]["fail_count"] == 1
+    assert report.to_dict()["file_summary"]["total_files"] == 3
 
 
 def test_extra_candidate_file_is_included_in_file_status_summary() -> None:

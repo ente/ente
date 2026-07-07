@@ -8,6 +8,7 @@ from typing import Any
 
 from _report_common import (
     PLATFORMS,
+    count_file_findings,
     format_generated_timestamp,
     format_value,
     normalize_status,
@@ -258,8 +259,8 @@ def _render_comparison(comparison: dict[str, Any]) -> list[str]:
     checked_files = int(file_summary.get("checked_files", comparison.get("checked_files", 0)))
     findings = comparison.get("findings", [])
     warnings = comparison.get("warnings", [])
-    finding_count = len(findings) if isinstance(findings, list) else 0
-    warning_finding_count = len(warnings) if isinstance(warnings, list) else 0
+    finding_count = count_file_findings(findings)
+    warning_finding_count = count_file_findings(warnings)
     total_summary = (
         f"{total_files} total files"
         if total_files == reference_total_files

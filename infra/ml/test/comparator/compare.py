@@ -10,6 +10,7 @@ from ground_truth.schema import FaceResult, ParityResult, l2_norm
 STATUS_PASS = "pass"
 STATUS_WARNING = "warning"
 STATUS_FAIL = "fail"
+AGGREGATE_FILE_ID = "*aggregate*"
 
 
 def _threshold_status(
@@ -265,7 +266,12 @@ class ComparisonReport:
     passed: bool
 
     def to_dict(self) -> dict[str, Any]:
-        total_files = len(self.file_statuses)
+        file_statuses = tuple(
+            file_status
+            for file_status in self.file_statuses
+            if file_status.file_id != AGGREGATE_FILE_ID
+        )
+        total_files = len(file_statuses)
         non_reference_file_count = max(0, total_files - self.total_reference_files)
         file_summary = {
             "total_reference_files": self.total_reference_files,
@@ -1001,7 +1007,7 @@ def compare_result_sets(
             continue
         threshold = metric.warning_threshold if metric.status == STATUS_WARNING else metric.threshold
         add_file_metric(
-            file_id="*aggregate*",
+            file_id=AGGREGATE_FILE_ID,
             metric=metric_name,
             value=metric.max,
             threshold=threshold,
@@ -1015,7 +1021,7 @@ def compare_result_sets(
         if metric.status == STATUS_WARNING:
             add_warning(
                 ComparisonFinding(
-                    file_id="*aggregate*",
+                    file_id=AGGREGATE_FILE_ID,
                     metric=metric_name,
                     message="Aggregate threshold gate in warning band",
                     value=metric.max,
@@ -1026,7 +1032,7 @@ def compare_result_sets(
             continue
         add_failure(
             ComparisonFinding(
-                file_id="*aggregate*",
+                file_id=AGGREGATE_FILE_ID,
                 metric=metric_name,
                 message="Aggregate threshold gate failed",
                 value=metric.max,
@@ -1063,17 +1069,26 @@ def compare_result_sets(
     passing_files = tuple(
         file_status.file_id
         for file_status in file_statuses
-        if file_status.status == STATUS_PASS
+        if (
+            file_status.file_id != AGGREGATE_FILE_ID
+            and file_status.status == STATUS_PASS
+        )
     )
     warning_files = tuple(
         file_status.file_id
         for file_status in file_statuses
-        if file_status.status == STATUS_WARNING
+        if (
+            file_status.file_id != AGGREGATE_FILE_ID
+            and file_status.status == STATUS_WARNING
+        )
     )
     failing_files = tuple(
         file_status.file_id
         for file_status in file_statuses
-        if file_status.status == STATUS_FAIL
+        if (
+            file_status.file_id != AGGREGATE_FILE_ID
+            and file_status.status == STATUS_FAIL
+        )
     )
     report_status = (
         STATUS_FAIL
