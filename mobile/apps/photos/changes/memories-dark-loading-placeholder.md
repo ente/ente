@@ -1,0 +1,1 @@
+- Prevented a pale flash while full-screen memories load their blurred backdrop.

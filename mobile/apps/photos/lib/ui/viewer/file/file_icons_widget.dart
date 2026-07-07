@@ -9,13 +9,15 @@ import 'package:photos/models/file/trash_file.dart';
 import 'package:photos/ui/sharing/user_avator_widget.dart';
 
 class ThumbnailPlaceHolder extends StatelessWidget {
-  const ThumbnailPlaceHolder({super.key});
+  final Color? color;
+
+  const ThumbnailPlaceHolder({super.key, this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       alignment: Alignment.center,
-      color: context.componentColors.fillDark,
+      color: color ?? context.componentColors.fillDark,
     );
   }
 }

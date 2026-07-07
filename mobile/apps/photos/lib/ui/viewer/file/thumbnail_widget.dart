@@ -46,6 +46,7 @@ class ThumbnailWidget extends StatefulWidget {
   final bool shouldShowOwnerAvatar;
   final AvatarType ownerAvatarType;
   final bool shouldShowFavoriteIcon;
+  final Color? placeholderColor;
 
   ///On video thumbnails, shows the video duration if true. If false,
   ///shows a centered play icon.
@@ -67,6 +68,7 @@ class ThumbnailWidget extends StatefulWidget {
     this.thumbnailSize = thumbnailSmallSize,
     this.useRequestedThumbnailSizeForLocalCache = false,
     this.shouldShowFavoriteIcon = true,
+    this.placeholderColor,
     this.shouldShowVideoDuration = false,
     this.shouldShowVideoOverlayIcon = true,
   }) : super(key: key ?? Key(file.tag));
@@ -239,7 +241,7 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
           : Stack(fit: StackFit.expand, children: contentChildren);
     }
     final List<Widget> viewChildren = [
-      const ThumbnailPlaceHolder(),
+      ThumbnailPlaceHolder(color: widget.placeholderColor),
       content ?? const SizedBox(),
     ];
     if (!widget.rawThumbnail && widget.file.fileType == FileType.video) {
