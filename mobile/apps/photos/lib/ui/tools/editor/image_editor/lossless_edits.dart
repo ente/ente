@@ -229,7 +229,13 @@ Future<Uint8List?> tryRotateFileLossless(EnteFile file, int turns) async {
     rethrow;
   } finally {
     if (!file.isRemoteOnlyFile && Platform.isIOS && f != null) {
-      await f.delete();
+      print("[aspizu] lossless rotation deleting temp original file");
+      try {
+        await f.delete();
+        print("[aspizu] lossless rotation deleted temp original file");
+      } on PathNotFoundException {
+        print("[aspizu] lossless rotation cleanup skipped: temp file missing");
+      }
     }
   }
 }
