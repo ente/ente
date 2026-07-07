@@ -109,7 +109,11 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_animate: 4.5.2
-  flutter_cache_manager: 3.4.1
+  flutter_cache_manager:
+    git:
+      url: https://github.com/Baseflow/flutter_cache_manager.git
+      ref: 54904e499a06d0364a2b3f4ca9789e5f829f1879
+      path: flutter_cache_manager
   flutter_displaymode: 0.6.0
   flutter_easyloading: 3.0.5
   flutter_email_sender: 7.0.0
