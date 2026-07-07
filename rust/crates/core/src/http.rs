@@ -13,8 +13,8 @@ use std::sync::{PoisonError, RwLock};
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 
-use reqwest::Method;
 use reqwest::header::{HeaderName, HeaderValue, USER_AGENT};
+use reqwest::{Method, Url};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -244,7 +244,7 @@ impl Api {
     pub fn new(http: Http, config: ApiConfig) -> Self {
         Self {
             http,
-            origin: config.origin.trim_end_matches('/').to_owned(),
+            origin: config.origin,
             client_package: config.client_package,
             client_version: config.client_version,
             user_agent: config.user_agent,
@@ -298,12 +298,15 @@ impl Api {
     }
 
     fn request(&self, method: Method, path: &str) -> RequestBuilder {
-        debug_assert!(path.starts_with('/'));
-        let mut builder = self
-            .http
-            .client
-            .request(method, format!("{}{}", self.origin, path))
-            .header(CLIENT_PACKAGE, &self.client_package);
+        let mut builder = match Url::parse(&self.origin) {
+            Ok(mut url) => {
+                url.set_path(path);
+                self.http.client.request(method, url)
+            }
+            // reqwest hits the same parse failure, and reports it at send time.
+            Err(_) => self.http.client.request(method, self.origin.as_str()),
+        };
+        builder = builder.header(CLIENT_PACKAGE, &self.client_package);
         if let Some(version) = &self.client_version {
             builder = builder.header(CLIENT_VERSION, version);
         }
@@ -684,7 +687,38 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn origin_trailing_slash_is_trimmed() {
+    async fn path_cannot_change_the_host() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("GET", "/@evil.example/ping")
+            .match_header("x-auth-token", "tok")
+            .create_async()
+            .await;
+
+        let api = api(&server, Some(Auth::User("tok".into())));
+        api.get("@evil.example/ping").send().await.unwrap();
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn malformed_origin_fails_at_send() {
+        let api = Api::new(
+            Http::new().unwrap(),
+            ApiConfig {
+                origin: "not a url".into(),
+                client_package: "io.ente.test".into(),
+                client_version: None,
+                user_agent: None,
+                auth: None,
+            },
+        );
+        let err = api.get("/ping").send().await.unwrap_err();
+        assert!(matches!(err, Error::Network(_)));
+    }
+
+    #[tokio::test]
+    async fn origin_trailing_slash_is_tolerated() {
         let mut server = Server::new_async().await;
         let mock = server
             .mock("GET", "/ping")
