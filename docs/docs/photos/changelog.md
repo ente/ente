@@ -30,6 +30,7 @@ A short summary list of changes to the Ente Photos mobile and desktop apps. For 
 - Redesigned the Search tab with improved spacing, previews, empty states, and keyboard handling.
 - Improved Albums with Shared/Received filters, refreshed empty states, and better add-to-album flows.
 - Fixed a bug in bulk file downloads and improved backup album selection.
+- Fixed cached remote images and videos not being deleted from device storage during automatic cache cleanup when cache limits are reached.
 - Added skipped backup file reasons, such as “Deleted from Ente”.
 - Preserved draft comments when closing and reopening the photo comment panel.
 - Polished app lock, login/signup, gallery, trash, and warning screens.
