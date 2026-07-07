@@ -10,7 +10,7 @@ ente-contacts.workspace = true
 ente-core = { workspace = true, features = ["srp"] }
 md-5 = "0.11"
 js-sys = "0.3"
-serde = { version = "1", features = ["derive"] }
+serde.workspace = true
 serde-wasm-bindgen = "0.6"
 wasm-bindgen.workspace = true
 wasm-bindgen-futures = "0.4"
