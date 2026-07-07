@@ -28,7 +28,7 @@ use xsalsa20poly1305::aead::generic_array::GenericArray;
 use xsalsa20poly1305::aead::{Aead, KeyInit};
 use zeroize::Zeroize;
 
-use crate::crypto::{CryptoError, PublicKey, Result, SecretKey};
+use crate::crypto::{Error, PublicKey, Result, SecretKey};
 
 /// Size of a public key in bytes.
 pub const PUBLIC_KEY_BYTES: usize = PublicKey::BYTES;
@@ -87,7 +87,7 @@ fn is_contributory(shared_secret: &[u8; 32]) -> bool {
 ///
 /// # Errors
 ///
-/// Returns [`InvalidPublicKey`](CryptoError::InvalidPublicKey) if `recipient_pk`
+/// Returns [`InvalidPublicKey`](Error::InvalidPublicKey) if `recipient_pk`
 /// is a low-order point, which would make the X25519 exchange yield an all-zero
 /// shared secret and provide no security.
 ///
@@ -109,7 +109,7 @@ pub fn seal(plaintext: &[u8], recipient_pk: &PublicKey) -> Result<Vec<u8>> {
     // SECURITY: Reject non-contributory (small-order point)
     if !is_contributory(shared_secret.as_bytes()) {
         ephemeral_secret_bytes.zeroize();
-        return Err(CryptoError::InvalidPublicKey);
+        return Err(Error::InvalidPublicKey);
     }
 
     // Derive encryption key
@@ -125,7 +125,7 @@ pub fn seal(plaintext: &[u8], recipient_pk: &PublicKey) -> Result<Vec<u8>> {
         .encrypt(GenericArray::from_slice(&nonce), plaintext)
         .map_err(|_| {
             box_key.zeroize();
-            CryptoError::EncryptionFailed
+            Error::EncryptionFailed
         })?;
 
     // Build output: ephemeral_pk || MAC || ciphertext
@@ -148,10 +148,10 @@ pub fn seal(plaintext: &[u8], recipient_pk: &PublicKey) -> Result<Vec<u8>> {
 ///
 /// # Errors
 ///
-/// Returns [`CiphertextTooShort`](CryptoError::CiphertextTooShort) if
+/// Returns [`CiphertextTooShort`](Error::CiphertextTooShort) if
 /// `ciphertext` is smaller than [`SEAL_OVERHEAD`],
-/// [`InvalidPublicKey`](CryptoError::InvalidPublicKey) if the embedded ephemeral
-/// key is low-order, or [`DecryptionFailed`](CryptoError::DecryptionFailed) if
+/// [`InvalidPublicKey`](Error::InvalidPublicKey) if the embedded ephemeral
+/// key is low-order, or [`DecryptionFailed`](Error::DecryptionFailed) if
 /// the MAC does not verify, which happens with the wrong key pair or tampering.
 ///
 /// Wire-compatible with libsodium's `crypto_box_seal_open`.
@@ -161,7 +161,7 @@ pub fn open(
     recipient_sk: &SecretKey,
 ) -> Result<Vec<u8>> {
     if ciphertext.len() < SEAL_OVERHEAD {
-        return Err(CryptoError::CiphertextTooShort {
+        return Err(Error::CiphertextTooShort {
             minimum: SEAL_OVERHEAD,
             actual: ciphertext.len(),
         });
@@ -170,7 +170,7 @@ pub fn open(
     // Parse: ephemeral_pk (32) || MAC (16) || ciphertext
     let ephemeral_pk_bytes: [u8; 32] = ciphertext[..32]
         .try_into()
-        .map_err(|_| CryptoError::ArrayConversion)?;
+        .map_err(|_| Error::ArrayConversion)?;
     let encrypted = &ciphertext[32..]; // MAC || ciphertext
 
     let ephemeral_pk = x25519_dalek::PublicKey::from(ephemeral_pk_bytes);
@@ -182,7 +182,7 @@ pub fn open(
 
     // SECURITY: Reject non-contributory (small-order point)
     if !is_contributory(shared_secret.as_bytes()) {
-        return Err(CryptoError::InvalidPublicKey);
+        return Err(Error::InvalidPublicKey);
     }
 
     // Derive encryption key
@@ -197,7 +197,7 @@ pub fn open(
         .decrypt(GenericArray::from_slice(&nonce), encrypted)
         .map_err(|_| {
             box_key.zeroize();
-            CryptoError::DecryptionFailed
+            Error::DecryptionFailed
         })?;
     box_key.zeroize();
     Ok(plaintext)
@@ -316,10 +316,7 @@ mod tests {
         let bad_ciphertext = vec![0u8; 40]; // Less than SEAL_OVERHEAD
 
         let result = open(&bad_ciphertext, &pk, &sk);
-        assert!(matches!(
-            result,
-            Err(CryptoError::CiphertextTooShort { .. })
-        ));
+        assert!(matches!(result, Err(Error::CiphertextTooShort { .. })));
     }
 
     #[test]
@@ -352,7 +349,7 @@ mod tests {
         let zero_pk = PublicKey::from_bytes([0u8; 32]);
         let result = seal(b"test", &zero_pk);
         assert!(
-            matches!(result, Err(CryptoError::InvalidPublicKey)),
+            matches!(result, Err(Error::InvalidPublicKey)),
             "seal() should reject small-order public key, got: {:?}",
             result
         );
@@ -373,7 +370,7 @@ mod tests {
 
         let result = open(&fake_ciphertext, &pk, &sk);
         assert!(
-            matches!(result, Err(CryptoError::InvalidPublicKey)),
+            matches!(result, Err(Error::InvalidPublicKey)),
             "open() should reject small-order ephemeral key, got: {:?}",
             result
         );

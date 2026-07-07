@@ -8,7 +8,7 @@ use thiserror::Error;
 /// [`code`](Self::code) maps a variant to a stable string identifier that
 /// bindings forward to non-Rust callers.
 #[derive(Error, Debug)]
-pub enum CryptoError {
+pub enum Error {
     /// Base64 decoding failed.
     #[error("Base64 decode error: {0}")]
     Base64Decode(#[from] base64::DecodeError),
@@ -127,43 +127,43 @@ pub enum CryptoError {
     Io(#[from] std::io::Error),
 }
 
-impl CryptoError {
+impl Error {
     /// A stable, machine-readable identifier for this error, suitable for
     /// programmatic matching (e.g. `"invalid_key_length"`).
     pub fn code(&self) -> &'static str {
         match self {
-            CryptoError::Base64Decode(_) => "base64_decode",
-            CryptoError::HexDecode(_) => "hex_decode",
-            CryptoError::InvalidKeyLength { .. } => "invalid_key_length",
-            CryptoError::InvalidNonceLength { .. } => "invalid_nonce_length",
-            CryptoError::InvalidSaltLength { .. } => "invalid_salt_length",
-            CryptoError::InvalidHeaderLength { .. } => "invalid_header_length",
-            CryptoError::CiphertextTooShort { .. } => "ciphertext_too_short",
-            CryptoError::InvalidKeyDerivationParams(_) => "invalid_kdf_params",
-            CryptoError::KeyDerivationFailed => "key_derivation_failed",
-            CryptoError::EncryptionFailed => "encryption_failed",
-            CryptoError::DecryptionFailed => "decryption_failed",
-            CryptoError::StreamInitFailed => "stream_init_failed",
-            CryptoError::StreamPushFailed => "stream_push_failed",
-            CryptoError::StreamPullFailed => "stream_pull_failed",
-            CryptoError::StreamTruncated => "stream_truncated",
-            CryptoError::StreamTrailingData => "stream_trailing_data",
-            CryptoError::SealedBoxOpenFailed => "sealed_box_open_failed",
-            CryptoError::InvalidPublicKey => "invalid_public_key",
-            CryptoError::Json(_) => "json",
-            CryptoError::Argon2(_) => "argon2",
-            CryptoError::Aead => "aead",
-            CryptoError::ArrayConversion => "array_conversion",
-            CryptoError::Io(_) => "io",
+            Error::Base64Decode(_) => "base64_decode",
+            Error::HexDecode(_) => "hex_decode",
+            Error::InvalidKeyLength { .. } => "invalid_key_length",
+            Error::InvalidNonceLength { .. } => "invalid_nonce_length",
+            Error::InvalidSaltLength { .. } => "invalid_salt_length",
+            Error::InvalidHeaderLength { .. } => "invalid_header_length",
+            Error::CiphertextTooShort { .. } => "ciphertext_too_short",
+            Error::InvalidKeyDerivationParams(_) => "invalid_kdf_params",
+            Error::KeyDerivationFailed => "key_derivation_failed",
+            Error::EncryptionFailed => "encryption_failed",
+            Error::DecryptionFailed => "decryption_failed",
+            Error::StreamInitFailed => "stream_init_failed",
+            Error::StreamPushFailed => "stream_push_failed",
+            Error::StreamPullFailed => "stream_pull_failed",
+            Error::StreamTruncated => "stream_truncated",
+            Error::StreamTrailingData => "stream_trailing_data",
+            Error::SealedBoxOpenFailed => "sealed_box_open_failed",
+            Error::InvalidPublicKey => "invalid_public_key",
+            Error::Json(_) => "json",
+            Error::Argon2(_) => "argon2",
+            Error::Aead => "aead",
+            Error::ArrayConversion => "array_conversion",
+            Error::Io(_) => "io",
         }
     }
 }
 
 /// Result type for crypto operations.
-pub type Result<T> = std::result::Result<T, CryptoError>;
+pub type Result<T> = std::result::Result<T, Error>;
 
-impl From<std::array::TryFromSliceError> for CryptoError {
+impl From<std::array::TryFromSliceError> for Error {
     fn from(_: std::array::TryFromSliceError) -> Self {
-        CryptoError::ArrayConversion
+        Error::ArrayConversion
     }
 }

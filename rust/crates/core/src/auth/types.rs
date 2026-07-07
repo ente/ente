@@ -200,7 +200,7 @@ pub enum AuthError {
 
     /// Underlying cryptographic operation failed.
     #[error("Crypto error: {0}")]
-    Crypto(#[from] crate::crypto::CryptoError),
+    Crypto(#[from] crate::crypto::Error),
 
     /// Failed to decode base64 or hex data.
     #[error("Decode error: {0}")]

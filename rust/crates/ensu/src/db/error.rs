@@ -28,7 +28,7 @@ pub enum Error {
     NotFound { entity: EntityType, id: uuid::Uuid },
 
     #[error(transparent)]
-    Crypto(#[from] ente_core::crypto::CryptoError),
+    Crypto(#[from] ente_core::crypto::Error),
 
     #[error(transparent)]
     SerdeJson(#[from] serde_json::Error),

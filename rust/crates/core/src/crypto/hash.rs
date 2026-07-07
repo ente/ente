@@ -11,7 +11,7 @@
 use blake2b_simd::{Params as Blake2bParams, State as Blake2bState};
 use std::io::Read;
 
-use crate::crypto::{CryptoError, Result};
+use crate::crypto::{Error, Result};
 
 /// Minimum hash output length in bytes.
 pub const HASH_BYTES_MIN: usize = 16;
@@ -39,7 +39,7 @@ pub const KEY_BYTES_MAX: usize = 64;
 ///
 /// # Errors
 ///
-/// Returns [`InvalidKeyLength`](CryptoError::InvalidKeyLength) if `out_len` is
+/// Returns [`InvalidKeyLength`](Error::InvalidKeyLength) if `out_len` is
 /// outside 16 to 64 bytes, or if a non-empty `key` is outside that range.
 ///
 /// Produces the same digest as libsodium's `crypto_generichash`.
@@ -47,7 +47,7 @@ pub fn hash(data: &[u8], out_len: Option<usize>, key: Option<&[u8]>) -> Result<V
     let out_len = out_len.unwrap_or(HASH_BYTES);
 
     if !(HASH_BYTES_MIN..=HASH_BYTES_MAX).contains(&out_len) {
-        return Err(CryptoError::InvalidKeyLength {
+        return Err(Error::InvalidKeyLength {
             expected: HASH_BYTES_MAX,
             actual: out_len,
         });
@@ -59,7 +59,7 @@ pub fn hash(data: &[u8], out_len: Option<usize>, key: Option<&[u8]>) -> Result<V
     if let Some(k) = key {
         // libsodium: key must be 0 OR 16-64 bytes
         if !k.is_empty() && (k.len() < KEY_BYTES_MIN || k.len() > KEY_BYTES_MAX) {
-            return Err(CryptoError::InvalidKeyLength {
+            return Err(Error::InvalidKeyLength {
                 expected: KEY_BYTES_MAX,
                 actual: k.len(),
             });
@@ -98,13 +98,13 @@ impl HashState {
     ///
     /// # Errors
     ///
-    /// Returns [`InvalidKeyLength`](CryptoError::InvalidKeyLength) if `out_len`
+    /// Returns [`InvalidKeyLength`](Error::InvalidKeyLength) if `out_len`
     /// or a non-empty `key` is outside 16 to 64 bytes.
     pub fn new(out_len: Option<usize>, key: Option<&[u8]>) -> Result<Self> {
         let out_len = out_len.unwrap_or(HASH_BYTES);
 
         if !(HASH_BYTES_MIN..=HASH_BYTES_MAX).contains(&out_len) {
-            return Err(CryptoError::InvalidKeyLength {
+            return Err(Error::InvalidKeyLength {
                 expected: HASH_BYTES_MAX,
                 actual: out_len,
             });
@@ -116,7 +116,7 @@ impl HashState {
         if let Some(k) = key {
             // libsodium: key must be 0 OR 16-64 bytes
             if !k.is_empty() && (k.len() < KEY_BYTES_MIN || k.len() > KEY_BYTES_MAX) {
-                return Err(CryptoError::InvalidKeyLength {
+                return Err(Error::InvalidKeyLength {
                     expected: KEY_BYTES_MAX,
                     actual: k.len(),
                 });
@@ -157,8 +157,8 @@ pub fn hash_state_new() -> Result<HashState> {
 ///
 /// # Errors
 ///
-/// Returns [`InvalidKeyLength`](CryptoError::InvalidKeyLength) if `out_len` is
-/// out of range, or an [`Io`](CryptoError::Io) error if the reader fails.
+/// Returns [`InvalidKeyLength`](Error::InvalidKeyLength) if `out_len` is
+/// out of range, or an [`Io`](Error::Io) error if the reader fails.
 pub fn hash_reader<R: Read>(reader: &mut R, out_len: Option<usize>) -> Result<Vec<u8>> {
     let mut state = HashState::new(out_len, None)?;
     let mut buffer = vec![0u8; 4096];

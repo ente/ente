@@ -13,7 +13,7 @@ use std::fmt;
 
 use argon2::{Algorithm, Argon2, Params as Argon2Params, Version};
 
-use crate::crypto::{CryptoError, Key, Result, Salt};
+use crate::crypto::{Error, Key, Result, Salt};
 
 /// Argon2id cost parameters: how much memory to use and how many passes to make.
 ///
@@ -101,7 +101,7 @@ impl fmt::Debug for DerivedKey {
 /// # Errors
 ///
 /// Returns
-/// [`InvalidKeyDerivationParams`](CryptoError::InvalidKeyDerivationParams) if
+/// [`InvalidKeyDerivationParams`](Error::InvalidKeyDerivationParams) if
 /// `params` fall below the accepted minimum or memory is not a multiple of 1024
 /// bytes.
 ///
@@ -113,7 +113,7 @@ pub fn derive_key(password: &str, salt: &Salt, params: Params) -> Result<Key> {
 
 fn derive_key_impl(password: &[u8], salt: &Salt, params: Params) -> Result<Key> {
     if params.mem_limit < Params::MIN.mem_limit {
-        return Err(CryptoError::InvalidKeyDerivationParams(format!(
+        return Err(Error::InvalidKeyDerivationParams(format!(
             "Memory limit {} is below minimum {}",
             params.mem_limit,
             Params::MIN.mem_limit
@@ -121,14 +121,14 @@ fn derive_key_impl(password: &[u8], salt: &Salt, params: Params) -> Result<Key> 
     }
 
     if !params.mem_limit.is_multiple_of(1024) {
-        return Err(CryptoError::InvalidKeyDerivationParams(format!(
+        return Err(Error::InvalidKeyDerivationParams(format!(
             "Memory limit {} must be a multiple of 1024 bytes",
             params.mem_limit
         )));
     }
 
     if params.ops_limit < Params::MIN.ops_limit {
-        return Err(CryptoError::InvalidKeyDerivationParams(format!(
+        return Err(Error::InvalidKeyDerivationParams(format!(
             "Operations limit {} is below minimum {}",
             params.ops_limit,
             Params::MIN.ops_limit
@@ -141,14 +141,14 @@ fn derive_key_impl(password: &[u8], salt: &Salt, params: Params) -> Result<Key> 
     let p_cost = 1; // Parallelism degree
 
     let argon2_params = Argon2Params::new(m_cost, t_cost, p_cost, Some(Key::BYTES))
-        .map_err(|e| CryptoError::InvalidKeyDerivationParams(e.to_string()))?;
+        .map_err(|e| Error::InvalidKeyDerivationParams(e.to_string()))?;
 
     let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, argon2_params);
 
     let mut key = [0u8; Key::BYTES];
     argon2
         .hash_password_into(password, salt.as_bytes(), &mut key)
-        .map_err(CryptoError::Argon2)?;
+        .map_err(Error::Argon2)?;
 
     Ok(Key::from_bytes(key))
 }
@@ -205,7 +205,7 @@ fn derive_sensitive_adaptive(password: &[u8], salt: &Salt) -> Result<DerivedKey>
         .mem_limit
         .is_multiple_of(Params::MODERATE.mem_limit)
     {
-        return Err(CryptoError::InvalidKeyDerivationParams(format!(
+        return Err(Error::InvalidKeyDerivationParams(format!(
             "Memory limit {} must be divisible by {}",
             Params::SENSITIVE.mem_limit,
             Params::MODERATE.mem_limit
@@ -220,11 +220,11 @@ fn derive_sensitive_adaptive(password: &[u8], salt: &Salt) -> Result<DerivedKey>
         .ops_limit
         .checked_mul(factor)
         .ok_or_else(|| {
-            CryptoError::InvalidKeyDerivationParams("Operations limit overflow".to_string())
+            Error::InvalidKeyDerivationParams("Operations limit overflow".to_string())
         })?;
 
     if u64::from(mem_limit) * u64::from(ops_limit) != desired_strength {
-        return Err(CryptoError::InvalidKeyDerivationParams(format!(
+        return Err(Error::InvalidKeyDerivationParams(format!(
             "Unexpected mem/ops limits: mem_limit {}, ops_limit {}",
             mem_limit, ops_limit
         )));
@@ -256,7 +256,7 @@ fn derive_sensitive_adaptive(password: &[u8], salt: &Salt) -> Result<DerivedKey>
         };
     }
 
-    Err(last_error.unwrap_or(CryptoError::KeyDerivationFailed))
+    Err(last_error.unwrap_or(Error::KeyDerivationFailed))
 }
 
 #[cfg(test)]
@@ -433,10 +433,7 @@ mod tests {
                 ops_limit: Params::INTERACTIVE.ops_limit,
             },
         );
-        assert!(matches!(
-            result,
-            Err(CryptoError::InvalidKeyDerivationParams(_))
-        ));
+        assert!(matches!(result, Err(Error::InvalidKeyDerivationParams(_))));
     }
 
     #[test]

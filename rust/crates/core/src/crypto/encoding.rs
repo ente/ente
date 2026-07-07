@@ -18,7 +18,7 @@ use crate::crypto::Result;
 ///
 /// # Errors
 ///
-/// Returns [`Base64Decode`](crate::crypto::CryptoError::Base64Decode) if
+/// Returns [`Base64Decode`](crate::crypto::Error::Base64Decode) if
 /// `input` is not valid standard base64.
 pub fn decode_b64(input: &str) -> Result<Vec<u8>> {
     Ok(BASE64.decode(input)?)
@@ -60,7 +60,7 @@ pub fn encode_b64_url_safe_no_padding(input: &[u8]) -> String {
 ///
 /// # Errors
 ///
-/// Returns [`Base64Decode`](crate::crypto::CryptoError::Base64Decode) if
+/// Returns [`Base64Decode`](crate::crypto::Error::Base64Decode) if
 /// `input` is not valid unpadded URL-safe base64.
 pub fn decode_b64_url_safe_no_padding(input: &str) -> Result<Vec<u8>> {
     Ok(BASE64_URL_SAFE_NO_PAD.decode(input)?)
@@ -75,7 +75,7 @@ pub fn str_to_bin(input: &str) -> Vec<u8> {
 ///
 /// # Errors
 ///
-/// Returns [`HexDecode`](crate::crypto::CryptoError::HexDecode) if `input` is
+/// Returns [`HexDecode`](crate::crypto::Error::HexDecode) if `input` is
 /// not valid hexadecimal.
 pub fn decode_hex(input: &str) -> Result<Vec<u8>> {
     Ok(hex::decode(input)?)
@@ -91,7 +91,7 @@ pub fn encode_hex(input: &[u8]) -> String {
 ///
 /// # Errors
 ///
-/// Returns [`Base64Decode`](crate::crypto::CryptoError::Base64Decode) if `b64`
+/// Returns [`Base64Decode`](crate::crypto::Error::Base64Decode) if `b64`
 /// is not valid standard base64.
 pub fn b64_to_hex(b64: &str) -> Result<String> {
     let bytes = decode_b64(b64)?;
@@ -102,7 +102,7 @@ pub fn b64_to_hex(b64: &str) -> Result<String> {
 ///
 /// # Errors
 ///
-/// Returns [`HexDecode`](crate::crypto::CryptoError::HexDecode) if `hex_str` is
+/// Returns [`HexDecode`](crate::crypto::Error::HexDecode) if `hex_str` is
 /// not valid hexadecimal.
 pub fn hex_to_b64(hex_str: &str) -> Result<String> {
     let bytes = decode_hex(hex_str)?;

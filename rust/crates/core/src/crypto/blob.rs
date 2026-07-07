@@ -23,7 +23,7 @@
 //!   (`header ‖ ciphertext`).
 
 use super::stream::{Decryptor, Encryptor};
-use crate::crypto::{CryptoError, Header, Key, Result};
+use crate::crypto::{Error, Header, Key, Result};
 
 /// Size of the encryption key in bytes.
 pub const KEY_BYTES: usize = Key::BYTES;
@@ -88,10 +88,10 @@ pub fn encrypt(data: &[u8], key: &Key) -> Result<EncryptedBlob> {
 ///
 /// # Errors
 ///
-/// Returns [`CiphertextTooShort`](CryptoError::CiphertextTooShort) if `data` is
+/// Returns [`CiphertextTooShort`](Error::CiphertextTooShort) if `data` is
 /// smaller than the per-message overhead,
-/// [`StreamTruncated`](CryptoError::StreamTruncated) if the final tag is absent,
-/// or [`StreamPullFailed`](CryptoError::StreamPullFailed) if the MAC does not
+/// [`StreamTruncated`](Error::StreamTruncated) if the final tag is absent,
+/// or [`StreamPullFailed`](Error::StreamPullFailed) if the MAC does not
 /// verify, which happens when the key or header is wrong or the data was
 /// tampered with.
 ///
@@ -99,7 +99,7 @@ pub fn encrypt(data: &[u8], key: &Key) -> Result<EncryptedBlob> {
 pub fn decrypt(data: &[u8], header: &Header, key: &Key) -> Result<Vec<u8>> {
     let (plaintext, is_final) = decrypt_impl(data, header, key)?;
     if !is_final {
-        return Err(CryptoError::StreamTruncated);
+        return Err(Error::StreamTruncated);
     }
     Ok(plaintext)
 }
@@ -118,14 +118,14 @@ pub fn decrypt(data: &[u8], header: &Header, key: &Key) -> Result<Vec<u8>> {
 /// # Errors
 ///
 /// Same as [`decrypt`], except it never returns
-/// [`StreamTruncated`](CryptoError::StreamTruncated).
+/// [`StreamTruncated`](Error::StreamTruncated).
 pub fn decrypt_legacy(data: &[u8], header: &Header, key: &Key) -> Result<Vec<u8>> {
     Ok(decrypt_impl(data, header, key)?.0)
 }
 
 fn decrypt_impl(data: &[u8], header: &Header, key: &Key) -> Result<(Vec<u8>, bool)> {
     if data.len() < ABYTES {
-        return Err(CryptoError::CiphertextTooShort {
+        return Err(Error::CiphertextTooShort {
             minimum: ABYTES,
             actual: data.len(),
         });
@@ -159,12 +159,12 @@ pub fn encrypt_combined(data: &[u8], key: &Key) -> Result<Vec<u8>> {
 ///
 /// # Errors
 ///
-/// Returns [`CiphertextTooShort`](CryptoError::CiphertextTooShort) if `data` is
+/// Returns [`CiphertextTooShort`](Error::CiphertextTooShort) if `data` is
 /// too short to hold a header and one message, otherwise the same errors as
 /// [`decrypt`].
 pub fn decrypt_combined(data: &[u8], key: &Key) -> Result<Vec<u8>> {
     if data.len() < Header::BYTES + ABYTES {
-        return Err(CryptoError::CiphertextTooShort {
+        return Err(Error::CiphertextTooShort {
             minimum: Header::BYTES + ABYTES,
             actual: data.len(),
         });
@@ -179,7 +179,7 @@ pub fn decrypt_combined(data: &[u8], key: &Key) -> Result<Vec<u8>> {
 /// The inverse is [`decrypt_json`].
 pub fn encrypt_json<T: serde::Serialize>(value: &T, key: &Key) -> Result<EncryptedBlob> {
     let json = serde_json::to_vec(value)
-        .map_err(|e| CryptoError::Json(format!("JSON serialization failed: {}", e)))?;
+        .map_err(|e| Error::Json(format!("JSON serialization failed: {}", e)))?;
     encrypt(&json, key)
 }
 
@@ -189,7 +189,7 @@ pub fn encrypt_json<T: serde::Serialize>(value: &T, key: &Key) -> Result<Encrypt
 /// [`decrypt_json_combined`].
 pub fn encrypt_json_combined<T: serde::Serialize>(value: &T, key: &Key) -> Result<Vec<u8>> {
     let json = serde_json::to_vec(value)
-        .map_err(|e| CryptoError::Json(format!("JSON serialization failed: {}", e)))?;
+        .map_err(|e| Error::Json(format!("JSON serialization failed: {}", e)))?;
     encrypt_combined(&json, key)
 }
 
@@ -199,7 +199,7 @@ pub fn encrypt_json_combined<T: serde::Serialize>(value: &T, key: &Key) -> Resul
 pub fn decrypt_json<T: serde::de::DeserializeOwned>(blob: &EncryptedBlob, key: &Key) -> Result<T> {
     let plaintext = blob.decrypt(key)?;
     serde_json::from_slice(&plaintext)
-        .map_err(|e| CryptoError::Json(format!("JSON deserialization failed: {}", e)))
+        .map_err(|e| Error::Json(format!("JSON deserialization failed: {}", e)))
 }
 
 /// Decrypt a combined buffer and deserialize its plaintext from JSON into `T`.
@@ -211,7 +211,7 @@ pub fn decrypt_json_combined<T: serde::de::DeserializeOwned>(
 ) -> Result<T> {
     let plaintext = decrypt_combined(combined, key)?;
     serde_json::from_slice(&plaintext)
-        .map_err(|e| CryptoError::Json(format!("JSON deserialization failed: {}", e)))
+        .map_err(|e| Error::Json(format!("JSON deserialization failed: {}", e)))
 }
 
 #[cfg(test)]
@@ -239,7 +239,7 @@ mod tests {
 
         assert!(matches!(
             decrypt(&ciphertext, &header, &key),
-            Err(CryptoError::StreamTruncated)
+            Err(Error::StreamTruncated)
         ));
     }
 
@@ -294,7 +294,7 @@ mod tests {
         let encrypted = encrypt(b"Secret message", &key1).unwrap();
         assert!(matches!(
             encrypted.decrypt(&key2),
-            Err(CryptoError::StreamPullFailed)
+            Err(Error::StreamPullFailed)
         ));
     }
 
@@ -349,11 +349,11 @@ mod tests {
         )
         .unwrap();
 
-        // Decrypt into a mismatched type; should be CryptoError::Json
+        // Decrypt into a mismatched type; should be Error::Json
         let result: std::result::Result<Different, _> = decrypt_json(&encrypted, &key);
         assert!(
-            matches!(result, Err(CryptoError::Json(_))),
-            "Expected CryptoError::Json, got: {:?}",
+            matches!(result, Err(Error::Json(_))),
+            "Expected Error::Json, got: {:?}",
             result
         );
     }
@@ -365,7 +365,7 @@ mod tests {
 
         assert!(matches!(
             decrypt(&[0u8; ABYTES - 1], &header, &key),
-            Err(CryptoError::CiphertextTooShort { .. })
+            Err(Error::CiphertextTooShort { .. })
         ));
     }
 

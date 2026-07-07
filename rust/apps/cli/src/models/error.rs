@@ -1,5 +1,5 @@
 use ente_accounts::Error as AccountsError;
-use ente_core::{auth::AuthError, crypto::CryptoError};
+use ente_core::{auth::AuthError, crypto};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -51,11 +51,11 @@ pub enum Error {
     Generic(String),
 }
 
-impl From<CryptoError> for Error {
-    fn from(err: CryptoError) -> Self {
+impl From<crypto::Error> for Error {
+    fn from(err: crypto::Error) -> Self {
         match err {
-            CryptoError::Base64Decode(source) => Error::Base64Decode(source),
-            CryptoError::Io(source) => Error::Io(source),
+            crypto::Error::Base64Decode(source) => Error::Base64Decode(source),
+            crypto::Error::Io(source) => Error::Io(source),
             other => Error::Crypto(other.to_string()),
         }
     }
