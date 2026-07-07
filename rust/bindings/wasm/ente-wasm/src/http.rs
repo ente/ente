@@ -1,6 +1,6 @@
 //! WASM bindings for the HTTP client.
 
-use ente_core::http::{Error as CoreError, HttpClient as CoreHttpClient};
+use ente_core::http_legacy::{Error as CoreError, HttpClient as CoreHttpClient};
 use wasm_bindgen::prelude::*;
 
 /// HTTP client error.

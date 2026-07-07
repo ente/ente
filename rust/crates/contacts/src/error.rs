@@ -1,4 +1,4 @@
-use ente_core::{auth::AuthError, crypto::CryptoError, http::Error as HttpError};
+use ente_core::{auth::AuthError, crypto::CryptoError, http_legacy::Error as HttpError};
 use thiserror::Error;
 
 #[derive(Debug, Error)]

@@ -6,7 +6,7 @@ use ente_contacts::{
     LegacyKitRecoveryClient, LegacyKitRecoveryStatus,
     legacy_models::{LegacyContactState, LegacyRecoveryStatus},
 };
-use ente_core::http::Error as CoreHttpError;
+use ente_core::http_legacy::Error as CoreHttpError;
 use ente_rs::models::account::App;
 use ente_test_support::{Museum, TestResult};
 use serde::{Deserialize, Serialize};

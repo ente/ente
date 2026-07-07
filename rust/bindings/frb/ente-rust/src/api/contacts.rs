@@ -67,16 +67,18 @@ pub enum ContactsError {
 impl From<CoreContactsError> for ContactsError {
     fn from(value: CoreContactsError) -> Self {
         match value {
-            CoreContactsError::Http(ente_core::http::Error::Http {
-                status, message, ..
+            CoreContactsError::Http(ente_core::http_legacy::Error::Http {
+                status,
+                message,
+                ..
             }) => ContactsError::Http { message, status },
-            CoreContactsError::Http(ente_core::http::Error::Network(message)) => {
+            CoreContactsError::Http(ente_core::http_legacy::Error::Network(message)) => {
                 ContactsError::Network { message }
             }
-            CoreContactsError::Http(ente_core::http::Error::Parse(message)) => {
+            CoreContactsError::Http(ente_core::http_legacy::Error::Parse(message)) => {
                 ContactsError::Parse { message }
             }
-            CoreContactsError::Http(ente_core::http::Error::InvalidUrl(message)) => {
+            CoreContactsError::Http(ente_core::http_legacy::Error::InvalidUrl(message)) => {
                 ContactsError::InvalidUrl { message }
             }
             CoreContactsError::Crypto(message) => ContactsError::Crypto {

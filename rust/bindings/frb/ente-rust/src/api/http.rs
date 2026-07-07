@@ -1,6 +1,6 @@
 //! FRB bindings for the HTTP client
 
-use ente_core::http::{Error as CoreError, HttpClient as CoreHttpClient};
+use ente_core::http_legacy::{Error as CoreError, HttpClient as CoreHttpClient};
 use flutter_rust_bridge::frb;
 
 /// HTTP client errors.

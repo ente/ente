@@ -38,6 +38,11 @@ hex = "0.4"
 bip39 = { version = "2", default-features = false, features = ["std"] }
 zeroize = { version = "1.8.2", features = ["derive"] }
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["stream"] }
+bytes = "1.11.1"
+futures-core = "0.3.32"
+
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 mockito = "1.6"

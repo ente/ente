@@ -84,7 +84,7 @@ impl From<AuthError> for Error {
 impl From<AccountsError> for Error {
     fn from(err: AccountsError) -> Self {
         match err {
-            AccountsError::Http(ente_core::http::Error::Http {
+            AccountsError::Http(ente_core::http_legacy::Error::Http {
                 status,
                 code,
                 message,
@@ -93,13 +93,13 @@ impl From<AccountsError> for Error {
                 code,
                 message,
             },
-            AccountsError::Http(ente_core::http::Error::Network(message)) => {
+            AccountsError::Http(ente_core::http_legacy::Error::Network(message)) => {
                 Error::Generic(format!("Network error: {message}"))
             }
-            AccountsError::Http(ente_core::http::Error::Parse(message)) => {
+            AccountsError::Http(ente_core::http_legacy::Error::Parse(message)) => {
                 Error::Generic(format!("JSON parse error: {message}"))
             }
-            AccountsError::Http(ente_core::http::Error::InvalidUrl(message)) => {
+            AccountsError::Http(ente_core::http_legacy::Error::InvalidUrl(message)) => {
                 Error::InvalidConfig(message)
             }
             AccountsError::Serialization(source) => Error::Serialization(source),
