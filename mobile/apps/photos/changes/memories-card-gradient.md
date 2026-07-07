@@ -1,0 +1,1 @@
+- Matched the home memory card title gradient to the latest design.

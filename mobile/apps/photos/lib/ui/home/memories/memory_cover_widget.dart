@@ -96,12 +96,12 @@ class _MemoryCoverWidgetState extends State<MemoryCoverWidget> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Colors.black.withValues(alpha: 0.5),
                           Colors.transparent,
+                          Colors.black.withValues(alpha: 0.72),
                         ],
-                        stops: const [0, 1],
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
+                        stops: const [0.53663, 0.89955],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
                       ),
                     ),
                   ),
