@@ -24,7 +24,7 @@ RENDER_DETECTION_OVERLAYS=false
 REUSE_MOBILE_APPLICATION_BINARY=false
 PARALLEL_MOBILE_RUNNERS=true
 INCLUDE_PAIRWISE=false
-INTERNAL_USER_ROUTE=false
+USE_LEGACY_MOBILE_ML=false
 
 LOCAL_MIRROR_PORT=""
 LOCAL_MIRROR_PID=""
@@ -47,7 +47,7 @@ Flags:
   --reuse-mobile-application-binary     (default: disabled; reuse an existing built mobile binary when available)
   --no-parallel-mobile-runners          (default: disabled; run android/ios runners sequentially)
   --include-pairwise                    (default: disabled; include non-ground-truth pairwise platform comparisons)
-  --internal                            (default: disabled; mobile only, run internal-user Rust ML pipeline)
+  --legacy                              (default: disabled; mobile only, run legacy Dart/ONNX ML pipeline instead of Rust)
 EOF
 }
 
@@ -97,8 +97,8 @@ while (($# > 0)); do
       INCLUDE_PAIRWISE=true
       shift
       ;;
-    --internal)
-      INTERNAL_USER_ROUTE=true
+    --legacy)
+      USE_LEGACY_MOBILE_ML=true
       shift
       ;;
     -h|--help)
@@ -299,6 +299,11 @@ start_local_mirror_server() {
   return 1
 }
 
+MOBILE_ML_ROUTE="rust"
+if $USE_LEGACY_MOBILE_ML; then
+  MOBILE_ML_ROUTE="legacy-dart"
+fi
+
 echo "Running ML parity suite"
 print_kv "platforms:" "$PLATFORMS"
 print_kv "output_dir:" "$OUTPUT_DIR"
@@ -313,7 +318,7 @@ print_kv "android_build_mode:" "${ML_PARITY_ANDROID_BUILD_MODE:-profile}"
 print_kv "reuse_mobile_application_binary:" "$REUSE_MOBILE_APPLICATION_BINARY"
 print_kv "parallel_mobile_runners:" "$PARALLEL_MOBILE_RUNNERS"
 print_kv "include_pairwise:" "$INCLUDE_PAIRWISE"
-print_kv "internal_user_route:" "$INTERNAL_USER_ROUTE"
+print_kv "mobile_ml_route:" "$MOBILE_ML_ROUTE"
 
 declare -a selected_platforms=()
 case "$PLATFORMS" in
@@ -1017,7 +1022,7 @@ run_mobile_runner() {
     --no-dds
     --dart-define=ML_PARITY_MANIFEST_B64="$MANIFEST_B64"
     --dart-define=ML_PARITY_CODE_REVISION="$CODE_REVISION"
-    --dart-define=ML_PARITY_INTERNAL_USER="$INTERNAL_USER_ROUTE"
+    --dart-define=ML_PARITY_USE_LEGACY_MOBILE_ML="$USE_LEGACY_MOBILE_ML"
   )
 
   if [[ -z "$resolved_device_id" ]]; then

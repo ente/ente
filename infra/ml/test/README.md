@@ -35,6 +35,7 @@ Common flags:
 - `--reuse-mobile-application-binary` (reuse an existing built mobile binary when available; useful for repeated local parity runs without code changes)
 - `--no-parallel-mobile-runners` (force sequential android/ios runner execution)
 - `--include-pairwise` (also compare non-ground-truth platform pairs such as `android -> ios`)
+- `--legacy` (mobile only; run the legacy Dart/ONNX ML pipeline instead of the default Rust ML pipeline)
 
 Outputs go to `infra/ml/test/out/parity/` by default, including:
 
