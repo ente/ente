@@ -115,6 +115,7 @@ class _MemoryCoverWidgetState extends State<MemoryCoverWidget> {
                           tag: title,
                           child: Text(
                             title,
+                            maxLines: 3,
                             style: TextStyle(
                               fontSize: 14,
                               height: 16 / 14,
