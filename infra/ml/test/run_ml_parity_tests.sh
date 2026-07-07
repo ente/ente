@@ -1181,44 +1181,6 @@ render_html_report() {
   return 0
 }
 
-render_markdown_report() {
-  local report_path="$1"
-  local markdown_output_path="$OUTPUT_DIR/parity_report.llm.md"
-  local renderer_log="$LOG_DIR/render_markdown_report.log"
-  local rendered_path=""
-
-  if $VERBOSE; then
-    if ! rendered_path="$(
-      python3 "$ML_DIR/tools/render_parity_markdown_report.py" \
-        --report "$report_path" \
-        --output "$markdown_output_path"
-    )"; then
-      echo "Failed to render Markdown parity report at $markdown_output_path."
-      return 1
-    fi
-  else
-    if ! rendered_path="$(
-      python3 "$ML_DIR/tools/render_parity_markdown_report.py" \
-        --report "$report_path" \
-        --output "$markdown_output_path" \
-        2>"$renderer_log"
-    )"; then
-      echo "Failed to render Markdown parity report at $markdown_output_path. Log: $renderer_log"
-      return 1
-    fi
-  fi
-
-  LAST_MARKDOWN_REPORT="${rendered_path##*$'\n'}"
-  if [[ -z "$LAST_MARKDOWN_REPORT" ]]; then
-    LAST_MARKDOWN_REPORT="$markdown_output_path"
-  fi
-  if [[ ! -f "$LAST_MARKDOWN_REPORT" ]]; then
-    echo "Markdown parity report was not generated at $LAST_MARKDOWN_REPORT."
-    return 1
-  fi
-  return 0
-}
-
 render_compact_summary() {
   python3 "$PARITY_HELPERS" compact-summary "$@"
 }
@@ -1258,7 +1220,6 @@ comparison_report_passed() {
 }
 
 LAST_HTML_REPORT=""
-LAST_MARKDOWN_REPORT=""
 declare -a failed_platform_runners=()
 
 run_platform_runner_and_capture_exit() {
@@ -1434,9 +1395,6 @@ if [[ -f "$compare_output" ]]; then
   if ! render_html_report "$compare_output"; then
     echo "Continuing without HTML report due to renderer failure."
   fi
-  if ! render_markdown_report "$compare_output"; then
-    echo "Continuing without Markdown report due to renderer failure."
-  fi
   echo
   render_compact_summary "$compare_output" "${selected_platforms[@]}"
 fi
@@ -1473,10 +1431,6 @@ print_kv "comparison report (JSON):" "$compare_output"
 if [[ -n "$LAST_HTML_REPORT" ]]; then
   print_kv "html parity report:" "$LAST_HTML_REPORT"
   print_kv "html parity report URL:" "$(python3 "$PARITY_HELPERS" file-url "$LAST_HTML_REPORT")"
-fi
-if [[ -n "$LAST_MARKDOWN_REPORT" ]]; then
-  print_kv "markdown parity report (LLM):" "$LAST_MARKDOWN_REPORT"
-  echo "  note: for extensive results beyond the printed summary, read the markdown report."
 fi
 if $RENDER_DETECTION_OVERLAYS; then
   print_kv "detection overlays:" "$DETECTION_OVERLAYS_OUTPUT_DIR"
