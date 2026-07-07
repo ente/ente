@@ -331,10 +331,6 @@ sha256_file() {
   python3 "$PARITY_HELPERS" sha256-file "$1"
 }
 
-cache_key_for_url() {
-  python3 "$PARITY_HELPERS" url-cache-key "$1"
-}
-
 platform_device_id() {
   local platform="$1"
   local requested_device_id="${2:-}"
@@ -748,8 +744,6 @@ run_preflight_checks
 
 echo "Syncing local fixture directory (cached): $TEST_DATA_DIR"
 mkdir -p "$TEST_DATA_DIR"
-fixture_metadata_dir="$TEST_DATA_DIR/.source-metadata"
-mkdir -p "$fixture_metadata_dir"
 
 downloaded_count=0
 reused_count=0
@@ -761,13 +755,14 @@ while IFS=$'\t' read -r source_rel source_url source_sha; do
     echo "Manifest item missing source_url for source=$source_rel" >&2
     exit 1
   fi
+  if [[ -z "$source_sha" ]]; then
+    echo "Manifest item missing source_sha256 for source=$source_rel" >&2
+    exit 1
+  fi
 
   target_path="$ML_DIR/$source_rel"
   target_dir="$(dirname "$target_path")"
   mkdir -p "$target_dir"
-
-  cache_key="$(cache_key_for_url "$source_url")"
-  etag_path="$fixture_metadata_dir/$cache_key.etag"
 
   should_download=false
   reason=""
@@ -777,45 +772,12 @@ while IFS=$'\t' read -r source_rel source_url source_sha; do
     reason="missing local fixture"
   fi
 
-  if [[ -f "$target_path" && -n "$source_sha" ]]; then
+  if [[ -f "$target_path" ]]; then
     actual_sha="$(sha256_file "$target_path")"
     if [[ "$actual_sha" != "$source_sha" ]]; then
       should_download=true
       reason="local SHA-256 mismatch"
     fi
-  fi
-
-  remote_headers=""
-  if remote_headers="$(curl -fsSI --retry 3 --retry-delay 1 "$source_url" 2>/dev/null)"; then
-    remote_etag="$(
-      printf '%s\n' "$remote_headers" | awk -F': ' 'tolower($1)=="etag"{print $2; exit}' | tr -d '\r'
-    )"
-
-    if [[ -n "$remote_etag" ]]; then
-      local_etag=""
-      if [[ -f "$etag_path" ]]; then
-        local_etag="$(tr -d '\r\n' <"$etag_path")"
-      fi
-      if [[ "$local_etag" != "$remote_etag" ]]; then
-        should_download=true
-        if [[ -z "$reason" ]]; then
-          reason="remote ETag changed"
-        fi
-      fi
-    elif [[ -f "$target_path" && -z "$source_sha" ]]; then
-      should_download=true
-      if [[ -z "$reason" ]]; then
-        reason="remote ETag unavailable"
-      fi
-    fi
-  else
-    if [[ -f "$target_path" && -z "$source_sha" ]]; then
-      should_download=true
-      if [[ -z "$reason" ]]; then
-        reason="failed to fetch remote metadata"
-      fi
-    fi
-    remote_etag=""
   fi
 
   if $should_download; then
@@ -826,22 +788,15 @@ while IFS=$'\t' read -r source_rel source_url source_sha; do
       exit 1
     fi
 
-    if [[ -n "$source_sha" ]]; then
-      actual_sha="$(sha256_file "$tmp_path")"
-      if [[ "$actual_sha" != "$source_sha" ]]; then
-        rm -f "$tmp_path"
-        echo "SHA-256 mismatch for $source_rel: expected $source_sha got $actual_sha" >&2
-        exit 1
-      fi
+    actual_sha="$(sha256_file "$tmp_path")"
+    if [[ "$actual_sha" != "$source_sha" ]]; then
+      rm -f "$tmp_path"
+      echo "SHA-256 mismatch for $source_rel: expected $source_sha got $actual_sha" >&2
+      exit 1
     fi
 
     mv "$tmp_path" "$target_path"
     downloaded_count=$((downloaded_count + 1))
-    if [[ -n "$remote_etag" ]]; then
-      printf '%s\n' "$remote_etag" >"$etag_path"
-    else
-      rm -f "$etag_path"
-    fi
 
     if $VERBOSE; then
       echo "Downloaded fixture: $source_rel ($reason)"

@@ -41,7 +41,7 @@ uv run --project infra/ml python infra/ml/test/tools/generate_goldens.py \
   --output-dir infra/ml/test/out/parity/python
 ```
 
-`generate_goldens.py` expects fixture files to already be present locally. `run_ml_parity_tests.sh` is responsible for clearing `infra/ml/test/test_data/ml-indexing/v1`, downloading fixtures, and then calling the generator.
+`generate_goldens.py` expects fixture files to already be present locally. `run_ml_parity_tests.sh` is responsible for syncing `infra/ml/test/test_data/ml-indexing/v1`, verifying fixture SHA-256 values, and then calling the generator.
 
 ## Compare Against Platforms
 
