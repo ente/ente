@@ -76,12 +76,20 @@ jobs:
                   permission-contents: write
                   permission-pull-requests: write
 
+            - name: Configure git identity
+              env:
+                  GH_TOKEN: ${{ steps.app_token.outputs.token }}
+                  APP_SLUG: ${{ steps.app_token.outputs.app-slug }}
+              run: |
+                  bot_id="$(gh api "/users/${APP_SLUG}[bot]" --jq .id)"
+                  git config --global user.name "${APP_SLUG}[bot]"
+                  git config --global user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
+
             - name: Start release
               if: inputs.action == 'start'
               env:
                   GH_TOKEN: ${{ steps.app_token.outputs.token }}
                   RUNS_TOKEN: ${{ github.token }}
-                  APP_SLUG: ${{ steps.app_token.outputs.app-slug }}
               run: |
                   set -euo pipefail
 
@@ -93,10 +101,6 @@ jobs:
                       git -c http.https://github.com/.extraheader= push \
                           "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$@"
                   }
-
-                  bot_id="$(gh api "/users/${APP_SLUG}[bot]" --jq .id)"
-                  git config user.name "${APP_SLUG}[bot]"
-                  git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
 
                   release_branch="release/${APP}-v${VERSION}"
                   beta_tag="${APP}-v${VERSION}-beta"
@@ -180,6 +184,10 @@ jobs:
 
                       git tag "photos-desktop-v${VERSION}" "${release_sha}"
                       git push origin "refs/tags/photos-desktop-v${VERSION}"
+
+                      git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/ente/photos-desktop.git" photos-desktop
+                      git -C photos-desktop commit --allow-empty -m "v${VERSION}"
+                      git -C photos-desktop push
 
                       gh release edit "v${VERSION}" --repo ente/photos-desktop --draft=false --prerelease=false --latest
                       gh release delete "photos-desktop-v${VERSION}-rc" --yes --cleanup-tag --repo ente/nightly || true
