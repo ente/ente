@@ -18,6 +18,7 @@ use reqwest::{Method, Url};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use zeroize::ZeroizeOnDrop;
 
 const CLIENT_PACKAGE: HeaderName = HeaderName::from_static("x-client-package");
 const CLIENT_VERSION: HeaderName = HeaderName::from_static("x-client-version");
@@ -157,6 +158,7 @@ impl Http {
 ///
 /// An `Api` uses a single scheme for its lifetime. To act as more than one
 /// identity at once, hold several `Api`s over the same [`Http`].
+#[derive(ZeroizeOnDrop)]
 pub enum Auth {
     /// A logged-in user, sent as the `X-Auth-Token` header.
     User(String),
