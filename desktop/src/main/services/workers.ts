@@ -244,7 +244,11 @@ const createFFmpegUtilityProcessEndpoint = () => {
 
     // Promise.withResolvers is currently in the node available to us.
     let resolve: ((endpoint: Endpoint) => void) | undefined;
-    const promise = new Promise<Endpoint>((r) => (resolve = r));
+    let reject: ((e: Error) => void) | undefined;
+    const promise = new Promise<Endpoint>((res, rej) => {
+        resolve = res;
+        reject = rej;
+    });
 
     const { port1, port2 } = new MessageChannelMain();
 
@@ -275,6 +279,15 @@ const createFFmpegUtilityProcessEndpoint = () => {
     });
 
     _utilityProcessFFmpeg = child;
+
+    // Recover from crashes: reject the endpoint promise if it is still
+    // pending, and clear the cached values so that the next FFmpeg operation
+    // spawns a new utility process.
+    child.on("exit", () => {
+        reject?.(new Error("The FFmpeg utility process exited"));
+        _utilityProcessFFmpeg = undefined;
+        _utilityProcessFFmpegEndpoint = undefined;
+    });
 
     // Resolve with the other end of the message channel (once we get an "ack"
     // from the utility process).
