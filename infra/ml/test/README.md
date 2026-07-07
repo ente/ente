@@ -33,7 +33,6 @@ Common flags:
 - `--render-detection-overlays` (generate annotated detection images under `out/parity/detections/<platform>/`; includes selected platforms plus `python` ground truth)
 - `--reuse-mobile-application-binary` (reuse an existing built mobile binary when available; useful for repeated local parity runs without code changes)
 - `--no-parallel-mobile-runners` (force sequential android/ios runner execution)
-- `--include-pairwise` (also compare non-ground-truth platform pairs such as `android -> ios`)
 - `--legacy` (mobile only; run the legacy Dart/ONNX ML pipeline instead of the default Rust ML pipeline)
 
 Outputs go to `infra/ml/test/out/parity/` by default, including:
@@ -41,7 +40,7 @@ Outputs go to `infra/ml/test/out/parity/` by default, including:
 - `comparison_report.json` (machine-readable comparison output)
 - `parity_report.html` (readable HTML report with per-file metrics for both pass and fail files)
 
-`run_ml_parity_tests.sh` compares each available platform against Python ground truth (`python -> <platform>`); non-ground-truth pairwise comparisons are excluded by default.
+`run_ml_parity_tests.sh` compares each available platform against Python ground truth (`python -> <platform>`).
 
 Optional mobile reuse env vars:
 

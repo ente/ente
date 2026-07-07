@@ -53,11 +53,6 @@ def main() -> int:
         help="Optional path to write machine-readable comparison JSON.",
     )
     parser.add_argument(
-        "--no-pairwise",
-        action="store_true",
-        help="Skip non-ground-truth pairwise comparisons.",
-    )
-    parser.add_argument(
         "--fail-on-any-file-failure",
         action="store_true",
         help=(
@@ -86,7 +81,6 @@ def main() -> int:
     reports = compare_platform_matrix(
         platform_results,
         ground_truth_platform=ground_truth_platform,
-        include_pairwise=not args.no_pairwise,
         thresholds=thresholds,
     )
 

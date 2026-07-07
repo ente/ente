@@ -210,7 +210,6 @@ def render_report(
     *,
     report_path: Path,
     output_path: Path,
-    include_pairwise: bool,
 ) -> None:
     payload = json.loads(report_path.read_text())
     ground_truth_platform = str(payload.get("ground_truth_platform", "python"))
@@ -218,14 +217,6 @@ def render_report(
     comparisons = payload.get("comparisons", [])
     if not isinstance(comparisons, list):
         comparisons = []
-
-    if not include_pairwise:
-        comparisons = [
-            comparison
-            for comparison in comparisons
-            if isinstance(comparison, dict)
-            and str(comparison.get("reference_platform", "")) == ground_truth_platform
-        ]
 
     report_dir = report_path.parent
     stats = platform_stats(report_dir)
@@ -331,11 +322,6 @@ def main() -> int:
         "--output",
         help="Output HTML path (default: <report_dir>/parity_report.html)",
     )
-    parser.add_argument(
-        "--include-pairwise",
-        action="store_true",
-        help="Include non-ground-truth pairwise comparisons in the report.",
-    )
     args = parser.parse_args()
 
     report_path = Path(args.report)
@@ -347,7 +333,6 @@ def main() -> int:
     render_report(
         report_path=report_path,
         output_path=output_path,
-        include_pairwise=args.include_pairwise,
     )
     print(output_path)
     return 0

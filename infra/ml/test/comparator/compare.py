@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import itertools
 import math
 from typing import Any, Mapping, Sequence
 
@@ -102,9 +101,7 @@ def _percentile(values: Sequence[float], percentile: float) -> float:
 @dataclass(frozen=True)
 class ThresholdConfig:
     clip_cosine_distance: float = 0.015
-    cross_platform_clip_cosine_distance: float = 0.015
     clip_warning_cosine_distance: float = 0.035
-    cross_platform_clip_warning_cosine_distance: float = 0.035
     face_embedding_cosine_distance: float = 0.015
     face_embedding_warning_cosine_distance: float = 0.035
     box_iou_threshold: float = 0.80
@@ -119,14 +116,6 @@ class ThresholdConfig:
             raise ValueError(
                 "clip_warning_cosine_distance must be >= clip_cosine_distance"
             )
-        if (
-            self.cross_platform_clip_warning_cosine_distance
-            < self.cross_platform_clip_cosine_distance
-        ):
-            raise ValueError(
-                "cross_platform_clip_warning_cosine_distance must be >= "
-                "cross_platform_clip_cosine_distance"
-            )
         if self.face_embedding_warning_cosine_distance < self.face_embedding_cosine_distance:
             raise ValueError(
                 "face_embedding_warning_cosine_distance must be >= face_embedding_cosine_distance"
@@ -135,11 +124,7 @@ class ThresholdConfig:
     def to_dict(self) -> dict[str, float]:
         return {
             "clip_cosine_distance": self.clip_cosine_distance,
-            "cross_platform_clip_cosine_distance": self.cross_platform_clip_cosine_distance,
             "clip_warning_cosine_distance": self.clip_warning_cosine_distance,
-            "cross_platform_clip_warning_cosine_distance": (
-                self.cross_platform_clip_warning_cosine_distance
-            ),
             "face_embedding_cosine_distance": self.face_embedding_cosine_distance,
             "face_embedding_warning_cosine_distance": self.face_embedding_warning_cosine_distance,
             "box_iou_threshold": self.box_iou_threshold,
@@ -1121,7 +1106,6 @@ def compare_platform_matrix(
     platform_results: Mapping[str, Sequence[ParityResult]],
     *,
     ground_truth_platform: str = "python",
-    include_pairwise: bool = True,
     thresholds: ThresholdConfig | None = None,
 ) -> tuple[ComparisonReport, ...]:
     thresholds = thresholds or ThresholdConfig()
@@ -1150,23 +1134,5 @@ def compare_platform_matrix(
                 thresholds=thresholds,
             ),
         )
-
-    if include_pairwise:
-        for left_platform, right_platform in itertools.combinations(
-            sorted(non_ground_truth_platforms), 2
-        ):
-            reports.append(
-                compare_result_sets(
-                    reference_platform=left_platform,
-                    candidate_platform=right_platform,
-                    reference_results=by_platform[left_platform],
-                    candidate_results=by_platform[right_platform],
-                    thresholds=thresholds,
-                    clip_threshold=thresholds.cross_platform_clip_cosine_distance,
-                    clip_warning_threshold=(
-                        thresholds.cross_platform_clip_warning_cosine_distance
-                    ),
-                ),
-            )
 
     return tuple(reports)
