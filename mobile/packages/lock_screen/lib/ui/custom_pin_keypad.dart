@@ -1,4 +1,4 @@
-import "package:ente_ui/theme/ente_theme.dart";
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 
 class CustomPinKeypad extends StatelessWidget {
@@ -14,7 +14,7 @@ class CustomPinKeypad extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Container(
-              color: getEnteColorScheme(context).strokeFainter,
+              color: context.componentColors.fillDark,
               child: Column(
                 children: [
                   Row(
@@ -178,8 +178,7 @@ class _ButtonState extends State<_Button> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
     return Expanded(
       child: GestureDetector(
         onTap: widget.onTap,
@@ -194,11 +193,11 @@ class _ButtonState extends State<_Button> {
               shape: BoxShape.rectangle,
               borderRadius: BorderRadius.circular(6),
               color: isPressed
-                  ? colorScheme.backgroundElevated
+                  ? colors.fillDarkest
                   : widget.muteButton
-                  ? colorScheme.fillFaintPressed
+                  ? Colors.transparent
                   : widget.icon == null
-                  ? colorScheme.backgroundElevated2
+                  ? colors.fillLight
                   : null,
             ),
             child: Center(
@@ -217,8 +216,8 @@ class _ButtonState extends State<_Button> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(widget.number, style: textTheme.h3),
-                          Text(widget.text, style: textTheme.tinyBold),
+                          Text(widget.number, style: TextStyles.h1),
+                          Text(widget.text, style: TextStyles.tiny),
                         ],
                       ),
                     ),
