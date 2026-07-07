@@ -27,7 +27,6 @@ bool isTransformOnlyRotation(TransformConfigs t) {
       t.angle != 0 &&
       t.cropRect == fullImageRect &&
       t.scaleUser == 1 &&
-      t.scaleRotation == 1 &&
       t.aspectRatio == -1 &&
       t.flipX == false &&
       t.flipY == false &&
