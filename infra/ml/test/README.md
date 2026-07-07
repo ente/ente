@@ -7,7 +7,6 @@ This directory contains the ML indexing parity framework for Android, iOS, deskt
 - `ground_truth/`: schema, manifest, and ONNX-backed Python pipeline.
 - `comparator/`: parity comparison engine and threshold checks.
 - `tools/`: suite orchestration and CLI entrypoints.
-- `tests/`: pytest coverage for schema/comparator behavior.
 - Runtime-only artifacts (gitignored): `test_data/`, `out/`, `.cache/`.
 
 ## Prerequisites
