@@ -1,0 +1,1 @@
+- Refined the typography used for memory titles on the home screen.
