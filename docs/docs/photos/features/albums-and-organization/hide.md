@@ -32,8 +32,8 @@ Hiding differs from [Archiving](./archive) in that hidden content won't appear a
 
 **On mobile:**
 
-- Open the Albums tab
-- Tap on 'v' icon at the right.
+- Go to the Albums tab
+- Scroll to the bottom
 - Tap **Hidden**
 - Authenticate with biometrics or passcode
 

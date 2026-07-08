@@ -1224,7 +1224,6 @@ class _HomeWidgetState extends State<HomeWidget> {
         locale: Localizations.localeOf(context),
         isLocalGallery: isLocalGalleryMode,
         isSignedIn: Configuration.instance.isLoggedIn(),
-        isAndroid: Platform.isAndroid,
       );
       if (!mounted || action == ChangeLogAction.skip) {
         return;

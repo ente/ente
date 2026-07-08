@@ -1,1 +1,0 @@
-- Fixed cached remote images and videos not being deleted from device storage during automatic cache cleanup.

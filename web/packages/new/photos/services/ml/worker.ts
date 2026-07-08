@@ -8,7 +8,6 @@ import type { ElectronMLWorker } from "ente-base/types/ipc";
 import { isNetworkDownloadError } from "ente-gallery/services/download";
 import type { ProcessableUploadItem } from "ente-gallery/services/upload";
 import { fileLogID, type EnteFile } from "ente-media/file";
-import { FileType } from "ente-media/file-type";
 import { savedTrashItemFileIDs } from "ente-new/photos/services/trash";
 import { wait } from "ente-utils/promise";
 import { savedCollectionFiles } from "../photos-fdb";
@@ -116,11 +115,8 @@ export class MLWorker {
     private liveQ: IndexableItem[] = [];
     private idleTimeout: ReturnType<typeof setTimeout> | undefined;
     private idleDuration = idleDurationStart; /* unit: seconds */
-    /** Settlers for pending promises returned from calls to {@link index}. */
-    private onNextIdles: {
-        resolve: (count: number) => void;
-        reject: (e: Error) => void;
-    }[] = [];
+    /** Resolvers for pending promises returned from calls to {@link index}. */
+    private onNextIdles: ((count: number) => void)[] = [];
     /**
      * Number of items processed since the last time {@link onNextIdles} was
      * drained.
@@ -144,27 +140,6 @@ export class MLWorker {
     init(port: MessagePort, delegate: MLWorkerDelegate) {
         this.electron = wrap<ElectronMLWorker>(port);
         this.delegate = delegate;
-        port.addEventListener("close", () => this.electronPortDidClose(), {
-            once: true,
-        });
-    }
-
-    /**
-     * Called when the port to the ML utility process closes, which happens if
-     * the utility process exits (e.g. if it crashes).
-     *
-     * Reject any pending promises returned by {@link index} so that a sync
-     * awaiting us doesn't hang forever, then inform the main thread, which
-     * will discard us. Anything else in flight dies with us; the next sync
-     * will retry with a new worker.
-     */
-    private electronPortDidClose() {
-        const onNextIdles = this.onNextIdles;
-        this.onNextIdles = [];
-        onNextIdles.forEach(({ reject }) =>
-            reject(new Error("The ML utility process exited")),
-        );
-        this.delegate?.workerDidLoseElectronPort();
     }
 
     /**
@@ -176,12 +151,11 @@ export class MLWorker {
      * save it locally. Otherwise we index them.
      *
      * @return The count of items processed since the last last time we were
-     * idle. The returned promise rejects if the port to the ML utility process
-     * closes while we're indexing.
+     * idle.
      */
     index() {
-        const nextIdle = new Promise<number>((resolve, reject) =>
-            this.onNextIdles.push({ resolve, reject }),
+        const nextIdle = new Promise<number>((resolve) =>
+            this.onNextIdles.push(resolve),
         );
         this.wakeUp();
         return nextIdle;
@@ -300,7 +274,7 @@ export class MLWorker {
         const countSinceLastIdle = this.countSinceLastIdle;
         this.onNextIdles = [];
         this.countSinceLastIdle = 0;
-        onNextIdles.forEach(({ resolve }) => resolve(countSinceLastIdle));
+        onNextIdles.forEach((f) => f(countSinceLastIdle));
 
         // If no one was waiting, then let the main thread know via a different
         // channel so that it can update the clusters and people.
@@ -480,22 +454,6 @@ const syncWithLocalFilesAndGetFilesToIndex = async (
 };
 
 /**
- * The maximum size (in bytes) of files that we will index.
- *
- * The same limit is used by the mobile app.
- */
-const maxIndexableFileSize = 100 * 1000 * 1000; /* 100 MB */
-
-/**
- * The maximum number of pixels in an image that we will index.
- *
- * ONNX runtime's conversion of the image into a float tensor makes a single
- * allocation of 12 bytes per pixel, and Electron's allocator aborts the
- * process on single allocations of 2 GiB or more (~179 megapixels).
- */
-const maxIndexablePixels = 150 * 1000 * 1000; /* 150 MP */
-
-/**
  * Index file, save the persist the results locally, and put them on remote.
  *
  * Indexing a file involves computing its various ML embeddings: faces and CLIP.
@@ -584,16 +542,6 @@ const index = async (
 
     let renderableBlob: Blob;
     try {
-        // Videos are indexed using their thumbnails, so the size of the video
-        // file itself does not matter.
-        if (
-            file.metadata.fileType != FileType.video &&
-            (file.info?.fileSize ?? 0) > maxIndexableFileSize
-        ) {
-            throw new Error(
-                `File too large to index (${file.info?.fileSize} bytes)`,
-            );
-        }
         renderableBlob = await fetchRenderableBlob(
             file,
             processableUploadItem,
@@ -609,10 +557,7 @@ const index = async (
 
     let image: ImageBitmapAndData;
     try {
-        image = await createImageBitmapAndData(
-            renderableBlob,
-            maxIndexablePixels,
-        );
+        image = await createImageBitmapAndData(renderableBlob);
     } catch (e) {
         // If we cannot get the raw image data for the file, then retrying again
         // won't help (if in the future we enhance the underlying code for

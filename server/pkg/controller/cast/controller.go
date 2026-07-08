@@ -3,7 +3,6 @@ package cast
 import (
 	"context"
 
-	"github.com/ente/museum/ente"
 	"github.com/ente/museum/ente/cast"
 	"github.com/ente/museum/pkg/controller/access"
 	castRepo "github.com/ente/museum/pkg/repo/cast"
@@ -21,8 +20,6 @@ type Controller struct {
 	AccessCtrl access.Controller
 }
 
-const maxRegisterDeviceUserAgentBytes = 1000
-
 func NewController(castRepo *castRepo.Repository,
 	accessCtrl access.Controller,
 ) *Controller {
@@ -35,9 +32,6 @@ func NewController(castRepo *castRepo.Repository,
 func (c *Controller) RegisterDevice(ctx *gin.Context, request *cast.RegisterDeviceRequest) (string, error) {
 	ipAddress := network.GetClientIP(ctx)
 	userAgent := ctx.GetHeader("User-Agent")
-	if len(userAgent) > maxRegisterDeviceUserAgentBytes {
-		return "", ente.NewInternalError("user agent too long")
-	}
 	deviceName, err := ua.GetDeviceType(userAgent)
 	if deviceName == "" || err != nil {
 		logrus.WithFields(logrus.Fields{

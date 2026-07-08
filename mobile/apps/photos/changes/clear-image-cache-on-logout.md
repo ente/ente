@@ -1,1 +1,0 @@
-- Clear cached images from device storage when logging out.

@@ -4,6 +4,7 @@ import "package:flutter/material.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/models/memories/smart_memory.dart";
 import "package:photos/theme/colors.dart";
+import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/home/memories/all_memories_page.dart";
 import "package:photos/ui/home/memories/memory_cover_util.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
@@ -48,6 +49,11 @@ class _MemoryCoverWidgetState extends State<MemoryCoverWidget> {
 
     final memory = memories[index];
     final isSeen = memory.isSeen();
+    final titleFontWeight =
+        widget.smartMemory.type == MemoryType.time ||
+            widget.smartMemory.type == MemoryType.filler
+        ? FontWeight.w300
+        : FontWeight.w700;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -96,12 +102,12 @@ class _MemoryCoverWidgetState extends State<MemoryCoverWidget> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
+                          Colors.black.withValues(alpha: 0.5),
                           Colors.transparent,
-                          Colors.black.withValues(alpha: 0.72),
                         ],
-                        stops: const [0.53663, 0.89955],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+                        stops: const [0, 1],
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
                       ),
                     ),
                   ),
@@ -115,15 +121,12 @@ class _MemoryCoverWidgetState extends State<MemoryCoverWidget> {
                           tag: title,
                           child: Text(
                             title,
-                            maxLines: 3,
-                            style: TextStyle(
-                              fontSize: 14,
-                              height: 16 / 14,
+                            style: getEnteTextTheme(context).body.copyWith(
+                              fontSize: widget.height * 0.085,
                               fontFamily: TextStyles.outfitFontFamily,
                               package: TextStyles.fontPackage,
                               color: isSeen ? textFaintDark : Colors.white,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0,
+                              fontWeight: titleFontWeight,
                             ),
                             textAlign: TextAlign.left,
                           ),

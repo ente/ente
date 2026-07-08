@@ -9,8 +9,8 @@ pub enum CastCryptoError {
     Message(String),
 }
 
-impl From<crypto::Error> for CastCryptoError {
-    fn from(err: crypto::Error) -> Self {
+impl From<crypto::CryptoError> for CastCryptoError {
+    fn from(err: crypto::CryptoError) -> Self {
         CastCryptoError::Message(err.to_string())
     }
 }

@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import "package:photos/generated/l10n.dart";
 import "package:photos/service_locator.dart";
@@ -107,7 +105,6 @@ class _ChangeLogPageState extends State<ChangeLogPage> {
     final strings = ChangeLogStrings.maybeForLocale(
       Localizations.localeOf(context),
       isLocalGallery: isLocalGalleryMode,
-      isAndroid: Platform.isAndroid,
     );
     if (strings == null) {
       return const SizedBox.shrink();

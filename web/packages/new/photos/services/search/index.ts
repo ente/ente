@@ -124,10 +124,7 @@ const clipSuggestion = async (
     if (!isMLSupported) return undefined;
     if (!isMLEnabled()) return undefined;
 
-    const matches = await clipMatches(s).catch((e: unknown) => {
-        log.warn("Ignoring CLIP matches failure", e);
-        return undefined;
-    });
+    const matches = await clipMatches(s);
     if (!matches) return undefined;
     return { type: "clip", clipScoreForFileID: matches, label: searchString };
 };
