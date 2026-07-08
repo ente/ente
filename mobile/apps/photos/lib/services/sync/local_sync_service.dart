@@ -243,7 +243,7 @@ class LocalSyncService {
         "un-synced files",
       );
     }
-    debugPrint(
+    _logger.info(
       "syncAll: mappingChange : $hasAnyMappingChanged, "
       "unSyncedFiles: $hasUnsyncedFiles",
     );

@@ -70,7 +70,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     );
     await dialog.show();
 
-    debugPrint("Image saved with size: ${bytes.length} bytes");
+    _logger.info("Image saved with size: ${bytes.length} bytes");
     final DateTime start = DateTime.now();
     bool hasStoppedChangeNotify = false;
 

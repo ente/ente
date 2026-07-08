@@ -342,7 +342,7 @@ Future<_LivePhoto?> _downloadLivePhoto(
         if (imageFileCache != null && videoFileCache != null) {
           return _LivePhoto(imageFileCache, videoFileCache);
         } else {
-          debugPrint(
+          _logger.warning(
             "Warning: ${file.tag} either image ${imageFileCache == null} or video ${videoFileCache == null} is missing from remoteLive",
           );
           return null;

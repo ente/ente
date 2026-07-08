@@ -81,6 +81,8 @@ class BuildCMakeCommand extends BuildCommand {
 }
 
 class GenKeyCommand extends Command {
+  final _logger = Logger("GenKeyCommand");
+
   @override
   final name = 'gen-key';
 
@@ -92,8 +94,8 @@ class GenKeyCommand extends Command {
     final kp = generateKey();
     final private = HEX.encode(kp.privateKey.bytes);
     final public = HEX.encode(kp.publicKey.bytes);
-    print("Private Key: $private");
-    print("Public Key: $public");
+    _logger.info("Private Key: $private");
+    _logger.info("Public Key: $public");
   }
 }
 

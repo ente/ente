@@ -3,6 +3,7 @@ import "dart:io";
 import "package:ente_components/ente_components.dart" as components;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import "package:logging/logging.dart";
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/gallery_type.dart';
@@ -45,6 +46,8 @@ class FileSelectionOverlayBar extends StatefulWidget {
 
 class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
     with BoundaryReporter {
+  final _logger = Logger("_FileSelectionOverlayBarState");
+
   final ValueNotifier<bool> _hasSelectedFilesNotifier = ValueNotifier(false);
   late GalleryType _galleryType;
   SearchFilterDataProvider? _searchFilterDataProvider;
@@ -106,7 +109,7 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
 
   @override
   Widget build(BuildContext context) {
-    debugPrint(
+    _logger.info(
       '$runtimeType building with ${widget.selectedFiles.files.length}',
     );
 

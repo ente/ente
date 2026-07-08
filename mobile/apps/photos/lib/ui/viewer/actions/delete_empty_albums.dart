@@ -1,5 +1,6 @@
 import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
+import "package:logging/logging.dart";
 import 'package:photos/core/event_bus.dart';
 import "package:photos/db/files_db.dart";
 import 'package:photos/events/collection_updated_event.dart';
@@ -23,6 +24,8 @@ class DeleteEmptyAlbums extends StatefulWidget {
 }
 
 class _DeleteEmptyAlbumsState extends State<DeleteEmptyAlbums> {
+  final _logger = Logger("_DeleteEmptyAlbumsState");
+
   final ValueNotifier<String> _deleteProgress = ValueNotifier("");
   bool _isCancelled = false;
 
@@ -133,7 +136,7 @@ class _DeleteEmptyAlbumsState extends State<DeleteEmptyAlbums> {
       }
     }
     if (failedCount > 0) {
-      debugPrint("Delete ops failed for $failedCount collections");
+      _logger.warning("Delete ops failed for $failedCount collections");
     }
   }
 }

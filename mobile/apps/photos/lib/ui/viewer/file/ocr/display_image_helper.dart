@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import "package:logging/logging.dart";
 
 /// Internal helper that asks the native side to produce a Flutter-friendly
 /// image path for formats (e.g. HEIC) that some decoders can't render.
 class DisplayImageHelper {
   DisplayImageHelper._();
 
+  static final Logger _logger = Logger("DisplayImageHelper");
   static const MethodChannel _channel = MethodChannel('mobile_ocr');
   static final Map<String, String> _cache = <String, String>{};
   static final Map<String, Future<String>> _inFlight =
@@ -39,8 +41,7 @@ class DisplayImageHelper {
       _cache[imagePath] = result;
       return result;
     } catch (error, stack) {
-      debugPrint('Failed to normalize image $imagePath: $error');
-      debugPrintStack(stackTrace: stack);
+      _logger.warning('Failed to normalize image $imagePath', error, stack);
       return imagePath;
     } finally {
       final _ = _inFlight.remove(imagePath);

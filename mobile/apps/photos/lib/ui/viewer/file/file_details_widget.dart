@@ -77,7 +77,7 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
 
   @override
   void initState() {
-    debugPrint('file_details_sheet initState');
+    _logger.info('file_details_sheet initState');
     _currentUserID = Configuration.instance.getUserIDV2();
     hasLocationData.value = widget.file.hasLocation;
     _isImage =
@@ -412,7 +412,7 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
       final double roundedMegaPixels = (megaPixels * 10).round() / 10.0;
       _exifData['megaPixels'] = roundedMegaPixels..toStringAsFixed(1);
     } else {
-      debugPrint("No image width/height");
+      _logger.info("No image width/height");
     }
     if (exif["Image Make"] != null && exif["Image Model"] != null) {
       _exifData["takenOnDevice"] =

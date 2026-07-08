@@ -185,7 +185,7 @@ class _HomeWidgetState extends State<HomeWidget> {
         isOnSearchTabNotifier.value = false;
       }
       if (event.source != TabChangedEventSource.pageView) {
-        debugPrint(
+        _logger.info(
           "TabChange going from $previousTabIndex to ${event.selectedIndex} source: ${event.source}",
         );
         if (_pageController.hasClients) {
@@ -1273,7 +1273,7 @@ class _HomeWidgetState extends State<HomeWidget> {
     if (!mounted) return;
     final String? payload = notificationResponse.payload;
     if (payload != null) {
-      debugPrint('notification payload: $payload');
+      _logger.info('notification payload: $payload');
       final uri = Uri.tryParse(payload);
       if (uri != null &&
           (uri.host.toLowerCase() == "ritual" ||

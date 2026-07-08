@@ -491,9 +491,13 @@ class FileBottomBarState extends State<FileBottomBar> {
               fileID: fileID,
             );
           }
-        } catch (e) {
+        } catch (e, s) {
           failedCount++;
-          debugPrint("Failed to unlike from ${collection.displayName}: $e");
+          _logger.warning(
+            "Failed to unlike from ${collection.displayName}",
+            e,
+            s,
+          );
         }
       }
 
@@ -503,9 +507,9 @@ class FileBottomBarState extends State<FileBottomBar> {
         safeRefresh();
         showShortToast(context, "Failed to unlike photo");
       }
-    } catch (e) {
+    } catch (e, s) {
       // Rollback on error (e.g., fetching collections failed)
-      debugPrint("Failed to unlike from all collections: $e");
+      _logger.warning("Failed to unlike from all collections", e, s);
       if (mounted) {
         _hasLiked = previousState;
         safeRefresh();

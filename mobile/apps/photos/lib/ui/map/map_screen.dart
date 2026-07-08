@@ -116,7 +116,7 @@ class _MapScreenState extends State<MapScreen> {
         );
 
     if (kDebugMode) {
-      debugPrint(
+      _logger.info(
         "Info for map: center $center, initialZoom ${widget.initialZoom}",
       );
     }

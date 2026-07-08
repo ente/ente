@@ -419,7 +419,7 @@ class _BodyState extends State<_Body> {
       onPageChanged: (index) {
         if (_selectedIndexNotifier.value == index) {
           if (kDebugMode) {
-            debugPrint("onPageChanged called with same index $index");
+            _logger.info("onPageChanged called with same index $index");
           }
           // always notify listeners when the index is the same because
           // the total number of files might have changed

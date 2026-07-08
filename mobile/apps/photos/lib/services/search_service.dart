@@ -1083,7 +1083,7 @@ class SearchService {
         if (showIgnoredOnly) {
           return [];
         }
-        debugPrint("getting faces (localGallery)");
+        _logger.info("getting faces (localGallery)");
         final localGalleryMlDb = MLDataDB.localGalleryInstance;
         final Map<int, Set<String>> fileIdToClusterID = await localGalleryMlDb
             .getFileIdToClusterIds();
@@ -1165,7 +1165,7 @@ class SearchService {
         }
         return facesResult;
       }
-      debugPrint("getting faces");
+      _logger.info("getting faces");
       final Map<int, Set<String>> fileIdToClusterID = await mlDataDB
           .getFileIdToClusterIds();
       final Map<String, PersonEntity> personIdToPerson = await PersonService

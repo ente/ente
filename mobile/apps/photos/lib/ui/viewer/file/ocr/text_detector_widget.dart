@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import "package:logging/logging.dart";
 import 'package:mobile_ocr/mobile_ocr_plugin.dart';
 import 'package:mobile_ocr/models/text_block.dart';
 import 'package:photos/ui/viewer/file/ocr/display_image_helper.dart';
@@ -205,6 +206,8 @@ class TextDetectorWidget extends StatefulWidget {
 }
 
 class _TextDetectorWidgetState extends State<TextDetectorWidget> {
+  final _logger = Logger("_TextDetectorWidgetState");
+
   final MobileOcr _ocr = MobileOcr();
   final TextOverlayController _textOverlayController = TextOverlayController();
   List<TextBlock>? _detectedTextBlocks;
@@ -295,8 +298,12 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
       if (widget.autoDetect || widget.initialInteractionPosition != null) {
         unawaited(_detectText());
       }
-    } catch (error) {
-      debugPrint('Failed to prepare image $requestedPath: $error');
+    } catch (error, stackTrace) {
+      _logger.warning(
+        'Failed to prepare image $requestedPath',
+        error,
+        stackTrace,
+      );
       if (!mounted || widget.imagePath != requestedPath) {
         return;
       }
@@ -353,7 +360,7 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
           } else {
             _errorMessage = widget.strings.modelsPrepareFailed;
           }
-          debugPrint('Model preparation error: $error');
+          _logger.warning('Model preparation error', error);
         })
         .whenComplete(() {
           _modelPreparation = null;
@@ -420,8 +427,8 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
           _textOverlayController.selectTextAtPosition(pendingPos);
         }
       }
-    } catch (e) {
-      debugPrint('Error detecting text: $e');
+    } catch (e, stackTrace) {
+      _logger.warning('Error detecting text', e, stackTrace);
       if (mounted && widget.imagePath == requestedPath) {
         setState(() {
           // Show user-friendly message based on error type

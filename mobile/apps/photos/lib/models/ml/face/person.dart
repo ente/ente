@@ -2,6 +2,7 @@
 // On the remote server, the PersonEntity is stored as {Entity} with type person.
 // On the device, this information is stored as [LocalEntityData] with type person.
 import "package:flutter/foundation.dart";
+import "package:logging/logging.dart";
 
 const Object _personDataUnchanged = Object();
 
@@ -34,6 +35,8 @@ class ClusterInfo {
 }
 
 class PersonData {
+  static final Logger _logger = Logger("PersonData");
+
   final String name;
 
   /// Used to mark a person to not show in the people section.
@@ -124,7 +127,7 @@ class PersonData {
     for (var cluster in assigned) {
       sb.writeln('Cluster: ${cluster.id} - ${cluster.faces.length}');
     }
-    debugPrint(sb.toString());
+    _logger.info(sb.toString());
   }
 
   // toJson

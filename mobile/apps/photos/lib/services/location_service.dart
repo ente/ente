@@ -43,7 +43,7 @@ class LocationService {
   List<BaseLocation> baseLocations = [];
 
   LocationService(this.prefs) {
-    debugPrint('LocationService constructor');
+    _logger.info('LocationService constructor');
     Future.delayed(const Duration(seconds: 3), () {
       _loadCities();
     });

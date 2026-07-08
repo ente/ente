@@ -394,7 +394,7 @@ class CollectionsService {
       return Future.value(_coverCache[coverKey]!);
     }
     if (kDebugMode) {
-      debugPrint("getCover for collection ${c.id} ${c.displayName}");
+      _logger.info("getCover for collection ${c.id} ${c.displayName}");
     }
     if (c.hasCover) {
       final coverID = c.pubMagicMetadata.coverID ?? 0;
@@ -963,7 +963,7 @@ class CollectionsService {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        debugPrint("Error " + e.response!.toString());
+        _logger.warning("Error ${e.response}");
       }
       rethrow;
     } catch (e) {
@@ -1119,7 +1119,7 @@ class CollectionsService {
     if (_cachedKeys.containsKey(collection.id)) {
       return _cachedKeys[collection.id]!;
     }
-    debugPrint(
+    _logger.info(
       "Compute collection decryption key for ${collection.id} source"
       " $source",
     );
@@ -2530,10 +2530,12 @@ class CollectionsService {
   String _decryptCollectionPath(Collection collection) {
     if (collection.decryptedPath != null &&
         collection.decryptedPath!.isNotEmpty) {
-      debugPrint("Using cached decrypted path for collection ${collection.id}");
+      _logger.info(
+        "Using cached decrypted path for collection ${collection.id}",
+      );
       return collection.decryptedPath!;
     } else {
-      debugPrint(
+      _logger.info(
         "Decrypting path for collection ${collection.id} from "
         "encryptedPath",
       );

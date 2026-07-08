@@ -65,7 +65,7 @@ class _AlbumHorizontalListState extends State<AlbumHorizontalList> {
     final sideOfThumbnail =
         (screenWidth - totalHorizontalPadding - horizontalPadding) /
         albumsCountInRow;
-    debugPrint('$runtimeType widget build');
+    _logger.info('$runtimeType widget build');
     return FutureBuilder<List<Collection>>(
       future: widget.collectionsFuture(),
       builder: (context, snapshot) {

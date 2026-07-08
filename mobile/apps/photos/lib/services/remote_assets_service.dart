@@ -630,7 +630,7 @@ class RemoteAssetsService {
       final boundedReceived = received > total ? total : received;
       _progressController.add((url, boundedReceived, total));
     } else if (kDebugMode) {
-      debugPrint("$url Received: $received, Total: $total");
+      _logger.info("$url Received: $received, Total: $total");
     }
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import "package:logging/logging.dart";
 import "package:photos/theme/effects.dart";
 
 class GNav extends StatefulWidget {
@@ -65,6 +66,8 @@ class GNav extends StatefulWidget {
 }
 
 class _GNavState extends State<GNav> {
+  final _logger = Logger("_GNavState");
+
   int? selectedIndex;
   bool clickable = true;
 
@@ -75,7 +78,7 @@ class _GNavState extends State<GNav> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint(
+    _logger.info(
       '${(_GNavState).toString()} - build with index ${widget.selectedIndex}',
     );
     selectedIndex = widget.selectedIndex;

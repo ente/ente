@@ -2,16 +2,18 @@
 
 import "dart:async";
 import "dart:convert";
-import "dart:developer";
 import "dart:io";
 
 import "package:dio/dio.dart";
 import "package:flutter/foundation.dart";
+import "package:logging/logging.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 import "model.dart";
 
 class FlagService {
+  final _logger = Logger("FlagService");
+
   static const int _commentsFlag = 1 << 1;
   static const int _videoStreamingFlag = 1 << 3;
   static const int _castSessionsV2Flag = 1 << 5;
@@ -39,8 +41,8 @@ class FlagService {
         jsonDecode(_prefs.getString("remote_flags") ?? "{}"),
       );
       return _flags!;
-    } catch (e) {
-      debugPrint("Failed to get feature flags $e");
+    } catch (e, s) {
+      _logger.warning("Failed to get feature flags", e, s);
       return RemoteFlags.defaultValue;
     }
   }
@@ -130,8 +132,8 @@ class FlagService {
   Future<void> tryRefreshFlags() async {
     try {
       await _fetch();
-    } catch (e) {
-      debugPrint("Failed to refresh flags: $e");
+    } catch (e, s) {
+      _logger.warning("Failed to refresh flags", e, s);
     }
   }
 
@@ -157,7 +159,7 @@ class FlagService {
   Completer<void>? _fetchCompleter;
   Future<void> _fetch() async {
     if (!_prefs.containsKey("token")) {
-      log("token not found, skip", name: "FlagService");
+      _logger.info("token not found, skip");
       return;
     }
     if (_fetchCompleter != null) {
@@ -166,13 +168,13 @@ class FlagService {
     }
     _fetchCompleter = Completer<void>();
     try {
-      log("fetching feature flags", name: "FlagService");
+      _logger.info("fetching feature flags");
       final response = await _enteDio.get("/remote-store/feature-flags");
       final remoteFlags = RemoteFlags.fromMap(response.data);
       await _prefs.setString("remote_flags", remoteFlags.toJson());
       _flags = remoteFlags;
-    } catch (e) {
-      debugPrint("Failed to sync feature flags $e");
+    } catch (e, s) {
+      _logger.warning("Failed to sync feature flags", e, s);
     } finally {
       _fetchCompleter?.complete();
       _fetchCompleter = null;
@@ -188,8 +190,8 @@ class FlagService {
       if (response.statusCode != HttpStatus.ok) {
         throw Exception("Unexpected state");
       }
-    } catch (e) {
-      debugPrint("Failed to set flag for $key $e");
+    } catch (e, s) {
+      _logger.warning("Failed to set flag for $key", e, s);
       rethrow;
     }
   }

@@ -13,6 +13,7 @@ dependencies:
   dio: 5.9.2
   flutter:
     sdk: flutter
+  logging: 1.3.0
 
 dev_dependencies:
   flutter_lints: 6.0.0

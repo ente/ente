@@ -74,7 +74,7 @@ class SearchWidgetState extends State<SearchWidget> {
     _tabDoubleTapEvent = Bus.instance.on<TabDoubleTapEvent>().listen((
       event,
     ) async {
-      debugPrint("Firing now ${event.selectedIndex}");
+      _logger.info("Firing now ${event.selectedIndex}");
       if (mounted && event.selectedIndex == 3) {
         focusNode.requestFocus();
       }

@@ -121,7 +121,7 @@ class _PathStorageViewerState extends State<PathStorageViewer> {
       onTap: () async {
         if (kDebugMode) {
           await Clipboard.setData(ClipboardData(text: widget.item.path));
-          debugPrint(widget.item.path);
+          _logger.info(widget.item.path);
         }
       },
       onDoubleTap: () async {

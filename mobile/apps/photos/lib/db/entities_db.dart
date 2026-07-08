@@ -1,15 +1,17 @@
-import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 import 'package:photos/db/files_db.dart';
 import "package:photos/gateways/entity/models/type.dart";
 import "package:photos/models/local_entity_data.dart";
 import 'package:sqflite/sqlite_api.dart';
 
 extension EntitiesDB on FilesDB {
+  static final Logger _logger = Logger("EntitiesDB");
+
   Future<void> upsertEntities(
     List<LocalEntityData> data, {
     ConflictAlgorithm conflictAlgorithm = ConflictAlgorithm.replace,
   }) async {
-    debugPrint("entitiesDB: upsertEntities ${data.length} entities");
+    _logger.info("entitiesDB: upsertEntities ${data.length} entities");
     final db = await sqliteAsyncDB;
     final parameterSets = <List<Object?>>[];
     int batchCounter = 0;

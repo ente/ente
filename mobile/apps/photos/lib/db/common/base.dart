@@ -1,7 +1,8 @@
-import "package:flutter/foundation.dart";
+import "package:logging/logging.dart";
 import "package:sqlite_async/sqlite_async.dart";
 
 mixin SqlDbBase {
+  static final Logger _logger = Logger("SqlDbBase");
   static final Map<int, String> _params = <int, String>{};
 
   static String getParams(int count) {
@@ -20,7 +21,7 @@ mixin SqlDbBase {
     final toVersion = migrationScripts.length;
 
     if (currentVersion < toVersion) {
-      debugPrint(
+      _logger.info(
         "$runtimeType migrating database from $currentVersion to $toVersion",
       );
       await database.writeTransaction((tx) async {
@@ -28,7 +29,7 @@ mixin SqlDbBase {
           try {
             await tx.execute(migrationScripts[i - 1]);
           } catch (e) {
-            debugPrint(
+            _logger.warning(
               "$runtimeType Error running migration script index ${i - 1} $e",
             );
             rethrow;

@@ -1,8 +1,11 @@
 import "dart:async";
 
 import 'package:flutter/material.dart';
+import "package:logging/logging.dart";
 
 enum ProgressDialogType { normal, download }
+
+final _logger = Logger("ProgressDialog");
 
 String _dialogMessage = "Loading...";
 double _progress = 0.0, _maxProgress = 100.0;
@@ -136,15 +139,14 @@ class ProgressDialog {
           Navigator.of(_dismissingContext!).pop();
         }
         _dialog = null;
-        if (_showLogs) debugPrint('ProgressDialog dismissed');
+        if (_showLogs) _logger.info('ProgressDialog dismissed');
         return Future.value(true);
       } else {
-        if (_showLogs) debugPrint('ProgressDialog already dismissed');
+        if (_showLogs) _logger.info('ProgressDialog already dismissed');
         return Future.value(false);
       }
-    } catch (err) {
-      debugPrint('Seems there is an issue hiding dialog');
-      debugPrint(err.toString());
+    } catch (err, stackTrace) {
+      _logger.warning('Seems there is an issue hiding dialog', err, stackTrace);
       return Future.value(false);
     }
   }
@@ -183,17 +185,16 @@ class ProgressDialog {
         // Delaying the function for 200 milliseconds
         // [Default transitionDuration of DialogRoute]
         await Future.delayed(const Duration(milliseconds: 200));
-        if (_showLogs) debugPrint('ProgressDialog shown');
+        if (_showLogs) _logger.info('ProgressDialog shown');
         return true;
       } else {
-        if (_showLogs) debugPrint("ProgressDialog already shown/showing");
+        if (_showLogs) _logger.info("ProgressDialog already shown/showing");
         return false;
       }
-    } catch (err) {
+    } catch (err, stackTrace) {
       _isShowing = false;
       _dialog = null;
-      debugPrint('Exception while showing the dialog');
-      debugPrint(err.toString());
+      _logger.warning('Exception while showing the dialog', err, stackTrace);
       return false;
     }
   }
@@ -222,7 +223,7 @@ class _BodyState extends State<_Body> {
   @override
   void dispose() {
     _isShowing = false;
-    if (_showLogs) debugPrint('ProgressDialog dismissed by back button');
+    if (_showLogs) _logger.info('ProgressDialog dismissed by back button');
     super.dispose();
   }
 

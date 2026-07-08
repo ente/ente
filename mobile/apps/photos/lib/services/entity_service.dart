@@ -26,7 +26,7 @@ class EntityService {
   late final FilesDB _db = FilesDB.instance;
 
   EntityService(this._prefs, this._gateway) {
-    debugPrint("EntityService constructor");
+    _logger.info("EntityService constructor");
   }
 
   String _getEntityKeyPrefix(EntityType type) {
@@ -80,7 +80,7 @@ class EntityService {
       encryptedData = CryptoUtil.bin2base64(encryptedKeyData.encryptedData!);
       header = CryptoUtil.bin2base64(encryptedKeyData.header!);
     }
-    debugPrint(
+    _logger.info(
       " ${id == null ? 'Adding' : 'Updating'} entity of type: " + type.name,
     );
 

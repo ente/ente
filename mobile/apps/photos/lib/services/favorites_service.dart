@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:ente_crypto/ente_crypto.dart';
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 import 'package:photos/core/configuration.dart';
 import 'package:photos/core/event_bus.dart';
 import 'package:photos/db/files_db.dart';
@@ -18,6 +19,8 @@ import 'package:photos/services/sync/remote_sync_service.dart';
 import 'package:photos/ui/actions/collection/collection_sharing_actions.dart';
 
 class FavoritesService {
+  final _logger = Logger("FavoritesService");
+
   late Configuration _config;
 
   late CollectionsService _collectionsService;
@@ -88,7 +91,9 @@ class FavoritesService {
     if (file.collectionID != null &&
         _cachedFavoritesCollectionID != null &&
         file.collectionID == _cachedFavoritesCollectionID) {
-      debugPrint("File ${file.uploadedFileID} is part of favorite collection");
+      _logger.info(
+        "File ${file.uploadedFileID} is part of favorite collection",
+      );
       return true;
     }
     if (checkOnlyAlbum) {
