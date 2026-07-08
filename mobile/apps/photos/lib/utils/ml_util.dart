@@ -398,6 +398,9 @@ Stream<List<FileMLInstruction>> fetchEmbeddingsAndInstructions(
   for (final chunk in chunks) {
     if (!localSettings.remoteFetchEnabled) {
       _logger.warning("remoteFetchEnabled is false, skiping embedding fetch");
+      for (final instruction in chunk) {
+        _ensureCompleteRemoteMlUploadPayload(instruction);
+      }
       final batches = chunk.chunks(yieldSize);
       for (final batch in batches) {
         yield batch;
@@ -608,9 +611,45 @@ Future<List<FileMLInstruction>> hydrateRemoteMLDataForInstructions(
 
   await mlDataDB.bulkInsertFaces(faces);
   await mlDataDB.putClip(clipEmbeddings);
+  for (final instruction in pendingIndex.values) {
+    _ensureCompleteRemoteMlUploadPayload(instruction);
+  }
   return pendingIndex.values
       .where((instruction) => instruction.pendingML)
       .toList();
+}
+
+// Remote ML is stored as one blob with both face and clip data. If local DB
+// says one side is current but remote hydration cannot supply it, rerun that
+// side too so the upload stays complete.
+void _ensureCompleteRemoteMlUploadPayload(FileMLInstruction instruction) {
+  if (instruction.isLocalGallery) {
+    return;
+  }
+  final bool uploadsRemoteMl =
+      instruction.shouldRunFaces || instruction.shouldRunClip;
+  if (!uploadsRemoteMl) {
+    return;
+  }
+  final fileMl = instruction.existingRemoteFileML;
+  final bool rerunFaces =
+      !instruction.shouldRunFaces &&
+      (fileMl == null || _shouldDiscardRemoteEmbedding(fileMl));
+  final bool rerunClip =
+      !instruction.shouldRunClip &&
+      fileMl?.getClipEmbeddingIfCompatible(clipMlVersion) == null;
+
+  if (rerunFaces || rerunClip) {
+    _logger.info(
+      "Completing remote ML upload payload for fileID ${instruction.fileKey} (rerunFaces: $rerunFaces, rerunClip: $rerunClip)",
+    );
+  }
+  if (rerunFaces) {
+    instruction.shouldRunFaces = true;
+  }
+  if (rerunClip) {
+    instruction.shouldRunClip = true;
+  }
 }
 
 // Returns a list of faces from the given remote fileML. null if the version is less than the current version
