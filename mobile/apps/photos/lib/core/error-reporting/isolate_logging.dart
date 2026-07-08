@@ -57,6 +57,8 @@ class IsolateLogger {
   final Queue<IsolateLogString> fileQueueEntries = Queue();
 
   Future onLogRecordInIsolate(LogRecord rec) async {
+    if (!SuperLogging.shouldLogRecord(rec)) return;
+
     final str = rec.toPrettyString(null, true);
 
     // write to stdout

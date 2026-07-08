@@ -167,6 +167,11 @@ class SuperLogging {
   /// The logger for SuperLogging
   static final $ = Logger('ente_logging');
 
+  static const _rootLogLevelDefine = String.fromEnvironment('ENTE_LOG_LEVEL');
+  static const _loggerPrefixDefine = String.fromEnvironment(
+    'ENTE_LOGGER_PREFIX',
+  );
+
   /// The current super logging configuration
   static late LogConfig config;
 
@@ -203,7 +208,7 @@ class SuperLogging {
       setupSentry().ignore();
     }
 
-    Logger.root.level = kDebugMode ? Level.ALL : Level.INFO;
+    Logger.root.level = rootLoggerLevel;
     Logger.root.onRecord.listen(onLogRecord);
 
     if (_preferences.getBool("enable_db_logging") ?? kDebugMode) {
@@ -408,7 +413,37 @@ class SuperLogging {
 
   static String _lastExtraLines = '';
 
+  static Level get rootLoggerLevel =>
+      _levelFromName(_rootLogLevelDefine) ??
+      (kDebugMode ? Level.ALL : Level.INFO);
+
+  static String get loggerPrefixFilter => _loggerPrefixDefine.trim();
+
+  static bool shouldLogRecord(LogRecord rec) {
+    final prefix = loggerPrefixFilter;
+    return prefix.isEmpty || rec.loggerName.startsWith(prefix);
+  }
+
+  static Level? _levelFromName(String name) {
+    return switch (name.trim().toUpperCase()) {
+      '' => null,
+      'ALL' => Level.ALL,
+      'SHOUT' => Level.SHOUT,
+      'SEVERE' || 'ERROR' => Level.SEVERE,
+      'WARNING' || 'WARN' => Level.WARNING,
+      'INFO' => Level.INFO,
+      'CONFIG' => Level.CONFIG,
+      'FINE' || 'DEBUG' => Level.FINE,
+      'FINER' => Level.FINER,
+      'FINEST' || 'TRACE' => Level.FINEST,
+      'OFF' => Level.OFF,
+      _ => null,
+    };
+  }
+
   static Future onLogRecord(LogRecord rec) async {
+    if (!shouldLogRecord(rec)) return;
+
     // log misc info if it changed
     String? extraLines = "app version: '$appVersion'\n";
     if (extraLines != _lastExtraLines) {
