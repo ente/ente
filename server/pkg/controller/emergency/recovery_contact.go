@@ -64,15 +64,22 @@ func (c *Controller) ApproveRecovery(ctx *gin.Context,
 	if req.EmergencyContactID == req.UserID {
 		return stacktrace.Propagate(ente.NewBadRequestWithMessage("contact and user can not be same"), "")
 	}
-	if req.UserID != userID {
-		return stacktrace.Propagate(ente.ErrPermissionDenied, "only account owner can reject recovery")
+	session, err := c.Repo.GetRecoverRowByID(ctx, req.ID)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
 	}
-	hasUpdate, err := c.Repo.UpdateRecoveryStatusForID(ctx, req.ID, ente.RecoveryStatusReady)
+	if session.UserID != req.UserID || session.EmergencyContactID != req.EmergencyContactID {
+		return stacktrace.Propagate(ente.ErrPermissionDenied, "recovery session does not match request")
+	}
+	if session.UserID != userID {
+		return stacktrace.Propagate(ente.ErrPermissionDenied, "only account owner can approve recovery")
+	}
+	hasUpdate, err := c.Repo.ApproveRecoveryForSession(ctx, session.ID, session.UserID, session.EmergencyContactID)
 	if !hasUpdate {
 		log.WithField("userID", userID).WithField("req", req).
-			Warn("no row updated while rejecting recovery")
+			Warn("no row updated while approving recovery")
 	} else {
-		go c.sendRecoveryNotification(ctx, req.UserID, req.EmergencyContactID, ente.RecoveryStatusReady, nil)
+		go c.sendRecoveryNotification(ctx, session.UserID, session.EmergencyContactID, ente.RecoveryStatusReady, nil)
 	}
 	if err != nil {
 		return stacktrace.Propagate(err, "")
