@@ -110,7 +110,7 @@ func (c *Controller) GetFeatureFlags(ctx *gin.Context) (*ente.FeatureFlagRespons
 		// Changing it to false will hide the option and disable multi part upload for everyone
 		// except internal user.rt
 		EnableMobMultiPart: true,
-		ServerApiFlag:      ente.UploadV2 | ente.Comments | ente.BackupOptions,
+		ServerApiFlag:      ente.UploadV2 | ente.Comments | ente.BackupOptions | ente.CastSessionsV2,
 		CastUrl:            viper.GetString("apps.cast"),
 		EmbedUrl:           viper.GetString("apps.embed-albums"),
 		CustomDomainCNAME:  viper.GetString("apps.custom-domain.cname"),
@@ -128,9 +128,6 @@ func (c *Controller) GetFeatureFlags(ctx *gin.Context) (*ente.FeatureFlagRespons
 			response.PassKeyEnabled = value == "true"
 		case ente.IsInternalUser:
 			response.InternalUser = value == "true"
-			if response.InternalUser {
-				response.ServerApiFlag |= ente.CastSessionsV2
-			}
 		case ente.IsBetaUser:
 			response.BetaUser = value == "true"
 		case ente.CustomDomain:

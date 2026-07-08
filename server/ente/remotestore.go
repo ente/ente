@@ -57,8 +57,10 @@ const (
 	BackupOptions int64 = 1 << 2
 	// VideoStreaming gates video streaming feature.
 	VideoStreaming int64 = 1 << 3
+	// 1 << 4 previously gated CastSessionsV2 for released clients. Reuse it
+	// only when those clients no longer need to be isolated from a new flag.
 	// CastSessionsV2 gates cast sessions v2 support.
-	CastSessionsV2 int64 = 1 << 4
+	CastSessionsV2 int64 = 1 << 5
 )
 
 type FlagKey string
