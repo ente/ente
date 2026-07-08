@@ -40,224 +40,331 @@ class ChangeLogStrings {
   static ChangeLogStrings? maybeForLocale(
     Locale locale, {
     bool isLocalGallery = false,
+    required bool isAndroid,
   }) {
     final key = locale.countryCode != null && locale.countryCode!.isNotEmpty
         ? '${locale.languageCode}_${locale.countryCode}'
         : locale.languageCode;
-    final translations = isLocalGallery ? _offlineTranslations : _translations;
     final strings =
-        translations[key] ??
-        translations[locale.languageCode] ??
-        translations['en'];
+        _featureTranslations[key] ??
+        _featureTranslations[locale.languageCode] ??
+        _featureTranslations['en'];
 
-    if (strings == null || !strings.hasVisibleEntries) {
+    if (strings == null) {
       return null;
     }
-    return strings;
+
+    final changeLog = _forFeatureStrings(
+      strings,
+      isLocalGallery: isLocalGallery,
+      isAndroid: isAndroid,
+    );
+    if (!changeLog.hasVisibleEntries) {
+      return null;
+    }
+    return changeLog;
   }
 
   static bool hasContentForLocale(
     Locale locale, {
     bool isLocalGallery = false,
+    required bool isAndroid,
   }) {
-    return maybeForLocale(locale, isLocalGallery: isLocalGallery) != null;
+    return maybeForLocale(
+          locale,
+          isLocalGallery: isLocalGallery,
+          isAndroid: isAndroid,
+        ) !=
+        null;
   }
 
-  static const Map<String, ChangeLogStrings> _translations = {
-    'en': ChangeLogStrings(
-      title1: 'Easier delete confirmations',
-      desc1:
-          'Deleting photos now takes fewer taps. We replaced multiple prompts with one confirmation sheet that remembers your last choice.',
-      title2: 'Cast to multiple screens',
-      desc2:
+  static ChangeLogStrings _forFeatureStrings(
+    _ChangeLogFeatureStrings strings, {
+    required bool isLocalGallery,
+    required bool isAndroid,
+  }) {
+    if (isLocalGallery) {
+      return isAndroid
+          ? ChangeLogStrings(
+              title1: strings.deleteTitle,
+              desc1: strings.localAndroidDeleteDesc,
+              title2: strings.storageTitle,
+              desc2: strings.storageDesc,
+            )
+          : ChangeLogStrings(
+              title1: strings.storageTitle,
+              desc1: strings.storageDesc,
+            );
+    }
+
+    return isAndroid
+        ? ChangeLogStrings(
+            title1: strings.deleteTitle,
+            desc1: strings.onlineAndroidDeleteDesc,
+            title2: strings.castTitle,
+            desc2: strings.castDesc,
+            title3: strings.storageTitle,
+            desc3: strings.storageDesc,
+          )
+        : ChangeLogStrings(
+            title1: strings.castTitle,
+            desc1: strings.castDesc,
+            title2: strings.storageTitle,
+            desc2: strings.storageDesc,
+          );
+  }
+
+  static const Map<String, _ChangeLogFeatureStrings> _featureTranslations = {
+    'en': _ChangeLogFeatureStrings(
+      deleteTitle: 'Easier delete confirmations',
+      onlineAndroidDeleteDesc:
+          'When deleting from your device, Ente can help you set up media management to avoid repeated system prompts. Ente can also remember your last delete choice.',
+      localAndroidDeleteDesc:
+          'When deleting from your device, Ente can help you set up media management to avoid repeated system prompts.',
+      castTitle: 'Cast to multiple screens',
+      castDesc:
           "You can now cast albums to more than one screen at a time, view active sessions, and stop a specific session when you're done.",
-      title3: 'More reliable storage cleanup',
-      desc3:
+      storageTitle: 'More reliable storage cleanup',
+      storageDesc:
           'Ente now clears temporary image and video files more reliably, keeping the app from holding on to extra device storage.',
     ),
-    'cs': ChangeLogStrings(
-      title1: 'Snazší potvrzení odstranění',
-      desc1:
-          'Odstranění fotek teď vyžaduje méně klepnutí. Několik výzev jsme nahradili jedním potvrzovacím panelem, který si pamatuje vaši poslední volbu.',
-      title2: 'Promítání na více obrazovek',
-      desc2:
+    'cs': _ChangeLogFeatureStrings(
+      deleteTitle: 'Snazší potvrzení odstranění',
+      onlineAndroidDeleteDesc:
+          'Při odstraňování ze zařízení vám Ente může pomoci nastavit správu médií, abyste se vyhnuli opakovaným systémovým výzvám. Ente si také může zapamatovat vaši poslední volbu odstranění.',
+      localAndroidDeleteDesc:
+          'Při odstraňování ze zařízení vám Ente může pomoci nastavit správu médií, abyste se vyhnuli opakovaným systémovým výzvám.',
+      castTitle: 'Promítání na více obrazovek',
+      castDesc:
           'Alba teď můžete promítat na více obrazovek najednou, zobrazit aktivní relace a po skončení zastavit konkrétní relaci.',
-      title3: 'Spolehlivější čištění úložiště',
-      desc3:
+      storageTitle: 'Spolehlivější čištění úložiště',
+      storageDesc:
           'Ente teď spolehlivěji odstraňuje dočasné soubory obrázků a videí, takže aplikace nezabírá zbytečně další místo v úložišti zařízení.',
     ),
-    'de': ChangeLogStrings(
-      title1: 'Einfachere Löschbestätigungen',
-      desc1:
-          'Das Löschen von Fotos braucht jetzt weniger Fingertipps. Wir haben mehrere Abfragen durch einen einzigen Bestätigungsdialog ersetzt, der sich deine letzte Auswahl merkt.',
-      title2: 'Auf mehrere Bildschirme streamen',
-      desc2:
+    'de': _ChangeLogFeatureStrings(
+      deleteTitle: 'Einfachere Löschbestätigungen',
+      onlineAndroidDeleteDesc:
+          'Beim Löschen von deinem Gerät kann Ente dir helfen, die Medienverwaltung einzurichten, um wiederholte Systemabfragen zu vermeiden. Ente kann sich auch deine letzte Löschentscheidung merken.',
+      localAndroidDeleteDesc:
+          'Beim Löschen von deinem Gerät kann Ente dir helfen, die Medienverwaltung einzurichten, um wiederholte Systemabfragen zu vermeiden.',
+      castTitle: 'Auf mehrere Bildschirme streamen',
+      castDesc:
           'Du kannst Alben jetzt auf mehr als einen Bildschirm gleichzeitig streamen, aktive Sitzungen anzeigen und eine bestimmte Sitzung beenden, wenn du fertig bist.',
-      title3: 'Zuverlässigere Speicherbereinigung',
-      desc3:
+      storageTitle: 'Zuverlässigere Speicherbereinigung',
+      storageDesc:
           'Ente entfernt temporäre Bild- und Videodateien jetzt zuverlässiger, damit die App keinen zusätzlichen Gerätespeicher belegt.',
     ),
-    'es': ChangeLogStrings(
-      title1: 'Confirmaciones de eliminación más sencillas',
-      desc1:
-          'Eliminar fotos ahora requiere menos toques. Sustituimos varias solicitudes por un único panel de confirmación que recuerda tu última elección.',
-      title2: 'Transmitir a varias pantallas',
-      desc2:
+    'es': _ChangeLogFeatureStrings(
+      deleteTitle: 'Confirmaciones de eliminación más sencillas',
+      onlineAndroidDeleteDesc:
+          'Al eliminar desde tu dispositivo, Ente puede ayudarte a configurar la gestión de medios para evitar solicitudes repetidas del sistema. Ente también puede recordar tu última elección de eliminación.',
+      localAndroidDeleteDesc:
+          'Al eliminar desde tu dispositivo, Ente puede ayudarte a configurar la gestión de medios para evitar solicitudes repetidas del sistema.',
+      castTitle: 'Transmitir a varias pantallas',
+      castDesc:
           'Ahora puedes transmitir álbumes a más de una pantalla a la vez, ver las sesiones activas y detener una sesión específica cuando termines.',
-      title3: 'Limpieza de almacenamiento más fiable',
-      desc3:
+      storageTitle: 'Limpieza de almacenamiento más fiable',
+      storageDesc:
           'Ente ahora elimina los archivos temporales de imágenes y videos con mayor fiabilidad, evitando que la app retenga almacenamiento adicional del dispositivo.',
     ),
-    'fr': ChangeLogStrings(
-      title1: 'Confirmations de suppression plus simples',
-      desc1:
-          'Supprimer des photos demande maintenant moins d’appuis. Nous avons remplacé plusieurs invites par un seul panneau de confirmation qui mémorise votre dernier choix.',
-      title2: 'Diffuser sur plusieurs écrans',
-      desc2:
+    'fr': _ChangeLogFeatureStrings(
+      deleteTitle: 'Confirmations de suppression plus simples',
+      onlineAndroidDeleteDesc:
+          'Lorsque vous supprimez des éléments de votre appareil, Ente peut vous aider à configurer la gestion des médias afin d’éviter les invites système répétées. Ente peut aussi mémoriser votre dernier choix de suppression.',
+      localAndroidDeleteDesc:
+          'Lorsque vous supprimez des éléments de votre appareil, Ente peut vous aider à configurer la gestion des médias afin d’éviter les invites système répétées.',
+      castTitle: 'Diffuser sur plusieurs écrans',
+      castDesc:
           'Vous pouvez maintenant diffuser des albums sur plusieurs écrans à la fois, voir les sessions actives et arrêter une session précise lorsque vous avez terminé.',
-      title3: 'Nettoyage du stockage plus fiable',
-      desc3:
+      storageTitle: 'Nettoyage du stockage plus fiable',
+      storageDesc:
           'Ente supprime désormais les fichiers temporaires d’images et de vidéos de manière plus fiable, afin que l’app n’occupe pas inutilement de l’espace sur votre appareil.',
     ),
-    'it': ChangeLogStrings(
-      title1: 'Conferme di eliminazione più semplici',
-      desc1:
-          'Eliminare le foto ora richiede meno tocchi. Abbiamo sostituito più richieste con un unico pannello di conferma che ricorda la tua ultima scelta.',
-      title2: 'Trasmetti su più schermi',
-      desc2:
+    'it': _ChangeLogFeatureStrings(
+      deleteTitle: 'Conferme di eliminazione più semplici',
+      onlineAndroidDeleteDesc:
+          'Quando elimini dal dispositivo, Ente può aiutarti a configurare la gestione dei contenuti multimediali per evitare richieste di sistema ripetute. Ente può anche ricordare la tua ultima scelta di eliminazione.',
+      localAndroidDeleteDesc:
+          'Quando elimini dal dispositivo, Ente può aiutarti a configurare la gestione dei contenuti multimediali per evitare richieste di sistema ripetute.',
+      castTitle: 'Trasmetti su più schermi',
+      castDesc:
           'Ora puoi trasmettere gli album su più di uno schermo alla volta, vedere le sessioni attive e interrompere una sessione specifica quando hai finito.',
-      title3: 'Pulizia dello spazio più affidabile',
-      desc3:
+      storageTitle: 'Pulizia dello spazio più affidabile',
+      storageDesc:
           "Ente ora elimina i file temporanei di immagini e video in modo più affidabile, evitando che l'app trattenga spazio extra sul dispositivo.",
     ),
-    'ja': ChangeLogStrings(
-      title1: '削除確認がより簡単に',
-      desc1: '写真の削除に必要なタップ数が減りました。複数の確認画面を、最後に選んだ内容を記憶する1つの確認シートに置き換えました。',
-      title2: '複数の画面にキャスト',
-      desc2:
+    'ja': _ChangeLogFeatureStrings(
+      deleteTitle: '削除確認がより簡単に',
+      onlineAndroidDeleteDesc:
+          'デバイスから削除するとき、Ente はメディア管理の設定を案内し、繰り返し表示されるシステム確認を避けられるようにします。Ente は最後に選んだ削除方法を記憶することもできます。',
+      localAndroidDeleteDesc:
+          'デバイスから削除するとき、Ente はメディア管理の設定を案内し、繰り返し表示されるシステム確認を避けられるようにします。',
+      castTitle: '複数の画面にキャスト',
+      castDesc:
           'アルバムを複数の画面に同時にキャストし、アクティブなセッションを確認して、終了したい特定のセッションだけを停止できるようになりました。',
-      title3: 'ストレージクリーンアップの信頼性向上',
-      desc3: 'Ente は一時的な画像ファイルと動画ファイルをより確実に削除し、アプリが余分なデバイスストレージを使い続けないようにします。',
+      storageTitle: 'ストレージクリーンアップの信頼性向上',
+      storageDesc:
+          'Ente は一時的な画像ファイルと動画ファイルをより確実に削除し、アプリが余分なデバイスストレージを使い続けないようにします。',
     ),
-    'nl': ChangeLogStrings(
-      title1: 'Eenvoudigere verwijderbevestigingen',
-      desc1:
-          "Foto's verwijderen kost nu minder tikken. We hebben meerdere meldingen vervangen door één bevestigingsvenster dat je laatste keuze onthoudt.",
-      title2: 'Naar meerdere schermen casten',
-      desc2:
+    'nl': _ChangeLogFeatureStrings(
+      deleteTitle: 'Eenvoudigere verwijderbevestigingen',
+      onlineAndroidDeleteDesc:
+          'Wanneer je iets van je apparaat verwijdert, kan Ente je helpen mediabeheer in te stellen om herhaalde systeemmeldingen te vermijden. Ente kan ook je laatste verwijderkeuze onthouden.',
+      localAndroidDeleteDesc:
+          'Wanneer je iets van je apparaat verwijdert, kan Ente je helpen mediabeheer in te stellen om herhaalde systeemmeldingen te vermijden.',
+      castTitle: 'Naar meerdere schermen casten',
+      castDesc:
           'Je kunt albums nu naar meer dan één scherm tegelijk casten, actieve sessies bekijken en een specifieke sessie stoppen wanneer je klaar bent.',
-      title3: 'Betrouwbaardere opslagopruiming',
-      desc3:
+      storageTitle: 'Betrouwbaardere opslagopruiming',
+      storageDesc:
           'Ente verwijdert tijdelijke afbeeldings- en videobestanden nu betrouwbaarder, zodat de app geen extra opslagruimte op je apparaat blijft innemen.',
     ),
-    'no': ChangeLogStrings(
-      title1: 'Enklere bekreftelser ved sletting',
-      desc1:
-          'Det krever nå færre trykk å slette bilder. Vi har erstattet flere spørsmål med én bekreftelsesdialog som husker det siste valget ditt.',
-      title2: 'Cast til flere skjermer',
-      desc2:
+    'no': _ChangeLogFeatureStrings(
+      deleteTitle: 'Enklere bekreftelser ved sletting',
+      onlineAndroidDeleteDesc:
+          'Når du sletter fra enheten, kan Ente hjelpe deg med å sette opp medieadministrasjon for å unngå gjentatte systemmeldinger. Ente kan også huske det siste slettevalget ditt.',
+      localAndroidDeleteDesc:
+          'Når du sletter fra enheten, kan Ente hjelpe deg med å sette opp medieadministrasjon for å unngå gjentatte systemmeldinger.',
+      castTitle: 'Cast til flere skjermer',
+      castDesc:
           'Du kan nå caste album til mer enn én skjerm om gangen, se aktive økter og stoppe en bestemt økt når du er ferdig.',
-      title3: 'Mer pålitelig lagringsopprydding',
-      desc3:
+      storageTitle: 'Mer pålitelig lagringsopprydding',
+      storageDesc:
           'Ente fjerner nå midlertidige bilde- og videofiler mer pålitelig, slik at appen ikke bruker ekstra lagringsplass på enheten.',
     ),
-    'pl': ChangeLogStrings(
-      title1: 'Łatwiejsze potwierdzanie usuwania',
-      desc1:
-          'Usuwanie zdjęć wymaga teraz mniej stuknięć. Zastąpiliśmy kilka monitów jednym panelem potwierdzenia, który zapamiętuje ostatni wybór.',
-      title2: 'Przesyłaj na wiele ekranów',
-      desc2:
+    'pl': _ChangeLogFeatureStrings(
+      deleteTitle: 'Łatwiejsze potwierdzanie usuwania',
+      onlineAndroidDeleteDesc:
+          'Podczas usuwania z urządzenia Ente może pomóc skonfigurować zarządzanie multimediami, aby uniknąć powtarzających się monitów systemowych. Ente może też zapamiętać twój ostatni wybór usuwania.',
+      localAndroidDeleteDesc:
+          'Podczas usuwania z urządzenia Ente może pomóc skonfigurować zarządzanie multimediami, aby uniknąć powtarzających się monitów systemowych.',
+      castTitle: 'Przesyłaj na wiele ekranów',
+      castDesc:
           'Możesz teraz przesyłać albumy na więcej niż jeden ekran jednocześnie, wyświetlać aktywne sesje i zatrzymać wybraną sesję, gdy skończysz.',
-      title3: 'Bardziej niezawodne czyszczenie pamięci',
-      desc3:
+      storageTitle: 'Bardziej niezawodne czyszczenie pamięci',
+      storageDesc:
           'Ente teraz bardziej niezawodnie usuwa tymczasowe pliki obrazów i wideo, dzięki czemu aplikacja nie zajmuje dodatkowej pamięci urządzenia.',
     ),
-    'pt_BR': ChangeLogStrings(
-      title1: 'Confirmações de exclusão mais fáceis',
-      desc1:
-          'Excluir fotos agora exige menos toques. Substituímos vários avisos por uma única tela de confirmação que lembra sua última escolha.',
-      title2: 'Transmitir para várias telas',
-      desc2:
+    'pt_BR': _ChangeLogFeatureStrings(
+      deleteTitle: 'Confirmações de exclusão mais fáceis',
+      onlineAndroidDeleteDesc:
+          'Ao excluir do seu dispositivo, o Ente pode ajudar você a configurar o gerenciamento de mídia para evitar avisos repetidos do sistema. O Ente também pode lembrar sua última escolha de exclusão.',
+      localAndroidDeleteDesc:
+          'Ao excluir do seu dispositivo, o Ente pode ajudar você a configurar o gerenciamento de mídia para evitar avisos repetidos do sistema.',
+      castTitle: 'Transmitir para várias telas',
+      castDesc:
           'Agora você pode transmitir álbuns para mais de uma tela ao mesmo tempo, ver sessões ativas e encerrar uma sessão específica quando terminar.',
-      title3: 'Limpeza de armazenamento mais confiável',
-      desc3:
+      storageTitle: 'Limpeza de armazenamento mais confiável',
+      storageDesc:
           'Agora o Ente limpa arquivos temporários de imagens e vídeos com mais confiabilidade, evitando que o app ocupe espaço extra no dispositivo.',
     ),
-    'pt_PT': ChangeLogStrings(
-      title1: 'Confirmações de eliminação mais simples',
-      desc1:
-          'Eliminar fotografias requer agora menos toques. Substituímos vários avisos por um único painel de confirmação que memoriza a sua última escolha.',
-      title2: 'Transmitir para vários ecrãs',
-      desc2:
+    'pt_PT': _ChangeLogFeatureStrings(
+      deleteTitle: 'Confirmações de eliminação mais simples',
+      onlineAndroidDeleteDesc:
+          'Ao eliminar do seu dispositivo, o Ente pode ajudá-lo a configurar a gestão de multimédia para evitar avisos repetidos do sistema. O Ente também pode memorizar a sua última escolha de eliminação.',
+      localAndroidDeleteDesc:
+          'Ao eliminar do seu dispositivo, o Ente pode ajudá-lo a configurar a gestão de multimédia para evitar avisos repetidos do sistema.',
+      castTitle: 'Transmitir para vários ecrãs',
+      castDesc:
           'Agora pode transmitir álbuns para mais de um ecrã ao mesmo tempo, ver sessões ativas e parar uma sessão específica quando terminar.',
-      title3: 'Limpeza de armazenamento mais fiável',
-      desc3:
+      storageTitle: 'Limpeza de armazenamento mais fiável',
+      storageDesc:
           'O Ente limpa agora ficheiros temporários de imagens e vídeos de forma mais fiável, evitando que a app ocupe espaço extra no dispositivo.',
     ),
-    'ro': ChangeLogStrings(
-      title1: 'Confirmări de ștergere mai simple',
-      desc1:
-          'Ștergerea fotografiilor necesită acum mai puține atingeri. Am înlocuit mai multe solicitări cu un singur panou de confirmare care reține ultima ta alegere.',
-      title2: 'Transmite pe mai multe ecrane',
-      desc2:
+    'ro': _ChangeLogFeatureStrings(
+      deleteTitle: 'Confirmări de ștergere mai simple',
+      onlineAndroidDeleteDesc:
+          'Când ștergi de pe dispozitiv, Ente te poate ajuta să configurezi gestionarea media pentru a evita solicitările repetate ale sistemului. Ente poate reține și ultima ta alegere de ștergere.',
+      localAndroidDeleteDesc:
+          'Când ștergi de pe dispozitiv, Ente te poate ajuta să configurezi gestionarea media pentru a evita solicitările repetate ale sistemului.',
+      castTitle: 'Transmite pe mai multe ecrane',
+      castDesc:
           'Acum poți transmite albume pe mai multe ecrane în același timp, poți vedea sesiunile active și poți opri o anumită sesiune când ai terminat.',
-      title3: 'Curățare mai fiabilă a stocării',
-      desc3:
+      storageTitle: 'Curățare mai fiabilă a stocării',
+      storageDesc:
           'Ente curăță acum mai fiabil fișierele temporare de imagini și video, împiedicând aplicația să păstreze spațiu suplimentar pe dispozitiv.',
     ),
-    'ru': ChangeLogStrings(
-      title1: 'Более простые подтверждения удаления',
-      desc1:
-          'Удаление фотографий теперь требует меньше нажатий. Мы заменили несколько запросов одним окном подтверждения, которое запоминает ваш последний выбор.',
-      title2: 'Трансляция на несколько экранов',
-      desc2:
+    'ru': _ChangeLogFeatureStrings(
+      deleteTitle: 'Более простые подтверждения удаления',
+      onlineAndroidDeleteDesc:
+          'При удалении с устройства Ente может помочь настроить управление медиа, чтобы избежать повторяющихся системных запросов. Ente также может запомнить ваш последний выбор удаления.',
+      localAndroidDeleteDesc:
+          'При удалении с устройства Ente может помочь настроить управление медиа, чтобы избежать повторяющихся системных запросов.',
+      castTitle: 'Трансляция на несколько экранов',
+      castDesc:
           'Теперь вы можете транслировать альбомы сразу на несколько экранов, просматривать активные сеансы и останавливать нужный сеанс, когда закончите.',
-      title3: 'Более надежная очистка хранилища',
-      desc3:
+      storageTitle: 'Более надежная очистка хранилища',
+      storageDesc:
           'Теперь Ente надежнее удаляет временные файлы изображений и видео, чтобы приложение не занимало лишнее место в памяти устройства.',
     ),
-    'tr': ChangeLogStrings(
-      title1: 'Daha kolay silme onayları',
-      desc1:
-          'Fotoğraf silmek artık daha az dokunuş gerektiriyor. Birden fazla istemi, son seçiminizi hatırlayan tek bir onay ekranıyla değiştirdik.',
-      title2: 'Birden fazla ekrana yayınla',
-      desc2:
+    'tr': _ChangeLogFeatureStrings(
+      deleteTitle: 'Daha kolay silme onayları',
+      onlineAndroidDeleteDesc:
+          'Cihazınızdan silerken Ente, tekrarlanan sistem istemlerini önlemek için medya yönetimini ayarlamanıza yardımcı olabilir. Ente son silme seçiminizi de hatırlayabilir.',
+      localAndroidDeleteDesc:
+          'Cihazınızdan silerken Ente, tekrarlanan sistem istemlerini önlemek için medya yönetimini ayarlamanıza yardımcı olabilir.',
+      castTitle: 'Birden fazla ekrana yayınla',
+      castDesc:
           'Artık albümleri aynı anda birden fazla ekrana yayınlayabilir, etkin oturumları görebilir ve işiniz bittiğinde belirli bir oturumu durdurabilirsiniz.',
-      title3: 'Daha güvenilir depolama temizliği',
-      desc3:
+      storageTitle: 'Daha güvenilir depolama temizliği',
+      storageDesc:
           'Ente artık geçici görüntü ve video dosyalarını daha güvenilir şekilde temizleyerek uygulamanın cihazda fazladan depolama alanı tutmasını önler.',
     ),
-    'uk': ChangeLogStrings(
-      title1: 'Простіші підтвердження видалення',
-      desc1:
-          'Видалення фотографій тепер потребує менше дотиків. Ми замінили кілька запитів одним вікном підтвердження, яке запам’ятовує ваш останній вибір.',
-      title2: 'Трансляція на кілька екранів',
-      desc2:
+    'uk': _ChangeLogFeatureStrings(
+      deleteTitle: 'Простіші підтвердження видалення',
+      onlineAndroidDeleteDesc:
+          'Під час видалення з пристрою Ente може допомогти налаштувати керування медіа, щоб уникнути повторних системних запитів. Ente також може запам’ятати ваш останній вибір видалення.',
+      localAndroidDeleteDesc:
+          'Під час видалення з пристрою Ente може допомогти налаштувати керування медіа, щоб уникнути повторних системних запитів.',
+      castTitle: 'Трансляція на кілька екранів',
+      castDesc:
           'Тепер ви можете транслювати альбоми на кілька екранів одночасно, переглядати активні сеанси та зупиняти певний сеанс, коли завершите.',
-      title3: 'Надійніше очищення сховища',
-      desc3:
+      storageTitle: 'Надійніше очищення сховища',
+      storageDesc:
           'Ente тепер надійніше очищує тимчасові файли зображень і відео, щоб застосунок не займав зайве місце у сховищі пристрою.',
     ),
-    'vi': ChangeLogStrings(
-      title1: 'Xác nhận xóa dễ hơn',
-      desc1:
-          'Việc xóa ảnh giờ cần ít lần chạm hơn. Chúng tôi đã thay nhiều lời nhắc bằng một bảng xác nhận duy nhất có thể ghi nhớ lựa chọn gần nhất của bạn.',
-      title2: 'Truyền lên nhiều màn hình',
-      desc2:
+    'vi': _ChangeLogFeatureStrings(
+      deleteTitle: 'Xác nhận xóa dễ hơn',
+      onlineAndroidDeleteDesc:
+          'Khi xóa khỏi thiết bị, Ente có thể giúp bạn thiết lập quản lý phương tiện để tránh các lời nhắc hệ thống lặp lại. Ente cũng có thể ghi nhớ lựa chọn xóa gần nhất của bạn.',
+      localAndroidDeleteDesc:
+          'Khi xóa khỏi thiết bị, Ente có thể giúp bạn thiết lập quản lý phương tiện để tránh các lời nhắc hệ thống lặp lại.',
+      castTitle: 'Truyền lên nhiều màn hình',
+      castDesc:
           'Giờ bạn có thể truyền album lên nhiều màn hình cùng lúc, xem các phiên đang hoạt động và dừng một phiên cụ thể khi xong.',
-      title3: 'Dọn dẹp bộ nhớ đáng tin cậy hơn',
-      desc3:
+      storageTitle: 'Dọn dẹp bộ nhớ đáng tin cậy hơn',
+      storageDesc:
           'Ente giờ xóa các tệp ảnh và video tạm thời đáng tin cậy hơn, giúp ứng dụng không giữ thêm dung lượng lưu trữ trên thiết bị.',
     ),
-    'zh_CN': ChangeLogStrings(
-      title1: '更轻松的删除确认',
-      desc1: '删除照片现在只需更少点击。我们将多个提示替换为一个确认面板，并会记住你上一次的选择。',
-      title2: '投放到多个屏幕',
-      desc2: '你现在可以将相册同时投放到多个屏幕，查看活跃会话，并在完成后停止指定会话。',
-      title3: '更可靠的存储清理',
-      desc3: 'Ente 现在会更可靠地清理临时图片和视频文件，避免应用占用额外的设备存储空间。',
+    'zh_CN': _ChangeLogFeatureStrings(
+      deleteTitle: '更轻松的删除确认',
+      onlineAndroidDeleteDesc:
+          '从设备删除时，Ente 可以帮助你设置媒体管理，避免重复的系统提示。Ente 还可以记住你上一次的删除选择。',
+      localAndroidDeleteDesc: '从设备删除时，Ente 可以帮助你设置媒体管理，避免重复的系统提示。',
+      castTitle: '投放到多个屏幕',
+      castDesc: '你现在可以将相册同时投放到多个屏幕，查看活跃会话，并在完成后停止指定会话。',
+      storageTitle: '更可靠的存储清理',
+      storageDesc: 'Ente 现在会更可靠地清理临时图片和视频文件，避免应用占用额外的设备存储空间。',
     ),
   };
+}
 
-  static const Map<String, ChangeLogStrings> _offlineTranslations = {};
+class _ChangeLogFeatureStrings {
+  final String deleteTitle;
+  final String onlineAndroidDeleteDesc;
+  final String localAndroidDeleteDesc;
+  final String castTitle;
+  final String castDesc;
+  final String storageTitle;
+  final String storageDesc;
+
+  const _ChangeLogFeatureStrings({
+    required this.deleteTitle,
+    required this.onlineAndroidDeleteDesc,
+    required this.localAndroidDeleteDesc,
+    required this.castTitle,
+    required this.castDesc,
+    required this.storageTitle,
+    required this.storageDesc,
+  });
 }

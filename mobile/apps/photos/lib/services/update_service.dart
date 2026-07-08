@@ -47,6 +47,7 @@ class UpdateService {
     required Locale locale,
     required bool isLocalGallery,
     required bool isSignedIn,
+    required bool isAndroid,
   }) async {
     if (!await shouldShowChangeLog()) {
       return ChangeLogAction.skip;
@@ -59,6 +60,7 @@ class UpdateService {
     return ChangeLogStrings.hasContentForLocale(
           locale,
           isLocalGallery: isLocalGallery,
+          isAndroid: isAndroid,
         )
         ? ChangeLogAction.show
         : ChangeLogAction.consumeWithoutShowing;
