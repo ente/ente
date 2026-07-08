@@ -15,7 +15,7 @@ The administrator users have to be explicitly whitelisted in `museum.yaml`. You 
 
 > [!NOTE]
 >
-> To make getting started easier, the first registered user is automatically treated as an admin until you whitelist one explicitly. If your instance is publicly reachable, register your own account first, or set `internal.disable-registration`, so the admin account is yours.
+> To make getting started easier, the first registered user is automatically treated as an admin until you whitelist one explicitly. If your instance is publicly reachable, register your own account first so the admin account is yours.
 
 1.  Connect to `ente_db` (the database used for storing data related to Ente).
 
