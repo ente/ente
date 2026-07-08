@@ -26,10 +26,11 @@ const _codeRevision = String.fromEnvironment(
 const _localMirrorBaseUrl = String.fromEnvironment(
   "ML_PARITY_LOCAL_MIRROR_BASE_URL",
 );
-const _internalUserRoute = bool.fromEnvironment(
-  "ML_PARITY_INTERNAL_USER",
+const _useLegacyMobileMl = bool.fromEnvironment(
+  "ML_PARITY_USE_LEGACY_MOBILE_ML",
   defaultValue: false,
 );
+const _useRustMl = !_useLegacyMobileMl;
 const _localModelMirrorRelativeDir = ".cache/local_model_mirror";
 
 const _parityReportDataKey = "ml_parity_results_json";
@@ -89,12 +90,14 @@ void runMLParityIntegrationTest({required String expectedPlatform}) {
         final modelSpecs = _modelSpecs();
         final loadedModels = await _downloadAndLoadModels(
           modelSpecs: modelSpecs,
-          skipModelLoad: _internalUserRoute,
+          loadLegacySessions: _useLegacyMobileMl,
         );
 
-        final runtime = Platform.isAndroid
-            ? "flutter-mobile-onnx-platform-plugin"
-            : "flutter-mobile-onnx-ffi";
+        final runtime = _useRustMl
+            ? "rust-ml"
+            : (Platform.isAndroid
+                  ? "flutter-mobile-onnx-platform-plugin"
+                  : "flutter-mobile-onnx-ffi");
 
         final results = <Map<String, dynamic>>[];
         final errors = <Map<String, dynamic>>[];
@@ -220,7 +223,7 @@ class _LoadedModels {
 
 Future<_LoadedModels> _downloadAndLoadModels({
   required List<_ModelSpec> modelSpecs,
-  required bool skipModelLoad,
+  required bool loadLegacySessions,
 }) async {
   await _ensureModelNetworkContext();
 
@@ -246,7 +249,7 @@ Future<_LoadedModels> _downloadAndLoadModels({
         "${modelFile.uri.pathSegments.last}:$modelSHA256";
   }
 
-  if (skipModelLoad) {
+  if (!loadLegacySessions) {
     return _LoadedModels(
       modelNames: modelNames,
       modelAddresses: const <int>[],
@@ -486,7 +489,7 @@ Future<MLResult> _analyzeImage({
   required String filePath,
   required _LoadedModels loadedModels,
 }) async {
-  const useRustMl = _internalUserRoute;
+  const useRustMl = _useRustMl;
   final args = <String, dynamic>{
     "enteFileID": fileID,
     "filePath": filePath,

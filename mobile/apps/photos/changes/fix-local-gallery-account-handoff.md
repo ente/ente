@@ -1,1 +1,0 @@
-- Fix backup folder selection when switching from local gallery to an account.

@@ -1076,6 +1076,7 @@ class SearchService {
     required int minClusterSize,
     int? fallbackMinClusterSize,
     bool showIgnoredOnly = false,
+    bool includeEmptyPersons = false,
   }) async {
     try {
       if (isLocalGalleryMode) {
@@ -1239,6 +1240,13 @@ class SearchService {
         }
       }
 
+      if (includeEmptyPersons) {
+        for (final personID in personIdToPerson.keys) {
+          personIdToFiles.putIfAbsent(personID, () => <EnteFile>[]);
+          personIdToFileIds.putIfAbsent(personID, () => <int>{});
+        }
+      }
+
       // get sorted personId by files count
       final sortedPersonIds = personIdToFiles.keys.toList()
         ..sort(
@@ -1261,19 +1269,21 @@ class SearchService {
         final PersonEntity p = personIdToPerson[personID]!;
         final bool isIgnored = p.data.isIgnored;
         if (showIgnoredOnly != isIgnored) continue;
-        if (files.isEmpty) continue;
+        if (!includeEmptyPersons && files.isEmpty) continue;
         final matchedUploadedIDs = personIdToFileIds[personID]!;
+        final previewFile = files.isEmpty ? null : files.first;
+        final params = {
+          kPersonWidgetKey: p.data.avatarFaceID ?? p.hashCode.toString(),
+          kPersonParamID: personID,
+          if (previewFile != null) kFileID: previewFile.uploadedFileID,
+          kPersonPinned: p.data.isPinned,
+        };
         facesResult.add(
           GenericSearchResult(
             ResultType.faces,
             p.data.name,
             files,
-            params: {
-              kPersonWidgetKey: p.data.avatarFaceID ?? p.hashCode.toString(),
-              kPersonParamID: personID,
-              kFileID: files.first.uploadedFileID,
-              kPersonPinned: p.data.isPinned,
-            },
+            params: params,
             onResultTap: (ctx) {
               routeToPage(
                 ctx,
@@ -1284,18 +1294,12 @@ class SearchService {
                     ResultType.faces,
                     p.data.name,
                     files,
-                    params: {
-                      kPersonWidgetKey:
-                          p.data.avatarFaceID ?? p.hashCode.toString(),
-                      kPersonParamID: personID,
-                      kPersonPinned: p.data.isPinned,
-                      kFileID: files.first.uploadedFileID,
-                    },
+                    params: params,
                     hierarchicalSearchFilter: FaceFilter(
                       personId: p.remoteID,
                       clusterId: null,
                       faceName: p.data.name,
-                      faceFile: files.first,
+                      faceFile: previewFile,
                       occurrence: kMostRelevantFilter,
                       matchedUploadedIDs: matchedUploadedIDs,
                     ),
@@ -1307,7 +1311,7 @@ class SearchService {
               personId: p.remoteID,
               clusterId: null,
               faceName: p.data.name,
-              faceFile: files.first,
+              faceFile: previewFile,
               occurrence: kMostRelevantFilter,
               matchedUploadedIDs: matchedUploadedIDs,
             ),
@@ -1391,6 +1395,7 @@ class SearchService {
             limit,
             minClusterSize: fallbackMinClusterSize,
             showIgnoredOnly: showIgnoredOnly,
+            includeEmptyPersons: includeEmptyPersons,
           );
         } else {
           return [];

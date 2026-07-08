@@ -1,1 +1,0 @@
-- Updated the Local Gallery backup banner UI and capped text scaling for large accessibility text sizes.

@@ -188,7 +188,7 @@ Not directly, but you can minimize it:
 **On mobile:**
 
 - Open the Albums tab
-- Scroll to the bottom
+- Tap on 'v' icon at the right.
 - Tap on "Uncategorized"
 
 **On web/desktop:**
@@ -333,7 +333,8 @@ If you accidentally deleted photos, you can restore them from Trash within 30 da
 **On mobile:**
 
 - Open the Albums tab
-- Scroll to the bottom and tap "Trash"
+- Tap on 'v' icon at the right.
+- Tap "Trash"
 - Select the photos you want to restore
 - Tap the "Restore" button
 

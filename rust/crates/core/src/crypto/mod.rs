@@ -60,6 +60,6 @@ pub use encoding::{
     b64_to_hex, base642bin, decode_b64, decode_b64_url_safe_no_padding, decode_hex, encode_b64,
     encode_b64_url_safe, encode_b64_url_safe_no_padding, encode_hex, hex_to_b64, str_to_bin,
 };
-pub use error::{CryptoError, Result};
+pub use error::{Error, Result};
 pub use secret::{SecretString, SecretVec};
 pub use types::{Header, Key, Nonce, PublicKey, Salt, SecretKey, random_bytes};

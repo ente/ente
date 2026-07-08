@@ -1,7 +1,7 @@
 //! Shared error types for account flows.
 
 use base64::DecodeError;
-use ente_core::{auth::AuthError, crypto::CryptoError, http::Error as HttpError};
+use ente_core::{auth::AuthError, crypto, http_legacy::Error as HttpError};
 use thiserror::Error;
 
 /// Result alias for the shared account crate.
@@ -75,11 +75,11 @@ impl Error {
     }
 }
 
-impl From<CryptoError> for Error {
-    fn from(err: CryptoError) -> Self {
+impl From<crypto::Error> for Error {
+    fn from(err: crypto::Error) -> Self {
         match err {
-            CryptoError::Base64Decode(source) => Error::Base64Decode(source),
-            CryptoError::Io(source) => Error::Generic(source.to_string()),
+            crypto::Error::Base64Decode(source) => Error::Base64Decode(source),
+            crypto::Error::Io(source) => Error::Generic(source.to_string()),
             other => Error::Crypto(other.to_string()),
         }
     }

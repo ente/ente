@@ -6,7 +6,7 @@ edition = "2024"
 fast_image_resize = { version = "5.5.0", features = ["image"] }
 image = { version = "0.25.5", default-features = true }
 kamadak-exif = "0.6.1"
-ente_heic = { package = "heic_decoder", git = "https://github.com/ente/heic-decoder.git", rev = "019b2fd8ee6af99579f26e424a6a0b9016a73fdc", features = [
+ente_heic = { package = "heic_decoder", git = "https://github.com/ente/heic-decoder.git", rev = "37ceaee761e17c0253daeadd85dc0c1904fb894b", features = [
     "image-integration",
 ] }
 thiserror.workspace = true

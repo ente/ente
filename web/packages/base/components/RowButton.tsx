@@ -5,7 +5,6 @@ import {
     styled,
     Typography,
     type ButtonProps,
-    type TypographyProps,
 } from "@mui/material";
 import { EnteSwitch } from "ente-base/components/EnteSwitch";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
@@ -148,7 +147,7 @@ interface RowButtonProps {
      *
      * Default: "medium".
      */
-    fontWeight?: TypographyProps["fontWeight"];
+    fontWeight?: string | number;
     /**
      * If true, then the row button will be disabled.
      */

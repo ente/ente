@@ -52,7 +52,7 @@ fn to_shared_error(error: Error) -> shared::Error {
             status,
             code,
             message,
-        } => shared::Error::from(ente_core::http::Error::Http {
+        } => shared::Error::from(ente_core::http_legacy::Error::Http {
             status,
             code,
             message,

@@ -167,7 +167,7 @@ pub fn derive_kek(
 /// Generate a KEK using the current adaptive sensitive client policy.
 pub fn generate_sensitive_kek(password: &str) -> Result<GeneratedKek> {
     let derived = argon::derive_sensitive_key(password).map_err(|e| match e {
-        crypto::CryptoError::InvalidKeyDerivationParams(_) => AuthError::Crypto(e),
+        crypto::Error::InvalidKeyDerivationParams(_) => AuthError::Crypto(e),
         _ => AuthError::InsufficientMemory,
     })?;
 

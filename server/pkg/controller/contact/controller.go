@@ -504,7 +504,6 @@ func (c *Controller) replicateAttachmentObject(ctx context.Context, row contactm
 	if downloader == nil {
 		s3Client := c.S3Config.GetS3Client(row.LatestBucket)
 		downloader = s3manager.NewDownloaderWithClient(&s3Client)
-		c.downloadManagerCache[row.LatestBucket] = downloader
 	}
 	_, err = downloader.DownloadWithContext(ctx, file, &s3.GetObjectInput{
 		Bucket: c.S3Config.GetBucket(row.LatestBucket),

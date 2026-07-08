@@ -884,12 +884,13 @@ packages:
     source: hosted
     version: "4.5.2"
   flutter_cache_manager:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      name: flutter_cache_manager
-      sha256: "400b6592f16a4409a7f2bb929a9a7e38c72cceb8ffb99ee57bbf2cb2cecf8386"
-      url: "https://pub.dev"
-    source: hosted
+      path: flutter_cache_manager
+      ref: "54904e499a06d0364a2b3f4ca9789e5f829f1879"
+      resolved-ref: "54904e499a06d0364a2b3f4ca9789e5f829f1879"
+      url: "https://github.com/Baseflow/flutter_cache_manager.git"
+    source: git
     version: "3.4.1"
   flutter_context_menu:
     dependency: transitive

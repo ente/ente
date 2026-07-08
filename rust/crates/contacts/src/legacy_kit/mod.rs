@@ -6,7 +6,7 @@ use std::sync::Arc;
 use ente_core::{
     auth::{self, KeyAttributes, SrpSession},
     crypto::{self, SecretString, SecretVec, kdf, sealed, secretbox},
-    http::{HttpClient, HttpConfig},
+    http_legacy::{HttpClient, HttpConfig},
 };
 use uuid::Uuid;
 

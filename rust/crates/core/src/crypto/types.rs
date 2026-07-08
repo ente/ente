@@ -10,7 +10,7 @@ use rand_core::{OsRng, RngCore};
 use subtle::ConstantTimeEq;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-use crate::crypto::{CryptoError, Result, SecretVec};
+use crate::crypto::{Error, Result, SecretVec};
 
 /// A 256-bit symmetric encryption key.
 ///
@@ -43,7 +43,7 @@ impl Key {
     /// Construct a key from a byte slice, validating its length.
     pub fn try_from_slice(bytes: &[u8]) -> Result<Self> {
         Ok(Self(bytes.try_into().map_err(|_| {
-            CryptoError::InvalidKeyLength {
+            Error::InvalidKeyLength {
                 expected: Self::BYTES,
                 actual: bytes.len(),
             }
@@ -58,7 +58,7 @@ impl Key {
 
 /// Consumes the source, so it zeroizes on drop.
 impl TryFrom<SecretVec> for Key {
-    type Error = CryptoError;
+    type Error = Error;
 
     fn try_from(secret: SecretVec) -> Result<Self> {
         Self::try_from_slice(&secret)
@@ -103,7 +103,7 @@ impl Nonce {
     /// Construct a nonce from a byte slice, validating its length.
     pub fn try_from_slice(bytes: &[u8]) -> Result<Self> {
         Ok(Self(bytes.try_into().map_err(|_| {
-            CryptoError::InvalidNonceLength {
+            Error::InvalidNonceLength {
                 expected: Self::BYTES,
                 actual: bytes.len(),
             }
@@ -139,7 +139,7 @@ impl Salt {
     /// Construct a salt from a byte slice, validating its length.
     pub fn try_from_slice(bytes: &[u8]) -> Result<Self> {
         Ok(Self(bytes.try_into().map_err(|_| {
-            CryptoError::InvalidSaltLength {
+            Error::InvalidSaltLength {
                 expected: Self::BYTES,
                 actual: bytes.len(),
             }
@@ -167,7 +167,7 @@ impl Header {
     /// Construct a header from a byte slice, validating its length.
     pub fn try_from_slice(bytes: &[u8]) -> Result<Self> {
         Ok(Self(bytes.try_into().map_err(|_| {
-            CryptoError::InvalidHeaderLength {
+            Error::InvalidHeaderLength {
                 expected: Self::BYTES,
                 actual: bytes.len(),
             }
@@ -196,7 +196,7 @@ impl PublicKey {
     /// Construct a public key from a byte slice, validating its length.
     pub fn try_from_slice(bytes: &[u8]) -> Result<Self> {
         Ok(Self(bytes.try_into().map_err(|_| {
-            CryptoError::InvalidKeyLength {
+            Error::InvalidKeyLength {
                 expected: Self::BYTES,
                 actual: bytes.len(),
             }
@@ -237,7 +237,7 @@ impl SecretKey {
     /// higher-entropy master secret.
     pub fn from_seed(seed: &[u8]) -> Result<Self> {
         Ok(Self(seed.try_into().map_err(|_| {
-            CryptoError::InvalidKeyLength {
+            Error::InvalidKeyLength {
                 expected: Self::BYTES,
                 actual: seed.len(),
             }
@@ -308,7 +308,7 @@ mod tests {
     fn test_key_rejects_wrong_length() {
         assert!(matches!(
             Key::try_from_slice(&[1u8; 16]),
-            Err(CryptoError::InvalidKeyLength { .. })
+            Err(Error::InvalidKeyLength { .. })
         ));
     }
 

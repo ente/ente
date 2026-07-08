@@ -326,8 +326,8 @@ const SidebarRow: React.FC<{
             slotProps={{
                 primary: {
                     variant: "body",
-                    fontWeight: selected ? "bold" : "medium",
                     noWrap: true,
+                    sx: { fontWeight: selected ? "bold" : "medium" },
                 },
             }}
         />

@@ -4,7 +4,7 @@ use base64::{Engine, engine::general_purpose::STANDARD};
 use ente_core::{
     auth::{SrpAttributes as CoreSrpAttributes, SrpSession},
     crypto::SecretVec,
-    http::{Error as HttpError, HttpClient},
+    http_legacy::{Error as HttpError, HttpClient},
 };
 use std::time::Duration;
 
@@ -52,7 +52,7 @@ fn require_srp_m2(auth_response: &AuthResponse) -> Result<&str> {
         .ok_or_else(|| Error::AuthenticationFailed("Missing server proof".to_string()))
 }
 
-/// Shared account client built on `ente_core::http::HttpClient`.
+/// Shared account client built on `ente_core::http_legacy::HttpClient`.
 pub struct AccountsClient {
     http: HttpClient,
     client_package: String,

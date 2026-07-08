@@ -250,13 +250,12 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
   }
 
   Future<dynamic> _editPerson(BuildContext context) async {
+    final clusterID = person.data.assigned.isEmpty
+        ? null
+        : person.data.assigned.first.id;
     final result = await routeToPage(
       context,
-      SaveOrEditPerson(
-        person.data.assigned.first.id,
-        person: person,
-        isEditing: true,
-      ),
+      SaveOrEditPerson(clusterID, person: person, isEditing: true),
     );
     if (result is PersonEntity) {
       _appBarTitle = result.data.name;
@@ -270,6 +269,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
     final bool isIgnored = person.data.isIgnored;
     final bool isPinned = person.data.isPinned;
     final bool hideFromMemories = person.data.hideFromMemories;
+    final bool hasAssignedCluster = person.data.assigned.isNotEmpty;
     final List<Widget> actions = <Widget>[];
     // If the user has selected files, don't show any actions
     if (widget.selectedFiles.files.isNotEmpty ||
@@ -303,22 +303,24 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
             iconColor,
           ),
         ),
-        EntePopupMenuOption(
-          value: PeoplePopupAction.reviewSuggestions,
-          label: AppLocalizations.of(context).review,
-          leadingWidget: galleryAppBarMenuIcon(
-            HugeIcons.strokeRoundedSearch01,
-            iconColor,
+        if (hasAssignedCluster)
+          EntePopupMenuOption(
+            value: PeoplePopupAction.reviewSuggestions,
+            label: AppLocalizations.of(context).review,
+            leadingWidget: galleryAppBarMenuIcon(
+              HugeIcons.strokeRoundedSearch01,
+              iconColor,
+            ),
           ),
-        ),
-        EntePopupMenuOption(
-          value: PeoplePopupAction.setCover,
-          label: AppLocalizations.of(context).setCover,
-          leadingWidget: galleryAppBarMenuIcon(
-            HugeIcons.strokeRoundedImage01,
-            iconColor,
+        if (hasAssignedCluster)
+          EntePopupMenuOption(
+            value: PeoplePopupAction.setCover,
+            label: AppLocalizations.of(context).setCover,
+            leadingWidget: galleryAppBarMenuIcon(
+              HugeIcons.strokeRoundedImage01,
+              iconColor,
+            ),
           ),
-        ),
         EntePopupMenuOption(
           value: PeoplePopupAction.pinPerson,
           label: isPinned ? context.l10n.unpinPerson : context.l10n.pinPerson,
@@ -378,14 +380,15 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
             iconColor,
           ),
         ),
-        EntePopupMenuOption(
-          value: PeoplePopupAction.reviewSuggestions,
-          label: AppLocalizations.of(context).review,
-          leadingWidget: galleryAppBarMenuIcon(
-            HugeIcons.strokeRoundedSearch01,
-            iconColor,
+        if (hasAssignedCluster)
+          EntePopupMenuOption(
+            value: PeoplePopupAction.reviewSuggestions,
+            label: AppLocalizations.of(context).review,
+            leadingWidget: galleryAppBarMenuIcon(
+              HugeIcons.strokeRoundedSearch01,
+              iconColor,
+            ),
           ),
-        ),
         EntePopupMenuOption(
           value: PeoplePopupAction.unignore,
           label: AppLocalizations.of(context).showPerson,

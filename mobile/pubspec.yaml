@@ -50,6 +50,13 @@ dev_dependencies:
   melos: 7.8.1
 
 dependency_overrides:
+  # Hosted 3.4.1 drops DB rows but fails to delete cache files; use the
+  # upstream delete fix until a fixed release ships.
+  flutter_cache_manager:
+    git:
+      url: https://github.com/Baseflow/flutter_cache_manager.git
+      ref: 54904e499a06d0364a2b3f4ca9789e5f829f1879
+      path: flutter_cache_manager
   motion_sensors:
     git:
       url: https://github.com/deckerst/aves_panorama_motion_sensors.git

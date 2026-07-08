@@ -36,7 +36,9 @@ class NetworkClient {
     _enteDio = Dio(_newBaseOptions(ua, packageInfo, baseUrl: endpoint));
 
     _dio.httpClientAdapter = _newAdaptiveHttpClientAdapter(_connectTimeout);
-    _downloadDio.httpClientAdapter = NativeAdapter();
+    _downloadDio.httpClientAdapter = _newDownloadHttpClientAdapter(
+      _connectTimeout,
+    );
     _enteDio.httpClientAdapter = _newAdaptiveHttpClientAdapter(_connectTimeout);
 
     _setupInterceptors(endpoint);
@@ -97,6 +99,13 @@ class NetworkClient {
     );
   }
 
+  HttpClientAdapter _newDownloadHttpClientAdapter(Duration connectTimeout) {
+    return _HttpSchemeFallbackAdapter(
+      primaryAdapter: NativeAdapter(),
+      fallbackAdapter: _newAdaptiveHttpClientAdapter(connectTimeout),
+    );
+  }
+
   NetworkClient._privateConstructor();
 
   static NetworkClient instance = NetworkClient._privateConstructor();
@@ -106,6 +115,35 @@ class NetworkClient {
   Dio get downloadDio => _downloadDio;
 
   Dio get enteDio => _enteDio;
+}
+
+class _HttpSchemeFallbackAdapter implements HttpClientAdapter {
+  _HttpSchemeFallbackAdapter({
+    required HttpClientAdapter primaryAdapter,
+    required HttpClientAdapter fallbackAdapter,
+  }) : _primaryAdapter = primaryAdapter,
+       _fallbackAdapter = fallbackAdapter;
+
+  final HttpClientAdapter _primaryAdapter;
+  final HttpClientAdapter _fallbackAdapter;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) {
+    final adapter = options.uri.scheme.toLowerCase() == "http"
+        ? _fallbackAdapter
+        : _primaryAdapter;
+    return adapter.fetch(options, requestStream, cancelFuture);
+  }
+
+  @override
+  void close({bool force = false}) {
+    _primaryAdapter.close(force: force);
+    _fallbackAdapter.close(force: force);
+  }
 }
 
 class _AdaptiveHttpClientAdapter implements HttpClientAdapter {

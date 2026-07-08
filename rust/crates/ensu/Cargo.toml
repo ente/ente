@@ -13,7 +13,7 @@ reqwest = { version = "0.12", default-features = false, features = ["http2", "ch
 rubato = { version = "0.16", optional = true }
 rusqlite = { version = "0.38", features = ["bundled"], optional = true }
 self_cell = "1"
-serde = { version = "1", features = ["derive"] }
+serde.workspace = true
 serde_json = "1"
 tar = { version = "0.4", optional = true }
 thiserror.workspace = true

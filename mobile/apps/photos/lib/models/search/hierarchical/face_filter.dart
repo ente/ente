@@ -5,7 +5,7 @@ class FaceFilter extends HierarchicalSearchFilter {
   final String? personId;
   final String? clusterId;
   final String? faceName;
-  final EnteFile faceFile;
+  final EnteFile? faceFile;
   final int occurrence;
 
   FaceFilter({

@@ -40,317 +40,331 @@ class ChangeLogStrings {
   static ChangeLogStrings? maybeForLocale(
     Locale locale, {
     bool isLocalGallery = false,
+    required bool isAndroid,
   }) {
     final key = locale.countryCode != null && locale.countryCode!.isNotEmpty
         ? '${locale.languageCode}_${locale.countryCode}'
         : locale.languageCode;
-    final translations = isLocalGallery ? _offlineTranslations : _translations;
     final strings =
-        translations[key] ??
-        translations[locale.languageCode] ??
-        translations['en'];
+        _featureTranslations[key] ??
+        _featureTranslations[locale.languageCode] ??
+        _featureTranslations['en'];
 
-    if (strings == null || !strings.hasVisibleEntries) {
+    if (strings == null) {
       return null;
     }
-    return strings;
+
+    final changeLog = _forFeatureStrings(
+      strings,
+      isLocalGallery: isLocalGallery,
+      isAndroid: isAndroid,
+    );
+    if (!changeLog.hasVisibleEntries) {
+      return null;
+    }
+    return changeLog;
   }
 
   static bool hasContentForLocale(
     Locale locale, {
     bool isLocalGallery = false,
+    required bool isAndroid,
   }) {
-    return maybeForLocale(locale, isLocalGallery: isLocalGallery) != null;
+    return maybeForLocale(
+          locale,
+          isLocalGallery: isLocalGallery,
+          isAndroid: isAndroid,
+        ) !=
+        null;
   }
 
-  static const Map<String, ChangeLogStrings> _translations = {
-    'en': ChangeLogStrings(
-      title1: 'A fresh new look',
-      desc1:
-          "We've given the app a fresh look, with new fonts, colors, spacing, and buttons throughout. Plus, feed gets its own tab in the bottom navigation.",
-      title2: 'Albums, all in one place',
-      desc2:
-          'All your albums (backed up, shared, and on-device) now live on a single page. Search, switch between grid and list view, and order them based on your preferences.',
-      title3: 'A bunch of improvements',
-      desc3:
-          "Photos download much faster, face thumbnail generation is quicker, and the text recognition animation feels smoother. You can also now bulk ignore faces straight from a photo's info panel. Plus a whole lot of squashed bugs.",
-    ),
-    'cs': ChangeLogStrings(
-      title1: 'Zcela nový vzhled',
-      desc1:
-          'Dali jsme aplikaci svěží vzhled s novými fonty, barvami, rozestupy a tlačítky napříč celou aplikací. Feed má navíc vlastní kartu ve spodní navigaci.',
-      title2: 'Alba, všechna na jednom místě',
-      desc2:
-          'Všechna vaše alba (zálohovaná, sdílená i v zařízení) teď najdete na jedné stránce. Můžete vyhledávat, přepínat mezi mřížkou a seznamem a řadit je podle svých preferencí.',
-      title3: 'Spousta vylepšení',
-      desc3:
-          'Fotky se stahují mnohem rychleji, generování miniatur obličejů je rychlejší a animace rozpoznávání textu je plynulejší. Nově také můžete hromadně ignorovat obličeje přímo z informačního panelu fotky. A opravili jsme spoustu chyb.',
-    ),
-    'de': ChangeLogStrings(
-      title1: 'Ein frischer neuer Look',
-      desc1:
-          'Wir haben der App einen frischen Look gegeben, mit neuen Schriften, Farben, Abständen und Buttons überall. Außerdem bekommt der Feed einen eigenen Tab in der unteren Navigation.',
-      title2: 'Alben, alle an einem Ort',
-      desc2:
-          'Alle deine Alben (gesichert, geteilt und auf dem Gerät) befinden sich jetzt auf einer einzigen Seite. Suche, wechsle zwischen Raster- und Listenansicht und sortiere sie nach deinen Vorlieben.',
-      title3: 'Viele Verbesserungen',
-      desc3:
-          'Fotos werden viel schneller heruntergeladen, Gesichtsvorschaubilder werden schneller erstellt und die Texterkennungsanimation wirkt flüssiger. Du kannst jetzt außerdem Gesichter direkt im Infobereich eines Fotos gesammelt ignorieren. Dazu kommen viele behobene Fehler.',
-    ),
-    'es': ChangeLogStrings(
-      title1: 'Un nuevo aspecto renovado',
-      desc1:
-          'Le hemos dado a la app un aspecto renovado, con nuevas fuentes, colores, espaciado y botones en toda la aplicación. Además, el feed ahora tiene su propia pestaña en la navegación inferior.',
-      title2: 'Álbumes, todos en un solo lugar',
-      desc2:
-          'Todos tus álbumes (respaldados, compartidos y del dispositivo) ahora viven en una sola página. Busca, cambia entre vista de cuadrícula y lista, y ordénalos según tus preferencias.',
-      title3: 'Un montón de mejoras',
-      desc3:
-          'Las fotos se descargan mucho más rápido, la generación de miniaturas de rostros es más veloz y la animación de reconocimiento de texto se siente más fluida. También puedes ignorar rostros en bloque directamente desde el panel de información de una foto. Además de muchos errores corregidos.',
-    ),
-    'fr': ChangeLogStrings(
-      title1: 'Un tout nouveau style',
-      desc1:
-          "Nous avons donné un nouveau souffle à l'app, avec de nouvelles polices, couleurs, espacements et de nouveaux boutons partout. Le fil dispose aussi de son propre onglet dans la navigation du bas.",
-      title2: 'Tous vos albums au même endroit',
-      desc2:
-          'Tous vos albums (sauvegardés, partagés et présents sur l’appareil) sont maintenant réunis sur une seule page. Recherchez, passez de la grille à la liste, et triez-les selon vos préférences.',
-      title3: 'De nombreuses améliorations',
-      desc3:
-          "Les photos se téléchargent beaucoup plus vite, la génération des vignettes de visages est plus rapide et l'animation de reconnaissance de texte est plus fluide. Vous pouvez aussi ignorer plusieurs visages à la fois directement depuis le panneau d'informations d'une photo. Sans oublier de nombreux bugs corrigés.",
-    ),
-    'it': ChangeLogStrings(
-      title1: 'Un nuovo look fresco',
-      desc1:
-          "Abbiamo dato all'app un look più fresco, con nuovi font, colori, spaziature e pulsanti in tutta l'esperienza. Inoltre, il feed ha una scheda dedicata nella navigazione inferiore.",
-      title2: 'Album, tutti in un unico posto',
-      desc2:
-          'Tutti i tuoi album (sottoposti a backup, condivisi e sul dispositivo) ora si trovano in un’unica pagina. Cerca, passa dalla vista griglia alla lista e ordinali in base alle tue preferenze.',
-      title3: 'Tanti miglioramenti',
-      desc3:
-          'Le foto si scaricano molto più velocemente, la generazione delle miniature dei volti è più rapida e l’animazione del riconoscimento del testo è più fluida. Ora puoi anche ignorare più volti in blocco direttamente dal pannello informazioni di una foto. E abbiamo risolto molti bug.',
-    ),
-    'ja': ChangeLogStrings(
-      title1: '新しくなった見た目',
-      desc1:
-          'アプリ全体のフォント、色、余白、ボタンを見直し、より新鮮な見た目にしました。さらに、フィードが下部ナビゲーションの専用タブになりました。',
-      title2: 'すべてのアルバムを一か所に',
-      desc2:
-          'バックアップ済み、共有中、端末上のすべてのアルバムが1つのページにまとまりました。検索、グリッド表示とリスト表示の切り替え、好みに合わせた並べ替えができます。',
-      title3: 'たくさんの改善',
-      desc3:
-          '写真のダウンロードが大幅に速くなり、顔サムネイルの生成も高速化され、テキスト認識のアニメーションもよりスムーズになりました。写真の情報パネルから複数の顔をまとめて無視できるようにもなりました。その他、多くのバグも修正しています。',
-    ),
-    'nl': ChangeLogStrings(
-      title1: 'Een frisse nieuwe look',
-      desc1:
-          'We hebben de app een frisse look gegeven, met nieuwe lettertypen, kleuren, ruimte en knoppen overal. Bovendien heeft de feed nu een eigen tab in de navigatie onderaan.',
-      title2: 'Albums, allemaal op één plek',
-      desc2:
-          'Al je albums (geback-upt, gedeeld en op je apparaat) staan nu op één pagina. Zoek, wissel tussen raster- en lijstweergave en sorteer ze zoals jij wilt.',
-      title3: 'Een heleboel verbeteringen',
-      desc3:
-          'Foto’s downloaden veel sneller, gezichtminiaturen worden sneller gegenereerd en de animatie voor tekstherkenning voelt vloeiender. Je kunt nu ook meerdere gezichten tegelijk negeren vanuit het infopaneel van een foto. En we hebben heel wat bugs opgelost.',
-    ),
-    'no': ChangeLogStrings(
-      title1: 'Et friskt nytt utseende',
-      desc1:
-          'Vi har gitt appen et friskt utseende, med nye skrifter, farger, avstand og knapper overalt. I tillegg får feeden sin egen fane i bunnavigasjonen.',
-      title2: 'Album, samlet på ett sted',
-      desc2:
-          'Alle albumene dine (sikkerhetskopierte, delte og på enheten) finnes nå på én side. Søk, bytt mellom rutenett- og listevisning, og sorter dem slik du foretrekker.',
-      title3: 'Mange forbedringer',
-      desc3:
-          'Bilder lastes ned mye raskere, generering av ansiktsminiatyrer går raskere, og animasjonen for tekstgjenkjenning føles jevnere. Du kan også ignorere flere ansikter samtidig direkte fra infopanelet til et bilde. I tillegg har vi fikset en hel del feil.',
-    ),
-    'pl': ChangeLogStrings(
-      title1: 'Świeży, nowy wygląd',
-      desc1:
-          'Odświeżyliśmy wygląd aplikacji, wprowadzając nowe fonty, kolory, odstępy i przyciski w całej aplikacji. Dodatkowo feed ma teraz własną kartę w dolnej nawigacji.',
-      title2: 'Albumy w jednym miejscu',
-      desc2:
-          'Wszystkie Twoje albumy (z kopią zapasową, udostępnione i z urządzenia) znajdują się teraz na jednej stronie. Możesz je wyszukiwać, przełączać widok siatki i listy oraz sortować według własnych preferencji.',
-      title3: 'Mnóstwo usprawnień',
-      desc3:
-          'Zdjęcia pobierają się znacznie szybciej, miniatury twarzy generują się szybciej, a animacja rozpoznawania tekstu jest płynniejsza. Możesz też zbiorczo ignorować twarze bezpośrednio z panelu informacji o zdjęciu. Do tego naprawiliśmy wiele błędów.',
-    ),
-    'pt_BR': ChangeLogStrings(
-      title1: 'Um visual renovado',
-      desc1:
-          'Demos ao app um visual renovado, com novas fontes, cores, espaçamentos e botões por toda parte. Além disso, o feed agora tem sua própria aba na navegação inferior.',
-      title2: 'Álbuns, todos em um só lugar',
-      desc2:
-          'Todos os seus álbuns (com backup, compartilhados e no dispositivo) agora ficam em uma única página. Pesquise, alterne entre visualização em grade e lista, e ordene tudo conforme suas preferências.',
-      title3: 'Várias melhorias',
-      desc3:
-          'As fotos baixam muito mais rápido, a geração de miniaturas de rostos ficou mais ágil e a animação de reconhecimento de texto está mais suave. Agora você também pode ignorar rostos em massa diretamente pelo painel de informações de uma foto. E corrigimos muitos bugs.',
-    ),
-    'pt_PT': ChangeLogStrings(
-      title1: 'Um novo visual renovado',
-      desc1:
-          'Demos à app um visual renovado, com novas fontes, cores, espaçamentos e botões em toda a experiência. Além disso, o feed passa a ter o seu próprio separador na navegação inferior.',
-      title2: 'Álbuns, todos num só lugar',
-      desc2:
-          'Todos os seus álbuns (com cópia de segurança, partilhados e no dispositivo) estão agora numa única página. Pesquise, alterne entre grelha e lista, e ordene-os de acordo com as suas preferências.',
-      title3: 'Muitas melhorias',
-      desc3:
-          'As fotografias são descarregadas muito mais depressa, a geração de miniaturas de rostos é mais rápida e a animação de reconhecimento de texto está mais suave. Agora também pode ignorar rostos em massa diretamente a partir do painel de informações de uma fotografia. E corrigimos muitos bugs.',
-    ),
-    'ro': ChangeLogStrings(
-      title1: 'Un aspect nou și proaspăt',
-      desc1:
-          'Am oferit aplicației un aspect nou, cu fonturi, culori, spațieri și butoane noi peste tot. În plus, feedul are acum propria filă în navigarea de jos.',
-      title2: 'Albume, toate într-un singur loc',
-      desc2:
-          'Toate albumele tale (cu backup, partajate și de pe dispozitiv) se află acum pe o singură pagină. Caută, comută între vizualizarea grilă și listă și sortează-le după preferințe.',
-      title3: 'O mulțime de îmbunătățiri',
-      desc3:
-          'Fotografiile se descarcă mult mai rapid, generarea miniaturilor pentru fețe este mai rapidă, iar animația de recunoaștere a textului este mai fluidă. Acum poți ignora în bloc fețe direct din panoul de informații al unei fotografii. Plus multe buguri remediate.',
-    ),
-    'ru': ChangeLogStrings(
-      title1: 'Свежий новый вид',
-      desc1:
-          'Мы обновили внешний вид приложения: новые шрифты, цвета, отступы и кнопки по всему интерфейсу. Кроме того, лента получила отдельную вкладку в нижней навигации.',
-      title2: 'Все альбомы в одном месте',
-      desc2:
-          'Все ваши альбомы (с резервной копией, общие и на устройстве) теперь находятся на одной странице. Ищите, переключайтесь между сеткой и списком и сортируйте их как вам удобно.',
-      title3: 'Много улучшений',
-      desc3:
-          'Фотографии скачиваются гораздо быстрее, миниатюры лиц создаются быстрее, а анимация распознавания текста стала плавнее. Теперь также можно массово игнорировать лица прямо из панели информации о фотографии. И, конечно, мы исправили множество ошибок.',
-    ),
-    'tr': ChangeLogStrings(
-      title1: 'Yepyeni ve ferah bir görünüm',
-      desc1:
-          'Uygulamaya baştan sona yeni yazı tipleri, renkler, boşluklar ve düğmelerle ferah bir görünüm kazandırdık. Ayrıca akış artık alt gezinti çubuğunda kendi sekmesine sahip.',
-      title2: 'Albümler, hepsi tek yerde',
-      desc2:
-          'Tüm albümleriniz (yedeklenen, paylaşılan ve cihazdaki) artık tek bir sayfada. Arama yapabilir, ızgara ve liste görünümü arasında geçiş yapabilir ve tercihlerinize göre sıralayabilirsiniz.',
-      title3: 'Bir sürü iyileştirme',
-      desc3:
-          'Fotoğraflar çok daha hızlı indiriliyor, yüz küçük resimleri daha hızlı oluşturuluyor ve metin tanıma animasyonu daha akıcı hissettiriyor. Ayrıca artık bir fotoğrafın bilgi panelinden yüzleri toplu olarak yok sayabilirsiniz. Birçok hata da giderildi.',
-    ),
-    'uk': ChangeLogStrings(
-      title1: 'Свіжий новий вигляд',
-      desc1:
-          'Ми оновили вигляд застосунку: нові шрифти, кольори, відступи й кнопки по всьому інтерфейсу. Крім того, стрічка отримала власну вкладку в нижній навігації.',
-      title2: 'Усі альбоми в одному місці',
-      desc2:
-          'Усі ваші альбоми (з резервною копією, спільні та на пристрої) тепер на одній сторінці. Шукайте, перемикайтеся між сіткою та списком і впорядковуйте їх за власними вподобаннями.',
-      title3: 'Багато покращень',
-      desc3:
-          'Фотографії завантажуються значно швидше, мініатюри облич створюються швидше, а анімація розпізнавання тексту стала плавнішою. Тепер також можна масово ігнорувати обличчя прямо з панелі інформації про фото. І ми виправили багато помилок.',
-    ),
-    'vi': ChangeLogStrings(
-      title1: 'Diện mạo mới mẻ',
-      desc1:
-          'Chúng tôi đã làm mới giao diện ứng dụng với phông chữ, màu sắc, khoảng cách và nút mới trên toàn bộ ứng dụng. Ngoài ra, bảng tin giờ có tab riêng ở thanh điều hướng dưới cùng.',
-      title2: 'Tất cả album ở một nơi',
-      desc2:
-          'Tất cả album của bạn (đã sao lưu, được chia sẻ và trên thiết bị) giờ nằm trên một trang duy nhất. Tìm kiếm, chuyển giữa chế độ lưới và danh sách, rồi sắp xếp theo ý bạn.',
-      title3: 'Rất nhiều cải tiến',
-      desc3:
-          'Ảnh tải xuống nhanh hơn nhiều, việc tạo ảnh thu nhỏ khuôn mặt nhanh hơn và hoạt ảnh nhận dạng văn bản mượt hơn. Giờ bạn cũng có thể bỏ qua hàng loạt khuôn mặt ngay từ bảng thông tin của ảnh. Cùng với rất nhiều lỗi đã được sửa.',
-    ),
-    'zh_CN': ChangeLogStrings(
-      title1: '焕然一新的外观',
-      desc1: '我们为应用带来了全新的外观，整体更新了字体、颜色、间距和按钮。另外，动态现在在底部导航中拥有自己的标签页。',
-      title2: '所有相册，集中一处',
-      desc2: '你的所有相册（已备份、已共享和设备上的相册）现在都集中在一个页面。你可以搜索、在网格和列表视图之间切换，并按自己的偏好排序。',
-      title3: '一系列改进',
-      desc3:
-          '照片下载速度大幅提升，人脸缩略图生成更快，文字识别动画也更流畅。现在你还可以直接从照片信息面板批量忽略人脸。此外，我们还修复了大量问题。',
-    ),
-  };
+  static ChangeLogStrings _forFeatureStrings(
+    _ChangeLogFeatureStrings strings, {
+    required bool isLocalGallery,
+    required bool isAndroid,
+  }) {
+    if (isLocalGallery) {
+      return isAndroid
+          ? ChangeLogStrings(
+              title1: strings.deleteTitle,
+              desc1: strings.localAndroidDeleteDesc,
+              title2: strings.storageTitle,
+              desc2: strings.storageDesc,
+            )
+          : ChangeLogStrings(
+              title1: strings.storageTitle,
+              desc1: strings.storageDesc,
+            );
+    }
 
-  static const Map<String, ChangeLogStrings> _offlineTranslations = {
-    'en': ChangeLogStrings(
-      title1: 'A fresh new look',
-      desc1:
-          "We've given the app a fresh look, with new fonts, colors, spacing, and buttons throughout. Albums has also been redesigned for easier browsing.",
+    return isAndroid
+        ? ChangeLogStrings(
+            title1: strings.deleteTitle,
+            desc1: strings.onlineAndroidDeleteDesc,
+            title2: strings.castTitle,
+            desc2: strings.castDesc,
+            title3: strings.storageTitle,
+            desc3: strings.storageDesc,
+          )
+        : ChangeLogStrings(
+            title1: strings.castTitle,
+            desc1: strings.castDesc,
+            title2: strings.storageTitle,
+            desc2: strings.storageDesc,
+          );
+  }
+
+  static const Map<String, _ChangeLogFeatureStrings> _featureTranslations = {
+    'en': _ChangeLogFeatureStrings(
+      deleteTitle: 'Easier delete confirmations',
+      onlineAndroidDeleteDesc:
+          'When deleting from your device, Ente can help you set up media management to avoid repeated system prompts. Ente can also remember your last delete choice.',
+      localAndroidDeleteDesc:
+          'When deleting from your device, Ente can help you set up media management to avoid repeated system prompts.',
+      castTitle: 'Cast to multiple screens',
+      castDesc:
+          "You can now cast albums to more than one screen at a time, view active sessions, and stop a specific session when you're done.",
+      storageTitle: 'More reliable storage cleanup',
+      storageDesc:
+          'Ente now clears temporary image and video files more reliably, keeping the app from holding on to extra device storage.',
     ),
-    'cs': ChangeLogStrings(
-      title1: 'Zcela nový vzhled',
-      desc1:
-          'Dali jsme aplikaci svěží vzhled s novými fonty, barvami, rozestupy a tlačítky napříč celou aplikací. Alba jsme také přepracovali pro snazší procházení.',
+    'cs': _ChangeLogFeatureStrings(
+      deleteTitle: 'Snazší potvrzení odstranění',
+      onlineAndroidDeleteDesc:
+          'Při odstraňování ze zařízení vám Ente může pomoci nastavit správu médií, abyste se vyhnuli opakovaným systémovým výzvám. Ente si také může zapamatovat vaši poslední volbu odstranění.',
+      localAndroidDeleteDesc:
+          'Při odstraňování ze zařízení vám Ente může pomoci nastavit správu médií, abyste se vyhnuli opakovaným systémovým výzvám.',
+      castTitle: 'Promítání na více obrazovek',
+      castDesc:
+          'Alba teď můžete promítat na více obrazovek najednou, zobrazit aktivní relace a po skončení zastavit konkrétní relaci.',
+      storageTitle: 'Spolehlivější čištění úložiště',
+      storageDesc:
+          'Ente teď spolehlivěji odstraňuje dočasné soubory obrázků a videí, takže aplikace nezabírá zbytečně další místo v úložišti zařízení.',
     ),
-    'de': ChangeLogStrings(
-      title1: 'Ein frischer neuer Look',
-      desc1:
-          'Wir haben der App einen frischen Look gegeben, mit neuen Schriften, Farben, Abständen und Buttons überall. Alben wurden außerdem für einfacheres Stöbern neu gestaltet.',
+    'de': _ChangeLogFeatureStrings(
+      deleteTitle: 'Einfachere Löschbestätigungen',
+      onlineAndroidDeleteDesc:
+          'Beim Löschen von deinem Gerät kann Ente dir helfen, die Medienverwaltung einzurichten, um wiederholte Systemabfragen zu vermeiden. Ente kann sich auch deine letzte Löschentscheidung merken.',
+      localAndroidDeleteDesc:
+          'Beim Löschen von deinem Gerät kann Ente dir helfen, die Medienverwaltung einzurichten, um wiederholte Systemabfragen zu vermeiden.',
+      castTitle: 'Auf mehrere Bildschirme streamen',
+      castDesc:
+          'Du kannst Alben jetzt auf mehr als einen Bildschirm gleichzeitig streamen, aktive Sitzungen anzeigen und eine bestimmte Sitzung beenden, wenn du fertig bist.',
+      storageTitle: 'Zuverlässigere Speicherbereinigung',
+      storageDesc:
+          'Ente entfernt temporäre Bild- und Videodateien jetzt zuverlässiger, damit die App keinen zusätzlichen Gerätespeicher belegt.',
     ),
-    'es': ChangeLogStrings(
-      title1: 'Un nuevo aspecto renovado',
-      desc1:
-          'Le hemos dado a la app un aspecto renovado, con nuevas fuentes, colores, espaciado y botones en toda la aplicación. Álbumes también se ha rediseñado para que sea más fácil explorarlos.',
+    'es': _ChangeLogFeatureStrings(
+      deleteTitle: 'Confirmaciones de eliminación más sencillas',
+      onlineAndroidDeleteDesc:
+          'Al eliminar desde tu dispositivo, Ente puede ayudarte a configurar la gestión de medios para evitar solicitudes repetidas del sistema. Ente también puede recordar tu última elección de eliminación.',
+      localAndroidDeleteDesc:
+          'Al eliminar desde tu dispositivo, Ente puede ayudarte a configurar la gestión de medios para evitar solicitudes repetidas del sistema.',
+      castTitle: 'Transmitir a varias pantallas',
+      castDesc:
+          'Ahora puedes transmitir álbumes a más de una pantalla a la vez, ver las sesiones activas y detener una sesión específica cuando termines.',
+      storageTitle: 'Limpieza de almacenamiento más fiable',
+      storageDesc:
+          'Ente ahora elimina los archivos temporales de imágenes y videos con mayor fiabilidad, evitando que la app retenga almacenamiento adicional del dispositivo.',
     ),
-    'fr': ChangeLogStrings(
-      title1: 'Un tout nouveau style',
-      desc1:
-          "Nous avons donné un nouveau souffle à l'app, avec de nouvelles polices, couleurs, espacements et de nouveaux boutons partout. Les albums ont aussi été repensés pour une navigation plus simple.",
+    'fr': _ChangeLogFeatureStrings(
+      deleteTitle: 'Confirmations de suppression plus simples',
+      onlineAndroidDeleteDesc:
+          'Lorsque vous supprimez des éléments de votre appareil, Ente peut vous aider à configurer la gestion des médias afin d’éviter les invites système répétées. Ente peut aussi mémoriser votre dernier choix de suppression.',
+      localAndroidDeleteDesc:
+          'Lorsque vous supprimez des éléments de votre appareil, Ente peut vous aider à configurer la gestion des médias afin d’éviter les invites système répétées.',
+      castTitle: 'Diffuser sur plusieurs écrans',
+      castDesc:
+          'Vous pouvez maintenant diffuser des albums sur plusieurs écrans à la fois, voir les sessions actives et arrêter une session précise lorsque vous avez terminé.',
+      storageTitle: 'Nettoyage du stockage plus fiable',
+      storageDesc:
+          'Ente supprime désormais les fichiers temporaires d’images et de vidéos de manière plus fiable, afin que l’app n’occupe pas inutilement de l’espace sur votre appareil.',
     ),
-    'it': ChangeLogStrings(
-      title1: 'Un nuovo look fresco',
-      desc1:
-          "Abbiamo dato all'app un look più fresco, con nuovi font, colori, spaziature e pulsanti in tutta l'esperienza. Anche Album è stato ridisegnato per una navigazione più semplice.",
+    'it': _ChangeLogFeatureStrings(
+      deleteTitle: 'Conferme di eliminazione più semplici',
+      onlineAndroidDeleteDesc:
+          'Quando elimini dal dispositivo, Ente può aiutarti a configurare la gestione dei contenuti multimediali per evitare richieste di sistema ripetute. Ente può anche ricordare la tua ultima scelta di eliminazione.',
+      localAndroidDeleteDesc:
+          'Quando elimini dal dispositivo, Ente può aiutarti a configurare la gestione dei contenuti multimediali per evitare richieste di sistema ripetute.',
+      castTitle: 'Trasmetti su più schermi',
+      castDesc:
+          'Ora puoi trasmettere gli album su più di uno schermo alla volta, vedere le sessioni attive e interrompere una sessione specifica quando hai finito.',
+      storageTitle: 'Pulizia dello spazio più affidabile',
+      storageDesc:
+          "Ente ora elimina i file temporanei di immagini e video in modo più affidabile, evitando che l'app trattenga spazio extra sul dispositivo.",
     ),
-    'ja': ChangeLogStrings(
-      title1: '新しくなった見た目',
-      desc1:
-          'アプリ全体のフォント、色、余白、ボタンを見直し、より新鮮な見た目にしました。アルバムもより見つけやすく閲覧しやすいように再設計しました。',
+    'ja': _ChangeLogFeatureStrings(
+      deleteTitle: '削除確認がより簡単に',
+      onlineAndroidDeleteDesc:
+          'デバイスから削除するとき、Ente はメディア管理の設定を案内し、繰り返し表示されるシステム確認を避けられるようにします。Ente は最後に選んだ削除方法を記憶することもできます。',
+      localAndroidDeleteDesc:
+          'デバイスから削除するとき、Ente はメディア管理の設定を案内し、繰り返し表示されるシステム確認を避けられるようにします。',
+      castTitle: '複数の画面にキャスト',
+      castDesc:
+          'アルバムを複数の画面に同時にキャストし、アクティブなセッションを確認して、終了したい特定のセッションだけを停止できるようになりました。',
+      storageTitle: 'ストレージクリーンアップの信頼性向上',
+      storageDesc:
+          'Ente は一時的な画像ファイルと動画ファイルをより確実に削除し、アプリが余分なデバイスストレージを使い続けないようにします。',
     ),
-    'nl': ChangeLogStrings(
-      title1: 'Een frisse nieuwe look',
-      desc1:
-          'We hebben de app een frisse look gegeven, met nieuwe lettertypen, kleuren, ruimte en knoppen overal. Albums is ook opnieuw ontworpen zodat je er makkelijker doorheen bladert.',
+    'nl': _ChangeLogFeatureStrings(
+      deleteTitle: 'Eenvoudigere verwijderbevestigingen',
+      onlineAndroidDeleteDesc:
+          'Wanneer je iets van je apparaat verwijdert, kan Ente je helpen mediabeheer in te stellen om herhaalde systeemmeldingen te vermijden. Ente kan ook je laatste verwijderkeuze onthouden.',
+      localAndroidDeleteDesc:
+          'Wanneer je iets van je apparaat verwijdert, kan Ente je helpen mediabeheer in te stellen om herhaalde systeemmeldingen te vermijden.',
+      castTitle: 'Naar meerdere schermen casten',
+      castDesc:
+          'Je kunt albums nu naar meer dan één scherm tegelijk casten, actieve sessies bekijken en een specifieke sessie stoppen wanneer je klaar bent.',
+      storageTitle: 'Betrouwbaardere opslagopruiming',
+      storageDesc:
+          'Ente verwijdert tijdelijke afbeeldings- en videobestanden nu betrouwbaarder, zodat de app geen extra opslagruimte op je apparaat blijft innemen.',
     ),
-    'no': ChangeLogStrings(
-      title1: 'Et friskt nytt utseende',
-      desc1:
-          'Vi har gitt appen et friskt utseende, med nye skrifter, farger, avstand og knapper overalt. Album er også redesignet for enklere blaing.',
+    'no': _ChangeLogFeatureStrings(
+      deleteTitle: 'Enklere bekreftelser ved sletting',
+      onlineAndroidDeleteDesc:
+          'Når du sletter fra enheten, kan Ente hjelpe deg med å sette opp medieadministrasjon for å unngå gjentatte systemmeldinger. Ente kan også huske det siste slettevalget ditt.',
+      localAndroidDeleteDesc:
+          'Når du sletter fra enheten, kan Ente hjelpe deg med å sette opp medieadministrasjon for å unngå gjentatte systemmeldinger.',
+      castTitle: 'Cast til flere skjermer',
+      castDesc:
+          'Du kan nå caste album til mer enn én skjerm om gangen, se aktive økter og stoppe en bestemt økt når du er ferdig.',
+      storageTitle: 'Mer pålitelig lagringsopprydding',
+      storageDesc:
+          'Ente fjerner nå midlertidige bilde- og videofiler mer pålitelig, slik at appen ikke bruker ekstra lagringsplass på enheten.',
     ),
-    'pl': ChangeLogStrings(
-      title1: 'Świeży, nowy wygląd',
-      desc1:
-          'Odświeżyliśmy wygląd aplikacji, wprowadzając nowe fonty, kolory, odstępy i przyciski w całej aplikacji. Albumy zostały też przeprojektowane, aby łatwiej było je przeglądać.',
+    'pl': _ChangeLogFeatureStrings(
+      deleteTitle: 'Łatwiejsze potwierdzanie usuwania',
+      onlineAndroidDeleteDesc:
+          'Podczas usuwania z urządzenia Ente może pomóc skonfigurować zarządzanie multimediami, aby uniknąć powtarzających się monitów systemowych. Ente może też zapamiętać twój ostatni wybór usuwania.',
+      localAndroidDeleteDesc:
+          'Podczas usuwania z urządzenia Ente może pomóc skonfigurować zarządzanie multimediami, aby uniknąć powtarzających się monitów systemowych.',
+      castTitle: 'Przesyłaj na wiele ekranów',
+      castDesc:
+          'Możesz teraz przesyłać albumy na więcej niż jeden ekran jednocześnie, wyświetlać aktywne sesje i zatrzymać wybraną sesję, gdy skończysz.',
+      storageTitle: 'Bardziej niezawodne czyszczenie pamięci',
+      storageDesc:
+          'Ente teraz bardziej niezawodnie usuwa tymczasowe pliki obrazów i wideo, dzięki czemu aplikacja nie zajmuje dodatkowej pamięci urządzenia.',
     ),
-    'pt_BR': ChangeLogStrings(
-      title1: 'Um visual renovado',
-      desc1:
-          'Demos ao app um visual renovado, com novas fontes, cores, espaçamentos e botões por toda parte. Álbuns também foi redesenhado para facilitar a navegação.',
+    'pt_BR': _ChangeLogFeatureStrings(
+      deleteTitle: 'Confirmações de exclusão mais fáceis',
+      onlineAndroidDeleteDesc:
+          'Ao excluir do seu dispositivo, o Ente pode ajudar você a configurar o gerenciamento de mídia para evitar avisos repetidos do sistema. O Ente também pode lembrar sua última escolha de exclusão.',
+      localAndroidDeleteDesc:
+          'Ao excluir do seu dispositivo, o Ente pode ajudar você a configurar o gerenciamento de mídia para evitar avisos repetidos do sistema.',
+      castTitle: 'Transmitir para várias telas',
+      castDesc:
+          'Agora você pode transmitir álbuns para mais de uma tela ao mesmo tempo, ver sessões ativas e encerrar uma sessão específica quando terminar.',
+      storageTitle: 'Limpeza de armazenamento mais confiável',
+      storageDesc:
+          'Agora o Ente limpa arquivos temporários de imagens e vídeos com mais confiabilidade, evitando que o app ocupe espaço extra no dispositivo.',
     ),
-    'pt_PT': ChangeLogStrings(
-      title1: 'Um novo visual renovado',
-      desc1:
-          'Demos à app um visual renovado, com novas fontes, cores, espaçamentos e botões em toda a experiência. Os álbuns também foram redesenhados para facilitar a navegação.',
+    'pt_PT': _ChangeLogFeatureStrings(
+      deleteTitle: 'Confirmações de eliminação mais simples',
+      onlineAndroidDeleteDesc:
+          'Ao eliminar do seu dispositivo, o Ente pode ajudá-lo a configurar a gestão de multimédia para evitar avisos repetidos do sistema. O Ente também pode memorizar a sua última escolha de eliminação.',
+      localAndroidDeleteDesc:
+          'Ao eliminar do seu dispositivo, o Ente pode ajudá-lo a configurar a gestão de multimédia para evitar avisos repetidos do sistema.',
+      castTitle: 'Transmitir para vários ecrãs',
+      castDesc:
+          'Agora pode transmitir álbuns para mais de um ecrã ao mesmo tempo, ver sessões ativas e parar uma sessão específica quando terminar.',
+      storageTitle: 'Limpeza de armazenamento mais fiável',
+      storageDesc:
+          'O Ente limpa agora ficheiros temporários de imagens e vídeos de forma mais fiável, evitando que a app ocupe espaço extra no dispositivo.',
     ),
-    'ro': ChangeLogStrings(
-      title1: 'Un aspect nou și proaspăt',
-      desc1:
-          'Am oferit aplicației un aspect nou, cu fonturi, culori, spațieri și butoane noi peste tot. Albumele au fost și ele redesenate pentru o navigare mai ușoară.',
+    'ro': _ChangeLogFeatureStrings(
+      deleteTitle: 'Confirmări de ștergere mai simple',
+      onlineAndroidDeleteDesc:
+          'Când ștergi de pe dispozitiv, Ente te poate ajuta să configurezi gestionarea media pentru a evita solicitările repetate ale sistemului. Ente poate reține și ultima ta alegere de ștergere.',
+      localAndroidDeleteDesc:
+          'Când ștergi de pe dispozitiv, Ente te poate ajuta să configurezi gestionarea media pentru a evita solicitările repetate ale sistemului.',
+      castTitle: 'Transmite pe mai multe ecrane',
+      castDesc:
+          'Acum poți transmite albume pe mai multe ecrane în același timp, poți vedea sesiunile active și poți opri o anumită sesiune când ai terminat.',
+      storageTitle: 'Curățare mai fiabilă a stocării',
+      storageDesc:
+          'Ente curăță acum mai fiabil fișierele temporare de imagini și video, împiedicând aplicația să păstreze spațiu suplimentar pe dispozitiv.',
     ),
-    'ru': ChangeLogStrings(
-      title1: 'Свежий новый вид',
-      desc1:
-          'Мы обновили внешний вид приложения: новые шрифты, цвета, отступы и кнопки по всему интерфейсу. Альбомы тоже были переработаны, чтобы их было удобнее просматривать.',
+    'ru': _ChangeLogFeatureStrings(
+      deleteTitle: 'Более простые подтверждения удаления',
+      onlineAndroidDeleteDesc:
+          'При удалении с устройства Ente может помочь настроить управление медиа, чтобы избежать повторяющихся системных запросов. Ente также может запомнить ваш последний выбор удаления.',
+      localAndroidDeleteDesc:
+          'При удалении с устройства Ente может помочь настроить управление медиа, чтобы избежать повторяющихся системных запросов.',
+      castTitle: 'Трансляция на несколько экранов',
+      castDesc:
+          'Теперь вы можете транслировать альбомы сразу на несколько экранов, просматривать активные сеансы и останавливать нужный сеанс, когда закончите.',
+      storageTitle: 'Более надежная очистка хранилища',
+      storageDesc:
+          'Теперь Ente надежнее удаляет временные файлы изображений и видео, чтобы приложение не занимало лишнее место в памяти устройства.',
     ),
-    'tr': ChangeLogStrings(
-      title1: 'Yepyeni ve ferah bir görünüm',
-      desc1:
-          'Uygulamaya baştan sona yeni yazı tipleri, renkler, boşluklar ve düğmelerle ferah bir görünüm kazandırdık. Albümler de daha kolay gezinme için yeniden tasarlandı.',
+    'tr': _ChangeLogFeatureStrings(
+      deleteTitle: 'Daha kolay silme onayları',
+      onlineAndroidDeleteDesc:
+          'Cihazınızdan silerken Ente, tekrarlanan sistem istemlerini önlemek için medya yönetimini ayarlamanıza yardımcı olabilir. Ente son silme seçiminizi de hatırlayabilir.',
+      localAndroidDeleteDesc:
+          'Cihazınızdan silerken Ente, tekrarlanan sistem istemlerini önlemek için medya yönetimini ayarlamanıza yardımcı olabilir.',
+      castTitle: 'Birden fazla ekrana yayınla',
+      castDesc:
+          'Artık albümleri aynı anda birden fazla ekrana yayınlayabilir, etkin oturumları görebilir ve işiniz bittiğinde belirli bir oturumu durdurabilirsiniz.',
+      storageTitle: 'Daha güvenilir depolama temizliği',
+      storageDesc:
+          'Ente artık geçici görüntü ve video dosyalarını daha güvenilir şekilde temizleyerek uygulamanın cihazda fazladan depolama alanı tutmasını önler.',
     ),
-    'uk': ChangeLogStrings(
-      title1: 'Свіжий новий вигляд',
-      desc1:
-          'Ми оновили вигляд застосунку: нові шрифти, кольори, відступи й кнопки по всьому інтерфейсу. Альбоми також перероблено для зручнішого перегляду.',
+    'uk': _ChangeLogFeatureStrings(
+      deleteTitle: 'Простіші підтвердження видалення',
+      onlineAndroidDeleteDesc:
+          'Під час видалення з пристрою Ente може допомогти налаштувати керування медіа, щоб уникнути повторних системних запитів. Ente також може запам’ятати ваш останній вибір видалення.',
+      localAndroidDeleteDesc:
+          'Під час видалення з пристрою Ente може допомогти налаштувати керування медіа, щоб уникнути повторних системних запитів.',
+      castTitle: 'Трансляція на кілька екранів',
+      castDesc:
+          'Тепер ви можете транслювати альбоми на кілька екранів одночасно, переглядати активні сеанси та зупиняти певний сеанс, коли завершите.',
+      storageTitle: 'Надійніше очищення сховища',
+      storageDesc:
+          'Ente тепер надійніше очищує тимчасові файли зображень і відео, щоб застосунок не займав зайве місце у сховищі пристрою.',
     ),
-    'vi': ChangeLogStrings(
-      title1: 'Diện mạo mới mẻ',
-      desc1:
-          'Chúng tôi đã làm mới giao diện ứng dụng với phông chữ, màu sắc, khoảng cách và nút mới trên toàn bộ ứng dụng. Album cũng được thiết kế lại để duyệt dễ hơn.',
+    'vi': _ChangeLogFeatureStrings(
+      deleteTitle: 'Xác nhận xóa dễ hơn',
+      onlineAndroidDeleteDesc:
+          'Khi xóa khỏi thiết bị, Ente có thể giúp bạn thiết lập quản lý phương tiện để tránh các lời nhắc hệ thống lặp lại. Ente cũng có thể ghi nhớ lựa chọn xóa gần nhất của bạn.',
+      localAndroidDeleteDesc:
+          'Khi xóa khỏi thiết bị, Ente có thể giúp bạn thiết lập quản lý phương tiện để tránh các lời nhắc hệ thống lặp lại.',
+      castTitle: 'Truyền lên nhiều màn hình',
+      castDesc:
+          'Giờ bạn có thể truyền album lên nhiều màn hình cùng lúc, xem các phiên đang hoạt động và dừng một phiên cụ thể khi xong.',
+      storageTitle: 'Dọn dẹp bộ nhớ đáng tin cậy hơn',
+      storageDesc:
+          'Ente giờ xóa các tệp ảnh và video tạm thời đáng tin cậy hơn, giúp ứng dụng không giữ thêm dung lượng lưu trữ trên thiết bị.',
     ),
-    'zh_CN': ChangeLogStrings(
-      title1: '焕然一新的外观',
-      desc1: '我们为应用带来了全新的外观，整体更新了字体、颜色、间距和按钮。相册也经过重新设计，浏览起来更轻松。',
+    'zh_CN': _ChangeLogFeatureStrings(
+      deleteTitle: '更轻松的删除确认',
+      onlineAndroidDeleteDesc:
+          '从设备删除时，Ente 可以帮助你设置媒体管理，避免重复的系统提示。Ente 还可以记住你上一次的删除选择。',
+      localAndroidDeleteDesc: '从设备删除时，Ente 可以帮助你设置媒体管理，避免重复的系统提示。',
+      castTitle: '投放到多个屏幕',
+      castDesc: '你现在可以将相册同时投放到多个屏幕，查看活跃会话，并在完成后停止指定会话。',
+      storageTitle: '更可靠的存储清理',
+      storageDesc: 'Ente 现在会更可靠地清理临时图片和视频文件，避免应用占用额外的设备存储空间。',
     ),
   };
+}
+
+class _ChangeLogFeatureStrings {
+  final String deleteTitle;
+  final String onlineAndroidDeleteDesc;
+  final String localAndroidDeleteDesc;
+  final String castTitle;
+  final String castDesc;
+  final String storageTitle;
+  final String storageDesc;
+
+  const _ChangeLogFeatureStrings({
+    required this.deleteTitle,
+    required this.onlineAndroidDeleteDesc,
+    required this.localAndroidDeleteDesc,
+    required this.castTitle,
+    required this.castDesc,
+    required this.storageTitle,
+    required this.storageDesc,
+  });
 }

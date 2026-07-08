@@ -43,15 +43,42 @@ pub async fn handle_paste_command(cmd: PasteCommand) -> Result<()> {
         }
         PasteSubcommands::Consume {
             link_or_token,
+            raw,
             key,
             endpoint,
         } => {
             let (access_token, paste_key) = parse_paste_reference(&link_or_token, key)?;
             let text = consume_paste(&endpoint, &access_token, &paste_key).await?;
-            print!("{text}");
+            print_consumed_paste(&text, raw);
             Ok(())
         }
     }
+}
+
+fn print_consumed_paste(text: &str, raw: bool) {
+    if !raw && io::stdout().is_terminal() {
+        print!("{}", terminal_safe_paste_text(text));
+    } else {
+        print!("{text}");
+    }
+}
+
+fn terminal_safe_paste_text(text: &str) -> String {
+    let mut output = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+    while let Some(ch) = chars.next() {
+        match ch {
+            '\n' | '\t' => output.push(ch),
+            '\r' if chars.peek() == Some(&'\n') => {
+                chars.next();
+                output.push('\r');
+                output.push('\n');
+            }
+            _ if ch.is_control() => output.extend(ch.escape_default()),
+            _ => output.push(ch),
+        }
+    }
+    output
 }
 
 fn read_paste_text(text: Option<String>, file: Option<PathBuf>) -> Result<String> {
@@ -708,6 +735,28 @@ mod tests {
         .unwrap_err();
 
         assert!(matches!(error, Error::AuthenticationFailed(_)));
+    }
+
+    #[test]
+    fn default_tty_output_escapes_controls() {
+        let text = "ok\n\x1b]52;c;AAAA\x07\rhidden\tend\u{85}";
+
+        assert_eq!(
+            terminal_safe_paste_text(text),
+            "ok\n\\u{1b}]52;c;AAAA\\u{7}\\rhidden\tend\\u{85}",
+        );
+    }
+
+    #[test]
+    fn terminal_safe_paste_text_preserves_crlf() {
+        assert_eq!(terminal_safe_paste_text("one\r\ntwo\r\n"), "one\r\ntwo\r\n");
+    }
+
+    #[test]
+    fn terminal_safe_paste_text_preserves_printable_unicode() {
+        let text = "api key: fran\u{e7}ais \u{1f510}";
+
+        assert_eq!(terminal_safe_paste_text(text), text);
     }
 
     #[test]

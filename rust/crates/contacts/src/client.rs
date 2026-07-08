@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use ente_core::auth::{self, KeyAttributes, SrpSession};
 use ente_core::crypto::{self, SecretVec, sealed, secretbox};
-use ente_core::http::{Error as HttpError, HttpClient, HttpConfig};
+use ente_core::http_legacy::{Error as HttpError, HttpClient, HttpConfig};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
@@ -63,7 +63,7 @@ pub struct OpenContactsCtxResult {
 pub struct ContactsCtx {
     user_id: i64,
     http: HttpClient,
-    object_store_http: ente_core::http::ObjectStoreHttpClient,
+    object_store_http: ente_core::http_legacy::ObjectStoreHttpClient,
     master_key: Arc<RwLock<SecretVec>>,
     root_contact_key: Arc<RwLock<Option<SecretVec>>>,
     wrapped_root_contact_key: Arc<RwLock<Option<WrappedRootContactKey>>>,

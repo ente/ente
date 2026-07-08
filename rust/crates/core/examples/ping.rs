@@ -4,16 +4,25 @@
 //! cargo run --example ping -- https://api.ente.com
 //! ```
 
-use ente_core::http::HttpClient;
+use ente_core::http::{Api, ApiConfig, Http};
 
 #[tokio::main]
 async fn main() {
-    let base_url = std::env::args().nth(1).expect("Usage: ping <base_url>");
+    let origin = std::env::args().nth(1).expect("Usage: ping <origin>");
 
-    let client = HttpClient::new(&base_url).expect("failed to build HTTP client");
+    let api = Api::new(
+        Http::new().expect("failed to build HTTP client"),
+        ApiConfig {
+            origin,
+            client_package: "io.ente.example".into(),
+            client_version: None,
+            user_agent: None,
+            auth: None,
+        },
+    );
 
-    match client.ping().await {
+    match api.ping().await {
         Ok(response) => println!("message: {}, id: {}", response.message, response.id),
-        Err(e) => eprintln!("Error: {}", e),
+        Err(e) => eprintln!("Error: {e}"),
     }
 }

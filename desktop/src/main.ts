@@ -137,7 +137,7 @@ const main = () => {
             attachMainWindowIPCHandlers(mainWindow);
             attachFSWatchIPCHandlers(watcher);
             attachLogoutIPCHandler(watcher);
-            registerStreamProtocol();
+            registerStreamProtocol(mainWindow);
 
             // Configure the renderer's environment.
             const webContents = mainWindow.webContents;

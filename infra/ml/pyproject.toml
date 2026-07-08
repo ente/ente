@@ -11,12 +11,5 @@ dependencies = [
     "pillow-heif>=0.22.0",
     "pillow>=12.3.0",
     "requests>=2.34.2",
+    "scikit-image>=0.26.0",
 ]
-
-[dependency-groups]
-dev = [
-    "pytest>=9.1.1",
-]
-
-[tool.pytest.ini_options]
-pythonpath = ["test"]

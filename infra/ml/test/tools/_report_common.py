@@ -13,6 +13,7 @@ from typing import Any
 IST = timezone(timedelta(hours=5, minutes=30), name="IST")
 STATUS_ORDER = {"fail": 0, "warning": 1, "pass": 2}
 PLATFORMS = ("python", "desktop", "android", "ios")
+AGGREGATE_FILE_ID = "*aggregate*"
 
 
 def format_value(value: object) -> str:
@@ -45,6 +46,19 @@ def status_label(value: object, *, passed: bool | None = None) -> str:
 
 def status_rank(value: object, *, passed: bool | None = None) -> int:
     return STATUS_ORDER[normalize_status(value, passed=passed)]
+
+
+def count_file_findings(findings: object) -> int:
+    if not isinstance(findings, list):
+        return 0
+    return sum(
+        1
+        for finding in findings
+        if (
+            isinstance(finding, dict)
+            and str(finding.get("file_id", "")) != AGGREGATE_FILE_ID
+        )
+    )
 
 
 def format_generated_timestamp(value: object) -> str:

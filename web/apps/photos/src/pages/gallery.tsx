@@ -396,6 +396,7 @@ const Page: React.FC = () => {
         favoriteFileIDs,
         collectionNameByID,
         fileNormalCollectionIDs,
+        hiddenCollectionIDs,
         normalCollectionSummaries,
         hiddenFileIDs,
         tempDeletedFileIDs,
@@ -421,6 +422,21 @@ const Page: React.FC = () => {
     const activePerson =
         state.view?.type == "people" ? state.view.activePerson : undefined;
     const activePersonID = activePerson?.id;
+    const fileCollectionIDs = useMemo(
+        () =>
+            state.collectionFiles.reduce((result, file) => {
+                const collectionIDs = result.get(file.id);
+                if (collectionIDs) {
+                    if (!collectionIDs.includes(file.collectionID)) {
+                        collectionIDs.push(file.collectionID);
+                    }
+                } else {
+                    result.set(file.id, [file.collectionID]);
+                }
+                return result;
+            }, new Map<number, number[]>()),
+        [state.collectionFiles],
+    );
 
     /**
      * the below function is used to conditionallay render the setCover option in the dropdown
@@ -2223,6 +2239,8 @@ const Page: React.FC = () => {
                         favoriteFileIDs,
                         collectionNameByID,
                         fileNormalCollectionIDs,
+                        fileCollectionIDs,
+                        hiddenCollectionIDs,
                         pendingFavoriteUpdates,
                         pendingVisibilityUpdates,
                         onAddSaveGroup,

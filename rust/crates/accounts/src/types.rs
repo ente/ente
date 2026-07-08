@@ -1,6 +1,6 @@
 //! Shared reusable types for account clients.
 
-use ente_core::{http::HttpConfig, urls::PRODUCTION_API_BASE_URL};
+use ente_core::{http_legacy::HttpConfig, urls::PRODUCTION_API_BASE_URL};
 use futures_timer::Delay;
 use serde::{Deserialize, Serialize};
 use std::{future::Future, pin::Pin, sync::Arc, time::Duration};

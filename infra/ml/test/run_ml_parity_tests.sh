@@ -12,19 +12,12 @@ TEST_DATA_DIR="$ML_DIR/test_data/ml-indexing/v1"
 PARITY_HELPERS="$ML_DIR/tools/parity_shell_helpers.py"
 
 PLATFORMS="all"
-FAIL_ON_MISSING_PLATFORM=false
-FAIL_ON_PLATFORM_RUNNER_ERROR=false
-ALLOW_EMPTY_COMPARISON=false
-STRICT=false
-CONTINUE_ON_MISSING_DEVICES=true
-REQUIRE_COMPARISON_PASS=false
 OUTPUT_DIR="$ROOT_DIR/infra/ml/test/out/parity"
 VERBOSE=false
 RENDER_DETECTION_OVERLAYS=false
 REUSE_MOBILE_APPLICATION_BINARY=false
 PARALLEL_MOBILE_RUNNERS=true
-INCLUDE_PAIRWISE=false
-INTERNAL_USER_ROUTE=false
+USE_LEGACY_MOBILE_ML=false
 
 LOCAL_MIRROR_PORT=""
 LOCAL_MIRROR_PID=""
@@ -37,17 +30,12 @@ Usage: infra/ml/test/run_ml_parity_tests.sh [flags]
 
 Flags:
   --platforms all|desktop|android|ios   (default: all)
-  --strict                              (optional future mode; enforces full pass and complete platform coverage)
-  --fail-on-missing-platform            (default: disabled)
-  --fail-on-platform-runner-error       (default: disabled)
-  --allow-empty-comparison              (default: disabled)
   --output-dir <path>                   (default: infra/ml/test/out/parity)
   --verbose                             (default: disabled)
   --render-detection-overlays           (default: disabled; render annotated face detection images to out/parity/detections/<platform>/)
   --reuse-mobile-application-binary     (default: disabled; reuse an existing built mobile binary when available)
   --no-parallel-mobile-runners          (default: disabled; run android/ios runners sequentially)
-  --include-pairwise                    (default: disabled; include non-ground-truth pairwise platform comparisons)
-  --internal                            (default: disabled; mobile only, run internal-user Rust ML pipeline)
+  --legacy                              (default: disabled; mobile only, run legacy Dart/ONNX ML pipeline instead of Rust)
 EOF
 }
 
@@ -56,22 +44,6 @@ while (($# > 0)); do
     --platforms)
       PLATFORMS="$2"
       shift 2
-      ;;
-    --strict)
-      STRICT=true
-      shift
-      ;;
-    --fail-on-missing-platform)
-      FAIL_ON_MISSING_PLATFORM=true
-      shift
-      ;;
-    --fail-on-platform-runner-error)
-      FAIL_ON_PLATFORM_RUNNER_ERROR=true
-      shift
-      ;;
-    --allow-empty-comparison)
-      ALLOW_EMPTY_COMPARISON=true
-      shift
       ;;
     --output-dir)
       OUTPUT_DIR="$2"
@@ -93,12 +65,8 @@ while (($# > 0)); do
       PARALLEL_MOBILE_RUNNERS=false
       shift
       ;;
-    --include-pairwise)
-      INCLUDE_PAIRWISE=true
-      shift
-      ;;
-    --internal)
-      INTERNAL_USER_ROUTE=true
+    --legacy)
+      USE_LEGACY_MOBILE_ML=true
       shift
       ;;
     -h|--help)
@@ -112,13 +80,6 @@ while (($# > 0)); do
       ;;
   esac
 done
-
-if $STRICT; then
-  CONTINUE_ON_MISSING_DEVICES=false
-  FAIL_ON_MISSING_PLATFORM=true
-  FAIL_ON_PLATFORM_RUNNER_ERROR=true
-  REQUIRE_COMPARISON_PASS=true
-fi
 
 if [[ "$OUTPUT_DIR" != /* ]]; then
   OUTPUT_DIR="$ROOT_DIR/$OUTPUT_DIR"
@@ -299,21 +260,20 @@ start_local_mirror_server() {
   return 1
 }
 
+MOBILE_ML_ROUTE="rust"
+if $USE_LEGACY_MOBILE_ML; then
+  MOBILE_ML_ROUTE="legacy-dart"
+fi
+
 echo "Running ML parity suite"
 print_kv "platforms:" "$PLATFORMS"
 print_kv "output_dir:" "$OUTPUT_DIR"
 print_kv "verbose:" "$VERBOSE"
-print_kv "strict:" "$STRICT"
-print_kv "continue_on_missing_devices:" "$CONTINUE_ON_MISSING_DEVICES"
-print_kv "fail_on_missing_platform:" "$FAIL_ON_MISSING_PLATFORM"
-print_kv "fail_on_platform_runner_error:" "$FAIL_ON_PLATFORM_RUNNER_ERROR"
-print_kv "allow_empty_comparison:" "$ALLOW_EMPTY_COMPARISON"
 print_kv "render_detection_overlays:" "$RENDER_DETECTION_OVERLAYS"
 print_kv "android_build_mode:" "${ML_PARITY_ANDROID_BUILD_MODE:-profile}"
 print_kv "reuse_mobile_application_binary:" "$REUSE_MOBILE_APPLICATION_BINARY"
 print_kv "parallel_mobile_runners:" "$PARALLEL_MOBILE_RUNNERS"
-print_kv "include_pairwise:" "$INCLUDE_PAIRWISE"
-print_kv "internal_user_route:" "$INTERNAL_USER_ROUTE"
+print_kv "mobile_ml_route:" "$MOBILE_ML_ROUTE"
 
 declare -a selected_platforms=()
 case "$PLATFORMS" in
@@ -331,10 +291,6 @@ esac
 
 sha256_file() {
   python3 "$PARITY_HELPERS" sha256-file "$1"
-}
-
-cache_key_for_url() {
-  python3 "$PARITY_HELPERS" url-cache-key "$1"
 }
 
 platform_device_id() {
@@ -599,7 +555,7 @@ ensure_selected_mobile_devices_running() {
 
   if ((${#auto_boot_failures[@]} > 0)); then
     echo "Auto-boot did not guarantee device availability for: ${auto_boot_failures[*]}"
-    echo "Proceeding to preflight checks with configured strictness."
+    echo "Proceeding to preflight checks."
   fi
 }
 
@@ -664,26 +620,14 @@ run_preflight_checks() {
             0)
               ;;
             1)
-              if $CONTINUE_ON_MISSING_DEVICES; then
-                preflight_warnings+=(
-                  "$platform device id '$explicit_device_id' is unavailable; continuing"
-                )
-              else
-                preflight_errors+=(
-                  "$platform device id '$explicit_device_id' is unavailable (strict mode requires available devices)"
-                )
-              fi
+              preflight_warnings+=(
+                "$platform device id '$explicit_device_id' is unavailable; continuing"
+              )
               ;;
             *)
-              if $CONTINUE_ON_MISSING_DEVICES; then
-                preflight_warnings+=(
-                  "could not verify $platform device id '$explicit_device_id'; continuing"
-                )
-              else
-                preflight_errors+=(
-                  "could not verify $platform device id '$explicit_device_id' (strict mode requires available devices)"
-                )
-              fi
+              preflight_warnings+=(
+                "could not verify $platform device id '$explicit_device_id'; continuing"
+              )
               ;;
           esac
         else
@@ -697,26 +641,14 @@ run_preflight_checks() {
             0)
               ;;
             1)
-              if $CONTINUE_ON_MISSING_DEVICES; then
-                preflight_warnings+=(
-                  "no connected $platform device/simulator detected; continuing"
-                )
-              else
-                preflight_errors+=(
-                  "no connected $platform device/simulator detected (strict mode requires available devices)"
-                )
-              fi
+              preflight_warnings+=(
+                "no connected $platform device/simulator detected; continuing"
+              )
               ;;
             *)
-              if $CONTINUE_ON_MISSING_DEVICES; then
-                preflight_warnings+=(
-                  "could not determine $platform device availability; continuing"
-                )
-              else
-                preflight_errors+=(
-                  "could not determine $platform device availability (strict mode requires available devices)"
-                )
-              fi
+              preflight_warnings+=(
+                "could not determine $platform device availability; continuing"
+              )
               ;;
           esac
         fi
@@ -750,8 +682,6 @@ run_preflight_checks
 
 echo "Syncing local fixture directory (cached): $TEST_DATA_DIR"
 mkdir -p "$TEST_DATA_DIR"
-fixture_metadata_dir="$TEST_DATA_DIR/.source-metadata"
-mkdir -p "$fixture_metadata_dir"
 
 downloaded_count=0
 reused_count=0
@@ -763,13 +693,14 @@ while IFS=$'\t' read -r source_rel source_url source_sha; do
     echo "Manifest item missing source_url for source=$source_rel" >&2
     exit 1
   fi
+  if [[ -z "$source_sha" ]]; then
+    echo "Manifest item missing source_sha256 for source=$source_rel" >&2
+    exit 1
+  fi
 
   target_path="$ML_DIR/$source_rel"
   target_dir="$(dirname "$target_path")"
   mkdir -p "$target_dir"
-
-  cache_key="$(cache_key_for_url "$source_url")"
-  etag_path="$fixture_metadata_dir/$cache_key.etag"
 
   should_download=false
   reason=""
@@ -779,45 +710,12 @@ while IFS=$'\t' read -r source_rel source_url source_sha; do
     reason="missing local fixture"
   fi
 
-  if [[ -f "$target_path" && -n "$source_sha" ]]; then
+  if [[ -f "$target_path" ]]; then
     actual_sha="$(sha256_file "$target_path")"
     if [[ "$actual_sha" != "$source_sha" ]]; then
       should_download=true
       reason="local SHA-256 mismatch"
     fi
-  fi
-
-  remote_headers=""
-  if remote_headers="$(curl -fsSI --retry 3 --retry-delay 1 "$source_url" 2>/dev/null)"; then
-    remote_etag="$(
-      printf '%s\n' "$remote_headers" | awk -F': ' 'tolower($1)=="etag"{print $2; exit}' | tr -d '\r'
-    )"
-
-    if [[ -n "$remote_etag" ]]; then
-      local_etag=""
-      if [[ -f "$etag_path" ]]; then
-        local_etag="$(tr -d '\r\n' <"$etag_path")"
-      fi
-      if [[ "$local_etag" != "$remote_etag" ]]; then
-        should_download=true
-        if [[ -z "$reason" ]]; then
-          reason="remote ETag changed"
-        fi
-      fi
-    elif [[ -f "$target_path" && -z "$source_sha" ]]; then
-      should_download=true
-      if [[ -z "$reason" ]]; then
-        reason="remote ETag unavailable"
-      fi
-    fi
-  else
-    if [[ -f "$target_path" && -z "$source_sha" ]]; then
-      should_download=true
-      if [[ -z "$reason" ]]; then
-        reason="failed to fetch remote metadata"
-      fi
-    fi
-    remote_etag=""
   fi
 
   if $should_download; then
@@ -828,22 +726,15 @@ while IFS=$'\t' read -r source_rel source_url source_sha; do
       exit 1
     fi
 
-    if [[ -n "$source_sha" ]]; then
-      actual_sha="$(sha256_file "$tmp_path")"
-      if [[ "$actual_sha" != "$source_sha" ]]; then
-        rm -f "$tmp_path"
-        echo "SHA-256 mismatch for $source_rel: expected $source_sha got $actual_sha" >&2
-        exit 1
-      fi
+    actual_sha="$(sha256_file "$tmp_path")"
+    if [[ "$actual_sha" != "$source_sha" ]]; then
+      rm -f "$tmp_path"
+      echo "SHA-256 mismatch for $source_rel: expected $source_sha got $actual_sha" >&2
+      exit 1
     fi
 
     mv "$tmp_path" "$target_path"
     downloaded_count=$((downloaded_count + 1))
-    if [[ -n "$remote_etag" ]]; then
-      printf '%s\n' "$remote_etag" >"$etag_path"
-    else
-      rm -f "$etag_path"
-    fi
 
     if $VERBOSE; then
       echo "Downloaded fixture: $source_rel ($reason)"
@@ -1017,7 +908,7 @@ run_mobile_runner() {
     --no-dds
     --dart-define=ML_PARITY_MANIFEST_B64="$MANIFEST_B64"
     --dart-define=ML_PARITY_CODE_REVISION="$CODE_REVISION"
-    --dart-define=ML_PARITY_INTERNAL_USER="$INTERNAL_USER_ROUTE"
+    --dart-define=ML_PARITY_USE_LEGACY_MOBILE_ML="$USE_LEGACY_MOBILE_ML"
   )
 
   if [[ -z "$resolved_device_id" ]]; then
@@ -1176,44 +1067,6 @@ render_html_report() {
   return 0
 }
 
-render_markdown_report() {
-  local report_path="$1"
-  local markdown_output_path="$OUTPUT_DIR/parity_report.llm.md"
-  local renderer_log="$LOG_DIR/render_markdown_report.log"
-  local rendered_path=""
-
-  if $VERBOSE; then
-    if ! rendered_path="$(
-      python3 "$ML_DIR/tools/render_parity_markdown_report.py" \
-        --report "$report_path" \
-        --output "$markdown_output_path"
-    )"; then
-      echo "Failed to render Markdown parity report at $markdown_output_path."
-      return 1
-    fi
-  else
-    if ! rendered_path="$(
-      python3 "$ML_DIR/tools/render_parity_markdown_report.py" \
-        --report "$report_path" \
-        --output "$markdown_output_path" \
-        2>"$renderer_log"
-    )"; then
-      echo "Failed to render Markdown parity report at $markdown_output_path. Log: $renderer_log"
-      return 1
-    fi
-  fi
-
-  LAST_MARKDOWN_REPORT="${rendered_path##*$'\n'}"
-  if [[ -z "$LAST_MARKDOWN_REPORT" ]]; then
-    LAST_MARKDOWN_REPORT="$markdown_output_path"
-  fi
-  if [[ ! -f "$LAST_MARKDOWN_REPORT" ]]; then
-    echo "Markdown parity report was not generated at $LAST_MARKDOWN_REPORT."
-    return 1
-  fi
-  return 0
-}
-
 render_compact_summary() {
   python3 "$PARITY_HELPERS" compact-summary "$@"
 }
@@ -1248,12 +1101,7 @@ render_detection_overlays() {
   return 0
 }
 
-comparison_report_passed() {
-  python3 "$PARITY_HELPERS" report-passed "$1"
-}
-
 LAST_HTML_REPORT=""
-LAST_MARKDOWN_REPORT=""
 declare -a failed_platform_runners=()
 
 run_platform_runner_and_capture_exit() {
@@ -1359,15 +1207,10 @@ done
 
 if ((${#failed_platform_runners[@]} > 0)); then
   echo "One or more platform runners failed: ${failed_platform_runners[*]}" >&2
-  if $FAIL_ON_PLATFORM_RUNNER_ERROR; then
-    echo "Failing because --fail-on-platform-runner-error is set" >&2
-    exit 1
-  fi
   echo "Continuing with available platform outputs."
 fi
 
 declare -a compare_args=()
-missing_platform_count=0
 
 for platform in "${selected_platforms[@]}"; do
   platform_output="$OUTPUT_DIR/$platform/results.json"
@@ -1380,22 +1223,12 @@ for platform in "${selected_platforms[@]}"; do
     if $VERBOSE; then
       echo "Platform output unavailable for $platform at $platform_output"
     fi
-    missing_platform_count=$((missing_platform_count + 1))
   fi
 done
 
-if $FAIL_ON_MISSING_PLATFORM && ((missing_platform_count > 0)); then
-  echo "Missing platform outputs and --fail-on-missing-platform is set" >&2
-  exit 1
-fi
-
 if ((${#compare_args[@]} == 0)); then
-  if $ALLOW_EMPTY_COMPARISON; then
-    echo "No platform outputs available; continuing because --allow-empty-comparison is set"
-  else
-    echo "No platform outputs available for comparison. Provide at least one platform result or use --allow-empty-comparison." >&2
-    exit 1
-  fi
+  echo "No platform outputs available for comparison." >&2
+  exit 1
 fi
 
 compare_output="$OUTPUT_DIR/comparison_report.json"
@@ -1405,9 +1238,6 @@ compare_cmd=(
   --ground-truth "$PYTHON_OUTPUT_DIR/results.json"
   --output "$compare_output"
 )
-if ! $INCLUDE_PAIRWISE; then
-  compare_cmd+=(--no-pairwise)
-fi
 if ((${#compare_args[@]} > 0)); then
   compare_cmd+=("${compare_args[@]}")
 fi
@@ -1429,9 +1259,6 @@ if [[ -f "$compare_output" ]]; then
   if ! render_html_report "$compare_output"; then
     echo "Continuing without HTML report due to renderer failure."
   fi
-  if ! render_markdown_report "$compare_output"; then
-    echo "Continuing without Markdown report due to renderer failure."
-  fi
   echo
   render_compact_summary "$compare_output" "${selected_platforms[@]}"
 fi
@@ -1448,30 +1275,12 @@ if ((compare_exit != 0)); then
   exit "$compare_exit"
 fi
 
-if $REQUIRE_COMPARISON_PASS; then
-  if comparison_report_passed "$compare_output"; then
-    echo "Strict mode: comparison report passed."
-  else
-    comparison_pass_exit=$?
-    if ((comparison_pass_exit == 2)); then
-      echo "Strict mode failed: comparison report is missing at $compare_output" >&2
-    else
-      echo "Strict mode failed: comparison report contains parity failures." >&2
-    fi
-    exit 1
-  fi
-fi
-
 echo
 echo "Report artifacts"
 print_kv "comparison report (JSON):" "$compare_output"
 if [[ -n "$LAST_HTML_REPORT" ]]; then
   print_kv "html parity report:" "$LAST_HTML_REPORT"
   print_kv "html parity report URL:" "$(python3 "$PARITY_HELPERS" file-url "$LAST_HTML_REPORT")"
-fi
-if [[ -n "$LAST_MARKDOWN_REPORT" ]]; then
-  print_kv "markdown parity report (LLM):" "$LAST_MARKDOWN_REPORT"
-  echo "  note: for extensive results beyond the printed summary, read the markdown report."
 fi
 if $RENDER_DETECTION_OVERLAYS; then
   print_kv "detection overlays:" "$DETECTION_OVERLAYS_OUTPUT_DIR"

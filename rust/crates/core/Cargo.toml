@@ -4,7 +4,7 @@ edition = "2024"
 
 [dependencies]
 reqwest = { version = "0.12", default-features = false, features = ["http2", "charset", "system-proxy", "json", "rustls-tls-native-roots", "rustls-tls-webpki-roots"] }
-serde = { version = "1", features = ["derive"] }
+serde.workspace = true
 serde_json = "1"
 thiserror.workspace = true
 
@@ -37,6 +37,11 @@ base64 = "0.22"
 hex = "0.4"
 bip39 = { version = "2", default-features = false, features = ["std"] }
 zeroize = { version = "1.8.2", features = ["derive"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["stream"] }
+bytes = "1.11.1"
+futures-core = "0.3.32"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

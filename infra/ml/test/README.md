@@ -7,7 +7,6 @@ This directory contains the ML indexing parity framework for Android, iOS, deskt
 - `ground_truth/`: schema, manifest, and ONNX-backed Python pipeline.
 - `comparator/`: parity comparison engine and threshold checks.
 - `tools/`: suite orchestration and CLI entrypoints.
-- `tests/`: pytest coverage for schema/comparator behavior.
 - Runtime-only artifacts (gitignored): `test_data/`, `out/`, `.cache/`.
 
 ## Prerequisites
@@ -26,22 +25,19 @@ bash infra/ml/test/run_ml_parity_tests.sh
 Common flags:
 
 - `--platforms all|desktop|android|ios`
-- `--fail-on-missing-platform`
-- `--fail-on-platform-runner-error`
-- `--allow-empty-comparison`
 - `--output-dir <path>`
 - `--verbose` (stream full runner/comparator logs to terminal)
 - `--render-detection-overlays` (generate annotated detection images under `out/parity/detections/<platform>/`; includes selected platforms plus `python` ground truth)
 - `--reuse-mobile-application-binary` (reuse an existing built mobile binary when available; useful for repeated local parity runs without code changes)
 - `--no-parallel-mobile-runners` (force sequential android/ios runner execution)
-- `--include-pairwise` (also compare non-ground-truth platform pairs such as `android -> ios`)
+- `--legacy` (mobile only; run the legacy Dart/ONNX ML pipeline instead of the default Rust ML pipeline)
 
 Outputs go to `infra/ml/test/out/parity/` by default, including:
 
 - `comparison_report.json` (machine-readable comparison output)
 - `parity_report.html` (readable HTML report with per-file metrics for both pass and fail files)
 
-`run_ml_parity_tests.sh` compares each available platform against Python ground truth (`python -> <platform>`); non-ground-truth pairwise comparisons are excluded by default.
+`run_ml_parity_tests.sh` compares each available platform against Python ground truth (`python -> <platform>`).
 
 Optional mobile reuse env vars:
 

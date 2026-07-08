@@ -3,9 +3,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::commands::common::ApiError;
 
-impl From<crypto::CryptoError> for ApiError {
-    fn from(e: crypto::CryptoError) -> Self {
-        use crypto::CryptoError as E;
+impl From<crypto::Error> for ApiError {
+    fn from(e: crypto::Error) -> Self {
+        use crypto::Error as E;
 
         let code = match &e {
             E::Base64Decode(_) => "base64_decode",

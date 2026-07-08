@@ -53,7 +53,7 @@ pub const LOGIN_SUBKEY_CONTEXT: &[u8; CONTEXT_BYTES] = b"loginctx";
 ///
 /// # Errors
 ///
-/// Returns [`InvalidKeyLength`](crate::crypto::CryptoError::InvalidKeyLength) if
+/// Returns [`InvalidKeyLength`](crate::crypto::Error::InvalidKeyLength) if
 /// `subkey_len` is outside 16 to 64 bytes.
 ///
 /// Produces the same subkey as libsodium's `crypto_kdf_derive_from_key`.
@@ -64,7 +64,7 @@ pub fn derive_subkey(
     context: &[u8; CONTEXT_BYTES],
 ) -> Result<SecretVec> {
     if !(SUBKEY_BYTES_MIN..=SUBKEY_BYTES_MAX).contains(&subkey_len) {
-        return Err(crate::crypto::CryptoError::InvalidKeyLength {
+        return Err(crate::crypto::Error::InvalidKeyLength {
             expected: SUBKEY_BYTES_MAX,
             actual: subkey_len,
         });

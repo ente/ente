@@ -26,9 +26,9 @@ impl CryptoError {
     }
 }
 
-impl From<core_crypto::CryptoError> for CryptoError {
-    fn from(e: core_crypto::CryptoError) -> Self {
-        use core_crypto::CryptoError as E;
+impl From<core_crypto::Error> for CryptoError {
+    fn from(e: core_crypto::Error) -> Self {
+        use core_crypto::Error as E;
 
         let code = match &e {
             E::Base64Decode(_) => "base64_decode",
@@ -450,9 +450,7 @@ pub fn crypto_derive_subkey(
 ) -> Result<String, CryptoError> {
     let key = core_crypto::decode_b64(key_b64)?;
     let context: [u8; 8] = context.as_bytes().try_into().map_err(|_| {
-        core_crypto::CryptoError::InvalidKeyDerivationParams(
-            "KDF context must be exactly 8 bytes".into(),
-        )
+        core_crypto::Error::InvalidKeyDerivationParams("KDF context must be exactly 8 bytes".into())
     })?;
     let subkey = core_crypto::kdf::derive_subkey(
         &core_crypto::Key::try_from_slice(&key)?,

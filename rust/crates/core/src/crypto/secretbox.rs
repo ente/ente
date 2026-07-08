@@ -26,7 +26,7 @@ use xsalsa20poly1305::XSalsa20Poly1305;
 use xsalsa20poly1305::aead::generic_array::GenericArray;
 use xsalsa20poly1305::aead::{Aead, KeyInit};
 
-use crate::crypto::{CryptoError, Key, Nonce, Result};
+use crate::crypto::{Error, Key, Nonce, Result};
 
 /// Size in bytes of the Poly1305 authentication tag that prefixes every
 /// ciphertext.
@@ -97,15 +97,15 @@ fn encrypt_with_nonce(data: &[u8], nonce: &Nonce, key: &Key) -> Vec<u8> {
 ///
 /// # Errors
 ///
-/// Returns [`CiphertextTooShort`](CryptoError::CiphertextTooShort) if `data` is
-/// smaller than the tag, or [`DecryptionFailed`](CryptoError::DecryptionFailed)
+/// Returns [`CiphertextTooShort`](Error::CiphertextTooShort) if `data` is
+/// smaller than the tag, or [`DecryptionFailed`](Error::DecryptionFailed)
 /// if the tag does not verify, which is the case whenever the key, nonce, or
 /// ciphertext is wrong or the data was tampered with.
 ///
 /// Wire-compatible with libsodium's `crypto_secretbox_open_easy`.
 pub fn decrypt(data: &[u8], nonce: &Nonce, key: &Key) -> Result<Vec<u8>> {
     if data.len() < MAC_BYTES {
-        return Err(CryptoError::CiphertextTooShort {
+        return Err(Error::CiphertextTooShort {
             minimum: MAC_BYTES,
             actual: data.len(),
         });
@@ -116,7 +116,7 @@ pub fn decrypt(data: &[u8], nonce: &Nonce, key: &Key) -> Result<Vec<u8>> {
 
     cipher
         .decrypt(nonce_ga, data)
-        .map_err(|_| CryptoError::DecryptionFailed)
+        .map_err(|_| Error::DecryptionFailed)
 }
 
 /// Encrypt `data` with `key` into one self-contained buffer.
@@ -147,14 +147,14 @@ pub fn encrypt_combined(data: &[u8], key: &Key) -> Vec<u8> {
 ///
 /// # Errors
 ///
-/// Returns [`CiphertextTooShort`](CryptoError::CiphertextTooShort) if `data` is
+/// Returns [`CiphertextTooShort`](Error::CiphertextTooShort) if `data` is
 /// too short to hold a nonce and tag, otherwise the same errors as [`decrypt`].
 ///
 /// The body is wire-compatible with libsodium's `crypto_secretbox_open_easy`;
 /// the leading nonce is an Ente convention.
 pub fn decrypt_combined(data: &[u8], key: &Key) -> Result<Vec<u8>> {
     if data.len() < Nonce::BYTES + MAC_BYTES {
-        return Err(CryptoError::CiphertextTooShort {
+        return Err(Error::CiphertextTooShort {
             minimum: Nonce::BYTES + MAC_BYTES,
             actual: data.len(),
         });
@@ -254,7 +254,7 @@ mod tests {
 
         assert!(matches!(
             encrypted.decrypt(&key),
-            Err(CryptoError::DecryptionFailed)
+            Err(Error::DecryptionFailed)
         ));
     }
 
@@ -264,11 +264,11 @@ mod tests {
 
         assert!(matches!(
             decrypt(&[0u8; 10], &Nonce::generate(), &key),
-            Err(CryptoError::CiphertextTooShort { .. })
+            Err(Error::CiphertextTooShort { .. })
         ));
         assert!(matches!(
             decrypt_combined(&[0u8; 30], &key),
-            Err(CryptoError::CiphertextTooShort { .. })
+            Err(Error::CiphertextTooShort { .. })
         ));
     }
 

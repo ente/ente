@@ -8,8 +8,8 @@
         "test": "vitest --run"
     },
     "dependencies": {
-        "@mui/icons-material": "7.3.11",
-        "@mui/material": "7.3.11",
+        "@mui/icons-material": "9.2.0",
+        "@mui/material": "9.2.0",
         "ente-accounts-rs": "*",
         "ente-base": "*",
         "ente-wasm": "*",

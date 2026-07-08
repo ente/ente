@@ -9,6 +9,7 @@ from typing import Any
 
 from _report_common import (
     PLATFORMS,
+    count_file_findings,
     format_generated_timestamp,
     format_value,
     normalize_status,
@@ -34,8 +35,8 @@ def _render_comparison(comparison: dict[str, Any]) -> str:
     )
     findings = comparison.get("findings", [])
     warnings = comparison.get("warnings", [])
-    finding_count = len(findings) if isinstance(findings, list) else 0
-    warning_finding_count = len(warnings) if isinstance(warnings, list) else 0
+    finding_count = count_file_findings(findings)
+    warning_finding_count = count_file_findings(warnings)
 
     html_parts: list[str] = []
     html_parts.append(f"<h2>{html.escape(candidate)} vs {html.escape(reference)}</h2>")
@@ -209,7 +210,6 @@ def render_report(
     *,
     report_path: Path,
     output_path: Path,
-    include_pairwise: bool,
 ) -> None:
     payload = json.loads(report_path.read_text())
     ground_truth_platform = str(payload.get("ground_truth_platform", "python"))
@@ -217,14 +217,6 @@ def render_report(
     comparisons = payload.get("comparisons", [])
     if not isinstance(comparisons, list):
         comparisons = []
-
-    if not include_pairwise:
-        comparisons = [
-            comparison
-            for comparison in comparisons
-            if isinstance(comparison, dict)
-            and str(comparison.get("reference_platform", "")) == ground_truth_platform
-        ]
 
     report_dir = report_path.parent
     stats = platform_stats(report_dir)
@@ -330,11 +322,6 @@ def main() -> int:
         "--output",
         help="Output HTML path (default: <report_dir>/parity_report.html)",
     )
-    parser.add_argument(
-        "--include-pairwise",
-        action="store_true",
-        help="Include non-ground-truth pairwise comparisons in the report.",
-    )
     args = parser.parse_args()
 
     report_path = Path(args.report)
@@ -346,7 +333,6 @@ def main() -> int:
     render_report(
         report_path=report_path,
         output_path=output_path,
-        include_pairwise=args.include_pairwise,
     )
     print(output_path)
     return 0

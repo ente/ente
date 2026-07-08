@@ -29,6 +29,7 @@ ente-image = { path = "crates/image" }
 ente-photos = { path = "crates/photos" }
 ente-rs = { path = "apps/cli" }
 ente-test-support = { path = "crates/test-support" }
+serde = { version = "1.0.228", features = ["derive"] }
 thiserror = "2.0.18"
 uniffi = { version = "0.31.0" }
 wasm-bindgen = "0.2.125"

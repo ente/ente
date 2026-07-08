@@ -131,6 +131,8 @@ export type FileListWithViewerProps = {
         | "isInIncomingSharedCollection"
         | "isInHiddenSection"
         | "fileNormalCollectionIDs"
+        | "fileCollectionIDs"
+        | "hiddenCollectionIDs"
         | "collectionSummaries"
         | "collectionNameByID"
         | "pendingFavoriteUpdates"
@@ -177,6 +179,8 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     isInIncomingSharedCollection,
     isInHiddenSection,
     fileNormalCollectionIDs,
+    fileCollectionIDs,
+    hiddenCollectionIDs,
     collectionSummaries,
     collectionNameByID,
     pendingFavoriteUpdates,
@@ -392,6 +396,8 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
                     isInIncomingSharedCollection,
                     favoriteFileIDs,
                     fileNormalCollectionIDs,
+                    fileCollectionIDs,
+                    hiddenCollectionIDs,
                     collectionSummaries,
                     collectionNameByID,
                     pendingFavoriteUpdates,

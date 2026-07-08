@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import itertools
 import math
 from typing import Any, Mapping, Sequence
 
@@ -10,6 +9,7 @@ from ground_truth.schema import FaceResult, ParityResult, l2_norm
 STATUS_PASS = "pass"
 STATUS_WARNING = "warning"
 STATUS_FAIL = "fail"
+AGGREGATE_FILE_ID = "*aggregate*"
 
 
 def _threshold_status(
@@ -101,29 +101,20 @@ def _percentile(values: Sequence[float], percentile: float) -> float:
 @dataclass(frozen=True)
 class ThresholdConfig:
     clip_cosine_distance: float = 0.015
-    cross_platform_clip_cosine_distance: float = 0.015
     clip_warning_cosine_distance: float = 0.035
-    cross_platform_clip_warning_cosine_distance: float = 0.035
     face_embedding_cosine_distance: float = 0.015
     face_embedding_warning_cosine_distance: float = 0.035
     box_iou_threshold: float = 0.80
+    face_duplicate_iou_threshold: float = 0.80
     face_match_iou_floor: float = 0.05
     landmark_error_threshold: float = 0.03
-    score_delta_threshold: float = 0.10
+    score_delta_threshold: float = 0.05
     min_face_score_for_comparison: float = 0.80
 
     def __post_init__(self) -> None:
         if self.clip_warning_cosine_distance < self.clip_cosine_distance:
             raise ValueError(
                 "clip_warning_cosine_distance must be >= clip_cosine_distance"
-            )
-        if (
-            self.cross_platform_clip_warning_cosine_distance
-            < self.cross_platform_clip_cosine_distance
-        ):
-            raise ValueError(
-                "cross_platform_clip_warning_cosine_distance must be >= "
-                "cross_platform_clip_cosine_distance"
             )
         if self.face_embedding_warning_cosine_distance < self.face_embedding_cosine_distance:
             raise ValueError(
@@ -133,14 +124,11 @@ class ThresholdConfig:
     def to_dict(self) -> dict[str, float]:
         return {
             "clip_cosine_distance": self.clip_cosine_distance,
-            "cross_platform_clip_cosine_distance": self.cross_platform_clip_cosine_distance,
             "clip_warning_cosine_distance": self.clip_warning_cosine_distance,
-            "cross_platform_clip_warning_cosine_distance": (
-                self.cross_platform_clip_warning_cosine_distance
-            ),
             "face_embedding_cosine_distance": self.face_embedding_cosine_distance,
             "face_embedding_warning_cosine_distance": self.face_embedding_warning_cosine_distance,
             "box_iou_threshold": self.box_iou_threshold,
+            "face_duplicate_iou_threshold": self.face_duplicate_iou_threshold,
             "face_match_iou_floor": self.face_match_iou_floor,
             "landmark_error_threshold": self.landmark_error_threshold,
             "score_delta_threshold": self.score_delta_threshold,
@@ -263,7 +251,12 @@ class ComparisonReport:
     passed: bool
 
     def to_dict(self) -> dict[str, Any]:
-        total_files = len(self.file_statuses)
+        file_statuses = tuple(
+            file_status
+            for file_status in self.file_statuses
+            if file_status.file_id != AGGREGATE_FILE_ID
+        )
+        total_files = len(file_statuses)
         non_reference_file_count = max(0, total_files - self.total_reference_files)
         file_summary = {
             "total_reference_files": self.total_reference_files,
@@ -394,6 +387,27 @@ def _match_faces(
 
     matches.sort(key=lambda entry: entry[0])
     return matches
+
+
+def _dedupe_faces(
+    faces: Sequence[FaceResult],
+    *,
+    min_iou_for_duplicate: float,
+) -> tuple[FaceResult, ...]:
+    kept: list[tuple[int, FaceResult]] = []
+    for face_index, face in sorted(
+        enumerate(faces),
+        key=lambda entry: (-entry[1].score, entry[0]),
+    ):
+        if any(
+            _box_iou(face.box, kept_face.box) >= min_iou_for_duplicate
+            for _, kept_face in kept
+        ):
+            continue
+        kept.append((face_index, face))
+
+    kept.sort(key=lambda entry: entry[0])
+    return tuple(face for _, face in kept)
 
 
 def compare_result_sets(
@@ -563,15 +577,13 @@ def compare_result_sets(
         reference = reference_results[file_id]
         candidate = candidate_results[file_id]
 
-        reference_faces = tuple(
-            face
-            for face in reference.faces
-            if face.score >= thresholds.min_face_score_for_comparison
+        reference_faces = _dedupe_faces(
+            reference.faces,
+            min_iou_for_duplicate=thresholds.face_duplicate_iou_threshold,
         )
-        candidate_faces = tuple(
-            face
-            for face in candidate.faces
-            if face.score >= thresholds.min_face_score_for_comparison
+        candidate_faces = _dedupe_faces(
+            candidate.faces,
+            min_iou_for_duplicate=thresholds.face_duplicate_iou_threshold,
         )
 
         clip_distance = cosine_distance(reference.clip.embedding, candidate.clip.embedding)
@@ -613,8 +625,52 @@ def compare_result_sets(
                 ),
             )
 
-        reference_face_count = len(reference_faces)
-        candidate_face_count = len(candidate_faces)
+        all_matches = _match_faces(
+            reference_faces,
+            candidate_faces,
+            min_iou_for_match=thresholds.face_match_iou_floor,
+        )
+        matched_reference_indices = {
+            reference_index for reference_index, _, _ in all_matches
+        }
+        matched_candidate_indices = {
+            candidate_index for _, candidate_index, _ in all_matches
+        }
+        relevant_matches = tuple(
+            (reference_index, candidate_index, iou)
+            for reference_index, candidate_index, iou in all_matches
+            if (
+                reference_faces[reference_index].score
+                >= thresholds.min_face_score_for_comparison
+                or candidate_faces[candidate_index].score
+                >= thresholds.min_face_score_for_comparison
+            )
+        )
+        unmatched_reference_indices = tuple(
+            reference_index
+            for reference_index, face in enumerate(reference_faces)
+            if (
+                face.score >= thresholds.min_face_score_for_comparison
+                and reference_index not in matched_reference_indices
+            )
+        )
+        unmatched_candidate_indices = tuple(
+            candidate_index
+            for candidate_index, face in enumerate(candidate_faces)
+            if (
+                face.score >= thresholds.min_face_score_for_comparison
+                and candidate_index not in matched_candidate_indices
+            )
+        )
+        comparable_reference_indices = {
+            reference_index for reference_index, _, _ in relevant_matches
+        } | set(unmatched_reference_indices)
+        comparable_candidate_indices = {
+            candidate_index for _, candidate_index, _ in relevant_matches
+        } | set(unmatched_candidate_indices)
+
+        reference_face_count = len(comparable_reference_indices)
+        candidate_face_count = len(comparable_candidate_indices)
         no_faces = reference_face_count == 0 and candidate_face_count == 0
         add_file_metric(
             file_id=file_id,
@@ -624,8 +680,8 @@ def compare_result_sets(
             status=STATUS_PASS,
             passed=True,
             message=(
-                f"{reference_platform} face count (score >= "
-                f"{thresholds.min_face_score_for_comparison:.2f})"
+                f"{reference_platform} comparable face count "
+                f"(matched if either score >= {thresholds.min_face_score_for_comparison:.2f})"
             ),
         )
         add_file_metric(
@@ -636,8 +692,8 @@ def compare_result_sets(
             status=STATUS_PASS,
             passed=True,
             message=(
-                f"{candidate_platform} face count (score >= "
-                f"{thresholds.min_face_score_for_comparison:.2f})"
+                f"{candidate_platform} comparable face count "
+                f"(matched if either score >= {thresholds.min_face_score_for_comparison:.2f})"
             ),
         )
         face_count_delta = abs(reference_face_count - candidate_face_count)
@@ -663,30 +719,25 @@ def compare_result_sets(
                 ),
             )
 
-        matches = _match_faces(
-            reference_faces,
-            candidate_faces,
-            min_iou_for_match=thresholds.face_match_iou_floor,
-        )
         maximum_possible_matches = min(reference_face_count, candidate_face_count)
         add_file_metric(
             file_id=file_id,
             metric="matched_face_count",
-            value=float(len(matches)),
+            value=float(len(relevant_matches)),
             threshold=float(maximum_possible_matches),
-            status=STATUS_PASS if len(matches) == maximum_possible_matches else STATUS_FAIL,
-            passed=len(matches) == maximum_possible_matches,
+            status=(
+                STATUS_PASS
+                if len(relevant_matches) == maximum_possible_matches
+                else STATUS_FAIL
+            ),
+            passed=len(relevant_matches) == maximum_possible_matches,
             direction="==",
-            count=len(matches),
+            count=len(relevant_matches),
             message="Greedy IoU-gated face matches",
         )
 
-        unmatched_reference_face_count = reference_face_count - len(
-            {reference_index for reference_index, _, _ in matches}
-        )
-        unmatched_candidate_face_count = candidate_face_count - len(
-            {candidate_index for _, candidate_index, _ in matches}
-        )
+        unmatched_reference_face_count = len(unmatched_reference_indices)
+        unmatched_candidate_face_count = len(unmatched_candidate_indices)
         add_file_metric(
             file_id=file_id,
             metric="unmatched_reference_face_count",
@@ -752,7 +803,7 @@ def compare_result_sets(
         file_landmark_errors: list[float] = []
         file_score_deltas: list[float] = []
         file_embedding_distances: list[float] = []
-        for reference_index, candidate_index, iou in matches:
+        for reference_index, candidate_index, iou in relevant_matches:
             reference_face = reference_faces[reference_index]
             candidate_face = candidate_faces[candidate_index]
 
@@ -941,7 +992,7 @@ def compare_result_sets(
             continue
         threshold = metric.warning_threshold if metric.status == STATUS_WARNING else metric.threshold
         add_file_metric(
-            file_id="*aggregate*",
+            file_id=AGGREGATE_FILE_ID,
             metric=metric_name,
             value=metric.max,
             threshold=threshold,
@@ -955,7 +1006,7 @@ def compare_result_sets(
         if metric.status == STATUS_WARNING:
             add_warning(
                 ComparisonFinding(
-                    file_id="*aggregate*",
+                    file_id=AGGREGATE_FILE_ID,
                     metric=metric_name,
                     message="Aggregate threshold gate in warning band",
                     value=metric.max,
@@ -966,7 +1017,7 @@ def compare_result_sets(
             continue
         add_failure(
             ComparisonFinding(
-                file_id="*aggregate*",
+                file_id=AGGREGATE_FILE_ID,
                 metric=metric_name,
                 message="Aggregate threshold gate failed",
                 value=metric.max,
@@ -1003,17 +1054,26 @@ def compare_result_sets(
     passing_files = tuple(
         file_status.file_id
         for file_status in file_statuses
-        if file_status.status == STATUS_PASS
+        if (
+            file_status.file_id != AGGREGATE_FILE_ID
+            and file_status.status == STATUS_PASS
+        )
     )
     warning_files = tuple(
         file_status.file_id
         for file_status in file_statuses
-        if file_status.status == STATUS_WARNING
+        if (
+            file_status.file_id != AGGREGATE_FILE_ID
+            and file_status.status == STATUS_WARNING
+        )
     )
     failing_files = tuple(
         file_status.file_id
         for file_status in file_statuses
-        if file_status.status == STATUS_FAIL
+        if (
+            file_status.file_id != AGGREGATE_FILE_ID
+            and file_status.status == STATUS_FAIL
+        )
     )
     report_status = (
         STATUS_FAIL
@@ -1046,7 +1106,6 @@ def compare_platform_matrix(
     platform_results: Mapping[str, Sequence[ParityResult]],
     *,
     ground_truth_platform: str = "python",
-    include_pairwise: bool = True,
     thresholds: ThresholdConfig | None = None,
 ) -> tuple[ComparisonReport, ...]:
     thresholds = thresholds or ThresholdConfig()
@@ -1075,23 +1134,5 @@ def compare_platform_matrix(
                 thresholds=thresholds,
             ),
         )
-
-    if include_pairwise:
-        for left_platform, right_platform in itertools.combinations(
-            sorted(non_ground_truth_platforms), 2
-        ):
-            reports.append(
-                compare_result_sets(
-                    reference_platform=left_platform,
-                    candidate_platform=right_platform,
-                    reference_results=by_platform[left_platform],
-                    candidate_results=by_platform[right_platform],
-                    thresholds=thresholds,
-                    clip_threshold=thresholds.cross_platform_clip_cosine_distance,
-                    clip_warning_threshold=(
-                        thresholds.cross_platform_clip_warning_cosine_distance
-                    ),
-                ),
-            )
 
     return tuple(reports)

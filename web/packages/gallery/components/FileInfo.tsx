@@ -135,8 +135,8 @@ export type FileInfoProps = ModalVisibilityProps & {
      */
     allowMap?: boolean;
     /**
-     * If set, then a clickable chip will be shown for each normal collection
-     * that this file is a part of.
+     * If set, then a chip will be shown for each collection that this file is
+     * a part of.
      *
      * Uses {@link fileCollectionIDs}, {@link collectionNameByID} and
      * {@link onSelectCollection}, so all of those props should also be set for
@@ -155,6 +155,12 @@ export type FileInfoProps = ModalVisibilityProps & {
      * Used when {@link showCollections} is set.
      */
     collectionNameByID?: Map<number, string>;
+    /**
+     * IDs of hidden collections.
+     *
+     * Used when {@link showCollections} is set.
+     */
+    hiddenCollectionIDs?: Set<number>;
     /**
      * Called when the action on the file info drawer has changed some metadata
      * for a file.
@@ -204,6 +210,7 @@ export const FileInfo: React.FC<FileInfoProps> = ({
     showCollections,
     fileCollectionIDs,
     collectionNameByID,
+    hiddenCollectionIDs,
     onFileMetadataUpdate,
     onUpdateCaption,
     onSelectCollection,
@@ -484,6 +491,7 @@ export const FileInfo: React.FC<FileInfoProps> = ({
                                 file,
                                 fileCollectionIDs,
                                 collectionNameByID,
+                                hiddenCollectionIDs,
                                 onSelectCollection,
                             }}
                         />
@@ -1301,12 +1309,13 @@ type AlbumsProps = Required<
         FileInfoProps,
         "fileCollectionIDs" | "collectionNameByID" | "onSelectCollection"
     >
-> & { file: EnteFile };
+> & { file: EnteFile; hiddenCollectionIDs?: Set<number> };
 
 const Albums: React.FC<AlbumsProps> = ({
     file,
     fileCollectionIDs,
     collectionNameByID,
+    hiddenCollectionIDs,
     onSelectCollection,
 }) => (
     <InfoItem icon={<FolderOutlinedIcon />}>
@@ -1322,14 +1331,24 @@ const Albums: React.FC<AlbumsProps> = ({
             {fileCollectionIDs
                 .get(file.id)
                 ?.filter((collectionID) => collectionNameByID.has(collectionID))
-                .map((collectionID) => (
-                    <ChipButton
-                        key={collectionID}
-                        onClick={() => onSelectCollection(collectionID)}
-                    >
-                        {collectionNameByID.get(collectionID)}
-                    </ChipButton>
-                ))}
+                .map((collectionID) => {
+                    const isHiddenCollection =
+                        hiddenCollectionIDs?.has(collectionID);
+                    return (
+                        <ChipButton
+                            key={collectionID}
+                            onClick={() => {
+                                if (!isHiddenCollection) {
+                                    onSelectCollection(collectionID);
+                                }
+                            }}
+                        >
+                            {isHiddenCollection
+                                ? t("section_hidden")
+                                : collectionNameByID.get(collectionID)}
+                        </ChipButton>
+                    );
+                })}
         </Stack>
     </InfoItem>
 );

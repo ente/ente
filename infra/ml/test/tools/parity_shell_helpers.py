@@ -32,10 +32,6 @@ def cmd_sha256_file(args: list[str]) -> None:
     print(digest.hexdigest())
 
 
-def cmd_url_cache_key(args: list[str]) -> None:
-    print(hashlib.sha256(args[0].encode("utf-8")).hexdigest())
-
-
 def cmd_reserve_port(args: list[str]) -> None:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(("127.0.0.1", 0))
@@ -641,19 +637,9 @@ def cmd_compact_summary(args: list[str]) -> None:
             print(f"  {platform}: unavailable (no platform results)")
 
 
-def cmd_report_passed(args: list[str]) -> None:
-    report_path = Path(args[0])
-    if not report_path.exists():
-        sys.exit(2)
-
-    payload = json.loads(report_path.read_text())
-    sys.exit(0 if bool(payload.get("passed", False)) else 1)
-
-
 COMMANDS = {
     "b64-file": cmd_b64_file,
     "sha256-file": cmd_sha256_file,
-    "url-cache-key": cmd_url_cache_key,
     "reserve-port": cmd_reserve_port,
     "manifest-fixtures": cmd_manifest_fixtures,
     "file-url": cmd_file_url,
@@ -665,7 +651,6 @@ COMMANDS = {
     "wait-android-boot": cmd_wait_android_boot,
     "file-level-tables": cmd_file_level_tables,
     "compact-summary": cmd_compact_summary,
-    "report-passed": cmd_report_passed,
 }
 
 

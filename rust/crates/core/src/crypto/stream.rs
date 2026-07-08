@@ -28,7 +28,7 @@ use crypto_secretstream::{
 use rand_core::OsRng;
 use std::io::{Read, Write};
 
-use crate::crypto::{CryptoError, Header, Key, Result};
+use crate::crypto::{Error, Header, Key, Result};
 
 // The typed Key/Header sizes must match the upstream secretstream sizes; the
 // conversions below rely on it.
@@ -95,7 +95,7 @@ impl Encryptor {
         let tag = if is_final { Tag::Final } else { Tag::Message };
         self.stream
             .push(buffer, &[], tag)
-            .map_err(|_| CryptoError::StreamPushFailed)
+            .map_err(|_| Error::StreamPushFailed)
     }
 }
 
@@ -131,7 +131,7 @@ impl Decryptor {
     ///
     /// # Errors
     ///
-    /// Returns [`StreamPullFailed`](CryptoError::StreamPullFailed) if the chunk
+    /// Returns [`StreamPullFailed`](Error::StreamPullFailed) if the chunk
     /// is shorter than the per-message overhead or its MAC does not verify.
     pub fn pull(&mut self, data: &[u8]) -> Result<(Vec<u8>, bool)> {
         let mut buffer = data.to_vec();
@@ -144,13 +144,13 @@ impl Decryptor {
     /// final chunk.
     fn pull_in_place(&mut self, buffer: &mut Vec<u8>) -> Result<bool> {
         if buffer.len() < ABYTES {
-            return Err(CryptoError::StreamPullFailed);
+            return Err(Error::StreamPullFailed);
         }
 
         let tag = self
             .stream
             .pull(buffer, &[])
-            .map_err(|_| CryptoError::StreamPullFailed)?;
+            .map_err(|_| Error::StreamPullFailed)?;
 
         let is_final = matches!(tag, Tag::Final);
         if is_final {
@@ -167,13 +167,13 @@ impl Decryptor {
     ///
     /// # Errors
     ///
-    /// Returns [`StreamTruncated`](CryptoError::StreamTruncated) if no
+    /// Returns [`StreamTruncated`](Error::StreamTruncated) if no
     /// final-tagged chunk was ever pulled.
     pub fn finish(self) -> Result<()> {
         if self.seen_final {
             Ok(())
         } else {
-            Err(CryptoError::StreamTruncated)
+            Err(Error::StreamTruncated)
         }
     }
 }
@@ -363,7 +363,7 @@ fn ensure_reader_exhausted<R: Read>(reader: &mut R) -> Result<()> {
     loop {
         match reader.read(&mut extra) {
             Ok(0) => return Ok(()),
-            Ok(_) => return Err(CryptoError::StreamTrailingData),
+            Ok(_) => return Err(Error::StreamTrailingData),
             Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
             Err(e) => return Err(e.into()),
         }
@@ -392,10 +392,10 @@ impl<R: Read> StreamingDecryptor<R> {
     ///
     /// # Errors
     ///
-    /// Returns [`StreamTruncated`](CryptoError::StreamTruncated) if the stream
+    /// Returns [`StreamTruncated`](Error::StreamTruncated) if the stream
     /// ends before the final tag,
-    /// [`StreamTrailingData`](CryptoError::StreamTrailingData) if bytes follow
-    /// the final chunk, or [`StreamPullFailed`](CryptoError::StreamPullFailed)
+    /// [`StreamTrailingData`](Error::StreamTrailingData) if bytes follow
+    /// the final chunk, or [`StreamPullFailed`](Error::StreamPullFailed)
     /// if a chunk fails to decrypt.
     pub fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         // If we have buffered plaintext, return it first (O(1) via index)
@@ -444,7 +444,7 @@ impl<R: Read> StreamingDecryptor<R> {
             // EOF reached - verify we saw the final tag (truncation detection)
             self.buffer.clear();
             if !self.seen_final {
-                return Err(CryptoError::StreamTruncated);
+                return Err(Error::StreamTruncated);
             }
             self.finished = true;
             return Ok(0);
@@ -579,11 +579,11 @@ pub fn encrypt_file<R: Read, W: Write>(
 ///
 /// # Errors
 ///
-/// Returns [`StreamTruncated`](CryptoError::StreamTruncated) if EOF is reached
+/// Returns [`StreamTruncated`](Error::StreamTruncated) if EOF is reached
 /// without the final tag (the truncation check), or
-/// [`StreamTrailingData`](CryptoError::StreamTrailingData) if bytes remain after
+/// [`StreamTrailingData`](Error::StreamTrailingData) if bytes remain after
 /// the final chunk. A chunk that fails to decrypt yields
-/// [`StreamPullFailed`](CryptoError::StreamPullFailed).
+/// [`StreamPullFailed`](Error::StreamPullFailed).
 pub fn decrypt_file<R: Read, W: Write>(
     reader: &mut R,
     writer: &mut W,
@@ -686,7 +686,7 @@ mod tests {
         let result = decryptor.read_to_end();
 
         assert!(
-            matches!(result, Err(CryptoError::StreamTruncated)),
+            matches!(result, Err(Error::StreamTruncated)),
             "Expected StreamTruncated error, got {:?}",
             result
         );
@@ -709,7 +709,7 @@ mod tests {
         let result = decryptor.read_to_end();
 
         assert!(
-            matches!(result, Err(CryptoError::StreamTruncated)),
+            matches!(result, Err(Error::StreamTruncated)),
             "Expected StreamTruncated error, got {:?}",
             result
         );
@@ -751,10 +751,7 @@ mod tests {
         assert_eq!(pt2, b"chunk two");
         assert!(!is_final1 && !is_final2);
 
-        assert!(matches!(
-            decryptor.finish(),
-            Err(CryptoError::StreamTruncated)
-        ));
+        assert!(matches!(decryptor.finish(), Err(Error::StreamTruncated)));
     }
 
     #[test]
@@ -1021,7 +1018,7 @@ mod tests {
         let result = decryptor.pull(&ciphertext);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamPullFailed)),
+            matches!(result, Err(Error::StreamPullFailed)),
             "Expected StreamPullFailed error on tampered ciphertext, got {:?}",
             result
         );
@@ -1044,7 +1041,7 @@ mod tests {
         let result = decryptor.pull(&ciphertext);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamPullFailed)),
+            matches!(result, Err(Error::StreamPullFailed)),
             "Expected StreamPullFailed error on tampered header, got {:?}",
             result
         );
@@ -1067,7 +1064,7 @@ mod tests {
         let result = decryptor.pull(&ciphertext);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamPullFailed)),
+            matches!(result, Err(Error::StreamPullFailed)),
             "Expected StreamPullFailed error on tampered MAC, got {:?}",
             result
         );
@@ -1087,7 +1084,7 @@ mod tests {
         let result = decryptor.pull(&ciphertext);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamPullFailed)),
+            matches!(result, Err(Error::StreamPullFailed)),
             "Expected StreamPullFailed error with wrong key, got {:?}",
             result
         );
@@ -1139,7 +1136,7 @@ mod tests {
         let result = decryptor.pull(&[0u8; ABYTES - 1]);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamPullFailed)),
+            matches!(result, Err(Error::StreamPullFailed)),
             "Expected StreamPullFailed for short ciphertext, got {:?}",
             result
         );
@@ -1267,7 +1264,7 @@ mod tests {
         let result = decrypt_file(&mut reader, &mut output, &header, &key);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamTruncated)),
+            matches!(result, Err(Error::StreamTruncated)),
             "Expected StreamTruncated for empty ciphertext, got {:?}",
             result
         );
@@ -1291,7 +1288,7 @@ mod tests {
         let result = decrypt_file(&mut reader, &mut output, &header, &key);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamTruncated)),
+            matches!(result, Err(Error::StreamTruncated)),
             "Expected StreamTruncated at chunk boundary, got {:?}",
             result
         );
@@ -1357,7 +1354,7 @@ mod tests {
         let result = decrypt_file(&mut reader, &mut output, &header, &key);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamTrailingData)),
+            matches!(result, Err(Error::StreamTrailingData)),
             "Expected StreamTrailingData for trailing bytes after FINAL, got {:?}",
             result
         );
@@ -1394,7 +1391,7 @@ mod tests {
         let result = decrypt_file_data(&encrypted_chunk, &header, &key);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamTruncated)),
+            matches!(result, Err(Error::StreamTruncated)),
             "Expected StreamTruncated from decrypt_file_data, got {:?}",
             result
         );
@@ -1413,7 +1410,7 @@ mod tests {
         let result = decrypt_file_data(&ciphertext, &header, &key);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamTrailingData)),
+            matches!(result, Err(Error::StreamTrailingData)),
             "Expected StreamTrailingData from decrypt_file_data, got {:?}",
             result
         );
@@ -1436,7 +1433,7 @@ mod tests {
         let result = decryptor.read_to_end();
 
         assert!(
-            matches!(result, Err(CryptoError::StreamTrailingData)),
+            matches!(result, Err(Error::StreamTrailingData)),
             "Expected StreamTrailingData from StreamingDecryptor, got {:?}",
             result
         );

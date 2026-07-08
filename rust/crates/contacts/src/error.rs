@@ -1,4 +1,4 @@
-use ente_core::{auth::AuthError, crypto::CryptoError, http::Error as HttpError};
+use ente_core::{auth::AuthError, crypto, http_legacy::Error as HttpError};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -7,7 +7,7 @@ pub enum ContactsError {
     Http(#[from] HttpError),
 
     #[error(transparent)]
-    Crypto(#[from] CryptoError),
+    Crypto(#[from] crypto::Error),
 
     #[error(transparent)]
     Auth(#[from] AuthError),
