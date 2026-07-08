@@ -16,7 +16,6 @@ class FlagService {
   static const int _videoStreamingFlag = 1 << 3;
   static const int _castSessionsV2Flag = 1 << 4;
   static const int _cfUploadWorkerRolloutPercent = 20;
-  static const int _rustMlRolloutPercent = 70;
 
   static const String _userIdKey = "user_id";
 
@@ -105,11 +104,9 @@ class FlagService {
 
   bool get enableMemoryShareLink => true;
 
-  bool get useRustForML =>
-      internalUser || _isInUserRollout(_rustMlRolloutPercent);
+  bool get useRustForML => true;
 
-  bool get enableMLInBackground =>
-      internalUser || _isInUserRollout(_rustMlRolloutPercent);
+  bool get enableMLInBackground => true;
 
   bool get useRustForFaceThumbnails => true;
 
