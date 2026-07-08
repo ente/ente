@@ -650,6 +650,11 @@
       ]
     },
     {
+      "title": "Deutsche Post",
+      "slug": "deutschepost",
+      "hex": "ffcc00"
+    },
+    {
       "title": "DigiFinex",
       "altNames": [
         "Digi Finex",
@@ -1424,6 +1429,7 @@
     {
       "title": "Mozilla",
       "slug": "mozilla",
+      "hex": "000000",
       "altNames": [
         "Mozilla Account"
       ]
@@ -1527,7 +1533,7 @@
     },
     {
       "title": "Nintendo",
-      "hex": "E60012",
+      "hex": "000000",
       "altNames": [
         "\u4efb\u5929\u5802",
         "Nintendo Account"
@@ -2053,8 +2059,7 @@
     },
     {
       "title": "Square Enix",
-      "slug": "square_enix",
-      "hex": "ED1C24"
+      "slug": "square_enix"
     },
     {
       "title": "Standard Notes",
