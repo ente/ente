@@ -1154,6 +1154,8 @@ class _HomePageState extends State<HomePage> {
           !pressed.contains(LogicalKeyboardKey.altLeft) &&
           !pressed.contains(LogicalKeyboardKey.alt) &&
           !pressed.contains(LogicalKeyboardKey.altRight) &&
+          event.logicalKey != LogicalKeyboardKey.keyC &&
+          event.logicalKey != LogicalKeyboardKey.keyN &&
           event.character != null &&
           event.character!.trim().isNotEmpty) {
         final String searchStarter = event.character!;
