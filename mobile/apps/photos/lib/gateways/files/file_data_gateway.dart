@@ -140,7 +140,7 @@ class FileDataGateway {
   Future<({String encryptedData, String decryptionHeader})>
   fetchSingleFileData({required int fileID, required String type}) async {
     final response = await _enteDio.get(
-      "/files/data/fetch/",
+      "/files/data/fetch",
       queryParameters: {"fileID": fileID, "type": type},
     );
     return (
@@ -167,7 +167,7 @@ class FileDataGateway {
     required Dio nonEnteDio,
   }) async {
     final response = await nonEnteDio.get(
-      "$baseUrl/public-collection/files/data/fetch/",
+      "$baseUrl/public-collection/files/data/fetch",
       queryParameters: {"fileID": fileID, "type": type},
       options: Options(headers: headers),
     );

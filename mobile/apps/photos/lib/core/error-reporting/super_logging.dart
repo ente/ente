@@ -16,6 +16,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:photos/core/error-reporting/tunneled_transport.dart';
 import "package:photos/core/exceptions.dart";
+import "package:photos/core/network/api_response.dart";
 import 'package:photos/models/typedefs.dart';
 import "package:photos/utils/device_info.dart";
 import "package:photos/utils/ram_check_util.dart";
@@ -317,6 +318,10 @@ class SuperLogging {
   }
 
   static bool _shouldSkipSentry(Object error) {
+    final apiResponseError = _apiResponseFormatException(error);
+    if (apiResponseError != null) {
+      return !apiResponseError.shouldReport;
+    }
     if (error is DioException) {
       return true;
     }
@@ -347,15 +352,18 @@ class SuperLogging {
         return;
       }
 
+      final sentryError = _apiResponseFormatException(error) ?? error;
+
       // Determine execution context from prefix
       final executionContext = _getExecutionContext();
 
       if (rec != null) {
         await Sentry.captureException(
-          error,
+          sentryError,
           stackTrace: stack,
           withScope: (scope) {
             scope.setContexts('log_details', {'message': rec.message});
+            _setApiResponseContext(scope, sentryError);
             scope.setTag('logger', rec.loggerName);
             scope.setTag('level', rec.level.name);
             scope.setTag('execution_context', executionContext);
@@ -363,9 +371,10 @@ class SuperLogging {
         );
       } else {
         await Sentry.captureException(
-          error,
+          sentryError,
           stackTrace: stack,
           withScope: (scope) {
+            _setApiResponseContext(scope, sentryError);
             scope.setTag('execution_context', executionContext);
           },
         );
@@ -374,6 +383,26 @@ class SuperLogging {
       $.info('Sending report to sentry failed: $e');
       $.info('Original error: $error');
     }
+  }
+
+  static void _setApiResponseContext(Scope scope, Object error) {
+    final apiResponseError = _apiResponseFormatException(error);
+    if (apiResponseError == null) {
+      return;
+    }
+    scope.setContexts('api_response', apiResponseError.sentryContext);
+    scope.setTag('api_response.path', apiResponseError.path);
+    scope.setTag('api_response.endpoint_kind', apiResponseError.endpointKind);
+  }
+
+  static ApiResponseFormatException? _apiResponseFormatException(Object error) {
+    if (error is ApiResponseFormatException) {
+      return error;
+    }
+    if (error is DioException && error.error is ApiResponseFormatException) {
+      return error.error! as ApiResponseFormatException;
+    }
+    return null;
   }
 
   static void _reportInvalidLoggerUsageInDebug(

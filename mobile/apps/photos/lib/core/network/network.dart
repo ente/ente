@@ -9,6 +9,7 @@ import 'package:logging/logging.dart';
 import 'package:native_dio_adapter/native_dio_adapter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import "package:photos/core/event_bus.dart";
+import "package:photos/core/network/api_response.dart";
 import "package:photos/core/network/endpoint_config.dart";
 import 'package:photos/core/network/ente_interceptor.dart';
 import "package:shared_preferences/shared_preferences.dart";
@@ -55,8 +56,11 @@ class NetworkClient {
   }
 
   void _setupInterceptors(String endpoint) {
+    _dio.interceptors.clear();
+    _dio.interceptors.add(ApiResponseShapeInterceptor(endpoint));
     _enteDio.interceptors.clear();
     _enteDio.interceptors.add(EnteRequestInterceptor(endpoint));
+    _enteDio.interceptors.add(ApiResponseShapeInterceptor(endpoint));
   }
 
   BaseOptions _newBaseOptions(
