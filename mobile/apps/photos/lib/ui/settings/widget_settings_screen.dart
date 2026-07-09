@@ -18,7 +18,7 @@ class WidgetSettingsScreen extends StatelessWidget {
       routeToPage(
         context,
         const MachineLearningSettingsPage(),
-        forceCustomPageRoute: true,
+        useFadeTransition: true,
       );
       return;
     }

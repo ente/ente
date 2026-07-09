@@ -57,11 +57,11 @@ class _MemoryCoverWidgetState extends State<MemoryCoverWidget> {
         onTap: () async {
           await routeToPage(
             context,
-            forceCustomPageRoute: true,
             AllMemoriesPage(
               initialPageIndex: widget.currentMemoryIndex,
               allMemories: widget.allMemories,
             ),
+            useFadeTransition: true,
           );
           if (!mounted) return;
           setState(() {});

@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 Future<T?> routeToPage<T extends Object>(
   BuildContext context,
   Widget page, {
-  bool forceCustomPageRoute = false,
+  bool useFadeTransition = false,
 }) {
-  if (Platform.isAndroid || forceCustomPageRoute) {
+  if (Platform.isAndroid || useFadeTransition) {
     return Navigator.of(context).push(_buildPageRoute(page));
   } else {
     return Navigator.of(context).push(

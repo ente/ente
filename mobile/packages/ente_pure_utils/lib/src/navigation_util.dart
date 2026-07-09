@@ -1,23 +1,17 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 Future<T?> routeToPage<T extends Object>(
   BuildContext context,
   Widget page, {
-  bool forceCustomPageRoute = false,
+  bool useFadeTransition = false,
 }) {
-  if (Platform.isAndroid || forceCustomPageRoute) {
-    return Navigator.of(context).push(_buildPageRoute(page));
-  } else {
-    return Navigator.of(context).push(
-      SwipeableRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) {
-          return page;
-        },
-      ),
-    );
-  }
+  return Navigator.of(context).push(
+    useFadeTransition
+        ? _buildPageRoute<T>(page)
+        : SwipeableRouteBuilder<T>(
+            pageBuilder: (context, animation, secondaryAnimation) => page,
+          ),
+  );
 }
 
 void replacePage(BuildContext context, Widget page, {Object? result}) {
@@ -53,8 +47,7 @@ PageRouteBuilder<T> _buildPageRoute<T extends Object>(Widget page) {
 class SwipeableRouteBuilder<T> extends PageRoute<T> {
   final RoutePageBuilder pageBuilder;
   final PageTransitionsBuilder matchingBuilder =
-      const CupertinoPageTransitionsBuilder(); // Default iOS/macOS (to get the swipe right to go back gesture)
-  // final PageTransitionsBuilder matchingBuilder = const FadeUpwardsPageTransitionsBuilder(); // Default Android/Linux/Windows
+      const CupertinoPageTransitionsBuilder();
 
   SwipeableRouteBuilder({required this.pageBuilder});
 
@@ -77,7 +70,7 @@ class SwipeableRouteBuilder<T> extends PageRoute<T> {
   bool get maintainState => true;
 
   @override
-  Duration get transitionDuration => const Duration(milliseconds: 300); // Can give custom Duration, unlike in MaterialPageRoute
+  Duration get transitionDuration => const Duration(milliseconds: 300);
 
   @override
   Widget buildTransitions(

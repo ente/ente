@@ -26,7 +26,7 @@ class HeaderErrorWidget extends StatelessWidget {
             await routeToPage(
               context,
               getSubscriptionPage(),
-              forceCustomPageRoute: true,
+              useFadeTransition: true,
             );
           },
         ),
@@ -43,7 +43,7 @@ class HeaderErrorWidget extends StatelessWidget {
             await routeToPage(
               context,
               getSubscriptionPage(),
-              forceCustomPageRoute: true,
+              useFadeTransition: true,
             );
           },
         ),

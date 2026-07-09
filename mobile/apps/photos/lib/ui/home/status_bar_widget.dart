@@ -122,7 +122,7 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
                       _isPausedDueToNetwork
                           ? const BackupSettingsScreen()
                           : const BackupStatusScreen(),
-                      forceCustomPageRoute: true,
+                      useFadeTransition: true,
                     ).ignore();
                   },
                   child: const SyncStatusWidget(),
@@ -160,7 +160,7 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
           await routeToPage(
             context,
             const MachineLearningSettingsPage(),
-            forceCustomPageRoute: true,
+            useFadeTransition: true,
           );
         },
       ),
@@ -177,7 +177,7 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
           await routeToPage(
             context,
             const VerifyRecoveryPage(),
-            forceCustomPageRoute: true,
+            useFadeTransition: true,
           );
         },
       ),

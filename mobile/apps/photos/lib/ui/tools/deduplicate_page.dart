@@ -389,7 +389,7 @@ class _DeduplicatePageState extends State<DeduplicatePage> {
               mode: DetailPageMode.minimalistic,
             ),
           ),
-          forceCustomPageRoute: true,
+          useFadeTransition: true,
         );
       },
       onLongPress: () {
@@ -405,7 +405,7 @@ class _DeduplicatePageState extends State<DeduplicatePage> {
               mode: DetailPageMode.minimalistic,
             ),
           ),
-          forceCustomPageRoute: true,
+          useFadeTransition: true,
         );
       },
       child: Column(

@@ -281,7 +281,7 @@ class _MemoriesDebugPageState extends State<MemoriesDebugPage> {
     await routeToPage(
       context,
       _MemoryGalleryPage(title: memory.title, files: files),
-      forceCustomPageRoute: true,
+      useFadeTransition: true,
     );
   }
 

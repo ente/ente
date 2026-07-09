@@ -1,6 +1,5 @@
 import "package:ente_components/ente_components.dart";
 import "package:ente_lock_screen/local_authentication_service.dart";
-import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
@@ -55,6 +54,13 @@ class SettingsPage extends StatelessWidget {
   }
 }
 
+Future<void> _pushSettingsPage(BuildContext context, Widget page) async {
+  await InheritedSettingsState.of(context).pushPage(context, page);
+}
+
+Future<void> Function() _openSettingsPage(BuildContext context, Widget page) =>
+    () => _pushSettingsPage(context, page);
+
 class _SettingsBody extends StatelessWidget {
   final ValueNotifier<String?> emailNotifier;
 
@@ -87,16 +93,13 @@ class _SettingsBody extends StatelessWidget {
           children: [
             if (showLoginEntry) ...[
               OfflineSettingsBanner(
-                onGetStarted: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const EmailEntryPage(
-                        showReferralSourceField: false,
-                        referralSource: "Offline",
-                      ),
-                    ),
-                  );
-                },
+                onGetStarted: _openSettingsPage(
+                  context,
+                  const EmailEntryPage(
+                    showReferralSourceField: false,
+                    referralSource: "Offline",
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
               _buildOfflineLoginCard(context, colors),
@@ -109,17 +112,13 @@ class _SettingsBody extends StatelessWidget {
               _buildMenuItem(
                 title: AppLocalizations.of(context).account,
                 icon: HugeIcons.strokeRoundedUser,
-                onTap: () async {
-                  await routeToPage(context, const AccountSettingsPage());
-                },
+                onTap: _openSettingsPage(context, const AccountSettingsPage()),
               ),
               const SizedBox(height: 8),
               _buildMenuItem(
                 title: AppLocalizations.of(context).backup,
                 icon: HugeIcons.strokeRoundedCloudUpload,
-                onTap: () async {
-                  await routeToPage(context, const BackupSettingsPage());
-                },
+                onTap: _openSettingsPage(context, const BackupSettingsPage()),
               ),
               const SizedBox(height: 8),
             ],
@@ -127,17 +126,13 @@ class _SettingsBody extends StatelessWidget {
             _buildMenuItem(
               title: AppLocalizations.of(context).security,
               icon: HugeIcons.strokeRoundedSecurityCheck,
-              onTap: () async {
-                await routeToPage(context, const SecuritySettingsPage());
-              },
+              onTap: _openSettingsPage(context, const SecuritySettingsPage()),
             ),
             const SizedBox(height: 8),
             _buildMenuItem(
               title: AppLocalizations.of(context).appearance,
               icon: HugeIcons.strokeRoundedPaintBoard,
-              onTap: () async {
-                await routeToPage(context, const AppearanceSettingsPage());
-              },
+              onTap: _openSettingsPage(context, const AppearanceSettingsPage()),
             ),
             const SizedBox(height: 8),
             if (isLocalGalleryMode) ...[
@@ -159,17 +154,13 @@ class _SettingsBody extends StatelessWidget {
             _buildMenuItem(
               title: AppLocalizations.of(context).helpAndSupport,
               icon: HugeIcons.strokeRoundedHelpCircle,
-              onTap: () async {
-                await routeToPage(context, const HelpSupportPage());
-              },
+              onTap: _openSettingsPage(context, const HelpSupportPage()),
             ),
             const SizedBox(height: 8),
             _buildMenuItem(
               title: AppLocalizations.of(context).about,
               icon: HugeIcons.strokeRoundedInformationCircle,
-              onTap: () async {
-                await routeToPage(context, const AboutUsPage());
-              },
+              onTap: _openSettingsPage(context, const AboutUsPage()),
             ),
             const SizedBox(height: 8),
             if (hasLoggedIn && !isLocalGalleryMode) ...[
@@ -188,17 +179,13 @@ class _SettingsBody extends StatelessWidget {
               _buildMenuItem(
                 title: "Debug",
                 icon: HugeIcons.strokeRoundedBug02,
-                onTap: () async {
-                  await routeToPage(context, const DebugSettingsPage());
-                },
+                onTap: _openSettingsPage(context, const DebugSettingsPage()),
               ),
               const SizedBox(height: 8),
               _buildMenuItem(
                 title: "ML Debug",
                 icon: HugeIcons.strokeRoundedAiBrain01,
-                onTap: () async {
-                  await routeToPage(context, const MLDebugSettingsPage());
-                },
+                onTap: _openSettingsPage(context, const MLDebugSettingsPage()),
               ),
               const SizedBox(height: 16),
             ],
@@ -215,22 +202,14 @@ class _SettingsBody extends StatelessWidget {
         variant: IconButtonComponentVariant.primary,
         shouldSurfaceExecutionStates: false,
         icon: const HugeIcon(icon: HugeIcons.strokeRoundedSearch01),
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const SettingsSearchPage()),
-          );
-        },
+        onTap: _openSettingsPage(context, const SettingsSearchPage()),
       ),
       if (localSettings.enableDatabaseLogging) ...[
         IconButtonComponent(
           variant: IconButtonComponentVariant.primary,
           shouldSurfaceExecutionStates: false,
           icon: const HugeIcon(icon: HugeIcons.strokeRoundedBug02),
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const LogViewerPage()),
-            );
-          },
+          onTap: _openSettingsPage(context, const LogViewerPage()),
         ),
       ],
     ];
@@ -276,9 +255,7 @@ class _SettingsBody extends StatelessWidget {
           size: 20,
         ),
       ),
-      onTap: () async {
-        await routeToPage(context, const LoginPage());
-      },
+      onTap: _openSettingsPage(context, const LoginPage()),
     );
   }
 
@@ -288,30 +265,25 @@ class _SettingsBody extends StatelessWidget {
         _buildMenuItem(
           title: AppLocalizations.of(context).machineLearning,
           icon: HugeIcons.strokeRoundedMagicWand01,
-          onTap: () async {
-            await routeToPage(context, const MachineLearningSettingsPage());
-          },
+          onTap: _openSettingsPage(
+            context,
+            const MachineLearningSettingsPage(),
+          ),
         ),
         _buildMenuItem(
           title: AppLocalizations.of(context).memories,
           icon: HugeIcons.strokeRoundedSparkles,
-          onTap: () async {
-            await routeToPage(context, const MemoriesSettingsScreen());
-          },
+          onTap: _openSettingsPage(context, const MemoriesSettingsScreen()),
         ),
         _buildMenuItem(
           title: AppLocalizations.of(context).notifications,
           icon: HugeIcons.strokeRoundedNotification01,
-          onTap: () async {
-            await routeToPage(context, const NotificationSettingsScreen());
-          },
+          onTap: _openSettingsPage(context, const NotificationSettingsScreen()),
         ),
         _buildMenuItem(
           title: AppLocalizations.of(context).widgets,
           icon: HugeIcons.strokeRoundedAlignBoxBottomRight,
-          onTap: () async {
-            await routeToPage(context, const WidgetSettingsScreen());
-          },
+          onTap: _openSettingsPage(context, const WidgetSettingsScreen()),
         ),
         _buildMapsMenuItem(context),
       ],
@@ -376,9 +348,7 @@ class _SettingsBody extends StatelessWidget {
         _buildMenuItem(
           title: AppLocalizations.of(context).referrals,
           icon: HugeIcons.strokeRoundedTicketStar,
-          onTap: () async {
-            await routeToPage(context, const ReferralScreen());
-          },
+          onTap: _openSettingsPage(context, const ReferralScreen()),
         ),
       ],
     );
@@ -391,52 +361,41 @@ class _SettingsBody extends StatelessWidget {
           title: AppLocalizations.of(context).freeUpSpace,
           icon: HugeIcons.strokeRoundedRocket01,
           showOnlyLoadingState: true,
-          onTap: () async {
-            await routeToPage(context, const FreeUpSpaceOptionsScreen());
-          },
+          onTap: _openSettingsPage(context, const FreeUpSpaceOptionsScreen()),
         ),
         _buildMenuItem(
           title: AppLocalizations.of(context).machineLearning,
           icon: HugeIcons.strokeRoundedMagicWand01,
-          onTap: () async {
-            await routeToPage(context, const MachineLearningSettingsPage());
-          },
+          onTap: _openSettingsPage(
+            context,
+            const MachineLearningSettingsPage(),
+          ),
         ),
         _buildMenuItem(
           title: AppLocalizations.of(context).memories,
           icon: HugeIcons.strokeRoundedSparkles,
-          onTap: () async {
-            await routeToPage(context, const MemoriesSettingsScreen());
-          },
+          onTap: _openSettingsPage(context, const MemoriesSettingsScreen()),
         ),
         _buildMenuItem(
           title: AppLocalizations.of(context).notifications,
           icon: HugeIcons.strokeRoundedNotification01,
-          onTap: () async {
-            await routeToPage(context, const NotificationSettingsScreen());
-          },
+          onTap: _openSettingsPage(context, const NotificationSettingsScreen()),
         ),
         _buildMenuItem(
           title: AppLocalizations.of(context).widgets,
           icon: HugeIcons.strokeRoundedAlignBoxBottomRight,
-          onTap: () async {
-            await routeToPage(context, const WidgetSettingsScreen());
-          },
+          onTap: _openSettingsPage(context, const WidgetSettingsScreen()),
         ),
         _buildMenuItem(
           title: AppLocalizations.of(context).videoStreaming,
           icon: HugeIcons.strokeRoundedVideoCameraAi,
-          onTap: () async {
-            await routeToPage(context, const VideoStreamingSettingsPage());
-          },
+          onTap: _openSettingsPage(context, const VideoStreamingSettingsPage()),
         ),
         if (flagService.enableMultiCast)
           _buildMenuItem(
             title: AppLocalizations.of(context).castSessions,
             icon: HugeIcons.strokeRoundedTvSmart,
-            onTap: () async {
-              await routeToPage(context, const CastSettingsPage());
-            },
+            onTap: _openSettingsPage(context, const CastSettingsPage()),
           ),
         _buildMapsMenuItem(context),
       ],

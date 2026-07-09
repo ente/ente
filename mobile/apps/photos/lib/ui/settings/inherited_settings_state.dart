@@ -1,3 +1,4 @@
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/widgets.dart';
 
 /// StatefulWidget that wraps InheritedSettingsState
@@ -11,6 +12,7 @@ class SettingsStateContainer extends StatefulWidget {
 
 class _SettingsState extends State<SettingsStateContainer> {
   int _expandedSectionCount = 0;
+  bool _isSubpageOpen = false;
 
   void increment() {
     setState(() {
@@ -24,13 +26,37 @@ class _SettingsState extends State<SettingsStateContainer> {
     });
   }
 
+  Future<T?> pushPage<T extends Object>(
+    BuildContext context,
+    Widget page,
+  ) async {
+    setState(() {
+      _isSubpageOpen = true;
+    });
+    try {
+      return await routeToPage<T>(context, page);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubpageOpen = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return InheritedSettingsState(
       expandedSectionCount: _expandedSectionCount,
       increment: increment,
       decrement: decrement,
-      child: widget.child,
+      pushPage: pushPage,
+      child: AnimatedSlide(
+        offset: _isSubpageOpen ? const Offset(-1.0 / 3.0, 0) : Offset.zero,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.linearToEaseOut,
+        child: widget.child,
+      ),
     );
   }
 }
@@ -49,12 +75,14 @@ class InheritedSettingsState extends InheritedWidget {
   final int expandedSectionCount;
   final void Function() increment;
   final void Function() decrement;
+  final Future<T?> Function<T extends Object>(BuildContext, Widget) pushPage;
 
   const InheritedSettingsState({
     super.key,
     required this.expandedSectionCount,
     required this.increment,
     required this.decrement,
+    required this.pushPage,
     required super.child,
   });
 

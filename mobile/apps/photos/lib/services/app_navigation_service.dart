@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
@@ -43,7 +42,7 @@ class AppNavigationService {
   /// in call order so stacked routes do not race each other during resume.
   Future<T?> pushPage<T extends Object>(
     Widget page, {
-    bool forceCustomPageRoute = false,
+    bool useFadeTransition = false,
   }) {
     final pushResult = Completer<T?>();
     final scheduledPush = _lastScheduledPush
@@ -64,7 +63,7 @@ class AppNavigationService {
             final routeFuture = _pushWithNavigator<T>(
               navigator,
               page,
-              forceCustomPageRoute: forceCustomPageRoute,
+              useFadeTransition: useFadeTransition,
             );
             unawaited(
               routeFuture.then(
@@ -94,18 +93,14 @@ class AppNavigationService {
   Future<T?> _pushWithNavigator<T extends Object>(
     NavigatorState navigator,
     Widget page, {
-    bool forceCustomPageRoute = false,
+    bool useFadeTransition = false,
   }) {
-    if (Platform.isAndroid || forceCustomPageRoute) {
-      return navigator.push(_buildPageRoute(page));
-    }
-
     return navigator.push(
-      SwipeableRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) {
-          return page;
-        },
-      ),
+      useFadeTransition
+          ? _buildPageRoute<T>(page)
+          : SwipeableRouteBuilder<T>(
+              pageBuilder: (context, animation, secondaryAnimation) => page,
+            ),
     );
   }
 

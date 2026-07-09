@@ -309,6 +309,6 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
         galleryType: galleryType,
       ),
     );
-    routeToPage(context, page, forceCustomPageRoute: true);
+    routeToPage(context, page, useFadeTransition: true);
   }
 }

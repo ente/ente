@@ -242,7 +242,7 @@ class AlbumHomeWidgetService {
               "albumwidget",
             ),
           ),
-          forceCustomPageRoute: true,
+          useFadeTransition: true,
         )
         .ignore();
     await _refreshAlbumsWidget();

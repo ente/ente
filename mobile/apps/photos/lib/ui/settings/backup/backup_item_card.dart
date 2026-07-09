@@ -63,7 +63,7 @@ class _BackupItemCardState extends State<BackupItemCard> {
               "collection",
             ),
           ),
-          forceCustomPageRoute: true,
+          useFadeTransition: true,
         );
       },
       child: Container(

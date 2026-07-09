@@ -6,9 +6,17 @@ import 'package:flutter/material.dart';
 import 'package:photos/theme/colors.dart';
 import 'package:photos/theme/ente_theme.dart';
 
+const _pageTransitionsTheme = PageTransitionsTheme(
+  builders: {
+    TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+    TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+  },
+);
+
 final lightThemeData = ThemeData(
   fontFamily: 'Inter',
   brightness: Brightness.light,
+  pageTransitionsTheme: _pageTransitionsTheme,
   hintColor: const Color.fromRGBO(158, 158, 158, 1),
   primaryColor: const Color.fromRGBO(255, 110, 64, 1),
   primaryColorLight: const Color.fromRGBO(0, 0, 0, 0.541),
@@ -97,6 +105,7 @@ final lightThemeData = ThemeData(
 final darkThemeData = ThemeData(
   fontFamily: 'Inter',
   brightness: Brightness.dark,
+  pageTransitionsTheme: _pageTransitionsTheme,
   primaryColorLight: const Color.fromRGBO(255, 255, 255, 0.702),
   iconTheme: const IconThemeData(color: Colors.white),
   primaryIconTheme: const IconThemeData(

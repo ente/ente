@@ -170,7 +170,7 @@ class PeopleHomeWidgetService {
     AppNavigationService.instance
         .pushPage(
           PeoplePage(person: person, searchResult: null),
-          forceCustomPageRoute: true,
+          useFadeTransition: true,
         )
         .ignore();
 
@@ -184,7 +184,7 @@ class PeopleHomeWidgetService {
           DetailPage(
             DetailPageConfiguration(files, files.indexOf(file), "peoplewidget"),
           ),
-          forceCustomPageRoute: true,
+          useFadeTransition: true,
         )
         .ignore();
     await _refreshPeopleWidget();
