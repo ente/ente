@@ -2,7 +2,8 @@ use llama_cpp_2::context::LlamaContext;
 use llama_cpp_2::context::params::LlamaContextParams;
 use llama_cpp_2::model::LlamaModel;
 use llama_cpp_2::mtmd::{MtmdContext, MtmdContextParams, mtmd_default_marker};
-use parking_lot::Mutex;
+use llama_cpp_2::token::LlamaToken;
+use parking_lot::{Mutex, MutexGuard};
 use self_cell::self_cell;
 use serde::{Deserialize, Serialize};
 use std::ffi::CString;
@@ -46,6 +47,15 @@ struct CachedMtmdContext {
 pub struct Context {
     cell: Mutex<ContextCell>,
     mtmd_context: Mutex<Option<CachedMtmdContext>>,
+    /// Tokens currently held in the KV cache, in order. Kept in sync with
+    /// what has actually been decoded so the next generation can reuse the
+    /// longest common prefix instead of re-decoding the whole prompt.
+    cached_tokens: Mutex<Vec<LlamaToken>>,
+    /// Whether the model uses sliding-window attention for any layer.
+    /// SWA KV cells older than the window are overwritten as decoding
+    /// advances, so prefix reuse must not roll back more than one position
+    /// (see `swa_safe_prefix_len` in generate.rs).
+    swa: bool,
 }
 
 pub type ContextRef = Arc<Context>;
@@ -56,12 +66,28 @@ unsafe impl Sync for Context {}
 impl Context {
     fn try_new(
         owner: ModelRef,
+        swa: bool,
         builder: impl for<'a> FnOnce(&'a ModelRef) -> Result<LlamaContext<'a>, Error>,
     ) -> Result<Self, Error> {
         ContextCell::try_new(owner, builder).map(|cell| Context {
             cell: Mutex::new(cell),
             mtmd_context: Mutex::new(None),
+            cached_tokens: Mutex::new(Vec::new()),
+            swa,
         })
+    }
+
+    /// Bookkeeping for the tokens currently decoded into the KV cache.
+    ///
+    /// Lock ordering: when both are needed, `cell` (via
+    /// [`Self::with_context_mut`]) is locked before `cached_tokens`.
+    pub(super) fn cached_tokens(&self) -> MutexGuard<'_, Vec<LlamaToken>> {
+        self.cached_tokens.lock()
+    }
+
+    /// Whether the model behind this context uses sliding-window attention.
+    pub(super) fn uses_swa(&self) -> bool {
+        self.swa
     }
 
     pub(super) fn with_context_mut<R>(
@@ -169,7 +195,8 @@ impl Context {
             context_params = context_params.with_n_batch(n_batch);
         }
 
-        let context = Context::try_new(Arc::clone(model), |model| {
+        let swa = model_uses_swa(model.model());
+        let context = Context::try_new(Arc::clone(model), swa, |model| {
             let backend = backend()?;
             model
                 .model()
@@ -193,5 +220,22 @@ impl Context {
             self.cached_mtmd_context(ctx.model, &mmproj_path, &marker)
                 .map(|_| ())
         })
+    }
+}
+
+/// Whether the model uses sliding-window attention (SWA) for any layer.
+///
+/// Detected from GGUF metadata (`<arch>.attention.sliding_window`), because
+/// llama-cpp-2 exposes neither `llama_model_n_swa` nor
+/// `llama_memory_seq_pos_min`. A missing key means no SWA; unreadable or
+/// unparseable metadata is treated as SWA, which only costs prefix reuse on
+/// rollbacks, never correctness.
+fn model_uses_swa(model: &LlamaModel) -> bool {
+    let Ok(arch) = model.meta_val_str("general.architecture") else {
+        return true;
+    };
+    match model.meta_val_str(&format!("{arch}.attention.sliding_window")) {
+        Ok(value) => value.trim().parse::<i64>().map(|n| n > 0).unwrap_or(true),
+        Err(_) => false,
     }
 }

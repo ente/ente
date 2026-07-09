@@ -19,6 +19,10 @@ where
 pub struct GenerationSummary {
     pub job_id: JobId,
     pub prompt_tokens: Option<i32>,
+    /// How many prompt tokens were actually decoded this generation. Less
+    /// than `prompt_tokens` when a KV cache prefix was reused.
+    #[serde(default)]
+    pub decoded_prompt_tokens: Option<i32>,
     pub generated_tokens: Option<i32>,
     pub total_time_ms: Option<i64>,
 }

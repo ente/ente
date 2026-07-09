@@ -316,6 +316,123 @@ impl StreamDecoder {
     }
 }
 
+/// Length of the longest common prefix of `cached` and `prompt`.
+fn common_prefix_len(cached: &[LlamaToken], prompt: &[LlamaToken]) -> usize {
+    cached
+        .iter()
+        .zip(prompt.iter())
+        .take_while(|(cached, prompt)| cached == prompt)
+        .count()
+}
+
+/// Length of the longest common prefix of `cached` and `prompt`, capped so
+/// that at least one prompt token is always left to decode: sampling needs
+/// fresh logits, which only a decode produces.
+fn reusable_prefix_len(cached: &[LlamaToken], prompt: &[LlamaToken]) -> usize {
+    common_prefix_len(cached, prompt).min(prompt.len().saturating_sub(1))
+}
+
+/// Cap the reusable prefix for sliding-window-attention models.
+///
+/// An SWA layer's KV cache physically holds only about the last `n_swa`
+/// positions (llama.cpp sizes it to `n_swa + n_ubatch` and overwrites cells
+/// that fall out of the window as decoding advances), yet partial
+/// `seq_rm` still reports success. Re-decoding from a point more than one
+/// position before the cache end would therefore attend over history that
+/// is no longer present and silently corrupt the output; llama-server
+/// forces a full re-process in the same situation. Rolling back zero or
+/// one positions needs exactly the window the cache is guaranteed to still
+/// hold, so those stay allowed (covering pure extension and the
+/// identical-prompt case).
+fn swa_safe_prefix_len(cached_len: usize, keep: usize, swa: bool) -> usize {
+    if swa && cached_len > keep + 1 {
+        0
+    } else {
+        keep
+    }
+}
+
+/// Prepare the KV cache for a new prompt: keep the longest reusable prefix,
+/// evict everything past it, and return the number of positions kept.
+/// `cached` is updated to mirror the KV cache contents. `swa` must be true
+/// for sliding-window-attention models (see [`swa_safe_prefix_len`]).
+fn apply_prefix_reuse(
+    ctx: &mut LlamaContext,
+    cached: &mut Vec<LlamaToken>,
+    prompt: &[LlamaToken],
+    swa: bool,
+) -> usize {
+    let keep = swa_safe_prefix_len(cached.len(), reusable_prefix_len(cached, prompt), swa);
+    // Reusable when we keep a non-empty prefix and, if the cache is longer,
+    // its diverged tail can actually be evicted. Nothing reusable and a failed
+    // partial removal (or a length that does not fit the API type) both fall
+    // through to the single full-reset path below.
+    let reusable = keep > 0
+        && (cached.len() <= keep
+            || u32::try_from(keep)
+                .ok()
+                .and_then(|p0| ctx.clear_kv_cache_seq(Some(0), Some(p0), None).ok())
+                .unwrap_or(false));
+    if !reusable {
+        ctx.clear_kv_cache();
+        cached.clear();
+        return 0;
+    }
+    cached.truncate(keep);
+    keep
+}
+
+/// Decode `prompt_tokens[keep..]` into the KV cache in `n_batch`-sized
+/// chunks, extending `cached_tokens` only after each successful decode (so
+/// on cancel or error the bookkeeping reflects exactly what reached the
+/// cache). With `want_logits` the last prompt token requests logits (needed
+/// before sampling); returns that token's index within its chunk, or 0 when
+/// nothing was decoded.
+fn decode_prompt_suffix(
+    ctx: &mut LlamaContext,
+    cached_tokens: &mut Vec<LlamaToken>,
+    prompt_tokens: &[LlamaToken],
+    keep: usize,
+    n_batch: usize,
+    cancel_flag: &AtomicBool,
+    want_logits: bool,
+) -> Result<i32, Error> {
+    let mut token_offset = keep;
+    let mut logits_index: i32 = 0;
+    while token_offset < prompt_tokens.len() {
+        check_cancelled(cancel_flag)?;
+        let end = (token_offset + n_batch).min(prompt_tokens.len());
+        let chunk = &prompt_tokens[token_offset..end];
+        let mut batch = LlamaBatch::new(chunk.len(), 1);
+        for (idx, token) in chunk.iter().enumerate() {
+            let pos = (token_offset + idx) as i32;
+            let logits = want_logits && token_offset + idx + 1 == prompt_tokens.len();
+            batch
+                .add(*token, pos, &[0], logits)
+                .map_err(|err| Error::Llama {
+                    op: "Failed to add prompt token",
+                    message: err.to_string(),
+                })?;
+        }
+        if let Err(err) = ctx.decode(&mut batch) {
+            // The KV cache state is uncertain after a failed decode; drop it
+            // so the next generation starts from a clean slate.
+            ctx.clear_kv_cache();
+            cached_tokens.clear();
+            return Err(Error::Llama {
+                op: "Prompt decode failed",
+                message: err.to_string(),
+            });
+        }
+        cached_tokens.extend_from_slice(chunk);
+        if end == prompt_tokens.len() {
+            logits_index = (chunk.len() - 1) as i32;
+        }
+        token_offset = end;
+    }
+    Ok(logits_index)
+}
+
 #[allow(clippy::too_many_arguments)]
 fn run_generation_loop(
     ctx: &mut LlamaContext,
@@ -326,6 +443,7 @@ fn run_generation_loop(
     max_tokens: usize,
     stop_sequences: &[String],
     generated_tokens_count: &mut i32,
+    mut cached_tokens: Option<&mut Vec<LlamaToken>>,
     mut pos: i32,
     mut logits_index: i32,
 ) -> Result<(), Error> {
@@ -375,10 +493,21 @@ fn run_generation_loop(
                 op: "Failed to add token",
                 message: err.to_string(),
             })?;
-        ctx.decode(&mut step_batch).map_err(|err| Error::Llama {
-            op: "Decode failed",
-            message: err.to_string(),
-        })?;
+        if let Err(err) = ctx.decode(&mut step_batch) {
+            // The KV cache state is uncertain after a failed decode; drop it
+            // so the next generation starts from a clean slate.
+            ctx.clear_kv_cache();
+            if let Some(cached) = cached_tokens.as_deref_mut() {
+                cached.clear();
+            }
+            return Err(Error::Llama {
+                op: "Decode failed",
+                message: err.to_string(),
+            });
+        }
+        if let Some(cached) = cached_tokens.as_deref_mut() {
+            cached.push(token);
+        }
 
         logits_index = 0;
         pos += 1;
@@ -508,6 +637,7 @@ fn generate_chat_stream(
     let stop_sequences = stop_sequences.unwrap_or_default();
 
     let mut prompt_tokens_count: i32 = 0;
+    let mut decoded_prompt_tokens_count: i32 = 0;
     let mut generated_tokens_count: i32 = 0;
 
     let result = match catch_unwind(AssertUnwindSafe(|| {
@@ -594,36 +724,27 @@ fn generate_chat_stream(
                     return Err(Error::InvalidInput("Context batch size is 0".to_string()));
                 }
 
-                ctx.clear_kv_cache();
+                // Reuse the longest common prefix already in the KV cache and
+                // only decode the remainder of the prompt.
+                let mut cached_tokens = context.cached_tokens();
+                let keep =
+                    apply_prefix_reuse(ctx, &mut cached_tokens, &prompt_tokens, context.uses_swa());
+                decoded_prompt_tokens_count = (prompt_tokens.len() - keep) as i32;
 
-                let mut token_offset = 0usize;
-                let mut logits_index: i32 = 0;
-                while token_offset < prompt_tokens.len() {
-                    check_cancelled(&cancel_flag)?;
-                    let end = (token_offset + n_batch).min(prompt_tokens.len());
-                    let chunk = &prompt_tokens[token_offset..end];
-                    let mut batch = LlamaBatch::new(chunk.len(), 1);
-                    for (idx, token) in chunk.iter().enumerate() {
-                        let pos = (token_offset + idx) as i32;
-                        let logits = token_offset + idx + 1 == prompt_tokens.len();
-                        batch
-                            .add(*token, pos, &[0], logits)
-                            .map_err(|err| Error::Llama {
-                                op: "Failed to add prompt token",
-                                message: err.to_string(),
-                            })?;
-                    }
-                    ctx.decode(&mut batch).map_err(|err| Error::Llama {
-                        op: "Prompt decode failed",
-                        message: err.to_string(),
-                    })?;
-                    if end == prompt_tokens.len() {
-                        logits_index = (chunk.len() - 1) as i32;
-                    }
-                    token_offset = end;
-                }
+                let logits_index = decode_prompt_suffix(
+                    ctx,
+                    &mut cached_tokens,
+                    &prompt_tokens,
+                    keep,
+                    n_batch,
+                    &cancel_flag,
+                    true,
+                )?;
 
                 let mut sampler = build_sampler(ctx.model, &sampler_request)?;
+                // Accept the full prompt (not just the decoded suffix) so
+                // penalty state is identical whether or not a cached prefix
+                // was reused.
                 sampler.accept_many(prompt_tokens.iter());
 
                 let pos = prompt_tokens.len() as i32;
@@ -636,6 +757,7 @@ fn generate_chat_stream(
                     max_tokens,
                     &stop_sequences,
                     &mut generated_tokens_count,
+                    Some(&mut cached_tokens),
                     pos,
                     logits_index,
                 )?;
@@ -709,7 +831,14 @@ fn generate_chat_stream(
                 return Err(Error::InvalidInput("Context batch size is 0".to_string()));
             }
 
+            // Multimodal prompts always start from a cold cache: prefix
+            // matching across image embeddings is not attempted, and the
+            // bookkeeping stays empty so the next text-only generation does
+            // a full decode instead of reusing positions that contain image
+            // embeddings.
             ctx.clear_kv_cache();
+            context.cached_tokens().clear();
+            decoded_prompt_tokens_count = prompt_tokens_count;
             check_cancelled(&cancel_flag)?;
 
             let n_past = chunks
@@ -740,6 +869,7 @@ fn generate_chat_stream(
                 max_tokens,
                 &stop_sequences,
                 &mut generated_tokens_count,
+                None,
                 n_past,
                 -1,
             )?;
@@ -748,13 +878,20 @@ fn generate_chat_stream(
         })
     })) {
         Ok(inner) => inner,
-        Err(_) => Err(Error::Panicked),
+        Err(_) => {
+            // After a panic the KV cache and the bookkeeping may disagree.
+            // Empty the bookkeeping so the next generation clears the cache
+            // and starts cold.
+            context.cached_tokens().clear();
+            Err(Error::Panicked)
+        }
     };
     result?;
 
     let summary = GenerationSummary {
         job_id,
         prompt_tokens: Some(prompt_tokens_count),
+        decoded_prompt_tokens: Some(decoded_prompt_tokens_count),
         generated_tokens: Some(generated_tokens_count),
         total_time_ms: Some(start.elapsed().as_millis() as i64),
     };
@@ -778,7 +915,12 @@ pub fn cancel(job_id: JobId) {
 
 #[cfg(test)]
 mod tests {
-    use super::StreamDecoder;
+    use super::{StreamDecoder, reusable_prefix_len, swa_safe_prefix_len};
+    use llama_cpp_2::token::LlamaToken;
+
+    fn tokens(ids: &[i32]) -> Vec<LlamaToken> {
+        ids.iter().copied().map(LlamaToken).collect()
+    }
 
     #[test]
     fn stream_decoder_emits_complete_utf8() {
@@ -790,5 +932,255 @@ mod tests {
         let step = decoder.push_bytes(&[0x99, 0x82]);
         assert_eq!(step.text.as_deref(), Some("🙂"));
         assert!(!step.stop);
+    }
+
+    #[test]
+    fn prefix_len_empty_cache() {
+        assert_eq!(reusable_prefix_len(&[], &tokens(&[1, 2, 3])), 0);
+    }
+
+    #[test]
+    fn prefix_len_empty_prompt() {
+        assert_eq!(reusable_prefix_len(&tokens(&[1, 2, 3]), &[]), 0);
+    }
+
+    #[test]
+    fn prefix_len_identical_prompt_leaves_one_token_to_decode() {
+        // Sampling needs logits, so the last prompt token must be re-decoded
+        // even when the whole prompt is already cached.
+        assert_eq!(
+            reusable_prefix_len(&tokens(&[1, 2, 3]), &tokens(&[1, 2, 3])),
+            2
+        );
+    }
+
+    #[test]
+    fn prefix_len_divergence_at_start() {
+        assert_eq!(
+            reusable_prefix_len(&tokens(&[9, 2, 3]), &tokens(&[1, 2, 3])),
+            0
+        );
+    }
+
+    #[test]
+    fn prefix_len_divergence_in_middle() {
+        assert_eq!(
+            reusable_prefix_len(&tokens(&[1, 2, 9, 4]), &tokens(&[1, 2, 3, 4, 5])),
+            2
+        );
+    }
+
+    #[test]
+    fn prefix_len_divergence_at_end_of_cache() {
+        assert_eq!(
+            reusable_prefix_len(&tokens(&[1, 2, 3, 9]), &tokens(&[1, 2, 3, 4, 5])),
+            3
+        );
+    }
+
+    #[test]
+    fn prefix_len_prompt_extends_cache() {
+        // The typical warm case: the new prompt is old prompt + reply + new
+        // message, so the whole cache is reusable.
+        assert_eq!(
+            reusable_prefix_len(&tokens(&[1, 2, 3]), &tokens(&[1, 2, 3, 4, 5])),
+            3
+        );
+    }
+
+    #[test]
+    fn prefix_len_prompt_shorter_than_cache() {
+        // The prompt is a strict prefix of the cache; everything except the
+        // final prompt token is reusable.
+        assert_eq!(
+            reusable_prefix_len(&tokens(&[1, 2, 3, 4, 5]), &tokens(&[1, 2, 3])),
+            2
+        );
+    }
+
+    #[test]
+    fn prefix_len_single_token_prompt() {
+        assert_eq!(reusable_prefix_len(&tokens(&[1, 2]), &tokens(&[1])), 0);
+    }
+
+    #[test]
+    fn swa_allows_pure_extension() {
+        // cached=[..3], prompt extends it: keep == cached_len, no rollback.
+        assert_eq!(swa_safe_prefix_len(3, 3, true), 3);
+    }
+
+    #[test]
+    fn swa_allows_one_token_rollback() {
+        // The identical-prompt case: keep == cached_len - 1. The SWA cache
+        // is guaranteed to retain exactly the window this decode needs.
+        assert_eq!(swa_safe_prefix_len(4, 3, true), 3);
+    }
+
+    #[test]
+    fn swa_rejects_deeper_rollback() {
+        // Rolling back two or more positions may attend over SWA cells
+        // that were already overwritten: force a full re-decode.
+        assert_eq!(swa_safe_prefix_len(5, 3, true), 0);
+        assert_eq!(swa_safe_prefix_len(100, 1, true), 0);
+    }
+
+    #[test]
+    fn non_swa_keeps_any_rollback() {
+        assert_eq!(swa_safe_prefix_len(100, 1, false), 1);
+        assert_eq!(swa_safe_prefix_len(5, 3, false), 3);
+    }
+
+    /// Mirrors the bookkeeping of the prefill loop: the cache is truncated to
+    /// the reusable prefix up front and extended chunk by chunk only after a
+    /// chunk decodes successfully. A partial decode (cancel between chunks)
+    /// must leave `cached` holding exactly the tokens that were decoded.
+    #[test]
+    fn cached_tokens_bookkeeping_on_partial_decode() {
+        let mut cached = tokens(&[1, 2, 3, 8, 9]);
+        let prompt = tokens(&[1, 2, 3, 4, 5, 6, 7]);
+        let n_batch = 2;
+
+        let keep = reusable_prefix_len(&cached, &prompt);
+        assert_eq!(keep, 3);
+        cached.truncate(keep);
+
+        // Decode chunks of n_batch tokens, cancelling before the last chunk.
+        let mut token_offset = keep;
+        let mut decoded_chunks = 0;
+        while token_offset < prompt.len() {
+            if decoded_chunks == 1 {
+                break; // simulated cancel between chunks
+            }
+            let end = (token_offset + n_batch).min(prompt.len());
+            cached.extend_from_slice(&prompt[token_offset..end]);
+            decoded_chunks += 1;
+            token_offset = end;
+        }
+
+        assert_eq!(cached, tokens(&[1, 2, 3, 4, 5]));
+
+        // The next attempt with the same prompt resumes from what was
+        // actually decoded.
+        let keep = reusable_prefix_len(&cached, &prompt);
+        assert_eq!(keep, 5);
+    }
+
+    /// End-to-end equivalence of cold and warm generation. Requires a real
+    /// model; run with:
+    /// `cargo test -p ente-ensu kv_reuse_equivalence -- --ignored --nocapture`
+    /// Override the model path with the `ENSU_TEST_MODEL` env var.
+    #[test]
+    #[ignore]
+    fn kv_reuse_equivalence() {
+        use crate::llm::{
+            ChatMessage, ChatRequest, Context, ContextParams, EventSink, GenerationEvent,
+            GenerationSummary, Model, ModelLoadParams,
+        };
+
+        struct Collect(String);
+        impl EventSink for Collect {
+            fn add(&mut self, event: GenerationEvent) {
+                if let GenerationEvent::Text { text, .. } = event {
+                    self.0.push_str(&text);
+                }
+            }
+        }
+
+        fn request(messages: Vec<ChatMessage>) -> ChatRequest {
+            ChatRequest {
+                messages,
+                template_override: None,
+                add_assistant: Some(true),
+                image_paths: None,
+                mmproj_path: None,
+                media_marker: None,
+                max_tokens: Some(48),
+                // temperature 0 selects the greedy sampler, making output
+                // deterministic for a given KV/logits state.
+                temperature: Some(0.0),
+                top_p: None,
+                top_k: None,
+                repeat_penalty: None,
+                frequency_penalty: None,
+                presence_penalty: None,
+                seed: None,
+                stop_sequences: None,
+                grammar: None,
+            }
+        }
+
+        fn message(role: &str, content: &str) -> ChatMessage {
+            ChatMessage {
+                role: role.to_string(),
+                content: content.to_string(),
+            }
+        }
+
+        fn run(context: &Context, messages: Vec<ChatMessage>) -> (String, GenerationSummary) {
+            let mut sink = Collect(String::new());
+            let summary = context
+                .generate_chat_stream(request(messages), &mut sink)
+                .expect("generation failed");
+            (sink.0, summary)
+        }
+
+        let model_path = std::env::var("ENSU_TEST_MODEL").unwrap_or_else(|_| {
+            let home = std::env::var("HOME").expect("HOME not set");
+            format!("{home}/.local/share/io.ente.ensu/models/gemma-4-E4B-it-Q4_K_M.gguf")
+        });
+        assert!(
+            std::path::Path::new(&model_path).exists(),
+            "model not found at {model_path}; set ENSU_TEST_MODEL"
+        );
+
+        let model = Model::load(ModelLoadParams {
+            model_path,
+            n_gpu_layers: Some(0),
+            use_mmap: None,
+            use_mlock: None,
+        })
+        .expect("model load failed");
+
+        let context_params = ContextParams {
+            context_size: Some(2048),
+            n_threads: None,
+            n_batch: None,
+        };
+
+        let turn1 = vec![message("user", "Name the three primary colors.")];
+
+        // Warm path: two turns on the same context; the second turn should
+        // reuse the KV prefix from the first.
+        let warm_context = Context::new(&model, context_params.clone()).expect("context failed");
+        let (reply1, _summary1) = run(&warm_context, turn1.clone());
+        assert!(!reply1.is_empty());
+
+        let mut turn2 = turn1.clone();
+        turn2.push(message("assistant", &reply1));
+        turn2.push(message("user", "Now name two secondary colors."));
+
+        let (warm_text, warm_summary) = run(&warm_context, turn2.clone());
+        drop(warm_context);
+
+        // Cold path: the same second turn on a fresh context.
+        let cold_context = Context::new(&model, context_params).expect("context failed");
+        let (cold_text, cold_summary) = run(&cold_context, turn2);
+
+        assert_eq!(
+            warm_text, cold_text,
+            "warm output must be byte-identical to cold output"
+        );
+
+        let cold_decoded = cold_summary.decoded_prompt_tokens.expect("count missing");
+        let warm_decoded = warm_summary.decoded_prompt_tokens.expect("count missing");
+        assert_eq!(
+            Some(cold_decoded),
+            cold_summary.prompt_tokens,
+            "cold run must decode the full prompt"
+        );
+        assert!(
+            warm_decoded < cold_decoded,
+            "warm run must decode fewer prompt tokens ({warm_decoded} vs {cold_decoded})"
+        );
     }
 }
