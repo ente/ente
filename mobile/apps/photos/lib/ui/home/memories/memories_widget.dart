@@ -9,6 +9,8 @@ import "package:photos/events/memories_setting_changed.dart";
 import "package:photos/events/memory_seen_event.dart";
 import "package:photos/models/memories/smart_memory.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/services/notification_service.dart";
+import "package:photos/ui/home/memories/craft_memories.dart";
 import "package:photos/ui/home/memories/memory_cover_util.dart";
 import 'package:photos/ui/home/memories/memory_cover_widget.dart';
 import "package:photos/ui/home/memories/memory_video_prefetcher.dart";
@@ -34,10 +36,12 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
   int _warmGeneration = 0;
   String? _lastWarmSignature;
   final _videoPrefetcher = MemoryVideoPrefetcher();
+  late Future<bool> _hasNotificationsPermissions;
 
   @override
   void initState() {
     super.initState();
+    _refreshNotificationsPermissions();
     _memoriesSettingSubscription = Bus.instance
         .on<MemoriesSettingChanged>()
         .listen((event) {
@@ -59,6 +63,11 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
         setState(() {});
       }
     });
+  }
+
+  void _refreshNotificationsPermissions() {
+    _hasNotificationsPermissions = NotificationService.instance
+        .hasGrantedPermissions();
   }
 
   @override
@@ -206,27 +215,50 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
   }
 
   Widget _buildMemories(List<SmartMemory> memories) {
-    return SizedBox(
-      height: _memoryheight + MemoryCoverWidget.outerStrokeWidth * 2,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(
-          horizontal: MemoryCoverWidget.gap / 2.0,
-        ),
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
-        scrollDirection: Axis.horizontal,
-        itemCount: memories.length,
-        itemBuilder: (context, itemIndex) {
-          return MemoryCoverWidget(
-            smartMemory: memories[itemIndex],
-            allMemories: memories,
-            height: _memoryheight,
-            width: _memoryWidth,
-            currentMemoryIndex: itemIndex,
-          );
-        },
-      ),
+    return FutureBuilder<bool>(
+      future: _hasNotificationsPermissions,
+      builder: (context, snapshot) {
+        final hasNotificationsPermissions = snapshot.data ?? false;
+        return SizedBox(
+          height: _memoryheight + MemoryCoverWidget.outerStrokeWidth * 2,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(
+              horizontal: MemoryCoverWidget.gap / 2.0,
+            ),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            scrollDirection: Axis.horizontal,
+            itemCount: hasNotificationsPermissions
+                ? memories.length
+                : memories.length + 1,
+            itemBuilder: (context, itemIndex) {
+              if (!hasNotificationsPermissions && itemIndex == 0) {
+                return CraftMemories(
+                  width: _memoryWidth * 0.75,
+                  height: _memoryheight,
+                  onNotificationsPermissionGranted: () {
+                    if (!mounted) return;
+                    setState(() {
+                      _refreshNotificationsPermissions();
+                    });
+                  },
+                );
+              }
+              final memoryIndex = hasNotificationsPermissions
+                  ? itemIndex
+                  : itemIndex - 1;
+              return MemoryCoverWidget(
+                smartMemory: memories[memoryIndex],
+                allMemories: memories,
+                height: _memoryheight,
+                width: _memoryWidth,
+                currentMemoryIndex: memoryIndex,
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
