@@ -20,6 +20,7 @@ import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import 'package:photos/utils/file_download_util.dart';
 import 'package:photos/utils/thumbnail_util.dart';
+import 'package:uuid/uuid.dart';
 
 final _logger = Logger("FileUtil");
 
@@ -53,6 +54,27 @@ void preloadFile(EnteFile file) {
     return;
   }
   getFile(file);
+}
+
+/// Copies [ioFile] to the app's private temp directory so the existing
+/// FileProvider (which has `<files-path>` configured) can serve it even when
+/// the original file is on external SD card storage.
+///
+/// Returns the `file://` URI string of the cached copy.
+Future<String> copyToTempForSharing(File ioFile) async {
+  final tempDir = Directory(Configuration.instance.getTempDirectory());
+  if (!tempDir.existsSync()) {
+    tempDir.createSync(recursive: true);
+  }
+  final cached = File(
+    join(tempDir.path, "${const Uuid().v4().toString()}_${basename(ioFile.path)}"),
+  );
+  try {
+    return (await ioFile.copy(cached.path)).uri.toString();
+  } catch (e, s) {
+    _logger.warning("Failed to copy file to temp for sharing", e, s);
+    rethrow;
+  }
 }
 
 // IMPORTANT: Delete the returned file if `isOrigin` is set to true

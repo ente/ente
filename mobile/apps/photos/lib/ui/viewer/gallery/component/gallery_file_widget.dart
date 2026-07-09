@@ -240,7 +240,11 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
       if (AppLifecycleService.instance.mediaExtensionAction.action ==
           IntentAction.pick) {
         final ioFile = await getFile(file);
-        await MediaExtension().setResult("file://${ioFile!.path}");
+        if (ioFile != null) {
+          await MediaExtension().setResult(
+            await copyToTempForSharing(ioFile),
+          );
+        }
       } else {
         _routeToDetailPage(file, context);
       }
@@ -278,7 +282,11 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
     if (AppLifecycleService.instance.mediaExtensionAction.action ==
         IntentAction.pick) {
       final ioFile = await getFile(file);
-      await MediaExtension().setResult("file://${ioFile!.path}");
+      if (ioFile != null) {
+        await MediaExtension().setResult(
+          await copyToTempForSharing(ioFile),
+        );
+      }
     } else {
       _routeToDetailPage(file, context);
     }
