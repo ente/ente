@@ -126,6 +126,12 @@ class PersonService {
       param: {"entity": entities},
       taskName: "decode_person_entities",
     );
+    if (persons.length != entities.length) {
+      logger.severe(
+        "Skipped ${entities.length - persons.length} of ${entities.length} "
+        "person entities that could not be decoded",
+      );
+    }
     _emailToPartialPersonDataMapCache.clear();
     for (PersonEntity person in persons) {
       if (person.data.email != null && person.data.email!.isNotEmpty) {
@@ -141,11 +147,24 @@ class PersonService {
 
   static List<PersonEntity> _decodePersonEntities(Map<String, dynamic> param) {
     final entities = param["entity"] as List<LocalEntityData>;
-    return entities
-        .map(
-          (e) => PersonEntity(e.id, PersonData.fromJson(json.decode(e.data))),
-        )
-        .toList();
+    final persons = <PersonEntity>[];
+    for (final e in entities) {
+      try {
+        persons.add(
+          PersonEntity(e.id, PersonData.fromJson(json.decode(e.data))),
+        );
+      } catch (err, stackTrace) {
+        // Skip the undecodable entity so a single corrupt person entity
+        // cannot abort the entire decode (which is awaited during app
+        // startup, before runApp).
+        Logger("PersonService").severe(
+          "Failed to decode person entity ${e.id}, skipping it",
+          err,
+          stackTrace,
+        );
+      }
+    }
+    return persons;
   }
 
   Future<PersonEntity?> getPerson(String id) {
