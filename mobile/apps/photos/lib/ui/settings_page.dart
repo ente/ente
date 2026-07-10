@@ -55,7 +55,7 @@ class SettingsPage extends StatelessWidget {
 }
 
 Future<void> _pushSettingsPage(BuildContext context, Widget page) async {
-  await InheritedSettingsState.of(context).pushPage(context, page);
+  await InheritedSettingsState.of(context).pushPage<Object>(context, page);
 }
 
 Future<void> Function() _openSettingsPage(BuildContext context, Widget page) =>
