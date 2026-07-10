@@ -130,12 +130,12 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
     final File? originFile = await getFile(widget.file, isOrigin: true);
     if (originFile == null) return;
     final properties = await getVideoPropsAsync(originFile);
+    if (!mounted) return;
     _videoMetadataNotifier.value = properties;
     if (kDebugMode) {
       log("videoCustomProps ${properties.toString()}");
       log("PropData ${properties?.propData.toString()}");
     }
-    if (!mounted) return;
     setState(() {});
   }
 

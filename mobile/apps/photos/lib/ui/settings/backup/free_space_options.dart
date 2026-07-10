@@ -138,11 +138,13 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
     try {
       status = await FilesService.instance.getFreeableSpaceInfo();
     } catch (e) {
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
       return;
     }
 
     if (status.localIDs.isEmpty) {
+      if (!mounted) return;
       unawaited(
         showErrorDialog(
           context,
@@ -151,6 +153,7 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
         ),
       );
     } else {
+      if (!mounted) return;
       final bool? result = await routeToPage(context, FreeSpacePage(status));
       if (result == true) {
         _showSpaceFreedDialog(status);
@@ -163,11 +166,13 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
     try {
       duplicates = await DeduplicationService.instance.getDuplicateFiles();
     } catch (e) {
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
       return;
     }
 
     if (duplicates.isEmpty) {
+      if (!mounted) return;
       unawaited(
         showErrorDialog(
           context,
@@ -176,6 +181,7 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
         ),
       );
     } else {
+      if (!mounted) return;
       final DeduplicationResult? result = await routeToPage(
         context,
         DeduplicatePage(duplicates),
@@ -192,11 +198,13 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
       suggestionFileIDs = await CollectionsService.instance
           .fetchDeleteSuggestionFileIDs();
     } catch (e) {
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
       return;
     }
 
     if (suggestionFileIDs.isEmpty) {
+      if (!mounted) return;
       unawaited(
         showErrorDialog(
           context,
@@ -205,6 +213,7 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
         ),
       );
     } else {
+      if (!mounted) return;
       await routeToPage(context, DeleteSuggestionsPage());
     }
   }

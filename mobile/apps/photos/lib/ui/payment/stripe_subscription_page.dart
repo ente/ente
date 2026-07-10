@@ -120,6 +120,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     try {
       await _fetchSub();
     } catch (e) {
+      if (!mounted) return;
       showToast(
         context,
         AppLocalizations.of(context).failedToRefreshStripeSubscription,
@@ -132,6 +133,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
         _currentSubscription != null &&
         _currentSubscription!.isValid() &&
         _currentSubscription!.productID != freeProductID) {
+      if (!mounted) return;
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
   }
@@ -266,12 +268,14 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
                 if (!context.mounted) {
                   return;
                 }
+                if (!mounted) return;
                 await showGenericErrorDialog(context: context, error: error);
                 return;
               }
               if (!context.mounted) {
                 return;
               }
+              if (!mounted) return;
               await _billingService.launchFamilyPortal(
                 context,
                 userDetails,
@@ -364,6 +368,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
     try {
       final String url = await _billingService.getStripeCustomerPortalUrl();
       await _dialog.hide();
+      if (!mounted) return;
       await Navigator.of(context)
           .push(
             MaterialPageRoute(
@@ -378,6 +383,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
           .then((value) => onWebPaymentGoBack);
     } catch (e) {
       await _dialog.hide();
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }
@@ -439,6 +445,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
           : await _billingService.cancelStripeSubscription();
       await _fetchSub();
     } catch (e) {
+      if (!mounted) return;
       showShortToast(
         context,
         isAutoRenewDisabled
@@ -558,12 +565,13 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
                 ).areYouSureYouWantToChangeYourPlan,
                 firstButtonLabel: AppLocalizations.of(context).yes,
               );
-              if (result!.action == ButtonAction.first) {
+              if (result?.action == ButtonAction.first) {
                 stripPurChaseAction = 'update';
               } else {
                 return;
               }
             }
+            if (!mounted) return;
             await Navigator.push(
               context,
               MaterialPageRoute(
@@ -714,6 +722,7 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
         return;
       }
     }
+    if (!mounted) return;
     await Navigator.push(
       context,
       MaterialPageRoute(

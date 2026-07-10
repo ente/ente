@@ -204,6 +204,7 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
       return;
     }
 
+    if (!context.mounted) return;
     Navigator.of(context).pop(ClusterPageResult.ignoredPerson);
   }
 
@@ -262,17 +263,20 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
       },
     );
     if (userConfirmed) {
+      Bus.instance.fire(PeopleChangedEvent());
+
       // Close the old cluster page
+      if (!context.mounted) return;
       Navigator.of(context).pop();
 
       // Push the new cluster page
+      if (!context.mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) =>
               ClusterPage(biggestClusterFiles, clusterID: biggestClusterID),
         ),
       );
-      Bus.instance.fire(PeopleChangedEvent());
     }
   }
 
@@ -302,6 +306,7 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
       ),
     );
 
+    if (!context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => ClusterBreakupPage(

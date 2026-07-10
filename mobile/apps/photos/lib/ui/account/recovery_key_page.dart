@@ -140,6 +140,7 @@ class _RecoveryKeyPageState extends State<RecoveryKeyPage> {
                               await Clipboard.setData(
                                 ClipboardData(text: recoveryKey),
                               );
+                              if (!mounted) return;
                               showShortToast(
                                 context,
                                 AppLocalizations.of(
@@ -189,6 +190,7 @@ class _RecoveryKeyPageState extends State<RecoveryKeyPage> {
     }
     _recoveryKeyFile.writeAsStringSync(recoveryKey);
 
+    if (!mounted) return null;
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(_recoveryKeyFile.path)],

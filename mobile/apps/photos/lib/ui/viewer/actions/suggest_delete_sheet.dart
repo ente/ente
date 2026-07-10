@@ -46,6 +46,7 @@ Future<bool> showSuggestDeleteSheet({
         isInAlert: true,
         onTap: () async {
           await onConfirm();
+          if (!context.mounted) return;
           showShortToast(context, l10n.deleteSuggestionSent);
         },
       ),
@@ -61,6 +62,7 @@ Future<bool> showSuggestDeleteSheet({
   );
 
   if (actionResult?.action == ButtonAction.error) {
+    if (!context.mounted) return false;
     await showGenericErrorDialog(
       context: context,
       error:

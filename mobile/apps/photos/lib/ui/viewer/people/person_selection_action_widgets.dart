@@ -344,14 +344,16 @@ class _LinkContactToPersonSelectionPageState
                           );
 
                           if (updatedPerson != null) {
+                            if (!context.mounted) return;
                             Navigator.of(context).pop(updatedPerson);
                           }
                         } catch (e) {
+                          _logger.severe("Failed to link person to contact", e);
+                          if (!context.mounted) return;
                           await showGenericErrorDialog(
                             context: context,
                             error: e,
                           );
-                          _logger.severe("Failed to link person to contact", e);
                         }
                       },
                       itemSize: itemSize,
@@ -523,12 +525,14 @@ class _LinkContactToPersonSelectionPageState
     required PersonEntity personEntity,
   }) async {
     if (await checkIfEmailAlreadyAssignedToAPerson(emailToLink)) {
+      if (!context.mounted) return null;
       await showAlreadyLinkedEmailDialog(context, emailToLink);
       return null;
     }
 
     final personName = personEntity.data.name;
     PersonEntity? updatedPerson;
+    if (!context.mounted) return null;
     final result = await showDialogWidget(
       context: context,
       title: context.l10n.linkPersonToEmail(email: emailToLink),
@@ -571,6 +575,7 @@ class _LinkContactToPersonSelectionPageState
       Logger(
         "linkPersonToContact",
       ).severe("Failed to link person to contact", result!.exception);
+      if (!context.mounted) return null;
       await showGenericErrorDialog(context: context, error: result.exception);
       return null;
     } else {
@@ -687,6 +692,7 @@ class _ReassignMeSelectionPageState extends State<ReassignMeSelectionPage> {
                         currentPersonID: widget.currentMeId,
                         newPersonID: results[index].remoteID,
                       );
+                      if (!context.mounted) return;
                       showToast(
                         context,
                         context.l10n.reassignedToName(
@@ -695,9 +701,11 @@ class _ReassignMeSelectionPageState extends State<ReassignMeSelectionPage> {
                       );
                       await Future.delayed(const Duration(milliseconds: 1250));
                       unawaited(dialog.hide());
+                      if (!context.mounted) return;
                       Navigator.of(context).pop();
                     } catch (e) {
                       unawaited(dialog.hide());
+                      if (!context.mounted) return;
                       unawaited(
                         showGenericErrorDialog(context: context, error: e),
                       );

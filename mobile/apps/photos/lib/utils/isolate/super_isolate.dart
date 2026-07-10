@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:isolate';
 
 import "package:dart_ui_isolate/dart_ui_isolate.dart";
-import "package:flutter/foundation.dart" show kDebugMode;
 import "package:flutter/services.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/error-reporting/isolate_logging.dart";
+import "package:photos/core/error-reporting/super_logging.dart";
 import "package:photos/models/base/id.dart";
 import "package:photos/utils/isolate/isolate_operations.dart";
 import "package:synchronized/synchronized.dart";
@@ -72,7 +72,7 @@ abstract class SuperIsolate {
     final SendPort mainSendPort = args[0] as SendPort;
     final RootIsolateToken? rootToken = args[1] as RootIsolateToken?;
 
-    Logger.root.level = kDebugMode ? Level.ALL : Level.INFO;
+    Logger.root.level = SuperLogging.rootLoggerLevel;
     final IsolateLogger isolateLogger = IsolateLogger();
     Logger.root.onRecord.listen(isolateLogger.onLogRecordInIsolate);
     final receivePort = ReceivePort();

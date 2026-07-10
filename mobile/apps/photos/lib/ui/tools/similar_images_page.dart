@@ -676,9 +676,11 @@ class _SimilarImagesPageState extends State<SimilarImagesPage>
       _logger.severe("Failed to get similar files", e, s);
       if (_isDisposed) return;
       if (flagService.internalUser) {
+        if (!mounted) return;
         await showGenericErrorDialog(context: context, error: e);
       }
       if (_isDisposed) return;
+      if (!mounted) return;
       Navigator.of(context).pop();
     }
   }
@@ -978,6 +980,7 @@ class _SimilarImagesPageState extends State<SimilarImagesPage>
             );
           } catch (e, s) {
             _logger.severe("Failed to delete files", e, s);
+            if (!mounted) return;
             await showGenericErrorDialog(context: context, error: e);
           }
         },
@@ -1149,6 +1152,7 @@ class _SimilarImagesPageState extends State<SimilarImagesPage>
         }
       });
     }
+    if (!mounted) return;
     await deleteFilesFromRemoteOnly(context, allDeleteFiles.toList());
 
     // Show congratulations popup

@@ -169,6 +169,7 @@ class _RitualHeatmapCardState extends State<RitualHeatmapCard> {
       );
       await file.writeAsBytes(data, flush: true);
 
+      if (!mounted) return;
       final shareOrigin = _shareButtonRect(context, _shareButtonKey);
       await SharePlus.instance.share(
         ShareParams(

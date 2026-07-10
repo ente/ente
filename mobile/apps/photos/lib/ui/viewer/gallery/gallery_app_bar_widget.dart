@@ -333,6 +333,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       },
     );
     if (result is Exception) {
+      if (!context.mounted) return null;
       await showGenericErrorDialog(context: context, error: result);
     }
   }
@@ -367,11 +368,13 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     );
     if (actionResult?.action != null && mounted) {
       if (actionResult!.action == ButtonAction.error) {
+        if (!context.mounted) return null;
         await showGenericErrorDialog(
           context: context,
           error: actionResult.exception,
         );
       } else if (actionResult.action == ButtonAction.first) {
+        if (!context.mounted) return null;
         Navigator.of(context).pop();
       }
     }
@@ -394,18 +397,21 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       );
     } catch (e) {
       await dialog.hide();
+      if (!context.mounted) return null;
       unawaited(showGenericErrorDialog(context: context, error: e));
       return;
     }
 
     await dialog.hide();
     if (status.localIDs.isEmpty) {
+      if (!context.mounted) return null;
       await showErrorDialog(
         context,
         AppLocalizations.of(context).allClear,
         AppLocalizations.of(context).youveNoFilesInThisAlbumThatCanBeDeleted,
       );
     } else {
+      if (!context.mounted) return null;
       final bool? result = await routeToPage(
         context,
         FreeSpacePage(status, clearSpaceForFolder: true),
@@ -900,6 +906,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         );
       } catch (e, s) {
         _logger.severe("Failed to download album", e, s);
+        if (!mounted) return;
         await showGenericErrorDialog(context: context, error: e);
       }
       return;
@@ -920,6 +927,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       }
     } catch (e, s) {
       _logger.severe("Failed to download album", e, s);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
     await dialog.hide();
@@ -937,8 +945,10 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       await locationService.deleteLocationTag(
         InheritedLocationScreenState.of(context).locationTagEntity.id,
       );
+      if (!mounted) return;
       Navigator.of(context).pop();
     } catch (e) {
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }
@@ -953,6 +963,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     );
     if (actionResult?.action != null && mounted) {
       if (actionResult!.action == ButtonAction.first) {
+        if (!buildContext.mounted) return;
         await collectionActions.removeFromUncatIfPresentInOtherAlbum(
           widget.collection!,
           buildContext,
@@ -967,6 +978,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       widget.collection!,
     );
     if (coverPhotoID != null) {
+      if (!context.mounted) return;
       unawaited(changeCoverPhoto(context, widget.collection!, coverPhotoID));
     }
   }
@@ -976,6 +988,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       try {
         await setMapEnabled(true);
       } catch (e) {
+        if (!mounted) return;
         showShortToast(
           context,
           AppLocalizations.of(context).somethingWentWrong,
@@ -983,6 +996,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         return;
       }
     }
+    if (!mounted) return;
     unawaited(
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -1019,6 +1033,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       ],
     );
     if (sortByAsc != null) {
+      if (!bContext.mounted) return;
       unawaited(changeSortOrder(bContext, widget.collection!, sortByAsc));
     }
   }
@@ -1074,6 +1089,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       }
     } catch (e, s) {
       _logger.severe("failed to trash collection", e, s);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }
@@ -1137,6 +1153,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         );
 
         if (res != null && res.action == ButtonAction.first) {
+          if (!mounted) return;
           await Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => WebPage(
@@ -1151,6 +1168,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       }
     } catch (e, s) {
       _logger.severe("Failed to show add photo dialog", e, s);
+      if (!bContext.mounted) return;
       await showGenericErrorDialog(context: bContext, error: e);
     }
   }
@@ -1202,11 +1220,13 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         );
         collectionFiles = filesResult.files;
       } else {
+        if (!mounted) return;
         showToast(context, AppLocalizations.of(context).somethingWentWrong);
         return;
       }
 
       if (collectionFiles.isEmpty) {
+        if (!mounted) return;
         showToast(context, AppLocalizations.of(context).nothingToSeeHere);
         return;
       }
@@ -1221,11 +1241,13 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         ),
       );
       await localSettings.setOnGuestView(true);
+      if (!mounted) return;
       routeToPage(context, page, forceCustomPageRoute: true).ignore();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Bus.instance.fire(GuestViewEvent(true, false));
       });
     } else {
+      if (!mounted) return;
       await showErrorDialog(
         context,
         AppLocalizations.of(context).noSystemLockFound,

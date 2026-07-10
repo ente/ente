@@ -151,6 +151,7 @@ class _BackupOnlyNewPhotosToggle extends StatelessWidget {
           if (!hasPermission) {
             return;
           }
+          if (!context.mounted) return;
           final shouldProceed = await _maybeHandleFolderSelection(
             context: context,
           );
@@ -228,6 +229,7 @@ class _BackupOnlyNewPhotosToggle extends StatelessWidget {
     }
 
     if (result == _FolderPromptAction.selectFolders) {
+      if (!context.mounted) return false;
       final bool? selected = await handleFolderSelectionBackupFlow(
         context,
         fromOnlyNewPhotosToggle: true,

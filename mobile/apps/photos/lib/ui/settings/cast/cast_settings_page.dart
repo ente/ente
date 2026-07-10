@@ -144,6 +144,7 @@ class _CastSessionsListState extends State<CastSessionsList> {
                 await gw.revokeSession(session);
               } catch (e, s) {
                 logger.severe('Failed to revoke cast session: ', e, s);
+                if (!mounted) return;
                 await showGenericErrorDialog(context: context, error: e);
                 return;
               }

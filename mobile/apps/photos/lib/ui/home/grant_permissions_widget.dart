@@ -185,6 +185,7 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget> {
       }
     } catch (e) {
       _logger.severe("Failed to request permission: ${e.toString()}", e);
+      if (!mounted) return;
       showGenericErrorDialog(context: context, error: e).ignore();
     }
   }
@@ -201,6 +202,7 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget> {
       }
     } catch (e) {
       _logger.severe("Failed to request permission: ${e.toString()}", e);
+      if (!mounted) return;
       showGenericErrorDialog(context: context, error: e).ignore();
     }
   }

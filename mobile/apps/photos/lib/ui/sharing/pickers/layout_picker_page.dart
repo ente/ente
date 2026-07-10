@@ -48,6 +48,7 @@ class LayoutPickerPage extends StatelessWidget {
         ),
       );
     } catch (e) {
+      if (!context.mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }
@@ -132,7 +133,9 @@ class _ItemsWidgetState extends State<ItemsWidget> {
         prop,
       );
     } catch (e) {
-      await showGenericErrorDialog(context: context, error: e);
+      if (context.mounted) {
+        await showGenericErrorDialog(context: context, error: e);
+      }
       rethrow;
     }
   }

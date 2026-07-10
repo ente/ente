@@ -453,6 +453,7 @@ class MagicCacheService {
           }
         }
         for (final p in prompts) {
+          if (!context.mounted) return const [];
           final genericSearchResult = toGenericSearchResult(
             context,
             p,
@@ -517,6 +518,7 @@ class MagicCacheService {
                 localIdToIntId,
               );
             }
+            if (!context.mounted) return const [];
             final genericSearchResult = toGenericSearchResult(
               context,
               p,

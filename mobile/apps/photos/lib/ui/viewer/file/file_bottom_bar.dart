@@ -350,6 +350,7 @@ class FileBottomBarState extends State<FileBottomBar> {
               final trashedFile = <TrashFile>[];
               trashedFile.add(widget.file as TrashFile);
               if (await deleteFromTrash(context, trashedFile) == true) {
+                if (!mounted) return;
                 Navigator.pop(context);
               }
             },
@@ -434,6 +435,7 @@ class FileBottomBarState extends State<FileBottomBar> {
       }
     } else {
       // Multiple shared collections: show selector bottom sheet
+      if (!mounted) return;
       await showLikeCollectionSelectorSheet(
         context,
         fileID: file.uploadedFileID!,

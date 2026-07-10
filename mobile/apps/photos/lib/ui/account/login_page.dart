@@ -212,6 +212,7 @@ class _LoginPageState extends State<LoginPage> {
       }
     }
     if (attr != null && !isEmailVerificationEnabled) {
+      if (!mounted) return;
       // ignore: unawaited_futures
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -221,6 +222,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
     } else {
+      if (!mounted) return;
       await UserService.instance.sendOtt(
         context,
         _email!,
@@ -228,6 +230,7 @@ class _LoginPageState extends State<LoginPage> {
         purpose: "login",
       );
     }
+    if (!mounted) return;
     FocusScope.of(context).unfocus();
   }
 

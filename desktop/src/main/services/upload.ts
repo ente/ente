@@ -1,33 +1,43 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { existsSync } from "original-fs";
-import type { PendingUploads, SkippedFile, ZipItem } from "../../types/ipc";
+import type {
+    PendingUploads,
+    PreUploadSkippedFile,
+    ZipItem,
+} from "../../types/ipc";
 import log from "../log";
 import { uploadStatusStore } from "../stores/upload-status";
 import { clearOpenZipCache, markClosableZip, openZip } from "./zip";
 
 export const listZipItems = async (
     zipPath: string,
-): Promise<{ items: ZipItem[]; skippedFiles: SkippedFile[] }> => {
+): Promise<{
+    items: ZipItem[];
+    preUploadSkippedFiles: PreUploadSkippedFile[];
+}> => {
     try {
         const zip = openZip(zipPath);
         try {
             const entries = await zip.entries();
             const items: ZipItem[] = [];
-            const skippedFiles: SkippedFile[] = [];
+            const preUploadSkippedFiles: PreUploadSkippedFile[] = [];
 
             for (const entry of Object.values(entries)) {
                 if (!entry.isFile) continue;
 
                 const basename = path.basename(entry.name);
                 if (basename.startsWith(".")) {
-                    skippedFiles.push({ name: entry.name, type: "hiddenFile" });
+                    preUploadSkippedFiles.push({
+                        name: entry.name,
+                        type: "hiddenFile",
+                    });
                     continue;
                 }
                 items.push([zipPath, entry.name]);
             }
 
-            return { items, skippedFiles };
+            return { items, preUploadSkippedFiles };
         } finally {
             markClosableZip(zipPath);
         }
@@ -35,7 +45,9 @@ export const listZipItems = async (
         log.error("Ignoring malformed zip", e);
         return {
             items: [],
-            skippedFiles: [{ name: path.basename(zipPath), type: "failedZip" }],
+            preUploadSkippedFiles: [
+                { name: path.basename(zipPath), type: "failedZip" },
+            ],
         };
     }
 };
@@ -70,11 +82,12 @@ export const pendingUploads = (): PendingUploads | undefined => {
 
     const allZipItems = uploadStatusStore.get("zipItems") ?? [];
     const zipItems = allZipItems.filter(([z]) => existsSync(z));
-    const skippedFiles = uploadStatusStore.get("skippedFiles") ?? [];
+    const preUploadSkippedFiles =
+        uploadStatusStore.get("preUploadSkippedFiles") ?? [];
 
     if (filePaths.length == 0 && zipItems.length == 0) return undefined;
 
-    return { collectionName, filePaths, zipItems, skippedFiles };
+    return { collectionName, filePaths, zipItems, preUploadSkippedFiles };
 };
 
 /**
@@ -117,13 +130,13 @@ export const setPendingUploads = ({
     collectionName,
     filePaths,
     zipItems,
-    skippedFiles,
+    preUploadSkippedFiles,
 }: PendingUploads) => {
     uploadStatusStore.set({
         collectionName: collectionName ?? "",
         filePaths: filePaths,
         zipItems: zipItems,
-        skippedFiles: skippedFiles ?? [],
+        preUploadSkippedFiles: preUploadSkippedFiles ?? [],
     });
 };
 

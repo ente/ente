@@ -58,6 +58,7 @@ class _AppStorageViewerState extends State<AppStorageViewer> {
         appTemporaryDirectory.path + "/" + DefaultCacheManager.key;
     final videoCachePath =
         appTemporaryDirectory.path + "/" + VideoCacheManager.key;
+    if (!mounted) return;
     paths.addAll([
       PathStorageItem.name(
         imageCachePath,

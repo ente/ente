@@ -71,6 +71,7 @@ class _HierarchicalSearchGalleryState extends State<HierarchicalSearchGallery> {
               event.type == EventType.hide) {
             for (var updatedFile in event.updatedFiles) {
               _filterdFiles.remove(updatedFile);
+              if (!mounted) return;
               GalleryFilesState.of(context).galleryFiles.remove(updatedFile);
             }
             setState(() {});
@@ -109,6 +110,7 @@ class _HierarchicalSearchGalleryState extends State<HierarchicalSearchGallery> {
     final filterdFiles = await getFilteredFiles(filters);
 
     _setFilteredFiles(filterdFiles);
+    if (!mounted) return;
     await curateFilters(_searchFilterDataProvider!, filterdFiles, context);
     _setUnnamedFaceFilter(filters);
 
