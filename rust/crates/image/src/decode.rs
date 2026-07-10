@@ -26,7 +26,7 @@ use rawler::{
     },
     formats::{
         bmff::Bmff,
-        tiff::{GenericTiffReader, IFD, reader::TiffReader},
+        tiff::{GenericTiffReader, IFD, ifd::DataMode, reader::TiffReader},
     },
     imgop::develop::RawDevelop,
     rawsource::RawSource,
@@ -468,6 +468,7 @@ fn validate_raw_dimensions_before_decode(
         && let Some((width, height)) = raw_dimensions_from_ifd(&raw_ifd)
     {
         validate_raw_dimensions(width, height, source_name)?;
+        validate_dng_raw_ifd_allocation(&raw_ifd, source_name)?;
         return Ok(());
     }
 
@@ -476,6 +477,111 @@ fn validate_raw_dimensions_before_decode(
     }
 
     validate_tiff_raw_candidate_dimensions(source, source_name)
+}
+
+/// Validate the allocation dimensions used by rawler 0.7.2's
+/// `plain_image_from_ifd` DNG path. The decoded buffer includes every sample
+/// and is padded out to complete tile boundaries before rawler crops it back
+/// to the nominal image dimensions.
+fn validate_dng_raw_ifd_allocation(raw_ifd: &IFD, source_name: &str) -> ImageResult<()> {
+    let (width, height) = raw_dimensions_from_ifd(raw_ifd).ok_or_else(|| {
+        ImageError::Decode(format!(
+            "failed to inspect DNG allocation dimensions for '{source_name}'"
+        ))
+    })?;
+    let samples_per_pixel = raw_ifd
+        .get_entry(RawTiffCommonTag::SamplesPerPixel)
+        .map(|entry| entry.force_usize(0))
+        .ok_or_else(|| {
+            ImageError::Decode(format!(
+                "DNG image '{source_name}' has no SamplesPerPixel value"
+            ))
+        })?;
+    if samples_per_pixel == 0 {
+        return Err(ImageError::Decode(format!(
+            "DNG image '{source_name}' has invalid SamplesPerPixel value 0"
+        )));
+    }
+
+    let (decode_width, decode_height) = match raw_ifd.data_mode().map_err(|e| {
+        ImageError::Decode(format!(
+            "failed to inspect DNG storage layout for '{source_name}': {e}"
+        ))
+    })? {
+        DataMode::Strips => (width, height),
+        DataMode::Tiles => {
+            let tile_width = raw_ifd
+                .get_entry(RawTiffCommonTag::TileWidth)
+                .map(|entry| entry.force_usize(0))
+                .ok_or_else(|| {
+                    ImageError::Decode(format!(
+                        "tiled DNG image '{source_name}' has no TileWidth value"
+                    ))
+                })?;
+            let tile_height = raw_ifd
+                .get_entry(RawTiffCommonTag::TileLength)
+                .map(|entry| entry.force_usize(0))
+                .ok_or_else(|| {
+                    ImageError::Decode(format!(
+                        "tiled DNG image '{source_name}' has no TileLength value"
+                    ))
+                })?;
+            (
+                padded_dng_dimension(width, tile_width, "width", source_name)?,
+                padded_dng_dimension(height, tile_height, "height", source_name)?,
+            )
+        }
+    };
+
+    let sample_width = decode_width.checked_mul(samples_per_pixel).ok_or_else(|| {
+        ImageError::Decode(format!(
+            "DNG image '{source_name}' decoded sample width overflows: {decode_width} * {samples_per_pixel}"
+        ))
+    })?;
+    validate_raw_sample_allocation(sample_width, decode_height, source_name)
+}
+
+fn padded_dng_dimension(
+    dimension: usize,
+    tile_dimension: usize,
+    axis: &str,
+    source_name: &str,
+) -> ImageResult<usize> {
+    if tile_dimension == 0 {
+        return Err(ImageError::Decode(format!(
+            "DNG image '{source_name}' has invalid tile {axis} 0"
+        )));
+    }
+
+    let tile_count = (dimension / tile_dimension)
+        .checked_add(usize::from(!dimension.is_multiple_of(tile_dimension)))
+        .ok_or_else(|| {
+            ImageError::Decode(format!("DNG image '{source_name}' padded {axis} overflows"))
+        })?;
+    tile_count.checked_mul(tile_dimension).ok_or_else(|| {
+        ImageError::Decode(format!("DNG image '{source_name}' padded {axis} overflows"))
+    })
+}
+
+fn validate_raw_sample_allocation(
+    sample_width: usize,
+    sample_height: usize,
+    source_name: &str,
+) -> ImageResult<()> {
+    if sample_width == 0 || sample_height == 0 {
+        return Err(ImageError::Decode(format!(
+            "RAW image '{source_name}' has invalid decoded sample dimensions {sample_width}x{sample_height}"
+        )));
+    }
+
+    let samples = (sample_width as u128) * (sample_height as u128);
+    if samples > RAW_MAX_PIXELS {
+        return Err(ImageError::Decode(format!(
+            "RAW image '{source_name}' is too large to decode safely: decoded sample allocation {sample_width}x{sample_height} exceeds {RAW_MAX_PIXELS} samples"
+        )));
+    }
+
+    Ok(())
 }
 
 /// CR3/CRM preflight. rawler's crx decompressor sizes its output and line
@@ -1059,13 +1165,18 @@ mod tests {
         codecs::{png::PngEncoder, tiff::TiffEncoder},
     };
     use moxcms::ColorProfile;
-    use rawler::{decoders::Orientation as RawOrientation, rawsource::RawSource};
+    use rawler::{
+        decoders::Orientation as RawOrientation,
+        formats::tiff::{GenericTiffReader, reader::TiffReader},
+        rawsource::RawSource,
+    };
 
     use super::{
         ImageResult, bytes_look_like_heif, bytes_look_like_raw, catch_raw_decode_panic,
         decode_image_from_bytes, decode_image_from_path, init_image_decoders,
         path_extension_is_raw, raw_orientation_to_exif, should_attempt_tiff_fallback,
-        validate_cr3_raw_candidate_dimensions, validate_tiff_raw_candidate_dimensions,
+        validate_cr3_raw_candidate_dimensions, validate_dng_raw_ifd_allocation,
+        validate_tiff_raw_candidate_dimensions,
     };
 
     #[test]
@@ -1181,16 +1292,61 @@ mod tests {
         assert!(error.to_string().contains("exceeds 200000000 pixels"));
     }
 
+    #[test]
+    fn rejects_dng_sample_allocation_larger_than_nominal_dimensions() {
+        let encoded = minimal_tiff_with_long_entries(&[
+            (0x0100, 20_000), // ImageWidth
+            (0x0101, 10_000), // ImageLength
+            (0x0111, 0),      // StripOffsets
+            (0x0115, 2),      // SamplesPerPixel
+        ]);
+        let tiff = parse_tiff(&encoded);
+
+        let error = validate_dng_raw_ifd_allocation(tiff.root_ifd(), "wide-samples.dng")
+            .expect_err("decoded samples should be bounded before allocation");
+
+        assert!(error.to_string().contains("40000x10000"));
+        assert!(error.to_string().contains("exceeds 200000000 samples"));
+    }
+
+    #[test]
+    fn rejects_dng_tile_padding_larger_than_nominal_dimensions() {
+        let encoded = minimal_tiff_with_long_entries(&[
+            (0x0100, 1),      // ImageWidth
+            (0x0101, 1),      // ImageLength
+            (0x0115, 1),      // SamplesPerPixel
+            (0x0142, 50_000), // TileWidth
+            (0x0143, 10_000), // TileLength
+            (0x0144, 0),      // TileOffsets
+        ]);
+        let tiff = parse_tiff(&encoded);
+
+        let error = validate_dng_raw_ifd_allocation(tiff.root_ifd(), "padded.dng")
+            .expect_err("padded decoded samples should be bounded before allocation");
+
+        assert!(error.to_string().contains("50000x10000"));
+        assert!(error.to_string().contains("exceeds 200000000 samples"));
+    }
+
     fn minimal_tiff_with_raw_candidate_dimensions(width: u32, height: u32) -> Vec<u8> {
+        minimal_tiff_with_long_entries(&[(0x0100, width), (0x0101, height), (0x0111, 0)])
+    }
+
+    fn minimal_tiff_with_long_entries(entries: &[(u16, u32)]) -> Vec<u8> {
         let mut encoded = Vec::new();
         encoded.extend_from_slice(b"II*\0");
         encoded.extend_from_slice(&8u32.to_le_bytes());
-        encoded.extend_from_slice(&3u16.to_le_bytes());
-        append_tiff_long(&mut encoded, 0x0100, width);
-        append_tiff_long(&mut encoded, 0x0101, height);
-        append_tiff_long(&mut encoded, 0x0111, 0);
+        encoded.extend_from_slice(&(entries.len() as u16).to_le_bytes());
+        for &(tag, value) in entries {
+            append_tiff_long(&mut encoded, tag, value);
+        }
         encoded.extend_from_slice(&0u32.to_le_bytes());
         encoded
+    }
+
+    fn parse_tiff(encoded: &[u8]) -> GenericTiffReader {
+        GenericTiffReader::new(&mut Cursor::new(encoded), 0, 0, None, &[])
+            .expect("synthetic TIFF should parse")
     }
 
     fn append_tiff_long(encoded: &mut Vec<u8>, tag: u16, value: u32) {
