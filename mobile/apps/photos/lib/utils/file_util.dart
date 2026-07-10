@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import "package:dio/dio.dart";
 import 'package:flutter/foundation.dart';
@@ -18,6 +17,7 @@ import 'package:photos/core/constants.dart';
 import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
+import 'package:photos/module/live_photo/archive.dart';
 import 'package:photos/utils/file_download_util.dart';
 
 final _logger = Logger("FileUtil");
@@ -277,57 +277,52 @@ Future<_LivePhoto?> _downloadLivePhoto(
         _logger.info("Decoded zipped live photo from " + decryptedFile.path);
         File? imageFileCache, videoFileCache;
         final List<int> bytes = await decryptedFile.readAsBytes();
-        final Archive archive = ZipDecoder().decodeBytes(bytes);
+        final parts = decodeLivePhotoArchive(bytes);
         final tempPath = Configuration.instance.getTempDirectory();
-        // Extract the contents of Zip compressed archive to disk
-        for (ArchiveFile archiveFile in archive) {
-          if (archiveFile.isFile) {
-            final String filename = archiveFile.name;
-            final String fileExtension = getExtension(archiveFile.name);
-            final String decodePath =
-                tempPath + file.uploadedFileID.toString() + filename;
-            final List<int> data = archiveFile.content;
-            if (filename.startsWith("image")) {
-              final imageFile = File(decodePath);
-              await imageFile.create(recursive: true);
-              await imageFile.writeAsBytes(data);
-              File imageConvertedFile = imageFile;
-              if ((fileExtension == "unknown") ||
-                  (Platform.isAndroid && fileExtension == "heic")) {
-                final compressResult =
-                    await FlutterImageCompress.compressAndGetFile(
-                      decodePath,
-                      decodePath + ".jpg",
-                      keepExif: true,
-                    );
-                await imageFile.delete();
-                if (compressResult == null) {
-                  throw Exception("Failed to compress file");
-                } else {
-                  imageConvertedFile = File(compressResult.path);
-                }
+        for (final part in parts) {
+          final String fileExtension = getExtension(part.fileName);
+          final String decodePath =
+              tempPath + file.uploadedFileID.toString() + part.fileName;
+          if (part.type == LivePhotoArchivePartType.image) {
+            final imageFile = File(decodePath);
+            await imageFile.create(recursive: true);
+            await imageFile.writeAsBytes(part.bytes);
+            File imageConvertedFile = imageFile;
+            if ((fileExtension == "unknown") ||
+                (Platform.isAndroid && fileExtension == "heic")) {
+              final compressResult =
+                  await FlutterImageCompress.compressAndGetFile(
+                    decodePath,
+                    decodePath + ".jpg",
+                    keepExif: true,
+                  );
+              await imageFile.delete();
+              if (compressResult == null) {
+                throw Exception("Failed to compress file");
+              } else {
+                imageConvertedFile = File(compressResult.path);
               }
-              imageFileCache = await DefaultCacheManager().putFile(
-                file.downloadUrl,
-                await imageConvertedFile.readAsBytes(),
-                eTag: file.downloadUrl,
-                maxAge: const Duration(days: 365),
-                fileExtension: fileExtension,
-              );
-              await imageConvertedFile.delete();
-            } else if (filename.startsWith("video")) {
-              final videoFile = File(decodePath);
-              await videoFile.create(recursive: true);
-              await videoFile.writeAsBytes(data);
-              videoFileCache = await VideoCacheManager.instance.putFileStream(
-                file.downloadUrl,
-                videoFile.openRead(),
-                eTag: file.downloadUrl,
-                maxAge: const Duration(days: 365),
-                fileExtension: fileExtension,
-              );
-              await videoFile.delete();
             }
+            imageFileCache = await DefaultCacheManager().putFile(
+              file.downloadUrl,
+              await imageConvertedFile.readAsBytes(),
+              eTag: file.downloadUrl,
+              maxAge: const Duration(days: 365),
+              fileExtension: fileExtension,
+            );
+            await imageConvertedFile.delete();
+          } else {
+            final videoFile = File(decodePath);
+            await videoFile.create(recursive: true);
+            await videoFile.writeAsBytes(part.bytes);
+            videoFileCache = await VideoCacheManager.instance.putFileStream(
+              file.downloadUrl,
+              videoFile.openRead(),
+              eTag: file.downloadUrl,
+              maxAge: const Duration(days: 365),
+              fileExtension: fileExtension,
+            );
+            await videoFile.delete();
           }
         }
         if (imageFileCache != null && videoFileCache != null) {

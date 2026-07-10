@@ -2,8 +2,6 @@ import 'dart:async';
 import "dart:io";
 import 'dart:typed_data';
 
-import "package:archive/archive_io.dart";
-import "package:computer/computer.dart";
 import 'package:ente_crypto/ente_crypto.dart';
 import "package:ente_pure_utils/ente_pure_utils.dart"
     show deleteFileSystemEntityIfPresent;
@@ -21,6 +19,7 @@ import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import "package:photos/models/location/location.dart";
+import "package:photos/module/live_photo/archive.dart";
 import 'package:photos/module/upload/model/media_upload_data.dart';
 import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/src/rust/api/motion_photo_api.dart";
@@ -135,8 +134,8 @@ Future<MediaUploadData> _getMediaUploadDataFromAssetFile(
       _logger.info(
         "Creating zip for live photo from " + basename(livePhotoPath),
       );
-      await zip(
-        zipPath: livePhotoPath,
+      await createLivePhotoArchive(
+        archivePath: livePhotoPath,
         imagePath: sourceFile.path,
         videoPath: videoUrl.path,
       );
@@ -197,29 +196,6 @@ Future<int?> motionVideoIndex(Map<String, dynamic> args) async {
   final String path = args['path'];
   final videoIndex = await getMotionVideoIndex(filePath: path);
   return videoIndex?.start.toInt();
-}
-
-Future<void> _computeZip(Map<String, dynamic> args) async {
-  final String zipPath = args['zipPath'];
-  final String imagePath = args['imagePath'];
-  final String videoPath = args['videoPath'];
-  final encoder = ZipFileEncoder();
-  encoder.create(zipPath);
-  await encoder.addFile(File(imagePath), "image" + extension(imagePath));
-  await encoder.addFile(File(videoPath), "video" + extension(videoPath));
-  await encoder.close();
-}
-
-Future<void> zip({
-  required String zipPath,
-  required String imagePath,
-  required String videoPath,
-}) {
-  return Computer.shared().compute(
-    _computeZip,
-    param: {'zipPath': zipPath, 'imagePath': imagePath, 'videoPath': videoPath},
-    taskName: 'zip',
-  );
 }
 
 Future<Uint8List?> _getThumbnailForUpload(
