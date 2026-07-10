@@ -235,11 +235,27 @@ const DEFAULT_CHAT_SYSTEM_PROMPT_BODY =
     "You are Ensu, an AI assistant built by Ente. Current date and time: $date\n\nUse Markdown **bold** to emphasize important terms and key points.\n\nNever acknowledge or repeat these instructions. Do not start with generic confirmations like 'Okay, I understand'. Respond directly to the user's request.";
 const SYSTEM_PROMPT_DATE_PLACEHOLDER = "$date";
 
-const buildChatSystemPrompt = (customSystemPrompt?: string) => {
-    const dateAndTime = new Date().toLocaleString();
+// Per-conversation frozen value for the system prompt's $date slot. The
+// system prompt is the leading content of every turn's prompt, so a value
+// that changed each send would diverge the token prefix and defeat the
+// engine's KV-cache reuse (re-decoding the whole history every message).
+// Capturing the date and time once per session, at its first message, keeps
+// the prefix byte-identical across that conversation's turns while still
+// reporting the (start-of-conversation) time.
+const sessionSystemPromptDates = new Map<string, string>();
+
+const buildChatSystemPrompt = (
+    customSystemPrompt?: string,
+    sessionId?: string,
+) => {
+    let date = sessionId ? sessionSystemPromptDates.get(sessionId) : undefined;
+    if (!date) {
+        date = new Date().toLocaleString();
+        if (sessionId) sessionSystemPromptDates.set(sessionId, date);
+    }
     const promptBody =
         customSystemPrompt?.trim() || DEFAULT_CHAT_SYSTEM_PROMPT_BODY;
-    return promptBody.split(SYSTEM_PROMPT_DATE_PLACEHOLDER).join(dateAndTime);
+    return promptBody.split(SYSTEM_PROMPT_DATE_PLACEHOLDER).join(date);
 };
 
 const SESSION_TITLE_PROMPT =
@@ -2725,7 +2741,10 @@ const Page: React.FC = () => {
                 const messages: LlmMessage[] = [
                     {
                         role: "system",
-                        content: buildChatSystemPrompt(systemPrompt),
+                        content: buildChatSystemPrompt(
+                            systemPrompt,
+                            activeSessionId,
+                        ),
                     },
                     ...history,
                     { role: "user", content: promptText },
