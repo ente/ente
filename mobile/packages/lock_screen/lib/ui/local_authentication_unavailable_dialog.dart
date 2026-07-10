@@ -37,6 +37,7 @@ Future<void> showLinuxSystemAuthSetupDialog(
       message: pendingTranslation(
         'To use device lock on Linux, Ente Auth needs a one-time system authentication setup. The guide includes setup steps for Flatpak, AppImage, and fingerprint prompts.',
       ),
+      isScrollable: true,
       actions: [
         ButtonComponent(
           label: pendingTranslation('Open guide'),

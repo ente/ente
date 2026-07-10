@@ -33,6 +33,8 @@ class _LockScreenConfirmPasswordState extends State<LockScreenConfirmPassword> {
   }
 
   Future<void> _confirmPasswordMatch() async {
+    if (_confirmPasswordController.text.isEmpty) return;
+
     if (widget.password == _confirmPasswordController.text) {
       await _lockscreenSetting.setPassword(_confirmPasswordController.text);
 
@@ -99,6 +101,7 @@ class _LockScreenConfirmPasswordState extends State<LockScreenConfirmPassword> {
                   child: AndroidTextInputAutofocus(
                     focusNode: _focusNode,
                     child: TextInputComponent(
+                      controller: _confirmPasswordController,
                       hintText: context.strings.password,
                       autofocus: true,
                       focusNode: _focusNode,
@@ -106,9 +109,7 @@ class _LockScreenConfirmPasswordState extends State<LockScreenConfirmPassword> {
                       textInputAction: TextInputAction.done,
                       isPasswordInput: true,
                       onChanged: (p0) {
-                        _confirmPasswordController.text = p0;
-                        _isFormValid.value =
-                            _confirmPasswordController.text.isNotEmpty;
+                        _isFormValid.value = p0.isNotEmpty;
                       },
                       onSubmit: (p0) {
                         return _confirmPasswordMatch();
