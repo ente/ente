@@ -49,6 +49,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tuple/tuple.dart';
 import "package:uuid/uuid.dart";
 
+/// Coordinates encryption, transfer, persistence, and retries for file uploads.
 class FileUploader {
   static const kMaximumConcurrentUploads = 4;
   static const kMaximumConcurrentVideoUploads = 2;
@@ -224,20 +225,11 @@ class FileUploader {
   }
 
   void clearQueue(final Error reason) {
-    final List<String> uploadsToBeRemoved = [];
-    _queue.entries
+    final pendingUploadIDs = _queue.entries
         .where((entry) => entry.value.status == UploadStatus.notStarted)
-        .forEach((pendingUpload) {
-          uploadsToBeRemoved.add(pendingUpload.key);
-        });
-    for (final id in uploadsToBeRemoved) {
-      _queue.remove(id)?.completer.completeError(reason);
-      _allBackups[id] = _allBackups[id]!.copyWith(
-        status: BackupItemStatus.retry,
-        error: reason,
-      );
-      Bus.instance.fire(BackupUpdatedEvent(_allBackups));
-    }
+        .map((entry) => entry.key)
+        .toList();
+    _removePendingUploads(pendingUploadIDs, reason);
     _totalCountInUploadSession = 0;
   }
 
@@ -268,26 +260,30 @@ class FileUploader {
     final bool Function(EnteFile) fn,
     final Error reason,
   ) {
-    final List<String> uploadsToBeRemoved = [];
-    _queue.entries
-        .where((entry) => entry.value.status == UploadStatus.notStarted)
-        .forEach((pendingUpload) {
-          if (fn(pendingUpload.value.file)) {
-            uploadsToBeRemoved.add(pendingUpload.key);
-          }
-        });
-    for (final id in uploadsToBeRemoved) {
-      _queue.remove(id)?.completer.completeError(reason);
-      _allBackups[id] = _allBackups[id]!.copyWith(
+    final pendingUploadIDs = _queue.entries
+        .where(
+          (entry) =>
+              entry.value.status == UploadStatus.notStarted &&
+              fn(entry.value.file),
+        )
+        .map((entry) => entry.key)
+        .toList();
+    _removePendingUploads(pendingUploadIDs, reason);
+    _logger.info(
+      'number of entries removed from queue ${pendingUploadIDs.length}',
+    );
+    _totalCountInUploadSession -= pendingUploadIDs.length;
+  }
+
+  void _removePendingUploads(List<String> localIDs, Error reason) {
+    for (final localID in localIDs) {
+      _queue.remove(localID)?.completer.completeError(reason);
+      _allBackups[localID] = _allBackups[localID]!.copyWith(
         status: BackupItemStatus.retry,
         error: reason,
       );
       Bus.instance.fire(BackupUpdatedEvent(_allBackups));
     }
-    _logger.info(
-      'number of enteries removed from queue ${uploadsToBeRemoved.length}',
-    );
-    _totalCountInUploadSession -= uploadsToBeRemoved.length;
   }
 
   void _pollQueue() {
