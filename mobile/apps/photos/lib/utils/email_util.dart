@@ -179,8 +179,11 @@ Future<String> getZippedLogsFile(BuildContext? context) async {
   final logsPath = (await getApplicationSupportDirectory()).path;
   final logsDirectory = Directory(logsPath + "/logs");
   final tempPath = (await getTemporaryDirectory()).path;
-  final zipFilePath =
-      tempPath + "/logs-${Configuration.instance.getUserID() ?? 0}.zip";
+  final timestamp = DateTime.now().toUtc().toIso8601String().replaceAll(
+    ':',
+    '-',
+  );
+  final zipFilePath = tempPath + "/logs-$timestamp.zip";
   final encoder = ZipFileEncoder();
   encoder.create(zipFilePath);
   await encoder.addDirectory(logsDirectory);

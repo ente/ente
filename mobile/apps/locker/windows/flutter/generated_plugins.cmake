@@ -7,6 +7,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   file_saver
   flutter_secure_storage_windows
   local_auth_windows
+  rive_native
   screen_retriever_windows
   sentry_flutter
   share_plus
