@@ -25,6 +25,7 @@ import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import "package:photos/models/location/location.dart";
 import "package:photos/models/metadata/file_magic.dart";
+import 'package:photos/module/upload/model/media_upload_data.dart';
 import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/src/rust/api/motion_photo_api.dart";
 import "package:photos/utils/apple_photos_errors.dart";
@@ -35,50 +36,6 @@ import 'package:video_thumbnail/video_thumbnail.dart';
 
 final _logger = Logger("FileUtil");
 const kMaximumThumbnailCompressionAttempts = 2;
-
-class MediaUploadData {
-  final File? sourceFile;
-  final Uint8List? thumbnail;
-  final bool isDeleted;
-  final FileHashData? hashData;
-  final int? height;
-  final int? width;
-  final String? cameraMake;
-  final String? cameraModel;
-
-  // For android motion photos, the startIndex is the index of the first frame
-  // For iOS, this value will be always null.
-  final int? motionPhotoStartIndex;
-
-  final Map<String, IfdTag>? exifData;
-
-  bool? isPanorama;
-
-  MediaUploadData(
-    this.sourceFile,
-    this.thumbnail,
-    this.isDeleted,
-    this.hashData, {
-    this.height,
-    this.width,
-    this.cameraMake,
-    this.cameraModel,
-    this.motionPhotoStartIndex,
-    this.isPanorama,
-    this.exifData,
-  });
-}
-
-class FileHashData {
-  // For livePhotos, the fileHash value will be imageHash:videoHash
-  final String? fileHash;
-
-  // zipHash is used to take care of existing live photo uploads from older
-  // mobile clients
-  String? zipHash;
-
-  FileHashData(this.fileHash, {this.zipHash});
-}
 
 String? _extractPrintableExifValue(IfdTag? tag) {
   final printableValue = tag?.printable;

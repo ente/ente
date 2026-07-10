@@ -10,9 +10,9 @@ import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/location/location.dart";
+import "package:photos/module/upload/model/media_upload_data.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/utils/exif_util.dart";
-import "package:photos/utils/file_uploader_util.dart";
 import "package:photos/utils/file_util.dart";
 
 class OfflineImportMetadataService {

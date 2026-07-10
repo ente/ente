@@ -11,8 +11,8 @@ import 'package:photos/models/file/file_type.dart';
 import 'package:photos/models/location/location.dart';
 import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/module/download/file_url.dart";
+import 'package:photos/module/upload/model/media_upload_data.dart';
 import 'package:photos/utils/exif_util.dart';
-import 'package:photos/utils/file_uploader_util.dart';
 import "package:photos/utils/panorama_util.dart";
 
 //Todo: files with no location data have lat and long set to 0.0. This should ideally be null.

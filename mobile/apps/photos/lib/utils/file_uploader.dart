@@ -30,6 +30,7 @@ import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/models/user_details.dart";
+import 'package:photos/module/upload/model/media_upload_data.dart';
 import 'package:photos/module/upload/model/upload_url.dart';
 import "package:photos/module/upload/service/multipart.dart";
 import "package:photos/service_locator.dart";
