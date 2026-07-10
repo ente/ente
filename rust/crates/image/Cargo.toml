@@ -11,5 +11,10 @@ ente_heic = { package = "heic_decoder", git = "https://github.com/ente/heic-deco
     "image-integration",
 ] }
 moxcms = "0.8.1"
+# Pinned exactly: decode.rs mirrors 0.7.2 internals — the TIFF camera-marker
+# pre-screen tracks get_decoder's dispatch tags, and orientation is read via
+# raw_metadata because RawImage::orientation is hardcoded upstream except for
+# DNG/QTK. Re-verify both (and the RAW routing tests) when bumping.
+rawler = "=0.7.2"
 thiserror.workspace = true
 tiff = "0.10.3"

@@ -31,7 +31,7 @@ pub fn generate_face_thumbnails(
     generate_face_thumbnails_impl(&decoded, &face_boxes).map_err(|e| e.to_string())
 }
 
-/// Decode an image (including HEIC/HEIF) to JPEG bytes using ente_heic,
+/// Decode an image (including HEIC/HEIF/RAW) to JPEG bytes using Rust,
 /// bypassing the platform's potentially broken image decoder.
 pub fn decode_to_jpeg(image_path: String, quality: Option<u8>) -> Result<Vec<u8>, String> {
     let decoded = decode_image_from_path(&image_path).map_err(|e| e.to_string())?;
