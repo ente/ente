@@ -9,6 +9,7 @@ import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/actions/file/file_actions.dart";
 import "package:photos/ui/common/loading_widget.dart";
+import "package:photos/ui/viewer/file/video_control/mute_button.dart";
 import "package:photos/ui/viewer/file/video_stream_change.dart";
 import "package:photos/ui/viewer/file/zoomable_video_viewer.dart";
 
@@ -368,6 +369,8 @@ class SeekBarAndDuration extends StatelessWidget {
                     context,
                   ).mini.copyWith(color: textBaseDark),
                 ),
+                const SizedBox(width: 8),
+                const VideoMuteButton(),
               ],
             ),
           ],

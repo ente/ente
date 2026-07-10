@@ -14,6 +14,7 @@ import "package:photos/events/resume_video_event.dart";
 import "package:photos/events/seekbar_triggered_event.dart";
 import "package:photos/events/stream_switched_event.dart";
 import "package:photos/events/use_media_kit_for_video.dart";
+import "package:photos/events/video_mute_changed_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
@@ -33,6 +34,7 @@ import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/viewer/file/native_video_player_controls/play_pause_button.dart";
 import "package:photos/ui/viewer/file/native_video_player_controls/seek_bar.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
+import "package:photos/ui/viewer/file/video_control/mute_button.dart";
 import "package:photos/ui/viewer/file/video_stream_change.dart";
 import "package:photos/ui/viewer/file/zoomable_video_viewer.dart";
 import "package:photos/utils/dialog_util.dart";
@@ -74,6 +76,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   final _progressNotifier = ValueNotifier<double?>(null);
   late StreamSubscription<PauseVideoEvent> pauseVideoSubscription;
   late StreamSubscription<ResumeVideoEvent> resumeVideoSubscription;
+  late final StreamSubscription<VideoMuteChangedEvent> _muteSubscription;
   bool _isGuestView = false;
   late final StreamSubscription<GuestViewEvent> _guestViewEventSubscription;
   NativeVideoPlayerController? _controller;
@@ -116,6 +119,11 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       event,
     ) {
       _controller?.play();
+    });
+    _muteSubscription = Bus.instance.on<VideoMuteChangedEvent>().listen((
+      event,
+    ) {
+      _controller?.setVolume(event.isMuted ? 0.0 : 1.0);
     });
     _guestViewEventSubscription = Bus.instance.on<GuestViewEvent>().listen((
       event,
@@ -171,6 +179,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       type: VideoSourceType.file,
     );
     await _controller?.loadVideo(videoSource);
+    await _controller?.setVolume(localSettings.isMuted() ? 0.0 : 1.0);
     await _controller?.play();
 
     Bus.instance.fire(SeekbarTriggeredEvent(position: 0));
@@ -260,6 +269,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     _guestViewEventSubscription.cancel();
     pauseVideoSubscription.cancel();
     resumeVideoSubscription.cancel();
+    _muteSubscription.cancel();
     removeDownloadCallback(widget.file);
     _progressNotifier.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -599,10 +609,10 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
 
   Future<void> _onPlaybackReady() async {
     if (_isPlaybackReady.value) return;
+    await _controller!.setVolume(localSettings.isMuted() ? 0.0 : 1.0);
     await _controller!.play();
     final durationInSeconds = durationToSeconds(duration) ?? 10;
     widget.onFinalFileLoad?.call(memoryDuration: durationInSeconds);
-    unawaited(_controller!.setVolume(1));
     _isPlaybackReady.value = true;
   }
 
@@ -940,6 +950,8 @@ class _SeekBarAndDuration extends StatelessWidget {
                             context,
                           ).mini.copyWith(color: textBaseDark),
                         ),
+                        const SizedBox(width: 8),
+                        const VideoMuteButton(),
                       ],
                     ),
                   ],

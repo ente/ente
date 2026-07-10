@@ -12,6 +12,7 @@ import "package:photos/events/guest_view_event.dart";
 import "package:photos/events/pause_video_event.dart";
 import "package:photos/events/resume_video_event.dart";
 import "package:photos/events/stream_switched_event.dart";
+import "package:photos/events/video_mute_changed_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
@@ -67,6 +68,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   bool _isAppInFG = true;
   late StreamSubscription<PauseVideoEvent> pauseVideoSubscription;
   late StreamSubscription<ResumeVideoEvent> resumeVideoSubscription;
+  late final StreamSubscription<VideoMuteChangedEvent> _muteSubscription;
   bool isGuestView = false;
   late final StreamSubscription<GuestViewEvent> _guestViewEventSubscription;
   bool _isGuestView = false;
@@ -98,6 +100,11 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
       event,
     ) {
       player.play();
+    });
+    _muteSubscription = Bus.instance.on<VideoMuteChangedEvent>().listen((
+      event,
+    ) {
+      player.setVolume(event.isMuted ? 0.0 : 100.0);
     });
     _guestViewEventSubscription = Bus.instance.on<GuestViewEvent>().listen((
       event,
@@ -193,6 +200,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     _guestViewEventSubscription.cancel();
     pauseVideoSubscription.cancel();
     resumeVideoSubscription.cancel();
+    _muteSubscription.cancel();
     removeDownloadCallback(widget.file);
     _progressNotifier.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -347,6 +355,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
           );
           controller = VideoController(player);
         }
+        player.setVolume(localSettings.isMuted() ? 0.0 : 100.0);
         player.open(Media(url), play: _isAppInFG);
       });
       int duration = controller!.player.state.duration.inSeconds;
