@@ -87,6 +87,7 @@ const generateImageThumbnailUsingCanvas = async (blob: Blob) => {
                     );
                     canvas.width = width;
                     canvas.height = height;
+                    drawCheckerBoard(canvasCtx, width, height);
                     canvasCtx.drawImage(image, 0, 0, width, height);
                     resolve(undefined);
                 } catch (e: unknown) {
@@ -239,3 +240,30 @@ const blackThumbnailB64 =
     "KACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAo" +
     "AKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAo" +
     "AKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgAoAKACgD/9k=";
+
+/*
+ * To generate checkerboard pattern just behind the image
+ * so that transparent images do not look full black.
+ */
+export const drawCheckerBoard = (
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    size = 30,
+) => {
+    
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+
+    const cols = Math.ceil(width / size);
+    const rows = Math.ceil(height / size);
+
+    ctx.fillStyle = "#e0e0e0";
+    for (let x = 0; x < cols; x++) {
+        for (let y = 0; y < rows; y++) {
+            if ((x + y) % 2 === 1) {
+                ctx.fillRect(x * size, y * size, size, size);
+            }
+        }
+    }
+};
