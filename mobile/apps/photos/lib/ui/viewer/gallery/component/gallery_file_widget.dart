@@ -3,6 +3,7 @@ import "dart:async";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
+import "package:logging/logging.dart";
 import "package:media_extension/media_extension.dart";
 import "package:media_extension/media_extension_action_types.dart";
 import "package:photos/core/constants.dart";
@@ -47,6 +48,7 @@ class GalleryFileWidget extends StatefulWidget {
 
 class _GalleryFileWidgetState extends State<GalleryFileWidget> {
   static const borderRadius = BorderRadius.all(Radius.circular(1));
+  static final _logger = Logger("GalleryFileWidget");
   late bool _isFileSelected;
   int? _currentPointerId;
   bool _isPointerInside = false;
@@ -286,6 +288,14 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
 
   void _routeToDetailPage(EnteFile file, BuildContext context) {
     final galleryFiles = GalleryFilesState.of(context).galleryFiles;
+    final selectedIndex = galleryFiles.indexOf(file);
+    // A refresh can make the tapped tile stale.
+    if (selectedIndex < 0) {
+      _logger.warning(
+        "Not opening viewer; tapped item is no longer in the gallery",
+      );
+      return;
+    }
     // Device folders (local-only contexts) should keep files visible
     // even after deleting from Ente (remote) since they still exist locally
     final galleryType = GalleryContextState.of(context)?.galleryType;
@@ -293,7 +303,7 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
     final page = DetailPage(
       DetailPageConfiguration(
         galleryFiles,
-        galleryFiles.indexOf(file),
+        selectedIndex,
         widget.tag,
         isLocalOnlyContext: isLocalOnlyContext,
         galleryType: galleryType,

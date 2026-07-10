@@ -128,6 +128,7 @@ class _LoadingPhotosWidgetState extends State<LoadingPhotosWidget> {
     } else {
       _importProgressEvent = Bus.instance.on<LocalImportProgressEvent>().listen(
         (event) {
+          if (!mounted) return;
           _loadingMessage = AppLocalizations.of(
             context,
           ).processingImport(folderName: event.folderName);

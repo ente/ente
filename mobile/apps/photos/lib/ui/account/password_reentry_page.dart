@@ -113,6 +113,7 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
     } on KeyDerivationError catch (e, s) {
       _logger.severe("Password verification failed", e, s);
       await dialog.hide();
+      if (!mounted) return;
       final dialogChoice = await showChoiceDialog(
         context,
         title: AppLocalizations.of(context).recreatePasswordTitle,
@@ -120,6 +121,7 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
         firstButtonLabel: AppLocalizations.of(context).useRecoveryKey,
       );
       if (dialogChoice!.action == ButtonAction.first) {
+        if (!mounted) return;
         // ignore: unawaited_futures
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -133,6 +135,7 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
     } catch (e, s) {
       _logger.severe("Password verification failed", e, s);
       await dialog.hide();
+      if (!mounted) return;
       final dialogChoice = await showChoiceDialog(
         context,
         title: AppLocalizations.of(context).incorrectPasswordTitle,
@@ -141,6 +144,7 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
         secondButtonLabel: AppLocalizations.of(context).ok,
       );
       if (dialogChoice!.action == ButtonAction.first) {
+        if (!mounted) return;
         await sendLogs(
           context,
           AppLocalizations.of(context).contactSupport,
@@ -154,6 +158,7 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
     Configuration.instance.resetVolatilePassword();
     await flagService.tryRefreshFlags();
     Bus.instance.fire(SubscriptionPurchasedEvent());
+    if (!mounted) return;
     unawaited(
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
@@ -239,6 +244,7 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
                       await dialog.show();
                       await Configuration.instance.logout();
                       await dialog.hide();
+                      if (!mounted) return;
                       Navigator.of(context).popUntil((route) => route.isFirst);
                     },
                   ),

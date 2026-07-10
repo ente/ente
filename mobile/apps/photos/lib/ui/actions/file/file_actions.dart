@@ -31,6 +31,7 @@ Future<void> showSingleFileDeleteSheet(
       return;
     }
     if (Platform.isAndroid && await MediaStoreService.canManageMedia()) {
+      if (!context.mounted) return;
       await showBottomSheetComponent<bool>(
         context: context,
         useRootNavigator: Platform.isIOS,
@@ -54,6 +55,7 @@ Future<void> showSingleFileDeleteSheet(
         ),
       );
     } else {
+      if (!context.mounted) return;
       final deletedFiles = await deleteFilesOnDeviceOnly(context, [file]);
       if (deletedFiles.isNotEmpty &&
           ((isLocal && !isRemote) || isLocalOnlyContext)) {
@@ -81,6 +83,7 @@ Future<void> showSingleFileDeleteSheet(
       },
       onDeleteFromRemote: () async {
         await deleteFilesFromRemoteOnly(context, [file]);
+        if (!context.mounted) return;
         showShortToast(context, l10n.movedToTrash);
         if (((isRemote && !isLocal) || !isLocalOnlyContext)) {
           onFileRemoved?.call(file);
@@ -93,6 +96,7 @@ Future<void> showSingleFileDeleteSheet(
     ),
   );
   if (didDelete == true && isLocal) {
+    if (!context.mounted) return;
     await showMediaManagementHintSheet(context);
   }
 }

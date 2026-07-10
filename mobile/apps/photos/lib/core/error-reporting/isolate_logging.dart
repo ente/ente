@@ -60,7 +60,9 @@ class IsolateLogger {
     final str = rec.toPrettyString(null, true);
 
     // write to stdout
-    SuperLogging.printLog(str);
+    if (SuperLogging.shouldPrintLogRecord(rec)) {
+      SuperLogging.printLog(str);
+    }
 
     // push to log queue
     fileQueueEntries.add(

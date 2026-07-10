@@ -384,6 +384,7 @@ class _AlbumSelectionActionWidgetState
             ? visibleVisibility
             : hiddenVisibility;
 
+        if (!mounted) return;
         await changeCollectionVisibility(
           context,
           collection: collection,
@@ -393,6 +394,7 @@ class _AlbumSelectionActionWidgetState
           showProgressDialog: false,
         );
       }
+      if (!mounted) return;
       showShortToast(
         context,
         isUnhiding
@@ -401,6 +403,7 @@ class _AlbumSelectionActionWidgetState
       );
     } catch (e, s) {
       _logger.warning("failed to change visibility", e, s);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     } finally {
       await dialog.hide();
@@ -449,6 +452,7 @@ class _AlbumSelectionActionWidgetState
               ? visibleVisibility
               : archiveVisibility;
 
+          if (!mounted) return;
           await changeCollectionVisibility(
             context,
             collection: collection,
@@ -466,6 +470,7 @@ class _AlbumSelectionActionWidgetState
               ? visibleVisibility
               : archiveVisibility;
 
+          if (!mounted) return;
           await changeCollectionVisibility(
             context,
             collection: collection,
@@ -475,6 +480,7 @@ class _AlbumSelectionActionWidgetState
           );
         }
       }
+      if (!mounted) return;
       showShortToast(
         context,
         isUnarchiving
@@ -483,6 +489,7 @@ class _AlbumSelectionActionWidgetState
       );
     } catch (e, s) {
       _logger.warning("failed to change archive state", e, s);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     } finally {
       await dialog.hide();

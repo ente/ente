@@ -31,6 +31,7 @@ class _NoResultWidgetState extends State<NoResultWidget> {
     InheritedAllSectionsExamples.of(context).allSectionsExamplesFuture.then((
       value,
     ) {
+      if (!mounted) return;
       final sectionResultsByType = value.sectionResults;
       if (sectionResultsByType.isEmpty) return;
       for (int i = 0; i < searchTypes.length; i++) {

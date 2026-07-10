@@ -1296,6 +1296,7 @@ class MemoriesCacheService {
         );
         return;
       }
+      if (context != null && !context.mounted) return;
       await _routeToPage(
         DetailPage(DetailPageConfiguration([file], 0, "memorywidget-fallback")),
         context: context,
@@ -1303,6 +1304,7 @@ class MemoriesCacheService {
       );
       return;
     }
+    if (context != null && !context.mounted) return;
     await _routeToPage(
       AllMemoriesPage(
         allMemories: _cachedMemories!,
@@ -1332,6 +1334,7 @@ class MemoriesCacheService {
       _logger.warning("Could not find onThisDay memory");
       return;
     }
+    if (context != null && !context.mounted) return;
     await _routeToPage(
       AllMemoriesPage(
         allMemories: allMemories,
@@ -1383,6 +1386,7 @@ class MemoriesCacheService {
         _logger.severe("Person with ID $personID not found");
         return;
       }
+      if (context != null && !context.mounted) return;
       await _routeToPage(
         PeoplePage(person: person, searchResult: null),
         context: context,
@@ -1390,6 +1394,7 @@ class MemoriesCacheService {
       );
       return;
     }
+    if (context != null && !context.mounted) return;
     await _routeToPage(
       FullScreenMemoryDataUpdater(
         initialIndex: 0,

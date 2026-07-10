@@ -129,10 +129,12 @@ Future<void> deleteFilesFromEverywhere(
         source: "deleteFilesEverywhere",
       ),
     );
-    if (hasLocalOnlyFiles && Platform.isAndroid) {
-      showShortToast(context, AppLocalizations.of(context).filesDeleted);
-    } else {
-      showShortToast(context, AppLocalizations.of(context).movedToTrash);
+    if (context.mounted) {
+      if (hasLocalOnlyFiles && Platform.isAndroid) {
+        showShortToast(context, AppLocalizations.of(context).filesDeleted);
+      } else {
+        showShortToast(context, AppLocalizations.of(context).movedToTrash);
+      }
     }
   }
   if (uploadedFilesToBeTrashed.isNotEmpty) {
@@ -303,6 +305,7 @@ Future<bool> deleteFromTrash(BuildContext context, List<EnteFile> files) async {
       actionResult.action == ButtonAction.fourth) {
     return didDeletionStart ? true : false;
   } else if (actionResult.action == ButtonAction.error) {
+    if (!context.mounted) return false;
     await showGenericErrorDialog(
       context: context,
       error: actionResult.exception,
@@ -333,6 +336,7 @@ Future<bool> emptyTrash(BuildContext context) async {
       actionResult!.action == ButtonAction.cancel) {
     return false;
   } else if (actionResult.action == ButtonAction.error) {
+    if (!context.mounted) return false;
     await showGenericErrorDialog(
       context: context,
       error: actionResult.exception,
@@ -372,7 +376,11 @@ Future<bool> deleteLocalFiles(
     final tooManyAssets = localAssetIDs.length > largeCountThreshold;
     final bool shouldDeleteInBatches =
         await isAndroidSDKVersionLowerThan(android11SDKINT) || tooManyAssets;
-    if (shouldDeleteInBatches) {
+    if (!context.mounted) {
+      _logger.info(
+        "Skipping platform asset deletion after the initiating page was disposed",
+      );
+    } else if (shouldDeleteInBatches) {
       if (tooManyAssets) {
         _logger.info(
           "Too many assets (${localAssetIDs.length}) to delete in one shot, deleting in batches",
@@ -462,7 +470,11 @@ Future<bool> deleteLocalFilesAfterRemovingAlreadyDeletedIDs(
     final bool shouldDeleteInBatches = await isAndroidSDKVersionLowerThan(
       android11SDKINT,
     );
-    if (shouldDeleteInBatches) {
+    if (!context.mounted) {
+      _logger.info(
+        "Skipping platform asset deletion after the initiating page was disposed",
+      );
+    } else if (shouldDeleteInBatches) {
       _logger.info("Deleting in batches");
       deletedIDs.addAll(
         await deleteLocalFilesInBatches(context, localAssetIDs),
@@ -548,7 +560,11 @@ Future<bool> retryFreeUpSpaceAfterRemovingAssetsNonExistingInDisk(
     final bool shouldDeleteInBatches = await isAndroidSDKVersionLowerThan(
       android11SDKINT,
     );
-    if (shouldDeleteInBatches) {
+    if (!context.mounted) {
+      _logger.info(
+        "Skipping platform asset deletion after the initiating page was disposed",
+      );
+    } else if (shouldDeleteInBatches) {
       _logger.info("Deleting in batches");
       deletedIDs.addAll(
         await deleteLocalFilesInBatches(context, localAssetIDs),
@@ -696,6 +712,7 @@ Future<void> _recursivelyReduceBatchSizeAndRetryDeletion({
       "Failed to delete local files in batches of $batchSize. Reducing batch size and retrying.",
       e,
     );
+    if (!context.mounted) return;
     await _recursivelyReduceBatchSizeAndRetryDeletion(
       batchSize: (batchSize / 2).floor(),
       context: context,
@@ -762,6 +779,7 @@ Future<void> showMediaManagementHintSheet(BuildContext context) async {
   if (!localSettings.hasMediaManagementHintDeleteAttemptsReached()) {
     return;
   }
+  if (!context.mounted) return;
   final shouldDismissHint = await showBottomSheetComponent<bool>(
     context: context,
     useRootNavigator: Platform.isIOS,
@@ -847,6 +865,7 @@ Future<void> showDeleteSheet(
     }
     var didDelete = false;
     if (Platform.isAndroid && await MediaStoreService.canManageMedia()) {
+      if (!context.mounted) return;
       didDelete =
           await showBottomSheetComponent<bool>(
             context: context,
@@ -873,6 +892,7 @@ Future<void> showDeleteSheet(
           ) ==
           true;
     } else {
+      if (!context.mounted) return;
       await deleteOnDeviceOnlyAction(context, localGalleryDeletableFiles);
       didDelete = true;
     }
@@ -880,6 +900,7 @@ Future<void> showDeleteSheet(
       return;
     }
     selectedFiles.unSelectAll(localGalleryDeletableFiles.toSet());
+    if (!context.mounted) return;
     await showMediaManagementHintSheet(context);
     return;
   }
@@ -895,6 +916,7 @@ Future<void> showDeleteSheet(
 
   Future<void> deleteFromEnte() async {
     await deleteFromRemoteOnlyAction(context, deletableFiles);
+    if (!context.mounted) return;
     showShortToast(context, l10n.movedToTrash);
   }
 
@@ -922,6 +944,7 @@ Future<void> showDeleteSheet(
   if (actionResult == true) {
     selectedFiles.clearAll();
     if (didDeleteLocalFiles) {
+      if (!context.mounted) return;
       await showMediaManagementHintSheet(context);
     }
   }
@@ -1130,6 +1153,7 @@ class DeleteConfirmationSheetState extends State<DeleteConfirmationSheet> {
                               .DeleteFromLocalOnly,
                             );
                           }
+                          if (!context.mounted) return;
                           await _onDelete(context, widget.onDeleteFromLocal);
                         },
                       ),
@@ -1142,6 +1166,7 @@ class DeleteConfirmationSheetState extends State<DeleteConfirmationSheet> {
                               .DeleteFromRemoteOnly,
                             );
                           }
+                          if (!context.mounted) return;
                           await _onDelete(context, widget.onDeleteFromRemote);
                         },
                       ),
@@ -1154,6 +1179,7 @@ class DeleteConfirmationSheetState extends State<DeleteConfirmationSheet> {
                               .DeleteFromBoth,
                             );
                           }
+                          if (!context.mounted) return;
                           await _onDelete(context, widget.onDeleteFromBoth);
                         },
                       ),

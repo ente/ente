@@ -78,7 +78,7 @@ export interface FolderWatchSyncedFile {
 
 export type ZipItem = [zipPath: string, entryName: string];
 
-export interface SkippedFile {
+export interface PreUploadSkippedFile {
     name: string;
     type: "hiddenFile" | "failedZip";
 }
@@ -87,7 +87,7 @@ export interface PendingUploads {
     collectionName: string | undefined;
     filePaths: string[];
     zipItems: ZipItem[];
-    skippedFiles?: SkippedFile[];
+    preUploadSkippedFiles?: PreUploadSkippedFile[];
 }
 
 export type FFmpegCommand = string[] | { default: string[]; hdr: string[] };

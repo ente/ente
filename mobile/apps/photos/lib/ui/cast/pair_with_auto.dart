@@ -157,6 +157,7 @@ class _PairWithAutoSheetState extends State<_PairWithAutoSheet> {
         },
       );
     } catch (e, s) {
+      if (!context.mounted) return;
       await _handleError(context, device, e, s);
     }
   }
@@ -169,9 +170,11 @@ class _PairWithAutoSheetState extends State<_PairWithAutoSheet> {
     try {
       await _pairWithAuto(context, widget.collection, code);
       if (mounted) {
+        if (!context.mounted) return;
         await Navigator.maybePop(context);
       }
     } catch (e, s) {
+      if (!context.mounted) return;
       await _handleError(context, device, e, s);
     } finally {
       if (mounted) {

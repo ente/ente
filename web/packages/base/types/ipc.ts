@@ -626,15 +626,18 @@ export interface Electron {
      * whose file name begins with a dot (i.e. "hidden" files) will also be
      * excluded.
      *
-     * Alongside `items`, the result includes `skippedFiles`: the hidden
-     * entries excluded above, plus a single entry for the zip itself if it
-     * could not be opened.
+     * Alongside `items`, the result includes `preUploadSkippedFiles`: the
+     * hidden entries excluded above, plus a single entry for the zip itself if
+     * it could not be opened.
      *
      * To read the contents of the files themselves, see [Note: IPC streams].
      */
     listZipItems: (
         zipPath: string,
-    ) => Promise<{ items: ZipItem[]; skippedFiles: SkippedFile[] }>;
+    ) => Promise<{
+        items: ZipItem[];
+        preUploadSkippedFiles: PreUploadSkippedFile[];
+    }>;
 
     /**
      * Return the size in bytes of the file at the given path or of a particular
@@ -885,7 +888,7 @@ export interface FolderWatchSyncedFile {
  */
 export type ZipItem = [zipPath: string, entryName: string];
 
-export interface SkippedFile {
+export interface PreUploadSkippedFile {
     name: string;
     type: "hiddenFile" | "failedZip";
 }
@@ -921,7 +924,7 @@ export interface PendingUploads {
      * Files that were skipped because either we could not open them (zip files)
      * or they are hidden dot files.
      */
-    skippedFiles?: SkippedFile[];
+    preUploadSkippedFiles?: PreUploadSkippedFile[];
 }
 
 /**

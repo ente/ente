@@ -448,7 +448,8 @@ class SearchService {
     String query,
   ) async {
     final List<GenericSearchResult> searchResults = [];
-    for (var month in _getMatchingMonths(context, query)) {
+    final matchingMonths = _getMatchingMonths(context, query).toList();
+    for (final month in matchingMonths) {
       final matchedFiles = await FilesDB.instance
           .getFilesCreatedWithinDurations(
             _getDurationsOfMonthInEveryYear(month.monthNumber),
@@ -594,6 +595,7 @@ class SearchService {
     final List<GenericSearchResult> searchResults = [];
     final List<EnteFile> allFiles = await getAllFilesForSearch();
     for (var fileType in FileType.values) {
+      if (!context.mounted) return const [];
       final String fileTypeString = getHumanReadableString(context, fileType);
       if (fileTypeString.toLowerCase().startsWith(query.toLowerCase())) {
         final matchedFiles = allFiles
@@ -829,7 +831,9 @@ class SearchService {
     final locationTagEntities = (await locationService.getLocationTags());
     final Map<LocalEntity<LocationTag>, List<EnteFile>> result = {};
     final normalizedQuery = query.toLowerCase();
+    if (!context.mounted) return const [];
     final noLocationName = AppLocalizations.of(context).noLocation;
+    if (!context.mounted) return const [];
     final noLocationTagName = AppLocalizations.of(context).noLocationTag;
     final normalizedNoLocationName = noLocationName.toLowerCase();
     final normalizedNoLocationTagName = noLocationTagName.toLowerCase();
@@ -1716,6 +1720,7 @@ class SearchService {
     } else {
       // await two seconds to let new page load first
       await Future.delayed(const Duration(seconds: 1));
+      if (!context.mounted) return const [];
       final DateTime? pickedTime = await showDatePicker(
         context: context,
         initialDate: DateTime.now(),

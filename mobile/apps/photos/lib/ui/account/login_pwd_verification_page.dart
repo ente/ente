@@ -162,6 +162,7 @@ class _LoginPasswordVerificationPageState
     );
     await dialog.show();
     try {
+      if (!context.mounted) return;
       await UserService.instance.verifyEmailViaPassword(
         context,
         widget.srpAttributes,
@@ -172,6 +173,7 @@ class _LoginPasswordVerificationPageState
       await dialog.hide();
       if (e.response != null && e.response!.statusCode == 401) {
         _logger.severe('server reject, failed verify SRP login', e, s);
+        if (!context.mounted) return;
         await _showContactSupportDialog(
           context,
           AppLocalizations.of(context).incorrectPasswordTitle,
@@ -182,6 +184,7 @@ class _LoginPasswordVerificationPageState
         if (e.type == DioExceptionType.connectionTimeout ||
             e.type == DioExceptionType.receiveTimeout ||
             e.type == DioExceptionType.sendTimeout) {
+          if (!context.mounted) return;
           await _showContactSupportDialog(
             context,
             AppLocalizations.of(context).noInternetConnection,
@@ -190,6 +193,7 @@ class _LoginPasswordVerificationPageState
             ).pleaseCheckYourInternetConnectionAndTryAgain,
           );
         } else {
+          if (!context.mounted) return;
           await _showContactSupportDialog(
             context,
             AppLocalizations.of(context).somethingWentWrong,
@@ -203,6 +207,7 @@ class _LoginPasswordVerificationPageState
       if (e is LoginKeyDerivationError) {
         _logger.severe('loginKey derivation error', e, s);
         // LoginKey err, perform regular login via ott verification
+        if (!context.mounted) return;
         await UserService.instance.sendOtt(
           context,
           email!,
@@ -211,6 +216,7 @@ class _LoginPasswordVerificationPageState
         return;
       } else if (e is KeyDerivationError) {
         // device is not powerful enough to perform derive key
+        if (!context.mounted) return;
         final dialogChoice = await showChoiceDialog(
           context,
           title: AppLocalizations.of(context).recreatePasswordTitle,
@@ -227,6 +233,7 @@ class _LoginPasswordVerificationPageState
         return;
       } else {
         _logger.severe('unexpected error while verifying password', e, s);
+        if (!context.mounted) return;
         await _showContactSupportDialog(
           context,
           AppLocalizations.of(context).oops,

@@ -75,6 +75,7 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
     // First determine rotation correction for Android
     _doRotationCorrectionIfAndroid().then((_) {
       // Then initialize the controller
+      if (!mounted) return;
       _controller = VideoEditorController.file(
         widget.ioFile,
         minDuration: const Duration(seconds: 1),
@@ -111,6 +112,7 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
           })
           .catchError((error) {
             // handle minimum duration bigger than video duration error
+            if (!mounted) return;
             Navigator.pop(context);
           }, test: (e) => e is VideoMinDurationError);
     });
@@ -310,6 +312,7 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
         Navigator.of(dialogKey.currentContext!).pop();
       }
 
+      if (!mounted) return;
       showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
     }
   }
@@ -590,6 +593,7 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
 
         SyncService.instance.sync().ignore();
 
+        if (!mounted) return;
         showShortToast(context, AppLocalizations.of(context).editsSaved);
         final files = List<EnteFile>.of(widget.detailPageConfig.files);
 
@@ -613,6 +617,7 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
         }
         Navigator.of(dialogKey.currentContext!).pop('dialog');
 
+        if (!mounted) return;
         replacePage(
           context,
           DetailPage(

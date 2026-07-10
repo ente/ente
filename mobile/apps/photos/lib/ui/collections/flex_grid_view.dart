@@ -114,6 +114,7 @@ class _CollectionsFlexiGridViewWidgetState
         c.id.toString();
     final bool hasVerifiedLock =
         widget.sectionType == UISectionType.hiddenCollections;
+    if (!mounted) return;
     // ignore: unawaited_futures
     routeToPage(
       context,

@@ -314,6 +314,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
           }
         })
         .onError((error, stackTrace) {
+          if (!mounted) return;
           showErrorDialog(
             context,
             AppLocalizations.of(context).error,

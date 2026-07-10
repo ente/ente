@@ -102,6 +102,7 @@ class _RequestPasswordVerificationPageState
       // pop
       await widget.onPasswordVerified(keyEncryptionKey);
       await dialog.hide();
+      if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e, s) {
       _logger.severe("Error while verifying password", e, s);
@@ -109,6 +110,7 @@ class _RequestPasswordVerificationPageState
       if (widget.onPasswordError != null) {
         widget.onPasswordError!();
       } else {
+        if (!mounted) return;
         // ignore: unawaited_futures
         showAlertBottomSheet(
           context,

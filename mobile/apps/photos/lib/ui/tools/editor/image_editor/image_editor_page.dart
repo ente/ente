@@ -201,6 +201,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       body: AppLocalizations.of(context).doYouWantToDiscardTheEditsYouHaveMade,
       actionSheetType: ActionSheetType.defaultActionSheet,
     );
+    if (!context.mounted) return;
     if (actionResult?.action != null &&
         actionResult!.action == ButtonAction.first) {
       replacePage(context, DetailPage(widget.detailPageConfig));

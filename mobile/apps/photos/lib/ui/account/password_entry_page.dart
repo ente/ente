@@ -125,6 +125,7 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
     } else {
       _updatePassword();
     }
+    if (!mounted) return;
     FocusScope.of(context).unfocus();
   }
 
@@ -317,6 +318,7 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
 
   void _updatePassword() async {
     final logOutFromOthers = await logOutFromOtherDevices(context);
+    if (!mounted) return;
     final dialog = createProgressDialog(
       context,
       AppLocalizations.of(context).generatingEncryptionKeys,
@@ -332,18 +334,24 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
         logoutOtherDevices: logOutFromOthers,
       );
       await dialog.hide();
+      if (widget.mode == PasswordEntryMode.reset) {
+        Bus.instance.fire(SubscriptionPurchasedEvent());
+      }
+      if (!mounted) return;
       showShortToast(
         context,
         AppLocalizations.of(context).passwordChangedSuccessfully,
       );
+      if (!mounted) return;
       Navigator.of(context).pop();
       if (widget.mode == PasswordEntryMode.reset) {
-        Bus.instance.fire(SubscriptionPurchasedEvent());
+        if (!mounted) return;
         Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } catch (e, s) {
       _logger.severe("Failed to change password", e, s);
       await dialog.hide();
+      if (!mounted) return;
       await showGenericErrorBottomSheet(context: context, error: e);
     }
   }
@@ -390,22 +398,26 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
           await UserService.instance.setAttributes(result);
           await dialog.hide();
           Configuration.instance.resetVolatilePassword();
-          await Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (BuildContext context) {
-                return getSubscriptionPage(isOnBoarding: true);
-              },
-            ),
-            (route) => route.isFirst,
-          );
+          if (mounted) {
+            await Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (BuildContext context) {
+                  return getSubscriptionPage(isOnBoarding: true);
+                },
+              ),
+              (route) => route.isFirst,
+            );
+          }
           Bus.instance.fire(AccountConfiguredEvent());
         } catch (e, s) {
           _logger.severe("Failed to configure account", e, s);
           await dialog.hide();
+          if (!mounted) return;
           await showGenericErrorBottomSheet(context: context, error: e);
         }
       }
 
+      if (!mounted) return;
       // ignore: unawaited_futures
       routeToPage(
         context,

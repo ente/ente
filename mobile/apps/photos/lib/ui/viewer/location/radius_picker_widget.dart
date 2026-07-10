@@ -201,6 +201,7 @@ class _RadiusPickerWidgetState extends State<RadiusPickerWidget> {
       alignMessage: Alignment.centerRight,
     );
     if (result is Exception) {
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: result);
       _logger.severe("Failed to create custom radius", result);
     }

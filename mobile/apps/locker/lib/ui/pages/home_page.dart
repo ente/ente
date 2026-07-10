@@ -23,82 +23,52 @@ import 'package:locker/services/files/sync/models/file.dart';
 import "package:locker/states/user_details_state.dart";
 import "package:locker/ui/components/empty_state_widget.dart";
 import "package:locker/ui/components/home_empty_state_widget.dart";
+import "package:locker/ui/components/legacy_setup_banner.dart";
 import 'package:locker/ui/components/recents_section_widget.dart';
 import 'package:locker/ui/components/search_result_view.dart';
 import "package:locker/ui/drawer/drawer_page.dart";
 import 'package:locker/ui/mixins/search_mixin.dart';
 import 'package:locker/ui/pages/save_page.dart';
 import 'package:locker/ui/pages/uploader_page.dart';
+import "package:locker/ui/utils/legacy_utils.dart";
 import "package:locker/ui/viewer/actions/file_selection_overlay_bar.dart";
 import "package:locker/utils/bottom_sheet_illustration.dart";
 import 'package:locker/utils/collection_sort_util.dart';
 import 'package:logging/logging.dart';
 
-class CustomLockerAppBar extends StatelessWidget
-    implements PreferredSizeWidget {
-  final GlobalKey<ScaffoldState> scaffoldKey;
-  final bool isSyncing;
-  final TextEditingController searchController;
-  final FocusNode searchFocusNode;
-  final bool isSearchActive;
-  final VoidCallback onClearSearch;
-  final VoidCallback onSearchTapped;
-  final ValueChanged<String>? onSearchChanged;
-
-  const CustomLockerAppBar({
+class LockerHomeHeader extends StatelessWidget {
+  const LockerHomeHeader({
     super.key,
     required this.scaffoldKey,
+    required this.onLegacyTapped,
     this.isSyncing = false,
-    required this.searchController,
-    required this.searchFocusNode,
-    this.isSearchActive = false,
-    required this.onClearSearch,
-    required this.onSearchTapped,
-    this.onSearchChanged,
   });
 
-  @override
-  Size get preferredSize => const Size.fromHeight(140);
+  final GlobalKey<ScaffoldState> scaffoldKey;
+  final VoidCallback onLegacyTapped;
+  final bool isSyncing;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
-    final hasQuery = searchController.text.trim().isNotEmpty;
-    final showClearIcon = isSearchActive || hasQuery;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.primary,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(20),
-          bottomRight: Radius.circular(20),
-        ),
-      ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: GestureDetector(
-                      onTap: () {
-                        scaffoldKey.currentState!.openDrawer();
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: HugeIcon(
-                          icon: HugeIcons.strokeRoundedMenu01,
-                          color: colors.specialWhite,
-                          strokeWidth: 2.25,
-                        ),
-                      ),
-                    ),
-                  ),
-                  isSyncing
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: SizedBox(
+          height: 48,
+          child: Row(
+            children: [
+              _LockerHeaderAction(
+                onTap: () => scaffoldKey.currentState!.openDrawer(),
+                child: HugeIcon(
+                  icon: HugeIcons.strokeRoundedMenu01,
+                  color: colors.textBase,
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: isSyncing
                       ? Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -108,7 +78,7 @@ class CustomLockerAppBar extends StatelessWidget
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  colors.specialWhite,
+                                  colors.textBase,
                                 ),
                               ),
                             ),
@@ -116,60 +86,59 @@ class CustomLockerAppBar extends StatelessWidget
                             Text(
                               context.l10n.syncing,
                               style: TextStyles.body.copyWith(
-                                color: colors.specialWhite,
+                                color: colors.textBase,
                               ),
                             ),
                           ],
                         )
-                      : SvgPicture.asset('assets/svg/app-logo.svg'),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 16,
-                bottom: 16,
-              ),
-              child: Listener(
-                behavior: HitTestBehavior.translucent,
-                onPointerDown: (_) => onSearchTapped(),
-                child: Theme(
-                  data: ComponentTheme.lightTheme(app: ComponentApp.locker),
-                  child: Builder(
-                    builder: (context) {
-                      final fieldColors = context.componentColors;
-                      return TextInputComponent(
-                        controller: searchController,
-                        focusNode: searchFocusNode,
-                        hintText: context.l10n.searchHint,
-                        onChanged: onSearchChanged,
-                        autocorrect: false,
-                        enableSuggestions: false,
-                        shouldUnfocusOnClearOrSubmit: true,
-                        prefix: HugeIcon(
-                          icon: HugeIcons.strokeRoundedSearch01,
-                          color: fieldColors.primary,
-                          size: 20,
-                          strokeWidth: 1.75,
+                      : SvgPicture.asset(
+                          'assets/svg/app-logo.svg',
+                          colorFilter: ColorFilter.mode(
+                            colors.textBase,
+                            BlendMode.srcIn,
+                          ),
                         ),
-                        suffix: showClearIcon
-                            ? HugeIcon(
-                                icon: HugeIcons.strokeRoundedCancel01,
-                                color: fieldColors.textLight,
-                                size: 18,
-                              )
-                            : null,
-                        onSuffixTap: showClearIcon ? onClearSearch : null,
-                      );
-                    },
+                ),
+              ),
+              _LockerHeaderAction(
+                onTap: onLegacyTapped,
+                child: SizedBox.square(
+                  dimension: 24,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(3, 4, 3, 3.5),
+                    child: SvgPicture.asset(
+                      'assets/svg/legacy_heartbeat_icon.svg',
+                      fit: BoxFit.fill,
+                      colorFilter: ColorFilter.mode(
+                        colors.textBase,
+                        BlendMode.srcIn,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _LockerHeaderAction extends StatelessWidget {
+  const _LockerHeaderAction({required this.onTap, required this.child});
+
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(width: 48, height: 48, child: Center(child: child)),
       ),
     );
   }
@@ -587,6 +556,7 @@ class _HomePageState extends UploaderPageState<HomePage>
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
+    final isHomeEmptyState = _error == null && _recentFiles.isEmpty;
     return UserDetailsStateWidget(
       child: ListenableBuilder(
         listenable: _selectedFiles,
@@ -632,20 +602,6 @@ class _HomePageState extends UploaderPageState<HomePage>
                     Bus.instance.fire(OpenedSettingsEvent());
                   }
                 },
-                appBar: CustomLockerAppBar(
-                  scaffoldKey: scaffoldKey,
-                  isSyncing: _isSyncing,
-                  searchController: searchController,
-                  searchFocusNode: searchFocusNode,
-                  isSearchActive: isSearchActive,
-                  onClearSearch: _handleClearSearch,
-                  onSearchTapped: () {
-                    if (!isSearchActive) {
-                      activateSearchWithQuery('');
-                    }
-                  },
-                  onSearchChanged: _handleSearchChange,
-                ),
                 body: Stack(
                   children: [
                     GestureDetector(
@@ -659,7 +615,7 @@ class _HomePageState extends UploaderPageState<HomePage>
                           scaffoldKey.currentState?.openDrawer();
                         }
                       },
-                      child: _buildBody(),
+                      child: _buildHomeContent(isHomeEmptyState),
                     ),
                     ValueListenableBuilder<List<EnteFile>>(
                       valueListenable: _displayedFilesNotifier,
@@ -675,7 +631,7 @@ class _HomePageState extends UploaderPageState<HomePage>
                     ),
                   ],
                 ),
-                floatingActionButton: isSearchActive
+                floatingActionButton: isSearchActive || isHomeEmptyState
                     ? null
                     : ListenableBuilder(
                         listenable: _selectedFiles,
@@ -746,10 +702,16 @@ class _HomePageState extends UploaderPageState<HomePage>
         final scrollBottomPadding = MediaQuery.of(context).padding.bottom + 120;
 
         return _recentFiles.isEmpty
-            ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: HomeEmptyStateWidget(isLoading: _isSyncing),
+            ? SizedBox.expand(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: HomeEmptyStateWidget(
+                      isLoading: _isSyncing,
+                      onSetupLegacy: () => openLegacyPage(context),
+                      onSaveToLocker: _openSavePage,
+                    ),
+                  ),
                 ),
               )
             : SingleChildScrollView(
@@ -758,12 +720,13 @@ class _HomePageState extends UploaderPageState<HomePage>
                 padding: EdgeInsets.only(
                   left: 16.0,
                   right: 16.0,
-                  top: 16.0,
+                  top: 0,
                   bottom: scrollBottomPadding,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const LegacySetupBanner(),
                     RecentsSectionWidget(
                       collections: _collections,
                       recentFiles: _recentFiles,
@@ -774,6 +737,66 @@ class _HomePageState extends UploaderPageState<HomePage>
                 ),
               );
       },
+    );
+  }
+
+  Widget _buildHomeContent(bool isHomeEmptyState) {
+    return Column(
+      children: [
+        LockerHomeHeader(
+          scaffoldKey: scaffoldKey,
+          onLegacyTapped: () => unawaited(openLegacyPage(context)),
+          isSyncing: _isSyncing,
+        ),
+        if (!isHomeEmptyState) _buildSearchBar(),
+        Expanded(child: _buildBody()),
+      ],
+    );
+  }
+
+  Widget _buildSearchBar() {
+    final colors = context.componentColors;
+    final showClearIcon =
+        isSearchActive || searchController.text.trim().isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.only(
+        left: Spacing.lg,
+        top: Spacing.lg,
+        right: Spacing.lg,
+        bottom: Spacing.xl,
+      ),
+      child: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) {
+          if (!isSearchActive) {
+            activateSearchWithQuery('');
+          }
+        },
+        child: TextInputComponent(
+          controller: searchController,
+          focusNode: searchFocusNode,
+          hintText: context.l10n.searchHint,
+          onChanged: _handleSearchChange,
+          autocorrect: false,
+          enableSuggestions: false,
+          shouldUnfocusOnClearOrSubmit: true,
+          prefix: HugeIcon(
+            icon: HugeIcons.strokeRoundedSearch01,
+            color: colors.primary,
+            size: 20,
+            strokeWidth: 1.75,
+          ),
+          suffix: showClearIcon
+              ? HugeIcon(
+                  icon: HugeIcons.strokeRoundedCancel01,
+                  color: colors.textLight,
+                  size: 18,
+                )
+              : null,
+          onSuffixTap: showClearIcon ? _handleClearSearch : null,
+        ),
+      ),
     );
   }
 

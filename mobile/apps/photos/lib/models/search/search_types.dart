@@ -197,6 +197,7 @@ extension SectionTypeExtensions on SectionType {
         return () async {
           final centerPoint = await showPickCenterPointSheet(context);
           if (centerPoint != null) {
+            if (!context.mounted) return;
             showAddLocationSheet(context, centerPoint);
           }
         };
@@ -222,8 +223,10 @@ extension SectionTypeExtensions on SectionType {
                     .createAlbum(text);
 
                 // Close the dialog now so that it does not flash when leaving the album again.
+                if (!context.mounted) return;
                 Navigator.of(context).pop();
 
+                if (!context.mounted) return;
                 // ignore: unawaited_futures
                 await routeToPage(
                   context,
@@ -238,6 +241,7 @@ extension SectionTypeExtensions on SectionType {
             },
           );
           if (result is Exception) {
+            if (!context.mounted) return;
             await showGenericErrorDialog(context: context, error: result);
           }
         };

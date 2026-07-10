@@ -37,11 +37,13 @@ import 'package:locker/services/files/download/service_locator.dart';
 import 'package:locker/services/files/links/links_client.dart';
 import 'package:locker/services/files/links/links_service.dart';
 import 'package:locker/services/files/offline/offline_files_service.dart';
+import 'package:locker/services/local_settings.dart';
 import 'package:locker/services/trash/trash_service.dart';
 import 'package:locker/services/update_service.dart';
 import 'package:locker/ui/pages/home_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:rive/rive.dart' as rive;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
@@ -52,6 +54,7 @@ Future<void>? _rustInitFuture;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await rive.RiveNative.init();
   registerCryptoApi(const EnteCryptoDartAdapter());
 
   if (PlatformDetector.isDesktop()) {
@@ -186,6 +189,8 @@ Future<void> _init(bool bool, {String? via}) async {
   try {
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     final PackageInfo packageInfo = await PackageInfo.fromPlatform();
+
+    LocalSettings.instance.init(preferences);
 
     await CryptoUtil.init();
 

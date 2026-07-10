@@ -164,6 +164,7 @@ class _VerifyIdentifyDialogState extends State<VerifyIdentifyDialog> {
                 return;
               }
               await Clipboard.setData(ClipboardData(text: verificationID));
+              if (!context.mounted) return;
               // ignore: unawaited_futures
               shareText(
                 widget.self

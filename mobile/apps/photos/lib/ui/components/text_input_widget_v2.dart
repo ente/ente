@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -589,6 +591,7 @@ class _TextInputWidgetV2State extends State<TextInputWidgetV2>
               ),
               () {
                 if (widget.popNavAfterSubmission) {
+                  if (!mounted) return;
                   _popNavigatorStack(context);
                 }
                 if (mounted) {
@@ -605,18 +608,25 @@ class _TextInputWidgetV2State extends State<TextInputWidgetV2>
         setState(() {
           _executionState = ExecutionState.idle;
           _syncLoadingController();
-          if (widget.popNavAfterSubmission) {
-            Future.delayed(
-              Duration.zero,
-              () => _popNavigatorStack(context, e: _exception),
-            );
-          }
         });
+        if (widget.popNavAfterSubmission) {
+          unawaited(
+            Future.delayed(Duration.zero, () {
+              if (!mounted) return;
+              _popNavigatorStack(context, e: _exception);
+            }),
+          );
+        }
       }
     } else if (widget.popNavAfterSubmission) {
-      Future.delayed(
-        Duration(seconds: widget.alwaysShowSuccessState ? 1 : 0),
-        () => _popNavigatorStack(context),
+      unawaited(
+        Future.delayed(
+          Duration(seconds: widget.alwaysShowSuccessState ? 1 : 0),
+          () {
+            if (!mounted) return;
+            _popNavigatorStack(context);
+          },
+        ),
       );
     }
   }

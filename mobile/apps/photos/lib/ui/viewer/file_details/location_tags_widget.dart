@@ -115,6 +115,7 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
           onTap = null;
         });
       }
+      if (!mounted) return const [];
       return [
         ChipButtonWidget(
           AppLocalizations.of(context).addLocation,
@@ -295,10 +296,12 @@ class _InfoMapState extends State<InfoMap> {
                                     onTap: () async {
                                       try {
                                         await setMapEnabled(true);
+                                        if (!mounted) return;
                                         setState(() {
                                           _hasEnabledMap = true;
                                         });
                                       } catch (e) {
+                                        if (!context.mounted) return;
                                         showShortToast(
                                           context,
                                           AppLocalizations.of(
