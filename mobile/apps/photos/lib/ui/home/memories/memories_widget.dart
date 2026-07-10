@@ -218,7 +218,7 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
     return FutureBuilder<bool>(
       future: _hasNotificationsPermissions,
       builder: (context, snapshot) {
-        final hasNotificationsPermissions = snapshot.data ?? false;
+        final hasNotificationsPermissions = snapshot.data ?? true;
         return SizedBox(
           height: _memoryheight + MemoryCoverWidget.outerStrokeWidth * 2,
           child: ListView.builder(
