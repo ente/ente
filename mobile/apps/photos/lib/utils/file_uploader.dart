@@ -210,8 +210,14 @@ class FileUploader {
         "collection",
       );
 
+      // Pass a clone: addOrCopyToCollection mutates the file's generatedID,
+      // collectionID and key fields in place before inserting it. When the
+      // same localID is queued for 3+ collections, multiple secondary
+      // callbacks resolve off this single completer with the same uploadedFile
+      // instance and run concurrently, so they would otherwise race and
+      // corrupt each other's entries.
       return CollectionsService.instance
-          .addOrCopyToCollection(collectionID, [uploadedFile])
+          .addOrCopyToCollection(collectionID, [uploadedFile.copyWith()])
           .then((aVoid) {
             return uploadedFile;
           });

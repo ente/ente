@@ -1009,10 +1009,15 @@ class FilesDB with SqlDbBase {
   Future<List<EnteFile>> getFilesPendingForUpload() async {
     final db = await instance.sqliteAsyncDB;
     final results = await db.getAll(
+      // Note: intentionally NOT grouping by localID. A single local file can
+      // have multiple pending entries (one per collection) when the user adds
+      // it to several albums before it is uploaded. The uploader dedupes by
+      // localID in its in-memory queue and adds the uploaded file to each
+      // pending collection, so all entries must be returned here.
       'SELECT * FROM $filesTable WHERE ($columnUploadedFileID IS NULL OR '
       '$columnUploadedFileID IS -1) AND $columnCollectionID IS NOT NULL AND '
       '$columnCollectionID IS NOT -1 AND $columnLocalID IS NOT NULL AND '
-      '$columnLocalID IS NOT -1 GROUP BY $columnLocalID '
+      '$columnLocalID IS NOT -1 '
       'ORDER BY $columnCreationTime DESC',
     );
     final files = convertToFiles(results);
