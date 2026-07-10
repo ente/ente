@@ -309,8 +309,32 @@
    is not interactable (PhotoSwipe by default shows the zoom out icon). */
 .pswp-ente .pswp__img {
     cursor: auto;
+    outline: 1px solid transparent;
 }
-
+.pswp-ente .pswp__zoom-wrap:not(:has(.pswp__img--placeholder)) .pswp__img {
+    background-color: var(--mui-palette-background-default);
+    background-image:
+        linear-gradient(
+            45deg,
+            var(--mui-palette-divider) 25%,
+            transparent 25%,
+            transparent 75%,
+            var(--mui-palette-divider) 75%,
+            var(--mui-palette-divider)
+        ),
+        linear-gradient(
+            45deg,
+            var(--mui-palette-divider) 25%,
+            var(--mui-palette-background-default) 25%,
+            var(--mui-palette-background-default) 75%,
+            var(--mui-palette-divider) 75%,
+            var(--mui-palette-divider)
+        );
+    background-size: 16px 16px;
+    background-position:
+        0 0,
+        8px 8px;
+}
 /*
   Make the controllable video elements we render as custom PhotoSwipe content
   take .pswp-ente up the entire container.
