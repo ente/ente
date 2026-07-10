@@ -400,6 +400,7 @@ class _BodyState extends State<_Body> {
           },
           playbackCallback: (shouldEnable, reason) {
             Future.delayed(Duration.zero, () {
+              if (!context.mounted) return;
               InheritedDetailPageState.of(
                 context,
               ).requestFullScreen(shouldEnable: shouldEnable, reason: reason);
@@ -517,6 +518,7 @@ class _BodyState extends State<_Body> {
     try {
       final ioFile = await getFile(file);
       if (ioFile == null) {
+        if (!mounted) return;
         showShortToast(
           context,
           AppLocalizations.of(context).failedToFetchOriginalForEdit,
@@ -526,6 +528,7 @@ class _BodyState extends State<_Body> {
       }
       if (file.fileType == FileType.video) {
         await dialog.hide();
+        if (!mounted) return;
         replacePage(
           context,
           VideoEditorPage(
@@ -543,8 +546,10 @@ class _BodyState extends State<_Body> {
         ioFile,
         cacheRawData: true,
       );
+      if (!mounted) return;
       await precacheImage(imageProvider, context);
       await dialog.hide();
+      if (!mounted) return;
       replacePage(
         context,
         ImageEditorPage(

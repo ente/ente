@@ -282,6 +282,7 @@ class _HomeWidgetState extends State<HomeWidget> {
     updateService.shouldShowUpdateNotification().then((value) {
       Future.delayed(Duration.zero, () {
         if (value) {
+          if (!mounted) return;
           showDialog(
             useRootNavigator: false,
             context: context,
@@ -434,6 +435,7 @@ class _HomeWidgetState extends State<HomeWidget> {
                 publicUrl.opsLimit!,
               );
 
+              if (!mounted) return;
               unawaited(
                 CollectionsService.instance
                     .verifyPublicCollectionPassword(
@@ -445,6 +447,7 @@ class _HomeWidgetState extends State<HomeWidget> {
                       if (result) {
                         await dialog.show();
 
+                        if (!mounted) return;
                         final List<EnteFile> sharedFiles = await _diffFetcher
                             .getPublicFiles(
                               context,
@@ -452,8 +455,10 @@ class _HomeWidgetState extends State<HomeWidget> {
                               collection.pubMagicMetadata.asc ?? false,
                             );
                         await dialog.hide();
+                        if (!mounted) return;
                         Navigator.of(context).pop();
 
+                        if (!mounted) return;
                         await routeToPage(
                           context,
                           SharedPublicCollectionPage(
@@ -467,6 +472,7 @@ class _HomeWidgetState extends State<HomeWidget> {
               );
             } catch (e, s) {
               _logger.severe("Failed to decrypt password for album", e, s);
+              if (!mounted) return;
               await showGenericErrorDialog(context: context, error: e);
               return;
             }
@@ -475,6 +481,7 @@ class _HomeWidgetState extends State<HomeWidget> {
       } else {
         await dialog.show();
 
+        if (!mounted) return;
         final List<EnteFile> sharedFiles = await _diffFetcher.getPublicFiles(
           context,
           collection.id,
@@ -482,6 +489,7 @@ class _HomeWidgetState extends State<HomeWidget> {
         );
         await dialog.hide();
 
+        if (!mounted) return;
         await routeToPage(
           context,
           SharedPublicCollectionPage(
@@ -491,6 +499,7 @@ class _HomeWidgetState extends State<HomeWidget> {
           ),
         );
         if (sharedFiles.length == 1) {
+          if (!mounted) return;
           await routeToPage(
             context,
             DetailPage(
@@ -1029,6 +1038,7 @@ class _HomeWidgetState extends State<HomeWidget> {
       _shouldRenderCreateCollectionSheet = false;
       ReceiveSharingIntent.instance.reset();
       Future.delayed(const Duration(milliseconds: 10), () {
+        if (!context.mounted) return;
         showCollectionActionSheet(
           context,
           sharedFiles: _sharedFiles,
@@ -1180,6 +1190,7 @@ class _HomeWidgetState extends State<HomeWidget> {
       // but keep in mind it could be `null`.
       if (initialLink != null) {
         _logger.info("Initial link received: host ${initialLink.host}");
+        if (!mounted) return false;
         _getCredentials(context, initialLink);
         return true;
       } else {
@@ -1195,6 +1206,7 @@ class _HomeWidgetState extends State<HomeWidget> {
     _authDeepLinkSubscription = appLinks.uriLinkStream.listen(
       (link) {
         _logger.info("Link received: host ${link.host}");
+        if (!mounted) return;
         _getCredentials(context, link);
       },
       onError: (err) {
@@ -1235,6 +1247,7 @@ class _HomeWidgetState extends State<HomeWidget> {
         updateService.hideChangeLog().ignore();
         return;
       }
+      if (!context.mounted) return;
       final sheetAction = await showBottomSheetComponent<ChangeLogPageAction>(
         context: context,
         builder: (context) => const ChangeLogPage(),
@@ -1245,6 +1258,7 @@ class _HomeWidgetState extends State<HomeWidget> {
         return;
       }
       if (sheetAction == ChangeLogPageAction.openReferrals) {
+        if (!context.mounted) return;
         await routeToPage(context, const ReferralScreen());
       }
     } finally {

@@ -52,9 +52,11 @@ class CollectionActions {
       return true;
     } catch (e) {
       if (e is SharingNotPermittedForFreeAccountsError) {
+        if (!context.mounted) return false;
         await _showUnSupportedAlert(context);
       } else {
         logger.severe("Failed to update shareUrl collection", e);
+        if (!context.mounted) return false;
         await showGenericErrorDialog(context: context, error: e);
       }
       return false;
@@ -98,6 +100,7 @@ class CollectionActions {
     );
     if (actionResult?.action != null) {
       if (actionResult!.action == ButtonAction.error) {
+        if (!context.mounted) return false;
         await showGenericErrorDialog(
           context: context,
           error: actionResult.exception,
@@ -145,7 +148,9 @@ class CollectionActions {
         if (e is SharingNotPermittedForFreeAccountsError) {
           if (newCollection.isQuickLinkCollection() &&
               !newCollection.hasSharees) {
-            await trashCollectionKeepingPhotos(newCollection, context);
+            if (context.mounted) {
+              await trashCollectionKeepingPhotos(newCollection, context);
+            }
           }
           rethrow;
         }
@@ -153,9 +158,11 @@ class CollectionActions {
       return collection;
     } catch (e, s) {
       if (e is SharingNotPermittedForFreeAccountsError) {
+        if (!context.mounted) return null;
         await _showUnSupportedAlert(context);
       } else {
         logger.severe("Failing to create link for selected files", e, s);
+        if (!context.mounted) return null;
         await showGenericErrorDialog(context: context, error: e);
       }
     }
@@ -201,6 +208,7 @@ class CollectionActions {
     );
     if (actionResult?.action != null) {
       if (actionResult!.action == ButtonAction.error) {
+        if (!context.mounted) return false;
         await showGenericErrorDialog(
           context: context,
           error: actionResult.exception,
@@ -231,6 +239,7 @@ class CollectionActions {
     } catch (e) {
       await dialog?.hide();
       logger.severe("Failed to get public key", e);
+      if (!context.mounted) return false;
       await showGenericErrorDialog(context: context, error: e);
       return false;
     }
@@ -239,6 +248,7 @@ class CollectionActions {
     if (publicKey == null || publicKey == '') {
       // todo: neeraj replace this as per the design where a new screen
       // is used for error. Do this change along with handling of network errors
+      if (!context.mounted) return false;
       await showInviteDialog(context, email);
       return false;
     } else {
@@ -286,6 +296,7 @@ class CollectionActions {
     } catch (e) {
       await dialog?.hide();
       logger.severe("Failed to get public key", e);
+      if (!context.mounted) return false;
       await showGenericErrorDialog(context: context, error: e);
       return false;
     }
@@ -294,6 +305,7 @@ class CollectionActions {
     if (publicKey == null || publicKey == '') {
       // todo: neeraj replace this as per the design where a new screen
       // is used for error. Do this change along with handling of network errors
+      if (!context.mounted) return false;
       await showDialogWidget(
         context: context,
         title: AppLocalizations.of(context).inviteToEnte,
@@ -331,9 +343,11 @@ class CollectionActions {
       } catch (e) {
         await dialog?.hide();
         if (e is SharingNotPermittedForFreeAccountsError) {
+          if (!context.mounted) return false;
           await _showUnSupportedAlert(context);
         } else {
           logger.severe("failed to share collection", e);
+          if (!context.mounted) return false;
           await showGenericErrorDialog(context: context, error: e);
         }
         return false;
@@ -392,6 +406,7 @@ class CollectionActions {
         return false;
       }
     }
+    if (!bContext.mounted) return false;
     return _showDeleteCollectionConfirmationSheet(
       context: bContext,
       title: AppLocalizations.of(bContext).deleteAlbumQuestion,
@@ -467,6 +482,7 @@ class CollectionActions {
     );
     if (actionResult?.action != null &&
         actionResult!.action == ButtonAction.error) {
+      if (!context.mounted) return false;
       await showGenericErrorDialog(
         context: context,
         error: actionResult.exception,
@@ -512,6 +528,7 @@ class CollectionActions {
     final List<EnteFile> files = await FilesDB.instance.getAllFilesCollection(
       collection.id,
     );
+    if (!bContext.mounted) return;
     await moveFilesFromCurrentCollection(
       bContext,
       collection,
@@ -530,9 +547,11 @@ class CollectionActions {
       final List<EnteFile> files = await FilesDB.instance.getAllFilesCollection(
         collection.id,
       );
+      if (!bContext.mounted) return;
       await moveFilesFromCurrentCollection(bContext, collection, files);
     } catch (e) {
       logger.severe("Failed to remove files from uncategorized", e);
+      if (!bContext.mounted) return;
       await showErrorDialogForException(
         context: bContext,
         exception: e as Exception,
@@ -619,6 +638,7 @@ class CollectionActions {
     }
 
     if (!isCollectionOwner && split.ownedByOtherUsers.isNotEmpty) {
+      if (!context.mounted) return;
       showShortToast(
         context,
         AppLocalizations.of(context).canOnlyRemoveFilesOwnedByYou,

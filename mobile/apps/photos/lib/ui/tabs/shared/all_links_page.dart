@@ -112,6 +112,7 @@ class _AllLinksPageState extends State<AllLinksPage> {
       ],
     );
     if (result?.action == ButtonAction.error && context.mounted) {
+      if (!mounted) return;
       await showGenericErrorBottomSheet(
         context: context,
         error: result?.exception,

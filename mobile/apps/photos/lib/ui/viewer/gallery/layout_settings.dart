@@ -89,6 +89,7 @@ class _GalleryLayoutSettingsState extends State<GalleryLayoutSettings> {
                           ForceReloadHomeGalleryEvent("Gallery layout changed"),
                         );
 
+                        if (!context.mounted) return;
                         Navigator.pop(context);
                       },
                     ),
@@ -118,6 +119,7 @@ class _GalleryLayoutSettingsState extends State<GalleryLayoutSettings> {
                           ForceReloadHomeGalleryEvent("Gallery layout changed"),
                         );
 
+                        if (!context.mounted) return;
                         Navigator.pop(context);
                       },
                     ),

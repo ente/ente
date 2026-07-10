@@ -179,6 +179,7 @@ class _EditDateSheetState extends State<EditDateSheet> {
                         selectedDate,
                         selectSingleDate ? null : startDate,
                       );
+                      if (!context.mounted) return;
                       Navigator.of(context).pop(newDate);
                     },
                   ),

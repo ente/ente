@@ -56,12 +56,13 @@ class _PeopleSectionState extends State<PeopleSection> {
     for (Stream<Event> stream in streamsToListenTo) {
       streamSubscriptions.add(
         stream.listen((event) async {
-          _examples =
-              await widget.sectionType.getData(
-                    context,
-                    limit: widget.resultLimit + 1,
-                  )
-                  as List<GenericSearchResult>;
+          if (!mounted) return;
+          final results = await widget.sectionType.getData(
+            context,
+            limit: widget.resultLimit + 1,
+          );
+          if (!mounted) return;
+          _examples = results as List<GenericSearchResult>;
           setState(() {});
         }),
       );
@@ -292,6 +293,7 @@ class PersonSearchExample extends StatelessWidget {
                               );
                               if (result != null &&
                                   result is (PersonEntity, EnteFile)) {
+                                if (!context.mounted) return;
                                 // ignore: unawaited_futures
                                 routeToPage(
                                   context,
@@ -302,6 +304,7 @@ class PersonSearchExample extends StatelessWidget {
                                 );
                               } else if (result != null &&
                                   result is PersonEntity) {
+                                if (!context.mounted) return;
                                 // ignore: unawaited_futures
                                 routeToPage(
                                   context,

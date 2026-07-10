@@ -555,6 +555,7 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                               await ritualsService.saveRitual(
                                                 updated,
                                               );
+                                              if (!context.mounted) return;
                                               Navigator.of(context).pop();
                                             }
                                           : null,
@@ -617,6 +618,7 @@ Future<Collection?> _pickAlbum(BuildContext context) async {
   );
   Collection? selected;
 
+  if (!context.mounted) return null;
   await showModalBottomSheet(
     context: context,
     isScrollControlled: true,

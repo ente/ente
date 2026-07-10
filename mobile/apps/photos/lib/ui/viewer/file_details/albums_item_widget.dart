@@ -79,6 +79,7 @@ class AlbumsItemWidget extends StatelessWidget {
       for (var collectionID in collectionIDs) {
         final c = CollectionsService.instance.getCollectionByID(collectionID);
         collections.add(c!);
+        if (!context.mounted) return const [];
         chipButtons.add(
           ChipButtonWidget(
             c.isHidden() ? AppLocalizations.of(context).hidden : c.displayName,

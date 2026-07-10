@@ -77,6 +77,7 @@ Future<void> share(
       throw ArgumentError("No files resolved for system share");
     }
     final xFiles = resolvedPaths.map((path) => XFile(path)).toList();
+    if (!context.mounted) return;
     await SharePlus.instance.share(
       ShareParams(
         files: xFiles,
@@ -91,6 +92,7 @@ Future<void> share(
       s,
     );
     await dialog.hide();
+    if (!context.mounted) return;
     await showGenericErrorDialog(context: context, error: e);
   }
 }

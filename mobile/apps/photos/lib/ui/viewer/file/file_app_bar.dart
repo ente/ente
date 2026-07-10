@@ -607,6 +607,7 @@ class FileAppBarState extends State<FileAppBar> {
       }
     } catch (e, s) {
       _logger.severe("failed to update file visibility", e, s);
+      if (!context.mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }
@@ -671,6 +672,7 @@ class FileAppBarState extends State<FileAppBar> {
       return;
     }
 
+    if (!mounted) return;
     final dialog = createProgressDialog(
       context,
       AppLocalizations.of(context).downloading,
@@ -711,6 +713,7 @@ class FileAppBarState extends State<FileAppBar> {
       isDismissible: true,
     );
     await dialog.show();
+    if (!mounted) return;
     final Collection? sharedLinkCollection = await CollectionActions(
       CollectionsService.instance,
     ).createSharedCollectionLink(context, [file]);
@@ -723,6 +726,7 @@ class FileAppBarState extends State<FileAppBar> {
     );
     await dialog.hide();
     unawaited(Clipboard.setData(ClipboardData(text: url)));
+    if (!mounted) return;
     await shareLinkWithDescription(url, context: context);
   }
 
@@ -740,6 +744,7 @@ class FileAppBarState extends State<FileAppBar> {
       final m = MediaExtension();
       final bool result = await m.setAs("file://${fileToSave.path}", "image/*");
       if (result == false) {
+        if (!mounted) return;
         showShortToast(
           context,
           AppLocalizations.of(context).somethingWentWrong,
@@ -749,6 +754,7 @@ class FileAppBarState extends State<FileAppBar> {
     } catch (e) {
       await dialog.hide();
       _logger.severe("Failed to use as", e);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }
@@ -758,6 +764,7 @@ class FileAppBarState extends State<FileAppBar> {
       Bus.instance.fire(GuestViewEvent(true, true));
       await localSettings.setOnGuestView(true);
     } else {
+      if (!mounted) return;
       await showErrorDialog(
         context,
         AppLocalizations.of(context).noSystemLockFound,
@@ -810,10 +817,12 @@ class FileAppBarState extends State<FileAppBar> {
 
       if (!wasAdded) {
         // File was already in queue
+        if (!mounted) return;
         showToast(context, AppLocalizations.of(context).videoAlreadyInQueue);
         return;
       }
 
+      if (!mounted) return;
       showToast(context, AppLocalizations.of(context).addedToQueue);
 
       if (mounted) {
@@ -823,6 +832,7 @@ class FileAppBarState extends State<FileAppBar> {
       }
     } catch (e, s) {
       _logger.severe("Failed to $streamType video stream", e, s);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }

@@ -90,6 +90,7 @@ class _MapScreenState extends State<MapScreen> {
     final List<ImageMarker> tempMarkers = result.$2;
 
     if (tempMarkers.isEmpty) {
+      if (!mounted) return;
       showShortToast(
         context,
         AppLocalizations.of(context).noImagesWithLocation,

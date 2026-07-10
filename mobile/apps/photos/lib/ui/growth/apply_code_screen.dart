@@ -114,6 +114,7 @@ class _ApplyCodeScreenState extends State<ApplyCodeScreen> {
                       onTap: () async {
                         try {
                           await storageBonusService.applyCode(code);
+                          if (!context.mounted) return;
                           // ignore: unawaited_futures
                           Navigator.of(context).pushReplacement(
                             MaterialPageRoute(
@@ -127,6 +128,7 @@ class _ApplyCodeScreenState extends State<ApplyCodeScreen> {
                           Logger(
                             '$runtimeType',
                           ).severe("failed to apply referral", e);
+                          if (!context.mounted) return;
                           // ignore: unawaited_futures
                           showErrorDialogForException(
                             context: context,

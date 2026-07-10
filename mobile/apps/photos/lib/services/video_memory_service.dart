@@ -29,6 +29,7 @@ Future<void> createSlideshow(BuildContext context, List<EnteFile> files) async {
       await dialog.hide();
     }
 
+    if (!context.mounted) return;
     final command = _buildFFmpegCommand(
       context,
       imageData.paths,
@@ -36,6 +37,7 @@ Future<void> createSlideshow(BuildContext context, List<EnteFile> files) async {
       imageData.widths,
     );
 
+    if (!context.mounted) return;
     await _executeFFmpegProcess(
       context: context,
       command: command,
@@ -116,6 +118,7 @@ Future<void> _executeFFmpegProcess({
             "FFmpeg command executed successfully in $executionTime seconds",
           );
           _completeOperation(completer, onComplete);
+          if (!context.mounted) return;
           showToast(
             context,
             AppLocalizations.of(
@@ -126,9 +129,10 @@ Future<void> _executeFFmpegProcess({
           _logger.warning(
             "FFmpeg process failed with return code $returnCode in $executionTime seconds",
           );
-          showToast(context, AppLocalizations.of(context).videoExportFailed);
           _completeOperation(completer, onComplete);
           await FFmpegKit.cancel();
+          if (!context.mounted) return;
+          showToast(context, AppLocalizations.of(context).videoExportFailed);
         }
       },
       (log) {

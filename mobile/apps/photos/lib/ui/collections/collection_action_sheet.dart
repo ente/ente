@@ -272,6 +272,7 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
               selectedFiles: widget.selectedFiles?.files.toList(),
             );
             if (result) {
+              if (!mounted) return;
               showShortToast(
                 context,
                 AppLocalizations.of(

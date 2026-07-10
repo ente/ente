@@ -49,6 +49,7 @@ class EmptyAlbumState extends StatelessWidget {
                   try {
                     await showAddPhotosSheet(context, c);
                   } catch (e) {
+                    if (!context.mounted) return;
                     await showGenericErrorDialog(context: context, error: e);
                   }
                 },

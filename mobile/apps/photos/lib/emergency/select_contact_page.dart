@@ -210,6 +210,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
     var hasSuccess = false;
     for (final email in emailsToAdd) {
       try {
+        if (!mounted) return;
         final success = await EmergencyContactService.instance.addContact(
           context,
           email,

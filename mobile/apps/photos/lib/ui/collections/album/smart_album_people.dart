@@ -121,6 +121,7 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                               .toList();
 
                           if (removedPersonIds.isNotEmpty) {
+                            if (!context.mounted) return;
                             final toDelete = await removeFilesDialog(context);
                             await dialog.show();
 
@@ -139,6 +140,7 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                                     .getCollectionByID(widget.collectionId);
 
                                 if (files?.isNotEmpty ?? false) {
+                                  if (!context.mounted) return;
                                   await CollectionActions(
                                     CollectionsService.instance,
                                   ).moveFilesFromCurrentCollection(
@@ -168,6 +170,7 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                         unawaited(smartAlbumsService.syncSmartAlbums());
 
                         await dialog.hide();
+                        if (!context.mounted) return;
                         Navigator.pop(context);
                       } catch (error, stackTrace) {
                         _logger.severe(
@@ -176,6 +179,7 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                           stackTrace,
                         );
                         await dialog.hide();
+                        if (!context.mounted) return;
                         await showGenericErrorDialog(
                           context: context,
                           error: error,

@@ -726,7 +726,11 @@ class VideoPreviewService {
         final entry = fileQueue.entries.first;
         final file = entry.value;
         fileQueue.remove(entry.key);
-        await chunkAndUploadVideo(ctx, file, continuation: true);
+        if (ctx != null && ctx.mounted) {
+          await chunkAndUploadVideo(ctx, file, continuation: true);
+        } else {
+          await chunkAndUploadVideo(null, file, continuation: true);
+        }
       } else {
         // Release compute when queue is empty or network is unavailable
         stop(shouldStopProcessing ? "network error" : "nothing to process");

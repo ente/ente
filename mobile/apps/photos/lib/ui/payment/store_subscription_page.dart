@@ -394,12 +394,14 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
                 if (!context.mounted) {
                   return;
                 }
+                if (!mounted) return;
                 await showGenericErrorDialog(context: context, error: error);
                 return;
               }
               if (!context.mounted) {
                 return;
               }
+              if (!mounted) return;
               await _billingService.launchFamilyPortal(
                 context,
                 userDetails,
@@ -589,6 +591,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
                   "Could not find products: " + response.notFoundIDs.toString();
               _logger.severe(errMsg);
               await _dialog.hide();
+              if (!mounted) return;
               await showGenericErrorDialog(
                 context: context,
                 error: Exception(errMsg),
@@ -602,6 +605,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
                 _currentSubscription!.productID != plan.androidID;
             if (isCrossGradingOnAndroid) {
               await _dialog.hide();
+              if (!mounted) return;
               // ignore: unawaited_futures
               showErrorDialog(
                 context,
@@ -740,6 +744,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
           "Could not find products: " + response.notFoundIDs.toString();
       _logger.severe(errMsg);
       await _dialog.hide();
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: Exception(errMsg));
       return;
     }
@@ -750,6 +755,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
         _currentSubscription!.productID != selectedPlan.androidID;
     if (isCrossGradingOnAndroid) {
       await _dialog.hide();
+      if (!mounted) return;
       await showErrorDialog(
         context,
         AppLocalizations.of(context).couldNotUpdateSubscription,

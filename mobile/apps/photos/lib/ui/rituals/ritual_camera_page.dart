@@ -459,6 +459,7 @@ class _RitualCameraPageState extends State<RitualCameraPage>
       );
       await _pausePreview();
       if (!mounted) return;
+      if (!navContext.mounted) return;
       await routeToPage(
         navContext,
         const AllRitualsScreen(),

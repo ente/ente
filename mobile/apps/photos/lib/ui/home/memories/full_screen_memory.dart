@@ -383,6 +383,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
 
     _detailSheetEventSubscription = Bus.instance.on<DetailsSheetEvent>().listen(
       (event) {
+        if (!mounted) return;
         final inheritedData = FullScreenMemoryData.of(context);
         if (inheritedData == null) return;
         final index = inheritedData.indexNotifier.value;

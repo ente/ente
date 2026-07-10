@@ -65,6 +65,7 @@ class EmergencyContactService {
     }
     final String? publicKey = await _userService.getPublicKey(email);
     if (publicKey == null) {
+      if (!context.mounted) return false;
       await showInviteDialog(context, email);
       return false;
     }

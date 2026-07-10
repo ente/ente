@@ -48,10 +48,12 @@ Future<void> showCastSheet(BuildContext context, Collection collection) async {
       sessions = await gw.getAllCastSessions();
     } catch (e, s) {
       logger.severe('Failed to fetch active sessions in cast sheet: ', e, s);
+      if (!context.mounted) return;
       await showGenericErrorDialog(context: context, error: e);
       return;
     }
   }
+  if (!context.mounted) return;
   return showBottomSheetComponent(
     context: context,
     builder: (_) => BottomSheetComponent(

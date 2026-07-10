@@ -251,6 +251,7 @@ class _EditLocationSheetState extends State<EditLocationSheet> {
       newName: _textEditingController.text.trim(),
       newCenterPoint: InheritedLocationTagData.of(context).centerPoint,
     );
+    if (!mounted) return;
     Navigator.of(context).pop();
   }
 

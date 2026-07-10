@@ -99,10 +99,12 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
 
   Future<void> _onLanguageTap(BuildContext context) async {
     final locale = (await getLocale())!;
+    if (!context.mounted) return;
     await routeToPage(
       context,
       LanguageSelectorPage(appSupportedLocales, (locale) async {
         await setLocale(locale);
+        if (!context.mounted) return;
         EnteApp.setLocale(context, locale);
       }, locale),
     );

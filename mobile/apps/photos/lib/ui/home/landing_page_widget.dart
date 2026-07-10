@@ -206,15 +206,18 @@ class _LandingPageWidgetState extends State<LandingPageWidget> {
       ),
       onTap: () async {
         final locale = (await getLocale())!;
+        if (!mounted) return;
         unawaited(
           routeToPage(
             context,
             LanguageSelectorPage(appSupportedLocales, (locale) async {
               await setLocale(locale);
+              if (!mounted) return;
               EnteApp.setLocale(context, locale);
               unawaited(AppLocalizations.delegate.load(locale));
             }, locale),
           ).then((value) {
+            if (!mounted) return;
             setState(() {});
           }),
         );

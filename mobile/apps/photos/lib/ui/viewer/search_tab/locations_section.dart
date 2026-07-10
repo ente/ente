@@ -47,12 +47,13 @@ class _LocationsSectionState extends State<LocationsSection> {
     for (Stream<Event> stream in streamsToListenTo) {
       streamSubscriptions.add(
         stream.listen((event) async {
-          _locationsSearchResults =
-              (await SectionType.location.getData(
-                    context,
-                    limit: widget.resultLimit + 1,
-                  ))
-                  as List<GenericSearchResult>;
+          if (!mounted) return;
+          final results = await SectionType.location.getData(
+            context,
+            limit: widget.resultLimit + 1,
+          );
+          if (!mounted) return;
+          _locationsSearchResults = results as List<GenericSearchResult>;
           setState(() {});
         }),
       );

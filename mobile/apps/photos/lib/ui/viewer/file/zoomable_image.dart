@@ -174,6 +174,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
     _zoomStreamSubscription = _photoViewController.outputStateStream.listen((
       value,
     ) {
+      if (!mounted) return;
       final state = InheritedDetailPageState.maybeOf(context);
       if (value.scale == null) return;
       if (!_isZooming) {
@@ -465,6 +466,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
         quality: 100,
       ).then((cachedThumbnail) {
         if (cachedThumbnail != null) {
+          if (!context.mounted) return;
           _onLargeThumbnailLoaded(Image.memory(cachedThumbnail).image, context);
         }
       });

@@ -58,6 +58,7 @@ class EditCenterPointTileWidget extends StatelessWidget {
               ).locationTagEntity!.item.name,
             );
             if (centerPoint != null) {
+              if (!context.mounted) return;
               InheritedLocationTagData.of(
                 context,
               ).updateCenterPoint(centerPoint);

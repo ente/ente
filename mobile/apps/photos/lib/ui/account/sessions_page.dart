@@ -121,6 +121,7 @@ class _SessionsPageState extends State<SessionsPage> {
     } catch (e) {
       await dialog.hide();
       _logger.severe('failed to terminate');
+      if (!mounted) return;
       // ignore: unawaited_futures
       showErrorBottomSheetComponent<void>(
         context: context,

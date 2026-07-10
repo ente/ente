@@ -93,22 +93,29 @@ class _PairWithCodeSheetState extends State<_PairWithCodeSheet> {
             try {
               await _pairWithCode(context, widget.collection, _controller.text);
               if (mounted) {
+                if (!context.mounted) return;
                 await Navigator.of(context).maybePop(true);
               }
             } catch (e, s) {
               if (e is _DeviceNotFoundException) {
-                showToast(context, l10n.deviceNotFound);
+                if (context.mounted) {
+                  showToast(context, l10n.deviceNotFound);
+                }
                 rethrow;
               } else if (e is CastIPMismatchException) {
-                await showErrorDialog(
-                  context,
-                  l10n.castIPMismatchTitle,
-                  l10n.castIPMismatchBody,
-                );
+                if (context.mounted) {
+                  await showErrorDialog(
+                    context,
+                    l10n.castIPMismatchTitle,
+                    l10n.castIPMismatchBody,
+                  );
+                }
                 rethrow;
               } else {
                 logger.severe('Failed to pair with code: ', e, s);
-                await showGenericErrorDialog(context: context, error: e);
+                if (context.mounted) {
+                  await showGenericErrorDialog(context: context, error: e);
+                }
                 rethrow;
               }
             }

@@ -143,24 +143,30 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
       );
 
       if (_attachLogs) {
+        if (!mounted) return;
         logsZipFilePath = await getZippedLogsFile(context);
         logsLabel = l10n.export;
       }
 
-      final didOpenComposer = _attachLogs
-          ? await sendLogsWithSubjectAndBody(
-              context,
-              toEmail: recipientEmail,
-              subject: subject,
-              body: body,
-              zipFilePath: logsZipFilePath,
-            )
-          : await sendComposedEmail(
-              context,
-              to: recipientEmail,
-              subject: subject,
-              body: body,
-            );
+      late final bool didOpenComposer;
+      if (_attachLogs) {
+        if (!mounted) return;
+        didOpenComposer = await sendLogsWithSubjectAndBody(
+          context,
+          toEmail: recipientEmail,
+          subject: subject,
+          body: body,
+          zipFilePath: logsZipFilePath,
+        );
+      } else {
+        if (!mounted) return;
+        didOpenComposer = await sendComposedEmail(
+          context,
+          to: recipientEmail,
+          subject: subject,
+          body: body,
+        );
+      }
 
       if (didOpenComposer && mounted) {
         Navigator.of(context).pop();

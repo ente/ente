@@ -226,6 +226,7 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
       if (videoFile != null && videoFile.existsSync()) {
         await _setVideoController(videoFile.path);
       } else if (_enteFile.isLivePhoto) {
+        if (!mounted) return;
         showShortToast(context, AppLocalizations.of(context).downloadFailed);
       }
     } finally {
@@ -236,6 +237,7 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
   Future<File?> _getLivePhotoVideo() async {
     if (_enteFile.isRemoteOnlyFile &&
         !(await isFileCached(_enteFile, liveVideo: true))) {
+      if (!mounted) return null;
       showShortToast(context, AppLocalizations.of(context).downloading);
     }
 
@@ -263,6 +265,7 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
 
   Future<File?> _getMotionPhotoVideo() async {
     if (_enteFile.isRemoteOnlyFile && !(await isFileCached(_enteFile))) {
+      if (!mounted) return null;
       showShortToast(context, AppLocalizations.of(context).downloading);
     }
 
