@@ -251,7 +251,6 @@ export const drawCheckerBoard = (
     height: number,
     size = 30,
 ) => {
-    
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, width, height);
 
