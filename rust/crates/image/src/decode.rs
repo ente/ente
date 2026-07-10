@@ -53,6 +53,10 @@ const RAW_MAX_INPUT_BYTES: u64 = 256 * 1024 * 1024;
 /// bytes per pixel. 200M pixels keeps headroom above the largest current
 /// sensors (Phase One IQ4 at ~151MP) while bounding worst-case allocations.
 const RAW_MAX_PIXELS: u128 = 200_000_000;
+/// Matches rawler 0.7.2's `alloc_image!` guard. The CRX decoder bypasses that
+/// macro but allocates multiple line and wavelet buffers proportional to one
+/// side, so total pixels alone is not a sufficient allocation bound.
+const RAW_MAX_DIMENSION: usize = 50_000;
 const RAW_EXTENSIONS: &[&str] = &[
     "3fr", "ari", "arw", "cr2", "cr3", "crm", "crw", "dcr", "dcs", "dng", "erf", "fff", "iiq",
     "kdc", "mef", "mos", "mrw", "nef", "nrw", "orf", "ori", "pef", "qtk", "raf", "raw", "rw2",
@@ -581,6 +585,12 @@ fn validate_raw_sample_allocation(
             "RAW image '{source_name}' has invalid decoded sample dimensions {sample_width}x{sample_height}"
         )));
     }
+    validate_raw_side_limit(
+        sample_width,
+        sample_height,
+        source_name,
+        "decoded sample dimensions",
+    )?;
 
     let samples = (sample_width as u128) * (sample_height as u128);
     if samples > RAW_MAX_PIXELS {
@@ -694,11 +704,27 @@ fn validate_raw_dimensions(width: usize, height: usize, source_name: &str) -> Im
             "RAW image '{source_name}' decoded to invalid dimensions {width}x{height}"
         )));
     }
+    validate_raw_side_limit(width, height, source_name, "dimensions")?;
 
     let pixels = (width as u128) * (height as u128);
     if pixels > RAW_MAX_PIXELS {
         return Err(ImageError::Decode(format!(
             "RAW image '{source_name}' is too large to decode safely: {width}x{height} exceeds {RAW_MAX_PIXELS} pixels"
+        )));
+    }
+
+    Ok(())
+}
+
+fn validate_raw_side_limit(
+    width: usize,
+    height: usize,
+    source_name: &str,
+    dimension_kind: &str,
+) -> ImageResult<()> {
+    if width > RAW_MAX_DIMENSION || height > RAW_MAX_DIMENSION {
+        return Err(ImageError::Decode(format!(
+            "RAW image '{source_name}' is too large to decode safely: {dimension_kind} {width}x{height} exceeds maximum side length {RAW_MAX_DIMENSION}"
         )));
     }
 
@@ -1178,7 +1204,8 @@ mod tests {
         decode_image_from_bytes, decode_image_from_path, init_image_decoders,
         path_extension_is_raw, raw_orientation_to_exif, should_attempt_tiff_fallback,
         validate_cr3_raw_candidate_dimensions, validate_dng_raw_ifd_allocation,
-        validate_raw_candidate_dimensions_for_format, validate_tiff_raw_candidate_dimensions,
+        validate_raw_candidate_dimensions_for_format, validate_raw_dimensions,
+        validate_tiff_raw_candidate_dimensions,
     };
 
     #[test]
@@ -1284,13 +1311,13 @@ mod tests {
 
     #[test]
     fn rejects_oversized_tiff_raw_candidate_from_header_dimensions() {
-        let encoded = minimal_tiff_with_raw_candidate_dimensions(200_000_001, 1);
+        let encoded = minimal_tiff_with_raw_candidate_dimensions(50_000, 4_001);
         let source = RawSource::new_from_slice(&encoded);
 
         let error = validate_tiff_raw_candidate_dimensions(&source, "huge.dng")
             .expect_err("oversized TIFF RAW candidate should fail before decode");
 
-        assert!(error.to_string().contains("200000001x1"));
+        assert!(error.to_string().contains("50000x4001"));
         assert!(error.to_string().contains("exceeds 200000000 pixels"));
     }
 
@@ -1360,14 +1387,36 @@ mod tests {
 
     #[test]
     fn rejects_oversized_cr3_candidate_from_cmp1_dimensions() {
-        let encoded = synthetic_cr3_with_cmp1_dimensions(100_000, 100_000);
+        let encoded = synthetic_cr3_with_cmp1_dimensions(50_000, 5_000);
         let source = RawSource::new_from_slice(&encoded);
 
         let error = validate_cr3_raw_candidate_dimensions(&source, "huge.cr3")
             .expect_err("oversized CR3 CMP1 dimensions should fail before decode");
 
-        assert!(error.to_string().contains("100000x100000"));
+        assert!(error.to_string().contains("50000x5000"));
         assert!(error.to_string().contains("exceeds 200000000 pixels"));
+    }
+
+    #[test]
+    fn rejects_cr3_extreme_aspect_ratio_before_line_buffer_allocation() {
+        let encoded = synthetic_cr3_with_cmp1_dimensions(100_000_000, 2);
+        let source = RawSource::new_from_slice(&encoded);
+
+        let error = validate_cr3_raw_candidate_dimensions(&source, "extreme-width.cr3")
+            .expect_err("extreme CR3 sides should fail before line-buffer allocation");
+
+        assert!(error.to_string().contains("100000000x2"));
+        assert!(
+            error
+                .to_string()
+                .contains("exceeds maximum side length 50000")
+        );
+    }
+
+    #[test]
+    fn accepts_raw_dimensions_at_maximum_side_length() {
+        validate_raw_dimensions(50_000, 4_000, "boundary.raw")
+            .expect("the rawler-compatible side limit should be inclusive");
     }
 
     #[test]
@@ -1396,7 +1445,7 @@ mod tests {
     #[test]
     fn rejects_oversized_cr3_with_box_before_ftyp() {
         let mut encoded = bmff_box(b"free", &[]);
-        encoded.extend_from_slice(&synthetic_cr3_with_cmp1_dimensions(100_000, 100_000));
+        encoded.extend_from_slice(&synthetic_cr3_with_cmp1_dimensions(50_000, 5_000));
         assert_eq!(&encoded[4..8], b"free");
         let source = RawSource::new_from_slice(&encoded);
 
@@ -1407,7 +1456,7 @@ mod tests {
         )
         .expect_err("CR3 preflight should not require ftyp to be the first box");
 
-        assert!(error.to_string().contains("100000x100000"));
+        assert!(error.to_string().contains("50000x5000"));
         assert!(error.to_string().contains("exceeds 200000000 pixels"));
     }
 
