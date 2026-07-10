@@ -73,6 +73,17 @@ String _getGallerySaveTitle(EnteFile file, String fallbackPath) {
   return file_path.basename(fallbackPath);
 }
 
+String _sanitizeAndroidVideoGalleryTitle(String title) {
+  final fragmentIndex = title.lastIndexOf("#");
+  if (!Platform.isAndroid ||
+      fragmentIndex < 0 ||
+      title.lastIndexOf(".") <= fragmentIndex) {
+    return title;
+  }
+  // Android's MIME guesser treats # as a URL fragment delimiter.
+  return title.replaceAll("#", "_");
+}
+
 Future<String?> getExistingLocalFolderNameForDownloadSkipToast(
   EnteFile file,
 ) async {
@@ -377,7 +388,7 @@ Future<void> downloadToGallery(
       } else if (type == FileType.video) {
         savedAsset = await PhotoManager.editor.saveVideo(
           fileToSave,
-          title: galleryTitle,
+          title: _sanitizeAndroidVideoGalleryTitle(galleryTitle),
         );
       } else if (type == FileType.livePhoto) {
         final File? liveVideoFile = await getFileFromServer(
@@ -458,9 +469,10 @@ Future<void> _saveLivePhotoOnDroid(
     "remoteDownload",
   );
   await IgnoredFilesService.instance.cacheAndInsert([ignoreVideoFile]);
-  final videoTitle =
-      file_path.basenameWithoutExtension(imageTitle) +
-      file_path.extension(video.path);
+  final videoTitle = _sanitizeAndroidVideoGalleryTitle(
+    file_path.basenameWithoutExtension(imageTitle) +
+        file_path.extension(video.path),
+  );
   savedAsset = (await (PhotoManager.editor.saveVideo(video, title: videoTitle))
       .catchError((err) {
         _logger.warning('Failed to save video $videoTitle of live photo');
