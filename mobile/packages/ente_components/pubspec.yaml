@@ -39,3 +39,6 @@ flutter:
           weight: 600
         - asset: fonts/Outfit-Bold.ttf
           weight: 700
+    - family: Gochi Hand
+      fonts:
+        - asset: fonts/GochiHand-Regular.ttf

@@ -75,24 +75,28 @@ class _CraftMemoriesState extends State<CraftMemories> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       "Crafting",
                       style: TextStyle(
                         fontFamily: "Outfit",
                         package: TextStyles.fontPackage,
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
+                        fontSize: widget.width * 0.115,
+                        height: 1,
                       ),
                     ),
-                    const Text(
+                    Text(
                       "memories",
                       style: TextStyle(
-                        fontFamily: "Outfit",
+                        fontFamily: "Gochi Hand",
                         package: TextStyles.fontPackage,
                         color: Colors.white,
-                        fontWeight: FontWeight.w700,
+                        fontSize: widget.width * 0.175,
+                        height: 1,
                       ),
                     ),
+                    const SizedBox(height: 6),
                     _buildButton(),
                   ],
                 ),
