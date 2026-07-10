@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:core';
 import 'dart:io';
 
 import 'package:ente_pure_utils/ente_pure_utils.dart'
@@ -16,14 +15,11 @@ import "package:photos/module/upload/upload_data.dart";
 import 'package:photos/utils/file_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// LocalFileUpdateService tracks all the potential local file IDs which have
-// changed/modified on the device and needed to be uploaded again.
+/// Finds device files whose contents changed after upload and queues updates.
 class LocalFileUpdateService {
-  late FileUpdationDB _fileUpdationDB;
-  late SharedPreferences _prefs;
-  late Logger _logger;
+  static final instance = LocalFileUpdateService._privateConstructor();
 
-  final List<String> _oldMigrationKeys = [
+  static const _oldMigrationKeys = [
     'fm_badCreationTime',
     'fm_badCreationTimeCompleted',
     'fm_missingLocationV2ImportDone',
@@ -37,19 +33,17 @@ class LocalFileUpdateService {
     'fm_android_missing_gps_check_done',
   ];
 
+  final FileUpdationDB _fileUpdationDB = FileUpdationDB.instance;
+  final Logger _logger = Logger("LocalFileUpdateService");
+  late SharedPreferences _prefs;
+
   Completer<void>? _existingMigration;
 
-  LocalFileUpdateService._privateConstructor() {
-    _logger = Logger((LocalFileUpdateService).toString());
-    _fileUpdationDB = FileUpdationDB.instance;
-  }
+  LocalFileUpdateService._privateConstructor();
 
   void init(SharedPreferences preferences) {
     _prefs = preferences;
   }
-
-  static LocalFileUpdateService instance =
-      LocalFileUpdateService._privateConstructor();
 
   Future<void> markUpdatedFilesForReUpload() async {
     if (_existingMigration != null) {
@@ -206,7 +200,7 @@ class LocalFileUpdateService {
         processedIDs.add(file.localID!);
       } catch (e, s) {
         _logger.severe("Failed to check hash", e, s);
-      } finally {}
+      }
     }
     await _fileUpdationDB.deleteByLocalIDs(
       processedIDs.toList(),
