@@ -32,8 +32,9 @@ import 'package:photos/utils/thumbnail_util.dart';
 import "package:uuid/uuid.dart";
 import 'package:video_thumbnail/video_thumbnail.dart';
 
-final _logger = Logger("FileUtil");
+final _logger = Logger("UploadData");
 
+/// Builds the source, thumbnail, hashes, and embedded metadata for an upload.
 Future<MediaUploadData> getUploadDataFromEnteFile(
   EnteFile file, {
   bool parseExif = false,
@@ -165,9 +166,8 @@ Future<MediaUploadData> _getMediaUploadDataFromAssetFile(
     int? motionPhotoStartingIndex;
     if (Platform.isAndroid && asset.type == AssetType.image) {
       try {
-        motionPhotoStartingIndex = await motionVideoIndex({
-          'path': sourceFile.path,
-        });
+        final videoIndex = await getMotionVideoIndex(filePath: sourceFile.path);
+        motionPhotoStartingIndex = videoIndex?.start.toInt();
       } catch (e) {
         _logger.severe('error while detecthing motion photo start index', e);
       }
@@ -190,12 +190,6 @@ Future<MediaUploadData> _getMediaUploadDataFromAssetFile(
     }
     rethrow;
   }
-}
-
-Future<int?> motionVideoIndex(Map<String, dynamic> args) async {
-  final String path = args['path'];
-  final videoIndex = await getMotionVideoIndex(filePath: path);
-  return videoIndex?.start.toInt();
 }
 
 Future<Uint8List?> _getThumbnailForUpload(
