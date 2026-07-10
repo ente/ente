@@ -54,12 +54,18 @@ class SettingsPage extends StatelessWidget {
   }
 }
 
-Future<void> _pushSettingsPage(BuildContext context, Widget page) async {
-  await InheritedSettingsState.of(context).pushPage<Object>(context, page);
-}
-
-Future<void> Function() _openSettingsPage(BuildContext context, Widget page) =>
-    () => _pushSettingsPage(context, page);
+Future<void> Function() _openSettingsPage(
+  BuildContext context,
+  Widget page, {
+  required bool isTopLevel,
+  bool useFadeTransition = false,
+}) =>
+    () => InheritedSettingsState.of(context).pushPage<Object>(
+      context,
+      page,
+      isTopLevel: isTopLevel,
+      useFadeTransition: useFadeTransition,
+    );
 
 class _SettingsBody extends StatelessWidget {
   final ValueNotifier<String?> emailNotifier;
@@ -99,6 +105,7 @@ class _SettingsBody extends StatelessWidget {
                     showReferralSourceField: false,
                     referralSource: "Offline",
                   ),
+                  isTopLevel: true,
                 ),
               ),
               const SizedBox(height: 16),
@@ -112,13 +119,21 @@ class _SettingsBody extends StatelessWidget {
               _buildMenuItem(
                 title: AppLocalizations.of(context).account,
                 icon: HugeIcons.strokeRoundedUser,
-                onTap: _openSettingsPage(context, const AccountSettingsPage()),
+                onTap: _openSettingsPage(
+                  context,
+                  const AccountSettingsPage(),
+                  isTopLevel: true,
+                ),
               ),
               const SizedBox(height: 8),
               _buildMenuItem(
                 title: AppLocalizations.of(context).backup,
                 icon: HugeIcons.strokeRoundedCloudUpload,
-                onTap: _openSettingsPage(context, const BackupSettingsPage()),
+                onTap: _openSettingsPage(
+                  context,
+                  const BackupSettingsPage(),
+                  isTopLevel: true,
+                ),
               ),
               const SizedBox(height: 8),
             ],
@@ -126,13 +141,21 @@ class _SettingsBody extends StatelessWidget {
             _buildMenuItem(
               title: AppLocalizations.of(context).security,
               icon: HugeIcons.strokeRoundedSecurityCheck,
-              onTap: _openSettingsPage(context, const SecuritySettingsPage()),
+              onTap: _openSettingsPage(
+                context,
+                const SecuritySettingsPage(),
+                isTopLevel: true,
+              ),
             ),
             const SizedBox(height: 8),
             _buildMenuItem(
               title: AppLocalizations.of(context).appearance,
               icon: HugeIcons.strokeRoundedPaintBoard,
-              onTap: _openSettingsPage(context, const AppearanceSettingsPage()),
+              onTap: _openSettingsPage(
+                context,
+                const AppearanceSettingsPage(),
+                isTopLevel: true,
+              ),
             ),
             const SizedBox(height: 8),
             if (isLocalGalleryMode) ...[
@@ -154,13 +177,21 @@ class _SettingsBody extends StatelessWidget {
             _buildMenuItem(
               title: AppLocalizations.of(context).helpAndSupport,
               icon: HugeIcons.strokeRoundedHelpCircle,
-              onTap: _openSettingsPage(context, const HelpSupportPage()),
+              onTap: _openSettingsPage(
+                context,
+                const HelpSupportPage(),
+                isTopLevel: true,
+              ),
             ),
             const SizedBox(height: 8),
             _buildMenuItem(
               title: AppLocalizations.of(context).about,
               icon: HugeIcons.strokeRoundedInformationCircle,
-              onTap: _openSettingsPage(context, const AboutUsPage()),
+              onTap: _openSettingsPage(
+                context,
+                const AboutUsPage(),
+                isTopLevel: true,
+              ),
             ),
             const SizedBox(height: 8),
             if (hasLoggedIn && !isLocalGalleryMode) ...[
@@ -179,13 +210,21 @@ class _SettingsBody extends StatelessWidget {
               _buildMenuItem(
                 title: "Debug",
                 icon: HugeIcons.strokeRoundedBug02,
-                onTap: _openSettingsPage(context, const DebugSettingsPage()),
+                onTap: _openSettingsPage(
+                  context,
+                  const DebugSettingsPage(),
+                  isTopLevel: true,
+                ),
               ),
               const SizedBox(height: 8),
               _buildMenuItem(
                 title: "ML Debug",
                 icon: HugeIcons.strokeRoundedAiBrain01,
-                onTap: _openSettingsPage(context, const MLDebugSettingsPage()),
+                onTap: _openSettingsPage(
+                  context,
+                  const MLDebugSettingsPage(),
+                  isTopLevel: true,
+                ),
               ),
               const SizedBox(height: 16),
             ],
@@ -202,14 +241,23 @@ class _SettingsBody extends StatelessWidget {
         variant: IconButtonComponentVariant.primary,
         shouldSurfaceExecutionStates: false,
         icon: const HugeIcon(icon: HugeIcons.strokeRoundedSearch01),
-        onTap: _openSettingsPage(context, const SettingsSearchPage()),
+        onTap: _openSettingsPage(
+          context,
+          const SettingsSearchPage(),
+          isTopLevel: true,
+          useFadeTransition: true,
+        ),
       ),
       if (localSettings.enableDatabaseLogging) ...[
         IconButtonComponent(
           variant: IconButtonComponentVariant.primary,
           shouldSurfaceExecutionStates: false,
           icon: const HugeIcon(icon: HugeIcons.strokeRoundedBug02),
-          onTap: _openSettingsPage(context, const LogViewerPage()),
+          onTap: _openSettingsPage(
+            context,
+            const LogViewerPage(),
+            isTopLevel: true,
+          ),
         ),
       ],
     ];
@@ -255,7 +303,7 @@ class _SettingsBody extends StatelessWidget {
           size: 20,
         ),
       ),
-      onTap: _openSettingsPage(context, const LoginPage()),
+      onTap: _openSettingsPage(context, const LoginPage(), isTopLevel: true),
     );
   }
 
@@ -268,22 +316,35 @@ class _SettingsBody extends StatelessWidget {
           onTap: _openSettingsPage(
             context,
             const MachineLearningSettingsPage(),
+            isTopLevel: true,
           ),
         ),
         _buildMenuItem(
           title: AppLocalizations.of(context).memories,
           icon: HugeIcons.strokeRoundedSparkles,
-          onTap: _openSettingsPage(context, const MemoriesSettingsScreen()),
+          onTap: _openSettingsPage(
+            context,
+            const MemoriesSettingsScreen(),
+            isTopLevel: true,
+          ),
         ),
         _buildMenuItem(
           title: AppLocalizations.of(context).notifications,
           icon: HugeIcons.strokeRoundedNotification01,
-          onTap: _openSettingsPage(context, const NotificationSettingsScreen()),
+          onTap: _openSettingsPage(
+            context,
+            const NotificationSettingsScreen(),
+            isTopLevel: true,
+          ),
         ),
         _buildMenuItem(
           title: AppLocalizations.of(context).widgets,
           icon: HugeIcons.strokeRoundedAlignBoxBottomRight,
-          onTap: _openSettingsPage(context, const WidgetSettingsScreen()),
+          onTap: _openSettingsPage(
+            context,
+            const WidgetSettingsScreen(),
+            isTopLevel: true,
+          ),
         ),
         _buildMapsMenuItem(context),
       ],
@@ -307,12 +368,10 @@ class _SettingsBody extends StatelessWidget {
                     );
             if (hasAuthenticated) {
               if (!context.mounted) return;
-              await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (BuildContext context) {
-                    return const EmergencyPage();
-                  },
-                ),
+              await InheritedSettingsState.of(context).pushPage<Object>(
+                context,
+                const EmergencyPage(),
+                isTopLevel: true,
               );
             }
           },
@@ -348,7 +407,11 @@ class _SettingsBody extends StatelessWidget {
         _buildMenuItem(
           title: AppLocalizations.of(context).referrals,
           icon: HugeIcons.strokeRoundedTicketStar,
-          onTap: _openSettingsPage(context, const ReferralScreen()),
+          onTap: _openSettingsPage(
+            context,
+            const ReferralScreen(),
+            isTopLevel: true,
+          ),
         ),
       ],
     );
@@ -361,7 +424,11 @@ class _SettingsBody extends StatelessWidget {
           title: AppLocalizations.of(context).freeUpSpace,
           icon: HugeIcons.strokeRoundedRocket01,
           showOnlyLoadingState: true,
-          onTap: _openSettingsPage(context, const FreeUpSpaceOptionsScreen()),
+          onTap: _openSettingsPage(
+            context,
+            const FreeUpSpaceOptionsScreen(),
+            isTopLevel: true,
+          ),
         ),
         _buildMenuItem(
           title: AppLocalizations.of(context).machineLearning,
@@ -369,33 +436,54 @@ class _SettingsBody extends StatelessWidget {
           onTap: _openSettingsPage(
             context,
             const MachineLearningSettingsPage(),
+            isTopLevel: true,
           ),
         ),
         _buildMenuItem(
           title: AppLocalizations.of(context).memories,
           icon: HugeIcons.strokeRoundedSparkles,
-          onTap: _openSettingsPage(context, const MemoriesSettingsScreen()),
+          onTap: _openSettingsPage(
+            context,
+            const MemoriesSettingsScreen(),
+            isTopLevel: true,
+          ),
         ),
         _buildMenuItem(
           title: AppLocalizations.of(context).notifications,
           icon: HugeIcons.strokeRoundedNotification01,
-          onTap: _openSettingsPage(context, const NotificationSettingsScreen()),
+          onTap: _openSettingsPage(
+            context,
+            const NotificationSettingsScreen(),
+            isTopLevel: true,
+          ),
         ),
         _buildMenuItem(
           title: AppLocalizations.of(context).widgets,
           icon: HugeIcons.strokeRoundedAlignBoxBottomRight,
-          onTap: _openSettingsPage(context, const WidgetSettingsScreen()),
+          onTap: _openSettingsPage(
+            context,
+            const WidgetSettingsScreen(),
+            isTopLevel: true,
+          ),
         ),
         _buildMenuItem(
           title: AppLocalizations.of(context).videoStreaming,
           icon: HugeIcons.strokeRoundedVideoCameraAi,
-          onTap: _openSettingsPage(context, const VideoStreamingSettingsPage()),
+          onTap: _openSettingsPage(
+            context,
+            const VideoStreamingSettingsPage(),
+            isTopLevel: true,
+          ),
         ),
         if (flagService.enableMultiCast)
           _buildMenuItem(
             title: AppLocalizations.of(context).castSessions,
             icon: HugeIcons.strokeRoundedTvSmart,
-            onTap: _openSettingsPage(context, const CastSettingsPage()),
+            onTap: _openSettingsPage(
+              context,
+              const CastSettingsPage(),
+              isTopLevel: true,
+            ),
           ),
         _buildMapsMenuItem(context),
       ],

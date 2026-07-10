@@ -28,15 +28,25 @@ class _SettingsState extends State<SettingsStateContainer> {
 
   Future<T?> pushPage<T extends Object>(
     BuildContext context,
-    Widget page,
-  ) async {
-    setState(() {
-      _isSubpageOpen = true;
-    });
+    Widget page, {
+    bool isTopLevel = false,
+    bool useFadeTransition = false,
+  }) async {
+    final shouldSlideSettingsPage = isTopLevel && !useFadeTransition;
+    if (shouldSlideSettingsPage) {
+      setState(() {
+        _isSubpageOpen = true;
+      });
+    }
     try {
-      return await routeToPage<T>(context, page);
+      return await routeToPage<T>(
+        context,
+        page,
+        isTopLevel: isTopLevel,
+        useFadeTransition: useFadeTransition,
+      );
     } finally {
-      if (mounted) {
+      if (shouldSlideSettingsPage && mounted) {
         setState(() {
           _isSubpageOpen = false;
         });
@@ -75,7 +85,13 @@ class InheritedSettingsState extends InheritedWidget {
   final int expandedSectionCount;
   final void Function() increment;
   final void Function() decrement;
-  final Future<T?> Function<T extends Object>(BuildContext, Widget) pushPage;
+  final Future<T?> Function<T extends Object>(
+    BuildContext,
+    Widget, {
+    bool isTopLevel,
+    bool useFadeTransition,
+  })
+  pushPage;
 
   const InheritedSettingsState({
     super.key,

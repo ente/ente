@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 Future<T?> routeToPage<T extends Object>(
   BuildContext context,
   Widget page, {
+  bool isTopLevel = false,
   bool useFadeTransition = false,
 }) {
   return Navigator.of(context).push(
