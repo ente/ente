@@ -91,13 +91,19 @@ class _NotificationSettingsScreenState
               value: () =>
                   _hasPermission &&
                   service.shouldShowNotificationsForSharedPhotosAndAlbums(),
-              onChanged: () => _runWithPermission(
-                () =>
-                    service.setShouldShowNotificationsForSharedPhotosAndAlbums(
-                      !service
-                          .shouldShowNotificationsForSharedPhotosAndAlbums(),
-                    ),
-              ),
+              onChanged: () => _runWithPermission(() async {
+                final prev = service
+                    .shouldShowNotificationsForSharedPhotosAndAlbums();
+                if (_hasPermission) {
+                  await service
+                      .setShouldShowNotificationsForSharedPhotosAndAlbums(
+                        !prev,
+                      );
+                } else if (!prev) {
+                  await service
+                      .setShouldShowNotificationsForSharedPhotosAndAlbums(true);
+                }
+              }),
               showStateIcon: false,
             ),
           ),
@@ -110,11 +116,14 @@ class _NotificationSettingsScreenState
             trailing: ToggleSwitchComponent.async(
               value: () =>
                   _hasPermission && service.shouldShowSocialNotifications(),
-              onChanged: () => _runWithPermission(
-                () => service.setShouldShowSocialNotifications(
-                  !service.shouldShowSocialNotifications(),
-                ),
-              ),
+              onChanged: () => _runWithPermission(() async {
+                final prev = service.shouldShowSocialNotifications();
+                if (_hasPermission) {
+                  await service.setShouldShowSocialNotifications(!prev);
+                } else if (!prev) {
+                  await service.setShouldShowSocialNotifications(true);
+                }
+              }),
               showStateIcon: false,
             ),
           ),
@@ -128,9 +137,12 @@ class _NotificationSettingsScreenState
           trailing: ToggleSwitchComponent.async(
             value: () =>
                 _hasPermission && localSettings.isOnThisDayNotificationsEnabled,
-            onChanged: () => _runWithPermission(
-              memoriesCacheService.toggleOnThisDayNotifications,
-            ),
+            onChanged: () => _runWithPermission(() async {
+              final prev = localSettings.isOnThisDayNotificationsEnabled;
+              if (_hasPermission || !prev) {
+                await memoriesCacheService.toggleOnThisDayNotifications();
+              }
+            }),
             showStateIcon: false,
           ),
         ),
@@ -144,9 +156,12 @@ class _NotificationSettingsScreenState
             trailing: ToggleSwitchComponent.async(
               value: () =>
                   _hasPermission && localSettings.birthdayNotificationsEnabled,
-              onChanged: () => _runWithPermission(
-                memoriesCacheService.toggleBirthdayNotifications,
-              ),
+              onChanged: () => _runWithPermission(() async {
+                final prev = localSettings.birthdayNotificationsEnabled;
+                if (_hasPermission || !prev) {
+                  await memoriesCacheService.toggleBirthdayNotifications();
+                }
+              }),
               showStateIcon: false,
             ),
           ),
