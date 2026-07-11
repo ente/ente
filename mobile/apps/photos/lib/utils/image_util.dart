@@ -35,11 +35,20 @@ bool isRawImageExtension(String extension) =>
 Future<ImageInfo> getImageInfo(ImageProvider imageProvider) {
   final completer = Completer<ImageInfo>();
   final imageStream = imageProvider.resolve(const ImageConfiguration());
-  final listener = ImageStreamListener(((imageInfo, _) {
-    completer.complete(imageInfo);
-  }));
+  late final ImageStreamListener listener;
+  listener = ImageStreamListener(
+    (imageInfo, _) {
+      if (completer.isCompleted) return;
+      imageStream.removeListener(listener);
+      completer.complete(imageInfo);
+    },
+    onError: (error, stackTrace) {
+      if (completer.isCompleted) return;
+      imageStream.removeListener(listener);
+      completer.completeError(error, stackTrace ?? StackTrace.current);
+    },
+  );
   imageStream.addListener(listener);
-  completer.future.whenComplete(() => imageStream.removeListener(listener));
   return completer.future;
 }
 
@@ -57,12 +66,20 @@ Future<({int width, int height})?> getImageDimensions({
     } else {
       bytes = imageBytes!;
     }
-    final ui.Codec codec = await ui.instantiateImageCodec(bytes);
-    final ui.FrameInfo frameInfo = await codec.getNextFrame();
-    if (frameInfo.image.width == 0 || frameInfo.image.height == 0) {
-      return null;
+    final codec = await ui.instantiateImageCodec(bytes);
+    try {
+      final frameInfo = await codec.getNextFrame();
+      try {
+        if (frameInfo.image.width == 0 || frameInfo.image.height == 0) {
+          return null;
+        }
+        return (width: frameInfo.image.width, height: frameInfo.image.height);
+      } finally {
+        frameInfo.image.dispose();
+      }
+    } finally {
+      codec.dispose();
     }
-    return (width: frameInfo.image.width, height: frameInfo.image.height);
   } catch (e) {
     _logger.severe("Failed to get image size", e);
     return null;
