@@ -10,10 +10,13 @@ import "package:logging/logging.dart";
 import "package:path_provider/path_provider.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/offline_files_db.dart";
+import "package:photos/events/backup_updated_event.dart";
 import "package:photos/events/file_uploaded_event.dart";
 import "package:photos/events/magic_cache_updated_event.dart";
+import "package:photos/events/tab_changed_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/l10n/l10n.dart";
+import "package:photos/models/backup/backup_item_status.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/ml/discover/prompt.dart";
@@ -230,6 +233,8 @@ GenericSearchResult? toGenericSearchResult(
 class MagicCacheService {
   static const _lastMagicCacheUpdateTime = "last_magic_cache_update_time";
   static const _kPromptsAssetPath = "assets/discover.json";
+  static const _kSearchTabIndex = 3;
+  static const _kBackgroundUpdateDebounce = Duration(minutes: 5);
 
   /// Delay is for cache update to be done not during app init, during which a
   /// lot of other things are happening.
@@ -243,11 +248,29 @@ class MagicCacheService {
   final Set<String> _pendingUpdateReason = {};
   bool _isUpdateInProgress = false;
   int _cacheGeneration = 0;
+  Timer? _backgroundUpdateTimer;
+  bool _refreshWhenCurrentUpdateCompletes = false;
+  bool _uploadsActive = false;
 
   MagicCacheService(this._prefs) {
     _logger.info("MagicCacheService constructor");
     Bus.instance.on<FileUploadedEvent>().listen((event) {
       queueUpdate("File uploaded");
+      _scheduleBackgroundUpdate();
+    });
+    Bus.instance.on<BackupUpdatedEvent>().listen((event) {
+      _uploadsActive = event.items.values.any(
+        (item) =>
+            item.status == BackupItemStatus.inQueue ||
+            item.status == BackupItemStatus.uploading ||
+            item.status == BackupItemStatus.inBackground,
+      );
+    });
+    Bus.instance.on<TabChangedEvent>().listen((event) {
+      if (event.source == TabChangedEventSource.pageView &&
+          event.selectedIndex == _kSearchTabIndex) {
+        _runPendingUpdateForSearch();
+      }
     });
     Future.delayed(_kCacheUpdateDelay, () {
       _updateCacheIfTheTimeHasCome();
@@ -279,6 +302,24 @@ class MagicCacheService {
     _pendingUpdateReason.add(reason);
   }
 
+  void _scheduleBackgroundUpdate() {
+    _backgroundUpdateTimer?.cancel();
+    _backgroundUpdateTimer = Timer(_kBackgroundUpdateDebounce, () {
+      _backgroundUpdateTimer = null;
+      _updateCache().ignore();
+    });
+  }
+
+  void _runPendingUpdateForSearch() {
+    _backgroundUpdateTimer?.cancel();
+    _backgroundUpdateTimer = null;
+    if (_isUpdateInProgress) {
+      _refreshWhenCurrentUpdateCompletes = true;
+      return;
+    }
+    _updateCache(interactive: true).ignore();
+  }
+
   Future<void> _updateCacheIfTheTimeHasCome() async {
     if (!enableDiscover) {
       return;
@@ -297,7 +338,13 @@ class MagicCacheService {
         "/cache/magic_cache$suffix";
   }
 
-  Future<void> updateCache({bool forced = false}) async {
+  Future<void> updateCache({bool forced = false}) =>
+      _updateCache(forced: forced);
+
+  Future<void> _updateCache({
+    bool forced = false,
+    bool interactive = false,
+  }) async {
     if (!enableDiscover) {
       return;
     }
@@ -305,13 +352,26 @@ class MagicCacheService {
       _pendingUpdateReason.add("Forced update");
     }
     await _updateCacheIfTheTimeHasCome();
-    if (_pendingUpdateReason.isEmpty || _isUpdateInProgress) {
+    if (_uploadsActive && !forced && !interactive) {
+      _scheduleBackgroundUpdate();
+      return;
+    }
+    if (_pendingUpdateReason.isEmpty) {
       _logger.info(
         "No update needed as ${_pendingUpdateReason.toList()} and isUpdateInProgress $_isUpdateInProgress",
       );
       return;
     }
+    if (_isUpdateInProgress) {
+      if (!forced && !interactive) {
+        _scheduleBackgroundUpdate();
+      }
+      _logger.info("Magic cache update is already in progress");
+      return;
+    }
     _logger.info("updating magic cache ${_pendingUpdateReason.toList()}");
+    _backgroundUpdateTimer?.cancel();
+    _backgroundUpdateTimer = null;
     final updateReasons = Set<String>.of(_pendingUpdateReason);
     _pendingUpdateReason.removeAll(updateReasons);
     final updateGeneration = _cacheGeneration;
@@ -349,10 +409,17 @@ class MagicCacheService {
     } catch (e, s) {
       if (updateGeneration == _cacheGeneration) {
         _pendingUpdateReason.addAll(updateReasons);
+        if (!forced) {
+          _scheduleBackgroundUpdate();
+        }
       }
       _logger.info("Error updating magic cache", e, s);
     } finally {
       _isUpdateInProgress = false;
+      if (_refreshWhenCurrentUpdateCompletes) {
+        _refreshWhenCurrentUpdateCompletes = false;
+        _updateCache(interactive: true).ignore();
+      }
     }
   }
 
@@ -409,6 +476,9 @@ class MagicCacheService {
     _cacheGeneration++;
     _magicCacheFuture = null;
     _pendingUpdateReason.clear();
+    _backgroundUpdateTimer?.cancel();
+    _backgroundUpdateTimer = null;
+    _refreshWhenCurrentUpdateCompletes = false;
     await _prefs.remove(_lastMagicCacheUpdateKey);
     await _deleteCacheFile();
   }
