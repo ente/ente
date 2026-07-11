@@ -1,9 +1,8 @@
-import "package:flutter/foundation.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/utils/device_info.dart";
 
 Future<String> getMediaStoreCompatibleTitle(String title) async {
-  final sanitizedTitle = sanitizePreAndroid11MediaStoreTitle(title);
+  final sanitizedTitle = _sanitizePreAndroid11MediaStoreTitle(title);
   if (sanitizedTitle == title) {
     return title;
   }
@@ -13,8 +12,7 @@ Future<String> getMediaStoreCompatibleTitle(String title) async {
   return title;
 }
 
-@visibleForTesting
-String sanitizePreAndroid11MediaStoreTitle(String title) {
+String _sanitizePreAndroid11MediaStoreTitle(String title) {
   final fragmentIndex = title.lastIndexOf("#");
   if (fragmentIndex < 0 || title.lastIndexOf(".") <= fragmentIndex) {
     return title;
