@@ -12,6 +12,7 @@ import "package:photos/events/file_uploaded_event.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/selected_files.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/common/touch_cross_detector.dart";
@@ -23,7 +24,6 @@ import "package:photos/ui/viewer/gallery/component/swipe_selectable_file_widget.
 import "package:photos/ui/viewer/gallery/state/gallery_context_state.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_swipe_helper.dart";
-import "package:photos/utils/file_util.dart";
 
 class GalleryFileWidget extends StatefulWidget {
   final EnteFile file;

@@ -7,7 +7,9 @@ import 'package:dio/dio.dart';
 import 'package:ente_crypto/ente_crypto.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart'
     show isFileSystemPathMissing;
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:logging/logging.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:photos/core/cache/thumbnail_in_memory_cache.dart';
 import 'package:photos/core/configuration.dart';
@@ -15,24 +17,52 @@ import 'package:photos/core/constants.dart';
 import 'package:photos/core/errors.dart';
 import 'package:photos/core/network/network.dart';
 import 'package:photos/models/file/file.dart';
+import 'package:photos/models/file/file_type.dart';
+import 'package:photos/module/download/file.dart';
 import "package:photos/module/download/file_url.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/utils/file_key.dart";
-import 'package:photos/utils/file_uploader_util.dart';
-import 'package:photos/utils/file_util.dart';
+import 'package:video_thumbnail/video_thumbnail.dart';
 
 final _logger = Logger("ThumbnailUtil");
-final _uploadIDToDownloadItem = <int, FileDownloadItem>{};
-final _downloadQueue = Queue<int>();
-const int kMaximumConcurrentDownloads = 500;
+final _uploadIDToDownloadItem = <int, _ThumbnailDownload>{};
+final _downloadQueue = Queue<_ThumbnailDownload>();
+const int _maximumConcurrentDownloads = 500;
+const int _maximumThumbnailCompressionAttempts = 2;
 
-class FileDownloadItem {
+class _ThumbnailDownload {
   final EnteFile file;
   final Completer<Uint8List> completer;
   final CancelToken cancelToken;
   int counter = 0; // number of times file download was requested
 
-  FileDownloadItem(this.file, this.completer, this.cancelToken, this.counter);
+  _ThumbnailDownload(this.file, this.completer, this.cancelToken, this.counter);
+}
+
+Future<Uint8List> compressThumbnail(Uint8List thumbnail) {
+  return FlutterImageCompress.compressWithList(
+    thumbnail,
+    minHeight: compressedThumbnailResolution,
+    minWidth: compressedThumbnailResolution,
+    quality: 25,
+  );
+}
+
+Future<Uint8List> compressThumbnailToSizeLimit(
+  Uint8List thumbnail, {
+  int maxAttempts = _maximumThumbnailCompressionAttempts,
+}) async {
+  var result = thumbnail;
+  for (
+    var attempt = 0;
+    result.length > thumbnailDataLimit && attempt < maxAttempts;
+    attempt++
+  ) {
+    _logger.info("Thumbnail size ${result.length}");
+    result = await compressThumbnail(result);
+    _logger.info("Compressed thumbnail size ${result.length}");
+  }
+  return result;
 }
 
 Future<Uint8List?> getThumbnail(EnteFile file) async {
@@ -40,6 +70,14 @@ Future<Uint8List?> getThumbnail(EnteFile file) async {
     return getThumbnailFromServer(file);
   } else {
     return getThumbnailFromLocal(file, size: thumbnailLargeSize);
+  }
+}
+
+void preloadThumbnail(EnteFile file) {
+  if (file.isRemoteOnlyFile) {
+    getThumbnailFromServer(file);
+  } else {
+    getThumbnailFromLocal(file);
   }
 }
 
@@ -109,29 +147,29 @@ _getThumbnailFromServerRequest(EnteFile file) async {
   }
   // Check if there's already in flight request for fetching thumbnail from the
   // server
-  if (!_uploadIDToDownloadItem.containsKey(file.uploadedFileID)) {
-    final item = FileDownloadItem(
+  final existing = _uploadIDToDownloadItem[file.uploadedFileID];
+  if (existing == null) {
+    final item = _ThumbnailDownload(
       file,
       Completer<Uint8List>(),
       CancelToken(),
       1,
     );
     _uploadIDToDownloadItem[file.uploadedFileID!] = item;
-    if (_downloadQueue.length > kMaximumConcurrentDownloads) {
-      final id = _downloadQueue.removeFirst();
-      final FileDownloadItem item = _uploadIDToDownloadItem.remove(id)!;
-      item.cancelToken.cancel();
-      item.completer.completeError(RequestCancelledError());
+    if (_downloadQueue.length >= _maximumConcurrentDownloads) {
+      final oldest = _downloadQueue.removeFirst();
+      _removeIfCurrent(oldest);
+      oldest.cancelToken.cancel();
+      if (!oldest.completer.isCompleted) {
+        oldest.completer.completeError(RequestCancelledError());
+      }
     }
-    _downloadQueue.add(file.uploadedFileID!);
+    _downloadQueue.add(item);
     _downloadItem(item);
     return (future: item.completer.future, acquiredPendingRequestRef: true);
   } else {
-    _uploadIDToDownloadItem[file.uploadedFileID]!.counter++;
-    return (
-      future: _uploadIDToDownloadItem[file.uploadedFileID]!.completer.future,
-      acquiredPendingRequestRef: true,
-    );
+    existing.counter++;
+    return (future: existing.completer.future, acquiredPendingRequestRef: true);
   }
 }
 
@@ -178,19 +216,41 @@ Future<Uint8List?> getThumbnailFromLocal(
   }
 }
 
+Future<Uint8List?> getThumbnailFromInAppCacheFile(EnteFile file) async {
+  var localFile = File(getSharedMediaFilePath(file));
+  if (!localFile.existsSync()) {
+    return null;
+  }
+  if (file.fileType == FileType.video) {
+    try {
+      final thumbnailFilePath = await VideoThumbnail.thumbnailFile(
+        video: localFile.path,
+        imageFormat: ImageFormat.JPEG,
+        thumbnailPath: (await getTemporaryDirectory()).path,
+        maxWidth: thumbnailLargeSize,
+        quality: 80,
+      );
+      localFile = File(thumbnailFilePath!);
+    } catch (e) {
+      _logger.warning('Failed to generate video thumbnail', e);
+      return null;
+    }
+  }
+  return compressThumbnailToSizeLimit(await localFile.readAsBytes());
+}
+
 void removePendingGetThumbnailRequestIfAny(EnteFile file) {
-  if (_uploadIDToDownloadItem.containsKey(file.uploadedFileID)) {
-    final item = _uploadIDToDownloadItem[file.uploadedFileID]!;
+  final item = _uploadIDToDownloadItem[file.uploadedFileID];
+  if (item != null) {
     item.counter--;
     if (item.counter <= 0) {
-      _uploadIDToDownloadItem.remove(file.uploadedFileID);
+      _removeIfCurrent(item);
       item.cancelToken.cancel();
-      _downloadQueue.removeWhere((element) => element == file.uploadedFileID);
     }
   }
 }
 
-void _downloadItem(FileDownloadItem item) async {
+void _downloadItem(_ThumbnailDownload item) async {
   try {
     await _downloadAndDecryptThumbnail(item);
   } catch (e, s) {
@@ -199,13 +259,15 @@ void _downloadItem(FileDownloadItem item) async {
       e,
       s,
     );
-    item.completer.completeError(e);
+    if (!item.completer.isCompleted) {
+      item.completer.completeError(e, s);
+    }
+  } finally {
+    _removeIfCurrent(item);
   }
-  _downloadQueue.removeWhere((element) => element == item.file.uploadedFileID);
-  _uploadIDToDownloadItem.remove(item.file.uploadedFileID);
 }
 
-Future<void> _downloadAndDecryptThumbnail(FileDownloadItem item) async {
+Future<void> _downloadAndDecryptThumbnail(_ThumbnailDownload item) async {
   final file = item.file;
   Uint8List encryptedThumbnail;
   try {
@@ -233,7 +295,7 @@ Future<void> _downloadAndDecryptThumbnail(FileDownloadItem item) async {
     }
     rethrow;
   }
-  if (!_uploadIDToDownloadItem.containsKey(file.uploadedFileID)) {
+  if (!_isCurrent(item)) {
     return;
   }
   final thumbnailDecryptionKey =
@@ -249,25 +311,33 @@ Future<void> _downloadAndDecryptThumbnail(FileDownloadItem item) async {
     );
   } catch (e, s) {
     _logger.severe("Failed to decrypt thumbnail ${item.file.toString()}", e, s);
-    item.completer.completeError(e);
+    if (!item.completer.isCompleted) {
+      item.completer.completeError(e, s);
+    }
     return;
   }
-  final thumbnailSize = data.length;
-  if (thumbnailSize > thumbnailDataLimit) {
-    data = await compressThumbnail(data);
+  data = await compressThumbnailToSizeLimit(data, maxAttempts: 1);
+  if (!_isCurrent(item)) {
+    return;
   }
   ThumbnailInMemoryLruCache.put(item.file, data);
   final cachedThumbnail = cachedThumbnailPath(item.file);
   // data is already cached in-memory, no need to await on disk write
   unawaited(_writeCachedThumbnail(cachedThumbnail, data));
-  if (_uploadIDToDownloadItem.containsKey(file.uploadedFileID)) {
-    try {
-      item.completer.complete(data);
-    } catch (e) {
-      _logger.severe(
-        "Error while completing request for " + file.uploadedFileID.toString(),
-      );
-    }
+  if (!item.completer.isCompleted) {
+    item.completer.complete(data);
+  }
+}
+
+// A canceled download can finish after a replacement for the same file starts.
+// Only the request that still owns the map entry may publish or clear state.
+bool _isCurrent(_ThumbnailDownload item) =>
+    identical(_uploadIDToDownloadItem[item.file.uploadedFileID], item);
+
+void _removeIfCurrent(_ThumbnailDownload item) {
+  _downloadQueue.removeWhere((queued) => identical(queued, item));
+  if (_isCurrent(item)) {
+    _uploadIDToDownloadItem.remove(item.file.uploadedFileID);
   }
 }
 

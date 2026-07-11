@@ -1,4 +1,5 @@
 pub(crate) mod chat_db;
+mod chat_db_migration;
 mod common;
 pub(crate) mod config;
 pub(crate) mod crypto;

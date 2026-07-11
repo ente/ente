@@ -181,7 +181,9 @@ struct UserMessageBubbleView: View {
                             } else {
                                 AttachmentChip(
                                     name: attachment.name,
-                                    size: attachment.formattedSize,
+                                    size: attachment.url == nil
+                                        ? "Unavailable on this device"
+                                        : attachment.formattedSize,
                                     icon: attachment.iconName,
                                     isUploading: attachment.isUploading
                                 )
@@ -189,6 +191,7 @@ struct UserMessageBubbleView: View {
                                     hapticTap()
                                     onOpenAttachment(attachment)
                                 }
+                                .allowsHitTesting(attachment.url != nil)
                             }
                         }
                     }

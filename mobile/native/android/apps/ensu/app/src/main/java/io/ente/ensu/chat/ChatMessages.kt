@@ -528,10 +528,16 @@ private fun UserMessageBubble(
                     } else {
                         io.ente.ensu.components.AttachmentChip(
                             name = attachment.name,
-                            size = attachment.sizeBytes.formattedFileSize(),
+                            size = if (attachment.localPath == null) {
+                                "Unavailable on this device"
+                            } else {
+                                attachment.sizeBytes.formattedFileSize()
+                            },
                             iconRes = HugeIcons.Attachment01Icon,
                             isUploading = attachment.isUploading,
-                            onClick = { onOpenAttachment(attachment) }
+                            onClick = if (attachment.localPath == null) null else {
+                                { onOpenAttachment(attachment) }
+                            }
                         )
                     }
                 }

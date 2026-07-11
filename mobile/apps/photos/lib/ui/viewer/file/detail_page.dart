@@ -18,6 +18,8 @@ import 'package:photos/models/file/file.dart';
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/file/trash_file.dart";
 import "package:photos/models/gallery_type.dart";
+import 'package:photos/module/download/file.dart';
+import "package:photos/module/download/thumbnail.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/states/detail_page_state.dart";
@@ -34,8 +36,6 @@ import "package:photos/ui/viewer/file/qr_code_detection_helper.dart";
 import "package:photos/ui/viewer/file/qr_code_highlight_overlay.dart";
 import 'package:photos/ui/viewer/gallery/gallery.dart';
 import 'package:photos/utils/dialog_util.dart';
-import 'package:photos/utils/file_util.dart';
-import "package:photos/utils/thumbnail_util.dart";
 
 enum DetailPageMode { minimalistic, full }
 

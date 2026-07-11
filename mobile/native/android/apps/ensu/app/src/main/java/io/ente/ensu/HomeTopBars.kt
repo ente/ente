@@ -2,8 +2,6 @@
 
 package io.ente.ensu
 
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -12,13 +10,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -28,20 +24,15 @@ import io.ente.ensu.designsystem.EnsuColor
 import io.ente.ensu.designsystem.EnsuSpacing
 import io.ente.ensu.designsystem.EnsuTypography
 import io.ente.ensu.designsystem.HugeIcons
-import io.ente.ensu.chat.AttachmentDownloadItem
-import io.ente.ensu.chat.AttachmentDownloadStatus
 
 @Composable
 internal fun TopBar(
     sessionTitle: String?,
     showBrand: Boolean,
-    attachmentDownloads: List<AttachmentDownloadItem>,
-    attachmentDownloadProgress: Int?,
     modelDownloadStatus: String?,
     modelDownloadPercent: Int?,
     onOpenDrawer: () -> Unit,
-    onNewChat: () -> Unit,
-    onAttachmentDownloads: () -> Unit
+    onNewChat: () -> Unit
 ) {
     val titleText = sessionTitle?.takeIf { it.isNotBlank() } ?: "New Chat"
 
@@ -69,49 +60,15 @@ internal fun TopBar(
         actions = {
             val isLoading = modelDownloadStatus?.contains("Loading", ignoreCase = true) == true
             val showModelProgress = isLoading
-            val hasPending = attachmentDownloads.any {
-                it.status == AttachmentDownloadStatus.Queued ||
-                    it.status == AttachmentDownloadStatus.Downloading ||
-                    it.status == AttachmentDownloadStatus.Failed
-            }
-
-            if (hasPending) {
-                val active = attachmentDownloads.filter { it.status != AttachmentDownloadStatus.Canceled }
-                val completed = active.count { it.status == AttachmentDownloadStatus.Completed }
-                val total = active.size
-                TextButton(
-                    onClick = onAttachmentDownloads,
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            painter = painterResource(HugeIcons.Upload01Icon),
-                            contentDescription = "Attachment downloads",
-                            tint = EnsuColor.textPrimary()
-                        )
-                        Text(
-                            text = "$completed/$total",
-                            style = EnsuTypography.mini,
-                            color = EnsuColor.textMuted(),
-                            maxLines = 1,
-                            softWrap = false,
-                            modifier = Modifier.padding(start = 6.dp)
-                        )
-                    }
-                }
-            }
 
             if (showModelProgress) {
-                if (hasPending) {
-                    Spacer(modifier = Modifier.width(EnsuSpacing.md.dp))
-                }
                 ModelProgressIndicator(
                     isLoading = isLoading,
                     progressPercent = modelDownloadPercent
                 )
             }
 
-            if (hasPending || showModelProgress) {
+            if (showModelProgress) {
                 Spacer(modifier = Modifier.width(EnsuSpacing.sm.dp))
             }
 

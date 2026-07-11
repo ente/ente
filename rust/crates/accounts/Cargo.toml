@@ -8,10 +8,8 @@ serde.workspace = true
 serde_json = "1"
 thiserror.workspace = true
 base64 = "0.22"
-futures-timer = "3"
 uuid = { version = "1.11", features = ["js", "serde", "v4"] }
 zeroize = { version = "1.8", features = ["derive"] }
-log = "0.4"
 urlencoding = "2.1"
 
 [dev-dependencies]
@@ -19,6 +17,3 @@ mockito = "1.6"
 sha2 = "0.11"
 srp = { version = "0.7.0-rc.3", default-features = false }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
-
-[lints.rust]
-missing_docs = "warn"

@@ -5,7 +5,7 @@
 
 pub mod auth;
 pub mod crypto;
+pub mod error;
 pub mod http;
-pub mod http_legacy;
 pub mod io;
 pub mod urls;

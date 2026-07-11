@@ -102,7 +102,6 @@ fun ChatView(
     }
     val canStartVoiceInput = !chatState.isGenerating &&
         !chatState.isDownloading &&
-        !chatState.isAttachmentDownloadBlocked &&
         !isChatUnsupported &&
         editingMessage == null
     val latestCanStartVoiceInput by rememberUpdatedState(canStartVoiceInput)
@@ -234,9 +233,8 @@ fun ChatView(
                 }
             }
 
-            chatState.overflowDialog?.let { overflow ->
+            if (chatState.overflowDialog != null) {
                 OverflowDialog(
-                    state = overflow,
                     onTrim = onOverflowTrim,
                     onCancel = onOverflowCancel
                 )
@@ -267,8 +265,6 @@ fun ChatView(
                     isProcessingAttachments = chatState.isProcessingAttachments,
                     isGenerating = chatState.isGenerating,
                     isDownloading = chatState.isDownloading,
-                    isAttachmentDownloadBlocked = chatState.isAttachmentDownloadBlocked,
-                    attachmentDownloadPercent = chatState.attachmentDownloadProgress,
                     onMessageChange = onMessageChange,
                     onSend = {
                         focusManager.clearFocus()

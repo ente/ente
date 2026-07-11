@@ -9,9 +9,14 @@
 //!
 //! The interface mirrors reqwest, so if you know reqwest you will feel at home.
 
+use std::future::Future;
 use std::sync::{PoisonError, RwLock};
-#[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
+
+#[cfg(target_arch = "wasm32")]
+use gloo_timers::future::sleep;
+#[cfg(not(target_arch = "wasm32"))]
+use tokio::time::sleep;
 
 use reqwest::header::{HeaderName, HeaderValue};
 use reqwest::{Method, Url};
@@ -42,6 +47,18 @@ pub enum Error {
         status: u16,
         /// The request path that failed, with its query stripped.
         path: String,
+    },
+
+    /// The server responded with a non-2xx status, and its body carried an
+    /// Ente API error code.
+    #[error("HTTP {status} {code} at {path}")]
+    Api {
+        /// The HTTP status code.
+        status: u16,
+        /// The request path that failed, with its query stripped.
+        path: String,
+        /// The server's error code, e.g. `USER_NOT_REGISTERED`.
+        code: String,
     },
 
     /// The response arrived, but its body was not the expected JSON.
@@ -77,10 +94,10 @@ impl Error {
         matches!(self, Error::Network(e) if e.0.is_timeout())
     }
 
-    /// The HTTP status code, if this is an [`Http`](Self::Http) error.
+    /// The HTTP status code, if the server responded with a non-2xx status.
     pub fn status_code(&self) -> Option<u16> {
         match self {
-            Error::Http { status, .. } => Some(*status),
+            Error::Http { status, .. } | Error::Api { status, .. } => Some(*status),
             _ => None,
         }
     }
@@ -90,7 +107,9 @@ impl Error {
     pub fn is_retryable(&self) -> bool {
         match self {
             Error::Network(e) => e.0.is_request() || e.0.is_body(),
-            Error::Http { status, .. } => *status == 429 || *status >= 500,
+            Error::Http { status, .. } | Error::Api { status, .. } => {
+                *status == 429 || *status >= 500
+            }
             Error::Parse(_) => false,
         }
     }
@@ -409,6 +428,29 @@ impl Response {
         }
     }
 
+    /// Return an [`Error::Api`] carrying the server's error code if the
+    /// status is not 2xx, otherwise the response.
+    ///
+    /// A variant of [`error_for_status`](Self::error_for_status) for call
+    /// sites that need to act on the error code that the Ente API includes
+    /// in its error responses. When the body does not carry a code, this
+    /// returns the same [`Error::Http`] that `error_for_status` would.
+    pub async fn error_for_code(self) -> Result<Self, Error> {
+        if self.0.status().is_success() {
+            return Ok(self);
+        }
+        let status = self.status();
+        let path = self.0.url().path().to_owned();
+        match serde_json::from_slice::<ApiErrorEnvelope>(&self.bytes().await?) {
+            Ok(envelope) => Err(Error::Api {
+                status,
+                path,
+                code: envelope.code,
+            }),
+            Err(_) => Err(Error::Http { status, path }),
+        }
+    }
+
     /// Read the whole body and deserialize it as JSON.
     pub async fn json<T: DeserializeOwned>(self) -> Result<T, Error> {
         serde_json::from_slice(&self.0.bytes().await?).map_err(|e| Error::Parse(ParseError(e)))
@@ -456,6 +498,12 @@ mod body_stream {
     }
 }
 
+/// The Ente API's error body, e.g. `{"code": "USER_NOT_REGISTERED", ...}`.
+#[derive(Deserialize)]
+struct ApiErrorEnvelope {
+    code: String,
+}
+
 /// The reply from the `/ping` endpoint.
 #[derive(Deserialize, Debug)]
 pub struct PingResponse {
@@ -463,6 +511,74 @@ pub struct PingResponse {
     pub message: String,
     /// The server's git commit hash.
     pub id: String,
+}
+
+/// How persistently to retry a failed request.
+///
+/// Both profiles make one original attempt and up to three retries. The
+/// delays match the web client's retry schedules.
+#[derive(Clone, Copy, Debug)]
+pub enum RetryProfile {
+    /// For requests a user is waiting on. Retries after 2, 5, and 10 seconds.
+    Interactive,
+    /// For unattended work, where waiting longer handles remote hiccups
+    /// better. Retries after 10, 30, and 120 seconds.
+    Background,
+}
+
+impl RetryProfile {
+    fn delays(self) -> [Duration; 3] {
+        match self {
+            RetryProfile::Interactive => [2, 5, 10].map(Duration::from_secs),
+            RetryProfile::Background => [10, 30, 120].map(Duration::from_secs),
+        }
+    }
+}
+
+/// Run `operation`, retrying failures per [`RetryProfile::Interactive`].
+///
+/// A failure is retried when [`Error::is_retryable`] says so: the request
+/// failed in transit, or the server answered with a 429 or a 5xx status.
+/// Any other error returns immediately.
+///
+/// Each retry runs the whole closure again, so wrap only operations that
+/// are safe to repeat.
+pub async fn retry<T, F, Fut>(operation: F) -> Result<T, Error>
+where
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T, Error>>,
+{
+    retry_with_profile(RetryProfile::Interactive, operation).await
+}
+
+/// Like [`retry`](retry()), but with an explicitly chosen profile.
+pub async fn retry_with_profile<T, F, Fut>(profile: RetryProfile, operation: F) -> Result<T, Error>
+where
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T, Error>>,
+{
+    retry_with_delays(&profile.delays(), operation).await
+}
+
+async fn retry_with_delays<T, F, Fut>(delays: &[Duration], mut operation: F) -> Result<T, Error>
+where
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T, Error>>,
+{
+    let mut delays = delays.iter();
+    loop {
+        match operation().await {
+            Ok(value) => return Ok(value),
+            Err(error) if error.is_retryable() => match delays.next() {
+                Some(delay) => {
+                    log::warn!("retrying in {delay:?}: {error}");
+                    sleep(*delay).await;
+                }
+                None => return Err(error),
+            },
+            Err(error) => return Err(error),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -630,6 +746,82 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn error_for_code_reads_the_code() {
+        let mut server = Server::new_async().await;
+        server
+            .mock("GET", "/x")
+            .with_status(401)
+            .with_body(r#"{"code":"SESSION_EXPIRED","message":"session expired"}"#)
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let err = api
+            .get("/x")
+            .send()
+            .await
+            .unwrap()
+            .error_for_code()
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            &err,
+            Error::Api { status: 401, path, code }
+                if path == "/x" && code == "SESSION_EXPIRED"
+        ));
+        assert_eq!(err.to_string(), "HTTP 401 SESSION_EXPIRED at /x");
+        assert_eq!(err.status_code(), Some(401));
+    }
+
+    #[tokio::test]
+    async fn error_for_code_without_a_code_is_a_plain_http_error() {
+        let mut server = Server::new_async().await;
+        server
+            .mock("GET", "/x")
+            .with_status(502)
+            .with_body("<html>bad gateway</html>")
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let err = api
+            .get("/x")
+            .send()
+            .await
+            .unwrap()
+            .error_for_code()
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            &err,
+            Error::Http { status: 502, path } if path == "/x"
+        ));
+    }
+
+    #[tokio::test]
+    async fn error_for_code_passes_a_2xx_through() {
+        let mut server = Server::new_async().await;
+        server
+            .mock("GET", "/x")
+            .with_body("ok")
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let response = api.get("/x").send().await.unwrap();
+        let body = response
+            .error_for_code()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
+        assert_eq!(body, "ok");
+    }
+
+    #[tokio::test]
     async fn invalid_json_is_a_parse_error() {
         let mut server = Server::new_async().await;
         server
@@ -743,6 +935,76 @@ mod tests {
         );
         api.ping().await.unwrap();
 
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn retry_retries_retryable_failures() {
+        let mut server = Server::new_async().await;
+        let failure = server
+            .mock("GET", "/x")
+            .with_status(500)
+            .expect(1)
+            .create_async()
+            .await;
+        let success = server
+            .mock("GET", "/x")
+            .with_body("ok")
+            .expect(1)
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let body = retry_with_delays(&[Duration::ZERO; 3], || async {
+            api.get("/x").send().await?.error_for_status()?.text().await
+        })
+        .await
+        .unwrap();
+
+        assert_eq!(body, "ok");
+        failure.assert_async().await;
+        success.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn retry_returns_non_retryable_failures_immediately() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("GET", "/x")
+            .with_status(404)
+            .expect(1)
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let err = retry_with_delays(&[Duration::ZERO; 3], || async {
+            api.get("/x").send().await?.error_for_status()?.text().await
+        })
+        .await
+        .unwrap_err();
+
+        assert_eq!(err.status_code(), Some(404));
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn retry_gives_up_once_the_delays_are_exhausted() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("GET", "/x")
+            .with_status(500)
+            .expect(4)
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let err = retry_with_delays(&[Duration::ZERO; 3], || async {
+            api.get("/x").send().await?.error_for_status()?.text().await
+        })
+        .await
+        .unwrap_err();
+
+        assert_eq!(err.status_code(), Some(500));
         mock.assert_async().await;
     }
 }

@@ -13,9 +13,9 @@ import "package:photos/generated/l10n.dart";
 import "package:photos/models/backup/backup_item.dart";
 import "package:photos/models/backup/backup_item_status.dart";
 import "package:photos/models/file/extensions/file_props.dart";
+import "package:photos/module/upload/service/file_uploader.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/ui/settings/backup/backup_item_card.dart";
-import "package:photos/utils/file_uploader.dart";
 
 class BackupStatusScreen extends StatefulWidget {
   const BackupStatusScreen({super.key});

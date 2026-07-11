@@ -23,6 +23,7 @@ import 'package:photos/models/freeable_space_info.dart';
 import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/metadata/common_keys.dart";
 import 'package:photos/models/selected_files.dart';
+import 'package:photos/module/download/gallery.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/collections_service.dart';
 import "package:photos/services/files_service.dart";
@@ -51,7 +52,6 @@ import "package:photos/ui/viewer/hierarchicial_search/app_bar_filter_chips.dart"
 import "package:photos/ui/viewer/location/edit_location_sheet.dart";
 import 'package:photos/utils/delete_file_util.dart';
 import 'package:photos/utils/dialog_util.dart';
-import "package:photos/utils/file_download_util.dart";
 import 'package:photos/utils/magic_util.dart';
 
 class GalleryAppBarWidget extends StatefulWidget {

@@ -33,16 +33,16 @@ import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/models/preview/playlist_data.dart";
 import "package:photos/models/preview/preview_item.dart";
 import "package:photos/models/preview/preview_item_status.dart";
+import "package:photos/module/download/file.dart";
+import "package:photos/module/metadata/video.dart";
+import "package:photos/module/upload/service/file_uploader.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/file_magic_service.dart";
 import "package:photos/services/filedata/model/file_data.dart";
 import "package:photos/services/isolated_ffmpeg_service.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
 import "package:photos/ui/notification/toast.dart";
-import "package:photos/utils/exif_util.dart";
 import "package:photos/utils/file_key.dart";
-import "package:photos/utils/file_uploader.dart";
-import "package:photos/utils/file_util.dart";
 import "package:photos/utils/gzip.dart";
 import "package:photos/utils/network_util.dart";
 
@@ -493,7 +493,7 @@ class VideoPreviewService {
       }
 
       // check metadata for bitrate, codec, color space
-      props ??= await getVideoPropsAsync(file);
+      props ??= await getVideoProps(file);
       final fileSize = enteFile.fileSize ?? file.lengthSync();
 
       if (props == null) {
@@ -664,7 +664,7 @@ class VideoPreviewService {
               FFProbeProps? playlistFrameProps;
               final file2 = File("$prefix/frame.ts");
 
-              playlistFrameProps = await getVideoPropsAsync(file2);
+              playlistFrameProps = await getVideoProps(file2);
               width = playlistFrameProps?.width;
               height = playlistFrameProps?.height;
             }
@@ -1240,7 +1240,7 @@ class VideoPreviewService {
       if (isFileUnder10MB) {
         file = await getFile(enteFile, isOrigin: true);
         if (file != null) {
-          props = await getVideoPropsAsync(file);
+          props = await getVideoProps(file);
           final videoData = List.from(
             props?.propData?["streams"] ?? [],
           ).firstWhereOrNull((e) => e["type"] == "video");

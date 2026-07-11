@@ -1,9 +1,5 @@
 import 'dart:async';
-import 'dart:core';
-import 'dart:io';
 
-import 'package:ente_pure_utils/ente_pure_utils.dart'
-    show deleteFileSystemEntityIfPresent;
 import 'package:logging/logging.dart';
 import "package:photos/core/configuration.dart";
 import 'package:photos/core/errors.dart';
@@ -11,18 +7,15 @@ import 'package:photos/db/file_updation_db.dart';
 import 'package:photos/db/files_db.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
-import 'package:photos/utils/file_uploader_util.dart';
-import 'package:photos/utils/file_util.dart';
+import 'package:photos/module/download/file.dart';
+import "package:photos/module/upload/upload_data.dart";
 import 'package:shared_preferences/shared_preferences.dart';
 
-// LocalFileUpdateService tracks all the potential local file IDs which have
-// changed/modified on the device and needed to be uploaded again.
+/// Finds device files whose contents changed after upload and queues updates.
 class LocalFileUpdateService {
-  late FileUpdationDB _fileUpdationDB;
-  late SharedPreferences _prefs;
-  late Logger _logger;
+  static final instance = LocalFileUpdateService._privateConstructor();
 
-  final List<String> _oldMigrationKeys = [
+  static const _oldMigrationKeys = [
     'fm_badCreationTime',
     'fm_badCreationTimeCompleted',
     'fm_missingLocationV2ImportDone',
@@ -36,19 +29,17 @@ class LocalFileUpdateService {
     'fm_android_missing_gps_check_done',
   ];
 
+  final FileUpdationDB _fileUpdationDB = FileUpdationDB.instance;
+  final Logger _logger = Logger("LocalFileUpdateService");
+  late SharedPreferences _prefs;
+
   Completer<void>? _existingMigration;
 
-  LocalFileUpdateService._privateConstructor() {
-    _logger = Logger((LocalFileUpdateService).toString());
-    _fileUpdationDB = FileUpdationDB.instance;
-  }
+  LocalFileUpdateService._privateConstructor();
 
   void init(SharedPreferences preferences) {
     _prefs = preferences;
   }
-
-  static LocalFileUpdateService instance =
-      LocalFileUpdateService._privateConstructor();
 
   Future<void> markUpdatedFilesForReUpload() async {
     if (_existingMigration != null) {
@@ -156,13 +147,11 @@ class LocalFileUpdateService {
         processedIDs.add(file.localID!);
         continue;
       }
-      MediaUploadData uploadData;
       try {
-        uploadData = await getUploadData(file);
-        if (uploadData.hashData != null &&
-            file.hash != null &&
-            (file.hash == uploadData.hashData!.fileHash ||
-                file.hash == uploadData.hashData!.zipHash)) {
+        final contentIdentity = await getFileContentIdentity(file);
+        if (file.hash != null &&
+            (file.hash == contentIdentity.fileHash ||
+                file.hash == contentIdentity.zipHash)) {
           _logger.info("Skip file update as hash matched ${file.tag}");
         } else {
           _logger.info(
@@ -205,44 +194,11 @@ class LocalFileUpdateService {
         processedIDs.add(file.localID!);
       } catch (e, s) {
         _logger.severe("Failed to check hash", e, s);
-      } finally {}
+      }
     }
     await _fileUpdationDB.deleteByLocalIDs(
       processedIDs.toList(),
       FileUpdationDB.modificationTimeUpdated,
     );
-  }
-
-  Future<MediaUploadData> getUploadData(EnteFile file) async {
-    final mediaUploadData = await getUploadDataFromEnteFile(file);
-    // delete the file from app's internal cache if it was copied to app
-    // for upload. Shared Media should only be cleared when the upload
-    // succeeds.
-    await _deleteCopiedIOSUploadFile(mediaUploadData.sourceFile);
-    return mediaUploadData;
-  }
-
-  Future<(MediaUploadData, int)> getUploadDataWithSizeSize(
-    EnteFile file,
-  ) async {
-    final mediaUploadData = await getUploadDataFromEnteFile(file);
-    final int size = await mediaUploadData.sourceFile!.length();
-    // delete the file from app's internal cache if it was copied to app
-    // for upload. Shared Media should only be cleared when the upload
-    // succeeds.
-    await _deleteCopiedIOSUploadFile(mediaUploadData.sourceFile);
-    return (mediaUploadData, size);
-  }
-
-  Future<void> _deleteCopiedIOSUploadFile(File? sourceFile) async {
-    if (!Platform.isIOS || sourceFile == null) {
-      return;
-    }
-    final deleted = await deleteFileSystemEntityIfPresent(sourceFile);
-    if (!deleted) {
-      _logger.info(
-        "Copied upload temp file already missing: ${sourceFile.path}",
-      );
-    }
   }
 }

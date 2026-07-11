@@ -1,6 +1,5 @@
 //! FRB bindings for contacts APIs.
 
-use std::fmt::Write as _;
 use std::sync::Arc;
 
 use ente_contacts::{
@@ -18,91 +17,39 @@ use ente_core::auth::KeyAttributes as CoreKeyAttributes;
 use flutter_rust_bridge::frb;
 
 #[frb]
-/// Contact API errors exposed over Flutter Rust Bridge.
 pub enum ContactsError {
-    /// API HTTP error with status and message.
-    Http {
-        /// Error response body or summary message.
-        message: String,
-        /// HTTP status code returned by the API.
-        status: u16,
-    },
-    /// Network transport error.
-    Network {
-        /// Underlying network error description.
-        message: String,
-    },
-    /// Response or payload parse error.
-    Parse {
-        /// Parse failure description.
-        message: String,
-    },
-    /// Invalid request or base URL error.
-    InvalidUrl {
-        /// Invalid URL description.
-        message: String,
-    },
-    /// Cryptographic operation failed.
-    Crypto {
-        /// Cryptographic error description.
-        message: String,
-    },
-    /// Authentication or recovery crypto operation failed.
-    Auth {
-        /// Authentication error description.
-        message: String,
-    },
-    /// Input validation failed.
-    InvalidInput {
-        /// Validation failure description.
-        message: String,
-    },
-    /// Missing encrypted contact payload on a live contact response.
-    MissingEncryptedData,
-    /// Missing encrypted contact key on a live contact response.
-    MissingEncryptedKey,
-    /// Contact profile picture does not exist.
-    ProfilePictureNotFound,
-    /// A recovery is already in progress for this kit.
-    ActiveRecoverySession,
+    Network { message: String },
+    Http { status: u16, message: String },
+    Parse { message: String },
+    Crypto { message: String },
+    Auth { message: String },
+    InvalidInput { message: String },
+    MissingEncryptedData { message: String },
+    MissingEncryptedKey { message: String },
+    ProfilePictureNotFound { message: String },
+    ActiveRecoverySession { message: String },
 }
 
 impl From<CoreContactsError> for ContactsError {
-    fn from(value: CoreContactsError) -> Self {
-        match value {
-            CoreContactsError::Http(error) => {
-                let message = error_chain(&error);
-                match error {
-                    ente_core::http::Error::Http { status, .. } => {
-                        ContactsError::Http { message, status }
-                    }
-                    ente_core::http::Error::Network(_) => ContactsError::Network { message },
-                    ente_core::http::Error::Parse(_) => ContactsError::Parse { message },
-                }
-            }
-            CoreContactsError::Crypto(message) => ContactsError::Crypto {
-                message: message.to_string(),
+    fn from(e: CoreContactsError) -> Self {
+        use ente_contacts::ErrorKind as K;
+        let message = ente_core::error::chain(&e);
+        match e.kind() {
+            K::Network => Self::Network { message },
+            K::Http => Self::Http {
+                status: e.status().unwrap_or_default(),
+                message,
             },
-            CoreContactsError::Auth(message) => ContactsError::Auth {
-                message: message.to_string(),
-            },
-            CoreContactsError::InvalidInput(message) => ContactsError::InvalidInput { message },
-            CoreContactsError::MissingEncryptedData => ContactsError::MissingEncryptedData,
-            CoreContactsError::MissingEncryptedKey => ContactsError::MissingEncryptedKey,
-            CoreContactsError::ProfilePictureNotFound => ContactsError::ProfilePictureNotFound,
-            CoreContactsError::ActiveRecoverySession => ContactsError::ActiveRecoverySession,
+            K::Parse => Self::Parse { message },
+            K::Crypto => Self::Crypto { message },
+            K::Auth => Self::Auth { message },
+            K::InvalidInput => Self::InvalidInput { message },
+            K::MissingEncryptedData => Self::MissingEncryptedData { message },
+            K::MissingEncryptedKey => Self::MissingEncryptedKey { message },
+            K::ProfilePictureNotFound => Self::ProfilePictureNotFound { message },
+            K::ActiveRecoverySession => Self::ActiveRecoverySession { message },
         }
     }
-}
-
-fn error_chain(error: &dyn std::error::Error) -> String {
-    let mut message = error.to_string();
-    let mut source = error.source();
-    while let Some(cause) = source {
-        let _ = write!(message, ": {cause}");
-        source = cause.source();
-    }
-    message
 }
 
 #[frb]

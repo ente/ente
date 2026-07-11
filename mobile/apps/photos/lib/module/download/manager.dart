@@ -7,6 +7,7 @@ import "package:photos/core/configuration.dart";
 
 import "package:photos/module/download/file_url.dart";
 import "package:photos/module/download/task.dart";
+import "package:photos/utils/device_storage_error.dart";
 
 class DownloadManager {
   final _logger = Logger('DownloadManager');
@@ -251,10 +252,10 @@ class DownloadManager {
       }
       _logger.warning('Error downloading ${task.filename}', e);
       final isNetworkError = _isNetworkError(e);
-      final isStorageError = _isStorageError(e);
+      final isDeviceStorageFull = isDeviceStorageFullError(e);
       final String errorCode = _getErrorCode(e);
       task = task.copyWith(
-        status: isNetworkError || isStorageError
+        status: isNetworkError || isDeviceStorageFull
             ? DownloadStatus.paused
             : DownloadStatus.error,
         error: errorCode,
@@ -482,19 +483,8 @@ class DownloadManager {
     return false;
   }
 
-  bool _isStorageError(Object error) {
-    if (error is FileSystemException) {
-      final code = error.osError?.errorCode;
-      return code == 28 || code == 112;
-    }
-    if (error is DioException && error.error != null) {
-      return _isStorageError(error.error!);
-    }
-    return false;
-  }
-
   String _getErrorCode(Object error) {
-    if (_isStorageError(error)) {
+    if (isDeviceStorageFullError(error)) {
       return notEnoughStorageError;
     }
     if (_isNetworkError(error)) {

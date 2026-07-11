@@ -51,11 +51,17 @@ fn to_shared_error(error: Error) -> shared::Error {
         Error::ApiError {
             status,
             code,
-            message,
-        } => shared::Error::from(ente_core::http_legacy::Error::Http {
-            status,
-            code,
-            message,
+            message: _,
+        } => shared::Error::from(match code {
+            Some(code) => ente_core::http::Error::Api {
+                status,
+                path: String::new(),
+                code,
+            },
+            None => ente_core::http::Error::Http {
+                status,
+                path: String::new(),
+            },
         }),
         Error::Generic(message) => shared::Error::Generic(message),
     }

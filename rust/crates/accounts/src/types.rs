@@ -1,27 +1,11 @@
 //! Shared reusable types for account clients.
 
-use ente_core::{http_legacy::HttpConfig, urls::PRODUCTION_API_BASE_URL};
-use futures_timer::Delay;
+use ente_core::urls::PRODUCTION_API_BASE_URL;
 use serde::{Deserialize, Serialize};
-use std::{future::Future, pin::Pin, sync::Arc, time::Duration};
 use zeroize::Zeroize;
 
 /// Default base URL for Ente's public API.
 pub const DEFAULT_API_BASE_URL: &str = PRODUCTION_API_BASE_URL;
-
-/// Boxed future returned by a configured sleep hook.
-pub type SleepFuture = Pin<Box<dyn Future<Output = ()> + 'static>>;
-
-/// Async sleep hook used by high-level account flows for retry/backoff waits.
-pub type SleepFn = Arc<dyn Fn(Duration) -> SleepFuture + 'static>;
-
-fn default_sleep_fn() -> SleepFn {
-    Arc::new(|duration| {
-        Box::pin(async move {
-            Delay::new(duration).await;
-        })
-    })
-}
 
 /// Configuration for constructing an [`crate::client::AccountsClient`].
 #[derive(Clone)]
@@ -36,9 +20,6 @@ pub struct AccountsClientConfig {
     pub client_version: Option<String>,
     /// Optional user agent.
     pub user_agent: Option<String>,
-    /// Optional request timeout.
-    pub timeout_secs: Option<u64>,
-    sleep_fn: SleepFn,
 }
 
 impl std::fmt::Debug for AccountsClientConfig {
@@ -52,8 +33,6 @@ impl std::fmt::Debug for AccountsClientConfig {
             .field("client_package", &self.client_package)
             .field("client_version", &self.client_version)
             .field("user_agent", &self.user_agent)
-            .field("timeout_secs", &self.timeout_secs)
-            .field("sleep_fn", &"<configured>")
             .finish()
     }
 }
@@ -67,8 +46,6 @@ impl AccountsClientConfig {
             client_package: client_package.into(),
             client_version: None,
             user_agent: None,
-            timeout_secs: None,
-            sleep_fn: default_sleep_fn(),
         }
     }
 
@@ -94,39 +71,6 @@ impl AccountsClientConfig {
     pub fn with_user_agent(mut self, user_agent: impl Into<String>) -> Self {
         self.user_agent = Some(user_agent.into());
         self
-    }
-
-    /// Set a request timeout in seconds.
-    pub fn with_timeout_secs(mut self, timeout_secs: u64) -> Self {
-        self.timeout_secs = Some(timeout_secs);
-        self
-    }
-
-    /// Override the async sleep implementation used for retry/backoff waits.
-    pub fn with_sleep_fn<F, Fut>(mut self, sleep_fn: F) -> Self
-    where
-        F: Fn(Duration) -> Fut + 'static,
-        Fut: Future<Output = ()> + 'static,
-    {
-        self.sleep_fn = Arc::new(move |duration| Box::pin(sleep_fn(duration)));
-        self
-    }
-
-    pub(crate) fn sleep_fn(&self) -> SleepFn {
-        Arc::clone(&self.sleep_fn)
-    }
-}
-
-impl From<AccountsClientConfig> for HttpConfig {
-    fn from(value: AccountsClientConfig) -> Self {
-        HttpConfig {
-            base_url: value.base_url,
-            auth_token: value.auth_token,
-            user_agent: value.user_agent,
-            client_package: Some(value.client_package),
-            client_version: value.client_version,
-            timeout_secs: value.timeout_secs,
-        }
     }
 }
 

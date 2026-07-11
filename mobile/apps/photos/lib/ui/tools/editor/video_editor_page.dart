@@ -15,6 +15,7 @@ import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/location/location.dart";
+import "package:photos/module/metadata/local_file.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/sync/sync_service.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -31,6 +32,7 @@ import "package:photos/ui/tools/editor/video_editor/video_editor_player_control.
 import "package:photos/ui/tools/editor/video_rotate_page.dart";
 import "package:photos/ui/tools/editor/video_trim_page.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
+import "package:photos/utils/gallery_save_title.dart";
 import "package:video_editor/video_editor.dart";
 
 class VideoEditorPage extends StatefulWidget {
@@ -553,6 +555,7 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
           "_edited_" +
           DateTime.now().microsecondsSinceEpoch.toString() +
           ".mp4";
+      final galleryTitle = await getMediaStoreCompatibleTitle(fileName);
 
       //Disabling notifications for assets changing to insert the file into
       //files db before triggering a sync.
@@ -561,15 +564,12 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
       try {
         final AssetEntity newAsset = await (PhotoManager.editor.saveVideo(
           result,
-          title: fileName,
+          title: galleryTitle,
         ));
 
         result.deleteSync();
 
-        final newFile = await EnteFile.fromAsset(
-          widget.file.deviceFolder ?? '',
-          newAsset,
-        );
+        final newFile = fileFromAsset(widget.file.deviceFolder ?? '', newAsset);
 
         newFile.creationTime = widget.file.creationTime;
         newFile.collectionID = widget.file.collectionID;

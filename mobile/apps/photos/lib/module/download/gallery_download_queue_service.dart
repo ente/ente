@@ -13,10 +13,12 @@ import "package:photos/events/gallery_downloads_events.dart";
 import "package:photos/events/user_logged_out_event.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
+import 'package:photos/module/download/decrypt.dart';
+import 'package:photos/module/download/gallery.dart';
 import "package:photos/module/download/manager.dart";
 import "package:photos/module/download/task.dart";
 import "package:photos/service_locator.dart";
-import "package:photos/utils/file_download_util.dart";
+import "package:photos/utils/device_storage_error.dart";
 
 class GalleryDownloadEnqueueResult {
   final int addedCount;
@@ -436,7 +438,7 @@ class GalleryDownloadQueueService {
       }
     } on DownloadNoConnectionError {
       await _setPausedState(fileID, DownloadManager.noConnectionError);
-    } on DownloadNotEnoughStorageError {
+    } on DeviceStorageFullException {
       await _setPausedState(fileID, DownloadManager.notEnoughStorageError);
     } on DownloadUnavailableError {
       await _setErrorState(fileID, DownloadManager.unavailableError);

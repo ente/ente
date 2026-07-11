@@ -35,6 +35,7 @@ getrandom = { version = "0.2", features = ["js"] }
 # Common dependencies
 base64 = "0.22"
 hex = "0.4"
+log = "0.4"
 bip39 = { version = "2", default-features = false, features = ["std"] }
 zeroize = { version = "1.8.2", features = ["derive"] }
 
@@ -42,6 +43,10 @@ zeroize = { version = "1.8.2", features = ["derive"] }
 reqwest = { version = "0.12", default-features = false, features = ["stream"] }
 bytes = "1.11.1"
 futures-core = "0.3.32"
+tokio = { version = "1", features = ["time"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+gloo-timers = { version = "0.3.0", features = ["futures"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

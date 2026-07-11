@@ -84,23 +84,26 @@ impl From<AuthError> for Error {
 impl From<AccountsError> for Error {
     fn from(err: AccountsError) -> Self {
         match err {
-            AccountsError::Http(ente_core::http_legacy::Error::Http {
-                status,
-                code,
-                message,
-            }) => Error::ApiError {
-                status,
-                code,
-                message,
-            },
-            AccountsError::Http(ente_core::http_legacy::Error::Network(message)) => {
-                Error::Generic(format!("Network error: {message}"))
-            }
-            AccountsError::Http(ente_core::http_legacy::Error::Parse(message)) => {
-                Error::Generic(format!("JSON parse error: {message}"))
-            }
-            AccountsError::Http(ente_core::http_legacy::Error::InvalidUrl(message)) => {
-                Error::InvalidConfig(message)
+            AccountsError::Http(error) => {
+                let message = error.to_string();
+                match error {
+                    ente_core::http::Error::Http { status, .. } => Error::ApiError {
+                        status,
+                        code: None,
+                        message,
+                    },
+                    ente_core::http::Error::Api { status, code, .. } => Error::ApiError {
+                        status,
+                        code: Some(code),
+                        message,
+                    },
+                    ente_core::http::Error::Network(_) => {
+                        Error::Generic(format!("Network error: {message}"))
+                    }
+                    ente_core::http::Error::Parse(_) => {
+                        Error::Generic(format!("JSON parse error: {message}"))
+                    }
+                }
             }
             AccountsError::Serialization(source) => Error::Serialization(source),
             AccountsError::Crypto(message) => Error::Crypto(message),

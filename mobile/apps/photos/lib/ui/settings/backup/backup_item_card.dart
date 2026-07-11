@@ -7,11 +7,11 @@ import "package:logging/logging.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/backup/backup_item.dart";
 import "package:photos/models/backup/backup_item_status.dart";
+import "package:photos/module/upload/service/file_uploader.dart";
 import 'package:photos/theme/ente_theme.dart';
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/utils/email_util.dart";
-import "package:photos/utils/file_uploader.dart";
 
 class BackupItemCard extends StatefulWidget {
   const BackupItemCard({super.key, required this.item});
