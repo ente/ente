@@ -10,6 +10,7 @@ import { isHEICExtension } from "ente-media/formats";
 import { heicToJPEG } from "ente-media/heic-convert";
 import { scaledImageDimensions } from "ente-media/image";
 import { withTimeout } from "ente-utils/promise";
+import { readStream } from "ente-gallery/utils/native-stream";
 
 /** Maximum width or height of the generated thumbnail */
 const maxThumbnailDimension = 720;
@@ -192,18 +193,35 @@ export const generateVideoThumbnailUsingCanvas = async (blob: Blob) => {
  *
  * See also {@link generateThumbnailWeb}.
  */
+const isTransparentFormat = (extension: string) => {
+    const ext = extension.toLowerCase();
+    return ext === "png" || ext === "webp";
+};
+
 export const generateThumbnailNative = async (
     electron: Electron,
     fsUploadItem: FileSystemUploadItem,
     fileTypeInfo: FileTypeInfo,
-): Promise<Uint8Array<ArrayBuffer>> =>
-    fileTypeInfo.fileType == FileType.image
-        ? await electron.generateImageThumbnail(
-              toPathOrZipEntry(fsUploadItem),
-              maxThumbnailDimension,
-              maxThumbnailSize,
-          )
-        : ffmpeg.generateVideoThumbnailNative(electron, fsUploadItem);
+): Promise<Uint8Array<ArrayBuffer>> => {
+    if (fileTypeInfo.fileType !== FileType.image) {
+        return ffmpeg.generateVideoThumbnailNative(electron, fsUploadItem);
+    }
+
+    if (isTransparentFormat(fileTypeInfo.extension)) {
+        const { response } = await readStream(
+            electron,
+            toPathOrZipEntry(fsUploadItem),
+        );
+        const blob = await response.blob();
+        return await generateImageThumbnailUsingCanvas(blob);
+    }
+
+    return await electron.generateImageThumbnail(
+        toPathOrZipEntry(fsUploadItem),
+        maxThumbnailDimension,
+        maxThumbnailSize,
+    );
+};
 
 /**
  * A fallback, black, thumbnail for use in cases where thumbnail generation
