@@ -305,20 +305,18 @@ class MagicCacheService {
       _pendingUpdateReason.add("Forced update");
     }
     await _updateCacheIfTheTimeHasCome();
-    Set<String>? updateReasons;
-    int? updateGeneration;
+    if (_pendingUpdateReason.isEmpty || _isUpdateInProgress) {
+      _logger.info(
+        "No update needed as ${_pendingUpdateReason.toList()} and isUpdateInProgress $_isUpdateInProgress",
+      );
+      return;
+    }
+    _logger.info("updating magic cache ${_pendingUpdateReason.toList()}");
+    final updateReasons = Set<String>.of(_pendingUpdateReason);
+    _pendingUpdateReason.removeAll(updateReasons);
+    final updateGeneration = _cacheGeneration;
+    _isUpdateInProgress = true;
     try {
-      if (_pendingUpdateReason.isEmpty || _isUpdateInProgress) {
-        _logger.info(
-          "No update needed as ${_pendingUpdateReason.toList()} and isUpdateInProgress $_isUpdateInProgress",
-        );
-        return;
-      }
-      _logger.info("updating magic cache ${_pendingUpdateReason.toList()}");
-      updateReasons = Set<String>.of(_pendingUpdateReason);
-      _pendingUpdateReason.removeAll(updateReasons);
-      updateGeneration = _cacheGeneration;
-      _isUpdateInProgress = true;
       final EnteWatch? w = kDebugMode ? EnteWatch("magicCacheWatch") : null;
       w?.start();
       final magicPromptsData = await getPrompts();
@@ -343,12 +341,13 @@ class MagicCacheService {
       w?.log("cacheWritten");
       await _resetLastMagicCacheUpdateTime();
       if (updateGeneration != _cacheGeneration) {
+        await _prefs.remove(_lastMagicCacheUpdateKey);
         return;
       }
       w?.logAndReset('done');
       Bus.instance.fire(MagicCacheUpdatedEvent());
     } catch (e, s) {
-      if (updateReasons != null && updateGeneration == _cacheGeneration) {
+      if (updateGeneration == _cacheGeneration) {
         _pendingUpdateReason.addAll(updateReasons);
       }
       _logger.info("Error updating magic cache", e, s);
@@ -408,9 +407,10 @@ class MagicCacheService {
 
   Future<void> clearMagicCache() async {
     _cacheGeneration++;
-    await _deleteCacheFile();
     _magicCacheFuture = null;
     _pendingUpdateReason.clear();
+    await _prefs.remove(_lastMagicCacheUpdateKey);
+    await _deleteCacheFile();
   }
 
   Future<void> _deleteCacheFile() async {
