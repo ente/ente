@@ -15,6 +15,7 @@ import "package:photo_view/photo_view.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/metadata/file_magic.dart";
+import "package:photos/module/metadata/local_file.dart";
 import "package:photos/module/metadata/video.dart";
 import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
@@ -382,7 +383,7 @@ class FileViewerState extends State<FileViewer> {
   }
 
   Future<EnteFile> _fileFromAsset(String pathName, AssetEntity asset) async {
-    final file = await EnteFile.fromAsset(pathName, asset);
+    final file = fileFromAsset(pathName, asset);
     file.pubMagicMetadata = PubMagicMetadata(
       w: asset.orientatedWidth,
       h: asset.orientatedHeight,

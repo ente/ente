@@ -15,6 +15,7 @@ import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/location/location.dart";
+import "package:photos/module/metadata/local_file.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/sync/sync_service.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -566,10 +567,7 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
 
         result.deleteSync();
 
-        final newFile = await EnteFile.fromAsset(
-          widget.file.deviceFolder ?? '',
-          newAsset,
-        );
+        final newFile = fileFromAsset(widget.file.deviceFolder ?? '', newAsset);
 
         newFile.creationTime = widget.file.creationTime;
         newFile.collectionID = widget.file.collectionID;

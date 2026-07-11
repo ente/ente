@@ -19,6 +19,7 @@ import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/file/file.dart' as ente;
 import "package:photos/models/location/location.dart";
+import "package:photos/module/metadata/local_file.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/sync/sync_service.dart";
 import "package:photos/ui/components/action_sheet_widget.dart";
@@ -113,7 +114,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         result,
         filename: fileName,
       ));
-      final newFile = await ente.EnteFile.fromAsset(
+      final newFile = fileFromAsset(
         widget.originalFile.deviceFolder ?? '',
         newAsset,
       );

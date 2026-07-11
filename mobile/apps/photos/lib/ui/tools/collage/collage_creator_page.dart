@@ -5,6 +5,7 @@ import "package:logging/logging.dart";
 import "package:photo_manager/photo_manager.dart";
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/file/file.dart';
+import "package:photos/module/metadata/local_file.dart";
 import "package:photos/services/sync/sync_service.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/tools/collage/collage_app_bar.dart";
@@ -79,7 +80,7 @@ class _CollageCreatorPageState extends State<CollageCreatorPage> {
               filename: fileName,
             ));
           }));
-      final newFile = await EnteFile.fromAsset("ente Collages", newAsset);
+      final newFile = fileFromAsset("ente Collages", newAsset);
       SyncService.instance.sync().ignore();
       if (!mounted) return;
       showShortToast(context, AppLocalizations.of(context).collageSaved);

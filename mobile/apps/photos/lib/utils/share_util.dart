@@ -11,6 +11,7 @@ import 'package:photos/core/constants.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import 'package:photos/module/metadata/exif.dart';
+import 'package:photos/module/metadata/local_file.dart';
 import 'package:photos/utils/dialog_util.dart';
 import 'package:photos/utils/file_util.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
@@ -225,7 +226,7 @@ Future<List<EnteFile>> convertPicketAssets(
 ) async {
   final List<EnteFile> localFiles = [];
   for (var asset in pickedAssets) {
-    final enteFile = await EnteFile.fromAsset('', asset);
+    final enteFile = fileFromAsset('', asset);
     enteFile.collectionID = collectionID;
     localFiles.add(enteFile);
   }

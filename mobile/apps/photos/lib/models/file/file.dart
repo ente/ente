@@ -1,10 +1,7 @@
-import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
-import 'package:path/path.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:photos/core/constants.dart';
-import 'package:photos/core/errors.dart';
 import 'package:photos/models/file/file_type.dart';
 import 'package:photos/models/location/location.dart';
 import "package:photos/models/metadata/file_magic.dart";
@@ -65,94 +62,6 @@ class EnteFile {
   static final _logger = Logger('File');
 
   EnteFile();
-
-  /// Safely extracts microsecondsSinceEpoch from DateTime, throwing InvalidDateTimeError if invalid
-  static int _safeGetMicroseconds(
-    DateTime dateTime,
-    String assetId,
-    String? assetTitle,
-    String label,
-  ) {
-    try {
-      return dateTime.microsecondsSinceEpoch;
-    } on RangeError catch (e) {
-      throw InvalidDateTimeError(
-        assetId: assetId,
-        assetTitle: assetTitle,
-        field: label,
-        originalError: e.message ?? e.toString(),
-      );
-    }
-  }
-
-  static Future<EnteFile> fromAsset(String pathName, AssetEntity asset) async {
-    final EnteFile file = EnteFile();
-    file.localID = asset.id;
-    file.title = asset.title;
-    file.deviceFolder = pathName;
-    file.location = Location(
-      latitude: asset.latitude,
-      longitude: asset.longitude,
-    );
-    file.fileType = fileTypeFromAsset(asset);
-    file.creationTime = parseFileCreationTime(file.title, asset);
-    file.modificationTime = _safeGetMicroseconds(
-      asset.modifiedDateTime,
-      asset.id,
-      asset.title,
-      'modificationTime',
-    );
-    file.fileSubType = asset.subtype;
-    file.metadataVersion = -1;
-    return file;
-  }
-
-  static int parseFileCreationTime(String? fileTitle, AssetEntity asset) {
-    int creationTime = _safeGetMicroseconds(
-      asset.createDateTime,
-      asset.id,
-      asset.title,
-      'createDateTime',
-    );
-    final int modificationTime = _safeGetMicroseconds(
-      asset.modifiedDateTime,
-      asset.id,
-      asset.title,
-      'modificationTime',
-    );
-    if (creationTime >= jan011981Time) {
-      // assuming that fileSystem is returning correct creationTime.
-      // During upload, this might get overridden with exif Creation time
-      // When the assetModifiedTime is less than creationTime, than just use
-      // that as creationTime. This is to handle cases where file might be
-      // copied to the fileSystem from somewhere else See #https://superuser.com/a/1091147
-      if (modificationTime >= jan011981Time &&
-          modificationTime < creationTime) {
-        _logger.info(
-          'LocalID: ${asset.id} modification time is less than creation time. Using modification time as creation time',
-        );
-        creationTime = modificationTime;
-      }
-      return creationTime;
-    } else {
-      if (modificationTime >= jan011981Time) {
-        creationTime = modificationTime;
-      } else {
-        creationTime = DateTime.now().toUtc().microsecondsSinceEpoch;
-      }
-      try {
-        final parsedDateTime = parseDateTimeFromFileNameV2(
-          basenameWithoutExtension(fileTitle ?? ""),
-        );
-        if (parsedDateTime != null) {
-          creationTime = parsedDateTime.microsecondsSinceEpoch;
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-    return creationTime;
-  }
 
   Future<AssetEntity?> get getAsset {
     if (localID == null) {
