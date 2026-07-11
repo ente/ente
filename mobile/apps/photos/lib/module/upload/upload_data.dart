@@ -21,6 +21,7 @@ import 'package:photos/models/file/file_type.dart';
 import "package:photos/models/location/location.dart";
 import 'package:photos/module/download/thumbnail.dart';
 import "package:photos/module/live_photo/archive.dart";
+import "package:photos/module/metadata/video.dart";
 import 'package:photos/module/upload/model/media_upload_data.dart';
 import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/src/rust/api/motion_photo_api.dart";
@@ -331,7 +332,7 @@ Future<MediaUploadData> _getMediaUploadDataFromAppCache(
     }
 
     if (!file.hasLocation && file.isVideo && Platform.isAndroid) {
-      final FFProbeProps? props = await getVideoPropsAsync(sourceFile);
+      final FFProbeProps? props = await getVideoProps(sourceFile);
       if (props?.location != null) {
         file.location = props!.location;
       }

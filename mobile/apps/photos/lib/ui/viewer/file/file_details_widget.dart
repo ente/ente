@@ -17,6 +17,7 @@ import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import "package:photos/models/location/location.dart";
 import "package:photos/models/metadata/file_magic.dart";
+import "package:photos/module/metadata/video.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/file_magic_service.dart";
 import 'package:photos/theme/ente_theme.dart';
@@ -129,7 +130,7 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
   Future<void> getMediaInfo() async {
     final File? originFile = await getFile(widget.file, isOrigin: true);
     if (originFile == null) return;
-    final properties = await getVideoPropsAsync(originFile);
+    final properties = await getVideoProps(originFile);
     if (!mounted) return;
     _videoMetadataNotifier.value = properties;
     if (kDebugMode) {

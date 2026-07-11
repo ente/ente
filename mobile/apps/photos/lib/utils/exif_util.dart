@@ -5,12 +5,10 @@ import "package:computer/computer.dart";
 import 'package:exif_reader/exif_reader.dart';
 import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
-import "package:photos/models/ffmpeg/ffprobe_props.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/location/location.dart";
 import "package:photos/models/metadata/file_magic.dart";
-import "package:photos/services/isolated_ffmpeg_service.dart";
 import "package:photos/services/location_service.dart";
 import 'package:photos/utils/file_util.dart';
 import 'package:random_access_source/random_access_source.dart';
@@ -83,28 +81,6 @@ bool shouldSwapDimensionsForExifOrientation(Map<String, IfdTag>? exifData) {
   final orientation = exifData?['Image Orientation']?.values.firstAsInt() ?? 1;
   // EXIF orientations 5-8 are rotated 90/270 variants and require w/h swap.
   return orientation >= 5 && orientation <= 8;
-}
-
-Future<FFProbeProps?> getVideoPropsAsync(File originalFile) async {
-  try {
-    final stopwatch = Stopwatch()..start();
-
-    final mediaInfo = await IsolatedFfmpegService.instance.getVideoInfo(
-      originalFile.path,
-    );
-    if (mediaInfo.isEmpty) {
-      return null;
-    }
-
-    final properties = FFProbeProps.parseData(mediaInfo);
-    _logger.info("getVideoPropsAsync took ${stopwatch.elapsedMilliseconds}ms");
-
-    stopwatch.stop();
-    return properties;
-  } catch (e, s) {
-    _logger.severe("Failed to getVideoProps", e, s);
-    return null;
-  }
 }
 
 class ParsedExifDateTime {

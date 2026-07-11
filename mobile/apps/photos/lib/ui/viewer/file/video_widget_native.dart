@@ -19,6 +19,7 @@ import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/preview/playlist_data.dart";
 import "package:photos/module/download/task.dart";
+import "package:photos/module/metadata/video.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/files_service.dart";
 import "package:photos/services/wake_lock_service.dart";
@@ -34,7 +35,6 @@ import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/file/video_stream_change.dart";
 import "package:photos/ui/viewer/file/zoomable_video_viewer.dart";
 import "package:photos/utils/dialog_util.dart";
-import "package:photos/utils/exif_util.dart";
 import "package:photos/utils/file_util.dart";
 import "package:video_player/video_player.dart" as vp;
 import "package:visibility_detector/visibility_detector.dart";
@@ -790,7 +790,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       await _setAspectAndDurationFromIosPlayerProbe();
       return;
     }
-    final videoProps = await getVideoPropsAsync(File(_filePath!));
+    final videoProps = await getVideoProps(File(_filePath!));
     if (videoProps != null) {
       duration = videoProps.propData?["duration"];
 
