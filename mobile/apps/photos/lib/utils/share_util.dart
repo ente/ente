@@ -196,8 +196,8 @@ Future<List<EnteFile>> convertIncomingSharedMediaToFile(
         : FileType.video;
     if (enteFile.fileType == FileType.image) {
       final dateResult = await tryParseExifDateTime(ioFile, null);
-      if (dateResult != null && dateResult.time != null) {
-        enteFile.creationTime = dateResult.time!.microsecondsSinceEpoch;
+      if (dateResult != null) {
+        enteFile.creationTime = dateResult.time.microsecondsSinceEpoch;
       }
     } else if (enteFile.fileType == FileType.video) {
       enteFile.duration = (media.duration ?? 0) ~/ 1000;

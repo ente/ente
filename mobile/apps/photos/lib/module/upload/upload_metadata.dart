@@ -25,10 +25,9 @@ Future<Map<String, dynamic>> buildUploadMetadata(
       file.duration = asset.duration;
     }
   }
-  bool hasExifTime = false;
-  if (exifTime != null && exifTime.time != null) {
-    hasExifTime = true;
-    file.creationTime = exifTime.time!.microsecondsSinceEpoch;
+  final hasExifTime = exifTime != null;
+  if (exifTime != null) {
+    file.creationTime = exifTime.time.microsecondsSinceEpoch;
   }
   if (mediaUploadData.exifData != null) {
     mediaUploadData.isPanorama = checkPanoramaFromEXIF(

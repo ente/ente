@@ -14,14 +14,14 @@ import 'package:photos/utils/file_util.dart';
 import 'package:random_access_source/random_access_source.dart';
 
 const kDateTimeOriginal = "EXIF DateTimeOriginal";
-const kImageDateTime = "Image DateTime";
-const kExifOffSetKeys = [
+const _imageDateTime = "Image DateTime";
+const _exifOffsetKeys = [
   "EXIF OffsetTime",
   "EXIF OffsetTimeOriginal",
   "EXIF OffsetTimeDigitized",
 ];
-const kExifDateTimePattern = "yyyy:MM:dd HH:mm:ss";
-const kEmptyExifDateTime = "0000:00:00 00:00:00";
+const _exifDateTimePattern = "yyyy:MM:dd HH:mm:ss";
+const _emptyExifDateTime = "0000:00:00 00:00:00";
 
 final _logger = Logger("ExifUtil");
 final _standardExifDateTimePattern = RegExp(
@@ -84,16 +84,14 @@ bool shouldSwapDimensionsForExifOrientation(Map<String, IfdTag>? exifData) {
 }
 
 class ParsedExifDateTime {
-  late final DateTime? time;
-  late final String? dateTime;
-  late final String? offsetTime;
-  ParsedExifDateTime(DateTime this.time, String? dateTime, this.offsetTime) {
-    if (dateTime != null && dateTime.endsWith('Z')) {
-      this.dateTime = dateTime.substring(0, dateTime.length - 1);
-    } else {
-      this.dateTime = dateTime;
-    }
-  }
+  ParsedExifDateTime(this.time, String? dateTime, this.offsetTime)
+    : dateTime = dateTime != null && dateTime.endsWith('Z')
+          ? dateTime.substring(0, dateTime.length - 1)
+          : dateTime;
+
+  final DateTime time;
+  final String? dateTime;
+  final String? offsetTime;
 
   @override
   String toString() {
@@ -108,18 +106,16 @@ Future<ParsedExifDateTime?> tryParseExifDateTime(
   try {
     assert(file != null || exifData != null);
     final exif = exifData ?? await readExifAsync(file!);
-    final exifTime = exif.containsKey(kDateTimeOriginal)
-        ? exif[kDateTimeOriginal]!.printable
-        : exif.containsKey(kImageDateTime)
-        ? exif[kImageDateTime]!.printable
-        : null;
-    if (exifTime == null || exifTime == kEmptyExifDateTime) {
+    final exifTime =
+        exif[kDateTimeOriginal]?.printable ?? exif[_imageDateTime]?.printable;
+    if (exifTime == null || exifTime == _emptyExifDateTime) {
       return null;
     }
     String? exifOffsetTime;
-    for (final key in kExifOffSetKeys) {
-      if (exif.containsKey(key)) {
-        exifOffsetTime = exif[key]!.printable;
+    for (final key in _exifOffsetKeys) {
+      final offset = exif[key];
+      if (offset != null) {
+        exifOffsetTime = offset.printable;
         break;
       }
     }
@@ -158,7 +154,7 @@ ParsedExifDateTime _getStandardExifDateTimeInDeviceTimezone(
   final offsetTime = _normalizeOffset(offsetString);
   final hasOffset = offsetTime != null;
   final match = _standardExifDateTimePattern.firstMatch(exifTime)!;
-  final DateTime result = DateFormat(kExifDateTimePattern)
+  final DateTime result = DateFormat(_exifDateTimePattern)
       .parseStrict(match.group(1)!, hasOffset)
       .add(
         Duration(microseconds: _parseFractionalMicroseconds(match.group(7))),
@@ -300,8 +296,8 @@ Future<Map<String, IfdTag>> _readExifArgs(Map<String, dynamic> args) {
   });
 }
 
-Future<Map<String, IfdTag>> readExifAsync(File file) async {
-  return await Computer.shared().compute(
+Future<Map<String, IfdTag>> readExifAsync(File file) {
+  return Computer.shared().compute(
     _readExifArgs,
     param: {"file": file},
     taskName: "readExifAsync",
@@ -320,29 +316,13 @@ Map<String, IfdTag> _normalizeExifResult(dynamic result) {
 }
 
 GPSData gpsDataFromExif(Map<String, IfdTag> exif) {
-  final Map<String, dynamic> exifLocationData = {
-    "lat": null,
-    "long": null,
-    "latRef": null,
-    "longRef": null,
-  };
-  if (exif["GPS GPSLatitude"] != null) {
-    exifLocationData["lat"] = _gpsCoordinateParts(exif["GPS GPSLatitude"]!);
-  }
-  if (exif["GPS GPSLongitude"] != null) {
-    exifLocationData["long"] = _gpsCoordinateParts(exif["GPS GPSLongitude"]!);
-  }
-  if (exif["GPS GPSLatitudeRef"] != null) {
-    exifLocationData["latRef"] = exif["GPS GPSLatitudeRef"].toString();
-  }
-  if (exif["GPS GPSLongitudeRef"] != null) {
-    exifLocationData["longRef"] = exif["GPS GPSLongitudeRef"].toString();
-  }
+  final latitude = exif["GPS GPSLatitude"];
+  final longitude = exif["GPS GPSLongitude"];
   return GPSData(
-    exifLocationData["latRef"],
-    exifLocationData["lat"],
-    exifLocationData["longRef"],
-    exifLocationData["long"],
+    exif["GPS GPSLatitudeRef"]?.toString(),
+    latitude == null ? null : _gpsCoordinateParts(latitude),
+    exif["GPS GPSLongitudeRef"]?.toString(),
+    longitude == null ? null : _gpsCoordinateParts(longitude),
   );
 }
 
