@@ -910,9 +910,9 @@ class FileUploader {
         final keyDecryptionNonce = CryptoUtil.bin2base64(
           encryptedFileKeyData.nonce!,
         );
-        MetadataRequest? pubMetadataRequest;
+        PreparedPublicMetadata? preparedPublicMetadata;
         if (pubMetadata.isNotEmpty) {
-          pubMetadataRequest = await buildPublicMetadataRequest(
+          preparedPublicMetadata = await preparePublicMetadata(
             file,
             pubMetadata,
             fileAttributes.key,
@@ -941,8 +941,13 @@ class FileUploader {
           encThumbSize,
           encryptedMetadata,
           metadataDecryptionHeader,
-          pubMetadata: pubMetadataRequest,
+          pubMetadata: preparedPublicMetadata?.request,
         );
+        if (preparedPublicMetadata != null) {
+          remoteFile
+            ..pubMmdEncodedJson = preparedPublicMetadata.encodedJson
+            ..pubMagicMetadata = preparedPublicMetadata.decodedMetadata;
+        }
         if (mediaUploadData.isDeleted) {
           _logger.info("File found to be deleted");
           remoteFile.localID = null;

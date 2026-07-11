@@ -87,7 +87,19 @@ Map<String, dynamic> _buildPublicMetadata(
   return publicMetadata;
 }
 
-Future<MetadataRequest> buildPublicMetadataRequest(
+class PreparedPublicMetadata {
+  final String encodedJson;
+  final PubMagicMetadata decodedMetadata;
+  final MetadataRequest request;
+
+  const PreparedPublicMetadata({
+    required this.encodedJson,
+    required this.decodedMetadata,
+    required this.request,
+  });
+}
+
+Future<PreparedPublicMetadata> preparePublicMetadata(
   EnteFile file,
   Map<String, dynamic> newData,
   Uint8List fileKey,
@@ -99,17 +111,19 @@ Future<MetadataRequest> buildPublicMetadataRequest(
     jsonToUpdate[key] = value;
   });
 
-  // update the local information so that it's reflected on UI
-  file.pubMmdEncodedJson = jsonEncode(jsonToUpdate);
-  file.pubMagicMetadata = PubMagicMetadata.fromJson(jsonToUpdate);
+  final encodedJson = jsonEncode(jsonToUpdate);
   final encryptedMMd = await CryptoUtil.encryptChaCha(
-    utf8.encode(jsonEncode(jsonToUpdate)),
+    utf8.encode(encodedJson),
     fileKey,
   );
-  return MetadataRequest(
-    version: file.pubMmdVersion == 0 ? 1 : file.pubMmdVersion,
-    count: jsonToUpdate.length,
-    data: CryptoUtil.bin2base64(encryptedMMd.encryptedData!),
-    header: CryptoUtil.bin2base64(encryptedMMd.header!),
+  return PreparedPublicMetadata(
+    encodedJson: encodedJson,
+    decodedMetadata: PubMagicMetadata.fromJson(jsonToUpdate),
+    request: MetadataRequest(
+      version: file.pubMmdVersion == 0 ? 1 : file.pubMmdVersion,
+      count: jsonToUpdate.length,
+      data: CryptoUtil.bin2base64(encryptedMMd.encryptedData!),
+      header: CryptoUtil.bin2base64(encryptedMMd.header!),
+    ),
   );
 }
