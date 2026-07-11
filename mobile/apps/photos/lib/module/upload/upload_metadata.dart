@@ -11,24 +11,80 @@ import "package:photos/module/metadata/local_file.dart";
 import 'package:photos/module/metadata/panorama.dart';
 import "package:photos/module/upload/model/media_upload_data.dart";
 
-Future<Map<String, dynamic>> buildUploadMetadata(
+class PreparedUploadMetadata {
+  final Map<String, dynamic> canonicalMetadata;
+  final Map<String, dynamic> publicMetadata;
+
+  PreparedUploadMetadata({
+    required Map<String, dynamic> canonicalMetadata,
+    required Map<String, dynamic> publicMetadata,
+  }) : canonicalMetadata = Map.unmodifiable(canonicalMetadata),
+       publicMetadata = Map.unmodifiable(publicMetadata);
+}
+
+Future<PreparedUploadMetadata> prepareUploadMetadata(
   EnteFile file,
   MediaUploadData mediaUploadData,
   ParsedExifDateTime? exifTime,
 ) async {
   applyCreationTimeMetadata(file, exifTime);
-  if (mediaUploadData.exifData != null) {
-    mediaUploadData.isPanorama = isPanoramaFromExif(mediaUploadData.exifData);
+  final derivedMetadata = mediaUploadData.derivedMetadata;
+  bool? isPanorama;
+  if (derivedMetadata.exifData != null) {
+    isPanorama = isPanoramaFromExif(derivedMetadata.exifData);
   }
-  if (mediaUploadData.isPanorama != true && file.fileType == FileType.image) {
+  if (isPanorama != true && file.fileType == FileType.image) {
     try {
       final xmpData = await readXmp(mediaUploadData.sourceFile);
-      mediaUploadData.isPanorama = isPanoramaFromXmp(xmpData);
+      isPanorama = isPanoramaFromXmp(xmpData);
     } catch (_) {}
-    mediaUploadData.isPanorama ??= false;
+    isPanorama ??= false;
   }
   file.hash = mediaUploadData.hashData.fileHash;
-  return file.metadata;
+  return PreparedUploadMetadata(
+    canonicalMetadata: file.metadata,
+    publicMetadata: _buildPublicMetadata(
+      derivedMetadata,
+      exifTime,
+      isPanorama: isPanorama == true,
+      hasThumbnail: mediaUploadData.thumbnail != null,
+    ),
+  );
+}
+
+Map<String, dynamic> _buildPublicMetadata(
+  DerivedMediaMetadata derivedMetadata,
+  ParsedExifDateTime? exifTime, {
+  required bool isPanorama,
+  required bool hasThumbnail,
+}) {
+  final Map<String, dynamic> publicMetadata = {};
+  if ((derivedMetadata.height ?? 0) != 0 && (derivedMetadata.width ?? 0) != 0) {
+    publicMetadata[heightKey] = derivedMetadata.height;
+    publicMetadata[widthKey] = derivedMetadata.width;
+    publicMetadata[mediaTypeKey] = isPanorama ? 1 : 0;
+  }
+  if (derivedMetadata.motionPhotoStartIndex != null) {
+    publicMetadata[motionVideoIndexKey] = derivedMetadata.motionPhotoStartIndex;
+  }
+  if (!hasThumbnail) {
+    publicMetadata[noThumbKey] = true;
+  }
+  if (exifTime != null) {
+    if (exifTime.dateTime != null) {
+      publicMetadata[dateTimeKey] = exifTime.dateTime;
+    }
+    if (exifTime.offsetTime != null) {
+      publicMetadata[offsetTimeKey] = exifTime.offsetTime;
+    }
+  }
+  if ((derivedMetadata.cameraMake ?? '').isNotEmpty) {
+    publicMetadata[cameraMakeKey] = derivedMetadata.cameraMake;
+  }
+  if ((derivedMetadata.cameraModel ?? '').isNotEmpty) {
+    publicMetadata[cameraModelKey] = derivedMetadata.cameraModel;
+  }
+  return publicMetadata;
 }
 
 Future<MetadataRequest> buildPublicMetadataRequest(

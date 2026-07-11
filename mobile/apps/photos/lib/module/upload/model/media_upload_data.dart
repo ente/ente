@@ -10,14 +10,6 @@ class MediaUploadData {
   final FileHashData hashData;
 
   final DerivedMediaMetadata derivedMetadata;
-  bool? isPanorama;
-
-  int? get height => derivedMetadata.height;
-  int? get width => derivedMetadata.width;
-  String? get cameraMake => derivedMetadata.cameraMake;
-  String? get cameraModel => derivedMetadata.cameraModel;
-  int? get motionPhotoStartIndex => derivedMetadata.motionPhotoStartIndex;
-  Map<String, IfdTag>? get exifData => derivedMetadata.exifData;
 
   MediaUploadData({
     required this.sourceFile,
@@ -25,7 +17,6 @@ class MediaUploadData {
     required this.isDeleted,
     required this.hashData,
     required this.derivedMetadata,
-    this.isPanorama,
   });
 }
 
@@ -57,7 +48,7 @@ class FileHashData {
 
   // zipHash is used to take care of existing live photo uploads from older
   // mobile clients
-  String? zipHash;
+  final String? zipHash;
 
   FileHashData(this.fileHash, {this.zipHash});
 }

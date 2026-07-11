@@ -29,7 +29,6 @@ import "package:photos/models/backup/backup_item.dart";
 import "package:photos/models/backup/backup_item_status.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
-import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/models/user_details.dart";
 import "package:photos/module/download/file.dart";
 import "package:photos/module/metadata/exif.dart";
@@ -819,18 +818,19 @@ class FileUploader {
           contentMd5: thumbnailMd5,
         );
       }
-      final ParsedExifDateTime? exifTime = mediaUploadData.exifData != null
-          ? await tryParseExifDateTime(null, mediaUploadData.exifData)
+      final exifData = mediaUploadData.derivedMetadata.exifData;
+      final ParsedExifDateTime? exifTime = exifData != null
+          ? await tryParseExifDateTime(null, exifData)
           : null;
       file.metadataVersion = EnteFile.kCurrentMetadataVersion;
-      final metadata = await buildUploadMetadata(
+      final preparedMetadata = await prepareUploadMetadata(
         file,
         mediaUploadData,
         exifTime,
       );
 
       final encryptedMetadataResult = await CryptoUtil.encryptChaCha(
-        utf8.encode(jsonEncode(metadata)),
+        utf8.encode(jsonEncode(preparedMetadata.canonicalMetadata)),
         fileAttributes.key,
       );
       final fileDecryptionHeader = CryptoUtil.bin2base64(fileAttributes.header);
@@ -855,10 +855,7 @@ class FileUploader {
         throw LockFreedError();
       }
 
-      final Map<String, dynamic> pubMetadata = _buildPublicMagicData(
-        mediaUploadData,
-        exifTime,
-      );
+      final pubMetadata = preparedMetadata.publicMetadata;
       EnteFile remoteFile;
       if (isUpdatedFile) {
         // Verify that the encrypted file can be decrypted before uploading
@@ -998,40 +995,6 @@ class FileUploader {
         isMultiPartUpload: isMultipartUpload,
       );
     }
-  }
-
-  Map<String, dynamic> _buildPublicMagicData(
-    MediaUploadData mediaUploadData,
-    ParsedExifDateTime? exifTime,
-  ) {
-    final Map<String, dynamic> pubMetadata = {};
-    if ((mediaUploadData.height ?? 0) != 0 &&
-        (mediaUploadData.width ?? 0) != 0) {
-      pubMetadata[heightKey] = mediaUploadData.height;
-      pubMetadata[widthKey] = mediaUploadData.width;
-      pubMetadata[mediaTypeKey] = mediaUploadData.isPanorama == true ? 1 : 0;
-    }
-    if (mediaUploadData.motionPhotoStartIndex != null) {
-      pubMetadata[motionVideoIndexKey] = mediaUploadData.motionPhotoStartIndex;
-    }
-    if (mediaUploadData.thumbnail == null) {
-      pubMetadata[noThumbKey] = true;
-    }
-    if (exifTime != null) {
-      if (exifTime.dateTime != null) {
-        pubMetadata[dateTimeKey] = exifTime.dateTime;
-      }
-      if (exifTime.offsetTime != null) {
-        pubMetadata[offsetTimeKey] = exifTime.offsetTime;
-      }
-    }
-    if ((mediaUploadData.cameraMake ?? '').isNotEmpty) {
-      pubMetadata[cameraMakeKey] = mediaUploadData.cameraMake;
-    }
-    if ((mediaUploadData.cameraModel ?? '').isNotEmpty) {
-      pubMetadata[cameraModelKey] = mediaUploadData.cameraModel;
-    }
-    return pubMetadata;
   }
 
   bool isPutOrMultiPartError(Object e) {
