@@ -62,7 +62,7 @@ Future<LivePhotoFiles?> downloadLivePhotoFiles(
 }
 
 Future<File> _cacheImagePart(EnteFile file, LivePhotoArchivePart part) async {
-  final fileExtension = _fileExtension(part.fileName);
+  var fileExtension = _fileExtension(part.fileName);
   File imageFile = part.file;
   if (fileExtension == 'unknown' ||
       (Platform.isAndroid && fileExtension == 'heic')) {
@@ -75,6 +75,7 @@ Future<File> _cacheImagePart(EnteFile file, LivePhotoArchivePart part) async {
       throw Exception('Failed to compress file');
     }
     imageFile = File(compressResult.path);
+    fileExtension = 'jpg';
   }
   return DefaultCacheManager().putFileStream(
     file.downloadUrl,

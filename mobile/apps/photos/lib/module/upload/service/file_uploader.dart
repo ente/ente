@@ -1162,10 +1162,15 @@ class FileUploader {
     if (mediaUploadData != null) {
       // delete the file from app's internal cache if it was copied to app
       // for upload. On iOS, only remove the file from photo_manager/app cache
-      // when upload is either completed or there's a tempFailure
+      // when upload is either completed or cannot be retried automatically.
       // Shared Media should only be cleared when the upload
       // succeeds.
-      if ((Platform.isIOS && (uploadCompleted || uploadHardFailure)) ||
+      // A Live Photo source is an app-created archive, and each retry rebuilds
+      // it, so it must be removed after every attempt.
+      if ((Platform.isIOS &&
+              (file.fileType == FileType.livePhoto ||
+                  uploadCompleted ||
+                  uploadHardFailure)) ||
           (uploadCompleted && file.isSharedMediaToAppSandbox)) {
         await deleteFileSystemEntityIfPresent(mediaUploadData.sourceFile);
       }
