@@ -34,22 +34,38 @@ class EnteFile {
   String? metadataDecryptionHeader;
   int? fileSize;
 
-  String? mMdEncodedJson;
+  String? _mMdEncodedJson;
+  String? get mMdEncodedJson => _mMdEncodedJson;
+
+  set mMdEncodedJson(String? value) {
+    if (_mMdEncodedJson == value) return;
+    _mMdEncodedJson = value;
+    _mmd = null;
+  }
+
   int mMdVersion = 0;
   MagicMetadata? _mmd;
 
   MagicMetadata get magicMetadata =>
-      _mmd ?? MagicMetadata.fromEncodedJson(mMdEncodedJson ?? '{}');
+      _mmd ??= MagicMetadata.fromEncodedJson(mMdEncodedJson ?? '{}');
 
   set magicMetadata(MagicMetadata? val) => _mmd = val;
 
   // public magic metadata is shared if during file/album sharing
-  String? pubMmdEncodedJson;
+  String? _pubMmdEncodedJson;
+  String? get pubMmdEncodedJson => _pubMmdEncodedJson;
+
+  set pubMmdEncodedJson(String? value) {
+    if (_pubMmdEncodedJson == value) return;
+    _pubMmdEncodedJson = value;
+    _pubMmd = null;
+  }
+
   int pubMmdVersion = 0;
   PubMagicMetadata? _pubMmd;
 
   PubMagicMetadata? get pubMagicMetadata =>
-      _pubMmd ?? PubMagicMetadata.fromEncodedJson(pubMmdEncodedJson ?? '{}');
+      _pubMmd ??= PubMagicMetadata.fromEncodedJson(pubMmdEncodedJson ?? '{}');
 
   set pubMagicMetadata(PubMagicMetadata? val) => _pubMmd = val;
 
