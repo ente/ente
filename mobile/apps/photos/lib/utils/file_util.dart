@@ -141,6 +141,35 @@ final Map<String, Future<File?>> _fileDownloadsInProgress =
     <String, Future<File?>>{};
 Map<String, ProgressCallback?> _progressCallbacks = {};
 
+Future<T> _runOncePerKey<K, T>(
+  Map<K, Future<T>> inProgress,
+  K key,
+  Future<T> Function() start, {
+  void Function()? onComplete,
+}) {
+  final existing = inProgress[key];
+  if (existing != null) {
+    return existing;
+  }
+  final download = start();
+  inProgress[key] = download;
+
+  void removeIfCurrent() {
+    if (identical(inProgress[key], download)) {
+      inProgress.remove(key);
+      onComplete?.call();
+    }
+  }
+
+  unawaited(
+    download.then<void>(
+      (_) => removeIfCurrent(),
+      onError: (_, _) => removeIfCurrent(),
+    ),
+  );
+  return download;
+}
+
 void removeCallBack(EnteFile file) {
   if (!file.isUploaded) {
     return;
@@ -172,49 +201,34 @@ Future<File?> getFileFromServer(
     _progressCallbacks[downloadID] = progressCallback;
   }
 
-  if (!_fileDownloadsInProgress.containsKey(downloadID)) {
-    final completer = Completer<File?>();
-    _fileDownloadsInProgress[downloadID] = completer.future;
-
-    Future<File?> downloadFuture;
-    if (file.fileType == FileType.livePhoto) {
-      downloadFuture = _getLivePhotoFromServer(
-        file,
-        progressCallback: (count, total) {
-          _progressCallbacks[downloadID]?.call(count, total);
-        },
-        needLiveVideo: liveVideo,
-        forGalleryDownload: forGalleryDownload,
-      );
-    } else {
-      downloadFuture = _downloadAndCache(
-        file,
-        cacheManager,
-        progressCallback: (count, total) {
-          _progressCallbacks[downloadID]?.call(count, total);
-        },
-        forGalleryDownload: forGalleryDownload,
-      );
-    }
-    unawaited(
-      downloadFuture
-          .then((downloadedFile) {
-            if (!completer.isCompleted) {
-              completer.complete(downloadedFile);
-            }
-          })
-          .catchError((error, stackTrace) {
-            if (!completer.isCompleted) {
-              completer.completeError(error, stackTrace);
-            }
-          })
-          .whenComplete(() {
-            _fileDownloadsInProgress.remove(downloadID);
-            _progressCallbacks.remove(downloadID);
-          }),
-    );
-  }
-  return _fileDownloadsInProgress[downloadID];
+  return _runOncePerKey(
+    _fileDownloadsInProgress,
+    downloadID,
+    () {
+      Future<File?> downloadFuture;
+      if (file.fileType == FileType.livePhoto) {
+        downloadFuture = _getLivePhotoFromServer(
+          file,
+          progressCallback: (count, total) {
+            _progressCallbacks[downloadID]?.call(count, total);
+          },
+          needLiveVideo: liveVideo,
+          forGalleryDownload: forGalleryDownload,
+        );
+      } else {
+        downloadFuture = _downloadAndCache(
+          file,
+          cacheManager,
+          progressCallback: (count, total) {
+            _progressCallbacks[downloadID]?.call(count, total);
+          },
+          forGalleryDownload: forGalleryDownload,
+        );
+      }
+      return downloadFuture;
+    },
+    onComplete: () => _progressCallbacks.remove(downloadID),
+  );
 }
 
 Future<bool> isFileCached(EnteFile file, {bool liveVideo = false}) async {
@@ -236,22 +250,21 @@ Future<File?> _getLivePhotoFromServer(
 }) async {
   final downloadID = file.uploadedFileID!;
   try {
-    if (!_livePhotoDownloadsTracker.containsKey(downloadID)) {
-      _livePhotoDownloadsTracker[downloadID] = _downloadLivePhoto(
+    final livePhoto = await _runOncePerKey(
+      _livePhotoDownloadsTracker,
+      downloadID,
+      () => _downloadLivePhoto(
         file,
         progressCallback: progressCallback,
         forGalleryDownload: forGalleryDownload,
-      );
-    }
-    final livePhoto = await _livePhotoDownloadsTracker[file.uploadedFileID];
-    await _livePhotoDownloadsTracker.remove(downloadID);
+      ),
+    );
     if (livePhoto == null) {
       return null;
     }
     return needLiveVideo ? livePhoto.video : livePhoto.image;
   } catch (e, s) {
     _logger.warning("live photo get failed", e, s);
-    await _livePhotoDownloadsTracker.remove(downloadID);
     if (forGalleryDownload) {
       rethrow;
     }
