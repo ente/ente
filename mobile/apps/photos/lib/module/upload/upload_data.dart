@@ -19,6 +19,7 @@ import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import "package:photos/models/location/location.dart";
+import 'package:photos/module/download/thumbnail.dart';
 import "package:photos/module/live_photo/archive.dart";
 import 'package:photos/module/upload/model/media_upload_data.dart';
 import "package:photos/services/sync/local_sync_service.dart";
@@ -28,7 +29,6 @@ import "package:photos/utils/embedded_media_location.dart";
 import "package:photos/utils/exif_util.dart";
 import 'package:photos/utils/file_util.dart';
 import "package:photos/utils/image_util.dart";
-import 'package:photos/utils/thumbnail_util.dart';
 import "package:uuid/uuid.dart";
 import 'package:video_thumbnail/video_thumbnail.dart';
 
