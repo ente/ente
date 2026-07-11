@@ -9,8 +9,8 @@ import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/module/metadata/exif.dart";
+import 'package:photos/module/metadata/panorama.dart';
 import "package:photos/module/upload/model/media_upload_data.dart";
-import "package:photos/utils/panorama_util.dart";
 
 Future<Map<String, dynamic>> buildUploadMetadata(
   EnteFile file,
@@ -30,16 +30,14 @@ Future<Map<String, dynamic>> buildUploadMetadata(
     file.creationTime = exifTime.time.microsecondsSinceEpoch;
   }
   if (mediaUploadData.exifData != null) {
-    mediaUploadData.isPanorama = checkPanoramaFromEXIF(
-      mediaUploadData.exifData,
-    );
+    mediaUploadData.isPanorama = isPanoramaFromExif(mediaUploadData.exifData);
   }
   if (mediaUploadData.isPanorama != true &&
       file.fileType == FileType.image &&
       mediaUploadData.sourceFile != null) {
     try {
-      final xmpData = await getXmp(mediaUploadData.sourceFile!);
-      mediaUploadData.isPanorama = checkPanoramaFromXMP(xmpData);
+      final xmpData = await readXmp(mediaUploadData.sourceFile!);
+      mediaUploadData.isPanorama = isPanoramaFromXmp(xmpData);
     } catch (_) {}
     mediaUploadData.isPanorama ??= false;
   }

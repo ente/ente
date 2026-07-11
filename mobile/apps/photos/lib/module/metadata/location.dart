@@ -16,16 +16,17 @@ Future<void> updateLocationFromEmbeddedMetadata(
   if (!Platform.isAndroid) {
     return;
   }
-  if (!file.hasLocation && file.isVideo) {
-    final videoLocation = (await getVideoProps(sourceFile))?.location;
-    if (videoLocation != null) {
-      file.location = videoLocation;
-    }
-  }
   if (exifData != null) {
     final exifLocation = locationFromExif(exifData);
     if (Location.isValidLocation(exifLocation)) {
       file.location = exifLocation;
+      return;
+    }
+  }
+  if (!file.hasLocation && file.isVideo) {
+    final videoLocation = (await getVideoProps(sourceFile))?.location;
+    if (videoLocation != null) {
+      file.location = videoLocation;
     }
   }
 }

@@ -19,6 +19,7 @@ import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/file/file.dart' as ente;
 import "package:photos/models/location/location.dart";
+import 'package:photos/module/metadata/exif.dart';
 import "package:photos/module/metadata/local_file.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/sync/sync_service.dart";
@@ -36,7 +37,6 @@ import "package:photos/ui/tools/editor/image_editor/image_editor_text_bar.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_tune_bar.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/utils/dialog_util.dart";
-import "package:photos/utils/image_util.dart";
 import 'package:pro_image_editor/pro_image_editor.dart';
 
 class ImageEditorPage extends StatefulWidget {
@@ -86,7 +86,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         try {
           final image = img.decodePng(bytes);
           if (image != null) {
-            await copyEXIF(
+            await copyExif(
               widget.originalFile,
               image,
               copyRenderingFields: false,
@@ -94,7 +94,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
             result = img.encodeJpg(image, quality: 95);
           }
         } catch (e, s) {
-          _logger.warning("Image Editor: copyEXIF failed", e, s);
+          _logger.warning("Image Editor: copyExif failed", e, s);
         }
       }
       _logger.info('Size after compression = ${result.length}');

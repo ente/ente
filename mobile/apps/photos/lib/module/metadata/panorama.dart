@@ -11,14 +11,13 @@ import "package:photos/module/metadata/exif.dart";
 import "package:photos/services/file_magic_service.dart";
 import "package:photos/src/rust/api/motion_photo_api.dart";
 
-final _logger = Logger("PanoramaUtil");
+final _logger = Logger('PanoramaUtil');
 
-Future<Map<String, dynamic>> getXmp(File file) async {
-  return extractXmp(filePath: file.path);
-}
+Future<Map<String, dynamic>> readXmp(File file) =>
+    extractXmp(filePath: file.path);
 
 /// Check if the file is a panorama image.
-Future<bool> checkIfPanorama(EnteFile enteFile) async {
+Future<bool> _isPanorama(EnteFile enteFile) async {
   if (enteFile.fileType != FileType.image) {
     return false;
   }
@@ -27,28 +26,30 @@ Future<bool> checkIfPanorama(EnteFile enteFile) async {
     return false;
   }
   try {
-    final xmpData = await getXmp(file);
-    if (checkPanoramaFromXMP(xmpData)) {
+    final xmpData = await readXmp(file);
+    if (isPanoramaFromXmp(xmpData)) {
       return true;
     }
   } catch (_) {}
 
   final exifData = await readExifAsync(file);
-  return checkPanoramaFromEXIF(exifData) ?? false;
+  return isPanoramaFromExif(exifData) ?? false;
 }
 
-bool? checkPanoramaFromEXIF(Map<String, IfdTag>? exifData) {
-  final element = exifData?["EXIF CustomRendered"];
-  if (element?.printable == null) return null;
-  return element?.printable == "6";
+bool? isPanoramaFromExif(Map<String, IfdTag>? exifData) {
+  final customRendered = exifData?["EXIF CustomRendered"]?.printable;
+  if (customRendered == null) {
+    return null;
+  }
+  return customRendered == "6";
 }
 
-bool checkPanoramaFromXMP(Map<String, dynamic> xmpData) {
+bool isPanoramaFromXmp(Map<String, dynamic> xmpData) {
   final projectionType = xmpData["GPano:ProjectionType"];
   return projectionType == "cylindrical" || projectionType == "equirectangular";
 }
 
-// guardedCheckPanorama() method is used to check if the file is a panorama image.
+/// Detects and persists panorama metadata if it has not been checked yet.
 Future<void> guardedCheckPanorama(EnteFile file) async {
   if (!file.canEditMetaInfo || file.isPanorama() != null) {
     return;
@@ -56,14 +57,12 @@ Future<void> guardedCheckPanorama(EnteFile file) async {
   _logger.info(
     "Checking panorama for ${file.uploadedFileID ?? file.localID ?? file.generatedID}",
   );
-  final result = await checkIfPanorama(file);
+  final isPanorama = await _isPanorama(file);
 
   // Update the metadata if it is not updated
   if (file.canEditMetaInfo && file.isPanorama() == null) {
-    int? mediaType = file.pubMagicMetadata?.mediaType;
-    mediaType ??= 0;
-
-    mediaType = mediaType | (result ? 1 : 0);
+    final mediaType =
+        (file.pubMagicMetadata?.mediaType ?? 0) | (isPanorama ? 1 : 0);
 
     FileMagicService.instance
         .updatePublicMagicMetadata([file], {mediaTypeKey: mediaType})

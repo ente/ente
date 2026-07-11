@@ -11,10 +11,10 @@ import "package:photos/models/file/file.dart";
 import "package:photos/models/location/location.dart";
 import "package:photos/module/download/file.dart";
 import "package:photos/module/metadata/exif.dart";
+import 'package:photos/module/metadata/location.dart';
 import "package:photos/module/upload/model/media_upload_data.dart";
 import "package:photos/module/upload/upload_metadata.dart";
 import "package:photos/service_locator.dart";
-import "package:photos/utils/embedded_media_location.dart";
 
 class OfflineImportMetadataService {
   static const kProcessingVersion = 1;

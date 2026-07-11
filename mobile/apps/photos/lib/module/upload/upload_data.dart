@@ -21,12 +21,12 @@ import 'package:photos/module/download/file.dart';
 import 'package:photos/module/download/thumbnail.dart';
 import 'package:photos/module/live_photo/upload.dart';
 import "package:photos/module/metadata/exif.dart";
+import 'package:photos/module/metadata/location.dart';
 import "package:photos/module/metadata/video.dart";
 import 'package:photos/module/upload/model/media_upload_data.dart';
 import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/src/rust/api/motion_photo_api.dart";
 import "package:photos/utils/apple_photos_errors.dart";
-import "package:photos/utils/embedded_media_location.dart";
 import "package:photos/utils/image_util.dart";
 import 'package:video_thumbnail/video_thumbnail.dart';
 
