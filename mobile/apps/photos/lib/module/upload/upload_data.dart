@@ -7,11 +7,9 @@ import "package:ente_pure_utils/ente_pure_utils.dart"
     show deleteFileSystemEntityIfPresent;
 import "package:exif_reader/exif_reader.dart";
 import 'package:logging/logging.dart';
-import 'package:motionphoto/motionphoto.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:photo_manager/photo_manager.dart';
-import 'package:photos/core/configuration.dart';
 import 'package:photos/core/constants.dart';
 import 'package:photos/core/errors.dart';
 import "package:photos/models/ffmpeg/ffprobe_props.dart";
@@ -21,7 +19,7 @@ import 'package:photos/models/file/file_type.dart';
 import "package:photos/models/location/location.dart";
 import 'package:photos/module/download/file.dart';
 import 'package:photos/module/download/thumbnail.dart';
-import "package:photos/module/live_photo/archive.dart";
+import 'package:photos/module/live_photo/upload.dart';
 import "package:photos/module/metadata/exif.dart";
 import "package:photos/module/metadata/video.dart";
 import 'package:photos/module/upload/model/media_upload_data.dart';
@@ -30,7 +28,6 @@ import "package:photos/src/rust/api/motion_photo_api.dart";
 import "package:photos/utils/apple_photos_errors.dart";
 import "package:photos/utils/embedded_media_location.dart";
 import "package:photos/utils/image_util.dart";
-import "package:uuid/uuid.dart";
 import 'package:video_thumbnail/video_thumbnail.dart';
 
 final _logger = Logger("UploadData");
@@ -117,37 +114,14 @@ Future<MediaUploadData> _getMediaUploadDataFromAssetFile(
     fileHash = CryptoUtil.bin2base64(await CryptoUtil.getHash(sourceFile));
 
     if (file.fileType == FileType.livePhoto && Platform.isIOS) {
-      final File? videoUrl = await Motionphoto.getLivePhotoFile(file.localID!);
-      if (videoUrl == null || !videoUrl.existsSync()) {
-        final String errMsg =
-            "missing livePhoto url for  ${file.toString()} with subType ${file.fileSubType}";
-        _logger.severe(errMsg);
-        throw InvalidFileError(errMsg, InvalidReason.livePhotoVideoMissing);
-      }
-      final String livePhotoVideoHash = CryptoUtil.bin2base64(
-        await CryptoUtil.getHash(videoUrl),
+      final livePhoto = await prepareLivePhotoForUpload(
+        file,
+        sourceFile,
+        fileHash,
       );
-      // imgHash:vidHash
-      fileHash = '$fileHash$kLivePhotoHashSeparator$livePhotoVideoHash';
-      final tempPath = Configuration.instance.getTempDirectory();
-      // .elp -> ente live photo
-      final uniqueId = const Uuid().v4().toString();
-      final livePhotoPath = tempPath + uniqueId + "_${file.generatedID}.elp";
-      _logger.info(
-        "Creating zip for live photo from " + basename(livePhotoPath),
-      );
-      await createLivePhotoArchive(
-        archivePath: livePhotoPath,
-        imagePath: sourceFile.path,
-        videoPath: videoUrl.path,
-      );
-      // delete the temporary video and image copy (only in IOS)
-      if (Platform.isIOS) {
-        await sourceFile.delete();
-      }
-      // new sourceFile which needs to be uploaded
-      sourceFile = File(livePhotoPath);
-      zipHash = CryptoUtil.bin2base64(await CryptoUtil.getHash(sourceFile));
+      sourceFile = livePhoto.sourceFile;
+      fileHash = livePhoto.fileHash;
+      zipHash = livePhoto.zipHash;
     }
 
     thumbnailData = await _getThumbnailForUpload(asset, file);

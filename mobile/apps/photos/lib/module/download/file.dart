@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import "package:dio/dio.dart";
-import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:logging/logging.dart';
@@ -17,7 +16,7 @@ import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import 'package:photos/module/download/decrypt.dart';
-import 'package:photos/module/live_photo/archive.dart';
+import 'package:photos/module/live_photo/download.dart';
 
 final _logger = Logger("FileUtil");
 
@@ -213,8 +212,8 @@ Future<bool> isFileCached(EnteFile file, {bool liveVideo = false}) async {
   return fileInfo != null;
 }
 
-final Map<int, Future<_LivePhoto?>> _livePhotoDownloadsTracker =
-    <int, Future<_LivePhoto?>>{};
+final Map<int, Future<LivePhotoFiles?>> _livePhotoDownloadsTracker =
+    <int, Future<LivePhotoFiles?>>{};
 
 Future<File?> _getLivePhotoFromServer(
   EnteFile file, {
@@ -227,7 +226,7 @@ Future<File?> _getLivePhotoFromServer(
     final livePhoto = await _runOncePerKey(
       _livePhotoDownloadsTracker,
       downloadID,
-      () => _downloadLivePhoto(
+      () => downloadLivePhotoFiles(
         file,
         progressCallback: progressCallback,
         forGalleryDownload: forGalleryDownload,
@@ -244,87 +243,6 @@ Future<File?> _getLivePhotoFromServer(
     }
     return null;
   }
-}
-
-Future<_LivePhoto?> _downloadLivePhoto(
-  EnteFile file, {
-  ProgressCallback? progressCallback,
-  bool forGalleryDownload = false,
-}) async {
-  return downloadAndDecrypt(
-        file,
-        progressCallback: progressCallback,
-        forceResumableDownload: forGalleryDownload,
-        throwOnFailure: forGalleryDownload,
-      )
-      .then((decryptedFile) async {
-        if (decryptedFile == null) {
-          return null;
-        }
-        _logger.info("Decoded zipped live photo from " + decryptedFile.path);
-        File? imageFileCache, videoFileCache;
-        final List<int> bytes = await decryptedFile.readAsBytes();
-        final parts = decodeLivePhotoArchive(bytes);
-        final tempPath = Configuration.instance.getTempDirectory();
-        for (final part in parts) {
-          final String fileExtension = getExtension(part.fileName);
-          final String decodePath =
-              tempPath + file.uploadedFileID.toString() + part.fileName;
-          if (part.type == LivePhotoArchivePartType.image) {
-            final imageFile = File(decodePath);
-            await imageFile.create(recursive: true);
-            await imageFile.writeAsBytes(part.bytes);
-            File imageConvertedFile = imageFile;
-            if ((fileExtension == "unknown") ||
-                (Platform.isAndroid && fileExtension == "heic")) {
-              final compressResult =
-                  await FlutterImageCompress.compressAndGetFile(
-                    decodePath,
-                    decodePath + ".jpg",
-                    keepExif: true,
-                  );
-              await imageFile.delete();
-              if (compressResult == null) {
-                throw Exception("Failed to compress file");
-              } else {
-                imageConvertedFile = File(compressResult.path);
-              }
-            }
-            imageFileCache = await DefaultCacheManager().putFile(
-              file.downloadUrl,
-              await imageConvertedFile.readAsBytes(),
-              eTag: file.downloadUrl,
-              maxAge: const Duration(days: 365),
-              fileExtension: fileExtension,
-            );
-            await imageConvertedFile.delete();
-          } else {
-            final videoFile = File(decodePath);
-            await videoFile.create(recursive: true);
-            await videoFile.writeAsBytes(part.bytes);
-            videoFileCache = await VideoCacheManager.instance.putFileStream(
-              file.downloadUrl,
-              videoFile.openRead(),
-              eTag: file.downloadUrl,
-              maxAge: const Duration(days: 365),
-              fileExtension: fileExtension,
-            );
-            await videoFile.delete();
-          }
-        }
-        if (imageFileCache != null && videoFileCache != null) {
-          return _LivePhoto(imageFileCache, videoFileCache);
-        } else {
-          debugPrint(
-            "Warning: ${file.tag} either image ${imageFileCache == null} or video ${videoFileCache == null} is missing from remoteLive",
-          );
-          return null;
-        }
-      })
-      .catchError((e) {
-        _logger.warning("failed to download live photos : ${file.tag}", e);
-        throw e;
-      });
 }
 
 Future<File?> _downloadAndCache(
@@ -400,10 +318,4 @@ Future<void> clearCache(EnteFile file) async {
     await cachedThumbnail.delete();
   }
   ThumbnailInMemoryLruCache.clearCache(file);
-}
-class _LivePhoto {
-  final File image;
-  final File video;
-
-  _LivePhoto(this.image, this.video);
 }
