@@ -571,7 +571,7 @@ class FileUploader {
 
     MediaUploadData? mediaUploadData;
     try {
-      mediaUploadData = await getUploadDataFromEnteFile(file, parseExif: true);
+      mediaUploadData = await getUploadDataFromEnteFile(file);
     } catch (e) {
       // This additional try catch block is added because for resumable upload,
       // we need to compute the hash before the next step. Previously, this

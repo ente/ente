@@ -33,14 +33,11 @@ import 'package:video_thumbnail/video_thumbnail.dart';
 final _logger = Logger("UploadData");
 
 /// Builds the source, thumbnail, hashes, and embedded metadata for an upload.
-Future<MediaUploadData> getUploadDataFromEnteFile(
-  EnteFile file, {
-  bool parseExif = false,
-}) async {
+Future<MediaUploadData> getUploadDataFromEnteFile(EnteFile file) async {
   if (file.isSharedMediaToAppSandbox) {
-    return await _getMediaUploadDataFromAppCache(file, parseExif);
+    return await _getMediaUploadDataFromAppCache(file);
   } else {
-    return await _getMediaUploadDataFromAssetFile(file, parseExif);
+    return await _getMediaUploadDataFromAssetFile(file);
   }
 }
 
@@ -81,10 +78,7 @@ Future<FileHashData> getFileContentIdentity(EnteFile file) async {
   }
 }
 
-Future<MediaUploadData> _getMediaUploadDataFromAssetFile(
-  EnteFile file,
-  bool parseExif,
-) async {
+Future<MediaUploadData> _getMediaUploadDataFromAssetFile(EnteFile file) async {
   File? sourceFile;
   Uint8List? thumbnailData;
   bool isDeleted;
@@ -101,7 +95,7 @@ Future<MediaUploadData> _getMediaUploadDataFromAssetFile(
   }
   sourceFile = await _getOriginFile(asset, file);
   try {
-    if (parseExif && shouldReadExif(file)) {
+    if (shouldReadExif(file)) {
       exifData = await tryExifFromFile(sourceFile);
       if (exifData != null) {
         cameraMake = extractPrintableExifValue(exifData['Image Make']);
@@ -308,10 +302,7 @@ Future<void> _decorateEnteFileData(
   }
 }
 
-Future<MediaUploadData> _getMediaUploadDataFromAppCache(
-  EnteFile file,
-  bool parseExif,
-) async {
+Future<MediaUploadData> _getMediaUploadDataFromAppCache(EnteFile file) async {
   File sourceFile;
   Uint8List? thumbnailData;
   Map<String, IfdTag>? exifData;
@@ -327,56 +318,58 @@ Future<MediaUploadData> _getMediaUploadDataFromAppCache(
       InvalidReason.sourceFileMissing,
     );
   }
-  try {
-    thumbnailData = await getThumbnailFromInAppCacheFile(file);
-    final fileHash = CryptoUtil.bin2base64(
-      await CryptoUtil.getHash(sourceFile),
-    );
-    ({int width, int height})? dimensions;
-    if (file.fileType == FileType.image) {
-      dimensions = await getImageDimensions(imagePath: localPath);
-      exifData = await tryExifFromFile(sourceFile);
-      if (exifData != null) {
-        cameraMake = extractPrintableExifValue(exifData['Image Make']);
-        cameraModel = extractPrintableExifValue(exifData['Image Model']);
-        if (!file.hasLocation) {
-          final exifLocation = locationFromExif(exifData);
-          if (Location.isValidLocation(exifLocation)) {
-            file.location = exifLocation;
-          }
+  thumbnailData = await _getAppCacheThumbnailForUpload(file);
+  final fileHash = CryptoUtil.bin2base64(await CryptoUtil.getHash(sourceFile));
+  ({int width, int height})? dimensions;
+  if (file.fileType == FileType.image) {
+    dimensions = await getImageDimensions(imagePath: localPath);
+    exifData = await tryExifFromFile(sourceFile);
+    if (exifData != null) {
+      cameraMake = extractPrintableExifValue(exifData['Image Make']);
+      cameraModel = extractPrintableExifValue(exifData['Image Model']);
+      if (!file.hasLocation) {
+        final exifLocation = locationFromExif(exifData);
+        if (Location.isValidLocation(exifLocation)) {
+          file.location = exifLocation;
         }
       }
-    } else if (thumbnailData != null) {
-      // the thumbnail null check is to ensure that we are able to generate thum
-      // for video, we need to use the thumbnail data with any max width/height
-      final thumbnailFilePath = await VideoThumbnail.thumbnailFile(
-        video: localPath,
-        imageFormat: ImageFormat.JPEG,
-        thumbnailPath: (await getTemporaryDirectory()).path,
-        quality: 10,
-      );
-      dimensions = await getImageDimensions(imagePath: thumbnailFilePath);
     }
-
-    if (!file.hasLocation && file.isVideo && Platform.isAndroid) {
-      final FFProbeProps? props = await getVideoProps(sourceFile);
-      if (props?.location != null) {
-        file.location = props!.location;
-      }
-    }
-    return MediaUploadData(
-      sourceFile: sourceFile,
-      thumbnail: thumbnailData,
-      isDeleted: isDeleted,
-      hashData: FileHashData(fileHash),
-      derivedMetadata: DerivedMediaMetadata(
-        height: dimensions?.height,
-        width: dimensions?.width,
-        cameraMake: cameraMake,
-        cameraModel: cameraModel,
-        exifData: exifData,
-      ),
+  } else if (thumbnailData != null) {
+    // The thumbnail null check ensures that video thumbnail generation worked.
+    // Use it without a max dimension to obtain the video's aspect ratio.
+    final thumbnailFilePath = await VideoThumbnail.thumbnailFile(
+      video: localPath,
+      imageFormat: ImageFormat.JPEG,
+      thumbnailPath: (await getTemporaryDirectory()).path,
+      quality: 10,
     );
+    dimensions = await getImageDimensions(imagePath: thumbnailFilePath);
+  }
+
+  if (!file.hasLocation && file.isVideo && Platform.isAndroid) {
+    final FFProbeProps? props = await getVideoProps(sourceFile);
+    if (props?.location != null) {
+      file.location = props!.location;
+    }
+  }
+  return MediaUploadData(
+    sourceFile: sourceFile,
+    thumbnail: thumbnailData,
+    isDeleted: isDeleted,
+    hashData: FileHashData(fileHash),
+    derivedMetadata: DerivedMediaMetadata(
+      height: dimensions?.height,
+      width: dimensions?.width,
+      cameraMake: cameraMake,
+      cameraModel: cameraModel,
+      exifData: exifData,
+    ),
+  );
+}
+
+Future<Uint8List?> _getAppCacheThumbnailForUpload(EnteFile file) async {
+  try {
+    return await getThumbnailFromInAppCacheFile(file);
   } catch (e, s) {
     _logger.warning("failed to generate thumbnail", e, s);
     throw InvalidFileError(
