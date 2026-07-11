@@ -20,16 +20,14 @@ Future<Map<String, dynamic>> buildUploadMetadata(
   if (mediaUploadData.exifData != null) {
     mediaUploadData.isPanorama = isPanoramaFromExif(mediaUploadData.exifData);
   }
-  if (mediaUploadData.isPanorama != true &&
-      file.fileType == FileType.image &&
-      mediaUploadData.sourceFile != null) {
+  if (mediaUploadData.isPanorama != true && file.fileType == FileType.image) {
     try {
-      final xmpData = await readXmp(mediaUploadData.sourceFile!);
+      final xmpData = await readXmp(mediaUploadData.sourceFile);
       mediaUploadData.isPanorama = isPanoramaFromXmp(xmpData);
     } catch (_) {}
     mediaUploadData.isPanorama ??= false;
   }
-  file.hash = mediaUploadData.hashData?.fileHash;
+  file.hash = mediaUploadData.hashData.fileHash;
   return file.metadata;
 }
 

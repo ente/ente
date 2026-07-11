@@ -4,10 +4,32 @@ import 'dart:typed_data';
 import 'package:exif_reader/exif_reader.dart';
 
 class MediaUploadData {
-  final File? sourceFile;
+  final File sourceFile;
   final Uint8List? thumbnail;
   final bool isDeleted;
-  final FileHashData? hashData;
+  final FileHashData hashData;
+
+  final DerivedMediaMetadata derivedMetadata;
+  bool? isPanorama;
+
+  int? get height => derivedMetadata.height;
+  int? get width => derivedMetadata.width;
+  String? get cameraMake => derivedMetadata.cameraMake;
+  String? get cameraModel => derivedMetadata.cameraModel;
+  int? get motionPhotoStartIndex => derivedMetadata.motionPhotoStartIndex;
+  Map<String, IfdTag>? get exifData => derivedMetadata.exifData;
+
+  MediaUploadData({
+    required this.sourceFile,
+    required this.thumbnail,
+    required this.isDeleted,
+    required this.hashData,
+    required this.derivedMetadata,
+    this.isPanorama,
+  });
+}
+
+class DerivedMediaMetadata {
   final int? height;
   final int? width;
   final String? cameraMake;
@@ -19,26 +41,19 @@ class MediaUploadData {
 
   final Map<String, IfdTag>? exifData;
 
-  bool? isPanorama;
-
-  MediaUploadData(
-    this.sourceFile,
-    this.thumbnail,
-    this.isDeleted,
-    this.hashData, {
+  const DerivedMediaMetadata({
     this.height,
     this.width,
     this.cameraMake,
     this.cameraModel,
     this.motionPhotoStartIndex,
-    this.isPanorama,
     this.exifData,
   });
 }
 
 class FileHashData {
   // For livePhotos, the fileHash value will be imageHash:videoHash
-  final String? fileHash;
+  final String fileHash;
 
   // zipHash is used to take care of existing live photo uploads from older
   // mobile clients

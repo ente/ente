@@ -154,10 +154,9 @@ class LocalFileUpdateService {
       MediaUploadData uploadData;
       try {
         uploadData = await getUploadData(file);
-        if (uploadData.hashData != null &&
-            file.hash != null &&
-            (file.hash == uploadData.hashData!.fileHash ||
-                file.hash == uploadData.hashData!.zipHash)) {
+        if (file.hash != null &&
+            (file.hash == uploadData.hashData.fileHash ||
+                file.hash == uploadData.hashData.zipHash)) {
           _logger.info("Skip file update as hash matched ${file.tag}");
         } else {
           _logger.info(

@@ -585,15 +585,13 @@ class FileUploader {
       rethrow;
     }
 
-    final String? existingMultipartEncFileName =
-        mediaUploadData.hashData?.fileHash != null
-        ? await _uploadLocks.getEncryptedFileName(
-            lockKey,
-            mediaUploadData.hashData!.fileHash!,
-            collectionID,
-          )
-        : null;
-    final sourceLength = await mediaUploadData.sourceFile!.length();
+    final String? existingMultipartEncFileName = await _uploadLocks
+        .getEncryptedFileName(
+          lockKey,
+          mediaUploadData.hashData.fileHash,
+          collectionID,
+        );
+    final sourceLength = await mediaUploadData.sourceFile.length();
     final bool hasExistingMultiPart = existingMultipartEncFileName != null;
     final tempDirectory = Configuration.instance.getTempDirectory();
     final String uniqueID =
@@ -624,7 +622,7 @@ class FileUploader {
       final FileEncryptResult? multiPartFileEncResult = hasExistingMultiPart
           ? await _multiPartUploader.getEncryptionResult(
               lockKey,
-              mediaUploadData.hashData!.fileHash!,
+              mediaUploadData.hashData.fileHash,
               collectionID,
               existingMultipartEncFileName,
             )
@@ -675,7 +673,7 @@ class FileUploader {
         _logger.severe('File exists without multipart entry, deleting file');
         await File(encryptedFilePath).delete();
       }
-      await _checkIfWithinStorageLimit(mediaUploadData.sourceFile!);
+      await _checkIfWithinStorageLimit(mediaUploadData.sourceFile);
       final encryptedFile = File(encryptedFilePath);
 
       // Calculate the number of parts to determine if we need MD5
@@ -691,7 +689,7 @@ class FileUploader {
 
       if (fileAttributes == null) {
         final result = await CryptoUtil.encryptFileWithMD5(
-          mediaUploadData.sourceFile!.path,
+          mediaUploadData.sourceFile.path,
           encryptedFilePath,
           key: key,
           multiPartChunkSizeInBytes: (estimatedCount > 1)
@@ -767,7 +765,7 @@ class FileUploader {
           fileObjectKey = await _multiPartUploader.putExistingMultipartFile(
             encryptedFile,
             lockKey,
-            mediaUploadData.hashData!.fileHash!,
+            mediaUploadData.hashData.fileHash,
             collectionID,
             existingMultipartEncFileName,
           );
@@ -788,7 +786,7 @@ class FileUploader {
           final encFileName = encryptedFile.path.split('/').last;
           await _multiPartUploader.createTableEntry(
             lockKey,
-            mediaUploadData.hashData!.fileHash!,
+            mediaUploadData.hashData.fileHash,
             collectionID,
             fileUploadURLs,
             encFileName,
@@ -1083,7 +1081,7 @@ class FileUploader {
 
     final List<EnteFile> existingUploadedFiles = await FilesDB.instance
         .getUploadedFilesWithHashes(
-          mediaUploadData.hashData!,
+          mediaUploadData.hashData,
           fileToUpload.fileType,
           Configuration.instance.getUserID()!,
         );
@@ -1193,7 +1191,7 @@ class FileUploader {
     required String lockKey,
     bool isMultiPartUpload = false,
   }) async {
-    if (mediaUploadData != null && mediaUploadData.sourceFile != null) {
+    if (mediaUploadData != null) {
       // delete the file from app's internal cache if it was copied to app
       // for upload. On iOS, only remove the file from photo_manager/app cache
       // when upload is either completed or there's a tempFailure
@@ -1201,7 +1199,7 @@ class FileUploader {
       // succeeds.
       if ((Platform.isIOS && (uploadCompleted || uploadHardFailure)) ||
           (uploadCompleted && file.isSharedMediaToAppSandbox)) {
-        await deleteFileSystemEntityIfPresent(mediaUploadData.sourceFile!);
+        await deleteFileSystemEntityIfPresent(mediaUploadData.sourceFile);
       }
     }
     if (File(encryptedFilePath).existsSync()) {

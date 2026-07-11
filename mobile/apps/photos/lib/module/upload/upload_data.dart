@@ -152,16 +152,18 @@ Future<MediaUploadData> _getMediaUploadDataFromAssetFile(
       }
     }
     return MediaUploadData(
-      sourceFile,
-      thumbnailData,
-      isDeleted,
-      FileHashData(fileHash, zipHash: zipHash),
-      height: h,
-      width: w,
-      cameraMake: cameraMake,
-      cameraModel: cameraModel,
-      motionPhotoStartIndex: motionPhotoStartingIndex,
-      exifData: exifData,
+      sourceFile: sourceFile,
+      thumbnail: thumbnailData,
+      isDeleted: isDeleted,
+      hashData: FileHashData(fileHash, zipHash: zipHash),
+      derivedMetadata: DerivedMediaMetadata(
+        height: h,
+        width: w,
+        cameraMake: cameraMake,
+        cameraModel: cameraModel,
+        motionPhotoStartIndex: motionPhotoStartingIndex,
+        exifData: exifData,
+      ),
     );
   } catch (_) {
     if (Platform.isIOS) {
@@ -316,15 +318,17 @@ Future<MediaUploadData> _getMediaUploadDataFromAppCache(
       }
     }
     return MediaUploadData(
-      sourceFile,
-      thumbnailData,
-      isDeleted,
-      FileHashData(fileHash),
-      height: dimensions?.height,
-      width: dimensions?.width,
-      cameraMake: cameraMake,
-      cameraModel: cameraModel,
-      exifData: exifData,
+      sourceFile: sourceFile,
+      thumbnail: thumbnailData,
+      isDeleted: isDeleted,
+      hashData: FileHashData(fileHash),
+      derivedMetadata: DerivedMediaMetadata(
+        height: dimensions?.height,
+        width: dimensions?.width,
+        cameraMake: cameraMake,
+        cameraModel: cameraModel,
+        exifData: exifData,
+      ),
     );
   } catch (e, s) {
     _logger.warning("failed to generate thumbnail", e, s);
