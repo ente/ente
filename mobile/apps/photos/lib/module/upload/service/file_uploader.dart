@@ -78,6 +78,9 @@ class FileUploader {
   /// Returns true if any file uploads are currently in progress
   bool get isUploading => _uploadCounter > 0;
 
+  /// Returns true if an upload is queued, running, or waiting in background.
+  bool get hasPendingUploads => _queue.isNotEmpty;
+
   // Maintains the count of files in the current upload session.
   // Upload session is the period between the first entry into the _queue and last entry out of the _queue
   int _totalCountInUploadSession = 0;

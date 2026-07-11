@@ -10,13 +10,11 @@ import "package:logging/logging.dart";
 import "package:path_provider/path_provider.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/offline_files_db.dart";
-import "package:photos/events/backup_updated_event.dart";
 import "package:photos/events/file_uploaded_event.dart";
 import "package:photos/events/magic_cache_updated_event.dart";
 import "package:photos/events/tab_changed_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/l10n/l10n.dart";
-import "package:photos/models/backup/backup_item_status.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/ml/discover/prompt.dart";
@@ -24,6 +22,7 @@ import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 import "package:photos/models/search/hierarchical/magic_filter.dart";
 import "package:photos/models/search/search_types.dart";
+import "package:photos/module/upload/service/file_uploader.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
 import "package:photos/services/search_service.dart";
@@ -250,21 +249,12 @@ class MagicCacheService {
   int _cacheGeneration = 0;
   Timer? _backgroundUpdateTimer;
   bool _refreshWhenCurrentUpdateCompletes = false;
-  bool _uploadsActive = false;
 
   MagicCacheService(this._prefs) {
     _logger.info("MagicCacheService constructor");
     Bus.instance.on<FileUploadedEvent>().listen((event) {
       queueUpdate("File uploaded");
       _scheduleBackgroundUpdate();
-    });
-    Bus.instance.on<BackupUpdatedEvent>().listen((event) {
-      _uploadsActive = event.items.values.any(
-        (item) =>
-            item.status == BackupItemStatus.inQueue ||
-            item.status == BackupItemStatus.uploading ||
-            item.status == BackupItemStatus.inBackground,
-      );
     });
     Bus.instance.on<TabChangedEvent>().listen((event) {
       if (event.source == TabChangedEventSource.pageView &&
@@ -352,7 +342,7 @@ class MagicCacheService {
       _pendingUpdateReason.add("Forced update");
     }
     await _updateCacheIfTheTimeHasCome();
-    if (_uploadsActive && !forced && !interactive) {
+    if (FileUploader.instance.hasPendingUploads && !forced && !interactive) {
       _scheduleBackgroundUpdate();
       return;
     }
