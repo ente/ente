@@ -949,6 +949,7 @@ class FileUploader {
         if (preparedPublicMetadata != null) {
           remoteFile
             ..pubMmdEncodedJson = preparedPublicMetadata.encodedJson
+            ..pubMmdVersion = preparedPublicMetadata.version
             ..pubMagicMetadata = preparedPublicMetadata.decodedMetadata;
         }
         if (mediaUploadData.isDeleted) {

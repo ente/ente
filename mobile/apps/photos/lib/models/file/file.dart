@@ -217,6 +217,10 @@ class EnteFile {
     if (uploadedFile.fileSize != null) {
       fileSize = uploadedFile.fileSize;
     }
+    if (uploadedFile.pubMmdEncodedJson != null) {
+      pubMmdEncodedJson = uploadedFile.pubMmdEncodedJson;
+      pubMmdVersion = uploadedFile.pubMmdVersion;
+    }
   }
 
   @override

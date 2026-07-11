@@ -90,11 +90,13 @@ Map<String, dynamic> _buildPublicMetadata(
 class PreparedPublicMetadata {
   final String encodedJson;
   final PubMagicMetadata decodedMetadata;
+  final int version;
   final MetadataRequest request;
 
   const PreparedPublicMetadata({
     required this.encodedJson,
     required this.decodedMetadata,
+    required this.version,
     required this.request,
   });
 }
@@ -116,11 +118,13 @@ Future<PreparedPublicMetadata> preparePublicMetadata(
     utf8.encode(encodedJson),
     fileKey,
   );
+  final version = file.pubMmdVersion == 0 ? 1 : file.pubMmdVersion;
   return PreparedPublicMetadata(
     encodedJson: encodedJson,
     decodedMetadata: PubMagicMetadata.fromJson(jsonToUpdate),
+    version: version,
     request: MetadataRequest(
-      version: file.pubMmdVersion == 0 ? 1 : file.pubMmdVersion,
+      version: version,
       count: jsonToUpdate.length,
       data: CryptoUtil.bin2base64(encryptedMMd.encryptedData!),
       header: CryptoUtil.bin2base64(encryptedMMd.header!),
