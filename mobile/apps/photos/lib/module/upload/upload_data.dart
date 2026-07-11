@@ -44,6 +44,43 @@ Future<MediaUploadData> getUploadDataFromEnteFile(
   }
 }
 
+/// Computes only the hashes needed to decide whether a local file changed.
+Future<FileHashData> getFileContentIdentity(EnteFile file) async {
+  if (file.isSharedMediaToAppSandbox) {
+    final sourceFile = File(getSharedMediaFilePath(file));
+    if (!sourceFile.existsSync()) {
+      throw InvalidFileError(
+        "source missing in sandbox",
+        InvalidReason.sourceFileMissing,
+      );
+    }
+    return FileHashData(
+      CryptoUtil.bin2base64(await CryptoUtil.getHash(sourceFile)),
+    );
+  }
+
+  final asset = await _getAsset(file);
+  final sourceFile = await _getOriginFile(asset, file);
+  try {
+    final sourceHash = CryptoUtil.bin2base64(
+      await CryptoUtil.getHash(sourceFile),
+    );
+    if (file.fileType == FileType.livePhoto && Platform.isIOS) {
+      final livePhoto = await getLivePhotoHashDataForComparison(
+        file,
+        sourceFile,
+        sourceHash,
+      );
+      return FileHashData(livePhoto.fileHash, zipHash: livePhoto.zipHash);
+    }
+    return FileHashData(sourceHash);
+  } finally {
+    if (Platform.isIOS) {
+      await deleteFileSystemEntityIfPresent(sourceFile);
+    }
+  }
+}
+
 Future<MediaUploadData> _getMediaUploadDataFromAssetFile(
   EnteFile file,
   bool parseExif,
@@ -57,54 +94,12 @@ Future<MediaUploadData> _getMediaUploadDataFromAssetFile(
   String? cameraMake;
   String? cameraModel;
 
-  // The timeouts are to safeguard against https://github.com/CaiJingLong/flutter_photo_manager/issues/467
-  final asset = await file.getAsset
-      .timeout(const Duration(seconds: 3))
-      .catchError((e) async {
-        if (e is TimeoutException) {
-          _logger.info("Asset fetch timed out for " + file.toString());
-          return await file.getAsset;
-        } else {
-          throw e;
-        }
-      });
-  if (asset == null) {
-    throw InvalidFileError("", InvalidReason.assetDeleted);
-  }
-  _assertFileType(asset, file);
+  final asset = await _getAsset(file);
   file.fileSubType = asset.subtype;
   if (file.fileType == FileType.video) {
     file.duration = asset.duration;
   }
-  if (Platform.isIOS) {
-    trackOriginFetchForUploadOrML.put(file.localID!, true);
-  }
-  try {
-    sourceFile = await asset.originFile
-        .timeout(const Duration(seconds: 15))
-        .catchError((e) async {
-          if (e is TimeoutException) {
-            _logger.info("Origin file fetch timed out for " + file.tag);
-            return await asset.originFile;
-          } else {
-            throw e;
-          }
-        });
-  } catch (e) {
-    if (isPHPhotosNetworkError(e)) {
-      throw InvalidFileError(
-        phPhotosResourceUnavailableReason,
-        InvalidReason.photosResourceUnavailable,
-      );
-    }
-    rethrow;
-  }
-  if (sourceFile == null || !sourceFile.existsSync()) {
-    throw InvalidFileError(
-      "id: ${file.localID}",
-      InvalidReason.sourceFileMissing,
-    );
-  }
+  sourceFile = await _getOriginFile(asset, file);
   try {
     if (parseExif && shouldReadExif(file)) {
       exifData = await tryExifFromFile(sourceFile);
@@ -171,6 +166,58 @@ Future<MediaUploadData> _getMediaUploadDataFromAssetFile(
     }
     rethrow;
   }
+}
+
+Future<AssetEntity> _getAsset(EnteFile file) async {
+  // The timeout safeguards against
+  // https://github.com/CaiJingLong/flutter_photo_manager/issues/467.
+  final asset = await file.getAsset
+      .timeout(const Duration(seconds: 3))
+      .catchError((e) async {
+        if (e is TimeoutException) {
+          _logger.info("Asset fetch timed out for " + file.toString());
+          return await file.getAsset;
+        }
+        throw e;
+      });
+  if (asset == null) {
+    throw InvalidFileError("", InvalidReason.assetDeleted);
+  }
+  _assertFileType(asset, file);
+  return asset;
+}
+
+Future<File> _getOriginFile(AssetEntity asset, EnteFile file) async {
+  if (Platform.isIOS) {
+    trackOriginFetchForUploadOrML.put(file.localID!, true);
+  }
+  File? sourceFile;
+  try {
+    sourceFile = await asset.originFile
+        .timeout(const Duration(seconds: 15))
+        .catchError((e) async {
+          if (e is TimeoutException) {
+            _logger.info("Origin file fetch timed out for " + file.tag);
+            return await asset.originFile;
+          }
+          throw e;
+        });
+  } catch (e) {
+    if (isPHPhotosNetworkError(e)) {
+      throw InvalidFileError(
+        phPhotosResourceUnavailableReason,
+        InvalidReason.photosResourceUnavailable,
+      );
+    }
+    rethrow;
+  }
+  if (sourceFile == null || !sourceFile.existsSync()) {
+    throw InvalidFileError(
+      "id: ${file.localID}",
+      InvalidReason.sourceFileMissing,
+    );
+  }
+  return sourceFile;
 }
 
 Future<Uint8List?> _getThumbnailForUpload(

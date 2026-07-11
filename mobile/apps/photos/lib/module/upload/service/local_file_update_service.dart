@@ -1,8 +1,5 @@
 import 'dart:async';
-import 'dart:io';
 
-import 'package:ente_pure_utils/ente_pure_utils.dart'
-    show deleteFileSystemEntityIfPresent;
 import 'package:logging/logging.dart';
 import "package:photos/core/configuration.dart";
 import 'package:photos/core/errors.dart';
@@ -11,7 +8,6 @@ import 'package:photos/db/files_db.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import 'package:photos/module/download/file.dart';
-import 'package:photos/module/upload/model/media_upload_data.dart';
 import "package:photos/module/upload/upload_data.dart";
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -151,12 +147,11 @@ class LocalFileUpdateService {
         processedIDs.add(file.localID!);
         continue;
       }
-      MediaUploadData uploadData;
       try {
-        uploadData = await getUploadData(file);
+        final contentIdentity = await getFileContentIdentity(file);
         if (file.hash != null &&
-            (file.hash == uploadData.hashData.fileHash ||
-                file.hash == uploadData.hashData.zipHash)) {
+            (file.hash == contentIdentity.fileHash ||
+                file.hash == contentIdentity.zipHash)) {
           _logger.info("Skip file update as hash matched ${file.tag}");
         } else {
           _logger.info(
@@ -205,26 +200,5 @@ class LocalFileUpdateService {
       processedIDs.toList(),
       FileUpdationDB.modificationTimeUpdated,
     );
-  }
-
-  Future<MediaUploadData> getUploadData(EnteFile file) async {
-    final mediaUploadData = await getUploadDataFromEnteFile(file);
-    // delete the file from app's internal cache if it was copied to app
-    // for upload. Shared Media should only be cleared when the upload
-    // succeeds.
-    await _deleteCopiedIOSUploadFile(mediaUploadData.sourceFile);
-    return mediaUploadData;
-  }
-
-  Future<void> _deleteCopiedIOSUploadFile(File? sourceFile) async {
-    if (!Platform.isIOS || sourceFile == null) {
-      return;
-    }
-    final deleted = await deleteFileSystemEntityIfPresent(sourceFile);
-    if (!deleted) {
-      _logger.info(
-        "Copied upload temp file already missing: ${sourceFile.path}",
-      );
-    }
   }
 }
