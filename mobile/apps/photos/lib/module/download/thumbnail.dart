@@ -18,10 +18,10 @@ import 'package:photos/core/errors.dart';
 import 'package:photos/core/network/network.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
+import 'package:photos/module/download/file.dart';
 import "package:photos/module/download/file_url.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/utils/file_key.dart";
-import 'package:photos/utils/file_util.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 
 final _logger = Logger("ThumbnailUtil");

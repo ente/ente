@@ -6,10 +6,10 @@ import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/metadata/file_magic.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/module/metadata/exif.dart";
 import "package:photos/services/file_magic_service.dart";
 import "package:photos/src/rust/api/motion_photo_api.dart";
-import "package:photos/utils/file_util.dart";
 
 final _logger = Logger("PanoramaUtil");
 

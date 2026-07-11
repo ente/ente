@@ -16,7 +16,7 @@ import 'package:photos/services/machine_learning/face_ml/face_alignment/alignmen
 import 'package:photos/services/machine_learning/face_ml/face_alignment/similarity_transform.dart';
 import 'package:photos/services/machine_learning/face_ml/face_detection/detection.dart';
 import 'package:photos/services/machine_learning/face_ml/face_filtering/blur_detection_service.dart';
-import "package:photos/utils/file_util.dart";
+import 'package:photos/utils/image_util.dart';
 
 /// All of the functions in this file are helper functions for using inside an isolate.
 /// Don't use them outside of a isolate, unless you are okay with UI jank!!!!

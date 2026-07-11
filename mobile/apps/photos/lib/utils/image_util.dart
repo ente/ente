@@ -14,6 +14,30 @@ import "package:photos/module/metadata/exif.dart";
 
 final _logger = Logger("ImageUtil");
 
+const Set<String> _rawImageExtensions = {
+  'arw', // Sony
+  'cr2', 'cr3', // Canon
+  'nef', 'nrw', // Nikon
+  'dng', // Adobe/generic
+  'orf', // Olympus
+  'raf', // Fuji
+  'rw2', // Panasonic
+  'pef', // Pentax
+  'srw', // Samsung
+  '3fr', 'fff', // Hasselblad
+  'rwl', // Leica
+  'x3f', // Sigma
+  'iiq', // Phase One
+  'kdc', 'dcr', // Kodak
+  'mrw', // Minolta
+  'erf', // Epson
+  'mef', // Mamiya
+  'raw', // Generic
+};
+
+bool isRawImageExtension(String extension) =>
+    _rawImageExtensions.contains(extension.toLowerCase());
+
 Future<ImageInfo> getImageInfo(ImageProvider imageProvider) {
   final completer = Completer<ImageInfo>();
   final imageStream = imageProvider.resolve(const ImageConfiguration());

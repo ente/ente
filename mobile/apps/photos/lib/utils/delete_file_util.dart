@@ -21,6 +21,7 @@ import 'package:photos/models/file/file.dart';
 import "package:photos/models/files_split.dart";
 import "package:photos/models/freeable_space_info.dart";
 import 'package:photos/models/selected_files.dart';
+import 'package:photos/module/download/file.dart';
 import "package:photos/service_locator.dart";
 import "package:photos/services/files_service.dart";
 import "package:photos/services/media_store_service.dart";
@@ -34,7 +35,6 @@ import 'package:photos/ui/components/buttons/button_widget.dart'
 import 'package:photos/ui/notification/toast.dart';
 import "package:photos/utils/device_info.dart";
 import 'package:photos/utils/dialog_util.dart';
-import 'package:photos/utils/file_util.dart';
 
 final _logger = Logger("DeleteFileUtil");
 

@@ -13,13 +13,13 @@ import 'package:photos/core/network/network.dart';
 import 'package:photos/db/files_db.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/metadata/file_magic.dart';
+import 'package:photos/module/download/file.dart';
 import 'package:photos/module/metadata/local_file.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/file_magic_service.dart';
 import 'package:photos/ui/tools/editor/native_video_export_service.dart';
 import 'package:photos/ui/tools/editor/video_crop_util.dart';
 import 'package:photos/ui/tools/editor/video_editor/crop_value.dart';
-import 'package:photos/utils/file_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_editor/video_editor.dart';
 

@@ -9,8 +9,8 @@ import 'package:photos/models/file/file.dart';
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/location/location.dart";
 import "package:photos/models/metadata/file_magic.dart";
+import 'package:photos/module/download/file.dart';
 import "package:photos/services/location_service.dart";
-import 'package:photos/utils/file_util.dart';
 import 'package:random_access_source/random_access_source.dart';
 
 const kDateTimeOriginal = "EXIF DateTimeOriginal";

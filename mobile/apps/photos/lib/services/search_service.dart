@@ -65,7 +65,6 @@ import "package:photos/ui/viewer/people/cluster_page.dart";
 import "package:photos/ui/viewer/people/people_page.dart";
 import "package:photos/ui/viewer/search/result/magic_result_screen.dart";
 import "package:photos/utils/cache_util.dart";
-import "package:photos/utils/file_util.dart";
 import "package:photos/utils/people_sort_util.dart";
 
 class SearchService {

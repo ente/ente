@@ -17,6 +17,7 @@ import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import "package:photos/models/location/location.dart";
 import "package:photos/models/metadata/file_magic.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/module/metadata/exif.dart";
 import "package:photos/module/metadata/video.dart";
 import "package:photos/service_locator.dart";
@@ -37,7 +38,6 @@ import "package:photos/ui/viewer/file_details/file_properties_item_widget.dart";
 import "package:photos/ui/viewer/file_details/location_tags_widget.dart";
 import "package:photos/ui/viewer/file_details/preview_properties_item_widget.dart";
 import "package:photos/ui/viewer/file_details/video_exif_item.dart";
-import "package:photos/utils/file_util.dart";
 
 class FileDetailsWidget extends StatefulWidget {
   final EnteFile file;

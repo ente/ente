@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:crypto/crypto.dart';
 import "package:dio/dio.dart";
 import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -17,35 +16,10 @@ import 'package:photos/core/constants.dart';
 import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
+import 'package:photos/module/download/decrypt.dart';
 import 'package:photos/module/live_photo/archive.dart';
-import 'package:photos/utils/file_download_util.dart';
 
 final _logger = Logger("FileUtil");
-
-const Set<String> _rawImageExtensions = {
-  'arw', // Sony
-  'cr2', 'cr3', // Canon
-  'nef', 'nrw', // Nikon
-  'dng', // Adobe/generic
-  'orf', // Olympus
-  'raf', // Fuji
-  'rw2', // Panasonic
-  'pef', // Pentax
-  'srw', // Samsung
-  '3fr', 'fff', // Hasselblad
-  'rwl', // Leica
-  'x3f', // Sigma
-  'iiq', // Phase One
-  'kdc', 'dcr', // Kodak
-  'mrw', // Minolta
-  'erf', // Epson
-  'mef', // Mamiya
-  'raw', // Generic
-};
-
-bool isRawImageExtension(String extension) {
-  return _rawImageExtensions.contains(extension.toLowerCase());
-}
 
 void preloadFile(EnteFile file) {
   if (file.fileType == FileType.video) {
@@ -139,7 +113,7 @@ String getSharedMediaPathFromLocalID(String localID) {
 
 final Map<String, Future<File?>> _fileDownloadsInProgress =
     <String, Future<File?>>{};
-Map<String, ProgressCallback?> _progressCallbacks = {};
+final Map<String, ProgressCallback?> _progressCallbacks = {};
 
 Future<T> _runOncePerKey<K, T>(
   Map<K, Future<T>> inProgress,
@@ -170,7 +144,7 @@ Future<T> _runOncePerKey<K, T>(
   return download;
 }
 
-void removeCallBack(EnteFile file) {
+void removeDownloadCallback(EnteFile file) {
   if (!file.isUploaded) {
     return;
   }
@@ -427,33 +401,9 @@ Future<void> clearCache(EnteFile file) async {
   }
   ThumbnailInMemoryLruCache.clearCache(file);
 }
-
 class _LivePhoto {
   final File image;
   final File video;
 
   _LivePhoto(this.image, this.video);
 }
-
-Set<int> filesToUploadedFileIDs(List<EnteFile> files) {
-  final uploadedFileIDs = <int>{};
-  for (final file in files) {
-    if (file.isUploaded) {
-      uploadedFileIDs.add(file.uploadedFileID!);
-    }
-  }
-  return uploadedFileIDs;
-}
-
-Future<String> computeSha1(String filePath) async {
-  final file = File(filePath);
-  final input = file.openRead();
-  final hash = await sha1.bind(input).first;
-  return hash.toString();
-}
-
-/// Computes the MD5 hash of a file or a portion of it.
-///
-/// [filePath] - Path to the file
-/// [start] - Optional starting byte position for partial hash computation
-/// [end] - Optional ending byte position for partial hash computation
