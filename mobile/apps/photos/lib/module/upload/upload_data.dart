@@ -197,7 +197,7 @@ Future<Uint8List?> _getThumbnailForUpload(
   EnteFile file,
 ) async {
   try {
-    Uint8List? thumbnailData = await asset.thumbnailDataWithSize(
+    final Uint8List? thumbnailData = await asset.thumbnailDataWithSize(
       const ThumbnailSize(thumbnailLargeSize, thumbnailLargeSize),
       quality: thumbnailQuality,
     );
@@ -211,17 +211,7 @@ Future<Uint8List?> _getThumbnailForUpload(
         InvalidReason.thumbnailMissing,
       );
     }
-    int compressionAttempts = 0;
-    while (thumbnailData!.length > thumbnailDataLimit &&
-        compressionAttempts < kMaximumThumbnailCompressionAttempts) {
-      _logger.info("Thumbnail size " + thumbnailData.length.toString());
-      thumbnailData = await compressThumbnail(thumbnailData);
-      _logger.info(
-        "Compressed thumbnail size " + thumbnailData.length.toString(),
-      );
-      compressionAttempts++;
-    }
-    return thumbnailData;
+    return compressThumbnailToSizeLimit(thumbnailData);
   } catch (e) {
     final String errMessage =
         "thumbErr for ${file.fileType}, ${extension(file.displayName)} ${file.tag}";

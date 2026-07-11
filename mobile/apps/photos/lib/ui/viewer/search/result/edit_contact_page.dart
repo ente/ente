@@ -34,7 +34,6 @@ import "package:photos/ui/viewer/search/result/contact_photo_adjust_page.dart";
 import "package:photos/ui/viewer/search/result/contact_photo_picker_sheet.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
-import "package:photos/utils/file_util.dart";
 import "package:photos/utils/thumbnail_util.dart";
 
 class EditContactPage extends StatefulWidget {

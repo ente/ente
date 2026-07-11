@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:ente_crypto/ente_crypto.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart'
     show isFileSystemPathMissing;
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -24,18 +25,44 @@ import 'package:photos/utils/file_util.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 
 final _logger = Logger("ThumbnailUtil");
-final _uploadIDToDownloadItem = <int, FileDownloadItem>{};
+final _uploadIDToDownloadItem = <int, _ThumbnailDownload>{};
 final _downloadQueue = Queue<int>();
-const int kMaximumConcurrentDownloads = 500;
-const kMaximumThumbnailCompressionAttempts = 2;
+const int _maximumConcurrentDownloads = 500;
+const int _maximumThumbnailCompressionAttempts = 2;
 
-class FileDownloadItem {
+class _ThumbnailDownload {
   final EnteFile file;
   final Completer<Uint8List> completer;
   final CancelToken cancelToken;
   int counter = 0; // number of times file download was requested
 
-  FileDownloadItem(this.file, this.completer, this.cancelToken, this.counter);
+  _ThumbnailDownload(this.file, this.completer, this.cancelToken, this.counter);
+}
+
+Future<Uint8List> compressThumbnail(Uint8List thumbnail) {
+  return FlutterImageCompress.compressWithList(
+    thumbnail,
+    minHeight: compressedThumbnailResolution,
+    minWidth: compressedThumbnailResolution,
+    quality: 25,
+  );
+}
+
+Future<Uint8List> compressThumbnailToSizeLimit(
+  Uint8List thumbnail, {
+  int maxAttempts = _maximumThumbnailCompressionAttempts,
+}) async {
+  var result = thumbnail;
+  for (
+    var attempt = 0;
+    result.length > thumbnailDataLimit && attempt < maxAttempts;
+    attempt++
+  ) {
+    _logger.info("Thumbnail size ${result.length}");
+    result = await compressThumbnail(result);
+    _logger.info("Compressed thumbnail size ${result.length}");
+  }
+  return result;
 }
 
 Future<Uint8List?> getThumbnail(EnteFile file) async {
@@ -121,16 +148,16 @@ _getThumbnailFromServerRequest(EnteFile file) async {
   // Check if there's already in flight request for fetching thumbnail from the
   // server
   if (!_uploadIDToDownloadItem.containsKey(file.uploadedFileID)) {
-    final item = FileDownloadItem(
+    final item = _ThumbnailDownload(
       file,
       Completer<Uint8List>(),
       CancelToken(),
       1,
     );
     _uploadIDToDownloadItem[file.uploadedFileID!] = item;
-    if (_downloadQueue.length > kMaximumConcurrentDownloads) {
+    if (_downloadQueue.length > _maximumConcurrentDownloads) {
       final id = _downloadQueue.removeFirst();
-      final FileDownloadItem item = _uploadIDToDownloadItem.remove(id)!;
+      final _ThumbnailDownload item = _uploadIDToDownloadItem.remove(id)!;
       item.cancelToken.cancel();
       item.completer.completeError(RequestCancelledError());
     }
@@ -209,18 +236,7 @@ Future<Uint8List?> getThumbnailFromInAppCacheFile(EnteFile file) async {
       return null;
     }
   }
-  var thumbnailData = await localFile.readAsBytes();
-  int compressionAttempts = 0;
-  while (thumbnailData.length > thumbnailDataLimit &&
-      compressionAttempts < kMaximumThumbnailCompressionAttempts) {
-    _logger.info("Thumbnail size " + thumbnailData.length.toString());
-    thumbnailData = await compressThumbnail(thumbnailData);
-    _logger.info(
-      "Compressed thumbnail size " + thumbnailData.length.toString(),
-    );
-    compressionAttempts++;
-  }
-  return thumbnailData;
+  return compressThumbnailToSizeLimit(await localFile.readAsBytes());
 }
 
 void removePendingGetThumbnailRequestIfAny(EnteFile file) {
@@ -235,7 +251,7 @@ void removePendingGetThumbnailRequestIfAny(EnteFile file) {
   }
 }
 
-void _downloadItem(FileDownloadItem item) async {
+void _downloadItem(_ThumbnailDownload item) async {
   try {
     await _downloadAndDecryptThumbnail(item);
   } catch (e, s) {
@@ -250,7 +266,7 @@ void _downloadItem(FileDownloadItem item) async {
   _uploadIDToDownloadItem.remove(item.file.uploadedFileID);
 }
 
-Future<void> _downloadAndDecryptThumbnail(FileDownloadItem item) async {
+Future<void> _downloadAndDecryptThumbnail(_ThumbnailDownload item) async {
   final file = item.file;
   Uint8List encryptedThumbnail;
   try {
@@ -297,10 +313,7 @@ Future<void> _downloadAndDecryptThumbnail(FileDownloadItem item) async {
     item.completer.completeError(e);
     return;
   }
-  final thumbnailSize = data.length;
-  if (thumbnailSize > thumbnailDataLimit) {
-    data = await compressThumbnail(data);
-  }
+  data = await compressThumbnailToSizeLimit(data, maxAttempts: 1);
   ThumbnailInMemoryLruCache.put(item.file, data);
   final cachedThumbnail = cachedThumbnailPath(item.file);
   // data is already cached in-memory, no need to await on disk write

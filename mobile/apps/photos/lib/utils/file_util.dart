@@ -398,15 +398,6 @@ String getExtension(String nameOrPath) {
   return fileExtension;
 }
 
-Future<Uint8List> compressThumbnail(Uint8List thumbnail) {
-  return FlutterImageCompress.compressWithList(
-    thumbnail,
-    minHeight: compressedThumbnailResolution,
-    minWidth: compressedThumbnailResolution,
-    quality: 25,
-  );
-}
-
 Future<void> clearCache(EnteFile file) async {
   if (file.fileType == FileType.video) {
     await VideoCacheManager.instance.removeFile(file.downloadUrl);
