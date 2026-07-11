@@ -242,6 +242,7 @@ class MagicCacheService {
   Future<List<Prompt>>? _promptFuture;
   final Set<String> _pendingUpdateReason = {};
   bool _isUpdateInProgress = false;
+  int _cacheGeneration = 0;
 
   MagicCacheService(this._prefs) {
     _logger.info("MagicCacheService constructor");
@@ -304,6 +305,8 @@ class MagicCacheService {
       _pendingUpdateReason.add("Forced update");
     }
     await _updateCacheIfTheTimeHasCome();
+    Set<String>? updateReasons;
+    int? updateGeneration;
     try {
       if (_pendingUpdateReason.isEmpty || _isUpdateInProgress) {
         _logger.info(
@@ -312,6 +315,9 @@ class MagicCacheService {
         return;
       }
       _logger.info("updating magic cache ${_pendingUpdateReason.toList()}");
+      updateReasons = Set<String>.of(_pendingUpdateReason);
+      _pendingUpdateReason.removeAll(updateReasons);
+      updateGeneration = _cacheGeneration;
       _isUpdateInProgress = true;
       final EnteWatch? w = kDebugMode ? EnteWatch("magicCacheWatch") : null;
       w?.start();
@@ -321,22 +327,33 @@ class MagicCacheService {
         magicPromptsData,
       );
       w?.log("resultComputed");
+      if (updateGeneration != _cacheGeneration) {
+        return;
+      }
       _magicCacheFuture = Future.value(magicCaches);
       await writeToJsonFile<List<MagicCache>>(
         await _getCachePath(),
         magicCaches,
         MagicCache.encodeListToJson,
       );
+      if (updateGeneration != _cacheGeneration) {
+        await _deleteCacheFile();
+        return;
+      }
       w?.log("cacheWritten");
       await _resetLastMagicCacheUpdateTime();
+      if (updateGeneration != _cacheGeneration) {
+        return;
+      }
       w?.logAndReset('done');
-      _pendingUpdateReason.clear();
       Bus.instance.fire(MagicCacheUpdatedEvent());
     } catch (e, s) {
+      if (updateReasons != null && updateGeneration == _cacheGeneration) {
+        _pendingUpdateReason.addAll(updateReasons);
+      }
       _logger.info("Error updating magic cache", e, s);
     } finally {
       _isUpdateInProgress = false;
-      Bus.instance.fire(MagicCacheUpdatedEvent());
     }
   }
 
@@ -390,6 +407,13 @@ class MagicCacheService {
   }
 
   Future<void> clearMagicCache() async {
+    _cacheGeneration++;
+    await _deleteCacheFile();
+    _magicCacheFuture = null;
+    _pendingUpdateReason.clear();
+  }
+
+  Future<void> _deleteCacheFile() async {
     final file = File(await _getCachePath());
     if (file.existsSync()) {
       await file.delete();
