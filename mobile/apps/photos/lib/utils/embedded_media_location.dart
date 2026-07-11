@@ -4,8 +4,8 @@ import "package:exif_reader/exif_reader.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/location/location.dart";
+import "package:photos/module/metadata/exif.dart";
 import "package:photos/module/metadata/video.dart";
-import "package:photos/utils/exif_util.dart";
 
 /// Adds Android location metadata to [file], preferring valid EXIF data.
 Future<void> updateLocationFromEmbeddedMetadata(

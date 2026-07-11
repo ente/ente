@@ -10,7 +10,7 @@ import 'package:image/image.dart' as img;
 import 'package:image/src/util/rational.dart' as img_util;
 import 'package:logging/logging.dart';
 import "package:photos/models/file/file.dart";
-import "package:photos/utils/exif_util.dart";
+import "package:photos/module/metadata/exif.dart";
 
 final _logger = Logger("ImageUtil");
 

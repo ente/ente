@@ -1,5 +1,5 @@
 import "package:exif_reader/exif_reader.dart";
-import "package:photos/utils/exif_util.dart";
+import "package:photos/module/metadata/exif.dart";
 import "package:test/test.dart";
 
 void main() {
