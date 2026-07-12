@@ -63,7 +63,7 @@ class FileUploader {
   final _dio = NetworkClient.instance.getDio();
   FileUploadGateway get _gateway => fileUploadGateway;
   final _queue = UploadQueue(
-    (items) => Bus.instance.fire(BackupUpdatedEvent(items)),
+    (change) => Bus.instance.fire(BackupUpdatedEvent(change)),
   );
   final _uploadLocks = UploadLocksDB.instance;
   final _uploadArtifactLifecycle = UploadArtifactLifecycle(

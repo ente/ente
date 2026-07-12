@@ -1,14 +1,17 @@
+import 'dart:collection';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:photos/models/backup/backup_item.dart';
 import 'package:photos/models/backup/backup_item_status.dart';
+import 'package:photos/models/backup/backup_items_change.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import 'package:photos/module/upload/service/upload_queue.dart';
 
 void main() {
   test('shares requests and preserves session count semantics', () {
-    final snapshots = <Map<String, BackupItem>>[];
-    final queue = UploadQueue(snapshots.add);
+    final changes = <BackupItemsChange>[];
+    final queue = UploadQueue(changes.add);
     final file = _file('local-1');
 
     final added = queue.add(file, 10);
@@ -21,9 +24,16 @@ void main() {
     expect(identical(added.item, sameCollection.item), isTrue);
     expect(identical(added.item, otherCollection.item), isTrue);
     expect(queue.sessionUploadCount, 2);
-    expect(snapshots, hasLength(1));
+    expect(changes, hasLength(1));
+    expect(changes.single.upserts.keys, ['local-1']);
+    expect(changes.single.removedLocalIDs, isEmpty);
     expect(
-      () => snapshots.single['other'] = snapshots.single.values.single,
+      () => changes.single.upserts['other'] =
+          changes.single.upserts.values.single,
+      throwsUnsupportedError,
+    );
+    expect(
+      () => changes.single.removedLocalIDs.add('other'),
       throwsUnsupportedError,
     );
   });
@@ -47,8 +57,8 @@ void main() {
   });
 
   test('cancels pending items with one backup notification', () async {
-    final snapshots = <Map<String, BackupItem>>[];
-    final queue = UploadQueue(snapshots.add);
+    final changes = <BackupItemsChange>[];
+    final queue = UploadQueue(changes.add);
     final active = queue.add(_file('active'), 1).item;
     final firstPending = queue.add(_file('pending-1'), 1).item;
     final secondPending = queue.add(_file('pending-2'), 1).item;
@@ -62,12 +72,14 @@ void main() {
       secondPending.completer.future,
       throwsA(error),
     );
-    final notificationsBeforeRemoval = snapshots.length;
+    final notificationsBeforeRemoval = changes.length;
 
     final removed = queue.removeWhere((_) => true, error);
 
     expect(removed, 2);
-    expect(snapshots.length, notificationsBeforeRemoval + 1);
+    expect(changes.length, notificationsBeforeRemoval + 1);
+    expect(changes.last.upserts.keys, ['pending-1', 'pending-2']);
+    expect(changes.last.removedLocalIDs, isEmpty);
     expect(queue.hasPendingUploads, isTrue);
     expect(queue.backupItems['active']!.status, BackupItemStatus.uploading);
     expect(queue.backupItems['pending-1']!.status, BackupItemStatus.retry);
@@ -104,6 +116,102 @@ void main() {
     expect(await secondItem.completer.future, same(uploadedFile));
     expect(queue.backupItems, isEmpty);
   });
+
+  test('emits removals without rebuilding full backup snapshots', () async {
+    final changes = <BackupItemsChange>[];
+    final queue = UploadQueue(changes.add);
+    final item = queue.add(_file('local-1'), 1).item;
+    final snapshotBeforeRemoval = queue.backupItems;
+    expect(_start(queue), same(item));
+
+    final uploadedFile = _file('uploaded');
+    queue.complete(item, uploadedFile);
+    queue.finishAttempt(item);
+
+    expect(changes.last.upserts, isEmpty);
+    expect(changes.last.removedLocalIDs, {'local-1'});
+    expect(snapshotBeforeRemoval.keys, ['local-1']);
+    expect(queue.backupItems, isEmpty);
+    expect(await item.completer.future, same(uploadedFile));
+  });
+
+  test('preserves insertion order in lazy immutable snapshots', () {
+    final queue = UploadQueue((_) {});
+    queue.add(_file('first'), 1);
+    queue.add(_file('second'), 1);
+
+    final snapshot = queue.backupItems;
+
+    expect(snapshot.keys, ['first', 'second']);
+    expect(identical(queue.backupItems, snapshot), isTrue);
+    expect(() => snapshot.remove('first'), throwsUnsupportedError);
+
+    queue.add(_file('third'), 1);
+    expect(snapshot.keys, ['first', 'second']);
+    expect(queue.backupItems.keys, ['first', 'second', 'third']);
+    expect(identical(queue.backupItems, snapshot), isFalse);
+  });
+
+  test('deltas reconstruct the authoritative ordered snapshot', () async {
+    final reducedItems = LinkedHashMap<String, BackupItem>();
+    late final UploadQueue queue;
+    queue = UploadQueue((change) {
+      for (final localID in change.removedLocalIDs) {
+        reducedItems.remove(localID);
+      }
+      reducedItems.addAll(change.upserts);
+      expect(reducedItems.keys, queue.backupItems.keys);
+      expect(reducedItems, queue.backupItems);
+    });
+
+    final active = queue.add(_file('active'), 1).item;
+    final firstPending = queue.add(_file('pending-1'), 1).item;
+    final secondPending = queue.add(_file('pending-2'), 1).item;
+    expect(_start(queue), same(active));
+
+    final error = _QueueError();
+    final firstResult = expectLater(
+      firstPending.completer.future,
+      throwsA(error),
+    );
+    final secondResult = expectLater(
+      secondPending.completer.future,
+      throwsA(error),
+    );
+    queue.removeWhere((file) => file.localID != 'active', error);
+
+    final uploadedFile = _file('uploaded');
+    queue.complete(active, uploadedFile);
+    queue.finishAttempt(active);
+
+    await firstResult;
+    await secondResult;
+    expect(await active.completer.future, same(uploadedFile));
+    expect(reducedItems.keys, ['pending-1', 'pending-2']);
+    expect(reducedItems, queue.backupItems);
+  });
+
+  for (final itemCount in [1000, 10000]) {
+    test('$itemCount additions emit linear aggregate delta work', () {
+      var notificationCount = 0;
+      var upsertCount = 0;
+      var removalCount = 0;
+      final queue = UploadQueue((change) {
+        notificationCount++;
+        upsertCount += change.upserts.length;
+        removalCount += change.removedLocalIDs.length;
+      });
+
+      for (var index = 0; index < itemCount; index++) {
+        queue.add(_file('local-$index'), 1);
+      }
+
+      expect(notificationCount, itemCount);
+      expect(upsertCount, itemCount);
+      expect(removalCount, 0);
+      expect(queue.backupItems, hasLength(itemCount));
+    });
+  }
 }
 
 UploadQueueItem? _start(UploadQueue queue) {

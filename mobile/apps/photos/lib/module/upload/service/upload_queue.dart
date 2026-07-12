@@ -1,12 +1,14 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:collection/collection.dart';
 import 'package:photos/models/backup/backup_item.dart';
 import 'package:photos/models/backup/backup_item_status.dart';
+import 'package:photos/models/backup/backup_items_change.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 
-typedef BackupItemsChanged = void Function(Map<String, BackupItem> items);
+typedef BackupItemsChanged = void Function(BackupItemsChange change);
 
 class UploadQueue {
   UploadQueue(this._onBackupItemsChanged);
@@ -16,12 +18,13 @@ class UploadQueue {
   final _backupItems = <String, BackupItem>{};
   final _backupOwners = <String, Object>{};
 
-  Map<String, BackupItem> _backupItemsSnapshot = const {};
+  Map<String, BackupItem>? _backupItemsSnapshot;
   int _activeUploads = 0;
   int _activeVideoUploads = 0;
   int _sessionUploadCount = 0;
 
-  Map<String, BackupItem> get backupItems => _backupItemsSnapshot;
+  Map<String, BackupItem> get backupItems => _backupItemsSnapshot ??=
+      UnmodifiableMapView(LinkedHashMap.of(_backupItems));
   bool get hasPendingUploads => _items.isNotEmpty;
   bool get isUploading => _activeUploads > 0;
   int get sessionUploadCount => _sessionUploadCount;
@@ -48,7 +51,7 @@ class UploadQueue {
       completer: completer,
     );
     _backupOwners[localID] = item;
-    _notifyBackupItemsChanged();
+    _notifyBackupItemsChanged(upserts: {localID: _backupItems[localID]!});
     return UploadQueueRequest.added(item);
   }
 
@@ -131,7 +134,7 @@ class UploadQueue {
     item.completer.complete(uploadedFile);
     _backupItems.remove(localID);
     _backupOwners.remove(localID);
-    _notifyBackupItemsChanged();
+    _notifyBackupItemsChanged(removedLocalIDs: {localID});
   }
 
   Future<EnteFile> moveToBackground(UploadQueueItem item) {
@@ -170,7 +173,7 @@ class UploadQueue {
       _setBackupStatus(localID, owner, BackupItemStatus.uploaded);
     } else if (_backupItems.remove(localID) != null) {
       _backupOwners.remove(localID);
-      _notifyBackupItemsChanged();
+      _notifyBackupItemsChanged(removedLocalIDs: {localID});
     }
   }
 
@@ -191,16 +194,20 @@ class UploadQueue {
     if (localIDs.isEmpty) {
       return;
     }
+    final upserts = <String, BackupItem>{};
     for (final localID in localIDs) {
       _items.remove(localID)?.completer.completeError(reason);
-      _setBackupStatusWithoutNotification(
+      final updatedItem = _setBackupStatusWithoutNotification(
         localID,
         _backupOwners[localID]!,
         BackupItemStatus.retry,
         error: reason,
       );
+      if (updatedItem != null) {
+        upserts[localID] = updatedItem;
+      }
     }
-    _notifyBackupItemsChanged();
+    _notifyBackupItemsChanged(upserts: upserts);
   }
 
   void _setBackupStatus(
@@ -209,8 +216,15 @@ class UploadQueue {
     BackupItemStatus status, {
     Object? error,
   }) {
-    _setBackupStatusWithoutNotification(localID, owner, status, error: error);
-    _notifyBackupItemsChanged();
+    final updatedItem = _setBackupStatusWithoutNotification(
+      localID,
+      owner,
+      status,
+      error: error,
+    );
+    if (updatedItem != null) {
+      _notifyBackupItemsChanged(upserts: {localID: updatedItem});
+    }
   }
 
   void _setBackupStatusIfOwned(
@@ -225,24 +239,31 @@ class UploadQueue {
     _setBackupStatus(localID, owner, status, error: error);
   }
 
-  void _setBackupStatusWithoutNotification(
+  BackupItem? _setBackupStatusWithoutNotification(
     String localID,
     Object owner,
     BackupItemStatus status, {
     Object? error,
   }) {
     if (!identical(_backupOwners[localID], owner)) {
-      return;
+      return null;
     }
-    _backupItems[localID] = _backupItems[localID]!.copyWith(
+    final updatedItem = _backupItems[localID]!.copyWith(
       status: status,
       error: error,
     );
+    _backupItems[localID] = updatedItem;
+    return updatedItem;
   }
 
-  void _notifyBackupItemsChanged() {
-    _backupItemsSnapshot = Map.unmodifiable(_backupItems);
-    _onBackupItemsChanged(_backupItemsSnapshot);
+  void _notifyBackupItemsChanged({
+    Map<String, BackupItem> upserts = const {},
+    Set<String> removedLocalIDs = const {},
+  }) {
+    _backupItemsSnapshot = null;
+    _onBackupItemsChanged(
+      BackupItemsChange(upserts: upserts, removedLocalIDs: removedLocalIDs),
+    );
   }
 }
 

@@ -1,5 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import "dart:async";
+import "dart:collection";
 
 import "package:collection/collection.dart";
 import "package:ente_components/ente_components.dart";
@@ -24,7 +25,7 @@ class BackupStatusScreen extends StatefulWidget {
 }
 
 class _BackupStatusScreenState extends State<BackupStatusScreen> {
-  Map<String, BackupItem> items = FileUploader.instance.allBackups;
+  final LinkedHashMap<String, BackupItem> _items = LinkedHashMap();
   List<BackupItem>? result;
   StreamSubscription? _fileUploadedSubscription;
   StreamSubscription? _backupUpdatedSubscription;
@@ -33,6 +34,7 @@ class _BackupStatusScreenState extends State<BackupStatusScreen> {
   void initState() {
     super.initState();
 
+    _items.addAll(FileUploader.instance.allBackups);
     checkBackupUpdatedEvent();
     getAllFiles();
   }
@@ -73,7 +75,10 @@ class _BackupStatusScreenState extends State<BackupStatusScreen> {
     _backupUpdatedSubscription = Bus.instance.on<BackupUpdatedEvent>().listen((
       event,
     ) {
-      items = event.items;
+      for (final localID in event.removedLocalIDs) {
+        _items.remove(localID);
+      }
+      _items.addAll(event.upserts);
       safeSetState();
     });
   }
@@ -93,7 +98,7 @@ class _BackupStatusScreenState extends State<BackupStatusScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<BackupItem> items = this.items.values.toList().sorted(
+    final List<BackupItem> items = _items.values.toList().sorted(
       (a, b) => a.status.index.compareTo(b.status.index),
     );
 
