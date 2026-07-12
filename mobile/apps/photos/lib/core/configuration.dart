@@ -35,6 +35,7 @@ import 'package:photos/gateways/users/models/key_attributes.dart';
 import 'package:photos/gateways/users/models/key_gen_result.dart';
 import 'package:photos/gateways/users/models/private_key_attributes.dart';
 import 'package:photos/module/upload/service/file_uploader.dart';
+import 'package:photos/module/upload/upload_artifact.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/favorites_service.dart';
@@ -167,7 +168,7 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
         final files = tempDocumentsDir.listSync();
         for (final file in files) {
           if (file is File) {
-            if (file.path.contains(uploadTempFilePrefix)) {
+            if (isUploadTempArtifactPath(file.path)) {
               skippedTempUploadFiles++;
               continue;
             }

@@ -30,11 +30,11 @@ import "package:photos/models/backup/backup_item_status.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import "package:photos/models/user_details.dart";
-import "package:photos/module/download/file.dart";
 import "package:photos/module/metadata/exif.dart";
 import 'package:photos/module/upload/model/media_upload_data.dart';
 import 'package:photos/module/upload/model/upload_url.dart';
 import "package:photos/module/upload/service/multipart.dart";
+import 'package:photos/module/upload/service/upload_artifact_lifecycle.dart';
 import "package:photos/module/upload/upload_data.dart";
 import "package:photos/module/upload/upload_metadata.dart";
 import "package:photos/service_locator.dart";
@@ -68,6 +68,10 @@ class FileUploader {
   final LinkedHashMap<String, BackupItem> _allBackups =
       LinkedHashMap<String, BackupItem>();
   final _uploadLocks = UploadLocksDB.instance;
+  final _uploadArtifactLifecycle = UploadArtifactLifecycle(
+    UploadLocksDB.instance,
+    FilesDB.instance,
+  );
   final kSafeBufferForLockExpiry = const Duration(hours: 4).inMicroseconds;
   final kBGTaskDeathTimeout = const Duration(seconds: 5).inMicroseconds;
   // Track used upload URLs to detect race conditions
@@ -91,11 +95,6 @@ class FileUploader {
   late ProcessType _processType;
   late SharedPreferences _prefs;
 
-  // _hasInitiatedForceUpload is used to track if user attempted force upload
-  // where files are uploaded directly (without adding them to DB). In such
-  // cases, we don't want to clear the stale upload files. See #removeStaleFiles
-  // as it can result in clearing files which are still being force uploaded.
-  bool _hasInitiatedForceUpload = false;
   late MultiPartUploader _multiPartUploader;
   StreamSubscription<LocalPhotosUpdatedEvent>? _localPhotosUpdatedSubscription;
 
@@ -384,78 +383,8 @@ class FileUploader {
     }
   }
 
-  Future<void> removeStaleFiles() async {
-    if (_hasInitiatedForceUpload) {
-      _logger.info("Force upload was initiated, skipping stale file cleanup");
-      return;
-    }
-    try {
-      final String dir = Configuration.instance.getTempDirectory();
-      // delete all files in the temp directory that start with upload_ and
-      // ends with .encrypted. Fetch files in async manner
-      final files = await Directory(dir).list().toList();
-      final filesToDelete = files.where((file) {
-        return file.path.contains(uploadTempFilePrefix) &&
-            file.path.contains(".encrypted");
-      });
-      if (filesToDelete.isNotEmpty) {
-        _logger.info('Deleting ${filesToDelete.length} stale upload files ');
-        final fileNameToLastAttempt = await _uploadLocks
-            .getFileNameToLastAttemptedAtMap();
-        for (final file in filesToDelete) {
-          final fileName = file.path.split('/').last;
-          final lastAttemptTime = fileNameToLastAttempt[fileName] != null
-              ? DateTime.fromMillisecondsSinceEpoch(
-                  fileNameToLastAttempt[fileName]!,
-                )
-              : null;
-          if (lastAttemptTime == null ||
-              DateTime.now().difference(lastAttemptTime).inDays > 1) {
-            await _deleteStaleFileIfPresent(file);
-          } else {
-            _logger.info(
-              'Skipping file $fileName as it was attempted recently on $lastAttemptTime',
-            );
-          }
-        }
-      }
-
-      if (Platform.isAndroid) {
-        final sharedMediaDir =
-            Configuration.instance.getSharedMediaDirectory() + "/";
-        final sharedFiles = await Directory(sharedMediaDir).list().toList();
-        if (sharedFiles.isNotEmpty) {
-          _logger.info('Shared media directory cleanup ${sharedFiles.length}');
-          final int ownerID = Configuration.instance.getUserID()!;
-          final existingLocalFileIDs = await FilesDB.instance
-              .getExistingLocalFileIDs(ownerID);
-          final Set<String> trackedSharedFilePaths = {};
-          for (String localID in existingLocalFileIDs) {
-            if (localID.contains(sharedMediaIdentifier)) {
-              trackedSharedFilePaths.add(
-                getSharedMediaPathFromLocalID(localID),
-              );
-            }
-          }
-          for (final file in sharedFiles) {
-            if (!trackedSharedFilePaths.contains(file.path)) {
-              _logger.info('Deleting stale shared media file ${file.path}');
-              await _deleteStaleFileIfPresent(file);
-            }
-          }
-        }
-      }
-    } catch (e, s) {
-      _logger.severe("Failed to remove stale files", e, s);
-    }
-  }
-
-  Future<void> _deleteStaleFileIfPresent(FileSystemEntity file) async {
-    final deleted = await deleteFileSystemEntityIfPresent(file);
-    if (!deleted) {
-      _logger.info("Stale file already missing during cleanup: ${file.path}");
-    }
-  }
+  Future<void> removeStaleFiles() =>
+      _uploadArtifactLifecycle.removeStaleFiles();
 
   Future<void> checkNetworkForUpload({bool isForceUpload = false}) async {
     // Note: We don't support force uploading currently. During force upload,
@@ -494,28 +423,29 @@ class FileUploader {
     }
   }
 
-  Future<EnteFile> forceUpload(EnteFile file, int collectionID) async {
-    _hasInitiatedForceUpload = true;
-    final isInQueue = _allBackups[file.localID!] != null;
-    try {
-      final result = await _tryToUpload(file, collectionID, true);
-      if (isInQueue) {
-        _allBackups[file.localID!] = _allBackups[file.localID]!.copyWith(
-          status: BackupItemStatus.uploaded,
-        );
-        Bus.instance.fire(BackupUpdatedEvent(_allBackups));
+  Future<EnteFile> forceUpload(EnteFile file, int collectionID) {
+    return _uploadArtifactLifecycle.runForceUpload(() async {
+      final isInQueue = _allBackups[file.localID!] != null;
+      try {
+        final result = await _tryToUpload(file, collectionID, true);
+        if (isInQueue) {
+          _allBackups[file.localID!] = _allBackups[file.localID]!.copyWith(
+            status: BackupItemStatus.uploaded,
+          );
+          Bus.instance.fire(BackupUpdatedEvent(_allBackups));
+        }
+        return result;
+      } catch (error) {
+        if (isInQueue) {
+          _allBackups[file.localID!] = _allBackups[file.localID]!.copyWith(
+            status: BackupItemStatus.retry,
+            error: error,
+          );
+          Bus.instance.fire(BackupUpdatedEvent(_allBackups));
+        }
+        rethrow;
       }
-      return result;
-    } catch (error) {
-      if (isInQueue) {
-        _allBackups[file.localID!] = _allBackups[file.localID]!.copyWith(
-          status: BackupItemStatus.retry,
-          error: error,
-        );
-        Bus.instance.fire(BackupUpdatedEvent(_allBackups));
-      }
-      rethrow;
-    }
+    });
   }
 
   Future<EnteFile> _tryToUpload(
