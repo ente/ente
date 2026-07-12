@@ -1,6 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import "dart:async";
-import "dart:collection";
 
 import "package:collection/collection.dart";
 import "package:ente_components/ente_components.dart";
@@ -25,7 +24,7 @@ class BackupStatusScreen extends StatefulWidget {
 }
 
 class _BackupStatusScreenState extends State<BackupStatusScreen> {
-  LinkedHashMap<String, BackupItem> items = FileUploader.instance.allBackups;
+  Map<String, BackupItem> items = FileUploader.instance.allBackups;
   List<BackupItem>? result;
   StreamSubscription? _fileUploadedSubscription;
   StreamSubscription? _backupUpdatedSubscription;
