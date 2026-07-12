@@ -411,11 +411,7 @@ class FileUploader {
     }
 
     final String? existingMultipartEncFileName = await _uploadLocks
-        .getEncryptedFileName(
-          lockKey,
-          mediaUploadData.hashData.fileHash,
-          collectionID,
-        );
+        .getEncryptedFileName(lockKey, mediaUploadData.fileHash, collectionID);
     final sourceLength = await mediaUploadData.sourceFile.length();
     final bool hasExistingMultiPart = existingMultipartEncFileName != null;
     final tempDirectory = Configuration.instance.getTempDirectory();
@@ -447,7 +443,7 @@ class FileUploader {
       final FileEncryptResult? multiPartFileEncResult = hasExistingMultiPart
           ? await _multiPartUploader.getEncryptionResult(
               lockKey,
-              mediaUploadData.hashData.fileHash,
+              mediaUploadData.fileHash,
               collectionID,
               existingMultipartEncFileName,
             )
@@ -590,7 +586,7 @@ class FileUploader {
           fileObjectKey = await _multiPartUploader.putExistingMultipartFile(
             encryptedFile,
             lockKey,
-            mediaUploadData.hashData.fileHash,
+            mediaUploadData.fileHash,
             collectionID,
             existingMultipartEncFileName,
           );
@@ -611,7 +607,7 @@ class FileUploader {
           final encFileName = encryptedFile.path.split('/').last;
           await _multiPartUploader.createTableEntry(
             lockKey,
-            mediaUploadData.hashData.fileHash,
+            mediaUploadData.fileHash,
             collectionID,
             fileUploadURLs,
             encFileName,
@@ -875,8 +871,8 @@ class FileUploader {
     final bool isSandBoxFile = fileToUpload.isSharedMediaToAppSandbox;
 
     final List<EnteFile> existingUploadedFiles = await FilesDB.instance
-        .getUploadedFilesWithHashes(
-          mediaUploadData.hashData,
+        .getUploadedFilesWithHash(
+          mediaUploadData.fileHash,
           fileToUpload.fileType,
           Configuration.instance.getUserID()!,
         );

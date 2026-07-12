@@ -41,8 +41,8 @@ Future<MediaUploadData> getUploadDataFromEnteFile(EnteFile file) async {
   }
 }
 
-/// Computes only the hashes needed to decide whether a local file changed.
-Future<FileHashData> getFileContentIdentity(EnteFile file) async {
+/// Computes the content hash used to decide whether a local file changed.
+Future<String> getFileContentIdentity(EnteFile file) async {
   if (file.isSharedMediaToAppSandbox) {
     final sourceFile = File(getSharedMediaFilePath(file));
     if (!sourceFile.existsSync()) {
@@ -51,9 +51,7 @@ Future<FileHashData> getFileContentIdentity(EnteFile file) async {
         InvalidReason.sourceFileMissing,
       );
     }
-    return FileHashData(
-      CryptoUtil.bin2base64(await CryptoUtil.getHash(sourceFile)),
-    );
+    return CryptoUtil.bin2base64(await CryptoUtil.getHash(sourceFile));
   }
 
   final asset = await _getAsset(file);
@@ -63,14 +61,9 @@ Future<FileHashData> getFileContentIdentity(EnteFile file) async {
       await CryptoUtil.getHash(sourceFile),
     );
     if (file.fileType == FileType.livePhoto && Platform.isIOS) {
-      final livePhoto = await getLivePhotoHashDataForComparison(
-        file,
-        sourceFile,
-        sourceHash,
-      );
-      return FileHashData(livePhoto.fileHash, zipHash: livePhoto.zipHash);
+      return getLivePhotoFileHash(file, sourceHash);
     }
-    return FileHashData(sourceHash);
+    return sourceHash;
   } finally {
     if (Platform.isIOS) {
       await deleteFileSystemEntityIfPresent(sourceFile);
@@ -82,7 +75,6 @@ Future<MediaUploadData> _getMediaUploadDataFromAssetFile(EnteFile file) async {
   File? sourceFile;
   Uint8List? thumbnailData;
   bool isDeleted;
-  String? zipHash;
   String fileHash;
   Map<String, IfdTag>? exifData;
   String? cameraMake;
@@ -114,7 +106,6 @@ Future<MediaUploadData> _getMediaUploadDataFromAssetFile(EnteFile file) async {
       );
       sourceFile = livePhoto.sourceFile;
       fileHash = livePhoto.fileHash;
-      zipHash = livePhoto.zipHash;
     }
 
     thumbnailData = await _getThumbnailForUpload(asset, file);
@@ -144,7 +135,7 @@ Future<MediaUploadData> _getMediaUploadDataFromAssetFile(EnteFile file) async {
       sourceFile: sourceFile,
       thumbnail: thumbnailData,
       isDeleted: isDeleted,
-      hashData: FileHashData(fileHash, zipHash: zipHash),
+      fileHash: fileHash,
       derivedMetadata: DerivedMediaMetadata(
         height: h,
         width: w,
@@ -356,7 +347,7 @@ Future<MediaUploadData> _getMediaUploadDataFromAppCache(EnteFile file) async {
     sourceFile: sourceFile,
     thumbnail: thumbnailData,
     isDeleted: isDeleted,
-    hashData: FileHashData(fileHash),
+    fileHash: fileHash,
     derivedMetadata: DerivedMediaMetadata(
       height: dimensions?.height,
       width: dimensions?.width,

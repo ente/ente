@@ -40,7 +40,7 @@ Future<PreparedUploadMetadata> prepareUploadMetadata(
     } catch (_) {}
     isPanorama ??= false;
   }
-  file.hash = mediaUploadData.hashData.fileHash;
+  file.hash = mediaUploadData.fileHash;
   return PreparedUploadMetadata(
     canonicalMetadata: file.metadata,
     publicMetadata: _buildPublicMetadata(

@@ -13,13 +13,7 @@ import 'package:photos/models/file/file.dart';
 import 'package:photos/module/live_photo/archive.dart';
 import 'package:uuid/uuid.dart';
 
-typedef LivePhotoUploadData = ({
-  File sourceFile,
-  String fileHash,
-  String zipHash,
-});
-
-typedef LivePhotoHashData = ({String fileHash, String? zipHash});
+typedef LivePhotoUploadData = ({File sourceFile, String fileHash});
 
 typedef _LivePhotoVideoData = ({File file, String fileHash});
 
@@ -43,47 +37,15 @@ Future<LivePhotoUploadData> prepareLivePhotoForUpload(
     // photo_manager can return the same iOS temp copy to concurrent upload or
     // hash-check paths, where cleanup may have already run.
     await deleteFileSystemEntityIfPresent(imageFile);
-    final zipHash = CryptoUtil.bin2base64(
-      await CryptoUtil.getHash(archiveFile),
-    );
-    return (
-      sourceFile: archiveFile,
-      fileHash: videoData.fileHash,
-      zipHash: zipHash,
-    );
+    return (sourceFile: archiveFile, fileHash: videoData.fileHash);
   } catch (_) {
     await deleteFileSystemEntityIfPresent(archiveFile);
     rethrow;
   }
 }
 
-/// Computes the modern component hash first and creates the legacy ZIP only
-/// when it is still needed to compare an older stored hash.
-Future<LivePhotoHashData> getLivePhotoHashDataForComparison(
-  EnteFile file,
-  File imageFile,
-  String imageHash,
-) async {
-  final videoData = await _getLivePhotoVideoData(file, imageHash);
-  final storedHash = file.hash;
-  if (storedHash == null ||
-      storedHash == videoData.fileHash ||
-      storedHash.contains(kLivePhotoHashSeparator)) {
-    return (fileHash: videoData.fileHash, zipHash: null);
-  }
-  final archiveFile = await _createLivePhotoArchiveFile(
-    file,
-    imageFile,
-    videoData.file,
-  );
-  try {
-    return (
-      fileHash: videoData.fileHash,
-      zipHash: CryptoUtil.bin2base64(await CryptoUtil.getHash(archiveFile)),
-    );
-  } finally {
-    await deleteFileSystemEntityIfPresent(archiveFile);
-  }
+Future<String> getLivePhotoFileHash(EnteFile file, String imageHash) async {
+  return (await _getLivePhotoVideoData(file, imageHash)).fileHash;
 }
 
 Future<_LivePhotoVideoData> _getLivePhotoVideoData(

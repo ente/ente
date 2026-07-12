@@ -148,10 +148,8 @@ class LocalFileUpdateService {
         continue;
       }
       try {
-        final contentIdentity = await getFileContentIdentity(file);
-        if (file.hash != null &&
-            (file.hash == contentIdentity.fileHash ||
-                file.hash == contentIdentity.zipHash)) {
+        final contentHash = await getFileContentIdentity(file);
+        if (file.hash != null && file.hash == contentHash) {
           _logger.info("Skip file update as hash matched ${file.tag}");
         } else {
           _logger.info(
