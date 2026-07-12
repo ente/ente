@@ -385,9 +385,15 @@ class FileUploader {
         _processType.toString(),
         DateTime.now().microsecondsSinceEpoch,
       );
-    } catch (e) {
+    } catch (e, s) {
       final lockInfo = await _uploadLocks.getLockData(lockKey);
-      _logger.warning("Lock was already taken ($lockInfo) for " + file.tag);
+      _logger.warning(
+        "Upload lock acquisition failed for ${file.tag}: "
+        "targetCollectionID=$collectionID, requestOwner=$_processType, "
+        "forcedUpload=$forcedUpload, lock=$lockInfo",
+        e,
+        s,
+      );
       throw LockAlreadyAcquiredError();
     }
 
@@ -1371,27 +1377,56 @@ class FileUploader {
   Future<void> _pollBackgroundUploadStatus() async {
     final blockedUploads = _queue.backgroundItems;
     for (final upload in blockedUploads) {
-      final file = upload.file;
-      final isStillLocked = await _uploadLocks.isLocked(
-        file.localID!,
-        ProcessType.background.toString(),
-      );
-      if (!isStillLocked) {
-        final dbFile = await FilesDB.instance.getFile(upload.file.generatedID!);
-        if (dbFile?.uploadedFileID != null) {
-          _logger.info("Background upload success detected ${upload.file.tag}");
-          _queue.complete(upload, dbFile!);
-        } else {
-          _logger.info("Background upload failure detected ${upload.file.tag}");
-          // The upload status is marked as in background, but the file is not locked
-          // by the background process. Release any lock taken by the foreground process
-          // and complete the completer with error.
-          await _uploadLocks.releaseLock(
-            file.localID!,
-            ProcessType.foreground.toString(),
-          );
-          _queue.fail(upload, SilentlyCancelUploadsError());
+      try {
+        final file = upload.file;
+        final isStillLocked = await _uploadLocks.isLocked(
+          file.localID!,
+          ProcessType.background.toString(),
+        );
+        if (!isStillLocked) {
+          final dbFile = await FilesDB.instance.getFile(file.generatedID!);
+          final persistedState =
+              "targetCollectionID=${upload.collectionID}, "
+              "backgroundLockPresent=false, "
+              "persistedFile=${dbFile != null}, "
+              "uploadedFileID=${dbFile?.uploadedFileID}, "
+              "updationTime=${dbFile?.updationTime}, "
+              "persistedCollectionID=${dbFile?.collectionID}";
+          if (dbFile?.uploadedFileID != null) {
+            _logger.info(
+              "Background upload success detected ${file.tag}: "
+              "$persistedState",
+            );
+            _queue.complete(upload, dbFile!);
+          } else {
+            _logger.warning(
+              "Background upload failure detected ${file.tag}: "
+              "$persistedState",
+            );
+            // The upload status is marked as in background, but the file is not locked
+            // by the background process. Release any lock taken by the foreground process
+            // and complete the completer with error.
+            final releasedForegroundLocks = await _uploadLocks.releaseLock(
+              file.localID!,
+              ProcessType.foreground.toString(),
+            );
+            if (releasedForegroundLocks > 0) {
+              _logger.warning(
+                "Released a foreground upload lock while reconciling "
+                "${file.tag}: targetCollectionID=${upload.collectionID}",
+              );
+            }
+            _queue.fail(upload, SilentlyCancelUploadsError());
+          }
         }
+      } catch (e, s) {
+        _logger.severe(
+          "Background upload status polling stopped while checking "
+          "${upload.file.tag}: targetCollectionID=${upload.collectionID}",
+          e,
+          s,
+        );
+        rethrow;
       }
     }
     Future.delayed(kBlockedUploadsPollFrequency, () async {
