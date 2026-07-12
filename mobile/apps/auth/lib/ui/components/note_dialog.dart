@@ -143,6 +143,7 @@ Future<void> showNotesDialog(BuildContext context, String note) async {
                                     customBorder: const CircleBorder(),
                                     onTap: () async {
                                       await FlutterClipboard.copy(trimmedNote);
+                                      if (!dialogContext.mounted) return;
                                       Navigator.of(dialogContext).pop();
                                       showToast(
                                         dialogContext,

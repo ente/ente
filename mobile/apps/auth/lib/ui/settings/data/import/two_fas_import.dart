@@ -44,6 +44,7 @@ Future<void> show2FasImportInstruction(BuildContext context) async {
     ],
   );
   if (result?.action != null && result!.action != ButtonAction.cancel) {
+    if (!context.mounted) return;
     if (result.action == ButtonAction.first) {
       await _pick2FasFile(context);
     } else {}
@@ -58,21 +59,25 @@ Future<void> _pick2FasFile(BuildContext context) async {
   if (result == null) {
     return;
   }
+  if (!context.mounted) return;
   final ProgressDialog progressDialog = createProgressDialog(
     context,
     l10n.pleaseWait,
   );
 
   try {
+    if (!context.mounted) return;
     String path = result.files.single.path!;
     int? count = await _process2FasExportFile(context, path, progressDialog);
     await progressDialog.hide();
     if (count != null) {
+      if (!context.mounted) return;
       await importSuccessDialog(context, count);
     }
   } catch (e, s) {
     Logger('2FASImport').severe('exception while processing import', e, s);
     await progressDialog.hide();
+    if (!context.mounted) return;
     await showErrorDialog(
       context,
       context.l10n.sorry,
@@ -90,7 +95,9 @@ Future<int?> _process2FasExportFile(
   final decodedJson = jsonDecode(jsonString);
   int version = (decodedJson['schemaVersion'] ?? 0) as int;
   if (version != 3 && version != 4) {
+    if (!context.mounted) return null;
     await dialog.hide();
+    if (!context.mounted) return null;
     // todo: extract strings for l10n. Use same naming format as in aegis
     // to avoid duplicate translation efforts.
     await showErrorDialog(
@@ -114,6 +121,7 @@ Future<int?> _process2FasExportFile(
   // https://github.com/twofas/2fas-android/blob/e97f1a1040eafaed6d5284d54d33403dff215886/data/services/src/main/java/com/twofasapp/data/services/domain/BackupContent.kt#L39
   final isEncrypted = decodedJson['reference'] != null;
   if (isEncrypted) {
+    if (!context.mounted) return null;
     String? password;
     try {
       await showTextInputDialog(
@@ -136,6 +144,7 @@ Future<int?> _process2FasExportFile(
       Logger("2FASImport").warning("exception while decrypting  backup", e, s);
       await dialog.hide();
       if (password != null) {
+        if (!context.mounted) return null;
         await showErrorDialog(
           context,
           context.l10n.failedToDecrypt2FASExport,

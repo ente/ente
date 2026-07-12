@@ -85,7 +85,9 @@ class _ShareCodeDialogState extends State<ShareCodeDialog> {
           labelText: context.l10n.share,
           onTap: () async {
             try {
+              if (!context.mounted) return;
               await shareCode(selectedValue);
+              if (!context.mounted) return;
               Navigator.of(context).pop();
             } catch (e, s) {
               logger.severe('Failed to generate shared codes', e, s);
@@ -120,6 +122,7 @@ class _ShareCodeDialogState extends State<ShareCodeDialog> {
     String url =
         'https://auth.ente.com/share?data=${_uint8ListToUrlSafeBase64(encResult.encryptedData!)}&header=${_uint8ListToUrlSafeBase64(encResult.header!)}#${_uint8ListToUrlSafeBase64(key)}';
     try {
+      if (!mounted) return;
       await shareText(url, context: context);
     } catch (e) {
       logger.warning('Failed to share code: ${e.toString()}');

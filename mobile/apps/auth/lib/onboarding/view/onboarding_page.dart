@@ -63,6 +63,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     _triggerLogoutEvent = Bus.instance.on<TriggerLogoutEvent>().listen((
       event,
     ) async {
+      if (!mounted) return;
       await autoLogoutAlert(context);
     });
     _startAutoScroll();
@@ -98,6 +99,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 GestureDetector(
                   onTap: () async {
                     final locale = (await getLocale())!;
+                    if (!context.mounted) return;
                     unawaited(
                       routeToPage(
                         context,
@@ -105,6 +107,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           locale,
                         ) async {
                           await setLocale(locale);
+                          if (!context.mounted) return;
                           App.setLocale(context, locale);
                         }, locale),
                       ).then((value) {
@@ -242,6 +245,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         Platform.isWindows ||
         await LocalAuthentication().canCheckBiometrics;
     if (!canCheckBio) {
+      if (!mounted) return;
       showToast(
         context,
         "Sorry, biometric authentication is not supported on this device.",
@@ -251,6 +255,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final bool hasOptedBefore = Configuration.instance.hasOptedForOfflineMode();
     ButtonResult? result;
     if (!hasOptedBefore) {
+      if (!mounted) return;
       result = await showChoiceActionSheet(
         context,
         title: context.l10n.warning,
@@ -260,7 +265,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
       );
     }
     if (hasOptedBefore || result?.action == ButtonAction.first) {
+      if (!context.mounted) return;
       await Configuration.instance.optForOfflineMode();
+      if (!mounted) return;
       unawaited(
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(

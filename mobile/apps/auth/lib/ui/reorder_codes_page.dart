@@ -46,6 +46,7 @@ class _ReorderCodesPageState extends State<ReorderCodesPage> {
             onTap: () async {
               final hasSaved = await saveUpadedIndexes();
               if (hasSaved) {
+                if (!context.mounted) return;
                 Navigator.of(context).pop();
               }
             },

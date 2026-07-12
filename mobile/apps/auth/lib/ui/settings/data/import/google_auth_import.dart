@@ -54,6 +54,7 @@ Future<void> showGoogleAuthInstruction(BuildContext context) async {
     return;
   }
   if (action == ButtonAction.first) {
+    if (!context.mounted) return;
     final List<Code>? codes = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (BuildContext context) {
@@ -65,9 +66,11 @@ Future<void> showGoogleAuthInstruction(BuildContext context) async {
       return;
     }
     final importedCount = await importGoogleAuthCodes(codes);
+    if (!context.mounted) return;
     // ignore: unawaited_futures
     importSuccessDialog(context, importedCount);
   } else if (action == ButtonAction.second) {
+    if (!context.mounted) return;
     await _importGoogleAuthFromImage(context);
   }
 }
@@ -82,6 +85,7 @@ Future<void> _importGoogleAuthFromImage(BuildContext context) async {
   }
   final codes = importResult.googleAuthCodes;
   if (codes == null || codes.isEmpty) {
+    if (!context.mounted) return;
     await showErrorDialog(
       context,
       context.l10n.errorInvalidQRCode,
@@ -89,11 +93,13 @@ Future<void> _importGoogleAuthFromImage(BuildContext context) async {
     );
     return;
   }
+  if (!context.mounted) return;
   final shouldImport = await confirmGoogleAuthImport(context, codes.length);
   if (!shouldImport) {
     return;
   }
   final importedCount = await importGoogleAuthCodes(codes);
+  if (!context.mounted) return;
   // ignore: unawaited_futures
   importSuccessDialog(context, importedCount);
 }

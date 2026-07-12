@@ -41,6 +41,7 @@ class _AuthQrDialogState extends State<AuthQrDialog> {
 
   Future<void> _shareQrCode() async {
     try {
+      if (!mounted) return;
       final boundary =
           _qrKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return;
@@ -56,6 +57,7 @@ class _AuthQrDialogState extends State<AuthQrDialog> {
       final file = File('${directory.path}/${widget.shareFileName}');
       await file.writeAsBytes(pngBytes);
 
+      if (!mounted) return;
       final box = context.findRenderObject() as RenderBox?;
       final shareOrigin = box != null
           ? box.localToGlobal(Offset.zero) & box.size

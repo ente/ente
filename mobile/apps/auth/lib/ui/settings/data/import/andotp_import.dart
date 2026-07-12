@@ -45,6 +45,7 @@ Future<void> showAndOTPImportInstruction(BuildContext context) async {
     ],
   );
   if (result?.action != null && result!.action != ButtonAction.cancel) {
+    if (!context.mounted) return;
     if (result.action == ButtonAction.first) {
       await _pickAndOTPFile(context);
     }
@@ -62,21 +63,25 @@ Future<void> _pickAndOTPFile(BuildContext context) async {
   if (result == null) {
     return;
   }
+  if (!context.mounted) return;
   final ProgressDialog progressDialog = createProgressDialog(
     context,
     l10n.pleaseWait,
   );
 
   try {
+    if (!context.mounted) return;
     String path = result.files.single.path!;
     final count = await _processAndOTPFile(context, path, progressDialog);
     await progressDialog.hide();
     if (count != null) {
+      if (!context.mounted) return;
       await importSuccessDialog(context, count);
     }
   } catch (e, s) {
     _logger.severe('Exception while processing andOTP import', e, s);
     await progressDialog.hide();
+    if (!context.mounted) return;
     await showErrorDialog(
       context,
       l10n.sorry,
@@ -109,6 +114,7 @@ Future<int?> _processAndOTPFile(
     entries = jsonDecode(jsonString) as List<dynamic>;
     await dialog.show();
   } catch (e) {
+    if (!context.mounted) return null;
     // If JSON parsing fails, assume it's encrypted
     String? password;
     try {
@@ -134,6 +140,7 @@ Future<int?> _processAndOTPFile(
       _logger.warning("Exception while decrypting andOTP backup", e, s);
       await dialog.hide();
       if (password != null) {
+        if (!context.mounted) return null;
         await showErrorDialog(
           context,
           context.l10n.failedToDecryptAndOTPBackup,

@@ -118,6 +118,7 @@ class _SecuritySectionWidgetState extends State<SecuritySectionWidget> {
                   context.l10n.authToViewYourActiveSessions,
                 );
             if (hasAuthenticated) {
+              if (!context.mounted) return;
               // ignore: unawaited_futures
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -159,12 +160,14 @@ class _SecuritySectionWidgetState extends State<SecuritySectionWidget> {
               return;
             }
           }
+          if (!context.mounted) return;
           final hasAuthenticated = await LocalAuthenticationService.instance
               .requestLocalAuthentication(
                 context,
                 context.l10n.authToChangeLockscreenSetting,
               );
           if (hasAuthenticated) {
+            if (!context.mounted) return;
             await Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (BuildContext context) {
@@ -182,6 +185,7 @@ class _SecuritySectionWidgetState extends State<SecuritySectionWidget> {
 
   Future<void> onPasskeyClick(BuildContext buildContext) async {
     try {
+      if (!buildContext.mounted) return;
       final hasAuthenticated = await LocalAuthenticationService.instance
           .requestLocalAuthentication(
             context,
@@ -204,19 +208,23 @@ class _SecuritySectionWidgetState extends State<SecuritySectionWidget> {
           CryptoUtil.bin2base64(encryptionResult.nonce!),
         );
       }
+      if (!buildContext.mounted) return;
       await PasskeyService.instance.openPasskeyPage(buildContext);
     } catch (e, s) {
       _logger.severe("failed to open passkey page", e, s);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }
 
   Future<void> updateEmailMFA(bool enableEmailMFA) async {
     try {
+      if (!context.mounted) return;
       final UserDetails details = await UserService.instance.getUserDetailsV2(
         memoryCount: false,
       );
       if (details.profileData?.canDisableEmailMFA == false) {
+        if (!mounted) return;
         await routeToPage(
           context,
           RequestPasswordVerificationPage(
@@ -231,6 +239,7 @@ class _SecuritySectionWidgetState extends State<SecuritySectionWidget> {
         );
       }
       if (enableEmailMFA) {
+        if (!mounted) return;
         await showChoiceActionSheet(
           context,
           title: context.l10n.warning,
@@ -246,6 +255,7 @@ class _SecuritySectionWidgetState extends State<SecuritySectionWidget> {
         await UserService.instance.updateEmailMFA(enableEmailMFA);
       }
     } catch (e) {
+      if (!mounted) return;
       showToast(context, context.l10n.somethingWentWrongMessage);
     }
   }

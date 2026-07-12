@@ -894,6 +894,7 @@ class _CodeWidgetState extends State<CodeWidget> {
         .shouldMinimizeOnCopy();
 
     await FlutterClipboard.copy(content);
+    if (!mounted) return;
     showToast(context, confirmationMessage);
     if (Platform.isAndroid && shouldMinimizeOnCopy) {
       // ignore: unawaited_futures
@@ -917,6 +918,7 @@ class _CodeWidgetState extends State<CodeWidget> {
     if (!isAuthSuccessful) {
       return;
     }
+    if (!mounted) return;
     final Code? code = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (BuildContext context) {
@@ -944,6 +946,7 @@ class _CodeWidgetState extends State<CodeWidget> {
         .replaceAll('algorithm=sha256', 'algorithm=SHA256')
         .replaceAll('algorithm=sha512', 'algorithm=SHA512');
 
+    if (!mounted) return;
     await showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -972,6 +975,7 @@ class _CodeWidgetState extends State<CodeWidget> {
     if (!isAuthSuccessful) {
       return;
     }
+    if (!mounted) return;
     showShareDialog(context, widget.code);
   }
 
@@ -984,17 +988,17 @@ class _CodeWidgetState extends State<CodeWidget> {
     final Code code = widget.code.copyWith(
       display: display.copyWith(pinned: !currentlyPinned),
     );
+    if (!mounted) return;
     unawaited(
-      CodeStore.instance
-          .addCode(code)
-          .then(
-            (value) => showToast(
-              context,
-              !currentlyPinned
-                  ? context.l10n.pinnedCodeMessage(widget.code.issuer)
-                  : context.l10n.unpinnedCodeMessage(widget.code.issuer),
-            ),
-          ),
+      CodeStore.instance.addCode(code).then((value) {
+        if (!mounted) return;
+        showToast(
+          context,
+          !currentlyPinned
+              ? context.l10n.pinnedCodeMessage(widget.code.issuer)
+              : context.l10n.unpinnedCodeMessage(widget.code.issuer),
+        );
+      }),
     );
   }
 
@@ -1014,8 +1018,10 @@ class _CodeWidgetState extends State<CodeWidget> {
     if (!isAuthSuccessful) {
       return;
     }
+    if (!mounted) return;
     FocusScope.of(context).requestFocus();
     final l10n = context.l10n;
+    if (!mounted) return;
     await showChoiceActionSheet(
       context,
       title: l10n.deleteCodeTitle,
@@ -1028,6 +1034,7 @@ class _CodeWidgetState extends State<CodeWidget> {
           LocalBackupService.instance.triggerDailyBackupIfNeeded().ignore();
         } catch (e, s) {
           logger.severe('Failed to delete code', e, s);
+          if (!mounted) return;
           showGenericErrorDialog(context: context, error: e).ignore();
         }
       },
@@ -1050,11 +1057,13 @@ class _CodeWidgetState extends State<CodeWidget> {
     if (!isAuthSuccessful) {
       return;
     }
+    if (!mounted) return;
     FocusScope.of(context).requestFocus();
     final l10n = context.l10n;
     final String issuerAccount = widget.code.account.isNotEmpty
         ? '${widget.code.issuer} (${widget.code.account})'
         : widget.code.issuer;
+    if (!mounted) return;
     await showChoiceActionSheet(
       context,
       title: l10n.trashCode,
@@ -1070,6 +1079,7 @@ class _CodeWidgetState extends State<CodeWidget> {
           await CodeStore.instance.addCode(code);
         } catch (e) {
           logger.severe('Failed to trash code: ${e.toString()}');
+          if (!mounted) return;
           showGenericErrorDialog(context: context, error: e).ignore();
         }
       },

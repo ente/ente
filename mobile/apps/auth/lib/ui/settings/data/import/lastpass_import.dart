@@ -40,6 +40,7 @@ Future<void> showLastpassImportInstruction(BuildContext context) async {
     ],
   );
   if (result?.action != null && result!.action != ButtonAction.cancel) {
+    if (!context.mounted) return;
     if (result.action == ButtonAction.first) {
       await _pickLastpassJsonFile(context);
     }
@@ -52,18 +53,22 @@ Future<void> _pickLastpassJsonFile(BuildContext context) async {
   if (result == null) {
     return;
   }
+  if (!context.mounted) return;
   final progressDialog = createProgressDialog(context, l10n.pleaseWait);
   await progressDialog.show();
   try {
+    if (!context.mounted) return;
     String path = result.files.single.path!;
     int? count = await _processLastpassExportFile(context, path);
     await progressDialog.hide();
     if (count != null) {
+      if (!context.mounted) return;
       await importSuccessDialog(context, count);
     }
   } catch (e, s) {
     Logger('LastPassImport').severe('exception while processing import', e, s);
     await progressDialog.hide();
+    if (!context.mounted) return;
     await showErrorDialog(
       context,
       context.l10n.sorry,

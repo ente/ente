@@ -70,6 +70,7 @@ class DataSectionWidget extends StatelessWidget {
               .instance
               .getDuplicateCodes();
           if (duplicateCodes.isEmpty) {
+            if (!context.mounted) return;
             unawaited(
               showChoiceDialog(
                 context,
@@ -81,6 +82,7 @@ class DataSectionWidget extends StatelessWidget {
             );
             return;
           }
+          if (!context.mounted) return;
           await routeToPage(
             context,
             DuplicateCodePage(duplicateCodes: duplicateCodes),

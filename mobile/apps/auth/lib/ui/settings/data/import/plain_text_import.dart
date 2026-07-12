@@ -89,9 +89,11 @@ Future<void> _pickImportFile(BuildContext context) async {
   if (result == null) {
     return;
   }
+  if (!context.mounted) return;
   final progressDialog = createProgressDialog(context, l10n.pleaseWait);
   await progressDialog.show();
   try {
+    if (!context.mounted) return;
     final parsedCodes = [];
     final codes = await readPickedImportFileAsString(result.files.single.path!);
 
@@ -125,9 +127,12 @@ Future<void> _pickImportFile(BuildContext context) async {
     }
     unawaited(AuthenticatorService.instance.onlineSync());
     await progressDialog.hide();
+    if (!context.mounted) return;
     await importSuccessDialog(context, parsedCodes.length);
   } catch (e) {
     await progressDialog.hide();
+    if (!context.mounted) return;
+    if (!context.mounted) return;
     await showErrorDialog(
       context,
       context.l10n.sorry,

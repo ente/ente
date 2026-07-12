@@ -200,9 +200,11 @@ class _DuplicateCodePageState extends State<DuplicateCodePage> {
     if (!isAuthSuccessful) {
       return;
     }
+    if (!mounted) return;
     FocusScope.of(context).requestFocus();
     final l10n = context.l10n;
     final String message = "Are you sure you want to trash $itemCount items?";
+    if (!mounted) return;
     await showChoiceActionSheet(
       context,
       title: l10n.deleteDuplicates,
@@ -211,6 +213,7 @@ class _DuplicateCodePageState extends State<DuplicateCodePage> {
       isCritical: true,
       firstButtonOnTap: () async {
         try {
+          if (!mounted) return;
           for (int idx = 0; idx < _duplicateCodes.length; idx++) {
             if (selectedGrids.contains(idx)) {
               final List<Code> codes = _duplicateCodes[idx].codes;
@@ -223,6 +226,7 @@ class _DuplicateCodePageState extends State<DuplicateCodePage> {
               }
             }
           }
+          if (!mounted) return;
           Navigator.of(context).pop();
         } catch (e) {
           _logger.severe('Failed to trash duplicate codes: ${e.toString()}');

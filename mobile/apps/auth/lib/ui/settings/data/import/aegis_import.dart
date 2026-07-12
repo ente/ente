@@ -48,6 +48,7 @@ Future<void> showAegisImportInstruction(BuildContext context) async {
     ],
   );
   if (result?.action != null && result!.action != ButtonAction.cancel) {
+    if (!context.mounted) return;
     if (result.action == ButtonAction.first) {
       await _pickAegisJsonFile(context);
     } else {}
@@ -62,21 +63,25 @@ Future<void> _pickAegisJsonFile(BuildContext context) async {
   if (result == null) {
     return;
   }
+  if (!context.mounted) return;
   final ProgressDialog progressDialog = createProgressDialog(
     context,
     l10n.pleaseWait,
   );
   await progressDialog.show();
   try {
+    if (!context.mounted) return;
     String path = result.files.single.path!;
     int? count = await _processAegisExportFile(context, path, progressDialog);
     await progressDialog.hide();
     if (count != null) {
+      if (!context.mounted) return;
       await importSuccessDialog(context, count);
     }
   } catch (e, s) {
     Logger('AegisImport').severe('exception while processing for aegis', e, s);
     await progressDialog.hide();
+    if (!context.mounted) return;
     await showErrorDialog(
       context,
       context.l10n.sorry,
@@ -95,9 +100,11 @@ Future<int?> _processAegisExportFile(
   final isEncrypted = decodedJson['header']['slots'] != null;
   Map? aegisDB;
   if (isEncrypted) {
+    if (!context.mounted) return null;
     await dialog.hide();
     String? password;
     try {
+      if (!context.mounted) return null;
       await showTextInputDialog(
         context,
         title: context.l10n.enterPasswordToAegisVault,
@@ -120,6 +127,7 @@ Future<int?> _processAegisExportFile(
       ).warning("exception while decrypting aegis vault", e, s);
       await dialog.hide();
       if (password != null) {
+        if (!context.mounted) return null;
         await showErrorDialog(
           context,
           context.l10n.failedToDecryptAegisVault,

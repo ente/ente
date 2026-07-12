@@ -69,6 +69,7 @@ class AboutSectionWidget extends StatelessWidget {
                           .shouldUpdate();
                       await dialog.hide();
                       if (shouldUpdate) {
+                        if (!context.mounted) return;
                         // ignore: unawaited_futures
                         showDialog(
                           context: context,
@@ -80,6 +81,7 @@ class AboutSectionWidget extends StatelessWidget {
                           barrierColor: Colors.black.withValues(alpha: 0.85),
                         );
                       } else {
+                        if (!context.mounted) return;
                         showShortToast(
                           context,
                           context.l10n.youAreOnTheLatestVersion,

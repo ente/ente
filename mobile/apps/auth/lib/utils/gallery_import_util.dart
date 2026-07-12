@@ -121,6 +121,7 @@ Future<GalleryImportResult?> pickCodeFromGallery(
   final l10n = context.l10n;
 
   try {
+    if (!context.mounted) return null;
     final FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.image,
     );
@@ -146,6 +147,7 @@ Future<GalleryImportResult?> pickCodeFromGallery(
           return parseQrImportPayload(qrResult.content!);
         } catch (e, stackTrace) {
           logger?.severe('Error adding code from QR scan', e, stackTrace);
+          if (!context.mounted) return null;
           await showErrorDialog(
             context,
             l10n.errorInvalidQRCode,
@@ -156,6 +158,7 @@ Future<GalleryImportResult?> pickCodeFromGallery(
         }
       } else {
         logger?.warning('QR scan failed: ${qrResult.error}');
+        if (!context.mounted) return null;
         await showErrorDialog(
           context,
           l10n.errorNoQRCode,
@@ -166,6 +169,7 @@ Future<GalleryImportResult?> pickCodeFromGallery(
       }
     } catch (e, stackTrace) {
       logger?.severe('Failed to import from gallery', e, stackTrace);
+      if (!context.mounted) return null;
       await showErrorDialog(
         context,
         l10n.errorGenericTitle,
@@ -182,6 +186,7 @@ Future<GalleryImportResult?> pickCodeFromGallery(
     }
   } catch (e, stackTrace) {
     logger?.severe('Failed to import from gallery', e, stackTrace);
+    if (!context.mounted) return null;
     await showErrorDialog(
       context,
       l10n.errorGenericTitle,
