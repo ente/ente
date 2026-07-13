@@ -20,7 +20,7 @@
 | 2 | 2.1 | Add and unit-test the fail-closed endpoint policy | M | 🟢 done | Added compile-time endpoint validation, persistent endpoint binding, foreground/background startup gates, locked mutation rejection, authenticated same-origin enforcement, and a local recovery screen. Verified 18 focused tests under normal and locked defines, all 262 Photos tests, and a clean analyzer run. |
 | 2 | 2.2 | Disable endpoint editing and add the locked-build command | S | 🟢 done | Removed the seven-tap editor from locked compilations while retaining the read-only server label. Added and documented a wrapper that shares the runtime validator, rejects define overrides, and applies the arm64 simulator workaround. Verified normal and locked UI/policy tests, all 264 Photos tests, a clean analyzer run, wrapper rejection cases, and a real locked simulator artifact. |
 | 2 | 2.3 | Add the core-only self-hosted iOS target and signing configuration | M | 🟢 done | Added the shared `selfhosted` scheme and `SelfHostedRunner` target with bundle ID `com.vanton1.ente.photos.selfhosted`, local team input, empty entitlements, a separate CocoaPods aggregate, and no extension dependencies. Verified a locked arm64 simulator artifact and reproducible pod installation while preserving the official Runner. |
-| 3 | 3.1 | Verify the locked build end to end in the simulator | M | ⚪ not started | Exercise registration or login, sync, upload, download, restart persistence, and negative configuration cases. |
+| 3 | 3.1 | Verify the locked build end to end in the simulator | M | 🟢 done | On an arm64 iOS 26.5 Simulator, registered a local account, synced, uploaded an encrypted image, downloaded it after device-local deletion, and preserved the account across restarts. A same-bundle build for a different valid HTTPS origin showed the local endpoint-binding diagnostic with zero Museum requests; restoring the correct build preserved the account and photo. Enabled Xcode ad-hoc signing so embedded simulator frameworks load correctly. |
 | 3 | 3.2 | Install and verify the locked build on a physical iPhone | M | ⚪ not started | Confirm personal signing, local-network access, object storage, and the critical photo flows. |
 
 **Legend:** ⚪ not started · 🟡 working · 🟢 done · 🔴 blocked / needs decision
@@ -49,7 +49,7 @@ In a normal build, endpoint behavior remains unchanged. In a locked build:
 - Authenticated Museum requests must remain on the compiled origin and do not follow redirects in the locked build. Presigned object-storage requests remain allowed because Museum intentionally sends those through the non-Museum download/upload clients.
 - Invalid foreground startup renders a local diagnostic view without initializing networking. Invalid background startup records a local error and returns without networking.
 
-The supported build path uses a wrapper that validates `ENTE_SELF_HOSTED_ENDPOINT` with the same Dart policy used at runtime and supplies `lockedEndpoint=true` plus the canonical endpoint define. It rejects caller-supplied Dart defines and flavors so these inputs cannot be overridden. On Apple-silicon simulator builds, it configures Flutter and then invokes Xcode for arm64 only, matching the proven baseline workaround for the unsupported x86_64 Rust slice. A core-only `SelfHostedRunner` target and shared `selfhosted` scheme use bundle ID `com.vanton1.ente.photos.selfhosted`, accept the local Apple development-team identifier through `ENTE_IOS_DEVELOPMENT_TEAM`, and use an empty entitlement set. They have a separate CocoaPods aggregate and do not depend on or embed the production Share Extension and widgets. The official Runner target's existing configurations, phases, dependencies, and signing settings stay unchanged.
+The supported build path uses a wrapper that validates `ENTE_SELF_HOSTED_ENDPOINT` with the same Dart policy used at runtime and supplies `lockedEndpoint=true` plus the canonical endpoint define. It rejects caller-supplied Dart defines and flavors so these inputs cannot be overridden. On Apple-silicon simulator builds, it configures Flutter and then invokes Xcode for arm64 only, matching the proven baseline workaround for the unsupported x86_64 Rust slice. Simulator code signing remains enabled with the ad-hoc identity so Xcode and CocoaPods sign every embedded framework for the simulator runtime. A core-only `SelfHostedRunner` target and shared `selfhosted` scheme use bundle ID `com.vanton1.ente.photos.selfhosted`, accept the local Apple development-team identifier through `ENTE_IOS_DEVELOPMENT_TEAM`, and use an empty entitlement set. They have a separate CocoaPods aggregate and do not depend on or embed the production Share Extension and widgets. The official Runner target's existing configurations, phases, dependencies, and signing settings stay unchanged.
 
 The local deployment baseline is Ente's official Docker quickstart in `/Users/vanton/projects/my-ente`. It keeps PostgreSQL private to Docker while exposing Museum at `http://127.0.0.1:8080`, MinIO at `http://127.0.0.1:3200`, Photos web at `http://127.0.0.1:3000`, and Albums web at `http://127.0.0.1:3002`. These loopback HTTP addresses remain local diagnostics only. Tailscale Serve privately publishes Museum on HTTPS port 443 and MinIO on HTTPS port 8443 of one tailnet DNS hostname; the web applications are not published.
 
@@ -94,6 +94,14 @@ local diagnostic, no networking            account and photo flows
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. If a decision changes, add a new entry instead of rewriting history.
+
+### 2026-07-13 — Ad-hoc sign the complete simulator bundle
+
+**Decision:** Keep simulator code signing enabled and pass Xcode the ad-hoc identity `-` so the application and every embedded framework are signed as part of the normal build.
+
+**Why:** Disabling signing produced an installable bundle, but the iOS 26.5 Simulator terminated it in dyld because embedded media frameworks such as `Ass.framework` were unsigned. The signed wrapper build passes strict deep verification and launches normally.
+
+**Alternatives considered:** Keep signing disabled, post-sign only the outer application with `codesign --deep`, or require an Apple Development certificate for simulator builds. The first remained unlaunchable, the post-build attempt did not sign the flattened prebuilt framework, and a developer certificate is unnecessary for simulator execution.
 
 ### 2026-07-13 — Keep personal Apple signing local to the build command
 

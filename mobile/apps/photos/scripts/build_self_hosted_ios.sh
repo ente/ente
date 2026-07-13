@@ -88,7 +88,8 @@ if [[ "$is_simulator" == true ]]; then
     -destination "generic/platform=iOS Simulator" \
     ARCHS=arm64 \
     ONLY_ACTIVE_ARCH=YES \
-    CODE_SIGNING_ALLOWED=NO \
+    CODE_SIGNING_ALLOWED=YES \
+    CODE_SIGN_IDENTITY=- \
     "SYMROOT=$app_dir/build/ios" \
     -quiet \
     build
