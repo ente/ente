@@ -73,6 +73,7 @@ configure_flutter() {
     "$@" \
     --flavor "$self_hosted_scheme" \
     --config-only \
+    --no-codesign \
     --dart-define=lockedEndpoint=true \
     --dart-define="endpoint=$canonical_endpoint"
 }
@@ -113,12 +114,17 @@ fi
 
 configure_flutter "$@"
 
+device_destination="generic/platform=iOS"
+if [[ "$codesigning_allowed" == true && -n "${ENTE_IOS_DEVICE_ID:-}" ]]; then
+  device_destination="id=$ENTE_IOS_DEVICE_ID"
+fi
+
 xcodebuild_arguments=(
   -workspace ios/Runner.xcworkspace
   -scheme "$self_hosted_scheme"
   -configuration "$xcode_configuration"
   -sdk iphoneos
-  -destination "generic/platform=iOS"
+  -destination "$device_destination"
   "SYMROOT=$app_dir/build/ios"
 )
 
@@ -126,6 +132,7 @@ if [[ "$codesigning_allowed" == true ]]; then
   xcodebuild_arguments+=(
     "SELF_HOSTED_DEVELOPMENT_TEAM=$ENTE_IOS_DEVELOPMENT_TEAM"
     -allowProvisioningUpdates
+    -allowProvisioningDeviceRegistration
   )
 else
   xcodebuild_arguments+=(CODE_SIGNING_ALLOWED=NO)

@@ -21,7 +21,7 @@
 | 2 | 2.2 | Disable endpoint editing and add the locked-build command | S | 🟢 done | Removed the seven-tap editor from locked compilations while retaining the read-only server label. Added and documented a wrapper that shares the runtime validator, rejects define overrides, and applies the arm64 simulator workaround. Verified normal and locked UI/policy tests, all 264 Photos tests, a clean analyzer run, wrapper rejection cases, and a real locked simulator artifact. |
 | 2 | 2.3 | Add the core-only self-hosted iOS target and signing configuration | M | 🟢 done | Added the shared `selfhosted` scheme and `SelfHostedRunner` target with bundle ID `com.vanton1.ente.photos.selfhosted`, local team input, empty entitlements, a separate CocoaPods aggregate, and no extension dependencies. Verified a locked arm64 simulator artifact and reproducible pod installation while preserving the official Runner. |
 | 3 | 3.1 | Verify the locked build end to end in the simulator | M | 🟢 done | On an arm64 iOS 26.5 Simulator, registered a local account, synced, uploaded an encrypted image, downloaded it after device-local deletion, and preserved the account across restarts. A same-bundle build for a different valid HTTPS origin showed the local endpoint-binding diagnostic with zero Museum requests; restoring the correct build preserved the account and photo. Enabled Xcode ad-hoc signing so embedded simulator frameworks load correctly. |
-| 3 | 3.2 | Install and verify the locked build on a physical iPhone | M | ⚪ not started | Confirm personal signing, local-network access, object storage, and the critical photo flows. |
+| 3 | 3.2 | Install and verify the locked build on a physical iPhone | M | 🟢 done | Built and audited a Personal Team-signed arm64 release, registered and provisioned the connected iPhone without committing personal identifiers, and installed and trusted the app. On iOS 26.5.2, registered a local account, synced, uploaded encrypted photos through private MinIO, downloaded a cloud copy after device-local deletion, and preserved the account and photo across a forced restart. Rebuilt, signature-verified, installed, and launched the simulator artifact after the signing changes. |
 
 **Legend:** ⚪ not started · 🟡 working · 🟢 done · 🔴 blocked / needs decision
 **Size:** XS · S · M · L · XL (never days or weeks).
@@ -49,7 +49,9 @@ In a normal build, endpoint behavior remains unchanged. In a locked build:
 - Authenticated Museum requests must remain on the compiled origin and do not follow redirects in the locked build. Presigned object-storage requests remain allowed because Museum intentionally sends those through the non-Museum download/upload clients.
 - Invalid foreground startup renders a local diagnostic view without initializing networking. Invalid background startup records a local error and returns without networking.
 
-The supported build path uses a wrapper that validates `ENTE_SELF_HOSTED_ENDPOINT` with the same Dart policy used at runtime and supplies `lockedEndpoint=true` plus the canonical endpoint define. It rejects caller-supplied Dart defines and flavors so these inputs cannot be overridden. On Apple-silicon simulator builds, it configures Flutter and then invokes Xcode for arm64 only, matching the proven baseline workaround for the unsupported x86_64 Rust slice. Simulator code signing remains enabled with the ad-hoc identity so Xcode and CocoaPods sign every embedded framework for the simulator runtime. A core-only `SelfHostedRunner` target and shared `selfhosted` scheme use bundle ID `com.vanton1.ente.photos.selfhosted`, accept the local Apple development-team identifier through `ENTE_IOS_DEVELOPMENT_TEAM`, and use an empty entitlement set. They have a separate CocoaPods aggregate and do not depend on or embed the production Share Extension and widgets. The official Runner target's existing configurations, phases, dependencies, and signing settings stay unchanged.
+The supported build path uses a wrapper that validates `ENTE_SELF_HOSTED_ENDPOINT` with the same Dart policy used at runtime and supplies `lockedEndpoint=true` plus the canonical endpoint define. It rejects caller-supplied Dart defines and flavors so these inputs cannot be overridden. On Apple-silicon simulator builds, it configures Flutter and then invokes Xcode for arm64 only, matching the proven baseline workaround for the unsupported x86_64 Rust slice. Simulator code signing remains enabled with the ad-hoc identity so Xcode and CocoaPods sign every embedded framework for the simulator runtime. A core-only `SelfHostedRunner` target and shared `selfhosted` scheme use bundle ID `com.vanton1.ente.photos.selfhosted`, accept the local Apple development-team identifier through `ENTE_IOS_DEVELOPMENT_TEAM`, and use an empty entitlement set. They have a separate CocoaPods aggregate, do not directly declare the StoreKit framework or In-App Purchase capability, and do not depend on or embed the production Share Extension and widgets. The official Runner target's existing configurations, phases, dependencies, and signing settings stay unchanged.
+
+The wrapper always runs Flutter's configuration-only phase with code signing disabled; the following direct Xcode build owns the complete simulator or device signature. A signed device build can take the connected phone identifier through `ENTE_IOS_DEVICE_ID`, select that device as its destination, and allow Xcode to register it and update its development profile. Omitting the optional device identifier retains the generic device destination for already-provisioned builds. Team, device, certificate, and profile values remain local command inputs or Apple-managed state rather than repository configuration.
 
 The local deployment baseline is Ente's official Docker quickstart in `/Users/vanton/projects/my-ente`. It keeps PostgreSQL private to Docker while exposing Museum at `http://127.0.0.1:8080`, MinIO at `http://127.0.0.1:3200`, Photos web at `http://127.0.0.1:3000`, and Albums web at `http://127.0.0.1:3002`. These loopback HTTP addresses remain local diagnostics only. Tailscale Serve privately publishes Museum on HTTPS port 443 and MinIO on HTTPS port 8443 of one tailnet DNS hostname; the web applications are not published.
 
@@ -94,6 +96,22 @@ local diagnostic, no networking            account and photo flows
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. If a decision changes, add a new entry instead of rewriting history.
+
+### 2026-07-13 — Keep the self-hosted target compatible with a Personal Team
+
+**Decision:** Remove the direct StoreKit framework declaration from only `SelfHostedRunner`, leaving the official Runner and the shared Flutter dependency graph unchanged. The personal target does not declare the In-App Purchase capability.
+
+**Why:** Xcode treated the direct StoreKit declaration as an In-App Purchase capability and refused to create a profile because Apple Personal Teams cannot provision it. The self-hosted V1 does not need payments, and its signed release succeeds with the existing Flutter plugin dependency but without the target-level declaration.
+
+**Alternatives considered:** Use a paid or corporate Apple team, remove the purchase plugin from the shared Dart application, or keep an uncommitted local Xcode edit. Those choices would broaden required credentials, change normal Ente behavior, or make the personal build irreproducible.
+
+### 2026-07-13 — Give Xcode sole ownership of device signing and registration
+
+**Decision:** Run Flutter's configuration-only phase with `--no-codesign`, then let the wrapper's direct Xcode build perform the final signature. Signed builds may provide `ENTE_IOS_DEVICE_ID` so Xcode selects and registers that connected phone while automatic provisioning updates are enabled.
+
+**Why:** Flutter's configuration phase rejected a valid local certificate before the intended Xcode signing phase, while a generic device destination could not register the first Personal Team device. Separating configuration from signing and optionally selecting the connected phone produced a minimal, audited development profile without committing a team or device identifier.
+
+**Alternatives considered:** Let both Flutter and Xcode sign, require the phone to be registered manually in Apple's portal, or hard-code the local team and phone identifiers. Dual signing failed early, manual registration adds avoidable setup, and hard-coding personal identifiers makes the fork machine-specific.
 
 ### 2026-07-13 — Ad-hoc sign the complete simulator bundle
 
@@ -330,6 +348,14 @@ _None._
 ## 7. Lessons learned
 
 > Populated at the end of each phase. Record surprises, anti-patterns, and improvements for the next phase.
+
+### Phase 3 — Verify fail-closed behavior and real-device operation
+
+- A complete iPhone proof must audit the built signature and entitlements, install the exact audited bundle, and confirm Museum requests identify the distinct self-hosted bundle; a successful compile alone does not prove the packaging boundary.
+- Personal Team provisioning exposes target capabilities that simulator builds cannot: a direct StoreKit declaration blocked profile creation even though the self-hosted entitlement file was empty.
+- The first signed build needs a connected device destination for automatic device registration, one-time Keychain permission for the new private key, and explicit trust of the development profile on the iPhone.
+- Server-side evidence complements the visual test: Museum recorded the physical device's registration and encrypted uploads, then returned the expected object-storage redirect when the device-local photo was downloaded again.
+- Rebuilding and launching the simulator artifact after the signing changes caught packaging regressions without disturbing the official Runner target.
 
 ### Phase 2 — Enforce the endpoint and package a separate Apple target
 

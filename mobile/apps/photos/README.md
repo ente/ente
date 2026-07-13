@@ -95,13 +95,16 @@ the development-team identifier shown by Xcode:
 
 ```sh
 export ENTE_IOS_DEVELOPMENT_TEAM="YOURTEAMID"
+export ENTE_IOS_DEVICE_ID="YOUR_CONNECTED_IPHONE_ID"
 ./scripts/build_self_hosted_ios.sh --debug
 ```
 
 Automatic signing may create or update the development provisioning profile
-for the self-hosted bundle identifier. Use `--no-codesign` to compile a device
-artifact without a certificate or profile; that artifact cannot be installed
-until it is signed.
+for the self-hosted bundle identifier. `ENTE_IOS_DEVICE_ID` is optional after
+the phone is registered, but setting it to the identifier shown by
+`xcrun xcdevice list` lets Xcode register and provision a connected phone on
+the first build. Use `--no-codesign` to compile a device artifact without a
+certificate or profile; that artifact cannot be installed until it is signed.
 
 ### Updating dependencies
 
