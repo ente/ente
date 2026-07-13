@@ -15,7 +15,7 @@
 | 1 | 1.1 | Align the repository-pinned mobile toolchain and generated bindings | M | 🟢 done | Verified Flutter 3.38.10, native rustup Rust 1.97.0, locked Flutter packages, unchanged generated Rust bindings, and a deployment-clean CocoaPods graph. Refreshed stale plugin spec checksums in `Podfile.lock`. |
 | 1 | 1.2 | Produce an unchanged Photos build for an iOS simulator | S | 🟢 done | Built and signature-verified the unchanged `io.ente.frame.debug` app at `mobile/apps/photos/build/ios/Debug-iphonesimulator/Runner.app` for the arm64 iOS Simulator. Recorded the clean-checkout generation and machine setup prerequisites below. |
 | 1 | 1.3 | Install and verify a local Ente quickstart cluster | S | 🟢 done | Installed the official Docker quickstart outside Git at `/Users/vanton/projects/my-ente`. Verified healthy Museum and PostgreSQL containers, Museum `/ping`, MinIO health, and HTTP 200 responses from the Photos and Albums web applications; restricted generated configuration files and all published HTTP ports to the local Mac. |
-| 1 | 1.4 | Expose Museum and MinIO through private Tailscale HTTPS | M | ⚪ not started | Install the supported macOS Tailscale client, complete user login, and publish only the API and object-storage ports inside the private tailnet. |
+| 1 | 1.4 | Expose Museum and MinIO through private Tailscale HTTPS | M | 🟢 done | Reused the installed and authenticated Tailscale client, enabled private Serve routes for Museum on HTTPS port 443 and MinIO on HTTPS port 8443, and changed Museum to generate HTTPS object-storage URLs. Verified both TLS routes and Museum-to-MinIO reachability. |
 | 1 | 1.5 | Preflight Museum and object-storage reachability | S | ⚪ not started | Verify `/ping`, server-provided application URLs, and client-reachable object storage through the chosen HTTPS hostname. |
 | 2 | 2.1 | Add and unit-test the fail-closed endpoint policy | M | ⚪ not started | Cover locked and normal builds, endpoint-state binding, background startup, and authenticated request-origin enforcement. |
 | 2 | 2.2 | Disable endpoint editing and add the locked-build command | S | ⚪ not started | Preserve the read-only endpoint indicator and document every required build input. |
@@ -51,7 +51,9 @@ In a normal build, endpoint behavior remains unchanged. In a locked build:
 
 The supported build path uses a wrapper that validates `ENTE_SELF_HOSTED_ENDPOINT` and supplies `lockedEndpoint=true` plus the endpoint define. A core-only `SelfHostedRunner` target and shared `selfhosted` scheme use a unique personal bundle ID, a local Apple development-team setting, and development-safe entitlements. They do not depend on or embed the production Share Extension and widgets. The official Runner target stays unchanged.
 
-The local deployment baseline is Ente's official Docker quickstart in `/Users/vanton/projects/my-ente`. It keeps PostgreSQL private to Docker while exposing Museum at `http://127.0.0.1:8080`, MinIO at `http://127.0.0.1:3200`, Photos web at `http://127.0.0.1:3000`, and Albums web at `http://127.0.0.1:3002`. These loopback HTTP addresses are local diagnostics only; the next deployment task adds private HTTPS for Museum and MinIO without publishing the web applications.
+The local deployment baseline is Ente's official Docker quickstart in `/Users/vanton/projects/my-ente`. It keeps PostgreSQL private to Docker while exposing Museum at `http://127.0.0.1:8080`, MinIO at `http://127.0.0.1:3200`, Photos web at `http://127.0.0.1:3000`, and Albums web at `http://127.0.0.1:3002`. These loopback HTTP addresses remain local diagnostics only. Tailscale Serve privately publishes Museum on HTTPS port 443 and MinIO on HTTPS port 8443 of one tailnet DNS hostname; the web applications are not published.
+
+Museum uses that tailnet hostname and MinIO HTTPS port for all three quickstart buckets, with local-bucket mode disabled and path-style URLs retained. Museum and remote clients therefore use the same TLS endpoint in signed object-storage URLs. The quickstart `socat` sidecar was removed because Museum no longer resolves `localhost:3200` to MinIO.
 
 The intended flow is:
 
@@ -91,6 +93,22 @@ local diagnostic, no networking            account and photo flows
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. If a decision changes, add a new entry instead of rewriting history.
+
+### 2026-07-13 — Switch Museum's quickstart buckets to the private HTTPS endpoint
+
+**Decision:** Configure all three quickstart buckets with the tailnet MinIO hostname and HTTPS port, disable Museum's local-bucket mode, retain path-style URLs, and remove the no-longer-needed `socat` forwarding container.
+
+**Why:** Museum embeds its bucket endpoint in presigned URLs, so both Museum and the iOS client must reach the same address. Disabling local-bucket mode makes the Amazon S3 client use TLS, while path-style URLs preserve MinIO compatibility.
+
+**Alternatives considered:** Keep `localhost:3200` plus `socat`, which produces client-unreachable signed URLs, or give Museum a separate internal endpoint, which would require additional URL-rewriting behavior outside the quickstart design.
+
+### 2026-07-13 — Use separate HTTPS ports on one tailnet hostname
+
+**Decision:** Publish Museum on HTTPS port 443 and MinIO on HTTPS port 8443 of the Mac's private Tailscale DNS hostname. Do not publish the Photos or Albums web applications.
+
+**Why:** The iOS client gets a conventional Museum origin while MinIO keeps an independent origin suitable for S3 path-style requests and signatures. Both remain accessible only to authenticated tailnet devices.
+
+**Alternatives considered:** Route MinIO below a Museum URL path, allocate a second tailnet service hostname, or expose MinIO directly on the local network. A path prefix complicates S3 request signing, a second hostname adds unnecessary service configuration, and direct exposure violates the chosen private-HTTPS boundary.
 
 ### 2026-07-13 — Bind quickstart HTTP ports to loopback
 
