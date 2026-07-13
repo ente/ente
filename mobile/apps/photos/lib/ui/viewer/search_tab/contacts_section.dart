@@ -224,7 +224,11 @@ class _ContactRecommendationState extends State<ContactRecommendation> {
         if (widget.contactSearchResult.onResultTap != null) {
           widget.contactSearchResult.onResultTap!(context);
         } else {
-          routeToPage(context, ContactResultPage(widget.contactSearchResult));
+          routeToPage(
+            context,
+            ContactResultPage(widget.contactSearchResult),
+            useFadeTransition: true,
+          );
         }
       },
       child: SizedBox(

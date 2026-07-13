@@ -178,7 +178,13 @@ class _FileTypeRecommendationState extends State<_FileTypeRecommendation> {
         return;
       }
       RecentSearches().add(searchResult.name());
-      unawaited(routeToPage(context, SearchResultPage(searchResult)));
+      unawaited(
+        routeToPage(
+          context,
+          SearchResultPage(searchResult),
+          useFadeTransition: true,
+        ),
+      );
     } catch (e, s) {
       _logger.severe("Failed to resolve file type result", e, s);
     }

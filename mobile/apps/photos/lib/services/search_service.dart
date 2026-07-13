@@ -946,6 +946,7 @@ class SearchService {
               routeToPage(
                 ctx,
                 LocationScreenStateProvider(entry.key, const LocationScreen()),
+                useFadeTransition: true,
               );
             },
             hierarchicalSearchFilter: LocationFilter(
@@ -1141,6 +1142,7 @@ class SearchService {
                     clusterID: clusterId,
                     showNamingBanner: false,
                   ),
+                  useFadeTransition: true,
                 );
               },
               hierarchicalSearchFilter: FaceFilter(
@@ -1308,6 +1310,7 @@ class SearchService {
                     ),
                   ),
                 ),
+                useFadeTransition: true,
               );
             },
             hierarchicalSearchFilter: FaceFilter(
@@ -1377,6 +1380,7 @@ class SearchService {
                     tagPrefix: "${ResultType.faces.toString()}_$clusterName",
                     clusterID: clusterId,
                   ),
+                  useFadeTransition: true,
                 );
               },
               hierarchicalSearchFilter: FaceFilter(
@@ -1477,6 +1481,7 @@ class SearchService {
                           "${ResultType.location.toString()}_${entry.key.item.name}",
                     ),
                   ),
+                  useFadeTransition: true,
                 );
               },
               hierarchicalSearchFilter: LocationFilter(
@@ -1694,6 +1699,7 @@ class SearchService {
                   matchedUploadedIDs: filesToUploadedFileIDs(files),
                 ),
               ),
+              useFadeTransition: true,
             );
           },
           hierarchicalSearchFilter: MagicFilter(

@@ -37,10 +37,17 @@ PageRouteBuilder<T> _buildPageRoute<T extends Object>(Widget page) {
           Widget child,
         ) {
           return Align(
-            child: FadeTransition(opacity: animation, child: child),
+            child: FadeTransition(
+              opacity: CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeInOutExpo,
+                reverseCurve: Curves.easeInOutExpo,
+              ),
+              child: child,
+            ),
           );
         },
-    transitionDuration: const Duration(milliseconds: 200),
+    transitionDuration: const Duration(milliseconds: 300),
     opaque: false,
   );
 }
@@ -72,6 +79,11 @@ class SwipeableRouteBuilder<T> extends PageRoute<T> {
 
   @override
   Duration get transitionDuration => const Duration(milliseconds: 300);
+
+  @override
+  bool canTransitionTo(TransitionRoute<dynamic> nextRoute) {
+    return nextRoute is SwipeableRouteBuilder<dynamic>;
+  }
 
   @override
   Widget buildTransitions(
