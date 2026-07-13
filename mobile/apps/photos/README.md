@@ -59,6 +59,30 @@ You can alternatively install the build from PlayStore or F-Droid.
 
 To build a release APK, [setup your keystore](https://docs.flutter.dev/deployment/android#create-an-upload-keystore) and run `flutter build apk --release --flavor independent`. For iOS, use `flutter build ios`.
 
+### Locked self-hosted Android build
+
+Use the checked-in wrapper to build an Android APK that is compiled for exactly
+one self-hosted Museum origin:
+
+```sh
+export ENTE_SELF_HOSTED_ENDPOINT="https://museum.example"
+./scripts/build_self_hosted_android.sh --debug
+```
+
+The endpoint requirements and optional `FLUTTER_BIN` and `DART_BIN` overrides
+match the locked iOS wrapper below. Run
+`./scripts/build_self_hosted_android.sh --validate-only` to validate and
+canonicalize the endpoint without starting a build.
+
+The wrapper always builds the `selfhosted` flavor as an APK, supplies
+`lockedEndpoint=true` and the canonical `endpoint` as Dart defines, and rejects
+caller-supplied flavors or Dart defines. The release application ID is
+`com.vanton1.ente.photos.selfhosted`; debug builds inherit the repository-wide
+`.debug` suffix. Existing Android flavors and their application IDs are
+unchanged. Release builds use the existing Gradle signing configuration, with
+the keystore path and credentials supplied through ignored `key.properties` or
+the `SIGNING_*` environment variables.
+
 ### Locked self-hosted iOS build
 
 Use the checked-in wrapper to build an iOS app that is compiled for exactly one

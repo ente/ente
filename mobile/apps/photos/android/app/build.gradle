@@ -79,6 +79,14 @@ android {
 
     flavorDimensions "default"
     productFlavors {
+        selfhosted {
+            dimension "default"
+            applicationId = "com.vanton1.ente.photos.selfhosted"
+            matchingFallbacks = ["independent"]
+            ndk {
+                abiFilters "arm64-v8a", "armeabi-v7a"
+            }
+        }
         independent {
             dimension "default"
             applicationIdSuffix ".independent"

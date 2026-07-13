@@ -14,7 +14,7 @@
 |------:|----:|-------|:----:|--------|-------|
 | 1 | 1.1 | Align the Android toolchain and build an unchanged debug APK | M | 🟢 done | Installed a checksum-verified ARM64 Temurin 17.0.19 JDK and isolated Android SDK outside Git, including API 36, Build Tools 36, Platform Tools 37, pinned NDK 28.2, and transitive compatibility components. Built the unchanged `independentDebug` APK with rustup first on `PATH`; verified package `io.ente.photos.independent.debug`, minimum API 26, target API 36, Android debug signing, ARMv7/ARM64 libraries, and SHA-256 `d34db3323e4c500bfdf44b392c136bbb27ebc156b7a7cc7afa812ec571f544bc`. |
 | 1 | 1.2 | Boot an emulator and preflight private Museum and MinIO HTTPS | S | 🟢 done | Created and clean-booted the isolated `ente_api36_arm64` Pixel 7 AVD with Android 16/API 36 and Google APIs ARM64. From inside Android, resolved `macbook-pro-2.tailcfdac8.ts.net` to private address `100.100.190.42`; Android's trust store completed HTTPS to Museum `/ping` and MinIO `/minio/health/live`, both with HTTP 200 and TLS 1.3 `TLS_AES_128_GCM_SHA256`. Removed the temporary diagnostic and shut the emulator down cleanly while preserving the AVD. |
-| 2 | 2.1 | Add the self-hosted flavor and guarded Android build wrapper | M | ⚪ not started | Add a dedicated flavor with application ID `com.vanton1.ente.photos.selfhosted`. Reuse the shared Dart endpoint validator and have the wrapper inject the locked endpoint while rejecting caller overrides. Preserve every official Android flavor. |
+| 2 | 2.1 | Add the self-hosted flavor and guarded Android build wrapper | M | 🟢 done | Added the `selfhosted` flavor with release application ID `com.vanton1.ente.photos.selfhosted`, the normal `.debug` suffix for debug builds, a no-referrer fallback for the flavor-aware install-source plugin, and the standard launcher manifest overlay. Added a guarded APK wrapper that reuses the Dart endpoint validator, injects only `lockedEndpoint=true` plus the canonical endpoint, and rejects caller flavor or Dart-define overrides. Gradle exposed self-hosted debug/profile/release tasks alongside every existing flavor, generated both expected application IDs, and left the official flavor blocks unchanged. |
 | 2 | 2.2 | Test the Android flavor, wrapper, endpoint lock, and APK identity | M | ⚪ not started | Exercise normal and locked Dart tests, wrapper rejection cases, Gradle variant assembly, manifest identity, and artifact inspection without weakening the official builds. |
 | 3 | 3.1 | Verify the locked Android build end to end in an emulator | M | ⚪ not started | Register or log in, upload and download encrypted media, force-restart the app, and prove a same-package artifact for a different valid HTTPS origin fails locally without Museum requests. |
 | 3 | 3.2 | Sign and verify the locked Android build on a physical device | M | ⚪ not started | Create or reuse a local signing key outside Git, build and audit a release APK, install it on a physical Android device, and repeat the critical account, media, restart, and server-evidence checks. |
@@ -41,7 +41,7 @@ The Android application shares its Dart startup, endpoint configuration, network
 - Keep authenticated Museum requests on the compiled origin and reject redirects. Continue allowing Museum-provided signed object-storage URLs through the separate upload and download clients.
 - Preserve the endpoint identity across logout and require a manual app-data clear or reinstall after an unsafe mismatch instead of silently deleting local state.
 
-Android packaging will add one `selfhosted` product flavor to the existing application module. Its application ID will be `com.vanton1.ente.photos.selfhosted`, while the existing `io.ente.photos` Kotlin namespace and native source tree remain shared. The unique application ID lets the personal build coexist with official, independent, development, and F-Droid variants. Existing variants, signing configuration, manifests, and output naming remain unchanged unless a narrowly required shared fix is proven by the baseline.
+Android packaging adds one `selfhosted` product flavor to the existing application module. Its release application ID is `com.vanton1.ente.photos.selfhosted`, while debug builds receive the existing build type's `.debug` suffix and the `io.ente.photos` Kotlin namespace and native source tree remain shared. The flavor uses the install-source plugin's `independent` fallback so personal builds retain the plugin's no-referrer behavior without changing its official variants. The unique application ID lets the personal build coexist with official, independent, development, and F-Droid variants. Existing variants, signing configuration, manifests, and output naming remain unchanged unless a narrowly required shared fix is proven by the baseline.
 
 A guarded Android wrapper will be the supported build path. It will validate `ENTE_SELF_HOSTED_ENDPOINT` with the existing Dart command-line validator, select only the `selfhosted` flavor, inject the locked endpoint defines, and reject caller arguments that could replace the flavor or Dart defines. Debug builds may use Android's standard debug signature. Release builds will use the existing Gradle signing inputs with a local keystore whose path and credentials stay outside Git.
 
@@ -84,6 +84,14 @@ V1 locks authenticated Museum traffic only, matching the iOS security boundary. 
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. If a decision changes, add a new entry instead of rewriting history.
+
+### 2026-07-13 — Reuse the no-referrer install-source variant
+
+**Decision:** Configure the Android `selfhosted` flavor to use `independent` as its matching fallback for flavor-aware library dependencies.
+
+**Why:** Ente's install-source plugin mirrors the application flavor dimension and is the only dependency that could not resolve a new flavor automatically. Its `independent` variant already supplies the appropriate no-referrer implementation, so the fallback makes the personal artifact buildable without adding Play Store attribution or changing any official plugin variant.
+
+**Alternatives considered:** Add a fifth flavor to the shared plugin, use the Play Store referrer implementation, or leave the dependency unresolved.
 
 ### 2026-07-13 — Preflight with an API 36 Google APIs ARM64 emulator
 
