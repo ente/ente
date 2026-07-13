@@ -19,7 +19,7 @@ class NotificationSettingsScreen extends StatefulWidget {
 class _NotificationSettingsScreenState
     extends State<NotificationSettingsScreen> {
   bool _hasPermission = false, _isCompletingToggle = false;
-  Future<void> Function()? _pendingToggle;
+  Future<void> Function(bool toggleCurrent)? _pendingToggle;
   Timer? _permissionTimer;
 
   @override
@@ -42,8 +42,10 @@ class _NotificationSettingsScreenState
     return granted;
   }
 
-  Future<void> _runWithPermission(Future<void> Function() toggle) async {
-    if (_hasPermission) return toggle();
+  Future<void> _runWithPermission(
+    Future<void> Function(bool toggleCurrent) toggle,
+  ) async {
+    if (_hasPermission) return toggle(true);
 
     _pendingToggle = toggle;
     _permissionTimer ??= Timer.periodic(
@@ -65,7 +67,7 @@ class _NotificationSettingsScreenState
       _pendingToggle = null;
       _permissionTimer?.cancel();
       _permissionTimer = null;
-      await toggle();
+      await toggle(false);
       if (mounted) setState(() {});
     } finally {
       _isCompletingToggle = false;
@@ -91,10 +93,10 @@ class _NotificationSettingsScreenState
               value: () =>
                   _hasPermission &&
                   service.shouldShowNotificationsForSharedPhotosAndAlbums(),
-              onChanged: () => _runWithPermission(() async {
+              onChanged: () => _runWithPermission((toggleCurrent) async {
                 final prev = service
                     .shouldShowNotificationsForSharedPhotosAndAlbums();
-                if (_hasPermission) {
+                if (toggleCurrent) {
                   await service
                       .setShouldShowNotificationsForSharedPhotosAndAlbums(
                         !prev,
@@ -116,9 +118,9 @@ class _NotificationSettingsScreenState
             trailing: ToggleSwitchComponent.async(
               value: () =>
                   _hasPermission && service.shouldShowSocialNotifications(),
-              onChanged: () => _runWithPermission(() async {
+              onChanged: () => _runWithPermission((toggleCurrent) async {
                 final prev = service.shouldShowSocialNotifications();
-                if (_hasPermission) {
+                if (toggleCurrent) {
                   await service.setShouldShowSocialNotifications(!prev);
                 } else if (!prev) {
                   await service.setShouldShowSocialNotifications(true);
@@ -137,9 +139,9 @@ class _NotificationSettingsScreenState
           trailing: ToggleSwitchComponent.async(
             value: () =>
                 _hasPermission && localSettings.isOnThisDayNotificationsEnabled,
-            onChanged: () => _runWithPermission(() async {
+            onChanged: () => _runWithPermission((toggleCurrent) async {
               final prev = localSettings.isOnThisDayNotificationsEnabled;
-              if (_hasPermission || !prev) {
+              if (toggleCurrent || !prev) {
                 await memoriesCacheService.toggleOnThisDayNotifications();
               }
             }),
@@ -156,9 +158,9 @@ class _NotificationSettingsScreenState
             trailing: ToggleSwitchComponent.async(
               value: () =>
                   _hasPermission && localSettings.birthdayNotificationsEnabled,
-              onChanged: () => _runWithPermission(() async {
+              onChanged: () => _runWithPermission((toggleCurrent) async {
                 final prev = localSettings.birthdayNotificationsEnabled;
-                if (_hasPermission || !prev) {
+                if (toggleCurrent || !prev) {
                   await memoriesCacheService.toggleBirthdayNotifications();
                 }
               }),
