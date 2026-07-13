@@ -87,7 +87,7 @@ local diagnostic, no networking            account and photo flows
 | Generic self-hosted build support for all contributors and mobile apps | Out of scope | V1 targets one personal Ente Photos iOS workflow rather than an upstream-wide flavor system. |
 | Remote access to Photos companion web applications | Out of scope | V1 publishes only Museum and object storage to the private tailnet; public Albums, Cast, Accounts, and other web applications remain local or use the upstream ancillary defaults allowed by the Museum-only policy. |
 | Separate architecture companion document | Out of scope | The endpoint policy and packaging path are compact enough to document here and in the build runbook. |
-| Copy protected snapshots to encrypted off-machine storage | V1.1 backlog | The verified snapshot currently resides on the same Mac as the live server, so it does not protect against loss of that machine or disk. |
+| Copy protected snapshots to encrypted off-machine storage | Out of scope | The owner chose not to configure an off-machine backup destination in this initiative. |
 | Automate protected snapshots, verification, and retention | V1.1 backlog | The first snapshot and restore drill were manual; recurring protection needs a reproducible schedule and retention policy. |
 
 **Status values:**
@@ -99,6 +99,14 @@ local diagnostic, no networking            account and photo flows
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. If a decision changes, add a new entry instead of rewriting history.
+
+### 2026-07-13 — Skip an encrypted off-machine backup destination
+
+**Decision:** Keep the verified protected snapshot on the local Mac and do not copy it to the mounted NAS or configure another off-machine destination in this initiative.
+
+**Why:** The owner explicitly chose to stop this work before any NAS data or configuration was changed.
+
+**Alternatives considered:** Stage a plaintext copy before creating a NAS-encrypted share, create the encrypted NAS share first, or encrypt a client-side container on the existing share. None will be implemented.
 
 ### 2026-07-13 — Prove backups with an isolated disposable stack
 
