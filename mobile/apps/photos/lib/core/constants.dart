@@ -1,5 +1,8 @@
 import "package:flutter/foundation.dart";
 
+export "package:photos/core/network/endpoint_origins.dart"
+    show kDefaultProductionEndpoint, kLegacyProductionEndpoint;
+
 const int thumbnailSmallSize = 256;
 const int thumbnailQuality = 50;
 const int thumbnailLargeSize = 512;
@@ -43,8 +46,6 @@ const supportEmail = 'support@ente.com';
 // this is the chunk size of the un-encrypted file which is read and encrypted before uploading it as a single part.
 const multipartPartSize = 20 * 1024 * 1024;
 
-const kDefaultProductionEndpoint = 'https://api.ente.com';
-const kLegacyProductionEndpoint = 'https://api.ente.io';
 const kUploadProxyEndpoint = 'https://uploader.ente.com';
 const kPhotosWebDomain = 'photos.ente.com';
 const kFamilyUrl = 'https://family.ente.io';

@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:photos/core/network/endpoint_policy.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/ui/components/alert_bottom_sheet.dart";
 import "package:photos/ui/components/buttons/button_widget_v2.dart";
@@ -28,6 +29,9 @@ class _DeveloperSettingsTapAreaState extends State<DeveloperSettingsTapArea> {
 
   @override
   Widget build(BuildContext context) {
+    if (kLockedEndpoint) {
+      return widget.child;
+    }
     return GestureDetector(
       behavior: widget.behavior,
       onTap: _handleTap,

@@ -1,4 +1,4 @@
-import "package:photos/core/constants.dart";
+import "package:photos/core/network/endpoint_origins.dart";
 
 const kCompiledEndpoint = String.fromEnvironment(
   "endpoint",
