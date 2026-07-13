@@ -19,7 +19,7 @@
 | 1 | 1.5 | Preflight Museum and object-storage reachability | S | 🟢 done | From an iOS 26.5 Simulator, verified Apple-trusted HTTPS, Museum `/ping`, MinIO health, and a short-lived signed object download through the private hostname. Confirmed quickstart companion-app URLs remain local and unpublished under the core-only scope. |
 | 2 | 2.1 | Add and unit-test the fail-closed endpoint policy | M | 🟢 done | Added compile-time endpoint validation, persistent endpoint binding, foreground/background startup gates, locked mutation rejection, authenticated same-origin enforcement, and a local recovery screen. Verified 18 focused tests under normal and locked defines, all 262 Photos tests, and a clean analyzer run. |
 | 2 | 2.2 | Disable endpoint editing and add the locked-build command | S | 🟢 done | Removed the seven-tap editor from locked compilations while retaining the read-only server label. Added and documented a wrapper that shares the runtime validator, rejects define overrides, and applies the arm64 simulator workaround. Verified normal and locked UI/policy tests, all 264 Photos tests, a clean analyzer run, wrapper rejection cases, and a real locked simulator artifact. |
-| 2 | 2.3 | Add the core-only self-hosted iOS target and signing configuration | M | ⚪ not started | Use a unique personal bundle ID and development-safe entitlements without the production extension suite. |
+| 2 | 2.3 | Add the core-only self-hosted iOS target and signing configuration | M | 🟢 done | Added the shared `selfhosted` scheme and `SelfHostedRunner` target with bundle ID `com.vanton1.ente.photos.selfhosted`, local team input, empty entitlements, a separate CocoaPods aggregate, and no extension dependencies. Verified a locked arm64 simulator artifact and reproducible pod installation while preserving the official Runner. |
 | 3 | 3.1 | Verify the locked build end to end in the simulator | M | ⚪ not started | Exercise registration or login, sync, upload, download, restart persistence, and negative configuration cases. |
 | 3 | 3.2 | Install and verify the locked build on a physical iPhone | M | ⚪ not started | Confirm personal signing, local-network access, object storage, and the critical photo flows. |
 
@@ -49,7 +49,7 @@ In a normal build, endpoint behavior remains unchanged. In a locked build:
 - Authenticated Museum requests must remain on the compiled origin and do not follow redirects in the locked build. Presigned object-storage requests remain allowed because Museum intentionally sends those through the non-Museum download/upload clients.
 - Invalid foreground startup renders a local diagnostic view without initializing networking. Invalid background startup records a local error and returns without networking.
 
-The supported build path uses a wrapper that validates `ENTE_SELF_HOSTED_ENDPOINT` with the same Dart policy used at runtime and supplies `lockedEndpoint=true` plus the canonical endpoint define. It rejects caller-supplied Dart defines so these inputs cannot be overridden. On Apple-silicon simulator builds, it configures Flutter and then invokes Xcode for arm64 only, matching the proven baseline workaround for the unsupported x86_64 Rust slice. A core-only `SelfHostedRunner` target and shared `selfhosted` scheme use a unique personal bundle ID, a local Apple development-team setting, and development-safe entitlements. They do not depend on or embed the production Share Extension and widgets. The official Runner target stays unchanged.
+The supported build path uses a wrapper that validates `ENTE_SELF_HOSTED_ENDPOINT` with the same Dart policy used at runtime and supplies `lockedEndpoint=true` plus the canonical endpoint define. It rejects caller-supplied Dart defines and flavors so these inputs cannot be overridden. On Apple-silicon simulator builds, it configures Flutter and then invokes Xcode for arm64 only, matching the proven baseline workaround for the unsupported x86_64 Rust slice. A core-only `SelfHostedRunner` target and shared `selfhosted` scheme use bundle ID `com.vanton1.ente.photos.selfhosted`, accept the local Apple development-team identifier through `ENTE_IOS_DEVELOPMENT_TEAM`, and use an empty entitlement set. They have a separate CocoaPods aggregate and do not depend on or embed the production Share Extension and widgets. The official Runner target's existing configurations, phases, dependencies, and signing settings stay unchanged.
 
 The local deployment baseline is Ente's official Docker quickstart in `/Users/vanton/projects/my-ente`. It keeps PostgreSQL private to Docker while exposing Museum at `http://127.0.0.1:8080`, MinIO at `http://127.0.0.1:3200`, Photos web at `http://127.0.0.1:3000`, and Albums web at `http://127.0.0.1:3002`. These loopback HTTP addresses remain local diagnostics only. Tailscale Serve privately publishes Museum on HTTPS port 443 and MinIO on HTTPS port 8443 of one tailnet DNS hostname; the web applications are not published.
 
@@ -94,6 +94,14 @@ local diagnostic, no networking            account and photo flows
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. If a decision changes, add a new entry instead of rewriting history.
+
+### 2026-07-13 — Keep personal Apple signing local to the build command
+
+**Decision:** Fix the self-hosted application identity at `com.vanton1.ente.photos.selfhosted`, use an empty entitlement set, and supply the owner's Apple development-team identifier at build time through `ENTE_IOS_DEVELOPMENT_TEAM`. Do not commit a personal team identifier or certificate identity.
+
+**Why:** The unique bundle ID can coexist with the official app, while empty entitlements avoid Ente-owned push, associated-domain, and application-group capabilities. A local team input lets automatic signing create the appropriate development profile without coupling the fork to one Apple account.
+
+**Alternatives considered:** Reuse Ente's bundle identity and team, commit the owner's team identifier, or provision the complete production capability suite. Those choices would fail personal signing, leak machine-specific configuration into the fork, or expand V1 into the deferred extension work.
 
 ### 2026-07-13 — Reserve Dart defines for the locked build wrapper
 
@@ -307,13 +315,20 @@ local diagnostic, no networking            account and photo flows
 
 ## 6. Open questions
 
-- What Apple development-team identifier and unique bundle identifier will be used for Task 2.3?
+_None._
 
 ---
 
 ## 7. Lessons learned
 
 > Populated at the end of each phase. Record surprises, anti-patterns, and improvements for the next phase.
+
+### Phase 2 — Enforce the endpoint and package a separate Apple target
+
+- Sharing one pure-Dart endpoint policy between runtime startup and the build validator prevented shell parsing from becoming a second, weaker security implementation.
+- A Flutter iOS flavor needs matching project configurations, target configurations, shared scheme names, and CocoaPods mappings. The additional base-name target aliases keep CocoaPods compatible without changing the official Runner's existing configurations.
+- A core-only Apple target is easier to sign and audit when it owns a separate CocoaPods aggregate and has no target dependencies, copy phases, or entitlements for the production extensions.
+- Direct arm64 Xcode invocation remains necessary for the simulator because the Rust bridge pods do not provide the x86_64 simulator slice. Setting the Xcode product root explicitly gives the wrapper a deterministic artifact path.
 
 ### Phase 1 — Establish a buildable client and reachable private server
 

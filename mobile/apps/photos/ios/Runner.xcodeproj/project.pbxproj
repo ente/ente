@@ -14,10 +14,19 @@
 		359D8BCF50FB143064FFC56F /* Pods_ShareExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D025F2F5A163F84B724D14D7 /* Pods_ShareExtension.framework */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		54D121F62F02675C00B8CC69 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 54D121EC2F02675C00B8CC69 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5E1F0000000000000000000D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
+		5E1F0000000000000000000E /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
+		5E1F0000000000000000000F /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 274DC65025920DD100F526A4 /* StoreKit.framework */; };
+		5E1F00000000000000000010 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
+		5E1F00000000000000000011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
+		5E1F00000000000000000012 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		5E1F00000000000000000013 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
+		5E1F00000000000000000014 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 2772189F270F596900FFE3CC /* GoogleService-Info.plist */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		ABE547BF9F3ECE7B44EACCD0 /* Pods_SelfHostedRunner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 44EDA3B61F549009B91783A6 /* Pods_SelfHostedRunner.framework */; };
 		CEE166242DD5E7820012CF61 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6DACD83C2B755B0600BA9516 /* WidgetKit.framework */; };
 		CEE166252DD5E7820012CF61 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6DACD83E2B755B0600BA9516 /* SwiftUI.framework */; };
 		CEE166302DD5E7830012CF61 /* EnteAlbumWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CEE166232DD5E7820012CF61 /* EnteAlbumWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -62,6 +71,16 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		5E1F0000000000000000000A /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		6DACD84B2B755B0800BA9516 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -89,20 +108,34 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0CA1DF3AAFDFAADBCCF4010F /* Pods-SelfHostedRunner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SelfHostedRunner.debug.xcconfig"; path = "Target Support Files/Pods-SelfHostedRunner/Pods-SelfHostedRunner.debug.xcconfig"; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		271BD99F270EE74F00D86E6F /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
 		274DC65025920DD100F526A4 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		2772189F270F596900FFE3CC /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
+		44EDA3B61F549009B91783A6 /* Pods_SelfHostedRunner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_SelfHostedRunner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		53536A2A2E74CDF52DCB40C6 /* Pods-SelfHostedRunner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SelfHostedRunner.release.xcconfig"; path = "Target Support Files/Pods-SelfHostedRunner/Pods-SelfHostedRunner.release.xcconfig"; sourceTree = "<group>"; };
 		53DBFBDBE805FC6E13E3F31E /* Pods-ShareExtension.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ShareExtension.debug.xcconfig"; path = "Target Support Files/Pods-ShareExtension/Pods-ShareExtension.debug.xcconfig"; sourceTree = "<group>"; };
 		54D121EC2F02675C00B8CC69 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		5E1F00000000000000000002 /* SelfHostedRunner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SelfHostedRunner.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5E1F00000000000000000015 /* SelfHostedRunner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SelfHostedRunner.entitlements; sourceTree = "<group>"; };
+		5E1F00000000000000000016 /* Debug-selfhosted.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Debug-selfhosted.xcconfig"; path = "Flutter/Debug-selfhosted.xcconfig"; sourceTree = "<group>"; };
+		5E1F00000000000000000017 /* Release-selfhosted.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Release-selfhosted.xcconfig"; path = "Flutter/Release-selfhosted.xcconfig"; sourceTree = "<group>"; };
+		5E1F00000000000000000018 /* Profile-selfhosted.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Profile-selfhosted.xcconfig"; path = "Flutter/Profile-selfhosted.xcconfig"; sourceTree = "<group>"; };
+		5E1F00000000000000000019 /* SelfHosted.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = SelfHosted.xcconfig; path = Flutter/SelfHosted.xcconfig; sourceTree = "<group>"; };
+		5E1F00000000000000000020 /* SelfHostedDebugBase.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = SelfHostedDebugBase.xcconfig; path = Flutter/SelfHostedDebugBase.xcconfig; sourceTree = "<group>"; };
+		5E1F00000000000000000021 /* SelfHostedReleaseBase.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = SelfHostedReleaseBase.xcconfig; path = Flutter/SelfHostedReleaseBase.xcconfig; sourceTree = "<group>"; };
+		5E1F00000000000000000022 /* SelfHostedProfileBase.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = SelfHostedProfileBase.xcconfig; path = Flutter/SelfHostedProfileBase.xcconfig; sourceTree = "<group>"; };
 		6A1E2DBA51995DADEC1ED952 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		6DACD83C2B755B0600BA9516 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		6DACD83E2B755B0600BA9516 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
+		7C5E3C64D62228DF09FFE5D1 /* Pods-SelfHostedRunner.debug-selfhosted.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SelfHostedRunner.debug-selfhosted.xcconfig"; path = "Target Support Files/Pods-SelfHostedRunner/Pods-SelfHostedRunner.debug-selfhosted.xcconfig"; sourceTree = "<group>"; };
+		81DA3AC381361285E940DADF /* Pods-SelfHostedRunner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SelfHostedRunner.profile.xcconfig"; path = "Target Support Files/Pods-SelfHostedRunner/Pods-SelfHostedRunner.profile.xcconfig"; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
 		97C146EE1CF9000F007C117D /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -123,6 +156,8 @@
 		CEE6BE822D7AE8C700E4048B /* EnteMemoryWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = EnteMemoryWidgetExtension.entitlements; sourceTree = "<group>"; };
 		D025F2F5A163F84B724D14D7 /* Pods_ShareExtension.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ShareExtension.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DA8D6672273BBB59007651D4 /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
+		EF39919958D28CD331ABD836 /* Pods-SelfHostedRunner.profile-selfhosted.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SelfHostedRunner.profile-selfhosted.xcconfig"; path = "Target Support Files/Pods-SelfHostedRunner/Pods-SelfHostedRunner.profile-selfhosted.xcconfig"; sourceTree = "<group>"; };
+		F741CEE64BC8116C080CD12D /* Pods-SelfHostedRunner.release-selfhosted.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SelfHostedRunner.release-selfhosted.xcconfig"; path = "Target Support Files/Pods-SelfHostedRunner/Pods-SelfHostedRunner.release-selfhosted.xcconfig"; sourceTree = "<group>"; };
 		F82DAEEB9A7D9FD00E0FFA1E /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -217,6 +252,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5E1F00000000000000000008 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5E1F0000000000000000000F /* StoreKit.framework in Frameworks */,
+				ABE547BF9F3ECE7B44EACCD0 /* Pods_SelfHostedRunner.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		97C146EB1CF9000F007C117D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -262,6 +306,13 @@
 				3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */,
 				9740EEB21CF90195004384FC /* Debug.xcconfig */,
 				7AFA3C8E1D35360C0083082E /* Release.xcconfig */,
+				5E1F00000000000000000016 /* Debug-selfhosted.xcconfig */,
+				5E1F00000000000000000018 /* Profile-selfhosted.xcconfig */,
+				5E1F00000000000000000017 /* Release-selfhosted.xcconfig */,
+				5E1F00000000000000000019 /* SelfHosted.xcconfig */,
+				5E1F00000000000000000020 /* SelfHostedDebugBase.xcconfig */,
+				5E1F00000000000000000022 /* SelfHostedProfileBase.xcconfig */,
+				5E1F00000000000000000021 /* SelfHostedReleaseBase.xcconfig */,
 				9740EEB31CF90195004384FC /* Generated.xcconfig */,
 			);
 			name = Flutter;
@@ -291,6 +342,7 @@
 			isa = PBXGroup;
 			children = (
 				97C146EE1CF9000F007C117D /* Runner.app */,
+				5E1F00000000000000000002 /* SelfHostedRunner.app */,
 				CEE6BE6F2D7AE7FD00E4048B /* EnteMemoryWidgetExtension.appex */,
 				CEE166232DD5E7820012CF61 /* EnteAlbumWidgetExtension.appex */,
 				CEE1667B2DD5F6F20012CF61 /* EntePeopleWidgetExtension.appex */,
@@ -302,6 +354,7 @@
 		97C146F01CF9000F007C117D /* Runner */ = {
 			isa = PBXGroup;
 			children = (
+				5E1F00000000000000000015 /* SelfHostedRunner.entitlements */,
 				271BD99F270EE74F00D86E6F /* Runner.entitlements */,
 				DA8D6672273BBB59007651D4 /* Runner.entitlements */,
 				97C146FA1CF9000F007C117D /* Main.storyboard */,
@@ -333,6 +386,12 @@
 				53DBFBDBE805FC6E13E3F31E /* Pods-ShareExtension.debug.xcconfig */,
 				C540B46EB90E9D7FDF10AC56 /* Pods-ShareExtension.release.xcconfig */,
 				AAB2B37A8A7F46DD9D1734DF /* Pods-ShareExtension.profile.xcconfig */,
+				0CA1DF3AAFDFAADBCCF4010F /* Pods-SelfHostedRunner.debug.xcconfig */,
+				7C5E3C64D62228DF09FFE5D1 /* Pods-SelfHostedRunner.debug-selfhosted.xcconfig */,
+				53536A2A2E74CDF52DCB40C6 /* Pods-SelfHostedRunner.release.xcconfig */,
+				F741CEE64BC8116C080CD12D /* Pods-SelfHostedRunner.release-selfhosted.xcconfig */,
+				81DA3AC381361285E940DADF /* Pods-SelfHostedRunner.profile.xcconfig */,
+				EF39919958D28CD331ABD836 /* Pods-SelfHostedRunner.profile-selfhosted.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -345,6 +404,7 @@
 				6DACD83C2B755B0600BA9516 /* WidgetKit.framework */,
 				6DACD83E2B755B0600BA9516 /* SwiftUI.framework */,
 				D025F2F5A163F84B724D14D7 /* Pods_ShareExtension.framework */,
+				44EDA3B61F549009B91783A6 /* Pods_SelfHostedRunner.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -372,6 +432,29 @@
 			productName = ShareExtension;
 			productReference = 54D121EC2F02675C00B8CC69 /* ShareExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
+		};
+		5E1F00000000000000000001 /* SelfHostedRunner */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5E1F00000000000000000003 /* Build configuration list for PBXNativeTarget "SelfHostedRunner" */;
+			buildPhases = (
+				70FCD21E877268B38D7C5C26 /* [CP] Check Pods Manifest.lock */,
+				5E1F0000000000000000000B /* Run Script */,
+				5E1F00000000000000000007 /* Sources */,
+				5E1F00000000000000000008 /* Frameworks */,
+				5E1F00000000000000000009 /* Resources */,
+				5E1F0000000000000000000A /* Embed Frameworks */,
+				5E1F0000000000000000000C /* Thin Binary */,
+				B361BD2AAF04391F928AA94B /* [CP] Embed Pods Frameworks */,
+				566442CFDD6A128D587D173E /* [CP] Copy Pods Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SelfHostedRunner;
+			productName = SelfHostedRunner;
+			productReference = 5E1F00000000000000000002 /* SelfHostedRunner.app */;
+			productType = "com.apple.product-type.application";
 		};
 		97C146ED1CF9000F007C117D /* Runner */ = {
 			isa = PBXNativeTarget;
@@ -474,6 +557,10 @@
 					54D121EB2F02675C00B8CC69 = {
 						CreatedOnToolsVersion = 26.2;
 					};
+					5E1F00000000000000000001 = {
+						CreatedOnToolsVersion = 16.4;
+						LastSwiftMigration = 1100;
+					};
 					97C146ED1CF9000F007C117D = {
 						CreatedOnToolsVersion = 7.3.1;
 						LastSwiftMigration = 1100;
@@ -503,6 +590,7 @@
 			projectRoot = "";
 			targets = (
 				97C146ED1CF9000F007C117D /* Runner */,
+				5E1F00000000000000000001 /* SelfHostedRunner */,
 				CEE6BE6E2D7AE7FD00E4048B /* EnteMemoryWidgetExtension */,
 				CEE166222DD5E7820012CF61 /* EnteAlbumWidgetExtension */,
 				CEE1667A2DD5F6F20012CF61 /* EntePeopleWidgetExtension */,
@@ -516,6 +604,18 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5E1F00000000000000000009 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5E1F00000000000000000012 /* LaunchScreen.storyboard in Resources */,
+				5E1F00000000000000000013 /* AppFrameworkInfo.plist in Resources */,
+				5E1F00000000000000000011 /* Assets.xcassets in Resources */,
+				5E1F00000000000000000010 /* Main.storyboard in Resources */,
+				5E1F00000000000000000014 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -571,6 +671,79 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
+		};
+		566442CFDD6A128D587D173E /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-SelfHostedRunner/Pods-SelfHostedRunner-resources.sh",
+				"${PODS_CONFIGURATION_BUILD_DIR}/firebase_messaging/firebase_messaging_Privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/permission_handler_apple/permission_handler_apple_privacy.bundle",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/firebase_messaging_Privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/permission_handler_apple_privacy.bundle",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SelfHostedRunner/Pods-SelfHostedRunner-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		5E1F0000000000000000000B /* Run Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Run Script";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
+		};
+		5E1F0000000000000000000C /* Thin Binary */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}",
+			);
+			name = "Thin Binary";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
+		};
+		70FCD21E877268B38D7C5C26 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-SelfHostedRunner-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
 		};
 		78EE147696D91812EDEEE07E /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -821,6 +994,218 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		B361BD2AAF04391F928AA94B /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-SelfHostedRunner/Pods-SelfHostedRunner-frameworks.sh",
+				"${BUILT_PRODUCTS_DIR}/FirebaseCore/FirebaseCore.framework",
+				"${BUILT_PRODUCTS_DIR}/FirebaseCoreInternal/FirebaseCoreInternal.framework",
+				"${BUILT_PRODUCTS_DIR}/FirebaseInstallations/FirebaseInstallations.framework",
+				"${BUILT_PRODUCTS_DIR}/FirebaseMessaging/FirebaseMessaging.framework",
+				"${BUILT_PRODUCTS_DIR}/GoogleDataTransport/GoogleDataTransport.framework",
+				"${BUILT_PRODUCTS_DIR}/GoogleUtilities/GoogleUtilities.framework",
+				"${BUILT_PRODUCTS_DIR}/Mantle/Mantle.framework",
+				"${BUILT_PRODUCTS_DIR}/OrderedSet/OrderedSet.framework",
+				"${BUILT_PRODUCTS_DIR}/PromisesObjC/FBLPromises.framework",
+				"${BUILT_PRODUCTS_DIR}/SDWebImage/SDWebImage.framework",
+				"${BUILT_PRODUCTS_DIR}/SDWebImageWebPCoder/SDWebImageWebPCoder.framework",
+				"${BUILT_PRODUCTS_DIR}/Sentry/Sentry.framework",
+				"${BUILT_PRODUCTS_DIR}/app_links/app_links.framework",
+				"${BUILT_PRODUCTS_DIR}/audio_session/audio_session.framework",
+				"${BUILT_PRODUCTS_DIR}/backup_exclusion/backup_exclusion.framework",
+				"${BUILT_PRODUCTS_DIR}/battery_info/battery_info.framework",
+				"${BUILT_PRODUCTS_DIR}/camera_avfoundation/camera_avfoundation.framework",
+				"${BUILT_PRODUCTS_DIR}/connectivity_plus/connectivity_plus.framework",
+				"${BUILT_PRODUCTS_DIR}/cupertino_http/cupertino_http.framework",
+				"${BUILT_PRODUCTS_DIR}/dart_ui_isolate/dart_ui_isolate.framework",
+				"${BUILT_PRODUCTS_DIR}/device_info_plus/device_info_plus.framework",
+				"${BUILT_PRODUCTS_DIR}/ente_photos_rust/ente_photos_rust.framework",
+				"${BUILT_PRODUCTS_DIR}/ente_qr/ente_qr.framework",
+				"${BUILT_PRODUCTS_DIR}/ente_rust/ente_rust.framework",
+				"${BUILT_PRODUCTS_DIR}/ente_screen_cover/ente_screen_cover.framework",
+				"${BUILT_PRODUCTS_DIR}/file_saver/file_saver.framework",
+				"${BUILT_PRODUCTS_DIR}/flutter_email_sender/flutter_email_sender.framework",
+				"${BUILT_PRODUCTS_DIR}/flutter_image_compress_common/flutter_image_compress_common.framework",
+				"${BUILT_PRODUCTS_DIR}/flutter_inappwebview_ios/flutter_inappwebview_ios.framework",
+				"${BUILT_PRODUCTS_DIR}/flutter_local_notifications/flutter_local_notifications.framework",
+				"${BUILT_PRODUCTS_DIR}/flutter_native_splash/flutter_native_splash.framework",
+				"${BUILT_PRODUCTS_DIR}/flutter_secure_storage/flutter_secure_storage.framework",
+				"${BUILT_PRODUCTS_DIR}/flutter_sodium/flutter_sodium.framework",
+				"${BUILT_PRODUCTS_DIR}/flutter_timezone/flutter_timezone.framework",
+				"${BUILT_PRODUCTS_DIR}/fluttertoast/fluttertoast.framework",
+				"${BUILT_PRODUCTS_DIR}/home_widget/home_widget.framework",
+				"${BUILT_PRODUCTS_DIR}/in_app_purchase_storekit/in_app_purchase_storekit.framework",
+				"${BUILT_PRODUCTS_DIR}/integration_test/integration_test.framework",
+				"${BUILT_PRODUCTS_DIR}/just_audio/just_audio.framework",
+				"${BUILT_PRODUCTS_DIR}/launcher_icon_switcher/launcher_icon_switcher.framework",
+				"${BUILT_PRODUCTS_DIR}/libwebp/libwebp.framework",
+				"${BUILT_PRODUCTS_DIR}/local_auth_darwin/local_auth_darwin.framework",
+				"${BUILT_PRODUCTS_DIR}/maps_launcher/maps_launcher.framework",
+				"${BUILT_PRODUCTS_DIR}/media_extension/media_extension.framework",
+				"${BUILT_PRODUCTS_DIR}/media_kit_libs_ios_video/media_kit_libs_ios_video.framework",
+				"${BUILT_PRODUCTS_DIR}/media_kit_video/media_kit_video.framework",
+				"${BUILT_PRODUCTS_DIR}/mobile_ocr/mobile_ocr.framework",
+				"${BUILT_PRODUCTS_DIR}/motion_sensors/motion_sensors.framework",
+				"${BUILT_PRODUCTS_DIR}/motionphoto/motionphoto.framework",
+				"${BUILT_PRODUCTS_DIR}/move_to_background/move_to_background.framework",
+				"${BUILT_PRODUCTS_DIR}/nanopb/nanopb.framework",
+				"${BUILT_PRODUCTS_DIR}/native_video_editor/native_video_editor.framework",
+				"${BUILT_PRODUCTS_DIR}/native_video_player/native_video_player.framework",
+				"${BUILT_PRODUCTS_DIR}/open_mail_app/open_mail_app.framework",
+				"${BUILT_PRODUCTS_DIR}/package_info_plus/package_info_plus.framework",
+				"${BUILT_PRODUCTS_DIR}/photo_manager/photo_manager.framework",
+				"${BUILT_PRODUCTS_DIR}/receive_sharing_intent/receive_sharing_intent.framework",
+				"${BUILT_PRODUCTS_DIR}/rive_native/rive_native.framework",
+				"${BUILT_PRODUCTS_DIR}/sentry_flutter/sentry_flutter.framework",
+				"${BUILT_PRODUCTS_DIR}/share_plus/share_plus.framework",
+				"${BUILT_PRODUCTS_DIR}/shared_preferences_foundation/shared_preferences_foundation.framework",
+				"${BUILT_PRODUCTS_DIR}/sqflite_darwin/sqflite_darwin.framework",
+				"${BUILT_PRODUCTS_DIR}/sqlite3/sqlite3.framework",
+				"${BUILT_PRODUCTS_DIR}/sqlite3_flutter_libs/sqlite3_flutter_libs.framework",
+				"${BUILT_PRODUCTS_DIR}/system_info_plus/system_info_plus.framework",
+				"${BUILT_PRODUCTS_DIR}/thermal/thermal.framework",
+				"${BUILT_PRODUCTS_DIR}/ua_client_hints/ua_client_hints.framework",
+				"${BUILT_PRODUCTS_DIR}/url_launcher_ios/url_launcher_ios.framework",
+				"${BUILT_PRODUCTS_DIR}/video_player_avfoundation/video_player_avfoundation.framework",
+				"${BUILT_PRODUCTS_DIR}/video_thumbnail/video_thumbnail.framework",
+				"${BUILT_PRODUCTS_DIR}/wakelock_plus/wakelock_plus.framework",
+				"${BUILT_PRODUCTS_DIR}/workmanager_apple/workmanager_apple.framework",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ffmpeg_kit_custom/ffmpegkit.framework/ffmpegkit",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ffmpeg_kit_custom/libavcodec.framework/libavcodec",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ffmpeg_kit_custom/libavdevice.framework/libavdevice",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ffmpeg_kit_custom/libavfilter.framework/libavfilter",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ffmpeg_kit_custom/libavformat.framework/libavformat",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ffmpeg_kit_custom/libavutil.framework/libavutil",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ffmpeg_kit_custom/libswresample.framework/libswresample",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ffmpeg_kit_custom/libswscale.framework/libswscale",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Ass.framework/Ass",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Avcodec.framework/Avcodec",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Avfilter.framework/Avfilter",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Avformat.framework/Avformat",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Avutil.framework/Avutil",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Dav1d.framework/Dav1d",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Freetype.framework/Freetype",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Fribidi.framework/Fribidi",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Harfbuzz.framework/Harfbuzz",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Mbedcrypto.framework/Mbedcrypto",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Mbedtls.framework/Mbedtls",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Mbedx509.framework/Mbedx509",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Mpv.framework/Mpv",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Png16.framework/Png16",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Swresample.framework/Swresample",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Swscale.framework/Swscale",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Uchardet.framework/Uchardet",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/media_kit_libs_ios_video/Xml2.framework/Xml2",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/FirebaseCore.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/FirebaseCoreInternal.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/FirebaseInstallations.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/FirebaseMessaging.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/GoogleDataTransport.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/GoogleUtilities.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Mantle.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/OrderedSet.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/FBLPromises.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/SDWebImage.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/SDWebImageWebPCoder.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Sentry.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/app_links.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/audio_session.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/backup_exclusion.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/battery_info.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/camera_avfoundation.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/connectivity_plus.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/cupertino_http.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/dart_ui_isolate.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/device_info_plus.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_photos_rust.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_qr.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_rust.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ente_screen_cover.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/file_saver.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/flutter_email_sender.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/flutter_image_compress_common.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/flutter_inappwebview_ios.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/flutter_local_notifications.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/flutter_native_splash.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/flutter_secure_storage.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/flutter_sodium.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/flutter_timezone.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/fluttertoast.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/home_widget.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/in_app_purchase_storekit.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/integration_test.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/just_audio.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/launcher_icon_switcher.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libwebp.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/local_auth_darwin.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/maps_launcher.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/media_extension.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/media_kit_libs_ios_video.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/media_kit_video.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/mobile_ocr.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/motion_sensors.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/motionphoto.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/move_to_background.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/nanopb.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/native_video_editor.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/native_video_player.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/open_mail_app.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/package_info_plus.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/photo_manager.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/receive_sharing_intent.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/rive_native.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/sentry_flutter.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/share_plus.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/shared_preferences_foundation.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/sqflite_darwin.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/sqlite3.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/sqlite3_flutter_libs.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/system_info_plus.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/thermal.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ua_client_hints.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/url_launcher_ios.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/video_player_avfoundation.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/video_thumbnail.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/wakelock_plus.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/workmanager_apple.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ffmpegkit.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libavcodec.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libavdevice.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libavfilter.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libavformat.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libavutil.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libswresample.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/libswscale.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Ass.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Avcodec.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Avfilter.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Avformat.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Avutil.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Dav1d.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Freetype.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Fribidi.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Harfbuzz.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Mbedcrypto.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Mbedtls.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Mbedx509.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Mpv.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Png16.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Swresample.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Swscale.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Uchardet.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Xml2.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SelfHostedRunner/Pods-SelfHostedRunner-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		CA5A2D2FAC2FC326D78201AE /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -870,6 +1255,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5E1F00000000000000000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5E1F0000000000000000000D /* AppDelegate.swift in Sources */,
+				5E1F0000000000000000000E /* GeneratedPluginRegistrant.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1180,6 +1574,97 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Profile;
+		};
+		5E1F00000000000000000004 /* Debug-selfhosted */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 5E1F00000000000000000016 /* Debug-selfhosted.xcconfig */;
+			buildSettings = {
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = "Debug-selfhosted";
+		};
+		5E1F00000000000000000005 /* Release-selfhosted */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 5E1F00000000000000000017 /* Release-selfhosted.xcconfig */;
+			buildSettings = {
+				SWIFT_VERSION = 5.0;
+			};
+			name = "Release-selfhosted";
+		};
+		5E1F00000000000000000006 /* Profile-selfhosted */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 5E1F00000000000000000018 /* Profile-selfhosted.xcconfig */;
+			buildSettings = {
+				SWIFT_VERSION = 5.0;
+			};
+			name = "Profile-selfhosted";
+		};
+		5E1F0000000000000000001A /* Debug-selfhosted */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Debug-selfhosted";
+		};
+		5E1F0000000000000000001B /* Release-selfhosted */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = "Release-selfhosted";
+		};
+		5E1F0000000000000000001C /* Profile-selfhosted */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = "Profile-selfhosted";
+		};
+		5E1F0000000000000000001D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 5E1F00000000000000000020 /* SelfHostedDebugBase.xcconfig */;
+			buildSettings = {
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		5E1F0000000000000000001E /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 5E1F00000000000000000021 /* SelfHostedReleaseBase.xcconfig */;
+			buildSettings = {
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		5E1F0000000000000000001F /* Profile */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 5E1F00000000000000000022 /* SelfHostedProfileBase.xcconfig */;
+			buildSettings = {
+				SWIFT_VERSION = 5.0;
 			};
 			name = Profile;
 		};
@@ -1776,12 +2261,28 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		5E1F00000000000000000003 /* Build configuration list for PBXNativeTarget "SelfHostedRunner" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5E1F0000000000000000001D /* Debug */,
+				5E1F00000000000000000004 /* Debug-selfhosted */,
+				5E1F0000000000000000001E /* Release */,
+				5E1F00000000000000000005 /* Release-selfhosted */,
+				5E1F0000000000000000001F /* Profile */,
+				5E1F00000000000000000006 /* Profile-selfhosted */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = "Release-selfhosted";
+		};
 		97C146E91CF9000F007C117D /* Build configuration list for PBXProject "Runner" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				97C147031CF9000F007C117D /* Debug */,
+				5E1F0000000000000000001A /* Debug-selfhosted */,
 				97C147041CF9000F007C117D /* Release */,
+				5E1F0000000000000000001B /* Release-selfhosted */,
 				249021D3217E4FDB00AE95B9 /* Profile */,
+				5E1F0000000000000000001C /* Profile-selfhosted */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
