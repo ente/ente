@@ -13,7 +13,7 @@
 | Phase | Task | Title | Size | Status | Notes |
 |------:|----:|-------|:----:|--------|-------|
 | 1 | 1.1 | Align the repository-pinned mobile toolchain and generated bindings | M | 🟢 done | Verified Flutter 3.38.10, native rustup Rust 1.97.0, locked Flutter packages, unchanged generated Rust bindings, and a deployment-clean CocoaPods graph. Refreshed stale plugin spec checksums in `Podfile.lock`. |
-| 1 | 1.2 | Produce an unchanged Photos build for an iOS simulator | S | ⚪ not started | Establish that the upstream Photos app compiles before endpoint behavior changes. |
+| 1 | 1.2 | Produce an unchanged Photos build for an iOS simulator | S | 🟢 done | Built and signature-verified the unchanged `io.ente.frame.debug` app at `mobile/apps/photos/build/ios/Debug-iphonesimulator/Runner.app` for the arm64 iOS Simulator. Recorded the clean-checkout generation and machine setup prerequisites below. |
 | 1 | 1.3 | Preflight Museum and object-storage reachability | S | ⚪ not started | Verify `/ping`, server-provided application URLs, and client-reachable object storage through the chosen HTTPS hostname. |
 | 2 | 2.1 | Add and unit-test the fail-closed endpoint policy | M | ⚪ not started | Cover locked and normal builds, endpoint-state binding, background startup, and authenticated request-origin enforcement. |
 | 2 | 2.2 | Disable endpoint editing and add the locked-build command | S | ⚪ not started | Preserve the read-only endpoint indicator and document every required build input. |
@@ -87,6 +87,38 @@ local diagnostic, no networking            account and photo flows
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. If a decision changes, add a new entry instead of rewriting history.
+
+### 2026-07-13 — Preinitialize Rive Native from the Photos package
+
+**Decision:** Run `dart run rive_native:setup --verbose --platform ios` from `mobile/apps/photos` when the Rive iOS setup marker is absent, before invoking Xcode.
+
+**Why:** Rive's CocoaPods script attempts the same Dart command from `ios/Pods`. Dart rejects that working directory before the package executable can relocate to the workspace, whereas the documented manual command succeeds from the Photos package and installs the pinned iOS libraries in the dependency cache.
+
+**Alternatives considered:** Patch the cached third-party podspec, commit downloaded Rive binaries, or repeatedly let the CocoaPods script fail. None belongs in the unchanged application baseline.
+
+### 2026-07-13 — Complete Xcode first-launch setup after an update
+
+**Decision:** Require `xcodebuild -checkFirstLaunchStatus` to pass and run `xcodebuild -runFirstLaunch` when it does not before attempting a Simulator build.
+
+**Why:** Xcode 26.6 was installed while its system CoreSimulator resources remained at 26.5, which disabled all Simulator device support. Xcode's standard first-launch installer refreshed the resources and restored the installed iOS 26.5 runtime.
+
+**Alternatives considered:** Treat the mismatch as an application failure, kill Simulator services without updating their framework, or require a source change. None addresses the machine-level version mismatch.
+
+### 2026-07-13 — Build the baseline Simulator artifact for arm64
+
+**Decision:** On this Apple-silicon Mac, compile the unchanged baseline with Xcode's `ARCHS=arm64` and `ONLY_ACTIVE_ARCH=YES` command-line settings. Do not commit an architecture exclusion to the upstream Runner or Pods projects.
+
+**Why:** The standard generic Simulator build requests both arm64 and x86_64. The pinned ONNX Runtime Rust archive contains an arm64 prelinked object, so the x86_64 link fails with an undefined `_OrtGetApiBase` symbol while the arm64 build succeeds. The resulting `Runner.app` is an arm64 `iPhoneSimulator` bundle with the expected `io.ente.frame.debug` identifier and a valid local signature.
+
+**Alternatives considered:** Commit an x86_64 exclusion to the existing iOS project, change the pinned ONNX Runtime dependency, or treat the x86_64 failure as an endpoint-policy problem. Those options alter upstream build behavior or dependency scope before the unchanged baseline is proven.
+
+### 2026-07-13 — Generate ignored Dart parts after Rust bridge generation
+
+**Decision:** After `cargo codegen frb`, run `dart run build_runner build --delete-conflicting-outputs` in both `mobile/packages/rust` and `mobile/apps/photos` before the iOS build.
+
+**Why:** Flutter Rust Bridge emits ignored Dart source containing Freezed `part` declarations, but it does not emit `contacts.freezed.dart` or `ml_indexing_api.freezed.dart`. Both packages declare the required builders, and their generated outputs are intentionally ignored rather than source-controlled.
+
+**Alternatives considered:** Commit generated bridge or Freezed output, hand-write the missing union classes, or remove the generated `part` declarations. All would fight the repository's generated-source convention.
 
 ### 2026-07-13 — Isolate work in a personal GitHub fork
 
