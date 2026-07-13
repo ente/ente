@@ -209,7 +209,7 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     }
 
     // Clear preferences and secure storage
-    await _preferences.clear();
+    await endpointConfig.clearPreferencesForLogout();
     await _secureStorage.deleteAll();
     _key = null;
     _cachedToken = null;

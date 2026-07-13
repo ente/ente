@@ -59,6 +59,53 @@ You can alternatively install the build from PlayStore or F-Droid.
 
 To build a release APK, [setup your keystore](https://docs.flutter.dev/deployment/android#create-an-upload-keystore) and run `flutter build apk --release --flavor independent`. For iOS, use `flutter build ios`.
 
+### Locked self-hosted iOS build
+
+Use the checked-in wrapper to build an iOS app that is compiled for exactly one
+self-hosted Museum origin:
+
+```sh
+export ENTE_SELF_HOSTED_ENDPOINT="https://museum.example"
+./scripts/build_self_hosted_ios.sh --simulator --debug
+```
+
+`ENTE_SELF_HOSTED_ENDPOINT` is the only required input for a simulator build.
+It must be an absolute HTTPS origin without credentials, a path, query, or
+fragment, and it cannot be an Ente production API host. The wrapper
+canonicalizes the value and supplies both `lockedEndpoint=true` and `endpoint`
+as Dart defines. It rejects caller-supplied Dart defines and flavors so those
+security and target selections cannot be overridden. On Apple-silicon
+simulator builds, it also applies the repository's required arm64-only Xcode
+setting to avoid linking the unsupported x86_64 Rust slice.
+
+Run `./scripts/build_self_hosted_ios.sh --validate-only` to check the endpoint
+without starting a build. `FLUTTER_BIN` and `DART_BIN` may optionally select the
+repository-pinned Flutter and Dart executables when they are not on `PATH`.
+
+The wrapper always builds the shared `selfhosted` scheme and its
+`SelfHostedRunner` target. That target uses the unique bundle identifier
+`com.vanton1.ente.photos.selfhosted`, embeds no Share Extension or widgets, and
+has no production push, associated-domain, or app-group entitlements. The
+official `Runner` target and scheme keep their existing settings and extension
+dependencies.
+
+For a signed physical-device build, first sign in to an Apple ID under Xcode's
+Accounts settings and create an Apple Development certificate. Then provide
+the development-team identifier shown by Xcode:
+
+```sh
+export ENTE_IOS_DEVELOPMENT_TEAM="YOURTEAMID"
+export ENTE_IOS_DEVICE_ID="YOUR_CONNECTED_IPHONE_ID"
+./scripts/build_self_hosted_ios.sh --debug
+```
+
+Automatic signing may create or update the development provisioning profile
+for the self-hosted bundle identifier. `ENTE_IOS_DEVICE_ID` is optional after
+the phone is registered, but setting it to the identifier shown by
+`xcrun xcdevice list` lets Xcode register and provision a connected phone on
+the first build. Use `--no-codesign` to compile a device artifact without a
+certificate or profile; that artifact cannot be installed until it is signed.
+
 ### Updating dependencies
 
 After updating Flutter dependencies, run `pod install` from `ios/` on macOS and commit `ios/Podfile.lock` if it changes.

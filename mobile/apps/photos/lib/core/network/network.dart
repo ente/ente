@@ -29,6 +29,10 @@ class NetworkClient {
     PackageInfo packageInfo,
     SharedPreferences preferences,
   ) async {
+    final startupFailure = await validateEndpointStartup(preferences);
+    if (startupFailure != null) {
+      throw startupFailure;
+    }
     final endpointConfig = EndpointConfig(preferences);
     final String ua = await userAgent();
     final endpoint = endpointConfig.endpoint;
@@ -43,22 +47,23 @@ class NetworkClient {
     _enteDio.httpClientAdapter = _newAdaptiveHttpClientAdapter(_connectTimeout);
 
     _dio.interceptors.add(_StringResponseBreadcrumbInterceptor());
-    _setupInterceptors(endpoint);
+    _setupInterceptors(endpointConfig);
 
     if (_endpointUpdatedSubscription != null) {
       await _endpointUpdatedSubscription!.cancel();
     }
     _endpointUpdatedSubscription = Bus.instance
         .on<EndpointUpdatedEvent>()
-        .listen((event) {
-          _enteDio.options.baseUrl = event.endpoint;
-          _setupInterceptors(event.endpoint);
+        .listen((_) {
+          final effectiveEndpoint = endpointConfig.endpoint;
+          _enteDio.options.baseUrl = effectiveEndpoint;
+          _setupInterceptors(endpointConfig);
         });
   }
 
-  void _setupInterceptors(String endpoint) {
+  void _setupInterceptors(EndpointConfig endpointConfig) {
     _enteDio.interceptors.clear();
-    _enteDio.interceptors.add(EnteRequestInterceptor(endpoint));
+    _enteDio.interceptors.add(EnteRequestInterceptor(endpointConfig));
     _enteDio.interceptors.add(_StringResponseBreadcrumbInterceptor());
   }
 

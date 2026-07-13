@@ -476,89 +476,89 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/workmanager_apple/ios"
 
 SPEC CHECKSUMS:
-  app_links: 3dbc685f76b1693c66a6d9dd1e9ab6f73d97dc0a
-  audio_session: 9bb7f6c970f21241b19f5a3658097ae459681ba0
-  backup_exclusion: 7aa8535339e746fb217cfdfe8fb8f8a718e4cb0b
-  battery_info: 83f3aae7be2fccefab1d2bf06b8aa96f11c8bcdd
-  camera_avfoundation: 5675ca25298b6f81fa0a325188e7df62cc217741
-  connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
-  cupertino_http: 94ac07f5ff090b8effa6c5e2c47871d48ab7c86c
-  dart_ui_isolate: 46f6714abe6891313267153ef6f9748d8ecfcab1
-  device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
-  ente_photos_rust: a9e1166cc460dda69acd56fbed21afe87dfef562
-  ente_qr: 86beaf5d2644705db9b565b32dd8b82c05fb36af
-  ente_rust: d0197ebd5460e8f67576579452b073d698404abe
-  ente_screen_cover: 6792566774f1c83939f9c1d03ed0a1f1ded45ae4
+  app_links: 585674be3c6661708e6cd794ab4f39fb9d8356f9
+  audio_session: 19e9480dbdd4e5f6c4543826b2e8b0e4ab6145fe
+  backup_exclusion: 53cb78a9f2259ad45cb30a6dd8d2294fa30d9310
+  battery_info: b6c551049266af31556b93c9d9b9452cfec0219f
+  camera_avfoundation: 281867ff09f1da66f031a184ecfbc6f2e625c9f5
+  connectivity_plus: 2a701ffec2c0ae28a48cf7540e279787e77c447d
+  cupertino_http: 947a233f40cfea55167a49f2facc18434ea117ba
+  dart_ui_isolate: d5bcda83ca4b04f129d70eb90110b7a567aece14
+  device_info_plus: bf2e3232933866d73fe290f2942f2156cdd10342
+  ente_photos_rust: 832066e3b7f0ee97f21204ac9023fe22a930f07f
+  ente_qr: 9f458d2bfe42fdf3c5fac3ace1d7585b1822616d
+  ente_rust: db9713f57d380169f96f51edd0cc05494ab2a291
+  ente_screen_cover: 95c122b1122606aa282e79962c2a2387fcae8639
   ffmpeg_kit_custom: 682b4f2f1ff1f8abae5a92f6c3540f2441d5be99
-  ffmpeg_kit_flutter: 915b345acc97d4142e8a9a8549d177ff10f043f5
-  file_saver: 6cdbcddd690cb02b0c1a0c225b37cd805c2bf8b6
+  ffmpeg_kit_flutter: 9dce4803991478c78c6fb9f972703301101095fe
+  file_saver: 503e386464dbe118f630e17b4c2e1190fa0cf808
   Firebase: d99ac19b909cd2c548339c2241ecd0d1599ab02e
-  firebase_core: ece862f94b2bc72ee0edbeec7ab5c7cb09fe1ab5
-  firebase_messaging: e1a5fae495603115be1d0183bc849da748734e2b
+  firebase_core: cf4d42a8ac915e51c0c2dc103442f3036d941a2d
+  firebase_messaging: fee490327c1aae28a0da1e65fca856547deca493
   FirebaseCore: efb3893e5b94f32b86e331e3bd6dadf18b66568e
   FirebaseCoreInternal: 9afa45b1159304c963da48addb78275ef701c6b4
   FirebaseInstallations: 317270fec08a5d418fdbc8429282238cab3ac843
   FirebaseMessaging: 3b26e2cee503815e01c3701236b020aa9b576f09
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_email_sender: aa1e9772696691d02cd91fea829856c11efb8e58
-  flutter_image_compress_common: 1697a328fd72bfb335507c6bca1a65fa5ad87df1
-  flutter_inappwebview_ios: b89ba3482b96fb25e00c967aae065701b66e9b99
-  flutter_local_notifications: a5a732f069baa862e728d839dd2ebb904737effb
-  flutter_native_splash: c32d145d68aeda5502d5f543ee38c192065986cf
-  flutter_secure_storage: 2c2ff13db9e0a5647389bff88b0ecac56e3f3418
-  flutter_sodium: e09c1b44d52949ffbd42afc22c023c13b4728223
-  flutter_timezone: 7c838e17ffd4645d261e87037e5bebf6d38fe544
-  fluttertoast: 2c67e14dce98bbdb200df9e1acf610d7a6264ea1
+  flutter_email_sender: e03bdda7637bcd3539bfe718fddd980e9508efaa
+  flutter_image_compress_common: ec1d45c362c9d30a3f6a0426c297f47c52007e3e
+  flutter_inappwebview_ios: 6f63631e2c62a7c350263b13fa5427aedefe81d4
+  flutter_local_notifications: ff50f8405aaa0ccdc7dcfb9022ca192e8ad9688f
+  flutter_native_splash: df59bb2e1421aa0282cb2e95618af4dcb0c56c29
+  flutter_secure_storage: 23fc622d89d073675f2eaa109381aefbcf5a49be
+  flutter_sodium: 74fbb18dd80a44bfa27cedc7e5c133424fa7bbe0
+  flutter_timezone: ac3da59ac941ff1c98a2e1f0293420e020120282
+  fluttertoast: 21eecd6935e7064cc1fcb733a4c5a428f3f24f0f
   GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
-  home_widget: f169fc41fd807b4d46ab6615dc44d62adbf9f64f
-  in_app_purchase_storekit: d1a48cb0f8b29dbf5f85f782f5dd79b21b90a5e6
-  integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
-  just_audio: 4e391f57b79cad2b0674030a00453ca5ce817eed
-  launcher_icon_switcher: 84c218d233505aa7d8655d8fa61a3ba802c022da
+  home_widget: 0434835a4c9a75704264feff6be17ea40e0f0d57
+  in_app_purchase_storekit: a1ce04056e23eecc666b086040239da7619cd783
+  integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
+  just_audio: a42c63806f16995daf5b219ae1d679deb76e6a79
+  launcher_icon_switcher: 8e0ad2131a20c51c1dd939896ee32e70cd845b37
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
-  local_auth_darwin: c3ee6cce0a8d56be34c8ccb66ba31f7f180aaebb
+  local_auth_darwin: 63c73d6d28cc3e239be2b6aa460ea6e317cd5100
   Mantle: c5aa8794a29a022dfbbfc9799af95f477a69b62d
-  maps_launcher: edf829809ba9e894d70e569bab11c16352dedb45
-  media_extension: 671e2567880d96c95c65c9a82ccceed8f2e309fd
-  media_kit_libs_ios_video: 5a18affdb97d1f5d466dc79988b13eff6c5e2854
-  media_kit_video: 1746e198cb697d1ffb734b1d05ec429d1fcd1474
-  mobile_ocr: bb5125a6810b4eead3c69778e6b7f3c61fb3c24d
-  motion_sensors: 741e702c17467b9569a92165dda8d4d88c6167f1
-  motionphoto: 23e2aeb5c6380112f69468d71f970fa7438e5ed1
-  move_to_background: 7e3467dd2a1d1013e98c9c1cb93fd53cd7ef9d84
+  maps_launcher: 2e5b6a2d664ec6c27f82ffa81b74228d770ab203
+  media_extension: 6618f07abd762cdbfaadf1b0c56a287e820f0c84
+  media_kit_libs_ios_video: a5fe24bc7875ccd6378a0978c13185e1344651c1
+  media_kit_video: 5da63f157170e5bf303bf85453b7ef6971218a2e
+  mobile_ocr: 2bba4e291977aa2d48a2464295df9cbba5693cfc
+  motion_sensors: 03f55b7c637a7e365a0b5f9697a449f9059d5d91
+  motionphoto: 8b65ce50c7d7ff3c767534fc3768b2eed9ac24e4
+  move_to_background: cd3091014529ec7829e342ad2d75c0a11f4378a5
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
-  native_video_editor: 5af94a14017a00dcb0a0055abb869fce79e5493e
-  native_video_player: 6809dec117e8997161dbfb42a6f90d6df71a504d
-  onnxruntime: f9b296392c96c42882be020a59dbeac6310d81b2
+  native_video_editor: 4e1db8ba0f238a724984ef04510ceda3b2afdc40
+  native_video_player: 29ab24a926804ac8c4a57eb6d744c7d927c2bc3e
+  onnxruntime: e7c2ae44385191eaad5ae64c935a72debaddc997
   onnxruntime-c: a909204639a1f035f575127ac406f781ac797c9c
   onnxruntime-objc: b6fab0f1787aa6f7190c2013f03037df4718bd8b
-  open_mail_app: 7314a609e88eed22d53671279e189af7a0ab0f11
+  open_mail_app: 70273c53f768beefdafbe310c3d9086e4da3cb02
   OrderedSet: e539b66b644ff081c73a262d24ad552a69be3a94
-  package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
-  permission_handler_apple: 92d754bbaa7361d436db2d6c3c1c2a0fdcec462e
-  photo_manager: 1d80ae07a89a67dfbcae95953a1e5a24af7c3e62
+  package_info_plus: c0502532a26c7662a62a356cebe2692ec5fe4ec4
+  permission_handler_apple: ee2fe0fd04551b304eb002714ff067c371c822ed
+  photo_manager: 81954a1bf804b6e882d0453b3b6bc7fad7b47d3d
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
-  receive_sharing_intent: 222384f00ffe7e952bbfabaa9e3967cb87e5fe00
-  rive_native: a57df296c558867395bfe82fafe857ec67640f58
+  receive_sharing_intent: 79c848f5b045674ad60b9fea3bafea59962ad2c1
+  rive_native: b9a36ed0644fc2ed1fd46f1d2b4e5501e5948235
   SDWebImage: e9c98383c7572d713c1a0d7dd2783b10599b9838
   SDWebImageWebPCoder: 0e06e365080397465cc73a7a9b472d8a3bd0f377
   Sentry: da60d980b197a46db0b35ea12cb8f39af48d8854
-  sentry_flutter: 27892878729f42701297c628eb90e7c6529f3684
-  share_plus: 50da8cb520a8f0f65671c6c6a99b3617ed10a58a
-  shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
-  sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
+  sentry_flutter: 2df8b0aab7e4aba81261c230cbea31c82a62dd1b
+  share_plus: 8b6f8b3447e494cca5317c8c3073de39b3600d1f
+  shared_preferences_foundation: 5086985c1d43c5ba4d5e69a4e8083a389e2909e6
+  sqflite_darwin: 5a7236e3b501866c1c9befc6771dfd73ffb8702d
   sqlite3: 8d708bc63e9f4ce48f0ad9d6269e478c5ced1d9b
-  sqlite3_flutter_libs: d13b8b3003f18f596e542bcb9482d105577eff41
-  system_info_plus: 555ce7047fbbf29154726db942ae785c29211740
-  thermal: d4c48be750d1ddbab36b0e2dcb2471531bc8df41
-  ua_client_hints: 92fe0d139619b73ec9fcb46cc7e079a26178f586
-  url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
-  video_player_avfoundation: 33f12ee023e354af9d062d2c366503424a914d10
-  video_thumbnail: b637e0ad5f588ca9945f6e2c927f73a69a661140
-  wakelock_plus: e29112ab3ef0b318e58cfa5c32326458be66b556
-  workmanager_apple: 904529ae31e97fc5be632cf628507652294a0778
+  sqlite3_flutter_libs: c7b32a4d17d2cbad19895873ccc815f276b1f125
+  system_info_plus: 5393c8da281d899950d751713575fbf91c7709aa
+  thermal: a9261044101ae8f532fa29cab4e8270b51b3f55c
+  ua_client_hints: aeabd123262c087f0ce151ef96fa3ab77bfc8b38
+  url_launcher_ios: bb13df5870e8c4234ca12609d04010a21be43dfa
+  video_player_avfoundation: aa06981179cc09938c6d0a5ffe92f2e536451473
+  video_thumbnail: c4e2a3c539e247d4de13cd545344fd2d26ffafd1
+  wakelock_plus: 76957ab028e12bfa4e66813c99e46637f367fc7e
+  workmanager_apple: 7bac258335c310689a641e2d66e88d4845d372e9
 
-PODFILE CHECKSUM: 8fc1fde26dfa3b23d869bfb05f0291fe4d453b91
+PODFILE CHECKSUM: 75eeb88dc290bbef3004a19c0b184b78136eba37
 
 COCOAPODS: 1.16.2

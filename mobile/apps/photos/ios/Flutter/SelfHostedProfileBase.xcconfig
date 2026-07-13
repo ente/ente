@@ -1,0 +1,3 @@
+#include "SelfHosted.xcconfig"
+#include "Pods/Target Support Files/Pods-SelfHostedRunner/Pods-SelfHostedRunner.profile.xcconfig"
+#include "Generated.xcconfig"

@@ -8,8 +8,11 @@ ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
 project 'Runner', {
   'Debug' => :debug,
+  'Debug-selfhosted' => :debug,
   'Profile' => :release,
+  'Profile-selfhosted' => :release,
   'Release' => :release,
+  'Release-selfhosted' => :release,
 }
 
 def flutter_root
@@ -38,6 +41,13 @@ target 'Runner' do
   target 'ShareExtension' do
     inherit! :search_paths
   end
+end
+
+target 'SelfHostedRunner' do
+  use_frameworks!
+  use_modular_headers!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
 post_install do |installer|

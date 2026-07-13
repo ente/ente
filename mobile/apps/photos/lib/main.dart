@@ -32,6 +32,9 @@ import 'package:photos/core/configuration.dart';
 import 'package:photos/core/constants.dart';
 import 'package:photos/core/error-reporting/super_logging.dart';
 import 'package:photos/core/errors.dart';
+import 'package:photos/core/network/endpoint_config.dart';
+import 'package:photos/core/network/endpoint_policy.dart';
+import 'package:photos/core/network/endpoint_policy_failure_app.dart';
 import 'package:photos/core/network/network.dart';
 import 'package:photos/db/files_db.dart';
 import "package:photos/db/ml/db.dart";
@@ -86,9 +89,37 @@ Future<void>? _rustInitFuture;
 
 enum ForegroundStartupMode { normal, picker }
 
+Future<bool> _allowBackgroundStartup(
+  SharedPreferences preferences, {
+  required String via,
+}) async {
+  final EndpointPolicyException? failure = await validateEndpointStartup(
+    preferences,
+  );
+  if (failure == null) {
+    return true;
+  }
+  _logger.severe(
+    "Endpoint policy blocked background startup via $via",
+    failure,
+  );
+  return false;
+}
+
 void main() async {
   debugRepaintRainbowEnabled = false;
   WidgetsFlutterBinding.ensureInitialized();
+  final endpointFailure = await validateEndpointStartup(
+    await SharedPreferences.getInstance(),
+  );
+  if (endpointFailure != null) {
+    _logger.severe(
+      "Endpoint policy blocked foreground startup",
+      endpointFailure,
+    );
+    runApp(EndpointPolicyFailureApp(failure: endpointFailure));
+    return;
+  }
   ente_ui.AppThemeConfig.initialize(ente_ui.EnteApp.photos);
   await initIsIPad();
   if (isIPad) {
@@ -263,8 +294,11 @@ Future<void> runBackgroundTask(
 
 Future<void> _runMinimally(String taskId, TimeLogger tlog) async {
   try {
-    final PackageInfo packageInfo = await PackageInfo.fromPlatform();
     final SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (!await _allowBackgroundStartup(prefs, via: "workmanager:$taskId")) {
+      return;
+    }
+    final PackageInfo packageInfo = await PackageInfo.fromPlatform();
     await _scheduleHeartBeat(prefs, true);
     await _ensureRustInitialized(via: 'workmanager:$taskId');
 
@@ -393,10 +427,14 @@ Future<void> _init(
     });
     if (!isBackground) _heartBeatOnInit(0);
     _logger.info("Initializing...  inBG =$isBackground via: $via $tlog");
+    final SharedPreferences preferences = await SharedPreferences.getInstance();
+    final endpointFailure = await validateEndpointStartup(preferences);
+    if (endpointFailure != null) {
+      throw endpointFailure;
+    }
     await _ensureRustInitialized(
       via: isBackground ? 'background:$via' : 'foreground:$via',
     );
-    final SharedPreferences preferences = await SharedPreferences.getInstance();
     final PackageInfo packageInfo = await PackageInfo.fromPlatform();
     await _logFGHeartBeatInfo(preferences);
     _logger.info("_logFGHeartBeatInfo done $tlog");
@@ -681,6 +719,9 @@ Future<void> _handleBackgroundPush(Object message) async {
 
       // Mark BG as active before starting
       final prefs = await SharedPreferences.getInstance();
+      if (!await _allowBackgroundStartup(prefs, via: "firebasePush")) {
+        return;
+      }
       await prefs.setInt(
         kLastBGTaskHeartBeatTime,
         DateTime.now().microsecondsSinceEpoch,
