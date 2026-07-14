@@ -1,4 +1,5 @@
 import "package:ente_components/ente_components.dart";
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:photos/core/configuration.dart';
 import "package:photos/generated/l10n.dart";
@@ -120,15 +121,13 @@ class _RecoveryPageState extends State<RecoveryPage> {
       showShortToast(context, AppLocalizations.of(context).recoverySuccessful);
       if (!mounted) return;
       // ignore: unawaited_futures
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return const PopScope(
-              canPop: false,
-              child: PasswordEntryPage(mode: PasswordEntryMode.reset),
-            );
-          },
+      routeToPage(
+        context,
+        const PopScope(
+          canPop: false,
+          child: PasswordEntryPage(mode: PasswordEntryMode.reset),
         ),
+        replaceCurrent: true,
       );
     } catch (e) {
       await dialog.hide();

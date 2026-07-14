@@ -341,21 +341,18 @@ class _InfoMapState extends State<InfoMap> {
       _tappedToOpenMap = true;
     });
     unawaited(
-      Navigator.of(context)
-          .push(
-            MaterialPageRoute(
-              builder: (context) => MapScreen(
-                filesFutureFn: SearchService.instance.getAllFilesForSearch,
-                center: LatLng(_fileLat, _fileLng),
-                initialZoom: 16,
-              ),
-            ),
-          )
-          .then((value) {
-            setState(() {
-              _tappedToOpenMap = false;
-            });
-          }),
+      routeToPage(
+        context,
+        MapScreen(
+          filesFutureFn: SearchService.instance.getAllFilesForSearch,
+          center: LatLng(_fileLat, _fileLng),
+          initialZoom: 16,
+        ),
+      ).then((value) {
+        setState(() {
+          _tappedToOpenMap = false;
+        });
+      }),
     );
   }
 }

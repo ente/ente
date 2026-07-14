@@ -1,4 +1,5 @@
 import "package:ente_components/ente_components.dart";
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/material.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/ui/account/email_entry_page.dart";
@@ -118,12 +119,11 @@ class FeedEmptyState extends StatelessWidget {
         buttonLabel: strings.getStarted,
         showTag: true,
         onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const EmailEntryPage(
-                showReferralSourceField: false,
-                referralSource: "Offline",
-              ),
+          routeToPage(
+            context,
+            const EmailEntryPage(
+              showReferralSourceField: false,
+              referralSource: "Offline",
             ),
           );
         },

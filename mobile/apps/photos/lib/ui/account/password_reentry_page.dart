@@ -3,6 +3,7 @@ import "dart:typed_data";
 
 import "package:ente_components/ente_components.dart";
 import "package:ente_crypto/ente_crypto.dart";
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:photos/core/configuration.dart';
@@ -123,13 +124,7 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
       if (dialogChoice!.action == ButtonAction.first) {
         if (!mounted) return;
         // ignore: unawaited_futures
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return const RecoveryPage();
-            },
-          ),
-        );
+        routeToPage(context, const RecoveryPage());
       }
       return;
     } catch (e, s) {
@@ -160,14 +155,7 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
     Bus.instance.fire(SubscriptionPurchasedEvent());
     if (!mounted) return;
     unawaited(
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return const HomeWidget();
-          },
-        ),
-        (route) => false,
-      ),
+      routeToPage(context, const HomeWidget(), removeUntil: (route) => false),
     );
   }
 
@@ -254,13 +242,7 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
                     size: ButtonComponentSize.small,
                     onTap: () async {
                       // ignore: unawaited_futures
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (BuildContext context) {
-                            return const RecoveryPage();
-                          },
-                        ),
-                      );
+                      routeToPage(context, const RecoveryPage());
                     },
                   ),
                 ],

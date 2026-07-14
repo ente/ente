@@ -409,11 +409,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
         onSelected: (PeoplePopupAction value) async {
           if (value == PeoplePopupAction.reviewSuggestions) {
             unawaited(
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => PersonReviewClusterSuggestion(person),
-                ),
-              ),
+              routeToPage(context, PersonReviewClusterSuggestion(person)),
             );
           } else if (value == PeoplePopupAction.memoryLane) {
             final callback = widget.onMemoryLaneTap;

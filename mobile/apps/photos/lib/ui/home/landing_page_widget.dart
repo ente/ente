@@ -247,15 +247,7 @@ class _LandingPageWidgetState extends State<LandingPageWidget> {
         page = getSubscriptionPage(isOnBoarding: true);
       }
     }
-    unawaited(
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return page;
-          },
-        ),
-      ),
-    );
+    unawaited(routeToPage(context, page));
   }
 
   void _navigateToSignInPage() {
@@ -276,13 +268,7 @@ class _LandingPageWidgetState extends State<LandingPageWidget> {
         page = getSubscriptionPage(isOnBoarding: true);
       }
     }
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (BuildContext context) {
-          return page;
-        },
-      ),
-    );
+    routeToPage(context, page);
   }
 
   Future<void> _showAutoLogoutDialogIfRequired() async {

@@ -2,6 +2,7 @@ import "dart:async" show StreamSubscription, unawaited;
 import "dart:math";
 import "dart:typed_data";
 
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/foundation.dart" show kDebugMode;
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
@@ -84,11 +85,7 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
           IconButton(
             icon: const Icon(Icons.history_outlined),
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => PersonClustersPage(widget.person),
-                ),
-              );
+              routeToPage(context, PersonClustersPage(widget.person));
             },
           ),
         ],
@@ -159,14 +156,13 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
                         sortedFiles.sort(
                           (a, b) => b.creationTime!.compareTo(a.creationTime!),
                         );
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => ClusterPage(
-                              sortedFiles,
-                              personID: widget.person,
-                              clusterID: clusterID,
-                              showNamingBanner: false,
-                            ),
+                        routeToPage(
+                          context,
+                          ClusterPage(
+                            sortedFiles,
+                            personID: widget.person,
+                            clusterID: clusterID,
+                            showNamingBanner: false,
                           ),
                         );
                       },
@@ -343,11 +339,9 @@ class _PersonClustersState extends State<PersonReviewClusterSuggestion> {
       final clusterID = currentSuggestion.clusterIDToMerge;
       final someFile = currentSuggestion.filesInCluster.first;
 
-      final result = await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) =>
-              SaveOrEditPerson(clusterID, file: someFile, isEditing: false),
-        ),
+      final result = await routeToPage(
+        context,
+        SaveOrEditPerson(clusterID, file: someFile, isEditing: false),
       );
       if (result == null || result == false) {
         return;

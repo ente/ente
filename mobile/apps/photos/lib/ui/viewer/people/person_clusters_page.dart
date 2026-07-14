@@ -1,3 +1,4 @@
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/cupertino.dart";
 import "package:flutter/material.dart";
 import "package:intl/intl.dart";
@@ -51,14 +52,13 @@ class _PersonClustersPageState extends State<PersonClustersPage> {
                 final List<EnteFile> files = clusters[clusterID]!;
                 return InkWell(
                   onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => ClusterPage(
-                          files,
-                          personID: widget.person,
-                          clusterID: clusterID,
-                          showNamingBanner: false,
-                        ),
+                    routeToPage(
+                      context,
+                      ClusterPage(
+                        files,
+                        personID: widget.person,
+                        clusterID: clusterID,
+                        showNamingBanner: false,
                       ),
                     );
                   },
@@ -289,14 +289,13 @@ class __ClusterWrapperForGirdState extends State<_ClusterWrapperForGird> {
       },
       child: GestureDetector(
         onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => ClusterPage(
-                widget.files,
-                personID: widget.person,
-                clusterID: widget.clusterID,
-                showNamingBanner: false,
-              ),
+          routeToPage(
+            context,
+            ClusterPage(
+              widget.files,
+              personID: widget.person,
+              clusterID: widget.clusterID,
+              showNamingBanner: false,
             ),
           );
         },

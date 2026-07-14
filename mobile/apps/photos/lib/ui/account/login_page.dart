@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:email_validator/email_validator.dart';
 import "package:ente_components/ente_components.dart";
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import "package:logging/logging.dart";
@@ -214,13 +215,7 @@ class _LoginPageState extends State<LoginPage> {
     if (attr != null && !isEmailVerificationEnabled) {
       if (!mounted) return;
       // ignore: unawaited_futures
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return LoginPasswordVerificationPage(srpAttributes: attr!);
-          },
-        ),
-      );
+      routeToPage(context, LoginPasswordVerificationPage(srpAttributes: attr));
     } else {
       if (!mounted) return;
       await UserService.instance.sendOtt(
@@ -236,8 +231,6 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _goToSignUpPage() async {
     FocusScope.of(context).unfocus();
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const EmailEntryPage()));
+    await routeToPage(context, const EmailEntryPage());
   }
 }

@@ -132,11 +132,7 @@ class _PathStorageViewerState extends State<PathStorageViewer> {
       },
       onLongPress: () async {
         if (widget.item.title == AppLocalizations.of(context).pendingSync) {
-          await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const PendingSyncInfoScreen(),
-            ),
-          );
+          await routeToPage(context, const PendingSyncInfoScreen());
         }
       },
     );

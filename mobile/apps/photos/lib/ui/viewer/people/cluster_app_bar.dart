@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import "package:ente_components/ente_components.dart";
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import "package:hugeicons/hugeicons.dart";
@@ -271,11 +272,9 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
 
       // Push the new cluster page
       if (!context.mounted) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) =>
-              ClusterPage(biggestClusterFiles, clusterID: biggestClusterID),
-        ),
+      await routeToPage(
+        context,
+        ClusterPage(biggestClusterFiles, clusterID: biggestClusterID),
       );
     }
   }
@@ -307,12 +306,11 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
     );
 
     if (!context.mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ClusterBreakupPage(
-          newClusterIDToFiles,
-          AppLocalizations.of(context).analysis,
-        ),
+    await routeToPage(
+      context,
+      ClusterBreakupPage(
+        newClusterIDToFiles,
+        AppLocalizations.of(context).analysis,
       ),
     );
   }

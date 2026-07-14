@@ -998,15 +998,14 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     }
     if (!mounted) return;
     unawaited(
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => MapScreen(
-            filesFutureFn: () async {
-              return FilesDB.instance.getAllFilesCollection(
-                widget.collection!.id,
-              );
-            },
-          ),
+      routeToPage(
+        context,
+        MapScreen(
+          filesFutureFn: () async {
+            return FilesDB.instance.getAllFilesCollection(
+              widget.collection!.id,
+            );
+          },
         ),
       ),
     );
@@ -1154,12 +1153,11 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
 
         if (res != null && res.action == ButtonAction.first) {
           if (!mounted) return;
-          await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => WebPage(
-                widget.title ?? "",
-                "https://albums.ente.com/?t=$authToken#$albumKey",
-              ),
+          await routeToPage(
+            context,
+            WebPage(
+              widget.title ?? "",
+              "https://albums.ente.com/?t=$authToken#$albumKey",
             ),
           );
         }

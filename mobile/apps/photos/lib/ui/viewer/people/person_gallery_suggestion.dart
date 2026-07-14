@@ -1,6 +1,7 @@
 import "dart:async";
 import "dart:typed_data";
 
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
@@ -197,14 +198,13 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
       currentSuggestion.filesInCluster,
     );
     sortedFiles.sort((a, b) => b.creationTime!.compareTo(a.creationTime!));
-    final result = await Navigator.of(context).push<ClusterPageResult>(
-      MaterialPageRoute(
-        builder: (context) => ClusterPage(
-          sortedFiles,
-          personID: relevantPerson,
-          clusterID: currentSuggestion.clusterIDToMerge,
-          showNamingBanner: false,
-        ),
+    final result = await routeToPage<ClusterPageResult>(
+      context,
+      ClusterPage(
+        sortedFiles,
+        personID: relevantPerson,
+        clusterID: currentSuggestion.clusterIDToMerge,
+        showNamingBanner: false,
       ),
     );
 
@@ -311,11 +311,9 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
       final clusterID = currentSuggestion.clusterIDToMerge;
       final someFile = currentSuggestion.filesInCluster.first;
 
-      final result = await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) =>
-              SaveOrEditPerson(clusterID, file: someFile, isEditing: false),
-        ),
+      final result = await routeToPage(
+        context,
+        SaveOrEditPerson(clusterID, file: someFile, isEditing: false),
       );
       if (result == null || result == false) {
         // Animate back in and reset processing state

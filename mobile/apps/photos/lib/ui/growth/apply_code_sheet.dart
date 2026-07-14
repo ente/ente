@@ -89,11 +89,9 @@ class _ApplyCodeContentState extends State<_ApplyCodeContent> {
       if (mounted) {
         Navigator.of(context).pop(true);
         // Navigate to success screen
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) =>
-                CodeSuccessScreen(widget.referralView, widget.userDetails),
-          ),
+        await routeToPage(
+          context,
+          CodeSuccessScreen(widget.referralView, widget.userDetails),
         );
       }
     } catch (e) {

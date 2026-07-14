@@ -1,6 +1,7 @@
 import "dart:math" as math;
 
 import "package:ente_components/ente_components.dart";
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/generated/l10n.dart";
@@ -210,12 +211,11 @@ class _GetStartedBannerState extends State<GetStartedBanner> {
   }
 
   Future<void> _onGetStarted() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const EmailEntryPage(
-          showReferralSourceField: false,
-          referralSource: "Offline",
-        ),
+    await routeToPage(
+      context,
+      const EmailEntryPage(
+        showReferralSourceField: false,
+        referralSource: "Offline",
       ),
     );
   }

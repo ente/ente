@@ -379,18 +379,10 @@ class _BodyState extends State<_Body> {
     }
     final fetchedThumbnail = await getThumbnail(file);
     if (!mounted) return;
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute(
-            builder: (_) {
-              return PanoramaViewerScreen(
-                file: fetchedFile,
-                thumbnail: fetchedThumbnail,
-              );
-            },
-          ),
-        )
-        .ignore();
+    routeToPage(
+      context,
+      PanoramaViewerScreen(file: fetchedFile, thumbnail: fetchedThumbnail),
+    ).ignore();
   }
 
   Widget _buildPageView() {

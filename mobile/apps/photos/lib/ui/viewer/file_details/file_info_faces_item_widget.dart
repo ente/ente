@@ -2,6 +2,7 @@ import "dart:async";
 import "dart:typed_data";
 
 import "package:dotted_border/dotted_border.dart";
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
@@ -796,15 +797,10 @@ class _FacesItemWidgetState extends State<FacesItemWidget> {
     if (namedPersons != null && namedPersons.isEmpty) {
       return;
     }
-    final result = await Navigator.of(context)
-        .push<ManualPersonAssignmentResult>(
-          MaterialPageRoute(
-            builder: (context) => AddFilesToPersonPage(
-              files: [widget.file],
-              initialPersons: namedPersons,
-            ),
-          ),
-        );
+    final result = await routeToPage<ManualPersonAssignmentResult>(
+      context,
+      AddFilesToPersonPage(files: [widget.file], initialPersons: namedPersons),
+    );
     if (result != null) {
       await loadFaces(isRefresh: true);
     }
@@ -833,11 +829,7 @@ class _FacesItemWidgetState extends State<FacesItemWidget> {
   }
 
   Future<void> _openPersonPage(PersonEntity person) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => PeoplePage(person: person, searchResult: null),
-      ),
-    );
+    await routeToPage(context, PeoplePage(person: person, searchResult: null));
   }
 }
 

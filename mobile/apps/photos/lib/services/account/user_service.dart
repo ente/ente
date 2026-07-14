@@ -130,16 +130,13 @@ class UserService {
       await dialog.hide();
       if (!context.mounted) return;
       unawaited(
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return OTTVerificationPage(
-                email,
-                isChangeEmail: isChangeEmail,
-                isCreateAccountScreen: isCreateAccountScreen,
-                isResetPasswordScreen: isResetPasswordScreen,
-              );
-            },
+        routeToPage(
+          context,
+          OTTVerificationPage(
+            email,
+            isChangeEmail: isChangeEmail,
+            isCreateAccountScreen: isCreateAccountScreen,
+            isResetPasswordScreen: isResetPasswordScreen,
           ),
         ),
       );
@@ -346,13 +343,10 @@ class UserService {
         await dialog.hide();
         if (!context.mounted) return;
         // ignore: unawaited_futures
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return const PasswordReentryPage();
-            },
-          ),
-          (route) => route.isFirst,
+        routeToPage(
+          context,
+          const PasswordReentryPage(),
+          removeUntil: (route) => route.isFirst,
         );
       } else {
         if (Configuration.instance.getEncryptedToken() != null) {
@@ -426,14 +420,7 @@ class UserService {
         }
       }
       if (!context.mounted) return;
-      await Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return page;
-          },
-        ),
-        (route) => route.isFirst,
-      );
+      await routeToPage(context, page, removeUntil: (route) => route.isFirst);
     } on DioException catch (e) {
       _logger.info(e);
       await dialog.hide();
@@ -721,14 +708,7 @@ class UserService {
     } else {
       if (!context.mounted) return;
       // ignore: unawaited_futures
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return page;
-          },
-        ),
-        (route) => route.isFirst,
-      );
+      routeToPage(context, page, removeUntil: (route) => route.isFirst);
     }
   }
 
@@ -795,13 +775,10 @@ class UserService {
           context,
           AppLocalizations.of(context).authenticationSuccessful,
         );
-        await Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return const PasswordReentryPage();
-            },
-          ),
-          (route) => route.isFirst,
+        await routeToPage(
+          context,
+          const PasswordReentryPage(),
+          removeUntil: (route) => route.isFirst,
         );
       }
     } on DioException catch (e) {
@@ -811,13 +788,10 @@ class UserService {
         if (!context.mounted) return;
         showToast(context, AppLocalizations.of(context).sessionExpired);
         if (!context.mounted) return;
-        await Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return const LoginPage();
-            },
-          ),
-          (route) => route.isFirst,
+        await routeToPage(
+          context,
+          const LoginPage(),
+          removeUntil: (route) => route.isFirst,
         );
       } else {
         if (!context.mounted) return;
@@ -867,18 +841,15 @@ class UserService {
       await dialog.hide();
       if (!context.mounted) return;
       // ignore: unawaited_futures
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return TwoFactorRecoveryPage(
-              type,
-              sessionID,
-              responseData["encryptedSecret"],
-              responseData["secretDecryptionNonce"],
-            );
-          },
+      routeToPage(
+        context,
+        TwoFactorRecoveryPage(
+          type,
+          sessionID,
+          responseData["encryptedSecret"],
+          responseData["secretDecryptionNonce"],
         ),
-        (route) => route.isFirst,
+        removeUntil: (route) => route.isFirst,
       );
     } on DioException catch (e) {
       await dialog.hide();
@@ -888,13 +859,10 @@ class UserService {
         showToast(context, AppLocalizations.of(context).sessionExpired);
         if (!context.mounted) return;
         // ignore: unawaited_futures
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return const LoginPage();
-            },
-          ),
-          (route) => route.isFirst,
+        routeToPage(
+          context,
+          const LoginPage(),
+          removeUntil: (route) => route.isFirst,
         );
       } else {
         if (!context.mounted) return;
@@ -982,13 +950,10 @@ class UserService {
           AppLocalizations.of(context).twofactorAuthenticationSuccessfullyReset,
         );
         // ignore: unawaited_futures
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return const PasswordReentryPage();
-            },
-          ),
-          (route) => route.isFirst,
+        routeToPage(
+          context,
+          const PasswordReentryPage(),
+          removeUntil: (route) => route.isFirst,
         );
       }
     } on DioException catch (e) {
@@ -999,13 +964,10 @@ class UserService {
         showToast(context, AppLocalizations.of(context).sessionExpired);
         if (!context.mounted) return;
         // ignore: unawaited_futures
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return const LoginPage();
-            },
-          ),
-          (route) => route.isFirst,
+        routeToPage(
+          context,
+          const LoginPage(),
+          removeUntil: (route) => route.isFirst,
         );
       } else {
         if (!context.mounted) return;

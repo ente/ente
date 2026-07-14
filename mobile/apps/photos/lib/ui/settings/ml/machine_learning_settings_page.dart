@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:ente_components/ente_components.dart";
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/event_bus.dart";
@@ -156,15 +157,10 @@ class _MachineLearningSettingsPageState
     if (!shouldOpenDeveloperOptions) {
       return;
     }
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return const MLUserDeveloperOptions(mlIsEnabled: true);
-            },
-          ),
-        )
-        .ignore();
+    routeToPage(
+      context,
+      const MLUserDeveloperOptions(mlIsEnabled: true),
+    ).ignore();
   }
 
   Future<void> _handleDisabledScreenExit() async {
@@ -266,14 +262,11 @@ class _MachineLearningSettingsPageState
   }
 
   Future<void> _openMLPrivacyPolicy(BuildContext context) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (BuildContext context) {
-          return WebPage(
-            AppLocalizations.of(context).privacyPolicyTitle,
-            "https://ente.com/privacy",
-          );
-        },
+    await routeToPage(
+      context,
+      WebPage(
+        AppLocalizations.of(context).privacyPolicyTitle,
+        "https://ente.com/privacy",
       ),
     );
   }

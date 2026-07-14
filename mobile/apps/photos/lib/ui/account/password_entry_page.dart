@@ -288,14 +288,11 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
                     label: AppLocalizations.of(context).howItWorks,
                     size: ButtonComponentSize.small,
                     onTap: () async {
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (BuildContext context) {
-                            return WebPage(
-                              AppLocalizations.of(context).howItWorks,
-                              "https://ente.com/architecture",
-                            );
-                          },
+                      await routeToPage(
+                        context,
+                        WebPage(
+                          AppLocalizations.of(context).howItWorks,
+                          "https://ente.com/architecture",
                         ),
                       );
                     },
@@ -399,13 +396,10 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
           await dialog.hide();
           Configuration.instance.resetVolatilePassword();
           if (mounted) {
-            await Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (BuildContext context) {
-                  return getSubscriptionPage(isOnBoarding: true);
-                },
-              ),
-              (route) => route.isFirst,
+            await routeToPage(
+              context,
+              getSubscriptionPage(isOnBoarding: true),
+              removeUntil: (route) => route.isFirst,
             );
           }
           Bus.instance.fire(AccountConfiguredEvent());

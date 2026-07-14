@@ -426,34 +426,26 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget> {
         style: textTheme.bodyMuted,
         tags: {
           'terms': StyledTextActionTag(
-            (String? text, Map<String?, String?> attrs) =>
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (BuildContext context) {
-                      return WebPage(
-                        AppLocalizations.of(context).termsOfServicesTitle,
-                        "https://ente.com/terms",
-                      );
-                    },
-                  ),
-                ),
+            (String? text, Map<String?, String?> attrs) => routeToPage(
+              context,
+              WebPage(
+                AppLocalizations.of(context).termsOfServicesTitle,
+                "https://ente.com/terms",
+              ),
+            ),
             style: textTheme.bodyMuted.copyWith(
               decoration: TextDecoration.underline,
               decorationColor: textTheme.bodyMuted.color,
             ),
           ),
           'policy': StyledTextActionTag(
-            (String? text, Map<String?, String?> attrs) =>
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (BuildContext context) {
-                      return WebPage(
-                        AppLocalizations.of(context).privacyPolicyTitle,
-                        "https://ente.com/privacy",
-                      );
-                    },
-                  ),
-                ),
+            (String? text, Map<String?, String?> attrs) => routeToPage(
+              context,
+              WebPage(
+                AppLocalizations.of(context).privacyPolicyTitle,
+                "https://ente.com/privacy",
+              ),
+            ),
             style: textTheme.bodyMuted.copyWith(
               decoration: TextDecoration.underline,
               decorationColor: textTheme.bodyMuted.color,

@@ -658,13 +658,10 @@ class _HomeWidgetState extends State<HomeWidget> {
           }
           if (shouldOpenFile) {
             unawaited(
-              Navigator.pushReplacement(
+              routeToPage(
                 context,
-                MaterialPageRoute(
-                  builder: (_) {
-                    return FileViewer(sharedMediaFile: value[0]);
-                  },
-                ),
+                FileViewer(sharedMediaFile: value[0]),
+                replaceCurrent: true,
               ),
             );
           } else {
@@ -693,16 +690,7 @@ class _HomeWidgetState extends State<HomeWidget> {
       if (!mounted) {
         return;
       }
-      unawaited(
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) {
-              return const FileViewer();
-            },
-          ),
-        ),
-      );
+      unawaited(routeToPage(context, const FileViewer(), replaceCurrent: true));
       return;
     }
 
@@ -748,16 +736,7 @@ class _HomeWidgetState extends State<HomeWidget> {
       if (!mounted || ModalRoute.of(context)?.isCurrent != true) {
         return;
       }
-      unawaited(
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) {
-              return const FileViewer();
-            },
-          ),
-        ),
-      );
+      unawaited(routeToPage(context, const FileViewer(), replaceCurrent: true));
     });
   }
 

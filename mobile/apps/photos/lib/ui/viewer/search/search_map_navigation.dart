@@ -1,5 +1,6 @@
 import "dart:async";
 
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/material.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/service_locator.dart";
@@ -24,12 +25,9 @@ Future<void> openSearchMap(BuildContext context) async {
   }
 
   unawaited(
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => MapScreen(
-          filesFutureFn: SearchService.instance.getAllFilesForSearch,
-        ),
-      ),
+    routeToPage(
+      context,
+      MapScreen(filesFutureFn: SearchService.instance.getAllFilesForSearch),
     ),
   );
 }

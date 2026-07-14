@@ -1,5 +1,6 @@
 import "dart:async";
 
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/configuration.dart";
@@ -118,12 +119,11 @@ class _NameFaceBannerState extends State<NameFaceBanner> {
             BannerActionButton(
               label: l10n.signUp,
               onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const EmailEntryPage(
-                      showReferralSourceField: false,
-                      referralSource: "Offline",
-                    ),
+                routeToPage(
+                  context,
+                  const EmailEntryPage(
+                    showReferralSourceField: false,
+                    referralSource: "Offline",
                   ),
                 );
               },

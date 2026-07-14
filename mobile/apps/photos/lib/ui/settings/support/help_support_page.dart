@@ -1,4 +1,5 @@
 import "package:ente_components/ente_components.dart";
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
@@ -64,9 +65,7 @@ class HelpSupportPage extends StatelessWidget {
           icon: HugeIcons.strokeRoundedBug01,
           showOnlyLoadingState: true,
           onTap: () async {
-            await Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const ReportIssuePage()),
-            );
+            await routeToPage(context, const ReportIssuePage());
           },
         ),
         if (flagService.internalUser || kDebugMode) ...[
@@ -173,13 +172,7 @@ class HelpSupportPage extends StatelessWidget {
     required String title,
     String url = _helpUrl,
   }) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (BuildContext context) {
-          return WebPage(title, url);
-        },
-      ),
-    );
+    await routeToPage(context, WebPage(title, url));
   }
 
   Future<void> _viewLogs(BuildContext context) async {
@@ -188,9 +181,7 @@ class HelpSupportPage extends StatelessWidget {
       showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
       return;
     }
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (context) => LogFileViewer(logFile)));
+    await routeToPage(context, LogFileViewer(logFile));
   }
 
   Future<void> _exportLogs(BuildContext context) async {

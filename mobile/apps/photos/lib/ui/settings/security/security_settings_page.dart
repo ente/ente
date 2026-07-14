@@ -271,13 +271,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
       );
       if (result) {
         if (!context.mounted) return;
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return const LockScreenOptions();
-            },
-          ),
-        );
+        await routeToPage(context, const LockScreenOptions());
       }
     } else {
       if (!context.mounted) return;
@@ -299,15 +293,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
         );
     if (hasAuthenticated) {
       if (!context.mounted) return;
-      unawaited(
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return const SessionsPage();
-            },
-          ),
-        ),
-      );
+      unawaited(routeToPage(context, const SessionsPage()));
     }
   }
 }

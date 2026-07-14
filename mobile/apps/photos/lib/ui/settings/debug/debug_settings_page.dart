@@ -1,4 +1,5 @@
 import "package:ente_crypto/ente_crypto.dart";
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/configuration.dart";
@@ -265,11 +266,9 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                             trailingIcon: Icons.chevron_right_outlined,
                             trailingIconIsMuted: true,
                             onTap: () async {
-                              await Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const SocialDebugScreen(),
-                                ),
+                              await routeToPage(
+                                context,
+                                const SocialDebugScreen(),
                               );
                             },
                           ),

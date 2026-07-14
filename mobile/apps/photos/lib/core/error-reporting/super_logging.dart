@@ -621,9 +621,6 @@ class SuperLogging {
   /// Show the log viewer page
   /// This is the main integration point for accessing the log viewer
   static void showLogViewer(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LogViewerPage()),
-    );
+    routeToPage(context, const LogViewerPage());
   }
 }

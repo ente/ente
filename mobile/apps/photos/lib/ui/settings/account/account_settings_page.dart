@@ -3,6 +3,7 @@ import "dart:async";
 import "package:ente_account_deletion/account_deletion.dart";
 import "package:ente_crypto/ente_crypto.dart";
 import "package:ente_lock_screen/local_authentication_service.dart";
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/generated/l10n.dart";
@@ -106,13 +107,7 @@ class AccountSettingsPage extends StatelessWidget {
     if (!context.mounted) {
       return;
     }
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (BuildContext context) {
-          return getSubscriptionPage();
-        },
-      ),
-    );
+    await routeToPage(context, getSubscriptionPage());
   }
 
   Future<void> _onChangeEmailTapped(BuildContext context) async {
@@ -136,12 +131,9 @@ class AccountSettingsPage extends StatelessWidget {
     if (hasAuthenticated) {
       if (!context.mounted) return;
       unawaited(
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return const PasswordEntryPage(mode: PasswordEntryMode.update);
-            },
-          ),
+        routeToPage(
+          context,
+          const PasswordEntryPage(mode: PasswordEntryMode.update),
         ),
       );
     }
@@ -165,15 +157,12 @@ class AccountSettingsPage extends StatelessWidget {
       }
       if (!context.mounted) return;
       unawaited(
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return RecoveryKeyPage(
-                recoveryKey,
-                AppLocalizations.of(context).ok,
-                onDone: () {},
-              );
-            },
+        routeToPage(
+          context,
+          RecoveryKeyPage(
+            recoveryKey,
+            AppLocalizations.of(context).ok,
+            onDone: () {},
           ),
         ),
       );
@@ -195,13 +184,7 @@ class AccountSettingsPage extends StatelessWidget {
     if (!context.mounted || !hasAuthenticated) {
       return;
     }
-    final deleted = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (BuildContext context) {
-          return const DeleteAccountPage();
-        },
-      ),
-    );
+    final deleted = await routeToPage<bool>(context, const DeleteAccountPage());
     if (deleted == true && context.mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
     }

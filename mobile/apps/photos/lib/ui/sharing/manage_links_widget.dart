@@ -635,13 +635,7 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
     );
     if (buttonResult?.action == ButtonAction.first) {
       if (!context.mounted) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return getSubscriptionPage();
-          },
-        ),
-      );
+      await routeToPage(context, getSubscriptionPage());
     }
   }
 }

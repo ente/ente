@@ -5,14 +5,24 @@ Future<T?> routeToPage<T extends Object>(
   Widget page, {
   bool isTopLevel = false,
   bool useFadeTransition = false,
+  bool replaceCurrent = false,
+  RoutePredicate? removeUntil,
 }) {
-  return Navigator.of(context).push(
-    useFadeTransition
-        ? _buildPageRoute<T>(page)
-        : SwipeableRouteBuilder<T>(
-            pageBuilder: (context, animation, secondaryAnimation) => page,
-          ),
-  );
+  assert(!replaceCurrent || removeUntil == null);
+
+  final navigator = Navigator.of(context);
+  final route = useFadeTransition
+      ? _buildPageRoute<T>(page)
+      : SwipeableRouteBuilder<T>(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+        );
+  if (removeUntil != null) {
+    return navigator.pushAndRemoveUntil(route, removeUntil);
+  }
+  if (replaceCurrent) {
+    return navigator.pushReplacement(route);
+  }
+  return navigator.push(route);
 }
 
 void replacePage(BuildContext context, Widget page, {Object? result}) {

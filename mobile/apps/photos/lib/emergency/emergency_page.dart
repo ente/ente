@@ -1,5 +1,6 @@
 import "dart:async";
 
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:photos/core/configuration.dart";
@@ -287,14 +288,11 @@ class _EmergencyPageState extends State<EmergencyPage> {
                               currentUser,
                             );
                           } else {
-                            await Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (BuildContext context) {
-                                  return OtherContactPage(
-                                    contact: currentUser,
-                                    emergencyInfo: info!,
-                                  );
-                                },
+                            await routeToPage(
+                              context,
+                              OtherContactPage(
+                                contact: currentUser,
+                                emergencyInfo: info!,
                               ),
                             );
                             if (mounted) {

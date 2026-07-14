@@ -791,15 +791,7 @@ class CollectionActions {
           labelText: AppLocalizations.of(context).subscribe,
           onTap: () async {
             // for quickLink collection, we need to trash the collection
-            Navigator.of(context)
-                .push(
-                  MaterialPageRoute(
-                    builder: (BuildContext context) {
-                      return getSubscriptionPage();
-                    },
-                  ),
-                )
-                .ignore();
+            routeToPage(context, getSubscriptionPage()).ignore();
           },
         ),
         Padding(

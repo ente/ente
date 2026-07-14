@@ -1,3 +1,4 @@
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/material.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/wrapped/models.dart";
@@ -171,11 +172,6 @@ class _WrappedRewindBannerButtonState extends State<WrappedRewindBannerButton> {
       showShortToast(context, "Ente Rewind isn't ready yet");
       return;
     }
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (BuildContext context) =>
-            WrappedViewerPage(initialState: currentState),
-      ),
-    );
+    routeToPage(context, WrappedViewerPage(initialState: currentState));
   }
 }

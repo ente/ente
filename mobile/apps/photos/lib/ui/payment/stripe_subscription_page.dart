@@ -369,18 +369,10 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
       final String url = await _billingService.getStripeCustomerPortalUrl();
       await _dialog.hide();
       if (!mounted) return;
-      await Navigator.of(context)
-          .push(
-            MaterialPageRoute(
-              builder: (BuildContext context) {
-                return WebPage(
-                  AppLocalizations.of(context).paymentDetails,
-                  url,
-                );
-              },
-            ),
-          )
-          .then((value) => onWebPaymentGoBack);
+      await routeToPage(
+        context,
+        WebPage(AppLocalizations.of(context).paymentDetails, url),
+      ).then((value) => onWebPaymentGoBack);
     } catch (e) {
       await _dialog.hide();
       if (!mounted) return;
@@ -572,15 +564,11 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
               }
             }
             if (!mounted) return;
-            await Navigator.push(
+            await routeToPage(
               context,
-              MaterialPageRoute(
-                builder: (BuildContext context) {
-                  return PaymentWebPage(
-                    planId: plan.stripeID,
-                    actionType: stripPurChaseAction,
-                  );
-                },
+              PaymentWebPage(
+                planId: plan.stripeID,
+                actionType: stripPurChaseAction,
               ),
             ).then((value) => onWebPaymentGoBack(value));
           },
@@ -723,15 +711,11 @@ class _StripeSubscriptionPageState extends State<StripeSubscriptionPage> {
       }
     }
     if (!mounted) return;
-    await Navigator.push(
+    await routeToPage(
       context,
-      MaterialPageRoute(
-        builder: (BuildContext context) {
-          return PaymentWebPage(
-            planId: selectedPlan.stripeID,
-            actionType: stripPurChaseAction,
-          );
-        },
+      PaymentWebPage(
+        planId: selectedPlan.stripeID,
+        actionType: stripPurChaseAction,
       ),
     ).then((value) => onWebPaymentGoBack(value));
   }

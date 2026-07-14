@@ -1,6 +1,7 @@
 import "dart:async";
 import "dart:typed_data";
 
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/foundation.dart" show kDebugMode;
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
@@ -210,11 +211,9 @@ class _FileInfoFaceWidgetState extends State<FileInfoFaceWidget> {
         ? MLDataDB.localGalleryInstance
         : MLDataDB.instance;
     if (!isLocalGalleryMode && widget.person != null) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) =>
-              PeoplePage(person: widget.person!, searchResult: null),
-        ),
+      await routeToPage(
+        context,
+        PeoplePage(person: widget.person!, searchResult: null),
       );
       return;
     }
@@ -259,13 +258,12 @@ class _FileInfoFaceWidgetState extends State<FileInfoFaceWidget> {
             .toList();
       }
       if (!mounted) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => ClusterPage(
-            clusterFiles,
-            clusterID: clusterID,
-            showNamingBanner: !isLocalGalleryMode,
-          ),
+      await routeToPage(
+        context,
+        ClusterPage(
+          clusterFiles,
+          clusterID: clusterID,
+          showNamingBanner: !isLocalGalleryMode,
         ),
       );
       return;
@@ -279,11 +277,9 @@ class _FileInfoFaceWidgetState extends State<FileInfoFaceWidget> {
       final String clusterID = newClusterID();
       await mlDataDB.updateFaceIdToClusterId({widget.face.faceID: clusterID});
       if (!mounted) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) =>
-              ClusterPage([widget.file], clusterID: clusterID),
-        ),
+      await routeToPage(
+        context,
+        ClusterPage([widget.file], clusterID: clusterID),
       );
       return;
     }
@@ -302,13 +298,12 @@ class _FileInfoFaceWidgetState extends State<FileInfoFaceWidget> {
             clusterID: widget.clusterID,
           );
       if (!mounted) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => SaveOrEditPerson(
-            newClusterIDValue,
-            file: widget.file,
-            isEditing: false,
-          ),
+      await routeToPage(
+        context,
+        SaveOrEditPerson(
+          newClusterIDValue,
+          file: widget.file,
+          isEditing: false,
         ),
       );
       await widget.reloadAllFaces();

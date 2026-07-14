@@ -1,3 +1,4 @@
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/generated/l10n.dart";
@@ -34,12 +35,9 @@ class AboutUsPage extends StatelessWidget {
           icon: HugeIcons.strokeRoundedPencilEdit01,
           showOnlyLoadingState: true,
           onTap: () async {
-            await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (BuildContext context) {
-                  return WebPage(l10n.blog, "https://ente.com/blog");
-                },
-              ),
+            await routeToPage(
+              context,
+              WebPage(l10n.blog, "https://ente.com/blog"),
             );
           },
         ),
@@ -49,12 +47,9 @@ class AboutUsPage extends StatelessWidget {
           icon: HugeIcons.strokeRoundedShield01,
           showOnlyLoadingState: true,
           onTap: () async {
-            await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (BuildContext context) {
-                  return WebPage(l10n.privacy, "https://ente.com/privacy");
-                },
-              ),
+            await routeToPage(
+              context,
+              WebPage(l10n.privacy, "https://ente.com/privacy"),
             );
           },
         ),
@@ -64,15 +59,9 @@ class AboutUsPage extends StatelessWidget {
           icon: HugeIcons.strokeRoundedFile01,
           showOnlyLoadingState: true,
           onTap: () async {
-            await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (BuildContext context) {
-                  return WebPage(
-                    l10n.termsOfServicesTitle,
-                    "https://ente.com/terms",
-                  );
-                },
-              ),
+            await routeToPage(
+              context,
+              WebPage(l10n.termsOfServicesTitle, "https://ente.com/terms"),
             );
           },
         ),

@@ -78,13 +78,7 @@ class _StorageCardWidgetState extends State<StorageCardWidget> {
             return;
           }
           // ignore: unawaited_futures
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (BuildContext context) {
-                return getSubscriptionPage();
-              },
-            ),
-          );
+          routeToPage(context, getSubscriptionPage());
         },
         child: containerForUserDetails(userDetails),
       );

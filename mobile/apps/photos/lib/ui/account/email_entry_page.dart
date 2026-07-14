@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:email_validator/email_validator.dart';
 import "package:ente_components/ente_components.dart";
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:password_strength/password_strength.dart';
 import 'package:photos/core/configuration.dart';
@@ -430,34 +431,26 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
               style: TextStyles.mini.copyWith(color: colors.textLight),
               tags: {
                 'u-terms': StyledTextActionTag(
-                  (String? text, Map<String?, String?> attrs) =>
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (BuildContext context) {
-                            return WebPage(
-                              AppLocalizations.of(context).termsOfServicesTitle,
-                              "https://ente.com/terms",
-                            );
-                          },
-                        ),
-                      ),
+                  (String? text, Map<String?, String?> attrs) => routeToPage(
+                    context,
+                    WebPage(
+                      AppLocalizations.of(context).termsOfServicesTitle,
+                      "https://ente.com/terms",
+                    ),
+                  ),
                   style: TextStyle(
                     decoration: TextDecoration.underline,
                     color: colors.textLight,
                   ),
                 ),
                 'u-policy': StyledTextActionTag(
-                  (String? text, Map<String?, String?> attrs) =>
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (BuildContext context) {
-                            return WebPage(
-                              AppLocalizations.of(context).privacyPolicyTitle,
-                              "https://ente.com/privacy",
-                            );
-                          },
-                        ),
-                      ),
+                  (String? text, Map<String?, String?> attrs) => routeToPage(
+                    context,
+                    WebPage(
+                      AppLocalizations.of(context).privacyPolicyTitle,
+                      "https://ente.com/privacy",
+                    ),
+                  ),
                   style: TextStyle(
                     decoration: TextDecoration.underline,
                     color: colors.textLight,
@@ -480,8 +473,6 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
 
   Future<void> _goToLoginPage() async {
     FocusScope.of(context).unfocus();
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const LoginPage()));
+    await routeToPage(context, const LoginPage());
   }
 }

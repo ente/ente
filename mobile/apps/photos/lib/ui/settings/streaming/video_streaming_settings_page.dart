@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:ente_components/ente_components.dart";
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/event_bus.dart";
@@ -159,15 +160,10 @@ class _VideoStreamingSettingsPageState
   }
 
   Future<void> openHelp() async {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return WebPage(AppLocalizations.of(context).help, helpUrl);
-            },
-          ),
-        )
-        .ignore();
+    routeToPage(
+      context,
+      WebPage(AppLocalizations.of(context).help, helpUrl),
+    ).ignore();
   }
 
   Future<void> toggleVideoStreaming() async {

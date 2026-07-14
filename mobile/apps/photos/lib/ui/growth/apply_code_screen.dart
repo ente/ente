@@ -116,13 +116,13 @@ class _ApplyCodeScreenState extends State<ApplyCodeScreen> {
                           await storageBonusService.applyCode(code);
                           if (!context.mounted) return;
                           // ignore: unawaited_futures
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (context) => CodeSuccessScreen(
-                                widget.referralView,
-                                widget.userDetails,
-                              ),
+                          routeToPage(
+                            context,
+                            CodeSuccessScreen(
+                              widget.referralView,
+                              widget.userDetails,
                             ),
+                            replaceCurrent: true,
                           );
                         } catch (e) {
                           Logger(

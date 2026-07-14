@@ -1,3 +1,4 @@
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/material.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/ui/components/alert_bottom_sheet.dart";
@@ -54,9 +55,7 @@ class _DeveloperSettingsTapAreaState extends State<DeveloperSettingsTapArea> {
           labelText: AppLocalizations.of(context).yes,
           onTap: () async {
             Navigator.of(context).pop();
-            await Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const DeveloperSettingsPage()),
-            );
+            await routeToPage(context, const DeveloperSettingsPage());
             widget.onSettingsChanged?.call();
           },
         ),

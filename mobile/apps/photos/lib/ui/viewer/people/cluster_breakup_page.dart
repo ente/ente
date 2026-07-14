@@ -1,3 +1,4 @@
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/material.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -31,13 +32,12 @@ class _ClusterBreakupPageState extends State<ClusterBreakupPage> {
           final List<EnteFile> files = clusterIDsToFiles[keys[index]]!;
           return InkWell(
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => ClusterPage(
-                    files,
-                    clusterID: clusterID,
-                    appendTitle: "(Analysis)",
-                  ),
+              routeToPage(
+                context,
+                ClusterPage(
+                  files,
+                  clusterID: clusterID,
+                  appendTitle: "(Analysis)",
                 ),
               );
             },
