@@ -15,7 +15,7 @@
 | 1 | 1.1 | Add configurable endpoint policy and migrate locked installations | M | 🟢 done | Added explicit standard, locked, and configurable modes with conflicting-define rejection. Configurable mode reuses valid locked bindings, accepts any canonical HTTPS origin, preserves its binding across logout, and enforces authenticated same-origin requests without enabling direct mutation. Passed the 29 focused tests under standard, locked, and configurable defines, all 275 Photos tests, the full analyzer, and the locked command-line validator. |
 | 1 | 1.2 | Validate candidate servers and switch only after local logout | M | 🟢 done | Added a fresh credential-free, no-redirect Museum `/ping` probe with 15-second connection and response timeouts, an opaque validated-candidate handoff, and configurable-only activation that retains the old binding until local account preferences are cleared. Failed probes and premature activation leave account state and the binding untouched; successful activation emits the endpoint-update event. Passed all 37 focused endpoint tests, all 283 Photos tests, and the full analyzer. |
 | 2 | 2.1 | Add guarded server controls to Settings and sign-in | M | 🟢 done | Added one localized Server Settings page, an authenticated Settings row, and current-origin links on landing, account creation, and login. The page validates before mutation, treats the active origin as a no-op, requires a scrollable signed-in confirmation naming both origins, runs local logout before activation, and returns successful changes to login. Standard and locked builds hide the control; both managed modes disable the legacy seven-tap editor. Passed 19 focused UI/network tests, compile-mode checks under standard, configurable, and locked defines, all 292 Photos tests, and the full analyzer. |
-| 2 | 2.2 | Build, document, and verify configurable Android and iOS artifacts | M | ⚪ not started | Update both guarded wrappers, revise the build guide and earlier living docs without rewriting their history, audit both artifacts, and exercise the shared flow on the iOS simulator and resource-capped Android emulator. |
+| 2 | 2.2 | Build, document, and verify configurable Android and iOS artifacts | M | 🟢 done | Changed both guarded wrappers and their shared validator to configurable mode, documented defaults, upgrades, switching, and rollback, and appended supersession notes to both locked-build records. Built and audited the arm64 iOS Simulator app and three-ABI Android debug APK. The iOS upgrade retained the local binding, exposed the signed-out Server link, and rejected the TLS-invalid Tailscale IP without switching. The resource-capped Android upgrade preserved its first-install record, signed-in session, photos, and local binding, and exposed the active Server page. The Android APK SHA-256 is `5d4613889a5fb8b72cd83f13e2aab50c3f7a9347589ff16a79584d9a6150e1aa`. Passed 45 configurable-define tests, all 292 Photos tests, the analyzer, wrapper guards, endpoint validation, signature/archive/identity audits, and `git diff --check`. |
 | 3 | 3.1 | Document the as-built mobile endpoint architecture | S | ⚪ not started | Write the settled component, state, and switch-flow explanation after implementation, then link it from this document. |
 
 **Legend:** ⚪ not started · 🟡 working · 🟢 done · 🔴 blocked / needs decision
@@ -123,6 +123,22 @@ Rollback is straightforward before a successful switch: revert a task or reinsta
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. Never delete an entry; if a decision changes, add a newer entry explaining the reversal.
+
+### 2026-07-14 — Upgrade the existing personal artifacts in place
+
+**Decision:** Change both guarded wrappers from `lockedEndpoint=true` to
+`configurableEndpoint=true` while retaining their existing `selfhosted` flavor,
+scheme, application IDs, bundle identifier, output paths, and signing inputs.
+Treat `ENTE_SELF_HOSTED_ENDPOINT` as the clean-install default rather than a
+forced migration value.
+
+**Why:** Package identity continuity lets a valid locked installation reuse its
+stored binding, account, and photos. The wrapper still owns and validates all
+compile-time endpoint inputs, while runtime changes go exclusively through the
+validated and confirmed Server Settings flow.
+
+**Alternatives considered:** Ship a second configurable application alongside
+the locked one, or make the wrapper's endpoint overwrite existing bindings.
 
 ### 2026-07-14 — Disable the legacy endpoint editor in managed builds
 
@@ -294,3 +310,22 @@ _None._
 - Separating the flow into a mutation-free network probe and a guarded post-logout write makes every failure boundary explicit. Phase 2 should preserve that order rather than embedding persistence in interface callbacks.
 - The library-private validated-candidate type narrows the interface's safe path. Phase 2 should keep one `EndpointSwitcher` alive only for the Server Settings page, close it with the page lifecycle, and translate typed policy and probe failures into local messages.
 - Endpoint behavior is shared Dart code, so focused adapter and preference tests cover the main safety invariants before either platform UI is installed. Phase 2 still needs widget coverage for confirmation, cancellation, progress, failure recovery, and return-to-sign-in behavior.
+
+### Phase 2 — Interface and cross-platform artifacts
+
+- Reusing the existing package and bundle identifiers lets the configurable
+  artifacts replace the locked applications in place. Android retained its
+  original first-install record, signed-in session, photos, and active binding;
+  iOS retained its active local binding and opened without a startup diagnostic.
+- A Tailscale IP is not interchangeable with its MagicDNS hostname for HTTPS.
+  Museum remained healthy through the `.ts.net` origin while the app correctly
+  rejected `100.100.190.42` because Tailscale Serve could not establish trusted
+  TLS for the bare IP.
+- Artifact verification needs both compile-time and runtime evidence. Wrapper
+  guard tests and kernel inspection establish the build inputs; package,
+  signature, ABI, and archive audits establish identity; visible Server controls
+  plus retained account state establish that the installed mode and migration
+  behavior match those inputs.
+- The Android image enforces roughly 2.5 GiB of guest RAM even when launched with
+  a 2 GiB request. Two cores, host graphics, no audio or boot animation, and
+  disabled snapshots kept the host responsive during the preserved-state test.

@@ -6,6 +6,11 @@
 **Planning doc:** n/a
 **Companion docs:** `mobile/apps/photos/README.md`, `docs/docs/self-hosting/installation/post-install/index.md`, `docs/docs/self-hosting/administration/object-storage.md`
 
+> **Historical baseline:** This locked-build milestone remains an append-only
+> record of the artifact verified on 2026-07-13. It was superseded on
+> 2026-07-14 by `living_docs/ConfigurableSelfHostedMobileServer.md`, which keeps
+> the same bundle identifier and supports guarded runtime server changes.
+
 ---
 
 ## 1. Phase / Task tracker
@@ -99,6 +104,23 @@ local diagnostic, no networking            account and photo flows
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. If a decision changes, add a new entry instead of rewriting history.
+
+### 2026-07-14 — Supersede the locked artifact with an in-place configurable build
+
+**Decision:** Preserve this document as the verified locked baseline and move
+subsequent iOS packaging and endpoint-switch work to
+`living_docs/ConfigurableSelfHostedMobileServer.md`. Keep bundle identifier
+`com.vanton1.ente.photos.selfhosted` so a configurable build can upgrade the
+locked installation in place.
+
+**Why:** The new guarded flow reuses the locked binding to preserve the current
+server, account, and photos while allowing an explicitly validated later
+switch. Rewriting this document's completed goal or evidence would erase the
+conditions under which the earlier artifact was verified.
+
+**Alternatives considered:** Rewrite the locked milestone as if it had always
+been configurable, or create a second application identity and duplicate local
+state.
 
 ### 2026-07-13 — Skip an encrypted off-machine backup destination
 

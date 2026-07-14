@@ -59,10 +59,10 @@ You can alternatively install the build from PlayStore or F-Droid.
 
 To build a release APK, [setup your keystore](https://docs.flutter.dev/deployment/android#create-an-upload-keystore) and run `flutter build apk --release --flavor independent`. For iOS, use `flutter build ios`.
 
-### Locked self-hosted Android build
+### Configurable self-hosted Android build
 
-Use the checked-in wrapper to build an Android APK that is compiled for exactly
-one self-hosted Museum origin:
+Use the checked-in wrapper to build an Android APK with a default Museum origin
+that can later be changed through the guarded Server Settings page:
 
 ```sh
 export ENTE_SELF_HOSTED_ENDPOINT="https://museum.example"
@@ -70,12 +70,12 @@ export ENTE_SELF_HOSTED_ENDPOINT="https://museum.example"
 ```
 
 The endpoint requirements and optional `FLUTTER_BIN` and `DART_BIN` overrides
-match the locked iOS wrapper below. Run
+match the configurable iOS wrapper below. Run
 `./scripts/build_self_hosted_android.sh --validate-only` to validate and
 canonicalize the endpoint without starting a build.
 
 The wrapper always builds the `selfhosted` flavor as an APK, supplies
-`lockedEndpoint=true` and the canonical `endpoint` as Dart defines, and rejects
+`configurableEndpoint=true` and the canonical `endpoint` as Dart defines, and rejects
 caller-supplied flavors or Dart defines. The release application ID is
 `com.vanton1.ente.photos.selfhosted`; debug builds inherit the repository-wide
 `.debug` suffix. Existing Android flavors and their application IDs are
@@ -83,10 +83,10 @@ unchanged. Release builds use the existing Gradle signing configuration, with
 the keystore path and credentials supplied through ignored `key.properties` or
 the `SIGNING_*` environment variables.
 
-### Locked self-hosted iOS build
+### Configurable self-hosted iOS build
 
-Use the checked-in wrapper to build an iOS app that is compiled for exactly one
-self-hosted Museum origin:
+Use the checked-in wrapper to build an iOS app with a default Museum origin that
+can later be changed through the guarded Server Settings page:
 
 ```sh
 export ENTE_SELF_HOSTED_ENDPOINT="https://museum.example"
@@ -95,8 +95,8 @@ export ENTE_SELF_HOSTED_ENDPOINT="https://museum.example"
 
 `ENTE_SELF_HOSTED_ENDPOINT` is the only required input for a simulator build.
 It must be an absolute HTTPS origin without credentials, a path, query, or
-fragment, and it cannot be an Ente production API host. The wrapper
-canonicalizes the value and supplies both `lockedEndpoint=true` and `endpoint`
+fragment. The wrapper canonicalizes the value and supplies both
+`configurableEndpoint=true` and `endpoint`
 as Dart defines. It rejects caller-supplied Dart defines and flavors so those
 security and target selections cannot be overridden. On Apple-silicon
 simulator builds, it also applies the repository's required arm64-only Xcode
@@ -112,6 +112,13 @@ The wrapper always builds the shared `selfhosted` scheme and its
 has no production push, associated-domain, or app-group entitlements. The
 official `Runner` target and scheme keep their existing settings and extension
 dependencies.
+
+The compiled endpoint is used only when no valid server binding exists. An
+in-place upgrade from an earlier locked build retains its binding, account, and
+photos. To change it, open **Server** in authenticated Settings or tap the
+current-server link on a signed-out screen. The app validates the candidate
+before changing anything and requires confirmation plus local logout for a
+signed-in account.
 
 For a signed physical-device build, first sign in to an Apple ID under Xcode's
 Accounts settings and create an Apple Development certificate. Then provide

@@ -13,9 +13,9 @@ void main(List<String> arguments) {
 
   try {
     final canonicalEndpoint = EndpointPolicy(
-      mode: EndpointMode.locked,
+      mode: EndpointMode.configurable,
       compiledEndpoint: arguments.single,
-    ).lockedEndpoint;
+    ).configurableDefaultEndpoint;
     stdout.writeln(canonicalEndpoint);
   } on EndpointPolicyException catch (error) {
     stderr.writeln("Invalid ENTE_SELF_HOSTED_ENDPOINT: ${error.message}");

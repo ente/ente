@@ -6,6 +6,11 @@
 **Planning doc:** n/a
 **Companion docs:** `living_docs/LockedSelfHostedIOS.md`, `mobile/apps/photos/README.md`, `docs/docs/self-hosting/installation/post-install/index.md`, `docs/docs/self-hosting/administration/object-storage.md`
 
+> **Historical baseline:** This locked-build milestone remains an append-only
+> record of the artifacts verified on 2026-07-13. It was superseded on
+> 2026-07-14 by `living_docs/ConfigurableSelfHostedMobileServer.md`, which keeps
+> the same package identities and supports guarded runtime server changes.
+
 ---
 
 ## 1. Phase / Task tracker
@@ -84,6 +89,23 @@ V1 locks authenticated Museum traffic only, matching the iOS security boundary. 
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. If a decision changes, add a new entry instead of rewriting history.
+
+### 2026-07-14 — Supersede the locked artifacts with in-place configurable builds
+
+**Decision:** Preserve this document as the verified locked baseline and move
+subsequent Android packaging and endpoint-switch work to
+`living_docs/ConfigurableSelfHostedMobileServer.md`. Keep release package
+`com.vanton1.ente.photos.selfhosted` and its normal debug suffix so configurable
+artifacts can upgrade their corresponding locked installations in place.
+
+**Why:** The new guarded flow reuses the locked binding to preserve the current
+server and account while allowing an explicitly validated later switch.
+Rewriting this document's completed goal or evidence would erase the conditions
+under which the earlier artifacts were verified.
+
+**Alternatives considered:** Rewrite the locked milestone as if it had always
+been configurable, or create second package identities and duplicate local
+state.
 
 ### 2026-07-13 — Regenerate release-only Android plugins before packaging
 

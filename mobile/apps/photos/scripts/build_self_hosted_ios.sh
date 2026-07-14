@@ -27,24 +27,24 @@ if [[ "${1:-}" == "--validate-only" ]]; then
     echo "--validate-only does not accept additional arguments." >&2
     exit 64
   fi
-  echo "Validated locked endpoint: $canonical_endpoint"
+  echo "Validated configurable endpoint: $canonical_endpoint"
   exit 0
 fi
 
 for argument in "$@"; do
   case "$argument" in
     -D | -D* | --dart-define | --dart-define=* | --dart-define-from-file | --dart-define-from-file=*)
-      echo "The locked build wrapper owns all Dart defines; remove '$argument'." >&2
+      echo "The configurable build wrapper owns all Dart defines; remove '$argument'." >&2
       exit 64
       ;;
     --config-only | --no-config-only | --flavor | --flavor=*)
-      echo "The locked build wrapper owns Xcode configuration; remove '$argument'." >&2
+      echo "The configurable build wrapper owns Xcode configuration; remove '$argument'." >&2
       exit 64
       ;;
   esac
 done
 
-echo "Building locked Ente Photos for $canonical_endpoint"
+echo "Building configurable Ente Photos with default $canonical_endpoint"
 
 is_simulator=false
 configuration="Release"
@@ -74,7 +74,7 @@ configure_flutter() {
     --flavor "$self_hosted_scheme" \
     --config-only \
     --no-codesign \
-    --dart-define=lockedEndpoint=true \
+    --dart-define=configurableEndpoint=true \
     --dart-define="endpoint=$canonical_endpoint"
 }
 

@@ -1,8 +1,8 @@
-# Locked Self-Hosted Mobile Build Guide
+# Configurable Self-Hosted Mobile Build Guide
 
 This guide builds the personal Ente Photos Android and iOS applications for
-exactly one self-hosted Museum HTTPS origin. The endpoint is compiled into each
-application and cannot be changed at runtime.
+a default Museum HTTPS origin. The applications can later validate and switch
+to another HTTPS Museum origin through their guarded Server Settings page.
 
 The personal applications use separate identities from the official Ente app:
 
@@ -25,8 +25,10 @@ The value must:
 - Use HTTPS.
 - Contain only a scheme, hostname, and optional port.
 - Not contain credentials, a path, query, or fragment.
-- Not be an official Ente production API hostname.
 - Be reachable and TLS-trusted from the Android or iOS device.
+
+Configurable builds may intentionally use an official Ente production origin.
+Earlier immutable locked builds continue to reject those origins.
 
 Validate it without building:
 
@@ -55,7 +57,8 @@ export PATH="/Users/vanton/.cargo/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME
 `/private/tmp` may be cleared after a reboot. Restore the pinned Flutter
 checkout or change `FLUTTER_BIN` and `DART_BIN` if those paths no longer exist.
 
-From the repository root, install the locked Flutter dependencies when needed:
+From the repository root, install the lockfile-pinned Flutter dependencies when
+needed:
 
 ```sh
 cd mobile
@@ -133,8 +136,8 @@ Install it on a connected USB-debugging device:
 adb install -r build/app/outputs/flutter-apk/app-selfhosted-release.apk
 ```
 
-The audited release artifact built for the current local endpoint is also
-preserved at:
+The earlier locked release artifact built for the current local endpoint is
+preserved as historical rollback evidence at:
 
 ```text
 /Users/vanton/projects/ente-android-toolchain/artifacts/ente-photos-selfhosted-1.3.59-release.apk
@@ -250,40 +253,39 @@ xcrun devicectl device install app \
 Use `--no-codesign` only when a non-installable device artifact is explicitly
 needed for later signing.
 
-## 5. Changing to another server
+## 5. Server defaults, upgrades, and switching
 
-There is no runtime server selector in these locked builds. To change servers:
+`ENTE_SELF_HOSTED_ENDPOINT` becomes the clean-install default. Once the app has
+a valid stored server binding, that binding wins over defaults supplied by
+later builds. Consequently:
 
-1. Set `ENTE_SELF_HOSTED_ENDPOINT` to the new HTTPS origin.
-2. Rebuild the relevant Android or iOS application.
-3. Remove the existing self-hosted application and its local data.
-4. Install the rebuilt application.
-5. Register or log in on the new server.
+- Installing a configurable build over the earlier locked app with the same
+  package or bundle identifier preserves its server binding, account, and
+  photos.
+- Rebuilding with a different default does not silently migrate an existing
+  installation.
+- A clean install binds itself to the compiled default on first launch.
 
-Installing a different-endpoint build over existing app data intentionally
-fails with a stored server-binding mismatch before a network client is
-created.
+To change the active server at runtime:
 
-For Android, remove the applicable package before installing the new build:
+1. Open **Server** in authenticated Settings, or tap the current-server link on
+   the landing, account-creation, or login screen.
+2. Enter one canonical HTTPS origin and choose **Validate server**. The app
+   performs a fresh anonymous `/ping` request without credentials or redirects.
+3. If signed in, review the old and new origins, scroll through the warning,
+   and confirm. The app stops current account work, clears local account state,
+   stores the new binding, and returns to sign-in.
+4. Register or log in on the selected server.
 
-```sh
-adb uninstall com.vanton1.ente.photos.selfhosted
-# For a debug installation instead:
-adb uninstall com.vanton1.ente.photos.selfhosted.debug
-```
+A failed validation leaves the account and binding untouched. The switch
+clears app-local account and queued-work state but does not delete media from
+the old server or the device's photo library. Sync any important pending work
+before confirming.
 
-For an iPhone, choose **Delete App**, not **Offload App**, before installing the
-new build. Offloading preserves the application data and therefore preserves
-the old endpoint binding.
-
-For the iOS Simulator:
-
-```sh
-xcrun simctl uninstall booted com.vanton1.ente.photos.selfhosted
-```
-
-Removing an application clears its local account state; it does not delete
-media stored on the old server. Back up any local-only data before switching.
+Rollback to an earlier locked artifact is safe before a switch when its
+compiled endpoint matches the retained binding. After changing the binding,
+an older locked artifact for another origin fails closed; reinstall it or clear
+that app's data only if you intentionally accept losing local app state.
 
 ## 6. Private-server connectivity
 
@@ -295,6 +297,6 @@ Before debugging the application, verify that the target device can:
 - Receive signed MinIO upload and download URLs that are reachable from the
   device.
 
-The compiled endpoint locks authenticated Museum traffic. Museum-provided
-signed object-storage URLs continue through the separate upload and download
-clients.
+The active stored binding constrains authenticated Museum traffic.
+Museum-provided signed object-storage URLs continue through the separate upload
+and download clients.
