@@ -187,6 +187,28 @@ void main() {
     },
   );
 
+  testWidgets("an incomplete login is cleared before switching servers", (
+    tester,
+  ) async {
+    final fixture = await _Fixture.create(partialAccountState: true);
+    addTearDown(fixture.close);
+    await _pumpPage(tester, fixture, isSignedIn: false);
+
+    await _enterCandidateAndOpenConfirmation(tester, _candidateEndpoint);
+
+    expect(fixture.preferences.getString("email"), "person@example.com");
+    expect(find.text("Log out and switch"), findsOneWidget);
+    await tester.ensureVisible(find.text("Log out and switch"));
+    await tester.pump();
+    await tester.tap(find.text("Log out and switch"));
+    await tester.pumpAndSettle();
+
+    expect(fixture.logoutCount, 1);
+    expect(fixture.completedSwitches, 1);
+    expect(fixture.preferences.getKeys(), {EndpointConfig.bindingKey});
+    expect(fixture.activeBinding, _candidateEndpoint);
+  });
+
   testWidgets("logout failure keeps the old binding and reports recovery", (
     tester,
   ) async {
@@ -277,6 +299,7 @@ class _Fixture {
 
   static Future<_Fixture> create({
     bool accountState = false,
+    bool partialAccountState = false,
     bool failConnection = false,
     bool failLogout = false,
   }) async {
@@ -284,6 +307,7 @@ class _Fixture {
       EndpointConfig.bindingKey: _activeEndpoint,
       if (accountState) "token": "token",
       if (accountState) "user_id": 1,
+      if (partialAccountState) "email": "person@example.com",
     });
     final config = EndpointConfig(preferences, policy: _configurablePolicy);
     final adapter = _ProbeAdapter(failConnection: failConnection);

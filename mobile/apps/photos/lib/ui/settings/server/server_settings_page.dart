@@ -40,7 +40,7 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
   late final EndpointConfig _config;
   late final EndpointSwitcher _switcher;
   late final bool _ownsSwitcher;
-  late final bool _isSignedIn;
+  late final bool _requiresLocalAccountCleanup;
   late final LocalLogout _localLogout;
   late final TextEditingController _controller;
 
@@ -56,7 +56,9 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
         widget.config ?? widget.switcher?.endpointConfig ?? endpointConfig;
     _ownsSwitcher = widget.switcher == null;
     _switcher = widget.switcher ?? EndpointSwitcher(_config);
-    _isSignedIn = widget.isSignedIn ?? Configuration.instance.isLoggedIn();
+    _requiresLocalAccountCleanup =
+        (widget.isSignedIn ?? Configuration.instance.isLoggedIn()) ||
+        _config.hasLocalAccountState;
     _localLogout = widget.localLogout ?? Configuration.instance.logout;
     _controller = TextEditingController(text: _config.endpoint);
   }
@@ -132,11 +134,12 @@ class _ServerSettingsPageState extends State<ServerSettingsPage> {
         return;
       }
 
-      if (_isSignedIn && !await _confirmSignedInSwitch(candidate.origin)) {
+      if (_requiresLocalAccountCleanup &&
+          !await _confirmSignedInSwitch(candidate.origin)) {
         return;
       }
 
-      if (_isSignedIn) {
+      if (_requiresLocalAccountCleanup) {
         await _localLogout();
       }
       await _switcher.activateAfterLocalLogout(candidate);

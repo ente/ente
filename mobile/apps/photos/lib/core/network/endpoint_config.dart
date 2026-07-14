@@ -35,6 +35,9 @@ class EndpointConfig {
 
   bool get enforcesAuthenticatedOrigin => policy.enforcesAuthenticatedOrigin;
 
+  bool get hasLocalAccountState =>
+      _accountStateKeys.any(_preferences.containsKey);
+
   bool get isProduction {
     return endpoint == kDefaultProductionEndpoint;
   }
@@ -60,7 +63,7 @@ class EndpointConfig {
         "Guarded endpoint activation is available only in configurable builds.",
       );
     }
-    if (_accountStateKeys.any(_preferences.containsKey)) {
+    if (hasLocalAccountState) {
       throw const EndpointPolicyException(
         EndpointPolicyFailureReason.accountStateNotCleared,
         "Account state is still present; the server binding was not changed.",
@@ -113,7 +116,7 @@ class EndpointConfig {
         : policy.configurableDefaultEndpoint;
     final currentBinding = _preferences.getString(bindingKey);
     final hasSavedEndpoint = _preferences.containsKey(preferencesKey);
-    final hasAccountState = _accountStateKeys.any(_preferences.containsKey);
+    final hasAccountState = hasLocalAccountState;
 
     if (currentBinding == null) {
       if (hasSavedEndpoint) {

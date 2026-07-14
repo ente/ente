@@ -59,7 +59,7 @@ iOS build wrapper ─────┘                 │
 | [EndpointConfig](../mobile/apps/photos/lib/core/network/endpoint_config.dart) | Own the shared-preferences binding, startup validation, logout preservation, guarded activation, and endpoint-update event. |
 | [Application startup](../mobile/apps/photos/lib/main.dart) and [failure app](../mobile/apps/photos/lib/core/network/endpoint_policy_failure_app.dart) | Validate endpoint state before foreground or background initialization. Render a local recovery diagnostic instead of starting network services on failure. |
 | [EndpointProbe and EndpointSwitcher](../mobile/apps/photos/lib/core/network/endpoint_switcher.dart) | Probe a canonical candidate with an isolated client and pass an opaque validated value into post-logout activation. |
-| [Server Settings page](../mobile/apps/photos/lib/ui/settings/server/server_settings_page.dart) | Present the current origin, validation result, signed-in confirmation, logout, activation, and return-to-login flow. |
+| [Server Settings page](../mobile/apps/photos/lib/ui/settings/server/server_settings_page.dart) | Present the current origin, validation result, local-account-state confirmation, cleanup, activation, and return-to-login flow. |
 | [NetworkClient](../mobile/apps/photos/lib/core/network/network.dart) | Build the Museum client from the effective endpoint and refresh its base URL after a successful activation. Keep generic and signed object-storage clients separate. |
 | [EnteRequestInterceptor](../mobile/apps/photos/lib/core/network/ente_interceptor.dart) | Attach Museum authentication only after enforcing active-origin equality; disable redirects on authenticated managed requests. |
 | [Configuration logout](../mobile/apps/photos/lib/core/configuration.dart) | Stop current work and clear credentials, databases, caches, notifications, and queued application state while the managed binding is preserved. |
@@ -159,7 +159,7 @@ User / Server page       Isolated probe        Local account       Binding / cli
         |                      |                     |                    |
         | same as active? ----------------------------------------> no-op |
         |                      |                     |                    |
-        | signed in: confirm old origin -> new origin                   |
+        | local account state: confirm old origin -> new origin        |
         |-------------------------------------------->| stop + logout     |
         |<--------------------------------------------| cleanup complete  |
         |---------------------------------------------------------------->|
@@ -180,6 +180,10 @@ The ordering produces explicit failure states:
 
 `ValidatedEndpoint` has a library-private constructor. This prevents the UI
 from manufacturing a candidate and accidentally bypassing the isolated probe.
+The Server page treats any known account preference as cleanup-required state,
+including an email saved before passkey or password authentication completes.
+It confirms and runs the same local logout path before activation even when no
+token exists.
 `EndpointConfig` independently rejects activation while known account
 preferences or a legacy runtime override remain, so callback ordering is not
 the only guard.
@@ -220,14 +224,15 @@ The principal automated evidence lives in:
 
 The completed implementation was also checked with all Photos tests and the
 analyzer, wrapper guard tests, endpoint validation, iOS and Android builds,
-package/signature/archive inspection, an iOS Simulator switch attempt, and an
-in-place Android emulator upgrade that retained account state.
+package/signature/archive inspection, an iOS Simulator recovery from an
+email-without-token login state, and an in-place Android emulator upgrade that
+retained account state.
 
 When changing this area, preserve these invariants:
 
 1. Do not rename or clear `locked_endpoint_binding_v1` during managed logout.
-2. Do not write a candidate before its isolated probe and, when signed in,
-   successful local logout.
+2. Do not write a candidate before its isolated probe and, whenever complete
+   or partial local account state exists, successful local logout.
 3. Do not attach authentication, shared cookies, or redirects to the probe.
 4. Do not let authenticated Museum traffic escape the active origin.
 5. Do not apply the Museum-origin rule to presigned object-storage clients.

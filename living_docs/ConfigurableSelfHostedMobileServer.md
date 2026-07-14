@@ -17,6 +17,8 @@
 | 2 | 2.1 | Add guarded server controls to Settings and sign-in | M | 🟢 done | Added one localized Server Settings page, an authenticated Settings row, and current-origin links on landing, account creation, and login. The page validates before mutation, treats the active origin as a no-op, requires a scrollable signed-in confirmation naming both origins, runs local logout before activation, and returns successful changes to login. Standard and locked builds hide the control; both managed modes disable the legacy seven-tap editor. Passed 19 focused UI/network tests, compile-mode checks under standard, configurable, and locked defines, all 292 Photos tests, and the full analyzer. |
 | 2 | 2.2 | Build, document, and verify configurable Android and iOS artifacts | M | 🟢 done | Changed both guarded wrappers and their shared validator to configurable mode, documented defaults, upgrades, switching, and rollback, and appended supersession notes to both locked-build records. Built and audited the arm64 iOS Simulator app and three-ABI Android debug APK. The iOS upgrade retained the local binding, exposed the signed-out Server link, and rejected the TLS-invalid Tailscale IP without switching. The resource-capped Android upgrade preserved its first-install record, signed-in session, photos, and local binding, and exposed the active Server page. The Android APK SHA-256 is `5d4613889a5fb8b72cd83f13e2aab50c3f7a9347589ff16a79584d9a6150e1aa`. Passed 45 configurable-define tests, all 292 Photos tests, the analyzer, wrapper guards, endpoint validation, signature/archive/identity audits, and `git diff --check`. |
 | 3 | 3.1 | Document the as-built mobile endpoint architecture | S | 🟢 done | Added and linked the as-built architecture companion covering guarantees, component ownership, mode and persisted-state rules, fail-closed startup, network boundaries, the validated logout-before-switch sequence and failure states, packaging and rollback, verification evidence, and a maintenance checklist. Audited the description against the shipped implementation, resolved all 17 local document and source links, and passed heading-structure and `git diff --check` validation. |
+| 4 | 4.1 | Recover server switching after an incomplete login | M | 🟢 done | Exposed one endpoint-level detector for complete or partial local account state and made the Server page require confirmed local cleanup whenever that state exists, including an email saved before a failed passkey login. Reproduced the email-without-token failure, recovered the dedicated simulator without deleting its binding, rebuilt and installed the configurable iOS artifact, and verified that switching logs out locally and continues at the new server's login flow. Passed 39 focused tests in each of standard, locked, and configurable modes, all 294 Photos tests, the focused analyzer, the embedded-kernel and signature audit, and `git diff --check`. |
+| 4 | 4.2 | Verify a successful iOS server switch and restart | S | ⚪ not started | Use a certificate-valid HTTPS hostname, complete the guarded switch, sign in, verify photo transfer, restart the application, and confirm that the selected binding persists. |
 
 **Legend:** ⚪ not started · 🟡 working · 🟢 done · 🔴 blocked / needs decision
 **Size:** XS · S · M · L · XL (never days or weeks).
@@ -74,7 +76,7 @@ unauthenticated /ping ----- failure --> show local error; change nothing
 same active origin -------- yes -----> report no change
       |
       v
-signed in? -- no --> persist binding --> refresh client --> remain at sign-in
+local account state? -- no --> persist binding --> refresh client --> remain at sign-in
       |
      yes
       v
@@ -86,7 +88,7 @@ confirm old -> new origin and local clearing
 stop sync/uploads -> local logout -> persist binding -> return to sign-in
 ```
 
-The authenticated flow uses local logout rather than depending on the old server's logout endpoint. The existing logout lifecycle stops synchronization, clears secure credentials, databases, caches, notifications, and queued application state, and fires the normal logout event. It does not delete photos from the device photo library. The old binding remains in place until cleanup succeeds; if persisting the new binding then fails, the application remains safely logged out on the old server and reports a recoverable error.
+The cleanup flow applies to complete accounts and incomplete login state, such as an email saved before passkey authentication succeeds. It uses local logout rather than depending on the old server's logout endpoint. The existing logout lifecycle stops synchronization, clears secure credentials, databases, caches, notifications, and queued application state, and fires the normal logout event. It does not delete photos from the device photo library. The old binding remains in place until cleanup succeeds; if persisting the new binding then fails, the application remains safely logged out on the old server and reports a recoverable error.
 
 The endpoint layer exposes a dedicated configurable-mode activation operation that verifies account preferences have already been cleared. The existing generic developer mutation remains available only in standard mode. A successful activation emits the existing endpoint-update event so the Museum client refreshes its base URL.
 
@@ -127,6 +129,25 @@ Rollback is straightforward before a successful switch: revert a task or reinsta
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. Never delete an entry; if a decision changes, add a newer entry explaining the reversal.
+
+### 2026-07-14 — Treat incomplete login preferences as cleanup-required account state
+
+**Decision:** Use the endpoint layer's complete account-preference key set to
+decide whether Server Settings must confirm and run local logout. Do not rely
+only on the presence of an authentication token. Keep the activation guard as
+the final check that all account preferences were removed before changing the
+binding.
+
+**Why:** The login flow saves the email before passkey or password
+authentication completes. A failed login therefore has no token and appears
+signed out, but still contains account state that activation correctly refuses
+to carry to another server. Giving the UI the same state detector provides a
+safe recovery path without weakening the server/account separation.
+
+**Alternatives considered:** Ignore email-only state during activation, which
+weakens the invariant and leaves other partial login combinations unresolved;
+or silently discard incomplete state, which can erase local account material
+without the existing confirmation.
 
 ### 2026-07-14 — Upgrade the existing personal artifacts in place
 

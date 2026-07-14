@@ -325,6 +325,30 @@ void main() {
         );
       },
     );
+
+    test(
+      "reports incomplete login preferences as local account state",
+      () async {
+        final cleanPreferences = await _preferences({
+          EndpointConfig.bindingKey: _lockedEndpoint,
+        });
+        final cleanConfig = EndpointConfig(
+          cleanPreferences,
+          policy: _configurablePolicy,
+        );
+        expect(cleanConfig.hasLocalAccountState, isFalse);
+
+        final partialPreferences = await _preferences({
+          EndpointConfig.bindingKey: _lockedEndpoint,
+          "email": "person@example.com",
+        });
+        final partialConfig = EndpointConfig(
+          partialPreferences,
+          policy: _configurablePolicy,
+        );
+        expect(partialConfig.hasLocalAccountState, isTrue);
+      },
+    );
   });
 
   group("locked endpoint binding", () {
