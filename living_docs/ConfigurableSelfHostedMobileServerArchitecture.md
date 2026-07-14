@@ -226,7 +226,10 @@ The completed implementation was also checked with all Photos tests and the
 analyzer, wrapper guard tests, endpoint validation, iOS and Android builds,
 package/signature/archive inspection, an iOS Simulator recovery from an
 email-without-token login state, and an in-place Android emulator upgrade that
-retained account state.
+retained account state. End-to-end iOS acceptance then used a certificate-valid
+local HTTPS origin to complete the guarded switch, sign in, download the remote
+library, upload a unique encrypted fixture, and cold-restart with both the
+account and selected binding intact.
 
 When changing this area, preserve these invariants:
 

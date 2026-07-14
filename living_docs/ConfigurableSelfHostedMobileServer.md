@@ -18,7 +18,7 @@
 | 2 | 2.2 | Build, document, and verify configurable Android and iOS artifacts | M | 🟢 done | Changed both guarded wrappers and their shared validator to configurable mode, documented defaults, upgrades, switching, and rollback, and appended supersession notes to both locked-build records. Built and audited the arm64 iOS Simulator app and three-ABI Android debug APK. The iOS upgrade retained the local binding, exposed the signed-out Server link, and rejected the TLS-invalid Tailscale IP without switching. The resource-capped Android upgrade preserved its first-install record, signed-in session, photos, and local binding, and exposed the active Server page. The Android APK SHA-256 is `5d4613889a5fb8b72cd83f13e2aab50c3f7a9347589ff16a79584d9a6150e1aa`. Passed 45 configurable-define tests, all 292 Photos tests, the analyzer, wrapper guards, endpoint validation, signature/archive/identity audits, and `git diff --check`. |
 | 3 | 3.1 | Document the as-built mobile endpoint architecture | S | 🟢 done | Added and linked the as-built architecture companion covering guarantees, component ownership, mode and persisted-state rules, fail-closed startup, network boundaries, the validated logout-before-switch sequence and failure states, packaging and rollback, verification evidence, and a maintenance checklist. Audited the description against the shipped implementation, resolved all 17 local document and source links, and passed heading-structure and `git diff --check` validation. |
 | 4 | 4.1 | Recover server switching after an incomplete login | M | 🟢 done | Exposed one endpoint-level detector for complete or partial local account state and made the Server page require confirmed local cleanup whenever that state exists, including an email saved before a failed passkey login. Reproduced the email-without-token failure, recovered the dedicated simulator without deleting its binding, rebuilt and installed the configurable iOS artifact, and verified that switching logs out locally and continues at the new server's login flow. Passed 39 focused tests in each of standard, locked, and configurable modes, all 294 Photos tests, the focused analyzer, the embedded-kernel and signature audit, and `git diff --check`. |
-| 4 | 4.2 | Verify a successful iOS server switch and restart | S | ⚪ not started | Use a certificate-valid HTTPS hostname, complete the guarded switch, sign in, verify photo transfer, restart the application, and confirm that the selected binding persists. |
+| 4 | 4.2 | Verify a successful iOS server switch and restart | S | 🟢 done | Completed the guarded switch to a certificate-valid MagicDNS HTTPS origin on the dedicated iOS 26.5 simulator, signed in to the local account, and confirmed the remote library downloaded. Imported an 11 KB non-personal Ducky marker; runtime logs recorded both encrypted-object uploads, 1/1 files completed, and sync completion. After a cold application restart, the signed-in gallery and marker remained visible, the local account keys remained present, and `locked_endpoint_binding_v1` still held the selected origin. |
 
 **Legend:** ⚪ not started · 🟡 working · 🟢 done · 🔴 blocked / needs decision
 **Size:** XS · S · M · L · XL (never days or weeks).
@@ -366,3 +366,17 @@ _None._
 - The companion's maintenance checklist now holds the cross-component
   invariants that would be easy to miss when changing only a wrapper, UI page,
   interceptor, or logout implementation.
+
+### Phase 4 — iOS recovery and end-to-end acceptance
+
+- A failed authentication attempt can persist an email before it persists a
+  token. Server switching must therefore guard on the complete known account
+  preference set, not only on the normal signed-in token check.
+- Runtime application state is the authoritative acceptance path. Directly
+  editing a preferences file can leave the process and `cfprefsd` with stale
+  values, while an app-authored switch followed by a cold restart verifies the
+  actual persistence contract.
+- A clean dedicated simulator made both transfer directions observable: the
+  local account populated the empty gallery, and a small unique fixture then
+  produced one encrypted upload whose completion could be correlated between
+  the gallery and runtime logs.
