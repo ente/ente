@@ -67,13 +67,13 @@ func (c *Controller) ChangePassword(ctx *gin.Context, userID int64, request ente
 		return nil, stacktrace.Propagate(err, "")
 	}
 
-	hasUpdate, err := c.Repo.UpdateRecoveryStatusForID(ctx, sessionID, ente.RecoveryStatusRecovered)
+	hasUpdate, err := c.Repo.UpdateRecoveryStatusForSession(ctx, sessionID, contact.UserID, contact.EmergencyContactID, ente.RecoveryStatusRecovered)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to update recovery status")
 	}
 	if !hasUpdate {
 		log.WithField("userID", userID).WithField("req", request).
-			Warn("no row updated while rejecting recovery")
+			Warn("no row updated while marking recovery complete")
 	} else {
 		go c.sendRecoveryNotification(ctx, contact.UserID, contact.EmergencyContactID, ente.RecoveryStatusRecovered, nil)
 	}

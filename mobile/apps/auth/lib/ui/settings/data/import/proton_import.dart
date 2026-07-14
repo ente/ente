@@ -41,6 +41,7 @@ Future<void> showProtonImportInstruction(BuildContext context) async {
     ],
   );
   if (result?.action != null && result!.action != ButtonAction.cancel) {
+    if (!context.mounted) return;
     if (result.action == ButtonAction.first) {
       await _pickProtonJsonFile(context);
     }
@@ -56,12 +57,15 @@ Future<void> _pickProtonJsonFile(BuildContext context) async {
     return;
   }
 
+  if (!context.mounted) return;
   final progressDialog = createProgressDialog(context, l10n.pleaseWait);
   try {
+    if (!context.mounted) return;
     final path = result.files.single.path!;
     final count = await _processProtonExportFile(context, path, progressDialog);
     await progressDialog.hide();
     if (count != null) {
+      if (!context.mounted) return;
       await importSuccessDialog(context, count);
     }
   } catch (e, s) {
@@ -69,6 +73,7 @@ Future<void> _pickProtonJsonFile(BuildContext context) async {
       'ProtonImport',
     ).severe('Exception while processing Proton import', e, s);
     await progressDialog.hide();
+    if (!context.mounted) return;
     await showErrorDialog(
       context,
       context.l10n.sorry,
@@ -88,7 +93,9 @@ Future<int?> _processProtonExportFile(
   try {
     decodedJson = decodeProtonExportJson(jsonString);
   } on FormatException {
+    if (!context.mounted) return null;
     await dialog.hide();
+    if (!context.mounted) return null;
     await showErrorDialog(
       context,
       context.l10n.invalidProtonExportTitle,
@@ -98,7 +105,9 @@ Future<int?> _processProtonExportFile(
   }
 
   if (isEncryptedProtonExport(decodedJson)) {
+    if (!context.mounted) return null;
     while (true) {
+      if (!context.mounted) return null;
       final password = await _promptForProtonExportPassword(context);
       if (password == null) {
         return null;
@@ -113,6 +122,7 @@ Future<int?> _processProtonExportFile(
         switch (decryptedJsonResult['status']) {
           case 'incorrect_password':
             await dialog.hide();
+            if (!context.mounted) return null;
             await showErrorDialog(
               context,
               context.l10n.incorrectPasswordTitle,

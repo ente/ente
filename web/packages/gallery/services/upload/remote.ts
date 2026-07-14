@@ -153,25 +153,6 @@ export const fetchPublicAlbumsMultipartUploadURLsWithMetadata = async (
 };
 
 /**
- * Sibling of {@link fetchUploadURLs} for public albums.
- */
-export const fetchPublicAlbumsUploadURLs = async (
-    countHint: number,
-    credentials: PublicAlbumsCredentials,
-) => {
-    const count = Math.min(50, countHint * 2);
-    const res = await fetch(
-        await apiURL("/public-collection/upload-urls", {
-            count,
-            ts: Date.now(),
-        }),
-        { headers: authenticatedPublicAlbumsRequestHeaders(credentials) },
-    );
-    ensureOk(res);
-    return ObjectUploadURLResponse.parse(await res.json()).urls;
-};
-
-/**
  * A list of URLs to use for multipart uploads.
  *
  * This is a list of pre-signed URLs (one for each part), a URL to indicate
@@ -218,25 +199,6 @@ export const fetchMultipartUploadURLs = async (uploadPartCount: number) => {
     const res = await fetch(
         await apiURL("/files/multipart-upload-urls", { count, ts: Date.now() }),
         { headers: await authenticatedRequestHeaders() },
-    );
-    ensureOk(res);
-    return MultipartUploadURLsResponse.parse(await res.json()).urls;
-};
-
-/**
- * Sibling of {@link fetchMultipartUploadURLs} for public albums.
- */
-export const fetchPublicAlbumsMultipartUploadURLs = async (
-    uploadPartCount: number,
-    credentials: PublicAlbumsCredentials,
-) => {
-    const count = uploadPartCount;
-    const res = await fetch(
-        await apiURL("/public-collection/multipart-upload-urls", {
-            count,
-            ts: Date.now(),
-        }),
-        { headers: authenticatedPublicAlbumsRequestHeaders(credentials) },
     );
     ensureOk(res);
     return MultipartUploadURLsResponse.parse(await res.json()).urls;
@@ -493,7 +455,8 @@ const createMultipartUploadRequestBody = (
  *    call will be different (because of the different authentication
  *    mechanisms) when we're running in the context of the photos app
  *    ({@link fetchMultipartUploadURLs}) and when we're running in the context
- *    of the public albums app ({@link fetchPublicAlbumsMultipartUploadURLs}).
+ *    of the public albums app
+ *    ({@link fetchPublicAlbumsMultipartUploadURLsWithMetadata}).
  *
  * 2. Break the file to be uploaded into parts, and upload each part using a PUT
  *    request to one of the pre-signed URLs we got in step 1. There are two

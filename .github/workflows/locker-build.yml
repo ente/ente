@@ -238,6 +238,9 @@ jobs:
 
             - run: flutter pub get --enforce-lockfile
 
+            - name: Set up Rive iOS binaries
+              run: dart run rive_native:setup --clean --platform ios
+
             - run: cargo codegen frb shared
               working-directory: rust
 

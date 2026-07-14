@@ -193,7 +193,6 @@
   "deleteAccountQuery": "Ens sabrà greu veure't marxar. Tens algun problema?",
   "yesSendFeedbackAction": "Sí, envia comentaris",
   "noDeleteAccountAction": "No, elimina el compte",
-  "initiateAccountDeleteTitle": "Si us plau, autentica't per iniciar l'eliminació del compte",
   "sendEmail": "Envia correu electrònic",
   "createNewAccount": "Crea un nou compte",
   "weakStrength": "Feble",

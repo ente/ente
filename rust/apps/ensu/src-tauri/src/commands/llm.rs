@@ -400,6 +400,21 @@ pub async fn llm_load_model(
         "LLM",
         format!("load model requested model_path={}", params.model_path),
     );
+    // Default to offloading all layers to the GPU when the caller does not
+    // specify a count. Benchmarking on the Vulkan backend (RX 480, Gemma 4
+    // E4B) showed full offload is both fastest (no per-token CPU<->GPU
+    // activation transfers; partial offload was up to ~1.6x slower) and most
+    // robust (it sidesteps a ggml scheduler assert that can abort partial
+    // CPU/GPU splits). The driver spills any VRAM overflow to system memory
+    // instead of failing, and without a usable Vulkan device llama.cpp falls
+    // back to the CPU. For the rare setups where the GPU must be avoided,
+    // Vulkan and llama.cpp already provide runtime knobs (for example
+    // GGML_VK_VISIBLE_DEVICES and VK_LOADER_DRIVERS_DISABLE).
+    const DEFAULT_GPU_LAYERS: i32 = 999; // llama.cpp clamps to the model's layer count
+    let mut params = params;
+    if params.n_gpu_layers.is_none() {
+        params.n_gpu_layers = Some(DEFAULT_GPU_LAYERS);
+    }
     let model = async_runtime::spawn_blocking(move || {
         match catch_unwind(AssertUnwindSafe(|| llm::Model::load(params))) {
             Ok(result) => result.map_err(llm_api_error),

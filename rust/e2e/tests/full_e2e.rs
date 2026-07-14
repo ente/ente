@@ -6,7 +6,7 @@ use ente_contacts::{
     LegacyKitRecoveryClient, LegacyKitRecoveryStatus,
     legacy_models::{LegacyContactState, LegacyRecoveryStatus},
 };
-use ente_core::http_legacy::Error as CoreHttpError;
+use ente_core::http;
 use ente_rs::models::account::App;
 use ente_test_support::{Museum, TestResult};
 use serde::{Deserialize, Serialize};
@@ -165,7 +165,7 @@ async fn run_contacts_stage(pair: &legacy::LegacyPair) {
     assert!(diff.iter().any(|entry| entry.id == contact.id));
 
     match pair.trusted_ctx.get_contact(&contact.id).await {
-        Err(ente_contacts::ContactsError::Http(CoreHttpError::Http { status: 404, .. })) => {}
+        Err(ente_contacts::ContactsError::Http(http::Error::Http { status: 404, .. })) => {}
         other => panic!("expected trusted account to get 404 for owner contact, got {other:?}"),
     }
 

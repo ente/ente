@@ -193,7 +193,6 @@
   "deleteAccountQuery": "我们很抱歉看到您离开。您面临一些问题？",
   "yesSendFeedbackAction": "是，发送反馈",
   "noDeleteAccountAction": "否，删除账户",
-  "initiateAccountDeleteTitle": "请进行身份验证以启动账户删除",
   "sendEmail": "发送电子邮件",
   "createNewAccount": "创建新账号",
   "weakStrength": "弱",

@@ -112,6 +112,7 @@ class _AllLinksPageState extends State<AllLinksPage> {
       ],
     );
     if (result?.action == ButtonAction.error && context.mounted) {
+      if (!mounted) return;
       await showGenericErrorBottomSheet(
         context: context,
         error: result?.exception,
@@ -123,7 +124,7 @@ class _AllLinksPageState extends State<AllLinksPage> {
     for (final link in List<Collection>.of(_selectedQuickLinks)) {
       await CollectionActions(
         CollectionsService.instance,
-      ).trashCollectionKeepingPhotos(link, context);
+      ).trashCollectionKeepingPhotos(link);
       if (!mounted) return;
       setState(() {
         widget.quickLinks.remove(link);

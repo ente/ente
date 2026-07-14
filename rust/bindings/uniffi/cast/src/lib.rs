@@ -11,7 +11,7 @@ pub enum CastCryptoError {
 
 impl From<crypto::Error> for CastCryptoError {
     fn from(err: crypto::Error) -> Self {
-        CastCryptoError::Message(err.to_string())
+        CastCryptoError::Message(ente_core::error::chain(&err))
     }
 }
 

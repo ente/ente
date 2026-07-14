@@ -89,6 +89,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     UpdateService.instance.showUpdateNotification().then((shouldUpdate) {
       if (shouldUpdate) {
         Future.delayed(Duration.zero, () {
+          if (!mounted) return;
           showDialog(
             context: context,
             builder: (BuildContext context) {

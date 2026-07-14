@@ -11,7 +11,6 @@ workspace:
   - apps/photos/plugins/ente_cast
   - apps/photos/plugins/ente_crypto
   - apps/photos/plugins/ente_feature_flag
-  - apps/photos/plugins/onnx_dart
   - packages/accounts
   - packages/account_deletion
   - packages/backup_exclusion

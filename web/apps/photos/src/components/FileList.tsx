@@ -677,25 +677,38 @@ export const FileList: React.FC<FileListProps> = ({
     // Compute available context menu actions based on stable context and
     // the favorite status of the current selection (for toggling).
     const contextMenuActions = useMemo(() => {
-        if (!onContextMenuAction) return [];
+        if (!onContextMenuAction || !contextMenu) return [];
+        const isTemporarySingleSelection =
+            previousSelectionRef.current !== null;
+        let selectionCount: number;
+        let favoriteCount: number;
+        let hasOnlyOwnFiles: boolean;
+
+        if (isTemporarySingleSelection) {
+            selectionCount = 1;
+            favoriteCount = favoriteFileIDs?.has(contextMenu.file.id) ? 1 : 0;
+            hasOnlyOwnFiles = contextMenu.file.ownerID === user?.id;
+        } else {
+            selectionCount = selected.count;
+            favoriteCount = selectedFavoriteCount;
+            hasOnlyOwnFiles =
+                selectionCount > 0 && selected.ownCount === selectionCount;
+        }
         const actions = getAvailableFileActions({
             barMode: mode,
             isInSearchMode: modePlus === "search",
             collectionSummary,
+            hasOnlyOwnFiles,
             showAddPerson: !!showAddPersonAction,
-            showEditLocation: !!showEditLocationAction && selected.ownCount > 0,
-            showSendLink: selected.ownCount > 0,
+            showEditLocation: !!showEditLocationAction && hasOnlyOwnFiles,
         });
         if (!actions.includes("favorite")) return actions;
-        if (
-            selectedFavoriteCount > 0 &&
-            selectedFavoriteCount < selected.count
-        ) {
+        if (favoriteCount > 0 && favoriteCount < selectionCount) {
             return actions.filter(
                 (action) => action !== "favorite" && action !== "unfavorite",
             );
         }
-        if (selectedFavoriteCount === selected.count && selected.count > 0) {
+        if (favoriteCount === selectionCount && selectionCount > 0) {
             return actions.map((action) =>
                 action === "favorite" ? "unfavorite" : action,
             );
@@ -703,11 +716,14 @@ export const FileList: React.FC<FileListProps> = ({
         return actions;
     }, [
         onContextMenuAction,
+        contextMenu,
         mode,
         modePlus,
         collectionSummary,
         showAddPersonAction,
         showEditLocationAction,
+        favoriteFileIDs,
+        user?.id,
         selected.ownCount,
         selectedFavoriteCount,
         selected.count,
@@ -724,7 +740,6 @@ export const FileList: React.FC<FileListProps> = ({
             // Reset tracking for this menu open.
             previousSelectionRef.current = null;
             contextMenuActionTakenRef.current = false;
-
             // Handle selection behavior on right-click
             if (!selected[file.id]) {
                 // Store current selection before replacing it
@@ -792,14 +807,13 @@ export const FileList: React.FC<FileListProps> = ({
     const handleContextMenuActionWithTracking = useCallback(
         (action: FileContextAction) => {
             const isEphemeralSingleSelection =
-                selected.count === 1 &&
                 previousSelectionRef.current?.count === 0;
             contextMenuActionTakenRef.current = true;
             onContextMenuAction?.(action, contextMenu?.file, {
                 isEphemeralSingleSelection,
             });
         },
-        [onContextMenuAction, contextMenu, selected.count],
+        [onContextMenuAction, contextMenu],
     );
 
     const renderListItem = useCallback(

@@ -190,7 +190,6 @@
   "deleteAccountQuery": "Es tut uns leid, dass Sie gehen. Haben Sie ein Problem?",
   "yesSendFeedbackAction": "Ja, Feedback senden",
   "noDeleteAccountAction": "Nein, Konto löschen",
-  "initiateAccountDeleteTitle": "Bitte authentifizieren Sie sich, um die Kontolöschung einzuleiten",
   "sendEmail": "E-Mail senden",
   "createNewAccount": "Neues Konto erstellen",
   "weakStrength": "Schwach",

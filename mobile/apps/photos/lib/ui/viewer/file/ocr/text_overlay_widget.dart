@@ -698,7 +698,7 @@ class _TextOverlayWidgetState extends State<TextOverlayWidget> {
   }
 
   void _finishDragSelection({required bool cancelled}) {
-    if (!_isSelecting) {
+    if (!mounted || !_isSelecting) {
       return;
     }
 

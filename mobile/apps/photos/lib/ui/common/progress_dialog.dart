@@ -216,6 +216,7 @@ class _Body extends StatefulWidget {
 
 class _BodyState extends State<_Body> {
   void update() {
+    if (!mounted) return;
     setState(() {});
   }
 

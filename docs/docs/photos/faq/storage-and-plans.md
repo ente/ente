@@ -120,6 +120,14 @@ No. We keep a single price globally because our infrastructure and payment costs
 
 Yes, we offer 10 GB of storage for free, forever.
 
+### What happens if my free account becomes inactive? {#inactive-free-account}
+
+If a free account has no active paid subscription and remains inactive for 12 consecutive months, we will notify you at your registered email address multiple times before deleting the account.
+
+If you have configured Legacy with trusted contacts, we will notify those trusted contacts as well, so they have a chance to recover the account if needed.
+
+To keep the account and its data, simply sign in before the date mentioned in the emails.
+
 ### What are the limitations of the free plan? {#free-plan-limits}
 
 On the free plan, you cannot:
@@ -274,6 +282,8 @@ Common reasons and solutions:
 > [!NOTE]
 >
 > Each family member gets their own private space. Members cannot see each other's files unless explicitly shared. Family plans are for sharing storage, not for sharing photos automatically.
+>
+> If an account is ever left on the free plan with no active paid subscription and becomes inactive, the [inactive free-account policy](#inactive-free-account) applies. We will notify the account owner, any family plan members, and any Legacy trusted contacts multiple times before any account deletion.
 
 ### How do I remove someone from my family plan? {#remove-family-member}
 
@@ -491,6 +501,7 @@ Yes! If you had data exceeding the free 10 GB limit and your subscription expire
 - To restore access to your data on the free plan, contact [support@ente.com](mailto:support@ente.com)
 - We can restore your account to the free plan if you're within the grace period
 - You'll need to delete data to get under the 10 GB limit
+- Once your account is back on the free plan, the [inactive free-account policy](#inactive-free-account) applies if the account is not used for 12 consecutive months. We will notify you, any family plan members, and any Legacy trusted contacts multiple times before any account deletion.
 
 **What about subscriptions purchased through App Stores?**
 
@@ -571,6 +582,8 @@ You're 10 days into a 500 GB monthly plan ($5/month) and downgrade to 100 GB mon
 - ✅ Your renewal date remains the same
 - ⚠️ Make sure you don't exceed your new storage limit
 
+If you downgrade all the way back to the free plan, please also see [what happens when a free account becomes inactive](#inactive-free-account). We will notify you, any family plan members, and any Legacy trusted contacts multiple times before deleting an inactive free account.
+
 **Want a refund instead of credit?**
 
 If you prefer to have your credit refunded to your original payment method instead of storing it for future invoices, contact [support@ente.com](mailto:support@ente.com) and we'll assist you.
@@ -621,6 +634,8 @@ This can also be done via Settings > Account > Manage subscription > Cancel subs
 
 After cancellation, you'll have access to your data for 30 days, after which it will be deleted. Make sure to export your photos before the grace period ends if you want to keep them.
 
+If support helps move your account back to the free plan, the [inactive free-account policy](#inactive-free-account) applies if the account is not used for 12 consecutive months. We will notify you, any family plan members, and any Legacy trusted contacts multiple times before any account deletion.
+
 ## Storage
 
 ### How can I earn free storage? {#earn-free-storage}
@@ -632,6 +647,8 @@ Use our [referral program](/photos/features/account/referral-program/). When fri
 ### Why did I receive this email? {#inactive-account-email-received}
 
 We recently sent an email to accounts that have not shown activity for 12 months as part of our inactive-account policy. Free accounts with no active paid subscription are deleted after 12 consecutive months of inactivity.
+
+We send multiple notices to the registered email address so you have time to sign in and keep the account if you still need it. If the account is part of a family plan, we will also reach out to the family plan members multiple times. If you have configured Legacy with trusted contacts, we will notify those trusted contacts multiple times as well. For more details, see [what happens if a free account becomes inactive](#inactive-free-account).
 
 ### I use Ente regularly. Why did I receive this email? {#inactive-but-active}
 

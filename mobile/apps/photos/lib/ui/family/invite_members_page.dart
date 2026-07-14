@@ -359,16 +359,18 @@ class _InviteMembersPageState extends State<InviteMembersPage> {
           ..clear()
           ..addAll(failedEmails);
       });
-      showFamilySnackBar(
-        context,
-        failedEmails.length == 1
-            ? AppLocalizations.of(
-                context,
-              ).failedToInvite(email: failedEmails.first)
-            : AppLocalizations.of(
-                context,
-              ).failedToInviteCount(count: failedEmails.length),
-      );
+      if (mounted) {
+        showFamilySnackBar(
+          context,
+          failedEmails.length == 1
+              ? AppLocalizations.of(
+                  context,
+                ).failedToInvite(email: failedEmails.first)
+              : AppLocalizations.of(
+                  context,
+                ).failedToInviteCount(count: failedEmails.length),
+        );
+      }
       throw const _HandledInviteActionException();
     } catch (error) {
       if (error is _HandledInviteActionException) {

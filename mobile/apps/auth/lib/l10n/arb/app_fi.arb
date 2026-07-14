@@ -154,7 +154,6 @@
   "deleteAccountQuery": "Olemme pahoillamme että lähdet keskuudestamme. Kohtasitko käytössä jonkin ongelman?",
   "yesSendFeedbackAction": "Kyllä, lähetä palautetta",
   "noDeleteAccountAction": "En, poista tili",
-  "initiateAccountDeleteTitle": "Ole hyvä ja tee todennus käynnistääksesi tilisi poistoprosessin",
   "sendEmail": "Lähetä sähköpostia",
   "createNewAccount": "Luo uusi tili",
   "weakStrength": "Heikko salasana",

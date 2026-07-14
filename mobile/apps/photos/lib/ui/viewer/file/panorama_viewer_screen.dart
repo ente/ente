@@ -41,12 +41,16 @@ class _PanoramaViewerScreenState extends State<PanoramaViewerScreen> {
 
   @override
   void dispose() {
+    timer?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
   void initTimer() {
     timer = Timer(const Duration(seconds: 5), () {
+      if (!mounted) {
+        return;
+      }
       setState(() {
         isVisible = false;
       });

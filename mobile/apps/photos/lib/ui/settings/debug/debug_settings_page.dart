@@ -69,7 +69,9 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                                 await localSettings.setInternalUserDisabled(
                                   newValue,
                                 );
+                                if (!mounted) return;
                                 setState(() {});
+                                if (!context.mounted) return;
                                 showShortToast(
                                   context,
                                   newValue
@@ -96,7 +98,9 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                                 await localSettings.setCFUploadProxyEnabled(
                                   newValue,
                                 );
+                                if (!mounted) return;
                                 setState(() {});
+                                if (!context.mounted) return;
                                 showShortToast(
                                   context,
                                   newValue
@@ -121,7 +125,9 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                                       .isBGDebugNotificationsEnabled;
                                   await localSettings
                                       .setBGDebugNotificationsEnabled(newValue);
+                                  if (!mounted) return;
                                   setState(() {});
+                                  if (!context.mounted) return;
                                   showShortToast(
                                     context,
                                     newValue
@@ -145,7 +151,9 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                                 await localSettings.setEnableDatabaseLogging(
                                   newValue,
                                 );
+                                if (!mounted) return;
                                 setState(() {});
+                                if (!context.mounted) return;
                                 showShortToast(
                                   context,
                                   newValue
@@ -169,7 +177,9 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                                     .setShowLocalIDOverThumbnails(
                                       !localSettings.showLocalIDOverThumbnails,
                                     );
+                                if (!mounted) return;
                                 setState(() {});
+                                if (!context.mounted) return;
                                 showShortToast(
                                   context,
                                   localSettings.showLocalIDOverThumbnails
@@ -213,6 +223,7 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                             trailingIconIsMuted: true,
                             onTap: () async {
                               await updateService.resetChangeLog();
+                              if (!context.mounted) return;
                               _showKeyAttributesDialog(context);
                             },
                           ),
@@ -226,6 +237,7 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                             trailingIconIsMuted: true,
                             onTap: () async {
                               await LocalSyncService.instance.resetLocalSync();
+                              if (!context.mounted) return;
                               showShortToast(context, "Done");
                             },
                           ),
@@ -240,6 +252,7 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                             onTap: () async {
                               await IgnoredFilesService.instance.reset();
                               SyncService.instance.sync().ignore();
+                              if (!context.mounted) return;
                               showShortToast(context, "Done");
                             },
                           ),

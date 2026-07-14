@@ -14,6 +14,7 @@ members = [
     "crates/contacts",
     "crates/core",
     "crates/ensu",
+    "crates/paste",
     "crates/image",
     "crates/photos",
     "crates/test-support",
@@ -26,10 +27,17 @@ ente-accounts = { path = "crates/accounts" }
 ente-contacts = { path = "crates/contacts" }
 ente-core = { path = "crates/core" }
 ente-image = { path = "crates/image" }
+ente-paste = { path = "crates/paste" }
 ente-photos = { path = "crates/photos" }
 ente-rs = { path = "apps/cli" }
 ente-test-support = { path = "crates/test-support" }
+ort = { git = "https://github.com/pykeio/ort.git", rev = "31c8f1443bb579bfddb82705288347697e468fb3", default-features = false }
 serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
 thiserror = "2.0.18"
 uniffi = { version = "0.31.0" }
 wasm-bindgen = "0.2.125"
+
+# Keep transitive ORT users (notably transcribe-rs) on the same revision as direct ORT dependencies.
+[patch.crates-io]
+ort = { git = "https://github.com/pykeio/ort.git", rev = "31c8f1443bb579bfddb82705288347697e468fb3" }

@@ -279,7 +279,7 @@ fn decode_base32(secret: &str) -> Vec<u8> {
 fn accounts_client(endpoint: &str) -> CliResult<AccountsClient> {
     AccountsClient::new(
         AccountsClientConfig::new(App::Photos.client_package())
-            .with_base_url(endpoint.to_string())
+            .with_origin(endpoint.to_string())
             .with_user_agent("ente-e2e"),
     )
 }

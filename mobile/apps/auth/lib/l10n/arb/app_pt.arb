@@ -196,7 +196,7 @@
   "deleteAccountQuery": "Estamos tristes por vê-lo sair. Você enfrentou algum problema?",
   "yesSendFeedbackAction": "Sim, enviar feedback",
   "noDeleteAccountAction": "Não, excluir conta",
-  "initiateAccountDeleteTitle": "Autentique-se para iniciar a exclusão de conta",
+  "authToInitiateAccountDeletion": "Desbloquear para excluir conta",
   "sendEmail": "Enviar e-mail",
   "createNewAccount": "Criar nova conta",
   "weakStrength": "Fraca",
@@ -639,7 +639,7 @@
   "selectAnOption": "Selecione uma opção",
   "todaysLogs": "Registros do dia",
   "appIcon": "Ícone do aplicativo",
-  "importAndOTPGuide": "Exporte seu backup através do andOTP usando a opção \"Backup\" nas Opções.\n\nCaso seu backup estiver criptografado, você precisará inserir a senha de segurança para descriptografá-lo.",
+  "importAndOTPGuide": "Exporte seu backup do andOTP usando a função \"Fazer backup\" nas Configurações.\n\nCaso ela esteja criptografada, você precisará inserir a senha de backup para descriptografar.",
   "enterPasswordToDecryptAndOTP": "Insira a senha para descriptografar o backup andOTP",
   "failedToDecryptAndOTPBackup": "Falhou ao descriptografar backup andOTP",
   "notSupportedForHOTP": "Incompatível com HOTP"

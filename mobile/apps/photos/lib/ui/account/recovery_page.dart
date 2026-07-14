@@ -116,7 +116,9 @@ class _RecoveryPageState extends State<RecoveryPage> {
     try {
       await Configuration.instance.recover(_recoveryKeyController.text.trim());
       await dialog.hide();
+      if (!mounted) return;
       showShortToast(context, AppLocalizations.of(context).recoverySuccessful);
+      if (!mounted) return;
       // ignore: unawaited_futures
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
@@ -130,10 +132,12 @@ class _RecoveryPageState extends State<RecoveryPage> {
       );
     } catch (e) {
       await dialog.hide();
+      if (!mounted) return;
       String errMessage = AppLocalizations.of(context).incorrectRecoveryKeyBody;
       if (e is AssertionError) {
         errMessage = '$errMessage : ${e.message}';
       }
+      if (!mounted) return;
       // ignore: unawaited_futures
       showAlertBottomSheet(
         context,

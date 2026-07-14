@@ -90,7 +90,9 @@ class _SupportSectionWidgetState extends State<SupportSectionWidget> {
           },
           onDoubleTap: () async {
             try {
+              if (!context.mounted) return;
               final zipFilePath = await getZippedLogsFile(context);
+              if (!context.mounted) return;
               await shareLogs(context, "auth@ente.com", zipFilePath);
             } catch (e) {
               Logger("SupportSectionWidget").severe("failed to export logs", e);

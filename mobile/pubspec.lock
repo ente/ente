@@ -548,14 +548,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.3"
-  dart_ui_isolate:
-    dependency: transitive
-    description:
-      name: dart_ui_isolate
-      sha256: bd531558002a00de0ac7dd73c84887dd01e652bd254d3098d7763881535196d7
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.1"
   dbus:
     dependency: transitive
     description:
@@ -1872,8 +1864,8 @@ packages:
     dependency: transitive
     description:
       path: "."
-      ref: bd1cce917e914690c00cc138b000b728742dde2b
-      resolved-ref: bd1cce917e914690c00cc138b000b728742dde2b
+      ref: "69780e0dab62db9def55ab07bcf52442ec0b9f94"
+      resolved-ref: "69780e0dab62db9def55ab07bcf52442ec0b9f94"
       url: "https://github.com/ente/mobile_ocr"
     source: git
     version: "1.0.0"
@@ -1964,10 +1956,10 @@ packages:
     dependency: transitive
     description:
       name: native_video_player
-      sha256: "83c6672848c7d563734d2415e189713285020174eebd967cbbf22c6941c5833c"
+      sha256: "8dda90a190c0dcef6721fd83b1e8938eebd94983e247eedf0684b4e9dc20bd84"
       url: "https://pub.dev"
     source: hosted
-    version: "4.0.0"
+    version: "4.0.1"
   nested:
     dependency: transitive
     description:
@@ -2008,15 +2000,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
-  onnxruntime:
-    dependency: transitive
-    description:
-      path: "."
-      ref: "212b2cab85647c6d2ffee213dc3b875ef2bf6504"
-      resolved-ref: "212b2cab85647c6d2ffee213dc3b875ef2bf6504"
-      url: "https://github.com/ente/onnxruntime.git"
-    source: git
-    version: "1.4.1"
   open_file:
     dependency: transitive
     description:

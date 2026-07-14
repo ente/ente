@@ -1,6 +1,8 @@
 package io.ente.ensu.logging
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,11 +11,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.os.Build
+import android.widget.Toast
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
@@ -28,12 +37,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.ente.ensu.logging.FileLogRepository
 import io.ente.ensu.designsystem.EnsuColor
 import io.ente.ensu.designsystem.EnsuCornerRadius
+import io.ente.ensu.designsystem.EnsuIcon
 import io.ente.ensu.designsystem.EnsuSpacing
 import io.ente.ensu.designsystem.EnsuTypography
+import io.ente.ensu.designsystem.HugeIcons
 import io.ente.ensu.logging.LogEntry
 import io.ente.ensu.logging.LogLevel
 import java.text.SimpleDateFormat
@@ -49,10 +62,6 @@ fun LogViewerScreen(
     var query by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        entries = logRepository.readTodayEntries()
-    }
-
-    LaunchedEffect(logRepository.logs) {
         entries = logRepository.readTodayEntries()
     }
 
@@ -130,6 +139,13 @@ private fun NativeLogDetailsDialog(logEntry: LogEntry, onDismiss: () -> Unit) {
         val dialog = AlertDialog.Builder(context)
             .setTitle("Log details")
             .setMessage(message)
+            .setNeutralButton("Copy") { _, _ ->
+                context.getSystemService(ClipboardManager::class.java)
+                    .setPrimaryClip(ClipData.newPlainText("log", message))
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
+                }
+            }
             .setPositiveButton("Close") { _, _ -> onDismiss() }
             .setOnDismissListener { onDismiss() }
             .create()
@@ -141,28 +157,54 @@ private fun NativeLogDetailsDialog(logEntry: LogEntry, onDismiss: () -> Unit) {
 
 @Composable
 private fun LogRow(logEntry: LogEntry, onOpenDetails: () -> Unit) {
+    val hasDetails = !logEntry.details.isNullOrBlank()
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onOpenDetails)
             .padding(vertical = EnsuSpacing.xs.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = logEntry.level.name,
-                style = EnsuTypography.mini,
-                color = levelColor(logEntry.level)
-            )
-            Spacer(modifier = Modifier.width(EnsuSpacing.sm.dp))
-            logEntry.tag?.let { tag ->
-                Text(text = tag, style = EnsuTypography.mini, color = EnsuColor.textMuted())
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(7.dp)
+                        .background(levelColor(logEntry.level), CircleShape)
+                )
                 Spacer(modifier = Modifier.width(EnsuSpacing.sm.dp))
+                logEntry.tag?.let { tag ->
+                    Text(
+                        text = tag,
+                        style = EnsuTypography.mini,
+                        color = EnsuColor.textMuted(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
+            Spacer(modifier = Modifier.width(EnsuSpacing.sm.dp))
             Text(
                 text = logTimestampFormatter.format(Date(logEntry.timestampMillis)),
                 style = EnsuTypography.mini,
                 color = EnsuColor.textMuted()
             )
+            Box(modifier = Modifier.size(EnsuIcon.tiny)) {
+                if (hasDetails) {
+                    Icon(
+                        painter = painterResource(HugeIcons.ArrowRight01Icon),
+                        contentDescription = null,
+                        tint = EnsuColor.textMuted(),
+                        modifier = Modifier.size(EnsuIcon.tiny)
+                    )
+                }
+            }
         }
         Spacer(modifier = Modifier.height(EnsuSpacing.xs.dp))
         Text(text = logEntry.message, style = EnsuTypography.body)

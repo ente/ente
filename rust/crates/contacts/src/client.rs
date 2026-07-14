@@ -2,7 +2,7 @@ use std::sync::{Arc, RwLock};
 
 use ente_core::auth::{self, KeyAttributes, SrpSession};
 use ente_core::crypto::{self, SecretVec, sealed, secretbox};
-use ente_core::http_legacy::{Error as HttpError, HttpClient, HttpConfig};
+use ente_core::http::{self, Api, ApiConfig, Auth, Http};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
@@ -62,8 +62,7 @@ pub struct OpenContactsCtxResult {
 
 pub struct ContactsCtx {
     user_id: i64,
-    http: HttpClient,
-    object_store_http: ente_core::http_legacy::ObjectStoreHttpClient,
+    api: Api,
     master_key: Arc<RwLock<SecretVec>>,
     root_contact_key: Arc<RwLock<Option<SecretVec>>>,
     wrapped_root_contact_key: Arc<RwLock<Option<WrappedRootContactKey>>>,
@@ -80,14 +79,16 @@ fn wrapped_root_contact_key_from_response(
 
 impl ContactsCtx {
     pub async fn open(input: OpenContactsCtxInput) -> Result<OpenContactsCtxResult> {
-        let http = HttpClient::new_with_config(HttpConfig {
-            base_url: input.base_url,
-            auth_token: Some(input.auth_token),
-            user_agent: input.user_agent,
-            client_package: input.client_package,
-            client_version: input.client_version,
-            timeout_secs: Some(30),
-        })?;
+        let api = Api::new(
+            Http::new()?,
+            ApiConfig {
+                origin: input.base_url,
+                client_package: input.client_package,
+                client_version: input.client_version,
+                user_agent: input.user_agent,
+                auth: Some(Auth::User(input.auth_token)),
+            },
+        );
 
         let (root_contact_key, wrapped_root_contact_key, root_key_source) =
             if let Some(cached_wrapped_root_contact_key) = input.cached_wrapped_root_contact_key {
@@ -105,8 +106,7 @@ impl ContactsCtx {
             };
         let ctx = Self {
             user_id: input.user_id,
-            object_store_http: http.object_store(),
-            http,
+            api,
             master_key: Arc::new(RwLock::new(SecretVec::new(input.master_key))),
             root_contact_key: Arc::new(RwLock::new(root_contact_key)),
             wrapped_root_contact_key: Arc::new(RwLock::new(wrapped_root_contact_key.clone())),
@@ -124,7 +124,7 @@ impl ContactsCtx {
     }
 
     pub fn update_auth_token(&self, auth_token: String) {
-        self.http.set_auth_token(Some(auth_token));
+        self.api.set_auth(Some(Auth::User(auth_token)));
     }
 
     pub fn current_wrapped_root_contact_key(&self) -> Option<WrappedRootContactKey> {
@@ -169,15 +169,17 @@ impl ContactsCtx {
         };
         let encrypted_data = contacts_crypto::encrypt_contact_data(data, &contact_key)?;
         let response = self
-            .http
-            .post_json::<ContactEntityResponse, _>(
-                "/contacts",
-                &CreateContactRequest {
-                    contact_user_id: data.contact_user_id,
-                    encrypted_key: &wrapped_contact_key,
-                    encrypted_data: &encrypted_data,
-                },
-            )
+            .api
+            .post("/contacts")
+            .json(&CreateContactRequest {
+                contact_user_id: data.contact_user_id,
+                encrypted_key: &wrapped_contact_key,
+                encrypted_data: &encrypted_data,
+            })
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<ContactEntityResponse>()
             .await?;
 
         self.decode_contact(response)
@@ -185,8 +187,12 @@ impl ContactsCtx {
 
     pub async fn get_contact(&self, contact_id: &str) -> Result<ContactRecord> {
         let response = self
-            .http
-            .get_json::<ContactEntityResponse>(&format!("/contacts/{contact_id}"), &[])
+            .api
+            .get(&format!("/contacts/{contact_id}"))
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<ContactEntityResponse>()
             .await?;
         if !response.is_deleted {
             self.ensure_confirmed_root_contact_key().await?;
@@ -196,14 +202,16 @@ impl ContactsCtx {
 
     pub async fn get_diff(&self, since_time: i64, limit: u16) -> Result<Vec<ContactRecord>> {
         let response = self
-            .http
-            .get_json::<ContactDiffResponse>(
-                "/contacts/diff",
-                &[
-                    ("sinceTime", since_time.to_string()),
-                    ("limit", limit.to_string()),
-                ],
-            )
+            .api
+            .get("/contacts/diff")
+            .query(&[
+                ("sinceTime", since_time.to_string()),
+                ("limit", limit.to_string()),
+            ])
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<ContactDiffResponse>()
             .await?;
         if response.diff.iter().any(|entity| !entity.is_deleted) {
             self.ensure_confirmed_root_contact_key().await?;
@@ -225,8 +233,12 @@ impl ContactsCtx {
         self.ensure_confirmed_root_contact_key().await?;
 
         let current = self
-            .http
-            .get_json::<ContactEntityResponse>(&format!("/contacts/{contact_id}"), &[])
+            .api
+            .get(&format!("/contacts/{contact_id}"))
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<ContactEntityResponse>()
             .await?;
         let encrypted_key = current
             .encrypted_key
@@ -245,23 +257,27 @@ impl ContactsCtx {
         let encrypted_data = contacts_crypto::encrypt_contact_data(data, &contact_key)?;
 
         let response = self
-            .http
-            .put_json::<ContactEntityResponse, _>(
-                &format!("/contacts/{contact_id}"),
-                &UpdateContactRequest {
-                    contact_user_id: data.contact_user_id,
-                    encrypted_data: &encrypted_data,
-                },
-            )
+            .api
+            .put(&format!("/contacts/{contact_id}"))
+            .json(&UpdateContactRequest {
+                contact_user_id: data.contact_user_id,
+                encrypted_data: &encrypted_data,
+            })
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<ContactEntityResponse>()
             .await?;
 
         self.decode_contact(response)
     }
 
     pub async fn delete_contact(&self, contact_id: &str) -> Result<()> {
-        self.http
-            .delete_empty(&format!("/contacts/{contact_id}"), &[])
-            .await?;
+        self.api
+            .delete(&format!("/contacts/{contact_id}"))
+            .send()
+            .await?
+            .error_for_status()?;
         Ok(())
     }
 
@@ -274,8 +290,12 @@ impl ContactsCtx {
         self.ensure_confirmed_root_contact_key().await?;
 
         let current = self
-            .http
-            .get_json::<ContactEntityResponse>(&format!("/contacts/{contact_id}"), &[])
+            .api
+            .get(&format!("/contacts/{contact_id}"))
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<ContactEntityResponse>()
             .await?;
         let encrypted_key = current
             .encrypted_key
@@ -294,38 +314,47 @@ impl ContactsCtx {
         let encrypted_attachment =
             contacts_crypto::encrypt_profile_picture(attachment_bytes, &contact_key)?;
         let content_md5 = contacts_crypto::content_md5_base64(&encrypted_attachment);
+        let size = encrypted_attachment.len() as i64;
 
         let upload = self
-            .http
-            .post_json::<AttachmentUploadUrlResponse, _>(
-                &format!("/attachments/{}/upload-url", attachment_type.as_str()),
-                &AttachmentUploadUrlRequest {
-                    content_length: encrypted_attachment.len() as i64,
-                    content_md5: content_md5.clone(),
-                },
-            )
+            .api
+            .post(&format!(
+                "/attachments/{}/upload-url",
+                attachment_type.as_str()
+            ))
+            .json(&AttachmentUploadUrlRequest {
+                content_length: size,
+                content_md5: content_md5.clone(),
+            })
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<AttachmentUploadUrlResponse>()
             .await?;
 
-        self.object_store_http
-            .put_bytes(
-                &upload.url,
-                &encrypted_attachment,
-                &[("Content-MD5", content_md5)],
-            )
-            .await?;
+        self.api
+            .http()
+            .put(&upload.url)
+            .header("Content-MD5", &content_md5)
+            .body(encrypted_attachment)
+            .send()
+            .await?
+            .error_for_status()?;
 
         let response = self
-            .http
-            .put_json::<ContactEntityResponse, _>(
-                &format!(
-                    "/contacts/{contact_id}/attachments/{}",
-                    attachment_type.as_str()
-                ),
-                &CommitAttachmentRequest {
-                    attachment_id: &upload.attachment_id,
-                    size: encrypted_attachment.len() as i64,
-                },
-            )
+            .api
+            .put(&format!(
+                "/contacts/{contact_id}/attachments/{}",
+                attachment_type.as_str()
+            ))
+            .json(&CommitAttachmentRequest {
+                attachment_id: &upload.attachment_id,
+                size,
+            })
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<ContactEntityResponse>()
             .await?;
 
         self.decode_contact(response)
@@ -337,22 +366,35 @@ impl ContactsCtx {
         attachment_id: &str,
     ) -> Result<Vec<u8>> {
         let download = self
-            .http
-            .get_json::<SignedUrlResponse>(
-                &format!("/attachments/{}/{attachment_id}", attachment_type.as_str()),
-                &[],
-            )
+            .api
+            .get(&format!(
+                "/attachments/{}/{attachment_id}",
+                attachment_type.as_str()
+            ))
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<SignedUrlResponse>()
             .await?;
-        self.object_store_http
-            .get_bytes(&download.url)
-            .await
-            .map_err(Into::into)
+        Ok(self
+            .api
+            .http()
+            .get(&download.url)
+            .send()
+            .await?
+            .error_for_status()?
+            .bytes()
+            .await?)
     }
 
     pub async fn get_profile_picture(&self, contact_id: &str) -> Result<Vec<u8>> {
         let current = self
-            .http
-            .get_json::<ContactEntityResponse>(&format!("/contacts/{contact_id}"), &[])
+            .api
+            .get(&format!("/contacts/{contact_id}"))
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<ContactEntityResponse>()
             .await?;
         if current.is_deleted || current.profile_picture_attachment_id.is_none() {
             return Err(ContactsError::ProfilePictureNotFound);
@@ -389,14 +431,15 @@ impl ContactsCtx {
     ) -> Result<ContactRecord> {
         self.ensure_confirmed_root_contact_key().await?;
         let response = self
-            .http
-            .delete_json::<ContactEntityResponse>(
-                &format!(
-                    "/contacts/{contact_id}/attachments/{}",
-                    attachment_type.as_str()
-                ),
-                &[],
-            )
+            .api
+            .delete(&format!(
+                "/contacts/{contact_id}/attachments/{}",
+                attachment_type.as_str()
+            ))
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<ContactEntityResponse>()
             .await?;
         self.decode_contact(response)
     }
@@ -416,23 +459,31 @@ impl ContactsCtx {
     }
 
     pub async fn legacy_info(&self) -> Result<LegacyInfo> {
-        self.http
-            .get_json::<LegacyInfoResponse>("/emergency-contacts/info", &[])
-            .await
-            .map_err(Into::into)
-            .map_err(|error| with_http_context("legacy info fetch failed", error))
+        Ok(self
+            .api
+            .get("/emergency-contacts/info")
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<LegacyInfoResponse>()
+            .await?)
     }
 
     pub async fn legacy_public_key(&self, email: &str) -> Result<Option<String>> {
-        self.http
-            .get_json_optional::<LegacyPublicKeyResponse>(
-                "/users/public-key",
-                &[("email", email.trim().to_string())],
-            )
-            .await
-            .map(|response| response.map(|result| result.public_key))
-            .map_err(Into::into)
-            .map_err(|error| with_http_context("legacy public key fetch failed", error))
+        let response = self
+            .api
+            .get("/users/public-key")
+            .query(&[("email", email.trim())])
+            .send()
+            .await?;
+        if response.status() == 404 {
+            return Ok(None);
+        }
+        let response = response
+            .error_for_status()?
+            .json::<LegacyPublicKeyResponse>()
+            .await?;
+        Ok(Some(response.public_key))
     }
 
     pub fn legacy_verification_id(&self, public_key_b64: &str) -> Result<String> {
@@ -458,18 +509,17 @@ impl ContactsCtx {
             &crypto::PublicKey::try_from_slice(&recipient_public_key)?,
         )?;
 
-        self.http
-            .post_empty(
-                "/emergency-contacts/add",
-                &LegacyAddContactRequest {
-                    email: email.trim().to_string(),
-                    encrypted_key: crypto::encode_b64(&encrypted_key),
-                    recovery_notice_in_days,
-                },
-            )
-            .await
-            .map_err(Into::into)
-            .map_err(|error| with_http_context("legacy contact add failed", error))
+        self.api
+            .post("/emergency-contacts/add")
+            .json(&LegacyAddContactRequest {
+                email: email.trim().to_string(),
+                encrypted_key: crypto::encode_b64(&encrypted_key),
+                recovery_notice_in_days,
+            })
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(())
     }
 
     pub async fn legacy_update_contact(
@@ -478,18 +528,17 @@ impl ContactsCtx {
         emergency_contact_id: i64,
         state: LegacyContactState,
     ) -> Result<()> {
-        self.http
-            .post_empty(
-                "/emergency-contacts/update",
-                &LegacyUpdateContactRequest {
-                    user_id,
-                    emergency_contact_id,
-                    state,
-                },
-            )
-            .await
-            .map_err(Into::into)
-            .map_err(|error| with_http_context("legacy contact update failed", error))
+        self.api
+            .post("/emergency-contacts/update")
+            .json(&LegacyUpdateContactRequest {
+                user_id,
+                emergency_contact_id,
+                state,
+            })
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(())
     }
 
     pub async fn legacy_update_recovery_notice(
@@ -497,17 +546,16 @@ impl ContactsCtx {
         emergency_contact_id: i64,
         recovery_notice_in_days: i32,
     ) -> Result<()> {
-        self.http
-            .post_empty(
-                "/emergency-contacts/update-recovery-notice",
-                &LegacyUpdateRecoveryNoticeRequest {
-                    emergency_contact_id,
-                    recovery_notice_in_days,
-                },
-            )
-            .await
-            .map_err(Into::into)
-            .map_err(|error| with_http_context("legacy recovery notice update failed", error))
+        self.api
+            .post("/emergency-contacts/update-recovery-notice")
+            .json(&LegacyUpdateRecoveryNoticeRequest {
+                emergency_contact_id,
+                recovery_notice_in_days,
+            })
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(())
     }
 
     pub async fn legacy_start_recovery(
@@ -519,7 +567,6 @@ impl ContactsCtx {
             "/emergency-contacts/start-recovery",
             user_id,
             emergency_contact_id,
-            "legacy recovery start failed",
         )
         .await
     }
@@ -535,7 +582,6 @@ impl ContactsCtx {
             recovery_id,
             user_id,
             emergency_contact_id,
-            "legacy recovery stop failed",
         )
         .await
     }
@@ -551,7 +597,6 @@ impl ContactsCtx {
             recovery_id,
             user_id,
             emergency_contact_id,
-            "legacy recovery reject failed",
         )
         .await
     }
@@ -567,7 +612,6 @@ impl ContactsCtx {
             recovery_id,
             user_id,
             emergency_contact_id,
-            "legacy recovery approve failed",
         )
         .await
     }
@@ -577,10 +621,7 @@ impl ContactsCtx {
         recovery_id: &str,
         current_user_key_attrs: &KeyAttributes,
     ) -> Result<LegacyRecoveryBundle> {
-        let response = self
-            .legacy_recovery_info(recovery_id)
-            .await
-            .map_err(|error| with_http_context("legacy recovery info fetch failed", error))?;
+        let response = self.legacy_recovery_info(recovery_id).await?;
         let recovery_key =
             self.decrypt_legacy_recovery_key(&response.encrypted_key, current_user_key_attrs)?;
 
@@ -612,17 +653,17 @@ impl ContactsCtx {
         let (mut srp_session, setup_request) =
             password_reset_setup_request(&srp_user_id, &login_key)?;
         let init_response = self
-            .http
-            .post_json::<LegacySetupSrpResponse, _>(
-                "/emergency-contacts/init-change-password",
-                &LegacyInitChangePasswordRequest {
-                    recovery_id: recovery_id.to_string(),
-                    setup_srp_request: setup_request,
-                },
-            )
-            .await
-            .map_err(Into::into)
-            .map_err(|error| with_http_context("legacy password reset init failed", error))?;
+            .api
+            .post("/emergency-contacts/init-change-password")
+            .json(&LegacyInitChangePasswordRequest {
+                recovery_id: recovery_id.to_string(),
+                setup_srp_request: setup_request,
+            })
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<LegacySetupSrpResponse>()
+            .await?;
         let srp_m1 = srp_session_m1(&mut srp_session, &init_response)?;
         let updated_key_attr = LegacyUpdatedKeyAttr {
             kek_salt: updated_key_attrs.kek_salt.clone(),
@@ -637,21 +678,21 @@ impl ContactsCtx {
         };
 
         let change_response = self
-            .http
-            .post_json::<LegacyChangePasswordResponse, _>(
-                "/emergency-contacts/change-password",
-                &LegacyChangePasswordRequest {
-                    recovery_id: recovery_id.to_string(),
-                    update_srp_and_keys_request: LegacyUpdateSrpAndKeysRequest {
-                        setup_id: init_response.setup_id,
-                        srp_m1,
-                        updated_key_attr,
-                    },
+            .api
+            .post("/emergency-contacts/change-password")
+            .json(&LegacyChangePasswordRequest {
+                recovery_id: recovery_id.to_string(),
+                update_srp_and_keys_request: LegacyUpdateSrpAndKeysRequest {
+                    setup_id: init_response.setup_id,
+                    srp_m1,
+                    updated_key_attr,
                 },
-            )
-            .await
-            .map_err(Into::into)
-            .map_err(|error| with_http_context("legacy password reset failed", error))?;
+            })
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<LegacyChangePasswordResponse>()
+            .await?;
 
         let server_m2 = crypto::decode_b64(&change_response.srp_m2)?;
         srp_session.verify_m2(&server_m2)?;
@@ -660,11 +701,13 @@ impl ContactsCtx {
 
     pub async fn legacy_kits(&self) -> Result<Vec<LegacyKit>> {
         let response = self
-            .http
-            .get_json::<ListLegacyKitsResponse>("/legacy-kits", &[])
-            .await
-            .map_err(Into::into)
-            .map_err(|error| with_http_context("legacy kit list failed", error))?;
+            .api
+            .get("/legacy-kits")
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<ListLegacyKitsResponse>()
+            .await?;
         let master_key = self.master_key.read().expect("master key lock poisoned");
         response
             .kits
@@ -691,11 +734,14 @@ impl ContactsCtx {
         };
 
         let response = self
-            .http
-            .post_json::<LegacyKitRecordResponse, _>("/legacy-kits", &request)
-            .await
-            .map_err(Into::into)
-            .map_err(|error| with_http_context("legacy kit create failed", error))?;
+            .api
+            .post("/legacy-kits")
+            .json(&request)
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<LegacyKitRecordResponse>()
+            .await?;
         let master_key = self.master_key.read().expect("master key lock poisoned");
         let kit = decode_legacy_kit_record(response, &master_key)?;
         Ok(LegacyKitCreateResult { kit, shares })
@@ -703,14 +749,13 @@ impl ContactsCtx {
 
     pub async fn legacy_kit_download_shares(&self, kit_id: &str) -> Result<Vec<LegacyKitShare>> {
         let response = self
-            .http
-            .get_json::<LegacyKitDownloadContentResponse>(
-                &format!("/legacy-kits/{kit_id}/download-content"),
-                &[],
-            )
-            .await
-            .map_err(Into::into)
-            .map_err(|error| with_http_context("legacy kit download failed", error))?;
+            .api
+            .get(&format!("/legacy-kits/{kit_id}/download-content"))
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<LegacyKitDownloadContentResponse>()
+            .await?;
         let master_key = self.master_key.read().expect("master key lock poisoned");
         decode_download_content(response, &master_key)
     }
@@ -720,16 +765,13 @@ impl ContactsCtx {
         kit_id: &str,
     ) -> Result<LegacyKitOwnerRecoverySession> {
         let response = self
-            .http
-            .get_json::<LegacyKitOwnerRecoverySessionResponse>(
-                &format!("/legacy-kits/{kit_id}/recovery-session"),
-                &[],
-            )
-            .await
-            .map_err(Into::into)
-            .map_err(|error| {
-                with_http_context("legacy kit recovery session fetch failed", error)
-            })?;
+            .api
+            .get(&format!("/legacy-kits/{kit_id}/recovery-session"))
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<LegacyKitOwnerRecoverySessionResponse>()
+            .await?;
         Ok(response.into())
     }
 
@@ -739,38 +781,50 @@ impl ContactsCtx {
         notice_period_in_hours: i32,
     ) -> Result<()> {
         validate_notice_period(notice_period_in_hours)?;
-        self.http
-            .post_empty(
-                "/legacy-kits/update-recovery-notice",
-                &LegacyKitUpdateRecoveryNoticeRequest {
-                    kit_id: kit_id.to_string(),
-                    notice_period_in_hours,
-                },
-            )
-            .await
-            .map_err(Into::into)
-            .map_err(|error| with_http_context("legacy kit recovery notice update failed", error))
+        let path = "/legacy-kits/update-recovery-notice";
+        let response = self
+            .api
+            .post(path)
+            .json(&LegacyKitUpdateRecoveryNoticeRequest {
+                kit_id: kit_id.to_string(),
+                notice_period_in_hours,
+            })
+            .send()
+            .await?;
+        if response.status() == 400 {
+            return if response.text().await?.contains("active recovery session") {
+                Err(ContactsError::ActiveRecoverySession)
+            } else {
+                Err(http::Error::Http {
+                    status: 400,
+                    path: path.into(),
+                }
+                .into())
+            };
+        }
+        response.error_for_status()?;
+        Ok(())
     }
 
     pub async fn legacy_kit_block_recovery(&self, kit_id: &str) -> Result<()> {
-        self.http
-            .post_empty(
-                "/legacy-kits/block-recovery",
-                &LegacyKitOwnerActionRequest {
-                    kit_id: kit_id.to_string(),
-                },
-            )
-            .await
-            .map_err(Into::into)
-            .map_err(|error| with_http_context("legacy kit block failed", error))
+        self.api
+            .post("/legacy-kits/block-recovery")
+            .json(&LegacyKitOwnerActionRequest {
+                kit_id: kit_id.to_string(),
+            })
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(())
     }
 
     pub async fn legacy_kit_delete(&self, kit_id: &str) -> Result<()> {
-        self.http
-            .delete_empty(&format!("/legacy-kits/{kit_id}"), &[])
-            .await
-            .map_err(Into::into)
-            .map_err(|error| with_http_context("legacy kit delete failed", error))
+        self.api
+            .delete(&format!("/legacy-kits/{kit_id}"))
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(())
     }
 
     fn decode_contact(&self, entity: ContactEntityResponse) -> Result<ContactRecord> {
@@ -829,7 +883,7 @@ impl ContactsCtx {
             return Ok(());
         }
 
-        if let Some(remote_root_key) = fetch_root_key(&self.http).await? {
+        if let Some(remote_root_key) = fetch_root_key(&self.api).await? {
             self.apply_wrapped_root_contact_key(wrapped_root_contact_key_from_response(
                 remote_root_key,
             ))?;
@@ -840,7 +894,7 @@ impl ContactsCtx {
                 contacts_crypto::encrypt_root_contact_key(&generated_root_contact_key, &master_key)?
             };
             if let Some(remote_root_key) =
-                create_root_key(&self.http, &generated_wrapped_root_contact_key).await?
+                create_root_key(&self.api, &generated_wrapped_root_contact_key).await?
             {
                 self.apply_wrapped_root_contact_key(wrapped_root_contact_key_from_response(
                     remote_root_key,
@@ -858,19 +912,17 @@ impl ContactsCtx {
         path: &str,
         user_id: i64,
         emergency_contact_id: i64,
-        error_context: &'static str,
     ) -> Result<()> {
-        self.http
-            .post_empty(
-                path,
-                &LegacyContactIdentifier {
-                    user_id,
-                    emergency_contact_id,
-                },
-            )
-            .await
-            .map_err(Into::into)
-            .map_err(|error| with_http_context(error_context, error))
+        self.api
+            .post(path)
+            .json(&LegacyContactIdentifier {
+                user_id,
+                emergency_contact_id,
+            })
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(())
     }
 
     async fn legacy_recovery_action(
@@ -879,30 +931,29 @@ impl ContactsCtx {
         recovery_id: &str,
         user_id: i64,
         emergency_contact_id: i64,
-        error_context: &'static str,
     ) -> Result<()> {
-        self.http
-            .post_empty(
-                path,
-                &LegacyRecoveryIdentifier {
-                    id: recovery_id.to_string(),
-                    user_id,
-                    emergency_contact_id,
-                },
-            )
-            .await
-            .map_err(Into::into)
-            .map_err(|error| with_http_context(error_context, error))
+        self.api
+            .post(path)
+            .json(&LegacyRecoveryIdentifier {
+                id: recovery_id.to_string(),
+                user_id,
+                emergency_contact_id,
+            })
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(())
     }
 
     async fn legacy_recovery_info(&self, recovery_id: &str) -> Result<LegacyRecoveryInfoResponse> {
-        self.http
-            .get_json::<LegacyRecoveryInfoResponse>(
-                &format!("/emergency-contacts/recovery-info/{recovery_id}"),
-                &[],
-            )
-            .await
-            .map_err(Into::into)
+        Ok(self
+            .api
+            .get(&format!("/emergency-contacts/recovery-info/{recovery_id}"))
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<LegacyRecoveryInfoResponse>()
+            .await?)
     }
 
     fn current_recovery_key(&self, current_user_key_attrs: &KeyAttributes) -> Result<SecretVec> {
@@ -942,15 +993,20 @@ impl ContactsCtx {
     }
 }
 
-async fn fetch_root_key(http: &HttpClient) -> Result<Option<RootKeyResponse>> {
-    http.get_json_optional("/user-entity/key", &[("type", CONTACT_TYPE.to_string())])
-        .await
-        .map_err(Into::into)
-        .map_err(|error| with_http_context("contacts root key fetch failed", error))
+async fn fetch_root_key(api: &Api) -> Result<Option<RootKeyResponse>> {
+    let response = api
+        .get("/user-entity/key")
+        .query(&[("type", CONTACT_TYPE)])
+        .send()
+        .await?;
+    if response.status() == 404 {
+        return Ok(None);
+    }
+    Ok(Some(response.error_for_status()?.json().await?))
 }
 
 async fn create_root_key(
-    http: &HttpClient,
+    api: &Api,
     wrapped_root_contact_key: &WrappedRootContactKey,
 ) -> Result<Option<RootKeyResponse>> {
     let request = CreateRootKeyRequest {
@@ -959,69 +1015,14 @@ async fn create_root_key(
         header: &wrapped_root_contact_key.header,
     };
 
-    match http.post_empty("/user-entity/key", &request).await {
-        Ok(()) => Ok(None),
-        Err(HttpError::Http {
-            status,
-            code,
-            message,
-        }) if status == 409 => {
-            if let Some(remote_root_key) = fetch_root_key(http).await? {
-                Ok(Some(remote_root_key))
-            } else {
-                Err(with_http_context(
-                    "contacts root key create failed",
-                    HttpError::Http {
-                        status,
-                        code,
-                        message,
-                    }
-                    .into(),
-                ))
-            }
-        }
-        Err(HttpError::Http {
-            status,
-            code,
-            message,
-        }) => Err(with_http_context(
-            "contacts root key create failed",
-            HttpError::Http {
-                status,
-                code,
-                message,
-            }
-            .into(),
-        )),
-        Err(err) => Err(with_http_context(
-            "contacts root key create failed",
-            err.into(),
-        )),
+    let response = api.post("/user-entity/key").json(&request).send().await?;
+    if response.status() == 409
+        && let Some(remote_root_key) = fetch_root_key(api).await?
+    {
+        return Ok(Some(remote_root_key));
     }
-}
-
-fn with_http_context(context: &'static str, error: ContactsError) -> ContactsError {
-    match error {
-        ContactsError::Http(HttpError::Network(message)) => {
-            ContactsError::Http(HttpError::Network(format!("{context}: {message}")))
-        }
-        ContactsError::Http(HttpError::Http {
-            status,
-            code,
-            message,
-        }) => ContactsError::Http(HttpError::Http {
-            status,
-            code,
-            message: format!("{context}: {message}"),
-        }),
-        ContactsError::Http(HttpError::Parse(message)) => {
-            ContactsError::Http(HttpError::Parse(format!("{context}: {message}")))
-        }
-        ContactsError::Http(HttpError::InvalidUrl(message)) => {
-            ContactsError::Http(HttpError::InvalidUrl(format!("{context}: {message}")))
-        }
-        other => other,
-    }
+    response.error_for_status()?;
+    Ok(None)
 }
 
 fn decrypt_master_key_with_recovery_key(

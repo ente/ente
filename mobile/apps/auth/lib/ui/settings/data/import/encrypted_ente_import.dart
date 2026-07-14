@@ -44,6 +44,7 @@ Future<void> showEncryptedImportInstruction(BuildContext context) async {
     ],
   );
   if (result?.action != null && result!.action != ButtonAction.cancel) {
+    if (!context.mounted) return;
     if (result.action == ButtonAction.first) {
       await _pickEnteJsonFile(context);
     } else {}
@@ -73,6 +74,7 @@ Future<void> _decryptExportData(
       }
       final progressDialog = createProgressDialog(context, l10n.pleaseWait);
       try {
+        if (!context.mounted) return;
         await progressDialog.show();
         final derivedKey = await CryptoUtil.deriveKey(
           utf8.encode(password),
@@ -89,6 +91,7 @@ Future<void> _decryptExportData(
           );
         } catch (e, s) {
           Logger("encryptedImport").warning('failed to decrypt', e, s);
+          if (!context.mounted) return;
           showToast(context, l10n.incorrectPasswordTitle);
           shouldRetry = true;
           await progressDialog.hide();
@@ -112,16 +115,20 @@ Future<void> _decryptExportData(
         await progressDialog.hide();
       } catch (e, s) {
         await progressDialog.hide();
+        if (!context.mounted) return;
         Logger("ExportWidget").severe(e, s);
+        if (!context.mounted) return;
         showToast(context, "Error while exporting codes.");
       }
     },
   );
   if (shouldRetry) {
+    if (!context.mounted) return;
     await _decryptExportData(context, enteAuthExport);
     return;
   }
   if (importedCodeCount != null) {
+    if (!context.mounted) return;
     await importSuccessDialog(context, importedCodeCount!);
   }
 }
@@ -133,14 +140,17 @@ Future<void> _pickEnteJsonFile(BuildContext context) async {
   }
 
   try {
+    if (!context.mounted) return;
     final jsonString = await readPickedImportFileAsString(
       result.files.single.path!,
     );
     EnteAuthExport exportedData = EnteAuthExport.fromJson(
       jsonDecode(jsonString),
     );
+    if (!context.mounted) return;
     await _decryptExportData(context, exportedData);
   } catch (e) {
+    if (!context.mounted) return;
     await showErrorDialog(
       context,
       context.l10n.sorry,

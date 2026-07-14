@@ -22,12 +22,7 @@ class MultiPartUploader {
   late final Logger _logger = Logger("MultiPartUploader");
   FileUploadGateway get _gateway => fileUploadGateway;
 
-  MultiPartUploader(
-    Dio _, // unused, kept for backwards compatibility
-    this._s3Dio,
-    this._db,
-    this._featureFlagService,
-  );
+  MultiPartUploader(this._s3Dio, this._db, this._featureFlagService);
 
   Future<FileEncryptResult> getEncryptionResult(
     String localId,
@@ -290,7 +285,7 @@ class MultiPartUploader {
       count++;
       final partURL = partsURLs[i];
       final isLastPart = i == partsLength - 1;
-      final fileSize = isLastPart ? encFileLength % partSize : partSize;
+      final fileSize = isLastPart ? encFileLength - (i * partSize) : partSize;
       _logger.info(
         "Uploading part ${i + 1} / $partsLength of size $fileSize bytes (total size $encFileLength). ObjectKey=${partInfo.urls.objectKey}",
       );

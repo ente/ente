@@ -193,7 +193,6 @@
   "deleteAccountQuery": "Mrzí nás, že odcházíte. Máte nějaké problémy s aplikací?",
   "yesSendFeedbackAction": "Ano, poslat zpětnou vazbu",
   "noDeleteAccountAction": "Ne, odstranit účet",
-  "initiateAccountDeleteTitle": "Pro zahájení odstranění účtu se prosím ověřte",
   "sendEmail": "Odeslat e-mail",
   "createNewAccount": "Vytvořit nový účet",
   "weakStrength": "Slabé",

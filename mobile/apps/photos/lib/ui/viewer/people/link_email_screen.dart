@@ -221,6 +221,7 @@ class _LinkEmailScreen extends State<LinkEmailScreen> {
     if (widget.isFromSaveOrEditPerson) {
       await _emailHoldsEnteAccount(newEmail).then((value) {
         if (value) {
+          if (!mounted) return;
           Navigator.of(context).pop(newEmail);
         }
       });
@@ -236,8 +237,10 @@ class _LinkEmailScreen extends State<LinkEmailScreen> {
           return;
         }
 
+        if (!mounted) return;
         Navigator.of(context).pop(newEmail);
       } catch (e) {
+        if (!mounted) return;
         await showGenericErrorDialog(context: context, error: e);
         _logger.severe("Failed to link email to person", e);
       }
@@ -271,12 +274,14 @@ class _LinkEmailScreen extends State<LinkEmailScreen> {
       publicKey = await UserService.instance.getPublicKey(email);
     } catch (e) {
       _logger.severe("Failed to get public key", e);
+      if (!mounted) return false;
       await showGenericErrorDialog(context: context, error: e);
       return false;
     }
     // getPublicKey can return null when no user is associated with given
     // email id
     if (publicKey == null || publicKey == '') {
+      if (!mounted) return false;
       await showDialogWidget(
         context: context,
         title: AppLocalizations.of(context).noEnteAccountExclamation,
@@ -316,6 +321,7 @@ class _LinkEmailScreen extends State<LinkEmailScreen> {
     BuildContext context,
   ) async {
     if (await checkIfEmailAlreadyAssignedToAPerson(email)) {
+      if (!context.mounted) return false;
       await showAlreadyLinkedEmailDialog(context, email);
       return false;
     }
@@ -326,12 +332,14 @@ class _LinkEmailScreen extends State<LinkEmailScreen> {
       publicKey = await UserService.instance.getPublicKey(email);
     } catch (e) {
       _logger.severe("Failed to get public key", e);
+      if (!context.mounted) return false;
       await showGenericErrorDialog(context: context, error: e);
       return false;
     }
     // getPublicKey can return null when no user is associated with given
     // email id
     if (publicKey == null || publicKey == '') {
+      if (!context.mounted) return false;
       await showDialogWidget(
         context: context,
         title: AppLocalizations.of(context).noEnteAccountExclamation,
@@ -381,6 +389,7 @@ class _LinkEmailScreen extends State<LinkEmailScreen> {
         return true;
       } catch (e) {
         _logger.severe("Failed to link email to person", e);
+        if (!context.mounted) return false;
         await showGenericErrorDialog(context: context, error: e);
         return false;
       }

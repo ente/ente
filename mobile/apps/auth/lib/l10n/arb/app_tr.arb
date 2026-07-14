@@ -196,7 +196,6 @@
   "deleteAccountQuery": "Sizin gittiğinizi görmekten üzüleceğiz. Bazı problemlerle mi karşılaşıyorsunuz?",
   "yesSendFeedbackAction": "Evet, geri bildirimi gönder",
   "noDeleteAccountAction": "Hayır, hesabı sil",
-  "initiateAccountDeleteTitle": "Hesap silme işlemini yapabilmek için lütfen kimliğinizi doğrulayın",
   "sendEmail": "E-posta gönder",
   "createNewAccount": "Yeni hesap oluşturun",
   "weakStrength": "Zayıf",

@@ -176,7 +176,6 @@
   "deleteAccountQuery": "Žal nam je, da odhajate. Imate kakšne težave?",
   "yesSendFeedbackAction": "Ja, pošlji povratne informacije",
   "noDeleteAccountAction": "Ne, izbriši račun",
-  "initiateAccountDeleteTitle": "Za izbris računa, se overite",
   "sendEmail": "Pošlji e-pošto",
   "createNewAccount": "Ustvari nov račun",
   "weakStrength": "Šibko",

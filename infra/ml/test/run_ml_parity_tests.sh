@@ -17,7 +17,6 @@ VERBOSE=false
 RENDER_DETECTION_OVERLAYS=false
 REUSE_MOBILE_APPLICATION_BINARY=false
 PARALLEL_MOBILE_RUNNERS=true
-USE_LEGACY_MOBILE_ML=false
 
 LOCAL_MIRROR_PORT=""
 LOCAL_MIRROR_PID=""
@@ -35,7 +34,6 @@ Flags:
   --render-detection-overlays           (default: disabled; render annotated face detection images to out/parity/detections/<platform>/)
   --reuse-mobile-application-binary     (default: disabled; reuse an existing built mobile binary when available)
   --no-parallel-mobile-runners          (default: disabled; run android/ios runners sequentially)
-  --legacy                              (default: disabled; mobile only, run legacy Dart/ONNX ML pipeline instead of Rust)
 EOF
 }
 
@@ -63,10 +61,6 @@ while (($# > 0)); do
       ;;
     --no-parallel-mobile-runners)
       PARALLEL_MOBILE_RUNNERS=false
-      shift
-      ;;
-    --legacy)
-      USE_LEGACY_MOBILE_ML=true
       shift
       ;;
     -h|--help)
@@ -260,11 +254,6 @@ start_local_mirror_server() {
   return 1
 }
 
-MOBILE_ML_ROUTE="rust"
-if $USE_LEGACY_MOBILE_ML; then
-  MOBILE_ML_ROUTE="legacy-dart"
-fi
-
 echo "Running ML parity suite"
 print_kv "platforms:" "$PLATFORMS"
 print_kv "output_dir:" "$OUTPUT_DIR"
@@ -273,7 +262,7 @@ print_kv "render_detection_overlays:" "$RENDER_DETECTION_OVERLAYS"
 print_kv "android_build_mode:" "${ML_PARITY_ANDROID_BUILD_MODE:-profile}"
 print_kv "reuse_mobile_application_binary:" "$REUSE_MOBILE_APPLICATION_BINARY"
 print_kv "parallel_mobile_runners:" "$PARALLEL_MOBILE_RUNNERS"
-print_kv "mobile_ml_route:" "$MOBILE_ML_ROUTE"
+print_kv "mobile_ml_route:" "rust"
 
 declare -a selected_platforms=()
 case "$PLATFORMS" in
@@ -908,7 +897,6 @@ run_mobile_runner() {
     --no-dds
     --dart-define=ML_PARITY_MANIFEST_B64="$MANIFEST_B64"
     --dart-define=ML_PARITY_CODE_REVISION="$CODE_REVISION"
-    --dart-define=ML_PARITY_USE_LEGACY_MOBILE_ML="$USE_LEGACY_MOBILE_ML"
   )
 
   if [[ -z "$resolved_device_id" ]]; then

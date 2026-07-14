@@ -79,6 +79,7 @@ import {
 import { WhatsNew } from "ente-new/photos/components/WhatsNew";
 import {
     GalleryEmptyState,
+    GalleryEmptyStateV2,
     PeopleEmptyState,
     SearchResultsHeader,
     type RemotePullOpts,
@@ -259,7 +260,7 @@ const Page: React.FC = () => {
     const [collectionSelectorAttributes, setCollectionSelectorAttributes] =
         useState<CollectionSelectorAttributes | undefined>();
 
-    const { customDomain } = useSettingsSnapshot();
+    const { customDomain, isInternalUser } = useSettingsSnapshot();
     const userDetails = useUserDetailsSnapshot();
     const peopleState = usePeopleStateSnapshot();
 
@@ -2198,10 +2199,17 @@ const Page: React.FC = () => {
             !isFirstLoad &&
             !state.collectionFiles.length &&
             activeCollectionID === PseudoCollectionID.all ? (
-                <GalleryEmptyState
-                    isUploadInProgress={uploadManager.isUploadInProgress()}
-                    onUpload={openUploader}
-                />
+                isInternalUser ? (
+                    <GalleryEmptyStateV2
+                        isUploadInProgress={uploadManager.isUploadInProgress()}
+                        onUpload={openUploader}
+                    />
+                ) : (
+                    <GalleryEmptyState
+                        isUploadInProgress={uploadManager.isUploadInProgress()}
+                        onUpload={openUploader}
+                    />
+                )
             ) : !isInSearchMode &&
               !isFirstLoad &&
               state.view?.type == "people" &&

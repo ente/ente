@@ -7,9 +7,8 @@ class FilePathManager(context: Context) {
     private val appDataDir: File = ensureDir(context.filesDir)
     val attachmentsDir: File = ensureDir(File(appDataDir, "attachments"))
     val mainDbFile: File = File(appDataDir, "llmchat.db")
-    val attachmentsDbFile: File = File(appDataDir, "llmchat_sync.db")
-    val legacyOnlineDbFile: File = File(appDataDir, "llmchat_online.db")
-    val legacySyncDir: File = File(appDataDir, "llmchat")
+    val hasChatData: Boolean
+        get() = mainDbFile.exists() || (attachmentsDir.list()?.isNotEmpty() ?: true)
 
     private fun ensureDir(dir: File): File {
         if (!dir.exists()) {

@@ -18,15 +18,18 @@ import java.io.File
 
 class ChatRepository(
     context: Context,
-    private val credentialStore: CredentialStore
+    credentialStore: CredentialStore
 ) {
 
     private val filePaths = FilePathManager(context)
     private val attachmentsDir = filePaths.attachmentsDir
     private val dbFile = filePaths.mainDbFile
-    private val attachmentsDbFile = filePaths.attachmentsDbFile
-    private var dbKey = credentialStore.getOrCreateChatDbKey()
+    private val dbKey = credentialStore.getOrCreateChatDbKey(filePaths.hasChatData)
     private var db: EnsuDb = openDb(dbFile, dbKey)
+
+    init {
+        pruneOrphanedAttachments()
+    }
 
     fun listSessions(): List<ChatSession> = withDbRecovery {
         val sessions = db.listSessions()
@@ -56,7 +59,9 @@ class ChatRepository(
     }
 
     fun deleteSession(sessionId: String) = withDbRecovery {
-        db.deleteSession(sessionId)
+        db.deleteSession(sessionId).forEach { id ->
+            File(attachmentsDir, id).delete()
+        }
     }
 
     fun getMessages(sessionId: String): List<ChatMessage> = withDbRecovery {
@@ -72,6 +77,7 @@ class ChatRepository(
                 text = message.text,
                 timestampMillis = message.createdAtUs / 1000,
                 attachments = message.attachments.map { meta ->
+                    val file = File(attachmentsDir, meta.id)
                     Attachment(
                         id = meta.id,
                         name = meta.name,
@@ -80,7 +86,7 @@ class ChatRepository(
                             DbAttachmentKind.IMAGE -> AttachmentType.Image
                             DbAttachmentKind.DOCUMENT -> AttachmentType.Document
                         },
-                        localPath = File(attachmentsDir, meta.id).absolutePath,
+                        localPath = file.takeIf { it.exists() }?.absolutePath,
                         isUploading = false
                     )
                 }
@@ -138,30 +144,15 @@ class ChatRepository(
         db.updateSessionTitle(sessionId, title)
     }
 
-    fun deleteAllData() {
-        // Full reset removes current storage plus legacy sync leftovers.
-        dbFile.delete()
-        attachmentsDbFile.delete()
-        filePaths.legacyOnlineDbFile.delete()
-        filePaths.legacySyncDir.deleteRecursively()
-        filePaths.attachmentsDir.deleteRecursively()
-
-        filePaths.attachmentsDir.mkdirs()
-
-        dbKey = credentialStore.getOrCreateChatDbKey()
-        db = openDb(dbFile, dbKey)
-    }
-
     private fun openDb(dbFile: File, key: ByteArray): EnsuDb {
         return EnsuDb.open(
             dbFile.absolutePath,
-            attachmentsDbFile.absolutePath,
             key
         )
     }
 
     private fun <T> withDbRecovery(block: () -> T): T {
-        if (!attachmentsDbFile.exists() || !dbFile.exists()) {
+        if (!dbFile.exists()) {
             reopenDb()
         }
         return try {
@@ -171,35 +162,30 @@ class ChatRepository(
                 reopenDb()
                 return block()
             }
-            if (shouldResetDb(error)) {
-                resetDb()
-                return block()
-            }
             throw error
         }
     }
 
     private fun reopenDb() {
         dbFile.parentFile?.mkdirs()
-        attachmentsDbFile.parentFile?.mkdirs()
         dbFile.setWritable(true)
-        attachmentsDbFile.setWritable(true)
         db = openDb(dbFile, dbKey)
     }
 
-    private fun shouldResetDb(error: DbException): Boolean {
-        return error is DbException.Crypto ||
-            error is DbException.InvalidBlobLength ||
-            error is DbException.InvalidEncryptedField
+    private fun pruneOrphanedAttachments() {
+        val referenced = try {
+            db.listSessions().flatMap { session -> db.getMessages(session.uuid) }
+                .flatMap { message -> message.attachments }
+                .mapTo(mutableSetOf()) { attachment -> attachment.id }
+        } catch (_: DbException) {
+            return
+        }
+        attachmentsDir.listFiles()?.forEach { file ->
+            if (file.isFile && file.name !in referenced) file.delete()
+        }
     }
 
     private fun isReadonlyDbError(error: DbException): Boolean {
         return error is DbException.ReadonlyDatabase
-    }
-
-    private fun resetDb() {
-        dbFile.delete()
-        attachmentsDbFile.delete()
-        db = openDb(dbFile, dbKey)
     }
 }

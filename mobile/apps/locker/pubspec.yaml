@@ -79,6 +79,7 @@ dependencies:
   package_info_plus: 8.3.1
   path: 1.9.1
   path_provider: 2.1.5
+  rive: 0.14.0-dev.13
   share_plus: 11.1.0
   shared_preferences: 2.5.3
   sqflite: 2.4.2

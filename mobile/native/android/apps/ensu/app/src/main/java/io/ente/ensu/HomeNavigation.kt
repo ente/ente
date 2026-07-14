@@ -53,7 +53,6 @@ internal fun HomeNavigation(
     onSignIn: () -> Unit,
     onOpenDrawer: () -> Unit,
     onNewChat: () -> Unit,
-    onAttachmentDownloads: () -> Unit,
     onShowLogShareDialog: () -> Unit,
     onAttachmentSelected: (AttachmentType) -> Unit,
     onOpenAttachment: (Attachment) -> Unit
@@ -68,13 +67,10 @@ internal fun HomeNavigation(
                         TopBar(
                             sessionTitle = currentSession?.title,
                             showBrand = appState.chat.messages.isEmpty(),
-                            attachmentDownloads = appState.chat.attachmentDownloads,
-                            attachmentDownloadProgress = appState.chat.attachmentDownloadProgress,
                             modelDownloadStatus = appState.chat.downloadStatus,
                             modelDownloadPercent = appState.chat.downloadPercent,
                             onOpenDrawer = onOpenDrawer,
-                            onNewChat = onNewChat,
-                            onAttachmentDownloads = onAttachmentDownloads
+                            onNewChat = onNewChat
                         )
                         androidx.compose.material3.HorizontalDivider(color = EnsuColor.border())
                     }

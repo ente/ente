@@ -62,7 +62,7 @@
   "trash": "丟入回收桶",
   "viewLogsAction": "查看日誌",
   "sendLogsDescription": "這將傳送日誌給我們，協助排查您的問題。雖然我們已採取預防措施確保敏感資訊不會被記錄，但建議您在分享前先檢閱這些日誌。",
-  "preparingLogsTitle": "正在準備日誌...",
+  "preparingLogsTitle": "正在準備日誌……",
   "emailLogsTitle": "電子郵件日誌",
   "emailLogsMessage": "請將日誌寄送至 {email}",
   "@emailLogsMessage": {
@@ -90,7 +90,7 @@
   "blog": "部落格",
   "merchandise": "周邊商品",
   "verifyPassword": "驗證密碼",
-  "pleaseWait": "請稍候...",
+  "pleaseWait": "請稍候……",
   "generatingEncryptionKeysTitle": "正在產生加密金鑰...",
   "recreatePassword": "重新建立密碼",
   "recreatePasswordMessage": "目前裝置效能不足以驗證您的密碼，因此需要以所有裝置皆相容的方式重新產生一次。\n\n請使用您的復原金鑰登入，並重新產生密碼（若您願意，也可繼續使用相同的密碼）。",
@@ -112,6 +112,9 @@
   "passwordEmptyError": "密碼不能留白",
   "passwordTooShort": "密碼長度最少要8個字元。",
   "importFromApp": "從 {appName} 匯入驗證碼",
+  "importGoogleAuthGuide": "使用 Google 身分驗證器的 「轉移帳戶」 選項，建立一個 QR Code 用於將您的帳戶匯出。接著掃描該 QR Code，或用該 QR Code 的圖片匯入新帳戶。",
+  "scannerTorchOn": "打開手電筒",
+  "scannerTorchOff": "關閉手電筒",
   "importSelectJsonFile": "選擇 JSON 檔案",
   "importSelectAppExport": "選擇 {appName} 的匯出檔案",
   "importEnteEncGuide": "選擇從 Ente 匯出的 JSON 加密檔案",
@@ -193,7 +196,7 @@
   "deleteAccountQuery": "我們很抱歉看到您要刪除帳號。您似乎面臨著一些問題？",
   "yesSendFeedbackAction": "是，傳送回饋",
   "noDeleteAccountAction": "否，刪除帳號",
-  "initiateAccountDeleteTitle": "請驗證身份以開始刪除帳號",
+  "authToInitiateAccountDeletion": "解鎖以刪除帳號",
   "sendEmail": "傳送電子郵件",
   "createNewAccount": "建立新帳號",
   "weakStrength": "弱",
@@ -328,6 +331,16 @@
         "description": "The number of codes imported",
         "type": "int",
         "example": "1"
+      }
+    }
+  },
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{要從 Google 身分驗證器匯入 1 個驗證碼嗎？} other{要從 Google 身分驗證器匯入 {codeCount} 個驗證碼嗎？}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
       }
     }
   },

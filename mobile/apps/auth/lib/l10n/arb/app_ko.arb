@@ -190,7 +190,6 @@
   "deleteAccountQuery": "떠나신다니 아쉽습니다. 뭔가 문제가 있으셨나요?",
   "yesSendFeedbackAction": "네, 피드백을 보냅니다",
   "noDeleteAccountAction": "아니오, 계정을 지웁니다",
-  "initiateAccountDeleteTitle": "계정 삭제 절차를 시작하려면 인증 절차를 거쳐주세요",
   "sendEmail": "이메일 보내기",
   "createNewAccount": "새 계정 만들기",
   "weakStrength": "약함",

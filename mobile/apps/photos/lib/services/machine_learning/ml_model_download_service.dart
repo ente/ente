@@ -4,8 +4,8 @@ import "package:connectivity_plus/connectivity_plus.dart";
 import "package:logging/logging.dart";
 import "package:photos/service_locator.dart"
     show flagService, hasGrantedMLConsent, isLocalGalleryMode, localSettings;
+import "package:photos/services/machine_learning/ml_model_assets.dart";
 import "package:photos/services/machine_learning/ml_models_overview.dart";
-import "package:photos/services/machine_learning/semantic_search/clip/clip_text_encoder.dart";
 import "package:photos/services/remote_assets_service.dart";
 import "package:photos/utils/network_util.dart";
 import "package:synchronized/synchronized.dart";
@@ -35,10 +35,10 @@ class MLModelDownloadService {
 
   Future<bool> canLoadClipTextModel() async {
     final hasModel = await RemoteAssetsService.instance.hasAsset(
-      ClipTextEncoder.instance.modelRemotePath,
+      ClipTextModel.instance.modelRemotePath,
     );
     final hasVocab = await RemoteAssetsService.instance.hasAsset(
-      ClipTextEncoder.instance.vocabRemotePath,
+      ClipTextModel.instance.vocabRemotePath,
     );
     if (hasModel && hasVocab) {
       return true;
@@ -152,17 +152,15 @@ class MLModelDownloadService {
       for (final model in nonIndexingModels)
         model.model.downloadModel(forceRefresh),
       RemoteAssetsService.instance.getAssetPath(
-        ClipTextEncoder.instance.vocabRemotePath,
+        ClipTextModel.instance.vocabRemotePath,
         refetch: forceRefresh,
-        expectedSha256: ClipTextEncoder.instance.vocabSha256,
+        expectedSha256: ClipTextModel.instance.vocabSha256,
       ),
     ];
   }
 
   bool get _shouldDownloadPetModels {
-    return flagService.petEnabled &&
-        localSettings.petRecognitionEnabled &&
-        (flagService.useRustForML || isLocalGalleryMode);
+    return flagService.petEnabled && localSettings.petRecognitionEnabled;
   }
 
   void _listenForHighBandwidthModelDownloadRetry({

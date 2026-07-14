@@ -1,5 +1,5 @@
-import 'package:flutter/widgets.dart';
-import 'package:photos/theme/ente_theme.dart';
+import "package:ente_components/ente_components.dart";
+import 'package:flutter/material.dart';
 
 class ChangeLogEntry {
   final bool isFeature;
@@ -22,51 +22,43 @@ class ChangeLogEntryWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final enteTheme = getEnteTextTheme(context);
-    final colorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
     final hasDescription =
         entry.description != null && entry.description!.isNotEmpty;
     final hasItems = entry.items.isNotEmpty;
-
+    final mutedStyle = TextStyles.body.copyWith(color: colors.textLight);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           entry.title,
           textAlign: TextAlign.left,
-          style: enteTheme.largeBold.copyWith(
-            color: entry.isFeature
-                ? colorScheme.primary700
-                : colorScheme.textMuted,
+          style: TextStyles.large.copyWith(
+            color: entry.isFeature ? colors.primary : colors.textLight,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: Spacing.sm),
         if (hasDescription)
           Padding(
-            padding: EdgeInsets.only(bottom: hasItems ? 12 : 0),
+            padding: EdgeInsets.only(bottom: hasItems ? Spacing.md : 0),
             child: Text(
               entry.description!,
               textAlign: TextAlign.left,
-              style: enteTheme.body.copyWith(color: colorScheme.textMuted),
+              style: mutedStyle,
             ),
           ),
         ...entry.items.map(
           (item) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: Spacing.sm),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '•  ',
-                  style: enteTheme.body.copyWith(color: colorScheme.textMuted),
-                ),
+                Text('•  ', style: mutedStyle),
                 Expanded(
                   child: Text(
                     item,
                     textAlign: TextAlign.left,
-                    style: enteTheme.body.copyWith(
-                      color: colorScheme.textMuted,
-                    ),
+                    style: mutedStyle,
                   ),
                 ),
               ],

@@ -107,6 +107,7 @@ class _ContactsSectionState extends State<ContactsSection> {
                       limit: widget.resultLimit + 1,
                     ))
                     as List<GenericSearchResult>;
+            if (!mounted) return;
             setState(() {});
           });
         }),

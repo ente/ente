@@ -1,7 +1,7 @@
 mod support;
 
-use reqwest::Url;
 use support::{Cli, Museum, TestResult};
+use url::Url;
 use uuid::Uuid;
 
 const PASTE_PASSWORD_ENV: &str = "ENTE_PASTE_PASSWORD";
@@ -46,7 +46,7 @@ fn full_link_roundtrip(museum: &Museum) -> TestResult {
         String::from_utf8_lossy(&second_consume.stdout),
     );
     assert!(
-        String::from_utf8_lossy(&second_consume.stderr).contains("API error (410)"),
+        String::from_utf8_lossy(&second_consume.stderr).contains("HTTP 410"),
         "second consume should fail with 410, got stderr: {}",
         String::from_utf8_lossy(&second_consume.stderr),
     );
@@ -171,7 +171,7 @@ fn wrong_password_consumes_password_protected_paste(museum: &Museum) -> TestResu
         String::from_utf8_lossy(&second.stdout),
     );
     assert!(
-        String::from_utf8_lossy(&second.stderr).contains("API error (410)"),
+        String::from_utf8_lossy(&second.stderr).contains("HTTP 410"),
         "second consume should fail with 410, got stderr: {}",
         String::from_utf8_lossy(&second.stderr),
     );
@@ -214,7 +214,7 @@ fn consumed_password_paste_checks_availability_before_password(museum: &Museum) 
         "second consume unexpectedly succeeded"
     );
     assert!(
-        String::from_utf8_lossy(&second.stderr).contains("API error (410)"),
+        String::from_utf8_lossy(&second.stderr).contains("HTTP 410"),
         "consumed paste should fail before password validation, got stderr: {}",
         String::from_utf8_lossy(&second.stderr),
     );

@@ -50,11 +50,13 @@ class _AdvancedSectionWidgetState extends State<AdvancedSectionWidget> {
           trailingIconIsMuted: true,
           onTap: () async {
             final locale = (await getLocale())!;
+            if (!context.mounted) return;
             // ignore: unawaited_futures
             auth_nav.routeToPage(
               context,
               LanguageSelectorPage(appSupportedLocales, (locale) async {
                 await setLocale(locale);
+                if (!context.mounted) return;
                 App.setLocale(context, locale);
               }, locale),
             );
@@ -110,6 +112,7 @@ class _AdvancedSectionWidgetState extends State<AdvancedSectionWidget> {
                 !PreferenceService.instance.shouldHideCodes(),
               );
               if (PreferenceService.instance.shouldHideCodes()) {
+                if (!context.mounted) return;
                 showToast(context, context.l10n.doubleTapToViewHiddenCode);
               }
               setState(() {});

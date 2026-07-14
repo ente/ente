@@ -169,7 +169,6 @@
   "deleteAccountQuery": "از رفتن شما متاسفیم. آیا با مشکلی روبرو هستید؟",
   "yesSendFeedbackAction": "بله، ارسال بازخورد",
   "noDeleteAccountAction": "خیر، حساب کاربری را حذف کن",
-  "initiateAccountDeleteTitle": "لطفا جهت شروع فرآیند حذف حساب کاربری، اعتبارسنجی کنید",
   "sendEmail": "ارسال ایمیل",
   "createNewAccount": "ایجاد حساب کاربری جدید",
   "weakStrength": "ضعیف",

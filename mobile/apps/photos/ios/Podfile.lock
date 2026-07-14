@@ -14,8 +14,6 @@ PODS:
   - cupertino_http (0.0.1):
     - Flutter
     - FlutterMacOS
-  - dart_ui_isolate (0.0.1):
-    - Flutter
   - device_info_plus (0.0.1):
     - Flutter
   - ente_photos_rust (0.0.1):
@@ -173,14 +171,6 @@ PODS:
     - Flutter
   - native_video_player (4.0.0):
     - Flutter
-  - onnxruntime (0.0.1):
-    - Flutter
-    - onnxruntime-objc (= 1.18.0)
-  - onnxruntime-c (1.18.0)
-  - onnxruntime-objc (1.18.0):
-    - onnxruntime-objc/Core (= 1.18.0)
-  - onnxruntime-objc/Core (1.18.0):
-    - onnxruntime-c (= 1.18.0)
   - open_mail_app (0.0.1):
     - Flutter
   - OrderedSet (6.0.3)
@@ -267,7 +257,6 @@ DEPENDENCIES:
   - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/ios`)
   - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - cupertino_http (from `.symlinks/plugins/cupertino_http/darwin`)
-  - dart_ui_isolate (from `.symlinks/plugins/dart_ui_isolate/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
   - ente_photos_rust (from `.symlinks/plugins/ente_photos_rust/ios`)
   - ente_qr (from `.symlinks/plugins/ente_qr/ios`)
@@ -303,7 +292,6 @@ DEPENDENCIES:
   - move_to_background (from `.symlinks/plugins/move_to_background/ios`)
   - native_video_editor (from `.symlinks/plugins/native_video_editor/ios`)
   - native_video_player (from `.symlinks/plugins/native_video_player/ios`)
-  - onnxruntime (from `.symlinks/plugins/onnxruntime/ios`)
   - open_mail_app (from `.symlinks/plugins/open_mail_app/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
@@ -338,8 +326,6 @@ SPEC REPOS:
     - libwebp
     - Mantle
     - nanopb
-    - onnxruntime-c
-    - onnxruntime-objc
     - OrderedSet
     - PromisesObjC
     - SDWebImage
@@ -362,8 +348,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/connectivity_plus/ios"
   cupertino_http:
     :path: ".symlinks/plugins/cupertino_http/darwin"
-  dart_ui_isolate:
-    :path: ".symlinks/plugins/dart_ui_isolate/ios"
   device_info_plus:
     :path: ".symlinks/plugins/device_info_plus/ios"
   ente_photos_rust:
@@ -434,8 +418,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/native_video_editor/ios"
   native_video_player:
     :path: ".symlinks/plugins/native_video_player/ios"
-  onnxruntime:
-    :path: ".symlinks/plugins/onnxruntime/ios"
   open_mail_app:
     :path: ".symlinks/plugins/open_mail_app/ios"
   package_info_plus:
@@ -483,9 +465,8 @@ SPEC CHECKSUMS:
   camera_avfoundation: 5675ca25298b6f81fa0a325188e7df62cc217741
   connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
   cupertino_http: 94ac07f5ff090b8effa6c5e2c47871d48ab7c86c
-  dart_ui_isolate: 46f6714abe6891313267153ef6f9748d8ecfcab1
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
-  ente_photos_rust: a9e1166cc460dda69acd56fbed21afe87dfef562
+  ente_photos_rust: 3ba148cb0582699855b6c154aecd41ca604ba1e8
   ente_qr: 86beaf5d2644705db9b565b32dd8b82c05fb36af
   ente_rust: d0197ebd5460e8f67576579452b073d698404abe
   ente_screen_cover: 6792566774f1c83939f9c1d03ed0a1f1ded45ae4
@@ -530,9 +511,6 @@ SPEC CHECKSUMS:
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
   native_video_editor: 5af94a14017a00dcb0a0055abb869fce79e5493e
   native_video_player: 6809dec117e8997161dbfb42a6f90d6df71a504d
-  onnxruntime: f9b296392c96c42882be020a59dbeac6310d81b2
-  onnxruntime-c: a909204639a1f035f575127ac406f781ac797c9c
-  onnxruntime-objc: b6fab0f1787aa6f7190c2013f03037df4718bd8b
   open_mail_app: 7314a609e88eed22d53671279e189af7a0ab0f11
   OrderedSet: e539b66b644ff081c73a262d24ad552a69be3a94
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
@@ -559,6 +537,6 @@ SPEC CHECKSUMS:
   wakelock_plus: e29112ab3ef0b318e58cfa5c32326458be66b556
   workmanager_apple: 904529ae31e97fc5be632cf628507652294a0778
 
-PODFILE CHECKSUM: 8fc1fde26dfa3b23d869bfb05f0291fe4d453b91
+PODFILE CHECKSUM: 980a2602621422bdfd82e34ef370d44ddd600fad
 
 COCOAPODS: 1.16.2

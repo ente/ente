@@ -2,6 +2,8 @@ package repo
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/ente/museum/ente"
@@ -24,13 +26,32 @@ func (repo *CollectionRepository) GetCollectionFileIDs(collectionID int64, colle
 	return convertRowsToFileId(rows)
 }
 
-// DoesFileExistInCollections returns true if the file exists in one of the
-// provided collections
-func (repo *CollectionRepository) DoesFileExistInCollections(fileID int64, cIDs []int64) (bool, error) {
-	var exists bool
-	err := repo.DB.QueryRow(`SELECT EXISTS (SELECT 1 FROM collection_files WHERE file_id = $1 AND is_deleted = $2 AND collection_id = ANY ($3))`,
-		fileID, false, pq.Array(cIDs)).Scan(&exists)
-	return exists, stacktrace.Propagate(err, "")
+type CollectionFileState string
+
+const (
+	CollectionFileActive        CollectionFileState = "active"
+	CollectionFileAbsent        CollectionFileState = "absent"
+	CollectionFileDeleted       CollectionFileState = "deleted"
+	CollectionFilePendingRemove CollectionFileState = "pending_remove"
+)
+
+func (repo *CollectionRepository) GetCollectionFileState(ctx context.Context, collectionID, fileID int64) (CollectionFileState, error) {
+	var isDeleted, isPendingRemove bool
+	err := repo.DB.QueryRowContext(ctx, `SELECT is_deleted, action IS NOT DISTINCT FROM $3 FROM collection_files WHERE collection_id = $1 AND file_id = $2`,
+		collectionID, fileID, ente.ActionRemove).Scan(&isDeleted, &isPendingRemove)
+	if errors.Is(err, sql.ErrNoRows) {
+		return CollectionFileAbsent, nil
+	}
+	if err != nil {
+		return CollectionFileAbsent, stacktrace.Propagate(err, "")
+	}
+	if isDeleted {
+		return CollectionFileDeleted, nil
+	}
+	if isPendingRemove {
+		return CollectionFilePendingRemove, nil
+	}
+	return CollectionFileActive, nil
 }
 
 func (repo *CollectionRepository) DoAllFilesExistInGivenCollections(fileIDs []int64, cIDs []int64) error {

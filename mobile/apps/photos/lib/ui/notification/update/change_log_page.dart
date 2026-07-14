@@ -1,13 +1,9 @@
 import 'dart:io';
 
+import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
 import "package:photos/generated/l10n.dart";
 import "package:photos/service_locator.dart";
-import 'package:photos/theme/ente_theme.dart';
-import 'package:photos/ui/components/buttons/button_widget.dart';
-import 'package:photos/ui/components/divider_widget.dart';
-import 'package:photos/ui/components/models/button_type.dart';
-import 'package:photos/ui/components/title_bar_title_widget.dart';
 import 'package:photos/ui/notification/update/change_log_entry.dart';
 import 'package:photos/ui/notification/update/change_log_strings.dart';
 
@@ -31,75 +27,42 @@ class _ChangeLogPageState extends State<ChangeLogPage> {
 
   @override
   Widget build(BuildContext context) {
-    final enteColorScheme = getEnteColorScheme(context);
+    final l10n = AppLocalizations.of(context);
+    final colors = context.componentColors;
     final isLocalGallery = isLocalGalleryMode;
-    return Material(
-      color: enteColorScheme.backgroundElevated,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(height: 36),
-          Container(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: TitleBarTitleWidget(
-                title: AppLocalizations.of(context).whatsNew,
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Flexible(child: _getChangeLog()),
-          const DividerWidget(dividerType: DividerType.solid),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.only(
-                left: 16.0,
-                right: 16,
-                top: 16,
-                bottom: 8,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ButtonWidget(
-                    buttonType: ButtonType.trailingIconPrimary,
-                    buttonSize: ButtonSize.large,
-                    labelText: AppLocalizations.of(context).continueLabel,
-                    icon: Icons.arrow_forward_outlined,
-                    onTap: () async {
-                      if (Navigator.of(context).canPop()) {
-                        Navigator.of(context).pop();
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  ButtonWidget(
-                    buttonType: ButtonType.trailingIconSecondary,
-                    buttonSize: ButtonSize.large,
-                    labelText: isLocalGallery
-                        ? AppLocalizations.of(context).rateUs
-                        : AppLocalizations.of(context).changeLogReferralCta,
-                    icon: Icons.favorite_rounded,
-                    iconColor: enteColorScheme.primary500,
-                    onTap: () async {
-                      if (isLocalGallery) {
-                        await updateService.launchReviewUrl();
-                      } else if (Navigator.of(context).canPop()) {
-                        Navigator.of(
-                          context,
-                        ).pop(ChangeLogPageAction.openReferrals);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+    return BottomSheetComponent(
+      title: l10n.whatsNew,
+      showCloseButton: false,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      actionsTopSpacing: Spacing.xxl,
+      content: _getChangeLog(),
+      actions: [
+        ButtonComponent(
+          variant: ButtonComponentVariant.primary,
+          size: ButtonComponentSize.large,
+          label: l10n.continueLabel,
+          shouldSurfaceExecutionStates: false,
+          onTap: () async {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+          },
+        ),
+        ButtonComponent(
+          variant: ButtonComponentVariant.secondary,
+          size: ButtonComponentSize.large,
+          label: isLocalGallery ? l10n.rateUs : l10n.changeLogReferralCta,
+          leading: Icon(Icons.favorite_rounded, color: colors.primary),
+          shouldSurfaceExecutionStates: false,
+          onTap: () async {
+            if (isLocalGallery) {
+              await updateService.launchReviewUrl();
+            } else if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop(ChangeLogPageAction.openReferrals);
+            }
+          },
+        ),
+      ],
     );
   }
 
@@ -145,8 +108,7 @@ class _ChangeLogPageState extends State<ChangeLogPage> {
                   entry.items.isNotEmpty,
             )
             .toList(growable: false);
-    return Container(
-      padding: const EdgeInsets.only(left: 16),
+    return Flexible(
       child: Scrollbar(
         controller: _scrollController,
         thumbVisibility: true,
@@ -155,13 +117,11 @@ class _ChangeLogPageState extends State<ChangeLogPage> {
           controller: _scrollController,
           shrinkWrap: true,
           physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.only(right: Spacing.md),
           itemBuilder: (context, index) {
-            return Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: ChangeLogEntryWidget(entry: items[index]),
-            );
+            return ChangeLogEntryWidget(entry: items[index]);
           },
-          separatorBuilder: (_, _) => const SizedBox(height: 16),
+          separatorBuilder: (_, _) => const SizedBox(height: Spacing.lg),
           itemCount: items.length,
         ),
       ),

@@ -72,6 +72,7 @@ class _EditTagDialogState extends State<EditTagDialog> {
 
             await dialog.hide();
 
+            if (!context.mounted) return;
             Navigator.pop(context);
           },
         ),

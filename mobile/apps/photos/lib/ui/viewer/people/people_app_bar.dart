@@ -257,6 +257,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
       context,
       SaveOrEditPerson(clusterID, person: person, isEditing: true),
     );
+    if (!mounted) return;
     if (result is PersonEntity) {
       _appBarTitle = result.data.name;
       person = result;
@@ -472,9 +473,11 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
         person.remoteID,
         hideFromMemories: shouldHideFromMemories,
       );
-      setState(() {
-        person = updatedPerson;
-      });
+      if (mounted) {
+        setState(() {
+          person = updatedPerson;
+        });
+      }
       Bus.instance.fire(
         PeopleChangedEvent(
           type: PeopleEventType.saveOrEditPerson,
@@ -496,6 +499,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
       firstButtonOnTap: () async {
         try {
           await PersonService.instance.deletePerson(person.remoteID);
+          if (!context.mounted) return;
           Navigator.of(context).pop();
         } catch (e, s) {
           _logger.severe('Resetting person failed', e, s);
@@ -542,6 +546,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
     if (!mounted || result?.action != ButtonAction.error) {
       return;
     }
+    if (!context.mounted) return;
     showShortToast(
       context,
       AppLocalizations.of(context).somethingWentWrongPleaseTryAgain,
@@ -599,6 +604,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
         !shouldCloseDetailPage) {
       return;
     }
+    if (!context.mounted) return;
     await Navigator.of(context).maybePop();
   }
 
@@ -606,9 +612,6 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
     final result = await showPersonAvatarPhotoSheet(context, person);
     if (result != null) {
       _logger.info('Person avatar updated');
-      setState(() {
-        person = result;
-      });
       Bus.instance.fire(
         PeopleChangedEvent(
           type: PeopleEventType.saveOrEditPerson,
@@ -616,6 +619,10 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
           person: result,
         ),
       );
+      if (!mounted) return;
+      setState(() {
+        person = result;
+      });
     }
   }
 

@@ -15,6 +15,7 @@ import "package:photos/events/stream_switched_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/module/download/task.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/files_service.dart";
@@ -28,7 +29,6 @@ import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/viewer/file/video_widget_media_kit_common.dart"
     as common;
 import "package:photos/utils/dialog_util.dart";
-import "package:photos/utils/file_util.dart";
 
 class VideoWidgetMediaKit extends StatefulWidget {
   final EnteFile file;
@@ -138,7 +138,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
             }
           }
         });
-    EnteWakeLockService.instance.updateWakeLock(
+    wakeLockService.updateWakeLock(
       enable: true,
       wakeLockFor: WakeLockFor.videoPlayback,
     );
@@ -193,7 +193,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     _guestViewEventSubscription.cancel();
     pauseVideoSubscription.cancel();
     resumeVideoSubscription.cancel();
-    removeCallBack(widget.file);
+    removeDownloadCallback(widget.file);
     _progressNotifier.dispose();
     WidgetsBinding.instance.removeObserver(this);
     if (_downloadTaskSubscription != null) {
@@ -203,13 +203,13 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     player.dispose();
     _captionUpdatedSubscription.cancel();
     _transformationController.dispose();
-    if (EnteWakeLockService.instance.shouldKeepAppAwakeAcrossSessions) {
-      EnteWakeLockService.instance.updateWakeLock(
+    if (wakeLockService.shouldKeepAppAwakeAcrossSessions) {
+      wakeLockService.updateWakeLock(
         enable: true,
         wakeLockFor: WakeLockFor.handlingMediaKitEdgeCase,
       );
     } else {
-      EnteWakeLockService.instance.updateWakeLock(
+      wakeLockService.updateWakeLock(
         enable: false,
         wakeLockFor: WakeLockFor.videoPlayback,
       );
@@ -314,6 +314,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
           }
         })
         .onError((error, stackTrace) {
+          if (!mounted) return;
           showErrorDialog(
             context,
             AppLocalizations.of(context).error,

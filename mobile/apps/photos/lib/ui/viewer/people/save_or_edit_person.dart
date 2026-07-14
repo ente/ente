@@ -324,6 +324,7 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
                                 context,
                               );
                               if (updatedPersonEntity != null) {
+                                if (!context.mounted) return;
                                 Navigator.pop(context, updatedPersonEntity);
                               }
                             } else {
@@ -342,6 +343,7 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
                                     return null;
                                   });
                               if (newPersonEntity != null) {
+                                if (!context.mounted) return;
                                 Navigator.pop(context, newPersonEntity);
                               }
                             }
@@ -596,6 +598,7 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
       _logger.severe(
         "Failed to addNewPerson, email is already assigned to a person",
       );
+      if (!context.mounted) return null;
       await showAlreadyLinkedEmailDialog(context, email);
       return null;
     }
@@ -618,7 +621,7 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
       );
       final bool extraPhotosFound = await ClusterFeedbackService.instance
           .checkAndDoAutomaticMerges(personEntity, personClusterID: clusterID);
-      if (extraPhotosFound) {
+      if (extraPhotosFound && context.mounted) {
         showShortToast(context, AppLocalizations.of(context).extraPhotosFound);
       }
       Bus.instance.fire(
@@ -632,6 +635,7 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
     } catch (e) {
       _logger.severe("Error adding new person", e);
       userAlreadyAssigned = false;
+      if (!context.mounted) return null;
       await showGenericErrorDialog(context: context, error: e);
       return null;
     }
@@ -651,6 +655,7 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
           _email!.isNotEmpty &&
           _email != person!.data.email &&
           await checkIfEmailAlreadyAssignedToAPerson(_email!)) {
+        if (!context.mounted) return null;
         await showAlreadyLinkedEmailDialog(context, _email!);
         return null;
       }
@@ -675,6 +680,7 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
       return personEntity;
     } catch (e) {
       _logger.severe("Error adding updating person", e);
+      if (!context.mounted) return null;
       await showGenericErrorDialog(context: context, error: e);
       return null;
     }

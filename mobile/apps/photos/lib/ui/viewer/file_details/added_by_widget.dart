@@ -1,10 +1,10 @@
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/contacts/contact_identity_resolver.dart";
-import "package:photos/theme/ente_theme.dart";
 
 class AddedByWidget extends StatelessWidget {
   final EnteFile file;
@@ -33,14 +33,29 @@ class AddedByWidget extends StatelessWidget {
       );
       addedBy = resolveDisplayName(fileOwner);
     }
-    if (addedBy.isEmpty) {
+    if (addedBy.trim().isEmpty) {
       return const SizedBox.shrink();
     }
+    final colors = context.componentColors;
+    final initials = addedBy.trim()[0].toUpperCase();
     return Padding(
-      padding: const EdgeInsets.only(top: 4.0, bottom: 4.0, left: 16),
-      child: Text(
-        AppLocalizations.of(context).addedBy(emailOrName: addedBy),
-        style: getEnteTextTheme(context).miniMuted,
+      padding: const EdgeInsets.only(bottom: Spacing.lg),
+      child: Row(
+        children: [
+          AvatarComponent.seeded(
+            initials: initials,
+            seed: addedBy.hashCode,
+            size: AvatarComponentSize.defaultSize,
+          ),
+          const SizedBox(width: Spacing.sm),
+          Flexible(
+            child: Text(
+              AppLocalizations.of(context).addedBy(emailOrName: addedBy),
+              style: TextStyles.mini.copyWith(color: colors.textLighter),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }

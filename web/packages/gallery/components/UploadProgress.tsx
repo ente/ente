@@ -32,7 +32,7 @@ import { FilledIconButton } from "ente-base/components/mui";
 import { useBaseContext } from "ente-base/context";
 import { basename } from "ente-base/file-name";
 import { formattedListJoin } from "ente-base/i18n";
-import type { SkippedFile } from "ente-base/types/ipc";
+import type { PreUploadSkippedFile } from "ente-base/types/ipc";
 import { t } from "i18next";
 import memoize from "memoize-one";
 import React, {
@@ -62,7 +62,7 @@ interface UploadProgressProps {
     inProgressUploads: InProgressUpload[];
     uploadFileNames: UploadFileNames;
     finishedUploads: SegregatedFinishedUploads;
-    skippedFiles?: SkippedFile[];
+    preUploadSkippedFiles?: PreUploadSkippedFile[];
     hasLivePhotos: boolean;
     cancelUploads: () => void;
 }
@@ -114,7 +114,7 @@ export const UploadProgress: React.FC<UploadProgressProps> = ({
     hasLivePhotos,
     inProgressUploads,
     finishedUploads,
-    skippedFiles = [],
+    preUploadSkippedFiles = [],
     cancelUploads,
 }) => {
     const { showMiniDialog } = useBaseContext();
@@ -162,7 +162,7 @@ export const UploadProgress: React.FC<UploadProgressProps> = ({
                 inProgressUploads,
                 uploadFileNames,
                 finishedUploads,
-                skippedFiles,
+                preUploadSkippedFiles,
                 hasLivePhotos,
                 expanded,
                 setExpanded,
@@ -188,7 +188,7 @@ interface UploadProgressContextT {
     inProgressUploads: InProgressUpload[];
     uploadFileNames: UploadFileNames;
     finishedUploads: SegregatedFinishedUploads;
-    skippedFiles: SkippedFile[];
+    preUploadSkippedFiles: PreUploadSkippedFile[];
     hasLivePhotos: boolean;
     expanded: boolean;
     setExpanded: React.Dispatch<React.SetStateAction<boolean>>;
@@ -412,8 +412,12 @@ const clamp = (value: number, min: number, max: number) =>
     Math.min(Math.max(value, min), Math.max(min, max));
 
 const UploadProgressSubtitleText: React.FC = () => {
-    const { uploadPhase, uploadCounter, finishedUploads, skippedFiles } =
-        useUploadProgressContext();
+    const {
+        uploadPhase,
+        uploadCounter,
+        finishedUploads,
+        preUploadSkippedFiles,
+    } = useUploadProgressContext();
 
     return (
         <Typography
@@ -428,7 +432,7 @@ const UploadProgressSubtitleText: React.FC = () => {
                 uploadPhase,
                 uploadCounter,
                 finishedUploads,
-                skippedFiles,
+                preUploadSkippedFiles,
             )}
         </Typography>
     );
@@ -438,7 +442,7 @@ const subtitleText = (
     uploadPhase: UploadPhase,
     uploadCounter: UploadCounter,
     finishedUploads: SegregatedFinishedUploads | null | undefined,
-    skippedFiles: SkippedFile[],
+    preUploadSkippedFiles: PreUploadSkippedFile[],
 ) => {
     switch (uploadPhase) {
         case "preparing":
@@ -456,7 +460,7 @@ const subtitleText = (
             const count = uploadedFileCount(finishedUploads);
             const notCount = notUploadedFileCount(
                 finishedUploads,
-                skippedFiles,
+                preUploadSkippedFiles,
             );
             const items: string[] = [];
             if (count) items.push(t("upload_done", { count }));
@@ -484,9 +488,9 @@ const uploadedFileCount = (
 
 const notUploadedFileCount = (
     finishedUploads: SegregatedFinishedUploads | null | undefined,
-    skippedFiles: SkippedFile[],
+    preUploadSkippedFiles: PreUploadSkippedFile[],
 ) => {
-    let c = skippedFiles.length;
+    let c = preUploadSkippedFiles.length;
 
     if (!finishedUploads) return c;
 
@@ -522,23 +526,28 @@ const UploadProgressBar: React.FC = () => {
 };
 
 function UploadProgressDialog() {
-    const { open, onClose, uploadPhase, finishedUploads, skippedFiles } =
-        useUploadProgressContext();
+    const {
+        open,
+        onClose,
+        uploadPhase,
+        finishedUploads,
+        preUploadSkippedFiles,
+    } = useUploadProgressContext();
 
     const [hasUnUploadedFiles, setHasUnUploadedFiles] = useState(false);
 
     useEffect(() => {
         setHasUnUploadedFiles(
-            notUploadedFileCount(finishedUploads, skippedFiles) > 0,
+            notUploadedFileCount(finishedUploads, preUploadSkippedFiles) > 0,
         );
-    }, [finishedUploads, skippedFiles]);
+    }, [finishedUploads, preUploadSkippedFiles]);
 
     const handleClose: DialogProps["onClose"] = (_, reason) => {
         if (reason != "backdropClick") onClose();
     };
 
-    const skipped = (type: SkippedFile["type"]) =>
-        skippedFiles
+    const preUploadSkipped = (type: PreUploadSkippedFile["type"]) =>
+        preUploadSkippedFiles
             .filter((file) => file.type == type)
             .map(({ name }, index) => ({
                 key: `${type}-${index}-${name}`,
@@ -591,12 +600,12 @@ function UploadProgressDialog() {
                         sectionInfo={t("insufficient_storage_hint")}
                     />
                     <FileNameListSection
-                        items={skipped("hiddenFile")}
+                        items={preUploadSkipped("hiddenFile")}
                         sectionTitle={t("hidden_files")}
                         sectionInfo={t("hidden_files_hint")}
                     />
                     <FileNameListSection
-                        items={skipped("failedZip")}
+                        items={preUploadSkipped("failedZip")}
                         sectionTitle={t("unreadable_zip_files")}
                         sectionInfo={t("unreadable_zip_files_hint")}
                     />

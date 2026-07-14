@@ -45,7 +45,6 @@ rust_target_for() {
     case "$1:$2" in
         iphoneos:arm64)         echo aarch64-apple-ios ;;
         iphonesimulator:arm64)  echo aarch64-apple-ios-sim ;;
-        iphonesimulator:x86_64) echo x86_64-apple-ios ;;
         *) return 1 ;;
     esac
 }

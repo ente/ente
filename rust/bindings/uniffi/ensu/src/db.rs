@@ -95,9 +95,6 @@ pub struct DbSession {
     pub title: String,
     pub created_at_us: i64,
     pub updated_at_us: i64,
-    pub remote_id: Option<String>,
-    pub needs_sync: bool,
-    pub deleted_at_us: Option<i64>,
 }
 
 #[derive(Debug, Clone, uniffi::Enum)]
@@ -178,12 +175,11 @@ pub struct DbMessage {
     pub text: String,
     pub attachments: Vec<DbAttachmentMeta>,
     pub created_at_us: i64,
-    pub deleted_at_us: Option<i64>,
 }
 
 #[derive(uniffi::Object)]
 pub struct EnsuDb {
-    inner: db::Db<db::SqliteBackend>,
+    inner: db::ChatDb<db::SqliteBackend>,
 }
 
 fn to_session(session: db::Session) -> DbSession {
@@ -192,9 +188,6 @@ fn to_session(session: db::Session) -> DbSession {
         title: session.title,
         created_at_us: session.created_at,
         updated_at_us: session.updated_at,
-        remote_id: session.remote_id,
-        needs_sync: session.needs_sync,
-        deleted_at_us: session.deleted_at,
     }
 }
 
@@ -210,19 +203,14 @@ fn to_message(message: db::Message) -> DbMessage {
         text: message.text,
         attachments: message.attachments.into_iter().map(Into::into).collect(),
         created_at_us: message.created_at,
-        deleted_at_us: message.deleted_at,
     }
 }
 
 #[uniffi::export]
 impl EnsuDb {
     #[uniffi::constructor]
-    pub fn open(
-        main_db_path: String,
-        attachments_db_path: String,
-        key: Vec<u8>,
-    ) -> Result<Self, DbError> {
-        let inner = db::Db::open_sqlite_with_defaults(main_db_path, attachments_db_path, key)?;
+    pub fn open(main_db_path: String, key: Vec<u8>) -> Result<Self, DbError> {
+        let inner = db::ChatDb::open_sqlite_with_defaults(main_db_path, key)?;
         Ok(Self { inner })
     }
 
@@ -244,7 +232,7 @@ impl EnsuDb {
         Ok(self.inner.get_session(uuid)?.map(to_session))
     }
 
-    pub fn delete_session(&self, uuid: String) -> Result<(), DbError> {
+    pub fn delete_session(&self, uuid: String) -> Result<Vec<String>, DbError> {
         let uuid = Uuid::parse_str(&uuid).map_err(invalid_uuid)?;
         Ok(self.inner.delete_session(uuid)?)
     }

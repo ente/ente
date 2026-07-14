@@ -190,7 +190,6 @@
   "deleteAccountQuery": "Vi kommer att vara ledsna över att se dig gå. Har du något problem?",
   "yesSendFeedbackAction": "Ja, skicka feedback",
   "noDeleteAccountAction": "Nej, radera konto",
-  "initiateAccountDeleteTitle": "Vänligen autentisera för att initiera borttagning av konto",
   "sendEmail": "Skicka e-post",
   "createNewAccount": "Skapa nytt konto",
   "weakStrength": "Svag",

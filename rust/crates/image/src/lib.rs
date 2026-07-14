@@ -1,3 +1,4 @@
+mod color_management;
 pub mod decode;
 pub mod error;
 pub mod image_compression;

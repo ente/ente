@@ -47,7 +47,7 @@ Future<String> generateQRImageBase64(String data) async {
   return base64Encode(pngBytes);
 }
 
-Future<String> generateOTPEntryHtml(Code code, BuildContext context) async {
+Future<String> generateOTPEntryHtml(Code code) async {
   // Capitalize algorithm for Google Authenticator compatibility in QR codes
   final qrData = code.rawData
       .replaceAll('algorithm=Algorithm.', 'algorithm=')
@@ -90,7 +90,7 @@ Future<String> generateHtml(BuildContext context) async {
 
   for (final code in allCodes) {
     if (code.hasError) continue;
-    final entry = await generateOTPEntryHtml(code, context);
+    final entry = await generateOTPEntryHtml(code);
     enteries.add(entry);
   }
 

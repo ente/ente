@@ -98,6 +98,7 @@ class AboutUsPage extends StatelessWidget {
     final shouldUpdate = await updateService.shouldUpdate();
     await dialog.hide();
     if (shouldUpdate) {
+      if (!context.mounted) return;
       await showDialog(
         useRootNavigator: false,
         context: context,
@@ -107,6 +108,7 @@ class AboutUsPage extends StatelessWidget {
         barrierColor: Colors.black.withValues(alpha: 0.85),
       );
     } else {
+      if (!context.mounted) return;
       showShortToast(
         context,
         AppLocalizations.of(context).youAreOnTheLatestVersion,

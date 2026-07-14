@@ -185,9 +185,7 @@ func (r *RateLimitMiddleware) getRateLimitKey(c *gin.Context, reqPath string) st
 }
 
 func isPublicCollectionUploadURLPath(reqPath string) bool {
-	return reqPath == "/public-collection/upload-urls" ||
-		reqPath == "/public-collection/upload-url" ||
-		reqPath == "/public-collection/multipart-upload-urls" ||
+	return reqPath == "/public-collection/upload-url" ||
 		reqPath == "/public-collection/multipart-upload-url"
 }
 

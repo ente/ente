@@ -196,7 +196,6 @@
   "deleteAccountQuery": "Sajnálni fogjuk, ha elmegy. Valami problémával találkozott?",
   "yesSendFeedbackAction": "Igen, küldök visszajelzést",
   "noDeleteAccountAction": "Nem, törölje a fiókot",
-  "initiateAccountDeleteTitle": "Kérjük, hitelesítsd magad a fiók törlésének kezdeményezéséhez",
   "sendEmail": "Küldjön e-mailt",
   "createNewAccount": "Új fiók létrehozása",
   "weakStrength": "Gyenge",

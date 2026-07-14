@@ -42,7 +42,7 @@
       }
     }
   },
-  "codeAccountHint": "Уліковы запіс (vy@damen.com)",
+  "codeAccountHint": "Уліковы запіс (vy@damien.com)",
   "codeTagHint": "Тэг",
   "accountKeyType": "Тып ключа",
   "sessionExpired": "Сеанс завяршыўся",
@@ -112,6 +112,9 @@
   "passwordEmptyError": "Пароль не можа быць пустым",
   "passwordTooShort": "Даўжыня пароля павінна быць прынамсі 8 сімвалаў.",
   "importFromApp": "Імпартаваць коды з {appName}",
+  "importGoogleAuthGuide": "Экспартуйце вашы ўліковыя запісы з Google Authenticator у QR-код праз опцыю «Перадаць уліковыя запісы». Затым, адскануйце QR-код, або імпартуйце яго з відарысу.",
+  "scannerTorchOn": "Уключыць ліхтарык",
+  "scannerTorchOff": "Выключыць ліхтарык",
   "importSelectJsonFile": "Выбраць файл JSON",
   "importSelectAppExport": "Выбраць файл экспартавання {appName}",
   "importEnteEncGuide": "Выберыце зашыфраваны файл JSON, які экспартаваны з Ente",
@@ -193,7 +196,7 @@
   "deleteAccountQuery": "Вельмі шкада, што вы пакідаеце нас. Вы сутыкнуліся з нейкай праблемай?",
   "yesSendFeedbackAction": "Так, адправіць водгук",
   "noDeleteAccountAction": "Не, выдаліць уліковы запіс",
-  "initiateAccountDeleteTitle": "Прайдзіце аўтэнтыфікацыю, каб пачаць выдаленне ўліковага запісу",
+  "authToInitiateAccountDeletion": "Разблакіруйце, каб выдаліць ваш уліковы запіс",
   "sendEmail": "Адправіць ліст",
   "createNewAccount": "Стварыць новы ўліковы запіс",
   "weakStrength": "Ненадзейны",
@@ -328,6 +331,16 @@
         "description": "The number of codes imported",
         "type": "int",
         "example": "1"
+      }
+    }
+  },
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{Імпартаваць {codeCount} код з Google Authenticator?} few{Імпартаваць {codeCount} кода з Google Authenticator?} other{Імпартаваць {codeCount} кодаў з Google Authenticator?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
       }
     }
   },

@@ -1,7 +1,7 @@
 //! Shared error types for account flows.
 
 use base64::DecodeError;
-use ente_core::{auth::AuthError, crypto, http_legacy::Error as HttpError};
+use ente_core::{auth::AuthError, crypto, http};
 use thiserror::Error;
 
 /// Result alias for the shared account crate.
@@ -11,8 +11,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Error, Debug)]
 pub enum Error {
     /// HTTP/transport or server error.
-    #[error("{0}")]
-    Http(#[from] HttpError),
+    #[error(transparent)]
+    Http(#[from] http::Error),
 
     /// Serialization/deserialization error.
     #[error("Serialization error: {0}")]
@@ -47,23 +47,7 @@ impl Error {
     /// Return the HTTP status code if the error came from the API.
     pub fn status_code(&self) -> Option<u16> {
         match self {
-            Error::Http(HttpError::Http { status, .. }) => Some(*status),
-            _ => None,
-        }
-    }
-
-    /// Return the structured server error code if available.
-    pub fn api_code(&self) -> Option<&str> {
-        match self {
-            Error::Http(HttpError::Http { code, .. }) => code.as_deref(),
-            _ => None,
-        }
-    }
-
-    /// Return the server-provided message if available.
-    pub fn api_message(&self) -> Option<&str> {
-        match self {
-            Error::Http(HttpError::Http { message, .. }) => Some(message.as_str()),
+            Error::Http(error) => error.status_code(),
             _ => None,
         }
     }

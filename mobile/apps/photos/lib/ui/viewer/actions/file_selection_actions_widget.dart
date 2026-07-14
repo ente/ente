@@ -22,6 +22,7 @@ import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/metadata/common_keys.dart";
 import "package:photos/models/ml/face/person.dart";
 import 'package:photos/models/selected_files.dart';
+import 'package:photos/module/download/gallery.dart';
 import "package:photos/service_locator.dart";
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/hidden_service.dart';
@@ -45,7 +46,6 @@ import "package:photos/ui/viewer/location/update_location_data_widget.dart";
 import "package:photos/ui/viewer/people/add_files_to_person_page.dart";
 import 'package:photos/utils/delete_file_util.dart';
 import "package:photos/utils/dialog_util.dart";
-import "package:photos/utils/file_download_util.dart";
 import 'package:photos/utils/magic_util.dart';
 import "package:photos/utils/share_util.dart";
 
@@ -657,6 +657,7 @@ class _FileSelectionActionsWidgetState
       );
     } catch (e, s) {
       _logger.warning("Failed to reject delete suggestions", e, s);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }
@@ -788,6 +789,7 @@ class _FileSelectionActionsWidgetState
           relevantFiles: addedFiles,
         ),
       );
+      if (!mounted) return;
       showToast(
         context,
         AppLocalizations.of(context).addedFilesToPerson(
@@ -803,6 +805,7 @@ class _FileSelectionActionsWidgetState
     }
     final alreadyCount = result.alreadyAssignedFileIds.length;
     if (alreadyCount > 0) {
+      if (!mounted) return;
       showShortToast(
         context,
         AppLocalizations.of(context).filesAlreadyLinkedToPerson(
@@ -815,7 +818,9 @@ class _FileSelectionActionsWidgetState
 
   Future<void> _onGuestViewClick() async {
     final List<EnteFile> selectedFiles = widget.selectedFiles.files.toList();
-    if (await LocalAuthentication().isDeviceSupported()) {
+    final isDeviceSupported = await LocalAuthentication().isDeviceSupported();
+    if (!mounted) return;
+    if (isDeviceSupported) {
       final page = DetailPage(
         DetailPageConfiguration(
           selectedFiles,
@@ -825,6 +830,7 @@ class _FileSelectionActionsWidgetState
         ),
       );
       await localSettings.setOnGuestView(true);
+      if (!mounted) return;
       routeToPage(context, page, forceCustomPageRoute: true).ignore();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Bus.instance.fire(GuestViewEvent(true, false));
@@ -836,6 +842,7 @@ class _FileSelectionActionsWidgetState
         AppLocalizations.of(context).guestViewEnablePreSteps,
       );
     }
+    if (!mounted) return;
     widget.selectedFiles.clearAll();
   }
 
@@ -907,19 +914,27 @@ class _FileSelectionActionsWidgetState
       isDismissible: true,
     );
     await dialog.show();
+    if (!mounted) {
+      await dialog.hide();
+      return;
+    }
     _cachedCollectionForSharedLink ??= await collectionActions
         .createSharedCollectionLink(context, split.ownedByCurrentUser);
 
+    if (!mounted) {
+      await dialog.hide();
+      return;
+    }
     if (_cachedCollectionForSharedLink == null) {
       await dialog.hide();
       return;
     }
     await dialog.hide();
+    if (!mounted) return;
     await _sendLink();
+    if (!mounted) return;
     widget.selectedFiles.clearAll();
-    if (mounted) {
-      setState(() => {});
-    }
+    setState(() => {});
   }
 
   Future<void> _setPersonCover() async {
@@ -1079,7 +1094,7 @@ class _FileSelectionActionsWidgetState
             try {
               await deleteFilesOnDeviceOnly(context, filesToDelete);
             } catch (e) {
-              if (context.mounted) {
+              if (mounted) {
                 await showGenericErrorDialog(context: context, error: e);
               }
               rethrow;
@@ -1113,6 +1128,7 @@ class _FileSelectionActionsWidgetState
     final existingLocalFolderNames = await Future.wait(
       files.map((file) => getExistingLocalFolderNameForDownloadSkipToast(file)),
     );
+    if (!mounted) return;
 
     final filesToDownload = <EnteFile>[];
     final skippedFiles = <EnteFile>[];
@@ -1144,6 +1160,7 @@ class _FileSelectionActionsWidgetState
           addedToQueueCount = enqueueResult.addedCount;
         } catch (e) {
           _logger.warning("Failed to enqueue files for download", e);
+          if (!mounted) return;
           await showGenericErrorDialog(context: context, error: e);
           return;
         }
@@ -1197,6 +1214,7 @@ class _FileSelectionActionsWidgetState
       }
     }
 
+    if (!mounted) return;
     if (skippedFilesCount > 0) {
       String finalMessage;
       if (skippedFilesCount == 1) {

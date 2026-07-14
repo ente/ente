@@ -17,10 +17,6 @@ class MLResult {
 
   Dimensions decodedImageSize;
 
-  /// Which runtime actually produced this result. Stamped by the caller of
-  /// the indexing isolate; not serialized to/from the isolate JSON payload.
-  bool usedRustMl = false;
-
   bool get ranML => facesRan || clipRan || petsRan;
   bool get facesRan => faces != null;
   bool get clipRan => clip != null;

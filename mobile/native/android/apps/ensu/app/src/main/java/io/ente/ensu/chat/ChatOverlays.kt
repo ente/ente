@@ -29,14 +29,12 @@ import io.ente.ensu.designsystem.EnsuCornerRadius
 import io.ente.ensu.designsystem.EnsuSpacing
 import io.ente.ensu.designsystem.EnsuTypography
 import io.ente.ensu.designsystem.HugeIcons
-import io.ente.ensu.chat.OverflowDialogState
 import io.ente.ensu.format.formatBytes
 import io.ente.ensu.platform.rememberHaptics
 import kotlin.math.roundToLong
 
 @Composable
 internal fun OverflowDialog(
-    state: OverflowDialogState,
     onTrim: () -> Unit,
     onCancel: () -> Unit
 ) {

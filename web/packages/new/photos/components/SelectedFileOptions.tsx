@@ -27,10 +27,11 @@ import type { CollectionSelectorAttributes } from "ente-new/photos/components/Co
 import type { GalleryBarMode } from "ente-new/photos/components/gallery/reducer";
 import { StarBorderIcon } from "ente-new/photos/components/icons/StarIcon";
 import { StarOffIcon } from "ente-new/photos/components/icons/StarOffIcon";
+import type { CollectionSummary } from "ente-new/photos/services/collection-summary";
 import {
-    PseudoCollectionID,
-    type CollectionSummary,
-} from "ente-new/photos/services/collection-summary";
+    getAvailableFileActions,
+    type FileContextAction,
+} from "ente-new/photos/utils/file-actions";
 import { t } from "i18next";
 
 /**
@@ -200,9 +201,6 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
 }) => {
     const { showMiniDialog } = useBaseContext();
 
-    const isUserFavorites =
-        !!collectionSummary?.attributes.has("userFavorites");
-
     const handleFavorite = createFileOpHandler("favorite");
     const handleUnfavorite = createFileOpHandler("unfavorite");
 
@@ -257,18 +255,13 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
     const isSharedOutgoing =
         collectionSummary?.attributes.has("sharedOutgoing");
     const isRemovingOthers = selectedFileCount != selectedOwnFileCount;
+    const hasOnlyOwnFiles = selectedOwnFileCount > 0 && !isRemovingOthers;
     const favoriteAction =
         selectedFavoriteCount === 0
             ? "favorite"
             : selectedFavoriteCount === selectedFileCount
               ? "unfavorite"
               : "none";
-    const favoriteActionButton =
-        favoriteAction === "favorite" ? (
-            <FavoriteButton onClick={handleFavorite} />
-        ) : favoriteAction === "unfavorite" ? (
-            <UnfavoriteButton onClick={handleUnfavorite} />
-        ) : null;
 
     const handleRemoveFromCollection = () => {
         if (!collection) return;
@@ -338,6 +331,88 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
         });
     };
 
+    const toolbarActions = getAvailableFileActions({
+        barMode,
+        isInSearchMode,
+        collectionSummary,
+        hasOnlyOwnFiles,
+        showAddPerson: !!onShowAssignPersonDialog,
+        showEditLocation: !!onEditLocation && hasOnlyOwnFiles,
+    }).flatMap((action): FileContextAction[] => {
+        if (action !== "favorite" && action !== "unfavorite") return [action];
+        return favoriteAction === "none" ? [] : [favoriteAction];
+    });
+
+    const renderActionButton = (action: FileContextAction) => {
+        switch (action) {
+            case "sendLink":
+                return <SendLinkButton key={action} onClick={handleSendLink} />;
+            case "download":
+                return <DownloadButton key={action} onClick={handleDownload} />;
+            case "fixTime":
+                return <FixTimeButton key={action} onClick={handleFixTime} />;
+            case "editLocation":
+                return onEditLocation ? (
+                    <EditLocationButton key={action} onClick={onEditLocation} />
+                ) : null;
+            case "favorite":
+                return <FavoriteButton key={action} onClick={handleFavorite} />;
+            case "unfavorite":
+                return (
+                    <UnfavoriteButton key={action} onClick={handleUnfavorite} />
+                );
+            case "archive":
+                return <ArchiveButton key={action} onClick={handleArchive} />;
+            case "unarchive":
+                return (
+                    <UnarchiveButton key={action} onClick={handleUnarchive} />
+                );
+            case "hide":
+                return <HideButton key={action} onClick={handleHide} />;
+            case "unhide":
+                return <UnhideButton key={action} onClick={handleUnhide} />;
+            case "trash":
+                return <DeleteButton key={action} onClick={handleDelete} />;
+            case "deletePermanently":
+                return (
+                    <DeletePermanentlyButton
+                        key={action}
+                        onClick={handleDeletePermanently}
+                    />
+                );
+            case "restore":
+                return <RestoreButton key={action} onClick={handleRestore} />;
+            case "addToAlbum":
+                return (
+                    <AddToCollectionButton
+                        key={action}
+                        onClick={handleAddToCollection}
+                    />
+                );
+            case "moveToAlbum":
+                return (
+                    <MoveToCollectionButton
+                        key={action}
+                        onClick={handleMoveToCollection}
+                    />
+                );
+            case "removeFromAlbum":
+                return (
+                    <RemoveFromCollectionButton
+                        key={action}
+                        onClick={handleRemoveFromCollection}
+                    />
+                );
+            case "addPerson":
+                return onShowAssignPersonDialog ? (
+                    <AddPersonButton
+                        key={action}
+                        onClick={onShowAssignPersonDialog}
+                    />
+                ) : null;
+        }
+    };
+
     return (
         <>
             <SpacedRow sx={{ flex: 1, gap: 1, flexWrap: "wrap" }}>
@@ -359,143 +434,7 @@ export const SelectedFileOptions: React.FC<SelectedFileOptionsProps> = ({
 
                 <Box sx={{ mr: "auto" }} />
 
-                {isInSearchMode ? (
-                    <>
-                        {selectedOwnFileCount > 0 && (
-                            <SendLinkButton onClick={handleSendLink} />
-                        )}
-                        {favoriteActionButton}
-                        <FixTimeButton onClick={handleFixTime} />
-                        {onEditLocation && selectedOwnFileCount > 0 && (
-                            <EditLocationButton onClick={onEditLocation} />
-                        )}
-                        <DownloadButton onClick={handleDownload} />
-                        <AddToCollectionButton
-                            onClick={handleAddToCollection}
-                        />
-                        {!!onShowAssignPersonDialog && (
-                            <AddPersonButton
-                                onClick={onShowAssignPersonDialog}
-                            />
-                        )}
-                        <ArchiveButton onClick={handleArchive} />
-                        <HideButton onClick={handleHide} />
-                        <DeleteButton onClick={handleDelete} />
-                    </>
-                ) : barMode == "people" ? (
-                    <>
-                        {selectedOwnFileCount > 0 && (
-                            <SendLinkButton onClick={handleSendLink} />
-                        )}
-                        {favoriteActionButton}
-                        <DownloadButton onClick={handleDownload} />
-                        <AddToCollectionButton
-                            onClick={handleAddToCollection}
-                        />
-                        {!!onShowAssignPersonDialog && (
-                            <AddPersonButton
-                                onClick={onShowAssignPersonDialog}
-                            />
-                        )}
-                        <ArchiveButton onClick={handleArchive} />
-                        <HideButton onClick={handleHide} />
-                        <DeleteButton onClick={handleDelete} />
-                    </>
-                ) : collectionSummary?.id == PseudoCollectionID.trash ? (
-                    <>
-                        <RestoreButton onClick={handleRestore} />
-                        <DeletePermanentlyButton
-                            onClick={handleDeletePermanently}
-                        />
-                    </>
-                ) : collectionSummary?.attributes.has("uncategorized") ? (
-                    <>
-                        {selectedOwnFileCount > 0 && (
-                            <SendLinkButton onClick={handleSendLink} />
-                        )}
-                        <DownloadButton onClick={handleDownload} />
-                        {!!onShowAssignPersonDialog && (
-                            <AddPersonButton
-                                onClick={onShowAssignPersonDialog}
-                            />
-                        )}
-                        <MoveToCollectionButton
-                            onClick={handleMoveToCollection}
-                        />
-                        <DeleteButton onClick={handleDelete} />
-                    </>
-                ) : collectionSummary?.attributes.has("sharedIncoming") ? (
-                    <>
-                        {selectedOwnFileCount > 0 && (
-                            <SendLinkButton onClick={handleSendLink} />
-                        )}
-                        {favoriteActionButton}
-                        <DownloadButton onClick={handleDownload} />
-                        {!!onShowAssignPersonDialog && (
-                            <AddPersonButton
-                                onClick={onShowAssignPersonDialog}
-                            />
-                        )}
-                        <RemoveFromCollectionButton
-                            onClick={handleRemoveFromCollection}
-                        />
-                    </>
-                ) : barMode == "hidden-albums" ? (
-                    <>
-                        {selectedOwnFileCount > 0 && (
-                            <SendLinkButton onClick={handleSendLink} />
-                        )}
-                        <DownloadButton onClick={handleDownload} />
-                        {!!onShowAssignPersonDialog && (
-                            <AddPersonButton
-                                onClick={onShowAssignPersonDialog}
-                            />
-                        )}
-                        <UnhideButton onClick={handleUnhide} />
-                        <DeleteButton onClick={handleDelete} />
-                    </>
-                ) : (
-                    <>
-                        {selectedOwnFileCount > 0 && (
-                            <SendLinkButton onClick={handleSendLink} />
-                        )}
-                        {collectionSummary?.id !=
-                            PseudoCollectionID.archiveItems &&
-                            favoriteActionButton}
-                        <FixTimeButton onClick={handleFixTime} />
-                        {onEditLocation && selectedOwnFileCount > 0 && (
-                            <EditLocationButton onClick={onEditLocation} />
-                        )}
-                        <DownloadButton onClick={handleDownload} />
-                        <AddToCollectionButton
-                            onClick={handleAddToCollection}
-                        />
-                        {!!onShowAssignPersonDialog && (
-                            <AddPersonButton
-                                onClick={onShowAssignPersonDialog}
-                            />
-                        )}
-                        {collectionSummary?.id === PseudoCollectionID.all ? (
-                            <ArchiveButton onClick={handleArchive} />
-                        ) : collectionSummary?.id ==
-                          PseudoCollectionID.archiveItems ? (
-                            <UnarchiveButton onClick={handleUnarchive} />
-                        ) : (
-                            !isUserFavorites && (
-                                <>
-                                    <MoveToCollectionButton
-                                        onClick={handleMoveToCollection}
-                                    />
-                                    <RemoveFromCollectionButton
-                                        onClick={handleRemoveFromCollection}
-                                    />
-                                </>
-                            )
-                        )}
-                        <HideButton onClick={handleHide} />
-                        <DeleteButton onClick={handleDelete} />
-                    </>
-                )}
+                {toolbarActions.map(renderActionButton)}
             </SpacedRow>
         </>
     );

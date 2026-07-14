@@ -45,27 +45,6 @@ enum ChatAttachmentLimits {
     static let maxImagesPerMessage = 2
 }
 
-struct AttachmentDownloadItem: Identifiable, Equatable {
-    enum Status {
-        case queued
-        case downloading
-        case completed
-        case failed
-        case canceled
-    }
-
-    let id: String
-    let sessionId: UUID
-    let name: String
-    let size: Int64
-    var status: Status
-    var errorMessage: String? = nil
-
-    var formattedSize: String {
-        size.formattedFileSize
-    }
-}
-
 struct RenderedChatMessage: Identifiable, Equatable {
     enum Role: String {
         case user

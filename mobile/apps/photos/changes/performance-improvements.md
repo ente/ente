@@ -1,0 +1,1 @@
+- Improved gallery and backup performance.

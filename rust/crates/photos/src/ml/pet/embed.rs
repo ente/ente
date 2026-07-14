@@ -73,14 +73,14 @@ pub fn run_pet_face_embedding(
             input.extend_from_slice(aligned);
         }
 
-        let session = if species == 0 {
+        let mut session = if species == 0 {
             runtime.pet_face_embedding_dog_session()?
         } else {
             runtime.pet_face_embedding_cat_session()?
         };
 
         let (shape, output) = onnx::run_f32(
-            &session,
+            &mut session,
             input,
             [
                 indices.len() as i64,
@@ -177,14 +177,14 @@ pub fn run_pet_body_embedding(
             input.extend_from_slice(preprocessed[idx].as_ref().unwrap());
         }
 
-        let session = if is_cat {
+        let mut session = if is_cat {
             runtime.pet_body_embedding_cat_session()?
         } else {
             runtime.pet_body_embedding_dog_session()?
         };
 
         let (shape, output) = onnx::run_f32(
-            &session,
+            &mut session,
             input,
             [
                 indices.len() as i64,

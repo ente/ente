@@ -157,109 +157,15 @@ struct SignInComingSoonDialog: View {
     }
 }
 
-struct AttachmentDownloadsSheet: View {
-    let downloads: [AttachmentDownloadItem]
-    let sessionTitle: (UUID) -> String
-    let onCancel: (String) -> Void
-    let onDismiss: () -> Void
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("Attachment downloads")
-                    .font(EnsuTypography.h3Bold)
-                Spacer()
-                Button("Close", action: onDismiss)
-                    .font(EnsuTypography.small)
-                    .foregroundStyle(EnsuColor.action)
-            }
-            .padding(.horizontal, EnsuSpacing.pageHorizontal)
-            .padding(.vertical, EnsuSpacing.sm)
-
-            Divider()
-                .background(EnsuColor.border)
-
-            if downloads.isEmpty {
-                Text("No pending downloads")
-                    .font(EnsuTypography.body)
-                    .foregroundStyle(EnsuColor.textMuted)
-                    .padding(.top, EnsuSpacing.lg)
-                Spacer()
-            } else {
-                List(downloads) { item in
-                    HStack(spacing: EnsuSpacing.md) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(item.name)
-                                .font(EnsuTypography.body)
-                                .foregroundStyle(EnsuColor.textPrimary)
-                                .lineLimit(1)
-                            Text("\(sessionTitle(item.sessionId)) • \(item.formattedSize)")
-                                .font(EnsuTypography.mini)
-                                .foregroundStyle(EnsuColor.textMuted)
-                            if item.status == .failed, let errorMessage = item.errorMessage, !errorMessage.isEmpty {
-                                Text(errorMessage)
-                                    .font(EnsuTypography.mini)
-                                    .foregroundStyle(EnsuColor.error)
-                                    .lineLimit(2)
-                            }
-                        }
-
-                        Spacer()
-
-                        Text(statusText(for: item.status))
-                            .font(EnsuTypography.mini)
-                            .foregroundStyle(EnsuColor.textMuted)
-
-                        if item.status == .queued || item.status == .downloading {
-                            Button(action: {
-                                hapticWarning()
-                                onCancel(item.id)
-                            }) {
-                                Image("Cancel01Icon")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 18, height: 18)
-                                    .foregroundStyle(EnsuColor.textMuted)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-                .listStyle(.plain)
-            }
-        }
-        .frame(minHeight: 320)
-        .background(EnsuColor.backgroundBase)
-    }
-
-    private func statusText(for status: AttachmentDownloadItem.Status) -> String {
-        switch status {
-        case .queued:
-            return "Queued"
-        case .downloading:
-            return "Downloading"
-        case .completed:
-            return "Completed"
-        case .failed:
-            return "Failed"
-        case .canceled:
-            return "Canceled"
-        }
-    }
-}
-
 struct ChatAppBar: View {
     let sessionTitle: String
     let showBrand: Bool
     let showSignIn: Bool
     let showsMenuButton: Bool
-    let attachmentDownloadSummary: (completed: Int, total: Int)?
     let modelDownloadState: DownloadToastState?
     let onMenu: () -> Void
     let onSignIn: () -> Void
     let onNewChat: () -> Void
-    let onAttachmentDownloads: () -> Void
 
     private let centerInset: CGFloat = 72
 
@@ -310,28 +216,6 @@ struct ChatAppBar: View {
                         }
                         .buttonStyle(.plain)
                     } else {
-                        if let summary = attachmentDownloadSummary {
-                            Button(action: {
-                                hapticTap()
-                                onAttachmentDownloads()
-                            }) {
-                                HStack(spacing: 6) {
-                                    Image("Upload01Icon")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 14, height: 14)
-                                        .foregroundStyle(EnsuColor.textPrimary)
-                                    Text("\(summary.completed)/\(summary.total)")
-                                        .font(EnsuTypography.mini)
-                                        .foregroundStyle(EnsuColor.textMuted)
-                                }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 6)
-                                .background(EnsuColor.fillFaint)
-                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                            }
-                            .buttonStyle(.plain)
-                        }
                         if let progress = modelProgressState {
                             ModelProgressIndicator(state: progress)
                         }

@@ -8,10 +8,10 @@ import "package:mobile_ocr/mobile_ocr.dart" show MobileOcr;
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/file/trash_file.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/viewer/file/text_detection_page.dart";
 import "package:photos/utils/dialog_util.dart";
-import "package:photos/utils/file_util.dart";
 
 class TextDetectionOverlayButton extends StatefulWidget {
   final EnteFile file;

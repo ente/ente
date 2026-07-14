@@ -148,6 +148,7 @@ class PickPersonCoverPhotoWidget extends StatelessWidget {
                                     person: result,
                                   ),
                                 );
+                                if (!context.mounted) return;
                                 Navigator.pop(context, result);
                               },
                             ),

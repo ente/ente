@@ -16,6 +16,7 @@ import "package:photos/models/file/file.dart";
 import "package:photos/models/file/trash_file.dart";
 import "package:photos/models/selected_files.dart";
 import "package:photos/models/social/social_data_provider.dart";
+import 'package:photos/module/metadata/panorama.dart';
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/states/detail_page_state.dart";
@@ -27,7 +28,6 @@ import "package:photos/ui/social/like_collection_selector_sheet.dart";
 import "package:photos/ui/social/likes_bottom_sheet.dart";
 import "package:photos/ui/viewer/actions/suggest_delete_sheet.dart";
 import "package:photos/utils/delete_file_util.dart";
-import "package:photos/utils/panorama_util.dart";
 import "package:photos/utils/share_util.dart";
 
 final _logger = Logger("FileBottomBar");
@@ -350,6 +350,7 @@ class FileBottomBarState extends State<FileBottomBar> {
               final trashedFile = <TrashFile>[];
               trashedFile.add(widget.file as TrashFile);
               if (await deleteFromTrash(context, trashedFile) == true) {
+                if (!mounted) return;
                 Navigator.pop(context);
               }
             },
@@ -434,6 +435,7 @@ class FileBottomBarState extends State<FileBottomBar> {
       }
     } else {
       // Multiple shared collections: show selector bottom sheet
+      if (!mounted) return;
       await showLikeCollectionSelectorSheet(
         context,
         fileID: file.uploadedFileID!,

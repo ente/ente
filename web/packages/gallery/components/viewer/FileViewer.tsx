@@ -2252,7 +2252,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                     </MoreMenuItem>
                 )}
                 {handleAddFileToCollection &&
-                    activeAnnotatedFile.annotation.isOwnFile && (
+                    !(isInTrashSection || isInHiddenSection) && (
                         <MoreMenuItem onClick={handleAddFileToCollection}>
                             <MoreMenuItemTitle>
                                 {t("add_to_album")}

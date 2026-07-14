@@ -104,11 +104,7 @@ class FlagService {
 
   bool get enableMemoryShareLink => true;
 
-  bool get useRustForML => true;
-
   bool get enableMLInBackground => true;
-
-  bool get useRustForFaceThumbnails => true;
 
   bool get useRustForHeicDecoder => internalUser;
 

@@ -275,6 +275,7 @@ class _AddParticipantPage extends State<AddParticipantPage> {
             }
 
             final noOfSuccessfullAdds = results.where((e) => e).length;
+            if (!mounted) return;
             showToast(
               context,
               AppLocalizations.of(
@@ -316,6 +317,7 @@ class _AddParticipantPage extends State<AddParticipantPage> {
             }
 
             final noOfSuccessfullAdds = results.where((e) => e).length;
+            if (!mounted) return;
             showToast(
               context,
               AppLocalizations.of(
@@ -359,6 +361,7 @@ class _AddParticipantPage extends State<AddParticipantPage> {
             }
 
             final successful = results.where((e) => e).length;
+            if (!mounted) return;
             showToast(
               context,
               AppLocalizations.of(

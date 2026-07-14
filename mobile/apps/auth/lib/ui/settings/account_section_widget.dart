@@ -45,6 +45,7 @@ class AccountSectionWidget extends StatelessWidget {
           final hasAuthenticated = await LocalAuthenticationService.instance
               .requestLocalAuthentication(context, l10n.authToChangeYourEmail);
           if (hasAuthenticated) {
+            if (!context.mounted) return;
             // ignore: unawaited_futures
             showChangeEmailDialog(context);
           }
@@ -63,6 +64,7 @@ class AccountSectionWidget extends StatelessWidget {
                 l10n.authToChangeYourPassword,
               );
           if (hasAuthenticated) {
+            if (!context.mounted) return;
             // ignore: unawaited_futures
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -91,6 +93,7 @@ class AccountSectionWidget extends StatelessWidget {
                 l10n.authToViewYourRecoveryKey,
               );
           if (hasAuthenticated) {
+            if (!context.mounted) return;
             String recoveryKey;
             try {
               recoveryKey = CryptoUtil.bin2hex(

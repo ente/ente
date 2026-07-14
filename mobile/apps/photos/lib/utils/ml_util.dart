@@ -1,5 +1,5 @@
 import "dart:io" show Directory, File, Platform;
-import "dart:math" as math show sqrt, min, max;
+import "dart:math" as math show min, max;
 
 import "package:dio/dio.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
@@ -20,23 +20,21 @@ import "package:photos/models/ml/face/dimension.dart";
 import "package:photos/models/ml/face/face.dart";
 import "package:photos/models/ml/ml_typedefs.dart";
 import "package:photos/models/ml/ml_versions.dart";
+import "package:photos/module/download/file.dart";
+import "package:photos/module/download/thumbnail.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/filedata/model/file_data.dart";
 import "package:photos/services/filedata/model/response.dart";
 import "package:photos/services/machine_learning/face_ml/face_alignment/alignment_result.dart";
 import "package:photos/services/machine_learning/face_ml/face_detection/detection.dart";
-import "package:photos/services/machine_learning/face_ml/face_recognition_service.dart";
 import "package:photos/services/machine_learning/ml_exceptions.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
-import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/src/rust/api/ml_indexing_api.dart" as rust_ml;
-import "package:photos/utils/file_util.dart";
-import "package:photos/utils/image_ml_util.dart";
+import "package:photos/utils/image_decode_util.dart";
 import "package:photos/utils/network_util.dart";
-import "package:photos/utils/thumbnail_util.dart";
 
 final _logger = Logger("MlUtil");
 const _kMlStaleCleanupMaxIds = 5;
@@ -115,8 +113,7 @@ Future<IndexStatus> getIndexStatus() async {
     int indexedFiles = math.min(facesIndexedFiles, clipIndexedFiles);
     if (flagService.petEnabled &&
         localSettings.petRecognitionEnabled &&
-        localSettings.isMLLocalIndexingEnabled &&
-        (flagService.useRustForML || isLocalGalleryMode)) {
+        localSettings.isMLLocalIndexingEnabled) {
       final int petIndexedFiles = await mlDataDB.getPetIndexedFileCount();
       indexedFiles = math.min(indexedFiles, petIndexedFiles);
     }
@@ -150,8 +147,7 @@ _getOnlineFilesForMlIndexingCandidates() async {
   final bool petEnabled =
       flagService.petEnabled &&
       localSettings.petRecognitionEnabled &&
-      localSettings.isMLLocalIndexingEnabled &&
-      (flagService.useRustForML || isLocalGalleryMode);
+      localSettings.isMLLocalIndexingEnabled;
   final Map<int, int> petIndexedFileIDs = petEnabled
       ? await mlDataDB.petIndexedFileIds()
       : const {};
@@ -298,9 +294,7 @@ Future<List<FileMLInstruction>> getLocalGalleryFilesForMlIndexing() async {
   final Map<int, int> clipIndexedFileIDs = await mlDataDB
       .clipIndexedFileWithVersion();
   final bool petEnabled =
-      flagService.petEnabled &&
-      localSettings.petRecognitionEnabled &&
-      (flagService.useRustForML || isLocalGalleryMode);
+      flagService.petEnabled && localSettings.petRecognitionEnabled;
   final Map<int, int> petIndexedFileIDs = petEnabled
       ? await mlDataDB.petIndexedFileIds()
       : const {};
@@ -761,91 +755,6 @@ bool _shouldRunIndexingWithFileId(
 ) {
   return !indexedFileIds.containsKey(fileId) ||
       indexedFileIds[fileId]! < newestVersion;
-}
-
-void normalizeEmbedding(List<double> embedding) {
-  double normalization = 0;
-  for (int i = 0; i < embedding.length; i++) {
-    normalization += embedding[i] * embedding[i];
-  }
-  final double sqrtNormalization = math.sqrt(normalization);
-  for (int i = 0; i < embedding.length; i++) {
-    embedding[i] = embedding[i] / sqrtNormalization;
-  }
-}
-
-Future<MLResult> analyzeImageStatic(Map args) async {
-  try {
-    final int enteFileID = args["enteFileID"] as int;
-    final String imagePath = args["filePath"] as String;
-    final bool runFaces = args["runFaces"] as bool;
-    final bool runClip = args["runClip"] as bool;
-    final int faceDetectionAddress = args["faceDetectionAddress"] as int;
-    final int faceEmbeddingAddress = args["faceEmbeddingAddress"] as int;
-    final int clipImageAddress = args["clipImageAddress"] as int;
-
-    _logger.info(
-      "Start analyzeImageStatic for fileID $enteFileID (runFaces: $runFaces, runClip: $runClip)",
-    );
-    final startTime = DateTime.now();
-
-    // Decode the image once to use for both face detection and alignment
-    final decodedImage = await decodeImageFromPath(
-      imagePath,
-      includeRgbaBytes: true,
-      includeDartUiImage: false,
-    );
-    final rawRgbaBytes = decodedImage.rawRgbaBytes!;
-    final imageDimensions = decodedImage.dimensions;
-    final result = MLResult.fromEnteFileID(enteFileID);
-    result.decodedImageSize = imageDimensions;
-    if (!runFaces) result.faces = null;
-    final decodeTime = DateTime.now();
-    final decodeMs = decodeTime.difference(startTime).inMilliseconds;
-
-    String faceMsString = "", clipMsString = "";
-    final pipelines = await Future.wait([
-      runFaces
-          ? FaceRecognitionService.runFacesPipeline(
-              enteFileID,
-              imageDimensions,
-              rawRgbaBytes,
-              faceDetectionAddress,
-              faceEmbeddingAddress,
-            ).then((result) {
-              faceMsString =
-                  ", faces: ${DateTime.now().difference(decodeTime).inMilliseconds} ms";
-              return result;
-            })
-          : Future.value(null),
-      runClip
-          ? SemanticSearchService.runClipImage(
-              enteFileID,
-              imageDimensions,
-              rawRgbaBytes,
-              clipImageAddress,
-            ).then((result) {
-              clipMsString =
-                  ", clip: ${DateTime.now().difference(decodeTime).inMilliseconds} ms";
-              return result;
-            })
-          : Future.value(null),
-    ]);
-
-    if (pipelines[0] != null) result.faces = pipelines[0] as List<FaceResult>;
-    if (pipelines[1] != null) result.clip = pipelines[1] as ClipResult;
-
-    final totalMs = DateTime.now().difference(startTime).inMilliseconds;
-
-    _logger.info(
-      'Finished analyzeImageStatic for fileID $enteFileID, in $totalMs ms (decode: $decodeMs ms$faceMsString$clipMsString)',
-    );
-
-    return result;
-  } catch (e, s) {
-    _logger.severe("Could not analyze image", e, s);
-    rethrow;
-  }
 }
 
 Future<MLResult> analyzeImageRust(Map args) async {

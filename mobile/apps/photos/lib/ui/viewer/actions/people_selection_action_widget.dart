@@ -325,6 +325,7 @@ class _PeopleSelectionActionWidgetState
         ? null
         : person.data.assigned.first.id;
 
+    if (!mounted) return;
     await routeToPage(
       context,
       SaveOrEditPerson(clusterID, person: person, isEditing: true),
@@ -341,6 +342,7 @@ class _PeopleSelectionActionWidgetState
     if (person == null) return;
     if (person.data.assigned.isEmpty) return;
 
+    if (!mounted) return;
     await routeToPage(context, PersonReviewClusterSuggestion(person));
     widget.selectedPeople.clearAll();
   }
@@ -349,6 +351,7 @@ class _PeopleSelectionActionWidgetState
     final personMap = await personEntitiesMapFuture;
     final selectedPersonIds = _getSelectedPersonIds(personMap);
     if (selectedPersonIds.isEmpty) return;
+    if (!mounted) return;
     showCollectionActionSheet(
       context,
       selectedPeople: selectedPersonIds,
@@ -409,6 +412,7 @@ class _PeopleSelectionActionWidgetState
     final person = personMap[personID];
     if (person == null) return;
 
+    if (!mounted) return;
     await showChoiceDialog(
       context,
       title: AppLocalizations.of(context).areYouSureYouWantToResetThisPerson,
@@ -432,6 +436,7 @@ class _PeopleSelectionActionWidgetState
     if (selectedPersonIds.isEmpty && selectedClusterIds.isEmpty) return;
     final multiple = (selectedPersonIds.length + selectedClusterIds.length) > 1;
 
+    if (!mounted) return;
     final result = await showChoiceDialog(
       context,
       title: multiple
@@ -548,6 +553,7 @@ class _PeopleSelectionActionWidgetState
     }
     final multiple = ignoredSelectedPersonIds.length > 1;
 
+    if (!mounted) return;
     await showChoiceDialog(
       context,
       title: multiple

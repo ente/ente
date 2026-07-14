@@ -311,7 +311,19 @@ func (r *Repository) DeleteFileData(ctx context.Context, row filedata.Row) error
 		return stacktrace.Propagate(err, "")
 	}
 	if rowsAffected == 0 {
-		return stacktrace.NewError("file data not deleted")
+		// A concurrent cleanup may already have removed the row. Only accept a
+		// no-op when the primary key is absent; a surviving row means one of the
+		// deletion invariants did not match.
+		var exists bool
+		err = r.DB.QueryRowContext(ctx, `SELECT EXISTS (
+			SELECT 1 FROM file_data WHERE file_id = $1 AND data_type = $2
+		)`, row.FileID, string(row.Type)).Scan(&exists)
+		if err != nil {
+			return stacktrace.Propagate(err, "failed to check file data after delete")
+		}
+		if exists {
+			return stacktrace.NewError("file data row exists but does not satisfy deletion conditions")
+		}
 	}
 	return nil
 }

@@ -38,9 +38,9 @@ pub fn run_pet_face_detection(
     let (input, scaled_width, scaled_height, pad_left, pad_top) =
         preprocess::preprocess_yolo(decoded)?;
 
-    let pet_face_detection = runtime.pet_face_detection_session()?;
+    let mut pet_face_detection = runtime.pet_face_detection_session()?;
     let (output_shape, output_data) = onnx::run_f32(
-        &pet_face_detection,
+        &mut pet_face_detection,
         input,
         [1, 3, INPUT_HEIGHT as i64, INPUT_WIDTH as i64],
     )?;
@@ -162,9 +162,9 @@ pub fn run_pet_body_detection(
     let (input, scaled_width, scaled_height, pad_left, pad_top) =
         preprocess::preprocess_yolo(decoded)?;
 
-    let body_detection = runtime.pet_body_detection_session()?;
+    let mut body_detection = runtime.pet_body_detection_session()?;
     let (_output_shape, output_data) = onnx::run_f32(
-        &body_detection,
+        &mut body_detection,
         input,
         [1, 3, INPUT_HEIGHT as i64, INPUT_WIDTH as i64],
     )?;

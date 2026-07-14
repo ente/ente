@@ -272,6 +272,26 @@
   "yourTrashIsEmpty": "Your trash is empty",
   "homeLockerEmptyTitle": "Your Locker is empty",
   "homeLockerEmptySubtitle": "Click the + button to get started",
+  "homeEmptyStateLegacyDescription": "Setup your Legacy so loved ones can access important information, in your absence",
+  "@homeEmptyStateLegacyDescription": {
+    "description": "Description shown in the empty Locker home state above the Legacy setup action"
+  },
+  "setupYourLegacy": "Setup your Legacy",
+  "@setupYourLegacy": {
+    "description": "Action that opens Legacy setup from the empty Locker home state"
+  },
+  "shareYourLegacyBannerTitle": "Share your Legacy",
+  "@shareYourLegacyBannerTitle": {
+    "description": "Title of the home banner prompting the user to set up Legacy"
+  },
+  "setupLegacy": "Setup Legacy",
+  "@setupLegacy": {
+    "description": "Short action label on the home banner that opens Legacy setup"
+  },
+  "shareYourLegacyBannerDescription": "Help loved ones access important information, in your absence.",
+  "@shareYourLegacyBannerDescription": {
+    "description": "Description of the home banner prompting the user to set up Legacy"
+  },
   "uploadDocument": "Upload document",
   "items": "{count} items",
   "@items": {

@@ -15,9 +15,10 @@ import "package:photo_view/photo_view.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/metadata/file_magic.dart";
+import "package:photos/module/metadata/local_file.dart";
+import "package:photos/module/metadata/video.dart";
 import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
-import "package:photos/utils/exif_util.dart";
 import "package:receive_sharing_intent/receive_sharing_intent.dart";
 import "package:video_player/video_player.dart";
 
@@ -114,7 +115,7 @@ class FileViewerState extends State<FileViewer> {
         return;
       }
 
-      final videoProps = await getVideoPropsAsync(videoFile);
+      final videoProps = await getVideoProps(videoFile);
       if (videoProps != null &&
           videoProps.width != null &&
           videoProps.height != null &&
@@ -382,7 +383,7 @@ class FileViewerState extends State<FileViewer> {
   }
 
   Future<EnteFile> _fileFromAsset(String pathName, AssetEntity asset) async {
-    final file = await EnteFile.fromAsset(pathName, asset);
+    final file = fileFromAsset(pathName, asset);
     file.pubMagicMetadata = PubMagicMetadata(
       w: asset.orientatedWidth,
       h: asset.orientatedHeight,

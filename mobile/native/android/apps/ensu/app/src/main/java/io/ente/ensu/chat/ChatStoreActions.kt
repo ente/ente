@@ -13,6 +13,7 @@ import io.ente.ensu.llm.LlmProvider
 import io.ente.ensu.chat.Attachment
 import io.ente.ensu.chat.ChatMessage
 import io.ente.ensu.chat.ChatSession
+import io.ente.ensu.bindings.DbException
 import io.ente.ensu.bindings.LlmException
 import io.ente.ensu.bindings.ConfigDefaults
 import io.ente.ensu.logging.LogLevel
@@ -114,7 +115,6 @@ internal class ChatStoreActions(
         markSessionAccess(session.id)
         trimSessionCaches()
         rebuildChatState(session.id)
-        attachmentActions.refreshAttachmentDownloadState()
         logRepository.log(LogLevel.Info, "Session created", tag = "Chat")
         return session.id
     }
@@ -123,6 +123,7 @@ internal class ChatStoreActions(
         if (state.value.chat.isDownloading) return
 
         resetGenerationState()
+        attachmentActions.discardAttachments(state.value.chat.attachments)
         state.update { appState ->
             appState.copy(
                 chat = appState.chat.copy(
@@ -135,7 +136,6 @@ internal class ChatStoreActions(
                 )
             )
         }
-        attachmentActions.refreshAttachmentDownloadState()
     }
 
     fun selectSession(sessionId: String) {
@@ -151,7 +151,6 @@ internal class ChatStoreActions(
         scope.launch(Dispatchers.IO) {
             loadMessagesFromDb(sessionId)
             rebuildChatState(sessionId)
-            attachmentActions.ensureAttachmentsAvailable(sessionId)
         }
     }
 
@@ -164,8 +163,8 @@ internal class ChatStoreActions(
         }
 
         chatRepository.deleteSession(sessionId)
+        if (isCurrent) attachmentActions.discardAttachments(currentState.chat.attachments)
         removeSessionCaches(sessionId)
-        attachmentActions.purgeAttachmentDownloads(sessionId)
         sessionSummaries.remove(sessionKey(sessionId))
         scope?.launch { sessionPreferences.setSessionSummary(sessionId, null) }
 
@@ -204,7 +203,6 @@ internal class ChatStoreActions(
                 scope.launch(Dispatchers.IO) {
                     loadMessagesFromDb(newCurrent)
                     rebuildChatState(newCurrent)
-                    attachmentActions.ensureAttachmentsAvailable(newCurrent)
                 }
             } else {
                 state.update { appState ->
@@ -270,6 +268,7 @@ internal class ChatStoreActions(
     }
 
     fun cancelEditing() {
+        attachmentActions.discardAttachments(state.value.chat.attachments)
         state.update { appState ->
             appState.copy(
                 chat = appState.chat.copy(
@@ -305,10 +304,6 @@ internal class ChatStoreActions(
             messageStore[sessionId]?.firstOrNull { it.id == parentId }
         } ?: return
 
-        if (attachmentActions.missingAttachments(sessionId).isNotEmpty()) {
-            attachmentActions.ensureAttachmentsAvailable(sessionId)
-            return
-        }
         llmProvider.resetContext()
         startGeneration(sessionId, parent)
     }
@@ -322,10 +317,6 @@ internal class ChatStoreActions(
         if (text.isEmpty() && attachments.isEmpty()) return
 
         val sessionId = currentState.chat.currentSessionId ?: createNewSession()
-        if (attachmentActions.missingAttachments(sessionId).isNotEmpty()) {
-            attachmentActions.ensureAttachmentsAvailable(sessionId)
-            return
-        }
         val timestamp = clock()
 
         val editingMessageId = currentState.chat.editingMessageId
@@ -396,7 +387,19 @@ internal class ChatStoreActions(
     fun loadSessionsFromDb() {
         val scope = scope ?: return
         scope.launch(Dispatchers.IO) {
-            val sessions = chatRepository.listSessions().map { session ->
+            val loaded = try {
+                chatRepository.listSessions()
+            } catch (error: DbException) {
+                logRepository.log(
+                    LogLevel.Error,
+                    "Failed to load sessions",
+                    details = error.message,
+                    tag = "Chat",
+                    throwable = error
+                )
+                return@launch
+            }
+            val sessions = loaded.map { session ->
                 val summary = sessionSummaries[sessionKey(session.id)]
                 if (!summary.isNullOrBlank()) {
                     session.copy(title = summary)
@@ -420,8 +423,6 @@ internal class ChatStoreActions(
             if (sessionStillExists && currentSessionId != null) {
                 loadMessagesFromDb(currentSessionId)
                 rebuildChatState(currentSessionId)
-            } else {
-                attachmentActions.refreshAttachmentDownloadState()
             }
             trimSessionCaches(sessions.map { it.id }.toSet())
         }

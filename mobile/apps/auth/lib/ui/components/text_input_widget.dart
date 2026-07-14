@@ -264,6 +264,7 @@ class _TextInputWidgetState extends State<TextInputWidget> {
     await Future.delayed(const Duration(milliseconds: 5));
     if (executionState == ExecutionState.inProgress ||
         executionState == ExecutionState.error) {
+      if (!mounted) return;
       if (executionState == ExecutionState.inProgress) {
         if (mounted) {
           if (widget.showOnlyLoadingState) {
@@ -281,6 +282,7 @@ class _TextInputWidgetState extends State<TextInputWidget> {
                       : 0,
                 ),
                 () {
+                  if (!mounted) return;
                   widget.popNavAfterSubmission
                       ? _popNavigatorStack(context)
                       : null;
@@ -299,10 +301,10 @@ class _TextInputWidgetState extends State<TextInputWidget> {
         setState(() {
           executionState = ExecutionState.idle;
           widget.popNavAfterSubmission
-              ? Future.delayed(
-                  const Duration(seconds: 0),
-                  () => _popNavigatorStack(context, e: _exception),
-                )
+              ? Future.delayed(const Duration(seconds: 0), () {
+                  if (!mounted) return;
+                  _popNavigatorStack(context, e: _exception);
+                })
               : null;
         });
       }
@@ -310,7 +312,10 @@ class _TextInputWidgetState extends State<TextInputWidget> {
       if (widget.popNavAfterSubmission) {
         Future.delayed(
           Duration(seconds: widget.alwaysShowSuccessState ? 1 : 0),
-          () => _popNavigatorStack(context),
+          () {
+            if (!mounted) return;
+            _popNavigatorStack(context);
+          },
         );
       }
     }

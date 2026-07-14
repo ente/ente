@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "numpy>=2.1.2",
-    "onnxruntime>=1.19.2",
+    "onnxruntime==1.27.0",
     "opencv-python>=4.10.0.84",
     "pillow-heif>=0.22.0",
     "pillow>=12.3.0",

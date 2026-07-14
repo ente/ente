@@ -9,12 +9,10 @@ import "package:path_provider/path_provider.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/network/network.dart";
 import "package:photos/service_locator.dart";
-import "package:photos/services/machine_learning/face_ml/face_detection/face_detection_service.dart";
-import "package:photos/services/machine_learning/face_ml/face_embedding/face_embedding_service.dart";
 import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
 import "package:photos/services/machine_learning/ml_model.dart";
+import "package:photos/services/machine_learning/ml_model_assets.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
-import "package:photos/services/machine_learning/semantic_search/clip/clip_image_encoder.dart";
 import "package:photos/utils/isolate/isolate_operations.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
@@ -26,11 +24,6 @@ const _codeRevision = String.fromEnvironment(
 const _localMirrorBaseUrl = String.fromEnvironment(
   "ML_PARITY_LOCAL_MIRROR_BASE_URL",
 );
-const _useLegacyMobileMl = bool.fromEnvironment(
-  "ML_PARITY_USE_LEGACY_MOBILE_ML",
-  defaultValue: false,
-);
-const _useRustMl = !_useLegacyMobileMl;
 const _localModelMirrorRelativeDir = ".cache/local_model_mirror";
 
 const _parityReportDataKey = "ml_parity_results_json";
@@ -57,7 +50,7 @@ class _ManifestItem {
 
 class _ModelSpec {
   final String schemaName;
-  final MlModel model;
+  final MlModelAsset model;
 
   const _ModelSpec({required this.schemaName, required this.model});
 }
@@ -88,57 +81,46 @@ void runMLParityIntegrationTest({required String expectedPlatform}) {
         await _stageModelsFromLocalMirror(appSupportDir);
 
         final modelSpecs = _modelSpecs();
-        final loadedModels = await _downloadAndLoadModels(
-          modelSpecs: modelSpecs,
-          loadLegacySessions: _useLegacyMobileMl,
-        );
+        final loadedModels = await _downloadModels(modelSpecs);
 
-        final runtime = _useRustMl
-            ? "rust-ml"
-            : (Platform.isAndroid
-                  ? "flutter-mobile-onnx-platform-plugin"
-                  : "flutter-mobile-onnx-ffi");
+        const runtime = "rust-ml";
 
         final results = <Map<String, dynamic>>[];
         final errors = <Map<String, dynamic>>[];
-        try {
-          for (int i = 0; i < manifestItems.length; i++) {
-            final item = manifestItems[i];
-            final stopwatch = Stopwatch()..start();
-            try {
-              final localFixturePath = await _downloadFixture(
-                item: item,
-                fixtureRoot: fixtureRoot,
-              );
-              final mlResult = await _analyzeImage(
-                fileID: i + 1,
-                filePath: localFixturePath,
-                loadedModels: loadedModels,
-              );
-              stopwatch.stop();
-              results.add(
-                _toParityResult(
-                  fileID: item.fileID,
-                  mlResult: mlResult,
-                  expectedPlatform: expectedPlatform,
-                  runtime: runtime,
-                  models: loadedModels.modelMetadata,
-                  totalMS: stopwatch.elapsedMilliseconds,
-                ),
-              );
-            } catch (error, stackTrace) {
-              stopwatch.stop();
-              final stackLines = stackTrace.toString().split("\n");
-              errors.add({
-                "file_id": item.fileID,
-                "error": error.toString(),
-                "timing_ms": stopwatch.elapsedMilliseconds,
-                "stack": stackLines.isNotEmpty ? stackLines.first : "",
-              });
-            }
+        for (int i = 0; i < manifestItems.length; i++) {
+          final item = manifestItems[i];
+          final stopwatch = Stopwatch()..start();
+          try {
+            final localFixturePath = await _downloadFixture(
+              item: item,
+              fixtureRoot: fixtureRoot,
+            );
+            final mlResult = await _analyzeImage(
+              fileID: i + 1,
+              filePath: localFixturePath,
+              loadedModels: loadedModels,
+            );
+            stopwatch.stop();
+            results.add(
+              _toParityResult(
+                fileID: item.fileID,
+                mlResult: mlResult,
+                expectedPlatform: expectedPlatform,
+                runtime: runtime,
+                models: loadedModels.modelMetadata,
+                totalMS: stopwatch.elapsedMilliseconds,
+              ),
+            );
+          } catch (error, stackTrace) {
+            stopwatch.stop();
+            final stackLines = stackTrace.toString().split("\n");
+            errors.add({
+              "file_id": item.fileID,
+              "error": error.toString(),
+              "timing_ms": stopwatch.elapsedMilliseconds,
+              "stack": stackLines.isNotEmpty ? stackLines.first : "",
+            });
           }
-        } finally {
-          await _releaseModels(loadedModels);
         }
 
         final outputPayload = {
@@ -197,86 +179,48 @@ List<_ModelSpec> _modelSpecs() {
   return [
     _ModelSpec(
       schemaName: "face_detection",
-      model: FaceDetectionService.instance,
+      model: FaceDetectionModel.instance,
     ),
     _ModelSpec(
       schemaName: "face_embedding",
-      model: FaceEmbeddingService.instance,
+      model: FaceEmbeddingModel.instance,
     ),
-    _ModelSpec(schemaName: "clip", model: ClipImageEncoder.instance),
+    _ModelSpec(schemaName: "clip", model: ClipImageModel.instance),
   ];
 }
 
 class _LoadedModels {
-  final List<String> modelNames;
-  final List<int> modelAddresses;
   final Map<String, String> modelMetadata;
   final Map<String, String> modelPathsBySchema;
 
   const _LoadedModels({
-    required this.modelNames,
-    required this.modelAddresses,
     required this.modelMetadata,
     required this.modelPathsBySchema,
   });
 }
 
-Future<_LoadedModels> _downloadAndLoadModels({
-  required List<_ModelSpec> modelSpecs,
-  required bool loadLegacySessions,
-}) async {
+Future<_LoadedModels> _downloadModels(List<_ModelSpec> modelSpecs) async {
   await _ensureModelNetworkContext();
 
-  final modelNames = <String>[];
-  final modelPaths = <String>[];
   final modelMetadata = <String, String>{};
   final modelPathsBySchema = <String, String>{};
 
   for (final modelSpec in modelSpecs) {
-    final (modelName, modelPath) = await modelSpec.model.getModelNameAndPath();
+    final modelPath = await modelSpec.model.getModelPath();
     final modelFile = File(modelPath);
     if (!modelFile.existsSync()) {
       throw StateError(
-        "Resolved model path does not exist for $modelName: $modelPath",
+        "Resolved model path does not exist for ${modelSpec.schemaName}: $modelPath",
       );
     }
 
-    modelNames.add(modelName);
-    modelPaths.add(modelFile.path);
     modelPathsBySchema[modelSpec.schemaName] = modelFile.path;
     final modelSHA256 = await _sha256HexOfFile(modelFile);
     modelMetadata[modelSpec.schemaName] =
         "${modelFile.uri.pathSegments.last}:$modelSHA256";
   }
 
-  if (!loadLegacySessions) {
-    return _LoadedModels(
-      modelNames: modelNames,
-      modelAddresses: const <int>[],
-      modelMetadata: modelMetadata,
-      modelPathsBySchema: modelPathsBySchema,
-    );
-  }
-
-  final loadedAddressesRaw =
-      await MLIndexingIsolate.instance.runInIsolate(
-            IsolateOperation.loadIndexingModels,
-            {"modelNames": modelNames, "modelPaths": modelPaths},
-          )
-          as List<dynamic>;
-
-  final modelAddresses = loadedAddressesRaw
-      .map((address) => (address as num).toInt())
-      .toList(growable: false);
-  if (modelAddresses.length != modelNames.length) {
-    throw StateError(
-      "Model address count mismatch: expected ${modelNames.length}, got ${modelAddresses.length}",
-    );
-  }
-
   return _LoadedModels(
-    modelNames: modelNames,
-    modelAddresses: modelAddresses,
     modelMetadata: modelMetadata,
     modelPathsBySchema: modelPathsBySchema,
   );
@@ -301,17 +245,6 @@ Future<void> _ensureModelNetworkContext() async {
   );
   await Configuration.instance.init(prefs);
   _modelNetworkContextInitialized = true;
-}
-
-Future<void> _releaseModels(_LoadedModels loadedModels) async {
-  if (loadedModels.modelAddresses.isEmpty) {
-    return;
-  }
-  await MLIndexingIsolate.instance
-      .runInIsolate(IsolateOperation.releaseIndexingModels, {
-        "modelNames": loadedModels.modelNames,
-        "modelAddresses": loadedModels.modelAddresses,
-      });
 }
 
 Future<void> _stageFixturesFromLocalMirror({
@@ -489,52 +422,34 @@ Future<MLResult> _analyzeImage({
   required String filePath,
   required _LoadedModels loadedModels,
 }) async {
-  const useRustMl = _useRustMl;
   final args = <String, dynamic>{
     "enteFileID": fileID,
     "filePath": filePath,
     "runFaces": true,
     "runClip": true,
-    "useRustMl": useRustMl,
   };
 
-  if (useRustMl) {
-    final faceDetectionModelPath =
-        loadedModels.modelPathsBySchema["face_detection"];
-    final faceEmbeddingModelPath =
-        loadedModels.modelPathsBySchema["face_embedding"];
-    final clipImageModelPath = loadedModels.modelPathsBySchema["clip"];
-    if (faceDetectionModelPath == null ||
-        faceEmbeddingModelPath == null ||
-        clipImageModelPath == null) {
-      throw StateError(
-        "Missing model paths for Rust ML parity route: face_detection/face_embedding/clip",
-      );
-    }
-    args.addAll({
-      "faceDetectionModelPath": faceDetectionModelPath,
-      "faceEmbeddingModelPath": faceEmbeddingModelPath,
-      "clipImageModelPath": clipImageModelPath,
-      "preferCoreml": Platform.isIOS,
-      "preferNnapi": Platform.isAndroid,
-      "preferXnnpack": Platform.isAndroid,
-      "allowCpuFallback": true,
-    });
-  } else {
-    if (loadedModels.modelAddresses.length < 3) {
-      throw StateError(
-        "Missing loaded model addresses for static parity route",
-      );
-    }
-    final faceDetectionAddress = loadedModels.modelAddresses[0];
-    final faceEmbeddingAddress = loadedModels.modelAddresses[1];
-    final clipAddress = loadedModels.modelAddresses[2];
-    args.addAll({
-      "faceDetectionAddress": faceDetectionAddress,
-      "faceEmbeddingAddress": faceEmbeddingAddress,
-      "clipImageAddress": clipAddress,
-    });
+  final faceDetectionModelPath =
+      loadedModels.modelPathsBySchema["face_detection"];
+  final faceEmbeddingModelPath =
+      loadedModels.modelPathsBySchema["face_embedding"];
+  final clipImageModelPath = loadedModels.modelPathsBySchema["clip"];
+  if (faceDetectionModelPath == null ||
+      faceEmbeddingModelPath == null ||
+      clipImageModelPath == null) {
+    throw StateError(
+      "Missing model paths for Rust ML parity route: face_detection/face_embedding/clip",
+    );
   }
+  args.addAll({
+    "faceDetectionModelPath": faceDetectionModelPath,
+    "faceEmbeddingModelPath": faceEmbeddingModelPath,
+    "clipImageModelPath": clipImageModelPath,
+    "preferCoreml": Platform.isIOS,
+    "preferNnapi": Platform.isAndroid,
+    "preferXnnpack": Platform.isAndroid,
+    "allowCpuFallback": true,
+  });
 
   final resultJSONString =
       await MLIndexingIsolate.instance.runInIsolate(

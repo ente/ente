@@ -1,10 +1,10 @@
 use std::{
-    ops::Deref,
+    ops::{Deref, DerefMut},
     sync::{Mutex, MutexGuard},
 };
 
 use once_cell::sync::Lazy;
-use ort::Session;
+use ort::session::Session;
 
 use crate::ml::{
     error::{MlError, MlResult},
@@ -104,6 +104,15 @@ impl Deref for ModelSessionGuard<'_> {
         self.state
             .session
             .as_ref()
+            .expect("session must be loaded before creating ModelSessionGuard")
+    }
+}
+
+impl DerefMut for ModelSessionGuard<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.state
+            .session
+            .as_mut()
             .expect("session must be loaded before creating ModelSessionGuard")
     }
 }

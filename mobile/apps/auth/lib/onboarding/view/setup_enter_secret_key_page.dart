@@ -422,6 +422,7 @@ class _SetupEnterSecretKeyPageState extends State<SetupEnterSecretKeyPage> {
 
   Future<void> _saveCode() async {
     try {
+      if (!mounted) return;
       final account = _accountController.text.trim();
       final issuer = _issuerController.text.trim();
       final secret = _secretController.text.trim().replaceAll(' ', '');
@@ -487,6 +488,7 @@ class _SetupEnterSecretKeyPageState extends State<SetupEnterSecretKeyPage> {
 
       // Verify the validity of the code
       getOTP(newCode);
+      if (!mounted) return;
       Navigator.of(context).pop(newCode);
     } catch (e, s) {
       _logger.severe("Error saving code", e, s);

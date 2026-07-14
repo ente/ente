@@ -130,6 +130,7 @@ class _HomePageState extends State<HomePage> {
     _triggerLogoutEvent = Bus.instance.on<TriggerLogoutEvent>().listen((
       event,
     ) async {
+      if (!mounted) return;
       await autoLogoutAlert(context);
     });
 
@@ -223,7 +224,9 @@ class _HomePageState extends State<HomePage> {
 
     if (!isAuthSuccessful) return;
 
+    if (!mounted) return;
     FocusScope.of(context).requestFocus();
+    if (!mounted) return;
     await showChoiceActionSheet(
       context,
       title: l10n.deleteCodeTitle,
@@ -421,7 +424,9 @@ class _HomePageState extends State<HomePage> {
         );
     if (!isAuthSuccessful) return;
 
+    if (!mounted) return;
     FocusScope.of(context).requestFocus();
+    if (!mounted) return;
     await showChoiceActionSheet(
       context,
       title: l10n.trashCode,
@@ -474,6 +479,7 @@ class _HomePageState extends State<HomePage> {
     if (!isAuthSuccessful) return;
 
     _codeDisplayStore.clearSelection();
+    if (!mounted) return;
     final Code? updatedCode = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (BuildContext context) {
@@ -497,6 +503,7 @@ class _HomePageState extends State<HomePage> {
     if (!isAuthSuccessful) return;
 
     _codeDisplayStore.clearSelection();
+    if (!mounted) return;
     showShareDialog(context, code);
   }
 
@@ -513,6 +520,7 @@ class _HomePageState extends State<HomePage> {
         .replaceAll('algorithm=sha256', 'algorithm=SHA256')
         .replaceAll('algorithm=sha512', 'algorithm=SHA512');
 
+    if (!mounted) return;
     await showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -1331,6 +1339,7 @@ class _HomePageState extends State<HomePage> {
     _isImportingFromGallery = true;
 
     try {
+      if (!mounted) return;
       final GalleryImportResult? importResult = await pickCodeFromGallery(
         context,
         logger: _logger,
@@ -1340,6 +1349,7 @@ class _HomePageState extends State<HomePage> {
       }
       final googleAuthCodes = importResult.googleAuthCodes;
       if (googleAuthCodes != null) {
+        if (!mounted) return;
         final shouldImport = await confirmGoogleAuthImport(
           context,
           googleAuthCodes.length,
@@ -1370,6 +1380,7 @@ class _HomePageState extends State<HomePage> {
     if (importedCodeCount > 0) {
       LocalBackupService.instance.triggerDailyBackupIfNeeded().ignore();
     }
+    if (!mounted) return;
     await importSuccessDialog(context, importedCodeCount);
   }
 
@@ -1424,9 +1435,11 @@ class _HomePageState extends State<HomePage> {
     final bool shouldShowLockScreen = await LockScreenSettings.instance
         .shouldShowLockScreen();
     if (shouldShowLockScreen) {
+      if (!mounted) return;
       // Manual lock: do not auto-prompt Touch ID; wait for user tap
       await AppLock.of(context)!.showManualLockScreen();
     } else {
+      if (!mounted) return;
       await showDialogWidget(
         context: context,
         title: context.l10n.appLockNotEnabled,
@@ -2013,8 +2026,10 @@ class _HomePageState extends State<HomePage> {
     // Platform messages may fail, so we use a try/catch PlatformException.
     bool hadInitialLink = false;
     try {
+      if (!mounted) return false;
       final initialLink = await _appLinks.getInitialLinkString();
       if (initialLink != null) {
+        if (!mounted) return false;
         _handleDeeplink(context, initialLink);
         hadInitialLink = true;
       } else {
@@ -2028,6 +2043,7 @@ class _HomePageState extends State<HomePage> {
     if (!kIsWeb && !Platform.isLinux) {
       _deepLinkSubscription = _appLinks.stringLinkStream.listen(
         (link) {
+          if (!mounted) return;
           _handleDeeplink(context, link);
         },
         onError: (err) {

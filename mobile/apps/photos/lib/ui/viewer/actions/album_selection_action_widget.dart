@@ -39,6 +39,7 @@ class AlbumSelectionActionWidget extends StatefulWidget {
 class _AlbumSelectionActionWidgetState
     extends State<AlbumSelectionActionWidget> {
   final _logger = Logger("AlbumSelectionActionWidgetState");
+  final _scrollController = ScrollController();
   late CollectionActions collectionActions;
   bool hasFavorites = false;
 
@@ -52,6 +53,7 @@ class _AlbumSelectionActionWidgetState
   @override
   void dispose() {
     widget.selectedAlbums.removeListener(_selectionChangedListener);
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -204,17 +206,16 @@ class _AlbumSelectionActionWidgetState
       );
     }
 
-    final scrollController = ScrollController();
-
     return MediaQuery(
       data: MediaQuery.of(context).removePadding(removeBottom: true),
       child: SafeArea(
         child: Scrollbar(
           radius: const Radius.circular(1),
           thickness: 2,
-          controller: scrollController,
+          controller: _scrollController,
           thumbVisibility: true,
           child: SingleChildScrollView(
+            controller: _scrollController,
             physics: const BouncingScrollPhysics(
               decelerationRate: ScrollDecelerationRate.fast,
             ),
@@ -262,12 +263,15 @@ class _AlbumSelectionActionWidgetState
         continue;
       }
       count = await FilesDB.instance.collectionFileCount(collection.id);
+      if (!mounted) return;
       final bool isEmptyCollection = count == 0;
       if (isEmptyCollection) {
         try {
           await CollectionsService.instance.trashEmptyCollection(collection);
+          if (!mounted) return;
         } catch (e, s) {
           _logger.warning("failed to trash collection", e, s);
+          if (!mounted) return;
           errors.add(e);
         }
       } else {
@@ -276,6 +280,7 @@ class _AlbumSelectionActionWidgetState
     }
     if (errors.isNotEmpty) {
       await showGenericErrorDialog(context: context, error: errors.first);
+      if (!mounted) return;
     }
 
     if (nonEmptyCollection.isNotEmpty) {
@@ -287,6 +292,7 @@ class _AlbumSelectionActionWidgetState
         debugPrint("Failed to delete collection");
       }
     }
+    if (!mounted) return;
     if (hasFavorites) {
       _showFavToast();
     }
@@ -378,6 +384,7 @@ class _AlbumSelectionActionWidgetState
             ? visibleVisibility
             : hiddenVisibility;
 
+        if (!mounted) return;
         await changeCollectionVisibility(
           context,
           collection: collection,
@@ -387,6 +394,7 @@ class _AlbumSelectionActionWidgetState
           showProgressDialog: false,
         );
       }
+      if (!mounted) return;
       showShortToast(
         context,
         isUnhiding
@@ -395,6 +403,7 @@ class _AlbumSelectionActionWidgetState
       );
     } catch (e, s) {
       _logger.warning("failed to change visibility", e, s);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     } finally {
       await dialog.hide();
@@ -443,6 +452,7 @@ class _AlbumSelectionActionWidgetState
               ? visibleVisibility
               : archiveVisibility;
 
+          if (!mounted) return;
           await changeCollectionVisibility(
             context,
             collection: collection,
@@ -460,6 +470,7 @@ class _AlbumSelectionActionWidgetState
               ? visibleVisibility
               : archiveVisibility;
 
+          if (!mounted) return;
           await changeCollectionVisibility(
             context,
             collection: collection,
@@ -469,6 +480,7 @@ class _AlbumSelectionActionWidgetState
           );
         }
       }
+      if (!mounted) return;
       showShortToast(
         context,
         isUnarchiving
@@ -477,6 +489,7 @@ class _AlbumSelectionActionWidgetState
       );
     } catch (e, s) {
       _logger.warning("failed to change archive state", e, s);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     } finally {
       await dialog.hide();

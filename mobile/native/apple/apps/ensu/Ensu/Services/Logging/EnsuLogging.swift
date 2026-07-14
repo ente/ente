@@ -19,22 +19,6 @@ struct EnsuLogEntry: Identifiable, Hashable {
     let details: String?
 }
 
-@MainActor
-final class EnsuLogStore: ObservableObject {
-    static let shared = EnsuLogStore()
-
-    @Published private(set) var entries: [EnsuLogEntry] = []
-
-    private init() {}
-
-    func add(_ entry: EnsuLogEntry, maxEntries: Int) {
-        entries.insert(entry, at: 0)
-        if entries.count > maxEntries {
-            entries = Array(entries.prefix(maxEntries))
-        }
-    }
-}
-
 final class EnsuLogging {
     static let shared = EnsuLogging()
 
@@ -58,11 +42,9 @@ final class EnsuLogging {
     private(set) var logsDirectory: URL!
 
     private let maxLogFiles: Int
-    private let maxEntriesInMemory: Int
 
-    private init(maxLogFiles: Int = 5, maxEntriesInMemory: Int = 500) {
+    private init(maxLogFiles: Int = 5) {
         self.maxLogFiles = maxLogFiles
-        self.maxEntriesInMemory = maxEntriesInMemory
     }
 
     func start() {
@@ -106,10 +88,6 @@ final class EnsuLogging {
             details: safeDetails
         )
 
-        Task { @MainActor in
-            EnsuLogStore.shared.add(entry, maxEntries: maxEntriesInMemory)
-        }
-
         queue.async {
             let line = self.formatLine(entry)
             self.appendToFile(line)
@@ -133,7 +111,9 @@ final class EnsuLogging {
     func readLogText(fileURL: URL? = nil) -> String {
         start()
         let url = fileURL ?? todayLogFileURL()
-        return (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        return queue.sync {
+            (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        }
     }
 
     func createLogsArchive() throws -> URL {
@@ -191,46 +171,13 @@ final class EnsuLogging {
 
     private func formatLine(_ entry: EnsuLogEntry) -> String {
         let ts = lineFormatter.string(from: entry.timestamp)
-        let header = "[\(entry.tag)][\(entry.level.rawValue)] [\(ts)]"
-        let message = entry.message
-        let details = entry.details ?? ""
-        let shouldInline = entry.level == .info && !details.isEmpty && !looksLikeStackTrace(details)
-        var out = "\(header) \(message)\n"
-        if !details.isEmpty {
-            if shouldInline {
-                let inline = inlineDetails(details)
-                if !inline.isEmpty {
-                    out += "\(inline)\n"
-                }
-            } else {
-                for line in details.split(separator: "\n", omittingEmptySubsequences: false) {
-                    out += "\(line)\n"
-                }
+        var out = "[\(entry.tag)][\(entry.level.rawValue)] [\(ts)] \(entry.message)\n"
+        if let details = entry.details, !details.isEmpty {
+            for line in details.split(separator: "\n", omittingEmptySubsequences: false) {
+                out += "\(line)\n"
             }
         }
         return out
-    }
-
-    private func inlineDetails(_ details: String) -> String {
-        details
-            .split(whereSeparator: \.isNewline)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .joined(separator: " | ")
-    }
-
-    private func looksLikeStackTrace(_ details: String) -> Bool {
-        details
-            .split(whereSeparator: \.isNewline)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .contains { isStackTraceLine($0) }
-    }
-
-    private func isStackTraceLine(_ line: String) -> Bool {
-        line.hasPrefix("at ") ||
-            line.hasPrefix("...") ||
-            line.hasPrefix("Caused by") ||
-            line.hasPrefix("Suppressed:")
     }
 
     private func combineDetails(details: String?, error: Error?) -> String? {

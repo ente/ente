@@ -3,6 +3,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable @typescript-eslint/no-floating-promises */
+import { DefaultOptionsV2 } from "@/components/DefaultOptionsV2";
+import { TakeoutOptionsV2 } from "@/components/TakeoutOptionsV2";
 import type {
     InProgressUpload,
     SegregatedFinishedUploads,
@@ -50,10 +52,11 @@ import log from "ente-base/log";
 import type {
     CollectionMapping,
     Electron,
-    SkippedFile,
+    PreUploadSkippedFile,
     ZipItem,
 } from "ente-base/types/ipc";
 import type { UploadTypeSelectorIntent } from "ente-gallery/components/Upload";
+import { UploadProgressV2 } from "ente-gallery/components/upload-progress-v2/UploadProgressV2";
 import { CanvasReadbackBlockedDialog } from "ente-gallery/components/upload/CanvasReadbackBlockedDialog";
 import { UploadProgress } from "ente-gallery/components/UploadProgress";
 import { useFileInput } from "ente-gallery/components/utils/use-file-input";
@@ -82,6 +85,7 @@ import { CollectionMappingChoice } from "ente-new/photos/components/CollectionMa
 import type { CollectionSelectorAttributes } from "ente-new/photos/components/CollectionSelector";
 import type { RemotePullOpts } from "ente-new/photos/components/gallery";
 import { downloadAppDialogAttributes } from "ente-new/photos/components/utils/download";
+import { useSettingsSnapshot } from "ente-new/photos/components/utils/use-snapshot";
 import { suppressAutoLockOnBlurForTrustedPrompt } from "ente-new/photos/services/app-lock";
 import {
     addOrCopyToCollection,
@@ -189,6 +193,8 @@ export const Upload: React.FC<UploadProps> = ({
 }) => {
     const { showMiniDialog, onGenericError } = useBaseContext();
     const { showNotification, watchFolderView } = usePhotosAppContext();
+    const { isInternalUser } = useSettingsSnapshot();
+    const enableUploadProgressUIV2 = isInternalUser;
 
     const [uploadProgressView, setUploadProgressView] = useState(false);
     const [
@@ -257,7 +263,9 @@ export const Upload: React.FC<UploadProps> = ({
      */
     const [desktopZipItems, setDesktopZipItems] = useState<ZipItem[]>([]);
 
-    const [skippedFiles, setSkippedFiles] = useState<SkippedFile[]>([]);
+    const [preUploadSkippedFiles, setPreUploadSkippedFiles] = useState<
+        PreUploadSkippedFile[]
+    >([]);
 
     /**
      * Consolidated and cleaned list obtained from {@link webFiles},
@@ -413,8 +421,12 @@ export const Upload: React.FC<UploadProps> = ({
             electron.pendingUploads().then((pending) => {
                 if (!pending) return;
 
-                const { collectionName, filePaths, zipItems, skippedFiles } =
-                    pending;
+                const {
+                    collectionName,
+                    filePaths,
+                    zipItems,
+                    preUploadSkippedFiles,
+                } = pending;
 
                 log.info(
                     `Resuming pending of upload of ${filePaths.length + zipItems.length} items${collectionName ? " to collection " + collectionName : ""}`,
@@ -423,7 +435,7 @@ export const Upload: React.FC<UploadProps> = ({
                 pendingDesktopUploadCollectionName.current = collectionName;
                 setDesktopFilePaths(filePaths);
                 setDesktopZipItems(zipItems);
-                setSkippedFiles(skippedFiles ?? []);
+                setPreUploadSkippedFiles(preUploadSkippedFiles ?? []);
             });
         }
     }, []);
@@ -455,14 +467,14 @@ export const Upload: React.FC<UploadProps> = ({
 
         if (electron) {
             desktopFilesAndZipItems(electron, files).then(
-                ({ fileAndPaths, zipItems, skippedFiles }) => {
+                ({ fileAndPaths, zipItems, preUploadSkippedFiles }) => {
                     setDesktopFiles(fileAndPaths);
                     setDesktopZipItems(zipItems);
-                    setSkippedFiles(skippedFiles);
+                    setPreUploadSkippedFiles(preUploadSkippedFiles);
                 },
             );
         } else {
-            setSkippedFiles([]);
+            setPreUploadSkippedFiles([]);
             setWebFiles(files);
         }
     }, [selectedInputFiles, dragAndDropFiles]);
@@ -499,7 +511,7 @@ export const Upload: React.FC<UploadProps> = ({
             desktopZipItems.map((ze) => [ze, joinPath(dirname(ze[0]), ze[1])]),
         ].flat() as UploadItemAndPath[];
 
-        const hiddenFiles: SkippedFile[] = [];
+        const hiddenFiles: PreUploadSkippedFile[] = [];
         const prunedItemAndPaths = allItemAndPaths.filter(([, p]) => {
             const name = basename(p);
             if (name.startsWith(".")) {
@@ -508,11 +520,16 @@ export const Upload: React.FC<UploadProps> = ({
             }
             return true;
         });
-        const nextSkippedFiles = skippedFiles.concat(hiddenFiles);
-        if (hiddenFiles.length > 0) setSkippedFiles(nextSkippedFiles);
+        const nextPreUploadSkippedFiles =
+            preUploadSkippedFiles.concat(hiddenFiles);
+        if (hiddenFiles.length > 0)
+            setPreUploadSkippedFiles(nextPreUploadSkippedFiles);
 
         if (prunedItemAndPaths.length == 0) {
-            if (nextSkippedFiles.length > 0 && !uploadRunning.current) {
+            if (
+                nextPreUploadSkippedFiles.length > 0 &&
+                !uploadRunning.current
+            ) {
                 uploadManager.prepareForNewUpload();
                 setUploadPhase("done");
                 uploadManager.showUploadProgressDialog();
@@ -552,17 +569,23 @@ export const Upload: React.FC<UploadProps> = ({
         uploadItemsAndPaths.current = prunedItemAndPaths;
 
         void (async () => {
+            const _selectedUploadType = selectedUploadType.current;
+            selectedUploadType.current = undefined;
+            const _isDragAndDrop = isDragAndDrop.current;
+            isDragAndDrop.current = false;
+
             const importSuggestion = await deriveImportSuggestion(
-                selectedUploadType.current,
+                _selectedUploadType,
                 prunedItemAndPaths,
             );
+
+            if (uploadItemsAndPaths.current !== prunedItemAndPaths) return;
+
             setImportSuggestion(importSuggestion);
 
             log.debug(() => ["Upload request", uploadItemsAndPaths.current]);
             log.debug(() => ["Import suggestion", importSuggestion]);
 
-            const _selectedUploadType = selectedUploadType.current;
-            selectedUploadType.current = undefined;
             props.setLoading(false);
 
             if (isPendingDesktopUpload.current) {
@@ -594,14 +617,16 @@ export const Upload: React.FC<UploadProps> = ({
                 );
             }
 
-            if (isDragAndDrop.current) {
-                isDragAndDrop.current = false;
+            if (_isDragAndDrop) {
                 const canUploadToActiveCollection =
                     props.activeCollection &&
                     (props.activeCollection.owner.id == user?.id ||
                         canAddFilesToCollection(props.activeCollection));
                 if (props.activeCollection && canUploadToActiveCollection) {
-                    uploadFilesToExistingCollection(props.activeCollection);
+                    uploadFilesToExistingCollection(
+                        props.activeCollection,
+                        prunedItemAndPaths,
+                    );
                     return;
                 }
             }
@@ -617,7 +642,11 @@ export const Upload: React.FC<UploadProps> = ({
                 action: "upload",
                 activeCollectionID: props.activeCollection?.id,
                 showHiddenCollections: props.isInHiddenSection,
-                onSelectCollection: uploadFilesToExistingCollection,
+                onSelectCollection: (collection) =>
+                    uploadFilesToExistingCollection(
+                        collection,
+                        prunedItemAndPaths,
+                    ),
                 onCreateCollection: showNextModal,
                 onCancel: handleCollectionSelectorCancel,
             });
@@ -750,7 +779,10 @@ export const Upload: React.FC<UploadProps> = ({
         uploadRunning.current = false;
     };
 
-    const uploadFilesToExistingCollection = async (collection: Collection) => {
+    const uploadFilesToExistingCollection = async (
+        collection: Collection,
+        uploadItemAndPaths: UploadItemAndPath[],
+    ) => {
         preCollectionCreationAction();
         try {
             const uploadCollection = canDirectlyUploadToCollection(collection)
@@ -763,7 +795,7 @@ export const Upload: React.FC<UploadProps> = ({
                 throw new Error("Upload not allowed for the selected album");
             }
 
-            const uploadItemsWithCollection = uploadItemsAndPaths.current.map(
+            const uploadItemsWithCollection = uploadItemAndPaths.map(
                 ([uploadItem, path], index) => ({
                     uploadItem,
                     pathPrefix: uploadPathPrefix(path),
@@ -782,7 +814,9 @@ export const Upload: React.FC<UploadProps> = ({
                             : collection,
                 },
             );
-            uploadItemsAndPaths.current = [];
+            if (uploadItemsAndPaths.current === uploadItemAndPaths) {
+                uploadItemsAndPaths.current = [];
+            }
         } catch (e) {
             retrySharedAlbumUploadTarget.current = undefined;
             closeUploadProgress();
@@ -916,7 +950,7 @@ export const Upload: React.FC<UploadProps> = ({
                     uploadItemsWithCollection
                         .map(({ uploadItem }) => uploadItem)
                         .filter((x) => x !== undefined),
-                    skippedFiles,
+                    preUploadSkippedFiles,
                 );
             }
             const batchResult = await uploadManager.uploadItems(
@@ -1083,25 +1117,43 @@ export const Upload: React.FC<UploadProps> = ({
                 open={props.uploadTypeSelectorView}
                 onClose={props.closeUploadTypeSelector}
                 intent={props.uploadTypeSelectorIntent}
+                {...{ isInternalUser }}
                 pendingUploadType={
                     isInputPending ? selectedUploadType.current : undefined
                 }
                 onSelect={handleUploadTypeSelect}
             />
-            <UploadProgress
-                open={uploadProgressView}
-                onClose={closeUploadProgress}
-                percentComplete={percentComplete}
-                uploadFileNames={uploadFileNames!}
-                uploadCounter={uploadCounter}
-                uploadPhase={uploadPhase}
-                inProgressUploads={inProgressUploads}
-                hasLivePhotos={hasLivePhotos}
-                retryFailed={retryFailed}
-                finishedUploads={finishedUploads}
-                skippedFiles={skippedFiles}
-                cancelUploads={cancelUploads}
-            />
+            {enableUploadProgressUIV2 ? (
+                <UploadProgressV2
+                    open={uploadProgressView}
+                    onClose={closeUploadProgress}
+                    percentComplete={percentComplete}
+                    uploadFileNames={uploadFileNames!}
+                    uploadCounter={uploadCounter}
+                    uploadPhase={uploadPhase}
+                    inProgressUploads={inProgressUploads}
+                    hasLivePhotos={hasLivePhotos}
+                    retryFailed={retryFailed}
+                    finishedUploads={finishedUploads}
+                    preUploadSkippedFiles={preUploadSkippedFiles}
+                    cancelUploads={cancelUploads}
+                />
+            ) : (
+                <UploadProgress
+                    open={uploadProgressView}
+                    onClose={closeUploadProgress}
+                    percentComplete={percentComplete}
+                    uploadFileNames={uploadFileNames!}
+                    uploadCounter={uploadCounter}
+                    uploadPhase={uploadPhase}
+                    inProgressUploads={inProgressUploads}
+                    hasLivePhotos={hasLivePhotos}
+                    retryFailed={retryFailed}
+                    finishedUploads={finishedUploads}
+                    preUploadSkippedFiles={preUploadSkippedFiles}
+                    cancelUploads={cancelUploads}
+                />
+            )}
             <CanvasReadbackBlockedDialog
                 open={showCanvasReadbackBlockedDialog}
                 onClose={() => setShowCanvasReadbackBlockedDialog(false)}
@@ -1147,13 +1199,13 @@ const Inputs: React.FC<InputsProps> = ({
 const desktopFilesAndZipItems = async (electron: Electron, files: File[]) => {
     const fileAndPaths: FileAndPath[] = [];
     let zipItems: ZipItem[] = [];
-    let skippedFiles: SkippedFile[] = [];
+    let preUploadSkippedFiles: PreUploadSkippedFile[] = [];
 
     for (const file of files) {
         const path = electron.pathForFile(file);
 
         if (file.name.startsWith(".")) {
-            skippedFiles.push({ name: file.name, type: "hiddenFile" });
+            preUploadSkippedFiles.push({ name: file.name, type: "hiddenFile" });
             continue;
         }
 
@@ -1161,20 +1213,25 @@ const desktopFilesAndZipItems = async (electron: Electron, files: File[]) => {
             try {
                 const result = await electron.listZipItems(path);
                 zipItems = zipItems.concat(result.items);
-                skippedFiles = skippedFiles.concat(result.skippedFiles);
+                preUploadSkippedFiles = preUploadSkippedFiles.concat(
+                    result.preUploadSkippedFiles,
+                );
             } catch (e) {
                 // IPC failure (desktop returns malformed zips as part of
                 // the response, so reaching this catch means something
                 // more fundamental went wrong).
                 log.error("Failed to list zip items", e);
-                skippedFiles.push({ name: file.name, type: "failedZip" });
+                preUploadSkippedFiles.push({
+                    name: file.name,
+                    type: "failedZip",
+                });
             }
         } else {
             fileAndPaths.push({ file, path });
         }
     }
 
-    return { fileAndPaths, zipItems, skippedFiles };
+    return { fileAndPaths, zipItems, preUploadSkippedFiles };
 };
 
 /**
@@ -1344,7 +1401,7 @@ const setPendingUploads = async (
     electron: Electron,
     collections: Collection[],
     uploadItems: UploadItem[],
-    skippedFiles: SkippedFile[],
+    preUploadSkippedFiles: PreUploadSkippedFile[],
 ) => {
     let collectionName: string | undefined;
     /* collection being one suggest one of two things
@@ -1378,11 +1435,13 @@ const setPendingUploads = async (
         collectionName,
         filePaths,
         zipItems,
-        skippedFiles,
+        preUploadSkippedFiles,
     });
 };
 
 type UploadTypeSelectorProps = ModalVisibilityProps & {
+    /** Whether experimental upload UI should be shown. */
+    isInternalUser: boolean;
     /**
      * The particular context / scenario in which this upload is occurring.
      */
@@ -1410,6 +1469,7 @@ type UploadTypeSelectorProps = ModalVisibilityProps & {
 const UploadTypeSelector: React.FC<UploadTypeSelectorProps> = ({
     open,
     onClose,
+    isInternalUser,
     intent,
     pendingUploadType,
     onSelect,
@@ -1435,6 +1495,16 @@ const UploadTypeSelector: React.FC<UploadTypeSelectorProps> = ({
                         boxShadow: "none",
                         border: "1px solid",
                         borderColor: "stroke.faint",
+                        "&:has([data-default-options-v2], [data-takeout-options-v2])":
+                            {
+                                maxWidth: "621px",
+                                p: 0,
+                                borderRadius: "20px",
+                                backgroundColor: "secondary.main",
+                                ...theme.applyStyles("dark", {
+                                    backgroundColor: "background.paper",
+                                }),
+                            },
                         [theme.breakpoints.down(360)]: { p: 0 },
                     }),
                 },
@@ -1446,7 +1516,13 @@ const UploadTypeSelector: React.FC<UploadTypeSelectorProps> = ({
             }}
         >
             <UploadOptions
-                {...{ intent, pendingUploadType, onSelect, onClose }}
+                {...{
+                    isInternalUser,
+                    intent,
+                    pendingUploadType,
+                    onSelect,
+                    onClose,
+                }}
             />
         </Dialog>
     );
@@ -1454,10 +1530,11 @@ const UploadTypeSelector: React.FC<UploadTypeSelectorProps> = ({
 
 type UploadOptionsProps = Pick<
     UploadTypeSelectorProps,
-    "onClose" | "intent" | "pendingUploadType" | "onSelect"
+    "isInternalUser" | "onClose" | "intent" | "pendingUploadType" | "onSelect"
 >;
 
 const UploadOptions: React.FC<UploadOptionsProps> = ({
+    isInternalUser,
     intent,
     pendingUploadType,
     onSelect,
@@ -1494,8 +1571,34 @@ const UploadOptions: React.FC<UploadOptionsProps> = ({
         }
     };
 
+    const handleSelectFiles = () => handleSelect("files");
+    const handleSelectGooglePhotos = () => handleSelect("zips");
+    const handleSelectFolder = () => handleSelect("folders");
+
     return showTakeoutOptions ? (
-        <TakeoutOptions onSelect={handleSelect} onClose={handleTakeoutClose} />
+        isInternalUser ? (
+            <TakeoutOptionsV2
+                onBack={handleTakeoutClose}
+                onSelectFolder={handleSelectFolder}
+                onSelectZips={handleSelectGooglePhotos}
+                {...{ onClose }}
+            />
+        ) : (
+            <TakeoutOptions
+                onSelect={handleSelect}
+                onClose={handleTakeoutClose}
+            />
+        )
+    ) : isInternalUser && intent != "collect" ? (
+        <DefaultOptionsV2
+            intent={intent}
+            isFileSelectionPending={pendingUploadType == "files"}
+            isFolderSelectionPending={pendingUploadType == "folders"}
+            onSelectFiles={handleSelectFiles}
+            onSelectGooglePhotos={handleSelectGooglePhotos}
+            onSelectFolder={handleSelectFolder}
+            {...{ onClose }}
+        />
     ) : (
         <DefaultOptions
             {...{ intent, pendingUploadType, onClose }}
@@ -1504,12 +1607,12 @@ const UploadOptions: React.FC<UploadOptionsProps> = ({
     );
 };
 
-const DefaultOptions: React.FC<UploadOptionsProps> = ({
-    intent,
-    pendingUploadType,
-    onClose,
-    onSelect,
-}) => {
+const DefaultOptions: React.FC<
+    Pick<
+        UploadOptionsProps,
+        "intent" | "pendingUploadType" | "onClose" | "onSelect"
+    >
+> = ({ intent, pendingUploadType, onClose, onSelect }) => {
     return (
         <>
             <SpacedRow>

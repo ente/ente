@@ -1,5 +1,5 @@
 use crate::Result;
-use crate::api::client::ApiClient;
+use crate::api::client::AppClient;
 use crate::api::methods::ApiMethods;
 use crate::models::file::RemoteFile;
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
@@ -14,7 +14,7 @@ use tokio::io::AsyncWriteExt;
 
 /// Manages file downloads with parallel processing and error recovery
 pub struct DownloadManager {
-    api_client: ApiClient,
+    api_client: AppClient,
     temp_dir: PathBuf,
     pub collection_keys: HashMap<i64, Vec<u8>>,
     concurrent_downloads: usize,
@@ -23,7 +23,7 @@ pub struct DownloadManager {
 
 impl DownloadManager {
     /// Create a new download manager
-    pub fn new(api_client: ApiClient) -> Result<Self> {
+    pub fn new(api_client: AppClient) -> Result<Self> {
         let temp_dir = std::env::temp_dir().join("ente-downloads");
         std::fs::create_dir_all(&temp_dir)?;
 
@@ -52,20 +52,14 @@ impl DownloadManager {
     }
 
     /// Download a single file
-    pub async fn download_file(
-        &self,
-        account_id: &str,
-        file: &RemoteFile,
-        destination: &Path,
-    ) -> Result<()> {
-        self.download_file_with_progress(account_id, file, destination, None)
+    pub async fn download_file(&self, file: &RemoteFile, destination: &Path) -> Result<()> {
+        self.download_file_with_progress(file, destination, None)
             .await
     }
 
     /// Download a single file with optional progress bar
     async fn download_file_with_progress(
         &self,
-        account_id: &str,
         file: &RemoteFile,
         destination: &Path,
         progress: Option<Arc<ProgressBar>>,
@@ -92,7 +86,7 @@ impl DownloadManager {
 
         // Get file data
         let api = ApiMethods::new(&self.api_client);
-        let encrypted_data = api.download_file(account_id, file.id).await?;
+        let encrypted_data = api.download_file(file.id).await?;
 
         // Decrypt file
         let decrypted_data = self.decrypt_file_data(file, &encrypted_data)?;
@@ -145,11 +139,7 @@ impl DownloadManager {
     }
 
     /// Download multiple files with concurrency control
-    pub async fn download_files(
-        &self,
-        account_id: &str,
-        files: Vec<(RemoteFile, PathBuf)>,
-    ) -> Result<DownloadStats> {
+    pub async fn download_files(&self, files: Vec<(RemoteFile, PathBuf)>) -> Result<DownloadStats> {
         use futures::stream::{self, StreamExt};
 
         let total = files.len();
@@ -180,14 +170,11 @@ impl DownloadManager {
         let pb_clone = progress_bar.clone();
         let results: Vec<_> = stream::iter(files)
             .map(|(file, path)| {
-                let account_id = account_id.to_string();
                 let file_clone = file.clone();
                 let path_clone = path.clone();
                 let pb = pb_clone.clone();
                 async move {
-                    let result = self
-                        .download_file_with_progress(&account_id, &file, &path, pb)
-                        .await;
+                    let result = self.download_file_with_progress(&file, &path, pb).await;
                     (file_clone, path_clone, result)
                 }
             })
@@ -223,12 +210,7 @@ impl DownloadManager {
     }
 
     /// Download thumbnail for a file
-    pub async fn download_thumbnail(
-        &self,
-        account_id: &str,
-        file: &RemoteFile,
-        destination: &Path,
-    ) -> Result<()> {
+    pub async fn download_thumbnail(&self, file: &RemoteFile, destination: &Path) -> Result<()> {
         log::debug!(
             "Downloading thumbnail for file {} to {:?}",
             file.id,
@@ -242,7 +224,7 @@ impl DownloadManager {
 
         // Get thumbnail data
         let api = ApiMethods::new(&self.api_client);
-        let encrypted_data = api.download_thumbnail(account_id, file.id).await?;
+        let encrypted_data = api.download_thumbnail(file.id).await?;
 
         // Decrypt thumbnail
         let decrypted_data = self.decrypt_file_data(file, &encrypted_data)?;
@@ -291,7 +273,6 @@ impl DownloadManager {
     /// Resume a partial download (for future implementation)
     pub async fn resume_download(
         &self,
-        _account_id: &str,
         _file: &RemoteFile,
         _destination: &Path,
         _offset: u64,

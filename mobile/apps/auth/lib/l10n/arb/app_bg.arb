@@ -176,7 +176,6 @@
   "deleteAccountQuery": "Ще съжаляваме да си тръгнете. Изправени ли сте пред някакъв проблем?",
   "yesSendFeedbackAction": "Да, изпращане на обратна връзка",
   "noDeleteAccountAction": "Не, изтриване на акаунта",
-  "initiateAccountDeleteTitle": "Моля, удостоверете се, за да инициирате изтриването на акаунта",
   "sendEmail": "Изпратете имейл",
   "createNewAccount": "Създаване на нов акаунт",
   "weakStrength": "Слаба",

@@ -140,7 +140,6 @@
   "deleteAccountQuery": "אנו מצטערים שאתה עוזב. האם יש בעיות שאתה חווה?",
   "yesSendFeedbackAction": "כן, שלח משוב",
   "noDeleteAccountAction": "לא, מחק את החשבון",
-  "initiateAccountDeleteTitle": "אנא אמת על מנת להתחיל את מחיקת החשבון שלך",
   "sendEmail": "שלח אימייל",
   "createNewAccount": "צור חשבון חדש",
   "weakStrength": "חלש",

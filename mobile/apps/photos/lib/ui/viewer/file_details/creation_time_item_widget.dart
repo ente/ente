@@ -1,12 +1,12 @@
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:intl/intl.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/pause_video_event.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
-import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/components/info_item_widget.dart";
 import "package:photos/ui/viewer/date/edit_date_sheet.dart";
 import "package:photos/ui/viewer/gallery/jump_to_date_gallery.dart";
 
@@ -22,35 +22,40 @@ class CreationTimeItem extends StatefulWidget {
 class _CreationTimeItemState extends State<CreationTimeItem> {
   @override
   Widget build(BuildContext context) {
+    final colors = context.componentColors;
     final dateTime = _dateTimeForDisplay(widget.file);
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
+    final canEdit =
+        (widget.file.ownerID == null ||
+            widget.file.ownerID == widget.currentUserID) &&
+        widget.file.uploadedFileID != null &&
+        !widget.file.isTrash;
+    return MenuComponent(
+      key: const ValueKey("Creation time"),
+      leading: HugeIcon(
+        icon: HugeIcons.strokeRoundedCalendar04,
+        size: IconSizes.small,
+        color: colors.textLight,
+      ),
+      title: DateFormat.yMMMEd(
+        Localizations.localeOf(context).languageCode,
+      ).format(dateTime),
+      subtitle: getTimeIn12hrFormat(dateTime),
       onTap: () {
         Bus.instance.fire(PauseVideoEvent());
         routeToPage(context, JumpToDateGallery(fileToJumpTo: widget.file));
       },
-      child: InfoItemWidget(
-        key: const ValueKey("Creation time"),
-        leadingIcon: Icons.calendar_today_outlined,
-        title: DateFormat.yMMMEd(
-          Localizations.localeOf(context).languageCode,
-        ).format(dateTime),
-        subtitleSection: Future.value([
-          Text(
-            getTimeIn12hrFormat(dateTime),
-            style: getEnteTextTheme(context).miniMuted,
-          ),
-        ]),
-        editOnTap:
-            ((widget.file.ownerID == null ||
-                    widget.file.ownerID == widget.currentUserID) &&
-                widget.file.uploadedFileID != null &&
-                !widget.file.isTrash)
-            ? () {
-                _showDateTimePicker(widget.file);
-              }
-            : null,
-      ),
+      trailing: canEdit
+          ? IconButtonComponent(
+              icon: HugeIcon(
+                icon: HugeIcons.strokeRoundedEdit03,
+                size: IconSizes.small,
+                color: colors.textLight,
+              ),
+              variant: IconButtonComponentVariant.secondary,
+              shouldSurfaceExecutionStates: false,
+              onTap: () => _showDateTimePicker(widget.file),
+            )
+          : null,
     );
   }
 

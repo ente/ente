@@ -1,1 +1,1 @@
-- Removed unimplemented sync code
+- Removed unimplemented sync code.

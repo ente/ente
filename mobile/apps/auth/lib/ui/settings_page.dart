@@ -104,13 +104,16 @@ class SettingsPage extends StatelessWidget {
             );
             if (result == null) return;
             if (result.action == ButtonAction.first) {
+              if (!context.mounted) return;
               await handleExportClick(context);
             } else {
+              if (!context.mounted) return;
               if (result.action == ButtonAction.second) {
                 bool hasCodes = (await CodeStore.instance.getAllCodes())
                     .where((element) => !element.hasError)
                     .isNotEmpty;
                 if (hasCodes) {
+                  if (!context.mounted) return;
                   final hasAuthenticated = await LocalAuthenticationService
                       .instance
                       .requestLocalAuthentication(
@@ -121,6 +124,7 @@ class SettingsPage extends StatelessWidget {
                     return;
                   }
                 }
+                if (!context.mounted) return;
                 await routeToPage(context, const OnboardingPage());
               }
             }

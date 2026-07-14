@@ -1621,6 +1621,7 @@ class CollectionsService {
       return collection;
     } on PublicCollectionInfoExpiredException catch (e, s) {
       _logger.warning("Public collection link expired", e, s);
+      if (!context.mounted) return null;
       await showInfoDialog(
         context,
         title: AppLocalizations.of(context).linkExpired,
@@ -1631,6 +1632,7 @@ class CollectionsService {
       return null;
     } on PublicCollectionDeviceLimitExceededException catch (e, s) {
       _logger.warning("Public collection link device limit reached", e, s);
+      if (!context.mounted) return null;
       await showErrorDialog(
         context,
         AppLocalizations.of(context).canNotOpenTitle,
@@ -1639,6 +1641,7 @@ class CollectionsService {
       return null;
     } on PublicCollectionRateLimitedException catch (e, s) {
       _logger.warning("Public collection link request rate limited", e, s);
+      if (!context.mounted) return null;
       await showErrorDialog(
         context,
         AppLocalizations.of(context).canNotOpenTitle,
@@ -1647,6 +1650,7 @@ class CollectionsService {
       return null;
     } on PublicCollectionInfoUnauthorizedException catch (e, s) {
       _logger.warning("Public collection link is unauthorized", e, s);
+      if (!context.mounted) return null;
       await showErrorDialog(
         context,
         AppLocalizations.of(context).canNotOpenTitle,
@@ -1656,7 +1660,9 @@ class CollectionsService {
     } catch (e, s) {
       _logger.warning("Failed to fetch public collection", e, s);
       _logger.severe("Failed to fetch public collection");
-      await showGenericErrorDialog(context: context, error: e);
+      if (context.mounted) {
+        await showGenericErrorDialog(context: context, error: e);
+      }
       rethrow;
     }
   }
@@ -1680,6 +1686,7 @@ class CollectionsService {
       return true;
     } catch (e) {
       _logger.warning("Failed to verify public collection password $e");
+      if (!context.mounted) return false;
       await showErrorDialog(
         context,
         AppLocalizations.of(context).incorrectPasswordTitle,
@@ -2229,27 +2236,28 @@ class CollectionsService {
       getCollectionKey(destCollectionID),
     );
 
-    localFileToUpload.encryptedKey = CryptoUtil.bin2base64(
-      encryptedKeyData.encryptedData!,
-    );
-    localFileToUpload.keyDecryptionNonce = CryptoUtil.bin2base64(
-      encryptedKeyData.nonce!,
-    );
+    final encryptedKey = CryptoUtil.bin2base64(encryptedKeyData.encryptedData!);
+    final keyDecryptionNonce = CryptoUtil.bin2base64(encryptedKeyData.nonce!);
 
     final fileItems = [
-      CollectionFileItem(
-        uploadedFileID,
-        localFileToUpload.encryptedKey!,
-        localFileToUpload.keyDecryptionNonce!,
-      ),
+      CollectionFileItem(uploadedFileID, encryptedKey, keyDecryptionNonce),
     ];
 
     try {
       await collectionFilesGateway.addFiles(destCollectionID, fileItems);
-      localFileToUpload.collectionID = destCollectionID;
-      localFileToUpload.uploadedFileID = uploadedFileID;
-      await _filesDB.insertMultiple([localFileToUpload]);
-      return localFileToUpload;
+      final linkedFile = existingUploadedFile.copyWith(
+        uploadedFileID: uploadedFileID,
+        collectionID: destCollectionID,
+        encryptedKey: encryptedKey,
+        keyDecryptionNonce: keyDecryptionNonce,
+      );
+      linkedFile.generatedID = localFileToUpload.generatedID;
+      linkedFile.localID = localFileToUpload.localID;
+      linkedFile.deviceFolder =
+          localFileToUpload.deviceFolder ?? linkedFile.deviceFolder;
+      linkedFile.addedTime = localFileToUpload.addedTime;
+      await _filesDB.insertMultiple([linkedFile]);
+      return linkedFile;
     } catch (e) {
       rethrow;
     }

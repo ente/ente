@@ -193,7 +193,6 @@
   "deleteAccountQuery": "Nous sommes désolés de vous voir partir. Rencontrez-vous un problème ?",
   "yesSendFeedbackAction": "Oui, envoyer un commentaire",
   "noDeleteAccountAction": "Non, supprimer le compte",
-  "initiateAccountDeleteTitle": "Veuillez vous authentifier pour débuter la suppression du compte",
   "sendEmail": "Envoyer un e-mail",
   "createNewAccount": "Créer un nouveau compte",
   "weakStrength": "Faible",

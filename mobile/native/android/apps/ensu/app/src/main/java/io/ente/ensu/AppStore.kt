@@ -55,7 +55,6 @@ class AppStore(
     )
     fun bootstrap(scope: CoroutineScope) {
         chatActions.setScope(scope)
-        attachmentActions.setScope(scope)
         modelSettingsActions.setScope(scope)
         refreshDeviceCapability(scope)
         chatActions.bootstrap(scope)
@@ -185,6 +184,4 @@ class AppStore(
         modelSettingsActions.hydratePersistedModelSettings(modelSettings)
     }
 
-    fun cancelAttachmentDownload(attachmentId: String) =
-        attachmentActions.cancelAttachmentDownload(attachmentId)
 }

@@ -44,6 +44,76 @@ func TestApproveRecoveryRejectsSpoofedSessionPartiesBeforeUpdate(t *testing.T) {
 	}
 }
 
+func TestRejectRecoveryRejectsSpoofedSessionPartiesBeforeUpdate(t *testing.T) {
+	ctx, db, ctrl := setupEmergencyRecoveryControllerTest(t)
+
+	ownerID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       1,
+		Email:        "legacy-owner@ente.com",
+		CreationTime: 1,
+	})
+	contactID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       2,
+		Email:        "trusted-contact@ente.com",
+		CreationTime: 1,
+	})
+	attackerID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       3,
+		Email:        "attacker@ente.com",
+		CreationTime: 1,
+	})
+	sessionID := mustInsertEmergencyRecoverySession(t, db, ownerID, contactID, ente.RecoveryStatusWaiting)
+
+	err := ctrl.RejectRecovery(ctx, attackerID, ente.RecoveryIdentifier{
+		ID:                 sessionID,
+		UserID:             attackerID,
+		EmergencyContactID: contactID,
+	})
+	if !errors.Is(err, ente.ErrPermissionDenied) {
+		t.Fatalf("RejectRecovery() error = %v, want permission denied", err)
+	}
+
+	status := mustGetEmergencyRecoveryStatus(t, db, sessionID)
+	if status != ente.RecoveryStatusWaiting {
+		t.Fatalf("recovery status = %s, want %s", status, ente.RecoveryStatusWaiting)
+	}
+}
+
+func TestStopRecoveryRejectsSpoofedSessionPartiesBeforeUpdate(t *testing.T) {
+	ctx, db, ctrl := setupEmergencyRecoveryControllerTest(t)
+
+	ownerID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       1,
+		Email:        "legacy-owner@ente.com",
+		CreationTime: 1,
+	})
+	contactID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       2,
+		Email:        "trusted-contact@ente.com",
+		CreationTime: 1,
+	})
+	attackerID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       3,
+		Email:        "attacker@ente.com",
+		CreationTime: 1,
+	})
+	sessionID := mustInsertEmergencyRecoverySession(t, db, ownerID, contactID, ente.RecoveryStatusWaiting)
+
+	err := ctrl.StopRecovery(ctx, attackerID, ente.RecoveryIdentifier{
+		ID:                 sessionID,
+		UserID:             ownerID,
+		EmergencyContactID: attackerID,
+	})
+	if !errors.Is(err, ente.ErrPermissionDenied) {
+		t.Fatalf("StopRecovery() error = %v, want permission denied", err)
+	}
+
+	status := mustGetEmergencyRecoveryStatus(t, db, sessionID)
+	if status != ente.RecoveryStatusWaiting {
+		t.Fatalf("recovery status = %s, want %s", status, ente.RecoveryStatusWaiting)
+	}
+}
+
 func setupEmergencyRecoveryControllerTest(t *testing.T) (*gin.Context, *sql.DB, *Controller) {
 	t.Helper()
 

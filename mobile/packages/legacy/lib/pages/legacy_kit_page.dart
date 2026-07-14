@@ -579,9 +579,7 @@ class _LegacyKitPageState extends State<LegacyKitPage> {
   }
 
   bool _isActiveRecoverySessionError(Object error) {
-    return error is rust.ContactsError_Http &&
-        error.status == 400 &&
-        error.message.contains("active recovery session");
+    return error is rust.ContactsError_ActiveRecoverySession;
   }
 
   String _fileNameForKit(LegacyKit kit, {LegacyKitPart? part}) {

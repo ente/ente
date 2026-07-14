@@ -1,7 +1,7 @@
 use std::{
     ffi::OsStr,
     fs::File,
-    io::{BufReader, Cursor},
+    io::{BufRead, BufReader, Cursor, Seek},
     path::Path,
     sync::Once,
 };
@@ -13,19 +13,35 @@ use ente_heic::{
     },
     path_extension_is_heif,
 };
-use exif::{In, Reader as ExifReader, Tag};
-use image::{DynamicImage, ImageFormat, ImageReader, hooks::decoding_hook_registered};
+use exif::{In, Reader as ExifReader, Tag as ExifTag};
+use image::{
+    DynamicImage, ImageDecoder, ImageFormat, ImageReader, Limits, hooks::decoding_hook_registered,
+};
+use jxl_oxide::integration::register_image_decoding_hook as register_jxl_decoding_hook;
 use tiff::{
     ColorType as TiffColorType,
     decoder::{Decoder as TiffDecoder, DecodingResult as TiffDecodingResult},
+    tags::Tag as TiffTag,
 };
 
 use crate::{
+    color_management::apply_icc_profile_to_srgb,
     error::{ImageError, ImageResult},
     types::{DecodedImage, Dimensions},
 };
 
 static IMAGE_DECODER_HOOKS_INIT: Once = Once::new();
+
+struct DecodedDynamicImage {
+    image: DynamicImage,
+    icc_profile: Option<Vec<u8>>,
+}
+
+impl DecodedDynamicImage {
+    fn into_srgb(self) -> DynamicImage {
+        apply_icc_profile_to_srgb(self.image, self.icc_profile.as_deref())
+    }
+}
 
 pub fn decode_image_from_path(image_path: &str) -> ImageResult<DecodedImage> {
     let decoded_dynamic = decode_with_image_crate(image_path)?;
@@ -62,8 +78,8 @@ fn decode_with_image_crate(image_path: &str) -> ImageResult<DynamicImage> {
         .map_err(|e| ImageError::Decode(format!("failed to guess image format: {e}")))?;
     let guessed_format = reader.format();
 
-    match reader.decode() {
-        Ok(decoded) => Ok(decoded),
+    match decode_reader_with_image_crate(reader) {
+        Ok(decoded) => Ok(decoded.into_srgb()),
         Err(primary_error) if should_attempt_tiff_fallback(guessed_format) => {
             eprintln!(
                 "[ml][decode] image crate TIFF decode failed for '{}': {}. Retrying with tiff crate fallback",
@@ -71,7 +87,7 @@ fn decode_with_image_crate(image_path: &str) -> ImageResult<DynamicImage> {
             );
 
             match decode_with_tiff_crate(image_path) {
-                Ok(decoded) => Ok(decoded),
+                Ok(decoded) => Ok(decoded.into_srgb()),
                 Err(ImageError::Decode(fallback_error)) => Err(ImageError::Decode(format!(
                     "failed to decode TIFF with image crate: {primary_error}; fallback with tiff crate also failed: {fallback_error}"
                 ))),
@@ -90,11 +106,11 @@ fn decode_bytes_with_image_crate(image_bytes: &[u8]) -> ImageResult<DynamicImage
         .map_err(|e| ImageError::Decode(format!("failed to guess image format: {e}")))?;
     let guessed_format = reader.format();
 
-    match reader.decode() {
-        Ok(decoded) => Ok(decoded),
+    match decode_reader_with_image_crate(reader) {
+        Ok(decoded) => Ok(decoded.into_srgb()),
         Err(primary_error) if should_attempt_tiff_fallback(guessed_format) => {
             match decode_tiff_from_bytes(image_bytes) {
-                Ok(decoded) => Ok(decoded),
+                Ok(decoded) => Ok(decoded.into_srgb()),
                 Err(ImageError::Decode(fallback_error)) => Err(ImageError::Decode(format!(
                     "failed to decode TIFF with image crate: {primary_error}; fallback with tiff crate also failed: {fallback_error}"
                 ))),
@@ -105,11 +121,39 @@ fn decode_bytes_with_image_crate(image_bytes: &[u8]) -> ImageResult<DynamicImage
     }
 }
 
+fn decode_reader_with_image_crate<R>(
+    reader: ImageReader<R>,
+) -> image::ImageResult<DecodedDynamicImage>
+where
+    R: BufRead + Seek,
+{
+    // HEIF-family readers resolve to ente_heic's lazy hook adapter here. Keep
+    // the decoder intact until DynamicImage allocates and supplies its output
+    // buffer so the adapter can decode directly into it.
+    let mut decoder = reader.into_decoder()?;
+    let icc_profile = match decoder.icc_profile() {
+        Ok(icc_profile) => icc_profile,
+        Err(err) => {
+            eprintln!("[ml][decode] failed to read embedded ICC profile: {err}");
+            None
+        }
+    };
+
+    let mut limits = Limits::default();
+    limits.reserve(decoder.total_bytes())?;
+    decoder.set_limits(limits)?;
+
+    Ok(DecodedDynamicImage {
+        image: DynamicImage::from_decoder(decoder)?,
+        icc_profile,
+    })
+}
+
 fn should_attempt_tiff_fallback(format: Option<ImageFormat>) -> bool {
     matches!(format, Some(ImageFormat::Tiff))
 }
 
-fn decode_with_tiff_crate(image_path: &str) -> ImageResult<DynamicImage> {
+fn decode_with_tiff_crate(image_path: &str) -> ImageResult<DecodedDynamicImage> {
     let file = File::open(image_path)
         .map_err(|e| ImageError::Decode(format!("failed to open TIFF file '{image_path}': {e}")))?;
     let mut decoder = TiffDecoder::new(BufReader::new(file))
@@ -120,14 +164,18 @@ fn decode_with_tiff_crate(image_path: &str) -> ImageResult<DynamicImage> {
     let color_type = decoder
         .colortype()
         .map_err(|e| ImageError::Decode(format!("failed to read TIFF color type: {e}")))?;
+    let icc_profile = decoder.get_tag_u8_vec(TiffTag::IccProfile).ok();
     let decoded = decoder
         .read_image()
         .map_err(|e| ImageError::Decode(format!("failed to decode TIFF image data: {e}")))?;
 
-    dynamic_image_from_tiff(image_path, width, height, color_type, decoded)
+    Ok(DecodedDynamicImage {
+        image: dynamic_image_from_tiff(image_path, width, height, color_type, decoded)?,
+        icc_profile,
+    })
 }
 
-fn decode_tiff_from_bytes(image_bytes: &[u8]) -> ImageResult<DynamicImage> {
+fn decode_tiff_from_bytes(image_bytes: &[u8]) -> ImageResult<DecodedDynamicImage> {
     let mut decoder = TiffDecoder::new(Cursor::new(image_bytes))
         .map_err(|e| ImageError::Decode(format!("failed to initialize TIFF decoder: {e}")))?;
     let (width, height) = decoder
@@ -136,11 +184,15 @@ fn decode_tiff_from_bytes(image_bytes: &[u8]) -> ImageResult<DynamicImage> {
     let color_type = decoder
         .colortype()
         .map_err(|e| ImageError::Decode(format!("failed to read TIFF color type: {e}")))?;
+    let icc_profile = decoder.get_tag_u8_vec(TiffTag::IccProfile).ok();
     let decoded = decoder
         .read_image()
         .map_err(|e| ImageError::Decode(format!("failed to decode TIFF image data: {e}")))?;
 
-    dynamic_image_from_tiff("<bytes>", width, height, color_type, decoded)
+    Ok(DecodedDynamicImage {
+        image: dynamic_image_from_tiff("<bytes>", width, height, color_type, decoded)?,
+        icc_profile,
+    })
 }
 
 fn dynamic_image_from_tiff(
@@ -230,6 +282,8 @@ fn init_image_decoders() {
         let heic_hook_active = decoding_hook_registered(OsStr::new("heic"));
         let heif_hook_active = decoding_hook_registered(OsStr::new("heif"));
         let avif_hook_active = decoding_hook_registered(OsStr::new("avif"));
+        let jxl_registered_now = register_jxl_decoding_hook();
+        let jxl_hook_active = decoding_hook_registered(OsStr::new("jxl"));
         let has_heif_family_support = heic_hook_active || heif_hook_active;
 
         if !has_heif_family_support {
@@ -258,6 +312,14 @@ fn init_image_decoders() {
             heic_hook_active || heif_hook_active || avif_hook_active,
             "no ente_heic image decoder hooks are active"
         );
+
+        if !jxl_hook_active {
+            eprintln!(
+                "[ml][decode] failed to activate JPEG XL decoder hook; registered_now={jxl_registered_now}, active_hook={jxl_hook_active}"
+            );
+        }
+
+        debug_assert!(jxl_hook_active, "JPEG XL image decoder hook is not active");
     });
 }
 
@@ -333,7 +395,7 @@ fn read_exif_orientation_from_path(image_path: &str) -> Option<u8> {
     let mut reader = BufReader::new(file);
     let exif = ExifReader::new().read_from_container(&mut reader).ok()?;
 
-    exif.get_field(Tag::Orientation, In::PRIMARY)
+    exif.get_field(ExifTag::Orientation, In::PRIMARY)
         .and_then(|field| field.value.get_uint(0))
         .and_then(|value| u8::try_from(value).ok())
         .filter(|value| (1..=8).contains(value))
@@ -343,7 +405,7 @@ fn read_exif_orientation_from_bytes(image_bytes: &[u8]) -> Option<u8> {
     let mut reader = BufReader::new(Cursor::new(image_bytes));
     let exif = ExifReader::new().read_from_container(&mut reader).ok()?;
 
-    exif.get_field(Tag::Orientation, In::PRIMARY)
+    exif.get_field(ExifTag::Orientation, In::PRIMARY)
         .and_then(|field| field.value.get_uint(0))
         .and_then(|value| u8::try_from(value).ok())
         .filter(|value| (1..=8).contains(value))
@@ -371,9 +433,16 @@ fn bytes_look_like_heif(image_bytes: &[u8]) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use image::ImageFormat;
+    use std::ffi::OsStr;
 
-    use super::{bytes_look_like_heif, should_attempt_tiff_fallback};
+    use image::hooks::decoding_hook_registered;
+    use image::{ColorType, ImageEncoder, ImageFormat, codecs::png::PngEncoder};
+    use moxcms::ColorProfile;
+
+    use super::{
+        bytes_look_like_heif, decode_image_from_bytes, init_image_decoders,
+        should_attempt_tiff_fallback,
+    };
 
     #[test]
     fn attempts_tiff_fallback_for_tiff_format() {
@@ -398,5 +467,58 @@ mod tests {
     #[test]
     fn skips_non_heif_bytes() {
         assert!(!bytes_look_like_heif(b"not an image"));
+    }
+
+    #[test]
+    fn registers_jxl_decoder_hook() {
+        init_image_decoders();
+
+        assert!(decoding_hook_registered(OsStr::new("jxl")));
+    }
+
+    #[test]
+    fn registers_heif_family_decoder_hooks() {
+        init_image_decoders();
+
+        assert!(decoding_hook_registered(OsStr::new("heic")));
+        assert!(decoding_hook_registered(OsStr::new("heif")));
+        assert!(decoding_hook_registered(OsStr::new("avif")));
+    }
+
+    #[test]
+    fn decode_applies_embedded_png_display_p3_profile() {
+        let display_p3_icc = ColorProfile::new_display_p3().encode().unwrap();
+        let png = encode_rgb8_png_with_icc(&[128, 0, 0], display_p3_icc);
+
+        let decoded = decode_image_from_bytes(&png).unwrap();
+
+        assert_eq!(decoded.dimensions.width, 1);
+        assert_eq!(decoded.dimensions.height, 1);
+        assert!(
+            decoded.rgb[0] > 128,
+            "expected red channel to move into sRGB"
+        );
+        assert_eq!(decoded.rgb[1], 0);
+        assert_eq!(decoded.rgb[2], 0);
+    }
+
+    #[test]
+    fn decode_leaves_embedded_png_srgb_profile_unchanged() {
+        let srgb_icc = ColorProfile::new_srgb().encode().unwrap();
+        let png = encode_rgb8_png_with_icc(&[128, 64, 32], srgb_icc);
+
+        let decoded = decode_image_from_bytes(&png).unwrap();
+
+        assert_eq!(decoded.rgb, vec![128, 64, 32]);
+    }
+
+    fn encode_rgb8_png_with_icc(pixel: &[u8; 3], icc_profile: Vec<u8>) -> Vec<u8> {
+        let mut encoded = Vec::new();
+        let mut encoder = PngEncoder::new(&mut encoded);
+        encoder.set_icc_profile(icc_profile).unwrap();
+        encoder
+            .write_image(pixel, 1, 1, ColorType::Rgb8.into())
+            .unwrap();
+        encoded
     }
 }

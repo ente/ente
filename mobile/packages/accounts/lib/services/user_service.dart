@@ -119,7 +119,10 @@ class UserService {
     } on DioException catch (e) {
       await dialog.hide();
       _logger.info(e);
-      final String? enteErrCode = e.response?.data["code"];
+      final responseData = e.response?.data;
+      final Object? enteErrCode = responseData is Map
+          ? responseData["code"]
+          : null;
       if (enteErrCode != null && enteErrCode == "USER_ALREADY_REGISTERED") {
         unawaited(
           showAlertBottomSheet(

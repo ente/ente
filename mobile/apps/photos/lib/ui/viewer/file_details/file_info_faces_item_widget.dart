@@ -1,8 +1,9 @@
 import "dart:async";
 import "dart:typed_data";
 
-import "package:dotted_border/dotted_border.dart";
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/ml/db.dart";
@@ -22,12 +23,9 @@ import "package:photos/services/machine_learning/face_ml/person/person_service.d
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
-import "package:photos/ui/components/buttons/chip_button_widget.dart";
-import "package:photos/ui/components/buttons/icon_button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
 import "package:photos/ui/viewer/file_details/file_info_face_widget.dart";
 import "package:photos/ui/viewer/people/add_files_to_person_page.dart";
-import "package:photos/ui/viewer/people/face_thumbnail_squircle.dart";
 import "package:photos/ui/viewer/people/people_page.dart";
 import "package:photos/ui/viewer/people/person_face_widget.dart";
 import "package:photos/utils/dialog_util.dart";
@@ -45,7 +43,8 @@ class FacesItemWidget extends StatefulWidget {
 }
 
 class _FacesItemWidgetState extends State<FacesItemWidget> {
-  static const double _kHeaderActionHeight = 48;
+  static const double _kHeaderActionHeight = 36;
+  static const double _kFaceThumbnailSize = 60;
   bool _isEditMode = false;
   bool _showRemainingFaces = false;
   bool _isLoading = true;
@@ -112,30 +111,18 @@ class _FacesItemWidgetState extends State<FacesItemWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const IconButtonWidget(
-          icon: Icons.face_retouching_natural_outlined,
-          iconButtonType: IconButtonType.secondary,
-        ),
-        const SizedBox(width: 12),
-        _buildContent(),
-      ],
-    );
+    return _buildContent();
   }
 
   Widget _buildContent() {
     if (_isLoading) {
-      return const Expanded(
-        child: Padding(
-          padding: EdgeInsets.only(top: 8, right: 12),
-          child: Center(
-            child: EnteLoadingWidget(
-              padding: 6,
-              size: 20,
-              alignment: Alignment.center,
-            ),
+      return const Padding(
+        padding: EdgeInsets.only(top: 8),
+        child: Center(
+          child: EnteLoadingWidget(
+            padding: 6,
+            size: 20,
+            alignment: Alignment.center,
           ),
         ),
       );
@@ -147,32 +134,27 @@ class _FacesItemWidgetState extends State<FacesItemWidget> {
       return _buildNoFacesWidget();
     }
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final thumbnailWidth = screenWidth * 0.16;
+    const double thumbnailWidth = _kFaceThumbnailSize;
 
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                AppLocalizations.of(context).people,
-                style: getEnteTextTheme(context).small,
-              ),
-              _editStateButton(),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _buildPeopleGrid(thumbnailWidth),
-          if (_remainingFaces.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _buildRemainingFacesSection(thumbnailWidth),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(AppLocalizations.of(context).people, style: TextStyles.h2),
+            _editStateButton(),
           ],
+        ),
+        const SizedBox(height: Spacing.lg),
+        _buildPeopleGrid(thumbnailWidth),
+        if (_remainingFaces.isNotEmpty) ...[
+          const SizedBox(height: Spacing.lg),
+          _buildRemainingFacesSection(thumbnailWidth),
         ],
-      ),
+      ],
     );
   }
 
@@ -217,41 +199,12 @@ class _FacesItemWidgetState extends State<FacesItemWidget> {
     if (!isLocalGalleryMode &&
         flagService.manualTagFileToPerson &&
         widget.file.uploadedFileID != null) {
-      children.add(_buildAddPersonButton(thumbnailWidth));
+      children.add(_buildAddFaceThumbnail(onTap: _openAddFilesToPersonPage));
     }
 
     return Padding(
       padding: const EdgeInsets.only(right: 12.0),
       child: Wrap(runSpacing: 8, spacing: 12, children: children),
-    );
-  }
-
-  Widget _buildAddPersonButton(double thumbnailWidth) {
-    final colorScheme = getEnteColorScheme(context);
-    const strokeWidth = 1.0;
-    final innerSize = thumbnailWidth - strokeWidth * 2;
-    return GestureDetector(
-      onTap: _openAddFilesToPersonPage,
-      child: DottedBorder(
-        options: CustomPathDottedBorderOptions(
-          customPath: faceThumbnailSquircleOuterPath,
-          color: colorScheme.strokeMuted,
-          strokeWidth: strokeWidth,
-          dashPattern: const [4, 4],
-          padding: EdgeInsets.zero,
-        ),
-        child: SizedBox(
-          height: innerSize,
-          width: innerSize,
-          child: Center(
-            child: Icon(
-              Icons.person_add_alt_1_outlined,
-              color: colorScheme.strokeMuted,
-              size: 24,
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -350,16 +303,43 @@ class _FacesItemWidgetState extends State<FacesItemWidget> {
         !isLocalGalleryMode &&
         flagService.manualTagFileToPerson &&
         reason == NoFacesReason.noFacesFound;
-    final label = showManualTagOption
-        ? AppLocalizations.of(context).noFacesDetectedTapToAdd
-        : getNoFaceReasonText(context, reason);
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.only(right: 12, top: 8),
-        child: ChipButtonWidget(
-          label,
-          noChips: true,
-          onTap: showManualTagOption ? _openAddFilesToPersonPage : null,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(AppLocalizations.of(context).people, style: TextStyles.h2),
+        const SizedBox(height: Spacing.lg),
+        if (showManualTagOption)
+          _buildAddFaceThumbnail(onTap: _openAddFilesToPersonPage)
+        else
+          Text(
+            getNoFaceReasonText(context, reason),
+            style: TextStyles.body.copyWith(
+              color: context.componentColors.textLighter,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildAddFaceThumbnail({VoidCallback? onTap}) {
+    final colors = context.componentColors;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        width: _kFaceThumbnailSize,
+        height: _kFaceThumbnailSize,
+        decoration: BoxDecoration(
+          color: colors.fillLight,
+          borderRadius: BorderRadius.circular(Radii.button),
+        ),
+        child: Center(
+          child: HugeIcon(
+            icon: HugeIcons.strokeRoundedUserAdd01,
+            size: IconSizes.medium,
+            color: colors.textLight,
+          ),
         ),
       ),
     );
@@ -407,7 +387,7 @@ class _FacesItemWidgetState extends State<FacesItemWidget> {
               children: [
                 Text(
                   AppLocalizations.of(context).otherDetectedFaces,
-                  style: getEnteTextTheme(context).miniMuted,
+                  style: TextStyles.bodyBold,
                 ),
                 const Spacer(),
                 Padding(
@@ -436,56 +416,49 @@ class _FacesItemWidgetState extends State<FacesItemWidget> {
     if (isLocalGalleryMode) {
       return const SizedBox.shrink();
     }
+    final Widget action;
     if (_isEditMode) {
       final hasSelection = _selectedFaceInfos().isNotEmpty;
-      return Padding(
-        padding: const EdgeInsets.only(right: 12.0),
-        child: SizedBox(
-          height: _kHeaderActionHeight,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (hasSelection)
-                IconButtonWidget(
-                  icon: Icons.person_off_outlined,
-                  iconButtonType: IconButtonType.secondary,
-                  onTap: _onIgnoreSelectedFaces,
-                ),
-              if (hasSelection) const SizedBox(width: 8),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _toggleEditMode,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: getEnteColorScheme(context).primary500,
-                        width: 1,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      AppLocalizations.of(context).done,
-                      style: getEnteTextTheme(context).small.copyWith(
-                        color: getEnteColorScheme(context).primary500,
-                      ),
-                    ),
-                  ),
-                ),
+      action = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasSelection) ...[
+            IconButtonComponent(
+              icon: HugeIcon(
+                icon: HugeIcons.strokeRoundedUserBlock01,
+                size: IconSizes.small,
+                color: context.componentColors.textLight,
               ),
-            ],
+              variant: IconButtonComponentVariant.secondary,
+              shouldSurfaceExecutionStates: false,
+              onTap: _onIgnoreSelectedFaces,
+            ),
+            const SizedBox(width: 8),
+          ],
+          ButtonComponent(
+            label: AppLocalizations.of(context).done,
+            variant: ButtonComponentVariant.link,
+            size: ButtonComponentSize.small,
+            shouldSurfaceExecutionStates: false,
+            onTap: _toggleEditMode,
           ),
+        ],
+      );
+    } else {
+      action = IconButtonComponent(
+        icon: HugeIcon(
+          icon: HugeIcons.strokeRoundedEdit03,
+          size: IconSizes.small,
+          color: context.componentColors.textLight,
         ),
+        variant: IconButtonComponentVariant.secondary,
+        shouldSurfaceExecutionStates: false,
+        onTap: _toggleEditMode,
       );
     }
-    return IconButtonWidget(
-      icon: Icons.edit,
-      iconButtonType: IconButtonType.secondary,
-      onTap: _toggleEditMode,
+    return SizedBox(
+      height: _kHeaderActionHeight,
+      child: Align(alignment: Alignment.centerRight, child: action),
     );
   }
 
@@ -908,10 +881,11 @@ class _ManualPersonTag extends StatelessWidget {
                   Container(
                     height: thumbnailWidth,
                     width: thumbnailWidth,
-                    decoration: ShapeDecoration(
-                      shape: faceThumbnailSquircleBorder(side: thumbnailWidth),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(Radii.button),
                     ),
-                    child: FaceThumbnailSquircleClip(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(Radii.button),
                       child: PersonFaceWidget(
                         personId: person.remoteID,
                         keepAlive: true,
@@ -948,7 +922,7 @@ class _ManualPersonTag extends StatelessWidget {
                 child: Center(
                   child: Text(
                     displayName,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: TextStyles.body,
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
                   ),
