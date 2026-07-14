@@ -1,5 +1,3 @@
-import "dart:async";
-
 import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:photos/services/notification_service.dart";
@@ -25,8 +23,6 @@ class CraftMemories extends StatefulWidget {
 class _CraftMemoriesState extends State<CraftMemories> {
   late final rive.FileLoader _riveFileLoader;
   bool _isButtonPressed = false;
-  bool _isCheckingPermission = false;
-  Timer? _permissionTimer;
 
   @override
   void initState() {
@@ -39,7 +35,6 @@ class _CraftMemoriesState extends State<CraftMemories> {
 
   @override
   void dispose() {
-    _permissionTimer?.cancel();
     _riveFileLoader.dispose();
     super.dispose();
   }
@@ -110,7 +105,12 @@ class _CraftMemoriesState extends State<CraftMemories> {
 
   Widget _buildButton() {
     return GestureDetector(
-      onTap: _requestPermissions,
+      onTap: () async {
+        if (await NotificationService.instance.requestPermissions() &&
+            mounted) {
+          widget.onNotificationsPermissionGranted?.call();
+        }
+      },
       onTapDown: (_) => setState(() => _isButtonPressed = true),
       onTapUp: (_) => setState(() => _isButtonPressed = false),
       onTapCancel: () => setState(() => _isButtonPressed = false),
@@ -139,35 +139,5 @@ class _CraftMemoriesState extends State<CraftMemories> {
         ),
       ),
     );
-  }
-
-  Future<void> _requestPermissions() async {
-    const pollInterval = Duration(milliseconds: 500);
-    const pollTimeout = Duration(minutes: 1);
-    _permissionTimer ??= Timer.periodic(pollInterval, (timer) {
-      _completePermissionRequest();
-      if (timer.tick * pollInterval.inMilliseconds >=
-          pollTimeout.inMilliseconds) {
-        timer.cancel();
-        _permissionTimer = null;
-      }
-    });
-    await NotificationService.instance.requestPermissions();
-    await _completePermissionRequest();
-  }
-
-  Future<void> _completePermissionRequest() async {
-    if (_isCheckingPermission) return;
-    _isCheckingPermission = true;
-
-    try {
-      if (!await NotificationService.instance.hasGrantedPermissions()) return;
-      _permissionTimer?.cancel();
-      _permissionTimer = null;
-      if (!mounted) return;
-      widget.onNotificationsPermissionGranted?.call();
-    } finally {
-      _isCheckingPermission = false;
-    }
   }
 }

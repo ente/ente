@@ -1,3 +1,4 @@
+import "dart:async";
 import 'dart:io';
 
 import "package:android_intent_plus/android_intent.dart";
@@ -161,7 +162,26 @@ class NotificationService {
     return 'UTC';
   }
 
-  Future<void> requestPermissions() async {
+  Future<bool> requestPermissions() async {
+    if (await _askPermissions()) {
+      return true;
+    }
+
+    const interval = Duration(milliseconds: 500);
+    const maxAttempts = 1000;
+
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      await Future.delayed(interval);
+
+      if (await hasGrantedPermissions()) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  Future<bool> _askPermissions() async {
     await _ensurePluginInitialized();
     final granted = Platform.isIOS
         ? await _notificationsPlugin
@@ -175,6 +195,7 @@ class NotificationService {
               >()
               ?.requestNotificationsPermission();
     if (granted == false) await _openNotificationSettings();
+    return granted ?? false;
   }
 
   Future<void> _openNotificationSettings() async {

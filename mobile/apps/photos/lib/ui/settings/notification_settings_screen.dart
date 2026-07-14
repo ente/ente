@@ -1,5 +1,3 @@
-import "dart:async";
-
 import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:photos/generated/l10n.dart";
@@ -18,60 +16,33 @@ class NotificationSettingsScreen extends StatefulWidget {
 
 class _NotificationSettingsScreenState
     extends State<NotificationSettingsScreen> {
-  bool _hasPermission = false, _isCompletingToggle = false;
-  Future<void> Function(bool toggleCurrent)? _pendingToggle;
-  Timer? _permissionTimer;
+  bool _hasPermission = false;
 
   @override
   void initState() {
     super.initState();
-    _refreshNotificationPermission();
+    NotificationService.instance.hasGrantedPermissions().then((granted) {
+      if (mounted && _hasPermission != granted) {
+        setState(() => _hasPermission = granted);
+      }
+    });
   }
 
-  @override
-  void dispose() {
-    _permissionTimer?.cancel();
-    super.dispose();
-  }
-
-  Future<bool> _refreshNotificationPermission() async {
-    final granted = await NotificationService.instance.hasGrantedPermissions();
-    if (mounted && _hasPermission != granted) {
-      setState(() => _hasPermission = granted);
-    }
-    return granted;
-  }
-
-  Future<void> _runWithPermission(
-    Future<void> Function(bool toggleCurrent) toggle,
+  Future<void> _toggleWithPermission(
+    bool Function() getValue,
+    Future<void> Function(bool value) setValue,
   ) async {
-    if (_hasPermission) return toggle(true);
+    final value = _hasPermission ? !getValue() : true;
 
-    _pendingToggle = toggle;
-    _permissionTimer ??= Timer.periodic(
-      const Duration(milliseconds: 500),
-      (_) => _completePendingToggle(),
-    );
-    await NotificationService.instance.requestPermissions();
-    await _completePendingToggle();
-  }
-
-  Future<void> _completePendingToggle() async {
-    if (_isCompletingToggle) return;
-    _isCompletingToggle = true;
-
-    try {
-      final toggle = _pendingToggle;
-      if (!(await _refreshNotificationPermission()) || toggle == null) return;
-
-      _pendingToggle = null;
-      _permissionTimer?.cancel();
-      _permissionTimer = null;
-      await toggle(false);
-      if (mounted) setState(() {});
-    } finally {
-      _isCompletingToggle = false;
+    if (!_hasPermission &&
+        (!await NotificationService.instance.requestPermissions() ||
+            !mounted)) {
+      return;
     }
+
+    _hasPermission = true;
+    await setValue(value);
+    if (mounted) setState(() {});
   }
 
   @override
@@ -93,19 +64,10 @@ class _NotificationSettingsScreenState
               value: () =>
                   _hasPermission &&
                   service.shouldShowNotificationsForSharedPhotosAndAlbums(),
-              onChanged: () => _runWithPermission((toggleCurrent) async {
-                final prev = service
-                    .shouldShowNotificationsForSharedPhotosAndAlbums();
-                if (toggleCurrent) {
-                  await service
-                      .setShouldShowNotificationsForSharedPhotosAndAlbums(
-                        !prev,
-                      );
-                } else if (!prev) {
-                  await service
-                      .setShouldShowNotificationsForSharedPhotosAndAlbums(true);
-                }
-              }),
+              onChanged: () => _toggleWithPermission(
+                service.shouldShowNotificationsForSharedPhotosAndAlbums,
+                service.setShouldShowNotificationsForSharedPhotosAndAlbums,
+              ),
               showStateIcon: false,
             ),
           ),
@@ -118,14 +80,10 @@ class _NotificationSettingsScreenState
             trailing: ToggleSwitchComponent.async(
               value: () =>
                   _hasPermission && service.shouldShowSocialNotifications(),
-              onChanged: () => _runWithPermission((toggleCurrent) async {
-                final prev = service.shouldShowSocialNotifications();
-                if (toggleCurrent) {
-                  await service.setShouldShowSocialNotifications(!prev);
-                } else if (!prev) {
-                  await service.setShouldShowSocialNotifications(true);
-                }
-              }),
+              onChanged: () => _toggleWithPermission(
+                service.shouldShowSocialNotifications,
+                service.setShouldShowSocialNotifications,
+              ),
               showStateIcon: false,
             ),
           ),
@@ -139,12 +97,10 @@ class _NotificationSettingsScreenState
           trailing: ToggleSwitchComponent.async(
             value: () =>
                 _hasPermission && localSettings.isOnThisDayNotificationsEnabled,
-            onChanged: () => _runWithPermission((toggleCurrent) async {
-              final prev = localSettings.isOnThisDayNotificationsEnabled;
-              if (toggleCurrent || !prev) {
-                await memoriesCacheService.toggleOnThisDayNotifications();
-              }
-            }),
+            onChanged: () => _toggleWithPermission(
+              () => localSettings.isOnThisDayNotificationsEnabled,
+              memoriesCacheService.setOnThisDayNotifications,
+            ),
             showStateIcon: false,
           ),
         ),
@@ -158,12 +114,10 @@ class _NotificationSettingsScreenState
             trailing: ToggleSwitchComponent.async(
               value: () =>
                   _hasPermission && localSettings.birthdayNotificationsEnabled,
-              onChanged: () => _runWithPermission((toggleCurrent) async {
-                final prev = localSettings.birthdayNotificationsEnabled;
-                if (toggleCurrent || !prev) {
-                  await memoriesCacheService.toggleBirthdayNotifications();
-                }
-              }),
+              onChanged: () => _toggleWithPermission(
+                () => localSettings.birthdayNotificationsEnabled,
+                memoriesCacheService.setBirthdayNotifications,
+              ),
               showStateIcon: false,
             ),
           ),
