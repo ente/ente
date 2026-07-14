@@ -1,5 +1,6 @@
 import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
+import "package:photos/generated/l10n.dart";
 import "package:photos/services/notification_service.dart";
 import "package:photos/ui/home/memories/memory_cover_widget.dart";
 import "package:rive/rive.dart" as rive;
@@ -41,6 +42,7 @@ class _CraftMemoriesState extends State<CraftMemories> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(MemoryCoverWidget.gap / 2.0),
       child: SizedBox(
@@ -71,7 +73,7 @@ class _CraftMemoriesState extends State<CraftMemories> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Crafting",
+                      l10n.craftingMemoriesFirstHalf,
                       style: TextStyle(
                         fontFamily: "Outfit",
                         package: TextStyles.fontPackage,
@@ -82,7 +84,7 @@ class _CraftMemoriesState extends State<CraftMemories> {
                       ),
                     ),
                     Text(
-                      "memories",
+                      l10n.craftingMemoriesSecondHalf,
                       style: TextStyle(
                         fontFamily: "Gochi Hand",
                         package: TextStyles.fontPackage,
@@ -104,6 +106,7 @@ class _CraftMemoriesState extends State<CraftMemories> {
   }
 
   Widget _buildButton() {
+    final l10n = AppLocalizations.of(context);
     return GestureDetector(
       onTap: () async {
         if (await NotificationService.instance.requestPermissions() &&
@@ -123,11 +126,11 @@ class _CraftMemoriesState extends State<CraftMemories> {
             color: Colors.white.withAlpha(128),
             borderRadius: BorderRadius.circular(14),
           ),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             child: Text(
-              "Notify me",
-              style: TextStyle(
+              l10n.notifyMe,
+              style: const TextStyle(
                 fontFamily: "Outfit",
                 package: TextStyles.fontPackage,
                 color: Colors.white,
