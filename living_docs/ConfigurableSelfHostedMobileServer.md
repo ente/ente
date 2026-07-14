@@ -12,7 +12,7 @@
 
 | Phase | Task | Title | Size | Status | Notes |
 |------:|----:|-------|:----:|--------|-------|
-| 1 | 1.1 | Add configurable endpoint policy and migrate locked installations | M | ⚪ not started | Add a third endpoint mode, retain normal and immutable modes, preserve valid locked endpoint bindings during an in-place application upgrade, and cover the policy with focused tests. |
+| 1 | 1.1 | Add configurable endpoint policy and migrate locked installations | M | 🟢 done | Added explicit standard, locked, and configurable modes with conflicting-define rejection. Configurable mode reuses valid locked bindings, accepts any canonical HTTPS origin, preserves its binding across logout, and enforces authenticated same-origin requests without enabling direct mutation. Passed the 29 focused tests under standard, locked, and configurable defines, all 275 Photos tests, the full analyzer, and the locked command-line validator. |
 | 1 | 1.2 | Validate candidate servers and switch only after local logout | M | ⚪ not started | Probe Museum without credentials or redirects, leave the account untouched on failure, and expose a guarded endpoint-change operation that can run only after account state is cleared. |
 | 2 | 2.1 | Add guarded server controls to Settings and sign-in | M | ⚪ not started | Show the active origin in authenticated Settings and logged-out entry screens, require destructive confirmation while signed in, and return successful changes to sign-in. |
 | 2 | 2.2 | Build, document, and verify configurable Android and iOS artifacts | M | ⚪ not started | Update both guarded wrappers, revise the build guide and earlier living docs without rewriting their history, audit both artifacts, and exercise the shared flow on the iOS simulator and resource-capped Android emulator. |
@@ -123,6 +123,22 @@ Rollback is straightforward before a successful switch: revert a task or reinsta
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. Never delete an entry; if a decision changes, add a newer entry explaining the reversal.
+
+### 2026-07-14 — Model endpoint behavior as one explicit mode
+
+**Decision:** Represent endpoint behavior with `EndpointMode.standard`, `EndpointMode.locked`, or `EndpointMode.configurable`, derive the active mode from the two build flags, and fail startup if both managed flags are enabled.
+
+**Why:** One mode gives endpoint resolution, persistence, mutation, and request enforcement a shared source of truth. Rejecting conflicting defines prevents build argument order from silently selecting a weaker or unintended policy.
+
+**Alternatives considered:** Add independent `isLocked` and `isConfigurable` branches throughout the application, which permits contradictory states; or let one flag take precedence, which hides a packaging error.
+
+### 2026-07-14 — Retain the locked binding key for configurable upgrades
+
+**Decision:** Keep `locked_endpoint_binding_v1` as the persisted active-origin key in configurable mode and validate its value as a canonical HTTPS origin.
+
+**Why:** Existing personal applications already store their server identity under this key. Reusing it lets the same package or bundle upgrade without copying preferences, clearing credentials, or losing the account-to-server association.
+
+**Alternatives considered:** Rename the key and migrate it in multiple preference writes, which introduces a crash window; or ignore the old binding and seed the compiled default, which can silently move or invalidate an existing account.
 
 ### 2026-07-14 — Link focused endpoint and self-hosting references
 

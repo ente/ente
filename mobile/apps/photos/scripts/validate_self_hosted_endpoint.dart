@@ -13,7 +13,7 @@ void main(List<String> arguments) {
 
   try {
     final canonicalEndpoint = EndpointPolicy(
-      isLocked: true,
+      mode: EndpointMode.locked,
       compiledEndpoint: arguments.single,
     ).lockedEndpoint;
     stdout.writeln(canonicalEndpoint);

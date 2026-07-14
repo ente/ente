@@ -12,6 +12,7 @@ class EndpointConfig {
 
   static const defaultEndpoint = kCompiledEndpoint;
   static const preferencesKey = "endpoint";
+  // Keep this key stable so existing locked installations upgrade in place.
   static const bindingKey = "locked_endpoint_binding_v1";
   static const _accountStateKeys = {
     "email",
@@ -22,20 +23,27 @@ class EndpointConfig {
   };
 
   String get endpoint {
-    return policy.resolve(_preferences.getString(preferencesKey));
+    return policy.resolve(
+      savedEndpoint: _preferences.getString(preferencesKey),
+      binding: _preferences.getString(bindingKey),
+    );
   }
 
   bool get isLocked => policy.isLocked;
+
+  bool get isConfigurable => policy.isConfigurable;
+
+  bool get enforcesAuthenticatedOrigin => policy.enforcesAuthenticatedOrigin;
 
   bool get isProduction {
     return endpoint == kDefaultProductionEndpoint;
   }
 
   Future<void> setEndpoint(String endpoint) async {
-    if (isLocked) {
+    if (policy.hasPersistentBinding) {
       throw const EndpointPolicyException(
         EndpointPolicyFailureReason.runtimeMutationNotAllowed,
-        "Runtime endpoint changes are disabled in this locked build.",
+        "Direct endpoint changes are disabled in this managed build.",
       );
     }
     await _preferences.setString(preferencesKey, endpoint);
@@ -43,11 +51,14 @@ class EndpointConfig {
   }
 
   Future<void> validateForStartup() async {
-    if (!isLocked) {
+    policy.validateModeConfiguration();
+    if (!policy.hasPersistentBinding) {
       return;
     }
 
-    final expectedBinding = policy.lockedEndpoint;
+    final expectedBinding = policy.isLocked
+        ? policy.lockedEndpoint
+        : policy.configurableDefaultEndpoint;
     final currentBinding = _preferences.getString(bindingKey);
     final hasSavedEndpoint = _preferences.containsKey(preferencesKey);
     final hasAccountState = _accountStateKeys.any(_preferences.containsKey);
@@ -56,44 +67,60 @@ class EndpointConfig {
       if (hasSavedEndpoint) {
         throw const EndpointPolicyException(
           EndpointPolicyFailureReason.existingEndpointState,
-          "This locked build found endpoint state created by another build.",
+          "This managed build found endpoint state created by another build.",
         );
       }
       if (hasAccountState) {
         throw const EndpointPolicyException(
           EndpointPolicyFailureReason.existingAccountState,
-          "This locked build found account state without a server binding.",
+          "This managed build found account state without a server binding.",
         );
       }
       await _writeBinding(expectedBinding);
       return;
     }
 
-    if (currentBinding != expectedBinding) {
-      throw const EndpointPolicyException(
-        EndpointPolicyFailureReason.endpointBindingMismatch,
-        "The stored server binding does not match this build.",
-      );
+    if (policy.isLocked) {
+      if (currentBinding != expectedBinding) {
+        throw const EndpointPolicyException(
+          EndpointPolicyFailureReason.endpointBindingMismatch,
+          "The stored server binding does not match this build.",
+        );
+      }
+    } else {
+      try {
+        final canonicalBinding = policy.validateConfigurableEndpoint(
+          currentBinding,
+        );
+        if (currentBinding != canonicalBinding) {
+          throw const FormatException();
+        }
+      } on Object {
+        throw const EndpointPolicyException(
+          EndpointPolicyFailureReason.endpointBindingMismatch,
+          "The stored configurable server binding is invalid.",
+        );
+      }
     }
     if (hasSavedEndpoint) {
       throw const EndpointPolicyException(
         EndpointPolicyFailureReason.existingEndpointState,
-        "A locked build cannot contain a runtime endpoint override.",
+        "A managed build cannot contain a runtime endpoint override.",
       );
     }
   }
 
   void validateAuthenticatedRequest(Uri requestUri) {
-    policy.validateAuthenticatedRequest(requestUri);
+    policy.validateAuthenticatedRequest(Uri.parse(endpoint), requestUri);
   }
 
   Future<void> clearPreferencesForLogout() async {
-    if (!isLocked) {
+    if (!policy.hasPersistentBinding) {
       await _preferences.clear();
       return;
     }
 
-    final expectedBinding = policy.lockedEndpoint;
+    final expectedBinding = endpoint;
     if (_preferences.getString(bindingKey) != expectedBinding) {
       throw const EndpointPolicyException(
         EndpointPolicyFailureReason.endpointBindingMismatch,
@@ -112,7 +139,7 @@ class EndpointConfig {
     if (!didWrite) {
       throw const EndpointPolicyException(
         EndpointPolicyFailureReason.endpointBindingWriteFailed,
-        "The app could not persist its locked server binding.",
+        "The app could not persist its server binding.",
       );
     }
   }

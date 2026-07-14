@@ -5,9 +5,14 @@ const kCompiledEndpoint = String.fromEnvironment(
   defaultValue: kDefaultProductionEndpoint,
 );
 const kLockedEndpoint = bool.fromEnvironment("lockedEndpoint");
+const kConfigurableEndpoint = bool.fromEnvironment("configurableEndpoint");
+
+enum EndpointMode { standard, locked, configurable }
 
 enum EndpointPolicyFailureReason {
+  conflictingEndpointModes,
   invalidLockedEndpoint,
+  invalidConfigurableEndpoint,
   productionEndpointNotAllowed,
   existingEndpointState,
   existingAccountState,
@@ -25,9 +30,13 @@ class EndpointPolicyException implements Exception {
 
   String get recoveryMessage {
     return switch (reason) {
+      EndpointPolicyFailureReason.conflictingEndpointModes =>
+        "Rebuild the app with only one endpoint mode enabled.",
       EndpointPolicyFailureReason.invalidLockedEndpoint ||
       EndpointPolicyFailureReason.productionEndpointNotAllowed =>
         "Rebuild the app with one absolute HTTPS self-hosted endpoint.",
+      EndpointPolicyFailureReason.invalidConfigurableEndpoint =>
+        "Use one absolute HTTPS server origin without a path, query, fragment, or credentials.",
       EndpointPolicyFailureReason.existingEndpointState ||
       EndpointPolicyFailureReason.existingAccountState ||
       EndpointPolicyFailureReason.endpointBindingMismatch =>
@@ -45,39 +54,90 @@ class EndpointPolicyException implements Exception {
 }
 
 class EndpointPolicy {
-  const EndpointPolicy({
-    required this.isLocked,
-    required this.compiledEndpoint,
-  });
+  const EndpointPolicy({required this.mode, required this.compiledEndpoint})
+    : _hasConflictingModeDefines = false;
 
-  static const current = EndpointPolicy(
+  const EndpointPolicy.fromCompileTimeFlags({
+    required bool isLocked,
+    required bool isConfigurable,
+    required this.compiledEndpoint,
+  }) : mode = isLocked
+           ? EndpointMode.locked
+           : isConfigurable
+           ? EndpointMode.configurable
+           : EndpointMode.standard,
+       _hasConflictingModeDefines = isLocked && isConfigurable;
+
+  static const current = EndpointPolicy.fromCompileTimeFlags(
     isLocked: kLockedEndpoint,
+    isConfigurable: kConfigurableEndpoint,
     compiledEndpoint: kCompiledEndpoint,
   );
 
-  final bool isLocked;
+  final EndpointMode mode;
   final String compiledEndpoint;
+  final bool _hasConflictingModeDefines;
 
-  String resolve(String? savedEndpoint) {
-    if (isLocked) {
-      return lockedEndpoint;
-    }
-    return normalizeLegacyEndpoint(savedEndpoint ?? compiledEndpoint);
+  bool get isLocked => mode == EndpointMode.locked;
+
+  bool get isConfigurable => mode == EndpointMode.configurable;
+
+  bool get hasPersistentBinding => mode != EndpointMode.standard;
+
+  bool get enforcesAuthenticatedOrigin => hasPersistentBinding;
+
+  String resolve({String? savedEndpoint, String? binding}) {
+    validateModeConfiguration();
+    return switch (mode) {
+      EndpointMode.standard => normalizeLegacyEndpoint(
+        savedEndpoint ?? compiledEndpoint,
+      ),
+      EndpointMode.locked => lockedEndpoint,
+      EndpointMode.configurable =>
+        binding == null
+            ? configurableDefaultEndpoint
+            : validateConfigurableEndpoint(binding),
+    };
   }
 
   String get lockedEndpoint {
-    if (!isLocked) {
-      return normalizeLegacyEndpoint(compiledEndpoint);
-    }
-    return _validateAndCanonicalizeLockedEndpoint(compiledEndpoint);
+    validateModeConfiguration();
+    return _validateAndCanonicalizeEndpoint(
+      compiledEndpoint,
+      allowProduction: false,
+      invalidReason: EndpointPolicyFailureReason.invalidLockedEndpoint,
+      policyName: "locked",
+    );
   }
 
-  void validateAuthenticatedRequest(Uri requestUri) {
-    if (!isLocked) {
+  String get configurableDefaultEndpoint {
+    validateModeConfiguration();
+    return validateConfigurableEndpoint(compiledEndpoint);
+  }
+
+  String validateConfigurableEndpoint(String endpoint) {
+    return _validateAndCanonicalizeEndpoint(
+      endpoint,
+      allowProduction: true,
+      invalidReason: EndpointPolicyFailureReason.invalidConfigurableEndpoint,
+      policyName: "configurable",
+    );
+  }
+
+  void validateModeConfiguration() {
+    if (_hasConflictingModeDefines) {
+      throw const EndpointPolicyException(
+        EndpointPolicyFailureReason.conflictingEndpointModes,
+        "lockedEndpoint and configurableEndpoint cannot both be enabled.",
+      );
+    }
+  }
+
+  void validateAuthenticatedRequest(Uri activeEndpoint, Uri requestUri) {
+    if (!enforcesAuthenticatedOrigin) {
       return;
     }
-    final endpointUri = Uri.parse(lockedEndpoint);
-    if (!_hasSameOrigin(endpointUri, requestUri)) {
+    if (!_hasSameOrigin(activeEndpoint, requestUri)) {
       throw const EndpointPolicyException(
         EndpointPolicyFailureReason.authenticatedOriginMismatch,
         "An authenticated Museum request targeted a different origin.",
@@ -92,11 +152,16 @@ class EndpointPolicy {
     return endpoint;
   }
 
-  static String _validateAndCanonicalizeLockedEndpoint(String endpoint) {
+  static String _validateAndCanonicalizeEndpoint(
+    String endpoint, {
+    required bool allowProduction,
+    required EndpointPolicyFailureReason invalidReason,
+    required String policyName,
+  }) {
     if (endpoint.isEmpty || endpoint != endpoint.trim()) {
-      throw const EndpointPolicyException(
-        EndpointPolicyFailureReason.invalidLockedEndpoint,
-        "The locked endpoint is empty or contains surrounding whitespace.",
+      throw EndpointPolicyException(
+        invalidReason,
+        "The $policyName endpoint is empty or contains surrounding whitespace.",
       );
     }
 
@@ -110,15 +175,16 @@ class EndpointPolicy {
         uri.hasQuery ||
         uri.hasFragment ||
         (uri.path.isNotEmpty && uri.path != "/")) {
-      throw const EndpointPolicyException(
-        EndpointPolicyFailureReason.invalidLockedEndpoint,
-        "The locked endpoint must be an absolute HTTPS origin without a path, query, fragment, or credentials.",
+      throw EndpointPolicyException(
+        invalidReason,
+        "The $policyName endpoint must be an absolute HTTPS origin without a path, query, fragment, or credentials.",
       );
     }
 
     final host = uri.host.toLowerCase();
-    if (host == Uri.parse(kDefaultProductionEndpoint).host ||
-        host == Uri.parse(kLegacyProductionEndpoint).host) {
+    if (!allowProduction &&
+        (host == Uri.parse(kDefaultProductionEndpoint).host ||
+            host == Uri.parse(kLegacyProductionEndpoint).host)) {
       throw const EndpointPolicyException(
         EndpointPolicyFailureReason.productionEndpointNotAllowed,
         "A locked self-hosted build cannot use an Ente production API host.",

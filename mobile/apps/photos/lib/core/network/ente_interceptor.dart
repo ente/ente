@@ -31,7 +31,8 @@ class EnteRequestInterceptor extends Interceptor {
     if (tokenValue != null) {
       options.headers.putIfAbsent("X-Auth-Token", () => tokenValue);
     }
-    if (endpointConfig.isLocked && _hasAuthToken(options.headers)) {
+    if (endpointConfig.enforcesAuthenticatedOrigin &&
+        _hasAuthToken(options.headers)) {
       try {
         endpointConfig.validateAuthenticatedRequest(options.uri);
       } on EndpointPolicyException catch (e) {

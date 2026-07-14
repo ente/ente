@@ -11,16 +11,54 @@ import "package:shared_preferences/shared_preferences.dart";
 
 const _lockedEndpoint = "https://museum.example";
 const _lockedPolicy = EndpointPolicy(
-  isLocked: true,
+  mode: EndpointMode.locked,
+  compiledEndpoint: _lockedEndpoint,
+);
+const _configurablePolicy = EndpointPolicy(
+  mode: EndpointMode.configurable,
   compiledEndpoint: _lockedEndpoint,
 );
 const _normalPolicy = EndpointPolicy(
-  isLocked: false,
+  mode: EndpointMode.standard,
   compiledEndpoint: kDefaultProductionEndpoint,
 );
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test("current policy reflects the compile-time endpoint mode", () {
+    if (kLockedEndpoint && kConfigurableEndpoint) {
+      expect(
+        EndpointPolicy.current.validateModeConfiguration,
+        throwsA(isA<EndpointPolicyException>()),
+      );
+      return;
+    }
+
+    final expectedMode = kLockedEndpoint
+        ? EndpointMode.locked
+        : kConfigurableEndpoint
+        ? EndpointMode.configurable
+        : EndpointMode.standard;
+    expect(EndpointPolicy.current.mode, expectedMode);
+  });
+
+  test("conflicting compile-time modes fail before binding state", () async {
+    const policy = EndpointPolicy.fromCompileTimeFlags(
+      isLocked: true,
+      isConfigurable: true,
+      compiledEndpoint: _lockedEndpoint,
+    );
+    final preferences = await _preferences({});
+
+    final failure = await validateEndpointStartup(preferences, policy: policy);
+
+    expect(
+      failure?.reason,
+      EndpointPolicyFailureReason.conflictingEndpointModes,
+    );
+    expect(preferences.containsKey(EndpointConfig.bindingKey), isFalse);
+  });
 
   group("normal endpoint policy", () {
     test("preserves saved endpoints and legacy normalization", () async {
@@ -66,7 +104,7 @@ void main() {
   group("locked endpoint validation", () {
     test("accepts and canonicalizes one HTTPS origin", () {
       const policy = EndpointPolicy(
-        isLocked: true,
+        mode: EndpointMode.locked,
         compiledEndpoint: "https://Museum.Example:8443/",
       );
 
@@ -89,7 +127,7 @@ void main() {
 
       for (final endpoint in invalidEndpoints) {
         final policy = EndpointPolicy(
-          isLocked: true,
+          mode: EndpointMode.locked,
           compiledEndpoint: endpoint,
         );
         expect(
@@ -110,6 +148,183 @@ void main() {
         _lockedEndpoint,
       );
     });
+  });
+
+  group("configurable endpoint policy", () {
+    test("canonicalizes HTTPS origins and permits production hosts", () {
+      expect(
+        _configurablePolicy.validateConfigurableEndpoint(
+          "https://Museum.Example:8443/",
+        ),
+        "https://museum.example:8443",
+      );
+
+      const productionPolicy = EndpointPolicy(
+        mode: EndpointMode.configurable,
+        compiledEndpoint: kDefaultProductionEndpoint,
+      );
+      expect(
+        productionPolicy.configurableDefaultEndpoint,
+        kDefaultProductionEndpoint,
+      );
+    });
+
+    test("rejects unsafe or ambiguous configurable endpoints", () {
+      const invalidEndpoints = [
+        "",
+        " https://museum.example",
+        "http://museum.example",
+        "https://museum.example/api",
+        "https://museum.example?query=yes",
+        "https://museum.example#fragment",
+        "https://user@museum.example",
+      ];
+
+      for (final endpoint in invalidEndpoints) {
+        expect(
+          () => _configurablePolicy.validateConfigurableEndpoint(endpoint),
+          throwsA(
+            isA<EndpointPolicyException>().having(
+              (error) => error.reason,
+              "reason",
+              EndpointPolicyFailureReason.invalidConfigurableEndpoint,
+            ),
+          ),
+          reason: endpoint,
+        );
+      }
+    });
+
+    test("clean startup writes the canonical compiled default", () async {
+      const policy = EndpointPolicy(
+        mode: EndpointMode.configurable,
+        compiledEndpoint: "https://Museum.Example/",
+      );
+      final preferences = await _preferences({});
+      final config = EndpointConfig(preferences, policy: policy);
+
+      await config.validateForStartup();
+      await config.validateForStartup();
+
+      expect(config.endpoint, _lockedEndpoint);
+      expect(preferences.getString(EndpointConfig.bindingKey), _lockedEndpoint);
+    });
+
+    test(
+      "an existing locked binding preserves account state on upgrade",
+      () async {
+        const changedDefaultPolicy = EndpointPolicy(
+          mode: EndpointMode.configurable,
+          compiledEndpoint: "https://new-default.example",
+        );
+        final preferences = await _preferences({
+          EndpointConfig.bindingKey: _lockedEndpoint,
+          "token": "token",
+          "user_id": 1,
+        });
+        final config = EndpointConfig(
+          preferences,
+          policy: changedDefaultPolicy,
+        );
+
+        expect(config.endpoint, _lockedEndpoint);
+        expect(
+          await validateEndpointStartup(
+            preferences,
+            policy: changedDefaultPolicy,
+          ),
+          isNull,
+        );
+        expect(preferences.getString("token"), "token");
+        expect(preferences.getInt("user_id"), 1);
+      },
+    );
+
+    test("permits an official origin stored by a configurable build", () async {
+      final preferences = await _preferences({
+        EndpointConfig.bindingKey: kDefaultProductionEndpoint,
+        "token": "token",
+      });
+      final config = EndpointConfig(preferences, policy: _configurablePolicy);
+
+      expect(config.endpoint, kDefaultProductionEndpoint);
+      expect(
+        await validateEndpointStartup(preferences, policy: _configurablePolicy),
+        isNull,
+      );
+    });
+
+    test("unbound account state and invalid bindings fail closed", () async {
+      final unboundPreferences = await _preferences({"token": "token"});
+      final unboundFailure = await validateEndpointStartup(
+        unboundPreferences,
+        policy: _configurablePolicy,
+      );
+      expect(
+        unboundFailure?.reason,
+        EndpointPolicyFailureReason.existingAccountState,
+      );
+
+      final invalidPreferences = await _preferences({
+        EndpointConfig.bindingKey: "https://museum.example/",
+      });
+      final invalidFailure = await validateEndpointStartup(
+        invalidPreferences,
+        policy: _configurablePolicy,
+      );
+      expect(
+        invalidFailure?.reason,
+        EndpointPolicyFailureReason.endpointBindingMismatch,
+      );
+    });
+
+    test("a legacy runtime override fails closed", () async {
+      final preferences = await _preferences({
+        EndpointConfig.bindingKey: _lockedEndpoint,
+        EndpointConfig.preferencesKey: "https://other.example",
+      });
+
+      final failure = await validateEndpointStartup(
+        preferences,
+        policy: _configurablePolicy,
+      );
+
+      expect(
+        failure?.reason,
+        EndpointPolicyFailureReason.existingEndpointState,
+      );
+    });
+
+    test(
+      "direct mutation is rejected and logout preserves the binding",
+      () async {
+        final preferences = await _preferences({
+          EndpointConfig.bindingKey: _lockedEndpoint,
+          "token": "token",
+          "setting": true,
+        });
+        final config = EndpointConfig(preferences, policy: _configurablePolicy);
+
+        await expectLater(
+          config.setEndpoint("https://other.example"),
+          throwsA(
+            isA<EndpointPolicyException>().having(
+              (error) => error.reason,
+              "reason",
+              EndpointPolicyFailureReason.runtimeMutationNotAllowed,
+            ),
+          ),
+        );
+
+        await config.clearPreferencesForLogout();
+
+        expect(preferences.getKeys(), {EndpointConfig.bindingKey});
+        expect(
+          preferences.getString(EndpointConfig.bindingKey),
+          _lockedEndpoint,
+        );
+      },
+    );
   });
 
   group("locked endpoint binding", () {
@@ -223,18 +438,20 @@ void main() {
   group("authenticated Museum requests", () {
     test("origin comparison includes the effective port", () {
       const policy = EndpointPolicy(
-        isLocked: true,
+        mode: EndpointMode.locked,
         compiledEndpoint: _lockedEndpoint,
       );
 
       expect(
         () => policy.validateAuthenticatedRequest(
+          Uri.parse(_lockedEndpoint),
           Uri.parse("https://museum.example:443/ping"),
         ),
         returnsNormally,
       );
       expect(
         () => policy.validateAuthenticatedRequest(
+          Uri.parse(_lockedEndpoint),
           Uri.parse("https://museum.example:8443/ping"),
         ),
         throwsA(isA<EndpointPolicyException>()),
@@ -269,6 +486,29 @@ void main() {
       );
       expect(fixture.adapter.lastRequest, isNull);
     });
+
+    test(
+      "configurable requests use the stored origin and reject redirects",
+      () async {
+        final fixture = await _networkFixture(
+          _configurablePolicy,
+          preferences: {
+            EndpointConfig.bindingKey: "https://configured.example:8443",
+          },
+        );
+
+        await fixture.dio.get("/ping");
+
+        expect(fixture.adapter.lastRequest?.uri.host, "configured.example");
+        expect(fixture.adapter.lastRequest?.uri.port, 8443);
+        expect(fixture.adapter.lastRequest?.followRedirects, isFalse);
+
+        await expectLater(
+          fixture.dio.get("https://other.example/ping"),
+          throwsA(isA<DioException>()),
+        );
+      },
+    );
 
     test("normal builds retain cross-origin and redirect behavior", () async {
       final fixture = await _networkFixture(_normalPolicy);
@@ -307,9 +547,12 @@ Future<SharedPreferences> _preferences(Map<String, Object> values) async {
   return SharedPreferences.getInstance();
 }
 
-Future<_NetworkFixture> _networkFixture(EndpointPolicy policy) async {
-  final preferences = await _preferences({});
-  final endpointConfig = EndpointConfig(preferences, policy: policy);
+Future<_NetworkFixture> _networkFixture(
+  EndpointPolicy policy, {
+  Map<String, Object> preferences = const {},
+}) async {
+  final sharedPreferences = await _preferences(preferences);
+  final endpointConfig = EndpointConfig(sharedPreferences, policy: policy);
   final dio = Dio(BaseOptions(baseUrl: endpointConfig.endpoint));
   final adapter = _RecordingAdapter();
   dio.httpClientAdapter = adapter;
