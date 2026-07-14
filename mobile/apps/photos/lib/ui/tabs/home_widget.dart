@@ -510,7 +510,6 @@ class _HomeWidgetState extends State<HomeWidget> {
                 galleryType: GalleryType.sharedPublicCollection,
               ),
             ),
-            useFadeTransition: true,
           );
         }
       }

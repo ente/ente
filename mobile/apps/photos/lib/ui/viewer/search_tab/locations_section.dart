@@ -157,11 +157,7 @@ class LocationRecommendation extends StatelessWidget {
         if (locationSearchResult.onResultTap != null) {
           locationSearchResult.onResultTap!(context);
         } else {
-          routeToPage(
-            context,
-            SearchResultPage(locationSearchResult),
-            useFadeTransition: true,
-          );
+          routeToPage(context, SearchResultPage(locationSearchResult));
         }
       },
       child: RepaintBoundary(

@@ -842,7 +842,6 @@ class _SimilarImagesPageState extends State<SimilarImagesPage>
                   mode: DetailPageMode.minimalistic,
                 ),
               ),
-              useFadeTransition: true,
             );
           },
           child: Column(

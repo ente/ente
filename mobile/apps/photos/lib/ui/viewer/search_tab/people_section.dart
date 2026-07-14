@@ -201,11 +201,7 @@ class PersonSearchExample extends StatelessWidget {
                   if (searchResult.onResultTap != null) {
                     searchResult.onResultTap!(context);
                   } else {
-                    routeToPage(
-                      context,
-                      SearchResultPage(searchResult),
-                      useFadeTransition: true,
-                    );
+                    routeToPage(context, SearchResultPage(searchResult));
                   }
                 },
           child: Column(

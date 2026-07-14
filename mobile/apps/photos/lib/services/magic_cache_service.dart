@@ -219,7 +219,6 @@ GenericSearchResult? toGenericSearchResult(
             matchedUploadedIDs: filesToUploadedFileIDs(enteFilesInMagicCache),
           ),
         ),
-        useFadeTransition: true,
       );
     },
     hierarchicalSearchFilter: MagicFilter(
