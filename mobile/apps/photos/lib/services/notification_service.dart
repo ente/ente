@@ -2,12 +2,15 @@ import "dart:async";
 import 'dart:io';
 
 import "package:android_intent_plus/android_intent.dart";
+import "package:flutter/widgets.dart";
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import "package:flutter_timezone/flutter_timezone.dart";
 import "package:logging/logging.dart";
 import "package:package_info_plus/package_info_plus.dart";
 import "package:permission_handler/permission_handler.dart";
+import "package:photos/generated/l10n.dart";
 import "package:photos/services/timezone_aliases.dart";
+import "package:photos/ui/notification/toast.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import 'package:timezone/data/latest_10y.dart' as tzdb;
 import "package:timezone/timezone.dart" as tz;
@@ -162,8 +165,8 @@ class NotificationService {
     return 'UTC';
   }
 
-  Future<bool> requestPermissions() async {
-    if (await _askPermissions()) {
+  Future<bool> requestPermissions(BuildContext context) async {
+    if (await _askPermissions(context)) {
       return true;
     }
 
@@ -181,7 +184,7 @@ class NotificationService {
     return false;
   }
 
-  Future<bool> _askPermissions() async {
+  Future<bool> _askPermissions(BuildContext context) async {
     await _ensurePluginInitialized();
     final granted = Platform.isIOS
         ? await _notificationsPlugin
@@ -194,11 +197,13 @@ class NotificationService {
                 AndroidFlutterLocalNotificationsPlugin
               >()
               ?.requestNotificationsPermission();
-    if (granted == false) await _openNotificationSettings();
+    if (granted == false && context.mounted) {
+      await _openNotificationSettings(context);
+    }
     return granted ?? false;
   }
 
-  Future<void> _openNotificationSettings() async {
+  Future<void> _openNotificationSettings(BuildContext context) async {
     if (!Platform.isAndroid) {
       await openAppSettings();
       return;
@@ -211,6 +216,10 @@ class NotificationService {
         "android.provider.extra.APP_PACKAGE": packageInfo.packageName,
       },
     ).launch();
+    if (context.mounted) {
+      final l10n = AppLocalizations.of(context);
+      showToast(context, l10n.enableNotificationsHint);
+    }
   }
 
   Future<bool> hasGrantedPermissions() async {

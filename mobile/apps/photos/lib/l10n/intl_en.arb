@@ -2930,6 +2930,7 @@
   "ritualChooseDaysLabel": "Choose days for ritual",
   "ritualDayLabel": "Day",
   "ritualNotificationsOffHint": "Notifications are off. Tap a day to turn them on.",
+  "enableNotificationsHint": "Enable notifications for Ente Photos in settings",
   "ritualTimeLabel": "Time",
   "ritualAlbumLabel": "Album",
   "ritualSave": "Save ritual",
