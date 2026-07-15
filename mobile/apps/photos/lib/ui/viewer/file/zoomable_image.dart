@@ -22,6 +22,7 @@ import 'package:photos/module/download/file.dart';
 import 'package:photos/module/download/thumbnail.dart';
 import "package:photos/module/metadata/exif.dart";
 import "package:photos/service_locator.dart" show flagService;
+import "package:photos/services/media_store_service.dart";
 import "package:photos/src/rust/api/image_processing_api.dart" as rust_image;
 import "package:photos/states/detail_page_state.dart";
 import "package:photos/theme/colors.dart";
@@ -474,6 +475,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
     if (!_loadingFinalImage && !_loadedFinalImage) {
       _loadingFinalImage = true;
+      if (_photo.isSystemTrash) return unawaited(_loadSystemTrashImage());
       getFile(
         _photo,
         isOrigin:
@@ -501,6 +503,34 @@ class _ZoomableImageState extends State<ZoomableImage> {
         }
       });
     }
+  }
+
+  Future<void> _loadSystemTrashImage() async {
+    try {
+      final image = MemoryImage(
+        await MediaStoreService.getTrashFileBytes(_photo),
+      );
+      await getImageInfo(image);
+      if (mounted && !_loadedFinalImage) await _updateViewWithFinalImage(image);
+    } catch (error, stackTrace) {
+      _logger.warning(
+        "Failed to load system trash image ${_photo.displayName}",
+        error,
+        stackTrace,
+      );
+      _showThumbnailFallback();
+    }
+  }
+
+  void _showThumbnailFallback() {
+    if (!mounted) return;
+    setState(() => _showingThumbnailFallback = true);
+    InheritedDetailPageState.maybeOf(
+      context,
+    )?.showingThumbnailFallbackNotifier.value = detailPageFileIdentifier(
+      _photo,
+    );
+    _notifyReadyOnce();
   }
 
   void _onLargeThumbnailLoaded(
@@ -787,17 +817,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
         "Skipping compression for RAW file ${_photo.displayName}, using thumbnail fallback",
       );
       _convertToSupportedFormat = true;
-      if (mounted) {
-        setState(() {
-          _showingThumbnailFallback = true;
-        });
-        InheritedDetailPageState.maybeOf(
-          context,
-        )?.showingThumbnailFallbackNotifier.value = detailPageFileIdentifier(
-          _photo,
-        );
-        _notifyReadyOnce();
-      }
+      _showThumbnailFallback();
       return;
     }
 
@@ -863,17 +883,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
       _logger.severe(
         "Failed to compress image ${_photo.displayName} to viewable format",
       );
-      if (mounted) {
-        setState(() {
-          _showingThumbnailFallback = true;
-        });
-        InheritedDetailPageState.maybeOf(
-          context,
-        )?.showingThumbnailFallbackNotifier.value = detailPageFileIdentifier(
-          _photo,
-        );
-        _notifyReadyOnce();
-      }
+      _showThumbnailFallback();
     }
   }
 }

@@ -260,7 +260,7 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
       viewChildren.add(const UnSyncedIcon());
     }
 
-    if (widget.file.isTrash) {
+    if (widget.file is TrashFile) {
       viewChildren.add(TrashedFileOverlayText(widget.file as TrashFile));
     } else if (galleryContext?.type == GroupType.size) {
       viewChildren.add(FileSizeOverlayText(widget.file));
@@ -338,7 +338,7 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
             if (widget.file.isUploaded) {
               _logger.info("Removing localID reference for " + widget.file.tag);
               widget.file.localID = null;
-              if (widget.file.isTrash) {
+              if (widget.file is TrashFile) {
                 unawaited(TrashDB.instance.update(widget.file as TrashFile));
               } else {
                 unawaited(FilesDB.instance.update(widget.file));

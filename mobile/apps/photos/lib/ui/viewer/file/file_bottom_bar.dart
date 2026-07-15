@@ -8,6 +8,7 @@ import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
+import "package:photos/events/force_reload_trash_page_event.dart";
 import "package:photos/events/guest_view_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/collection/collection.dart";
@@ -19,15 +20,19 @@ import "package:photos/models/social/social_data_provider.dart";
 import 'package:photos/module/metadata/panorama.dart';
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
+import "package:photos/services/media_store_service.dart";
 import "package:photos/states/detail_page_state.dart";
 import "package:photos/ui/actions/file/file_actions.dart";
 import "package:photos/ui/collections/collection_action_sheet.dart";
+import "package:photos/ui/components/buttons/button_widget.dart";
+import "package:photos/ui/components/models/button_type.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/social/comments_screen.dart";
 import "package:photos/ui/social/like_collection_selector_sheet.dart";
 import "package:photos/ui/social/likes_bottom_sheet.dart";
 import "package:photos/ui/viewer/actions/suggest_delete_sheet.dart";
 import "package:photos/utils/delete_file_util.dart";
+import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/share_util.dart";
 
 final _logger = Logger("FileBottomBar");
@@ -173,9 +178,7 @@ class FileBottomBarState extends State<FileBottomBar> {
         (collection?.isHidden() ?? false);
     if (widget.file is TrashFile) {
       _addTrashOptions(children);
-    }
-
-    if (widget.file is! TrashFile) {
+    } else {
       if (isOwnedByUser) {
         children.add(
           Tooltip(
@@ -315,49 +318,73 @@ class FileBottomBarState extends State<FileBottomBar> {
   }
 
   void _addTrashOptions(List<Widget> children) {
-    children.add(
-      Tooltip(
-        message: AppLocalizations.of(context).restore,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: IconButton(
-            icon: const Icon(Icons.restore_outlined, color: Colors.white),
-            onPressed: () {
-              final selectedFiles = SelectedFiles();
-              selectedFiles.toggleSelection(widget.file);
-              showCollectionActionSheet(
-                context,
-                selectedFiles: selectedFiles,
-                actionType: CollectionActionType.restoreFiles,
-              );
-            },
-          ),
-        ),
-      ),
-    );
-
-    children.add(
-      Tooltip(
-        message: AppLocalizations.of(context).delete,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: IconButton(
-            icon: const Icon(
-              Icons.delete_forever_outlined,
-              color: Colors.white,
+    final l10n = AppLocalizations.of(context);
+    for (final delete in const [false, true]) {
+      children.add(
+        Tooltip(
+          message: delete ? l10n.delete : l10n.restore,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: IconButton(
+              icon: Icon(
+                delete ? Icons.delete_forever_outlined : Icons.restore_outlined,
+                color: Colors.white,
+              ),
+              onPressed: () => _handleTrashTap(delete),
             ),
-            onPressed: () async {
-              final trashedFile = <TrashFile>[];
-              trashedFile.add(widget.file as TrashFile);
-              if (await deleteFromTrash(context, trashedFile) == true) {
-                if (!mounted) return;
-                Navigator.pop(context);
-              }
-            },
           ),
         ),
-      ),
-    );
+      );
+    }
+  }
+
+  Future<void> _handleTrashTap(bool delete) async {
+    if (widget.file.isSystemTrash) return _handleTrash(delete: delete);
+    if (!delete) {
+      final selectedFiles = SelectedFiles()..toggleSelection(widget.file);
+      showCollectionActionSheet(
+        context,
+        selectedFiles: selectedFiles,
+        actionType: CollectionActionType.restoreFiles,
+      );
+      return;
+    }
+    if (await deleteFromTrash(context, [widget.file as TrashFile]) && mounted) {
+      Navigator.pop(context);
+    }
+  }
+
+  Future<void> _handleTrash({required bool delete}) async {
+    try {
+      if (await MediaStoreService.canManageMedia()) {
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context);
+        final result = await showChoiceActionSheet(
+          context,
+          title: l10n.areYouSure,
+          body: delete
+              ? l10n.selectedItemsWillBePermanentlyDeletedAndCannotBeRecovered
+              : null,
+          illustration: delete ? Image.asset("assets/warning-grey.png") : null,
+          firstButtonLabel: delete ? l10n.yesDelete : l10n.restore,
+          secondButtonLabel: l10n.cancel,
+          firstButtonType: ButtonType.primary,
+          isCritical: delete,
+        );
+        if (result?.action != ButtonAction.first) return;
+      }
+      if (await MediaStoreService.updateTrashItem(widget.file, delete)) {
+        Bus.instance.fire(ForceReloadTrashPageEvent());
+        widget.onFileRemoved(widget.file);
+      }
+    } catch (error, stackTrace) {
+      _logger.severe(
+        "Failed to ${delete ? "delete" : "restore"} system trash item",
+        error,
+        stackTrace,
+      );
+      if (mounted) await showGenericErrorDialog(context: context, error: error);
+    }
   }
 
   Widget _buildSuggestDeleteButton(Collection collection) {

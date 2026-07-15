@@ -21,7 +21,7 @@ import 'package:photos/module/live_photo/download.dart';
 final _logger = Logger("FileUtil");
 
 void preloadFile(EnteFile file) {
-  if (file.fileType == FileType.video) {
+  if (file.fileType == FileType.video || file.isSystemTrash) {
     return;
   }
   getFile(file);
@@ -78,26 +78,29 @@ Future<File?> _getLocalDiskFile(
   bool liveVideo = false,
   bool isOrigin = false,
 }) {
+  if (file.isSystemTrash) {
+    return Future.value(null);
+  }
   if (file.isSharedMediaToAppSandbox) {
     final localFile = File(getSharedMediaFilePath(file));
     return localFile.exists().then((exist) {
       return exist ? localFile : null;
     });
-  } else if (file.fileType == FileType.livePhoto && liveVideo) {
-    return Motionphoto.getLivePhotoFile(file.localID!);
-  } else {
-    return file.getAsset.then((asset) async {
-      if (asset == null || !(await asset.exists)) {
-        if (isOrigin && file.isVideo) {
-          _logger.warning(
-            "Failed to get file for assetID: ${file.localID}, is asset null: ${asset == null}",
-          );
-        }
-        return null;
-      }
-      return isOrigin ? asset.originFile : asset.file;
-    });
   }
+  if (file.fileType == FileType.livePhoto && liveVideo) {
+    return Motionphoto.getLivePhotoFile(file.localID!);
+  }
+  return file.getAsset.then((asset) async {
+    if (asset == null || !(await asset.exists)) {
+      if (isOrigin && file.isVideo) {
+        _logger.warning(
+          "Failed to get file for assetID: ${file.localID}, is asset null: ${asset == null}",
+        );
+      }
+      return null;
+    }
+    return isOrigin ? asset.originFile : asset.file;
+  });
 }
 
 String getSharedMediaFilePath(EnteFile file) {

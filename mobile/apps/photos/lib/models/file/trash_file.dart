@@ -1,6 +1,12 @@
 import 'package:photos/models/file/file.dart';
 
+enum TrashFileSource { ente, system }
+
 class TrashFile extends EnteFile {
+  final TrashFileSource source;
+
+  TrashFile({this.source = TrashFileSource.ente});
+
   // time when file was put in the trash for first time
   late int createdAt;
 

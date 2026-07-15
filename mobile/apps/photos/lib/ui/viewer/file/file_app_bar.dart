@@ -17,7 +17,6 @@ import "package:photos/models/collection/collection.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
-import "package:photos/models/file/trash_file.dart";
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/metadata/common_keys.dart";
 import 'package:photos/models/selected_files.dart';
@@ -300,10 +299,10 @@ class FileAppBarState extends State<FileAppBar> {
         ),
       );
     }
-    if (!isFileHidden && isFileUploaded && widget.file is! TrashFile) {
+    if (!isFileHidden && isFileUploaded && !widget.file.isTrash) {
       _actions.add(Center(child: FavoriteWidget(widget.file)));
     }
-    if (!isFileUploaded && !isLocalGalleryMode) {
+    if (!isFileUploaded && !isLocalGalleryMode && !widget.file.isTrash) {
       _actions.add(
         UploadIconWidget(file: widget.file, key: ValueKey(widget.file.tag)),
       );
@@ -311,7 +310,7 @@ class FileAppBarState extends State<FileAppBar> {
 
     final List<EntePopupMenuOption<int>> items = [];
     final bool restrictFileActions =
-        widget.mode == DetailPageMode.minimalistic || widget.file is TrashFile;
+        widget.mode == DetailPageMode.minimalistic || widget.file.isTrash;
 
     if (restrictFileActions) {
       items.add(

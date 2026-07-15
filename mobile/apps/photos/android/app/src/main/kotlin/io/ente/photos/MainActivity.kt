@@ -14,4 +14,15 @@ class MainActivity : FlutterFragmentActivity() {
         setIntent(intent)
         super.onNewIntent(intent)
     }
+
+    @Deprecated("Kept for Android's IntentSender result API")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        NativeChannels.onActivityResult(requestCode, resultCode)
+    }
+
+    override fun onDestroy() {
+        NativeChannels.unregister(this)
+        super.onDestroy()
+    }
 }

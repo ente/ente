@@ -25,7 +25,6 @@ const subGalleryMultiplier = 10;
 
 // used to identify which ente file are available in app cache
 const String sharedMediaIdentifier = 'ente-shared-media://';
-
 const galleryThumbnailDiskLoadDeferDuration = Duration(milliseconds: 80);
 const galleryThumbnailServerLoadDeferDuration = Duration(milliseconds: 80);
 const mediaManagementHintDismissDuration = Duration(days: 7);

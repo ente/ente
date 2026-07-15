@@ -158,23 +158,11 @@ class TrashDB {
     );
   }
 
-  Future<FileLoadResult> getTrashedFiles(
-    int startTime,
-    int endTime, {
-    int? limit,
-    bool? asc,
-  }) async {
+  Future<FileLoadResult> getTrashedFiles() async {
     final db = await instance.database;
-    final order = (asc ?? false ? 'ASC' : 'DESC');
-    final results = await db.query(
-      tableName,
-      where: '$columnCreationTime >= ? AND $columnCreationTime <= ?',
-      whereArgs: [startTime, endTime],
-      orderBy: '$columnCreationTime ' + order,
-      limit: limit,
-    );
+    final results = await db.query(tableName);
     final files = _convertToFiles(results);
-    return FileLoadResult(files, files.length == limit);
+    return FileLoadResult(files, false);
   }
 
   List<TrashFile> _convertToFiles(List<Map<String, dynamic>> results) {

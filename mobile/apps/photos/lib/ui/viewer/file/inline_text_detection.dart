@@ -11,9 +11,9 @@ import "package:mobile_ocr/mobile_ocr.dart" show MobileOcr;
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/reset_zoom_of_photo_view_event.dart";
 import "package:photos/l10n/l10n.dart";
+import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
-import "package:photos/models/file/trash_file.dart";
 import "package:photos/module/download/file.dart";
 import "package:photos/states/detail_page_state.dart";
 import "package:photos/ui/viewer/file/ocr/display_image_helper.dart";
@@ -356,7 +356,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
       !_overlayActive &&
       _localFilePath == null &&
       _pendingLongPressPosition == null &&
-      widget.file is! TrashFile &&
+      !widget.file.isTrash &&
       !widget.isGuestView;
 
   bool _isPrimaryGlobalPointer(PointerDownEvent event) {
@@ -656,7 +656,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isEligible || widget.file is TrashFile || widget.isGuestView) {
+    if (!_isEligible || widget.file.isTrash || widget.isGuestView) {
       return const SizedBox.shrink();
     }
 

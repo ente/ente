@@ -9,12 +9,14 @@ import 'package:image/image.dart' as img;
 import 'package:image/src/util/rational.dart' as img_util;
 import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
+import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/location/location.dart";
 import "package:photos/models/metadata/file_magic.dart";
 import 'package:photos/module/download/file.dart';
 import "package:photos/services/location_service.dart";
+import "package:photos/services/media_store_service.dart";
 import 'package:random_access_source/random_access_source.dart';
 
 const kDateTimeOriginal = "EXIF DateTimeOriginal";
@@ -134,6 +136,15 @@ Future<Map<String, IfdTag>> getExif(EnteFile file) async {
   try {
     if (!shouldReadExif(file)) {
       return <String, IfdTag>{};
+    }
+    if (file.isSystemTrash) {
+      return _normalizeExifResult(
+        await Computer.shared().compute(
+          readExifFromBytes,
+          param: await MediaStoreService.getTrashFileBytes(file),
+          taskName: "readExifBytes",
+        ),
+      );
     }
     final File? originFile = await getFile(file, isOrigin: true);
     if (originFile == null) {

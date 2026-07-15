@@ -222,12 +222,24 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
     }
   }
   Set<String> deletedIDs = <String>{};
-  try {
-    deletedIDs = (await PhotoManager.editor.deleteWithIds(
-      localAssetIDs,
-    )).toSet();
-  } catch (e, s) {
-    _logger.severe("Could not delete file", e, s);
+  if (localAssetIDs.isNotEmpty) {
+    try {
+      if (Platform.isAndroid &&
+          !await isAndroidSDKVersionLowerThan(android11SDKINT)) {
+        final assets = (await Future.wait(
+          localAssetIDs.map(AssetEntity.fromId),
+        )).whereType<AssetEntity>().toList();
+        deletedIDs = (await PhotoManager.editor.android.moveToTrash(
+          assets,
+        )).toSet();
+      } else {
+        deletedIDs = (await PhotoManager.editor.deleteWithIds(
+          localAssetIDs,
+        )).toSet();
+      }
+    } catch (e, s) {
+      _logger.severe("Could not remove file from device", e, s);
+    }
   }
   deletedIDs.addAll(await _tryDeleteSharedMediaFiles(localSharedMediaIDs));
   final List<EnteFile> deletedFiles = [];
