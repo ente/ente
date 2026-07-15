@@ -35,7 +35,7 @@ class _NotificationSettingsScreenState
     final value = _hasPermission ? !getValue() : true;
 
     if (!_hasPermission &&
-        (!await NotificationService.instance.requestPermissions() ||
+        (!await NotificationService.instance.requestPermissions(context) ||
             !mounted)) {
       return;
     }

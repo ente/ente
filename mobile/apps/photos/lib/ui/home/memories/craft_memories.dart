@@ -109,7 +109,7 @@ class _CraftMemoriesState extends State<CraftMemories> {
     final l10n = AppLocalizations.of(context);
     return GestureDetector(
       onTap: () async {
-        if (await NotificationService.instance.requestPermissions() &&
+        if (await NotificationService.instance.requestPermissions(context) &&
             mounted) {
           widget.onNotificationsPermissionGranted?.call();
         }

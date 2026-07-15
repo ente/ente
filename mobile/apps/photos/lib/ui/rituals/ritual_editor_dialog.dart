@@ -542,7 +542,9 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                                       .hasGrantedPermissions() &&
                                                   !await NotificationService
                                                       .instance
-                                                      .requestPermissions()) {
+                                                      .requestPermissions(
+                                                        context,
+                                                      )) {
                                                 if (context.mounted) {
                                                   Navigator.of(context).pop();
                                                 }
