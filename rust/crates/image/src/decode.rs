@@ -5,7 +5,7 @@ use std::{
     io::{BufRead, BufReader, Cursor, Read, Seek, SeekFrom},
     panic::{self, AssertUnwindSafe},
     path::Path,
-    sync::Once,
+    sync::{Arc, Once},
 };
 
 use ente_heic::{
@@ -189,9 +189,9 @@ pub fn decode_image_from_bytes(image_bytes: &[u8]) -> ImageResult<DecodedImage> 
 ///   fail later in `raw_image()` — such files must keep decoding as TIFFs.
 ///
 /// The size guardrail runs before the RAW source is constructed because
-/// constructing it materializes the entire input (`RawSource::new` mmaps with
-/// populate, `RawSource::new_from_slice` copies, and a failed probe copies
-/// the buffer again for the naked-RAW lookup).
+/// constructing it materializes the entire input ([`decode_raw_from_path`]
+/// reads the file into memory, `RawSource::new_from_slice` copies, and a
+/// failed probe copies the buffer again for the naked-RAW lookup).
 fn decode_dynamic_from_path(image_path: &str) -> ImageResult<DynamicImage> {
     let extension_is_raw = path_extension_is_raw(Path::new(image_path));
     let magic_is_raw = file_magic_looks_like_raw(image_path);
@@ -412,9 +412,32 @@ enum RawDecodePlan {
 
 fn decode_raw_from_path(image_path: &str) -> ImageResult<RawDecodeOutcome> {
     catch_raw_decode_panic(image_path, || {
-        let source = RawSource::new(Path::new(image_path)).map_err(|e| {
-            ImageError::Decode(format!("failed to open RAW image file '{image_path}': {e}"))
-        })?;
+        // Read the file into memory instead of mmapping it (`RawSource::new`):
+        // a file that shrinks or is rewritten while mmapped (cache eviction,
+        // removable storage) turns page faults into SIGBUS, which kills the
+        // process and cannot be caught. The callers check the size guardrail
+        // before routing here, but the file may have changed since, so the
+        // read itself is capped at one byte past [`RAW_MAX_INPUT_BYTES`] —
+        // enough for the post-read validation to reject an overgrown file
+        // without ever buffering more than the limit. `new_from_shared_vec`
+        // takes ownership without copying, so memory use matches the mmap
+        // path, which pre-populated all pages anyway. The path is re-attached
+        // only so rawler's internal error messages keep naming the file.
+        let read_failed = |e: std::io::Error| {
+            ImageError::Decode(format!("failed to read RAW image file '{image_path}': {e}"))
+        };
+        let file = File::open(image_path).map_err(read_failed)?;
+        let size_hint = file
+            .metadata()
+            .map(|metadata| metadata.len())
+            .unwrap_or(0)
+            .min(RAW_MAX_INPUT_BYTES + 1);
+        let mut bytes = Vec::with_capacity(size_hint as usize);
+        file.take(RAW_MAX_INPUT_BYTES + 1)
+            .read_to_end(&mut bytes)
+            .map_err(read_failed)?;
+        validate_raw_input_size(bytes.len() as u64, image_path)?;
+        let source = RawSource::new_from_shared_vec(Arc::new(bytes)).with_path(image_path);
         decode_raw_source_to_dynamic_image(&source, image_path)
     })
 }
