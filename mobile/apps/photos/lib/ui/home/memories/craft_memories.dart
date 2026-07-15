@@ -75,7 +75,7 @@ class _CraftMemoriesState extends State<CraftMemories> {
                     Text(
                       l10n.craftingMemoriesFirstHalf,
                       style: TextStyle(
-                        fontFamily: "Outfit",
+                        fontFamily: TextStyles.outfitFontFamily,
                         package: TextStyles.fontPackage,
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
@@ -131,7 +131,7 @@ class _CraftMemoriesState extends State<CraftMemories> {
             child: Text(
               l10n.notifyMe,
               style: const TextStyle(
-                fontFamily: "Outfit",
+                fontFamily: TextStyles.outfitFontFamily,
                 package: TextStyles.fontPackage,
                 color: Colors.white,
                 fontSize: 11,
