@@ -45,8 +45,6 @@ class _NotificationSettingsScreenState
     );
 
     if (!granted) {
-      await setValue(false);
-      if (mounted) setState(() {});
       return;
     }
 
@@ -77,7 +75,7 @@ class _NotificationSettingsScreenState
               onChanged: () => _toggleWithPermission(
                 service.shouldShowNotificationsForSharedPhotosAndAlbums,
                 service.setShouldShowNotificationsForSharedPhotosAndAlbums,
-              ),
+              ).ignore(),
               showStateIcon: false,
             ),
           ),
@@ -93,7 +91,7 @@ class _NotificationSettingsScreenState
               onChanged: () => _toggleWithPermission(
                 service.shouldShowSocialNotifications,
                 service.setShouldShowSocialNotifications,
-              ),
+              ).ignore(),
               showStateIcon: false,
             ),
           ),
@@ -110,7 +108,7 @@ class _NotificationSettingsScreenState
             onChanged: () => _toggleWithPermission(
               () => localSettings.isOnThisDayNotificationsEnabled,
               memoriesCacheService.setOnThisDayNotifications,
-            ),
+            ).ignore(),
             showStateIcon: false,
           ),
         ),
@@ -127,7 +125,7 @@ class _NotificationSettingsScreenState
               onChanged: () => _toggleWithPermission(
                 () => localSettings.birthdayNotificationsEnabled,
                 memoriesCacheService.setBirthdayNotifications,
-              ),
+              ).ignore(),
               showStateIcon: false,
             ),
           ),

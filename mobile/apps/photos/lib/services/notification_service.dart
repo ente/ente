@@ -166,9 +166,19 @@ class NotificationService {
   }
 
   Future<bool> requestPermissions(BuildContext context) async {
-    if (await _askPermissions(context)) {
+    if (await hasGrantedPermissions()) {
       return true;
     }
+
+    if (await _askPermissions()) {
+      return true;
+    }
+
+    if (!context.mounted) {
+      return false;
+    }
+
+    await _openNotificationSettings(context);
 
     const interval = Duration(milliseconds: 500);
     const maxAttempts = 1000;
@@ -184,23 +194,22 @@ class NotificationService {
     return false;
   }
 
-  Future<bool> _askPermissions(BuildContext context) async {
+  Future<bool> _askPermissions() async {
     await _ensurePluginInitialized();
-    final granted = Platform.isIOS
-        ? await _notificationsPlugin
-              .resolvePlatformSpecificImplementation<
-                IOSFlutterLocalNotificationsPlugin
-              >()
-              ?.requestPermissions(sound: true, alert: true)
-        : await _notificationsPlugin
-              .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin
-              >()
-              ?.requestNotificationsPermission();
-    if (granted == false && context.mounted) {
-      await _openNotificationSettings(context);
-    }
-    return granted ?? false;
+    final granted =
+        (Platform.isIOS
+            ? await _notificationsPlugin
+                  .resolvePlatformSpecificImplementation<
+                    IOSFlutterLocalNotificationsPlugin
+                  >()
+                  ?.requestPermissions(sound: true, alert: true)
+            : await _notificationsPlugin
+                  .resolvePlatformSpecificImplementation<
+                    AndroidFlutterLocalNotificationsPlugin
+                  >()
+                  ?.requestNotificationsPermission()) ??
+        false;
+    return granted;
   }
 
   Future<void> _openNotificationSettings(BuildContext context) async {
