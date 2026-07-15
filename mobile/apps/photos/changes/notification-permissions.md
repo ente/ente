@@ -1,0 +1,3 @@
+- Made notification permissions request open settings app on android and iOS with toast notification with instructions.
+- Notifications are requested on user action, as opposed to all the time.
+- Fixed issue with notifications settings page toggle buttons not working if notification permissions are denied.
