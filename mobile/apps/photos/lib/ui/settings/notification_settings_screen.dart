@@ -32,16 +32,26 @@ class _NotificationSettingsScreenState
     bool Function() getValue,
     Future<void> Function(bool value) setValue,
   ) async {
-    final value = _hasPermission ? !getValue() : true;
+    final oldValue = _hasPermission && getValue();
 
-    if (!_hasPermission &&
-        (!await NotificationService.instance.requestPermissions(context) ||
-            !mounted)) {
+    if (_hasPermission) {
+      await setValue(!oldValue);
+      if (mounted) setState(() {});
+      return;
+    }
+
+    final granted = await NotificationService.instance.requestPermissions(
+      context,
+    );
+
+    if (!granted) {
+      await setValue(false);
+      if (mounted) setState(() {});
       return;
     }
 
     _hasPermission = true;
-    await setValue(value);
+    await setValue(true);
     if (mounted) setState(() {});
   }
 
