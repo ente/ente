@@ -25,6 +25,7 @@ import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.da
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
 import "package:photos/ui/viewer/gallery/state/search_filter_data_provider.dart";
 import "package:photos/ui/viewer/gallery/state/selection_state.dart";
+import "package:photos/ui/viewer/gallery/sync_aware_empty_state.dart";
 
 class CollectionPage extends StatelessWidget {
   final CollectionWithThumbnail c;
@@ -116,7 +117,7 @@ class CollectionPage extends StatelessWidget {
                 );
               },
             )
-          : const EmptyState(),
+          : const SyncAwareEmptyState(),
       footer: const SizedBox(height: 212),
       fileToJumpTo: fileToJumpTo,
     );

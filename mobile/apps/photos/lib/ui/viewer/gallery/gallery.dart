@@ -26,7 +26,6 @@ import "package:photos/ui/viewer/gallery/component/gallery_file_widget.dart";
 import "package:photos/ui/viewer/gallery/component/group/group_header_widget.dart";
 import "package:photos/ui/viewer/gallery/component/group/type.dart";
 import "package:photos/ui/viewer/gallery/component/sectioned_sliver_list.dart";
-import 'package:photos/ui/viewer/gallery/empty_state.dart';
 import "package:photos/ui/viewer/gallery/gallery_app_bar_config.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_widget.dart";
 import "package:photos/ui/viewer/gallery/scrollbar/custom_scroll_bar.dart";
@@ -37,6 +36,7 @@ import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.da
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
 import "package:photos/ui/viewer/gallery/swipe_selection_wrapper.dart";
 import "package:photos/ui/viewer/gallery/swipe_to_select_helper.dart";
+import "package:photos/ui/viewer/gallery/sync_aware_empty_state.dart";
 import "package:photos/utils/hierarchical_search_util.dart";
 import "package:photos/utils/misc_util.dart";
 import "package:photos/utils/widget_util.dart";
@@ -110,7 +110,7 @@ class Gallery extends StatefulWidget {
     this.header,
     this.footer = const SizedBox(height: 212),
     this.addHeaderOrFooterEmptyState = true,
-    this.emptyState = const EmptyState(),
+    this.emptyState = const SyncAwareEmptyState(),
     this.albumName = '',
     this.groupType,
     this.enableFileGrouping = true,

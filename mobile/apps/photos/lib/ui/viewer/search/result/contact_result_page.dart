@@ -30,7 +30,6 @@ import "package:photos/ui/collections/album/row_item.dart";
 import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/components/end_to_end_banner.dart";
 import "package:photos/ui/viewer/actions/file_selection_overlay_bar.dart";
-import "package:photos/ui/viewer/gallery/empty_state.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_config.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_widget.dart";
@@ -40,6 +39,7 @@ import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.da
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
 import "package:photos/ui/viewer/gallery/state/search_filter_data_provider.dart";
 import "package:photos/ui/viewer/gallery/state/selection_state.dart";
+import "package:photos/ui/viewer/gallery/sync_aware_empty_state.dart";
 import "package:photos/ui/viewer/hierarchicial_search/app_bar_filter_chips.dart";
 import "package:photos/ui/viewer/people/person_selection_action_widgets.dart";
 import "package:photos/ui/viewer/search/contact_avatar_widget.dart";
@@ -155,7 +155,7 @@ class _ContactResultPageState extends State<ContactResultPage> {
       header: _buildPageHeader(context),
       emptyState: _shouldShowUnsavedContactEmptyState
           ? _UnsavedContactEmptyState(email: _contactEmail)
-          : const EmptyState(),
+          : const SyncAwareEmptyState(),
     );
 
     return GalleryBoundariesProvider(

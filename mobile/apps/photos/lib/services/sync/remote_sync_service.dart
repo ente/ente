@@ -244,6 +244,10 @@ class RemoteSyncService {
     return false;
   }
 
+  bool isNonSilentSyncInProgress() {
+    return _existingSync != null && !_isExistingSyncSilent;
+  }
+
   Future<void> _pullDiff() async {
     _logger.info("Pulling remote diff");
     final isFirstSync = !_collectionsService.hasSyncedCollections();
