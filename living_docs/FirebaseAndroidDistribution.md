@@ -14,7 +14,7 @@
 |------:|----:|-------|:----:|--------|-------|
 | 1 | 1.1 | Rename the self-hosted Android application ID | M | 🟢 done | Changed only the `selfhosted` flavor to release ID `me.vanton.ente.photos.selfhosted`; retained namespace `io.ente.photos`, the `.debug` suffix, signing inputs, iOS identity, and official flavor configuration. Forced Gradle to regenerate manifests after an initial stale-output pass and verified release `me.vanton.ente.photos.selfhosted`, debug `me.vanton.ente.photos.selfhosted.debug`, and unchanged independent debug `io.ente.photos.independent.debug`, all at version `1.3.59+2158`. Updated current README/build-guide identity, clean-install, upgrade, and rollback guidance while preserving historical living-doc evidence. The guarded endpoint validator and `git diff --check` pass. |
 | 1 | 1.2 | Build, sign, and audit the replacement APK | S | 🟢 done | Built the configurable release for `https://macbook-pro-2.tailcfdac8.ts.net` and audited the fresh APK as package `me.vanton.ente.photos.selfhosted`, version `1.3.59` (`2158`), min/target SDK `26`/`36`, non-debuggable, and limited to `arm64-v8a` plus `armeabi-v7a`. APK Signature Scheme v2 verifies with the expected certificate SHA-256 `9f0a5f39668e7098d097745931bcb8fc392d50da877cf349a2b20e2db1a4ce69`; archive integrity passes and APK SHA-256 is `57d90841070903430374bb4dda3339b737a4980cfafa9659f73e6e2a235c50ae`. Preserved the exact 262,750,609-byte artifact at `/Users/vanton/projects/ente-android-toolchain/artifacts/ente-photos-me-vanton-selfhosted-1.3.59-2158-release.apk` without overwriting the legacy-package artifact or changing installed application state. |
-| 2 | 2.1 | Provision Firebase and the trusted tester group | S | ⚪ not started | Create a dedicated Firebase project, register the audited case-sensitive Android package, enable App Distribution, set its contact email, create group alias `trusted-testers`, and authenticate the local Firebase CLI. Add no Firebase runtime SDK or committed Firebase credential/configuration file. |
+| 2 | 2.1 | Provision Firebase and the trusted tester group | S | 🟢 done | Installed Firebase CLI `15.24.0` in the external Android toolchain and authenticated it as the intended operator with Gemini and optional telemetry disabled. Created dedicated project `vanton-ente-photos-selfhosted` (display name `Ente Photos Self-Hosted`), registered active Android app `1:221853227327:android:805cc5a53b5ccede489b8a` with exact audited package `me.vanton.ente.photos.selfhosted`, initialized App Distribution and confirmed its contact email in the console, and verified group alias `trusted-testers`. Added no Android Firebase configuration, runtime integration, credential, tester identity, or project binding to Git. During verification, Firebase CLI `login:list --json` unexpectedly printed OAuth tokens; the session was immediately revoked and replaced through a fresh browser login, which was safely verified through project visibility. |
 | 2 | 2.2 | Add an audited release-preparation command | M | ⚪ not started | Build through the guarded configurable wrapper from a clean commit, fail closed on identity/signature/version/endpoint errors, and write the immutable APK plus a machine-readable manifest containing its hash, source commit, metadata, and signer fingerprint outside Git. This stage must not access Firebase. |
 | 2 | 2.3 | Add a guarded Firebase publication command | M | ⚪ not started | Consume an existing prepared manifest, revalidate the unchanged APK and registered Firebase package, require explicit publication confirmation, upload to `trusted-testers` with release notes and the exact AGPL source link, and preserve the returned release references. This stage must not rebuild or access signing credentials. |
 | 2 | 2.4 | Document releases, tester onboarding, and recovery | S | ⚪ not started | Document operator inputs, preparation and publication, Firebase invitations and expiry, Tailscale enrollment, server health, install/update steps, exact-source access, tester removal, known-good republishing, application-ID cutover, and signing-key loss. Keep tester emails and credentials out of Git. |
@@ -153,6 +153,22 @@ The Firebase account controls tester delivery, not access to encrypted photos. E
 
 > Append-only. Newest entries stay on top. If a decision changes, add a new entry instead of rewriting history.
 
+### 2026-07-16 — Verify Firebase CLI access without listing login JSON
+
+**Decision:** Never run `firebase login:list --json` in this workflow. Verify authentication through a harmless resource query such as `firebase projects:list`, and immediately log out and re-authenticate if CLI credentials appear in output.
+
+**Why:** Firebase CLI `15.24.0` included live access, refresh, and identity tokens in the JSON result of `login:list` during Task 2.1. The affected session was immediately revoked with `firebase logout`, a fresh browser login replaced it, and project access was confirmed without printing credential material. No token or Firebase credential was written to the repository.
+
+**Alternatives considered:** Trust the command name to return identity metadata only, or inspect the Firebase credential-store file directly. Both can expose reusable credentials and are unnecessary for an access check.
+
+### 2026-07-16 — Provision a dedicated Firebase distribution identity
+
+**Decision:** Use Firebase project `vanton-ente-photos-selfhosted`, Android App ID `1:221853227327:android:805cc5a53b5ccede489b8a`, exact package `me.vanton.ente.photos.selfhosted`, and stable tester-group alias `trusted-testers` for this closed beta.
+
+**Why:** A dedicated project isolates tester access and releases from unrelated Firebase applications, while registration only after the signed APK audit prevents an immutable package-name mistake.
+
+**Alternatives considered:** Reuse one of the operator's unrelated Firebase projects, or register Firebase before auditing the renamed APK.
+
 ### 2026-07-16 — Track Firebase distribution in a focused living document
 
 **Decision:** Use `living_docs/FirebaseAndroidDistribution.md`, link the existing configurable and locked Android records plus the build guides and official Firebase documentation, and skip a separate architecture companion.
@@ -221,7 +237,6 @@ The Firebase account controls tester delivery, not access to encrypted photos. E
 
 ## 6. Open questions
 
-- What display name and globally unique project ID should be used for the dedicated Firebase project? Do not register the Android app until Task 1.2 proves its package.
 - Which non-owner trusted tester will complete Task 3.3? Keep their email address and identity in Firebase and private coordination, not in this document.
 
 ---
