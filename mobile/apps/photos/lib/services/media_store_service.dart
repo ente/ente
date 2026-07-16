@@ -30,10 +30,16 @@ class MediaStoreService {
   }
 
   /// Restores trashed files with the given Android MediaStore content URIs.
+  ///
+  /// Call only when [Platform.isAndroid] is true and the SDK version is not
+  /// lower than [android11SDKINT]. Each URI must point to a trashed item.
   static Future<void> restoreTrashedFiles(List<String> uris) =>
       _sendInBatches("restoreTrashedFiles", uris);
 
   /// Permanently deletes trashed files with the given MediaStore content URIs.
+  ///
+  /// Call only when [Platform.isAndroid] is true and the SDK version is not
+  /// lower than [android11SDKINT]. Each URI must point to a trashed item.
   static Future<void> permanentlyDeleteTrashedFiles(List<String> uris) =>
       _sendInBatches("permanentlyDeleteTrashedFiles", uris);
 
