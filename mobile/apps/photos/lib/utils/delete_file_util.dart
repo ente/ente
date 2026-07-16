@@ -230,39 +230,37 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
   deletedIDs.addAll(await _tryDeleteSharedMediaFiles(localSharedMediaIDs));
   final List<EnteFile> deletedFiles = [];
   final List<int> uploadedFileIDsToClear = [];
-  try {
-    for (final file in files) {
-      // Remove only those files that have been removed from disk
-      if (deletedIDs.contains(file.localID) ||
-          alreadyDeletedIDs.contains(file.localID)) {
-        deletedFiles.add(file);
-        if (hasLocalOnlyFiles && localOnlyIDs.contains(file.localID)) {
-          await FilesDB.instance.deleteLocalFile(file);
+  for (final file in files) {
+    // Remove only those files that have been removed from disk
+    if (deletedIDs.contains(file.localID) ||
+        alreadyDeletedIDs.contains(file.localID)) {
+      deletedFiles.add(file);
+      if (hasLocalOnlyFiles && localOnlyIDs.contains(file.localID)) {
+        await FilesDB.instance.deleteLocalFile(file);
+      } else {
+        final uploadedFileID = file.uploadedFileID;
+        file.localID = null;
+        if (uploadedFileID != null) {
+          uploadedFileIDsToClear.add(uploadedFileID);
         } else {
-          final uploadedFileID = file.uploadedFileID;
-          file.localID = null;
-          if (uploadedFileID != null) {
-            uploadedFileIDsToClear.add(uploadedFileID);
-          } else {
-            await FilesDB.instance.update(file);
-          }
+          await FilesDB.instance.update(file);
         }
       }
     }
-  } finally {
-    if (uploadedFileIDsToClear.isNotEmpty) {
-      await FilesDB.instance
-          .clearLocalIDsForUploadedFileIDs(uploadedFileIDsToClear);
-    }
-    if (deletedFiles.isNotEmpty || alreadyDeletedIDs.isNotEmpty) {
-      Bus.instance.fire(
-        LocalPhotosUpdatedEvent(
-          deletedFiles,
-          type: EventType.deletedFromDevice,
-          source: "deleteFilesOnDeviceOnly",
-        ),
-      );
-    }
+  }
+  if (uploadedFileIDsToClear.isNotEmpty) {
+    await FilesDB.instance.clearLocalIDsForUploadedFileIDs(
+      uploadedFileIDsToClear,
+    );
+  }
+  if (deletedFiles.isNotEmpty || alreadyDeletedIDs.isNotEmpty) {
+    Bus.instance.fire(
+      LocalPhotosUpdatedEvent(
+        deletedFiles,
+        type: EventType.deletedFromDevice,
+        source: "deleteFilesOnDeviceOnly",
+      ),
+    );
   }
   return deletedFiles;
 }
