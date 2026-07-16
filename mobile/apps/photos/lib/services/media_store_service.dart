@@ -1,5 +1,6 @@
 import "dart:io";
 
+import "package:collection/collection.dart";
 import "package:flutter/services.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/utils/device_info.dart";
@@ -29,18 +30,16 @@ class MediaStoreService {
   }
 
   /// Restores trashed files with the given Android MediaStore content URIs.
-  static Future<void> restoreTrashedFiles(List<String> uris) async {
-    if (uris.isEmpty) return;
-    await _methodChannel.invokeMethod<void>("restoreTrashedFiles", {
-      "uris": uris,
-    });
-  }
+  static Future<void> restoreTrashedFiles(List<String> uris) =>
+      _sendInBatches("restoreTrashedFiles", uris);
 
   /// Permanently deletes trashed files with the given MediaStore content URIs.
-  static Future<void> permanentlyDeleteTrashedFiles(List<String> uris) async {
-    if (uris.isEmpty) return;
-    await _methodChannel.invokeMethod<void>("permanentlyDeleteTrashedFiles", {
-      "uris": uris,
-    });
+  static Future<void> permanentlyDeleteTrashedFiles(List<String> uris) =>
+      _sendInBatches("permanentlyDeleteTrashedFiles", uris);
+
+  static Future<void> _sendInBatches(String method, List<String> uris) async {
+    for (final batch in uris.slices(2000)) {
+      await _methodChannel.invokeMethod<void>(method, {"uris": batch});
+    }
   }
 }
