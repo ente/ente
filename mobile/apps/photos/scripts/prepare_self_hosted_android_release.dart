@@ -583,17 +583,19 @@ Future<AndroidReleaseAudit> auditAndroidReleaseApk({
   required String canonicalEndpoint,
   required ReleaseVersion sourceVersion,
   required ReleaseToolPaths tools,
+  Map<String, String>? processEnvironment,
 }) async {
   final apk = File(apkPath);
   if (!apk.existsSync()) {
     throw ReleasePreparationException("APK does not exist: $apkPath");
   }
 
-  final badgingResult = await _requireSuccessfulProcess(tools.aapt2, [
-    "dump",
-    "badging",
-    apkPath,
-  ], failureMessage: "aapt2 could not inspect the APK metadata.");
+  final badgingResult = await _requireSuccessfulProcess(
+    tools.aapt2,
+    ["dump", "badging", apkPath],
+    environment: processEnvironment,
+    failureMessage: "aapt2 could not inspect the APK metadata.",
+  );
   final badging = parseAaptBadging(badgingResult.stdout as String);
   if (badging.packageName != expectedPackageName) {
     throw ReleasePreparationException(
@@ -623,13 +625,12 @@ Future<AndroidReleaseAudit> auditAndroidReleaseApk({
     );
   }
 
-  final manifestResult = await _requireSuccessfulProcess(tools.aapt2, [
-    "dump",
-    "xmltree",
-    apkPath,
-    "--file",
-    "AndroidManifest.xml",
-  ], failureMessage: "aapt2 could not inspect AndroidManifest.xml.");
+  final manifestResult = await _requireSuccessfulProcess(
+    tools.aapt2,
+    ["dump", "xmltree", apkPath, "--file", "AndroidManifest.xml"],
+    environment: processEnvironment,
+    failureMessage: "aapt2 could not inspect AndroidManifest.xml.",
+  );
   final debuggable = manifestIsDebuggable(manifestResult.stdout as String);
   if (debuggable || badging.packageName.endsWith(".debug")) {
     throw const ReleasePreparationException(
@@ -637,23 +638,27 @@ Future<AndroidReleaseAudit> auditAndroidReleaseApk({
     );
   }
 
-  final signerResult = await _requireSuccessfulProcess(tools.apksigner, [
-    "verify",
-    "--verbose",
-    "--print-certs",
-    apkPath,
-  ], failureMessage: "apksigner rejected the APK.");
+  final signerResult = await _requireSuccessfulProcess(
+    tools.apksigner,
+    ["verify", "--verbose", "--print-certs", apkPath],
+    environment: processEnvironment,
+    failureMessage: "apksigner rejected the APK.",
+  );
   final signer = parseApkSignerOutput(signerResult.stdout as String);
   validateApkSignerAudit(signer);
 
-  await _requireSuccessfulProcess(tools.unzip, [
-    "-tq",
-    apkPath,
-  ], failureMessage: "The APK ZIP archive failed its integrity check.");
-  final entriesResult = await _requireSuccessfulProcess(tools.unzip, [
-    "-Z1",
-    apkPath,
-  ], failureMessage: "The APK ZIP entries could not be listed.");
+  await _requireSuccessfulProcess(
+    tools.unzip,
+    ["-tq", apkPath],
+    environment: processEnvironment,
+    failureMessage: "The APK ZIP archive failed its integrity check.",
+  );
+  final entriesResult = await _requireSuccessfulProcess(
+    tools.unzip,
+    ["-Z1", apkPath],
+    environment: processEnvironment,
+    failureMessage: "The APK ZIP entries could not be listed.",
+  );
   final zipAbis = <String>{};
   for (final line in const LineSplitter().convert(
     entriesResult.stdout as String,
@@ -672,6 +677,7 @@ Future<AndroidReleaseAudit> auditAndroidReleaseApk({
   final appLibraryResult = await Process.run(
     tools.unzip,
     ["-p", apkPath, "lib/arm64-v8a/libapp.so"],
+    environment: processEnvironment,
     stdoutEncoding: null,
     stderrEncoding: utf8,
   );
@@ -697,7 +703,11 @@ Future<AndroidReleaseAudit> auditAndroidReleaseApk({
     debuggable: false,
     signingCertificateSha256: signer.certificateSha256,
     signatureSchemes: signer.signatureSchemes,
-    sha256: await sha256File(apkPath, shasum: tools.shasum),
+    sha256: await sha256File(
+      apkPath,
+      shasum: tools.shasum,
+      environment: processEnvironment,
+    ),
     sizeBytes: apk.lengthSync(),
   );
 }
@@ -899,12 +909,17 @@ bool containsBytes(List<int> haystack, List<int> needle) {
   return false;
 }
 
-Future<String> sha256File(String path, {String shasum = "shasum"}) async {
-  final result = await _requireSuccessfulProcess(shasum, [
-    "-a",
-    "256",
-    path,
-  ], failureMessage: "Could not calculate the APK SHA-256.");
+Future<String> sha256File(
+  String path, {
+  String shasum = "shasum",
+  Map<String, String>? environment,
+}) async {
+  final result = await _requireSuccessfulProcess(
+    shasum,
+    ["-a", "256", path],
+    environment: environment,
+    failureMessage: "Could not calculate the APK SHA-256.",
+  );
   final match = RegExp(
     r"^([0-9a-fA-F]{64})\s",
   ).firstMatch((result.stdout as String).trim());
@@ -955,6 +970,7 @@ Future<ProcessResult> _requireSuccessfulProcess(
   String executable,
   List<String> arguments, {
   String? workingDirectory,
+  Map<String, String>? environment,
   required String failureMessage,
 }) async {
   ProcessResult result;
@@ -963,6 +979,7 @@ Future<ProcessResult> _requireSuccessfulProcess(
       executable,
       arguments,
       workingDirectory: workingDirectory,
+      environment: environment,
       stdoutEncoding: utf8,
       stderrEncoding: utf8,
     );

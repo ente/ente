@@ -167,6 +167,59 @@ This preparation stage does not invoke Firebase or upload anything. Publication
 must consume the exact APK and manifest produced here; it must not rebuild or
 resign the application.
 
+#### Guarded Firebase publication
+
+Use the publication command only with a manifest produced by the preparation
+command above. Supply the Firebase project and Android App ID locally so this
+public repository is not bound to one operator's Firebase project. The target
+App Distribution group is fixed to `trusted-testers`.
+
+First run the read-only preflight. Use absolute paths outside this Git
+repository for both the prepared manifest and publication receipts:
+
+```sh
+export FIREBASE_CLI="/absolute/path/to/firebase"
+
+./scripts/publish_self_hosted_android_release.sh \
+  --manifest "/absolute/path/prepared-releases/RELEASE.manifest.json" \
+  --receipt-dir "/absolute/path/firebase-receipts" \
+  --firebase-project "YOUR_FIREBASE_PROJECT_ID" \
+  --firebase-app "YOUR_FIREBASE_ANDROID_APP_ID" \
+  --preflight-only
+```
+
+The preflight re-hashes and independently inspects the APK, checks every pinned
+manifest field, verifies the exact active Firebase Android package and
+`trusted-testers` group, and checks prior guarded receipts for a non-increasing
+version code. It performs no upload and creates no receipt.
+
+To publish the same release, run the command again without
+`--preflight-only`. Review the complete summary and type the displayed
+`PUBLISH <release-id>` confirmation exactly. The command repeats the file and
+Firebase checks after confirmation, then invokes only Firebase App Distribution
+with the prepared APK, generated release notes, and the fixed group. It never
+invokes Flutter, Gradle, the preparation command, or the keystore.
+
+Generated release notes include the package version, APK SHA-256, exact AGPL
+source commit URL, and commit-pinned build instructions. Optional operator
+notes can be appended from an absolute path:
+
+```sh
+  --release-notes-file "/absolute/path/release-notes.txt"
+```
+
+A successful publication writes a read-only
+`<release-id>.firebase-release.json` outside Git. It preserves the Firebase
+console, tester, and temporary binary-download references and becomes the local
+version ledger for later updates. It is never overwritten. If Firebase fails
+after the upload starts, the command instead preserves a read-only
+`.firebase-attempt-*.json` recovery record and requires the operator to inspect
+Firebase before retrying.
+
+Use a locally authenticated Firebase CLI session. Legacy `FIREBASE_TOKEN`,
+Google credential-file variables, and Android signing/password variables are
+removed from every inspection and Firebase subprocess.
+
 Install it on a connected USB-debugging device:
 
 ```sh
