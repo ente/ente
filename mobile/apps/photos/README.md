@@ -77,7 +77,7 @@ canonicalize the endpoint without starting a build.
 The wrapper always builds the `selfhosted` flavor as an APK, supplies
 `configurableEndpoint=true` and the canonical `endpoint` as Dart defines, and rejects
 caller-supplied flavors or Dart defines. The release application ID is
-`com.vanton1.ente.photos.selfhosted`; debug builds inherit the repository-wide
+`me.vanton.ente.photos.selfhosted`; debug builds inherit the repository-wide
 `.debug` suffix. Existing Android flavors and their application IDs are
 unchanged. Release builds use the existing Gradle signing configuration, with
 the keystore path and credentials supplied through ignored `key.properties` or

@@ -6,8 +6,8 @@ to another HTTPS Museum origin through their guarded Server Settings page.
 
 The personal applications use separate identities from the official Ente app:
 
-- Android release package: `com.vanton1.ente.photos.selfhosted`
-- Android debug package: `com.vanton1.ente.photos.selfhosted.debug`
+- Android release package: `me.vanton.ente.photos.selfhosted`
+- Android debug package: `me.vanton.ente.photos.selfhosted.debug`
 - iOS bundle identifier: `com.vanton1.ente.photos.selfhosted`
 
 The official applications can remain installed alongside these builds.
@@ -280,9 +280,14 @@ needed for later signing.
 a valid stored server binding, that binding wins over defaults supplied by
 later builds. Consequently:
 
-- Installing a configurable build over the earlier locked app with the same
-  package or bundle identifier preserves its server binding, account, and
-  photos.
+- Installing a later configurable build with the same application identity
+  preserves its server binding, account, and photos. This applies to future
+  Android builds using `me.vanton.ente.photos.selfhosted` and to iOS builds
+  using the existing self-hosted bundle identifier.
+- The earlier Android package `com.vanton1.ente.photos.selfhosted` is a separate
+  application. Moving to the renamed Android package is a clean install and
+  does not migrate its app-local binding, account, keys, or queued work. Sync
+  important work first, then log in and download the cloud library again.
 - Rebuilding with a different default does not silently migrate an existing
   installation.
 - A clean install binds itself to the compiled default on first launch.
@@ -303,10 +308,16 @@ clears app-local account and queued-work state but does not delete media from
 the old server or the device's photo library. Sync any important pending work
 before confirming.
 
-Rollback to an earlier locked artifact is safe before a switch when its
-compiled endpoint matches the retained binding. After changing the binding,
-an older locked artifact for another origin fails closed; reinstall it or clear
+On iOS, rollback to an earlier locked artifact is safe before a switch when its
+compiled endpoint matches the retained binding. After changing the binding, an
+older locked artifact for another origin fails closed; reinstall it or clear
 that app's data only if you intentionally accept losing local app state.
+
+The preserved locked Android artifact uses the old package identity, so it is
+not an in-place rollback for the renamed app. Returning to it requires
+uninstalling `me.vanton.ente.photos.selfhosted`, installing the old package, and
+logging in again. Either Android uninstall loses that package's app-local state;
+server-side encrypted media remains available through its Museum account.
 
 ## 6. Private-server connectivity
 
