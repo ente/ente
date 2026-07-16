@@ -22,7 +22,7 @@
 | 2 | 2.1 | Add the self-hosted flavor and guarded Android build wrapper | M | 🟢 done | Added the `selfhosted` flavor with release application ID `com.vanton1.ente.photos.selfhosted`, the normal `.debug` suffix for debug builds, a no-referrer fallback for the flavor-aware install-source plugin, and the standard launcher manifest overlay. Added a guarded APK wrapper that reuses the Dart endpoint validator, injects only `lockedEndpoint=true` plus the canonical endpoint, and rejects caller flavor or Dart-define overrides. Gradle exposed self-hosted debug/profile/release tasks alongside every existing flavor, generated both expected application IDs, and left the official flavor blocks unchanged. |
 | 2 | 2.2 | Test the Android flavor, wrapper, endpoint lock, and APK identity | M | 🟢 done | Passed all 20 endpoint-policy and developer-settings tests in both normal and real locked-define modes. Verified one canonical wrapper invocation and nine fail-closed cases covering missing or unsafe endpoints, validation arity, Dart-define forms, and flavor overrides. Built and audited the 554,898,085-byte `selfhostedDebug` APK: package `com.vanton1.ente.photos.selfhosted.debug`, minimum API 26, target API 36, Android Debug signature, ARMv7/ARM64/x86_64 libraries, intact ZIP, canonical local hostname and lock policy in the Flutter kernel, correct launcher merge, and SHA-256 `1bf6391069960ef39c6bf15b8809480778bc13aa9cd8b4b321318e5e777a14cb`. Rebuilt `independentDebug` and confirmed its original package, SDK range, ABIs, and signer; SHA-256 `8d6247d670940d2ee91f31f90d37c7eea6e0d98f25fd916f3257fcf94ae97658`. |
 | 3 | 3.1 | Verify the locked Android build end to end in an emulator | M | 🟢 done | Installed the checksum-audited local-server APK on the API 36 ARM64 emulator and verified the initial server identity, account recovery/login, and persisted authentication across both an app cold start and a full emulator restart. Uploaded a controlled image; Museum recorded the self-hosted debug package creating its collection, obtaining signed object URLs, and committing encrypted file metadata with HTTP 200. After the source disappeared from Android shared storage, a cold-started app requested `/files/download/10000005`, received the signed-object redirect, and rendered the decrypted full image. An in-place same-package build for `https://other.example` stopped on the local endpoint-binding diagnostic before creating a network client; Museum recorded zero package requests after launch. Reinstalling the preserved local-server APK retained the session and returned to home. Restored the canonical 554,898,085-byte output with SHA-256 `1bf6391069960ef39c6bf15b8809480778bc13aa9cd8b4b321318e5e777a14cb`, then shut down the preserved AVD. |
-| 3 | 3.2 | Sign and verify the locked Android build on a physical device | M | 🔴 blocked / needs device | Created an external RSA-4096 release keystore with its generated password held in the macOS login Keychain and only the ignored keystore path/alias in local Gradle properties. Built and audited the 262,701,461-byte release APK: package `com.vanton1.ente.photos.selfhosted`, version `1.3.59`, minimum API 26, target API 36, ARMv7/ARM64 libraries, intact ZIP, canonical local endpoint in the AOT library, valid APK Signature Scheme v2 signature with certificate SHA-256 `9f0a5f39668e7098d097745931bcb8fc392d50da877cf349a2b20e2db1a4ce69`, and artifact SHA-256 `2f5f6011035e396f7b1d3660fe7043fc509115554dcca2051e3fe5a868461fc8`. Preserved the exact APK at `/Users/vanton/projects/ente-android-toolchain/artifacts/ente-photos-selfhosted-1.3.59-release.apk`. Physical installation and the account, media, restart, and server-evidence checks remain blocked until a device is available. |
+| 3 | 3.2 | Sign and verify the locked Android build on a physical device | M | 🟢 done | Revalidated the preserved 262,701,461-byte release APK and SHA-256 `2f5f6011035e396f7b1d3660fe7043fc509115554dcca2051e3fe5a868461fc8`, then installed package `com.vanton1.ente.photos.selfhosted` version `1.3.59` on an ARM64 Tab8 running Android 10/API 29 without recording its serial number. Through an active Tailscale VPN, logged in to the local account and uploaded a controlled repository image after restoring the stopped Docker stack. Museum recorded the release package obtaining `/files/upload-url` and committing `/files`, both with HTTP 200. Removed the controlled source from Android Pictures, cold-started the app, confirmed the account remained authenticated, and rendered the decrypted cloud copy; Museum redirected `/files/download/10000016` to private object storage with HTTP 307. |
 
 **Legend:** ⚪ not started · 🟡 working · 🟢 done · 🔴 blocked / needs decision
 **Size:** XS · S · M · L · XL (never days or weeks).
@@ -89,6 +89,20 @@ V1 locks authenticated Museum traffic only, matching the iOS security boundary. 
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. If a decision changes, add a new entry instead of rewriting history.
+
+### 2026-07-16 — Keep the release-signing identity local only
+
+**Decision:** Keep the Android release keystore in its existing external local
+toolchain directory with the password in the macOS login Keychain, and do not
+create an encrypted off-machine backup destination.
+
+**Why:** The owner explicitly chose to skip the off-machine signing backup.
+Loss of this keystore will prevent future APKs from upgrading installed builds
+under the same package identity; recovery would require uninstalling the old
+application and installing a newly signed one.
+
+**Alternatives considered:** Store an encrypted copy on the NAS or another
+off-machine destination.
 
 ### 2026-07-14 — Supersede the locked artifacts with in-place configurable builds
 
@@ -207,8 +221,7 @@ state.
 
 ## 6. Open questions
 
-- Which physical Android device will be used for Task 3.2?
-- Where should the local Android release-signing keystore be stored and backed up outside Git?
+_None._
 
 ---
 
@@ -227,3 +240,8 @@ state.
 - Flavor-aware Flutter plugins can require an explicit Gradle fallback even when most plugins are flavor-agnostic; resolving `selfhosted` to the install-source plugin's `independent` variant preserves the intended no-referrer behavior.
 - Each application flavor drives separate native Rust build tasks. A universal debug APK is correspondingly large, but it gives one artifact that covers the ARMv7, ARM64, and x86_64 emulator/device paths needed by this initiative.
 - A useful locked-artifact audit combines compile-time tests, wrapper rejection cases, the exact generated package ID, manifest launcher merging, APK signature and ABI inspection, the embedded canonical hostname, and a checksum. Any one of those checks alone leaves a meaningful packaging gap.
+
+### Phase 3
+
+- Physical verification depends on both layers of the private deployment: Tailscale must provide the private DNS and route on the device, and Docker Desktop must keep Museum, PostgreSQL, and MinIO running on the server host. A reachable Tailscale IP with an HTTP 502 from `/ping` identifies the latter layer as unavailable.
+- A controlled repository image gives deterministic upload and download evidence without using personal media. Removing only that source from shared storage before a cold start proves that successful rendering came from the encrypted cloud copy rather than the device gallery.
