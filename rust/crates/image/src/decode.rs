@@ -579,7 +579,7 @@ fn decode_best_raw_preview(
                 .join(", ")
         };
         return Err(ImageError::Decode(format!(
-            "RAW image '{source_name}' exceeds {RAW_MAX_DEVELOPMENT_PIXELS} pixels and has no usable embedded JPEG preview (requires short edge >= {RAW_PREVIEW_MIN_SHORT_EDGE}px and <= {RAW_PREVIEW_MAX_PIXELS} pixels; found: {available})"
+            "RAW image '{source_name}' exceeds {RAW_MAX_DEVELOPMENT_PIXELS} pixels and has no usable embedded JPEG preview (requires short edge >= {RAW_PREVIEW_MIN_SHORT_EDGE}px, maximum side <= {RAW_MAX_DIMENSION}px, and <= {RAW_PREVIEW_MAX_PIXELS} pixels; found: {available})"
         )));
     };
 
@@ -629,6 +629,7 @@ fn decode_best_raw_preview(
 
 fn raw_preview_dimensions_are_eligible(width: u32, height: u32) -> bool {
     width.min(height) >= RAW_PREVIEW_MIN_SHORT_EDGE
+        && u64::from(width.max(height)) <= RAW_MAX_DIMENSION as u64
         && u64::from(width) * u64::from(height) <= RAW_PREVIEW_MAX_PIXELS
 }
 
@@ -2542,6 +2543,15 @@ mod tests {
     fn raw_preview_limit_is_exactly_200_megapixels() {
         assert!(raw_preview_dimensions_are_eligible(20_000, 10_000));
         assert!(!raw_preview_dimensions_are_eligible(20_001, 10_000));
+    }
+
+    #[test]
+    fn raw_preview_side_limit_is_exactly_50_000_pixels() {
+        assert!(raw_preview_dimensions_are_eligible(50_000, 4_000));
+        assert!(raw_preview_dimensions_are_eligible(4_000, 50_000));
+        assert!(!raw_preview_dimensions_are_eligible(50_001, 3_999));
+        assert!(!raw_preview_dimensions_are_eligible(3_999, 50_001));
+        assert!(!raw_preview_dimensions_are_eligible(100_000, 2_000));
     }
 
     #[test]
