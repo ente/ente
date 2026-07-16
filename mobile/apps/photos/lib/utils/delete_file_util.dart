@@ -763,9 +763,6 @@ Future<List<String>> _tryDeleteSharedMediaFiles(List<String> localIDs) {
 
 Future<void> showMediaManagementHintSheet(BuildContext context) async {
   final l10n = AppLocalizations.of(context);
-  if (!Platform.isAndroid) {
-    return;
-  }
   if (!await MediaStoreService.isMediaManagementSupported()) {
     return;
   }
