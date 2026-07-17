@@ -10,13 +10,10 @@ Future<dynamic> showTextInputSheet(
   required FutureVoidCallbackParamStr onSubmit,
   String? initialValue,
   TextCapitalization textCapitalization = TextCapitalization.words,
-  int? maxLength = 200,
+  int? maxLength,
   bool isPasswordInput = false,
 }) {
-  final initial = initialValue ?? '';
-  var currentText = maxLength != null && initial.length > maxLength
-      ? initial.substring(0, maxLength)
-      : initial;
+  var currentText = initialValue ?? '';
   var isSubmitting = false;
 
   final canSubmit = ValueNotifier<bool>(currentText.trim().isNotEmpty);
