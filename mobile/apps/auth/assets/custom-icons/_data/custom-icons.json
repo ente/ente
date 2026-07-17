@@ -666,6 +666,13 @@
       "title": "DirectAdmin"
     },
     {
+      "title": "Discogs",
+      "slug": "discogs",
+      "altNames": [
+        "discogs.com"
+      ]
+    },
+    {
       "title": "Discourse"
     },
     {
