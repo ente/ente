@@ -368,6 +368,64 @@ separate self-hosted bundle identifier does not replace the official Ente app.
 Use `--no-codesign` only when a non-installable device artifact is explicitly
 needed for later signing.
 
+### Manually signed Ad Hoc archive and IPA
+
+Use the same guarded wrapper to produce the distributable Ad Hoc archive and
+IPA. This path is separate from the automatic development signing above: it
+requires the exact local distribution team and owner-only Ad Hoc profile, pins
+the reviewed distribution certificate, and uses manual signing throughout.
+
+Keep the provisioning profile and all outputs outside Git. Create only their
+parent directories; the archive and export paths themselves must not exist
+because the wrapper never overwrites release output. Choose a new positive
+build number for every changed IPA. The version values below are examples;
+Task 1.8 selects and audits the actual baseline values.
+
+```sh
+export ENTE_IOS_DISTRIBUTION_TEAM="YOURTEAMID"
+export ENTE_IOS_ADHOC_PROFILE="/absolute/private/path/Ente_Photos_SelfHosted_Owner_Ad_Hoc.mobileprovision"
+export ENTE_IOS_EXPECTED_DEVICE_COUNT="1"
+export ENTE_IOS_MARKETING_VERSION="1.0.0"
+export ENTE_IOS_BUILD_NUMBER="1"
+export ENTE_IOS_ARCHIVE_PATH="/absolute/private/path/outputs/Ente-Photos-SelfHosted-1.xcarchive"
+export ENTE_IOS_EXPORT_PATH="/absolute/private/path/outputs/Ente-Photos-SelfHosted-1-ipa"
+```
+
+Replace `YOURTEAMID` locally with the ten-character Apple Team ID. Do not add
+that value, the profile, or any device identifier to Git. Both output parents
+must already exist and be writable, and every path must resolve outside the
+repository.
+
+First validate the complete signing and output contract without invoking
+Flutter or Xcode or creating an archive/IPA:
+
+```sh
+./scripts/build_self_hosted_ios.sh --adhoc-preflight
+```
+
+The preflight decodes the profile and verifies its exact bundle and team,
+non-debug Ad Hoc state, authorized-device count, expiry, single embedded
+certificate, pinned certificate fingerprint and validity, and matching local
+Keychain private-key identity. A validated profile is installed into Xcode's
+local provisioning-profile cache with restrictive permissions.
+
+Then create the archive and IPA using the same unchanged environment:
+
+```sh
+./scripts/build_self_hosted_ios.sh --adhoc
+```
+
+The command configures the `selfhosted` Flutter release with the locked
+endpoint defines and explicit version/build, archives `SelfHostedRunner` with
+manual signing, and generates a temporary Xcode export-options file. On the
+pinned Xcode 26 toolchain, Ad Hoc export uses the current `release-testing`
+method. The wrapper never enables Xcode's provisioning-update or
+device-registration flags and requires exactly one exported `.ipa` beneath
+`ENTE_IOS_EXPORT_PATH`.
+
+The resulting `.xcarchive` and IPA are private local artifacts. Task 1.8 audits
+their final contents before either is treated as a baseline release.
+
 ## 5. Server defaults, upgrades, and switching
 
 `ENTE_SELF_HOSTED_ENDPOINT` becomes the clean-install default. Once the app has

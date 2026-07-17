@@ -142,6 +142,13 @@ the phone is registered, but setting it to the identifier shown by
 the first build. Use `--no-codesign` to compile a device artifact without a
 certificate or profile; that artifact cannot be installed until it is signed.
 
+For a manually signed Ad Hoc `.xcarchive` and IPA, use the wrapper's
+`--adhoc-preflight` and `--adhoc` modes. They require explicit local
+team/profile, device-count, version/build, and external output-path inputs and
+do not permit Xcode to update Apple provisioning state. See the
+[configurable mobile build guide](SELF_HOSTED_BUILD_GUIDE.md#manually-signed-ad-hoc-archive-and-ipa)
+for the complete private-input and non-overwriting workflow.
+
 ### Updating dependencies
 
 After updating Flutter dependencies, run `pod install` from `ios/` on macOS and commit `ios/Podfile.lock` if it changes.

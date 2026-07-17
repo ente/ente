@@ -18,7 +18,7 @@
 | 1 | 1.4 | Register the owner's iPhone privately | S | 🟢 done | Completed Cytech's new-membership-year device-list review while retaining the existing owner iPhone. The Apple device detail offered `Disable`, proving the retained device is enabled, and its identifier was compared privately with the paired, available `vPhone` in Xcode and matched. No new device slot was consumed, and no device identifier or personal device detail was added to Git, release notes, or repository logs. |
 | 1 | 1.5 | Create the owner-only Ad Hoc provisioning profile | S | 🟢 done | Generated and downloaded manual Ad Hoc profile `Ente Photos Self-Hosted Owner Ad Hoc` with UUID `a988a9d8-5e7e-43ef-9625-722e2fca0d3a`, expiring 2027-07-17. Local decoding verified the exact bundle/application-identifier binding, Cytech team binding without printing its identifier, one authorized device, one distribution certificate, and non-debug Ad Hoc state. The embedded certificate fingerprint matches Task 1.3. The `.mobileprovision` file, Team ID, and device identifier remain outside Git. |
 | 1 | 1.6 | Rename only the self-hosted iOS target | M | 🟢 done | Changed the active `SelfHostedRunner` product identifier to `me.vanton.ente.photos.selfhosted` and aligned its non-entitled app-group placeholder with the new namespace. Updated current README/build/launch and clean-install guidance while preserving historical evidence and Android legacy guidance. Added two focused identity/core-only tests; they and focused analysis pass under pinned Flutter 3.38.10. Xcode resolves the new identity for Debug, Profile, and Release with the empty self-hosted entitlement file; the official Runner remains `io.ente.frame` with its original entitlements, no Android application file changed, and guarded endpoint validation still passes. |
-| 1 | 1.7 | Add a reproducible Ad Hoc archive and export command | M | ⚪ not started | Extend the guarded iOS build path to create an archive and IPA for the new identity using explicit local team/profile inputs, without committing signing or device data. |
+| 1 | 1.7 | Add a reproducible Ad Hoc archive and export command | M | 🟢 done | Extended the existing guarded wrapper with non-building `--adhoc-preflight` and reproducible `--adhoc` modes. They require explicit local team/profile, expected device count, version/build, and new external archive/export paths; validate exact app/team/non-debug/device/expiry/certificate/private-key bindings; install only the validated profile locally; and archive/export with manual Xcode 26 `release-testing` options. The command pins the reviewed certificate, never enables Apple provisioning/device mutations, refuses output reuse, and requires one IPA. Eleven focused archive tests plus the target-identity tests and analysis pass; a real owner-profile/Keychain preflight also passed without invoking Flutter/Xcode or producing an artifact. No Team ID, device identifier, profile, or private key was committed. |
 | 1 | 1.8 | Export and audit the baseline IPA | M | ⚪ not started | Verify the final IPA's bundle, version/build, compiled server, architecture, non-debug state, entitlements, embedded profile, Cytech team, certificate fingerprint, expiry, archive integrity, and SHA-256. |
 | 1 | 1.9 | Verify the new app side by side on the owner's iPhone | M | ⚪ not started | Install the Ad Hoc IPA while retaining the legacy-bundle app, sign in to the intended Museum account, and prove foreground encrypted upload/download plus restart persistence. |
 | 2 | 2.1 | Register the iOS application in Firebase | S | ⚪ not started | Add the exact new bundle identifier to the existing self-hosted Firebase project; keep the Firebase iOS App ID as local publication configuration rather than normal application runtime configuration. |
@@ -112,7 +112,9 @@ explicit App ID -> distribution certificate -> owner device -> Ad Hoc profile
                  side-by-side owner verification
 ```
 
-The existing guarded configurable iOS wrapper remains the single application build entry point. Task 1.7 extends that path with reproducible archive/export behavior rather than creating an unrelated Xcode workflow. Local inputs select the Cytech team and profile. The final IPA, not build arguments, is inspected for bundle identity, version/build, compiled endpoint, supported architecture, debug state, entitlements, application identifier, team, profile expiry and device count, signing certificate, ZIP integrity, and hash.
+The existing guarded configurable iOS wrapper remains the single application build entry point. Its `--adhoc-preflight` mode validates explicit local team/profile, expected-device-count, version/build, and external output-path inputs without invoking Flutter or Xcode. Its `--adhoc` mode repeats those checks, configures the locked Flutter release, creates the manually signed archive, generates ephemeral Xcode 26 `release-testing` export options, and exports exactly one IPA. The validated profile is installed only into Xcode's local cache; the Team ID, device identifiers, profile, private key, export options, archive, and IPA remain outside Git. The command does not request Xcode provisioning updates or device registration and never overwrites output.
+
+Task 1.8 inspects the final IPA rather than trusting those build arguments. Its audit covers bundle identity, version/build, compiled endpoint, supported architecture, debug state, entitlements, application identifier, team, profile expiry and device count, signing certificate, ZIP integrity, and hash.
 
 ### Two-stage Firebase release pipeline
 
@@ -222,6 +224,14 @@ Primary external references are Apple's [device registration limits](https://dev
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. If a decision changes, add a new entry instead of rewriting history.
+
+### 2026-07-17 — Separate Ad Hoc preflight from archive and export
+
+**Decision:** Extend the existing guarded iOS wrapper with `--adhoc-preflight` and `--adhoc`, using explicit local signing/release inputs, pinned certificate validation, manual Xcode signing, and ephemeral Xcode 26 `release-testing` export options.
+
+**Why:** The non-building preflight proves the high-risk local profile, certificate, private-key, identity, and output contract before an expensive archive. Repeating the same validation during export makes the operation reproducible without storing private Apple bindings in Git or allowing Xcode to mutate portal state.
+
+**Alternatives considered:** Automatic signing or `-allowProvisioningUpdates` could download or change Apple state; a checked-in export-options plist would bind the public repository to a private team/profile; and Organizer-only export would leave the release operation dependent on undocumented GUI choices.
 
 ### 2026-07-17 — Align the non-entitled app-group placeholder with the new identity
 
