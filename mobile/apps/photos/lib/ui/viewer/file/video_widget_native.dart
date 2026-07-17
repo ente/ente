@@ -122,8 +122,10 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     });
     _muteSubscription = Bus.instance.on<VideoMuteChangedEvent>().listen((
       event,
-    ) {
-      _controller?.setVolume(event.isMuted ? 0.0 : 1.0);
+    ) async {
+       final controller = _controller;
+       if (controller == null) return;
+       await controller.setVolume(event.isMuted ? 0.0 : 1.0);
     });
     _guestViewEventSubscription = Bus.instance.on<GuestViewEvent>().listen((
       event,

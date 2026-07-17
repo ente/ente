@@ -55,9 +55,9 @@ class _VideoMuteButtonState extends State<VideoMuteButton> {
           size: 20,
         ),
       ),
-      onPressed: () {
+      onPressed: () async {
         final newValue = !_isMuted;
-        localSettings.setIsMuted(newValue);
+        await localSettings.setIsMuted(newValue);
         Bus.instance.fire(VideoMuteChangedEvent(newValue));
       },
     );
