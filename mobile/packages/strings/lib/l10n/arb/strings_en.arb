@@ -998,6 +998,87 @@
     }
   },
   "linkCopiedToClipboard": "Link copied to clipboard",
+  "legacyKitSheetGreeting": "Hi {name}, please keep this safe.",
+  "@legacyKitSheetGreeting": {
+    "description": "Greeting printed at the top of a Legacy kit recovery sheet, addressed to the person holding it",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Mom"
+      }
+    }
+  },
+  "legacyKitSheetIntro": "If I'm ever not around, or lose access to my account, this sheet will help you recover my photos, documents and more.",
+  "@legacyKitSheetIntro": {
+    "description": "Written in the voice of the account owner, addressed to the sheet holder"
+  },
+  "legacyKitSheetHowToRecover": "How to recover my account",
+  "legacyKitSheetStepGetAnother": "This is {index} of {total} sheets. Ask {names} for theirs — you need just one more.",
+  "@legacyKitSheetStepGetAnother": {
+    "description": "First recovery step. {names} is a list of the other sheet holders, already joined and emphasised",
+    "placeholders": {
+      "index": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      },
+      "names": {
+        "type": "String",
+        "example": "Alex or Lawyer"
+      }
+    }
+  },
+  "legacyKitSheetNameJoinerOr": " or ",
+  "@legacyKitSheetNameJoinerOr": {
+    "description": "Joins the last two sheet holder names in legacyKitSheetStepGetAnother. Keep the surrounding spaces"
+  },
+  "legacyKitSheetNameJoinerList": ", ",
+  "@legacyKitSheetNameJoinerList": {
+    "description": "Joins all but the last two sheet holder names in legacyKitSheetStepGetAnother. Keep the trailing space"
+  },
+  "legacyKitSheetStepVisit": "Visit {url}",
+  "@legacyKitSheetStepVisit": {
+    "description": "Second recovery step",
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "legacy.ente.com"
+      }
+    }
+  },
+  "legacyKitSheetStepScan": "Scan the {count} sheets.",
+  "@legacyKitSheetStepScan": {
+    "description": "Third recovery step. {count} is how many sheets must be scanned together",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "legacyKitSheetScanAt": "Scan this at {url}",
+  "@legacyKitSheetScanAt": {
+    "description": "Caption printed under the QR code on a Legacy kit recovery sheet",
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "legacy.ente.com"
+      }
+    }
+  },
+  "legacyKitSheetNeedHelp": "Need help? Write to {email}",
+  "@legacyKitSheetNeedHelp": {
+    "description": "Footer printed at the bottom of a Legacy kit recovery sheet",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "support@ente.com"
+      }
+    }
+  },
   "congratulations": "Congratulations!",
   "legacyCongratulationsMessage": "You've successfully setup your Legacy.\nStart saving your important information.",
   "saveToLocker": "Save to Locker",
