@@ -35,56 +35,6 @@ export CARGOKIT_TOOL_TEMP_DIR=$TARGET_TEMP_DIR/build_tool
 # Directory inside root project. Not necessarily the top level directory of root project.
 export CARGOKIT_ROOT_PROJECT_DIR=$SRCROOT
 
-# Configure ort-sys to link against the ONNX Runtime iOS xcframework instead of
-# relying on runtime dylib loading.
-if [[ -n "$PODS_ROOT" ]] && [[ -d "$PODS_ROOT/onnxruntime-c/onnxruntime.xcframework" ]]; then
-  ORT_XCFWK_LOCATION="$PODS_ROOT/onnxruntime-c/onnxruntime.xcframework"
-  export ORT_IOS_XCFWK_LOCATION="$ORT_XCFWK_LOCATION"
-
-  # ort-sys 2.0.0-rc.4 (used in this repo) only respects ORT_LIB_LOCATION.
-  # Build a per-target static archive named libonnxruntime.a so it can link
-  # against ONNX Runtime from the CocoaPods xcframework.
-  ORT_ARCHIVE_SOURCE=""
-  ORT_ARCHIVE_ARCH=""
-  if [[ "$CARGOKIT_DARWIN_PLATFORM_NAME" == "iphoneos" ]]; then
-    ORT_ARCHIVE_SOURCE="$ORT_XCFWK_LOCATION/ios-arm64/onnxruntime.framework/onnxruntime"
-    ORT_ARCHIVE_ARCH="arm64"
-  elif [[ "$CARGOKIT_DARWIN_PLATFORM_NAME" == "iphonesimulator" ]]; then
-    ORT_ARCHIVE_SOURCE="$ORT_XCFWK_LOCATION/ios-arm64_x86_64-simulator/onnxruntime.framework/onnxruntime"
-    if [[ "$CARGOKIT_DARWIN_ARCHS" == *" "* ]]; then
-      # Xcode can request a universal simulator pod build (ARCHS="arm64 x86_64")
-      # even though cargokit compiles Rust for the active simulator target only.
-      ORT_ARCHIVE_ARCH="$NATIVE_ARCH_ACTUAL"
-    else
-      ORT_ARCHIVE_ARCH="$CARGOKIT_DARWIN_ARCHS"
-    fi
-  fi
-
-  if [[ -n "$ORT_ARCHIVE_SOURCE" ]] && [[ -f "$ORT_ARCHIVE_SOURCE" ]]; then
-    ORT_LIB_TEMP_DIR="$TARGET_TEMP_DIR/ort_sys_${CARGOKIT_DARWIN_PLATFORM_NAME}_${CARGOKIT_DARWIN_ARCHS// /_}"
-    mkdir -p "$ORT_LIB_TEMP_DIR"
-    if [[ -n "$ORT_ARCHIVE_ARCH" ]]; then
-      lipo -thin "$ORT_ARCHIVE_ARCH" "$ORT_ARCHIVE_SOURCE" -output "$ORT_LIB_TEMP_DIR/libonnxruntime.a"
-    else
-      cp "$ORT_ARCHIVE_SOURCE" "$ORT_LIB_TEMP_DIR/libonnxruntime.a"
-    fi
-    export ORT_LIB_LOCATION="$ORT_LIB_TEMP_DIR"
-  fi
-
-  # ONNX Runtime archives can reference availability helpers from clang runtime.
-  # Explicitly link the platform-appropriate clang runtime for Rust linking.
-  CLANG_RUNTIME_LIB=""
-  if [[ "$CARGOKIT_DARWIN_PLATFORM_NAME" == "iphoneos" ]]; then
-    CLANG_RUNTIME_LIB="clang_rt.ios"
-  elif [[ "$CARGOKIT_DARWIN_PLATFORM_NAME" == "iphonesimulator" ]]; then
-    CLANG_RUNTIME_LIB="clang_rt.iossim"
-  fi
-  CLANG_RESOURCE_DIR="$(xcrun clang --print-resource-dir 2>/dev/null || true)"
-  if [[ -n "$CLANG_RUNTIME_LIB" ]] && [[ -n "$CLANG_RESOURCE_DIR" ]] && [[ -d "$CLANG_RESOURCE_DIR/lib/darwin" ]]; then
-    export RUSTFLAGS="${RUSTFLAGS} -L native=${CLANG_RESOURCE_DIR}/lib/darwin -l ${CLANG_RUNTIME_LIB}"
-  fi
-fi
-
 FLUTTER_EXPORT_BUILD_ENVIRONMENT=(
   "$PODS_ROOT/../Flutter/ephemeral/flutter_export_environment.sh" # macOS
   "$PODS_ROOT/../Flutter/flutter_export_environment.sh" # iOS

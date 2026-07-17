@@ -21,8 +21,13 @@ type DeleteUserCleanupController struct {
 	TaskLockRepo   *repo.TaskLockRepository
 	TrashRepo      *repo.TrashRepository
 	UsageRepo      *repo.UsageRepository
+	SpaceDataRepo  SpaceDataRepo
 	running        bool
 	HostName       string
+}
+
+type SpaceDataRepo interface {
+	DeleteUserData(ctx context.Context, userID int64) error
 }
 
 const (
@@ -153,6 +158,11 @@ func (c *DeleteUserCleanupController) emptyTrash(ctx context.Context, item *enti
 }
 
 func (c *DeleteUserCleanupController) completeCleanup(ctx context.Context, item *entity.DataCleanup) error {
+	if c.SpaceDataRepo != nil {
+		if err := c.SpaceDataRepo.DeleteUserData(ctx, item.UserID); err != nil {
+			return stacktrace.Propagate(err, "failed to delete space data for user")
+		}
+	}
 	err := c.Repo.DeleteTableData(ctx, item.UserID)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to delete table data for user")

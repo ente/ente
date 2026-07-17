@@ -111,6 +111,13 @@ jobs:
                   account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
+            - name: Deploy space
+              uses: ./.github/actions/deploy-web-app
+              with:
+                  app: space
+                  account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
             - name: Deploy memories
               uses: ./.github/actions/deploy-web-app
               with:

@@ -1,10 +1,11 @@
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/services/collections_service.dart";
-import "package:photos/services/contacts/contact_identity_resolver.dart";
-import "package:photos/theme/ente_theme.dart";
+import "package:photos/ui/sharing/user_avator_widget.dart";
+import "package:photos/utils/avatar_util.dart";
 
 class AddedByWidget extends StatelessWidget {
   final EnteFile file;
@@ -16,13 +17,13 @@ class AddedByWidget extends StatelessWidget {
     if (!file.isUploaded) {
       return const SizedBox.shrink();
     }
-    late final String addedBy;
+    late final AvatarIdentity identity;
     if (file.isOwner) {
       final uploaderName = file.uploaderName?.trim();
       if (uploaderName == null || uploaderName.isEmpty) {
         return const SizedBox.shrink();
       }
-      addedBy = uploaderName;
+      identity = AvatarIdentity.publicUploader(label: uploaderName);
     } else {
       if (file.ownerID == null) {
         return const SizedBox.shrink();
@@ -31,16 +32,34 @@ class AddedByWidget extends StatelessWidget {
         file.ownerID!,
         file.collectionID,
       );
-      addedBy = resolveDisplayName(fileOwner);
+      identity = getUserAvatarIdentity(fileOwner);
     }
-    if (addedBy.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    final colors = context.componentColors;
+    final avatar = identity.role == AvatarIdentityRole.standard
+        ? AvatarComponent.seeded(
+            initials: identity.initial,
+            seed: avatarSeedForIdentity(identity.key),
+            size: AvatarComponentSize.defaultSize,
+          )
+        : AvatarComponent(
+            initials: identity.initial,
+            color: AvatarComponentColor.black,
+            size: AvatarComponentSize.defaultSize,
+          );
     return Padding(
-      padding: const EdgeInsets.only(top: 4.0, bottom: 4.0, left: 16),
-      child: Text(
-        AppLocalizations.of(context).addedBy(emailOrName: addedBy),
-        style: getEnteTextTheme(context).miniMuted,
+      padding: const EdgeInsets.only(bottom: Spacing.lg),
+      child: Row(
+        children: [
+          avatar,
+          const SizedBox(width: Spacing.sm),
+          Flexible(
+            child: Text(
+              AppLocalizations.of(context).addedBy(emailOrName: identity.label),
+              style: TextStyles.mini.copyWith(color: colors.textLighter),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }

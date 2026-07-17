@@ -113,7 +113,13 @@ final class ModelSettingsStore: ObservableObject {
         let mmproj = useCustom ? (mmprojUrl.isEmpty ? nil : mmprojUrl) : defaultModel.mmprojUrl
         let context = Int(contextLength)
         let maxOutput = Int(maxTokens).flatMap { $0 > 0 ? $0 : nil }
-        let id = useCustom ? "custom:\(url)" : "default"
+        let id: String
+        if useCustom {
+            let presets = [defaultModel] + defaults.mobileModelPresets
+            id = presets.first(where: { $0.url == url && $0.mmprojUrl == mmproj })?.id ?? "custom:\(url)"
+        } else {
+            id = defaultModel.id
+        }
         return LlmModelTarget(id: id, url: url, mmprojUrl: mmproj, contextLength: context, maxTokens: maxOutput)
     }
 

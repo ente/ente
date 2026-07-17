@@ -149,7 +149,6 @@
   "deleteAccountQuery": "We'll be sorry to see you go. Are you facing some issue?",
   "yesSendFeedbackAction": "Yes, send feedback",
   "noDeleteAccountAction": "No, delete account",
-  "initiateAccountDeleteTitle": "Please authenticate to initiate account deletion",
   "sendEmail": "Send email",
   "createNewAccount": "Create new account",
   "weakStrength": "Weak",

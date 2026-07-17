@@ -8,6 +8,7 @@ import 'package:photos/core/errors.dart';
 import 'package:photos/core/event_bus.dart';
 import 'package:photos/events/local_import_progress.dart';
 import 'package:photos/models/file/file.dart';
+import "package:photos/module/metadata/local_file.dart";
 import "package:photos/services/sync/import/model.dart";
 import 'package:tuple/tuple.dart';
 
@@ -220,11 +221,12 @@ int _safeGetMilliseconds(
   }
 }
 
-// review: do we need to run this inside compute, after making File.FromAsset
-// sync. If yes, update the method documentation with reason.
-Future<Tuple2<Set<String>, List<EnteFile>>> _getLocalIDsAndFilesFromAssets(
+// Runs in a worker isolate because a device folder can contain thousands of
+// assets and this loop constructs metadata for the full folder. Re-benchmark
+// large imports before moving this work onto the UI isolate.
+Tuple2<Set<String>, List<EnteFile>> _getLocalIDsAndFilesFromAssets(
   Map<String, dynamic> args,
-) async {
+) {
   final pathEntity = args["pathEntity"] as AssetPathEntity;
   final assetList = args["assetList"];
   final fromTime = args["fromTime"];
@@ -249,7 +251,7 @@ Future<Tuple2<Set<String>, List<EnteFile>>> _getLocalIDsAndFilesFromAssets(
         max(createMs, modifiedMs) >= (fromTime ~/ 1000);
     if (!alreadySeenLocalIDs.contains(entity.id) &&
         assetCreatedOrUpdatedAfterGivenTime) {
-      final file = await EnteFile.fromAsset(pathEntity.name, entity);
+      final file = fileFromAsset(pathEntity.name, entity);
       files.add(file);
     }
   }

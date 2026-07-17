@@ -159,14 +159,6 @@ struct ChatView: View {
                 handleSignInRequest()
             }
         }
-        .sheet(isPresented: $viewState.showAttachmentDownloads) {
-            AttachmentDownloadsSheet(
-                downloads: viewModel.attachmentDownloads,
-                sessionTitle: { viewModel.sessionTitle(for: $0) },
-                onCancel: { viewModel.cancelAttachmentDownload($0) },
-                onDismiss: { viewState.showAttachmentDownloads = false }
-            )
-        }
         .sheet(item: $viewState.pendingWhatsNew, onDismiss: {
             markWhatsNewSeen()
         }) { pending in
@@ -239,7 +231,6 @@ struct ChatView: View {
                 showBrand: viewModel.messages.isEmpty,
                 showSignIn: false,
                 showsMenuButton: showsMenuButton,
-                attachmentDownloadSummary: viewModel.attachmentDownloadSummary,
                 modelDownloadState: viewModel.downloadToast,
                 onMenu: { viewState.isDrawerOpen.toggle() },
                 onSignIn: {
@@ -248,9 +239,6 @@ struct ChatView: View {
                 onNewChat: {
                     viewModel.startNewSession()
                     viewState.isDrawerOpen = false
-                },
-                onAttachmentDownloads: {
-                    viewState.showAttachmentDownloads = true
                 }
             )
 
@@ -323,7 +311,6 @@ struct ChatView: View {
                         isDownloading: viewModel.isDownloading,
                         editingMessage: editingMessage,
                         isProcessingAttachments: viewModel.isProcessingAttachments,
-                        isAttachmentDownloadBlocked: viewModel.isAttachmentDownloadBlocked,
                         voiceInputState: viewModel.voiceInputState,
                         moveCursorToEndToken: viewModel.draftCursorMoveToken,
                         onSend: {
@@ -484,7 +471,6 @@ private final class ChatViewState: ObservableObject {
     @Published var showSettings = false
     @Published var toastMessage: ToastMessage?
     @Published var deleteSession: ChatSession?
-    @Published var showAttachmentDownloads = false
     @Published var showSignInComingSoon = false
     @Published var pendingSignInRequest = false
     @Published var didAutoFocusInput = false

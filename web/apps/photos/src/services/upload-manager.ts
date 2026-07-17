@@ -465,6 +465,13 @@ class UploadManager {
             clearInterval(logInterval);
         }
 
+        const partnerSharedCount = this.itemResults.filter(
+            ({ result }) => result.type == "partnerShared",
+        ).length;
+        if (partnerSharedCount) {
+            log.info(`Skipped ${partnerSharedCount} partner shared files`);
+        }
+
         return {
             processedAny: this.uiService.hasFilesInResultList(),
             itemResults: [...this.itemResults],

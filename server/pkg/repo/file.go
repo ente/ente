@@ -783,26 +783,6 @@ func (repo *FileRepository) GetDuplicateFiles(userID int64) ([]ente.DuplicateFil
 	return result, nil
 }
 
-func (repo *FileRepository) GetLargeThumbnailFiles(userID int64, threshold int64) ([]int64, error) {
-	rows, err := repo.DB.Query(`
-			SELECT file_id FROM object_keys WHERE o_type = 'thumbnail' AND is_deleted = false AND size >= $2 AND file_id = ANY(SELECT file_id FROM files WHERE owner_id = $1)`,
-		userID, threshold)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-	}
-	defer rows.Close()
-	result := make([]int64, 0)
-	for rows.Next() {
-		var fileID int64
-		err := rows.Scan(&fileID)
-		if err != nil {
-			return result, stacktrace.Propagate(err, "")
-		}
-		result = append(result, fileID)
-	}
-	return result, nil
-}
-
 func (repo *FileRepository) GetTotalFileCount() (int64, error) {
 	// 9,522,438 is the magic number that accommodates the bumping up of fileIDs
 	// Doing this magic instead of count(*) since it's faster

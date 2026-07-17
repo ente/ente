@@ -91,7 +91,9 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
                           context,
                           LinkExpiryPickerPage(widget.collection!),
                         ).then((value) {
-                          setState(() {});
+                          if (mounted) {
+                            setState(() {});
+                          }
                         }),
                       );
                     },
@@ -118,7 +120,9 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
                           context,
                           DeviceLimitPickerPage(widget.collection!),
                         ).then((value) {
-                          setState(() {});
+                          if (mounted) {
+                            setState(() {});
+                          }
                         }),
                       );
                     },
@@ -153,7 +157,7 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
                                 password,
                               );
                               await _updateUrlSettings(
-                                context,
+                                context.mounted ? context : null,
                                 propToUpdate,
                                 showProgressDialog: false,
                               );
@@ -196,6 +200,9 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
                       showOnlyLoadingState: true,
                       onTap: () async {
                         await Clipboard.setData(ClipboardData(text: urlValue));
+                        if (!context.mounted) {
+                          return;
+                        }
                         showShortToast(
                           context,
                           context.l10n.linkCopiedToClipboard,
@@ -245,11 +252,12 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
                         context,
                         widget.collection!,
                       );
-                      if (result && mounted) {
+                      if (!context.mounted || !result) {
+                        return;
+                      }
+                      Navigator.of(context).pop();
+                      if (widget.collection!.isQuickLinkCollection()) {
                         Navigator.of(context).pop();
-                        if (widget.collection!.isQuickLinkCollection()) {
-                          Navigator.of(context).pop();
-                        }
                       }
                     },
                   ),
@@ -277,11 +285,11 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
   }
 
   Future<void> _updateUrlSettings(
-    BuildContext context,
+    BuildContext? context,
     Map<String, dynamic> prop, {
     bool showProgressDialog = true,
   }) async {
-    final dialog = showProgressDialog
+    final dialog = showProgressDialog && context != null && context.mounted
         ? createProgressDialog(context, context.l10n.pleaseWait)
         : null;
     await dialog?.show();
@@ -291,13 +299,17 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
         prop,
       );
       await dialog?.hide();
-      showShortToast(context, context.l10n.collectionUpdated);
+      if (context != null && context.mounted) {
+        showShortToast(context, context.l10n.collectionUpdated);
+      }
       if (mounted) {
         setState(() {});
       }
     } catch (e) {
       await dialog?.hide();
-      await showLockerErrorSheet(context, e);
+      if (context != null && context.mounted) {
+        await showLockerErrorSheet(context, e);
+      }
       rethrow;
     }
   }

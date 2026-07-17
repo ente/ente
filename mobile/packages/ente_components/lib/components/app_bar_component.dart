@@ -907,11 +907,14 @@ class _MovingHeaderTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
-    final textStyle = TextStyle.lerp(
+    var textStyle = TextStyle.lerp(
       TextStyles.display2,
       TextStyles.display3,
       progress,
     )!.copyWith(color: colors.textBase);
+    if (MediaQuery.boldTextOf(context)) {
+      textStyle = textStyle.merge(const TextStyle(fontWeight: FontWeight.bold));
+    }
 
     final customTitleBuilder = titleBuilder;
     if (customTitleBuilder != null) {

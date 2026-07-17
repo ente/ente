@@ -83,10 +83,9 @@ class PersonData {
     bool? isHidden,
     bool? isPinned,
     bool? hideFromMemories,
-    int? version,
     Object? birthDate = _personDataUnchanged,
-    String? email,
-    int? userID,
+    Object? email = _personDataUnchanged,
+    Object? userID = _personDataUnchanged,
     List<String>? rejectedFaceIDs,
     List<int>? manuallyAssigned,
   }) {
@@ -100,8 +99,12 @@ class PersonData {
       birthDate: identical(birthDate, _personDataUnchanged)
           ? this.birthDate
           : birthDate as String?,
-      email: email ?? this.email,
-      userID: userID ?? this.userID,
+      email: identical(email, _personDataUnchanged)
+          ? this.email
+          : email as String?,
+      userID: identical(userID, _personDataUnchanged)
+          ? this.userID
+          : userID as int?,
       rejectedFaceIDs:
           rejectedFaceIDs ?? List<String>.from(this.rejectedFaceIDs),
       manuallyAssigned:

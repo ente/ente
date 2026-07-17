@@ -4,7 +4,8 @@
     "private": true,
     "workspaces": [
         "apps/*",
-        "packages/*"
+        "packages/*",
+        "packages/wasm/space"
     ],
     "scripts": {
         "build": "npm run build:photos",
@@ -21,6 +22,8 @@
         "build:payments": "npm run build --workspace payments",
         "build:photos": "npm run build:wasm && npm exec --workspace photos -- next build --webpack",
         "build:share": "npm run build:wasm && npm exec --workspace share -- next build --webpack && npm run build:post --workspace share",
+        "build:space": "npm run build:wasm && npm run build:space-wasm && npm exec --workspace space -- next build --webpack && npm run build:post --workspace space",
+        "build:space-wasm": "npm run build --workspace ente-space-wasm -- --no-pack",
         "build:twoof3": "npm exec --workspace twoof3 -- next build --webpack",
         "build:wasm": "npm run build --workspace ente-wasm -- --no-pack && npm run build --workspace ente-wasm-core -- --no-pack",
         "dev": "npm run dev:photos",
@@ -37,6 +40,7 @@
         "dev:payments": "npm run dev --workspace payments",
         "dev:photos": "npm run build:wasm && npm exec --workspace photos -- next dev --webpack -p 3000",
         "dev:share": "npm run build:wasm && npm exec --workspace share -- next dev --webpack -p 3005",
+        "dev:space": "npm run build:wasm && npm run build:space-wasm && npm exec --workspace space -- next dev --webpack -p 3013",
         "dev:twoof3": "npm exec --workspace twoof3 -- next dev --webpack -p 3012",
         "lint": "concurrently --names 'prettier,eslint,tsc' \"prettier --check --log-level warn .\" \"npm exec --workspaces -- eslint\" \"npm exec --workspaces -- tsc\"",
         "lint:fix": "concurrently --names 'prettier,eslint,tsc' \"prettier --write --log-level warn .\" \"npm exec --workspaces -- eslint --fix\" \"npm exec --workspaces -- tsc\"",

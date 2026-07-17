@@ -718,6 +718,14 @@ interface UploadContext {
 }
 
 /**
+ * Internal flag: if false (the default), media files whose Google Takeout
+ * metadata JSON indicates they originated from Google Photos partner sharing
+ * (googlePhotosOrigin.fromPartnerSharing) are skipped during upload, since
+ * they cause duplicates when multiple family members import their takeouts.
+ */
+const includePartnerSharedFiles = false;
+
+/**
  * Upload the given {@link UploadableUploadItem}
  *
  * This is lower layer implementation of the upload. It is invoked by
@@ -740,6 +748,20 @@ export const upload = async (
 
     log.info(`Upload ${fileName} | start`);
     try {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (!includePartnerSharedFiles) {
+            const parsedMetadataJSON = matchJSONMetadata(
+                uploadAsset.pathPrefix,
+                collection.id,
+                fileName,
+                parsedMetadataJSONMap,
+            );
+            if (parsedMetadataJSON?.fromPartnerSharing) {
+                log.info(`Not uploading ${fileName} (from partner sharing)`);
+                return { type: "partnerShared" };
+            }
+        }
+
         /*
          * We read the file four times:
          * 1. To determine its MIME type (only needs first few KBs).

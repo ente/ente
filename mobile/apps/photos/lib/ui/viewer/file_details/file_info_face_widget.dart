@@ -1,6 +1,7 @@
 import "dart:async";
 import "dart:typed_data";
 
+import "package:ente_components/ente_components.dart";
 import "package:flutter/foundation.dart" show kDebugMode;
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
@@ -22,7 +23,6 @@ import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/viewer/people/cluster_page.dart";
-import "package:photos/ui/viewer/people/face_thumbnail_squircle.dart";
 import "package:photos/ui/viewer/people/file_face_widget.dart";
 import "package:photos/ui/viewer/people/people_page.dart";
 import "package:photos/ui/viewer/people/save_or_edit_person.dart";
@@ -93,20 +93,19 @@ class _FileInfoFaceWidgetState extends State<FileInfoFaceWidget> {
               child: Container(
                 height: thumbnailWidth,
                 width: thumbnailWidth,
-                decoration: ShapeDecoration(
-                  shape: faceThumbnailSquircleBorder(
-                    side: thumbnailWidth,
-                    borderSide: widget.highlight || widget.isSelected
-                        ? BorderSide(
-                            color: widget.isSelected
-                                ? getEnteColorScheme(context).primary500
-                                : getEnteColorScheme(context).primary700,
-                            width: 1.0,
-                          )
-                        : BorderSide.none,
-                  ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(Radii.button),
+                  border: widget.highlight || widget.isSelected
+                      ? Border.all(
+                          color: widget.isSelected
+                              ? getEnteColorScheme(context).primary500
+                              : getEnteColorScheme(context).primary700,
+                          width: 1.0,
+                        )
+                      : null,
                 ),
-                child: FaceThumbnailSquircleClip(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(Radii.button),
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -164,7 +163,7 @@ class _FileInfoFaceWidgetState extends State<FileInfoFaceWidget> {
               widget.person!.data.isIgnored
                   ? '(' + AppLocalizations.of(context).ignored + ')'
                   : widget.person!.data.name.trim(),
-              style: Theme.of(context).textTheme.bodySmall,
+              style: TextStyles.body,
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
             ),
@@ -258,6 +257,7 @@ class _FileInfoFaceWidgetState extends State<FileInfoFaceWidget> {
             )
             .toList();
       }
+      if (!mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => ClusterPage(
@@ -277,6 +277,7 @@ class _FileInfoFaceWidgetState extends State<FileInfoFaceWidget> {
       // assigning a manual new clusterID so that the user can cluster it manually
       final String clusterID = newClusterID();
       await mlDataDB.updateFaceIdToClusterId({widget.face.faceID: clusterID});
+      if (!mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) =>
@@ -286,6 +287,7 @@ class _FileInfoFaceWidgetState extends State<FileInfoFaceWidget> {
       return;
     }
 
+    if (!mounted) return;
     showShortToast(context, AppLocalizations.of(context).faceNotClusteredYet);
     unawaited(MLService.instance.clusterAllImages(force: true));
     return;
@@ -298,6 +300,7 @@ class _FileInfoFaceWidgetState extends State<FileInfoFaceWidget> {
             faceID: widget.face.faceID,
             clusterID: widget.clusterID,
           );
+      if (!mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => SaveOrEditPerson(

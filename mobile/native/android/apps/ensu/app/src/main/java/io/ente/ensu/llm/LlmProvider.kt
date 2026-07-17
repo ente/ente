@@ -1,54 +1,31 @@
 package io.ente.ensu.llm
 
-import android.app.DownloadManager
-import android.content.Context
-import android.net.Uri
-import android.os.Environment
 import android.util.Log
 import io.ente.ensu.bindings.LlmChatMessage as NativeChatMessage
 import io.ente.ensu.bindings.LlmChatRequest
 import io.ente.ensu.bindings.LlmContext
 import io.ente.ensu.bindings.LlmContextParams
-import io.ente.ensu.bindings.LlmException
 import io.ente.ensu.bindings.LlmGenerationEvent
 import io.ente.ensu.bindings.LlmGenerationEventCallback
 import io.ente.ensu.bindings.LlmGenerationSummary as NativeSummary
 import io.ente.ensu.bindings.LlmModel
-import io.ente.ensu.bindings.LlmModelDownloadCallback
-import io.ente.ensu.bindings.LlmModelDownloadProgress
-import io.ente.ensu.bindings.LlmModelDownloadTarget
 import io.ente.ensu.bindings.LlmModelLoadParams
 import io.ente.ensu.bindings.Transcriber
 import io.ente.ensu.bindings.llmCancel
-import io.ente.ensu.bindings.llmDownloadModelFiles
 import io.ente.ensu.bindings.llmInitBackend
-import io.ente.ensu.bindings.uniffiEnsureInitialized
 import io.ente.ensu.device.AndroidDeviceCapabilityProvider
 import io.ente.ensu.device.requireChatSupported
-import io.ente.ensu.format.formatBytes
 import java.io.File
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.coroutines.coroutineContext
 import kotlin.math.max
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import okhttp3.OkHttpClient
 
 class LlmProvider(
-    context: Context,
-    private val modelDir: File,
+    private val downloader: ModelDownloader,
     private val transcriber: Transcriber,
     private val deviceCapabilityProvider: AndroidDeviceCapabilityProvider,
-    private val legacyModelDir: File? = null,
     private val ioDispatcher: kotlinx.coroutines.CoroutineDispatcher = Dispatchers.IO
 ) {
     private data class LoadedModelKey(
@@ -56,47 +33,13 @@ class LlmProvider(
         val requestedContextLength: Int?
     )
 
-    @Serializable
-    private data class DownloadRecord(
-        val downloadId: Long,
-        val label: String,
-        val url: String,
-        val destinationPath: String
-    )
-
-    private data class DownloadRow(
-        val status: Int,
-        val reason: Int,
-        val bytesDownloaded: Long,
-        val totalBytes: Long
-    )
-
-    private val httpClient = OkHttpClient()
-    private val appContext = context.applicationContext
-    private val externalDownloadsRoot =
-        appContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
-    private val downloadManager =
-        appContext.getSystemService(DownloadManager::class.java)
-    private val downloadPrefs =
-        appContext.getSharedPreferences("ensu.system.downloads", Context.MODE_PRIVATE)
-    private val json = Json { ignoreUnknownKeys = true }
-
     @Volatile private var loadedModel: LlmModel? = null
     @Volatile private var loadedContext: LlmContext? = null
     @Volatile private var currentModelKey: LoadedModelKey? = null
     @Volatile private var currentContextLength: Int? = null
     @Volatile private var currentJobId: Long? = null
-    @Volatile private var manualDownloadCancelled = false
-    @Volatile private var manualDownloadActive = false
     private var backendInitialized = false
     private val modelLoadMutex = Mutex()
-    private val migratedLegacyTargets = java.util.Collections.synchronizedSet(mutableSetOf<String>())
-    private val legacyMigrationLocks = ConcurrentHashMap<String, ReentrantLock>()
-
-    init {
-        uniffiEnsureInitialized()
-        modelDir.mkdirs()
-    }
 
     suspend fun ensureModelReady(
         target: LlmModelTarget,
@@ -123,7 +66,7 @@ class LlmProvider(
         val mmprojPath = if (imageFiles.isEmpty()) {
             null
         } else {
-            ModelDownloadSupport.mmprojPathFor(modelDir, target)?.absolutePath
+            downloader.mmprojPath(target.downloadTarget)
         }
         val clampedTemperature = temperature.coerceIn(0.35f, 0.7f)
 
@@ -157,12 +100,11 @@ class LlmProvider(
         withContext(ioDispatcher) {
             runCatching {
                 modelLoadMutex.withLock {
-                    if (!isDownloadComplete(target)) return@withLock
-                    val mmprojPath = ModelDownloadSupport.mmprojPathFor(modelDir, target)
-                        ?.takeIf { it.exists() }
-                        ?.absolutePath
+                    if (!downloader.isDownloaded(target.downloadTarget)) return@withLock
+                    val mmprojPath = downloader.mmprojPath(target.downloadTarget)
+                        ?.takeIf { File(it).exists() }
                         ?: return@withLock
-                    ensureModelReadyLocked(target) { }
+                    ensureModelReadyLocked(target, onProgress = {})
                     val context = loadedContext ?: return@withLock
                     unloadTranscriptionModelIfLoaded()
                     context.prewarmMultimodal(mmprojPath, null)
@@ -172,133 +114,6 @@ class LlmProvider(
             }
         }
     }
-
-    val isManualDownloadActive: Boolean get() = manualDownloadActive
-
-    fun isModelDownloaded(target: LlmModelTarget): Boolean {
-        migrateLegacyDownloads(target)
-        return isDownloadComplete(target)
-    }
-
-    suspend fun estimateModelDownloadSize(target: LlmModelTarget): Long? = withContext(ioDispatcher) {
-        val modelFile = ModelDownloadSupport.modelPathFor(modelDir, target)
-        val mmprojFile = ModelDownloadSupport.mmprojPathFor(modelDir, target)
-        val mmprojUrl = target.mmprojUrl
-        val modelSize = if (modelFile.exists()) {
-            modelFile.length().takeIf { it > 0 }
-        } else {
-            ModelDownloadSupport.fetchContentLength(httpClient, target.url)
-        }
-        val mmprojSize = if (mmprojFile != null && !mmprojUrl.isNullOrBlank()) {
-            if (mmprojFile.exists()) {
-                mmprojFile.length().takeIf { it > 0 }
-            } else {
-                ModelDownloadSupport.fetchContentLength(httpClient, mmprojUrl)
-            }
-        } else {
-            null
-        }
-        val sizes = listOfNotNull(modelSize, mmprojSize)
-        if (sizes.isEmpty()) null else sizes.sum()
-    }
-
-    suspend fun currentDownloadProgress(target: LlmModelTarget): DownloadProgress? =
-        withContext(ioDispatcher) {
-            migrateLegacyDownloads(target)
-            val targets = ModelDownloadSupport.expectedTargets(modelDir, target)
-            val records = loadDownloadRecords(target)
-            if (records.isEmpty()) {
-                if (ModelDownloadSupport.isTargetDownloaded(modelDir, target)) {
-                    clearDownloadRecords(target)
-                }
-                return@withContext null
-            }
-            val recordsByPath = records.associateBy { it.destinationPath }
-
-            val rowsById = queryDownloadRows(recordsByPath.values.map { it.downloadId })
-            var hasActiveDownload = false
-            var hasKnownTotal = true
-            var downloadedBytes = 0L
-            var totalBytes = 0L
-
-            for (download in targets) {
-                val record = recordsByPath[download.destination.absolutePath]
-                if (record == null) {
-                    if (download.destination.exists() && ModelDownloadSupport.looksLikeGguf(download.destination)) {
-                        val size = download.destination.length().coerceAtLeast(0L)
-                        downloadedBytes += size
-                        totalBytes += size
-                        continue
-                    }
-                    hasKnownTotal = false
-                    continue
-                }
-                val row = rowsById[record.downloadId]
-                if (row == null) {
-                    hasKnownTotal = false
-                    continue
-                }
-
-                when (row.status) {
-                    DownloadManager.STATUS_PENDING,
-                    DownloadManager.STATUS_PAUSED,
-                    DownloadManager.STATUS_RUNNING -> {
-                        hasActiveDownload = true
-                        downloadedBytes += row.bytesDownloaded.coerceAtLeast(0L)
-                        if (row.totalBytes > 0) {
-                            totalBytes += row.totalBytes
-                        } else {
-                            hasKnownTotal = false
-                        }
-                    }
-
-                    DownloadManager.STATUS_SUCCESSFUL -> {
-                        if (download.destination.exists() &&
-                            ModelDownloadSupport.looksLikeGguf(download.destination)
-                        ) {
-                            val size = download.destination.length().coerceAtLeast(0L)
-                            downloadedBytes += size
-                            totalBytes += size
-                        } else {
-                            clearDownloadRecords(target)
-                            val failure = DownloadFailure.InvalidContent(
-                                "${download.label} download is invalid"
-                            )
-                            return@withContext DownloadProgress(
-                                null, failure.message, failure, DownloadPhase.Failed
-                            )
-                        }
-                    }
-
-                    DownloadManager.STATUS_FAILED -> {
-                        clearDownloadRecords(target)
-                        val failure = downloadFailure(row.reason)
-                        return@withContext DownloadProgress(
-                            null, failure.message, failure, DownloadPhase.Failed
-                        )
-                    }
-                }
-            }
-
-            if (!hasActiveDownload) {
-                if (isDownloadComplete(target)) {
-                    clearDownloadRecords(target)
-                }
-                return@withContext null
-            }
-
-            val percent = if (hasKnownTotal && totalBytes > 0) {
-                ((downloadedBytes * 100) / totalBytes).toInt().coerceIn(0, 99)
-            } else {
-                0
-            }
-            val status = if (hasKnownTotal && totalBytes > 0) {
-                "Downloading... ${io.ente.ensu.format.formatBytes(downloadedBytes)} / ${io.ente.ensu.format.formatBytes(totalBytes)}"
-            } else {
-                "Downloading model..."
-            }
-            DownloadProgress(percent = percent, status = status)
-        }
 
     fun loadedContextLength(target: LlmModelTarget): Int? {
         val modelKey = LoadedModelKey(target.id, target.contextLength)
@@ -329,20 +144,11 @@ class LlmProvider(
         loadedContext = model.newContext(contextParams)
     }
 
-    fun cancelDownload() {
-        manualDownloadCancelled = true
-        val ids = loadAllDownloadRecords().map { it.downloadId }.distinct()
-        if (ids.isNotEmpty() && downloadManager != null) {
-            downloadManager.remove(*ids.toLongArray())
-        }
-        clearAllDownloadRecords()
-    }
-
     private fun LlmMessage.roleString(): String {
         return when (role) {
-            io.ente.ensu.llm.LlmMessageRole.User -> "user"
-            io.ente.ensu.llm.LlmMessageRole.Assistant -> "assistant"
-            io.ente.ensu.llm.LlmMessageRole.System -> "system"
+            LlmMessageRole.User -> "user"
+            LlmMessageRole.Assistant -> "assistant"
+            LlmMessageRole.System -> "system"
         }
     }
 
@@ -365,7 +171,8 @@ class LlmProvider(
 
     private suspend fun ensureModelReadyLocked(
         target: LlmModelTarget,
-        onProgress: (DownloadProgress) -> Unit
+        onProgress: (DownloadProgress) -> Unit,
+        allowRecovery: Boolean = true
     ) {
         deviceCapabilityProvider.chatCapability().requireChatSupported()
         val modelKey = LoadedModelKey(target.id, target.contextLength)
@@ -380,14 +187,19 @@ class LlmProvider(
 
         unloadModel()
 
-        migrateLegacyDownloads(target)
-        val modelFile = ModelDownloadSupport.modelPathFor(modelDir, target)
-        if (!ModelDownloadSupport.isTargetDownloaded(modelDir, target)) {
-            awaitForegroundDownload(target, onProgress)
-        }
+        val downloaded = downloader.download(listOf(target.downloadTarget), onProgress)
 
         onProgress(DownloadProgress(100, "Loading model...", phase = DownloadPhase.Loading))
-        loadWithFallbacks(target, modelFile)
+        try {
+            loadWithFallbacks(target, downloader.modelPath(target.downloadTarget))
+        } catch (error: Throwable) {
+            if (allowRecovery && !downloaded && downloader.removeDownloaded(target.downloadTarget)) {
+                onProgress(DownloadProgress(0, "Starting download...", phase = DownloadPhase.Downloading))
+                ensureModelReadyLocked(target, onProgress, allowRecovery = false)
+                return
+            }
+            throw error
+        }
         onProgress(DownloadProgress(100, "Ready", phase = DownloadPhase.Ready))
     }
 
@@ -425,360 +237,6 @@ class LlmProvider(
         }
         unloadModel()
         throw lastError ?: IllegalStateException("Failed to load model")
-    }
-
-    private suspend fun awaitForegroundDownload(
-        target: LlmModelTarget,
-        onProgress: (DownloadProgress) -> Unit
-    ) {
-        cancelNativeDownloads(target)
-        try {
-            awaitRustForegroundDownload(target, onProgress)
-        } catch (error: Throwable) {
-            if (manualDownloadCancelled || error.isDownloadCancellation()) {
-                throw error
-            }
-            if (externalDownloadsRoot == null || downloadManager == null) {
-                throw error
-            }
-            Log.w("LlmProvider", "Rust model download failed; falling back to DownloadManager", error)
-            awaitBackgroundDownload(target, onProgress)
-        }
-    }
-
-    private suspend fun awaitBackgroundDownload(
-        target: LlmModelTarget,
-        onProgress: (DownloadProgress) -> Unit
-    ) {
-        if (externalDownloadsRoot == null || downloadManager == null) {
-            awaitRustForegroundDownload(target, onProgress)
-            return
-        }
-        ensureDownloadsEnqueued(target)
-        val maxPolls = 7_200
-        var emptyPollCount = 0
-        var pollCount = 0
-        while (true) {
-            val progress = currentDownloadProgress(target)
-            if (progress == null) {
-                if (isDownloadComplete(target)) {
-                    clearDownloadRecords(target)
-                    return
-                }
-                emptyPollCount += 1
-                if (emptyPollCount >= 3) {
-                    ensureDownloadsEnqueued(target)
-                }
-            } else {
-                emptyPollCount = 0
-                progress.failure?.let { throw it }
-                onProgress(progress)
-            }
-            pollCount += 1
-            if (pollCount >= maxPolls) {
-                throw DownloadFailure.TimedOut()
-            }
-            delay(500)
-        }
-    }
-
-    private suspend fun awaitRustForegroundDownload(
-        target: LlmModelTarget,
-        onProgress: (DownloadProgress) -> Unit
-    ) {
-        val downloadJob = coroutineContext[Job]
-        manualDownloadCancelled = false
-        manualDownloadActive = true
-        try {
-            val targets = ModelDownloadSupport.expectedTargets(modelDir, target)
-                .map {
-                    LlmModelDownloadTarget(
-                        label = it.label,
-                        url = it.url,
-                        destinationPath = it.destination.absolutePath
-                    )
-                }
-            llmDownloadModelFiles(
-                targets,
-                object : LlmModelDownloadCallback {
-                    override fun onProgress(progress: LlmModelDownloadProgress) {
-                        logDownloadMetrics(progress)
-                        onProgress(progress.toDomainProgress())
-                    }
-
-                    override fun isCancelled(): Boolean =
-                        manualDownloadCancelled || downloadJob?.isCancelled == true
-                }
-            )
-        } finally {
-            manualDownloadActive = false
-        }
-    }
-
-    private fun Throwable.isDownloadCancellation(): Boolean {
-        return this is LlmException.Cancelled || this is CancellationException
-    }
-
-    private fun cancelNativeDownloads(target: LlmModelTarget) {
-        val ids = loadDownloadRecords(target).map { it.downloadId }.distinct()
-        if (ids.isNotEmpty() && downloadManager != null) {
-            downloadManager.remove(*ids.toLongArray())
-        }
-        clearDownloadRecords(target)
-    }
-
-    private fun logDownloadMetrics(progress: LlmModelDownloadProgress) {
-        if (progress.fileComplete) {
-            Log.i(
-                "LlmProvider",
-                "Model download file complete label=${progress.label} " +
-                    "bytes=${progress.fileDownloadedBytes} " +
-                    "elapsedMs=${progress.fileElapsedMs} " +
-                    "rate=${formatRate(progress.fileBytesPerSecond)} " +
-                    "retries=${progress.fileRetryCount}"
-            )
-        }
-        if (progress.complete) {
-            Log.i(
-                "LlmProvider",
-                "Model download complete bytes=${progress.downloadedBytes} " +
-                    "elapsedMs=${progress.elapsedMs} " +
-                    "rate=${formatRate(progress.bytesPerSecond)} " +
-                    "retries=${progress.retryCount}"
-            )
-        }
-    }
-
-    private fun formatRate(bytesPerSecond: Double): String {
-        val bytes = if (java.lang.Double.isFinite(bytesPerSecond) && bytesPerSecond > 0.0) {
-            bytesPerSecond.toLong()
-        } else {
-            0L
-        }
-        return "${formatBytes(bytes)}/s"
-    }
-
-    private fun LlmModelDownloadProgress.toDomainProgress(): DownloadProgress {
-        val downloaded = downloadedBytes.coerceAtLeast(0L)
-        val total = totalBytes?.takeIf { it > 0 }
-        val percent = if (total != null) {
-            ((downloaded * 100) / total).toInt().coerceIn(0, 99)
-        } else {
-            0
-        }
-        val status = if (total != null) {
-            "Downloading... ${io.ente.ensu.format.formatBytes(downloaded)} / ${io.ente.ensu.format.formatBytes(total)}"
-        } else if (fileDownloadedBytes > 0) {
-            "Downloading ${label.lowercase()}... ${io.ente.ensu.format.formatBytes(fileDownloadedBytes)}"
-        } else {
-            "Downloading ${label.lowercase()}..."
-        }
-        return DownloadProgress(percent, status)
-    }
-
-    private fun ensureDownloadsEnqueued(target: LlmModelTarget) {
-        val manager = downloadManager ?: return
-        val expectedTargets = ModelDownloadSupport.expectedTargets(modelDir, target)
-        val existingRecords = loadDownloadRecords(target).associateBy { it.destinationPath }
-        val rowsById = queryDownloadRows(existingRecords.values.map { it.downloadId })
-        val updatedRecords = mutableListOf<DownloadRecord>()
-
-        expectedTargets.forEach { download ->
-            if (download.destination.exists() && ModelDownloadSupport.looksLikeGguf(download.destination)) {
-                return@forEach
-            }
-
-            val existingRecord = existingRecords[download.destination.absolutePath]
-            val existingRow = existingRecord?.let { rowsById[it.downloadId] }
-            val keepExisting = existingRecord != null && existingRow != null && existingRow.status in setOf(
-                DownloadManager.STATUS_PENDING,
-                DownloadManager.STATUS_PAUSED,
-                DownloadManager.STATUS_RUNNING,
-                DownloadManager.STATUS_SUCCESSFUL
-            )
-            if (keepExisting) {
-                updatedRecords += requireNotNull(existingRecord)
-                return@forEach
-            }
-
-            if (download.destination.exists() && !ModelDownloadSupport.looksLikeGguf(download.destination)) {
-                download.destination.delete()
-            }
-
-            val request = DownloadManager.Request(Uri.parse(download.url))
-                .setTitle("Downloading model")
-                .setDescription(download.label)
-                .setMimeType("application/octet-stream")
-                .setAllowedOverMetered(true)
-                .setAllowedOverRoaming(true)
-                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
-                .setDestinationInExternalFilesDir(
-                    appContext,
-                    Environment.DIRECTORY_DOWNLOADS,
-                    relativeDestinationPath(download.destination)
-                )
-            val id = manager.enqueue(request)
-            updatedRecords += DownloadRecord(
-                downloadId = id,
-                label = download.label,
-                url = download.url,
-                destinationPath = download.destination.absolutePath
-            )
-        }
-
-        saveDownloadRecords(target, updatedRecords)
-    }
-
-    private fun queryDownloadRows(ids: Collection<Long>): Map<Long, DownloadRow> {
-        if (ids.isEmpty()) return emptyMap()
-        val manager = downloadManager ?: return emptyMap()
-        val query = DownloadManager.Query().setFilterById(*ids.toLongArray())
-        val rows = mutableMapOf<Long, DownloadRow>()
-        manager.query(query)?.use { cursor ->
-            val idColumn = cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_ID)
-            val statusColumn = cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)
-            val reasonColumn = cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON)
-            val downloadedColumn =
-                cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
-            val totalColumn = cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
-            while (cursor.moveToNext()) {
-                rows[cursor.getLong(idColumn)] = DownloadRow(
-                    status = cursor.getInt(statusColumn),
-                    reason = cursor.getInt(reasonColumn),
-                    bytesDownloaded = cursor.getLong(downloadedColumn),
-                    totalBytes = cursor.getLong(totalColumn)
-                )
-            }
-        }
-        return rows
-    }
-
-    private fun loadDownloadRecords(target: LlmModelTarget): List<DownloadRecord> {
-        val raw = downloadPrefs.getString(downloadPrefsKey(target), null) ?: return emptyList()
-        return runCatching { json.decodeFromString<List<DownloadRecord>>(raw) }.getOrDefault(emptyList())
-    }
-
-    private fun saveDownloadRecords(target: LlmModelTarget, records: List<DownloadRecord>) {
-        val editor = downloadPrefs.edit()
-        if (records.isEmpty()) {
-            editor.remove(downloadPrefsKey(target))
-        } else {
-            editor.putString(downloadPrefsKey(target), json.encodeToString(records))
-        }
-        editor.apply()
-    }
-
-    private fun clearDownloadRecords(target: LlmModelTarget) {
-        downloadPrefs.edit().remove(downloadPrefsKey(target)).apply()
-    }
-
-    private fun loadAllDownloadRecords(): List<DownloadRecord> {
-        return downloadPrefs.all.keys
-            .filter { it.startsWith(DOWNLOAD_PREF_PREFIX) }
-            .flatMap { key ->
-                val raw = downloadPrefs.getString(key, null).orEmpty()
-                runCatching { json.decodeFromString<List<DownloadRecord>>(raw) }.getOrDefault(emptyList())
-            }
-    }
-
-    private fun clearAllDownloadRecords() {
-        val editor = downloadPrefs.edit()
-        downloadPrefs.all.keys
-            .filter { it.startsWith(DOWNLOAD_PREF_PREFIX) }
-            .forEach(editor::remove)
-        editor.apply()
-    }
-
-    private fun downloadPrefsKey(target: LlmModelTarget): String = "$DOWNLOAD_PREF_PREFIX${target.id}"
-
-    private fun relativeDestinationPath(destination: File): String {
-        val root = externalDownloadsRoot?.absoluteFile?.toPath()?.normalize()
-            ?: error("External downloads directory unavailable")
-        val destinationPath = destination.absoluteFile.toPath().normalize()
-        return root.relativize(destinationPath).toString()
-    }
-
-    private fun isDownloadComplete(target: LlmModelTarget): Boolean {
-        val records = loadDownloadRecords(target)
-        if (records.isEmpty()) {
-            return ModelDownloadSupport.isTargetDownloaded(modelDir, target)
-        }
-
-        val rowsById = queryDownloadRows(records.map { it.downloadId })
-        val hasActiveDownload = rowsById.values.any { row ->
-            row.status == DownloadManager.STATUS_PENDING ||
-                row.status == DownloadManager.STATUS_PAUSED ||
-                row.status == DownloadManager.STATUS_RUNNING
-        }
-        if (hasActiveDownload) {
-            return false
-        }
-
-        val isDownloaded = ModelDownloadSupport.isTargetDownloaded(modelDir, target)
-        if (isDownloaded) {
-            clearDownloadRecords(target)
-        }
-        return isDownloaded
-    }
-
-    private fun migrateLegacyDownloads(target: LlmModelTarget) {
-        val legacyDir = legacyModelDir ?: return
-        if (legacyDir.absolutePath == modelDir.absolutePath) return
-        val migrationLock = legacyMigrationLocks.getOrPut(target.id) { ReentrantLock() }
-        migrationLock.lock()
-
-        try {
-            if (migratedLegacyTargets.contains(target.id)) {
-                return
-            }
-            val oldTargets = ModelDownloadSupport.expectedTargets(legacyDir, target)
-            val newTargets = ModelDownloadSupport.expectedTargets(modelDir, target)
-            oldTargets.zip(newTargets).forEach { (oldTarget, newTarget) ->
-                if (!ModelDownloadSupport.looksLikeGguf(oldTarget.destination)) {
-                    return@forEach
-                }
-                if (newTarget.destination.exists()) {
-                    return@forEach
-                }
-
-                newTarget.destination.parentFile?.mkdirs()
-                val moved = oldTarget.destination.renameTo(newTarget.destination)
-                if (!moved) {
-                    runCatching {
-                        oldTarget.destination.copyTo(newTarget.destination, overwrite = false)
-                        oldTarget.destination.delete()
-                    }.onFailure { error ->
-                        Log.w(
-                            "LlmProvider",
-                            "Legacy migration failed for ${oldTarget.destination.absolutePath}",
-                            error
-                        )
-                    }
-                }
-            }
-            migratedLegacyTargets.add(target.id)
-        } finally {
-            migrationLock.unlock()
-            if (!migrationLock.hasQueuedThreads()) {
-                legacyMigrationLocks.remove(target.id, migrationLock)
-            }
-        }
-    }
-
-    private fun downloadFailure(reason: Int): DownloadFailure {
-        return when {
-            reason == DownloadManager.ERROR_INSUFFICIENT_SPACE -> DownloadFailure.InsufficientSpace()
-            reason in 400..599 -> DownloadFailure.Http(reason)
-            reason == DownloadManager.ERROR_DEVICE_NOT_FOUND ->
-                DownloadFailure.Failed("Download storage is unavailable")
-            reason == DownloadManager.ERROR_CANNOT_RESUME ->
-                DownloadFailure.Failed("Download could not resume")
-            else -> DownloadFailure.Failed("Download failed. Please try again.")
-        }
-    }
-
-    companion object {
-        private const val DOWNLOAD_PREF_PREFIX = "target."
     }
 
     private fun generateStreamWithCallback(

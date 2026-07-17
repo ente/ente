@@ -50,6 +50,7 @@ Future<void> handleExportClick(BuildContext context) async {
     ],
   );
   if (result?.action != null && result!.action != ButtonAction.cancel) {
+    if (!context.mounted) return;
     if (result.action == ButtonAction.first) {
       await _requestForEncryptionPassword(context);
     } else if (result.action == ButtonAction.second) {
@@ -74,13 +75,16 @@ Future<void> _requestForEncryptionPassword(
     alwaysShowSuccessState: false,
     onSubmit: (String password) async {
       if (password.isEmpty || password.length < 4) {
+        if (!context.mounted) return;
         showToast(context, "Password must be at least 4 characters long.");
         Future.delayed(const Duration(seconds: 0), () {
+          if (!context.mounted) return;
           _requestForEncryptionPassword(context, password: password);
         });
         return;
       }
       if (password.isNotEmpty) {
+        if (!context.mounted) return;
         try {
           final kekSalt = CryptoUtil.getSaltToDeriveKey();
           final derivedKeyResult = await CryptoUtil.deriveSensitiveKey(
@@ -105,6 +109,7 @@ Future<void> _requestForEncryptionPassword(
               salt: CryptoUtil.bin2base64(kekSalt),
             ),
           );
+          if (!context.mounted) return;
           // get json value of data
           await _exportCodes(
             context,
@@ -113,6 +118,7 @@ Future<void> _requestForEncryptionPassword(
             "json",
           );
         } catch (e) {
+          if (!context.mounted) return;
           showToast(context, "Error while exporting codes.");
         }
       }
@@ -131,11 +137,14 @@ Future<void> _showExportWarningDialog(BuildContext context, String type) async {
   );
 
   if (result?.action == ButtonAction.first) {
+    if (!context.mounted) return;
     if (type == "html") {
       final data = await generateHtml(context);
+      if (!context.mounted) return;
       await _exportCodes(context, data, "plainhtml", type);
     } else {
       final data = await _getAuthDataForExport();
+      if (!context.mounted) return;
       await _exportCodes(context, data, "plaintext", type);
     }
   }
@@ -155,9 +164,10 @@ Future<void> _exportCodes(
   if (!hasAuthenticated) {
     return;
   }
-  Future.delayed(
-    const Duration(milliseconds: 1200),
-    () async => await auth_share.shareDialog(
+  if (!context.mounted) return;
+  Future.delayed(const Duration(milliseconds: 1200), () async {
+    if (!context.mounted) return;
+    await auth_share.shareDialog(
       context,
       context.l10n.exportCodes,
       saveAction: () async {
@@ -176,6 +186,7 @@ Future<void> _exportCodes(
           await codeFile.delete();
         }
         codeFile.writeAsStringSync(fileContent);
+        if (!context.mounted) return;
         final Size size = MediaQuery.of(context).size;
         await SharePlus.instance.share(
           ShareParams(
@@ -194,8 +205,8 @@ Future<void> _exportCodes(
           }
         });
       },
-    ),
-  );
+    );
+  });
 }
 
 Future<String> _getAuthDataForExport() async {

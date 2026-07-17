@@ -1,4 +1,4 @@
-use ente_ensu::download;
+use ente_model_download::download;
 
 #[derive(Debug, Clone, uniffi::Enum)]
 pub enum DownloadError {

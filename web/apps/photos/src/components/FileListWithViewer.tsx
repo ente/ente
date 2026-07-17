@@ -22,6 +22,7 @@ import { moveToTrash } from "ente-new/photos/services/collection";
 import type { CollectionSummary } from "ente-new/photos/services/collection-summary";
 import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
 import { updateMapEnabled } from "ente-new/photos/services/settings";
+import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { t } from "i18next";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
@@ -216,6 +217,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     const { show: showMapDialog, props: mapDialogVisibilityProps } =
         useModalVisibility();
     const { onGenericError } = useBaseContext();
+    const { showNotification } = usePhotosAppContext();
     const { mapEnabled } = useSettingsSnapshot();
     const { mode: colorSchemeMode, systemMode } = useColorScheme();
     const theme = useTheme();
@@ -294,11 +296,19 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
             collection: Collection,
             enteFile: EnteFile,
         ) => {
+            if (uploadManager.isUploadInProgress()) {
+                showNotification({
+                    color: "critical",
+                    title: t("wait_for_active_upload_to_finish"),
+                });
+                return false;
+            }
             uploadManager.prepareForNewUpload();
             uploadManager.showUploadProgressDialog();
             void uploadManager.uploadFile(editedFile, collection, enteFile);
+            return true;
         };
-    }, [enableImageEditing]);
+    }, [enableImageEditing, showNotification]);
 
     const shouldShowMapButton =
         modePlus !== "search" &&

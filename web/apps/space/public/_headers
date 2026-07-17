@@ -1,0 +1,11 @@
+/*
+    Cache-Control: no-store, must-revalidate
+    Strict-Transport-Security: max-age=63072000
+    X-Content-Type-Options: nosniff
+    X-Download-Options: noopen
+    X-Frame-Options: deny
+    X-Robots-Tag: noindex, nofollow
+    X-XSS-Protection: 1; mode=block
+    Referrer-Policy: no-referrer
+    Reporting-Endpoints: csp-endpoint="https://csp-reporter.ente.io"
+    Content-Security-Policy: default-src 'self'; img-src 'self' blob: data:; media-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; manifest-src 'self'; child-src 'self' blob:; object-src 'none'; connect-src 'self' https://*.ente.com https://*.ente.io https://space-api.ente-dev.com data: blob: https://*.s3.eu-central-003.backblazeb2.com https://*.s3.eu-central-2.wasabisys.com; base-uri 'self'; frame-ancestors 'none'; form-action 'none'; report-uri https://csp-reporter.ente.io; report-to csp-endpoint;

@@ -4,6 +4,7 @@ import (
 	"github.com/ente/museum/ente"
 	socialentity "github.com/ente/museum/ente/social"
 	"github.com/ente/museum/pkg/controller/access"
+	"github.com/ente/museum/pkg/repo"
 	socialrepo "github.com/ente/museum/pkg/repo/social"
 	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
@@ -11,8 +12,9 @@ import (
 
 // CommentsController wires comment-specific business logic.
 type CommentsController struct {
-	Repo       *socialrepo.CommentsRepository
-	AccessCtrl access.Controller
+	Repo           *socialrepo.CommentsRepository
+	CollectionRepo *repo.CollectionRepository
+	AccessCtrl     access.Controller
 }
 
 // CreateCommentRequest encapsulates parameters for adding a comment.
@@ -80,6 +82,11 @@ func (c *CommentsController) Create(ctx *gin.Context, req CreateCommentRequest) 
 			ActorUserID:  userID,
 		}); err != nil {
 			return "", stacktrace.Propagate(err, "")
+		}
+	}
+	if req.FileID != nil {
+		if err := validateFileInCollection(ctx, c.CollectionRepo, req.CollectionID, *req.FileID); err != nil {
+			return "", err
 		}
 	}
 

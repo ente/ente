@@ -1,9 +1,8 @@
 import 'package:ente_auth/l10n/l10n.dart';
-import 'package:ente_auth/theme/ente_theme.dart';
-import 'package:ente_auth/ui/home/widgets/rounded_action_buttons.dart';
 import 'package:ente_auth/ui/settings/data/import_page.dart';
 import 'package:ente_auth/utils/navigation_util.dart' as auth_nav;
 import 'package:ente_auth/utils/platform_util.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -23,8 +22,8 @@ class HomeEmptyStateWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final colorScheme = getEnteColorScheme(context);
-    final isDarkTheme = !colorScheme.isLightTheme;
+    final colors = context.componentColors;
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
     final bgSvgPath = isDarkTheme
         ? 'assets/svg/empty-state-bg-dark.svg'
         : 'assets/svg/empty-state-bg-light.svg';
@@ -33,128 +32,136 @@ class HomeEmptyStateWidget extends StatelessWidget {
         ? (bottomPadding > 0 ? bottomPadding : 24.0)
         : 24.0;
 
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        SliverFillRemaining(
-          hasScrollBody: false,
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 24,
-              right: 24,
-              top: 24,
-              bottom: extraBottomPadding,
-            ),
-            child: Column(
-              children: [
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        height: 188,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          clipBehavior: Clip.none,
-                          children: [
-                            Positioned(
-                              bottom: 6,
-                              child: SvgPicture.asset(
-                                bgSvgPath,
-                                width: 224,
-                                height: 142,
-                              ),
-                            ),
-                            Image.asset('assets/onboarding-2.png', height: 188),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      SizedBox(
-                        width: 221,
-                        child: Text(
-                          l10n.setupFirstAccount,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: colorScheme.textBase,
-                            fontSize: 20,
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w700,
-                            height: 1.05,
-                            letterSpacing: -1,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 48),
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 360),
+    return Semantics(
+      container: true,
+      identifier: 'auth_empty_state',
+      child: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: Spacing.xl,
+                right: Spacing.xl,
+                top: Spacing.xl,
+                bottom: extraBottomPadding,
+              ),
+              child: Column(
+                children: [
+                  Expanded(
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (PlatformDetector.isMobile()) ...[
-                          RoundedButton(
-                            label: l10n.importScanQrCode,
-                            onPressed: onScanTap,
-                            width: double.infinity,
+                        SizedBox(
+                          height: 188,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            clipBehavior: Clip.none,
+                            children: [
+                              Positioned(
+                                bottom: 6,
+                                child: SvgPicture.asset(
+                                  bgSvgPath,
+                                  width: 224,
+                                  height: 142,
+                                ),
+                              ),
+                              Image.asset(
+                                'assets/onboarding-2.png',
+                                height: 188,
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 12),
-                          RoundedButton(
-                            label: l10n.importEnterSetupKey,
-                            onPressed: onManuallySetupTap,
-                            width: double.infinity,
-                            type: RoundedButtonType.secondary,
-                          ),
-                        ] else ...[
-                          RoundedButton(
-                            label: l10n.importFromGallery,
-                            onPressed: onImportImageTap,
-                            width: double.infinity,
-                          ),
-                          const SizedBox(height: 12),
-                          RoundedButton(
-                            label: l10n.importEnterSetupKey,
-                            onPressed: onManuallySetupTap,
-                            width: double.infinity,
-                            type: RoundedButtonType.secondary,
-                          ),
-                        ],
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            TextLinkButton(
-                              label: l10n.importCodes,
-                              onTap: () {
-                                auth_nav.routeToPage(
-                                  context,
-                                  const ImportCodePage(),
-                                );
-                              },
+                        ),
+                        const SizedBox(height: Spacing.xxl),
+                        SizedBox(
+                          width: 240,
+                          child: Text(
+                            l10n.setupFirstAccount,
+                            textAlign: TextAlign.center,
+                            style: TextStyles.h1.copyWith(
+                              color: colors.textBase,
                             ),
-                            TextLinkButton(
-                              label: l10n.faq,
-                              onTap: () {
-                                PlatformUtil.openUrlInBrowser(
-                                  'https://ente.com/help/auth/faq',
-                                );
-                              },
-                            ),
-                          ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: Spacing.xxl),
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 360),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (PlatformDetector.isMobile()) ...[
+                            Semantics(
+                              button: true,
+                              identifier: 'auth_empty_scan',
+                              child: ButtonComponent(
+                                label: l10n.importScanQrCode,
+                                onTap: onScanTap,
+                              ),
+                            ),
+                          ] else ...[
+                            Semantics(
+                              button: true,
+                              identifier: 'auth_empty_gallery',
+                              child: ButtonComponent(
+                                label: l10n.importFromGallery,
+                                onTap: onImportImageTap,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: Spacing.md),
+                          Semantics(
+                            button: true,
+                            identifier: 'auth_empty_manual_setup',
+                            child: ButtonComponent(
+                              label: l10n.importEnterSetupKey,
+                              variant: ButtonComponentVariant.secondary,
+                              onTap: onManuallySetupTap,
+                            ),
+                          ),
+                          const SizedBox(height: Spacing.sm),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              ButtonComponent(
+                                label: l10n.importCodes,
+                                size: ButtonComponentSize.small,
+                                variant: ButtonComponentVariant.link,
+                                onTap: () {
+                                  auth_nav.routeToPage(
+                                    context,
+                                    const ImportCodePage(),
+                                  );
+                                },
+                              ),
+                              ButtonComponent(
+                                label: l10n.faq,
+                                size: ButtonComponentSize.small,
+                                variant: ButtonComponentVariant.link,
+                                onTap: () {
+                                  PlatformUtil.openUrlInBrowser(
+                                    'https://ente.com/help/auth/faq',
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

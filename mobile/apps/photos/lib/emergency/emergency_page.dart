@@ -52,6 +52,7 @@ class _EmergencyPageState extends State<EmergencyPage> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
     }
   }
@@ -366,6 +367,7 @@ class _EmergencyPageState extends State<EmergencyPage> {
 
     if (actionResult.action == TrustedContactAction.revoke) {
       final isPending = contact.isPendingInvite();
+      if (!context.mounted) return;
       final confirmed = await showAlertBottomSheet<bool>(
         context,
         title: isPending
@@ -427,6 +429,7 @@ class _EmergencyPageState extends State<EmergencyPage> {
         }
       } else {
         if (mounted) {
+          if (!context.mounted) return;
           await showAlertBottomSheet(
             context,
             title: context.l10n.cannotUpdateRecoveryTime,
@@ -437,6 +440,7 @@ class _EmergencyPageState extends State<EmergencyPage> {
       }
     } catch (e) {
       if (mounted) {
+        if (!context.mounted) return;
         showShortToast(
           context,
           AppLocalizations.of(context).somethingWentWrong,

@@ -28,9 +28,6 @@ import io.ente.ensu.designsystem.EnsuColor
 import io.ente.ensu.designsystem.EnsuCornerRadius
 import io.ente.ensu.designsystem.EnsuSpacing
 import io.ente.ensu.designsystem.EnsuTypography
-import io.ente.ensu.chat.AttachmentDownloadItem
-import io.ente.ensu.chat.AttachmentDownloadStatus
-import io.ente.ensu.format.formattedFileSize
 
 @Composable
 internal fun ComingSoonDialog(
@@ -75,75 +72,4 @@ internal fun ComingSoonDialog(
         },
         containerColor = EnsuColor.backgroundBase()
     )
-}
-
-@Composable
-internal fun AttachmentDownloadsDialog(
-    downloads: List<AttachmentDownloadItem>,
-    onCancel: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = "Attachment downloads", style = EnsuTypography.h3Bold) },
-        text = {
-            if (downloads.isEmpty()) {
-                Text(text = "No pending downloads", style = EnsuTypography.body, color = EnsuColor.textMuted())
-            } else {
-                Column(
-                    modifier = Modifier
-                        .heightIn(max = 320.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    downloads.forEach { item ->
-                        Row(
-                            modifier = Modifier.padding(vertical = EnsuSpacing.xs.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(text = item.name, style = EnsuTypography.body, color = EnsuColor.textPrimary())
-                                Text(
-                                    text = "Session ${item.sessionId.take(6)} • ${item.sizeBytes.formattedFileSize()}",
-                                    style = EnsuTypography.mini,
-                                    color = EnsuColor.textMuted()
-                                )
-                            }
-                            Text(
-                                text = statusLabel(item.status),
-                                style = EnsuTypography.mini,
-                                color = EnsuColor.textMuted(),
-                                modifier = Modifier.padding(end = EnsuSpacing.xs.dp)
-                            )
-                            if (item.status == AttachmentDownloadStatus.Queued || item.status == AttachmentDownloadStatus.Downloading) {
-                                TextButton(
-                                    onClick = { onCancel(item.id) },
-                                    colors = ButtonDefaults.textButtonColors(contentColor = EnsuColor.textPrimary())
-                                ) {
-                                    Text(text = "Cancel", style = EnsuTypography.mini)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(contentColor = EnsuColor.textPrimary())
-            ) {
-                Text(text = "Close", style = EnsuTypography.small)
-            }
-        }
-    )
-}
-
-private fun statusLabel(status: AttachmentDownloadStatus): String {
-    return when (status) {
-        AttachmentDownloadStatus.Queued -> "Queued"
-        AttachmentDownloadStatus.Downloading -> "Downloading"
-        AttachmentDownloadStatus.Completed -> "Completed"
-        AttachmentDownloadStatus.Failed -> "Failed"
-        AttachmentDownloadStatus.Canceled -> "Canceled"
-    }
 }

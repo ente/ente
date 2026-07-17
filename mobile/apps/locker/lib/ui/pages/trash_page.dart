@@ -72,26 +72,31 @@ class _TrashPageState extends State<TrashPage> {
       illustration: LockerBottomSheetIllustration.collectionDelete,
     );
 
-    if (result?.buttonResult.action == ButtonAction.first && mounted) {
+    if (result?.buttonResult.action == ButtonAction.first) {
       await _performEmptyTrash();
     }
   }
 
   Future<void> _performEmptyTrash() async {
     if (_trashFiles.isEmpty) {
-      showToast(context, context.l10n.trashIsEmpty);
+      if (mounted) {
+        showToast(context, context.l10n.trashIsEmpty);
+      }
       return;
     }
 
-    final dialog = createProgressDialog(
-      context,
-      context.l10n.clearingTrash,
-      isDismissible: false,
-    );
-    await dialog.show();
+    final dialog = mounted
+        ? createProgressDialog(
+            context,
+            context.l10n.clearingTrash,
+            isDismissible: false,
+          )
+        : null;
+    await dialog?.show();
     try {
       await TrashService.instance.emptyTrash();
-      await dialog.hide();
+      await dialog?.hide();
+      if (!mounted) return;
       _selectedFiles.clearAll();
       setState(() {
         _trashFiles.clear();
@@ -99,7 +104,7 @@ class _TrashPageState extends State<TrashPage> {
       showToast(context, context.l10n.trashClearedSuccessfully);
       Navigator.of(context).pop();
     } catch (error) {
-      await dialog.hide();
+      await dialog?.hide();
       if (mounted) {
         await showLockerErrorSheet(context, error);
       }

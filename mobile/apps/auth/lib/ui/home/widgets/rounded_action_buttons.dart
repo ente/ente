@@ -62,31 +62,3 @@ class RoundedButton extends StatelessWidget {
     );
   }
 }
-
-class TextLinkButton extends StatelessWidget {
-  final String label;
-  final VoidCallback? onTap;
-
-  const TextLinkButton({super.key, required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = getEnteTextTheme(context);
-    final colorScheme = getEnteColorScheme(context);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 18),
-        child: Text(
-          label,
-          style: textTheme.small.copyWith(
-            color: colorScheme.textBase,
-            fontWeight: FontWeight.w600,
-            decoration: TextDecoration.underline,
-          ),
-        ),
-      ),
-    );
-  }
-}

@@ -53,7 +53,7 @@ func PanicRecover() gin.HandlerFunc {
 				requestData := strings.Split(string(httpRequest), "\r\n")
 				for idx, header := range requestData {
 					current := strings.Split(header, ":")
-					if current[0] == "Authorization" || current[0] == "X-Auth-Token" {
+					if current[0] == "Authorization" || current[0] == "X-Auth-Token" || current[0] == "X-Space-Session-Token" {
 						requestData[idx] = current[0] + ": *"
 					}
 				}

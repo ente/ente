@@ -9,7 +9,6 @@ import 'package:photos/events/files_updated_event.dart';
 import 'package:photos/events/local_photos_updated_event.dart';
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/generated/l10n.dart";
-import "package:photos/l10n/l10n.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file_load_result.dart';
 import 'package:photos/models/gallery_type.dart';
@@ -20,7 +19,6 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/face_ml/feedback/cluster_feedback.dart";
 import 'package:photos/services/memory_lane/memory_lane_service.dart';
 import "package:photos/services/search_service.dart";
-import "package:photos/ui/components/end_to_end_banner.dart";
 import 'package:photos/ui/viewer/actions/file_selection_overlay_bar.dart';
 import 'package:photos/ui/viewer/gallery/gallery.dart';
 import "package:photos/ui/viewer/gallery/gallery_app_bar_config.dart";
@@ -30,7 +28,6 @@ import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.da
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
 import "package:photos/ui/viewer/gallery/state/search_filter_data_provider.dart";
 import "package:photos/ui/viewer/gallery/state/selection_state.dart";
-import "package:photos/ui/viewer/people/link_email_screen.dart";
 import "package:photos/ui/viewer/people/memory_lane_banner.dart";
 import "package:photos/ui/viewer/people/memory_lane_debug_panel.dart";
 import "package:photos/ui/viewer/people/memory_lane_page.dart";
@@ -382,24 +379,6 @@ class _GalleryState extends State<_Gallery> {
           : [],
       header: Column(
         children: [
-          (widget.personEntity.data.email != null &&
-                      widget.personEntity.data.email!.isNotEmpty) ||
-                  widget.personEntity.data.isIgnored
-              ? const SizedBox.shrink()
-              : Padding(
-                  padding: const EdgeInsets.only(top: 12, bottom: 8),
-                  child: EndToEndBanner(
-                    title: context.l10n.linkEmail,
-                    caption: context.l10n.linkEmailToContactBannerCaption,
-                    leadingIcon: Icons.email_outlined,
-                    onTap: () async {
-                      await routeToPage(
-                        context,
-                        LinkEmailScreen(widget.personEntity.remoteID),
-                      );
-                    },
-                  ),
-                ),
           MemoryLaneBannerSection(
             showBanner: widget.memoryLaneEnabled && widget.showTimelineBanner,
             person: widget.personEntity,

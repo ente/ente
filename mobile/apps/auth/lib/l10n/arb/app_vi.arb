@@ -193,7 +193,6 @@
   "deleteAccountQuery": "Chúng tôi rất tiếc khi thấy bạn ra đi. Có phải bạn gặp vấn đề?",
   "yesSendFeedbackAction": "Có, gửi phản hồi",
   "noDeleteAccountAction": "Không, xóa tài khoản",
-  "initiateAccountDeleteTitle": "Vui lòng xác thực để bắt đầu xóa tài khoản",
   "sendEmail": "Gửi email",
   "createNewAccount": "Tạo tài khoản mới",
   "weakStrength": "Yếu",

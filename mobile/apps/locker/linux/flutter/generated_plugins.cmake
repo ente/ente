@@ -8,6 +8,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   gtk
   local_auth_linux
   open_file_linux
+  rive_native
   screen_retriever_linux
   sentry_flutter
   sodium_libs

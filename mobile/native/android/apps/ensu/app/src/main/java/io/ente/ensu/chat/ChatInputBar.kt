@@ -72,8 +72,6 @@ internal fun MessageInput(
     isProcessingAttachments: Boolean,
     isGenerating: Boolean,
     isDownloading: Boolean,
-    isAttachmentDownloadBlocked: Boolean,
-    attachmentDownloadPercent: Int?,
     onMessageChange: (String) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
@@ -85,13 +83,7 @@ internal fun MessageInput(
     focusRequestId: Int
 ) {
     val haptic = rememberHaptics()
-    val placeholder = when {
-        isAttachmentDownloadBlocked -> {
-            val percent = attachmentDownloadPercent?.let { " ($it%)" } ?: ""
-            "Downloading attachments...$percent"
-        }
-        else -> "Write a message..."
-    }
+    val placeholder = "Write a message..."
 
     val focusRequester = remember { FocusRequester() }
     var fieldValue by remember {
@@ -269,7 +261,6 @@ internal fun MessageInput(
                 if (editingMessage == null) {
                     val canAddImageAttachment = !isGenerating &&
                         !isDownloading &&
-                        !isAttachmentDownloadBlocked &&
                         !isImageAttachmentLimitReached
                     IconButton(
                         onClick = {
@@ -293,7 +284,6 @@ internal fun MessageInput(
                     val canUseVoice = voiceInputState.isRecording ||
                         (!isGenerating &&
                             !isDownloading &&
-                            !isAttachmentDownloadBlocked &&
                             !isVoiceBusy)
 
                     IconButton(
@@ -342,7 +332,7 @@ internal fun MessageInput(
                             onSend()
                         }
                     },
-                    enabled = isGenerating || (!isDownloading && !isAttachmentDownloadBlocked && canSend),
+                    enabled = isGenerating || (!isDownloading && canSend),
                     modifier = Modifier.size(36.dp)
                 ) {
                     val iconRes = when {

@@ -196,7 +196,6 @@
   "deleteAccountQuery": "سوف نأسف لرؤيتك تذهب. هل تواجه بعض المشاكل؟",
   "yesSendFeedbackAction": "نعم، ارسل الملاحظات",
   "noDeleteAccountAction": "لا، حذف الحساب",
-  "initiateAccountDeleteTitle": "الرجاء المصادقة لبدء حذف الحساب",
   "sendEmail": "إرسال بريد إلكتروني",
   "createNewAccount": "إنشاء حساب جديد",
   "weakStrength": "ضعيف",

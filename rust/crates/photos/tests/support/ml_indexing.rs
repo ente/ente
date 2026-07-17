@@ -197,9 +197,9 @@ impl MlIndexingTestContext {
 
         let onnx_runtime_library =
             resolve_onnx_runtime_library(&client, &cache_dir, &asset_lock.onnx_runtime)?;
-        ort::init_from(onnx_runtime_library.to_string_lossy())
-            .commit()
-            .context("initialize ONNX Runtime dynamic library")?;
+        let _ = ort::init_from(&onnx_runtime_library)
+            .context("load ONNX Runtime dynamic library")?
+            .commit();
 
         let runtime_config = MlRuntimeConfig {
             model_paths: resolve_model_paths(&client, &cache_dir, &asset_lock.models)?,
@@ -626,10 +626,13 @@ fn resolve_onnx_runtime_library(
 }
 
 fn onnx_runtime_target_key() -> Result<String> {
-    match (std::env::consts::OS, std::env::consts::ARCH) {
+    onnx_runtime_target_key_for(std::env::consts::OS, std::env::consts::ARCH)
+}
+
+fn onnx_runtime_target_key_for(os: &str, arch: &str) -> Result<String> {
+    match (os, arch) {
         ("linux", "x86_64") => Ok("x86_64-unknown-linux-gnu".to_string()),
         ("linux", "aarch64") => Ok("aarch64-unknown-linux-gnu".to_string()),
-        ("macos", "x86_64") => Ok("x86_64-apple-darwin".to_string()),
         ("macos", "aarch64") => Ok("aarch64-apple-darwin".to_string()),
         (os, arch) => bail!("unsupported ONNX Runtime target for ML indexing test: {arch}-{os}"),
     }

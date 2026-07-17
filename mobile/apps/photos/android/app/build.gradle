@@ -173,7 +173,8 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0'
     implementation 'com.android.support:multidex:1.0.3'
     implementation 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
-    implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.8.1'
+    // Required by Rust ML, which dynamically loads libonnxruntime.so.
+    implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.27.0'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'

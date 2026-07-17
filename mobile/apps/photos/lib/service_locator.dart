@@ -29,7 +29,7 @@ import "package:photos/services/entity_service.dart";
 import "package:photos/services/filedata/filedata_service.dart";
 import "package:photos/services/location_service.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
-import "package:photos/services/machine_learning/face_ml/face_recognition_service.dart";
+import "package:photos/services/machine_learning/face_ml/person/person_feedback_service.dart";
 import "package:photos/services/magic_cache_service.dart";
 import "package:photos/services/memories_cache_service.dart";
 import "package:photos/services/permission/service.dart";
@@ -40,6 +40,7 @@ import "package:photos/services/storage_bonus_service.dart";
 import "package:photos/services/sync/trash_sync_service.dart";
 import "package:photos/services/text_embeddings_cache_service.dart";
 import "package:photos/services/update_service.dart";
+import "package:photos/services/wake_lock_service.dart";
 import "package:photos/services/wrapped/wrapped_cache_service.dart";
 import "package:photos/services/wrapped/wrapped_service.dart";
 import "package:photos/settings/backup_settings.dart";
@@ -55,6 +56,7 @@ class ServiceLocator {
   late final EndpointConfig endpointConfig;
   late final LocalSettings localSettings;
   late final BackupSettings backupSettings;
+  late final EnteWakeLockService wakeLockService;
 
   // instance
   ServiceLocator._privateConstructor();
@@ -76,6 +78,7 @@ class ServiceLocator {
     endpointConfig = EndpointConfig(prefs);
     localSettings = LocalSettings(prefs);
     backupSettings = BackupSettings(prefs);
+    wakeLockService = EnteWakeLockService(prefs);
   }
 }
 
@@ -101,6 +104,9 @@ CastService get castService {
 LocalSettings get localSettings => ServiceLocator.instance.localSettings;
 
 BackupSettings get backupSettings => ServiceLocator.instance.backupSettings;
+
+EnteWakeLockService get wakeLockService =>
+    ServiceLocator.instance.wakeLockService;
 
 /// Whether the app is currently showing the no-account local gallery experience.
 ///
@@ -226,10 +232,10 @@ ComputeController get computeController {
   return _computeController!;
 }
 
-FaceRecognitionService? _faceRecognitionService;
-FaceRecognitionService get faceRecognitionService {
-  _faceRecognitionService ??= FaceRecognitionService();
-  return _faceRecognitionService!;
+PersonFeedbackService? _personFeedbackService;
+PersonFeedbackService get personFeedbackService {
+  _personFeedbackService ??= PersonFeedbackService();
+  return _personFeedbackService!;
 }
 
 PermissionService? _permissionService;

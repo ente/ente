@@ -33,22 +33,23 @@ import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/models/preview/playlist_data.dart";
 import "package:photos/models/preview/preview_item.dart";
 import "package:photos/models/preview/preview_item_status.dart";
+import "package:photos/module/download/file.dart";
+import "package:photos/module/metadata/video.dart";
+import "package:photos/module/upload/service/file_uploader.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/file_magic_service.dart";
 import "package:photos/services/filedata/model/file_data.dart";
 import "package:photos/services/isolated_ffmpeg_service.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
 import "package:photos/ui/notification/toast.dart";
-import "package:photos/utils/exif_util.dart";
 import "package:photos/utils/file_key.dart";
-import "package:photos/utils/file_uploader.dart";
-import "package:photos/utils/file_util.dart";
 import "package:photos/utils/gzip.dart";
 import "package:photos/utils/network_util.dart";
 
 const _maxRetryCount = 3;
 const _maxFfmpegOutputLines = 24;
 const _maxFfmpegOutputChars = 4000;
+const _missingVideoStreamError = "No video stream found in FFprobe metadata";
 
 class VideoPreviewService {
   final _logger = Logger("VideoPreviewService");
@@ -492,18 +493,33 @@ class VideoPreviewService {
       }
 
       // check metadata for bitrate, codec, color space
-      props ??= await getVideoPropsAsync(file);
+      props ??= await getVideoProps(file);
       final fileSize = enteFile.fileSize ?? file.lengthSync();
 
+      if (props == null) {
+        error =
+            "Failed to read FFprobe metadata for ${enteFile.displayName} "
+            "(fileID=${enteFile.uploadedFileID})";
+        _logger.warning(error);
+        return;
+      }
+
       final videoData = List.from(
-        props?.propData?["streams"] ?? [],
+        props.propData?["streams"] ?? [],
       ).firstWhereOrNull((e) => e["type"] == "video");
+      if (videoData == null) {
+        error =
+            "$_missingVideoStreamError for ${enteFile.displayName} "
+            "(fileID=${enteFile.uploadedFileID})";
+        _logger.warning("$error; skipping preview creation");
+        return;
+      }
 
       final codec = videoData["codec_name"]?.toString().toLowerCase();
       final isH264 = codec?.contains("h264") ?? false;
 
-      final bitrate = props?.duration?.inSeconds != null
-          ? (fileSize * 8) / props!.duration!.inSeconds
+      final bitrate = props.duration?.inSeconds != null
+          ? (fileSize * 8) / props.duration!.inSeconds
           : null;
 
       final colorTransfer = videoData["color_transfer"]
@@ -538,7 +554,7 @@ class VideoPreviewService {
           !(isH264 && bitrate != null && bitrate <= 4000 * 1000);
       final rescaleVideo = !(bitrate != null && bitrate <= 2000 * 1000);
       final needsTonemap = isHDR;
-      final applyFPS = (double.tryParse(props?.fps ?? "") ?? 100) > 30;
+      final applyFPS = (double.tryParse(props.fps ?? "") ?? 100) > 30;
 
       String filters = "";
 
@@ -648,7 +664,7 @@ class VideoPreviewService {
               FFProbeProps? playlistFrameProps;
               final file2 = File("$prefix/frame.ts");
 
-              playlistFrameProps = await getVideoPropsAsync(file2);
+              playlistFrameProps = await getVideoProps(file2);
               width = playlistFrameProps?.width;
               height = playlistFrameProps?.height;
             }
@@ -726,7 +742,11 @@ class VideoPreviewService {
         final entry = fileQueue.entries.first;
         final file = entry.value;
         fileQueue.remove(entry.key);
-        await chunkAndUploadVideo(ctx, file, continuation: true);
+        if (ctx != null && ctx.mounted) {
+          await chunkAndUploadVideo(ctx, file, continuation: true);
+        } else {
+          await chunkAndUploadVideo(null, file, continuation: true);
+        }
       } else {
         // Release compute when queue is empty or network is unavailable
         stop(shouldStopProcessing ? "network error" : "nothing to process");
@@ -781,6 +801,9 @@ class VideoPreviewService {
         "Network error detected, marking file as failed instead of retrying",
       );
       shouldRetry = false;
+    } else if (error is String && error.startsWith(_missingVideoStreamError)) {
+      shouldRetry = false;
+      uploadLocksDB.removeFromStreamQueue(enteFile.uploadedFileID!).ignore();
     }
 
     if (!_items.containsKey(enteFile.uploadedFileID!)) return;
@@ -1217,11 +1240,11 @@ class VideoPreviewService {
       if (isFileUnder10MB) {
         file = await getFile(enteFile, isOrigin: true);
         if (file != null) {
-          props = await getVideoPropsAsync(file);
+          props = await getVideoProps(file);
           final videoData = List.from(
             props?.propData?["streams"] ?? [],
           ).firstWhereOrNull((e) => e["type"] == "video");
-          final codec = videoData["codec_name"]?.toString().toLowerCase();
+          final codec = videoData?["codec_name"]?.toString().toLowerCase();
           skipFile = codec?.contains("h264") ?? false;
 
           if (skipFile) {

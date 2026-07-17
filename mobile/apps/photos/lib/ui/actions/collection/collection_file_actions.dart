@@ -10,6 +10,7 @@ import "package:photos/generated/l10n.dart";
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/selected_files.dart';
+import "package:photos/module/upload/service/file_uploader.dart";
 import "package:photos/services/collections_service.dart";
 import 'package:photos/services/favorites_service.dart';
 import "package:photos/services/hidden_service.dart";
@@ -22,7 +23,6 @@ import 'package:photos/ui/components/buttons/button_widget.dart';
 import 'package:photos/ui/components/models/button_type.dart';
 import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/utils/dialog_util.dart';
-import "package:photos/utils/file_uploader.dart";
 import "package:photos/utils/share_util.dart";
 import "package:receive_sharing_intent/receive_sharing_intent.dart";
 
@@ -76,6 +76,7 @@ extension CollectionFileActions on CollectionActions {
     );
     if (actionResult?.action != null &&
         actionResult!.action == ButtonAction.error) {
+      if (!context.mounted) return;
       await showGenericErrorDialog(
         context: context,
         error: actionResult.exception,
@@ -172,6 +173,7 @@ extension CollectionFileActions on CollectionActions {
       } catch (e, s) {
         logger.severe("Failed to add to album", e, s);
         await dialog?.hide();
+        if (!context.mounted) return false;
         await showGenericErrorDialog(context: context, error: e);
         return false;
       } finally {
@@ -245,6 +247,7 @@ extension CollectionFileActions on CollectionActions {
         );
         if (c != null && c.owner.id != currentUserID) {
           if (!showProgressDialog) {
+            if (!context.mounted) return false;
             dialog = createProgressDialog(
               context,
               AppLocalizations.of(context).uploadingFilesToAlbum,
@@ -292,7 +295,9 @@ extension CollectionFileActions on CollectionActions {
     } catch (e, s) {
       logger.severe("Failed to add to album", e, s);
       await dialog?.hide();
-      await showGenericErrorDialog(context: context, error: e);
+      if (context.mounted) {
+        await showGenericErrorDialog(context: context, error: e);
+      }
       rethrow;
     }
   }
@@ -311,6 +316,7 @@ extension CollectionFileActions on CollectionActions {
     await dialog.show();
 
     try {
+      if (!context.mounted) return false;
       await FavoritesService.instance.updateFavorites(
         context,
         files,
@@ -319,6 +325,7 @@ extension CollectionFileActions on CollectionActions {
       return true;
     } catch (e, s) {
       logger.severe("Failed to update favorites", e, s);
+      if (!context.mounted) return false;
       showShortToast(
         context,
         markAsFavorite

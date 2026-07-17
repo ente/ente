@@ -127,6 +127,9 @@ fn decode_reader_with_image_crate<R>(
 where
     R: BufRead + Seek,
 {
+    // HEIF-family readers resolve to ente_heic's lazy hook adapter here. Keep
+    // the decoder intact until DynamicImage allocates and supplies its output
+    // buffer so the adapter can decode directly into it.
     let mut decoder = reader.into_decoder()?;
     let icc_profile = match decoder.icc_profile() {
         Ok(icc_profile) => icc_profile,
@@ -471,6 +474,15 @@ mod tests {
         init_image_decoders();
 
         assert!(decoding_hook_registered(OsStr::new("jxl")));
+    }
+
+    #[test]
+    fn registers_heif_family_decoder_hooks() {
+        init_image_decoders();
+
+        assert!(decoding_hook_registered(OsStr::new("heic")));
+        assert!(decoding_hook_registered(OsStr::new("heif")));
+        assert!(decoding_hook_registered(OsStr::new("avif")));
     }
 
     #[test]

@@ -328,8 +328,10 @@ func (repo *UserRepository) UpdateEmail(userID int64, encryptedEmail ente.Encryp
 	return stacktrace.Propagate(err, "")
 }
 
-// GetUserIDWithEmail returns the userID associated with a provided email
-func (repo *UserRepository) GetUserIDWithEmail(email string) (int64, error) {
+// GetUserIDWithEmailUnrestricted returns the user ID associated with an email.
+// It bypasses authenticated discovery limits and is only for trusted,
+// non-disclosing flows. User-facing discovery must use controller.UserLookup.
+func (repo *UserRepository) GetUserIDWithEmailUnrestricted(email string) (int64, error) {
 	sanitizedEmail := emailUtil.NormalizeEmail(email)
 	emailHash, err := crypto.GetHash(sanitizedEmail, repo.HashingKey)
 	if err != nil {

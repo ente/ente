@@ -7,16 +7,20 @@ import (
 	"time"
 
 	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/jwt"
 	"github.com/ente/museum/internal/testutil"
+	usercontroller "github.com/ente/museum/pkg/controller/user"
 	"github.com/ente/museum/pkg/repo"
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
 )
 
 type authRouteTestTokens struct {
-	auth   string
-	photos string
-	locker string
+	auth    string
+	photos  string
+	locker  string
+	family  string
+	payment string
 }
 
 func TestRejectAuthAppKeepsAuthRoutesAndBlocksStorageRoutes(t *testing.T) {
@@ -72,6 +76,34 @@ func TestRejectAuthAppKeepsAuthRoutesAndBlocksStorageRoutes(t *testing.T) {
 			wantStatus: http.StatusNoContent,
 		},
 		{
+			name:       "photos token can access user or JWT route",
+			path:       "/family/test",
+			token:      tokens.photos,
+			clientPkg:  "io.ente.photos",
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "family JWT can access user or JWT route",
+			path:       "/family/test",
+			token:      tokens.family,
+			clientPkg:  "io.ente.photos",
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "wrong scope JWT cannot access user or JWT route",
+			path:       "/family/test",
+			token:      tokens.payment,
+			clientPkg:  "io.ente.photos",
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			name:       "malformed JWT cannot access user or JWT route",
+			path:       "/family/test",
+			token:      "not.a.jwt",
+			clientPkg:  "io.ente.photos",
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
 			name:       "locker token can access storage route",
 			path:       "/collections/v2",
 			token:      tokens.locker,
@@ -125,6 +157,16 @@ func setupAuthRouteTest(t *testing.T) (*gin.Engine, authRouteTestTokens) {
 		photos: "auth-route-test-photos-token",
 		locker: "auth-route-test-locker-token",
 	}
+	userController := &usercontroller.UserController{JwtSecret: []byte("auth-route-test-jwt-secret")}
+	var err error
+	tokens.family, err = userController.GetJWTToken(userID, jwt.FAMILIES)
+	if err != nil {
+		t.Fatalf("failed to create family JWT: %v", err)
+	}
+	tokens.payment, err = userController.GetJWTToken(userID, jwt.PAYMENT)
+	if err != nil {
+		t.Fatalf("failed to create payment JWT: %v", err)
+	}
 	addTokenForTest(t, userAuthRepo, userID, ente.Auth, tokens.auth)
 	addTokenForTest(t, userAuthRepo, userID, ente.Photos, tokens.photos)
 	addTokenForTest(t, userAuthRepo, userID, ente.Locker, tokens.locker)
@@ -132,12 +174,18 @@ func setupAuthRouteTest(t *testing.T) (*gin.Engine, authRouteTestTokens) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	authMiddleware := &AuthMiddleware{
-		UserAuthRepo: userAuthRepo,
-		Cache:        cache.New(time.Minute, time.Minute),
+		UserAuthRepo:   userAuthRepo,
+		Cache:          cache.New(time.Minute, time.Minute),
+		UserController: userController,
 	}
 	privateAPI := router.Group("/")
 	privateAPI.Use(authMiddleware.TokenAuthMiddleware(nil))
 	privateAPI.GET("/authenticator/entity/diff", func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
+	})
+	familyAPI := router.Group("/")
+	familyAPI.Use(authMiddleware.TokenOrJWTAuthMiddleware(jwt.FAMILIES))
+	familyAPI.GET("/family/test", func(c *gin.Context) {
 		c.Status(http.StatusNoContent)
 	})
 

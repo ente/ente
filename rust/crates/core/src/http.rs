@@ -9,11 +9,16 @@
 //!
 //! The interface mirrors reqwest, so if you know reqwest you will feel at home.
 
+use std::future::Future;
 use std::sync::{PoisonError, RwLock};
-#[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
 
-use reqwest::header::{HeaderName, HeaderValue, USER_AGENT};
+#[cfg(target_arch = "wasm32")]
+use gloo_timers::future::sleep;
+#[cfg(not(target_arch = "wasm32"))]
+use tokio::time::sleep;
+
+use reqwest::header::{HeaderName, HeaderValue};
 use reqwest::{Method, Url};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -27,6 +32,7 @@ const ACCESS_TOKEN: HeaderName = HeaderName::from_static("x-auth-access-token");
 const ACCESS_TOKEN_JWT: HeaderName = HeaderName::from_static("x-auth-access-token-jwt");
 const LINK_DEVICE_TOKEN: HeaderName = HeaderName::from_static("x-auth-link-device-token");
 const CAST_ACCESS_TOKEN: HeaderName = HeaderName::from_static("x-cast-access-token");
+const SPACE_SESSION_TOKEN: HeaderName = HeaderName::from_static("x-space-session-token");
 
 /// An error from an HTTP request.
 #[derive(Error, Debug)]
@@ -42,6 +48,18 @@ pub enum Error {
         status: u16,
         /// The request path that failed, with its query stripped.
         path: String,
+    },
+
+    /// The server responded with a non-2xx status, and its body carried an
+    /// Ente API error code.
+    #[error("HTTP {status} {code} at {path}")]
+    Api {
+        /// The HTTP status code.
+        status: u16,
+        /// The request path that failed, with its query stripped.
+        path: String,
+        /// The server's error code, e.g. `USER_NOT_REGISTERED`.
+        code: String,
     },
 
     /// The response arrived, but its body was not the expected JSON.
@@ -77,10 +95,10 @@ impl Error {
         matches!(self, Error::Network(e) if e.0.is_timeout())
     }
 
-    /// The HTTP status code, if this is an [`Http`](Self::Http) error.
+    /// The HTTP status code, if the server responded with a non-2xx status.
     pub fn status_code(&self) -> Option<u16> {
         match self {
-            Error::Http { status, .. } => Some(*status),
+            Error::Http { status, .. } | Error::Api { status, .. } => Some(*status),
             _ => None,
         }
     }
@@ -90,7 +108,9 @@ impl Error {
     pub fn is_retryable(&self) -> bool {
         match self {
             Error::Network(e) => e.0.is_request() || e.0.is_body(),
-            Error::Http { status, .. } => *status == 429 || *status >= 500,
+            Error::Http { status, .. } | Error::Api { status, .. } => {
+                *status == 429 || *status >= 500
+            }
             Error::Parse(_) => false,
         }
     }
@@ -114,11 +134,13 @@ pub struct Http {
 }
 
 impl Http {
-    /// Create a transport with a default connect timeout.
+    /// Create a transport with default connect and read timeouts.
     pub fn new() -> Result<Self, Error> {
         let builder = reqwest::Client::builder();
         #[cfg(not(target_arch = "wasm32"))]
-        let builder = builder.connect_timeout(Duration::from_secs(15));
+        let builder = builder
+            .connect_timeout(Duration::from_secs(15))
+            .read_timeout(Duration::from_secs(30));
         Ok(Http {
             client: builder.build()?,
         })
@@ -174,6 +196,8 @@ pub enum Auth {
     },
     /// A cast session, sent as the `X-Cast-Access-Token` header.
     Cast(String),
+    /// A Space browser session, sent as the `X-Space-Session-Token` header.
+    SpaceSession(String),
 }
 
 impl Auth {
@@ -195,6 +219,7 @@ impl Auth {
                 builder
             }
             Auth::Cast(token) => sensitive_header(builder, CAST_ACCESS_TOKEN, token),
+            Auth::SpaceSession(token) => sensitive_header(builder, SPACE_SESSION_TOKEN, token),
         }
     }
 }
@@ -219,13 +244,26 @@ pub struct ApiConfig {
     /// The Ente API origin: scheme, host, and port, e.g. `https://api.ente.com`.
     pub origin: String,
     /// The client package, sent as `X-Client-Package` (e.g. `io.ente.photos`).
-    pub client_package: String,
+    pub client_package: Option<String>,
     /// The client version, sent as `X-Client-Version`.
     pub client_version: Option<String>,
-    /// The user agent to send.
+    /// The user agent to send. Ignored on wasm.
     pub user_agent: Option<String>,
     /// The authentication to start with, or `None` to start unauthenticated.
     pub auth: Option<Auth>,
+}
+
+impl ApiConfig {
+    /// Config with only the origin set.
+    pub fn new(origin: String) -> Self {
+        Self {
+            origin,
+            client_package: None,
+            client_version: None,
+            user_agent: None,
+            auth: None,
+        }
+    }
 }
 
 /// An Ente API client, bound to a single origin.
@@ -235,8 +273,9 @@ pub struct ApiConfig {
 pub struct Api {
     http: Http,
     origin: String,
-    client_package: String,
+    client_package: Option<String>,
     client_version: Option<String>,
+    #[cfg(not(target_arch = "wasm32"))]
     user_agent: Option<String>,
     auth: RwLock<Option<Auth>>,
 }
@@ -249,6 +288,7 @@ impl Api {
             origin: config.origin,
             client_package: config.client_package,
             client_version: config.client_version,
+            #[cfg(not(target_arch = "wasm32"))]
             user_agent: config.user_agent,
             auth: RwLock::new(config.auth),
         }
@@ -308,12 +348,15 @@ impl Api {
             // reqwest hits the same parse failure, and reports it at send time.
             Err(_) => self.http.client.request(method, self.origin.as_str()),
         };
-        builder = builder.header(CLIENT_PACKAGE, &self.client_package);
+        if let Some(client_package) = &self.client_package {
+            builder = builder.header(CLIENT_PACKAGE, client_package);
+        }
         if let Some(version) = &self.client_version {
             builder = builder.header(CLIENT_VERSION, version);
         }
+        #[cfg(not(target_arch = "wasm32"))]
         if let Some(user_agent) = &self.user_agent {
-            builder = builder.header(USER_AGENT, user_agent);
+            builder = builder.header(reqwest::header::USER_AGENT, user_agent);
         }
         if let Some(auth) = &*self.auth.read().unwrap_or_else(PoisonError::into_inner) {
             builder = auth.apply(builder);
@@ -379,6 +422,11 @@ impl Response {
         self.0.headers().get(name).and_then(|v| v.to_str().ok())
     }
 
+    /// All the response headers.
+    pub fn headers(&self) -> &reqwest::header::HeaderMap {
+        self.0.headers()
+    }
+
     /// Return an [`Error::Http`] if the status is not 2xx, otherwise the response.
     pub fn error_for_status(self) -> Result<Self, Error> {
         if self.0.status().is_success() {
@@ -388,6 +436,29 @@ impl Response {
                 status: self.0.status().as_u16(),
                 path: self.0.url().path().to_owned(),
             })
+        }
+    }
+
+    /// Return an [`Error::Api`] carrying the server's error code if the
+    /// status is not 2xx, otherwise the response.
+    ///
+    /// A variant of [`error_for_status`](Self::error_for_status) for call
+    /// sites that need to act on the error code that the Ente API includes
+    /// in its error responses. When the body does not carry a code, this
+    /// returns the same [`Error::Http`] that `error_for_status` would.
+    pub async fn error_for_code(self) -> Result<Self, Error> {
+        if self.0.status().is_success() {
+            return Ok(self);
+        }
+        let status = self.status();
+        let path = self.0.url().path().to_owned();
+        match serde_json::from_slice::<ApiErrorEnvelope>(&self.bytes().await?) {
+            Ok(envelope) => Err(Error::Api {
+                status,
+                path,
+                code: envelope.code,
+            }),
+            Err(_) => Err(Error::Http { status, path }),
         }
     }
 
@@ -438,6 +509,12 @@ mod body_stream {
     }
 }
 
+/// The Ente API's error body, e.g. `{"code": "USER_NOT_REGISTERED", ...}`.
+#[derive(Deserialize)]
+struct ApiErrorEnvelope {
+    code: String,
+}
+
 /// The reply from the `/ping` endpoint.
 #[derive(Deserialize, Debug)]
 pub struct PingResponse {
@@ -445,6 +522,74 @@ pub struct PingResponse {
     pub message: String,
     /// The server's git commit hash.
     pub id: String,
+}
+
+/// How persistently to retry a failed request.
+///
+/// Both profiles make one original attempt and up to three retries. The
+/// delays match the web client's retry schedules.
+#[derive(Clone, Copy, Debug)]
+pub enum RetryProfile {
+    /// For requests a user is waiting on. Retries after 2, 5, and 10 seconds.
+    Interactive,
+    /// For unattended work, where waiting longer handles remote hiccups
+    /// better. Retries after 10, 30, and 120 seconds.
+    Background,
+}
+
+impl RetryProfile {
+    fn delays(self) -> [Duration; 3] {
+        match self {
+            RetryProfile::Interactive => [2, 5, 10].map(Duration::from_secs),
+            RetryProfile::Background => [10, 30, 120].map(Duration::from_secs),
+        }
+    }
+}
+
+/// Run `operation`, retrying failures per [`RetryProfile::Interactive`].
+///
+/// A failure is retried when [`Error::is_retryable`] says so: the request
+/// failed in transit, or the server answered with a 429 or a 5xx status.
+/// Any other error returns immediately.
+///
+/// Each retry runs the whole closure again, so wrap only operations that
+/// are safe to repeat.
+pub async fn retry<T, F, Fut>(operation: F) -> Result<T, Error>
+where
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T, Error>>,
+{
+    retry_with_profile(RetryProfile::Interactive, operation).await
+}
+
+/// Like [`retry`](retry()), but with an explicitly chosen profile.
+pub async fn retry_with_profile<T, F, Fut>(profile: RetryProfile, operation: F) -> Result<T, Error>
+where
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T, Error>>,
+{
+    retry_with_delays(&profile.delays(), operation).await
+}
+
+async fn retry_with_delays<T, F, Fut>(delays: &[Duration], mut operation: F) -> Result<T, Error>
+where
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T, Error>>,
+{
+    let mut delays = delays.iter();
+    loop {
+        match operation().await {
+            Ok(value) => return Ok(value),
+            Err(error) if error.is_retryable() => match delays.next() {
+                Some(delay) => {
+                    log::warn!("retrying in {delay:?}: {error}");
+                    sleep(*delay).await;
+                }
+                None => return Err(error),
+            },
+            Err(error) => return Err(error),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -459,7 +604,7 @@ mod tests {
             Http::new().unwrap(),
             ApiConfig {
                 origin: server.url(),
-                client_package: "io.ente.test".into(),
+                client_package: Some("io.ente.test".into()),
                 client_version: Some("1.0".into()),
                 user_agent: None,
                 auth,
@@ -485,6 +630,28 @@ mod tests {
         mock.assert_async().await;
         assert_eq!(response.message, "pong");
         assert_eq!(response.id, "abc");
+    }
+
+    #[tokio::test]
+    async fn api_sends_space_session_token_header() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("GET", "/ping")
+            .match_header("x-space-session-token", "space-session-token")
+            .with_body(r#"{"message":"pong","id":"abc"}"#)
+            .create_async()
+            .await;
+
+        let response = api(
+            &server,
+            Some(Auth::SpaceSession("space-session-token".into())),
+        )
+        .ping()
+        .await
+        .unwrap();
+
+        mock.assert_async().await;
+        assert_eq!(response.message, "pong");
     }
 
     #[tokio::test]
@@ -612,6 +779,82 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn error_for_code_reads_the_code() {
+        let mut server = Server::new_async().await;
+        server
+            .mock("GET", "/x")
+            .with_status(401)
+            .with_body(r#"{"code":"SESSION_EXPIRED","message":"session expired"}"#)
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let err = api
+            .get("/x")
+            .send()
+            .await
+            .unwrap()
+            .error_for_code()
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            &err,
+            Error::Api { status: 401, path, code }
+                if path == "/x" && code == "SESSION_EXPIRED"
+        ));
+        assert_eq!(err.to_string(), "HTTP 401 SESSION_EXPIRED at /x");
+        assert_eq!(err.status_code(), Some(401));
+    }
+
+    #[tokio::test]
+    async fn error_for_code_without_a_code_is_a_plain_http_error() {
+        let mut server = Server::new_async().await;
+        server
+            .mock("GET", "/x")
+            .with_status(502)
+            .with_body("<html>bad gateway</html>")
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let err = api
+            .get("/x")
+            .send()
+            .await
+            .unwrap()
+            .error_for_code()
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            &err,
+            Error::Http { status: 502, path } if path == "/x"
+        ));
+    }
+
+    #[tokio::test]
+    async fn error_for_code_passes_a_2xx_through() {
+        let mut server = Server::new_async().await;
+        server
+            .mock("GET", "/x")
+            .with_body("ok")
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let response = api.get("/x").send().await.unwrap();
+        let body = response
+            .error_for_code()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
+        assert_eq!(body, "ok");
+    }
+
+    #[tokio::test]
     async fn invalid_json_is_a_parse_error() {
         let mut server = Server::new_async().await;
         server
@@ -705,16 +948,7 @@ mod tests {
 
     #[tokio::test]
     async fn malformed_origin_fails_at_send() {
-        let api = Api::new(
-            Http::new().unwrap(),
-            ApiConfig {
-                origin: "not a url".into(),
-                client_package: "io.ente.test".into(),
-                client_version: None,
-                user_agent: None,
-                auth: None,
-            },
-        );
+        let api = Api::new(Http::new().unwrap(), ApiConfig::new("not a url".into()));
         let err = api.get("/ping").send().await.unwrap_err();
         assert!(matches!(err, Error::Network(_)));
     }
@@ -730,16 +964,80 @@ mod tests {
 
         let api = Api::new(
             Http::new().unwrap(),
-            ApiConfig {
-                origin: format!("{}/", server.url()),
-                client_package: "io.ente.test".into(),
-                client_version: None,
-                user_agent: None,
-                auth: None,
-            },
+            ApiConfig::new(format!("{}/", server.url())),
         );
         api.ping().await.unwrap();
 
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn retry_retries_retryable_failures() {
+        let mut server = Server::new_async().await;
+        let failure = server
+            .mock("GET", "/x")
+            .with_status(500)
+            .expect(1)
+            .create_async()
+            .await;
+        let success = server
+            .mock("GET", "/x")
+            .with_body("ok")
+            .expect(1)
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let body = retry_with_delays(&[Duration::ZERO; 3], || async {
+            api.get("/x").send().await?.error_for_status()?.text().await
+        })
+        .await
+        .unwrap();
+
+        assert_eq!(body, "ok");
+        failure.assert_async().await;
+        success.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn retry_returns_non_retryable_failures_immediately() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("GET", "/x")
+            .with_status(404)
+            .expect(1)
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let err = retry_with_delays(&[Duration::ZERO; 3], || async {
+            api.get("/x").send().await?.error_for_status()?.text().await
+        })
+        .await
+        .unwrap_err();
+
+        assert_eq!(err.status_code(), Some(404));
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn retry_gives_up_once_the_delays_are_exhausted() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("GET", "/x")
+            .with_status(500)
+            .expect(4)
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let err = retry_with_delays(&[Duration::ZERO; 3], || async {
+            api.get("/x").send().await?.error_for_status()?.text().await
+        })
+        .await
+        .unwrap_err();
+
+        assert_eq!(err.status_code(), Some(500));
         mock.assert_async().await;
     }
 }

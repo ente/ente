@@ -173,7 +173,6 @@
   "deleteAccountQuery": "Vi er kede af at se dig gå. Er du stødt på et problem?",
   "yesSendFeedbackAction": "Ja, send feedback",
   "noDeleteAccountAction": "Nej, slet konto",
-  "initiateAccountDeleteTitle": "Bekræft venligst for at påbegynde sletning af konto",
   "sendEmail": "Send email",
   "createNewAccount": "Opret konto",
   "weakStrength": "Svagt",

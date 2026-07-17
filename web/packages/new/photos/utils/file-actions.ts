@@ -31,7 +31,7 @@ export type FileContextAction =
 /**
  * Context needed to determine which file actions should be available.
  */
-export interface FileActionContext {
+interface FileActionContext {
     /** The current bar mode (albums, hidden-albums, archive-albums, people). */
     barMode?: GalleryBarMode;
     /** Whether we're in search mode. */
@@ -43,6 +43,10 @@ export interface FileActionContext {
      */
     collectionSummary: CollectionSummary | undefined;
     /**
+     * Whether every selected file is owned by the current user.
+     */
+    hasOnlyOwnFiles: boolean;
+    /**
      * Whether to show the "Add Person" action.
      *
      * This depends on ML being enabled and having named people.
@@ -51,15 +55,9 @@ export interface FileActionContext {
     /**
      * Whether to show the "Edit Location" action.
      *
-     * This depends on the selection containing owned files.
+     * This depends on every selected file being owned.
      */
     showEditLocation: boolean;
-    /**
-     * Whether to show the "Send link" action.
-     *
-     * This depends on the selection containing owned files.
-     */
-    showSendLink: boolean;
 }
 
 /**
@@ -75,19 +73,20 @@ export function getAvailableFileActions(
         barMode,
         isInSearchMode,
         collectionSummary,
+        hasOnlyOwnFiles,
         showAddPerson,
         showEditLocation,
-        showSendLink,
     } = context;
 
     const actions = getBaseActions(
         barMode,
         isInSearchMode,
         collectionSummary,
+        hasOnlyOwnFiles,
         showEditLocation,
     );
 
-    if (showSendLink && collectionSummary?.id !== PseudoCollectionID.trash) {
+    if (hasOnlyOwnFiles && collectionSummary?.id !== PseudoCollectionID.trash) {
         insertSendLinkBeforeDownload(actions);
     }
 
@@ -107,28 +106,36 @@ function getBaseActions(
     barMode: GalleryBarMode | undefined,
     isInSearchMode: boolean,
     collectionSummary: CollectionSummary | undefined,
+    hasOnlyOwnFiles: boolean,
     showEditLocation: boolean,
 ): FileContextAction[] {
     // Search mode actions
     if (isInSearchMode) {
-        const actions: FileContextAction[] = ["favorite", "fixTime"];
+        const actions: FileContextAction[] = ["favorite"];
+        if (hasOnlyOwnFiles) {
+            actions.push("fixTime");
+        }
         if (showEditLocation) {
             actions.push("editLocation");
         }
-        actions.push("download", "addToAlbum", "archive", "hide", "trash");
+        actions.push("download", "addToAlbum");
+        if (hasOnlyOwnFiles) {
+            actions.push("archive", "hide", "trash");
+        }
         return actions;
     }
 
     // People mode actions
     if (barMode === "people") {
-        return [
+        const actions: FileContextAction[] = [
             "favorite",
             "download",
             "addToAlbum",
-            "archive",
-            "hide",
-            "trash",
         ];
+        if (hasOnlyOwnFiles) {
+            actions.push("archive", "hide", "trash");
+        }
+        return actions;
     }
 
     // Trash actions
@@ -138,12 +145,27 @@ function getBaseActions(
 
     // Uncategorized actions
     if (collectionSummary?.attributes.has("uncategorized")) {
-        return ["download", "moveToAlbum", "trash"];
+        const actions: FileContextAction[] = ["download"];
+        if (hasOnlyOwnFiles) {
+            actions.push("moveToAlbum", "trash");
+        }
+        return actions;
     }
 
     // Shared incoming actions
     if (collectionSummary?.attributes.has("sharedIncoming")) {
-        return ["favorite", "download", "removeFromAlbum"];
+        const actions: FileContextAction[] = [
+            "favorite",
+            "download",
+            "addToAlbum",
+        ];
+        if (
+            hasOnlyOwnFiles ||
+            collectionSummary.attributes.has("sharedIncomingAdmin")
+        ) {
+            actions.push("removeFromAlbum");
+        }
+        return actions;
     }
 
     // Hidden albums mode actions
@@ -166,21 +188,32 @@ function getBaseActions(
         actions.push("favorite");
     }
 
-    actions.push("fixTime");
+    if (hasOnlyOwnFiles) {
+        actions.push("fixTime");
+    }
     if (showEditLocation) {
         actions.push("editLocation");
     }
     actions.push("download", "addToAlbum");
 
     if (collectionSummary?.id === PseudoCollectionID.all) {
-        actions.push("archive");
+        if (hasOnlyOwnFiles) {
+            actions.push("archive");
+        }
     } else if (isArchiveItems) {
-        actions.push("unarchive");
+        if (hasOnlyOwnFiles) {
+            actions.push("unarchive");
+        }
     } else if (!isUserFavorites) {
-        actions.push("moveToAlbum", "removeFromAlbum");
+        if (hasOnlyOwnFiles) {
+            actions.push("moveToAlbum");
+        }
+        actions.push("removeFromAlbum");
     }
 
-    actions.push("hide", "trash");
+    if (hasOnlyOwnFiles) {
+        actions.push("hide", "trash");
+    }
 
     return actions;
 }

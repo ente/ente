@@ -536,11 +536,20 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
     List<EnteFile> files, {
     required bool shouldRemoveOffline,
   }) async {
-    final success = shouldRemoveOffline
-        ? await OfflineFilesService.instance.unmarkFilesOffline(context, files)
-        : await OfflineFilesService.instance.markFilesOffline(context, files);
+    late final bool success;
+    if (shouldRemoveOffline) {
+      success = await OfflineFilesService.instance.unmarkFilesOffline(
+        context,
+        files,
+      );
+    } else {
+      success = await OfflineFilesService.instance.markFilesOffline(
+        context,
+        files,
+      );
+    }
 
-    if (success) {
+    if (success && mounted) {
       widget.selectedFiles.clearAll();
     }
   }
@@ -548,7 +557,7 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
   Future<void> _downloadFile(BuildContext context, EnteFile file) async {
     try {
       final success = await FileUtil.downloadFile(context, file);
-      if (success) {
+      if (success && mounted) {
         widget.selectedFiles.clearAll();
       }
     } catch (e, stackTrace) {
@@ -569,7 +578,7 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
 
     try {
       final success = await FileUtil.downloadFiles(context, files);
-      if (success) {
+      if (success && mounted) {
         widget.selectedFiles.clearAll();
       }
     } catch (e, stackTrace) {
@@ -596,7 +605,9 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
       return;
     }
     await FileActions.editFile(context, file);
-    widget.selectedFiles.clearAll();
+    if (mounted) {
+      widget.selectedFiles.clearAll();
+    }
   }
 
   Future<void> _showAddToDialog(
@@ -621,86 +632,98 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
       'to add files to.',
     );
 
+    if (!context.mounted) return;
     final result = await showAddToCollectionSheet(
       context,
       collections: dedupedCollections,
     );
 
-    if (result != null && context.mounted) {
-      _logger.info(
-        'Add-to dialog submitted with '
-        '${result.selectedCollections.length} selected collection(s).',
-      );
-      final dialog = createProgressDialog(
-        context,
-        context.l10n.pleaseWait,
-        isDismissible: false,
-      );
+    if (result == null) return;
 
-      await dialog.show();
+    _logger.info(
+      'Add-to dialog submitted with '
+      '${result.selectedCollections.length} selected collection(s).',
+    );
+    final dialog = context.mounted
+        ? createProgressDialog(
+            context,
+            context.l10n.pleaseWait,
+            isDismissible: false,
+          )
+        : null;
 
-      try {
-        final addFutures = <Future<void>>[];
+    await dialog?.show();
 
-        for (final file in ownedFiles) {
-          _logger.fine(
-            'Processing file ${file.uploadedFileID} for add-to operation',
+    try {
+      final addFutures = <Future<void>>[];
+
+      for (final file in ownedFiles) {
+        _logger.fine(
+          'Processing file ${file.uploadedFileID} for add-to operation',
+        );
+        List<Collection> currentCollections;
+        try {
+          currentCollections = await CollectionService.instance
+              .getCollectionsForFile(file);
+        } catch (_) {
+          _logger.warning(
+            'Failed to fetch existing collections for file ${file.uploadedFileID}',
           );
-          List<Collection> currentCollections;
-          try {
-            currentCollections = await CollectionService.instance
-                .getCollectionsForFile(file);
-          } catch (_) {
-            _logger.warning(
-              'Failed to fetch existing collections for file ${file.uploadedFileID}',
-            );
-            currentCollections = <Collection>[];
-          }
-
-          final currentCollectionIds = currentCollections
-              .map((collection) => collection.id)
-              .toSet();
-
-          final collectionsToAdd = result.selectedCollections.where(
-            (collection) => !currentCollectionIds.contains(collection.id),
-          );
-
-          for (final collection in collectionsToAdd) {
-            _logger.fine(
-              'Adding file ${file.uploadedFileID} to collection ${collection.id}.',
-            );
-            addFutures.add(
-              CollectionService.instance.addToCollection(
-                collection,
-                file,
-                runSync: false,
-              ),
-            );
-          }
+          currentCollections = <Collection>[];
         }
 
-        if (addFutures.isEmpty) {
-          await dialog.hide();
-          widget.selectedFiles.clearAll();
-          showToast(context, context.l10n.noChangesWereMade);
-          return;
-        }
+        final currentCollectionIds = currentCollections
+            .map((collection) => collection.id)
+            .toSet();
 
-        await Future.wait(addFutures);
-        await CollectionService.instance.sync();
-        _logger.info(
-          'Completed add-to operation for ${ownedFiles.length} file(s).',
+        final collectionsToAdd = result.selectedCollections.where(
+          (collection) => !currentCollectionIds.contains(collection.id),
         );
 
-        await dialog.hide();
+        for (final collection in collectionsToAdd) {
+          _logger.fine(
+            'Adding file ${file.uploadedFileID} to collection ${collection.id}.',
+          );
+          addFutures.add(
+            CollectionService.instance.addToCollection(
+              collection,
+              file,
+              runSync: false,
+            ),
+          );
+        }
+      }
 
+      if (addFutures.isEmpty) {
+        await dialog?.hide();
+        if (mounted) {
+          widget.selectedFiles.clearAll();
+        }
+        if (context.mounted) {
+          showToast(context, context.l10n.noChangesWereMade);
+        }
+        return;
+      }
+
+      await Future.wait(addFutures);
+      await CollectionService.instance.sync();
+      _logger.info(
+        'Completed add-to operation for ${ownedFiles.length} file(s).',
+      );
+
+      await dialog?.hide();
+
+      if (mounted) {
         widget.selectedFiles.clearAll();
-
+      }
+      if (context.mounted) {
         showToast(context, context.l10n.fileUpdatedSuccessfully);
-      } catch (e) {
-        await dialog.hide();
-        _logger.severe('Failed add-to operation: $e');
+      }
+    } catch (e) {
+      await dialog?.hide();
+      _logger.severe('Failed add-to operation: $e');
 
+      if (context.mounted) {
         await showLockerErrorSheet(context, e);
       }
     }
@@ -716,7 +739,9 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
       context,
       file,
       onSuccess: () {
-        widget.selectedFiles.clearAll();
+        if (mounted) {
+          widget.selectedFiles.clearAll();
+        }
         Bus.instance.fire(CollectionsUpdatedEvent('file_deleted'));
       },
     );
@@ -743,14 +768,16 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
       return;
     }
 
-    final dialog = createProgressDialog(
-      context,
-      context.l10n.deletingFile,
-      isDismissible: false,
-    );
+    final dialog = context.mounted
+        ? createProgressDialog(
+            context,
+            context.l10n.deletingFile,
+            isDismissible: false,
+          )
+        : null;
 
     try {
-      await dialog.show();
+      await dialog?.show();
 
       for (final file in ownedFiles) {
         final collections = await CollectionService.instance
@@ -761,13 +788,16 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
         }
       }
 
-      await dialog.hide();
+      await dialog?.hide();
 
-      widget.selectedFiles.clearAll();
-
-      showToast(context, context.l10n.fileDeletedSuccessfully);
+      if (mounted) {
+        widget.selectedFiles.clearAll();
+      }
+      if (context.mounted) {
+        showToast(context, context.l10n.fileDeletedSuccessfully);
+      }
     } catch (e, stackTrace) {
-      await dialog.hide();
+      await dialog?.hide();
 
       _logger.severe(
         'Failed to delete files via selection bar: $e',
@@ -791,7 +821,9 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
       context,
       file,
       onSuccess: () {
-        widget.selectedFiles.clearAll();
+        if (mounted) {
+          widget.selectedFiles.clearAll();
+        }
         Bus.instance.fire(CollectionsUpdatedEvent('file_important_toggled'));
       },
     );
@@ -810,7 +842,9 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
       context,
       ownedFiles,
       onSuccess: () {
-        widget.selectedFiles.clearAll();
+        if (mounted) {
+          widget.selectedFiles.clearAll();
+        }
         Bus.instance.fire(CollectionsUpdatedEvent('files_marked_important'));
       },
     );
@@ -824,6 +858,7 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
     );
     final dedupedCollections = uniqueCollectionsById(allCollections);
 
+    if (!context.mounted) return;
     final result = await showAddToCollectionSheet(
       context,
       collections: dedupedCollections,
@@ -833,24 +868,26 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
       return;
     }
 
-    if (!context.mounted) return;
-
     final targetCollection = result.selectedCollections.first;
 
-    final dialog = createProgressDialog(
-      context,
-      context.l10n.restoringFiles,
-      isDismissible: false,
-    );
+    final dialog = context.mounted
+        ? createProgressDialog(
+            context,
+            context.l10n.restoringFiles,
+            isDismissible: false,
+          )
+        : null;
 
-    await dialog.show();
+    await dialog?.show();
 
     try {
       await TrashService.instance.restore(files, targetCollection);
 
-      await dialog.hide();
+      await dialog?.hide();
 
-      widget.selectedFiles.clearAll();
+      if (mounted) {
+        widget.selectedFiles.clearAll();
+      }
 
       if (context.mounted) {
         showToast(
@@ -859,7 +896,7 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
         );
       }
     } catch (e, stackTrace) {
-      await dialog.hide();
+      await dialog?.hide();
       _logger.severe('Failed to restore files: $e', e, stackTrace);
 
       if (context.mounted) {
@@ -884,28 +921,32 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar> {
       return;
     }
 
-    final dialog = createProgressDialog(
-      context,
-      context.l10n.deletingFiles,
-      isDismissible: false,
-    );
+    final dialog = context.mounted
+        ? createProgressDialog(
+            context,
+            context.l10n.deletingFiles,
+            isDismissible: false,
+          )
+        : null;
 
-    await dialog.show();
+    await dialog?.show();
 
     try {
       await TrashService.instance.deleteFromTrash(files);
 
       Bus.instance.fire(CollectionsUpdatedEvent('files_deleted_from_trash'));
 
-      await dialog.hide();
+      await dialog?.hide();
 
-      widget.selectedFiles.clearAll();
+      if (mounted) {
+        widget.selectedFiles.clearAll();
+      }
 
       if (context.mounted) {
         showToast(context, context.l10n.filesDeletedPermanently(files.length));
       }
     } catch (e, stackTrace) {
-      await dialog.hide();
+      await dialog?.hide();
       _logger.severe('Failed to delete files from trash: $e', e, stackTrace);
 
       if (context.mounted) {

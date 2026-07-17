@@ -12,13 +12,7 @@ async fn main() {
 
     let api = Api::new(
         Http::new().expect("failed to build HTTP client"),
-        ApiConfig {
-            origin,
-            client_package: "io.ente.example".into(),
-            client_version: None,
-            user_agent: None,
-            auth: None,
-        },
+        ApiConfig::new(origin),
     );
 
     match api.ping().await {

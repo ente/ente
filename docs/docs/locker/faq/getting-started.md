@@ -163,6 +163,14 @@ If you cancel your Ente Photos subscription:
 - All existing items remain accessible and are not deleted
 - You can delete items to get back under the free limits
 
+### What happens if my free account becomes inactive? {#inactive-free-account}
+
+If a free account has no active paid subscription and remains inactive for 12 consecutive months, we will notify you at your registered email address multiple times before deleting the account.
+
+If you have configured Legacy with trusted contacts, we will notify those trusted contacts as well, so they have a chance to recover the account if needed.
+
+To keep the account and its data, simply sign in before the date mentioned in the emails.
+
 ### What happens if Ente shuts down? {#locker-ente-shutdown}
 
 Ente is committed to data portability and user ownership. If Ente were to shut down, we would provide advance notice and tools to export your data.

@@ -92,7 +92,6 @@ fun HomeView(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: HomeRoute.Chat
     val isChatRoute = currentRoute == HomeRoute.Chat
-    var showAttachmentDownloads by remember { mutableStateOf(false) }
     var deleteSessionTarget by remember { mutableStateOf<io.ente.ensu.chat.ChatSession?>(null) }
     var showLogShareDialog by remember { mutableStateOf(false) }
     var showSignInComingSoon by remember { mutableStateOf(false) }
@@ -257,7 +256,6 @@ fun HomeView(
                 store.startNewSessionDraft()
                 store.persistSelectedSession(scope, null)
             },
-            onAttachmentDownloads = { showAttachmentDownloads = true },
             onShowLogShareDialog = { showLogShareDialog = true },
             onAttachmentSelected = handleAttachmentSelected,
             onOpenAttachment = { attachment ->
@@ -283,14 +281,6 @@ fun HomeView(
             title = "Coming soon",
             message = "Sign in and cloud backup will be available in a future update.",
             onDismiss = { showSignInComingSoon = false }
-        )
-    }
-
-    if (showAttachmentDownloads) {
-        AttachmentDownloadsDialog(
-            downloads = appState.chat.attachmentDownloads,
-            onCancel = { store.cancelAttachmentDownload(it) },
-            onDismiss = { showAttachmentDownloads = false }
         )
     }
 

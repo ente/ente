@@ -59,7 +59,7 @@ impl From<core_crypto::Error> for CryptoError {
 
         Self {
             code,
-            message: e.to_string(),
+            message: ente_core::error::chain(&e),
         }
     }
 }

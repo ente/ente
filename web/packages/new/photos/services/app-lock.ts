@@ -328,24 +328,23 @@ const isAppLockSupported = async () => {
     }
 };
 
-const readPersistedAppLockConfig =
-    async (): Promise<PersistedAppLockConfig> => {
-        const electron = appLockElectron();
-        if (!electron) {
-            throw new Error("App lock is not supported");
-        }
+const readPersistedAppLockConfig = async (): Promise<
+    PersistedAppLockConfig | undefined
+> => {
+    const electron = appLockElectron();
+    if (!electron) {
+        throw new Error("App lock is not supported");
+    }
 
-        const persistedConfig = await electron.appLockConfigFromSafeStorage();
-        if (!persistedConfig) {
-            return defaultPersistedAppLockConfig();
-        }
+    const persistedConfig = await electron.appLockConfigFromSafeStorage();
+    if (!persistedConfig) return undefined;
 
-        return {
-            enabled: persistedConfig.enabled,
-            lockType: persistedConfig.lockType,
-            autoLockTimeMs: clampNonNegativeInt(persistedConfig.autoLockTimeMs),
-        };
+    return {
+        enabled: persistedConfig.enabled,
+        lockType: persistedConfig.lockType,
+        autoLockTimeMs: clampNonNegativeInt(persistedConfig.autoLockTimeMs),
     };
+};
 
 const savePersistedAppLockConfig = async (config: PersistedAppLockConfig) => {
     const electron = appLockElectron();
@@ -454,19 +453,33 @@ const withUnlockAttemptLock = async <T>(fn: () => Promise<T>) => {
  * bypass the cooldown.
  */
 export const initAppLock = async () => {
-    if (!(await isAppLockSupported())) {
+    if (!appLockElectron()) {
         setSnapshot(createDefaultState());
         stopBruteForceStateHydration();
         return;
     }
 
-    const config = await readPersistedAppLockConfig();
-    const hasSession = haveMasterKeyInSession();
+    const persistedConfig = await readPersistedAppLockConfig();
+    const config = persistedConfig ?? defaultPersistedAppLockConfig();
 
-    // On desktop, lock pessimistically while safe-storage hydration is in flight.
-    const isLocked = config.enabled && (hasSession || !!globalThis.electron);
+    if (persistedConfig && !persistedConfig.enabled) {
+        try {
+            await clearPersistedAppLockConfig();
+        } catch (e) {
+            log.warn("Failed to remove disabled app lock config", e);
+        }
+    }
 
-    setSnapshotFromPersistedConfig(config, isLocked, true);
+    if (!(await isAppLockSupported())) {
+        if (config.enabled) {
+            throw new Error("Safe storage unavailable for enabled app lock");
+        }
+        setSnapshot(createDefaultState());
+        stopBruteForceStateHydration();
+        return;
+    }
+
+    setSnapshotFromPersistedConfig(config, config.enabled, true);
 };
 
 /**
@@ -653,12 +666,19 @@ export const cancelReauthentication = () => {
  */
 export const refreshAppLockStateFromSession = async () => {
     if (!(await isAppLockSupported())) {
+        if (appLockSnapshot().enabled) {
+            throw new Error("Safe storage unavailable for enabled app lock");
+        }
         setSnapshot(createDefaultState());
         stopBruteForceStateHydration();
         return;
     }
 
-    const config = await readPersistedAppLockConfig();
+    const persistedConfig = await readPersistedAppLockConfig();
+    if (!persistedConfig && appLockSnapshot().enabled) {
+        throw new Error("Persisted app lock config is unavailable");
+    }
+    const config = persistedConfig ?? defaultPersistedAppLockConfig();
     const shouldSuppressLockForTrustedReload =
         consumeAppLockRefreshSuppressionFromSession();
     const isLocked =
@@ -1063,18 +1083,8 @@ export const disableAppLock = async () => {
         throw new Error("App lock is not supported");
     }
 
-    await Promise.all([
-        clearPassphraseMaterial(),
-        removeKV(kvKeyInvalidAttempts),
-        removeKV(kvKeyCooldownExpiresAt),
-    ]);
-
     const snapshot = appLockState().snapshot;
-    await savePersistedAppLockConfig({
-        enabled: false,
-        lockType: "none",
-        autoLockTimeMs: snapshot.autoLockTimeMs,
-    });
+    await clearPersistedAppLockConfig();
     setSnapshot({
         ...snapshot,
         enabled: false,
@@ -1085,4 +1095,10 @@ export const disableAppLock = async () => {
         cooldownExpiresAt: 0,
     });
     stopBruteForceStateHydration();
+
+    await Promise.all([
+        clearPassphraseMaterial(),
+        removeKV(kvKeyInvalidAttempts),
+        removeKV(kvKeyCooldownExpiresAt),
+    ]);
 };

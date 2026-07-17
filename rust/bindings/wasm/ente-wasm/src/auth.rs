@@ -45,7 +45,7 @@ impl From<core_auth::AuthError> for AuthError {
 
         Self {
             code,
-            message: e.to_string(),
+            message: ente_core::error::chain(&e),
         }
     }
 }

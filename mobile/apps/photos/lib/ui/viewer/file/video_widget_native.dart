@@ -18,7 +18,9 @@ import "package:photos/generated/l10n.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/preview/playlist_data.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/module/download/task.dart";
+import "package:photos/module/metadata/video.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/files_service.dart";
 import "package:photos/services/wake_lock_service.dart";
@@ -34,8 +36,6 @@ import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/file/video_stream_change.dart";
 import "package:photos/ui/viewer/file/zoomable_video_viewer.dart";
 import "package:photos/utils/dialog_util.dart";
-import "package:photos/utils/exif_util.dart";
-import "package:photos/utils/file_util.dart";
 import "package:video_player/video_player.dart" as vp;
 import "package:visibility_detector/visibility_detector.dart";
 
@@ -154,7 +154,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
           });
     }
 
-    EnteWakeLockService.instance.updateWakeLock(
+    wakeLockService.updateWakeLock(
       enable: true,
       wakeLockFor: WakeLockFor.videoPlayback,
     );
@@ -260,7 +260,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     _guestViewEventSubscription.cancel();
     pauseVideoSubscription.cancel();
     resumeVideoSubscription.cancel();
-    removeCallBack(widget.file);
+    removeDownloadCallback(widget.file);
     _progressNotifier.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _isPlaybackReady.dispose();
@@ -270,7 +270,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     _debouncer.cancelDebounceTimer();
     _captionUpdatedSubscription.cancel();
     _transformationController.dispose();
-    EnteWakeLockService.instance.updateWakeLock(
+    wakeLockService.updateWakeLock(
       enable: false,
       wakeLockFor: WakeLockFor.videoPlayback,
     );
@@ -278,6 +278,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   }
 
   void _onInteractionLockChanged(bool shouldLock) {
+    if (!mounted) return;
     if (_isZooming != shouldLock) {
       setState(() {
         _isZooming = shouldLock;
@@ -637,6 +638,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
           }
         })
         .onError((error, stackTrace) {
+          if (!mounted) return;
           showErrorDialog(
             context,
             AppLocalizations.of(context).error,
@@ -661,12 +663,12 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   void _handleWakeLockOnPlaybackChanges() {
     final playbackStatus = _controller?.playbackStatus;
     if (playbackStatus == PlaybackStatus.playing) {
-      EnteWakeLockService.instance.updateWakeLock(
+      wakeLockService.updateWakeLock(
         enable: true,
         wakeLockFor: WakeLockFor.videoPlayback,
       );
     } else {
-      EnteWakeLockService.instance.updateWakeLock(
+      wakeLockService.updateWakeLock(
         enable: false,
         wakeLockFor: WakeLockFor.videoPlayback,
       );
@@ -788,7 +790,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       await _setAspectAndDurationFromIosPlayerProbe();
       return;
     }
-    final videoProps = await getVideoPropsAsync(File(_filePath!));
+    final videoProps = await getVideoProps(File(_filePath!));
     if (videoProps != null) {
       duration = videoProps.propData?["duration"];
 

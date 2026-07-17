@@ -93,6 +93,7 @@ internal fun MessageList(
     streamingParentId: String?,
     isGenerating: Boolean,
     isModelDownloaded: Boolean,
+    isModelStateKnown: Boolean,
     isChatUnsupported: Boolean,
     isDownloading: Boolean,
     downloadPercent: Int?,
@@ -107,6 +108,9 @@ internal fun MessageList(
     onStartDownload: (Boolean) -> Unit
 ) {
     if (messages.isEmpty() && !isGenerating) {
+        if (!isModelStateKnown) {
+            return
+        }
         if (!isModelDownloaded && !isChatUnsupported) {
             DownloadOnboarding(
                 modifier = modifier,
@@ -528,10 +532,16 @@ private fun UserMessageBubble(
                     } else {
                         io.ente.ensu.components.AttachmentChip(
                             name = attachment.name,
-                            size = attachment.sizeBytes.formattedFileSize(),
+                            size = if (attachment.localPath == null) {
+                                "Unavailable on this device"
+                            } else {
+                                attachment.sizeBytes.formattedFileSize()
+                            },
                             iconRes = HugeIcons.Attachment01Icon,
                             isUploading = attachment.isUploading,
-                            onClick = { onOpenAttachment(attachment) }
+                            onClick = if (attachment.localPath == null) null else {
+                                { onOpenAttachment(attachment) }
+                            }
                         )
                     }
                 }

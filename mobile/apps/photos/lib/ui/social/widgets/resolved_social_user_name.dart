@@ -5,7 +5,6 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/contacts_changed_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/models/api/collection/user.dart";
-import "package:photos/service_locator.dart" show flagService;
 import "package:photos/services/contacts/contact_identity_resolver.dart";
 
 typedef ResolvedSocialUserNameBuilder =
@@ -35,9 +34,7 @@ class _ResolvedSocialUserNameState extends State<ResolvedSocialUserName> {
     _contactsChangedSubscription = Bus.instance
         .on<ContactsChangedEvent>()
         .listen((event) {
-          if (mounted &&
-              event.matchesContactUserId(widget.user.id) &&
-              flagService.enableContact) {
+          if (mounted && event.matchesContactUserId(widget.user.id)) {
             setState(() {});
           }
         });

@@ -1,169 +1,253 @@
-use crate::api::client::ApiClient;
+use crate::api::client::{AppClient, download_from_proxy};
 use crate::api::models::{
-    Collection, File, GetCollectionsResponse, GetDiffResponse, GetFileResponse, GetFilesResponse,
-    GetThumbnailUrlResponse, UserDetails,
+    Collection, File, GetCollectionsResponse, GetDiffResponse, GetFileResponse, GetFileUrlResponse,
+    GetFilesResponse, GetThumbnailUrlResponse, UserDetails,
 };
 use crate::models::error::Result;
-use ente_core::urls::file_download_url;
+use ente_core::http;
 
-/// API methods for interacting with Ente services
 pub struct ApiMethods<'a> {
-    api: &'a ApiClient,
+    client: &'a AppClient,
 }
 
 impl<'a> ApiMethods<'a> {
-    pub fn new(api: &'a ApiClient) -> Self {
-        Self { api }
+    pub fn new(client: &'a AppClient) -> Self {
+        Self { client }
     }
 
-    // ========== User Methods ==========
-
-    /// Get user details including subscription and storage info
-    pub async fn get_user_details(&self, account_id: &str) -> Result<UserDetails> {
-        self.api.get("/users/details", Some(account_id)).await
+    pub async fn get_user_details(&self) -> Result<UserDetails> {
+        let api = self.client.api();
+        Ok(http::retry(|| async {
+            api.get("/users/details")
+                .send()
+                .await?
+                .error_for_code()
+                .await?
+                .json()
+                .await
+        })
+        .await?)
     }
 
-    // ========== Collection Methods ==========
-
-    /// Get all collections (albums) for the authenticated user
-    ///
-    /// # Arguments
-    /// * `account_id` - The account identifier for authentication
-    /// * `since_time` - Unix timestamp in microseconds to get collections modified after this time (0 for all)
-    pub async fn get_collections(
-        &self,
-        account_id: &str,
-        since_time: i64,
-    ) -> Result<Vec<Collection>> {
-        let url = format!("/collections/v2?sinceTime={since_time}");
-        let response: GetCollectionsResponse = self.api.get(&url, Some(account_id)).await?;
+    pub async fn get_collections(&self, since_time: i64) -> Result<Vec<Collection>> {
+        let api = self.client.api();
+        let response: GetCollectionsResponse = http::retry(|| async {
+            api.get("/collections/v2")
+                .query(&[("sinceTime", since_time.to_string())])
+                .send()
+                .await?
+                .error_for_code()
+                .await?
+                .json()
+                .await
+        })
+        .await?;
         Ok(response.collections)
     }
 
-    /// Get a specific collection by ID
-    pub async fn get_collection(&self, account_id: &str, collection_id: i64) -> Result<Collection> {
-        let url = format!("/collections/{collection_id}");
-        self.api.get(&url, Some(account_id)).await
+    pub async fn get_collection(&self, collection_id: i64) -> Result<Collection> {
+        let api = self.client.api();
+        Ok(http::retry(|| async {
+            api.get(&format!("/collections/{collection_id}"))
+                .send()
+                .await?
+                .error_for_code()
+                .await?
+                .json()
+                .await
+        })
+        .await?)
     }
 
-    // ========== File Methods ==========
-
-    /// Get files from a specific collection with pagination
-    ///
-    /// # Arguments
-    /// * `account_id` - The account identifier for authentication
-    /// * `collection_id` - The collection ID to fetch files from
-    /// * `since_time` - Unix timestamp in microseconds to get files modified after this time
-    ///
-    /// # Returns
-    /// A tuple of (files, has_more) where has_more indicates if there are more files to fetch
     pub async fn get_collection_files(
         &self,
-        account_id: &str,
         collection_id: i64,
         since_time: i64,
     ) -> Result<(Vec<File>, bool)> {
-        let url =
-            format!("/collections/v2/diff?collectionID={collection_id}&sinceTime={since_time}");
-        let response: GetFilesResponse = self.api.get(&url, Some(account_id)).await?;
+        let api = self.client.api();
+        let response: GetFilesResponse = http::retry(|| async {
+            api.get("/collections/v2/diff")
+                .query(&[
+                    ("collectionID", collection_id.to_string()),
+                    ("sinceTime", since_time.to_string()),
+                ])
+                .send()
+                .await?
+                .error_for_code()
+                .await?
+                .json()
+                .await
+        })
+        .await?;
         Ok((response.diff, response.has_more))
     }
 
-    /// Get a specific file by ID
-    pub async fn get_file(
-        &self,
-        account_id: &str,
-        collection_id: i64,
-        file_id: i64,
-    ) -> Result<File> {
-        let url = format!("/collections/file?collectionID={collection_id}&fileID={file_id}");
-        let response: GetFileResponse = self.api.get(&url, Some(account_id)).await?;
+    pub async fn get_file(&self, collection_id: i64, file_id: i64) -> Result<File> {
+        let api = self.client.api();
+        let response: GetFileResponse = http::retry(|| async {
+            api.get("/collections/file")
+                .query(&[
+                    ("collectionID", collection_id.to_string()),
+                    ("fileID", file_id.to_string()),
+                ])
+                .send()
+                .await?
+                .error_for_code()
+                .await?
+                .json()
+                .await
+        })
+        .await?;
         Ok(response.file)
     }
 
-    /// Get all files across all collections (for incremental sync)
-    ///
-    /// # Arguments
-    /// * `account_id` - The account identifier for authentication
-    /// * `since_time` - Unix timestamp in microseconds to get files modified after this time
-    /// * `limit` - Maximum number of files to return (typically 500)
-    ///
-    /// # Returns
-    /// A tuple of (files, has_more) where has_more indicates if there are more files to fetch
-    pub async fn get_diff(
-        &self,
-        account_id: &str,
-        since_time: i64,
-        limit: i32,
-    ) -> Result<(Vec<File>, bool)> {
-        let url = format!("/diff?sinceTime={since_time}&limit={limit}");
-        let response: GetDiffResponse = self.api.get(&url, Some(account_id)).await?;
+    pub async fn get_diff(&self, since_time: i64, limit: i32) -> Result<(Vec<File>, bool)> {
+        let api = self.client.api();
+        let response: GetDiffResponse = http::retry(|| async {
+            api.get("/diff")
+                .query(&[
+                    ("sinceTime", since_time.to_string()),
+                    ("limit", limit.to_string()),
+                ])
+                .send()
+                .await?
+                .error_for_code()
+                .await?
+                .json()
+                .await
+        })
+        .await?;
         Ok((response.diff, response.has_more))
     }
 
-    /// Get download URL for a file
-    pub async fn get_file_url(&self, _account_id: &str, file_id: i64) -> Result<String> {
-        Ok(file_download_url(&self.api.base_url, file_id))
-    }
-
-    /// Get thumbnail URL for a file
-    pub async fn get_thumbnail_url(&self, account_id: &str, file_id: i64) -> Result<String> {
-        let url = format!("/files/preview/{file_id}");
-        let response: GetThumbnailUrlResponse = self.api.get(&url, Some(account_id)).await?;
+    async fn get_signed_file_url(&self, file_id: i64) -> Result<String> {
+        let api = self.client.api();
+        let response: GetFileUrlResponse = http::retry(|| async {
+            api.get(&format!("/files/download/v2/{file_id}"))
+                .send()
+                .await?
+                .error_for_code()
+                .await?
+                .json()
+                .await
+        })
+        .await?;
         Ok(response.url)
     }
 
-    /// Download file content
-    pub async fn download_file(&self, account_id: &str, file_id: i64) -> Result<Vec<u8>> {
-        let url = self.get_file_url(account_id, file_id).await?;
-        self.api.download_file(&url, Some(account_id)).await
+    async fn get_signed_thumbnail_url(&self, file_id: i64) -> Result<String> {
+        let api = self.client.api();
+        let response: GetThumbnailUrlResponse = http::retry(|| async {
+            api.get(&format!("/files/preview/v2/{file_id}"))
+                .send()
+                .await?
+                .error_for_code()
+                .await?
+                .json()
+                .await
+        })
+        .await?;
+        Ok(response.url)
     }
 
-    /// Download thumbnail content
-    pub async fn download_thumbnail(&self, account_id: &str, file_id: i64) -> Result<Vec<u8>> {
-        let url = self.get_thumbnail_url(account_id, file_id).await?;
-        self.api.download_file(&url, Some(account_id)).await
+    pub async fn download_file(&self, file_id: i64) -> Result<Vec<u8>> {
+        match self.client.download_proxies() {
+            Some(proxies) => download_from_proxy(&proxies.files, file_id).await,
+            None => {
+                let url = self.get_signed_file_url(file_id).await?;
+                self.client.download_url(&url).await
+            }
+        }
     }
 
-    // ========== Trash Methods ==========
+    pub async fn download_thumbnail(&self, file_id: i64) -> Result<Vec<u8>> {
+        match self.client.download_proxies() {
+            Some(proxies) => download_from_proxy(&proxies.thumbnails, file_id).await,
+            None => {
+                let url = self.get_signed_thumbnail_url(file_id).await?;
+                self.client.download_url(&url).await
+            }
+        }
+    }
 
-    /// Get deleted files
-    pub async fn get_trash(&self, account_id: &str, since_time: i64) -> Result<(Vec<File>, bool)> {
-        let url = format!("/trash/v2?sinceTime={since_time}");
-        let response: GetDiffResponse = self.api.get(&url, Some(account_id)).await?;
+    pub async fn get_trash(&self, since_time: i64) -> Result<(Vec<File>, bool)> {
+        let api = self.client.api();
+        let response: GetDiffResponse = http::retry(|| async {
+            api.get("/trash/v2")
+                .query(&[("sinceTime", since_time.to_string())])
+                .send()
+                .await?
+                .error_for_code()
+                .await?
+                .json()
+                .await
+        })
+        .await?;
         Ok((response.diff, response.has_more))
     }
 
-    /// Permanently delete files from trash
-    pub async fn delete_from_trash(&self, account_id: &str, file_ids: &[i64]) -> Result<()> {
-        let body = serde_json::json!({
-            "fileIDs": file_ids
-        });
-        let _: serde_json::Value = self
-            .api
-            .post("/trash/delete", &body, Some(account_id))
-            .await?;
+    pub async fn delete_from_trash(&self, file_ids: &[i64]) -> Result<()> {
+        let api = self.client.api();
+        let body = serde_json::json!({ "fileIDs": file_ids });
+        http::retry(|| async {
+            api.post("/trash/delete")
+                .json(&body)
+                .send()
+                .await?
+                .error_for_code()
+                .await?;
+            Ok(())
+        })
+        .await?;
         Ok(())
     }
 
-    /// Empty all trash
-    pub async fn empty_trash(&self, account_id: &str) -> Result<()> {
-        self.api.delete("/trash/empty", Some(account_id)).await
+    pub async fn empty_trash(&self) -> Result<()> {
+        let api = self.client.api();
+        http::retry(|| async {
+            api.delete("/trash/empty")
+                .send()
+                .await?
+                .error_for_code()
+                .await?;
+            Ok(())
+        })
+        .await?;
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mockito::{Matcher, Server};
 
     #[tokio::test]
-    async fn test_file_url_generation() {
-        let api = ApiClient::new(None).unwrap();
-        let methods = ApiMethods::new(&api);
+    async fn test_self_hosted_download_uses_signed_url() {
+        let mut server = Server::new_async().await;
+        let signed_url = format!("{}/object", server.url());
+        let url_mock = server
+            .mock("GET", "/files/download/v2/12345")
+            .match_header("x-auth-token", "token")
+            .match_header("x-client-package", "io.ente.locker")
+            .with_body(format!(r#"{{"url":"{signed_url}"}}"#))
+            .create_async()
+            .await;
+        let download_mock = server
+            .mock("GET", "/object")
+            .match_header("x-auth-token", Matcher::Missing)
+            .match_header("x-client-package", Matcher::Missing)
+            .with_body("file")
+            .create_async()
+            .await;
+        let client =
+            AppClient::new(Some(server.url()), crate::models::account::App::Locker).unwrap();
+        client.set_token("token");
 
-        // For production endpoint, should use CDN
-        let url = methods.get_file_url("test", 12345).await;
-        assert!(url.is_ok());
-        assert!(url.unwrap().contains("files.ente.com"));
+        let bytes = ApiMethods::new(&client).download_file(12345).await.unwrap();
+
+        url_mock.assert_async().await;
+        download_mock.assert_async().await;
+        assert_eq!(bytes, b"file");
     }
 }

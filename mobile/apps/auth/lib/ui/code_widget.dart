@@ -24,6 +24,7 @@ import 'package:ente_auth/ui/utils/icon_utils.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_auth/utils/toast_util.dart';
 import 'package:ente_auth/utils/totp_util.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_events/event_bus.dart';
 import 'package:ente_lock_screen/local_authentication_service.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
@@ -150,14 +151,6 @@ class _CodeWidgetState extends State<CodeWidget> {
                 size: widget.isCompactMode
                     ? const Size(24, 24)
                     : const Size(39, 39),
-              ),
-            ),
-          if (widget.code.isTrashed && kDebugMode)
-            Align(
-              alignment: Alignment.topLeft,
-              child: CustomPaint(
-                painter: PinBgPainter(color: colorScheme.warning700),
-                size: const Size(39, 39),
               ),
             ),
           Column(
@@ -368,15 +361,29 @@ class _CodeWidgetState extends State<CodeWidget> {
         },
       ),
     );
-    if (!isIOS) return content;
-    final double scale = capCodeWidgetTextScaleForIOS(
-      MediaQuery.textScalerOf(context).scale(1.0),
-    );
-    return MediaQuery(
-      data: MediaQuery.of(
-        context,
-      ).copyWith(textScaler: TextScaler.linear(scale)),
-      child: content,
+    final Widget scaledContent;
+    if (isIOS) {
+      final double scale = capCodeWidgetTextScaleForIOS(
+        MediaQuery.textScalerOf(context).scale(1.0),
+      );
+      scaledContent = MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(scale)),
+        child: content,
+      );
+    } else {
+      scaledContent = content;
+    }
+
+    return Semantics(
+      container: true,
+      identifier: 'auth_code_item',
+      label: [
+        widget.code.issuer,
+        widget.code.account,
+      ].where((value) => value.isNotEmpty).join(', '),
+      child: scaledContent,
     );
   }
 
@@ -894,6 +901,7 @@ class _CodeWidgetState extends State<CodeWidget> {
         .shouldMinimizeOnCopy();
 
     await FlutterClipboard.copy(content);
+    if (!mounted) return;
     showToast(context, confirmationMessage);
     if (Platform.isAndroid && shouldMinimizeOnCopy) {
       // ignore: unawaited_futures
@@ -917,6 +925,7 @@ class _CodeWidgetState extends State<CodeWidget> {
     if (!isAuthSuccessful) {
       return;
     }
+    if (!mounted) return;
     final Code? code = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (BuildContext context) {
@@ -944,9 +953,11 @@ class _CodeWidgetState extends State<CodeWidget> {
         .replaceAll('algorithm=sha256', 'algorithm=SHA256')
         .replaceAll('algorithm=sha512', 'algorithm=SHA512');
 
-    await showDialog(
+    if (!mounted) return;
+    await showBottomSheetComponent<void>(
       context: context,
-      builder: (BuildContext dialogContext) {
+      useRootNavigator: true,
+      builder: (_) {
         return AuthQrDialog(
           data: qrData,
           title: widget.code.issuer,
@@ -972,6 +983,7 @@ class _CodeWidgetState extends State<CodeWidget> {
     if (!isAuthSuccessful) {
       return;
     }
+    if (!mounted) return;
     showShareDialog(context, widget.code);
   }
 
@@ -984,17 +996,17 @@ class _CodeWidgetState extends State<CodeWidget> {
     final Code code = widget.code.copyWith(
       display: display.copyWith(pinned: !currentlyPinned),
     );
+    if (!mounted) return;
     unawaited(
-      CodeStore.instance
-          .addCode(code)
-          .then(
-            (value) => showToast(
-              context,
-              !currentlyPinned
-                  ? context.l10n.pinnedCodeMessage(widget.code.issuer)
-                  : context.l10n.unpinnedCodeMessage(widget.code.issuer),
-            ),
-          ),
+      CodeStore.instance.addCode(code).then((value) {
+        if (!mounted) return;
+        showToast(
+          context,
+          !currentlyPinned
+              ? context.l10n.pinnedCodeMessage(widget.code.issuer)
+              : context.l10n.unpinnedCodeMessage(widget.code.issuer),
+        );
+      }),
     );
   }
 
@@ -1014,8 +1026,10 @@ class _CodeWidgetState extends State<CodeWidget> {
     if (!isAuthSuccessful) {
       return;
     }
+    if (!mounted) return;
     FocusScope.of(context).requestFocus();
     final l10n = context.l10n;
+    if (!mounted) return;
     await showChoiceActionSheet(
       context,
       title: l10n.deleteCodeTitle,
@@ -1028,6 +1042,7 @@ class _CodeWidgetState extends State<CodeWidget> {
           LocalBackupService.instance.triggerDailyBackupIfNeeded().ignore();
         } catch (e, s) {
           logger.severe('Failed to delete code', e, s);
+          if (!mounted) return;
           showGenericErrorDialog(context: context, error: e).ignore();
         }
       },
@@ -1050,11 +1065,13 @@ class _CodeWidgetState extends State<CodeWidget> {
     if (!isAuthSuccessful) {
       return;
     }
+    if (!mounted) return;
     FocusScope.of(context).requestFocus();
     final l10n = context.l10n;
     final String issuerAccount = widget.code.account.isNotEmpty
         ? '${widget.code.issuer} (${widget.code.account})'
         : widget.code.issuer;
+    if (!mounted) return;
     await showChoiceActionSheet(
       context,
       title: l10n.trashCode,
@@ -1070,6 +1087,7 @@ class _CodeWidgetState extends State<CodeWidget> {
           await CodeStore.instance.addCode(code);
         } catch (e) {
           logger.severe('Failed to trash code: ${e.toString()}');
+          if (!mounted) return;
           showGenericErrorDialog(context: context, error: e).ignore();
         }
       },

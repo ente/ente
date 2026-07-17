@@ -6,9 +6,7 @@ Ente's secure document storage app. An end-to-end encrypted app for storing impo
 
 1. [Install Flutter v3.38.10](https://flutter.dev/docs/get-started/install).
 
-2. Install dependencies using one of these methods:
-   - **Using Flutter:** From any folder inside `mobile/`, run `flutter pub get --enforce-lockfile`.
-   - **Using Melos:** Install Melos with `dart pub global activate melos`, then from any folder inside `mobile/`, run `melos bootstrap`. This will install dependencies.
+2. From any folder inside `mobile/`, install the workspace dependencies with `flutter pub get --enforce-lockfile`. Then, from `rust/`, generate the Rust bindings with `cargo codegen frb`.
 
 3. Run the app:
    - Android: `flutter run --flavor independent`

@@ -170,7 +170,6 @@ class _FrbContactsRustContext implements ContactsRustContext {
         data: rust.ContactData(
           contactUserId: data.contactUserId,
           name: data.name,
-          birthDate: data.birthDate,
         ),
       ),
     );
@@ -198,7 +197,6 @@ class _FrbContactsRustContext implements ContactsRustContext {
         data: rust.ContactData(
           contactUserId: data.contactUserId,
           name: data.name,
-          birthDate: data.birthDate,
         ),
       ),
     );
@@ -282,11 +280,7 @@ rust.AttachmentType _toRustAttachmentType(
 ContactRecord _fromRustRecord(rust.ContactRecord record) {
   final data = record.isDeleted
       ? null
-      : ContactData(
-          contactUserId: record.contactUserId,
-          name: record.name!,
-          birthDate: record.birthDate,
-        );
+      : ContactData(contactUserId: record.contactUserId, name: record.name!);
   return ContactRecord(
     id: record.id,
     contactUserId: record.contactUserId,

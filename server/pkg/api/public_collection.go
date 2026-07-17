@@ -122,27 +122,6 @@ func (h *PublicCollectionHandler) GetCollection(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// GetUploadUrls returns upload Urls where files can be uploaded
-func (h *PublicCollectionHandler) GetUploadUrls(c *gin.Context) {
-	enteApp := auth.GetApp(c)
-
-	collection, err := h.Controller.GetPublicCollection(c, true)
-	if err != nil {
-		handler.Error(c, stacktrace.Propagate(err, ""))
-		return
-	}
-	userID := collection.Owner.ID
-	count, _ := strconv.Atoi(c.Query("count"))
-	urls, err := h.FileCtrl.GetUploadURLs(c, userID, count, enteApp, false)
-	if err != nil {
-		handler.Error(c, stacktrace.Propagate(err, ""))
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"urls": urls,
-	})
-}
-
 // GetUploadURLV2 returns a single upload URL that enforces checksum + content-length headers
 func (h *PublicCollectionHandler) GetUploadURLV2(c *gin.Context) {
 	enteApp := auth.GetApp(c)
@@ -162,27 +141,6 @@ func (h *PublicCollectionHandler) GetUploadURLV2(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, url)
-}
-
-// GetMultipartUploadURLs returns upload Urls where files can be uploaded
-func (h *PublicCollectionHandler) GetMultipartUploadURLs(c *gin.Context) {
-	enteApp := auth.GetApp(c)
-
-	collection, err := h.Controller.GetPublicCollection(c, true)
-	if err != nil {
-		handler.Error(c, stacktrace.Propagate(err, ""))
-		return
-	}
-	userID := collection.Owner.ID
-	count, _ := strconv.Atoi(c.Query("count"))
-	urls, err := h.FileCtrl.GetMultipartUploadURLs(c, userID, count, enteApp)
-	if err != nil {
-		handler.Error(c, stacktrace.Propagate(err, ""))
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"urls": urls,
-	})
 }
 
 // GetMultipartUploadURLV2 returns multipart upload URLs for a single object with enforced metadata

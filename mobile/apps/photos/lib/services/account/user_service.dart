@@ -128,6 +128,7 @@ class UserService {
         isMobile: Platform.isIOS || Platform.isAndroid,
       );
       await dialog.hide();
+      if (!context.mounted) return;
       unawaited(
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -145,8 +146,12 @@ class UserService {
     } on DioException catch (e) {
       await dialog.hide();
       _logger.info(e);
-      final String? enteErrCode = e.response?.data["code"];
+      final responseData = e.response?.data;
+      final Object? enteErrCode = responseData is Map
+          ? responseData["code"]
+          : null;
       if (enteErrCode != null && enteErrCode == "USER_ALREADY_REGISTERED") {
+        if (!context.mounted) return;
         unawaited(
           showAlertBottomSheet(
             context,
@@ -156,6 +161,7 @@ class UserService {
           ),
         );
       } else if (enteErrCode != null && enteErrCode == "USER_NOT_REGISTERED") {
+        if (!context.mounted) return;
         unawaited(
           showAlertBottomSheet(
             context,
@@ -165,6 +171,7 @@ class UserService {
           ),
         );
       } else if (enteErrCode == "USER_SIGNUP_INCOMPLETE") {
+        if (!context.mounted) return;
         unawaited(
           showAlertBottomSheet(
             context,
@@ -174,6 +181,7 @@ class UserService {
           ),
         );
       } else if (e.response != null && e.response!.statusCode == 403) {
+        if (!context.mounted) return;
         unawaited(
           showAlertBottomSheet(
             context,
@@ -183,11 +191,13 @@ class UserService {
           ),
         );
       } else {
+        if (!context.mounted) return;
         unawaited(showGenericErrorBottomSheet(context: context, error: e));
       }
     } catch (e, s) {
       await dialog.hide();
       _logger.severe("Failed to send OTT", e, s);
+      if (!context.mounted) return;
       unawaited(showGenericErrorBottomSheet(context: context, error: e));
     }
   }
@@ -278,6 +288,7 @@ class UserService {
     try {
       await _gateway.logout();
       await Configuration.instance.logout();
+      if (!context.mounted) return;
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       // Determine if we should silently ignore the error and proceed with logout
@@ -308,9 +319,12 @@ class UserService {
       _logger.severe("Failed to logout", e);
       //This future is for waiting for the dialog from which logout() is called
       //to close and only then to show the error dialog.
-      Future.delayed(
-        const Duration(milliseconds: 150),
-        () => showGenericErrorBottomSheet(context: context, error: null),
+      if (!context.mounted) return;
+      unawaited(
+        Future.delayed(const Duration(milliseconds: 150), () {
+          if (!context.mounted) return;
+          showGenericErrorBottomSheet(context: context, error: null);
+        }),
       );
     }
   }
@@ -330,6 +344,7 @@ class UserService {
       await _saveConfiguration(response);
       if (userPassword == null) {
         await dialog.hide();
+        if (!context.mounted) return;
         // ignore: unawaited_futures
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
@@ -351,12 +366,15 @@ class UserService {
         }
         await dialog.hide();
         await flagService.tryRefreshFlags();
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        if (context.mounted) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
         Bus.instance.fire(AccountConfiguredEvent());
       }
     } catch (e) {
       _logger.warning(e);
       await dialog.hide();
+      if (!context.mounted) return;
       await showGenericErrorBottomSheet(context: context, error: e);
     }
   }
@@ -407,6 +425,7 @@ class UserService {
           page = const PasswordEntryPage(mode: PasswordEntryMode.set);
         }
       }
+      if (!context.mounted) return;
       await Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (BuildContext context) {
@@ -419,14 +438,17 @@ class UserService {
       _logger.info(e);
       await dialog.hide();
       if (e.response != null && e.response!.statusCode == 410) {
+        if (!context.mounted) return;
         await showAlertBottomSheet(
           context,
           title: AppLocalizations.of(context).oops,
           message: AppLocalizations.of(context).yourVerificationCodeHasExpired,
           assetPath: 'assets/warning-grey.png',
         );
+        if (!context.mounted) return;
         Navigator.of(context).pop();
       } else {
+        if (!context.mounted) return;
         // ignore: unawaited_futures
         showAlertBottomSheet(
           context,
@@ -440,6 +462,7 @@ class UserService {
     } catch (e) {
       await dialog.hide();
       _logger.warning(e);
+      if (!context.mounted) return;
       // ignore: unawaited_futures
       showAlertBottomSheet(
         context,
@@ -475,17 +498,20 @@ class UserService {
     await dialog.show();
     try {
       await _gateway.changeEmail(email: email, ott: ott);
-      await dialog.hide();
-      showShortToast(
-        context,
-        AppLocalizations.of(context).emailChangedTo(newEmail: email),
-      );
       await setEmail(email);
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      await dialog.hide();
+      if (context.mounted) {
+        showShortToast(
+          context,
+          AppLocalizations.of(context).emailChangedTo(newEmail: email),
+        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
       Bus.instance.fire(UserDetailsChangedEvent());
     } on DioException catch (e) {
       await dialog.hide();
       if (e.response != null && e.response!.statusCode == 403) {
+        if (!context.mounted) return;
         // ignore: unawaited_futures
         showAlertBottomSheet(
           context,
@@ -494,6 +520,7 @@ class UserService {
           assetPath: 'assets/warning-grey.png',
         );
       } else {
+        if (!context.mounted) return;
         // ignore: unawaited_futures
         showAlertBottomSheet(
           context,
@@ -507,6 +534,7 @@ class UserService {
     } catch (e) {
       await dialog.hide();
       _logger.warning(e);
+      if (!context.mounted) return;
       // ignore: unawaited_futures
       showAlertBottomSheet(
         context,
@@ -686,9 +714,12 @@ class UserService {
     }
     await dialog.hide();
     if (page is HomeWidget) {
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      if (context.mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
       Bus.instance.fire(AccountConfiguredEvent());
     } else {
+      if (!context.mounted) return;
       // ignore: unawaited_futures
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
@@ -757,25 +788,29 @@ class UserService {
         sessionID: sessionID,
         code: code,
       );
-      await dialog.hide();
-      showShortToast(
-        context,
-        AppLocalizations.of(context).authenticationSuccessful,
-      );
       await _saveConfiguration(responseData);
-      await Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return const PasswordReentryPage();
-          },
-        ),
-        (route) => route.isFirst,
-      );
+      await dialog.hide();
+      if (context.mounted) {
+        showShortToast(
+          context,
+          AppLocalizations.of(context).authenticationSuccessful,
+        );
+        await Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return const PasswordReentryPage();
+            },
+          ),
+          (route) => route.isFirst,
+        );
+      }
     } on DioException catch (e) {
       await dialog.hide();
       _logger.severe(e);
       if (e.response != null && e.response!.statusCode == 404) {
+        if (!context.mounted) return;
         showToast(context, AppLocalizations.of(context).sessionExpired);
+        if (!context.mounted) return;
         await Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (BuildContext context) {
@@ -785,6 +820,7 @@ class UserService {
           (route) => route.isFirst,
         );
       } else {
+        if (!context.mounted) return;
         // ignore: unawaited_futures
         showAlertBottomSheet(
           context,
@@ -798,6 +834,7 @@ class UserService {
     } catch (e) {
       await dialog.hide();
       _logger.severe(e);
+      if (!context.mounted) return;
       // ignore: unawaited_futures
       showAlertBottomSheet(
         context,
@@ -828,6 +865,7 @@ class UserService {
       );
 
       await dialog.hide();
+      if (!context.mounted) return;
       // ignore: unawaited_futures
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
@@ -846,7 +884,9 @@ class UserService {
       await dialog.hide();
       _logger.severe('error while recovery 2fa', e);
       if (e.response != null && e.response!.statusCode == 404) {
+        if (!context.mounted) return;
         showToast(context, AppLocalizations.of(context).sessionExpired);
+        if (!context.mounted) return;
         // ignore: unawaited_futures
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
@@ -857,6 +897,7 @@ class UserService {
           (route) => route.isFirst,
         );
       } else {
+        if (!context.mounted) return;
         // ignore: unawaited_futures
         showAlertBottomSheet(
           context,
@@ -871,6 +912,7 @@ class UserService {
       _logger.severe('unexpected error while recovery 2fa', e);
       await dialog.hide();
       _logger.severe(e);
+      if (!context.mounted) return;
       // ignore: unawaited_futures
       showAlertBottomSheet(
         context,
@@ -915,6 +957,7 @@ class UserService {
       );
     } catch (e) {
       await dialog.hide();
+      if (!context.mounted) return;
       await showAlertBottomSheet(
         context,
         title: AppLocalizations.of(context).incorrectRecoveryKey,
@@ -931,26 +974,30 @@ class UserService {
         secret: secret,
         twoFactorType: twoFactorTypeToString(type),
       );
-      await dialog.hide();
-      showShortToast(
-        context,
-        AppLocalizations.of(context).twofactorAuthenticationSuccessfullyReset,
-      );
       await _saveConfiguration(responseData);
-      // ignore: unawaited_futures
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return const PasswordReentryPage();
-          },
-        ),
-        (route) => route.isFirst,
-      );
+      await dialog.hide();
+      if (context.mounted) {
+        showShortToast(
+          context,
+          AppLocalizations.of(context).twofactorAuthenticationSuccessfullyReset,
+        );
+        // ignore: unawaited_futures
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return const PasswordReentryPage();
+            },
+          ),
+          (route) => route.isFirst,
+        );
+      }
     } on DioException catch (e) {
       await dialog.hide();
       _logger.severe("error during recovery", e);
       if (e.response != null && e.response!.statusCode == 404) {
+        if (!context.mounted) return;
         showToast(context, AppLocalizations.of(context).sessionExpired);
+        if (!context.mounted) return;
         // ignore: unawaited_futures
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
@@ -961,6 +1008,7 @@ class UserService {
           (route) => route.isFirst,
         );
       } else {
+        if (!context.mounted) return;
         // ignore: unawaited_futures
         showAlertBottomSheet(
           context,
@@ -975,6 +1023,7 @@ class UserService {
       await dialog.hide();
       _logger.severe('unexpcted error during recovery', e);
 
+      if (!context.mounted) return;
       // ignore: unawaited_futures
       showAlertBottomSheet(
         context,
@@ -996,6 +1045,7 @@ class UserService {
     try {
       final responseData = await _gateway.setupTwoFactor();
       await dialog.hide();
+      if (!context.mounted) return;
       unawaited(
         routeToPage(
           context,
@@ -1023,9 +1073,11 @@ class UserService {
     try {
       recoveryKey = await getOrCreateRecoveryKey(context);
     } catch (e) {
+      if (!context.mounted) return false;
       await showGenericErrorBottomSheet(context: context, error: e);
       return false;
     }
+    if (!context.mounted) return false;
     final dialog = createProgressDialog(
       context,
       AppLocalizations.of(context).verifying,
@@ -1047,7 +1099,9 @@ class UserService {
       );
       await setTwoFactor(value: true);
       await dialog.hide();
-      Navigator.pop(context);
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
       Bus.instance.fire(UserDetailsChangedEvent());
       return true;
     } catch (e, s) {
@@ -1055,6 +1109,7 @@ class UserService {
       _logger.severe("Failed to enable 2FA", e, s);
       if (e is DioException) {
         if (e.response != null && e.response!.statusCode == 401) {
+          if (!context.mounted) return false;
           // ignore: unawaited_futures
           showAlertBottomSheet(
             context,
@@ -1067,6 +1122,7 @@ class UserService {
           return false;
         }
       }
+      if (!context.mounted) return false;
       // ignore: unawaited_futures
       showAlertBottomSheet(
         context,
@@ -1091,6 +1147,7 @@ class UserService {
       await setTwoFactor(value: false);
       await dialog.hide();
       Bus.instance.fire(UserDetailsChangedEvent());
+      if (!context.mounted) return;
       showShortToast(
         context,
         AppLocalizations.of(context).twofactorAuthenticationHasBeenDisabled,
@@ -1098,6 +1155,7 @@ class UserService {
     } catch (e) {
       await dialog.hide();
       _logger.severe("Failed to disabled 2FA", e);
+      if (!context.mounted) return;
       await showAlertBottomSheet(
         context,
         title: AppLocalizations.of(context).somethingWentWrong,
@@ -1283,7 +1341,7 @@ class UserService {
     if (cachedUserDetails?.familyData?.members?.isNotEmpty ?? false) {
       for (final member in cachedUserDetails!.familyData!.members!) {
         if (!existingEmails.contains(member.email)) {
-          relevantUsers.add(User(email: member.email));
+          relevantUsers.add(User(id: member.userID, email: member.email));
           existingEmails.add(member.email);
         }
       }
@@ -1300,96 +1358,5 @@ class UserService {
     }
 
     return relevantUsers;
-  }
-
-  /// Returns emails of Users that are relevant to the account owner.
-  /// Note: "User" refers to the account owner in the points below.
-  /// This includes:
-  /// 	- Collaborators and viewers of collections owned by user
-  ///   - Owners of collections shared to user.
-  ///   - All collaborators of collections in which user is a collaborator or
-  ///     a viewer.
-  ///   - All family members of user.
-  ///   - All contacts linked to a person.
-  Set<String> getEmailIDsOfRelevantContacts() {
-    final emailIDs = <String>{};
-
-    final int ownerID = Configuration.instance.getUserID()!;
-    final String ownerEmail = Configuration.instance.getEmail()!;
-
-    for (final c in CollectionsService.instance.getActiveCollections()) {
-      // Add collaborators and viewers of collections owned by user
-      if (c.owner.id == ownerID) {
-        for (final User u in c.sharees) {
-          if (u.id != null && u.email.isNotEmpty) {
-            if (!emailIDs.contains(u.email)) {
-              emailIDs.add(u.email);
-            }
-          }
-        }
-      } else if (c.owner.id != null && c.owner.email.isNotEmpty) {
-        // Add owners of collections shared with user
-        if (!emailIDs.contains(c.owner.email)) {
-          emailIDs.add(c.owner.email);
-        }
-        // Add collaborators of collections shared with user where user is a
-        // viewer or a collaborator
-        for (final User u in c.sharees) {
-          if (u.id != null &&
-              u.email.isNotEmpty &&
-              u.email == ownerEmail &&
-              (u.isAdmin || u.isCollaborator || u.isViewer)) {
-            for (final User u in c.sharees) {
-              if (u.id != null &&
-                  u.email.isNotEmpty &&
-                  (u.isCollaborator || u.isAdmin)) {
-                if (!emailIDs.contains(u.email)) {
-                  emailIDs.add(u.email);
-                }
-              }
-            }
-            break;
-          }
-        }
-      }
-    }
-
-    // Add user's family members
-    final cachedUserDetails = getCachedUserDetails();
-    if (cachedUserDetails?.familyData?.members?.isNotEmpty ?? false) {
-      for (final member in cachedUserDetails!.familyData!.members!) {
-        if (!emailIDs.contains(member.email)) {
-          emailIDs.add(member.email);
-        }
-      }
-    }
-
-    // Add contacts linked to people
-    final cachedEmailToPartialPersonData =
-        PersonService.instance.emailToPartialPersonDataMapCache;
-    for (final email in cachedEmailToPartialPersonData.keys) {
-      if (!emailIDs.contains(email)) {
-        emailIDs.add(email);
-      }
-    }
-
-    emailIDs.remove(ownerEmail);
-
-    return emailIDs;
-  }
-
-  Set<String> getEmailIDsOfFamilyMember() {
-    final emailIDs = <String>{};
-
-    final cachedUserDetails = getCachedUserDetails();
-    if (cachedUserDetails?.familyData?.members?.isNotEmpty ?? false) {
-      for (final member in cachedUserDetails!.familyData!.members!) {
-        if (member.email.isNotEmpty) {
-          emailIDs.add(member.email);
-        }
-      }
-    }
-
-    return emailIDs;
   }
 }

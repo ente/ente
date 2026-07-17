@@ -35,6 +35,7 @@
   "downloadFailed": "Скачивание не удалось",
   "failedToDownloadOrDecrypt": "Не удалось загрузить элемент",
   "errorOpeningFile": "Ошибка при открытии элемента",
+  "unableToExtractFileInformation": "Не удалось извлечь информацию из этого файла",
   "errorOpeningFileMessage": "Ошибка при открытии элемента: {error}",
   "@errorOpeningFileMessage": {
     "description": "Error message when opening an item fails",
@@ -54,6 +55,10 @@
         "example": "Permission denied"
       }
     }
+  },
+  "noAppToOpenFileDownloadInstead": "Нет приложения для предварительного просмотра этого файла. Вы можете скачать его и открыть с помощью другого приложения.",
+  "@noAppToOpenFileDownloadInstead": {
+    "description": "Message shown when Android cannot find an app to open or preview a file"
   },
   "minutesAgo": "{minutes} мин. назад",
   "@minutesAgo": {
@@ -256,6 +261,7 @@
   "optionalNote": "Необязательная заметка",
   "upload": "Загрузить",
   "documentsHint": "Документы",
+  "searchHint": "Поиск документов",
   "searchEmptyTitle": "Совпадений не найдено",
   "searchEmptyDescription": "Попробуйте поискать что-то другое.",
   "searchEverywhereTitle": "Искать везде \"{query}\"",
@@ -319,6 +325,7 @@
   "authToChangeYourEmail": "Пожалуйста, авторизуйтесь для смены электронной почты",
   "changePasswordTitle": "Изменить пароль",
   "authToChangeYourPassword": "Пожалуйста, авторизуйтесь для смены пароля",
+  "authToInitiateAccountDeletion": "Разблокируйте, чтобы удалить свой аккаунт",
   "recoveryKey": "Ключ восстановления",
   "ok": "Хорошо",
   "logout": "Выйти",
@@ -361,11 +368,22 @@
   "downloadUpdate": "Скачать обновление",
   "support": "Поддержка",
   "helpAndSupport": "Помощь и поддержка",
+  "getInTouch": "Связь",
+  "browseHelpPages": "Просмотреть справку",
   "contactSupport": "Связаться с поддержкой",
   "help": "Помощь",
+  "askAQuestion": "Задать вопрос",
   "suggestFeatures": "Предложить идею",
+  "requestAFeature": "Предложить идею",
   "reportABug": "Сообщить об ошибке",
+  "reportAnIssue": "Сообщить о проблеме",
   "reportBug": "Сообщить об ошибке",
+  "viewAllHelpTopics": "Посмотреть все темы справки",
+  "gettingStarted": "Начало работы",
+  "gettingStartedDesc": "Установите Locker, создайте учетную запись и сохраните свой первый элемент",
+  "informationTypes": "Типы информации",
+  "informationTypesDesc": "Документы, заметки, карты, пароли и другие типы файлов",
+  "organization": "Организация",
   "logsDialogBodyLocker": "Это отправит логи, чтобы помочь нам отладить вашу проблему.",
   "@logsDialogBodyLocker": {
     "description": "Dialog body text for sending logs in Locker app (without file name warning)"

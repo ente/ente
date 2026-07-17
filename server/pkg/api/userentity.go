@@ -35,6 +35,26 @@ func (h *UserEntityHandler) CreateKey(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+func (h *UserEntityHandler) EnsureKey(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
+	var request model.EntityKeyRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		handler.Error(c,
+			stacktrace.Propagate(ente.ErrBadRequest, "Request binding failed %s", err))
+		return
+	}
+	if err := request.Type.IsValid(); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Invalid EntityType"))
+		return
+	}
+	resp, err := h.Controller.EnsureKey(c, request)
+	if err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Failed to ensure EntityKey"))
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
 // GetKey...
 func (h *UserEntityHandler) GetKey(c *gin.Context) {
 	var request model.GetEntityKeyRequest

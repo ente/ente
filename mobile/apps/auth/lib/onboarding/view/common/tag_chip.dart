@@ -2,6 +2,7 @@ import "package:ente_auth/l10n/l10n.dart";
 import "package:ente_auth/onboarding/model/tag_enums.dart";
 import "package:ente_auth/store/code_display_store.dart";
 import "package:ente_auth/theme/ente_theme.dart";
+import 'package:ente_components/ente_components.dart';
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 
@@ -111,61 +112,19 @@ class _TagChipState extends State<TagChip> {
                     widget.action == TagChipAction.menu) ...[
                   SizedBox(
                     width: 48,
-                    child: PopupMenuButton<int>(
-                      iconSize: 16,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                    child: Semantics(
+                      button: true,
+                      label: context.l10n.editTag,
+                      identifier: 'auth_tag_menu',
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => _showTagActions(context),
+                        child: const Icon(
+                          Icons.more_horiz,
+                          size: IconSizes.small,
+                          color: Colors.white,
+                        ),
                       ),
-                      surfaceTintColor: Theme.of(context).cardColor,
-                      iconColor: Colors.white,
-                      initialValue: -1,
-                      onSelected: (value) {
-                        if (value == 0) {
-                          CodeDisplayStore.instance.showEditDialog(
-                            context,
-                            widget.label,
-                          );
-                        } else if (value == 1) {
-                          CodeDisplayStore.instance.showDeleteTagDialog(
-                            context,
-                            widget.label,
-                          );
-                        }
-                      },
-                      itemBuilder: (BuildContext context) {
-                        return [
-                          PopupMenuItem(
-                            value: 0,
-                            child: Row(
-                              children: [
-                                const Icon(Icons.edit_outlined, size: 16),
-                                const SizedBox(width: 12),
-                                Text(context.l10n.edit),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 1,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.delete_outline,
-                                  size: 16,
-                                  color: colorScheme.deleteTagIconColor,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  context.l10n.delete,
-                                  style: TextStyle(
-                                    color: colorScheme.deleteTagTextColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ];
-                      },
                     ),
                   ),
                 ] else ...[
@@ -173,6 +132,49 @@ class _TagChipState extends State<TagChip> {
                 ],
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showTagActions(BuildContext context) {
+    final l10n = context.l10n;
+    return showBottomSheetComponent<void>(
+      context: context,
+      builder: (sheetContext) => Semantics(
+        identifier: 'auth_tag_actions_sheet',
+        child: BottomSheetComponent(
+          title: widget.label,
+          closeTooltip: l10n.close,
+          content: MenuGroupComponent(
+            showDividers: true,
+            items: [
+              MenuComponent(
+                title: l10n.edit,
+                leading: const Icon(Icons.edit_outlined),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  CodeDisplayStore.instance.showEditDialog(
+                    context,
+                    widget.label,
+                  );
+                },
+              ),
+              MenuComponent(
+                title: l10n.delete,
+                titleColor: context.componentColors.warning,
+                iconColor: context.componentColors.warning,
+                leading: const Icon(Icons.delete_outline),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  CodeDisplayStore.instance.showDeleteTagDialog(
+                    context,
+                    widget.label,
+                  );
+                },
+              ),
+            ],
           ),
         ),
       ),

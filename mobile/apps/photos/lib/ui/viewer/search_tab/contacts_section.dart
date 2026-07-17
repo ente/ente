@@ -101,13 +101,16 @@ class _ContactsSectionState extends State<ContactsSection> {
       streamSubscriptions.add(
         stream.listen((event) async {
           _debouncer.run(() async {
-            _contactSearchResults =
+            final contactSearchResults =
                 (await SectionType.contacts.getData(
                       context,
                       limit: widget.resultLimit + 1,
                     ))
                     as List<GenericSearchResult>;
-            setState(() {});
+            if (!mounted) return;
+            setState(() {
+              _contactSearchResults = contactSearchResults;
+            });
           });
         }),
       );
@@ -197,33 +200,26 @@ class _ContactsSectionState extends State<ContactsSection> {
   }
 }
 
-class ContactRecommendation extends StatefulWidget {
+class ContactRecommendation extends StatelessWidget {
   static const _avatarSize = 62.0;
 
   final GenericSearchResult contactSearchResult;
   const ContactRecommendation(this.contactSearchResult, {super.key});
 
   @override
-  State<ContactRecommendation> createState() => _ContactRecommendationState();
-}
-
-class _ContactRecommendationState extends State<ContactRecommendation> {
-  @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
-    final personId =
-        widget.contactSearchResult.params[kPersonParamID] as String?;
-    final contactUserId =
-        widget.contactSearchResult.params[kContactUserId] as int?;
-    final contactEmail =
-        widget.contactSearchResult.params[kContactEmail] as String;
+    final personId = contactSearchResult.params[kPersonParamID] as String?;
+    final contactUserId = contactSearchResult.params[kContactUserId] as int;
+    final contactEmail = contactSearchResult.params[kContactEmail] as String;
+    final displayName = contactSearchResult.hierarchicalSearchFilter.name();
     return GestureDetector(
       onTap: () {
-        RecentSearches().add(widget.contactSearchResult.name());
-        if (widget.contactSearchResult.onResultTap != null) {
-          widget.contactSearchResult.onResultTap!(context);
+        RecentSearches().add(displayName);
+        if (contactSearchResult.onResultTap != null) {
+          contactSearchResult.onResultTap!(context);
         } else {
-          routeToPage(context, ContactResultPage(widget.contactSearchResult));
+          routeToPage(context, ContactResultPage(contactSearchResult));
         }
       },
       child: SizedBox(
@@ -232,21 +228,15 @@ class _ContactRecommendationState extends State<ContactRecommendation> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            ClipOval(
-              child: SizedBox(
-                width: ContactRecommendation._avatarSize,
-                height: ContactRecommendation._avatarSize,
-                child: ContactAvatarWidget(
-                  contactUserId: contactUserId,
-                  email: contactEmail,
-                  personId: personId,
-                  size: ContactRecommendation._avatarSize,
-                ),
-              ),
+            ContactAvatarWidget(
+              contactUserId: contactUserId,
+              email: contactEmail,
+              personId: personId,
+              size: ContactRecommendation._avatarSize,
             ),
             const SizedBox(height: 10),
             Text(
-              widget.contactSearchResult.name(),
+              displayName,
               style: TextStyles.mini.copyWith(color: colors.textBase),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

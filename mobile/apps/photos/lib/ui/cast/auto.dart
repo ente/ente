@@ -70,6 +70,7 @@ class _AutoCastDialogState extends State<AutoCastDialog> {
                           setState(() {
                             _isDeviceTapInProgress.remove(device);
                           });
+                          if (!context.mounted) return;
                           showGenericErrorDialog(
                             context: context,
                             error: e,

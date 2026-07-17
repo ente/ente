@@ -25,6 +25,7 @@ class _SessionsPageState extends State<SessionsPage> {
   @override
   void initState() {
     _fetchActiveSessions().onError((error, stackTrace) {
+      if (!mounted) return;
       showToast(
         context,
         AppLocalizations.of(context).failedToFetchActiveSessions,
@@ -120,6 +121,7 @@ class _SessionsPageState extends State<SessionsPage> {
     } catch (e) {
       await dialog.hide();
       _logger.severe('failed to terminate');
+      if (!mounted) return;
       // ignore: unawaited_futures
       showErrorBottomSheetComponent<void>(
         context: context,

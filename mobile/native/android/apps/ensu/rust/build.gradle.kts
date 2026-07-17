@@ -131,5 +131,5 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
 dependencies {
     api("net.java.dev.jna:jna:5.18.1@aar")
     api("androidx.annotation:annotation:1.7.1")
-    api("com.microsoft.onnxruntime:onnxruntime-android:1.24.2")
+    api("com.microsoft.onnxruntime:onnxruntime-android:1.27.0")
 }

@@ -122,6 +122,7 @@ class AccountSettingsPage extends StatelessWidget {
           AppLocalizations.of(context).authToChangeYourEmail,
         );
     if (hasAuthenticated) {
+      if (!context.mounted) return;
       unawaited(showChangeEmailBottomSheet(context));
     }
   }
@@ -133,6 +134,7 @@ class AccountSettingsPage extends StatelessWidget {
           AppLocalizations.of(context).authToChangeYourPassword,
         );
     if (hasAuthenticated) {
+      if (!context.mounted) return;
       unawaited(
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -154,11 +156,14 @@ class AccountSettingsPage extends StatelessWidget {
     if (hasAuthenticated) {
       String recoveryKey;
       try {
+        if (!context.mounted) return;
         recoveryKey = await _getOrCreateRecoveryKey(context);
       } catch (e) {
+        if (!context.mounted) return;
         await showGenericErrorDialog(context: context, error: e);
         return;
       }
+      if (!context.mounted) return;
       unawaited(
         Navigator.of(context).push(
           MaterialPageRoute(

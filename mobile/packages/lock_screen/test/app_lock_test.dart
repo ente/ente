@@ -40,9 +40,22 @@ void main() {
 
     expect(find.text('light'), findsOneWidget);
   });
+
+  testWidgets('can hide the debug banner', (tester) async {
+    await tester.pumpWidget(
+      _buildAppLock(ThemeMode.system, debugShowCheckedModeBanner: false),
+    );
+
+    final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(materialApp.debugShowCheckedModeBanner, isFalse);
+  });
 }
 
-Widget _buildAppLock(ThemeMode savedThemeMode, {Widget? child}) {
+Widget _buildAppLock(
+  ThemeMode savedThemeMode, {
+  Widget? child,
+  bool debugShowCheckedModeBanner = true,
+}) {
   return AppLock(
     builder: (_) =>
         child ??
@@ -52,6 +65,7 @@ Widget _buildAppLock(ThemeMode savedThemeMode, {Widget? child}) {
     savedThemeMode: savedThemeMode,
     lightTheme: ThemeData(brightness: Brightness.light),
     darkTheme: ThemeData(brightness: Brightness.dark),
+    debugShowCheckedModeBanner: debugShowCheckedModeBanner,
     supportedLocales: const [Locale('en')],
     localizationsDelegates: const <LocalizationsDelegate<dynamic>>[],
     localeListResolutionCallback: (_, supportedLocales) =>

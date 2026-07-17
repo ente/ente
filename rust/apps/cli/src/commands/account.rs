@@ -15,7 +15,7 @@ use ente_accounts::{
     SecondFactorMethod, SetupTwoFactorParams, TotpPurpose,
 };
 use ente_core::crypto::SecretVec;
-use ente_core::urls::PRODUCTION_API_BASE_URL;
+use ente_core::urls::PRODUCTION_API_ORIGIN;
 use std::{path::PathBuf, str::FromStr};
 use zeroize::Zeroizing;
 
@@ -229,7 +229,7 @@ async fn list_accounts(storage: &Storage) -> Result<()> {
     println!("{}", "-".repeat(110));
 
     for account in accounts {
-        let endpoint_display = if account.endpoint == PRODUCTION_API_BASE_URL {
+        let endpoint_display = if account.endpoint == PRODUCTION_API_ORIGIN {
             "api.ente.com (prod)".to_string()
         } else if account.endpoint.starts_with("http://localhost") {
             format!(
@@ -575,7 +575,7 @@ fn parse_second_factor(second_factor: Option<&str>) -> Result<Option<SecondFacto
 fn new_accounts_client(endpoint: &str, app: App) -> Result<AccountsClient> {
     AccountsClient::new(
         AccountsClientConfig::new(app.client_package())
-            .with_base_url(endpoint.to_string())
+            .with_origin(endpoint.to_string())
             .with_user_agent(USER_AGENT),
     )
     .map_err(Error::from)

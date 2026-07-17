@@ -16,7 +16,6 @@ import 'package:photos/models/freeable_space_info.dart';
 import 'package:photos/models/location/location.dart';
 import "package:photos/models/metadata/common_keys.dart";
 import "package:photos/services/filter/db_filters.dart";
-import 'package:photos/utils/file_uploader_util.dart';
 import 'package:sqlite_async/sqlite_async.dart';
 
 class FilesDB with SqlDbBase {
@@ -1339,21 +1338,17 @@ class FilesDB with SqlDbBase {
     return Map.fromIterable(matchedFiles, key: (e) => e.hash);
   }
 
-  Future<List<EnteFile>> getUploadedFilesWithHashes(
-    FileHashData hashData,
+  Future<List<EnteFile>> getUploadedFilesWithHash(
+    String hash,
     FileType fileType,
     int ownerID,
   ) async {
-    String inParam = "'${hashData.fileHash}'";
-    if (fileType == FileType.livePhoto && hashData.zipHash != null) {
-      inParam += ",'${hashData.zipHash}'";
-    }
     final db = await instance.sqliteAsyncDB;
     final rows = await db.getAll(
       'SELECT * FROM $filesTable WHERE ($columnUploadedFileID != NULL OR '
       '$columnUploadedFileID != -1) AND $columnOwnerID = ? AND '
-      '$columnFileType = ? AND $columnHash IN ($inParam)',
-      [ownerID, getInt(fileType)],
+      '$columnFileType = ? AND $columnHash = ?',
+      [ownerID, getInt(fileType), hash],
     );
     return convertToFiles(rows);
   }
@@ -1373,11 +1368,21 @@ class FilesDB with SqlDbBase {
 
   Future<void> updateUploadedFileAcrossCollections(EnteFile file) async {
     final db = await instance.sqliteAsyncDB;
-    final parameterSet = _getParameterSetForFile(file, omitCollectionId: true)
-      ..add(file.uploadedFileID);
-    final updateAssignments = _generateUpdateAssignmentsWithPlaceholders(
-      fileGenId: file.generatedID,
+    // _id, collection_id and the encrypted key material must not be written
+    // here: the same uploadedFileID can exist as multiple rows (one per
+    // collection), each with its own _id, collection_id and encrypted_key/
+    // key_decryption_nonce (the file key wrapped with that collection's key).
+    // Writing one collection's values across all rows would corrupt the others.
+    final parameterSet = _getParameterSetForFile(
+      file,
       omitCollectionId: true,
+      omitGeneratedId: true,
+      omitKeyMaterial: true,
+    )..add(file.uploadedFileID);
+    final updateAssignments = _generateUpdateAssignmentsWithPlaceholders(
+      fileGenId: null,
+      omitCollectionId: true,
+      omitKeyMaterial: true,
     );
     await db.execute(
       'UPDATE $filesTable '
@@ -2138,6 +2143,7 @@ class FilesDB with SqlDbBase {
   String _generateUpdateAssignmentsWithPlaceholders({
     required int? fileGenId,
     bool omitCollectionId = false,
+    bool omitKeyMaterial = false,
   }) {
     final assignments = <String>[];
 
@@ -2146,6 +2152,11 @@ class FilesDB with SqlDbBase {
         continue;
       }
       if (columnName == columnCollectionID && omitCollectionId) {
+        continue;
+      }
+      if (omitKeyMaterial &&
+          (columnName == columnEncryptedKey ||
+              columnName == columnKeyDecryptionNonce)) {
         continue;
       }
       assignments.add("$columnName = ?");
@@ -2176,6 +2187,8 @@ class FilesDB with SqlDbBase {
   List<Object?> _getParameterSetForFile(
     EnteFile file, {
     bool omitCollectionId = false,
+    bool omitGeneratedId = false,
+    bool omitKeyMaterial = false,
   }) {
     final values = <Object?>[];
 
@@ -2194,22 +2207,25 @@ class FilesDB with SqlDbBase {
       }
     }
 
-    if (file.generatedID != null) {
+    if (file.generatedID != null && !omitGeneratedId) {
       values.add(file.generatedID);
     }
     values.addAll([
       file.localID,
       file.uploadedFileID ?? -1,
       file.ownerID,
-      file.collectionID ?? -1,
+      if (!omitCollectionId) file.collectionID ?? -1,
       file.title,
       file.deviceFolder,
       latitude,
       longitude,
       getInt(file.fileType),
       file.modificationTime,
-      file.encryptedKey,
-      file.keyDecryptionNonce,
+      // encrypted_key/key_decryption_nonce are per-collection (the file key
+      // wrapped with that collection's key), so they must be omitted from a
+      // cross-collection update to avoid overwriting sibling rows.
+      if (!omitKeyMaterial) file.encryptedKey,
+      if (!omitKeyMaterial) file.keyDecryptionNonce,
       file.fileDecryptionHeader,
       file.thumbnailDecryptionHeader,
       file.metadataDecryptionHeader,
@@ -2228,10 +2244,6 @@ class FilesDB with SqlDbBase {
       file.fileSize,
       file.addedTime ?? -1,
     ]);
-
-    if (omitCollectionId) {
-      values.removeAt(3);
-    }
 
     return values;
   }

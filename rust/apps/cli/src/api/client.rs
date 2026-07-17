@@ -1,385 +1,165 @@
-#![allow(dead_code)]
+use crate::models::account::App;
+use crate::models::error::Result;
+use ente_core::http::{self, Api, ApiConfig, Auth, Http, RetryProfile};
+use ente_core::urls::PRODUCTION_API_ORIGIN;
+use std::sync::RwLock;
 
-use crate::api::retry::RetryConfig;
-use crate::models::error::{Error, Result};
-use ente_core::urls::PRODUCTION_API_BASE_URL;
-use reqwest::{Client, RequestBuilder, Response, StatusCode};
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
-use std::time::Duration;
-use tokio::time::sleep;
-
-const TOKEN_HEADER: &str = "X-Auth-Token";
-const CLIENT_PKG_HEADER: &str = "X-Client-Package";
-const DEFAULT_CLIENT_PACKAGE: &str = "io.ente.photos";
 pub(crate) const USER_AGENT: &str = concat!("ente-rs/", env!("CARGO_PKG_VERSION"));
+const FILES_ORIGIN: &str = "https://files.ente.com";
+const THUMBNAILS_ORIGIN: &str = "https://thumbnails.ente.com";
 
-/// Maximum number of retry attempts for failed requests
-const MAX_RETRIES: u32 = 3;
-/// Initial retry delay in milliseconds
-const INITIAL_RETRY_DELAY_MS: u64 = 1000;
-/// Maximum retry delay in milliseconds
-const MAX_RETRY_DELAY_MS: u64 = 20000;
-
-#[derive(Debug, Deserialize)]
-pub struct ApiError {
-    pub code: Option<String>,
-    pub message: Option<String>,
+pub struct AppClient {
+    origin: String,
+    app: App,
+    museum: Api,
+    proxies: Option<DownloadProxies>,
+    token: RwLock<Option<String>>,
 }
 
-fn make_api_error(method: &str, path: &str, status: StatusCode, body: String) -> Error {
-    if status.is_server_error() {
-        log::error!("API request failed: status={status}");
-    } else if status == StatusCode::TOO_MANY_REQUESTS {
-        log::warn!("API request failed: status={status}");
-    } else {
-        log::debug!("API request failed: status={status}");
-    }
-
-    log::debug!("API request: {method} {path}");
-
-    if let Ok(error_json) = serde_json::from_str::<serde_json::Value>(&body) {
-        log::debug!(
-            "API error body: {}",
-            serde_json::to_string_pretty(&error_json).unwrap_or(body.clone())
-        );
-    } else {
-        log::debug!("API error body: {body}");
-    }
-
-    let message = serde_json::from_str::<ApiError>(&body)
-        .ok()
-        .and_then(|e| e.code.or(e.message))
-        .unwrap_or_else(|| status.to_string());
-
-    Error::ApiError {
-        status: status.as_u16(),
-        code: serde_json::from_str::<ApiError>(&body)
-            .ok()
-            .and_then(|e| e.code),
-        message,
-    }
+pub(crate) struct DownloadProxies {
+    pub(crate) files: Api,
+    pub(crate) thumbnails: Api,
 }
 
-pub struct ApiClient {
-    client: Client,
-    download_client: Client,
-    pub(crate) base_url: String,
-    client_package: String,
-    /// Token storage for multi-account support: account_id -> token
-    tokens: Arc<RwLock<HashMap<String, String>>>,
-    /// Retry configuration
-    retry_config: RetryConfig,
-}
-
-impl ApiClient {
-    pub fn new(base_url: Option<String>) -> Result<Self> {
-        Self::new_with_client_package(base_url, DEFAULT_CLIENT_PACKAGE)
-    }
-
-    pub fn new_with_client_package<S>(base_url: Option<String>, client_package: S) -> Result<Self>
-    where
-        S: Into<String>,
-    {
-        let client = Client::builder()
-            .timeout(Duration::from_secs(30))
-            .user_agent(USER_AGENT)
-            .build()?;
-
-        let download_client = Client::builder()
-            .timeout(Duration::from_secs(300))
-            .pool_idle_timeout(Duration::from_secs(90))
-            .pool_max_idle_per_host(10)
-            .user_agent(USER_AGENT)
-            .build()?;
-
+impl AppClient {
+    pub fn new(origin: Option<String>, app: App) -> Result<Self> {
+        let http = Http::new()?;
+        let origin = origin.unwrap_or_else(|| PRODUCTION_API_ORIGIN.to_string());
+        let client_package = app.client_package();
+        let museum = new_api(&http, &origin, client_package);
+        let proxies = (origin == PRODUCTION_API_ORIGIN).then(|| DownloadProxies {
+            files: new_api(&http, FILES_ORIGIN, client_package),
+            thumbnails: new_api(&http, THUMBNAILS_ORIGIN, client_package),
+        });
         Ok(Self {
-            client,
-            download_client,
-            base_url: base_url.unwrap_or_else(|| PRODUCTION_API_BASE_URL.to_string()),
-            client_package: client_package.into(),
-            tokens: Arc::new(RwLock::new(HashMap::new())),
-            retry_config: RetryConfig::default(),
+            origin,
+            app,
+            museum,
+            proxies,
+            token: RwLock::new(None),
         })
     }
 
-    /// Add or update authentication token for an account
-    pub fn add_token(&self, account_id: &str, token: &str) {
-        let mut tokens = self.tokens.write().unwrap();
-        tokens.insert(account_id.to_string(), token.to_string());
-    }
-
-    /// Remove authentication token for an account
-    pub fn remove_token(&self, account_id: &str) {
-        let mut tokens = self.tokens.write().unwrap();
-        tokens.remove(account_id);
-    }
-
-    /// Get authentication token for an account
-    pub fn get_token(&self, account_id: &str) -> Option<String> {
-        let tokens = self.tokens.read().unwrap();
-        tokens.get(account_id).cloned()
-    }
-
-    /// Set retry configuration
-    pub fn set_retry_config(&mut self, config: RetryConfig) {
-        self.retry_config = config;
-    }
-
-    /// Return the configured base URL.
-    pub fn base_url(&self) -> &str {
-        &self.base_url
-    }
-
-    /// Return the configured client package.
-    pub fn client_package(&self) -> &str {
-        &self.client_package
-    }
-
-    /// Build a request with common headers
-    fn build_request(&self, builder: RequestBuilder, account_id: Option<&str>) -> RequestBuilder {
-        let mut req = builder.header(CLIENT_PKG_HEADER, &self.client_package);
-
-        if let Some(id) = account_id {
-            if let Some(token) = self.get_token(id) {
-                log::debug!("Adding auth token for account {id}");
-                req = req.header(TOKEN_HEADER, token);
-            } else {
-                log::warn!("No token found for account {id}");
-            }
+    pub fn set_token(&self, token: &str) {
+        self.museum.set_auth(Some(Auth::User(token.to_owned())));
+        if let Some(proxies) = &self.proxies {
+            proxies.files.set_auth(Some(Auth::User(token.to_owned())));
+            proxies
+                .thumbnails
+                .set_auth(Some(Auth::User(token.to_owned())));
         }
-
-        req
+        *self.token.write().unwrap() = Some(token.to_owned());
     }
 
-    /// Execute request with retry logic
-    async fn execute_with_retry(&self, request_builder: RequestBuilder) -> Result<Response> {
-        let mut retry_count = 0;
-        let mut delay_ms = INITIAL_RETRY_DELAY_MS;
-
-        loop {
-            let req = request_builder
-                .try_clone()
-                .ok_or_else(|| Error::Generic("Failed to clone request for retry".to_string()))?;
-
-            match req.send().await {
-                Ok(response) => {
-                    if (response.status() == StatusCode::TOO_MANY_REQUESTS
-                        || response.status().is_server_error())
-                        && retry_count < MAX_RETRIES
-                    {
-                        retry_count += 1;
-                        log::warn!(
-                            "Request failed with status {}, retry attempt {}/{}",
-                            response.status(),
-                            retry_count,
-                            MAX_RETRIES
-                        );
-
-                        sleep(Duration::from_millis(delay_ms)).await;
-                        delay_ms = (delay_ms * 2).min(MAX_RETRY_DELAY_MS);
-                        continue;
-                    }
-
-                    return Ok(response);
-                }
-                Err(e) => {
-                    if retry_count < MAX_RETRIES {
-                        retry_count += 1;
-                        log::warn!(
-                            "Request failed with error: {e}, retry attempt {retry_count}/{MAX_RETRIES}"
-                        );
-
-                        sleep(Duration::from_millis(delay_ms)).await;
-                        delay_ms = (delay_ms * 2).min(MAX_RETRY_DELAY_MS);
-                        continue;
-                    }
-                    return Err(e.into());
-                }
-            }
-        }
+    pub fn token(&self) -> Option<String> {
+        self.token.read().unwrap().clone()
     }
 
-    /// Make a GET request
-    pub async fn get<T>(&self, path: &str, account_id: Option<&str>) -> Result<T>
-    where
-        T: for<'de> Deserialize<'de>,
-    {
-        let url = format!("{}{}", self.base_url, path);
-        let request = self.client.get(&url);
-        let request = self.build_request(request, account_id);
+    pub fn origin(&self) -> &str {
+        &self.origin
+    }
 
-        let response = self.execute_with_retry(request).await?;
+    pub fn app(&self) -> App {
+        self.app
+    }
 
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response
-                .text()
+    pub(crate) fn api(&self) -> &Api {
+        &self.museum
+    }
+
+    pub(crate) fn download_proxies(&self) -> Option<&DownloadProxies> {
+        self.proxies.as_ref()
+    }
+
+    pub(crate) async fn download_url(&self, url: &str) -> Result<Vec<u8>> {
+        Ok(
+            http::retry_with_profile(RetryProfile::Background, || async {
+                self.museum
+                    .http()
+                    .get(url)
+                    .send()
+                    .await?
+                    .error_for_status()?
+                    .bytes()
+                    .await
+            })
+            .await?,
+        )
+    }
+}
+
+fn new_api(http: &Http, origin: &str, client_package: &str) -> Api {
+    Api::new(
+        http.clone(),
+        ApiConfig {
+            origin: origin.to_owned(),
+            client_package: Some(client_package.to_owned()),
+            client_version: None,
+            user_agent: Some(USER_AGENT.to_string()),
+            auth: None,
+        },
+    )
+}
+
+pub(crate) async fn download_from_proxy(api: &Api, file_id: i64) -> Result<Vec<u8>> {
+    Ok(
+        http::retry_with_profile(RetryProfile::Background, || async {
+            api.get("/")
+                .query(&[("fileID", file_id)])
+                .send()
+                .await?
+                .error_for_status()?
+                .bytes()
                 .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(make_api_error("GET", path, status, body));
-        }
-
-        let text = response.text().await?;
-        serde_json::from_str(&text).map_err(|e| {
-            log::error!("Failed to deserialize response: {e}");
-            log::debug!(
-                "Response text (first 1000 chars): {}",
-                &text[..1000.min(text.len())]
-            );
-            Error::Generic(format!("Deserialization failed: {e}"))
         })
+        .await?,
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use mockito::{Matcher, Server};
+
+    #[test]
+    fn selects_download_backend_from_origin() {
+        let production = AppClient::new(None, App::Photos).unwrap();
+        assert!(production.download_proxies().is_some());
+
+        let self_hosted = AppClient::new(Some("https://example.com".into()), App::Photos).unwrap();
+        assert!(self_hosted.download_proxies().is_none());
     }
 
-    /// Make a POST request
-    pub async fn post<T, B>(&self, path: &str, body: &B, account_id: Option<&str>) -> Result<T>
-    where
-        T: for<'de> Deserialize<'de>,
-        B: Serialize,
-    {
-        let url = format!("{}{}", self.base_url, path);
+    #[tokio::test]
+    async fn app_clients_keep_museum_auth_scoped_to_app() {
+        let mut server = Server::new_async().await;
+        let auth_download = server
+            .mock("GET", "/")
+            .match_query(Matcher::UrlEncoded("fileID".into(), "1".into()))
+            .match_header("x-auth-token", "auth-token")
+            .match_header("x-client-package", "io.ente.auth")
+            .with_body("auth")
+            .create_async()
+            .await;
+        let photos_download = server
+            .mock("GET", "/")
+            .match_query(Matcher::UrlEncoded("fileID".into(), "2".into()))
+            .match_header("x-auth-token", "photos-token")
+            .match_header("x-client-package", "io.ente.photos")
+            .with_body("photos")
+            .create_async()
+            .await;
+        let auth_client = AppClient::new(Some(server.url()), App::Auth).unwrap();
+        auth_client.set_token("auth-token");
+        let photos_client = AppClient::new(Some(server.url()), App::Photos).unwrap();
+        photos_client.set_token("photos-token");
 
-        let request = self.client.post(&url).json(body);
-        let request = self.build_request(request, account_id);
+        let auth_bytes = download_from_proxy(auth_client.api(), 1).await.unwrap();
+        let photos_bytes = download_from_proxy(photos_client.api(), 2).await.unwrap();
 
-        let response = self.execute_with_retry(request).await?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(make_api_error("POST", path, status, body));
-        }
-
-        let text = response.text().await?;
-        serde_json::from_str(&text).map_err(|e| {
-            log::error!("Failed to deserialize response: {e}");
-            log::debug!(
-                "Response text (first 1000 chars): {}",
-                &text[..1000.min(text.len())]
-            );
-            Error::Generic(format!("Deserialization failed: {e}"))
-        })
-    }
-
-    /// Make a POST request that expects no response body
-    pub async fn post_empty<B>(&self, path: &str, body: &B, account_id: Option<&str>) -> Result<()>
-    where
-        B: Serialize,
-    {
-        let url = format!("{}{}", self.base_url, path);
-
-        let request = self.client.post(&url).json(body);
-        let request = self.build_request(request, account_id);
-
-        let response = self.execute_with_retry(request).await?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(make_api_error("POST", path, status, body));
-        }
-
-        Ok(())
-    }
-
-    /// Make a PUT request
-    pub async fn put<T, B>(&self, path: &str, body: &B, account_id: Option<&str>) -> Result<T>
-    where
-        T: for<'de> Deserialize<'de>,
-        B: Serialize,
-    {
-        let url = format!("{}{}", self.base_url, path);
-        let request = self.client.put(&url).json(body);
-        let request = self.build_request(request, account_id);
-
-        let response = self.execute_with_retry(request).await?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(make_api_error("PUT", path, status, body));
-        }
-
-        let text = response.text().await?;
-        serde_json::from_str(&text).map_err(|e| {
-            log::error!("Failed to deserialize response: {e}");
-            log::debug!(
-                "Response text (first 1000 chars): {}",
-                &text[..1000.min(text.len())]
-            );
-            Error::Generic(format!("Deserialization failed: {e}"))
-        })
-    }
-
-    /// Make a PUT request that expects no response body
-    pub async fn put_empty<B>(&self, path: &str, body: &B, account_id: Option<&str>) -> Result<()>
-    where
-        B: Serialize,
-    {
-        let url = format!("{}{}", self.base_url, path);
-        let request = self.client.put(&url).json(body);
-        let request = self.build_request(request, account_id);
-
-        let response = self.execute_with_retry(request).await?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(make_api_error("PUT", path, status, body));
-        }
-
-        Ok(())
-    }
-
-    /// Make a DELETE request
-    pub async fn delete(&self, path: &str, account_id: Option<&str>) -> Result<()> {
-        let url = format!("{}{}", self.base_url, path);
-        let request = self.client.delete(&url);
-        let request = self.build_request(request, account_id);
-
-        let response = self.execute_with_retry(request).await?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(make_api_error("DELETE", path, status, body));
-        }
-
-        Ok(())
-    }
-
-    /// Download a file with the download client
-    pub async fn download_file(&self, url: &str, account_id: Option<&str>) -> Result<Vec<u8>> {
-        let request = self.download_client.get(url);
-        let request = self.build_request(request, account_id);
-
-        let response = self.execute_with_retry(request).await?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(make_api_error("GET", url, status, body));
-        }
-
-        Ok(response.bytes().await?.to_vec())
+        auth_download.assert_async().await;
+        photos_download.assert_async().await;
+        assert_eq!(auth_bytes, b"auth");
+        assert_eq!(photos_bytes, b"photos");
     }
 }

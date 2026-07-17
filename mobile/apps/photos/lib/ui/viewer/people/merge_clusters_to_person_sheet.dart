@@ -56,6 +56,19 @@ Future<MergePersonSelectionResult?> showMergeClustersToPersonPage(
   );
 }
 
+Future<List<GenericSearchResult>> loadMergeablePersons() async {
+  final results = await SearchService.instance.getAllFace(
+    null,
+    minClusterSize: kMinimumClusterSizeAllFaces,
+  );
+  return results
+      .where(
+        (result) =>
+            (result.params[kPersonParamID] as String?)?.isNotEmpty ?? false,
+      )
+      .toList();
+}
+
 class MergeClustersToPersonPage extends StatefulWidget {
   final List<GenericSearchResult>? initialPersons;
   final String? seedClusterId;
@@ -102,26 +115,13 @@ class _MergeClustersToPersonPageState extends State<MergeClustersToPersonPage> {
     _photosSortAscending = settings.peoplePhotosSortAscending;
     _personsFuture = widget.initialPersons != null
         ? Future.value(widget.initialPersons!)
-        : _loadNamedPersons();
+        : loadMergeablePersons();
     if (_canUseSimilaritySort) {
       _personsFuture = _personsFuture.then((persons) async {
         _personToMaxSimilarity = await _calculateSimilarityWithPersons(persons);
         return persons;
       });
     }
-  }
-
-  static Future<List<GenericSearchResult>> _loadNamedPersons() async {
-    final results = await SearchService.instance.getAllFace(
-      null,
-      minClusterSize: kMinimumClusterSizeAllFaces,
-    );
-    return results
-        .where(
-          (result) =>
-              (result.params[kPersonParamID] as String?)?.isNotEmpty ?? false,
-        )
-        .toList();
   }
 
   List<GenericSearchResult> _filterPersons(List<GenericSearchResult> persons) {

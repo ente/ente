@@ -6,7 +6,7 @@ use ente_contacts::{
     LegacyKitRecoveryClient, LegacyKitRecoveryStatus,
     legacy_models::{LegacyContactState, LegacyRecoveryStatus},
 };
-use ente_core::http_legacy::Error as CoreHttpError;
+use ente_core::http;
 use ente_rs::models::account::App;
 use ente_test_support::{Museum, TestResult};
 use serde::{Deserialize, Serialize};
@@ -135,7 +135,6 @@ async fn run_contacts_stage(pair: &legacy::LegacyPair) {
     let initial_data = ContactData {
         contact_user_id: pair.trusted.user_id,
         name: "Trusted Contact".to_string(),
-        birth_date: Some("2001-04-01".to_string()),
     };
 
     let contact = pair.owner_ctx.create_contact(&initial_data).await.unwrap();
@@ -153,19 +152,17 @@ async fn run_contacts_stage(pair: &legacy::LegacyPair) {
             &ContactData {
                 contact_user_id: pair.trusted.user_id,
                 name: "Trusted Contact Updated".to_string(),
-                birth_date: Some("2001-04-02".to_string()),
             },
         )
         .await
         .unwrap();
     assert_eq!(updated.name.as_deref(), Some("Trusted Contact Updated"));
-    assert_eq!(updated.birth_date.as_deref(), Some("2001-04-02"));
 
     let diff = pair.owner_ctx.get_diff(0, 5000).await.unwrap();
     assert!(diff.iter().any(|entry| entry.id == contact.id));
 
     match pair.trusted_ctx.get_contact(&contact.id).await {
-        Err(ente_contacts::ContactsError::Http(CoreHttpError::Http { status: 404, .. })) => {}
+        Err(ente_contacts::ContactsError::Http(http::Error::Http { status: 404, .. })) => {}
         other => panic!("expected trusted account to get 404 for owner contact, got {other:?}"),
     }
 

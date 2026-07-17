@@ -190,7 +190,6 @@
   "deleteAccountQuery": "Жао нам је што одлазите. Да ли се суочавате са неком грешком?",
   "yesSendFeedbackAction": "Да, послати повратне информације",
   "noDeleteAccountAction": "Не, избрисати налог",
-  "initiateAccountDeleteTitle": "Молимо вас да се аутентификујете за брисање рачуна",
   "sendEmail": "Шаљи имејл",
   "createNewAccount": "Креирај нови налог",
   "weakStrength": "Слабо",

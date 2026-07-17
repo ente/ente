@@ -82,7 +82,7 @@ jobs:
             - run: cargo clippy -p ente_rust --features flutter --all-targets --locked
 
     rust-wasm:
-        # For web-lint.yml's npm run build:wasm.
+        # For web-lint.yml's WASM builds.
         runs-on: ubuntu-latest
         defaults:
             run:
@@ -107,6 +107,8 @@ jobs:
             - run: npm ci
 
             - run: npm run build:wasm
+
+            - run: npm run build:space-wasm
 
     rust-cli:
         # For rust-e2e-test.yml.

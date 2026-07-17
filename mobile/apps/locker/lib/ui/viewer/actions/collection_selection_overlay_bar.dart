@@ -305,9 +305,13 @@ class _CollectionSelectionOverlayBarState
       await CollectionActions.editCollection(context, collection);
     } catch (e, s) {
       _logger.severe(e, s);
-      await showLockerErrorSheet(context, e);
+      if (mounted) {
+        await showLockerErrorSheet(context, e);
+      }
     }
-    widget.selectedCollections.clearAll();
+    if (mounted) {
+      widget.selectedCollections.clearAll();
+    }
   }
 
   Future<void> _deleteCollection(Collection collection) async {
@@ -321,9 +325,13 @@ class _CollectionSelectionOverlayBarState
       await CollectionActions.deleteCollection(context, collection);
     } catch (e, s) {
       _logger.severe(e, s);
-      await showLockerErrorSheet(context, e);
+      if (mounted) {
+        await showLockerErrorSheet(context, e);
+      }
     }
-    widget.selectedCollections.clearAll();
+    if (mounted) {
+      widget.selectedCollections.clearAll();
+    }
   }
 
   Future<void> _deleteMultipleCollections(Set<Collection> collections) async {
@@ -340,9 +348,13 @@ class _CollectionSelectionOverlayBarState
       );
     } catch (e, s) {
       _logger.severe(e, s);
-      await showLockerErrorSheet(context, e);
+      if (mounted) {
+        await showLockerErrorSheet(context, e);
+      }
     }
-    widget.selectedCollections.clearAll();
+    if (mounted) {
+      widget.selectedCollections.clearAll();
+    }
   }
 
   Future<void> _shareCollection(Collection collection) async {
@@ -362,9 +374,13 @@ class _CollectionSelectionOverlayBarState
       await showShareCollectionSheet(context, collection: collection);
     } catch (e, s) {
       _logger.severe(e, s);
-      await showLockerErrorSheet(context, e);
+      if (mounted) {
+        await showLockerErrorSheet(context, e);
+      }
     }
-    widget.selectedCollections.clearAll();
+    if (mounted) {
+      widget.selectedCollections.clearAll();
+    }
   }
 
   Future<void> _leaveCollections(List<Collection> collections) async {
@@ -381,8 +397,12 @@ class _CollectionSelectionOverlayBarState
       }
     } catch (e, s) {
       _logger.severe(e, s);
-      await showLockerErrorSheet(context, e);
+      if (mounted) {
+        await showLockerErrorSheet(context, e);
+      }
     }
-    widget.selectedCollections.clearAll();
+    if (mounted) {
+      widget.selectedCollections.clearAll();
+    }
   }
 }

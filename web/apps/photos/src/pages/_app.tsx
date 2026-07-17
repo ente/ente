@@ -1,13 +1,14 @@
+import { AppLockSetupError } from "@/components/app-lock/LockScreenContents";
 import { useDesktopAppLockRoute } from "@/components/utils/use-app-lock-route";
 import { photosLogout } from "@/services/logout";
 import "@fontsource-variable/inter";
+import "@fontsource-variable/outfit";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { CssBaseline, Typography } from "@mui/material";
 import { styled, ThemeProvider } from "@mui/material/styles";
 import {
     isLocalStorageAndIndexedDBMismatch,
     savedLocalUser,
-    savedPartialLocalUser,
 } from "ente-accounts/services/accounts-db";
 import { isDesktop, staticAppTitle } from "ente-base/app";
 import { CenteredRow } from "ente-base/components/containers";
@@ -49,7 +50,6 @@ import { useAppLockSnapshot } from "ente-new/photos/components/utils/use-snapsho
 import { resumeExportsIfNeeded } from "ente-new/photos/services/export";
 import { runMigrations } from "ente-new/photos/services/migration";
 import { initML, isMLSupported } from "ente-new/photos/services/ml";
-import { getFamilyPortalRedirectURL } from "ente-new/photos/services/user-details";
 import { PhotosAppContext } from "ente-new/photos/types/context";
 import { t } from "i18next";
 import type { AppProps } from "next/app";
@@ -140,25 +140,6 @@ const App: React.FC<PhotosAppProps> = ({ Component, pageProps }) => {
         if (isDesktop) void resumeExportsIfNeeded();
     }, []);
 
-    useEffect(() => {
-        const query = new URLSearchParams(window.location.search);
-        const needsFamilyRedirect = query.get("redirect") == "families";
-        if (needsFamilyRedirect && savedPartialLocalUser()?.token)
-            redirectToFamilyPortal();
-
-        router.events.on("routeChangeStart", () => {
-            if (needsFamilyRedirect && savedPartialLocalUser()?.token) {
-                redirectToFamilyPortal();
-
-                // https://github.com/vercel/next.js/issues/2476#issuecomment-573460710
-                // eslint-disable-next-line @typescript-eslint/only-throw-error
-                throw "Aborting route change, redirection in process....";
-            }
-        });
-        // TODO:
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
     const baseContext = useMemo(
         () => deriveBaseContext({ logout, showMiniDialog }),
         [logout, showMiniDialog],
@@ -240,7 +221,8 @@ const DesktopMainContent: React.FC<MainContentProps> = ({
     pageProps,
     isChangingRoute,
 }) => {
-    const isAppLockReady = useSetupAppLock();
+    const { isAppLockReady, appLockSetupFailed, retryAppLockSetup } =
+        useSetupAppLock();
     const appLock = useAppLockSnapshot();
     const { shouldBlockAppLockRouteTransition } = useDesktopAppLockRoute(
         isAppLockReady,
@@ -254,6 +236,9 @@ const DesktopMainContent: React.FC<MainContentProps> = ({
         appLock.autoLockTimeMs,
     );
 
+    if (appLockSetupFailed) {
+        return <AppLockSetupError onRetry={retryAppLockSetup} />;
+    }
     if (!isAppLockReady) return <LoadingIndicator />;
     if (shouldBlockAppLockRouteTransition) return <LoadingIndicator />;
 
@@ -265,11 +250,6 @@ const DesktopMainContent: React.FC<MainContentProps> = ({
         </>
     );
 };
-
-const redirectToFamilyPortal = () =>
-    void getFamilyPortalRedirectURL().then((url) => {
-        window.location.href = url;
-    });
 
 const WindowTitlebar: React.FC<React.PropsWithChildren> = ({ children }) => (
     <WindowTitlebarArea>

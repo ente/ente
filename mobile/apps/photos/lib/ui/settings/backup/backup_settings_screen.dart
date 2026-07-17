@@ -95,13 +95,10 @@ class BackupSettingsScreen extends StatelessWidget {
           _toggleItem(
             context,
             title: l10n.disableAutoLock,
-            value: () =>
-                EnteWakeLockService.instance.shouldKeepAppAwakeAcrossSessions,
+            value: () => wakeLockService.shouldKeepAppAwakeAcrossSessions,
             onChanged: () async {
-              EnteWakeLockService.instance.updateWakeLock(
-                enable: !EnteWakeLockService
-                    .instance
-                    .shouldKeepAppAwakeAcrossSessions,
+              wakeLockService.updateWakeLock(
+                enable: !wakeLockService.shouldKeepAppAwakeAcrossSessions,
                 wakeLockFor: WakeLockFor.fasterBackupsOniOSByKeepingScreenAwake,
               );
             },
@@ -154,6 +151,7 @@ class _BackupOnlyNewPhotosToggle extends StatelessWidget {
           if (!hasPermission) {
             return;
           }
+          if (!context.mounted) return;
           final shouldProceed = await _maybeHandleFolderSelection(
             context: context,
           );
@@ -231,6 +229,7 @@ class _BackupOnlyNewPhotosToggle extends StatelessWidget {
     }
 
     if (result == _FolderPromptAction.selectFolders) {
+      if (!context.mounted) return false;
       final bool? selected = await handleFolderSelectionBackupFlow(
         context,
         fromOnlyNewPhotosToggle: true,

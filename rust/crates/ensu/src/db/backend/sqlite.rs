@@ -13,7 +13,7 @@ pub struct SqliteBackend {
 impl SqliteBackend {
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let conn = Connection::open(path)?;
-        conn.execute_batch("PRAGMA foreign_keys = ON;")?;
+        conn.execute_batch("PRAGMA foreign_keys = ON; PRAGMA secure_delete = ON;")?;
         Ok(Self {
             conn: Mutex::new(conn),
         })
@@ -205,5 +205,22 @@ fn from_sql_value(value: SqlValue) -> Result<Value> {
         SqlValue::Text(v) => Ok(Value::Text(v)),
         SqlValue::Blob(v) => Ok(Value::Blob(v)),
         SqlValue::Real(_) => Err(Error::UnsupportedValueType("real".to_string())),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn disk_connections_enable_secure_delete() {
+        let path = std::env::temp_dir().join(format!("ensu-sqlite-{}", uuid::Uuid::new_v4()));
+        let backend = SqliteBackend::open(&path).unwrap();
+        assert_eq!(
+            backend.query_row("PRAGMA secure_delete", &[]).unwrap(),
+            Some(vec![Value::Integer(1)])
+        );
+        drop(backend);
+        std::fs::remove_file(path).unwrap();
     }
 }

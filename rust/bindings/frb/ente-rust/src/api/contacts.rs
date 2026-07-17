@@ -17,80 +17,37 @@ use ente_core::auth::KeyAttributes as CoreKeyAttributes;
 use flutter_rust_bridge::frb;
 
 #[frb]
-/// Contact API errors exposed over Flutter Rust Bridge.
 pub enum ContactsError {
-    /// API HTTP error with status and message.
-    Http {
-        /// Error response body or summary message.
-        message: String,
-        /// HTTP status code returned by the API.
-        status: u16,
-    },
-    /// Network transport error.
-    Network {
-        /// Underlying network error description.
-        message: String,
-    },
-    /// Response or payload parse error.
-    Parse {
-        /// Parse failure description.
-        message: String,
-    },
-    /// Invalid request or base URL error.
-    InvalidUrl {
-        /// Invalid URL description.
-        message: String,
-    },
-    /// Cryptographic operation failed.
-    Crypto {
-        /// Cryptographic error description.
-        message: String,
-    },
-    /// Authentication or recovery crypto operation failed.
-    Auth {
-        /// Authentication error description.
-        message: String,
-    },
-    /// Input validation failed.
-    InvalidInput {
-        /// Validation failure description.
-        message: String,
-    },
-    /// Missing encrypted contact payload on a live contact response.
-    MissingEncryptedData,
-    /// Missing encrypted contact key on a live contact response.
-    MissingEncryptedKey,
-    /// Contact profile picture does not exist.
-    ProfilePictureNotFound,
+    Network { message: String },
+    Http { status: u16, message: String },
+    Parse { message: String },
+    Crypto { message: String },
+    Auth { message: String },
+    InvalidInput { message: String },
+    MissingEncryptedData { message: String },
+    MissingEncryptedKey { message: String },
+    ProfilePictureNotFound { message: String },
+    ActiveRecoverySession { message: String },
 }
 
 impl From<CoreContactsError> for ContactsError {
-    fn from(value: CoreContactsError) -> Self {
-        match value {
-            CoreContactsError::Http(ente_core::http_legacy::Error::Http {
-                status,
+    fn from(e: CoreContactsError) -> Self {
+        use ente_contacts::ErrorKind as K;
+        let message = ente_core::error::chain(&e);
+        match e.kind() {
+            K::Network => Self::Network { message },
+            K::Http => Self::Http {
+                status: e.status().unwrap_or_default(),
                 message,
-                ..
-            }) => ContactsError::Http { message, status },
-            CoreContactsError::Http(ente_core::http_legacy::Error::Network(message)) => {
-                ContactsError::Network { message }
-            }
-            CoreContactsError::Http(ente_core::http_legacy::Error::Parse(message)) => {
-                ContactsError::Parse { message }
-            }
-            CoreContactsError::Http(ente_core::http_legacy::Error::InvalidUrl(message)) => {
-                ContactsError::InvalidUrl { message }
-            }
-            CoreContactsError::Crypto(message) => ContactsError::Crypto {
-                message: message.to_string(),
             },
-            CoreContactsError::Auth(message) => ContactsError::Auth {
-                message: message.to_string(),
-            },
-            CoreContactsError::InvalidInput(message) => ContactsError::InvalidInput { message },
-            CoreContactsError::MissingEncryptedData => ContactsError::MissingEncryptedData,
-            CoreContactsError::MissingEncryptedKey => ContactsError::MissingEncryptedKey,
-            CoreContactsError::ProfilePictureNotFound => ContactsError::ProfilePictureNotFound,
+            K::Parse => Self::Parse { message },
+            K::Crypto => Self::Crypto { message },
+            K::Auth => Self::Auth { message },
+            K::InvalidInput => Self::InvalidInput { message },
+            K::MissingEncryptedData => Self::MissingEncryptedData { message },
+            K::MissingEncryptedKey => Self::MissingEncryptedKey { message },
+            K::ProfilePictureNotFound => Self::ProfilePictureNotFound { message },
+            K::ActiveRecoverySession => Self::ActiveRecoverySession { message },
         }
     }
 }
@@ -180,8 +137,6 @@ pub struct ContactData {
     pub contact_user_id: i64,
     /// User-chosen display name for the contact.
     pub name: String,
-    /// Optional birthday in `yyyy-MM-dd` format.
-    pub birth_date: Option<String>,
 }
 
 impl From<ContactData> for CoreContactData {
@@ -189,7 +144,6 @@ impl From<ContactData> for CoreContactData {
         Self {
             contact_user_id: value.contact_user_id,
             name: value.name,
-            birth_date: value.birth_date,
         }
     }
 }
@@ -206,8 +160,6 @@ pub struct ContactRecord {
     pub email: Option<String>,
     /// Client-managed display name from the encrypted payload.
     pub name: Option<String>,
-    /// Optional birthday from the encrypted payload.
-    pub birth_date: Option<String>,
     /// Current profile picture attachment id, if any.
     pub profile_picture_attachment_id: Option<String>,
     /// Whether this record is a tombstone.
@@ -225,7 +177,6 @@ impl From<CoreContactRecord> for ContactRecord {
             contact_user_id: value.contact_user_id,
             email: value.email,
             name: value.name,
-            birth_date: value.birth_date,
             profile_picture_attachment_id: value.profile_picture_attachment_id,
             is_deleted: value.is_deleted,
             created_at: value.created_at,

@@ -11,22 +11,7 @@
   "invalidEmailAddress": "Μη έγκυρη διεύθυνση email",
   "enterValidEmail": "Παρακαλώ εισάγετε μια έγκυρη διεύθυνση ηλεκτρονικού ταχυδρομείου.",
   "deleteAccount": "Διαγραφή λογαριασμού",
-  "deleteAccountWarning": "Αυτό θα διαγράψει τους λογαριασμούς σας σε Ente Auth, Ente Photos και Ente Locker.",
-  "askDeleteReason": "Ποιος είναι ο κύριος λόγος που διαγράφετε το λογαριασμό σας;",
-  "deleteAccountFeedbackPrompt": "Λυπούμαστε που σας βλέπουμε να φεύγετε. Παρακαλούμε μοιραστείτε τα σχόλιά σας για να μας βοηθήσετε να βελτιωθούμε.",
-  "feedback": "Σχόλια",
-  "kindlyHelpUsWithThisInformation": "Παρακαλούμε βοηθήστε μας δίνοντας αυτές τις πληροφορίες",
-  "confirmDeletePrompt": "Ναι, θέλω να διαγράψω μόνιμα αυτό το λογαριασμό και όλα τα δεδομένα του σε όλες τις εφαρμογές.",
-  "confirmAccountDeletion": "Επιβεβαίωση Διαγραφής Λογαριασμού",
-  "deleteAccountPermanentlyButton": "Οριστική Διαγραφή Λογαριασμού",
-  "yourAccountHasBeenDeleted": "Ο λογαριασμός σας έχει διαγραφεί",
-  "selectReason": "Επιλέξτε αιτία",
-  "deleteReason1": "Λείπει μία βασική λειτουργία που χρειάζομαι",
-  "deleteReason2": "Η εφαρμογή ή μια συγκεκριμένη λειτουργία δεν συμπεριφέρεται όπως νομίζω ότι θα έπρεπε",
-  "deleteReason3": "Βρήκα μια άλλη υπηρεσία που μου αρέσει περισσότερο",
-  "deleteReason4": "Ο λόγος δεν συμπεριλαμβάνεται στη λίστα",
   "sendEmail": "Αποστολή email",
-  "deleteRequestSLAText": "Το αίτημά σας θα εξεταστεί εντός 72 ωρών.",
   "entePhotosPerm": "Το Ente <i>χρειάζεται άδεια</i> για να διατηρεί τις φωτογραφίες σας",
   "ok": "OK",
   "createAccount": "Δημιουργία λογαριασμού",
@@ -432,7 +417,6 @@
   "authToChangeEmailVerificationSetting": "Παρακαλώ επαληθεύστε την ταυτότητά σας για την επαλήθευση του email σας",
   "exportYourData": "Εξαγωγή των δεδομένων σας",
   "logout": "Αποσύνδεση",
-  "authToInitiateAccountDeletion": "Παρακαλώ πραγματοποιήστε έλεγχο ταυτότητας για να ξεκινήσετε τη διαγραφή λογαριασμού",
   "areYouSureYouWantToLogout": "Θέλετε σίγουρα να αποσυνδεθείτε;",
   "yesLogout": "Ναι, αποσύνδεση",
   "aNewVersionOfEnteIsAvailable": "Μια νέα έκδοση του Ente είναι διαθέσιμη.",
@@ -877,16 +861,6 @@
   "playOnTv": "Αναπαραγωγή άλμπουμ στην τηλεόραση",
   "pair": "Σύζευξη",
   "deviceNotFound": "Η συσκευή δε βρέθηκε",
-  "castInstruction": "Επισκεφθείτε το {castUrl} στη συσκευή που θέλετε να συζεύξετε.\n\nΕισάγετε τον παρακάτω κωδικό για να παίξετε το άλμπουμ στην τηλεόρασή σας.",
-  "@castInstruction": {
-    "description": "Instructions shown when pairing a device to play an album on TV.",
-    "placeholders": {
-      "castUrl": {
-        "type": "String",
-        "example": "https://cast.ente.com"
-      }
-    }
-  },
   "deviceCodeHint": "Εισάγετε τον κωδικό",
   "joinDiscord": "Μπείτε στο Discord",
   "locations": "Τοποθεσίες",

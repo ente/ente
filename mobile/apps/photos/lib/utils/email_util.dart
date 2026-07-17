@@ -92,6 +92,7 @@ Future<void> sendLogs(
         shouldSurfaceExecutionStates: false,
         onTap: () async {
           final zipFilePath = await getZippedLogsFile(context);
+          if (!context.mounted) return;
           await exportLogs(context, zipFilePath);
         },
       ),
@@ -112,6 +113,7 @@ Future<void> _sendLogs(
   String? body,
 ) async {
   final String zipFilePath = await getZippedLogsFile(context);
+  if (!context.mounted) return;
   final didOpenComposer = await sendLogsWithSubjectAndBody(
     context,
     toEmail: toEmail,
@@ -120,7 +122,9 @@ Future<void> _sendLogs(
     zipFilePath: zipFilePath,
   );
   if (!didOpenComposer) {
+    if (!context.mounted) return;
     Navigator.of(context).pop();
+    if (!context.mounted) return;
     await shareLogs(context, toEmail, zipFilePath);
   }
 }
@@ -133,6 +137,7 @@ Future<bool> sendLogsWithSubjectAndBody(
   String? zipFilePath,
 }) async {
   final effectiveZipFilePath = zipFilePath ?? await getZippedLogsFile(context);
+  if (!context.mounted) return false;
   return sendComposedEmail(
     context,
     to: toEmail,
@@ -174,8 +179,11 @@ Future<String> getZippedLogsFile(BuildContext? context) async {
   final logsPath = (await getApplicationSupportDirectory()).path;
   final logsDirectory = Directory(logsPath + "/logs");
   final tempPath = (await getTemporaryDirectory()).path;
-  final zipFilePath =
-      tempPath + "/logs-${Configuration.instance.getUserID() ?? 0}.zip";
+  final timestamp = DateTime.now().toUtc().toIso8601String().replaceAll(
+    ':',
+    '-',
+  );
+  final zipFilePath = tempPath + "/logs-$timestamp.zip";
   final encoder = ZipFileEncoder();
   encoder.create(zipFilePath);
   await encoder.addDirectory(logsDirectory);
@@ -221,6 +229,7 @@ Future<void> shareLogs(
     ],
   );
   if (result?.action != null && result!.action == ButtonAction.second) {
+    if (!context.mounted) return;
     await exportLogs(context, zipFilePath);
   }
 }
@@ -256,6 +265,7 @@ Future<void> sendEmail(
 }) async {
   try {
     final String clientDebugInfo = await _clientInfo();
+    if (!context.mounted) return;
     final didOpenComposer = await sendComposedEmail(
       context,
       to: to,
@@ -263,10 +273,12 @@ Future<void> sendEmail(
       body: (body ?? '') + clientDebugInfo,
     );
     if (!didOpenComposer) {
+      if (!context.mounted) return;
       await _showNoMailAppsSheet(context, to);
     }
   } catch (e) {
     _logger.severe("Failed to send emailContent to $to", e);
+    if (!context.mounted) return;
     await _showNoMailAppsSheet(context, to);
   }
 }
@@ -283,10 +295,12 @@ Future<void> openEmailComposer(
       body: '',
     );
     if (!didOpenComposer) {
+      if (!context.mounted) return;
       await _showNoMailAppsSheet(context, to);
     }
   } catch (e, s) {
     _logger.severe("Failed to open email composer to $to", e, s);
+    if (!context.mounted) return;
     await _showNoMailAppsSheet(context, to);
   }
 }
@@ -333,10 +347,13 @@ Future<bool> sendComposedEmail(
       return false;
     }
     if (!result.didOpen && result.canOpen) {
+      if (!context.mounted) return false;
       await showCupertinoModalPopup(
         context: context,
-        builder: (_) => CupertinoActionSheet(
-          title: Text(AppLocalizations.of(context).selectMailApp + " \n $to"),
+        builder: (sheetContext) => CupertinoActionSheet(
+          title: Text(
+            AppLocalizations.of(sheetContext).selectMailApp + " \n $to",
+          ),
           actions: [
             for (final app in result.options)
               CupertinoActionSheetAction(
@@ -346,16 +363,16 @@ Future<bool> sendComposedEmail(
                     mailApp: app,
                     emailContent: emailContent,
                   );
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
+                  if (sheetContext.mounted) {
+                    Navigator.of(sheetContext).pop();
                   }
                 },
               ),
           ],
           cancelButton: CupertinoActionSheetAction(
-            child: Text(AppLocalizations.of(context).cancel),
+            child: Text(AppLocalizations.of(sheetContext).cancel),
             onPressed: () {
-              Navigator.of(context).pop();
+              Navigator.of(sheetContext).pop();
             },
           ),
         ),

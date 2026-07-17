@@ -1238,8 +1238,13 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                   collection: Collection,
                   enteFile: EnteFile,
               ) => {
-                  onSaveEditedImageCopy(editedFile, collection, enteFile);
-                  handleClose();
+                  const didStartSave = onSaveEditedImageCopy(
+                      editedFile,
+                      collection,
+                      enteFile,
+                  );
+                  if (didStartSave) handleClose();
+                  return didStartSave;
               }
             : undefined;
     }, [onSaveEditedImageCopy, handleClose]);
@@ -2252,7 +2257,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                     </MoreMenuItem>
                 )}
                 {handleAddFileToCollection &&
-                    activeAnnotatedFile.annotation.isOwnFile && (
+                    !(isInTrashSection || isInHiddenSection) && (
                         <MoreMenuItem onClick={handleAddFileToCollection}>
                             <MoreMenuItemTitle>
                                 {t("add_to_album")}

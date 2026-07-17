@@ -10,17 +10,13 @@ import "package:photos/models/ml/face/box.dart";
 import "package:photos/models/ml/vector.dart";
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_clustering_service.dart";
 import "package:photos/services/machine_learning/ml_constants.dart";
-import "package:photos/services/machine_learning/ml_model.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
-import "package:photos/services/machine_learning/semantic_search/clip/clip_text_encoder.dart";
-import "package:photos/services/machine_learning/semantic_search/clip/clip_text_tokenizer.dart";
 import "package:photos/services/machine_learning/semantic_search/query_result.dart";
 import "package:photos/src/rust/api/image_processing_api.dart"
     as rust_image_processing;
 import "package:photos/src/rust/api/ml_indexing_api.dart" as rust_ml;
 import "package:photos/src/rust/api/usearch_api.dart" as rust_usearch;
 import "package:photos/src/rust/frb_generated.dart" show EntePhotosRust;
-import "package:photos/utils/image_ml_util.dart";
 import "package:photos/utils/ml_util.dart";
 
 final Map<String, dynamic> _isolateCache = {};
@@ -46,20 +42,8 @@ enum IsolateOperation {
   /// [MLIndexingIsolate]
   releaseRustMlRuntime,
 
-  /// [MLIndexingIsolate]
-  loadIndexingModels,
-
-  /// [MLIndexingIsolate]
-  releaseIndexingModels,
-
   /// [MLComputer]
   generateFaceThumbnails,
-
-  /// [MLComputer]
-  loadModel,
-
-  /// [MLComputer]
-  initializeClipTokenizer,
 
   /// [MLComputer]
   runClipText,
@@ -127,15 +111,10 @@ Future<dynamic> isolateFunction(
 
     /// MLIndexingIsolate
     case IsolateOperation.analyzeImage:
-      final bool useRustMl = args["useRustMl"] as bool? ?? false;
-      if (useRustMl) {
-        await _ensureRustLoaded();
-      }
+      await _ensureRustLoaded();
       final MLResult result;
       try {
-        result = useRustMl
-            ? await analyzeImageRust(args)
-            : await analyzeImageStatic(args);
+        result = await analyzeImageRust(args);
       } on rust_ml.RustMlError_CorruptModel catch (e) {
         final file = File(e.field0);
         if (await file.exists()) {
@@ -156,29 +135,6 @@ Future<dynamic> isolateFunction(
       await _releaseRustRuntime();
       return true;
 
-    /// MLIndexingIsolate
-    case IsolateOperation.loadIndexingModels:
-      final modelNames = args['modelNames'] as List<String>;
-      final modelPaths = args['modelPaths'] as List<String>;
-      final addresses = <int>[];
-      for (int i = 0; i < modelNames.length; i++) {
-        final int address = await MlModel.loadModel(
-          modelNames[i],
-          modelPaths[i],
-        );
-        addresses.add(address);
-      }
-      return List<int>.from(addresses, growable: false);
-
-    /// MLIndexingIsolate
-    case IsolateOperation.releaseIndexingModels:
-      final modelNames = args['modelNames'] as List<String>;
-      final modelAddresses = args['modelAddresses'] as List<int>;
-      for (int i = 0; i < modelNames.length; i++) {
-        await MlModel.releaseModel(modelNames[i], modelAddresses[i]);
-      }
-      return true;
-
     /// Cases for MLIndexingIsolate stop here
 
     /// Cases for MLComputer start here
@@ -186,58 +142,30 @@ Future<dynamic> isolateFunction(
     /// MLComputer
     case IsolateOperation.generateFaceThumbnails:
       final imagePath = args['imagePath'] as String;
-      final useRustForFaceThumbnails =
-          args['useRustForFaceThumbnails'] as bool? ?? false;
       final faceBoxesJson = args['faceBoxesList'] as List<Map<String, dynamic>>;
       final List<FaceBox> faceBoxes = faceBoxesJson
           .map((json) => FaceBox.fromJson(json))
           .toList();
-      if (useRustForFaceThumbnails) {
-        await _ensureRustLoaded();
-        final rustFaceBoxes = faceBoxes
-            .map(
-              (box) => rust_image_processing.RustFaceBox(
-                x: box.x,
-                y: box.y,
-                width: box.width,
-                height: box.height,
-              ),
-            )
-            .toList(growable: false);
-        final List<Uint8List> results = await rust_image_processing
-            .generateFaceThumbnails(
-              imagePath: imagePath,
-              faceBoxes: rustFaceBoxes,
-            );
-        return List.from(results);
-      }
-      final List<Uint8List> results = await generateFaceThumbnailsUsingCanvas(
-        imagePath,
-        faceBoxes,
-      );
+      await _ensureRustLoaded();
+      final rustFaceBoxes = faceBoxes
+          .map(
+            (box) => rust_image_processing.RustFaceBox(
+              x: box.x,
+              y: box.y,
+              width: box.width,
+              height: box.height,
+            ),
+          )
+          .toList(growable: false);
+      final List<Uint8List> results = await rust_image_processing
+          .generateFaceThumbnails(
+            imagePath: imagePath,
+            faceBoxes: rustFaceBoxes,
+          );
       return List.from(results);
 
     /// MLComputer
-    case IsolateOperation.loadModel:
-      final modelName = args['modelName'] as String;
-      final modelPath = args['modelPath'] as String;
-      final int address = await MlModel.loadModel(modelName, modelPath);
-      return address;
-
-    /// MLComputer
-    case IsolateOperation.initializeClipTokenizer:
-      final vocabPath = args["vocabPath"] as String;
-      await ClipTextTokenizer.instance.init(vocabPath);
-      return true;
-
-    /// MLComputer
     case IsolateOperation.runClipText:
-      final useRustMl = args["useRustMl"] as bool? ?? false;
-      if (!useRustMl) {
-        final textEmbedding = await ClipTextEncoder.predict(args);
-        return List<double>.from(textEmbedding, growable: false);
-      }
-
       await _ensureRustLoaded();
       final text = args["text"] as String;
       final clipTextModelPath = args["clipTextModelPath"] as String?;

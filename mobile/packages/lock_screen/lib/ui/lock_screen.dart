@@ -327,6 +327,9 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
             1000;
 
         await startLockTimer(remainingTime);
+        if (!mounted) {
+          return;
+        }
       }
       _isShowingLockScreen = true;
       final result = isTimerRunning
@@ -338,6 +341,10 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
               macOSReason: context.strings.unlock,
               isOpeningApp: true,
             );
+      if (!mounted) {
+        _isShowingLockScreen = false;
+        return;
+      }
       _logger.finest("LockScreen Result $result $currentTimestamp");
       _isShowingLockScreen = false;
       if (result) {

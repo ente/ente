@@ -189,7 +189,6 @@
   "deleteAccountQuery": "ご不便をおかけして申し訳ありません。なにか問題が発生していますか？",
   "yesSendFeedbackAction": "はい、フィードバックを送信します",
   "noDeleteAccountAction": "いいえ、アカウントを削除します",
-  "initiateAccountDeleteTitle": "アカウントの削除を開始するためには認証が必要です",
   "sendEmail": "メール送信",
   "createNewAccount": "新規アカウント作成",
   "weakStrength": "脆弱",

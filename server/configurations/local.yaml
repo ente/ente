@@ -102,8 +102,9 @@ apps:
     public-paste:
     # Default is https://cast.ente.com
     cast:
-    # Set this to the URL where your accounts web app is running, primarily used for
-    # passkey based 2FA.
+    # Set this to the URL where your accounts web app is running. It is used
+    # for passkey based 2FA and other cross-app flows like accepting family
+    # invites.
     #
     # Default is https://accounts.ente.com
     accounts:
@@ -115,6 +116,9 @@ apps:
     accounts-legacy:
     # Default is https://family.ente.io
     family:
+    # Default is https://ente.space
+    # Set this to the URL where your space web app is running.
+    space:
     # Default is https://memories.ente.com
     #
     # If you're running a self-hosted instance and wish to serve public memory shares,
@@ -128,6 +132,12 @@ apps:
     custom-domain:
         # Default is my.ente.com
         cname:
+
+space:
+    assets:
+        # Bucket ID used for Space post, avatar, and cover uploads.
+        # If omitted, Space asset uploads return SPACE_ASSETS_UNAVAILABLE.
+        primaryBucket:
 
 # Database connection parameters
 db:

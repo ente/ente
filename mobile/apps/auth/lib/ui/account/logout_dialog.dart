@@ -29,6 +29,7 @@ Future<void> autoLogoutAlert(BuildContext context) async {
             int pendingSyncCount = await AuthenticatorDB.instance
                 .getNeedSyncCount();
             if (pendingSyncCount > 0) {
+              if (!context.mounted) return;
               // ignore: unawaited_futures
               showChoiceActionSheet(
                 context,
@@ -41,6 +42,7 @@ Future<void> autoLogoutAlert(BuildContext context) async {
                 },
               );
             } else {
+              if (!context.mounted) return;
               await _logout(context, l10n);
             }
           },

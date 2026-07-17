@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:ente_components/theme/colors.dart';
 import 'package:ente_components/theme/spacing.dart';
 import 'package:ente_components/theme/text_styles.dart';
@@ -104,7 +106,33 @@ enum AvatarComponentSize {
   final TextStyle textStyle;
 }
 
-enum AvatarComponentColor { yellow, green, orange, pink, purple, blue, cyan }
+enum AvatarComponentColor {
+  yellow,
+  green,
+  orange,
+  pink,
+  purple,
+  blue,
+  cyan,
+  black,
+}
+
+/// A stable FNV-1a seed for identity colors across processes and platforms.
+int avatarSeedForIdentity(String identityKey) {
+  var hash = 0x811c9dc5;
+  for (final byte in utf8.encode(identityKey.trim().toLowerCase())) {
+    hash ^= byte;
+    hash = (hash * 0x01000193) & 0xffffffff;
+  }
+  return hash;
+}
+
+Color avatarColorForIdentity(BuildContext context, String identityKey) {
+  final palette = Theme.of(context).brightness == Brightness.dark
+      ? avatarDark
+      : avatarLight;
+  return palette[avatarSeedForIdentity(identityKey) % palette.length];
+}
 
 /// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2482-6547&m=dev
 /// Section: Labels and avatars / Avatar
@@ -256,6 +284,7 @@ class AvatarComponent extends StatelessWidget {
       AvatarComponentColor.purple => colors.purple,
       AvatarComponentColor.blue => colors.blue,
       AvatarComponentColor.cyan => avatarCyan,
+      AvatarComponentColor.black => Colors.black,
     };
   }
 

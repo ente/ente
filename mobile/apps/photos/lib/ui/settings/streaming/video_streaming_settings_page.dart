@@ -213,6 +213,7 @@ class VideoStreamingStatusWidgetState
 
   Future<void> init() async {
     _netProcessed = await VideoPreviewService.instance.getStatus();
+    if (!mounted) return;
     setState(() {});
   }
 

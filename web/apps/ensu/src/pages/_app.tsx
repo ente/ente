@@ -1,6 +1,5 @@
 import { WhatsNewDialog } from "@/components/WhatsNewDialog";
 import { setupAutoAppUpdates } from "@/services/app-update";
-import { resetEnsuAppState } from "@/services/reset";
 import { isTauriRuntime } from "@/services/tauri-runtime";
 import {
     getPendingDesktopWhatsNew,
@@ -10,6 +9,7 @@ import {
 import { CssBaseline } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import { staticAppTitle } from "ente-base/app";
+import { assertionFailed } from "ente-base/assert";
 import { CustomHead } from "ente-base/components/Head";
 import {
     LoadingIndicator,
@@ -92,10 +92,6 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
         };
     }, []);
 
-    const resetAppState = useCallback(() => {
-        void resetEnsuAppState();
-    }, []);
-
     const handleWhatsNewClose = useCallback(() => {
         markDesktopWhatsNewSeen();
         setIsWhatsNewOpen(false);
@@ -103,8 +99,8 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
     }, []);
 
     const baseContext = useMemo(
-        () => deriveBaseContext({ logout: resetAppState, showMiniDialog }),
-        [resetAppState, showMiniDialog],
+        () => deriveBaseContext({ logout: assertionFailed, showMiniDialog }),
+        [showMiniDialog],
     );
 
     const title = staticAppTitle;

@@ -114,6 +114,7 @@ class _AlbumsWidgetSettingsState extends State<AlbumsWidgetSettings> {
                                 .toList();
                             await AlbumHomeWidgetService.instance
                                 .updateSelectedAlbums(albums);
+                            if (!context.mounted) return;
                             Navigator.pop(context);
                           }
                         : null,

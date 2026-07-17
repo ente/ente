@@ -149,6 +149,9 @@ class TextDetectorWidget extends StatefulWidget {
   /// Defaults to true for backward compatibility.
   final bool showEditorHint;
 
+  /// Whether automatic detection should show the no-text message.
+  final bool showNoTextMessageOnAutoDetect;
+
   /// When set, the widget starts with the interaction animation active and
   /// will auto-select text at this position after detection completes.
   /// Used when the parent captured a long press before the widget was built.
@@ -191,6 +194,7 @@ class TextDetectorWidget extends StatefulWidget {
     this.overlayOnly = false,
     this.showProcessingOverlay = true,
     this.showEditorHint = true,
+    this.showNoTextMessageOnAutoDetect = true,
     this.initialInteractionPosition,
     this.showScanAnimation = true,
     this.isImageZoomed = false,
@@ -442,11 +446,22 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
       if (mounted && widget.imagePath == requestedPath) {
         setState(() {
           _isProcessing = false;
-          _userAttemptedInteraction = false;
           _pendingSelectionPosition = null;
         });
         _notifyController();
       }
+    }
+  }
+
+  void _handleLongPressStart(LongPressStartDetails details) {
+    setState(() {
+      _userAttemptedInteraction = true;
+      _pendingSelectionPosition = details.globalPosition;
+    });
+    _notifyController();
+
+    if (!_isProcessing && _resolvedImagePath != null) {
+      unawaited(_detectText());
     }
   }
 
@@ -459,21 +474,7 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onLongPressStart: _detectedTextBlocks == null
-          ? (details) {
-              if (!_userAttemptedInteraction) {
-                setState(() {
-                  _userAttemptedInteraction = true;
-                  _pendingSelectionPosition = details.globalPosition;
-                });
-                _notifyController();
-              }
-              // Start detection on long press if not already running
-              if (!_isProcessing && _resolvedImagePath != null) {
-                _detectText();
-              }
-            }
-          : null,
+      onLongPressStart: _hasSelectableText ? null : _handleLongPressStart,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -499,7 +500,9 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
                   ? _buildNetworkErrorBanner(_errorMessage!)
                   : _buildErrorBanner(_errorMessage!),
             ),
-          if (_detectedTextBlocks != null &&
+          if ((widget.showNoTextMessageOnAutoDetect ||
+                  _userAttemptedInteraction) &&
+              _detectedTextBlocks != null &&
               _detectedTextBlocks!.isEmpty &&
               _errorMessage == null)
             Positioned(
@@ -735,6 +738,7 @@ class _TextDetectorWidgetState extends State<TextDetectorWidget> {
                 _errorMessage = null;
                 _isNetworkError = false;
                 _modelsReady = false;
+                _userAttemptedInteraction = true;
               });
               _detectText();
             },

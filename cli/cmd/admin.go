@@ -175,6 +175,6 @@ func init() {
 	_updateFreeUserStorage.Flags().StringP("user", "u", "", "The email of the user to update subscription for. (required)")
 	// add a flag with no value --no-limit
 	_updateFreeUserStorage.Flags().String("no-limit", "True", "When true, sets 100TB as storage limit, and expiry to current date + 100 years")
-	_sendMail.Flags().StringP("admin-user", "a", "", "The email of the admin user. ")
+	_sendMail.Flags().StringP("admin-user", "a", "", "The email of the admin user.")
 	_adminCmd.AddCommand(_userDetailsCmd, _disable2faCmd, _disablePasskeyCmd, _updateFreeUserStorage, _listUsers, _deleteUser, _sendMail)
 }

@@ -108,10 +108,15 @@ class LockScreenSettings {
     }
   }
 
-  Future<void> setHideAppContent(bool hideContent) async {
+  Future<void> setHideAppContent(
+    bool hideContent, {
+    bool persist = true,
+  }) async {
     if (PlatformDetector.isDesktop()) return;
     !hideContent ? EnteScreenCover.disable() : await EnteScreenCover.enable();
-    await _preferences.setBool(keyHideAppContent, hideContent);
+    if (persist) {
+      await _preferences.setBool(keyHideAppContent, hideContent);
+    }
   }
 
   bool getShouldHideAppContent() {

@@ -1,0 +1,1 @@
+- Improved thumbnail and file download reliability.

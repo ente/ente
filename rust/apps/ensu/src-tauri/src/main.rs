@@ -16,11 +16,13 @@ fn main() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(commands::llm::State::default())
-        .manage(commands::llm::ModelDownloadState::default())
         .manage(commands::chat_db::ChatDbState::default())
         .setup(|app| {
             logging::init_logging(app.handle());
             logging::log("App", "setup started");
+
+            let models_dir = app.path().app_data_dir()?.join("models");
+            app.manage(commands::llm::ModelDownloadState::new(models_dir));
 
             // Show the main window after setup is complete
             if let Some(window) = app.get_webview_window("main")
@@ -43,7 +45,6 @@ fn main() {
             commands::chat_db::chat_db_list_sessions,
             commands::chat_db::chat_db_list_sessions_with_preview,
             commands::chat_db::chat_db_get_session,
-            commands::chat_db::chat_db_get_message,
             commands::chat_db::chat_db_create_session,
             commands::chat_db::chat_db_update_session_title,
             commands::chat_db::chat_db_delete_session,
@@ -53,8 +54,8 @@ fn main() {
             commands::chat_db::chat_db_upsert_session,
             commands::chat_db::chat_db_insert_message_with_uuid,
             commands::chat_db::chat_db_compress_attachment_image_file,
-            commands::chat_db::chat_db_reset,
-            commands::chat_db::chat_db_migrate_legacy,
+            commands::chat_db::chat_db_open,
+            commands::chat_db::chat_db_has_existing_store,
             commands::llm::llm_init_backend,
             commands::llm::llm_load_model,
             commands::llm::llm_create_context,
@@ -65,7 +66,9 @@ fn main() {
             commands::llm::llm_cancel,
             commands::system::system_info,
             commands::config::config_defaults,
-            commands::llm::llm_download_model_files,
+            commands::llm::llm_model_status,
+            commands::llm::llm_migrate_models,
+            commands::llm::llm_download_model,
             commands::llm::llm_cancel_model_download,
         ])
         .build(tauri::generate_context!())

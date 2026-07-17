@@ -190,7 +190,6 @@
   "deleteAccountQuery": "आपको जाते हुए देखकर हमें दुख होगा\nक्या आप किसी समस्या का सामना कर रहे हैं?\n",
   "yesSendFeedbackAction": "हाँ, प्रतिक्रिया भेजें\n",
   "noDeleteAccountAction": "नहीं, खाता हटाएँ\n",
-  "initiateAccountDeleteTitle": "खाता हटाने की प्रक्रिया शुरू करने के लिए कृपया प्रमाणीकरण करें\n",
   "sendEmail": "ईमेल भेजें\n",
   "createNewAccount": "नया खाता बनाएँ\n"
 }

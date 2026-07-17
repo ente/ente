@@ -1,11 +1,9 @@
 mod context;
-mod download;
 mod event;
 mod generate;
 mod model;
 
 pub use context::*;
-pub use download::*;
 pub use event::*;
 pub use generate::*;
 pub use model::*;
@@ -29,8 +27,6 @@ pub enum Error {
     PromptTooLong { tokens: usize, context_size: u32 },
     #[error("{op}: {message}")]
     Llama { op: &'static str, message: String },
-    #[error(transparent)]
-    Download(#[from] crate::download::Error),
 }
 
 static BACKEND: OnceLock<Result<LlamaBackend, String>> = OnceLock::new();

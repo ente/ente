@@ -18,6 +18,8 @@ import 'package:photos/models/file/file.dart';
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/file/trash_file.dart";
 import "package:photos/models/gallery_type.dart";
+import 'package:photos/module/download/file.dart';
+import "package:photos/module/download/thumbnail.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/states/detail_page_state.dart";
@@ -34,8 +36,6 @@ import "package:photos/ui/viewer/file/qr_code_detection_helper.dart";
 import "package:photos/ui/viewer/file/qr_code_highlight_overlay.dart";
 import 'package:photos/ui/viewer/gallery/gallery.dart';
 import 'package:photos/utils/dialog_util.dart';
-import 'package:photos/utils/file_util.dart';
-import "package:photos/utils/thumbnail_util.dart";
 
 enum DetailPageMode { minimalistic, full }
 
@@ -159,8 +159,12 @@ class _BodyState extends State<_Body> {
     super.initState();
     _files = widget.config.files;
 
-    _selectedIndexNotifier.value = widget.config.selectedIndex;
-    _pageController = PageController(initialPage: _selectedIndexNotifier.value);
+    final configuredIndex = widget.config.selectedIndex;
+    final selectedIndex = _fileAt(configuredIndex) == null
+        ? -1
+        : configuredIndex;
+    _selectedIndexNotifier.value = selectedIndex;
+    _pageController = PageController(initialPage: max(0, selectedIndex));
     _guestViewEventSubscription = Bus.instance.on<GuestViewEvent>().listen((
       event,
     ) {
@@ -177,8 +181,13 @@ class _BodyState extends State<_Body> {
     // Update shared collection state after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _updateSharedCollectionState(_files![_selectedIndexNotifier.value]);
-      _evaluateQrIfEligible(_files![_selectedIndexNotifier.value]);
+      final selectedFile = _selectedFile;
+      if (selectedFile == null) {
+        Navigator.maybePop(context).ignore();
+        return;
+      }
+      _updateSharedCollectionState(selectedFile);
+      _evaluateQrIfEligible(selectedFile);
       widget.config.onPageReady?.call(context);
     });
   }
@@ -200,15 +209,19 @@ class _BodyState extends State<_Body> {
 
   @override
   Widget build(BuildContext context) {
-    try {
-      _files![_selectedIndexNotifier.value];
-    } catch (e) {
-      _logger.severe(e);
-      Navigator.pop(context);
+    final selectedFile = _selectedFile;
+    if (selectedFile == null) {
+      _logger.warning("Closing detail page without a selected file");
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.maybePop(context).ignore();
+        }
+      });
+      return const Scaffold(backgroundColor: Colors.black);
     }
     _logger.info(
       "Opening " +
-          _files![_selectedIndexNotifier.value].toString() +
+          selectedFile.toString() +
           ". " +
           (_selectedIndexNotifier.value + 1).toString() +
           " / " +
@@ -365,6 +378,7 @@ class _BodyState extends State<_Body> {
       return;
     }
     final fetchedThumbnail = await getThumbnail(file);
+    if (!mounted) return;
     Navigator.of(context)
         .push(
           MaterialPageRoute(
@@ -399,6 +413,7 @@ class _BodyState extends State<_Body> {
           },
           playbackCallback: (shouldEnable, reason) {
             Future.delayed(Duration.zero, () {
+              if (!context.mounted) return;
               InheritedDetailPageState.of(
                 context,
               ).requestFullScreen(shouldEnable: shouldEnable, reason: reason);
@@ -417,6 +432,10 @@ class _BodyState extends State<_Body> {
         );
       },
       onPageChanged: (index) {
+        final file = _fileAt(index);
+        if (file == null) {
+          return;
+        }
         if (_selectedIndexNotifier.value == index) {
           if (kDebugMode) {
             debugPrint("onPageChanged called with same index $index");
@@ -429,8 +448,8 @@ class _BodyState extends State<_Body> {
           _selectedIndexNotifier.value = index;
         }
         Bus.instance.fire(GuestViewEvent(isGuestView, swipeLocked));
-        _updateSharedCollectionState(_files![index]);
-        _evaluateQrIfEligible(_files![index]);
+        _updateSharedCollectionState(file);
+        _evaluateQrIfEligible(file);
       },
       physics: _shouldDisableScroll || swipeLocked
           ? const NeverScrollableScrollPhysics()
@@ -463,6 +482,7 @@ class _BodyState extends State<_Body> {
   }
 
   Future<void> _onFileRemoved(EnteFile file) async {
+    if (!mounted || _files == null) return;
     final totalFiles = _files!.length;
     if (totalFiles == 1) {
       // Deleted the only file
@@ -516,6 +536,7 @@ class _BodyState extends State<_Body> {
     try {
       final ioFile = await getFile(file);
       if (ioFile == null) {
+        if (!mounted) return;
         showShortToast(
           context,
           AppLocalizations.of(context).failedToFetchOriginalForEdit,
@@ -525,6 +546,7 @@ class _BodyState extends State<_Body> {
       }
       if (file.fileType == FileType.video) {
         await dialog.hide();
+        if (!mounted) return;
         replacePage(
           context,
           VideoEditorPage(
@@ -542,8 +564,10 @@ class _BodyState extends State<_Body> {
         ioFile,
         cacheRawData: true,
       );
+      if (!mounted) return;
       await precacheImage(imageProvider, context);
       await dialog.hide();
+      if (!mounted) return;
       replacePage(
         context,
         ImageEditorPage(
@@ -587,8 +611,18 @@ class _BodyState extends State<_Body> {
 
     // Guard: Only update if still showing the same file
     // (user may have swiped to a different file while awaiting)
-    if (_files![_selectedIndexNotifier.value].uploadedFileID == fileID) {
+    if (_selectedFile?.uploadedFileID == fileID) {
       notifier.value = isShared;
     }
+  }
+
+  EnteFile? get _selectedFile => _fileAt(_selectedIndexNotifier.value);
+
+  EnteFile? _fileAt(int index) {
+    final files = _files;
+    if (files == null || index < 0 || index >= files.length) {
+      return null;
+    }
+    return files[index];
   }
 }

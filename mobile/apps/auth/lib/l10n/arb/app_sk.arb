@@ -190,7 +190,6 @@
   "deleteAccountQuery": "Bude nám ľúto ak odídeš. Máš nejaký problém?",
   "yesSendFeedbackAction": "Áno, odoslať spätnú väzbu",
   "noDeleteAccountAction": "Nie, odstrániť účet",
-  "initiateAccountDeleteTitle": "Je potrebné overenie pre spustenie odstránenia účtu",
   "sendEmail": "Odoslať email",
   "createNewAccount": "Vytvoriť nový účet",
   "weakStrength": "Slabé",

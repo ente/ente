@@ -40,12 +40,13 @@ class _MagicSectionState extends State<MagicSection> {
     for (Stream<Event> stream in streamsToListenTo) {
       streamSubscriptions.add(
         stream.listen((event) async {
-          _magicSearchResults =
-              (await SectionType.magic.getData(
-                    context,
-                    limit: widget.resultLimit + 1,
-                  ))
-                  as List<GenericSearchResult>;
+          if (!mounted) return;
+          final results = await SectionType.magic.getData(
+            context,
+            limit: widget.resultLimit + 1,
+          );
+          if (!mounted) return;
+          _magicSearchResults = results as List<GenericSearchResult>;
           setState(() {});
         }),
       );

@@ -40,7 +40,7 @@ class SearchWidgetState extends State<SearchWidget> {
   //Debouncing + querying
   static final isLoading = ValueNotifier(false);
   final _searchService = SearchService.instance;
-  final _debouncer = Debouncer(const Duration(milliseconds: 200));
+  final _debouncer = Debouncer(const Duration(milliseconds: 314));
   late FocusNode focusNode;
   StreamSubscription<TabChangedEvent>? _tabChangedEvent;
   StreamSubscription<TabDoubleTapEvent>? _tabDoubleTapEvent;

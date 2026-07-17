@@ -38,13 +38,14 @@ import "package:photos/db/ml/db.dart";
 import 'package:photos/ente_theme_data.dart';
 import "package:photos/generated/l10n.dart";
 import "package:photos/l10n/l10n.dart";
+import 'package:photos/module/upload/service/file_uploader.dart';
+import 'package:photos/module/upload/service/local_file_update_service.dart';
 import "package:photos/service_locator.dart";
 import "package:photos/services/account/user_service.dart";
 import 'package:photos/services/app_lifecycle_service.dart';
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/favorites_service.dart';
 import 'package:photos/services/home_widget_service.dart';
-import 'package:photos/services/local_file_update_service.dart';
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import 'package:photos/services/machine_learning/ml_service.dart';
 import 'package:photos/services/machine_learning/semantic_search/semantic_search_service.dart';
@@ -59,11 +60,9 @@ import 'package:photos/services/sync/local_sync_service.dart';
 import 'package:photos/services/sync/remote_sync_service.dart';
 import "package:photos/services/sync/sync_service.dart";
 import "package:photos/services/video_preview_service.dart";
-import "package:photos/services/wake_lock_service.dart";
 import "package:photos/src/rust/frb_generated.dart";
 import "package:photos/utils/device_info.dart";
 import "package:photos/utils/email_util.dart";
-import 'package:photos/utils/file_uploader.dart';
 import "package:photos/utils/intent_util.dart";
 import "package:photos/utils/photos_crypto_api_adapter.dart";
 import 'package:rive/rive.dart' as rive;
@@ -427,6 +426,7 @@ Future<void> _init(
       NetworkClient.instance.downloadDio,
       packageInfo,
     );
+    wakeLockService.init(isBackground: isBackground);
 
     _logger.info("Configuration init $tlog");
     await Configuration.instance.init(preferences);
@@ -515,10 +515,9 @@ Future<void> _init(
     unawaited(MLService.instance.init());
     PersonService.init(entityService, MLDataDB.instance, preferences);
     await PersonService.instance.refreshPersonCache();
-    if (!isBackground && flagService.enableContact) {
+    if (!isBackground) {
       unawaited(_warmContactsCacheInBackground());
     }
-    EnteWakeLockService.instance.init(preferences);
     wrappedService.scheduleInitialLoad();
     logLocalSettings();
     initComplete = true;

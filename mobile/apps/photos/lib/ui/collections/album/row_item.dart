@@ -336,6 +336,7 @@ class AlbumRowItemWidget extends StatelessWidget {
           return;
         }
         final thumbnail = await CollectionsService.instance.getCover(c);
+        if (!context.mounted) return;
         // ignore: unawaited_futures
         routeToPage(
           context,

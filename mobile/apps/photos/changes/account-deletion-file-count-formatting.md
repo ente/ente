@@ -1,0 +1,1 @@
+- Format account deletion file counts with locale-aware separators.

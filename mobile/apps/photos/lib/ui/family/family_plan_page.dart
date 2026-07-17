@@ -19,6 +19,7 @@ import 'package:photos/ui/family/edit_storage_limit_page.dart';
 import 'package:photos/ui/family/family_ui.dart';
 import 'package:photos/ui/family/invite_members_page.dart';
 import 'package:photos/ui/payment/subscription.dart';
+import 'package:photos/utils/avatar_util.dart';
 import 'package:photos/utils/dialog_util.dart';
 
 class FamilyPlanPage extends StatefulWidget {
@@ -305,7 +306,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
     final l10n = AppLocalizations.of(context);
     final members = _sortedMembersForDashboard(isAdminView: isAdminView);
     final activeMembers = members.where((member) => member.isActive).toList();
-    final colorMap = _memberColorMap(activeMembers);
+    final colorMap = _memberColorMap(members);
 
     final currentEmail = _userDetails.email.trim().toLowerCase();
     final currentMember = members.firstWhereOrNull(
@@ -332,7 +333,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
         _FamilyMembersCard(
           members: members,
           userDetails: _userDetails,
-          colorMap: colorMap,
+          memberColor: _memberColor,
           isAdminView: isAdminView,
           onMemberTap: _showMemberActions,
         ),
@@ -439,11 +440,6 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
 
     final l10n = AppLocalizations.of(context);
     final colorScheme = getEnteColorScheme(context);
-    final colorMap = _memberColorMap(
-      _sortedMembersForDashboard(
-        isAdminView: true,
-      ).where((member) => member.isActive).toList(),
-    );
     await showBaseBottomSheet<void>(
       context,
       title: member.email,
@@ -496,9 +492,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
                                 member: member,
                                 totalStorageInBytes: _userDetails
                                     .getTotalStorage(),
-                                avatarColor:
-                                    colorMap[member.email] ??
-                                    colorScheme.greenBase,
+                                avatarColor: _memberColor(member),
                               ),
                             );
                         if (!mounted) {
@@ -655,17 +649,19 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
   }
 
   Map<String, Color> _memberColorMap(List<FamilyMember> members) {
-    final colorScheme = getEnteColorScheme(context);
-    final palette = <Color>[
-      colorScheme.greenBase,
-      ...colorScheme.avatarColors,
-      colorScheme.primary500,
-      colorScheme.golden500,
-    ];
-    return {
-      for (final entry in members.indexed)
-        entry.$2.email: palette[entry.$1 % palette.length],
-    };
+    return {for (final member in members) member.email: _memberColor(member)};
+  }
+
+  Color _memberColor(FamilyMember member) {
+    return avatarBackgroundColor(
+      context,
+      AvatarIdentity.account(
+        label: member.email,
+        email: member.email,
+        userID: null,
+        currentUserEmail: _userDetails.email,
+      ),
+    );
   }
 
   _MonthlyPrice? _monthlyPriceForPlan(BillingPlan plan) {
@@ -855,14 +851,14 @@ class _FamilyMembersCard extends StatefulWidget {
   const _FamilyMembersCard({
     required this.members,
     required this.userDetails,
-    required this.colorMap,
+    required this.memberColor,
     required this.isAdminView,
     required this.onMemberTap,
   });
 
   final List<FamilyMember> members;
   final UserDetails userDetails;
-  final Map<String, Color> colorMap;
+  final Color Function(FamilyMember) memberColor;
   final bool isAdminView;
   final ValueChanged<FamilyMember> onMemberTap;
 
@@ -995,7 +991,7 @@ class _FamilyMembersCardState extends State<_FamilyMembersCard> {
           child: _FamilyMemberListItem(
             member: member,
             currentEmail: widget.userDetails.email,
-            avatarColor: widget.colorMap[member.email],
+            avatarColor: widget.memberColor(member),
             isAdminView: widget.isAdminView,
             onTap: () => widget.onMemberTap(member),
             showDivider: showDivider,
@@ -1046,7 +1042,7 @@ class _FamilyMemberListItem extends StatelessWidget {
     required this.isAdminView,
     required this.onTap,
     required this.showDivider,
-    this.avatarColor,
+    required this.avatarColor,
   });
 
   final FamilyMember member;
@@ -1054,7 +1050,7 @@ class _FamilyMemberListItem extends StatelessWidget {
   final bool isAdminView;
   final VoidCallback onTap;
   final bool showDivider;
-  final Color? avatarColor;
+  final Color avatarColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1088,14 +1084,14 @@ class _FamilyMemberRow extends StatelessWidget {
     required this.currentEmail,
     required this.isAdminView,
     required this.onTap,
-    this.avatarColor,
+    required this.avatarColor,
   });
 
   final FamilyMember member;
   final String currentEmail;
   final bool isAdminView;
   final VoidCallback onTap;
-  final Color? avatarColor;
+  final Color avatarColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1105,12 +1101,6 @@ class _FamilyMemberRow extends StatelessWidget {
     final isCurrentUser =
         member.email.trim().toLowerCase() == currentEmail.trim().toLowerCase();
     final canTap = isAdminView && !isCurrentUser;
-    final backgroundColor = member.isPending
-        ? colorScheme.fillMuted
-        : avatarColor ?? colorScheme.greenBase;
-    final foregroundColor = member.isPending
-        ? colorScheme.contentLight
-        : Colors.white;
 
     return InkWell(
       borderRadius: BorderRadius.circular(20),
@@ -1121,10 +1111,10 @@ class _FamilyMemberRow extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundColor: backgroundColor,
+              backgroundColor: avatarColor,
               child: Text(
                 member.email.substring(0, 1).toUpperCase(),
-                style: textTheme.bodyBold.copyWith(color: foregroundColor),
+                style: textTheme.bodyBold.copyWith(color: Colors.white),
               ),
             ),
             const SizedBox(width: 12),

@@ -29,6 +29,7 @@ import "package:photos/ui/viewer/people/person_cluster_suggestion.dart";
 import "package:photos/ui/viewer/people/person_selection_action_widgets.dart";
 import "package:photos/ui/viewer/people/save_or_edit_person.dart";
 import "package:photos/utils/dialog_util.dart";
+import "package:photos/utils/person_contact_linking_util.dart";
 
 const kShowUnnamedIgnoredPersonEventSource =
     "_AppBarWidgetState._showPersonUnnamedDelete";
@@ -125,7 +126,10 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
     required PersonEntity sourcePerson,
     required String? title,
   }) {
-    if (sourcePerson.data.email == Configuration.instance.getEmail()) {
+    if (isCurrentUserContactLink(
+      email: sourcePerson.data.email,
+      userID: sourcePerson.data.userID,
+    )) {
       if (title == null) {
         return context.l10n.me;
       }
@@ -164,8 +168,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
               if (event.person != null &&
                   event.type == PeopleEventType.saveOrEditPerson &&
                   widget.person.remoteID == event.person!.remoteID &&
-                  (event.source == "linkEmailToPerson" ||
-                      event.source == "reassignMe")) {
+                  event.source == "reassignMe") {
                 person = event.person!;
 
                 _appBarTitle = _resolveAppBarTitle(
@@ -185,7 +188,8 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
     if (oldWidget.title != widget.title ||
         oldWidget.person.remoteID != widget.person.remoteID ||
         oldWidget.person.data.name != widget.person.data.name ||
-        oldWidget.person.data.email != widget.person.data.email) {
+        oldWidget.person.data.email != widget.person.data.email ||
+        oldWidget.person.data.userID != widget.person.data.userID) {
       person = widget.person;
       _appBarTitle = _resolveAppBarTitle(
         sourcePerson: person,
@@ -257,6 +261,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
       context,
       SaveOrEditPerson(clusterID, person: person, isEditing: true),
     );
+    if (!mounted) return;
     if (result is PersonEntity) {
       _appBarTitle = result.data.name;
       person = result;
@@ -343,8 +348,10 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
             iconColor,
           ),
         ),
-        if (person.data.email != null &&
-            (person.data.email == Configuration.instance.getEmail()))
+        if (isCurrentUserContactLink(
+          email: person.data.email,
+          userID: person.data.userID,
+        ))
           EntePopupMenuOption(
             value: PeoplePopupAction.reassignMe,
             label: context.l10n.reassignMe,
@@ -472,9 +479,11 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
         person.remoteID,
         hideFromMemories: shouldHideFromMemories,
       );
-      setState(() {
-        person = updatedPerson;
-      });
+      if (mounted) {
+        setState(() {
+          person = updatedPerson;
+        });
+      }
       Bus.instance.fire(
         PeopleChangedEvent(
           type: PeopleEventType.saveOrEditPerson,
@@ -496,6 +505,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
       firstButtonOnTap: () async {
         try {
           await PersonService.instance.deletePerson(person.remoteID);
+          if (!context.mounted) return;
           Navigator.of(context).pop();
         } catch (e, s) {
           _logger.severe('Resetting person failed', e, s);
@@ -542,6 +552,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
     if (!mounted || result?.action != ButtonAction.error) {
       return;
     }
+    if (!context.mounted) return;
     showShortToast(
       context,
       AppLocalizations.of(context).somethingWentWrongPleaseTryAgain,
@@ -599,6 +610,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
         !shouldCloseDetailPage) {
       return;
     }
+    if (!context.mounted) return;
     await Navigator.of(context).maybePop();
   }
 
@@ -606,9 +618,6 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
     final result = await showPersonAvatarPhotoSheet(context, person);
     if (result != null) {
       _logger.info('Person avatar updated');
-      setState(() {
-        person = result;
-      });
       Bus.instance.fire(
         PeopleChangedEvent(
           type: PeopleEventType.saveOrEditPerson,
@@ -616,6 +625,10 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
           person: result,
         ),
       );
+      if (!mounted) return;
+      setState(() {
+        person = result;
+      });
     }
   }
 

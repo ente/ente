@@ -87,6 +87,7 @@ var (
 	dcWasabiEuropeCentral_v3          string = "wasabi-eu-central-2-v3"
 	dcSCWEuropeFrance_v3              string = "scw-eu-fr-v3"
 	dcWasabiEuropeCentralDerived      string = "wasabi-eu-central-2-derived"
+	spaceBucket1                      string = "space-b1"
 	bucket5                           string = "b5"
 	bucket6                           string = "b6"
 )
@@ -103,22 +104,22 @@ func NewS3Config() *S3Config {
 }
 
 func (config *S3Config) initialize() {
-	dcs := [8]string{
+	dcs := []string{
 		dcB2EuropeCentral, dcSCWEuropeFranceLockedDeprecated, dcWasabiEuropeCentralDeprecated,
-		dcWasabiEuropeCentral_v3, dcSCWEuropeFrance_v3, dcWasabiEuropeCentralDerived, bucket5, bucket6}
+		dcWasabiEuropeCentral_v3, dcSCWEuropeFrance_v3, dcWasabiEuropeCentralDerived, spaceBucket1, bucket5, bucket6}
 
 	config.hotDC = dcB2EuropeCentral
 	config.secondaryHotDC = dcWasabiEuropeCentral_v3
 	hs1 := viper.GetString("s3.hot_storage.primary")
 	hs2 := viper.GetString("s3.hot_storage.secondary")
-	if hs1 != "" && hs2 != "" && slices.Contains(dcs[:], hs1) && slices.Contains(dcs[:], hs2) {
+	if hs1 != "" && hs2 != "" && slices.Contains(dcs, hs1) && slices.Contains(dcs, hs2) {
 		config.hotDC = hs1
 		config.secondaryHotDC = hs2
 		log.Infof("Hot storage: %s (secondary: %s)", hs1, hs2)
 	}
 	config.derivedStorageDC = config.hotDC
 	embeddingsDC := viper.GetString("s3.derived-storage")
-	if embeddingsDC != "" && slices.Contains(dcs[:], embeddingsDC) {
+	if embeddingsDC != "" && slices.Contains(dcs, embeddingsDC) {
 		config.derivedStorageDC = embeddingsDC
 		log.Infof("Embeddings bucket: %s", embeddingsDC)
 	}

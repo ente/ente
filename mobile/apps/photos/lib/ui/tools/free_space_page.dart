@@ -169,6 +169,7 @@ class _FreeSpacePageState extends State<FreeSpacePage> {
     bool isSuccess = await deleteLocalFiles(context, status.localIDs);
 
     if (isSuccess == false) {
+      if (!mounted) return;
       isSuccess = await deleteLocalFilesAfterRemovingAlreadyDeletedIDs(
         context,
         status.localIDs,
@@ -176,14 +177,17 @@ class _FreeSpacePageState extends State<FreeSpacePage> {
     }
 
     if (isSuccess == false && Platform.isAndroid) {
+      if (!mounted) return;
       isSuccess = await retryFreeUpSpaceAfterRemovingAssetsNonExistingInDisk(
         context,
       );
     }
 
     if (isSuccess) {
+      if (!mounted) return;
       Navigator.of(context).pop(true);
     } else {
+      if (!mounted) return;
       showToast(context, AppLocalizations.of(context).couldNotFreeUpSpace);
     }
   }

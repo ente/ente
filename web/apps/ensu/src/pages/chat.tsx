@@ -15,12 +15,13 @@ import {
     getOrCreateLocalChatKey,
     initChatKeyStore,
 } from "@/services/chat/chatKey";
+import { initializeChatStorePersistence } from "@/services/chat/persistence";
 import {
     addMessage,
     createSession,
+    deleteAttachmentBytes,
     deleteSession,
     getBranchSelections,
-    initializeChatStorePersistence,
     listMessages,
     listSessions,
     readDecryptedAttachmentBytes,
@@ -408,7 +409,7 @@ const detectTauriRuntime = () => detectTauriAppRuntime();
 
 const Page: React.FC = () => {
     const router = useRouter();
-    const { showMiniDialog } = useBaseContext();
+    const { showMiniDialog, onGenericError } = useBaseContext();
     const theme = useTheme();
     const isSmall = useMediaQuery(theme.breakpoints.down("md"));
     const assetBasePath = router.basePath ?? "";
@@ -591,6 +592,7 @@ const Page: React.FC = () => {
     const [showSystemPromptSettings, setShowSystemPromptSettings] =
         useState(false);
     const [useCustomModel, setUseCustomModel] = useState(false);
+    const [modelSettingsLoaded, setModelSettingsLoaded] = useState(false);
     const [resolvedDefaultModel, setResolvedDefaultModel] =
         useState<ModelInfo>(DEFAULT_MODEL);
     const [resolvedModelPresets, setResolvedModelPresets] = useState<
@@ -755,16 +757,14 @@ const Page: React.FC = () => {
     );
 
     const refreshLocalChatKey = useCallback(async () => {
-        await initChatKeyStore();
-
-        const cachedLocal = cachedLocalChatKey();
-        if (cachedLocal) {
-            log.info("Using cached local chat key");
-            setChatKey(cachedLocal);
-            return;
-        }
-
         try {
+            await initChatKeyStore();
+            const cachedLocal = cachedLocalChatKey();
+            if (cachedLocal) {
+                log.info("Using cached local chat key");
+                setChatKey(cachedLocal);
+                return;
+            }
             log.info("Generating new local chat key");
             setChatKey(await getOrCreateLocalChatKey());
         } catch (error) {
@@ -808,12 +808,10 @@ const Page: React.FC = () => {
         const run = async () => {
             try {
                 await initializeChatStorePersistence(chatKey);
+                if (!cancelled) setIsChatStoreBridgeReady(true);
             } catch (error) {
                 log.error("Failed to initialize chat persistence", error);
-            } finally {
-                if (!cancelled) {
-                    setIsChatStoreBridgeReady(true);
-                }
+                if (!cancelled) onGenericError(error);
             }
         };
         void run();
@@ -822,7 +820,7 @@ const Page: React.FC = () => {
             cancelled = true;
             setIsChatStoreBridgeReady(false);
         };
-    }, [chatKey]);
+    }, [chatKey, onGenericError]);
 
     useEffect(() => {
         isDraftSessionRef.current = isDraftSession;
@@ -922,7 +920,8 @@ const Page: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (loading || typeof window === "undefined") return;
+        if (loading || !modelSettingsLoaded || typeof window === "undefined")
+            return;
         const element = chatViewportRef.current;
         if (!element) return;
 
@@ -941,7 +940,7 @@ const Page: React.FC = () => {
         const observer = new ResizeObserver(() => updateWidth());
         observer.observe(element);
         return () => observer.disconnect();
-    }, [loading]);
+    }, [loading, modelSettingsLoaded]);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -958,7 +957,10 @@ const Page: React.FC = () => {
         // unlocked. Without this gate a user who had custom settings before
         // the unlock feature was added would silently keep a hidden custom
         // model with no visible way to change it.
-        if (!isUnlocked) return;
+        if (!isUnlocked) {
+            setModelSettingsLoaded(true);
+            return;
+        }
 
         let raw = window.localStorage.getItem(MODEL_SETTINGS_STORAGE_KEY);
         if (!raw) {
@@ -1009,6 +1011,9 @@ const Page: React.FC = () => {
                 })
                 .catch((error: unknown) => {
                     log.error("Failed to migrate model settings", error);
+                })
+                .finally(() => {
+                    if (!cancelled) setModelSettingsLoaded(true);
                 });
             return () => {
                 cancelled = true;
@@ -1052,6 +1057,7 @@ const Page: React.FC = () => {
         } catch (error) {
             log.error("Failed to read model settings", error);
         }
+        setModelSettingsLoaded(true);
         return () => {
             cancelled = true;
         };
@@ -2028,7 +2034,7 @@ const Page: React.FC = () => {
     }, [ensureProvider, getModelSettings, isTauriRuntime]);
 
     useEffect(() => {
-        if (!firstPaintDone) return;
+        if (!firstPaintDone || !modelSettingsLoaded) return;
         const cancelIdle = scheduleIdleTask(() => {
             void preloadModelIfAvailable();
         }, 2000);
@@ -2037,6 +2043,7 @@ const Page: React.FC = () => {
         };
     }, [
         firstPaintDone,
+        modelSettingsLoaded,
         modelSettingsKey,
         preloadModelIfAvailable,
         scheduleIdleTask,
@@ -2310,7 +2317,7 @@ const Page: React.FC = () => {
                 lastGenerationRef.current = null;
             }
 
-            await deleteSession(sessionId, chatKey);
+            await deleteSession(sessionId);
             removeSessionFromState(sessionId);
         },
         [chatKey, removeSessionFromState],
@@ -2322,9 +2329,14 @@ const Page: React.FC = () => {
 
     const handleConfirmDeleteSession = useCallback(async () => {
         if (!deleteSessionId) return;
-        await handleDeleteSession(deleteSessionId);
-        setDeleteSessionId(null);
-    }, [deleteSessionId, handleDeleteSession]);
+        try {
+            await handleDeleteSession(deleteSessionId);
+        } catch (error) {
+            onGenericError(error);
+        } finally {
+            setDeleteSessionId(null);
+        }
+    }, [deleteSessionId, handleDeleteSession, onGenericError]);
 
     const handleCancelDeleteSession = useCallback(() => {
         setDeleteSessionId(null);
@@ -3681,7 +3693,12 @@ const Page: React.FC = () => {
 
         let activeSessionId = currentSessionId;
         if (!activeSessionId) {
-            activeSessionId = await createSession(chatKey);
+            try {
+                activeSessionId = await createSession(chatKey);
+            } catch (error) {
+                onGenericError(error);
+                return;
+            }
             setCurrentSessionId(activeSessionId);
             currentSessionIdRef.current = activeSessionId;
             setIsDraftSession(false);
@@ -3694,6 +3711,27 @@ const Page: React.FC = () => {
             trimmed.replace(/\u0000/g, ""),
             pendingDocuments,
         );
+        const persistedAttachmentIds = new Set(
+            (editingMessage?.attachments ?? []).map(({ id }) => id),
+        );
+        const newAttachmentIds = [
+            ...pendingDocuments.map(({ id }) => id),
+            ...pendingImages.map(({ id }) => id),
+        ].filter((id) => !persistedAttachmentIds.has(id));
+        const cleanupUnstoredAttachments = async () => {
+            await Promise.all(
+                newAttachmentIds.map(async (id) => {
+                    try {
+                        await deleteAttachmentBytes(id);
+                    } catch (error) {
+                        log.warn(
+                            `Failed to clean up attachment payload ${id}`,
+                            error,
+                        );
+                    }
+                }),
+            );
+        };
         let inferenceImagePaths: string[] = [];
 
         let attachments: ChatAttachment[] = [];
@@ -3746,6 +3784,7 @@ const Page: React.FC = () => {
                 );
                 attachments = [...documentAttachments, ...imageAttachments];
             } catch (error) {
+                await cleanupUnstoredAttachments();
                 log.error("Failed to store attachments", error);
                 showMiniDialog({
                     title: "Attachment error",
@@ -3759,6 +3798,7 @@ const Page: React.FC = () => {
             try {
                 inferenceImagePaths = await writeInferenceImages(pendingImages);
             } catch (error) {
+                await cleanupUnstoredAttachments();
                 log.error("Failed to prepare images for inference", error);
                 showMiniDialog({
                     title: "Attachment error",
@@ -3776,6 +3816,7 @@ const Page: React.FC = () => {
 
         setInput("");
 
+        let messageStored = false;
         try {
             if (editingMessage) {
                 const parentUuid = editingMessage.parentMessageUuid;
@@ -3792,6 +3833,7 @@ const Page: React.FC = () => {
                     parentUuid,
                     attachments,
                 );
+                messageStored = true;
 
                 void updateBranchSelectionState(
                     selectionKey,
@@ -3827,6 +3869,7 @@ const Page: React.FC = () => {
                 parentUuid,
                 attachments,
             );
+            messageStored = true;
 
             void updateBranchSelectionState(
                 selectionKey,
@@ -3846,6 +3889,7 @@ const Page: React.FC = () => {
                 mediaMarker: MEDIA_MARKER,
             });
         } catch (error) {
+            if (!messageStored) await cleanupUnstoredAttachments();
             log.error("Failed to store chat message", error);
         } finally {
             await cleanupInferenceImages(inferenceImagePaths);
@@ -3861,6 +3905,7 @@ const Page: React.FC = () => {
         pendingDocuments,
         pendingImages,
         showMiniDialog,
+        onGenericError,
         slicePathUntil,
         startGeneration,
         writeInferenceImages,
@@ -3910,7 +3955,7 @@ const Page: React.FC = () => {
         />
     );
 
-    if (loading) return <></>;
+    if (loading || !modelSettingsLoaded) return <></>;
 
     return (
         <>

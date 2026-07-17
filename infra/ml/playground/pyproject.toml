@@ -11,7 +11,7 @@ dependencies = [
     "onnx>=1.17.0",
     "onnxconverter-common>=1.14.0",
     "onnxruntime-extensions>=0.12.0",
-    "onnxruntime>=1.19.2",
+    "onnxruntime==1.27.0",
     "onnxsim>=0.4.36",
     "opencv-python>=4.10.0.84",
     "pandas>=2.2.3",

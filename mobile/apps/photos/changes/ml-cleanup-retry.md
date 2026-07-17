@@ -1,0 +1,1 @@
+- Avoid re-downloading photos when machine learning indexing is interrupted.

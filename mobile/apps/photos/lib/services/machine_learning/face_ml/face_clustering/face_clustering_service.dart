@@ -80,9 +80,6 @@ class FaceClusteringService extends SuperIsolate {
   static double defaultDistanceThreshold = kRecommendedDistanceThreshold;
 
   @override
-  bool get isDartUiIsolate => false;
-
-  @override
   String get isolateName => "FaceClusteringIsolate";
 
   @override

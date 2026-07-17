@@ -112,6 +112,7 @@
   "passwordEmptyError": "Пароль не может быть пустым",
   "passwordTooShort": "Пароль должен состоять как минимум из 8 символов.",
   "importFromApp": "Импорт кодов из {appName}",
+  "importGoogleAuthGuide": "Экспортируйте ваши аккаунты из Google Authenticator в QR-код, используя опцию «Перенос учетных записей». Затем отсканируйте QR-код или импортируйте его из изображения.",
   "scannerTorchOn": "Включить фонарик",
   "scannerTorchOff": "Выключить фонарик",
   "importSelectJsonFile": "Выбрать JSON-файл",
@@ -195,7 +196,7 @@
   "deleteAccountQuery": "Нам будет жаль, если вы уйдете. Вы столкнулись с какой-то проблемой?",
   "yesSendFeedbackAction": "Да, отправить отзыв",
   "noDeleteAccountAction": "Нет, удалить аккаунт",
-  "initiateAccountDeleteTitle": "Пожалуйста, авторизуйтесь, чтобы начать удаление аккаунта",
+  "authToInitiateAccountDeletion": "Разблокируйте, чтобы удалить свой аккаунт",
   "sendEmail": "Отправить электронное письмо",
   "createNewAccount": "Создать новый аккаунт",
   "weakStrength": "Слабый",
@@ -330,6 +331,16 @@
         "description": "The number of codes imported",
         "type": "int",
         "example": "1"
+      }
+    }
+  },
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{Импортировать 1 код из Google Authenticator?} few {Импортируйте {codeCount} коды из Google Authenticator?} many {Импортируйте {codeCount} коды из Google Authenticator?} other{Импортируйте {codeCount} коды из Google Authenticator?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
       }
     }
   },
@@ -487,6 +498,8 @@
   "somethingWentWrongParsingCode": "Мы не смогли разобрать коды {x}.",
   "updateNotAvailable": "Обновление недоступно",
   "viewRawCodes": "Просмотр необработанных кодов",
+  "parsingError": "Ошибка чтения",
+  "deleteUnparseableCodeTitle": "Удалить нераспознаваемый код?",
   "deleteUnparseableCodeMessage": "Это навсегда удалит этот код из Auth. Он не будет перемещен в корзину.",
   "rawCodes": "Необработанные коды",
   "rawCodeData": "Необработанные кодовые данные",

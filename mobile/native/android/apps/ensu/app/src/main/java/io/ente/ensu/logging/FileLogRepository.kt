@@ -2,15 +2,9 @@ package io.ente.ensu.logging
 
 import android.content.Context
 import android.util.Log
-import io.ente.ensu.logging.LogEntry
-import io.ente.ensu.logging.LogLevel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -29,8 +23,7 @@ import java.util.zip.ZipOutputStream
 
 class FileLogRepository(
     private val context: Context,
-    private val maxLogFiles: Int = 5,
-    private val maxEntriesInMemory: Int = 500
+    private val maxLogFiles: Int = 5
 ) {
 
     private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -40,9 +33,6 @@ class FileLogRepository(
     private val lineTimestampFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
 
     private val logsDir: File = File(context.filesDir, "logs")
-
-    private val _logs = MutableStateFlow<List<LogEntry>>(emptyList())
-    val logs: StateFlow<List<LogEntry>> = _logs.asStateFlow()
 
     init {
         ensureLogDir()
@@ -58,8 +48,6 @@ class FileLogRepository(
             tag = resolvedTag,
             throwable = throwable
         )
-
-        _logs.update { (listOf(entry) + it).take(maxEntriesInMemory) }
 
         // Also mirror to Logcat.
         when (level) {
@@ -162,67 +150,36 @@ class FileLogRepository(
         toDelete.forEach { runCatching { it.delete() } }
     }
 
-    private fun formatLine(entry: LogEntry): String {
+    private fun formatLine(entry: LogEntry): String = buildString {
         val timestamp = lineTimestampFormatter.format(Date(entry.timestampMillis))
-        val header = "[${entry.tag}][${entry.level.name.uppercase()}] [$timestamp]"
-        val details = entry.details.orEmpty()
-        val shouldInline = entry.level == LogLevel.Info && details.isNotBlank() && !looksLikeStackTrace(details)
-        val message = entry.message
-        var out = "$header $message".trimEnd() + "\n"
-
-        if (details.isNotBlank()) {
-            if (shouldInline) {
-                val inline = inlineDetails(details)
-                if (inline.isNotBlank()) {
-                    out += "$inline\n"
-                }
-            } else {
-                details.lines().forEach { line ->
-                    out += "$line\n"
-                }
-            }
-        }
-        return out
-    }
-
-    private fun inlineDetails(details: String): String {
-        return details.lineSequence()
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .joinToString(" | ")
-    }
-
-    private fun looksLikeStackTrace(details: String): Boolean {
-        return details.lineSequence()
-            .map { it.trimStart() }
-            .any { isStackTraceLine(it) }
-    }
-
-    private fun isStackTraceLine(line: String): Boolean {
-        val trimmed = line.trimStart()
-        return trimmed.startsWith("at ") ||
-            trimmed.startsWith("...") ||
-            trimmed.startsWith("Caused by") ||
-            trimmed.startsWith("Suppressed:")
+        append("[${entry.tag}][${levelToken(entry.level)}] [$timestamp] ${entry.message}\n")
+        entry.details?.lineSequence()?.forEach { append(it).append('\n') }
     }
 
     private fun parseLogEntries(text: String): List<LogEntry> {
-        if (text.isBlank()) return emptyList()
-
         val entries = mutableListOf<LogEntry>()
-        var current: LogEntry? = null
-        var details = mutableListOf<String>()
+        text.lineSequence().forEach { rawLine ->
+            val line = rawLine.trimEnd()
+            if (line.isBlank()) return@forEach
 
-        text.lineSequence().forEach { line ->
-            val trimmed = line.trimEnd()
-            if (trimmed.isBlank()) return@forEach
-
-            val match = logLineRegex.matchEntire(trimmed)
-            if (match == null) {
-                if (current != null) {
-                    details.add(trimmed)
-                } else if (entries.isNotEmpty() && shouldAttachToPrevious(trimmed)) {
-                    appendDetailToLast(entries, trimmed)
+            val match = logLineRegex.matchEntire(line)
+            if (match != null) {
+                val (tag, level, timestamp, message) = match.destructured
+                entries.add(
+                    LogEntry(
+                        id = UUID.randomUUID().toString(),
+                        timestampMillis = runCatching { lineTimestampFormatter.parse(timestamp)?.time }
+                            .getOrNull() ?: System.currentTimeMillis(),
+                        level = parseLevel(level),
+                        tag = tag,
+                        message = message
+                    )
+                )
+            } else {
+                val last = entries.lastOrNull()
+                if (last != null) {
+                    entries[entries.lastIndex] =
+                        last.copy(details = listOfNotNull(last.details, line).joinToString("\n"))
                 } else {
                     entries.add(
                         LogEntry(
@@ -230,106 +187,28 @@ class FileLogRepository(
                             timestampMillis = System.currentTimeMillis(),
                             level = LogLevel.Info,
                             tag = "Log",
-                            message = trimmed,
-                            details = null
+                            message = line
                         )
                     )
                 }
-                return@forEach
             }
-
-            val tag = match.groupValues[1]
-            val levelValue = match.groupValues[2]
-            val timestampValue = match.groupValues[3]
-            val message = match.groupValues[4]
-            val trimmedMessage = message.trimStart()
-            val isDetail = isDetailLine(trimmedMessage)
-            if (isDetail) {
-                val cleaned = when {
-                    trimmedMessage.startsWith("->") -> trimmedMessage.removePrefix("->").trim()
-                    trimmedMessage.startsWith("⤷") -> trimmedMessage.removePrefix("⤷").trim()
-                    else -> trimmedMessage
-                }
-                if (current != null) {
-                    details.add(cleaned)
-                } else if (entries.isNotEmpty() && shouldAttachToPrevious(cleaned)) {
-                    appendDetailToLast(entries, cleaned)
-                } else {
-                    entries.add(
-                        LogEntry(
-                            id = UUID.randomUUID().toString(),
-                            timestampMillis = System.currentTimeMillis(),
-                            level = LogLevel.Info,
-                            tag = "Log",
-                            message = cleaned,
-                            details = null
-                        )
-                    )
-                }
-                return@forEach
-            }
-
-            current?.let {
-                val detailText = details.takeIf { it.isNotEmpty() }?.joinToString("\n")
-                entries.add(it.copy(details = detailText))
-            }
-
-            val level = parseLevel(levelValue) ?: LogLevel.Info
-            val timestamp = runCatching {
-                lineTimestampFormatter.parse(timestampValue)?.time
-            }.getOrNull() ?: System.currentTimeMillis()
-
-            current = LogEntry(
-                id = UUID.randomUUID().toString(),
-                timestampMillis = timestamp,
-                level = level,
-                tag = tag,
-                message = message,
-                details = null
-            )
-            details = mutableListOf()
         }
-
-        current?.let {
-            val detailText = details.takeIf { it.isNotEmpty() }?.joinToString("\n")
-            entries.add(it.copy(details = detailText))
-        }
-
         return entries
     }
 
-    private fun appendDetailToLast(entries: MutableList<LogEntry>, line: String) {
-        if (entries.isEmpty()) return
-        val last = entries.removeAt(entries.lastIndex)
-        val updatedDetails = listOfNotNull(last.details?.takeIf { it.isNotBlank() }, line)
-            .joinToString("\n")
-        entries.add(last.copy(details = updatedDetails))
+    private fun levelToken(level: LogLevel): String = when (level) {
+        LogLevel.Info -> "INFO"
+        LogLevel.Warning -> "WARN"
+        LogLevel.Error -> "ERROR"
     }
 
-    private fun shouldAttachToPrevious(line: String): Boolean {
-        if (line.isBlank()) return false
-        val trimmed = line.trimStart()
-        return line.firstOrNull()?.isWhitespace() == true || isStackTraceLine(trimmed)
-    }
-
-    private fun parseLevel(value: String): LogLevel? = when (value.uppercase()) {
-        "INFO" -> LogLevel.Info
-        "WARNING", "WARN" -> LogLevel.Warning
+    private fun parseLevel(token: String): LogLevel = when (token.uppercase()) {
+        "WARN", "WARNING" -> LogLevel.Warning
         "ERROR" -> LogLevel.Error
-        else -> null
-    }
-
-    private fun isDetailLine(message: String): Boolean {
-        val trimmed = message.trimStart()
-        return trimmed.startsWith("->") ||
-            trimmed.startsWith("⤷") ||
-            trimmed.startsWith("at ") ||
-            trimmed.startsWith("...") ||
-            trimmed.startsWith("Caused by") ||
-            trimmed.startsWith("Suppressed:")
+        else -> LogLevel.Info
     }
 
     companion object {
-        private val logLineRegex = Regex("\\[(.+?)]\\[(.+?)] \\[(.+?)]\\] (.*)")
+        private val logLineRegex = Regex("\\[(.+?)]\\[(.+?)] \\[(.+?)] (.*)")
     }
 }

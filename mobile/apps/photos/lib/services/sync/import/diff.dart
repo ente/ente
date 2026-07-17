@@ -2,6 +2,7 @@ import "package:computer/computer.dart";
 import "package:logging/logging.dart";
 import "package:photo_manager/photo_manager.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/module/metadata/local_file.dart";
 import "package:photos/services/sync/import/model.dart";
 
 class LocalDiffResult {
@@ -64,7 +65,7 @@ Future<List<EnteFile>> _convertLocalAssetsToUniqueFiles(
           ).warning('Failed to fetch asset with id $localID');
           continue;
         }
-        files.add(await EnteFile.fromAsset(localPathName, assetEntity));
+        files.add(fileFromAsset(localPathName, assetEntity));
         alreadySeenLocalIDs.add(localID);
       }
     }

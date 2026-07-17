@@ -1,4 +1,3 @@
-use ente_ensu::download;
 use ente_ensu::llm;
 
 use crate::download::DownloadError;
@@ -48,10 +47,6 @@ impl From<llm::Error> for LlmError {
             llm::Error::Llama { op, message } => Self::Llama {
                 op: op.to_string(),
                 detail: message,
-            },
-            llm::Error::Download(err) => match DownloadError::from(err) {
-                DownloadError::Cancelled => Self::Cancelled,
-                error => Self::Download { error },
             },
         }
     }
@@ -104,31 +99,6 @@ pub struct LlmGenerationSummary {
     pub prompt_tokens: Option<i32>,
     pub generated_tokens: Option<i32>,
     pub total_time_ms: Option<i64>,
-}
-
-#[derive(Debug, Clone, uniffi::Record)]
-pub struct LlmModelDownloadTarget {
-    pub label: String,
-    pub url: String,
-    pub destination_path: String,
-}
-
-#[derive(Debug, Clone, uniffi::Record)]
-pub struct LlmModelDownloadProgress {
-    pub label: String,
-    pub downloaded_bytes: i64,
-    pub total_bytes: Option<i64>,
-    pub file_downloaded_bytes: i64,
-    pub file_total_bytes: Option<i64>,
-    pub percentage: f64,
-    pub elapsed_ms: i64,
-    pub bytes_per_second: f64,
-    pub file_elapsed_ms: i64,
-    pub file_bytes_per_second: f64,
-    pub retry_count: i32,
-    pub file_retry_count: i32,
-    pub file_complete: bool,
-    pub complete: bool,
 }
 
 #[derive(Debug, Clone, uniffi::Enum)]
@@ -197,12 +167,6 @@ pub trait LlmGenerationEventCallback: Send + Sync {
     fn on_event(&self, event: LlmGenerationEvent);
 }
 
-#[uniffi::export(callback_interface)]
-pub trait LlmModelDownloadCallback: Send + Sync {
-    fn on_progress(&self, progress: LlmModelDownloadProgress);
-    fn is_cancelled(&self) -> bool;
-}
-
 impl From<LlmModelLoadParams> for llm::ModelLoadParams {
     fn from(value: LlmModelLoadParams) -> Self {
         Self {
@@ -256,16 +220,6 @@ impl From<LlmChatRequest> for llm::ChatRequest {
     }
 }
 
-impl From<LlmModelDownloadTarget> for download::Target {
-    fn from(value: LlmModelDownloadTarget) -> Self {
-        Self {
-            label: value.label,
-            url: value.url,
-            destination_path: value.destination_path,
-        }
-    }
-}
-
 impl From<llm::GenerationSummary> for LlmGenerationSummary {
     fn from(value: llm::GenerationSummary) -> Self {
         Self {
@@ -273,27 +227,6 @@ impl From<llm::GenerationSummary> for LlmGenerationSummary {
             prompt_tokens: value.prompt_tokens,
             generated_tokens: value.generated_tokens,
             total_time_ms: value.total_time_ms,
-        }
-    }
-}
-
-impl From<download::Progress> for LlmModelDownloadProgress {
-    fn from(value: download::Progress) -> Self {
-        Self {
-            label: value.label,
-            downloaded_bytes: u64_to_i64(value.downloaded_bytes),
-            total_bytes: value.total_bytes.map(u64_to_i64),
-            file_downloaded_bytes: u64_to_i64(value.file_downloaded_bytes),
-            file_total_bytes: value.file_total_bytes.map(u64_to_i64),
-            percentage: value.percentage,
-            elapsed_ms: u64_to_i64(value.elapsed_ms),
-            bytes_per_second: value.bytes_per_second,
-            file_elapsed_ms: u64_to_i64(value.file_elapsed_ms),
-            file_bytes_per_second: value.file_bytes_per_second,
-            retry_count: u32_to_i32(value.retry_count),
-            file_retry_count: u32_to_i32(value.file_retry_count),
-            file_complete: value.file_complete,
-            complete: value.complete,
         }
     }
 }
@@ -317,14 +250,6 @@ impl From<llm::GenerationEvent> for LlmGenerationEvent {
     }
 }
 
-fn u64_to_i64(value: u64) -> i64 {
-    i64::try_from(value).unwrap_or(i64::MAX)
-}
-
-fn u32_to_i32(value: u32) -> i32 {
-    i32::try_from(value).unwrap_or(i32::MAX)
-}
-
 struct CallbackSink {
     callback: Box<dyn LlmGenerationEventCallback>,
 }
@@ -338,23 +263,6 @@ impl llm::EventSink for CallbackSink {
 #[uniffi::export]
 pub fn llm_init_backend() -> Result<(), LlmError> {
     llm::init_backend().map_err(LlmError::from)
-}
-
-#[uniffi::export]
-pub fn llm_download_model_files(
-    targets: Vec<LlmModelDownloadTarget>,
-    callback: Box<dyn LlmModelDownloadCallback>,
-) -> Result<(), LlmError> {
-    let callback: Arc<dyn LlmModelDownloadCallback> = Arc::from(callback);
-    let progress_callback = Arc::clone(&callback);
-    let cancel_callback = Arc::clone(&callback);
-    let targets = targets.into_iter().map(Into::into).collect();
-    llm::download_model_files(
-        targets,
-        move |progress| progress_callback.on_progress(progress.into()),
-        move || cancel_callback.is_cancelled(),
-    )
-    .map_err(LlmError::from)
 }
 
 #[uniffi::export]

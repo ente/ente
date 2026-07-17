@@ -18,15 +18,14 @@ class EnteWakeLockService {
   static const String kKeepAppAwakeAcrossSessions =
       "keepAppAwakeAcrossSessions";
 
-  EnteWakeLockService._privateConstructor();
+  EnteWakeLockService(this._prefs);
 
-  static final EnteWakeLockService instance =
-      EnteWakeLockService._privateConstructor();
+  final SharedPreferences _prefs;
 
-  late SharedPreferences _prefs;
-
-  void init(SharedPreferences prefs) {
-    _prefs = prefs;
+  void init({required bool isBackground}) {
+    if (isBackground) {
+      return;
+    }
     if (_prefs.getBool(kKeepAppAwakeAcrossSessions) ?? false) {
       WakelockPlus.enable();
     }

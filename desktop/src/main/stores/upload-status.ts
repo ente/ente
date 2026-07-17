@@ -1,5 +1,5 @@
 import Store, { Schema } from "electron-store";
-import type { SkippedFile, ZipItem } from "../../types/ipc";
+import type { PreUploadSkippedFile, ZipItem } from "../../types/ipc";
 
 export interface UploadStatusStore {
     /**
@@ -24,7 +24,7 @@ export interface UploadStatusStore {
      * Files that were skipped because either we could not open them (zip files)
      * or they are hidden dot files.
      */
-    skippedFiles?: SkippedFile[];
+    preUploadSkippedFiles?: PreUploadSkippedFile[];
 }
 
 const uploadStatusSchema: Schema<UploadStatusStore> = {
@@ -35,7 +35,7 @@ const uploadStatusSchema: Schema<UploadStatusStore> = {
         items: { type: "array", items: { type: "string" } },
     },
     zipPaths: { type: "array", items: { type: "string" } },
-    skippedFiles: {
+    preUploadSkippedFiles: {
         type: "array",
         items: {
             type: "object",

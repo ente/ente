@@ -177,7 +177,6 @@
   "deleteAccountQuery": "Kami akan merasa kehilangan Anda. Apakah Anda menghadapi masalah?",
   "yesSendFeedbackAction": "Ya, kirim umpan balik",
   "noDeleteAccountAction": "Tidak, hapus akun",
-  "initiateAccountDeleteTitle": "Harap autentikasi untuk memulai penghapusan akun",
   "sendEmail": "Kirim surel",
   "createNewAccount": "Buat akun baru",
   "weakStrength": "Lemah",

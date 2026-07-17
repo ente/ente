@@ -16,6 +16,8 @@ pub struct Defaults {
     pub mobile_model_presets: Vec<ModelPreset>,
     pub desktop_default_model: ModelPreset,
     pub desktop_model_presets: Vec<ModelPreset>,
+    pub transcription_model: ModelPreset,
+    pub voice_activity_model: ModelPreset,
 }
 
 const SYSTEM_PROMPT_DATE_PLACEHOLDER: &str = "$date";
@@ -104,6 +106,24 @@ fn gemma_4_e2b_q4km() -> ModelPreset {
     }
 }
 
+fn parakeet_v3_int8() -> ModelPreset {
+    ModelPreset {
+        id: "parakeet-v3-int8".to_string(),
+        title: "Transcription model".to_string(),
+        url: "https://models.ente.io/parakeet-v3-int8.tar.gz".to_string(),
+        mmproj_url: None,
+    }
+}
+
+fn silero_vad_v4() -> ModelPreset {
+    ModelPreset {
+        id: "silero-vad-v4".to_string(),
+        title: "Voice activity model".to_string(),
+        url: "https://models.ente.io/silero_vad_v4.onnx".to_string(),
+        mmproj_url: None,
+    }
+}
+
 pub fn defaults() -> Defaults {
     let mobile_default_model = lfm_vl_1_6b();
     let desktop_default_model = gemma_4_e4b_q4km();
@@ -123,5 +143,37 @@ pub fn defaults() -> Defaults {
             qwen_0_8b(),
             qwen_2b_q8(),
         ],
+        transcription_model: parakeet_v3_int8(),
+        voice_activity_model: silero_vad_v4(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn preset_ids_key_unique_artifacts() {
+        let defaults = defaults();
+        let all = std::iter::once(&defaults.mobile_default_model)
+            .chain(defaults.mobile_model_presets.iter())
+            .chain(std::iter::once(&defaults.desktop_default_model))
+            .chain(defaults.desktop_model_presets.iter())
+            .chain([
+                &defaults.transcription_model,
+                &defaults.voice_activity_model,
+            ]);
+        let mut seen: HashMap<&str, (&str, Option<&str>)> = HashMap::new();
+        for preset in all {
+            let artifact = (preset.url.as_str(), preset.mmproj_url.as_deref());
+            if let Some(existing) = seen.insert(preset.id.as_str(), artifact) {
+                assert_eq!(
+                    existing, artifact,
+                    "preset id {} aliases different artifacts",
+                    preset.id
+                );
+            }
+        }
     }
 }

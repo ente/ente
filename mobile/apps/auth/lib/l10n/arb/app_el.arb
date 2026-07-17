@@ -177,7 +177,6 @@
   "deleteAccountQuery": "Λυπόμαστε που σας βλέπουμε να φεύγετε. Αντιμετωπίζετε κάποιο πρόβλημα;",
   "yesSendFeedbackAction": "Ναι, αποστολή σχολίων",
   "noDeleteAccountAction": "Όχι, διαγραφή λογαριασμού",
-  "initiateAccountDeleteTitle": "Παρακαλώ πραγματοποιήστε έλεγχο ταυτότητας για να ξεκινήσετε τη διαγραφή λογαριασμού",
   "sendEmail": "Αποστολή email",
   "createNewAccount": "Δημιουργία νέου λογαριασμού",
   "weakStrength": "Αδύναμος",

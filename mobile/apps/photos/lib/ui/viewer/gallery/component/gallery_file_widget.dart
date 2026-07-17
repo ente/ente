@@ -3,6 +3,7 @@ import "dart:async";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
+import "package:logging/logging.dart";
 import "package:media_extension/media_extension.dart";
 import "package:media_extension/media_extension_action_types.dart";
 import "package:photos/core/constants.dart";
@@ -11,8 +12,9 @@ import "package:photos/events/file_uploaded_event.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/selected_files.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/services/app_lifecycle_service.dart";
-import "package:photos/theme/ente_theme.dart";
+import "package:photos/services/collections_service.dart";
 import "package:photos/ui/common/touch_cross_detector.dart";
 import "package:photos/ui/sharing/user_avator_widget.dart";
 import "package:photos/ui/viewer/actions/select_all_status_icon.dart";
@@ -22,7 +24,6 @@ import "package:photos/ui/viewer/gallery/component/swipe_selectable_file_widget.
 import "package:photos/ui/viewer/gallery/state/gallery_context_state.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_swipe_helper.dart";
-import "package:photos/utils/file_util.dart";
 
 class GalleryFileWidget extends StatefulWidget {
   final EnteFile file;
@@ -47,6 +48,7 @@ class GalleryFileWidget extends StatefulWidget {
 
 class _GalleryFileWidgetState extends State<GalleryFileWidget> {
   static const borderRadius = BorderRadius.all(Radius.circular(1));
+  static final _logger = Logger("GalleryFileWidget");
   late bool _isFileSelected;
   int? _currentPointerId;
   bool _isPointerInside = false;
@@ -104,9 +106,11 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
         widget.file.isUploaded &&
         widget.file.ownerID != null &&
         widget.file.ownerID != widget.currentUserID) {
-      final avatarColors = getEnteColorScheme(context).avatarColors;
-      selectionColor =
-          avatarColors[widget.file.ownerID!.remainder(avatarColors.length)];
+      final owner = CollectionsService.instance.getFileOwner(
+        widget.file.ownerID!,
+        widget.file.collectionID,
+      );
+      selectionColor = getUserAvatarColor(context, owner);
     }
     final String heroTag = widget.tag + widget.file.tag;
     final Widget thumbnailWidget = ThumbnailWidget(
@@ -286,6 +290,14 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
 
   void _routeToDetailPage(EnteFile file, BuildContext context) {
     final galleryFiles = GalleryFilesState.of(context).galleryFiles;
+    final selectedIndex = galleryFiles.indexOf(file);
+    // A refresh can make the tapped tile stale.
+    if (selectedIndex < 0) {
+      _logger.warning(
+        "Not opening viewer; tapped item is no longer in the gallery",
+      );
+      return;
+    }
     // Device folders (local-only contexts) should keep files visible
     // even after deleting from Ente (remote) since they still exist locally
     final galleryType = GalleryContextState.of(context)?.galleryType;
@@ -293,7 +305,7 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
     final page = DetailPage(
       DetailPageConfiguration(
         galleryFiles,
-        galleryFiles.indexOf(file),
+        selectedIndex,
         widget.tag,
         isLocalOnlyContext: isLocalOnlyContext,
         galleryType: galleryType,

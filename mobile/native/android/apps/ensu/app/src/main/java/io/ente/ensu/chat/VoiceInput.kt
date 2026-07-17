@@ -14,11 +14,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import io.ente.ensu.bindings.LlmException
 import io.ente.ensu.bindings.Transcriber
 import io.ente.ensu.bindings.TranscriptionException
-import io.ente.ensu.bindings.TranscriptionModelEvent
-import io.ente.ensu.bindings.TranscriptionModelEventCallback
 import io.ente.ensu.bindings.uniffiEnsureInitialized
+import io.ente.ensu.llm.ModelDownloader
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,7 +33,6 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import kotlin.coroutines.coroutineContext
-import kotlin.math.roundToInt
 
 internal sealed interface VoiceInputState {
     data object Idle : VoiceInputState
@@ -68,12 +67,13 @@ internal fun VoiceInputState.statusText(): String? = when (this) {
 
 @Composable
 internal fun rememberVoiceTranscriptionController(
+    modelDownloader: ModelDownloader,
     transcriber: Transcriber,
     onTranscript: (String) -> Unit
 ): VoiceTranscriptionController {
     val lifecycleOwner = LocalLifecycleOwner.current
     val controller = remember(transcriber) {
-        VoiceTranscriptionController(transcriber, onTranscript)
+        VoiceTranscriptionController(modelDownloader, transcriber, onTranscript)
     }
     DisposableEffect(controller, lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -93,9 +93,15 @@ internal fun rememberVoiceTranscriptionController(
 }
 
 internal class VoiceTranscriptionController(
+    private val modelDownloader: ModelDownloader,
     private val transcriber: Transcriber,
     private val onTranscript: (String) -> Unit
 ) {
+    private val modelTargets = listOf(
+        modelDownloader.transcriptionModelTarget,
+        modelDownloader.voiceActivityModelTarget
+    )
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val bufferLock = Any()
 
@@ -140,6 +146,13 @@ internal class VoiceTranscriptionController(
             } catch (error: TranscriptionException) {
                 Log.w(TAG, "Voice model preparation failed: ${error.message}", error)
                 state = VoiceInputState.Error(transcriptionErrorMessage(error))
+            } catch (error: LlmException) {
+                if (error is LlmException.Cancelled) {
+                    state = VoiceInputState.Idle
+                    return@launch
+                }
+                Log.w(TAG, "Voice model download failed: ${error.message}", error)
+                state = VoiceInputState.Error(downloadErrorMessage())
             } catch (error: Throwable) {
                 Log.w(
                     TAG,
@@ -288,6 +301,13 @@ internal class VoiceTranscriptionController(
         } catch (error: TranscriptionException) {
             Log.w(TAG, "Voice transcription failed: ${error.message}", error)
             state = VoiceInputState.Error(transcriptionErrorMessage(error))
+        } catch (error: LlmException) {
+            if (error is LlmException.Cancelled) {
+                state = VoiceInputState.Idle
+                return
+            }
+            Log.w(TAG, "Voice model download failed: ${error.message}", error)
+            state = VoiceInputState.Error(downloadErrorMessage())
         } catch (error: Throwable) {
             Log.w(
                 TAG,
@@ -324,50 +344,16 @@ internal class VoiceTranscriptionController(
     }
 
     private suspend fun ensureTranscriptionModelDownloaded() {
-        withContext(Dispatchers.IO) {
-            val activeJob = coroutineContext[Job]
-            uniffiEnsureInitialized()
+        val activeJob = coroutineContext[Job]
+        uniffiEnsureInitialized()
 
-            if (transcriber.isModelDownloaded()) {
-                return@withContext
-            }
+        if (withContext(Dispatchers.IO) { modelTargets.all { modelDownloader.isDownloaded(it) } }) {
+            return
+        }
 
-            setStateIfJobActive(activeJob, VoiceInputState.Downloading(null))
-            transcriber.downloadModel(
-                object : TranscriptionModelEventCallback {
-                    override fun onEvent(event: TranscriptionModelEvent) {
-                        when (event) {
-                            is TranscriptionModelEvent.DownloadProgress -> {
-                                val percent = event.percentage
-                                    .roundToInt()
-                                    .coerceIn(0, 100)
-                                postStateIfJobActive(
-                                    activeJob,
-                                    VoiceInputState.Downloading(percent)
-                                )
-                            }
-                            TranscriptionModelEvent.ExtractionStarted -> {
-                                postStateIfJobActive(
-                                    activeJob,
-                                    VoiceInputState.Downloading(100)
-                                )
-                            }
-                            TranscriptionModelEvent.ExtractionCompleted,
-                            TranscriptionModelEvent.DownloadComplete -> Unit
-                            is TranscriptionModelEvent.DownloadError -> {
-                                Log.w(
-                                    TAG,
-                                    "Voice model download failed: ${event.message}"
-                                )
-                                postStateIfJobActive(
-                                    activeJob,
-                                    VoiceInputState.Error(downloadErrorMessage())
-                                )
-                            }
-                        }
-                    }
-                }
-            )
+        setStateIfJobActive(activeJob, VoiceInputState.Downloading(null))
+        modelDownloader.download(modelTargets) { progress ->
+            postStateIfJobActive(activeJob, VoiceInputState.Downloading(progress.percent?.coerceIn(0, 100)))
         }
     }
 
@@ -447,7 +433,6 @@ internal class VoiceTranscriptionController(
         "Voice model download failed. Check your connection and try again."
 
     private fun transcriptionErrorMessage(error: TranscriptionException): String = when (error) {
-        is TranscriptionException.Download -> downloadErrorMessage()
         is TranscriptionException.NotDownloaded,
         is TranscriptionException.VadNotDownloaded,
         is TranscriptionException.Transcribe -> "Voice model could not be loaded."

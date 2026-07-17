@@ -1,5 +1,7 @@
 {
   "@@locale ": "en",
+  "onboardingTitle": "Für alles, was du nicht vergessen möchtest",
+  "onboardingDesc": "Sichere deine Fotos und Videos. Jede Erinnerung, an einem Ort.",
   "enterYourEmailAddress": "Gib deine E-Mail-Adresse ein",
   "enterYourNewEmailAddress": "Geben Sie Ihre neue E-Mail-Adresse ein",
   "accountWelcomeBack": "Willkommen zurück!",
@@ -9,27 +11,14 @@
   "email": "E-Mail",
   "cancel": "Abbrechen",
   "cast": "Streamen",
+  "castSessions": "Sitzungen übertragen",
+  "noSessionsFound": "Keine Sitzungen gefunden!",
   "verify": "Überprüfen",
   "invalidEmailAddress": "Ungültige E-Mail-Adresse",
   "validEmailAddress": "Gültige E-Mail-Adresse",
   "enterValidEmail": "Bitte geben Sie eine gültige E-Mail Adresse ein.",
   "deleteAccount": "Konto löschen",
-  "deleteAccountWarning": "Hiermit wird Ihr Konto für Ente Auth, Ente Photos und Ente Locker gelöscht.",
-  "askDeleteReason": "Was ist der Hauptgrund für die Löschung deines Kontos?",
-  "deleteAccountFeedbackPrompt": "Wir bedauern sehr, dass du dein Konto löschen möchtest. Du würdest uns sehr helfen, wenn du uns kurz einige Gründe hierfür nennen könntest.",
-  "feedback": "Rückmeldung",
-  "kindlyHelpUsWithThisInformation": "Bitte helfen Sie uns mit diesen Informationen",
-  "confirmDeletePrompt": "Ja, ich möchte dieses Konto und seine Daten in allen Apps endgültig löschen.",
-  "confirmAccountDeletion": "Kontolöschung bestätigen",
-  "deleteAccountPermanentlyButton": "Konto unwiderruflich löschen",
-  "yourAccountHasBeenDeleted": "Dein Benutzerkonto wurde gelöscht",
-  "selectReason": "Grund auswählen",
-  "deleteReason1": "Es fehlt eine zentrale Funktion, die ich benötige",
-  "deleteReason2": "Die App oder eine bestimmte Funktion verhält sich nicht so wie gedacht",
-  "deleteReason3": "Ich habe einen anderen Dienst gefunden, der mir mehr zusagt",
-  "deleteReason4": "Mein Grund ist nicht aufgeführt",
   "sendEmail": "E-Mail senden",
-  "deleteRequestSLAText": "Ihre Anfrage wird innerhalb von 72 Stunden bearbeitet.",
   "entePhotosPerm": "Ente <i> benötigt Berechtigung, um </i> Ihre Fotos zu sichern",
   "ok": "Ok",
   "createAccount": "Konto erstellen",
@@ -443,11 +432,11 @@
   "videoSmallCase": "Video",
   "photoSmallCase": "Foto",
   "singleFileDeleteHighlight": "Es wird aus allen Alben gelöscht.",
-  "singleFileInBothLocalAndRemote": "Dieses Element ist auf Ihrem Gerät und bei Ente verfügbar.",
+  "singleFileInBothLocalAndRemote": "Dieses Element ist auf deinem Gerät und bei Ente verfügbar.",
   "@singleFileInBothLocalAndRemote": {
     "description": "Delete confirmation message for a single item that exists both on the device and in Ente."
   },
-  "singleFileInRemoteOnly": "Dieses Element wird aus allen Alben gelöscht. Sie können es aus dem Papierkorb wiederherstellen.",
+  "singleFileInRemoteOnly": "Dieses Element wird aus allen Alben gelöscht. Du kannst es aus dem Papierkorb wiederherstellen.",
   "@singleFileInRemoteOnly": {
     "description": "Delete confirmation message for a single item that exists only in Ente."
   },
@@ -468,7 +457,7 @@
   "@selectedFilesSavedOnDeviceOnly": {
     "description": "Delete confirmation message for selected items that exist only on the device."
   },
-  "selectedFilesBackedUpToEnte": "Diese Elemente werden aus allen Alben gelöscht. Sie können sie aus dem Papierkorb wiederherstellen.",
+  "selectedFilesBackedUpToEnte": "Diese Elemente werden aus allen Alben gelöscht. Du kannst sie aus dem Papierkorb wiederherstellen.",
   "@selectedFilesBackedUpToEnte": {
     "description": "Delete confirmation message for selected items that are backed up to Ente."
   },
@@ -645,11 +634,11 @@
   "authToChangeYourEmail": "Bitte authentifizieren, um deine E-Mail-Adresse zu ändern",
   "changePassword": "Passwort ändern",
   "authToChangeYourPassword": "Bitte authentifizieren, um das Passwort zu ändern",
+  "authToInitiateAccountDeletion": "Entsperren, um dein Konto zu löschen",
   "emailVerificationToggle": "E-Mail-Verifizierung",
   "authToChangeEmailVerificationSetting": "Bitte authentifizieren, um die E-Mail-Bestätigung zu ändern",
   "exportYourData": "Daten exportieren",
   "logout": "Ausloggen",
-  "authToInitiateAccountDeletion": "Bitte authentifizieren, um die Löschung des Kontos einzuleiten",
   "areYouSureYouWantToLogout": "Bist Du sicher, dass du dich abmelden möchtest?",
   "yesLogout": "Ja, ausloggen",
   "aNewVersionOfEnteIsAvailable": "Eine neue Version von Ente ist verfügbar.",
@@ -666,7 +655,7 @@
   "backup": "Backup",
   "freeUpDeviceSpace": "Gerätespeicher freiräumen",
   "freeUpDeviceSpaceDesc": "Spare Speicherplatz auf deinem Gerät, indem du Dateien löschst, die bereits gesichert wurden.",
-  "freeUpDeviceSpaceConfirmDesc": "{count, plural, one{{count} gesicherte Datei wird} other{{count} gesicherte Dateien werden}} endgültig von diesem Gerät gelöscht.",
+  "freeUpDeviceSpaceConfirmDesc": "{count, plural, one{Eine gesicherte Datei wird} other{{count} gesicherte Dateien werden}} endgültig von diesem Gerät gelöscht.",
   "freeUpDeviceSpaceDescICloud": "Dateien in mit iCloud geteilten Alben können nicht gelöscht werden.",
   "@freeUpDeviceSpaceDescICloud": {
     "description": "Here 'cleared' means 'deleted' from the device"
@@ -675,11 +664,11 @@
   "noDeviceThatCanBeDeleted": "Du hast keine Dateien auf diesem Gerät, die gelöscht werden können",
   "removeDuplicates": "Duplikate entfernen",
   "removeDuplicatesDesc": "Überprüfe und lösche Dateien, die exakte Duplikate sind.",
-  "mediaManagementHintTitle": "Sind Sie es leid, jedes Löschen zu bestätigen?",
+  "mediaManagementHintTitle": "Bist du es leid, jedes Löschen zu bestätigen?",
   "@mediaManagementHintTitle": {
     "description": "Title of a sheet prompting Android users to enable media management permission."
   },
-  "mediaManagementHintMessage": "Aktivieren Sie die Medienverwaltung für Ente in den Einstellungen, und die Abfragen enden.",
+  "mediaManagementHintMessage": "Aktiviere die Medienverwaltung für Ente in den Einstellungen, und die Abfragen enden.",
   "@mediaManagementHintMessage": {
     "description": "Message explaining that enabling Android media management permission avoids repeated delete confirmations."
   },
@@ -1777,7 +1766,6 @@
   "addToHiddenAlbum": "Zum versteckten Album hinzufügen",
   "moveToHiddenAlbum": "Zu verstecktem Album verschieben",
   "fileTypes": "Dateitypen",
-  "deleteConfirmDialogBody": "Dieses Konto ist mit anderen Ente-Apps verknüpft, falls du welche verwendest. Deine hochgeladenen Daten werden in allen Ente-Apps zur Löschung vorgemerkt und dein Konto wird endgültig gelöscht.",
   "hearUsWhereTitle": "Wie hast du von Ente erfahren?",
   "hearUsExplanation": "Wir tracken keine App-Installationen. Es würde uns jedoch helfen, wenn du uns mitteilst, wie du von uns erfahren hast!",
   "viewAddOnButton": "Zeige Add-ons",
@@ -1839,7 +1827,7 @@
   "playOnTv": "Album auf dem Fernseher wiedergeben",
   "pair": "Koppeln",
   "deviceNotFound": "Gerät nicht gefunden",
-  "castInstruction": "Besuche {castUrl} auf dem Gerät, das du verbinden möchtest.\n\nGib den unten angegebenen Code ein, um das Album auf deinem Fernseher abzuspielen.",
+  "castInstruction": "Besuche {castUrl} auf dem Gerät, das du verbinden möchtest.",
   "@castInstruction": {
     "description": "Instructions shown when pairing a device to play an album on TV.",
     "placeholders": {
@@ -1889,8 +1877,8 @@
   "removePersonLabel": "Personenetikett entfernen",
   "removePersonTag": "Personen-Tag entfernen",
   "areYouSureRemoveThisPersonTag": "Möchtest du dieses Personen-Tag wirklich entfernen?",
-  "autoPairDesc": "Automatisches Verbinden funktioniert nur mit Geräten, die Chromecast unterstützen.",
-  "manualPairDesc": "\"Mit PIN verbinden\" funktioniert mit jedem Bildschirm, auf dem du dein Album sehen möchtest.",
+  "pairWithAutoDesc": "Automatisches Verbinden funktioniert nur mit Geräten, die Cast unterstützen.",
+  "pairWithCodeDesc": "\"Mit PIN verbinden\" funktioniert mit jedem Bildschirm, auf dem du dein Album sehen möchtest.",
   "connectToDevice": "Mit Gerät verbinden",
   "autoCastDialogBody": "Verfügbare Cast-Geräte werden hier angezeigt.",
   "autoCastiOSPermission": "Stelle sicher, dass die Ente-App auf das lokale Netzwerk zugreifen darf. Das kannst du in den Einstellungen unter \"Datenschutz\".",
@@ -1902,7 +1890,7 @@
   "pairingComplete": "Verbunden",
   "savingEdits": "Speichere Änderungen...",
   "autoPair": "Automatisch verbinden",
-  "pairWithPin": "Mit PIN verbinden",
+  "pairUsingCode": "Mit Code verbinden",
   "faceRecognition": "Gesichtserkennung",
   "foundFaces": "Gesichter gefunden",
   "clusteringProgress": "Fortschritt beim Clustering",
@@ -3195,7 +3183,7 @@
   "deleteHiddenFilesFromDeviceDescription": "Lösche lokale Kopien von versteckten Dateien von deinem Gerät",
   "deleteOnDeviceFiles": "Lösche Dateien auf dem Gerät",
   "noHiddenFilesOnDevice": "Keine versteckten Dateien auf dem Gerät",
-  "welcome": "Willkommen",
+  "grantGalleryPermissionTitle": "Lass uns deine Favoriten finden",
   "grantGalleryPermissionDesc": "Erteile die Berechtigung, um auf Fotos zuzugreifen und mit Gesichtserkennung zu organisieren. Die Verarbeitung geschieht vollständig auf deinem Gerät.",
   "grantPermission": "Zugriff gewähren",
   "privateAI": "Private KI",

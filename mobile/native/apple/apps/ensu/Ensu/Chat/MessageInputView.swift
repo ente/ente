@@ -10,7 +10,6 @@ struct MessageInputView: View {
     let isDownloading: Bool
     let editingMessage: RenderedChatMessage?
     let isProcessingAttachments: Bool
-    let isAttachmentDownloadBlocked: Bool
     let voiceInputState: VoiceInputState
     let moveCursorToEndToken: UUID
     let onSend: () -> Void
@@ -28,21 +27,16 @@ struct MessageInputView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var inputResetToken = UUID()
 
-    private var placeholder: String {
-        if isAttachmentDownloadBlocked {
-            return "Downloading attachments..."
-        }
-        return "Write a message..."
-    }
+    private let placeholder = "Write a message..."
 
     private var canSend: Bool {
         let hasContent = !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty
-        return hasContent && !isGenerating && !isDownloading && !isAttachmentDownloadBlocked && !voiceInputState.blocksSend
+        return hasContent && !isGenerating && !isDownloading && !voiceInputState.blocksSend
     }
 
     private var isSendEnabled: Bool {
         let hasContent = !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachments.isEmpty
-        return hasContent && !isDownloading && !isAttachmentDownloadBlocked && !voiceInputState.blocksSend
+        return hasContent && !isDownloading && !voiceInputState.blocksSend
     }
 
     private var isImageAttachmentLimitReached: Bool {
@@ -162,7 +156,6 @@ struct MessageInputView: View {
                     if editingMessage == nil {
                         let canUseAttachment = !isGenerating &&
                             !isDownloading &&
-                            !isAttachmentDownloadBlocked &&
                             !isImageAttachmentLimitReached
                         PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                             Image("Upload01Icon")
@@ -199,7 +192,7 @@ struct MessageInputView: View {
                     if editingMessage == nil {
                         let isVoiceBusy = voiceInputState.isTranscriptionBusy
                         let canUseVoice = voiceInputState.isRecording ||
-                            (!isGenerating && !isDownloading && !isAttachmentDownloadBlocked && !isVoiceBusy)
+                            (!isGenerating && !isDownloading && !isVoiceBusy)
 
                         Button {
                             if voiceInputState.isRecording {

@@ -7,7 +7,7 @@ fast_image_resize = { version = "5.5.0", features = ["image"] }
 image = { version = "0.25.10", default-features = true }
 jxl-oxide = { version = "0.12.6", features = ["image"] }
 kamadak-exif = "0.6.1"
-ente_heic = { package = "heic_decoder", git = "https://github.com/ente/heic-decoder.git", rev = "3fd83f1c1f0c88b8c4b511355b4041c7bb2d393b", features = [
+ente_heic = { package = "heic_decoder", git = "https://github.com/ente/heic-decoder.git", rev = "0998ddc52085b38fa359049d1fe28baf144fe79b", features = [
     "image-integration",
 ] }
 moxcms = "0.8.1"

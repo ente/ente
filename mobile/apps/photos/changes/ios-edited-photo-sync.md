@@ -1,0 +1,1 @@
+- Fixed syncing edited iOS photos after local gallery changes.

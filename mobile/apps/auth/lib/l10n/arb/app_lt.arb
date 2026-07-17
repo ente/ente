@@ -196,7 +196,7 @@
   "deleteAccountQuery": "Apgailestausime, kad išeinate. Ar susiduriate su kažkokiomis problemomis?",
   "yesSendFeedbackAction": "Taip, siųsti atsiliepimą",
   "noDeleteAccountAction": "Ne, ištrinti paskyrą",
-  "initiateAccountDeleteTitle": "Nustatykite tapatybę, kad pradėtumėte paskyros ištrynimą",
+  "authToInitiateAccountDeletion": "Atrakinkite, kad ištrintumėte savo paskyrą",
   "sendEmail": "Siųsti el. laišką",
   "createNewAccount": "Kurti naują paskyrą",
   "weakStrength": "Silpna",

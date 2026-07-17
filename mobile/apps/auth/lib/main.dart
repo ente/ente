@@ -22,6 +22,7 @@ import 'package:ente_auth/store/code_display_store.dart';
 import 'package:ente_auth/store/code_store.dart';
 import 'package:ente_auth/ui/home_page.dart';
 import 'package:ente_auth/ui/utils/icon_utils.dart';
+import 'package:ente_auth/utils/debug_build_flags.dart';
 import 'package:ente_auth/utils/directory_utils.dart' as auth_dir_utils;
 import 'package:ente_auth/utils/gallery_import_util.dart';
 import 'package:ente_auth/utils/window_protocol_handler.dart';
@@ -120,6 +121,7 @@ Future<void> _runInForeground() async {
     runApp(
       AppLock(
         builder: (args) => App(locale: locale, savedThemeMode: savedThemeMode),
+        debugShowCheckedModeBanner: false,
         lockScreen: LockScreen(configuration),
         enabled: await LockScreenSettings.instance.shouldShowLockScreen(),
         locale: locale,
@@ -188,6 +190,9 @@ Future<void> _init(bool bool, {String? via}) async {
     hasOptedForOfflineMode: Configuration.instance.hasOptedForOfflineMode(),
     hideAppContentDefault: true,
   );
+  if (shouldAllowAuthScreenCapture) {
+    await LockScreenSettings.instance.setHideAppContent(false, persist: false);
+  }
   AccountDeletionSettings.instance.init(
     host: Configuration.instance,
     enteDio: Network.instance.enteDio,

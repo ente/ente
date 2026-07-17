@@ -64,24 +64,25 @@ class OfflineFilesService {
       'Mark offline requested for ${eligibleFiles.length} eligible files',
     );
 
-    if (eligibleFiles.isEmpty || !context.mounted) {
+    if (eligibleFiles.isEmpty) {
       _logger.fine('No eligible files to mark offline');
       return false;
     }
 
     final total = eligibleFiles.length;
-    final dialog = createProgressDialog(
-      context,
-      total == 1
-          ? context.l10n.savingOffline
-          : '${context.l10n.savingOffline} 0/$total',
-      isDismissible: false,
-    );
+    final savingOffline = context.mounted ? context.l10n.savingOffline : null;
+    final dialog = savingOffline == null
+        ? null
+        : createProgressDialog(
+            context,
+            total == 1 ? savingOffline : '$savingOffline 0/$total',
+            isDismissible: false,
+          );
 
     var successCount = 0;
     var failureCount = 0;
 
-    await dialog.show();
+    await dialog?.show();
 
     try {
       for (var index = 0; index < eligibleFiles.length; index++) {
@@ -89,11 +90,13 @@ class OfflineFilesService {
         final fileID = file.uploadedFileID!;
         final currentStep = index + 1;
 
-        dialog.update(
-          message: total == 1
-              ? context.l10n.savingOffline
-              : '${context.l10n.savingOffline} $currentStep/$total',
-        );
+        if (context.mounted && dialog != null) {
+          dialog.update(
+            message: total == 1
+                ? savingOffline
+                : '$savingOffline $currentStep/$total',
+          );
+        }
 
         final alreadyHasOfflineCopy =
             LockerDB.instance.isFileMarkedOffline(file) &&
@@ -125,7 +128,7 @@ class OfflineFilesService {
       }
     } finally {
       try {
-        await dialog.hide();
+        await dialog?.hide();
       } catch (_) {}
     }
 

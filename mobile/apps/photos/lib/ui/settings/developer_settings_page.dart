@@ -78,7 +78,9 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
                       await _maybeToggleLocalGalleryModeOption(url);
                   if (modeToggleMessage != null) {
                     Bus.instance.fire(AppModeChangedEvent());
+                    if (!context.mounted) return;
                     showToast(context, modeToggleMessage);
+                    if (!context.mounted) return;
                     Navigator.of(context).pop();
                     return;
                   }
@@ -87,16 +89,19 @@ class _DeveloperSettingsPageState extends State<DeveloperSettingsPage> {
                     if ((uri.scheme == "http" || uri.scheme == "https")) {
                       await _ping(url);
                       await endpointConfig.setEndpoint(url);
+                      if (!context.mounted) return;
                       showToast(
                         context,
                         AppLocalizations.of(context).endpointUpdatedMessage,
                       );
+                      if (!context.mounted) return;
                       Navigator.of(context).pop();
                     } else {
                       throw const FormatException();
                     }
                   } catch (e) {
                     _logger.severe("Failed to update developer endpoint", e);
+                    if (!context.mounted) return;
                     await showAlertBottomSheet(
                       context,
                       title: AppLocalizations.of(context).invalidEndpoint,

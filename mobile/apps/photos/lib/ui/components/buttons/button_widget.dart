@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -211,6 +213,7 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
   ///to be used as width for the button when the loading/succes states comes.
   double? widthOfButton;
   final _debouncer = Debouncer(const Duration(milliseconds: 300));
+  Timer? _successResetTimer;
   ExecutionState executionState = ExecutionState.idle;
   Exception? _exception;
 
@@ -229,19 +232,24 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
   @override
   void dispose() {
     _debouncer.cancelDebounceTimer();
+    _successResetTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (executionState == ExecutionState.successful) {
-      Future.delayed(Duration(seconds: widget.isInAlert ? 1 : 2), () {
-        if (mounted) {
+    if (executionState == ExecutionState.successful &&
+        _successResetTimer == null) {
+      _successResetTimer = Timer(
+        Duration(seconds: widget.isInAlert ? 1 : 2),
+        () {
+          _successResetTimer = null;
+          if (!mounted) return;
           setState(() {
             executionState = ExecutionState.idle;
           });
-        }
-      });
+        },
+      );
     }
     return GestureDetector(
       onTap: _shouldRegisterGestures ? _onTap : null,
@@ -501,17 +509,19 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
         if (!mounted) return;
         setState(() {
           executionState = ExecutionState.idle;
-          widget.isInAlert
-              ? Future.delayed(
-                  const Duration(seconds: 0),
-                  () => _popWithButtonAction(
-                    context,
-                    buttonAction: ButtonAction.error,
-                    exception: _exception,
-                  ),
-                )
-              : null;
         });
+        if (widget.isInAlert) {
+          unawaited(
+            Future.delayed(Duration.zero, () {
+              if (!mounted) return;
+              _popWithButtonAction(
+                context,
+                buttonAction: ButtonAction.error,
+                exception: _exception,
+              );
+            }),
+          );
+        }
       }
     } else {
       if (widget.isInAlert) {

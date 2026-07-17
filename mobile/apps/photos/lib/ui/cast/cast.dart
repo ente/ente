@@ -48,13 +48,15 @@ Future<void> showCastSheet(BuildContext context, Collection collection) async {
       sessions = await gw.getAllCastSessions();
     } catch (e, s) {
       logger.severe('Failed to fetch active sessions in cast sheet: ', e, s);
+      if (!context.mounted) return;
       await showGenericErrorDialog(context: context, error: e);
       return;
     }
   }
+  if (!context.mounted) return;
   return showBottomSheetComponent(
     context: context,
-    builder: (_) => BottomSheetComponent(
+    builder: (sheetContext) => BottomSheetComponent(
       isScrollable: sessions.isNotEmpty,
       initialChildSize: 0.6,
       snapSizes: const [0.6, 1.0],
@@ -69,7 +71,8 @@ Future<void> showCastSheet(BuildContext context, Collection collection) async {
             leading: const HugeIcon(icon: HugeIcons.strokeRoundedTvSmart),
             shouldSurfaceExecutionStates: false,
             onTap: () async {
-              Navigator.of(context).pop();
+              Navigator.of(sheetContext).pop();
+              if (!context.mounted) return;
               await showPairWithAutoSheet(context, collection);
             },
           ),
@@ -81,7 +84,8 @@ Future<void> showCastSheet(BuildContext context, Collection collection) async {
           leading: const HugeIcon(icon: HugeIcons.strokeRoundedTv02),
           shouldSurfaceExecutionStates: false,
           onTap: () async {
-            Navigator.of(context).pop();
+            Navigator.of(sheetContext).pop();
+            if (!context.mounted) return;
             await showPairWithCodeSheet(context, collection);
           },
         ),

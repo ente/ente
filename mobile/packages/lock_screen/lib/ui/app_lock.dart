@@ -37,6 +37,7 @@ class AppLock extends StatefulWidget {
   final List<Locale>? supportedLocales;
   final List<LocalizationsDelegate<dynamic>> localizationsDelegates;
   final LocaleListResolutionCallback? localeListResolutionCallback;
+  final bool debugShowCheckedModeBanner;
 
   /// Invoked on each successful unlock (launch, resume, or manual).
   final VoidCallback? onUnlock;
@@ -49,6 +50,7 @@ class AppLock extends StatefulWidget {
     required this.supportedLocales,
     required this.localizationsDelegates,
     required this.localeListResolutionCallback,
+    this.debugShowCheckedModeBanner = true,
     this.enabled = true,
     this.locale,
     this.backgroundLockLatency = const Duration(seconds: 0),
@@ -127,6 +129,7 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: widget.debugShowCheckedModeBanner,
       home: this.widget.enabled ? this._lockScreen : this.widget.builder(null),
       navigatorKey: _navigatorKey,
       themeMode: this._themeMode,

@@ -4,9 +4,9 @@ import "dart:collection";
 import "package:logging/logging.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/service_locator.dart" show isLocalGalleryMode;
 import "package:photos/services/video_preview_service.dart";
-import "package:photos/utils/file_util.dart";
 import "package:photos/utils/network_util.dart";
 
 const int kMemoryVideoLookaheadCap = 20;

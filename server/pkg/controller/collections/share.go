@@ -25,26 +25,15 @@ func (c *CollectionController) Share(ctx *gin.Context, req ente.AlterShareReques
 	if err := validateSealedCollectionKey(encryptedKey); err != nil {
 		return nil, err
 	}
-	toUserEmail := emailUtil.NormalizeEmail(req.Email)
 	// default role type
 	role := ente.VIEWER
 	if req.Role != nil {
 		role = *req.Role
 	}
 
-	toUserID, err := c.UserRepo.GetUserIDWithEmail(toUserEmail)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-	}
-	if toUserID == fromUserID {
-		return nil, stacktrace.Propagate(ente.ErrBadRequest, "Can not share collection with self")
-	}
 	collection, err := c.CollectionRepo.Get(cID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
-	}
-	if !collection.AllowSharing() {
-		return nil, stacktrace.Propagate(ente.ErrBadRequest, "sharing %s is not allowed", collection.Type)
 	}
 	shareActorID := collection.Owner.ID
 	if fromUserID != collection.Owner.ID {
@@ -58,6 +47,20 @@ func (c *CollectionController) Share(ctx *gin.Context, req ente.AlterShareReques
 		if shareeRole == nil || *shareeRole != ente.ADMIN {
 			return nil, stacktrace.Propagate(ente.ErrPermissionDenied, "")
 		}
+	}
+	if !collection.AllowSharing() {
+		return nil, stacktrace.Propagate(ente.ErrBadRequest, "sharing %s is not allowed", collection.Type)
+	}
+
+	toUserID, err := c.UserLookup.LookupUserID(fromUserID, req.Email)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	if toUserID == fromUserID {
+		return nil, stacktrace.Propagate(ente.ErrBadRequest, "Can not share collection with self")
+	}
+	if toUserID == collection.Owner.ID {
+		return nil, stacktrace.Propagate(ente.ErrBadRequest, "Can not share collection with owner")
 	}
 	err = c.CollectionRepo.Share(cID, shareActorID, toUserID, encryptedKey, role, time.Microseconds())
 	if err != nil {
@@ -123,16 +126,9 @@ func (c *CollectionController) JoinViaLink(ctx *gin.Context, req ente.JoinCollec
 
 // UnShare unshares a collection with a user
 func (c *CollectionController) UnShare(ctx *gin.Context, cID int64, fromUserID int64, toUserEmail string) ([]ente.CollectionUser, error) {
-	toUserID, err := c.UserRepo.GetUserIDWithEmail(toUserEmail)
-	if err != nil {
-		return nil, stacktrace.Propagate(ente.ErrNotFound, "")
-	}
 	collection, err := c.CollectionRepo.Get(cID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
-	}
-	if toUserID == fromUserID {
-		return nil, stacktrace.Propagate(ente.ErrPermissionDenied, "")
 	}
 	if fromUserID != collection.Owner.ID {
 		shareeRole, err := c.CollectionRepo.GetCollectionShareeRole(cID, fromUserID)
@@ -146,9 +142,20 @@ func (c *CollectionController) UnShare(ctx *gin.Context, cID int64, fromUserID i
 			return nil, stacktrace.Propagate(ente.ErrPermissionDenied, "")
 		}
 	}
-	if toUserID == collection.Owner.ID {
+
+	sharees, err := c.CollectionRepo.GetSharees(cID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	toUserIndex := shareeIndexForEmail(sharees, toUserEmail)
+	if toUserIndex == -1 {
+		return nil, stacktrace.Propagate(ente.ErrNotFound, "")
+	}
+	toUserID := sharees[toUserIndex].ID
+	if toUserID == fromUserID || toUserID == collection.Owner.ID {
 		return nil, stacktrace.Propagate(ente.ErrPermissionDenied, "")
 	}
+
 	err = c.CollectionRepo.UnShare(cID, toUserID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
@@ -160,11 +167,14 @@ func (c *CollectionController) UnShare(ctx *gin.Context, cID int64, fromUserID i
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	sharees, err := c.GetSharees(ctx, cID, fromUserID)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-	}
-	return sharees, nil
+	return slices.Delete(sharees, toUserIndex, toUserIndex+1), nil
+}
+
+func shareeIndexForEmail(sharees []ente.CollectionUser, targetEmail string) int {
+	targetEmail = emailUtil.NormalizeEmail(targetEmail)
+	return slices.IndexFunc(sharees, func(sharee ente.CollectionUser) bool {
+		return emailUtil.NormalizeEmail(sharee.Email) == targetEmail
+	})
 }
 
 // Leave leaves the collection owned by someone else,

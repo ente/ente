@@ -193,7 +193,6 @@
   "deleteAccountQuery": "Det er synd å se deg gå. Støter du på ett problem?",
   "yesSendFeedbackAction": "Ja, send tilbakemelding",
   "noDeleteAccountAction": "Nei, slett konto",
-  "initiateAccountDeleteTitle": "Autentiser for å begynne sletting av konto",
   "sendEmail": "Send e-post",
   "createNewAccount": "Opprett ny konto",
   "weakStrength": "Svakt",

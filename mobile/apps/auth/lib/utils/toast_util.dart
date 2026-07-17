@@ -70,7 +70,9 @@ void showToast(
 
   // Default path (desktop)
   try {
+    if (!context.mounted) return;
     await Fluttertoast.cancel();
+    if (!context.mounted) return;
     await Fluttertoast.showToast(
       msg: message,
       toastLength: toastLength,
@@ -81,6 +83,7 @@ void showToast(
       fontSize: 16.0,
     );
   } on MissingPluginException catch (_) {
+    if (!context.mounted) return;
     final fToast = FToast()..init(context);
     final Widget baseToast = Container(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),

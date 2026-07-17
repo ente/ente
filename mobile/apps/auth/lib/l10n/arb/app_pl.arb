@@ -196,7 +196,7 @@
   "deleteAccountQuery": "Będzie nam przykro, że odchodzisz. Masz jakiś problem?",
   "yesSendFeedbackAction": "Tak, wyślij opinię",
   "noDeleteAccountAction": "Nie, usuń moje konto",
-  "initiateAccountDeleteTitle": "Prosimy uwierzytelnić się, aby zainicjować usuwanie konta",
+  "authToInitiateAccountDeletion": "Odblokuj, aby usunąć swoje konto",
   "sendEmail": "Wyślij e-mail",
   "createNewAccount": "Utwórz nowe konto",
   "weakStrength": "Słabe",

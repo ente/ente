@@ -41,6 +41,7 @@ class _VerifyRecoveryPageState extends State<VerifyRecoveryPage> {
     await dialog.show();
     try {
       final String inputKey = _recoveryKey.text.trim();
+      if (!mounted) return;
       final String recoveryKey = CryptoUtil.bin2hex(
         await UserService.instance.getOrCreateRecoveryKey(context),
       );
@@ -51,6 +52,7 @@ class _VerifyRecoveryPageState extends State<VerifyRecoveryPage> {
         } catch (e) {
           await dialog.hide();
           if (e is DioException && e.type == DioExceptionType.connectionError) {
+            if (!mounted) return;
             await showAlertBottomSheet(
               context,
               title: AppLocalizations.of(context).noInternetConnection,
@@ -60,18 +62,21 @@ class _VerifyRecoveryPageState extends State<VerifyRecoveryPage> {
               assetPath: 'assets/warning-grey.png',
             );
           } else {
+            if (!mounted) return;
             await showGenericErrorBottomSheet(context: context, error: e);
           }
           return;
         }
         Bus.instance.fire(NotificationEvent());
         await dialog.hide();
+        if (!mounted) return;
         await showAlertBottomSheet(
           context,
           title: AppLocalizations.of(context).recoveryKeyVerified,
           message: AppLocalizations.of(context).recoveryKeySuccessBody,
           assetPath: 'assets/warning-grey.png',
         );
+        if (!mounted) return;
         Navigator.of(context).pop();
       } else {
         throw Exception("recovery key didn't match");
@@ -79,7 +84,9 @@ class _VerifyRecoveryPageState extends State<VerifyRecoveryPage> {
     } catch (e, s) {
       _logger.severe("failed to verify recovery key", e, s);
       await dialog.hide();
+      if (!mounted) return;
       final String errMessage = AppLocalizations.of(context).invalidRecoveryKey;
+      if (!mounted) return;
       final result = await showChoiceDialog(
         context,
         title: AppLocalizations.of(context).invalidKey,
@@ -103,9 +110,11 @@ class _VerifyRecoveryPageState extends State<VerifyRecoveryPage> {
     if (hasAuthenticated) {
       String recoveryKey;
       try {
+        if (!mounted) return;
         recoveryKey = CryptoUtil.bin2hex(
           await UserService.instance.getOrCreateRecoveryKey(context),
         );
+        if (!mounted) return;
         // ignore: unawaited_futures
         routeToPage(
           context,
@@ -119,6 +128,7 @@ class _VerifyRecoveryPageState extends State<VerifyRecoveryPage> {
           ),
         );
       } catch (e) {
+        if (!mounted) return;
         await showGenericErrorBottomSheet(context: context, error: e);
         return;
       }
