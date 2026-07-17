@@ -2119,7 +2119,10 @@
     },
     {
       "title": "Square Enix",
-      "slug": "square_enix"
+      "slug": "square_enix",
+      "altNames": [
+        "Square Enix ID"
+      ]
     },
     {
       "title": "Standard Notes",
