@@ -359,6 +359,7 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
           recoveryUrl: _kit.legacyUrl,
           share: share,
           allShares: shares,
+          strings: context.strings,
         );
         await dialog.hide();
       } catch (_) {
