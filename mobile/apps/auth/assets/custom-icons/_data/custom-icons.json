@@ -2628,6 +2628,10 @@
       "title": "Zoom"
     },
     {
+      "title": "ZOOM Platform",
+      "slug": "zoom_platform"
+    },
+    {
       "title": "DLsite",
       "slug": "dlsite"
     },
