@@ -686,6 +686,14 @@
       "title": "DMarket"
     },
     {
+      "title": "Docker",
+      "slug": "docker",
+      "altNames": [
+        "Docker Hub",
+        "hub.docker.com"
+      ]
+    },
+    {
       "title": "DocuSeal"
     },
     {
