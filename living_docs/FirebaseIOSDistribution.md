@@ -13,7 +13,7 @@
 | Phase | Task | Title | Size | Status | Notes |
 |------:|----:|-------|:----:|--------|-------|
 | 1 | 1.1 | Audit Cytech membership and signing permissions | S | 🟢 done | Verified the selected Cytech Ltd organization has an active Apple Developer Program membership, the current program agreement is accepted, and Certificates, Identifiers, Devices, Profiles, Keys, and App Store Connect resources are available. The owner is the Account Holder rather than only an Admin, so closed-beta authorization and full signing-resource access are satisfied without another approver. Local audit found Xcode 26.6, two valid Apple Development identities, no Apple Distribution identity, and only expired historical Cytech profiles; Tasks 1.3 and 1.5 therefore remain responsible for current distribution signing and provisioning. No Apple account state changed, and no team identifier, address, phone number, device identifier, certificate, or profile was added to Git. |
-| 1 | 1.2 | Register the new self-hosted Apple App ID | S | ⚪ not started | Register exact bundle identifier `me.vanton.ente.photos.selfhosted` under Cytech only after Task 1.1 passes; record no team identifier or account credential in Git. |
+| 1 | 1.2 | Register the new self-hosted Apple App ID | S | 🟢 done | Registered explicit Apple App ID `me.vanton.ente.photos.selfhosted` under the verified Cytech organization with description `Ente Photos Self-Hosted`. The pre-registration confirmation and resulting identifier list showed the exact bundle value and no additional capabilities. No certificate, device, provisioning profile, Team ID, account detail, or credential was added to Git or changed outside this App ID registration. |
 | 1 | 1.3 | Establish the Apple Distribution certificate | S | ⚪ not started | Reuse an authorized certificate with its private key or create one through the Cytech team; record only its public fingerprint, subject, and expiry in audit evidence. |
 | 1 | 1.4 | Register the owner's iPhone privately | S | ⚪ not started | Add the intended iPhone to Cytech's registered devices while keeping its unique device identifier out of Git, release notes, and repository logs. |
 | 1 | 1.5 | Create the owner-only Ad Hoc provisioning profile | S | ⚪ not started | Bind the new App ID, distribution certificate, and owner device; audit application identifier, team, profile UUID, expiry, certificate, and device count without recording device identifiers. |
@@ -68,6 +68,8 @@ The proven configurable iOS application currently uses bundle identifier `com.va
 | Firebase group | `trusted-ios-testers` |
 
 Only the self-hosted target changes identity. The official Ente Runner, Android application IDs, configurable endpoint policy, empty self-hosted entitlement set, and exclusion of Share Extension and widgets remain unchanged. Team identifiers, certificate private keys, provisioning profiles, device identifiers, and Firebase credentials remain local Apple/Firebase state or external release inputs.
+
+Task 1.2 registered the exact explicit bundle identifier under Cytech with no additional Apple capabilities. This establishes the native identity needed by later distribution-certificate and Ad Hoc profile tasks without granting push notifications, application groups, associated domains, In-App Purchase, or extension services.
 
 iOS treats the old and new bundle identifiers as unrelated applications. Their preferences, databases, keychain state, sessions, endpoint bindings, and caches do not migrate. Phase 1 deliberately installs the new app beside the old app and proves the cloud account before Phase 3 removes the legacy installation. Encrypted server media remains available after the owner signs in to the same Museum account.
 
@@ -212,6 +214,14 @@ Primary external references are Apple's [device registration limits](https://dev
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. If a decision changes, add a new entry instead of rewriting history.
+
+### 2026-07-17 — Register the explicit App ID without capabilities
+
+**Decision:** Register `me.vanton.ente.photos.selfhosted` as an explicit Apple App ID under Cytech with description `Ente Photos Self-Hosted` and no additional capabilities.
+
+**Why:** The core-only self-hosted target has an empty entitlement set and excludes Ente's extensions, application groups, push notifications, and purchase capability. Registering only the identity keeps Apple state aligned with the reviewed target instead of granting unused services.
+
+**Alternatives considered:** Reuse the legacy bundle identifier, register a wildcard identifier, or enable capabilities preemptively. Those choices conflict with the requested final identity, cannot express the exact distributable application, or broaden signing state without a V1 requirement.
 
 ### 2026-07-17 — Confirm the owner as Cytech Account Holder
 
