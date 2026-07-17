@@ -113,7 +113,7 @@ repository-pinned Flutter and Dart executables when they are not on `PATH`.
 
 The wrapper always builds the shared `selfhosted` scheme and its
 `SelfHostedRunner` target. That target uses the unique bundle identifier
-`com.vanton1.ente.photos.selfhosted`, embeds no Share Extension or widgets, and
+`me.vanton.ente.photos.selfhosted`, embeds no Share Extension or widgets, and
 has no production push, associated-domain, or app-group entitlements. The
 official `Runner` target and scheme keep their existing settings and extension
 dependencies.

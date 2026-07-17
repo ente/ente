@@ -10,7 +10,7 @@ The personal applications use separate identities from the official Ente app:
 
 - Android release package: `me.vanton.ente.photos.selfhosted`
 - Android debug package: `me.vanton.ente.photos.selfhosted.debug`
-- iOS bundle identifier: `com.vanton1.ente.photos.selfhosted`
+- iOS bundle identifier: `me.vanton.ente.photos.selfhosted`
 
 The official applications can remain installed alongside these builds.
 
@@ -298,7 +298,7 @@ Install and launch it on the booted simulator:
 ```sh
 xcrun simctl install booted \
   build/ios/Debug-selfhosted-iphonesimulator/SelfHostedRunner.app
-xcrun simctl launch booted com.vanton1.ente.photos.selfhosted
+xcrun simctl launch booted me.vanton.ente.photos.selfhosted
 ```
 
 ### Signed physical-iPhone build
@@ -358,7 +358,7 @@ xcrun devicectl device install app \
   build/ios/Debug-selfhosted-iphoneos/SelfHostedRunner.app
 xcrun devicectl device process launch \
   --device "$ENTE_IOS_DEVICE_ID" \
-  com.vanton1.ente.photos.selfhosted
+  me.vanton.ente.photos.selfhosted
 ```
 
 An unpaid Personal Team produces a short-lived provisioning profile. Rebuild
@@ -376,12 +376,16 @@ later builds. Consequently:
 
 - Installing a later configurable build with the same application identity
   preserves its server binding, account, and photos. This applies to future
-  Android builds using `me.vanton.ente.photos.selfhosted` and to iOS builds
-  using the existing self-hosted bundle identifier.
+  Android and iOS builds using `me.vanton.ente.photos.selfhosted` within their
+  respective platforms.
 - The earlier Android package `com.vanton1.ente.photos.selfhosted` is a separate
   application. Moving to the renamed Android package is a clean install and
   does not migrate its app-local binding, account, keys, or queued work. Sync
   important work first, then log in and download the cloud library again.
+- The earlier iOS bundle `com.vanton1.ente.photos.selfhosted` is likewise
+  unrelated to `me.vanton.ente.photos.selfhosted`. Keep both installed while
+  validating the renamed app, then remove the old app only after cloud recovery
+  and sign-in have been proven; no app-local state migrates between them.
 - Rebuilding with a different default does not silently migrate an existing
   installation.
 - A clean install binds itself to the compiled default on first launch.

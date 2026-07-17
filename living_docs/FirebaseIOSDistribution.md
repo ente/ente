@@ -17,7 +17,7 @@
 | 1 | 1.3 | Establish the Apple Distribution certificate | S | 🟢 done | Left the active teammate-created distribution certificate untouched and created a separate `Apple Distribution: Cytech Ltd` identity through Xcode. The matching private key is available in the macOS login Keychain and was not exported. `security find-identity` validates the identity; its public SHA-256 fingerprint is `8fcaf5f761acbcbeeae4710fb75370646071d8a905ac2a70ffeb46676c4a1e0c`, and the certificate expires on 2027-07-17. No App ID, device, provisioning profile, certificate private key, team identifier, or account detail was added to Git, and no device or profile state changed. |
 | 1 | 1.4 | Register the owner's iPhone privately | S | 🟢 done | Completed Cytech's new-membership-year device-list review while retaining the existing owner iPhone. The Apple device detail offered `Disable`, proving the retained device is enabled, and its identifier was compared privately with the paired, available `vPhone` in Xcode and matched. No new device slot was consumed, and no device identifier or personal device detail was added to Git, release notes, or repository logs. |
 | 1 | 1.5 | Create the owner-only Ad Hoc provisioning profile | S | 🟢 done | Generated and downloaded manual Ad Hoc profile `Ente Photos Self-Hosted Owner Ad Hoc` with UUID `a988a9d8-5e7e-43ef-9625-722e2fca0d3a`, expiring 2027-07-17. Local decoding verified the exact bundle/application-identifier binding, Cytech team binding without printing its identifier, one authorized device, one distribution certificate, and non-debug Ad Hoc state. The embedded certificate fingerprint matches Task 1.3. The `.mobileprovision` file, Team ID, and device identifier remain outside Git. |
-| 1 | 1.6 | Rename only the self-hosted iOS target | M | ⚪ not started | Change `SelfHostedRunner` from `com.vanton1.ente.photos.selfhosted` to `me.vanton.ente.photos.selfhosted`; preserve the official Ente target, Android identities, configurable endpoint behavior, empty entitlement set, and extension exclusions. |
+| 1 | 1.6 | Rename only the self-hosted iOS target | M | 🟢 done | Changed the active `SelfHostedRunner` product identifier to `me.vanton.ente.photos.selfhosted` and aligned its non-entitled app-group placeholder with the new namespace. Updated current README/build/launch and clean-install guidance while preserving historical evidence and Android legacy guidance. Added two focused identity/core-only tests; they and focused analysis pass under pinned Flutter 3.38.10. Xcode resolves the new identity for Debug, Profile, and Release with the empty self-hosted entitlement file; the official Runner remains `io.ente.frame` with its original entitlements, no Android application file changed, and guarded endpoint validation still passes. |
 | 1 | 1.7 | Add a reproducible Ad Hoc archive and export command | M | ⚪ not started | Extend the guarded iOS build path to create an archive and IPA for the new identity using explicit local team/profile inputs, without committing signing or device data. |
 | 1 | 1.8 | Export and audit the baseline IPA | M | ⚪ not started | Verify the final IPA's bundle, version/build, compiled server, architecture, non-debug state, entitlements, embedded profile, Cytech team, certificate fingerprint, expiry, archive integrity, and SHA-256. |
 | 1 | 1.9 | Verify the new app side by side on the owner's iPhone | M | ⚪ not started | Install the Ad Hoc IPA while retaining the legacy-bundle app, sign in to the intended Museum account, and prove foreground encrypted upload/download plus restart persistence. |
@@ -57,7 +57,7 @@ The observable success metric is one new-identity owner baseline, one higher-bui
 
 ### Identity and ownership cutover
 
-The proven configurable iOS application currently uses bundle identifier `com.vanton1.ente.photos.selfhosted` and a short-lived Personal Team development profile. The target closed-beta identity is:
+Before Task 1.6, the proven configurable iOS application used bundle identifier `com.vanton1.ente.photos.selfhosted` and a short-lived Personal Team development profile. The active source now uses the target closed-beta identity:
 
 | Property | Target value |
 |---|---|
@@ -68,6 +68,8 @@ The proven configurable iOS application currently uses bundle identifier `com.va
 | Firebase group | `trusted-ios-testers` |
 
 Only the self-hosted target changes identity. The official Ente Runner, Android application IDs, configurable endpoint policy, empty self-hosted entitlement set, and exclusion of Share Extension and widgets remain unchanged. Team identifiers, certificate private keys, provisioning profiles, device identifiers, and Firebase credentials remain local Apple/Firebase state or external release inputs.
+
+Task 1.6 changed the shared self-hosted Xcode configuration's product identifier to `me.vanton.ente.photos.selfhosted`. Its `CUSTOM_GROUP_ID` Info.plist placeholder now follows the `group.me.vanton.ente.photos.selfhosted` namespace, but the target's entitlement file remains empty and the target still has no Share Extension or widget dependencies, so this does not enable an application-group capability. Xcode resolves the new identity for Debug, Profile, and Release; the official Runner continues to resolve as `io.ente.frame` with its original entitlements. Current build and launch instructions use the new identity and explicitly treat the old bundle as a separate, non-migrating application.
 
 Task 1.2 registered the exact explicit bundle identifier under Cytech with no additional Apple capabilities. This establishes the native identity needed by later distribution-certificate and Ad Hoc profile tasks without granting push notifications, application groups, associated domains, In-App Purchase, or extension services.
 
@@ -220,6 +222,14 @@ Primary external references are Apple's [device registration limits](https://dev
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. If a decision changes, add a new entry instead of rewriting history.
+
+### 2026-07-17 — Align the non-entitled app-group placeholder with the new identity
+
+**Decision:** Rename the self-hosted target's `CUSTOM_GROUP_ID` Info.plist placeholder to `group.me.vanton.ente.photos.selfhosted` while preserving the empty entitlement file and extension-free target.
+
+**Why:** The shared Runner Info.plist interpolates this value even though the core-only target has no application-group entitlement. Keeping a legacy namespace in active self-hosted configuration would make the identity cutover incomplete and misleading; changing only the placeholder keeps configuration coherent without granting a capability.
+
+**Alternatives considered:** Retain the stale legacy placeholder, remove the shared Info.plist key and risk affecting official targets, or register and enable a real application group. The first leaves conflicting active identity data, while the latter two broaden this target beyond the reviewed core-only design.
 
 ### 2026-07-17 — Pin the baseline Ad Hoc profile to one device and certificate
 
