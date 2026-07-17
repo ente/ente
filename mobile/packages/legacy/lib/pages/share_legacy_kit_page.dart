@@ -350,7 +350,8 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
         showShortToast(context, context.strings.somethingWentWrong);
         return;
       }
-      final dialog = createProgressDialog(context, context.strings.pleaseWait);
+      final strings = context.strings;
+      final dialog = createProgressDialog(context, strings.pleaseWait);
       await dialog.show();
       final Uint8List bytes;
       try {
@@ -359,7 +360,7 @@ class _ShareLegacyKitPageState extends State<ShareLegacyKitPage> {
           recoveryUrl: _kit.legacyUrl,
           share: share,
           allShares: shares,
-          strings: context.strings,
+          strings: strings,
         );
         await dialog.hide();
       } catch (_) {

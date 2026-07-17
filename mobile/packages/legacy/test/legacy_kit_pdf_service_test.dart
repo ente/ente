@@ -1,10 +1,17 @@
 import "dart:convert";
+import "dart:io";
 
 import "package:ente_legacy/models/legacy_kit_models.dart";
 import "package:ente_legacy/services/legacy_kit_pdf_service.dart";
+import "package:ente_strings/ente_strings.dart";
+import "package:flutter/widgets.dart";
 import "package:flutter_test/flutter_test.dart";
 
+final _strings = lookupStringsLocalizations(const Locale("en"));
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test("normalizes compact legacy kit payload fields", () {
     final payload =
         jsonDecode(
@@ -60,6 +67,7 @@ void main() {
           recoveryUrl: "http://localhost:3013",
           share: share,
           allShares: shares,
+          strings: _strings,
         ),
       ),
     );
@@ -72,6 +80,74 @@ void main() {
       );
     }
   });
+
+  test(
+    "embeds the sheet fonts instead of falling back to a base font",
+    () async {
+      final shares = [_share(1, "Mom"), _share(2, "Alex")];
+      const service = LegacyKitPdfService();
+      final sheet = await service.buildRecoverySheet(
+        accountEmail: "john@example.com",
+        recoveryUrl: "https://legacy.ente.com",
+        share: shares.first,
+        allShares: shares,
+        strings: _strings,
+      );
+
+      final fonts = _embeddedFonts(sheet);
+      expect(
+        fonts,
+        containsAll([
+          "Outfit-SemiBold",
+          "Inter-Regular",
+          "Inter-Medium",
+          "Inter-Bold",
+        ]),
+      );
+      expect(
+        fonts.where(
+          (font) =>
+              font.startsWith("Courier") ||
+              font.startsWith("Helvetica") ||
+              font.startsWith("Times"),
+        ),
+        isEmpty,
+      );
+    },
+  );
+
+  test(
+    "writes recovery sheets to LEGACY_PDF_OUT for manual review",
+    () async {
+      final outputDir = Directory(Platform.environment["LEGACY_PDF_OUT"]!)
+        ..createSync(recursive: true);
+      final shares = [_share(1, "Mom"), _share(2, "Alex"), _share(3, "Lawyer")];
+      const service = LegacyKitPdfService();
+      for (final share in shares) {
+        final sheet = await service.buildRecoverySheet(
+          accountEmail: "john@example.com",
+          recoveryUrl: "https://legacy.ente.com",
+          share: share,
+          allShares: shares,
+          strings: _strings,
+        );
+        final name = share.partName.toLowerCase();
+        File(
+          "${outputDir.path}/legacy-kit-${share.shareIndex}-$name.pdf",
+        ).writeAsBytesSync(sheet);
+      }
+    },
+    skip: Platform.environment["LEGACY_PDF_OUT"] == null
+        ? "set LEGACY_PDF_OUT to a directory to write the sheets there"
+        : null,
+  );
+}
+
+Set<String> _embeddedFonts(List<int> pdf) {
+  return RegExp(r"/BaseFont/([A-Za-z0-9-]+)")
+      .allMatches(String.fromCharCodes(pdf))
+      .map((match) => match.group(1)!)
+      .toSet();
 }
 
 String _metadataPayload(List<int> pdf, String prefix) {
