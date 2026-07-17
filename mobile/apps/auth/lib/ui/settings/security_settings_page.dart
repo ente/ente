@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:ente_accounts/models/user_details.dart';
@@ -33,13 +34,18 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
   final _config = Configuration.instance;
   final _logger = Logger('SecuritySettingsPage');
   late final bool _hasLoggedIn;
+  bool? _isTwoFactorEnabled;
 
   @override
   void initState() {
     super.initState();
     _hasLoggedIn = _config.hasConfiguredAccount();
-    if (_hasLoggedIn && UserService.instance.canDisableEmailMFA() == null) {
-      UserService.instance.getUserDetailsV2().ignore();
+    if (_hasLoggedIn) {
+      _isTwoFactorEnabled = UserService.instance
+          .getCachedUserDetails()
+          ?.profileData
+          ?.isTwoFactorEnabled;
+      unawaited(_refreshSecurityDetails());
     }
   }
 
@@ -49,13 +55,33 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
       title: context.l10n.security,
       children: [
         if (_hasLoggedIn) ...[
+          if (_isTwoFactorEnabled case final isTwoFactorEnabled?) ...[
+            AuthSettingsItem(
+              title: context.l10n.twoFactorAuthTitle,
+              icon: HugeIcons.strokeRoundedSmartPhone01,
+              showChevron: false,
+              semanticsIdentifier: 'auth_security_two_factor_status',
+              semanticsToggled: isTwoFactorEnabled,
+              trailing: ExcludeSemantics(
+                child: ToggleSwitchComponent(
+                  selected: isTwoFactorEnabled,
+                  onChanged: null,
+                ),
+              ),
+            ),
+            const SizedBox(height: Spacing.sm),
+          ],
           AuthSettingsItem(
             title: context.l10n.emailVerificationToggle,
             icon: HugeIcons.strokeRoundedMailSecure01,
             showChevron: false,
-            trailing: ToggleSwitchComponent.async(
-              value: UserService.instance.hasEmailMFAEnabled,
-              onChanged: _toggleEmailMFA,
+            semanticsIdentifier: 'auth_security_email_mfa',
+            trailing: Semantics(
+              identifier: 'auth_security_email_mfa_toggle',
+              child: ToggleSwitchComponent.async(
+                value: UserService.instance.hasEmailMFAEnabled,
+                onChanged: _toggleEmailMFA,
+              ),
             ),
           ),
           const SizedBox(height: Spacing.sm),
@@ -63,13 +89,15 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
             title: context.l10n.passkey,
             icon: HugeIcons.strokeRoundedFingerAccess,
             showOnlyLoadingState: true,
+            semanticsIdentifier: 'auth_security_passkey',
             onTap: _openPasskey,
           ),
           const SizedBox(height: Spacing.sm),
           AuthSettingsItem(
             title: context.l10n.viewActiveSessions,
-            icon: HugeIcons.strokeRoundedSmartPhone01,
+            icon: HugeIcons.strokeRoundedComputerPhoneSync,
             showOnlyLoadingState: true,
+            semanticsIdentifier: 'auth_security_active_sessions',
             onTap: _openActiveSessions,
           ),
           const SizedBox(height: Spacing.sm),
@@ -78,10 +106,25 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
           title: context.l10n.appLock,
           icon: HugeIcons.strokeRoundedSquareLock02,
           showOnlyLoadingState: true,
+          semanticsIdentifier: 'auth_security_app_lock',
           onTap: _openAppLock,
         ),
       ],
     );
+  }
+
+  Future<void> _refreshSecurityDetails() async {
+    try {
+      final details = await UserService.instance.getUserDetailsV2(
+        memoryCount: false,
+      );
+      if (!mounted) return;
+      setState(() {
+        _isTwoFactorEnabled = details.profileData?.isTwoFactorEnabled;
+      });
+    } catch (error, stackTrace) {
+      _logger.warning('Failed to refresh security details', error, stackTrace);
+    }
   }
 
   Future<void> _toggleEmailMFA() async {

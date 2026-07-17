@@ -1,0 +1,1 @@
+- Added two-factor authentication status to Security settings.

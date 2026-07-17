@@ -21,6 +21,7 @@ class AuthSettingsItem extends StatelessWidget {
     this.isDestructive = false,
     this.showOnlyLoadingState = false,
     this.semanticsIdentifier,
+    this.semanticsToggled,
   });
 
   final String title;
@@ -33,6 +34,7 @@ class AuthSettingsItem extends StatelessWidget {
   final bool isDestructive;
   final bool showOnlyLoadingState;
   final String? semanticsIdentifier;
+  final bool? semanticsToggled;
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +56,11 @@ class AuthSettingsItem extends StatelessWidget {
     final identifier = semanticsIdentifier;
     return identifier == null
         ? item
-        : Semantics(identifier: identifier, child: item);
+        : Semantics(
+            identifier: identifier,
+            toggled: semanticsToggled,
+            child: item,
+          );
   }
 
   Widget? _leadingIcon(Color color) {

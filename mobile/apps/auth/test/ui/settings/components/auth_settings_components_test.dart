@@ -17,6 +17,7 @@ void main() {
         title: 'Security',
         icon: HugeIcons.strokeRoundedSquareLock02,
         semanticsIdentifier: 'auth_settings_security',
+        semanticsToggled: true,
         onTap: () => tapped = true,
       ),
     );
@@ -33,6 +34,7 @@ void main() {
       ),
     );
     expect(semantics.properties.identifier, 'auth_settings_security');
+    expect(semantics.properties.toggled, isTrue);
 
     await tester.tap(find.text('Security'));
     await tester.pump();
