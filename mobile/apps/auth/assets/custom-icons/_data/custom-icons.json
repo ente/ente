@@ -42,6 +42,10 @@
       "hex": "EB1000"
     },
     {
+      "title": "aero.zip",
+      "slug": "aero_zip"
+    },
+    {
       "title": "Affiliprint",
       "slug": "affiliprint",
       "hex": "0000ff"
