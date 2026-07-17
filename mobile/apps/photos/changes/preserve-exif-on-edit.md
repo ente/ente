@@ -1,0 +1,1 @@
+- (i) Preserve EXIF metadata when editing photos.
