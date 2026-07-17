@@ -1624,6 +1624,14 @@
       "slug": "northc"
     },
     {
+      "title": "Norton",
+      "slug": "norton",
+      "altNames": [
+        "NortonLifeLock",
+        "Norton 360"
+      ]
+    },
+    {
       "title": "Notesnook"
     },
     {
