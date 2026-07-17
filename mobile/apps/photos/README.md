@@ -83,6 +83,11 @@ unchanged. Release builds use the existing Gradle signing configuration, with
 the keystore path and credentials supplied through ignored `key.properties` or
 the `SIGNING_*` environment variables.
 
+See the [configurable mobile build guide](SELF_HOSTED_BUILD_GUIDE.md) for signed
+release preparation and the
+[closed-beta operations guide](SELF_HOSTED_ANDROID_DISTRIBUTION_GUIDE.md) for
+guarded Firebase publication, tester onboarding, updates, and recovery.
+
 ### Configurable self-hosted iOS build
 
 Use the checked-in wrapper to build an iOS app with a default Museum origin that

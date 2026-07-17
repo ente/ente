@@ -3,6 +3,8 @@
 This guide builds the personal Ente Photos Android and iOS applications for
 a default Museum HTTPS origin. The applications can later validate and switch
 to another HTTPS Museum origin through their guarded Server Settings page.
+For closed-beta Android release, tester, update, and recovery procedures, use
+the [Android distribution operations guide](SELF_HOSTED_ANDROID_DISTRIBUTION_GUIDE.md).
 
 The personal applications use separate identities from the official Ente app:
 
@@ -173,6 +175,8 @@ Use the publication command only with a manifest produced by the preparation
 command above. Supply the Firebase project and Android App ID locally so this
 public repository is not bound to one operator's Firebase project. The target
 App Distribution group is fixed to `trusted-testers`.
+The end-to-end operational checklist is in the
+[Android distribution operations guide](SELF_HOSTED_ANDROID_DISTRIBUTION_GUIDE.md).
 
 First run the read-only preflight. Use absolute paths outside this Git
 repository for both the prepared manifest and publication receipts:
