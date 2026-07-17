@@ -1151,6 +1151,13 @@
       "hex": "D3D800"
     },
     {
+      "title": "JetBrains",
+      "slug": "jetbrains",
+      "altNames": [
+        "JetBrains Account"
+      ]
+    },
+    {
       "title": "JetBrains YouTrack",
       "slug": "jetbrains-youtrack",
       "altNames": [
