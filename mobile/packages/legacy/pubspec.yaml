@@ -58,6 +58,5 @@ dev_dependencies:
 flutter:
   assets:
     - assets/
-    - assets/fonts/
 
 # This package is not meant to be published
