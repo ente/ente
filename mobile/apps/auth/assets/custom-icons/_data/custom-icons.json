@@ -1638,6 +1638,13 @@
       "hex": "FFFFFF"
     },
     {
+      "title": "Opera",
+      "slug": "opera",
+      "altNames": [
+        "auth.opera.com"
+      ]
+    },
+    {
       "title": "Oracle Cloud",
       "slug": "oracle_cloud"
     },
