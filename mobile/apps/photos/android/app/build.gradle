@@ -169,7 +169,6 @@ flutter {
 }
 
 dependencies {
-    implementation 'io.sentry:sentry-android:2.0.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0'
     implementation 'com.android.support:multidex:1.0.3'
     implementation 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'

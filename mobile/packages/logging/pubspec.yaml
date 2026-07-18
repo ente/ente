@@ -16,8 +16,8 @@ dependencies:
   package_info_plus: 8.3.1
   path: 1.9.1
   path_provider: 2.1.5
-  sentry: 8.14.2
-  sentry_flutter: 8.14.2
+  sentry: 9.6.0
+  sentry_flutter: 9.6.0
   shared_preferences: 2.5.3
   uuid: 4.5.3
 
