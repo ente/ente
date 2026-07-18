@@ -145,8 +145,9 @@ void main() {
       expect(pano.croppedFullWidth, 8762);
       expect(pano.croppedFullHeight, 4381);
       // The initial view must face the cropped area (compass heading 305.8
-      // degrees maps to longitude 54.19), not the canvas edge.
-      expect(pano.longitude, closeTo(54.19, 0.01));
+      // degrees maps to longitude 125.81 because the panorama widget's
+      // longitude 0 faces the horizontal center), not the empty canvas area.
+      expect(pano.longitude, closeTo(125.81, 0.01));
 
       // Let the auto-hide timer fire and dispose the screen.
       await tester.pump(const Duration(seconds: 6));

@@ -32,12 +32,12 @@ void main() {
         croppedArea: Rect.fromLTWH(6183, 1040, 2520, 1664),
       );
       // Crop center sits at u = (6183 + 1260) / 8762 = 0.8495 of the full
-      // canvas; the widget's longitude 0 faces u = 0 and longitude L faces
-      // u = 1 - L / 360, hence L = (1 - 0.8495) * 360.
-      expect(data.initialLongitude, closeTo(54.19, 0.01));
+      // canvas; the widget's longitude 0 faces u = 0.5 and longitude L faces
+      // u = 0.5 + L / 360, hence L = (0.8495 - 0.5) * 360.
+      expect(data.initialLongitude, closeTo(125.81, 0.01));
       // Matches the recorded compass heading of the sample within rounding:
       // GPano:InitialViewHeadingDegrees = 305 = 0.8495 * 360.
-      final uCenter = 1 - data.initialLongitude / 360;
+      final uCenter = 0.5 + data.initialLongitude / 360;
       expect(uCenter * 360, closeTo(305.8, 0.1));
     });
 
@@ -47,8 +47,8 @@ void main() {
         fullHeight: 500,
         croppedArea: Rect.fromLTWH(100, 100, 200, 300),
       );
-      // uCenter = 0.2 -> raw longitude 288 -> normalized -72.
-      expect(data.initialLongitude, closeTo(-72, 0.001));
+      // uCenter = 0.2 -> longitude (0.2 - 0.5) * 360 = -108.
+      expect(data.initialLongitude, closeTo(-108, 0.001));
     });
 
     test("derives full height and top for Samsung-style metadata", () {

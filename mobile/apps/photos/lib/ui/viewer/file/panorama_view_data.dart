@@ -25,15 +25,16 @@ class PanoramaViewData {
   ///
   /// The panorama widget maps the cropped area to its absolute position on the
   /// full equirectangular canvas, and its longitude 0 faces the horizontal
-  /// edge (u = 0) of that canvas. Partial panoramas (e.g. Pixel sweep
+  /// center (u = 0.5) of that canvas. Partial panoramas (e.g. Pixel sweep
   /// panoramas) keep the compass heading of the shot, so their cropped area
   /// can sit anywhere on the canvas; without this correction the initial view
   /// often faces an empty part of the sphere.
   double get initialLongitude {
     final double uCenter =
         (croppedArea.left + croppedArea.width / 2) / fullWidth;
-    double longitude = (1 - uCenter) * 360;
+    double longitude = (uCenter - 0.5) * 360;
     if (longitude > 180) longitude -= 360;
+    if (longitude < -180) longitude += 360;
     return longitude;
   }
 
