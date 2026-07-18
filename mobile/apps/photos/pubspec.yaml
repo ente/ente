@@ -217,7 +217,7 @@ dependencies:
   scrollable_positioned_list: 0.3.8
   sentry: 9.6.0
   sentry_flutter: 9.6.0
-  share_plus: 11.1.0
+  share_plus: 12.0.0
   shared_preferences: 2.5.3
   sqflite: 2.4.2
   sqflite_migration: 0.3.0
