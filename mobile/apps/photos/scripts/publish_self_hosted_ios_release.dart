@@ -813,6 +813,7 @@ Future<PreparedIOSReleaseManifest> loadAndValidatePreparedIOSManifest(
   final build = _requireMap(root["build"], "build");
   if (_requireInt(build, "archiveExportContractVersion") !=
           preparation.archiveExportContractVersion ||
+      !_requireBool(build, "rustBindingsGeneratedFromCheckout") ||
       _requireString(build, "scheme") != "selfhosted" ||
       _requireString(build, "configuration") != "Release-selfhosted" ||
       _requireString(build, "exportMethod") != "release-testing") {

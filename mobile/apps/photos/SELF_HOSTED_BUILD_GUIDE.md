@@ -432,9 +432,13 @@ their final contents before either is treated as a baseline release.
 
 Use the preparation command for every IPA that may later be published. Unlike
 the lower-level Ad Hoc command, it owns temporary archive/export paths, builds
-from a detached worktree at the pushed `HEAD` commit, independently audits the
-exported IPA, and atomically preserves one read-only IPA/JSON manifest pair.
-It never contacts Firebase.
+from a detached worktree at the pushed `HEAD` commit, generates the ignored
+Flutter-Rust-Bridge outputs there with the repository's official
+`cargo codegen frb` command, independently audits the exported IPA, and
+atomically preserves one read-only IPA/JSON manifest pair. The generator sees
+only required toolchain/cache paths—not endpoint, Apple-signing, Firebase,
+Google Cloud, SSH-agent, or general secret variables. It never contacts
+Firebase.
 
 Commit and push the preparation tooling and every intended application change
 before running it. The command refuses an unpushed `HEAD` and refuses when its
@@ -498,7 +502,9 @@ export ENTE_FIREBASE_IOS_APP_ID="your-private-ios-app-id"
 The preflight re-hashes the read-only IPA/manifest pair, repeats the native IPA
 audit, validates the exact active Firebase iOS bundle registration and pinned
 `trusted-ios-testers` group, checks prior success receipts, and generates the
-AGPL source/build links used in release notes. It neither prompts nor uploads.
+AGPL source/build links used in release notes. It also requires manifest proof
+that Rust bindings were generated inside the isolated source checkout. It
+neither prompts nor uploads.
 
 Optional operator-facing notes can be added from a regular local text file:
 

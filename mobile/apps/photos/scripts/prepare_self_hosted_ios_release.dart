@@ -5,9 +5,9 @@ import "package:path/path.dart" as p;
 import "package:photos/core/network/endpoint_policy.dart";
 
 const preparationToolName = "ente-self-hosted-ios-release-preparer";
-const preparationToolVersion = "1.0.0";
+const preparationToolVersion = "1.1.0";
 const releaseManifestSchemaVersion = 1;
-const archiveExportContractVersion = 1;
+const archiveExportContractVersion = 2;
 
 const expectedBundleIdentifier = "me.vanton.ente.photos.selfhosted";
 const expectedDistributionCertificateSha256 =
@@ -24,6 +24,14 @@ const expectedProfileEntitlementKeys = <String>{
   "get-task-allow",
   "keychain-access-groups",
 };
+const requiredGeneratedIOSBindingPaths = <String>[
+  "rust/bindings/frb/ente-rust/src/frb_generated.rs",
+  "rust/bindings/frb/photos/src/frb_generated.rs",
+  "mobile/packages/rust/lib/src/rust/frb_generated.dart",
+  "mobile/packages/rust/lib/src/rust/frb_generated.io.dart",
+  "mobile/apps/photos/lib/src/rust/frb_generated.dart",
+  "mobile/apps/photos/lib/src/rust/frb_generated.io.dart",
+];
 
 const _usage = """
 Prepare and independently audit a configurable Ente Photos iOS Ad Hoc release.
@@ -367,10 +375,17 @@ typedef IOSIpaAuditor =
       Map<String, String>? processEnvironment,
     });
 
+typedef IOSBindingGenerator =
+    Future<void> Function({
+      required String checkoutDirectory,
+      required Map<String, String> environment,
+    });
+
 Future<IOSReleasePreparationResult> prepareSelfHostedIOSRelease(
   IOSPreparationOptions options, {
   String? appDirectoryOverride,
   IOSIpaAuditor auditor = auditIOSReleaseIpa,
+  IOSBindingGenerator bindingGenerator = generateIOSReleaseBindings,
 }) async {
   final appDirectory = appDirectoryOverride == null
       ? p.dirname(p.dirname(p.normalize(Platform.script.toFilePath())))
@@ -485,6 +500,14 @@ Future<IOSReleasePreparationResult> prepareSelfHostedIOSRelease(
         exitCode: 65,
       );
     }
+    final codegenEnvironment = sanitizedIOSCodegenEnvironment(
+      options.environment,
+    );
+    await bindingGenerator(
+      checkoutDirectory: checkoutDirectory,
+      environment: codegenEnvironment,
+    );
+    await _requireCleanCheckout(checkoutDirectory, expectedCommit: commit);
     final builderPath = p.join(
       checkoutAppDirectory,
       "scripts",
@@ -648,6 +671,7 @@ Future<IOSReleasePreparationResult> finalizePreparedIOSRelease({
       },
       "build": <String, Object?>{
         "archiveExportContractVersion": archiveExportContractVersion,
+        "rustBindingsGeneratedFromCheckout": true,
         "scheme": "selfhosted",
         "configuration": "Release-selfhosted",
         "exportMethod": "release-testing",
@@ -1716,6 +1740,66 @@ Map<String, String> sanitizedIOSPreparationEnvironment(
         key.startsWith("GCLOUD_"),
   );
   return result;
+}
+
+Map<String, String> sanitizedIOSCodegenEnvironment(
+  Map<String, String> environment,
+) {
+  const retainedKeys = <String>{
+    "PATH",
+    "HOME",
+    "CARGO_HOME",
+    "RUSTUP_HOME",
+    "DART_BIN",
+    "FLUTTER_BIN",
+  };
+  return Map<String, String>.unmodifiable(
+    Map<String, String>.fromEntries(
+      environment.entries.where((entry) => retainedKeys.contains(entry.key)),
+    ),
+  );
+}
+
+Future<void> generateIOSReleaseBindings({
+  required String checkoutDirectory,
+  required Map<String, String> environment,
+}) async {
+  final rustDirectory = p.join(checkoutDirectory, "rust");
+  if (FileSystemEntity.typeSync(
+        p.join(rustDirectory, "Cargo.toml"),
+        followLinks: false,
+      ) !=
+      FileSystemEntityType.file) {
+    throw const IOSReleasePreparationException(
+      "The detached release checkout has no Rust workspace manifest.",
+      exitCode: 65,
+    );
+  }
+
+  final cargo = _findExecutable("cargo", environment);
+  stdout.writeln(
+    "Generating Flutter-Rust-Bridge bindings from the isolated checkout",
+  );
+  await _requireSuccessfulProcess(
+    cargo,
+    const ["codegen", "frb"],
+    workingDirectory: rustDirectory,
+    environment: environment,
+    failureMessage:
+        "Could not generate Flutter-Rust-Bridge bindings in the isolated checkout.",
+  );
+
+  for (final relativePath in requiredGeneratedIOSBindingPaths) {
+    final generatedPath = p.join(checkoutDirectory, relativePath);
+    if (FileSystemEntity.typeSync(generatedPath, followLinks: false) !=
+            FileSystemEntityType.file ||
+        File(generatedPath).lengthSync() == 0) {
+      throw IOSReleasePreparationException(
+        "Rust binding generation did not produce required file '$relativePath'.",
+        exitCode: 65,
+      );
+    }
+  }
 }
 
 bool containsBytes(List<int> haystack, List<int> needle) {

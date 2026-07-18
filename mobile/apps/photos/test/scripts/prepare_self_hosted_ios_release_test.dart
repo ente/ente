@@ -107,6 +107,126 @@ void main() {
     expect(result, isNot(contains("GCLOUD_PROJECT")));
   });
 
+  test("limits Rust codegen to toolchain and cache paths", () {
+    final result = sanitizedIOSCodegenEnvironment(const <String, String>{
+      "PATH": "/usr/bin:/bin",
+      "HOME": "/tmp/home",
+      "CARGO_HOME": "/tmp/cargo",
+      "RUSTUP_HOME": "/tmp/rustup",
+      "DART_BIN": "/tmp/flutter/bin/dart",
+      "FLUTTER_BIN": "/tmp/flutter/bin/flutter",
+      "FIREBASE_CLI": "/tmp/firebase",
+      "FIREBASE_TOKEN": "secret",
+      "ENTE_FIREBASE_IOS_APP_ID": "private-binding",
+      "ENTE_IOS_ADHOC_PROFILE": "/tmp/private.mobileprovision",
+      "ENTE_SELF_HOSTED_ENDPOINT": _endpoint,
+      "GOOGLE_APPLICATION_CREDENTIALS": "/tmp/key.json",
+      "GCLOUD_PROJECT": "project",
+      "SSH_AUTH_SOCK": "/tmp/agent.sock",
+      "DEVELOPMENT_TEAM": _team,
+      "CODE_SIGN_IDENTITY": "private identity",
+      "PROVISIONING_PROFILE_SPECIFIER": "private profile",
+      "APPLE_ID": "private@example.invalid",
+      "APPLE_APP_SPECIFIC_PASSWORD": "secret",
+      "FASTLANE_SESSION": "secret",
+      "MATCH_PASSWORD": "secret",
+      "APP_STORE_CONNECT_API_KEY": "secret",
+      "ASC_KEY": "secret",
+      "AWS_SECRET_ACCESS_KEY": "secret",
+      "AZURE_CREDENTIALS": "secret",
+      "CUSTOM_PASSWORD": "secret",
+      "CUSTOM_PRIVATE_KEY": "secret",
+      "CUSTOM_SECRET": "secret",
+      "SENTRY_AUTH_TOKEN": "secret",
+      "CUSTOM_CREDENTIALS": "secret",
+    });
+
+    expect(result, <String, String>{
+      "PATH": "/usr/bin:/bin",
+      "HOME": "/tmp/home",
+      "CARGO_HOME": "/tmp/cargo",
+      "RUSTUP_HOME": "/tmp/rustup",
+      "DART_BIN": "/tmp/flutter/bin/dart",
+      "FLUTTER_BIN": "/tmp/flutter/bin/flutter",
+    });
+  });
+
+  test(
+    "generates every required Rust binding with the official command",
+    () async {
+      final root = Directory.systemTemp.createTempSync(
+        "ente-ios-binding-generation-test-",
+      );
+      try {
+        final rustDirectory = Directory(p.join(root.path, "rust"))
+          ..createSync();
+        File(
+          p.join(rustDirectory.path, "Cargo.toml"),
+        ).writeAsStringSync("[workspace]\n");
+        final binDirectory = Directory(p.join(root.path, "bin"))..createSync();
+        final cargo = File(p.join(binDirectory.path, "cargo"))
+          ..writeAsStringSync(_fakeCargoScript(writesBindings: true));
+        await Process.run("chmod", ["+x", cargo.path]);
+
+        await generateIOSReleaseBindings(
+          checkoutDirectory: root.path,
+          environment: <String, String>{
+            "PATH": binDirectory.path,
+            "HOME": p.join(root.path, "home"),
+          },
+        );
+
+        expect(
+          File(p.join(root.path, "cargo-invocation.txt")).readAsStringSync(),
+          "codegen frb\n",
+        );
+        for (final relativePath in requiredGeneratedIOSBindingPaths) {
+          expect(
+            File(p.join(root.path, relativePath)).lengthSync(),
+            greaterThan(0),
+          );
+        }
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    },
+  );
+
+  test("rejects incomplete Rust binding generation", () async {
+    final root = Directory.systemTemp.createTempSync(
+      "ente-ios-binding-generation-missing-test-",
+    );
+    try {
+      final rustDirectory = Directory(p.join(root.path, "rust"))..createSync();
+      File(
+        p.join(rustDirectory.path, "Cargo.toml"),
+      ).writeAsStringSync("[workspace]\n");
+      final binDirectory = Directory(p.join(root.path, "bin"))..createSync();
+      final cargo = File(p.join(binDirectory.path, "cargo"))
+        ..writeAsStringSync(_fakeCargoScript(writesBindings: false));
+      await Process.run("chmod", ["+x", cargo.path]);
+
+      await expectLater(
+        generateIOSReleaseBindings(
+          checkoutDirectory: root.path,
+          environment: <String, String>{
+            "PATH": binDirectory.path,
+            "HOME": p.join(root.path, "home"),
+          },
+        ),
+        throwsA(
+          isA<IOSReleasePreparationException>().having(
+            (error) => error.exitCode,
+            "exitCode",
+            65,
+          ),
+        ),
+      );
+    } finally {
+      root.deleteSync(recursive: true);
+    }
+  });
+
   test("accepts safe IPA entries and rejects traversal", () {
     expect(
       () => validateSafeZipEntries(const <String>[
@@ -267,9 +387,25 @@ notAfter=Jul 17 11:30:00 2027 GMT
     () async {
       final fixture = await _IsolationFixture.create();
       try {
+        var generatedBindings = false;
         final result = await prepareSelfHostedIOSRelease(
           fixture.options,
           appDirectoryOverride: fixture.appDirectory,
+          bindingGenerator:
+              ({required checkoutDirectory, required environment}) async {
+                generatedBindings = true;
+                expect(checkoutDirectory, isNot(fixture.repositoryRoot));
+                expect(
+                  p.isWithin(fixture.repositoryRoot, checkoutDirectory),
+                  isFalse,
+                );
+                expect(environment, isNot(contains("FIREBASE_TOKEN")));
+                expect(environment, isNot(contains("ENTE_IOS_ADHOC_PROFILE")));
+                expect(
+                  environment,
+                  isNot(contains("ENTE_SELF_HOSTED_ENDPOINT")),
+                );
+              },
           auditor:
               ({
                 required ipaPath,
@@ -300,6 +436,8 @@ notAfter=Jul 17 11:30:00 2027 GMT
         expect(manifest["source"]["isolatedCheckout"], isTrue);
         expect(manifest["source"]["checkoutCleanBeforeBuild"], isTrue);
         expect(manifest["source"]["checkoutCleanAfterAudit"], isTrue);
+        expect(generatedBindings, isTrue);
+        expect(manifest["build"]["rustBindingsGeneratedFromCheckout"], isTrue);
         expect(
           Directory(fixture.options.outputDirectory).statSync().mode & 0x1ff,
           0x1c0,
@@ -354,6 +492,30 @@ notAfter=Jul 17 11:30:00 2027 GMT
       expect(audit.authorizedDeviceCount, 1);
     });
   }
+}
+
+String _fakeCargoScript({required bool writesBindings}) {
+  final writes = writesBindings
+      ? requiredGeneratedIOSBindingPaths.map((relativePath) {
+          return r'''
+path="$repo/@@PATH@@"
+/bin/mkdir -p "${path%/*}"
+/usr/bin/printf 'generated\n' >"$path"
+'''
+              .replaceAll("@@PATH@@", relativePath);
+        }).join()
+      : "";
+  return r'''
+#!/bin/bash
+set -euo pipefail
+if [[ "$#" -ne 2 || "$1" != "codegen" || "$2" != "frb" ]]; then
+  exit 64
+fi
+repo="$(cd .. && /bin/pwd)"
+/usr/bin/printf '%s %s\n' "$1" "$2" >"$repo/cargo-invocation.txt"
+@@WRITES@@
+'''
+      .replaceAll("@@WRITES@@", writes);
 }
 
 Map<String, String> _environment() => <String, String>{
