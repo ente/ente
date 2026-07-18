@@ -40,6 +40,7 @@ import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/file_magic_service.dart';
 import 'package:photos/services/sync/local_sync_service.dart';
 import 'package:photos/services/sync/sync_service.dart';
+import "package:photos/utils/device_storage_error.dart";
 import "package:photos/utils/file_key.dart";
 import "package:photos/utils/network_util.dart";
 import 'package:shared_preferences/shared_preferences.dart';
@@ -409,6 +410,9 @@ class FileUploader {
         await _onInvalidFileError(file, e);
       }
       await _uploadLocks.releaseLock(lockKey, _processType.toString());
+      if (isDeviceStorageFullError(e)) {
+        throw _onDeviceStorageFull(file, e);
+      }
       rethrow;
     }
 
@@ -767,6 +771,14 @@ class FileUploader {
       Bus.instance.fire(FileUploadedEvent(remoteFile));
       return remoteFile;
     } catch (e, s) {
+      if (isDeviceStorageFullError(e)) {
+        // Retrying without user intervention would fail again, and on iOS it
+        // would re-materialize iCloud originals into an already full disk.
+        // Treat it as a hard failure so that the exported source file is
+        // cleaned up, and stop the rest of the queue.
+        uploadHardFailure = true;
+        throw _onDeviceStorageFull(file, e);
+      }
       if (!(e is NoActiveSubscriptionError ||
           e is StorageLimitExceededError ||
           e is WiFiUnavailableError ||
@@ -903,6 +915,22 @@ class FileUploader {
         _logger.severe('Error checking storage limit', e);
       }
     }
+  }
+
+  /// Converts a raw out-of-space failure into the canonical
+  /// [DeviceStorageFullError] and clears the pending upload queue, so that the
+  /// remaining files in this session don't each rediscover the same condition
+  /// (and, on iOS, don't keep materializing iCloud originals into a full
+  /// disk). The original error is preserved as [DeviceStorageFullError.cause].
+  DeviceStorageFullError _onDeviceStorageFull(EnteFile file, Object e) {
+    _logger.warning(
+      "Local device storage is full, failing upload for ${file.tag} and "
+      "clearing pending queue",
+      e,
+    );
+    final error = DeviceStorageFullError(e);
+    clearQueue(error);
+    return error;
   }
 
   Future _onInvalidFileError(EnteFile file, InvalidFileError e) async {

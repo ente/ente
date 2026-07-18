@@ -50,6 +50,26 @@ class NoActiveSubscriptionError extends Error implements LocallyHandledError {}
 
 class StorageLimitExceededError extends Error implements LocallyHandledError {}
 
+/// The device's own storage is full (POSIX ENOSPC,
+/// NSFileWriteOutOfSpaceError, PHPhotosErrorNotEnoughSpace, ...), so backup
+/// cannot materialize sources or write temporary encrypted files.
+///
+/// This is distinct from [StorageLimitExceededError], which is the remote
+/// (plan) storage quota. Use `isDeviceStorageFullError` from
+/// `utils/device_storage_error.dart` to classify raw platform errors instead
+/// of matching error types or messages directly.
+class DeviceStorageFullError extends Error implements LocallyHandledError {
+  /// The original platform error, preserved for diagnostics.
+  final Object? cause;
+
+  DeviceStorageFullError([this.cause]);
+
+  @override
+  String toString() => cause == null
+      ? "DeviceStorageFullError"
+      : "DeviceStorageFullError: $cause";
+}
+
 // error when file size + current usage >= storage plan limit + buffer
 class FileTooLargeForPlanError extends Error {}
 
@@ -62,6 +82,7 @@ bool isHandledSyncError(Object errObj) {
       errObj is NoActiveSubscriptionError ||
       errObj is WiFiUnavailableError ||
       errObj is StorageLimitExceededError ||
+      errObj is DeviceStorageFullError ||
       errObj is SyncStopRequestedError) {
     return true;
   }

@@ -5,6 +5,7 @@ import "package:hugeicons/hugeicons.dart";
 import 'package:photos/core/errors.dart';
 import "package:photos/generated/l10n.dart";
 import 'package:photos/ui/payment/subscription.dart';
+import "package:photos/ui/settings/backup/free_space_options.dart";
 import 'package:photos/utils/email_util.dart';
 
 class HeaderErrorWidget extends StatelessWidget {
@@ -43,6 +44,23 @@ class HeaderErrorWidget extends StatelessWidget {
             await routeToPage(
               context,
               getSubscriptionPage(),
+              forceCustomPageRoute: true,
+            );
+          },
+        ),
+      );
+    } else if (_error is DeviceStorageFullError) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6),
+        child: BannerComponent(
+          leadingIcon: HugeIcons.strokeRoundedAlertCircle,
+          title: AppLocalizations.of(context).deviceStorageFull,
+          subtitle: AppLocalizations.of(context).backupPausedFreeUpDeviceStorage,
+          state: BannerComponentState.failure,
+          onTap: () async {
+            await routeToPage(
+              context,
+              const FreeUpSpaceOptionsScreen(),
               forceCustomPageRoute: true,
             );
           },

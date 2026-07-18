@@ -1152,6 +1152,16 @@
     "type": "text"
   },
   "backupFailed": "Backup failed",
+  "deviceStorageFull": "Device storage full",
+  "@deviceStorageFull": {
+    "description": "Title shown when backup is paused because the device's own storage is full",
+    "type": "text"
+  },
+  "backupPausedFreeUpDeviceStorage": "Backup is paused. Free up storage on this device to resume.",
+  "@backupPausedFreeUpDeviceStorage": {
+    "description": "Body shown when backup is paused because the device's own storage is full",
+    "type": "text"
+  },
   "sorryBackupFailedDesc": "Sorry, we could not backup this file right now, we will retry later.",
   "couldNotBackUpTryLater": "We could not backup your data.\nWe will retry later.",
   "enteCanEncryptAndPreserveFilesOnlyIfYouGrant": "Ente can encrypt and preserve files only if you grant access to them",
