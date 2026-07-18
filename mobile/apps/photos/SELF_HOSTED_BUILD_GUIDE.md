@@ -474,6 +474,52 @@ and manifest are mode `0444`, are finalized without overwrite, and must remain
 together. A later Firebase publisher consumes this immutable pair; do not
 rename, edit, replace, or manually publish either file.
 
+### Preflight and publish an immutable IPA through Firebase
+
+The guarded publisher consumes only the preparation manifest. It never invokes
+Flutter, Xcode, archive/export, signing, provisioning-profile changes, or Apple
+account operations. Keep the Firebase project/App ID binding and receipt
+ledger outside Git; the receipt directory is restricted to mode `0700`.
+
+Set the private local binding and the exact prepared manifest, then run the
+non-mutating preflight first:
+
+```sh
+export ENTE_IOS_RELEASE_MANIFEST="/absolute/private/path/prepared-releases/ente-photos-selfhosted-ios-1.0.0-1-0123456789ab.manifest.json"
+export ENTE_FIREBASE_RELEASE_RECEIPT_DIR="/absolute/private/path/firebase-receipts"
+export ENTE_FIREBASE_PROJECT_ID="your-private-project-id"
+export ENTE_FIREBASE_IOS_APP_ID="your-private-ios-app-id"
+
+./scripts/publish_self_hosted_ios_release.sh --preflight-only
+```
+
+The preflight re-hashes the read-only IPA/manifest pair, repeats the native IPA
+audit, validates the exact active Firebase iOS bundle registration and pinned
+`trusted-ios-testers` group, checks prior success receipts, and generates the
+AGPL source/build links used in release notes. It neither prompts nor uploads.
+
+Optional operator-facing notes can be added from a regular local text file:
+
+```sh
+./scripts/publish_self_hosted_ios_release.sh \
+  --release-notes-file "/absolute/private/path/release-notes.txt"
+```
+
+Without `--preflight-only`, the command prints the complete target summary and
+requires typing `PUBLISH <release-id>` exactly. After confirmation it re-reads
+and re-audits both files, repeats the increasing-build ledger check, and
+re-queries Firebase immediately before its single mutating distribute call.
+It passes only the exact iOS App ID, `trusted-ios-testers`, and generated notes
+file to Firebase; there is no free-form tester target.
+
+Success writes one collision-safe mode-`0444` receipt. A Firebase failure—or a
+zero exit that omits unambiguous release references—writes a distinct
+mode-`0444` partial-attempt record because an upload may already have occurred.
+Inspect the Firebase console and reconcile that record before retrying; never
+assume a CLI error means Firebase is unchanged. Only successful receipts enter
+the version ledger, and every later publication for this bundle/App ID must
+have a strictly higher `CFBundleVersion`.
+
 ## 5. Server defaults, upgrades, and switching
 
 `ENTE_SELF_HOSTED_ENDPOINT` becomes the clean-install default. Once the app has
