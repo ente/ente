@@ -426,6 +426,54 @@ device-registration flags and requires exactly one exported `.ipa` beneath
 The resulting `.xcarchive` and IPA are private local artifacts. Task 1.8 audits
 their final contents before either is treated as a baseline release.
 
+### Prepare an immutable audited IPA
+
+Use the preparation command for every IPA that may later be published. Unlike
+the lower-level Ad Hoc command, it owns temporary archive/export paths, builds
+from a detached worktree at the pushed `HEAD` commit, independently audits the
+exported IPA, and atomically preserves one read-only IPA/JSON manifest pair.
+It never contacts Firebase.
+
+Commit and push the preparation tooling and every intended application change
+before running it. The command refuses an unpushed `HEAD` and refuses when its
+critical build/preparation scripts differ from that pushed commit. Unrelated
+working-tree changes are isolated from the release checkout.
+
+Set the same endpoint, signing, device-count, and version inputs used by the
+Ad Hoc build. Do not set archive or export paths; preparation creates and
+removes those temporary paths itself. Choose an existing writable output
+directory outside the repository. Preparation restricts that directory to
+mode `0700` because each IPA embeds its private authorized-device list:
+
+```sh
+export ENTE_SELF_HOSTED_ENDPOINT="https://museum.example"
+export ENTE_IOS_DISTRIBUTION_TEAM="YOURTEAMID"
+export ENTE_IOS_ADHOC_PROFILE="/absolute/private/path/Ente_Photos_SelfHosted_Owner_Ad_Hoc.mobileprovision"
+export ENTE_IOS_EXPECTED_DEVICE_COUNT="1"
+export ENTE_IOS_MARKETING_VERSION="1.0.0"
+export ENTE_IOS_BUILD_NUMBER="1"
+
+./scripts/prepare_self_hosted_ios_release.sh \
+  --output-dir "/absolute/private/path/prepared-releases"
+```
+
+The marketing version must match the selected commit's `pubspec.yaml`; every
+changed IPA must use a new positive build number. Keep the Team ID, profile,
+device identifiers, archives, IPAs, and manifests outside Git.
+
+Before finalization, the command checks the ZIP structure, exact self-hosted
+bundle/version, compiled HTTPS endpoint, absence of extensions and debug
+entitlements, application/team identity, device-scoped profile and authorized
+device count, pinned and currently valid signing certificate, code-signature
+structure, and arm64 architecture of every Mach-O file. The manifest records
+the pushed source URL/commit, clean-checkout evidence, audit results, artifact
+size, and SHA-256 without recording device identifiers.
+
+Successful output is named from the version, build, and source commit. The IPA
+and manifest are mode `0444`, are finalized without overwrite, and must remain
+together. A later Firebase publisher consumes this immutable pair; do not
+rename, edit, replace, or manually publish either file.
+
 ## 5. Server defaults, upgrades, and switching
 
 `ENTE_SELF_HOSTED_ENDPOINT` becomes the clean-install default. Once the app has
