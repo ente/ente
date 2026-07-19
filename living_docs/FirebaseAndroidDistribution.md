@@ -1,6 +1,6 @@
 # Firebase Android Distribution for the Self-Hosted Photos App
 
-**Status:** Living document. Updated at the end of every task.
+**Status:** V1 complete as of 2026-07-19. Android no-upload reconciliation remains in the V1.1 backlog before any release after build `2159`.
 **Started:** 2026-07-16
 **Owner:** vanton
 **Planning doc:** n/a
@@ -20,7 +20,7 @@
 | 2 | 2.4 | Document releases, tester onboarding, and recovery | S | 🟢 done | Added `mobile/apps/photos/SELF_HOSTED_ANDROID_DISTRIBUTION_GUIDE.md`, a dedicated closed-beta operator runbook covering private local inputs; Docker, Museum `/ping`, and object-storage health; immutable preparation and non-mutating publication preflight; tester-group management; typed-confirmation publication and receipt reconciliation; Firebase and Tailscale onboarding; controlled encrypted upload/download acceptance; legacy application-ID cutover; in-place updates; three-layer Firebase/Tailscale/Museum offboarding; forward rollback; partial Firebase failure; invitation/release expiry; server outage; wrong-server recovery; signing-key loss; and operator-account compromise. The build guide and Photos README link to it, while the living-document companion list records it. The guide stores no real tester identity, invite, credential, Firebase binding, personal path, or private hostname. Its local links and referenced command files exist, required workflow/recovery topics are present, current primary Firebase/Tailscale behavior was verified on 2026-07-17, and `git diff --check` passes. |
 | 3 | 3.1 | Publish the baseline release and replace the owner's old app | M | 🟢 done | Museum, PostgreSQL, MinIO, and the private HTTPS routes passed health checks before the audited `1.3.59` (`2158`) baseline was published to `trusted-testers`. Firebase returned incomplete references, so the publisher preserved a read-only partial attempt; the owner verified the exact release and group assignment in Firebase, and no retry occurred. When the physical Android device became available, private package inventory found the legacy identity installed and the replacement absent. After the owner confirmed cloud recovery, password, second-factor, and recovery material, the legacy package was uninstalled and build `2158` was installed through Firebase. A second inventory verified the exact replacement package/version/build and legacy-package absence. The app opened on the intended local server, authenticated to the local Museum account, uploaded a non-sensitive photo that appeared in the local web app, reopened the cloud copy after removal of only the device-local copy, and preserved the account, server binding, cloud library, and readable media after an ADB force-stop and relaunch. |
 | 3 | 3.2 | Publish and verify an in-place Firebase update | M | 🟢 done | Advanced the source to `1.3.59+2159` and pushed commit `adfe9585080e`; the locked dependency resolution, 27 focused preparation/publication tests, shell checks, and privacy checks passed. Museum, PostgreSQL, MinIO, the private `/ping` route, and the existing device media flow were healthy, and private Android toolchain/signing paths were tightened to owner-only access. The first preparation failed closed without an artifact because the documented Keychain password had not been injected; the signing-aware retry produced one mode-`0444` 262,750,609-byte APK/manifest pair with SHA-256 `10273a609343f52995a3a50736d057ab84c816ff3bcef54521539335966d540d`. Independent checks verified the exact package/version, intended endpoint equality, ARM/ARM64 ABIs, release state, pinned signer, v2 signature, source, hash, and modes. After a non-mutating Firebase preflight and exact confirmation, one upload returned exit `0` but again omitted its console reference; the guard wrote one immutable partial-attempt record, no retry occurred, and the authenticated tester view independently showed build `2159`. Firebase then installed `2159` over `2158` without uninstalling. Private package inventory verified the higher build and legacy-package absence; the owner remained authenticated to the intended local server with the existing library and readable media, completed a fresh encrypted upload/download round trip, and retained the account, server, library, and media after an ADB force-stop and relaunch. |
-| 3 | 3.3 | Verify a non-owner tester's fresh installation | S | ⚪ not started | Invite one trusted non-owner through the Firebase group, confirm invitation acceptance and download status, join the device to the authorized Tailscale network, install the new package, sign in to an individual local-server account, and verify one controlled upload/download flow. Store no tester identity in this repository. |
+| 3 | 3.3 | Verify a non-owner tester's fresh installation | S | 🟢 done | A non-owner tester was added privately to `trusted-testers`, accepted the Firebase invitation using their own Google identity, received minimum Tailscale access under their own network identity, and verified the private Museum `/ping` route from the physical Android device. The tester installed existing build `1.3.59` (`2159`) through Firebase as a fresh application, confirmed the intended local server, and authenticated with an individual Museum account and privately retained recovery material. A non-sensitive phone upload appeared in that tester's local Photos web account; after removing only the device-local copy, the cloud copy downloaded and opened correctly. An Android force-stop and relaunch preserved the tester account, server binding, cloud library, and readable media. No tester email, device identifier, account detail, recovery material, private hostname, or media name entered Git. |
 
 **Legend:** ⚪ not started · 🟡 working · 🟢 done · 🔴 blocked / needs decision
 **Size:** XS · S · M · L · XL (never days or weeks).
@@ -99,6 +99,8 @@ Every successful upload finalizes a read-only `<release-id>.firebase-release.jso
 
 Task 3.2 exercised that ambiguous-success path for the first in-place update. Firebase returned exit `0` after the single upload but omitted the console reference required by the receipt contract, so the publisher preserved an immutable partial attempt and did not retry. The authenticated tester view independently proved that build `2159` exists and delivered it over `2158`, but the local success ledger deliberately does not infer a receipt from device observation. Before any release after `2159`, add or perform a no-upload reconciliation that binds the official read-only Firebase release evidence to the existing attempt and immutable APK rather than uploading the bytes again.
 
+Task 3.3 proved the complete non-owner acceptance path without adding another release. The tester's Firebase invitation, Tailscale access, Museum account, fresh build-`2159` installation, encrypted upload/download, and forced-restart persistence were each verified independently. Tester identity, device details, account data, recovery material, private routing values, and media evidence remained outside Git.
+
 App Distribution is an external delivery channel only. The Android app gains no Firebase runtime SDK, Analytics, Crashlytics, in-app update API, or `google-services.json`. Tester membership and email addresses live in Firebase rather than repository files. Firebase CLI user credentials and signing secrets remain outside Git. The Firebase App ID is not a secret, but local configuration avoids coupling this public fork to one operator's project.
 
 ### Release and source invariants
@@ -160,6 +162,14 @@ The Firebase account controls tester delivery, not access to encrypted photos. E
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. If a decision changes, add a new entry instead of rewriting history.
+
+### 2026-07-19 — Close Android V1 with private non-owner acceptance evidence
+
+**Decision:** Treat the observed non-owner Firebase invitation, Tailscale route, individual Museum login, fresh build-`2159` installation, encrypted media round trip, and restart persistence as the final V1 acceptance evidence while recording only outcome-level facts in Git.
+
+**Why:** The V1 goal requires a real non-owner workflow, but the tester's email, device identifier, account data, recovery material, private routes, and media do not belong in a public source repository. The independent observed outcomes prove all three access boundaries and application behavior without retaining personal evidence.
+
+**Alternatives considered:** Store screenshots, tester identifiers, or account details in the repository, which would create unnecessary personal-data exposure; or infer non-owner support from the owner's device, which would not test invitation, private-network, fresh-install, or individual-account behavior.
 
 ### 2026-07-17 — Revoke delivery, network, and server access independently
 
@@ -269,11 +279,20 @@ The Firebase account controls tester delivery, not access to encrypted photos. E
 
 ## 6. Open questions
 
-- Which non-owner trusted tester will complete Task 3.3? Keep their email address and identity in Firebase and private coordination, not in this document.
+_None._
 
 ---
 
 ## 7. Lessons learned
+
+### Phase 3
+
+- Treat an Android application-ID replacement as a destructive local cutover even when the server account and encrypted cloud library remain stable. Confirm cloud recovery and account recovery material before uninstalling the legacy package.
+- The same package and signing certificate plus a higher version code produced a real in-place update. Build `2159` replaced `2158` while preserving the account, selected server, cloud library, and readable media across a forced restart.
+- A Firebase exit code of zero is not sufficient release-ledger evidence. When required references are absent, preserve one immutable partial attempt, never retry blindly, use the authenticated tester view only to prove delivery, and reconcile official read-only release evidence before another publication.
+- Firebase invitation, Tailscale reachability, and Museum authentication are independent tester boundaries. The non-owner acceptance test had to prove all three; success in one did not imply the others.
+- Physical media acceptance provides stronger runtime evidence than package metadata alone. A fresh upload visible in the tester's web account, cloud download after local-only removal, and restart persistence jointly prove the intended private storage path and encrypted account behavior.
+- Keep operator inputs and evidence owner-only outside Git. Tightening the Android toolchain root and signing properties before build `2159` restored the privacy boundary described by the runbook without changing release bytes.
 
 ### Phase 2
 
