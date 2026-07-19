@@ -4,7 +4,7 @@
 **Started:** 2026-07-17
 **Owner:** vanton
 **Planning doc:** n/a
-**Companion docs:** `living_docs/ConfigurableSelfHostedMobileServer.md`, `living_docs/ConfigurableSelfHostedMobileServerArchitecture.md`, `living_docs/LockedSelfHostedIOS.md`, `living_docs/FirebaseAndroidDistribution.md`, `mobile/apps/photos/SELF_HOSTED_BUILD_GUIDE.md`, `mobile/apps/photos/SELF_HOSTED_IOS_DISTRIBUTION_GUIDE.md`, `living_docs/FirebaseIOSDistributionArchitecture.md` (planned)
+**Companion docs:** `living_docs/ConfigurableSelfHostedMobileServer.md`, `living_docs/ConfigurableSelfHostedMobileServerArchitecture.md`, `living_docs/LockedSelfHostedIOS.md`, `living_docs/FirebaseAndroidDistribution.md`, `mobile/apps/photos/SELF_HOSTED_BUILD_GUIDE.md`, `mobile/apps/photos/SELF_HOSTED_IOS_DISTRIBUTION_GUIDE.md`, `living_docs/FirebaseIOSDistributionArchitecture.md`
 
 ---
 
@@ -34,10 +34,10 @@
 | 3 | 3.3 | Retire the owner's legacy iOS installation | S | 🟢 done | Confirmed the replacement's bidirectional cloud sync plus restart persistence and the owner's safe copy of the local account password and recovery key. A private installed-app inventory found the legacy `com.vanton1.ente.photos.selfhosted` bundle already absent and the verified Firebase build `2160` present, so no uninstall command or app-local migration was performed. |
 | 3 | 3.4 | Prepare and publish an in-place iOS update | M | 🟢 done | Verified local and private Museum/storage health, then prepared and published `1.3.59` (`2161`) from pushed commit `d61b831c33` with the same bundle, configurable server policy, Apple team, one-device profile, and signing certificate. Two preparation attempts failed safely before artifact creation when the command omitted the documented pinned Flutter and rustup PATH inputs; the corrected isolated build generated every ignored source, remained Git-clean, and produced a mode-`0444` 88,638,092-byte IPA/manifest pair with SHA-256 `7451689e8f3abb7e158fe90d3237095702606cb23d7b821d34d618a07f3cfddc`. Independent contract checks and the non-mutating Firebase preflight passed. After exact confirmation, one publication created the release and a unique mode-`0444` success receipt with all three references and no partial attempt; the `2160` receipt remained unchanged. |
 | 3 | 3.5 | Verify state retention across the Firebase update | M | 🟢 done | Private device inventories confirmed Firebase replaced build `2160` with `2161` under the same bundle without deleting the application. On first launch after the update, the owner remained authenticated to the same configurable local server with the existing cloud library intact. A new iPhone upload appeared in the local Photos web app, a different web upload synchronized and decrypted on the iPhone, and a forced process restart preserved the account, server binding, library, and readable test media. |
-| 3 | 3.6 | Register one non-owner tester device | S | ⚪ not started | Collect one invited tester's iPhone identifier through Firebase, register it in Apple privately, and keep tester identity and device data outside Git. |
-| 3 | 3.7 | Refresh provisioning and publish a tester-compatible build | M | ⚪ not started | Create a profile containing the authorized tester device, rebuild from clean source with a higher `CFBundleVersion`, re-audit the changed IPA, and publish it as a distinct immutable release. |
-| 3 | 3.8 | Verify a non-owner tester's installation | M | ⚪ not started | Confirm Firebase acceptance, Developer Mode, Tailscale access, an individual Museum account, installation, and one controlled encrypted upload/download without storing tester evidence in Git. |
-| 3 | 3.9 | Document the as-built iOS distribution architecture | S | ⚪ not started | Write the settled Apple/Firebase/Tailscale/Museum trust boundaries, signing and release flows, state transitions, failure recovery, and maintenance checklist for a future operator. |
+| 3 | 3.6 | Register one non-owner tester device | S | ⚪ not started | Deferred to V1.1 until a non-owner tester and iPhone are available. Collect the invited tester's device identifier through Firebase, register it in Apple privately, and keep tester identity and device data outside Git. |
+| 3 | 3.7 | Refresh provisioning and publish a tester-compatible build | M | ⚪ not started | Deferred to V1.1 with Task 3.6 because a real additional device is required. Create a profile containing the authorized tester device, rebuild with a higher `CFBundleVersion`, re-audit the IPA, and publish a distinct immutable release. |
+| 3 | 3.8 | Verify a non-owner tester's installation | M | ⚪ not started | Deferred to V1.1 with Tasks 3.6–3.7. Confirm Firebase acceptance, Developer Mode, private-network access, an individual Museum account, installation, and one controlled encrypted upload/download without storing tester evidence in Git. |
+| 3 | 3.9 | Document the as-built iOS distribution architecture | S | 🟢 done | Added `FirebaseIOSDistributionArchitecture.md`, a plain-language as-built companion covering the independent Git/operator/Apple/artifact/Firebase/device/private-network/Museum trust boundaries; core-only application identity; pinned isolated preparation; typed-confirmation publication and ambiguous-success reconciliation; verified in-place update state retention; runtime data flow; evidence/privacy rules; failure recovery; forward rollback; operator checklists; and the explicitly deferred V1.1 non-owner proof. All relative links resolve, required sections are present, the Markdown diff is clean, and the changed text contains no screened personal path, email, private hostname, or Firebase App ID. |
 
 **Legend:** ⚪ not started · 🟡 working · 🟢 done · 🔴 blocked / needs decision
 **Size:** XS · S · M · L · XL (never days or weeks).
@@ -50,13 +50,15 @@ Task naming convention: `Task <phase>.<sub> — <short imperative title>`. If a 
 
 ## 2. Goal
 
-Distribute pre-release builds of the configurable self-hosted Ente Photos iOS application to the owner and a small, trusted, mostly nontechnical group through Firebase App Distribution and Apple Ad Hoc provisioning. V1 is complete when the self-hosted target uses bundle identifier `me.vanton.ente.photos.selfhosted` under the Cytech Ltd Apple Developer Program team; the owner installs an audited Firebase baseline and then an in-place update; the previous `com.vanton1.ente.photos.selfhosted` installation is removed without app-local migration only after the replacement is proven; and one non-owner tester registers an authorized device, installs through Firebase, reaches the private Tailscale server, and completes an encrypted media round trip with an individual Museum account.
+Distribute pre-release builds of the configurable self-hosted Ente Photos iOS application to the owner through Firebase App Distribution and Apple Ad Hoc provisioning, while leaving a documented path for a small trusted group later. V1 is complete when the self-hosted target uses bundle identifier `me.vanton.ente.photos.selfhosted` under the Cytech Ltd Apple Developer Program team; the owner installs an audited Firebase baseline and then an in-place update that preserves account, server, and library state; the previous `com.vanton1.ente.photos.selfhosted` installation is retired without app-local migration only after the replacement is proven; and the settled architecture and operating boundaries are documented. Non-owner device registration, profile expansion, and installation verification are V1.1 work.
 
-The observable success metric is one new-identity owner baseline, one higher-build-number owner update that preserves the account, active server, and cloud library, and one non-owner fresh installation. Operator success also requires that wrong bundle IDs, Apple teams, certificates, profiles, device sets, compiled endpoints, modified IPAs, dirty or unpushed source, non-increasing build numbers, incorrect Firebase registrations, and expired signing assets fail before publication.
+The observable success metric is one new-identity owner baseline plus one higher-build-number owner update that preserves the account, active server, cloud library, encrypted media flows, and restart state. Operator success also requires that wrong bundle IDs, Apple teams, certificates, profiles, device sets, compiled endpoints, modified IPAs, dirty or unpushed source, non-increasing build numbers, incorrect Firebase registrations, and expired signing assets fail before publication.
 
 ---
 
 ## 3. Architecture / approach
+
+The settled as-built view lives in [`FirebaseIOSDistributionArchitecture.md`](FirebaseIOSDistributionArchitecture.md). This section retains the chronological design and implementation record.
 
 ### Identity and ownership cutover
 
@@ -232,6 +234,7 @@ Primary external references are Apple's [device registration limits](https://dev
 
 | Item | Status | Why |
 |---|---|---|
+| Register, provision, publish for, and verify one non-owner tester (Tasks 3.6–3.8) | V1.1 backlog | The owner chose to finish the proven owner baseline/update path now and defer the real additional-device workflow until a non-owner tester and iPhone are available. |
 | Automate archive preparation or Firebase publication in continuous integration | V1.1 backlog | V1 first proves Apple signing, immutable preparation, and publication locally without introducing remote Cytech or Firebase credentials. |
 | Add proactive scheduled notifications for certificate or profile expiry | V1.1 backlog | V1 exposes validity during every audit and documents operator checks; remote scheduling requires a separate notification and credential design. |
 | Preserve a durable binary archive beyond local immutable artifacts and Firebase retention | V1.1 backlog | V1 retains prepared IPAs, manifests, and receipts locally; off-machine retention requires a separate storage and access decision. |
@@ -255,6 +258,14 @@ Primary external references are Apple's [device registration limits](https://dev
 ## 5. Decision log
 
 > Append-only. Newest entries stay on top. If a decision changes, add a new entry instead of rewriting history.
+
+### 2026-07-19 — Defer non-owner tester onboarding to V1.1
+
+**Decision:** Move Tasks 3.6–3.8—non-owner device registration, profile expansion and publication, and tester installation verification—to the V1.1 backlog. Complete V1 after the verified owner baseline/update path and the as-built architecture companion.
+
+**Why:** The owner chose to skip the non-owner device step and no real tester iPhone is currently available. Tasks 3.7 and 3.8 cannot produce valid evidence without the device identifier and Apple authorization established by Task 3.6; deferring the complete dependency chain keeps the release record honest while preserving the workflow for later execution.
+
+**Alternatives considered:** Leave V1 blocked indefinitely on an unavailable tester; create a profile or publication without a real additional device, which would not prove tester installation; or remove the workflow entirely, which would discard useful future scope. Deferral preserves a pause-safe backlog without claiming unperformed acceptance evidence.
 
 ### 2026-07-19 — Reconcile JSON-only Firebase success without re-uploading
 
@@ -483,3 +494,12 @@ _Add new questions as they arise. Move resolved questions to §5 once answered, 
 - Treat Firebase's successful process exit as insufficient evidence. Missing release references are operationally ambiguous, so preserve a partial-attempt record and reconcile the console before any retry.
 - iOS tester onboarding is a two-release loop: the first invitation collects the iPhone identifier, then Apple registration and a refreshed embedded profile make a later IPA installable. Requiring a higher build number even for a profile-only change keeps one build identity mapped to one IPA and receipt.
 - Distribution, device authorization, launch permission, network access, and encrypted account access are independent. The operator guide must handle Firebase, Apple profiles, Developer Mode, Tailscale, and Museum separately during both onboarding and offboarding.
+
+### Phase 3 — Prove owner delivery, update, and recovery behavior
+
+- Prove the Apple authorization chain before involving Firebase. A valid organization, explicit App ID, locally controlled distribution identity, registered device, and audited Ad Hoc profile turn Firebase into a delivery concern instead of a signing-debugging concern.
+- The same bundle identity plus a strictly increasing build number produced a real in-place update: build `2161` replaced `2160` while retaining authentication, the selected local server, the encrypted library, and readable media across a forced restart.
+- Treat an incomplete Firebase success response as unknown state, not failure. Preserve the attempt, inspect the official read-only release state, and reconcile the exact release; never upload blindly a second time.
+- Carry the complete pinned Flutter/Dart and rustup-managed Rust/Cargo environment into every isolated release invocation. Interactive-shell defaults can select newer incompatible tools even when the repository lockfiles are correct.
+- Keep device authorization, Firebase delivery, Developer Mode, private-network access, and Museum account access as independent checks. A green result in one system does not diagnose or authorize the others.
+- When physical acceptance evidence is unavailable, defer the whole dependent chain. Moving non-owner registration, reprovisioning/publication, and installation together to V1.1 is more accurate than claiming tester support from owner-only evidence.
