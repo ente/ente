@@ -87,8 +87,9 @@ class PublishingRunner
 
   attr_reader :commands, :created_body
 
-  def initialize(remote_sha: nil, pull_requests: [], issues: [])
+  def initialize(remote_sha: nil, remote_shas: nil, pull_requests: [], issues: [])
     @remote_sha = remote_sha
+    @remote_shas = remote_shas&.dup
     @pull_requests = pull_requests
     @issues = issues
     @commands = []
@@ -122,7 +123,12 @@ class PublishingRunner
     when ["git", "rev-parse", "--verify", "origin/main^{commit}"]
       FORK_SHA
     when ["git", "ls-remote", "--heads", "origin", "refs/heads/#{BRANCH}"]
-      @remote_sha ? "#{@remote_sha}\trefs/heads/#{BRANCH}\n" : ""
+      sha = if @remote_shas
+              @remote_shas.length > 1 ? @remote_shas.shift : @remote_shas.first
+            else
+              @remote_sha
+            end
+      sha ? "#{sha}\trefs/heads/#{BRANCH}\n" : ""
     when ["/usr/bin/gh", "pr", "list", "--repo", "vanton1/ente", "--head", BRANCH, "--state", "all", "--json", "number,state,url,headRefOid"]
       JSON.generate(@pull_requests)
     when ["/usr/bin/gh", "issue", "list", "--repo", "vanton1/ente", "--state", "open", "--limit", "100", "--json", "number,title,body,url,state"]
@@ -154,6 +160,7 @@ class PublishingRunner
     raise "Unexpected streaming command: #{argv.inspect}" unless argv == expected
 
     @remote_sha = COMMIT
+    @remote_shas = nil
     options.fetch(:output).puts("uploaded")
     EnteUpstreamSync::CommandResult.new(stdout: "uploaded\n", stderr: "", status: 0)
   end
@@ -271,6 +278,19 @@ class SynchronizerTest < Minitest::Test
     assert_equal :merged, response.status
     assert_equal BRANCH, response.branch
     assert_equal MERGE_SHA, response.merge_commit
+  end
+
+  def test_no_change_returns_without_creating_a_branch
+    report = ready_report
+    report.upstream_only_commits = 0
+    report.official_contained = true
+    runner = FakeRunner.new({})
+
+    response = synchronizer(runner, report).start(fetch: false)
+
+    assert_equal :already_synchronized, response.status
+    assert_equal OFFICIAL_SHA, response.official_sha
+    assert_empty runner.commands
   end
 
   def test_existing_branch_stops_without_switching_or_merging
@@ -470,6 +490,37 @@ class PublisherTest < Minitest::Test
     refute runner.commands.any? { |kind, _argv, _options| kind == :execute }
   end
 
+  def test_remote_change_during_confirmation_is_detected_before_push
+    runner = PublishingRunner.new(remote_shas: [nil, "e" * 40], issues: [ISSUE])
+
+    error = assert_raises(EnteUpstreamSync::SafetyFailure) do
+      publisher(runner, "PUSH #{PublishingRunner::BRANCH}\n").publish(validation: validation)
+    end
+
+    assert_includes error.message, "not validated commit"
+    refute runner.commands.any? { |kind, _argv, _options| kind == :execute }
+  end
+
+  def test_existing_matching_pull_request_is_reused_without_confirmation
+    pull_request = {
+      "number" => 88,
+      "state" => "OPEN",
+      "url" => "https://github.com/vanton1/ente/pull/88",
+      "headRefOid" => PublishingRunner::COMMIT,
+    }
+    runner = PublishingRunner.new(
+      remote_sha: PublishingRunner::COMMIT,
+      pull_requests: [pull_request],
+      issues: [ISSUE],
+    )
+
+    result = publisher(runner, "").publish(validation: validation)
+
+    assert_equal :existing_pull_request, result.status
+    assert_equal 88, result.pull_request_number
+    refute runner.commands.any? { |kind, argv, _options| kind == :execute || argv[0, 3] == ["/usr/bin/gh", "pr", "create"] }
+  end
+
   def test_duplicate_marker_issues_stop_closed
     second = ISSUE.merge("number" => 43, "url" => "https://github.com/vanton1/ente/issues/43")
     runner = PublishingRunner.new(issues: [ISSUE, second])
@@ -566,5 +617,40 @@ class ValidatorTest < Minitest::Test
 
     assert_includes error.message, "source drift"
     refute runner.commands.any? { |kind, argv, _options| kind == :execute && argv.include?("--enforce-lockfile") }
+  end
+
+  def test_generated_source_drift_stops_before_second_generation
+    runner = PermissiveValidationRunner.new(statuses: ["", "", "", " M generated.dart\n"])
+
+    error = assert_raises(EnteUpstreamSync::SafetyFailure) do
+      EnteUpstreamSync::Validator.new(
+        runner: runner,
+        root: "/repo",
+        tools: TOOLS,
+        output: StringIO.new,
+      ).validate(with_builds: false)
+    end
+
+    assert_includes error.message, "after first Rust binding generation"
+    generations = runner.commands.count do |kind, argv, _options|
+      kind == :execute && argv == ["/tool/cargo", "codegen", "frb"]
+    end
+    assert_equal 1, generations
+  end
+end
+
+class ToolResolverTest < Minitest::Test
+  def test_missing_toolchain_stops_with_complete_diagnostic
+    error = assert_raises(EnteUpstreamSync::SafetyFailure) do
+      EnteUpstreamSync::ToolResolver.new(env: { "PATH" => "", "HOME" => "/missing" }).resolve(
+        with_builds: true,
+        with_github: true,
+      )
+    end
+
+    assert_includes error.message, "Required tools are unavailable"
+    assert_includes error.message, "git"
+    assert_includes error.message, "gh"
+    assert_includes error.message, "xcodebuild"
   end
 end
