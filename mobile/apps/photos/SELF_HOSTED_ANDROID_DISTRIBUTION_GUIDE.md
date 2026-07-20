@@ -20,7 +20,8 @@ internet, or distribute the iOS application.
 **Verified baseline (2026-07-20):** source version `1.3.59+2159`; Firebase
 Android build `2159`; owner and non-owner installation, sign-in,
 upload/download, and persistence accepted. Every later Android publication
-must use a strictly higher version code.
+must use a strictly higher version code. Current source requires Android
+8.0/API 26 or later and targets API 36.
 
 ## 1. Trust boundaries and safety rules
 

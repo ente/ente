@@ -24,7 +24,8 @@ persistence accepted. A real second iPhone or iPad has not been available, so
 non-owner iOS installation remains unverified. Do not authorize or build from
 an identifier collected without that real device; complete section 4 from the
 beginning when a tester device is available. Every later iOS publication must
-use a strictly higher `CFBundleVersion`.
+use a strictly higher `CFBundleVersion`. Current source requires iOS/iPadOS
+15.1 or later.
 
 ## 1. Trust boundaries and safety rules
 

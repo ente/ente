@@ -118,9 +118,9 @@ repository-pinned Flutter and Dart executables when they are not on `PATH`.
 The wrapper always builds the shared `selfhosted` scheme and its
 `SelfHostedRunner` target. That target uses the unique bundle identifier
 `me.vanton.ente.photos.selfhosted`, embeds no Share Extension or widgets, and
-has no production push, associated-domain, or app-group entitlements. The
-official `Runner` target and scheme keep their existing settings and extension
-dependencies.
+requires iOS 15.1 or later. It has no production push, associated-domain, or
+app-group entitlements. The official `Runner` target and scheme keep their
+existing settings and extension dependencies.
 
 The compiled endpoint is used only when no valid server binding exists. An
 in-place upgrade from an earlier locked build retains its binding, account, and

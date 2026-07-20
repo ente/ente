@@ -50,9 +50,10 @@ cd "$(git rev-parse --show-toplevel)/mobile/apps/photos"
 
 ## 2. Toolchain variables
 
-The project and CI use Flutter 3.38.10. Keep personal toolchains outside the
-repository and adapt the private root below to the installation on the build
-Mac:
+The project and CI use Flutter 3.38.10. The 2026-07-20 upstream integration was
+verified with its bundled Dart 3.10.9, rustup-managed Rust/Cargo 1.97,
+CocoaPods 1.17.0, and JDK 17. Keep personal toolchains outside the repository
+and adapt the private root below to the installation on the build Mac:
 
 ```sh
 export ENTE_MOBILE_TOOLCHAIN_ROOT="$HOME/.local/share/ente-mobile-toolchain"
@@ -79,7 +80,21 @@ cd apps/photos
 ```
 
 Put rustup's `cargo` and `rustc` before incompatible Homebrew installations on
-`PATH`, as shown above.
+`PATH`, as shown above. The Android application currently compiles and targets
+API 36, supports API 26 and later, and pins NDK `28.2.13676358`. A newer Java
+runtime may start Gradle but still cannot satisfy a plugin's Java 17 toolchain;
+use JDK 17 for the complete Android build.
+
+For iOS dependency regeneration, use the CocoaPods version recorded at the end
+of `ios/Podfile.lock` (currently 1.17.0):
+
+```sh
+cd ios
+pod install --deployment
+cd ..
+```
+
+The self-hosted iOS target and its pods require iOS 15.1 or later.
 
 ## 3. Android builds
 
@@ -438,7 +453,7 @@ Then create the archive and IPA using the same unchanged environment:
 ./scripts/build_self_hosted_ios.sh --adhoc
 ```
 
-The command configures the `selfhosted` Flutter release with the locked
+The command configures the `selfhosted` Flutter release with the configurable
 endpoint defines and explicit version/build, archives `SelfHostedRunner` with
 manual signing, and generates a temporary Xcode export-options file. On the
 pinned Xcode 26 toolchain, Ad Hoc export uses the current `release-testing`

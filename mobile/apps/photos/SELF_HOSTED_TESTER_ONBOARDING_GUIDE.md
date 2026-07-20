@@ -19,6 +19,8 @@ public issue or chat.
 
 ## 1. Before you begin
 
+- Use Android 8.0/API 26 or later, or iOS/iPadOS 15.1 or later. The operator
+  must publish a build compatible with the exact device.
 - Use your own Google account to accept Firebase. Keep using that same Google
   account for future downloads.
 - Use your own identity for Tailscale and your own account on the private Ente
