@@ -430,14 +430,13 @@ class _SettingsBody extends StatelessWidget {
             await routeToPage(context, const VideoStreamingSettingsPage());
           },
         ),
-        if (flagService.enableMultiCast)
-          _buildMenuItem(
-            title: AppLocalizations.of(context).castSessions,
-            icon: HugeIcons.strokeRoundedTvSmart,
-            onTap: () async {
-              await routeToPage(context, const CastSettingsPage());
-            },
-          ),
+        _buildMenuItem(
+          title: AppLocalizations.of(context).castSessions,
+          icon: HugeIcons.strokeRoundedTvSmart,
+          onTap: () async {
+            await routeToPage(context, const CastSettingsPage());
+          },
+        ),
         _buildMapsMenuItem(context),
       ],
     );

@@ -1,4 +1,3 @@
-import "dart:async";
 import "dart:io";
 
 import "package:ente_components/ente_components.dart";
@@ -22,36 +21,16 @@ Future<void> showCastSheet(BuildContext context, Collection collection) async {
   final textStyle = getEnteTextTheme(context);
   final gw = CastGateway(NetworkClient.instance.enteDio);
   final showAutoPair = Platform.isAndroid || kDebugMode;
-  if (!flagService.enableMultiCast) {
-    if (castService.getActiveSessions().isNotEmpty) {
-      await showChoiceDialog(
-        context,
-        title: l10n.stopCastingTitle,
-        body: l10n.stopCastingBody,
-        firstButtonLabel: l10n.yes,
-        secondButtonLabel: l10n.no,
-        firstButtonOnTap: () async {
-          unawaited(gw.revokeAllTokens());
-          await castService.closeActiveCasts();
-        },
-      );
-      return;
-    }
-    unawaited(gw.revokeAllTokens());
-  } else {
-    await castService.closeActiveCasts();
-  }
+  await castService.closeActiveCasts();
   final logger = Logger("showCastSheet");
   List<CastInfo> sessions = [];
-  if (flagService.enableMultiCast) {
-    try {
-      sessions = await gw.getAllCastSessions();
-    } catch (e, s) {
-      logger.severe('Failed to fetch active sessions in cast sheet: ', e, s);
-      if (!context.mounted) return;
-      await showGenericErrorDialog(context: context, error: e);
-      return;
-    }
+  try {
+    sessions = await gw.getAllCastSessions();
+  } catch (e, s) {
+    logger.severe('Failed to fetch active sessions in cast sheet: ', e, s);
+    if (!context.mounted) return;
+    await showGenericErrorDialog(context: context, error: e);
+    return;
   }
   if (!context.mounted) return;
   return showBottomSheetComponent(
@@ -89,12 +68,11 @@ Future<void> showCastSheet(BuildContext context, Collection collection) async {
             await showPairWithCodeSheet(context, collection);
           },
         ),
-        if (flagService.enableMultiCast)
-          CastSessionsList(
-            showTitle: true,
-            fallback: const SizedBox.shrink(),
-            initialSessions: sessions,
-          ),
+        CastSessionsList(
+          showTitle: true,
+          fallback: const SizedBox.shrink(),
+          initialSessions: sessions,
+        ),
       ],
     ),
   );

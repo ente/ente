@@ -775,13 +775,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         _menuOption(
           AlbumPopupAction.castAlbum,
           strings.castAlbum,
-          galleryAppBarMenuIcon(
-            !flagService.enableMultiCast &&
-                    castService.getActiveSessions().isNotEmpty
-                ? HugeIcons.strokeRoundedTvSmart
-                : HugeIcons.strokeRoundedTv02,
-            iconColor,
-          ),
+          galleryAppBarMenuIcon(HugeIcons.strokeRoundedTv02, iconColor),
         ),
       if (canAutoAdd)
         _menuOption(
