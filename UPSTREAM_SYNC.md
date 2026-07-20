@@ -17,8 +17,8 @@ manually. It is guarded to this fork and has only `contents: read` and
 `issues: write` permissions. When official Ente is ahead, it creates or updates
 one issue titled **Official Ente changes are ready to synchronize**. The issue
 contains the exact official SHA and a pinned local command. When fork `main`
-later contains that official history, a subsequent workflow run closes the
-issue.
+later contains that official history, the linked PR normally closes the issue;
+a subsequent detector run closes it if it remains open.
 
 The workflow only reports drift. It cannot create source commits, branches,
 pull requests, releases, or deployments.

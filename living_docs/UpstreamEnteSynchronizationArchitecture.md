@@ -1,348 +1,321 @@
 # Upstream Ente Synchronization Architecture
 
-**Status:** As-built recurring maintenance architecture, verified 2026-07-20
+**Status:** As-built hybrid maintenance architecture, verified 2026-07-20
 
-This document defines how the fork absorbs official Ente changes without
-losing the configurable self-hosted mobile applications or rewriting published
-history. It is the maintenance runbook for source integration. Building and
-distributing a release remain separate workflows.
+This document explains how the fork detects and absorbs official Ente changes
+without losing the configurable self-hosted mobile applications, rewriting
+published history, or entrusting semantic integration to an unattended runner.
+It describes components, state, permissions, provenance, and failure behavior.
+Use the [operator runbook](../UPSTREAM_SYNC.md) for current commands.
 
 Related documents:
 
 - [Canonical operator runbook](../UPSTREAM_SYNC.md)
 - [Self-hosted mobile documentation index](../mobile/apps/photos/SELF_HOSTED_DOCUMENTATION.md)
 - [Configurable-server architecture](ConfigurableSelfHostedMobileServerArchitecture.md)
-- [Upstream synchronization implementation record](UpstreamEnteSynchronization.md)
+- [First full synchronization record](UpstreamEnteSynchronization.md)
+- [Hybrid automation implementation record](HybridUpstreamSynchronizationAutomation.md)
 - [Mobile build guide](../mobile/apps/photos/SELF_HOSTED_BUILD_GUIDE.md)
 
-## 1. Invariants
+## 1. System invariants
 
-Every synchronization must preserve all of these properties:
+Every detector and local synchronization preserves these properties:
 
 - Official Ente history and the fork's published history remain reachable.
-- `origin` is the personal fork and the only push destination. `upstream` is
-  the official Ente repository and has a disabled push URL.
-- Fork `main` remains the last accepted state while integration happens on a
-  dated `sync/upstream-YYYY-MM-DD` branch.
+- `origin` identifies only `vanton1/ente`; `upstream` fetches only `ente/ente`
+  and its sole push URL is the disabled sentinel `DISABLED`.
+- Fork `main` remains the last owner-accepted state while integration occurs on
+  `sync/upstream-YYYY-MM-DD-<official-sha-prefix>`.
+- Unattended GitHub automation observes history and manages one issue. It does
+  not create source branches, commits, pull requests, or releases.
+- Local source mutation merges one recorded official SHA with `--no-ff`. It
+  never rebases, squashes, force-pushes, resets accepted history, or
+  automatically resolves a conflict.
 - Android keeps release package `me.vanton.ente.photos.selfhosted` and the
   normal debug `.debug` suffix.
 - iOS keeps bundle `me.vanton.ente.photos.selfhosted` on the core-only
   `SelfHostedRunner` target and shared `selfhosted` scheme.
-- Both guarded wrappers own their target/flavor and compile one validated
-  configurable HTTPS Museum default. Stored runtime bindings, logout-before-
-  switching behavior, and same-origin authenticated networking remain intact.
-- Synchronization does not publish, install, sign a release, change Apple or
-  Firebase state, alter a private server, or advance a release ledger.
+- Both platforms retain the configurable HTTPS Museum policy, authoritative
+  stored binding, fail-closed startup, logout-before-switching transaction,
+  and same-origin authenticated Museum networking.
+- Validation uses the public non-operational origin
+  `https://photos.example.com`; no private deployment binding enters source,
+  issues, pull requests, or logs.
+- Synchronization does not sign or publish mobile releases, advance Firebase
+  build ledgers, change Apple/Firebase/server state, or install on devices.
+- The generated fork pull request remains open until the owner reviews and
+  merges it through the normal GitHub path.
 
-## 2. Remote and branch model
+## 2. Component model
+
+The hybrid design separates persistent observation from trusted mutation:
 
 ```text
-official history                         fork history
-upstream/main                            origin/main
-      \                                     /
-       \                                   /
-        +-- sync/upstream-YYYY-MM-DD ------+
-                    merge commit
-                         |
-              repairs and validation
-                         |
-                 owner review / PR
-                         |
-                 fork main, later
+GitHub schedule / manual dispatch
+              |
+              v
+  read fork main + official main
+              |
+              v
+ one marker-based drift issue
+              |
+              | exact official SHA and local command
+              v
+ trusted Mac: check -> merge -> validate -> confirm -> fork PR
+                                                    |
+                                                    v
+                                             owner review/merge
+                                                    |
+                                                    v
+                              linked PR or next detector closes issue
 ```
 
-Verify the remote boundary before fetching:
-
-```sh
-git remote -v
-git remote get-url origin
-git remote get-url upstream
-git remote get-url --push upstream
-```
-
-The upstream push URL must be a disabled sentinel, not the official GitHub
-URL. Establish that boundary once if necessary:
-
-```sh
-git remote set-url --push upstream DISABLED
-```
-
-Never merge a moving reference without recording it. Fetch first, then capture
-the exact commits and divergence:
-
-```sh
-git fetch upstream main
-
-fork_sha="$(git rev-parse origin/main)"
-official_sha="$(git rev-parse upstream/main)"
-merge_base="$(git merge-base "$fork_sha" "$official_sha")"
-
-git rev-list --left-right --count "$fork_sha...$official_sha"
-printf '%s\n' "$fork_sha" "$official_sha" "$merge_base"
-```
-
-Start only from a clean, pushed fork `main` that exactly matches the intended
-`origin/main`:
-
-```sh
-git switch main
-git status --short --branch
-git rev-parse HEAD
-git rev-parse origin/main
-git switch -c "sync/upstream-$(date +%F)"
-```
-
-If local `main` is not the intended `origin/main`, resolve that discrepancy
-explicitly before creating the integration branch. Do not reset, rebase, or
-force-push merely to make the check pass.
-
-## 3. Merge sequence
-
-Merge the recorded official commit with both histories intact:
-
-```sh
-git merge --no-ff --no-commit "$official_sha"
-git status --short
-git diff --name-only --diff-filter=U
-```
-
-Review every textual conflict and every important file changed on both sides.
-An automatically merged file is not automatically semantically correct.
-Resolve the complete merge atomically, scan for markers, and create a dedicated
-merge commit before compatibility repairs:
-
-```sh
-git diff --check
-git grep -n -E '^(<<<<<<< |>>>>>>> )'
-git commit -m "Merge official Ente main at $official_sha"
-```
-
-Do not use repository-wide `ours` or `theirs`. It can silently discard either
-official security/compatibility changes or the fork's endpoint, identity, and
-distribution controls.
-
-### Conflict ownership
-
-| Surface | Default owner | Required reconciliation |
+| Component | Responsibility | Mutation boundary |
 |---|---|---|
-| Shared packages, toolchain pins, CI, upstream app features, and upstream deletions | Upstream | Keep the new upstream structure and adapt fork code to its APIs. Do not resurrect removed files without a proven dependency. |
-| Android package/flavor, iOS bundle/target/scheme, empty self-hosted entitlements | Fork | Preserve the separate application identities and core-only graphs while adopting upstream SDK and platform floors. |
-| Endpoint policy, stored binding, startup fail-closed behavior, switch/logout UX, and origin constraints | Fork behavior on upstream APIs | Preserve the behavioral contracts; refactor only as required by upstream interfaces. |
-| Flutter/Dart/Rust dependency locks and CocoaPods lock/project references | Generated combined state | Resolve the merge to a valid seed, then regenerate with exact current tools and prove a second generation is clean. |
-| Signing, preparation, publication, receipts, and fixed tester groups | Fork | Preserve guards and immutable evidence contracts. Never introduce private signing or Firebase values. |
-| Documentation | Combined current truth | Keep historical evidence historical; update canonical runbooks only for current commands, versions, platform floors, and boundaries. |
+| `.github/workflows/upstream-sync-drift.yml` | Daily/manual fork-only orchestration, full-history checkout, official fetch, guarded drift report, issue reconciliation | May write issues only |
+| `.github/scripts/upstream-sync-issue.cjs` | Validate schema/SHA/count evidence; create, update, no-op, or close exactly one marker issue | GitHub issue API only |
+| `scripts/sync_upstream.sh` | Stable operator entry point for `check`, `start`, `resume`, `validate`, `publish`, and `run` | Depends on selected state; never writes fork `main` directly |
+| `scripts/upstream_sync.rb` | CLI parsing, diagnostics, exit classification, and command composition | Delegates to guarded library objects |
+| `scripts/lib/upstream_sync.rb` | Remote inspection, exact-SHA integration, merge provenance, validation, confirmation, upload, and PR creation | Local sync branch, canonical fork branch, and one fork PR |
+| `scripts/test_upstream_sync.sh` | Offline unit, real-Git integration, issue, workflow-contract, syntax, security, and whitespace verification | Temporary local repositories only |
 
-## 4. Dependency and generation gate
+All subprocesses use argument arrays rather than shell-composed GitHub data.
+Long validation and push operations stream named output; recent failure output
+is retained in classified diagnostics.
 
-Derive tool versions from the merged repository and lockfiles rather than
-assuming the previous sync's versions. Initialize committed submodules before
-analysis:
+## 3. Remote and provenance model
 
-```sh
-git submodule update --init --recursive
-```
+The read-only inspector validates repository identities before fetching. It
+requires a clean local `main`, resolves local `main`, `origin/main`, and
+`upstream/main`, and reports merge base, fork-only count, upstream-only count,
+and official ancestry. Local `main` must exactly equal fetched `origin/main`.
+JSON output uses a versioned schema shared by the scheduled detector.
 
-For the verified 2026-07-20 baseline, the relevant tools were Flutter 3.38.10
-with Dart 3.10.9, rustup-managed Rust/Cargo 1.97, CocoaPods 1.17.0, and JDK 17.
-Use the exact current equivalents on later synchronizations.
-
-From `mobile/`, restore the locked workspace:
-
-```sh
-"$FLUTTER_BIN" pub get --enforce-lockfile
-```
-
-Put rustup's proxies first and regenerate Flutter/Rust bindings from `rust/`:
-
-```sh
-export PATH="$HOME/.cargo/bin:$PATH"
-cargo codegen frb
-git status --short
-cargo codegen frb
-git status --short
-```
-
-The second run must be byte-stable. If an escalated or non-interactive shell
-selects another `cargo` or `rustc`, make both executable paths explicit before
-changing source.
-
-On macOS, use the CocoaPods version recorded in the merged Photos lockfile:
-
-```sh
-cd mobile/apps/photos/ios
-pod install
-pod install --deployment
-```
-
-The deployment-mode run must report no lock changes. Compare every fork-only
-iOS configuration with the new Podfile and upstream target deployment floor;
-those values often merge without a textual conflict. Likewise derive Android
-JDK, SDK, NDK, and ABI requirements from the merged Gradle source before
-editing compatibility code.
-
-## 5. Runtime and platform gates
-
-Validation proceeds from inexpensive semantic checks to platform builds:
+The integration branch begins at the recorded fork SHA and merges the recorded
+official SHA with an explicit message:
 
 ```text
-ancestry and conflict audit
-        |
-dependency and generated-output stability
-        |
-endpoint tests in standard, configurable, and locked modes
-        |
-Android/iOS contract and publication tests
-        |
-format and full mobile analysis
-        |
-guarded Android debug and iOS Simulator builds
-        |
-documentation, privacy, and final diff audit
+Merge official Ente main at <40-character-official-sha>
 ```
 
-Use a public non-operational origin for every synchronization build:
+`IntegrationState` does not trust the current commit to be the merge. It scans
+first-parent merge history for that exact message, requires exactly two
+parents, and requires the recorded official SHA to be the second parent. This
+supports reviewed compatibility commits above the merge while rejecting a
+lookalike message or unrelated parent.
 
-```sh
-export ENTE_SELF_HOSTED_ENDPOINT="https://photos.example.com"
+Publication tightens the boundary again. It checks every configured fetch and
+push URL, refetches `origin/main`, and requires it to remain the merge's first
+parent. Both fork and official SHAs must be ancestors of the validated commit.
+The remote synchronization branch must be absent or already equal to that
+commit; another SHA is never overwritten.
+
+The upload addresses `git@github.com:vanton1/ente.git` directly after validating
+the configured fork identity. This avoids broadening GitHub CLI OAuth workflow
+scope while making the only push destination explicit. The pushed SHA is read
+back through `origin` before PR creation. No force option exists.
+
+## 4. Local state machine
+
+```text
+CLEAN_FORK_MAIN
+      |
+      | check/fetch/remotes/SHAs
+      v
+READY --------------------------> ALREADY_SYNCHRONIZED
+      |
+      | start exact SHA
+      v
+MERGING -------- conflict ------> PAUSED_MERGE
+      |                                |
+      | clean merge                    | manual resolve + stage + resume
+      +-------------------------------+
+      v
+INTEGRATED
+      |
+      | dependency/generation/behavior/analysis gates
+      +-------- failure ----------> PAUSED_REPAIR
+      |                                |
+      |                                | reviewed repair commit + validate
+      +--------------------------------+
+      v
+VALIDATED
+      |
+      | GitHub/remote preflight + typed PUSH confirmation
+      +-------- mismatch/change --> PAUSED_PUBLICATION
+      |
+      | repeat preflight, upload/verify, PR create
+      v
+OPEN_FORK_PR ---- owner merge ----> ACCEPTED_FORK_MAIN
+        |                             |
+        | Closes #N                  | next detector fallback
+        +-----------------------------+
+                                      v
+                                CLOSED_DRIFT_ISSUE
 ```
 
-At minimum, test:
+Branch-name collisions preserve earlier evidence and stop. A merge conflict
+keeps the new branch, conflict markers, unresolved paths, and `MERGE_HEAD`.
+`resume` accepts only the sync prefix, refuses unresolved or unstaged work,
+checks staged and unstaged whitespace, and commits only a complete resolution.
+It can also verify an already completed merge and later repair commits.
 
-- endpoint parsing and canonicalization;
-- fail-closed configuration startup;
-- stored-binding upgrade behavior;
-- anonymous, credential-free, no-redirect server validation;
-- mutation-free validation failures;
-- local logout completing before a new origin is activated;
-- same-origin authenticated Museum requests;
-- Android flavor/package, SDK, ABI, signing, preparation, and publication
-  contracts; and
-- iOS target/bundle, core-only graph, deployment target, Ad Hoc preparation,
-  and publication contracts.
+The one-command `run` covers the conflict-free path. The staged commands expose
+the same state transitions for recovery. No automatic rollback erases a
+failure branch; explicit `git merge --abort` remains an owner action only while
+the merge is active.
 
-Run the focused tests under the standard compilation and again with the real
-configurable and locked Dart defines. Then run tracked-source formatting and
-full workspace analysis with the pinned SDK. The exact file list can evolve;
-the behavioral categories above may not be silently dropped.
+## 5. Validation architecture
 
-The quarantine build boundary is:
+Validation accepts only a clean completed sync branch and binds its result to
+the exact branch, current commit, verified official SHA, build choice, and
+ordered successful steps. The default gates are:
 
-```sh
-cd mobile/apps/photos
-./scripts/build_self_hosted_android.sh --debug
-./scripts/build_self_hosted_ios.sh --simulator
+1. initialize recursive submodules and prove no source drift;
+2. restore the locked Flutter workspace with `--enforce-lockfile` and prove no
+   drift;
+3. generate Rust/Flutter bindings with rustup Cargo and prove no drift;
+4. generate the same bindings again and prove byte-stable source;
+5. verify Photos CocoaPods with `pod install --deployment` and prove no drift;
+6. run the combined ten-file self-hosted regression suite;
+7. run endpoint behavior in configurable mode using the public example;
+8. run the same endpoint behavior in locked compatibility mode;
+9. check all tracked Dart formatting in bounded argument batches; and
+10. analyze the complete mobile workspace.
+
+`--with-builds` adds only the guarded Android debug wrapper and iOS Simulator
+wrapper, again with source-drift checks. It does not build signed release
+artifacts. Missing Git, GitHub CLI, Flutter/Dart, Cargo, CocoaPods, or selected
+platform tools stops before publication. Environment overrides allow pinned
+`FLUTTER_BIN`, `DART_BIN`, `CARGO_BIN`, `POD_BIN`, and `GH_BIN` paths without
+recording workstation locations in Git.
+
+Unexpected generator, dependency, formatter, test, analysis, or build output
+never becomes an implicit fix. The operator must inspect and commit an
+intentional compatibility repair, after which validation discovers the same
+verified merge beneath that repair commit.
+
+## 6. Publication and idempotence
+
+Standalone `publish` reruns the complete selected validation, so evidence from
+another commit cannot be reused. `run` performs validation once immediately
+before the same publication preflight. Publication resolves GitHub state before
+showing this sole mutation authorization:
+
+```text
+PUSH <exact-sync-branch>
 ```
 
-Audit the Android debug APK for package, version, SDKs, ABIs, debug state,
-compiled example endpoint, ZIP integrity, alignment, signature scheme, size,
-and SHA-256. Audit the Simulator `.app` for bundle/version, minimum iOS,
-arm64 binaries, compiled endpoint, absence of extensions and provisioning
-profiles, empty entitlements, ad-hoc signature validity, size, and hashes.
-Do not install either artifact as part of synchronization.
+There is no `--yes`, environment bypass, or automatic confirmation. After the
+operator types it, the complete local, remote, ancestry, GitHub-auth, branch,
+PR, and issue preflight runs again. Any change stops before upload.
 
-## 6. Final integration audit
+The PR targets `vanton1/ente:main` and records fork base, official SHA,
+validated commit, validation count, and optional-build result. If exactly one
+open marker issue exists, `Closes #N` creates the durable handoff. The command
+does not approve or merge the PR.
 
-Before review, prove both source histories, a clean diff, and the remote
-boundary:
+Publication is retry-safe at its two partial boundaries:
 
-```sh
-git merge-base --is-ancestor upstream/main HEAD
-git merge-base --is-ancestor origin/main HEAD
-git rev-list --left-right --count upstream/main...HEAD
-git diff --check upstream/main..HEAD
-git grep -n -E '^(<<<<<<< |>>>>>>> )'
-git submodule status --recursive
-git remote -v
-git status --short --branch
-```
+- If a matching remote branch already exists but no PR does, it is verified and
+  reused without upload before creating the PR.
+- If one matching open PR already exists, its URL is returned without another
+  confirmation or mutation.
 
-The left divergence count must be zero for the recorded upstream commit. The
-working tree must be clean, all required submodules initialized at their
-recorded SHAs, and upstream push disabled. Review the complete
-`upstream/main..HEAD` inventory: expected fork-only runtime, platform, tests,
-scripts, documentation, and task records should explain every changed file.
+A mismatched remote SHA, non-open PR with the same branch, mismatched PR head,
+multiple PRs, or multiple marker issues is ambiguous and fails closed. This
+preserves evidence instead of guessing whether to overwrite or duplicate it.
 
-Run a private-value scan over changed documentation and scripts. Real server
-origins, object-storage routes, tester identities, Firebase project/App IDs,
-Apple Team/device/profile data, credentials, artifacts, and receipts must not
-enter Git. Public placeholder origins and application identities are expected.
+## 7. Scheduled detector and permission model
 
-## 7. Source integration is not a release
+The detector runs daily at 06:17 UTC and through `workflow_dispatch`. Its job
+condition is the exact repository identity `vanton1/ente`; copied upstream or
+another fork skips the job. Concurrency is non-cancelling so a newer scheduled
+event cannot interrupt an issue mutation halfway through. Runtime is capped at
+ten minutes.
 
-Passing every gate means only that the sync branch is ready for owner review.
-It does not authorize any of the following:
+The workflow checks out fork `main` with complete history and
+`persist-credentials: false`, creates an official HTTPS fetch remote, sets its
+push URL to `DISABLED`, and uses the local `check --no-fetch --json` contract.
+The report is written under runner-temporary storage so the repository remains
+clean. Both external actions are pinned to full 40-character SHAs.
 
-- pushing the branch or merging it into fork `main`;
-- preparing or publishing a signed Android or iOS release;
-- incrementing Firebase build ledgers or notifying testers;
-- registering Apple devices, refreshing profiles, or changing certificates;
-- installing on a physical device; or
-- upgrading or reconfiguring Museum, object storage, DNS, TLS, or Tailscale.
+| GitHub token permission | Level | Purpose |
+|---|---|---|
+| `contents` | `read` | Check out fork source and compare Git history |
+| `issues` | `write` | Create, update, comment on, or close the one drift tracker |
+| Pull requests, workflows, actions, checks, statuses, packages, releases, deployments, administration | none | Not required and intentionally unavailable |
 
-After owner review, the branch may be pushed and merged through the fork's
-normal review path. A later release starts from that accepted, pushed commit,
-uses higher platform build numbers, private signing inputs, live server health
-checks, immutable preparation, and the applicable Firebase operations guide.
+The issue reconciler validates schema version, readiness, three full SHAs, and
+non-negative integer divergence before reading issues. It paginates all open
+issues, excludes pull requests, and recognizes the invisible marker
+`<!-- ente-upstream-sync -->`. Zero markers permits create/no-op, one permits
+update/close, and more than one stops without mutation. When drift becomes
+zero, the detector comments with the contained official SHA and closes the
+tracker. A later new drift creates a new open tracker rather than reopening
+historical evidence.
 
-## 8. Failure recovery
+## 8. Failure, evidence, and rollback boundaries
 
-| Failure point | Safe recovery |
-|---|---|
-| Before the merge commit | Inspect first; if the selected upstream or scope is wrong, use `git merge --abort` and keep fork `main` untouched. |
-| After the merge commit, before review | Preserve useful evidence if needed, then abandon the integration branch and start a new dated branch from the accepted fork `main`. |
-| Generated output is unstable | Stop, verify exact Flutter/Dart/Rust/CocoaPods paths and submodules, and rerun. Do not hand-edit generated files merely to hide drift. |
-| A custom target no longer fits upstream architecture | Stop at the relevant task. Record the conflicting invariants and obtain an explicit design decision before broadening scope. |
-| Platform build fails only with the workstation's default tool | Reproduce the merged repository's CI/toolchain contract first. Do not downgrade source or dependencies to accommodate an unrelated global installation. |
-| External release action was accidentally started | Stop source synchronization. Preserve the external attempt evidence and follow the platform distribution recovery runbook; do not retry blindly. |
+| Failure | Preserved evidence | Allowed recovery |
+|---|---|---|
+| Unsafe remote, branch, dirty tree, stale fork `main`, or requested-SHA mismatch | Existing repository untouched plus exact diagnostic | Correct the precondition and rerun `check`; never bypass identity checks |
+| Integration branch collision | Existing branch and attempt untouched | Inspect it; resume it or deliberately start a distinct later attempt |
+| Merge conflict | Sync branch, conflict files, `MERGE_HEAD`, official SHA | Resolve/stage/review, then `resume`; explicitly abort only if the merge selection was wrong |
+| Dependency or generated drift | Working changes and named failing gate | Pin merged tools, inspect changes, commit intentional repairs, revalidate |
+| Test, analysis, or optional build failure | Clean/repair branch and streamed command evidence | Repair on the same branch and revalidate; do not publish failing source |
+| Confirmation mismatch or state change | Validated local branch; no external mutation | Reinspect and run `publish` again |
+| Push succeeds, PR creation fails | Exact verified fork branch | Rerun `publish`; reuse the same SHA without uploading |
+| Ambiguous issue/branch/PR | All local and GitHub evidence untouched | Resolve ambiguity manually and use a new branch where required |
+| Owner rejects PR | Open/closed PR and source branch remain review evidence | Close without merging; future sync starts from accepted fork `main` |
 
-Never rewrite published history, force-push, or destructively reset the working
-fork to recover a synchronization branch.
+No recovery path rewrites accepted or published history. Branch deletion is an
+owner retention decision outside the synchronizer.
 
-## 9. Maintenance checklist
+## 9. Observability, privacy, and release separation
 
-For each future catch-up:
+Readiness text and schema-v1 JSON expose repository root, branch, remote URLs,
+fetch status, fork/official/merge-base SHAs, divergence, ancestry, and problems.
+Validation streams step names and pass/fail state. Publication prints only
+public repository coordinates, source SHAs, build-choice status, issue number,
+and PR URL. The drift issue exposes the same public source evidence and pinned
+operator command.
 
-1. Confirm fork `main` is clean, pushed, and currently releasable.
-2. Verify remote URLs and the disabled upstream push URL.
-3. Fetch official `main`; record fork, official, merge-base, and divergence
-   SHAs in a new living record.
-4. Create a dated integration branch and merge the exact official commit with
-   `--no-ff`.
-5. Resolve conflicts by ownership; audit semantically important automatic
-   merges and upstream deletions.
-6. Restore submodules, locked dependencies, Rust bindings, pods, and other
-   generated sources with exact merged tool versions; prove repeatability.
-7. Run endpoint tests in all modes, platform contract tests, formatting, and
-   full mobile analysis.
-8. Build and audit only the guarded Android debug and iOS Simulator artifacts
-   against a public example endpoint.
-9. Update canonical documents for current source/toolchain/platform facts
-   while leaving historical release evidence intact.
-10. Prove ancestry, zero upstream-behind count, clean diff/status, disabled
-    upstream push, valid links/scripts, and privacy boundaries.
-11. Commit each task boundary, review the complete branch, and request explicit
-    approval before any push, fork-main merge, physical-device action, private
-    server change, or distribution workflow.
+The system does not need or emit Museum credentials, recovery keys, real server
+or object-storage origins, tester identities, Firebase project/App IDs, Apple
+team/device/profile data, signing material, artifacts, receipts, or user media.
+It introduces no application runtime path, personal-data flow, telemetry,
+storage retention, or compliance obligation.
 
-## 10. Evidence from the first full synchronization
+An accepted synchronization only updates fork source. Signed Android/iOS
+preparation, Firebase distribution, tester notification, device registration,
+and server changes remain governed by their separate runbooks and approvals.
+They must start from a later accepted, clean, pushed source commit and advance
+their own immutable build/evidence ledgers.
 
-The 2026-07-20 execution integrated fork commit `ed63fc138d88d9855e1ad1c10cea50747d5d0c0b`
-with official commit `e184e77116dbffd825b755c0fb2e4b924f837569`
-from merge base `dda1d1f790e2d9a7bd68b0cf84a7c97efb4f5374`.
-Its 1,014 upstream-only commits produced one textual conflict, the generated
-Photos iOS lockfile. Semantic audits additionally found two stale removed
-framework references and an upstream iOS floor increase that fork-only Xcode
-configurations had not inherited.
+## 10. Verification evidence
 
-The run also established four recurring operational lessons:
+The first manual full synchronization on 2026-07-20 integrated fork commit
+`ed63fc138d88d9855e1ad1c10cea50747d5d0c0b` with official commit
+`e184e77116dbffd825b755c0fb2e4b924f837569` from merge base
+`dda1d1f790e2d9a7bd68b0cf84a7c97efb4f5374`. Its 1,014 upstream-only commits
+produced one textual conflict in the generated Photos iOS lockfile. Semantic
+audits also found removed framework references and an upstream iOS floor that
+fork-only configurations needed to adopt. Stable generation, focused tests,
+full mobile analysis, and guarded debug/Simulator builds then passed without
+external mutation.
 
-- initialize recursive submodules before treating missing assets as source
-  regressions;
-- make rustup `cargo` and `rustc` selection explicit in non-interactive shells;
-- satisfy plugin-level Java toolchains, not just the Gradle launcher; and
-- distinguish a successful source build from the older releases that remain
-  installed and distributed.
+The hybrid automation is verified by `./scripts/test_upstream_sync.sh` using no
+network or external writes. The current suite contains 35 Ruby cases with 184
+assertions plus six Node issue cases. It covers URL identity, dirty/no-change
+readiness, unsafe upstream push, collision and exact-SHA merge behavior,
+preserved real-Git conflicts, staged and reviewed-repair resume, missing tools,
+generator drift, endpoint modes, optional guarded builds, confirmation and
+tampering, canonical fork upload, partial retry and existing-PR reuse,
+issue create/update/close/idempotence/duplicates, workflow identity and minimal
+permissions, action pinning, absent source mutation, documentation links,
+syntax, workflow security, and whitespace.
 
-With those repairs, dependency generation was stable, full mobile analysis had
-no issues, all focused self-hosted tests passed, and both guarded platform
-builds passed their artifact audits without external mutation.
+This evidence demonstrates guard behavior and state transitions. Each future
+real synchronization still requires owner review of the actual upstream diff
+and the generated fork pull request.
