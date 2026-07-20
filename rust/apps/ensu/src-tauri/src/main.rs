@@ -16,11 +16,13 @@ fn main() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(commands::llm::State::default())
-        .manage(commands::llm::ModelDownloadState::default())
         .manage(commands::chat_db::ChatDbState::default())
         .setup(|app| {
             logging::init_logging(app.handle());
             logging::log("App", "setup started");
+
+            let models_dir = app.path().app_data_dir()?.join("models");
+            app.manage(commands::llm::ModelDownloadState::new(models_dir));
 
             // Show the main window after setup is complete
             if let Some(window) = app.get_webview_window("main")
@@ -64,7 +66,9 @@ fn main() {
             commands::llm::llm_cancel,
             commands::system::system_info,
             commands::config::config_defaults,
-            commands::llm::llm_download_model_files,
+            commands::llm::llm_model_status,
+            commands::llm::llm_migrate_models,
+            commands::llm::llm_download_model,
             commands::llm::llm_cancel_model_download,
         ])
         .build(tauri::generate_context!())

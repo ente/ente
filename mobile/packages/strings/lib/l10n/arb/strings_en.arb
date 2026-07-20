@@ -286,30 +286,39 @@
   "@oneAccountAcrossEnteApps": {
     "description": "Explains that account deletion affects all Ente apps"
   },
-  "photosAndVideosCount": "{count, plural, one {{count} photo & video} other {{count} photos & videos}}",
+  "photosAndVideosCount": "{count, plural, one {{formattedCount} photo & video} other {{formattedCount} photos & videos}}",
   "@photosAndVideosCount": {
     "description": "Delete impact row for Photos data",
     "placeholders": {
       "count": {
         "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
       }
     }
   },
-  "authenticatorCodesCount": "{count, plural, one {{count} authenticator code} other {{count} authenticator codes}}",
+  "authenticatorCodesCount": "{count, plural, one {{formattedCount} authenticator code} other {{formattedCount} authenticator codes}}",
   "@authenticatorCodesCount": {
     "description": "Delete impact row for Auth data",
     "placeholders": {
       "count": {
         "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
       }
     }
   },
-  "lockerRecordsCount": "{count, plural, one {{count} record} other {{count} records}}",
+  "lockerRecordsCount": "{count, plural, one {{formattedCount} record} other {{formattedCount} records}}",
   "@lockerRecordsCount": {
     "description": "Delete impact row for Locker data",
     "placeholders": {
       "count": {
         "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
       }
     }
   },
@@ -897,7 +906,6 @@
   "createLegacyKit": "Create legacy kit",
   "createAnotherKit": "Create another kit",
   "createKit": "Create kit",
-  "legacyKitCreateDescription": "Name the three people who will each hold a part of your account recovery.",
   "legacyKitContactNameHint": "Contact {index} - e.g. {example}",
   "@legacyKitContactNameHint": {
     "placeholders": {
@@ -921,25 +929,7 @@
     }
   },
   "legacyKitStorageGuidance": "Store each sheet separately. Printed sheets can be disabled later by deleting the kit.",
-  "legacyKitPageDescription": "Name the three people who will each hold a part of your recovery key.",
-  "legacyKitPartOf": "Part {index} of {count}",
-  "@legacyKitPartOf": {
-    "placeholders": {
-      "index": {
-        "type": "int",
-        "example": "1"
-      },
-      "count": {
-        "type": "int",
-        "example": "3"
-      }
-    }
-  },
   "recoveryWaitTime": "Recovery wait time",
-  "recoverySheets": "Recovery sheets",
-  "downloadAll": "Download all",
-  "legacyKitSheetDownloaded": "Recovery sheet downloaded",
-  "deleteLegacyKit": "Delete legacy kit",
   "deleteLegacyKitMessage": "Shared sheets can no longer be used for recovery",
   "blockLegacyKitRecoveryMessage": "Block the current recovery attempt\nNote that they can start a new recovery attempt",
   "legacyKitRecoveryInProgress": "Recovery in progress",
@@ -975,9 +965,42 @@
       }
     }
   },
-  "legacyKitDownloaded": "Legacy kit downloaded",
   "legacyKitMaxReached": "You can create up to 5 legacy kits.",
   "authToManageLegacyKit": "Authenticate to manage legacy kits",
+  "legacyEmptyStateDescription": "In your absence, Legacy helps your loved ones access your information on Locker.",
+  "legacyKitRecoveryWarning": "Someone is trying to recover your account using a legacy kit",
+  "trustedContactsEmptyDescription": "Nominate another Ente user as a trusted contact to recover your account",
+  "legacyKitEmptyDescription": "Enable people you trust to come together to recover your account",
+  "recoveryWaitTimeDescription": "How soon is account recovery possible after the legacy kit is scanned?",
+  "recoveryWaitTimeChangeWarning": "Changing this will cancel any ongoing attempts.",
+  "legacyIntroTitle": "Help loved ones access important information, in your absence.",
+  "legacyIntroCard1": "We give you 3 cards",
+  "legacyIntroCard2": "Share them with\n3 people you trust",
+  "legacyIntroCard3": "Any 2 of 3 can unlock your information on Locker",
+  "setupYourLegacy": "Setup your Legacy",
+  "setupLegacyDescription": "Choose 3 people you trust. Any 2 of them, together, can unlock your information - never just one alone.",
+  "addTrustedPerson": "Add a trusted person",
+  "accountRecovery": "Account recovery",
+  "shareYourLegacy": "Share your Legacy",
+  "shareLegacyDescription": "Send each card to the person it's for. No single card works alone.",
+  "legacyKitAllSetTitle": "Your Legacy kit is all set!",
+  "legacyKitAllSetDescription": "You can set up more Legacy kits or revoke access anytime.",
+  "share": "Share",
+  "revokeLegacyKit": "Revoke Legacy kit",
+  "getAnotherPartOfKitFrom": "Get another part of the kit from",
+  "goToUrl": "Go to {url}",
+  "@goToUrl": {
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "legacy.ente.com"
+      }
+    }
+  },
+  "linkCopiedToClipboard": "Link copied to clipboard",
+  "congratulations": "Congratulations!",
+  "legacyCongratulationsMessage": "You've successfully setup your Legacy.\nStart saving your important information.",
+  "saveToLocker": "Save to Locker",
   "createdOn": "Created {date}",
   "@createdOn": {
     "placeholders": {

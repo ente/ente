@@ -592,6 +592,7 @@ const Page: React.FC = () => {
     const [showSystemPromptSettings, setShowSystemPromptSettings] =
         useState(false);
     const [useCustomModel, setUseCustomModel] = useState(false);
+    const [modelSettingsLoaded, setModelSettingsLoaded] = useState(false);
     const [resolvedDefaultModel, setResolvedDefaultModel] =
         useState<ModelInfo>(DEFAULT_MODEL);
     const [resolvedModelPresets, setResolvedModelPresets] = useState<
@@ -919,7 +920,8 @@ const Page: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (loading || typeof window === "undefined") return;
+        if (loading || !modelSettingsLoaded || typeof window === "undefined")
+            return;
         const element = chatViewportRef.current;
         if (!element) return;
 
@@ -938,7 +940,7 @@ const Page: React.FC = () => {
         const observer = new ResizeObserver(() => updateWidth());
         observer.observe(element);
         return () => observer.disconnect();
-    }, [loading]);
+    }, [loading, modelSettingsLoaded]);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -955,7 +957,10 @@ const Page: React.FC = () => {
         // unlocked. Without this gate a user who had custom settings before
         // the unlock feature was added would silently keep a hidden custom
         // model with no visible way to change it.
-        if (!isUnlocked) return;
+        if (!isUnlocked) {
+            setModelSettingsLoaded(true);
+            return;
+        }
 
         let raw = window.localStorage.getItem(MODEL_SETTINGS_STORAGE_KEY);
         if (!raw) {
@@ -1006,6 +1011,9 @@ const Page: React.FC = () => {
                 })
                 .catch((error: unknown) => {
                     log.error("Failed to migrate model settings", error);
+                })
+                .finally(() => {
+                    if (!cancelled) setModelSettingsLoaded(true);
                 });
             return () => {
                 cancelled = true;
@@ -1049,6 +1057,7 @@ const Page: React.FC = () => {
         } catch (error) {
             log.error("Failed to read model settings", error);
         }
+        setModelSettingsLoaded(true);
         return () => {
             cancelled = true;
         };
@@ -2025,7 +2034,7 @@ const Page: React.FC = () => {
     }, [ensureProvider, getModelSettings, isTauriRuntime]);
 
     useEffect(() => {
-        if (!firstPaintDone) return;
+        if (!firstPaintDone || !modelSettingsLoaded) return;
         const cancelIdle = scheduleIdleTask(() => {
             void preloadModelIfAvailable();
         }, 2000);
@@ -2034,6 +2043,7 @@ const Page: React.FC = () => {
         };
     }, [
         firstPaintDone,
+        modelSettingsLoaded,
         modelSettingsKey,
         preloadModelIfAvailable,
         scheduleIdleTask,
@@ -3945,7 +3955,7 @@ const Page: React.FC = () => {
         />
     );
 
-    if (loading) return <></>;
+    if (loading || !modelSettingsLoaded) return <></>;
 
     return (
         <>

@@ -728,7 +728,7 @@ export const PublicAlbumSingleFileViewer: React.FC<
                                         },
                                     }}
                                 >
-                                    {t("get_ente_photos")}
+                                    {t("join_ente")}
                                 </Button>
                                 <IconButton
                                     onClick={(event) =>

@@ -1,17 +1,17 @@
 //! Shared reusable types for account clients.
 
-use ente_core::urls::PRODUCTION_API_BASE_URL;
+use ente_core::urls::PRODUCTION_API_ORIGIN;
 use serde::{Deserialize, Serialize};
 use zeroize::Zeroize;
 
-/// Default base URL for Ente's public API.
-pub const DEFAULT_API_BASE_URL: &str = PRODUCTION_API_BASE_URL;
+/// Default origin for Ente's public API.
+pub const DEFAULT_API_ORIGIN: &str = PRODUCTION_API_ORIGIN;
 
 /// Configuration for constructing an [`crate::client::AccountsClient`].
 #[derive(Clone)]
 pub struct AccountsClientConfig {
-    /// Base Ente API URL.
-    pub base_url: String,
+    /// Ente API origin.
+    pub origin: String,
     /// Optional auth token for authenticated requests.
     pub auth_token: Option<String>,
     /// Concrete client package header value.
@@ -25,7 +25,7 @@ pub struct AccountsClientConfig {
 impl std::fmt::Debug for AccountsClientConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AccountsClientConfig")
-            .field("base_url", &self.base_url)
+            .field("origin", &self.origin)
             .field(
                 "auth_token",
                 &self.auth_token.as_ref().map(|_| "<redacted>"),
@@ -41,7 +41,7 @@ impl AccountsClientConfig {
     /// Create a config for the given client package.
     pub fn new(client_package: impl Into<String>) -> Self {
         Self {
-            base_url: DEFAULT_API_BASE_URL.to_string(),
+            origin: DEFAULT_API_ORIGIN.to_string(),
             auth_token: None,
             client_package: client_package.into(),
             client_version: None,
@@ -49,9 +49,9 @@ impl AccountsClientConfig {
         }
     }
 
-    /// Override the API base URL.
-    pub fn with_base_url(mut self, base_url: impl Into<String>) -> Self {
-        self.base_url = base_url.into();
+    /// Override the API origin.
+    pub fn with_origin(mut self, origin: impl Into<String>) -> Self {
+        self.origin = origin.into();
         self
     }
 

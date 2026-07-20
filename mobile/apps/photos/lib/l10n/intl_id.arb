@@ -607,7 +607,6 @@
   "appleId": "ID Apple",
   "playstoreSubscription": "Langganan PlayStore",
   "appstoreSubscription": "Langganan AppStore",
-  "subAlreadyLinkedErrMessage": "{id} kamu telah terhubung dengan akun Ente lain.\nJika kamu ingin menggunakan {id} kamu untuk akun ini, silahkan hubungi tim bantuan kami",
   "visitWebToManage": "Silakan buka {webUrl} untuk mengatur langgananmu",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

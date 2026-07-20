@@ -28,6 +28,12 @@ export interface ParsedMetadataJSON {
     location?: Location;
     description?: string;
     favorited?: true;
+    /**
+     * true if the takeout metadata JSON contained a
+     * googlePhotosOrigin.fromPartnerSharing key, i.e. the file was shared with
+     * the user via Google Photos partner sharing.
+     */
+    fromPartnerSharing?: true;
 }
 
 /**
@@ -257,6 +263,15 @@ const parseMetadataJSONText = (text: string) => {
 
     if (metadataJSON.favorited === true) {
         parsedMetadataJSON.favorited = true;
+    }
+
+    const googlePhotosOrigin = metadataJSON.googlePhotosOrigin;
+    if (
+        googlePhotosOrigin &&
+        typeof googlePhotosOrigin == "object" &&
+        "fromPartnerSharing" in googlePhotosOrigin
+    ) {
+        parsedMetadataJSON.fromPartnerSharing = true;
     }
 
     return parsedMetadataJSON;

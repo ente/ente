@@ -33,14 +33,10 @@ import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/people_sort_util.dart";
 import "package:photos/utils/person_contact_linking_util.dart";
 
-enum PersonSelectionMode { linkContact, autofillContact }
-
 class LinkContactToPersonSelectionPage extends StatefulWidget {
-  final String? emailToLink;
-  final PersonSelectionMode mode;
+  final String emailToLink;
   const LinkContactToPersonSelectionPage({
-    this.emailToLink,
-    this.mode = PersonSelectionMode.linkContact,
+    required this.emailToLink,
     super.key,
   });
 
@@ -96,7 +92,7 @@ class _LinkContactToPersonSelectionPageState
       if (person.data.isIgnored) {
         continue;
       }
-      if (widget.mode == PersonSelectionMode.linkContact && isAlreadyLinked) {
+      if (isAlreadyLinked) {
         continue;
       }
       final searchResult = resultsById[person.remoteID];
@@ -329,17 +325,10 @@ class _LinkContactToPersonSelectionPageState
                     return _RoundedPersonFaceWidget(
                       key: ValueKey(results[index].personEntity.remoteID),
                       onTap: () async {
-                        if (widget.mode ==
-                            PersonSelectionMode.autofillContact) {
-                          Navigator.of(
-                            context,
-                          ).pop(results[index].personEntity);
-                          return;
-                        }
                         try {
                           final updatedPerson = await linkPersonToContact(
                             context,
-                            emailToLink: widget.emailToLink!,
+                            emailToLink: widget.emailToLink,
                             personEntity: results[index].personEntity,
                           );
 
@@ -524,9 +513,17 @@ class _LinkContactToPersonSelectionPageState
     required String emailToLink,
     required PersonEntity personEntity,
   }) async {
-    if (await checkIfEmailAlreadyAssignedToAPerson(emailToLink)) {
+    final linkedPerson = await findPersonLinkedToEmail(
+      emailToLink,
+      excludedPersonId: personEntity.remoteID,
+    );
+    if (linkedPerson != null) {
       if (!context.mounted) return null;
-      await showAlreadyLinkedEmailDialog(context, emailToLink);
+      await showAlreadyLinkedEmailDialog(
+        context,
+        emailToLink,
+        linkedPerson: linkedPerson,
+      );
       return null;
     }
 
@@ -614,7 +611,8 @@ class _ReassignMeSelectionPageState extends State<ReassignMeSelectionPage> {
     _personEntities = PersonService.instance.getPersons().then((persons) async {
       final List<PersonEntity> result = [];
       for (final person in persons) {
-        if ((person.data.email != null && person.data.email!.isNotEmpty) ||
+        if (person.data.userID != null ||
+            (person.data.email != null && person.data.email!.isNotEmpty) ||
             (person.data.isIgnored)) {
           continue;
         }
@@ -681,6 +679,7 @@ class _ReassignMeSelectionPageState extends State<ReassignMeSelectionPage> {
               itemCount: results.length,
               itemBuilder: (context, index) {
                 return _RoundedPersonFaceWidget(
+                  key: ValueKey(results[index].remoteID),
                   onTap: () async {
                     final dialog = createProgressDialog(
                       context,
@@ -728,10 +727,12 @@ class _ReassignMeSelectionPageState extends State<ReassignMeSelectionPage> {
   }) async {
     try {
       final email = Configuration.instance.getEmail();
+      final userID = Configuration.instance.getUserID();
 
       final updatedPerson1 = await PersonService.instance.updateAttributes(
         currentPersonID,
-        email: '',
+        email: null,
+        userID: null,
       );
       Bus.instance.fire(
         PeopleChangedEvent(
@@ -744,6 +745,7 @@ class _ReassignMeSelectionPageState extends State<ReassignMeSelectionPage> {
       final updatedPerson2 = await PersonService.instance.updateAttributes(
         newPersonID,
         email: email,
+        userID: userID,
       );
       Bus.instance.fire(
         PeopleChangedEvent(

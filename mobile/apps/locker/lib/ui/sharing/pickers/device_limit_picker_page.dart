@@ -125,11 +125,13 @@ class _ItemsWidgetState extends State<ItemsWidget> {
       isBottomBorderRadiusRemoved: !isLast,
       showOnlyLoadingState: true,
       onTap: () async {
-        await _updateUrlSettings(context, {'deviceLimit': deviceLimit}).then(
-          (value) => setState(() {
-            currentDeviceLimit = deviceLimit;
-          }),
-        );
+        await _updateUrlSettings(context, {'deviceLimit': deviceLimit});
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          currentDeviceLimit = deviceLimit;
+        });
       },
     );
   }
@@ -144,7 +146,9 @@ class _ItemsWidgetState extends State<ItemsWidget> {
         prop,
       );
     } catch (e) {
-      await showLockerErrorSheet(context, e);
+      if (context.mounted) {
+        await showLockerErrorSheet(context, e);
+      }
       rethrow;
     }
   }

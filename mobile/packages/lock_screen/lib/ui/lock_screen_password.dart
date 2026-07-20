@@ -178,20 +178,22 @@ class _LockScreenPasswordState extends State<LockScreenPassword> {
     if (matched) {
       await _lockscreenSetting.setInvalidAttemptCount(0);
 
-      widget.isAuthenticatingOnAppLaunch ||
-              widget.isAuthenticatingForInAppChange
-          ? Navigator.of(context).pop(true)
-          : Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => const LockScreenOptions(),
-              ),
-            );
+      if (mounted) {
+        widget.isAuthenticatingOnAppLaunch ||
+                widget.isAuthenticatingForInAppChange
+            ? Navigator.of(context).pop(true)
+            : Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const LockScreenOptions(),
+                ),
+              );
+      }
       return true;
     } else {
       if (widget.isAuthenticatingOnAppLaunch) {
         invalidAttemptsCount++;
         await _lockscreenSetting.setInvalidAttemptCount(invalidAttemptsCount);
-        if (invalidAttemptsCount > 4) {
+        if (invalidAttemptsCount > 4 && mounted) {
           Navigator.of(context).pop(false);
         }
       }
@@ -212,7 +214,9 @@ class _LockScreenPasswordState extends State<LockScreenPassword> {
               LockScreenConfirmPassword(password: _passwordController.text),
         ),
       );
-      _passwordController.clear();
+      if (mounted) {
+        _passwordController.clear();
+      }
     }
   }
 }

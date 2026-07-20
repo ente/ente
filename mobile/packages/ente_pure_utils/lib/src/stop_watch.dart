@@ -40,7 +40,7 @@ class EnteWatch extends Stopwatch {
 // TimerLogger helps in quickly including the timeTaken for various operation.
 // The timeTaken is logged only if it exceeds the logThreshold. With each call to toString, the timer is reset.
 // Usage:
-// final TimeLogger tlog = TimeLogger(context: "FaceRecognitionService");
+// final TimeLogger tlog = TimeLogger(context: "PhotoProcessingService");
 // _logger.info("some operation $tlog");
 // _logger.info("another operation $tlog");
 class TimeLogger {

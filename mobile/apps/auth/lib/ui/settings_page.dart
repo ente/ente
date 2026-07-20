@@ -5,39 +5,38 @@ import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/onboarding/view/onboarding_page.dart';
 import 'package:ente_auth/store/code_store.dart';
-import 'package:ente_auth/theme/colors.dart';
-import 'package:ente_auth/theme/ente_theme.dart';
 import 'package:ente_auth/ui/components/buttons/button_widget.dart';
-import 'package:ente_auth/ui/components/models/button_result.dart';
-import 'package:ente_auth/ui/components/notification_warning_widget.dart';
-import 'package:ente_auth/ui/settings/about_section_widget.dart';
-import 'package:ente_auth/ui/settings/account_section_widget.dart';
+import 'package:ente_auth/ui/settings/about_settings_page.dart';
+import 'package:ente_auth/ui/settings/account_settings_page.dart';
 import 'package:ente_auth/ui/settings/app_version_widget.dart';
-import 'package:ente_auth/ui/settings/data/data_section_widget.dart';
+import 'package:ente_auth/ui/settings/components/auth_settings_item.dart';
+import 'package:ente_auth/ui/settings/components/auth_settings_navigation.dart';
+import 'package:ente_auth/ui/settings/components/auth_settings_page_scaffold.dart';
+import 'package:ente_auth/ui/settings/data/data_settings_page.dart';
 import 'package:ente_auth/ui/settings/data/export_widget.dart';
 import 'package:ente_auth/ui/settings/developer_settings_widget.dart';
-import 'package:ente_auth/ui/settings/general_section_widget.dart';
+import 'package:ente_auth/ui/settings/general_settings_page.dart';
 import 'package:ente_auth/ui/settings/notification_banner_widget.dart';
-import 'package:ente_auth/ui/settings/security_section_widget.dart';
-import 'package:ente_auth/ui/settings/social_section_widget.dart';
-import 'package:ente_auth/ui/settings/support_section_widget.dart';
-import 'package:ente_auth/ui/settings/theme_switch_widget.dart';
-import 'package:ente_auth/ui/settings/title_bar_widget.dart';
+import 'package:ente_auth/ui/settings/security_settings_page.dart';
+import 'package:ente_auth/ui/settings/social_icons_row.dart';
+import 'package:ente_auth/ui/settings/support_settings_page.dart';
+import 'package:ente_auth/ui/settings/theme_settings_page.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
-import 'package:ente_auth/utils/navigation_util.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_lock_screen/local_authentication_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 class SettingsPage extends StatelessWidget {
-  final ValueNotifier<String?> emailNotifier;
-  final GlobalKey<ScaffoldState> scaffoldKey;
-
-  SettingsPage({
+  const SettingsPage({
     super.key,
     required this.emailNotifier,
     required this.scaffoldKey,
   });
+
+  final ValueNotifier<String?> emailNotifier;
+  final GlobalKey<ScaffoldState> scaffoldKey;
 
   @override
   Widget build(BuildContext context) {
@@ -45,137 +44,196 @@ class SettingsPage extends StatelessWidget {
     if (hasLoggedIn) {
       UserService.instance.getUserDetailsV2().ignore();
     }
-    final enteColorScheme = getEnteColorScheme(context);
-    return Scaffold(
-      body: Container(
-        color: enteColorScheme.backdropBase,
-        child: _getBody(context, enteColorScheme),
+    return ValueListenableBuilder<String?>(
+      valueListenable: emailNotifier,
+      builder: (context, email, _) => _buildSettings(
+        context,
+        hasLoggedIn: hasLoggedIn,
+        email: hasLoggedIn ? email : null,
       ),
     );
   }
 
-  Widget _getBody(BuildContext context, EnteColorScheme colorScheme) {
-    final hasLoggedIn = Configuration.instance.hasConfiguredAccount();
-    final enteTextTheme = getEnteTextTheme(context);
-    const sectionSpacing = SizedBox(height: 8);
-    final List<Widget> contents = [];
+  Widget _buildSettings(
+    BuildContext context, {
+    required bool hasLoggedIn,
+    required String? email,
+  }) {
+    final l10n = context.l10n;
+    final contents = <Widget>[];
     if (hasLoggedIn) {
       contents.add(
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: AnimatedBuilder(
-              // [AnimatedBuilder] accepts any [Listenable] subtype.
-              animation: emailNotifier,
-              builder: (BuildContext context, Widget? child) {
-                return Text(
-                  emailNotifier.value!,
-                  style: enteTextTheme.body.copyWith(
-                    color: colorScheme.textMuted,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              },
-            ),
-          ),
+        AuthSettingsItem(
+          title: l10n.account,
+          icon: HugeIcons.strokeRoundedUser,
+          semanticsIdentifier: 'auth_settings_account',
+          onTap: () =>
+              pushAuthSettingsPage(context, const AccountSettingsPage()),
         ),
       );
-      contents.addAll([
-        const SizedBox(height: 12),
-        AccountSectionWidget(),
-        sectionSpacing,
-      ]);
+      contents.add(const SizedBox(height: Spacing.sm));
     } else {
-      contents.addAll([
-        NotificationWidget(
-          startIcon: Icons.account_circle_sharp,
-          actionIcon: Icons.arrow_forward,
-          text: context.l10n.signInToBackup,
-          type: NotificationType.notice,
-          onTap: () async {
-            ButtonResult? result = await showChoiceActionSheet(
-              context,
-              title: context.l10n.note,
-              body: context.l10n.sigInBackupReminder,
-              secondButtonLabel: context.l10n.singIn,
-              secondButtonAction: ButtonAction.second,
-              firstButtonLabel: context.l10n.exportCodes,
-            );
-            if (result == null) return;
-            if (result.action == ButtonAction.first) {
-              if (!context.mounted) return;
-              await handleExportClick(context);
-            } else {
-              if (!context.mounted) return;
-              if (result.action == ButtonAction.second) {
-                bool hasCodes = (await CodeStore.instance.getAllCodes())
-                    .where((element) => !element.hasError)
-                    .isNotEmpty;
-                if (hasCodes) {
-                  if (!context.mounted) return;
-                  final hasAuthenticated = await LocalAuthenticationService
-                      .instance
-                      .requestLocalAuthentication(
-                        context,
-                        context.l10n.authToInitiateSignIn,
-                      );
-                  if (!hasAuthenticated) {
-                    return;
-                  }
-                }
-                if (!context.mounted) return;
-                await routeToPage(context, const OnboardingPage());
-              }
-            }
-          },
+      contents.add(
+        BannerComponent(
+          title: l10n.signInToBackup,
+          leadingIcon: HugeIcons.strokeRoundedCloudUpload,
+          state: BannerComponentState.informative,
+          onTap: () => _showBackupReminder(context),
         ),
-        sectionSpacing,
-        sectionSpacing,
-      ]);
+      );
+      contents.add(const SizedBox(height: Spacing.lg));
     }
+
     contents.addAll([
-      DataSectionWidget(),
-      sectionSpacing,
-      const SecuritySectionWidget(),
-      sectionSpacing,
+      AuthSettingsItem(
+        title: l10n.data,
+        icon: HugeIcons.strokeRoundedDatabase01,
+        semanticsIdentifier: 'auth_settings_data',
+        onTap: () => _openDataSettings(context),
+      ),
+      const SizedBox(height: Spacing.sm),
+      AuthSettingsItem(
+        title: l10n.security,
+        icon: HugeIcons.strokeRoundedSecurityCheck,
+        semanticsIdentifier: 'auth_settings_security',
+        onTap: () =>
+            pushAuthSettingsPage(context, const SecuritySettingsPage()),
+      ),
     ]);
 
     if (Platform.isAndroid ||
         Platform.isWindows ||
         Platform.isLinux ||
         kDebugMode) {
-      contents.addAll([const ThemeSwitchWidget(), sectionSpacing]);
+      contents.addAll([
+        const SizedBox(height: Spacing.sm),
+        AuthSettingsItem(
+          title: l10n.theme,
+          icon: Theme.of(context).brightness == Brightness.light
+              ? HugeIcons.strokeRoundedSun03
+              : HugeIcons.strokeRoundedMoon02,
+          semanticsIdentifier: 'auth_settings_theme',
+          onTap: () => pushAuthSettingsPage(context, const ThemeSettingsPage()),
+        ),
+      ]);
     }
 
     contents.addAll([
-      const AdvancedSectionWidget(),
-      sectionSpacing,
-      const SupportSectionWidget(),
-      sectionSpacing,
-      const SocialSectionWidget(),
-      sectionSpacing,
-      const AboutSectionWidget(),
+      const SizedBox(height: Spacing.sm),
+      AuthSettingsItem(
+        title: l10n.general,
+        icon: HugeIcons.strokeRoundedSettings01,
+        semanticsIdentifier: 'auth_settings_general',
+        onTap: () => pushAuthSettingsPage(context, const GeneralSettingsPage()),
+      ),
+      const SizedBox(height: Spacing.sm),
+      AuthSettingsItem(
+        title: l10n.support,
+        icon: HugeIcons.strokeRoundedHelpCircle,
+        semanticsIdentifier: 'auth_settings_support',
+        onTap: () => pushAuthSettingsPage(context, const SupportSettingsPage()),
+      ),
+      const SizedBox(height: Spacing.sm),
+      AuthSettingsItem(
+        title: l10n.about,
+        icon: HugeIcons.strokeRoundedInformationCircle,
+        semanticsIdentifier: 'auth_settings_about',
+        onTap: () => pushAuthSettingsPage(context, const AboutSettingsPage()),
+      ),
+    ]);
+
+    if (hasLoggedIn) {
+      contents.addAll([
+        const SizedBox(height: Spacing.sm),
+        AuthSettingsItem(
+          title: l10n.logout,
+          icon: HugeIcons.strokeRoundedLogout05,
+          semanticsIdentifier: 'auth_settings_logout',
+          isDestructive: true,
+          onTap: () => _logout(context),
+        ),
+      ]);
+    }
+
+    contents.addAll([
+      const SizedBox(height: Spacing.xxl),
+      const SocialIconsRow(),
       const AppVersionWidget(),
       const DeveloperSettingsWidget(),
       const NotificationBannerWidget(),
-      const Padding(padding: EdgeInsets.only(bottom: 60)),
+      const SizedBox(height: 60),
     ]);
 
-    return SafeArea(
-      bottom: false,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SettingsTitleBarWidget(scaffoldKey: scaffoldKey),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              child: Column(children: contents),
-            ),
-          ],
-        ),
+    return AuthSettingsPageScaffold(
+      title: l10n.settings,
+      subtitle: email,
+      backButton: _closeButton(context),
+      children: contents,
+    );
+  }
+
+  Widget _closeButton(BuildContext context) {
+    return Semantics(
+      identifier: 'auth_settings_close',
+      child: IconButtonComponent(
+        tooltip: context.l10n.close,
+        variant: IconButtonComponentVariant.unfilled,
+        shouldSurfaceExecutionStates: false,
+        icon: const HugeIcon(icon: HugeIcons.strokeRoundedCancel01),
+        onTap: () => scaffoldKey.currentState?.closeDrawer(),
       ),
+    );
+  }
+
+  Future<void> _openDataSettings(BuildContext context) async {
+    final completed = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const DataSettingsPage()));
+    if (completed == true) {
+      scaffoldKey.currentState?.closeDrawer();
+    }
+  }
+
+  Future<void> _showBackupReminder(BuildContext context) async {
+    final l10n = context.l10n;
+    final result = await showChoiceActionSheet(
+      context,
+      title: l10n.note,
+      body: l10n.sigInBackupReminder,
+      secondButtonLabel: l10n.singIn,
+      secondButtonAction: ButtonAction.second,
+      firstButtonLabel: l10n.exportCodes,
+    );
+    if (result == null || !context.mounted) return;
+    if (result.action == ButtonAction.first) {
+      await handleExportClick(context);
+      return;
+    }
+    if (result.action != ButtonAction.second) return;
+    final hasCodes = (await CodeStore.instance.getAllCodes()).any(
+      (code) => !code.hasError,
+    );
+    if (!context.mounted) return;
+    if (hasCodes) {
+      final authenticated = await LocalAuthenticationService.instance
+          .requestLocalAuthentication(context, l10n.authToInitiateSignIn);
+      if (!authenticated) return;
+    }
+    if (context.mounted) {
+      await pushAuthSettingsPage(context, const OnboardingPage());
+    }
+  }
+
+  Future<void> _logout(BuildContext context) {
+    final l10n = context.l10n;
+    return showChoiceActionSheet(
+      context,
+      title: l10n.logout,
+      body: l10n.areYouSureYouWantToLogout,
+      firstButtonLabel: l10n.yesLogout,
+      secondButtonLabel: l10n.cancel,
+      isCritical: true,
+      firstButtonOnTap: () => UserService.instance.logout(context),
     );
   }
 }

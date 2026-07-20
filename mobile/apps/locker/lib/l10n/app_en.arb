@@ -1049,6 +1049,7 @@
   "editNotSupportedForSharedFiles": "Edit is not supported for shared files",
   "deleteNotSupportedForSharedFiles": "Delete is not supported for shared files",
   "importantNotSupportedForSharedFiles": "Important is not supported for shared files",
+  "canOnlyRemoveFilesOwnedByYou": "Can only remove files owned by you",
   "sharingSection": "Sharing",
   "sharingEnabledToggle": "Sharing enabled",
   "publicLinkSection": "Public Link",

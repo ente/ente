@@ -38,9 +38,9 @@ pub fn run_face_embedding(
         input.extend_from_slice(aligned);
     }
 
-    let face_embedding = runtime.face_embedding_session()?;
+    let mut face_embedding = runtime.face_embedding_session()?;
     let (shape, output) = onnx::run_f32(
-        &face_embedding,
+        &mut face_embedding,
         input,
         [
             aligned_faces.len() as i64,

@@ -21,6 +21,14 @@ How do you know if this is the problem you're facing? The browser console _might
 
 This is not guaranteed, each browsers handles CSP errors differently, and some may silently swallow it.
 
+## Browser requests are rejected with 403
+
+Museum only accepts browser requests from the origins listed in the `apps` section of `museum.yaml`. If a request comes from an origin that is not in the list, Museum rejects it with a 403 status code and logs `rejecting unknown CORS origin`.
+
+To fix this, add the URL of the web app to the `apps` section. Learn more in [App Endpoints](/self-hosting/installation/config#app-endpoints).
+
+This check is separate from the CORS configuration of your S3 bucket. The bucket configuration affects uploads and downloads; this check affects API requests to Museum.
+
 ## Storage not freed after deleting files
 
 Deleted files don't immediately free up S3/MinIO storage:

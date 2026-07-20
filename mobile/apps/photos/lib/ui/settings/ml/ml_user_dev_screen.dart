@@ -9,8 +9,6 @@ import "package:photos/events/people_changed_event.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_clustering_service.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
-import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
-import "package:photos/services/machine_learning/ml_models_overview.dart";
 import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
@@ -217,100 +215,6 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
                     widget.mlIsEnabled
                         ? _buildThresholdsCard(context)
                         : const SizedBox.shrink(),
-                    widget.mlIsEnabled
-                        ? const SizedBox(height: 24)
-                        : const SizedBox.shrink(),
-                    ButtonWidget(
-                      buttonType: ButtonType.neutral,
-                      labelText: "Load face detection model",
-                      onTap: () async {
-                        try {
-                          await MLIndexingIsolate.instance.debugLoadSingleModel(
-                            MLModels.faceDetection,
-                          );
-                        } catch (e, s) {
-                          _logger.severe(
-                            "Could not load face detection model",
-                            e,
-                            s,
-                          );
-                          if (!context.mounted) return;
-                          await showGenericErrorDialog(
-                            context: context,
-                            error: e,
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    ButtonWidget(
-                      buttonType: ButtonType.neutral,
-                      labelText: "Load face recognition model",
-                      onTap: () async {
-                        try {
-                          await MLIndexingIsolate.instance.debugLoadSingleModel(
-                            MLModels.faceEmbedding,
-                          );
-                        } catch (e, s) {
-                          _logger.severe(
-                            "Could not load face detection model",
-                            e,
-                            s,
-                          );
-                          if (!context.mounted) return;
-                          await showGenericErrorDialog(
-                            context: context,
-                            error: e,
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    ButtonWidget(
-                      buttonType: ButtonType.neutral,
-                      labelText: "Load clip image model",
-                      onTap: () async {
-                        try {
-                          await MLIndexingIsolate.instance.debugLoadSingleModel(
-                            MLModels.clipImageEncoder,
-                          );
-                        } catch (e, s) {
-                          _logger.severe(
-                            "Could not load face detection model",
-                            e,
-                            s,
-                          );
-                          if (!context.mounted) return;
-                          await showGenericErrorDialog(
-                            context: context,
-                            error: e,
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    ButtonWidget(
-                      buttonType: ButtonType.neutral,
-                      labelText: "Load clip text model",
-                      onTap: () async {
-                        try {
-                          await MLIndexingIsolate.instance.debugLoadSingleModel(
-                            MLModels.clipTextEncoder,
-                          );
-                        } catch (e, s) {
-                          _logger.severe(
-                            "Could not load face detection model",
-                            e,
-                            s,
-                          );
-                          if (!context.mounted) return;
-                          await showGenericErrorDialog(
-                            context: context,
-                            error: e,
-                          );
-                        }
-                      },
-                    ),
                     const SafeArea(child: SizedBox(height: 12)),
                   ],
                 ),

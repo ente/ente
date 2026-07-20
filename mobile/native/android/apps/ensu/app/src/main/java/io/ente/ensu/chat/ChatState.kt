@@ -26,6 +26,7 @@ data class ChatState(
     val transientAssistantError: String? = null,
     val transientAssistantParentId: String? = null,
     val isModelDownloaded: Boolean = false,
+    val isModelStateKnown: Boolean = false,
     val modelDownloadSizeBytes: Long? = null,
     val hasRequestedModelDownload: Boolean = false,
     val deviceCapability: ChatDeviceCapability = ChatDeviceCapability.Unknown,

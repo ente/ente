@@ -20,6 +20,15 @@ func (c *Controller) CreateKey(ctx *gin.Context, req model.EntityKeyRequest) err
 	return c.Repo.CreateKey(ctx, userID, req)
 }
 
+func (c *Controller) EnsureKey(ctx *gin.Context, req model.EntityKeyRequest) (*model.EntityKey, error) {
+	userID := auth.GetUserID(ctx.Request.Header)
+	res, err := c.Repo.EnsureKey(ctx, userID, req)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	return &res, nil
+}
+
 // GetKey
 func (c *Controller) GetKey(ctx *gin.Context, req model.GetEntityKeyRequest) (*model.EntityKey, error) {
 	userID := auth.GetUserID(ctx.Request.Header)

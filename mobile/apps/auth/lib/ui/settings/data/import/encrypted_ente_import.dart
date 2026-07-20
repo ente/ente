@@ -1,15 +1,10 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/models/export/ente.dart';
-import 'package:ente_auth/services/authenticator_service.dart';
-import 'package:ente_auth/store/code_store.dart';
-import 'package:ente_auth/ui/components/buttons/button_widget.dart';
-import 'package:ente_auth/ui/components/dialog_widget.dart';
-import 'package:ente_auth/ui/components/models/button_type.dart';
 import 'package:ente_auth/ui/settings/data/import/import_file_cleanup.dart';
+import 'package:ente_auth/ui/settings/data/import/import_flow.dart';
 import 'package:ente_auth/ui/settings/data/import/import_success.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_auth/utils/toast_util.dart';
@@ -22,33 +17,14 @@ import 'package:logging/logging.dart';
 
 Future<void> showEncryptedImportInstruction(BuildContext context) async {
   final l10n = context.l10n;
-  final result = await showDialogWidget(
+  await showFileImportInstruction(
     context: context,
-    title: l10n.importFromApp("Ente Auth"),
+    title: "Ente Auth",
     body: l10n.importEnteEncGuide,
-    buttons: [
-      ButtonWidget(
-        buttonType: ButtonType.primary,
-        labelText: l10n.importSelectJsonFile,
-        isInAlert: true,
-        buttonSize: ButtonSize.large,
-        buttonAction: ButtonAction.first,
-      ),
-      ButtonWidget(
-        buttonType: ButtonType.secondary,
-        labelText: context.l10n.cancel,
-        buttonSize: ButtonSize.large,
-        isInAlert: true,
-        buttonAction: ButtonAction.second,
-      ),
-    ],
+    actionLabel: l10n.importSelectJsonFile,
+    semanticsIdentifier: 'auth_import_instruction_encrypted',
+    onImport: () => _pickEnteJsonFile(context),
   );
-  if (result?.action != null && result!.action != ButtonAction.cancel) {
-    if (!context.mounted) return;
-    if (result.action == ButtonAction.first) {
-      await _pickEnteJsonFile(context);
-    } else {}
-  }
 }
 
 Future<void> _decryptExportData(
@@ -99,7 +75,7 @@ Future<void> _decryptExportData(
         }
         String content = utf8.decode(decryptedContent);
         List<String> splitCodes = content.split("\n");
-        final parsedCodes = [];
+        final parsedCodes = <Code>[];
         for (final code in splitCodes) {
           try {
             parsedCodes.add(Code.fromOTPAuthUrl(code));
@@ -107,11 +83,7 @@ Future<void> _decryptExportData(
             Logger('EncryptedText').severe("Could not parse code", e);
           }
         }
-        for (final code in parsedCodes) {
-          await CodeStore.instance.addCode(code, shouldSync: false);
-        }
-        unawaited(AuthenticatorService.instance.onlineSync());
-        importedCodeCount = parsedCodes.length;
+        importedCodeCount = await saveImportedCodes(parsedCodes);
         await progressDialog.hide();
       } catch (e, s) {
         await progressDialog.hide();

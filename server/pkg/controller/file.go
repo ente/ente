@@ -439,11 +439,11 @@ func (c *FileController) GetPublicOrCastFileURL(ctx *gin.Context, fileID int64, 
 }
 
 func (c *FileController) DoesFileExistInCollection(ctx *gin.Context, fileID int64, collectionID int64) error {
-	accessible, err := c.CollectionRepo.DoesFileExistInCollections(fileID, []int64{collectionID})
+	state, err := c.CollectionRepo.GetCollectionFileState(ctx, collectionID, fileID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	if !accessible {
+	if state != repo.CollectionFileActive {
 		return stacktrace.Propagate(ente.ErrPermissionDenied, "")
 	}
 	return nil
@@ -692,15 +692,6 @@ func (c *FileController) GetDuplicates(userID int64) ([]ente.DuplicateFiles, err
 		return nil, stacktrace.Propagate(err, "")
 	}
 	return dupes, nil
-}
-
-// GetLargeThumbnailFiles returns the list of files whose thumbnail size is larger than threshold size
-func (c *FileController) GetLargeThumbnailFiles(userID int64, threshold int64) ([]int64, error) {
-	largeThumbnailFiles, err := c.FileRepo.GetLargeThumbnailFiles(userID, threshold)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-	}
-	return largeThumbnailFiles, nil
 }
 
 // UpdateMagicMetadata updates the magic metadata for list of files

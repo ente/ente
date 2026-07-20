@@ -99,7 +99,7 @@ func (c *OfferController) ApplyOffer(email string, productID string) error {
 		return stacktrace.Propagate(ente.ErrNotFound, "Could not find a valid time period for  %s", productID)
 	}
 
-	userID, err := c.UserRepo.GetUserIDWithEmail(email)
+	userID, err := c.UserRepo.GetUserIDWithEmailUnrestricted(email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Error("Product purchased with unknown email: " + email)

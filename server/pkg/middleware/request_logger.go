@@ -33,6 +33,7 @@ var latency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 // shouldSkipBodyLog returns true if the body should not be logged.
 // This is useful for endpoints that receive large or sensitive payloads.
 func shouldSkipBodyLog(method string, path string) bool {
+	isReadOnly := method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions
 	if method == "PUT" && path == "/embeddings" {
 		return true
 	}
@@ -55,6 +56,12 @@ func shouldSkipBodyLog(method string, path string) bool {
 		return true
 	}
 	if method == http.MethodPost && (path == "/paste/create" || path == "/paste/guard" || path == "/paste/consume") {
+		return true
+	}
+	if !isReadOnly && (strings.HasPrefix(path, "/space") || strings.HasPrefix(path, "/account/space")) {
+		return true
+	}
+	if !isReadOnly && (path == "/user-entity/key" || path == "/user-entity/key/ensure") {
 		return true
 	}
 	return false

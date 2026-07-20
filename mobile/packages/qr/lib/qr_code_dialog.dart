@@ -121,6 +121,9 @@ class _QrCodeDialogState extends State<QrCodeDialog> {
       final directory = await getTemporaryDirectory();
       final file = File('${directory.path}/${widget.shareFileName}');
       await file.writeAsBytes(pngBytes);
+      if (!mounted) {
+        return;
+      }
 
       final box = context.findRenderObject() as RenderBox?;
       final shareOrigin = box != null

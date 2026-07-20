@@ -29,6 +29,7 @@ import "package:photos/ui/sharing/user_avator_widget.dart";
 import 'package:photos/ui/viewer/file/file_icons_widget.dart';
 import 'package:photos/ui/viewer/gallery/component/group/type.dart';
 import 'package:photos/ui/viewer/gallery/state/gallery_context_state.dart';
+import "package:photos/utils/avatar_util.dart";
 
 class ThumbnailWidget extends StatefulWidget {
   final EnteFile file;
@@ -228,10 +229,12 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
           );
         } else if (widget.file.isCollect) {
           contentChildren.add(
-            // Use -1 as userID for enforcing black avatar color
             OwnerAvatarOverlayIcon(
-              User(id: -1, email: '', name: widget.file.uploaderName),
+              User(email: '', name: widget.file.uploaderName),
               type: widget.ownerAvatarType,
+              fallbackIdentity: AvatarIdentity.publicUploader(
+                label: widget.file.uploaderName!,
+              ),
             ),
           );
         }

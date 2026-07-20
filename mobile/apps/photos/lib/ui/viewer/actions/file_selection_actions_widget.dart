@@ -939,13 +939,17 @@ class _FileSelectionActionsWidgetState
 
   Future<void> _setPersonCover() async {
     final EnteFile file = widget.selectedFiles.files.first;
-    final updatedPerson = await PersonService.instance.updateAvatar(
+    final result = await PersonService.instance.updateAvatar(
       widget.person!,
       file,
     );
+    final updatedPerson = result.person;
     widget.selectedFiles.clearAll();
     if (mounted) {
       setState(() => {});
+      if (result.contactPictureUpdateFailed) {
+        showShortToast(context, "Failed to update contact picture");
+      }
     }
     Bus.instance.fire(
       PeopleChangedEvent(

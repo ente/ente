@@ -1,7 +1,7 @@
+import "package:ente_components/ente_components.dart";
 import "package:flutter/cupertino.dart";
 import "package:flutter/material.dart";
 import "package:photos/generated/l10n.dart";
-import "package:photos/theme/ente_theme.dart";
 
 Future<DateTime?> showDatePickerSheet(
   BuildContext context, {
@@ -9,37 +9,32 @@ Future<DateTime?> showDatePickerSheet(
   DateTime? maxDate,
   DateTime? minDate,
   bool startWithTime = false,
-}) async {
-  final colorScheme = getEnteColorScheme(context);
-  final sheet = Container(
-    decoration: BoxDecoration(
-      color: colorScheme.backgroundElevated,
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(12),
-        topRight: Radius.circular(12),
-      ),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: DateTimePickerWidget(
-        (DateTime dateTime) {
-          Navigator.of(context).pop(dateTime);
-        },
-        () {
-          Navigator.of(context).pop(null);
-        },
-        initialDate,
-        minDateTime: minDate,
-        maxDateTime: maxDate,
-      ),
-    ),
-  );
-  final newDate = await showModalBottomSheet<DateTime?>(
+}) {
+  bool showTimePicker = startWithTime;
+  return showBottomSheetComponent<DateTime?>(
     context: context,
-    isScrollControlled: true,
-    builder: (context) => sheet,
+    builder: (context) {
+      final l10n = AppLocalizations.of(context);
+      return StatefulBuilder(
+        builder: (context, setState) => BottomSheetComponent(
+          title: showTimePicker ? l10n.selectTime : l10n.selectDate,
+          showCloseButton: true,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          content: DateTimePickerWidget(
+            (dateTime) => Navigator.of(context).pop(dateTime),
+            () => Navigator.of(context).pop(null),
+            initialDate,
+            minDateTime: minDate,
+            maxDateTime: maxDate,
+            startWithTime: startWithTime,
+            showTitle: false,
+            onShowTimePickerChanged: (value) =>
+                setState(() => showTimePicker = value),
+          ),
+        ),
+      );
+    },
   );
-  return newDate;
 }
 
 class DateTimePickerWidget extends StatefulWidget {
@@ -49,6 +44,8 @@ class DateTimePickerWidget extends StatefulWidget {
   final DateTime? maxDateTime;
   final DateTime? minDateTime;
   final bool startWithTime;
+  final bool showTitle;
+  final ValueChanged<bool>? onShowTimePickerChanged;
 
   const DateTimePickerWidget(
     this.onDateTimeSelected,
@@ -57,6 +54,8 @@ class DateTimePickerWidget extends StatefulWidget {
     this.maxDateTime,
     this.minDateTime,
     this.startWithTime = false,
+    this.showTitle = true,
+    this.onShowTimePickerChanged,
     super.key,
   });
 
@@ -77,14 +76,14 @@ class _DateTimePickerWidgetState extends State<DateTimePickerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    return SafeArea(
-      child: Container(
-        color: colorScheme.backgroundElevated,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
+    final colors = context.componentColors;
+    return Container(
+      color: colors.backgroundBase,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header
+          if (widget.showTitle)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: Align(
@@ -93,136 +92,132 @@ class _DateTimePickerWidgetState extends State<DateTimePickerWidget> {
                   _showTimePicker
                       ? AppLocalizations.of(context).selectTime
                       : AppLocalizations.of(context).selectDate,
-                  style: TextStyle(color: colorScheme.textBase, fontSize: 16),
+                  style: TextStyle(color: colors.textBase, fontSize: 16),
                 ),
               ),
             ),
 
-            // Date/Time Picker
-            Container(
-              height: 220,
-              decoration: BoxDecoration(
-                color: colorScheme.backgroundElevated2,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: CupertinoTheme(
-                data: CupertinoThemeData(
-                  brightness: Brightness.dark,
-                  textTheme: CupertinoTextThemeData(
-                    dateTimePickerTextStyle: TextStyle(
-                      color: colorScheme.textBase,
-                      fontSize: 22,
-                    ),
+          // Date/Time Picker
+          Container(
+            height: 220,
+            decoration: BoxDecoration(
+              color: colors.fillLight,
+              borderRadius: BorderRadius.circular(Radii.lg),
+            ),
+            child: CupertinoTheme(
+              data: CupertinoThemeData(
+                brightness: Theme.of(context).brightness,
+                textTheme: CupertinoTextThemeData(
+                  dateTimePickerTextStyle: TextStyle(
+                    color: colors.textBase,
+                    fontSize: 22,
                   ),
                 ),
-                child: CupertinoDatePicker(
-                  key: ValueKey(_showTimePicker),
-                  mode: _showTimePicker
-                      ? CupertinoDatePickerMode.time
-                      : CupertinoDatePickerMode.date,
-                  initialDateTime: _selectedDateTime,
-                  minimumDate: widget.minDateTime ?? DateTime(1800),
-                  maximumDate: widget.maxDateTime ?? DateTime(2200),
-                  use24hFormat: MediaQuery.of(context).alwaysUse24HourFormat,
-                  showDayOfWeek: !_showTimePicker,
-                  onDateTimeChanged: (DateTime newDateTime) {
-                    setState(() {
-                      if (_showTimePicker) {
-                        // Keep the date but update the time
-                        _selectedDateTime = DateTime(
-                          _selectedDateTime.year,
-                          _selectedDateTime.month,
-                          _selectedDateTime.day,
-                          newDateTime.hour,
-                          newDateTime.minute,
-                        );
-                      } else {
-                        // Keep the time but update the date
-                        _selectedDateTime = DateTime(
-                          newDateTime.year,
-                          newDateTime.month,
-                          newDateTime.day,
-                          _selectedDateTime.hour,
-                          _selectedDateTime.minute,
-                        );
-                      }
+              ),
+              child: CupertinoDatePicker(
+                key: ValueKey(_showTimePicker),
+                mode: _showTimePicker
+                    ? CupertinoDatePickerMode.time
+                    : CupertinoDatePickerMode.date,
+                initialDateTime: _selectedDateTime,
+                minimumDate: widget.minDateTime ?? DateTime(1800),
+                maximumDate: widget.maxDateTime ?? DateTime(2200),
+                use24hFormat: MediaQuery.of(context).alwaysUse24HourFormat,
+                showDayOfWeek: !_showTimePicker,
+                onDateTimeChanged: (DateTime newDateTime) {
+                  setState(() {
+                    if (_showTimePicker) {
+                      // Keep the date but update the time
+                      _selectedDateTime = DateTime(
+                        _selectedDateTime.year,
+                        _selectedDateTime.month,
+                        _selectedDateTime.day,
+                        newDateTime.hour,
+                        newDateTime.minute,
+                      );
+                    } else {
+                      // Keep the time but update the date
+                      _selectedDateTime = DateTime(
+                        newDateTime.year,
+                        newDateTime.month,
+                        newDateTime.day,
+                        _selectedDateTime.hour,
+                        _selectedDateTime.minute,
+                      );
+                    }
 
-                      // Ensure the selected date doesn't exceed maxDateTime or minDateTime
-                      if (widget.minDateTime != null &&
-                          _selectedDateTime.isBefore(widget.minDateTime!)) {
-                        _selectedDateTime = widget.minDateTime!;
-                      }
-                      if (widget.maxDateTime != null &&
-                          _selectedDateTime.isAfter(widget.maxDateTime!)) {
-                        _selectedDateTime = widget.maxDateTime!;
-                      }
-                    });
-                  },
-                ),
+                    // Ensure the selected date doesn't exceed maxDateTime or minDateTime
+                    if (widget.minDateTime != null &&
+                        _selectedDateTime.isBefore(widget.minDateTime!)) {
+                      _selectedDateTime = widget.minDateTime!;
+                    }
+                    if (widget.maxDateTime != null &&
+                        _selectedDateTime.isAfter(widget.maxDateTime!)) {
+                      _selectedDateTime = widget.maxDateTime!;
+                    }
+                  });
+                },
               ),
             ),
+          ),
 
-            // Buttons
-            Padding(
+          // Buttons
+          SafeArea(
+            top: false,
+            child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Cancel Button
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    child: Text(
-                      _showTimePicker
-                          ? AppLocalizations.of(context).previous
-                          : AppLocalizations.of(context).cancel,
-                      style: TextStyle(
-                        color: colorScheme.textBase,
-                        fontSize: 14,
-                      ),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: colors.textBase,
+                      textStyle: TextStyles.body,
                     ),
                     onPressed: () {
                       if (_showTimePicker) {
-                        // Go back to date picker
-                        setState(() {
-                          _showTimePicker = false;
-                        });
+                        _setShowTimePicker(false);
                       } else {
                         widget.onCancel();
                       }
                     },
+                    child: Text(
+                      _showTimePicker
+                          ? AppLocalizations.of(context).previous
+                          : AppLocalizations.of(context).cancel,
+                    ),
                   ),
-
-                  // Next/Done Button
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: colors.primary,
+                      textStyle: TextStyles.bodyBold,
+                    ),
+                    onPressed: () {
+                      if (_showTimePicker) {
+                        widget.onDateTimeSelected(_selectedDateTime);
+                      } else {
+                        _setShowTimePicker(true);
+                      }
+                    },
                     child: Text(
                       _showTimePicker
                           ? AppLocalizations.of(context).done
                           : AppLocalizations.of(context).next,
-                      style: TextStyle(
-                        color: colorScheme.primary700,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
                     ),
-                    onPressed: () {
-                      if (_showTimePicker) {
-                        // We're done, call the callback
-                        widget.onDateTimeSelected(_selectedDateTime);
-                      } else {
-                        // Move to time picker
-                        setState(() {
-                          _showTimePicker = true;
-                        });
-                      }
-                    },
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+  }
+
+  void _setShowTimePicker(bool showTimePicker) {
+    setState(() {
+      _showTimePicker = showTimePicker;
+    });
+    widget.onShowTimePickerChanged?.call(showTimePicker);
   }
 }

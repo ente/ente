@@ -1,5 +1,5 @@
 use crate::Result;
-use crate::api::client::ApiClient;
+use crate::api::AppClient;
 use crate::api::methods::ApiMethods;
 use crate::models::{account::Account, metadata::FileMetadata};
 use crate::storage::Storage;
@@ -73,12 +73,11 @@ async fn sync_account(
         .ok_or_else(|| crate::Error::NotFound("Account secrets not found".into()))?;
 
     // Create API client with account's endpoint
-    let api_client =
-        ApiClient::new_with_client_package(Some(account.endpoint.clone()), account.app.client_package())?;
+    let api_client = AppClient::new(Some(account.endpoint.clone()), account.app)?;
 
     // Store token for this account
     let token = base64::engine::general_purpose::URL_SAFE.encode(&secrets.token);
-    api_client.add_token(&account.email, &token);
+    api_client.set_token(&token);
 
     // Clear sync state if full sync requested
     if full_sync {
@@ -92,9 +91,8 @@ async fn sync_account(
         .ok_or_else(|| crate::Error::Generic("Database path not available".into()))?;
 
     // Create API client for sync engine
-    let sync_api_client =
-        ApiClient::new_with_client_package(Some(account.endpoint.clone()), account.app.client_package())?;
-    sync_api_client.add_token(&account.email, &token);
+    let sync_api_client = AppClient::new(Some(account.endpoint.clone()), account.app)?;
+    sync_api_client.set_token(&token);
 
     let sync_storage = Storage::new(db_path)?;
     let sync_engine = SyncEngine::new(sync_api_client, sync_storage, account.clone());
@@ -117,7 +115,7 @@ async fn sync_account(
             // Get collections to decrypt collection keys
             // Need to fetch from API to get the api::models::Collection type with encrypted_key
             let api = ApiMethods::new(&api_client);
-            let api_collections = api.get_collections(&account.email, 0).await?;
+            let api_collections = api.get_collections(0).await?;
 
             // Decrypt collection keys
             let collection_keys = decrypt_collection_keys(
@@ -128,11 +126,9 @@ async fn sync_account(
 
             // Create download manager
             // Create a new API client for the download manager
-            let download_api_client = ApiClient::new_with_client_package(
-                Some(account.endpoint.clone()),
-                account.app.client_package(),
-            )?;
-            download_api_client.add_token(&account.email, &token);
+            let download_api_client =
+                AppClient::new(Some(account.endpoint.clone()), account.app)?;
+            download_api_client.set_token(&token);
 
             let mut download_manager = DownloadManager::new(download_api_client)?;
             download_manager.set_collection_keys(collection_keys);
@@ -177,9 +173,7 @@ async fn sync_account(
                 println!("📥 Downloading {} new files", to_download.len());
 
                 // Download files with progress bar
-                let download_stats = download_manager
-                    .download_files(&account.email, to_download)
-                    .await?;
+                let download_stats = download_manager.download_files(to_download).await?;
 
                 // Update local paths in database for newly downloaded files
                 for (file, path) in &download_stats.successful_downloads {

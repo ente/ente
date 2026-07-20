@@ -315,7 +315,7 @@ class _ShareCollectionSheetState extends State<ShareCollectionSheet> {
     }
 
     final result = await _collectionActions.addEmailToCollection(
-      context,
+      mounted ? context : null,
       widget.collection,
       user.email,
       role,

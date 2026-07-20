@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/ente/jwt"
@@ -88,6 +89,21 @@ func (m *AuthMiddleware) TokenAuthMiddleware(jwtClaimScope *jwt.ClaimScope) gin.
 		c.Request.Header.Set("X-Auth-User-ID", strconv.FormatInt(userID.(int64), 10))
 		c.Set(auth.AppContextKey, app)
 		c.Next()
+	}
+}
+
+// TokenOrJWTAuthMiddleware authenticates either a user session token or a JWT
+// with the given claim scope.
+func (m *AuthMiddleware) TokenOrJWTAuthMiddleware(jwtClaimScope jwt.ClaimScope) gin.HandlerFunc {
+	userAuth := m.TokenAuthMiddleware(nil)
+	jwtAuth := m.TokenAuthMiddleware(jwtClaimScope.Ptr())
+
+	return func(c *gin.Context) {
+		if strings.Contains(auth.GetToken(c), ".") {
+			jwtAuth(c)
+		} else {
+			userAuth(c)
+		}
 	}
 }
 

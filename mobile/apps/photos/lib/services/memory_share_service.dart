@@ -32,7 +32,7 @@ class MemoryShareService {
   final Logger _logger = Logger("MemoryShareService");
 
   static const int _shortFragmentSecretLength = 12;
-  static const int _maxMemoryShareFiles = 30;
+  static const int _maxMemoryShareFiles = 100;
   static final RegExp _base62SecretPattern = RegExp(r'^[0-9A-Za-z]{12}$');
 
   static List<EnteFile> uniqueUploadedFiles(List<EnteFile> files) {

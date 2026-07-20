@@ -285,7 +285,7 @@ class MultiPartUploader {
       count++;
       final partURL = partsURLs[i];
       final isLastPart = i == partsLength - 1;
-      final fileSize = isLastPart ? encFileLength % partSize : partSize;
+      final fileSize = isLastPart ? encFileLength - (i * partSize) : partSize;
       _logger.info(
         "Uploading part ${i + 1} / $partsLength of size $fileSize bytes (total size $encFileLength). ObjectKey=${partInfo.urls.objectKey}",
       );

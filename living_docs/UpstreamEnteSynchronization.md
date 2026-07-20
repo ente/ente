@@ -13,7 +13,7 @@
 | Phase | Task | Title | Size | Status | Notes |
 |------:|----:|-------|:----:|--------|-------|
 | 1 | 1.1 | Create the isolated integration branch and record both source baselines | S | 🟢 done | Created `sync/upstream-2026-07-20` from clean pushed fork commit `ed63fc138d`; recorded fetched official commit `e184e77116`, merge base `dda1d1f790`, and divergence of 69 fork-only versus 1,014 upstream-only commits. Verified `origin` points to the personal fork, `upstream` fetches official Ente with push disabled, and the pre-merge application identities, configurable wrappers, SDKs, version, and fixed Firebase group aliases still match the audited documentation. No merge or external application/service state changed. |
-| 1 | 1.2 | Merge all of official Ente `main` and resolve the atomic Git conflicts | L | ⚪ not started | Perform one history-preserving merge from the fetched `upstream/main`. Resolve the approximately nine previewed changed-on-both-sides files as one atomic merge while retaining upstream deletions and new monorepo work. Do not reconstruct or squash the 69 fork commits. |
+| 1 | 1.2 | Merge all of official Ente `main` and resolve the atomic Git conflicts | L | 🟢 done | Merged exact official commit `e184e77116` with both histories intact. Eight previewed changed-on-both-sides files merged automatically; the only textual conflict was the generated Photos iOS `Podfile.lock`. Resolved it to upstream's newer dependency/checksum baseline while retaining the auto-merged self-hosted Podfile target, Xcode target/configurations, Android flavor, endpoint/logout/startup code, localization, pubspec, and current documentation. Preserved upstream additions and deletions, found no unresolved entries or conflict markers, and did not touch either remote or external state. |
 | 2 | 2.1 | Restore dependencies and generated-source compatibility | M | ⚪ not started | Adopt the upstream lockfiles and toolchain expectations, regenerate only repository-defined outputs, and prove tracked generation stays clean before application-specific repair. |
 | 2 | 2.2 | Adapt endpoint, logout, startup, Server Settings, and focused tests to upstream APIs | M | ⚪ not started | Preserve configurable HTTPS endpoint selection, fail-closed startup, same-origin authenticated Museum requests, validation-before-mutation, and local-logout-before-switch while adapting to upstream account, configuration, startup, service-location, interface, and localization changes. |
 | 3 | 3.1 | Reconcile Android flavor, identity, versioning, wrappers, and release contracts | M | ⚪ not started | Keep package `me.vanton.ente.photos.selfhosted`, debug suffix, configurable wrapper ownership, existing signing continuity, upstream SDK/dependency changes, and guarded prepare/publish audits. Choose no new Firebase build or external publication in this initiative. |
@@ -291,4 +291,10 @@ scope change._
 
 ## 7. Lessons learned
 
-_Empty until the first phase completes._
+- Git's three-way preview correctly identified the areas requiring review but
+  intentionally over-reported files that both sides changed compatibly. The
+  real 1,014-commit merge produced only one textual conflict, in a generated
+  lockfile.
+- A true full-repository merge retained custom files and upstream deletions
+  without manual transplantation. Reviewing auto-merged semantic hotspots is
+  still required even when Git reports no conflict.

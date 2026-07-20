@@ -1038,7 +1038,7 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "PlayStore Abo",
   "appstoreSubscription": "AppStore Abo",
-  "subAlreadyLinkedErrMessage": "Dein {id} ist bereits mit einem anderen Ente-Konto verknüpft.\nWenn du deine {id} mit diesem Konto verwenden möchtest, kontaktiere bitte unseren Support",
+  "subAlreadyLinkedErrMessage": "Deine {id} ist bereits mit einem anderen Ente-Konto verknüpft.\nFalls du deine {id} mit diesem Konto verwenden möchtest, wende dich bitte an unseren Support.",
   "visitWebToManage": "Bitte rufe \"{webUrl}\" auf, um dein Abo zu verwalten",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
@@ -1220,6 +1220,17 @@
   "favorite": "Favorit",
   "removeFromFavorite": "Aus Favoriten entfernen",
   "shareMemories": "Erinnerungen teilen",
+  "shareMemory": "Erinnerung teilen",
+  "shareItemCount": "{count, plural, one{Teile ein Element} other{Teile {count} Elemente}}",
+  "@shareItemCount": {
+    "description": "Action to share the selected number of memory items",
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    }
+  },
   "shareTheseMemories": "Diese Erinnerungen teilen",
   "shareThisPhoto": "Dieses Foto teilen",
   "shareThisVideo": "Dieses Video teilen",
@@ -1870,6 +1881,8 @@
   "editPerson": "Person bearbeiten",
   "enterDateOfBirthHint": "Geburtsdatum eingeben",
   "setAContactPhoto": "Als Kontaktbild verwenden",
+  "setSelectedPhoto": "Ausgewähltes Foto verwenden",
+  "removeContactPhoto": "Kontaktfoto entfernen",
   "mergedPhotos": "Zusammengeführte Fotos",
   "orMergeWithExistingPerson": "Oder mit existierenden zusammenführen",
   "enterDateOfBirth": "Geburtstag (optional)",
@@ -2395,6 +2408,9 @@
   "@linkEmailToContactBannerCaption": {
     "description": "Caption for the 'Link email' title. It should be a continuation of the 'Link email' title. Just like how 'Link email' + 'for faster sharing' forms a proper sentence in English, the combination of these two strings should also be a proper sentence in other languages."
   },
+  "selectPerson": "Person auswählen",
+  "selectPersonToLinkToThisContact": "Wähle eine Person, um diesen Kontakt automatisch auszufüllen",
+  "searchAllPeople": "Alle Personen durchsuchen",
   "selectPersonToLink": "Person zum Verknüpfen auswählen",
   "linkPersonToEmail": "Person mit {email} verknüpfen",
   "@linkPersonToEmail": {
@@ -2446,6 +2462,7 @@
   "joinAlbumConfirmationDialogBody": "Wenn du einem Album beitrittst, wird deine E-Mail-Adresse für seine Teilnehmer sichtbar.",
   "pleaseWaitThisWillTakeAWhile": "Bitte warten, dies wird eine Weile dauern.",
   "editTime": "Uhrzeit ändern",
+  "editDateAndTime": "Datum und Uhrzeit bearbeiten",
   "selectTime": "Uhrzeit wählen",
   "selectDate": "Datum wählen",
   "previous": "Zurück",

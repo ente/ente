@@ -60,8 +60,6 @@ class FlagService {
 
   bool get internalOrBetaUser => internalUser || betaUser;
 
-  bool get enableContact => internalUser;
-
   bool get enableStripe => Platform.isIOS ? false : flags.enableStripe;
 
   bool get mapEnabled => flags.mapEnabled;
@@ -104,11 +102,7 @@ class FlagService {
 
   bool get enableMemoryShareLink => true;
 
-  bool get useRustForML => true;
-
   bool get enableMLInBackground => true;
-
-  bool get useRustForFaceThumbnails => true;
 
   bool get useRustForHeicDecoder => internalUser;
 

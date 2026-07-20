@@ -7,13 +7,10 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/notification_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/service_locator.dart";
-import "package:photos/services/machine_learning/face_ml/face_detection/face_detection_service.dart";
-import "package:photos/services/machine_learning/face_ml/face_embedding/face_embedding_service.dart";
 import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
+import "package:photos/services/machine_learning/ml_model_assets.dart";
 import "package:photos/services/machine_learning/ml_model_download_service.dart";
 import "package:photos/services/machine_learning/ml_service.dart";
-import "package:photos/services/machine_learning/semantic_search/clip/clip_image_encoder.dart";
-import "package:photos/services/machine_learning/semantic_search/clip/clip_text_encoder.dart";
 import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
 import "package:photos/services/remote_assets_service.dart";
 import "package:photos/services/wake_lock_service.dart";
@@ -363,13 +360,13 @@ class _ModelLoadingStateState extends State<ModelLoadingState> {
     ) {
       final String url = event.$1;
       String title = "";
-      if (url.contains(ClipImageEncoder.kRemoteBucketModelPath)) {
+      if (url.contains(ClipImageModel.remoteFileName)) {
         title = "Image Model";
-      } else if (url.contains(ClipTextEncoder.kRemoteBucketModelPath)) {
+      } else if (url.contains(ClipTextModel.remoteFileName)) {
         title = "Text Model";
-      } else if (url.contains(FaceDetectionService.kRemoteBucketModelPath)) {
+      } else if (url.contains(FaceDetectionModel.remoteFileName)) {
         title = "Face Detection Model";
-      } else if (url.contains(FaceEmbeddingService.kRemoteBucketModelPath)) {
+      } else if (url.contains(FaceEmbeddingModel.remoteFileName)) {
         title = "Face Embedding Model";
       }
       if (title.isNotEmpty) {

@@ -2,6 +2,7 @@ import "dart:async";
 import "dart:developer";
 import "dart:io";
 
+import "package:ente_components/ente_components.dart";
 import "package:exif_reader/exif_reader.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
@@ -22,14 +23,9 @@ import "package:photos/module/metadata/exif.dart";
 import "package:photos/module/metadata/video.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/file_magic_service.dart";
-import 'package:photos/theme/ente_theme.dart';
-import 'package:photos/ui/components/buttons/icon_button_widget.dart';
-import "package:photos/ui/components/divider_widget.dart";
-import 'package:photos/ui/components/title_bar_widget.dart';
 import 'package:photos/ui/viewer/file/file_caption_widget.dart';
 import "package:photos/ui/viewer/file_details/added_by_widget.dart";
 import "package:photos/ui/viewer/file_details/albums_item_widget.dart";
-import 'package:photos/ui/viewer/file_details/backed_up_time_item_widget.dart';
 import "package:photos/ui/viewer/file_details/creation_time_item_widget.dart";
 import 'package:photos/ui/viewer/file_details/exif_item_widgets.dart';
 import "package:photos/ui/viewer/file_details/file_info_faces_item_widget.dart";
@@ -41,9 +37,8 @@ import "package:photos/ui/viewer/file_details/video_exif_item.dart";
 
 class FileDetailsWidget extends StatefulWidget {
   final EnteFile file;
-  final ScrollController? scrollController;
 
-  const FileDetailsWidget(this.file, {this.scrollController, super.key});
+  const FileDetailsWidget(this.file, {super.key});
 
   @override
   State<FileDetailsWidget> createState() => _FileDetailsWidgetState();
@@ -152,209 +147,134 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
   @override
   Widget build(BuildContext context) {
     final file = widget.file;
+    final l10n = AppLocalizations.of(context);
     final bool isFileOwner =
         file.ownerID == null || file.ownerID == _currentUserID;
-
-    //Make sure the bottom most tile is always the same one, that is it should
-    //not be rendered only if a condition is met.
-    final fileDetailsTiles = <Widget>[];
     final bool canEditCaption = isFileOwner && !file.isTrash;
-    fileDetailsTiles.add(
-      !widget.file.isUploaded ||
-              (!canEditCaption && (widget.file.caption?.isEmpty ?? true))
-          ? const SizedBox(height: 16)
-          : Padding(
-              padding: const EdgeInsets.only(top: 8, bottom: 24),
-              child: canEditCaption
-                  ? FileCaptionWidget(file: widget.file)
-                  : FileCaptionReadyOnly(caption: widget.file.caption!),
-            ),
-    );
-    fileDetailsTiles.addAll([
-      CreationTimeItem(file, _currentUserID),
-      const FileDetailsDivider(),
-      ValueListenableBuilder(
-        valueListenable: _exifNotifier,
-        builder: (context, _, _) =>
-            FilePropertiesItemWidget(file, _isImage, _exifData, _currentUserID),
-      ),
-      const FileDetailsDivider(),
-      if (widget.file.uploadedFileID != null &&
-          (fileDataService.previewIds.containsKey(
-            widget.file.uploadedFileID,
-          ))) ...[
+    final bool showCaption =
+        file.isUploaded &&
+        !(!canEditCaption && (file.caption?.isEmpty ?? true));
+    final bool hasPreview =
+        file.uploadedFileID != null &&
+        fileDataService.previewIds.containsKey(file.uploadedFileID);
+
+    final sections = <Widget>[];
+
+    sections.add(
+      _sectionPadding(
         ValueListenableBuilder(
           valueListenable: _exifNotifier,
-          builder: (context, _, _) => PreviewPropertiesItemWidget(
-            file,
-            _isImage,
-            _exifData,
-            _currentUserID,
-          ),
-        ),
-        const FileDetailsDivider(),
-      ],
-    ]);
-    fileDetailsTiles.add(
-      ValueListenableBuilder(
-        valueListenable: _exifNotifier,
-        builder: (context, value, _) {
-          return showExifListTile
-              ? Column(
-                  children: [
-                    BasicExifItemWidget(_exifData),
-                    const FileDetailsDivider(),
-                  ],
-                )
-              : const SizedBox.shrink();
-        },
-      ),
-    );
-
-    fileDetailsTiles.addAll([
-      ValueListenableBuilder(
-        valueListenable: hasLocationData,
-        builder: (context, bool value, _) {
-          return value
-              ? Column(
-                  children: [
-                    LocationTagsWidget(widget.file),
-                    const FileDetailsDivider(),
-                  ],
-                )
-              : const SizedBox.shrink();
-
-          ///To be used when state issues are fixed when location is updated.
-          //
-          //  file.fileType != FileType.video &&
-          //         file.ownerID == _currentUserID
-          //     ? Column(
-          //         children: [
-          //           InfoItemWidget(
-          //             leadingIcon: Icons.pin_drop_outlined,
-          //             title: "No location data",
-          //             subtitleSection: Future.value(
-          //               [
-          //                 Text(
-          //                   "Add location data",
-          //                   style: getEnteTextTheme(context).miniBoldMuted,
-          //                 ),
-          //               ],
-          //             ),
-          //             hasChipButtons: false,
-          //             onTap: () async {
-          //               await showBarModalBottomSheet(
-          //                 shape: const RoundedRectangleBorder(
-          //                   borderRadius: BorderRadius.vertical(
-          //                     top: Radius.circular(5),
-          //                   ),
-          //                 ),
-          //                 backgroundColor: getEnteColorScheme(context)
-          //                     .backgroundElevated,
-          //                 barrierColor: backdropFaintDark,
-          //                 context: context,
-          //                 builder: (context) {
-          //                   return UpdateLocationDataWidget([file]);
-          //                 },
-          //               );
-          //             },
-          //           ),
-          //           const FileDetailsDivider(),
-          //         ],
-          //       )
-          //     : const SizedBox.shrink();
-        },
-      ),
-    ]);
-    if (_isImage) {
-      fileDetailsTiles.addAll([
-        ValueListenableBuilder(
-          valueListenable: _exifNotifier,
-          builder: (context, value, _) {
-            return Column(
-              children: [
-                AllExifItemWidget(file, _exifNotifier.value),
-                const FileDetailsDivider(),
-              ],
-            );
-          },
-        ),
-      ]);
-    } else if (widget.file.isVideo) {
-      fileDetailsTiles.addAll([
-        ValueListenableBuilder(
-          valueListenable: _videoMetadataNotifier,
-          builder: (context, value, _) {
-            return Column(
-              children: [
-                VideoExifRowItem(file, value),
-                const FileDetailsDivider(),
-              ],
-            );
-          },
-        ),
-      ]);
-    }
-
-    if (hasGrantedMLConsent) {
-      fileDetailsTiles.addAll([
-        FacesItemWidget(file),
-        const FileDetailsDivider(),
-      ]);
-      if (flagService.petEnabled && localSettings.petRecognitionEnabled) {
-        fileDetailsTiles.addAll([
-          PetsItemWidget(file),
-          const FileDetailsDivider(),
-        ]);
-      }
-    }
-
-    if (file.uploadedFileID != null && file.updationTime != null) {
-      fileDetailsTiles.addAll([
-        BackedUpTimeItemWidget(file),
-        const FileDetailsDivider(),
-      ]);
-    }
-    if (!file.isTrash) {
-      fileDetailsTiles.add(AlbumsItemWidget(file, _currentUserID));
-    }
-
-    return SafeArea(
-      top: false,
-      child: Scrollbar(
-        thickness: 4,
-        radius: const Radius.circular(2),
-        thumbVisibility: true,
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: CustomScrollView(
-            controller: widget.scrollController,
-            physics: const ClampingScrollPhysics(),
-            shrinkWrap: true,
-            slivers: <Widget>[
-              TitleBarWidget(
-                isFlexibleSpaceDisabled: true,
-                title: AppLocalizations.of(context).details,
-                isOnTopOfScreen: false,
-                backgroundColor: getEnteColorScheme(context).backgroundElevated,
-                leading: IconButtonWidget(
-                  icon: Icons.expand_more_outlined,
-                  iconButtonType: IconButtonType.primary,
-                  onTap: () => Navigator.pop(context),
+          builder: (context, _, _) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AddedByWidget(file),
+              if (showCaption)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: Spacing.lg),
+                  child: canEditCaption
+                      ? FileCaptionWidget(file: file)
+                      : FileCaptionReadyOnly(caption: file.caption!),
                 ),
-              ),
-              SliverToBoxAdapter(child: AddedByWidget(widget.file)),
-              SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  return fileDetailsTiles[index];
-                }, childCount: fileDetailsTiles.length),
+              MenuGroupComponent(
+                items: [
+                  FilePropertiesItemWidget(
+                    file,
+                    _isImage,
+                    _exifData,
+                    _currentUserID,
+                  ),
+                  CreationTimeItem(file, _currentUserID),
+                  if (showExifListTile) BasicExifItemWidget(_exifData),
+                ],
               ),
             ],
           ),
         ),
       ),
     );
+
+    if (hasGrantedMLConsent) {
+      sections.add(_sectionPadding(FacesItemWidget(file)));
+      if (flagService.petEnabled && localSettings.petRecognitionEnabled) {
+        sections.add(PetsItemWidget(file));
+      }
+    }
+
+    sections.add(
+      ValueListenableBuilder<bool>(
+        valueListenable: hasLocationData,
+        builder: (context, hasLocation, _) => hasLocation
+            ? _sectionPadding(LocationTagsWidget(file))
+            : const SizedBox.shrink(),
+      ),
+    );
+
+    if (!file.isTrash) {
+      sections.add(_sectionPadding(AlbumsItemWidget(file, _currentUserID)));
+    }
+
+    if (_isImage) {
+      sections.add(
+        ValueListenableBuilder(
+          valueListenable: _exifNotifier,
+          builder: (context, _, _) => MenuGroupComponent(
+            items: [
+              if (hasPreview)
+                PreviewPropertiesItemWidget(
+                  file,
+                  _isImage,
+                  _exifData,
+                  _currentUserID,
+                ),
+              AllExifItemWidget(file, _exifNotifier.value),
+            ],
+          ),
+        ),
+      );
+    } else if (file.isVideo) {
+      sections.add(
+        ValueListenableBuilder(
+          valueListenable: _videoMetadataNotifier,
+          builder: (context, value, _) {
+            final items = <Widget>[
+              if (hasPreview)
+                PreviewPropertiesItemWidget(
+                  file,
+                  _isImage,
+                  _exifData,
+                  _currentUserID,
+                ),
+              if (flagService.internalUser) VideoExifRowItem(file, value),
+            ];
+            if (items.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return MenuGroupComponent(items: items);
+          },
+        ),
+      );
+    }
+
+    return BottomSheetComponent(
+      title: l10n.details,
+      isKeyboardAware: true,
+      isScrollable: true,
+      snap: true,
+      initialChildSize: 0.75,
+      snapSizes: const [0.5, 0.75, 0.95],
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: sections,
+      ),
+    );
   }
+
+  Widget _sectionPadding(Widget child) => Padding(
+    padding: const EdgeInsets.only(bottom: Spacing.xxl),
+    child: child,
+  );
 
   //This code is for updating the location of files in which location data is
   //missing and the EXIF has location data. This is only happens for a
@@ -480,19 +400,5 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
       }
     }
     return null;
-  }
-}
-
-class FileDetailsDivider extends StatelessWidget {
-  const FileDetailsDivider({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    const dividerPadding = EdgeInsets.symmetric(vertical: 9.5);
-    return const DividerWidget(
-      dividerType: DividerType.menu,
-      divColorHasBlur: false,
-      padding: dividerPadding,
-    );
   }
 }

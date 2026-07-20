@@ -4,6 +4,7 @@ import 'package:ente_auth/ui/settings/data/import/bitwarden_import.dart';
 import 'package:ente_auth/ui/settings/data/import/encrypted_ente_import.dart';
 import 'package:ente_auth/ui/settings/data/import/google_auth_import.dart';
 import 'package:ente_auth/ui/settings/data/import/lastpass_import.dart';
+import 'package:ente_auth/ui/settings/data/import/otp_auth_import.dart';
 import 'package:ente_auth/ui/settings/data/import/plain_text_import.dart';
 import 'package:ente_auth/ui/settings/data/import/proton_import.dart';
 import 'package:ente_auth/ui/settings/data/import/raivo_plain_text_import.dart';
@@ -18,39 +19,40 @@ class ImportService {
 
   ImportService._internal();
 
-  Future<void> initiateImport(BuildContext context, ImportType type) async {
+  Future<bool> initiateImport(BuildContext context, ImportType type) async {
     switch (type) {
       case ImportType.plainText:
         await showImportInstructionDialog(context);
-        break;
+        return false;
       case ImportType.encrypted:
         await showEncryptedImportInstruction(context);
-        break;
+        return false;
       case ImportType.ravio:
         await showRaivoImportInstruction(context);
-        break;
+        return false;
       case ImportType.googleAuthenticator:
-        await showGoogleAuthInstruction(context);
-        // showToast(context, 'coming soon');
-        break;
+        return showGoogleAuthInstruction(context);
       case ImportType.aegis:
         await showAegisImportInstruction(context);
-        break;
+        return false;
       case ImportType.twoFas:
         await show2FasImportInstruction(context);
-        break;
+        return false;
       case ImportType.bitwarden:
         await showBitwardenImportInstruction(context);
-        break;
+        return false;
       case ImportType.lastpass:
         await showLastpassImportInstruction(context);
-        break;
+        return false;
       case ImportType.proton:
         await showProtonImportInstruction(context);
-        break;
+        return false;
       case ImportType.andOTP:
         await showAndOTPImportInstruction(context);
-        break;
+        return false;
+      case ImportType.otpAuth:
+        await showOtpAuthImportInstruction(context);
+        return false;
     }
   }
 }

@@ -14,6 +14,7 @@ import "package:flutter/material.dart";
 import 'package:locker/core/errors.dart';
 import 'package:locker/events/collections_updated_event.dart';
 import 'package:locker/events/user_details_refresh_event.dart';
+import 'package:locker/l10n/l10n.dart';
 import "package:locker/services/collections/collections_api_client.dart";
 import 'package:locker/services/collections/models/collection.dart';
 import "package:locker/services/collections/models/files_split.dart";
@@ -475,7 +476,7 @@ class CollectionService {
   }
 
   Future<void> trashCollection(
-    BuildContext context,
+    BuildContext? context,
     Collection collection, {
     bool keepFiles = true,
   }) async {
@@ -487,14 +488,18 @@ class CollectionService {
   }
 
   Future<void> trashCollectionKeepingFiles(
-    BuildContext context,
+    BuildContext? context,
     Collection collection,
   ) async {
     try {
       final files = await _db.getFilesInCollection(collection);
 
       if (files.isNotEmpty) {
-        await moveFilesFromCurrentCollection(context, collection, files);
+        await moveFilesFromCurrentCollection(
+          context != null && context.mounted ? context : null,
+          collection,
+          files,
+        );
       }
 
       await _apiClient.trashCollection(collection, keepFiles: true);
@@ -558,7 +563,7 @@ class CollectionService {
   }
 
   Future<void> moveFilesFromCurrentCollection(
-    BuildContext context,
+    BuildContext? context,
     Collection collection,
     Iterable<EnteFile> files, {
     bool isHidden = false,
@@ -585,7 +590,9 @@ class CollectionService {
     }
 
     if (!isCollectionOwner && split.ownedByOtherUsers.isNotEmpty) {
-      showShortToast(context, "Can only remove files owned by you");
+      if (context != null && context.mounted) {
+        showShortToast(context, context.l10n.canOnlyRemoveFilesOwnedByYou);
+      }
       return;
     }
 

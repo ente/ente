@@ -4,7 +4,7 @@ This directory stores the Python ground-truth assets for the ML indexing parity 
 
 - `manifest.json`: corpus definition and per-item metadata.
 - `schema.py`: strict shared result schema used by all runners.
-- `clip.py`, `face_detection.py`, `face_alignment.py`, `face_embedding.py`, `pipeline.py`: ONNX-backed Python reference pipeline that mirrors the mobile `analyzeImageStatic` flow using Pillow + OpenCV + ONNX Runtime.
+- `clip.py`, `face_detection.py`, `face_alignment.py`, `face_embedding.py`, `pipeline.py`: ONNX-backed Python reference pipeline for validating the production Rust ML indexing flow using Pillow + OpenCV + ONNX Runtime.
 
 Runtime outputs (`goldens/*.json`, `goldens/results.json`, and `infra/ml/test/out/parity/**`) are generated on demand and are gitignored.
 

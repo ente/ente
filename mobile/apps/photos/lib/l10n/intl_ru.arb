@@ -1038,7 +1038,6 @@
   "appleId": "Идентификатор Apple",
   "playstoreSubscription": "Подписка PlayStore",
   "appstoreSubscription": "Подписка AppStore",
-  "subAlreadyLinkedErrMessage": "Ваш {id} уже связан с другим аккаунтом Ente.\nЕсли вы хотите использовать {id} с этим аккаунтом, пожалуйста, свяжитесь с нашей службой поддержки",
   "visitWebToManage": "Пожалуйста, посетите {webUrl} для управления вашей подпиской",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

@@ -1238,8 +1238,13 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                   collection: Collection,
                   enteFile: EnteFile,
               ) => {
-                  onSaveEditedImageCopy(editedFile, collection, enteFile);
-                  handleClose();
+                  const didStartSave = onSaveEditedImageCopy(
+                      editedFile,
+                      collection,
+                      enteFile,
+                  );
+                  if (didStartSave) handleClose();
+                  return didStartSave;
               }
             : undefined;
     }, [onSaveEditedImageCopy, handleClose]);

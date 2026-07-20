@@ -695,7 +695,9 @@ class _FormatDistributionChart extends StatelessWidget {
     );
 
     final NumberFormat numberFormat = NumberFormat.decimalPattern();
-    final List<Color> palette = colorScheme.avatarColors;
+    final palette = Theme.of(context).brightness == Brightness.dark
+        ? components.avatarDark
+        : components.avatarLight;
     final List<Color> colors = <Color>[];
     for (int i = 0; i < entries.length; i += 1) {
       final String label = entries[i].key;

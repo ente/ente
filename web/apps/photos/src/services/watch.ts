@@ -445,6 +445,7 @@ class FolderWatcher {
                     }
                 }
                 break;
+            case "partnerShared":
             case "unsupported":
             case "tooLarge":
                 {

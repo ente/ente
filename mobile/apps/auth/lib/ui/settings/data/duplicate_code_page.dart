@@ -1,238 +1,219 @@
 import 'package:ente_auth/l10n/l10n.dart';
-import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/services/deduplication_service.dart';
 import 'package:ente_auth/store/code_store.dart';
-import 'package:ente_auth/theme/ente_theme.dart';
 import 'package:ente_auth/ui/code_widget.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_lock_screen/local_authentication_service.dart';
-import 'package:ente_ui/components/centered_constrained_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:logging/logging.dart';
 
 class DuplicateCodePage extends StatefulWidget {
-  final List<DuplicateCodes> duplicateCodes;
   const DuplicateCodePage({super.key, required this.duplicateCodes});
+
+  final List<DuplicateCodes> duplicateCodes;
 
   @override
   State<DuplicateCodePage> createState() => _DuplicateCodePageState();
 }
 
 class _DuplicateCodePageState extends State<DuplicateCodePage> {
-  final Logger _logger = Logger("DuplicateCodePage");
-  late List<DuplicateCodes> _duplicateCodes;
-  final Set<int> selectedGrids = <int>{};
+  final Logger _logger = Logger('DuplicateCodePage');
+  final Set<int> selectedGroups = <int>{};
+  late final List<DuplicateCodes> _duplicateCodes;
 
   @override
   void initState() {
-    _duplicateCodes = widget.duplicateCodes;
     super.initState();
+    _duplicateCodes = widget.duplicateCodes;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(context.l10n.deduplicateCodes), elevation: 0),
-      body: CenteredConstrainedWidget(child: _getBody()),
-    );
-  }
-
-  Widget _getBody() {
-    final l10n = context.l10n;
-    return SafeArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      if (selectedGrids.length == _duplicateCodes.length) {
-                        _removeAllGrids();
-                      } else {
-                        _selectAllGrids();
-                      }
-                      setState(() {});
-                    },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          selectedGrids.length == _duplicateCodes.length
-                              ? l10n.deselectAll
-                              : l10n.selectAll,
-                          style: Theme.of(context).textTheme.titleMedium!
-                              .copyWith(
-                                fontSize: 14,
-                                color: Theme.of(
-                                  context,
-                                ).iconTheme.color!.withValues(alpha: 0.7),
-                              ),
-                        ),
-                        const Padding(padding: EdgeInsets.only(left: 4)),
-                        selectedGrids.length == _duplicateCodes.length
-                            ? const Icon(Icons.check_circle, size: 24)
-                            : Icon(
-                                Icons.check_circle_outlined,
-                                color: getEnteColorScheme(context).strokeMuted,
-                                size: 24,
-                              ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+    final colors = context.componentColors;
+    return Semantics(
+      container: true,
+      identifier: 'auth_duplicate_codes_page',
+      child: Scaffold(
+        backgroundColor: colors.backgroundBase,
+        body: AppBarComponent(
+          title: context.l10n.deduplicateCodes,
+          slivers: [
+            SliverSafeArea(
+              top: false,
+              sliver: SliverList.list(children: _buildChildren(context)),
             ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _duplicateCodes.length,
-              shrinkWrap: true,
-              itemBuilder: (context, index) {
-                final List<Code> codes = _duplicateCodes[index].codes;
-                return _getGridView(codes, index);
-              },
-            ),
-          ),
-          selectedGrids.isEmpty ? const SizedBox.shrink() : _getDeleteButton(),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _getGridView(List<Code> code, int itemIndex) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+  List<Widget> _buildChildren(BuildContext context) {
+    final l10n = context.l10n;
+    final allSelected = selectedGroups.length == _duplicateCodes.length;
+    final children = <Widget>[
+      Padding(
+        padding: const EdgeInsets.fromLTRB(
+          Spacing.lg,
+          0,
+          Spacing.lg,
+          Spacing.lg,
+        ),
+        child: Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: Semantics(
+            button: true,
+            identifier: 'auth_duplicate_select_all',
+            child: FilterChipComponent(
+              label: allSelected ? l10n.deselectAll : l10n.selectAll,
+              state: allSelected
+                  ? FilterChipComponentState.selected
+                  : FilterChipComponentState.unselected,
+              onChanged: (_) => _toggleAll(),
+            ),
+          ),
+        ),
+      ),
+    ];
+
+    for (
+      var groupIndex = 0;
+      groupIndex < _duplicateCodes.length;
+      groupIndex++
+    ) {
+      final codes = _duplicateCodes[groupIndex].codes;
+      final isSelected = selectedGroups.contains(groupIndex);
+      children.addAll([
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: GestureDetector(
-            onTap: () {
-              if (selectedGrids.contains(itemIndex)) {
-                selectedGrids.remove(itemIndex);
-              } else {
-                selectedGrids.add(itemIndex);
-              }
-              setState(() {});
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("${code[0].issuer}, ${code.length} items"),
-                !selectedGrids.contains(itemIndex)
-                    ? Icon(
-                        Icons.check_circle_outlined,
-                        color: getEnteColorScheme(context).strokeMuted,
-                        size: 24,
-                      )
-                    : const Icon(Icons.check_circle, size: 24),
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+          child: Semantics(
+            button: true,
+            identifier: 'auth_duplicate_group_$groupIndex',
+            child: MenuGroupComponent(
+              items: [
+                MenuComponent(
+                  title: '${codes.first.issuer} (${codes.length})',
+                  selected: isSelected,
+                  trailing: CheckboxComponent(
+                    selected: isSelected,
+                    onChanged: (_) => _toggleGroup(groupIndex),
+                  ),
+                  onTap: () => _toggleGroup(groupIndex),
+                ),
               ],
             ),
           ),
         ),
-        AlignedGridView.count(
-          crossAxisCount: (MediaQuery.sizeOf(context).width ~/ 400)
-              .clamp(1, double.infinity)
-              .toInt(),
-          padding: const EdgeInsets.only(bottom: 40),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemBuilder: (context, index) {
-            return CodeWidget(
-              key: ValueKey('${code.hashCode}_$index'),
-              code[index],
-              isCompactMode: false,
-            );
-          },
-          itemCount: code.length,
+        const SizedBox(height: Spacing.sm),
+        for (final code in codes) CodeWidget(code, isCompactMode: false),
+        const SizedBox(height: Spacing.xl),
+      ]);
+    }
+
+    final selectedItemsCount = _selectedItemsCount();
+    if (selectedItemsCount > 0) {
+      children.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            Spacing.lg,
+            0,
+            Spacing.lg,
+            Spacing.xl,
+          ),
+          child: Semantics(
+            button: true,
+            identifier: 'auth_duplicate_trash',
+            child: ButtonComponent(
+              label: '${l10n.trash} ($selectedItemsCount)',
+              variant: ButtonComponentVariant.critical,
+              onTap: () => deleteDuplicates(selectedItemsCount),
+            ),
+          ),
         ),
-      ],
-    );
+      );
+    }
+    return children;
   }
 
-  Widget _getDeleteButton() {
-    int selectedItemsCount = 0;
-    for (int idx = 0; idx < _duplicateCodes.length; idx++) {
-      if (selectedGrids.contains(idx)) {
-        selectedItemsCount += _duplicateCodes[idx].codes.length - 1;
+  void _toggleAll() {
+    setState(() {
+      if (selectedGroups.length == _duplicateCodes.length) {
+        selectedGroups.clear();
+      } else {
+        selectedGroups
+          ..clear()
+          ..addAll(List.generate(_duplicateCodes.length, (index) => index));
       }
-    }
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 20),
-      child: SizedBox(
-        width: 400,
-        child: OutlinedButton(
-          onPressed: () async {
-            await deleteDuplicates(selectedItemsCount);
-          },
-          child: Text("Delete $selectedItemsCount items"),
-        ),
-      ),
-    );
+    });
   }
 
-  void _selectAllGrids() {
-    selectedGrids.clear();
-    for (int idx = 0; idx < _duplicateCodes.length; idx++) {
-      selectedGrids.add(idx);
-    }
+  void _toggleGroup(int groupIndex) {
+    setState(() {
+      if (!selectedGroups.remove(groupIndex)) selectedGroups.add(groupIndex);
+    });
   }
 
-  void _removeAllGrids() {
-    selectedGrids.clear();
+  int _selectedItemsCount() {
+    var count = 0;
+    for (final index in selectedGroups) {
+      count += _duplicateCodes[index].codes.length - 1;
+    }
+    return count;
   }
 
   Future<void> deleteDuplicates(int itemCount) async {
-    bool isAuthSuccessful = await LocalAuthenticationService.instance
+    final isAuthSuccessful = await LocalAuthenticationService.instance
         .requestLocalAuthentication(
           context,
           context.l10n.deleteCodeAuthMessage,
         );
-    if (!isAuthSuccessful) {
-      return;
-    }
-    if (!mounted) return;
-    FocusScope.of(context).requestFocus();
-    final l10n = context.l10n;
-    final String message = "Are you sure you want to trash $itemCount items?";
-    if (!mounted) return;
-    await showChoiceActionSheet(
-      context,
-      title: l10n.deleteDuplicates,
-      body: message,
-      firstButtonLabel: l10n.trash,
-      isCritical: true,
-      firstButtonOnTap: () async {
-        try {
-          if (!mounted) return;
-          for (int idx = 0; idx < _duplicateCodes.length; idx++) {
-            if (selectedGrids.contains(idx)) {
-              final List<Code> codes = _duplicateCodes[idx].codes;
-              for (int i = 1; i < codes.length; i++) {
-                final display = codes[i].display;
-                final Code code = codes[i].copyWith(
-                  display: display.copyWith(trashed: true),
-                );
-                await CodeStore.instance.addCode(code);
-              }
-            }
-          }
-          if (!mounted) return;
-          Navigator.of(context).pop();
-        } catch (e) {
-          _logger.severe('Failed to trash duplicate codes: ${e.toString()}');
-          showGenericErrorDialog(context: context, error: e).ignore();
-        }
-      },
+    if (!isAuthSuccessful || !mounted) return;
+
+    final trashed = await showBottomSheetComponent<bool>(
+      context: context,
+      builder: (sheetContext) => Semantics(
+        identifier: 'auth_duplicate_confirm_sheet',
+        child: BottomSheetComponent(
+          title: context.l10n.deleteDuplicates,
+          message: context.l10n.moveMultipleToTrashMessage(itemCount),
+          closeTooltip: context.l10n.close,
+          actions: [
+            ButtonComponent(
+              label: context.l10n.trash,
+              variant: ButtonComponentVariant.critical,
+              onTap: () async {
+                final didTrash = await _trashSelectedDuplicates();
+                if (didTrash && sheetContext.mounted) {
+                  Navigator.of(sheetContext).pop(true);
+                }
+              },
+            ),
+          ],
+        ),
+      ),
     );
+    if (trashed == true && mounted) Navigator.of(context).pop();
+  }
+
+  Future<bool> _trashSelectedDuplicates() async {
+    try {
+      for (final index in selectedGroups) {
+        final codes = _duplicateCodes[index].codes;
+        for (var codeIndex = 1; codeIndex < codes.length; codeIndex++) {
+          final code = codes[codeIndex];
+          await CodeStore.instance.addCode(
+            code.copyWith(display: code.display.copyWith(trashed: true)),
+          );
+        }
+      }
+      return true;
+    } catch (error, stackTrace) {
+      _logger.severe('Failed to trash duplicate codes', error, stackTrace);
+      if (mounted) {
+        showGenericErrorDialog(context: context, error: error).ignore();
+      }
+      return false;
+    }
   }
 }

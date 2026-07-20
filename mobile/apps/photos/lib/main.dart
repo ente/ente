@@ -552,8 +552,13 @@ Future<void> _init(
     _logger.info("PushService/HomeWidget done $tlog");
     unawaited(MLService.instance.init());
     PersonService.init(entityService, MLDataDB.instance, preferences);
-    await PersonService.instance.refreshPersonCache();
-    if (!isBackground && flagService.enableContact) {
+    try {
+      await PersonService.instance.refreshPersonCache();
+    } catch (e, s) {
+      PersonService.instance.clearCache();
+      _logger.severe("Person cache warm-up failed", e, s);
+    }
+    if (!isBackground) {
       unawaited(_warmContactsCacheInBackground());
     }
     wrappedService.scheduleInitialLoad();

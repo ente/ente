@@ -84,10 +84,21 @@ export const pendingUploads = (): PendingUploads | undefined => {
     const zipItems = allZipItems.filter(([z]) => existsSync(z));
     const preUploadSkippedFiles =
         uploadStatusStore.get("preUploadSkippedFiles") ?? [];
+    const importTakeoutFavorites =
+        uploadStatusStore.get("importTakeoutFavorites") ?? true;
+    const includePartnerSharedFiles =
+        uploadStatusStore.get("includePartnerSharedFiles") ?? true;
 
     if (filePaths.length == 0 && zipItems.length == 0) return undefined;
 
-    return { collectionName, filePaths, zipItems, preUploadSkippedFiles };
+    return {
+        collectionName,
+        filePaths,
+        zipItems,
+        preUploadSkippedFiles,
+        importTakeoutFavorites,
+        includePartnerSharedFiles,
+    };
 };
 
 /**
@@ -131,12 +142,16 @@ export const setPendingUploads = ({
     filePaths,
     zipItems,
     preUploadSkippedFiles,
+    importTakeoutFavorites,
+    includePartnerSharedFiles,
 }: PendingUploads) => {
     uploadStatusStore.set({
         collectionName: collectionName ?? "",
         filePaths: filePaths,
         zipItems: zipItems,
         preUploadSkippedFiles: preUploadSkippedFiles ?? [],
+        importTakeoutFavorites: importTakeoutFavorites ?? true,
+        includePartnerSharedFiles: includePartnerSharedFiles ?? true,
     });
 };
 

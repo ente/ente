@@ -13,31 +13,25 @@
     "sha256": "2def6506e098234abc2e6e10febd820b8e3e66d6ad4c9525cb4f1cec3418f9b6"
   },
   "onnx_runtime": {
-    "version": "1.18.1",
+    "version": "1.27.0",
     "archives": {
       "aarch64-apple-darwin": {
-        "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.18.1/onnxruntime-osx-arm64-1.18.1.tgz",
-        "sha256": "f3356203e9b6f5023168a12db74b1060ab397f8f3ce8f5cb2c2bd9e7f1195b01",
-        "library_path": "onnxruntime-osx-arm64-1.18.1/lib/libonnxruntime.1.18.1.dylib",
-        "library_sha256": "cf0c4da3d0ccae9b71cc854333e716d162869a3c42f9017b142408542fcec9b7"
-      },
-      "x86_64-apple-darwin": {
-        "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.18.1/onnxruntime-osx-x86_64-1.18.1.tgz",
-        "sha256": "938198521ecccd6fca4cadd627a57966de092feb6ea9ecb579437898d04ebad8",
-        "library_path": "onnxruntime-osx-x86_64-1.18.1/lib/libonnxruntime.1.18.1.dylib",
-        "library_sha256": "b25f77bf7c58ef0fbcdd5fb090301df4e80f82cf0000ceed1042418729b6594d"
+        "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.27.0/onnxruntime-osx-arm64-1.27.0.tgz",
+        "sha256": "545e81c58152353acb0d1e8bd6ce4b62f830c0961f5b3acfedc790ffd76e477a",
+        "library_path": "./onnxruntime-osx-arm64-1.27.0/lib/libonnxruntime.dylib",
+        "library_sha256": "2ebb057c654ef6422b28bc84bfcc69591b4eccea7814a3bd84677607c36096de"
       },
       "x86_64-unknown-linux-gnu": {
-        "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.18.1/onnxruntime-linux-x64-1.18.1.tgz",
-        "sha256": "a0994512ec1e1debc00c18bfc7a5f16249f6ebd6a6128ff2034464cc380ea211",
-        "library_path": "onnxruntime-linux-x64-1.18.1/lib/libonnxruntime.so.1.18.1",
-        "library_sha256": "1147caa734d19f7549f90a659aa9ca444366eeb80a596900d19d242145a9f4c9"
+        "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.27.0/onnxruntime-linux-x64-1.27.0.tgz",
+        "sha256": "547e40a48f1fe73e3f812d7c88a948612c23f896b91e4e2ee1e232d7b468246f",
+        "library_path": "onnxruntime-linux-x64-1.27.0/lib/libonnxruntime.so.1.27.0",
+        "library_sha256": "4061866361d9a8d2872f5f419c5515ce35a830a0c5c77ce1723320ac0dbabfc7"
       },
       "aarch64-unknown-linux-gnu": {
-        "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.18.1/onnxruntime-linux-aarch64-1.18.1.tgz",
-        "sha256": "c1dcd8ab29e8d227d886b6ee415c08aea893956acf98f0758a42a84f27c02851",
-        "library_path": "onnxruntime-linux-aarch64-1.18.1/lib/libonnxruntime.so.1.18.1",
-        "library_sha256": "006437cc7da2dd9a8a116e3fb0c96fe9c4ec8645fccbb731f3b02082a6fbf70e"
+        "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.27.0/onnxruntime-linux-aarch64-1.27.0.tgz",
+        "sha256": "3e4d83ac06924a32a07b6d7f91ce6f852876153fc0bbdf931bf517a140bfbe48",
+        "library_path": "onnxruntime-linux-aarch64-1.27.0/lib/libonnxruntime.so.1.27.0",
+        "library_sha256": "c36bc200e7e6c093b8abb0b34590fbdd8c52fd3fb5e33795b9523ffdde2fce0f"
       }
     }
   },

@@ -812,7 +812,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "PlayStore 订阅",
   "appstoreSubscription": "AppStore 订阅",
-  "subAlreadyLinkedErrMessage": "您的 {id} 已链接到另一个 Ente 账户。\n如果您想在此账户中使用您的 {id} ，请联系我们的支持人员",
   "visitWebToManage": "请访问 {webUrl} 来管理您的订阅",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

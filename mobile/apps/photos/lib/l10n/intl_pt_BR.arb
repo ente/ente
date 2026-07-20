@@ -1,6 +1,6 @@
 {
   "@@locale ": "en",
-  "onboardingTitle": "Para tudo que você não deseja esquecer",
+  "onboardingTitle": "Para tudo que não deseja esquecer",
   "onboardingDesc": "Salve suas fotos e vídeos. Todas as memórias, em um só lugar.",
   "enterYourEmailAddress": "Insira seu e-mail",
   "enterYourNewEmailAddress": "Insira seu novo e-mail",
@@ -634,7 +634,7 @@
   "authToChangeYourEmail": "Por favor, autentique-se para alterar o seu e-mail",
   "changePassword": "Alterar senha",
   "authToChangeYourPassword": "Autentique para alterar sua senha",
-  "authToInitiateAccountDeletion": "Desbloquear para excluir conta",
+  "authToInitiateAccountDeletion": "Desbloqueie para excluir a conta",
   "emailVerificationToggle": "Verificação por e-mail",
   "authToChangeEmailVerificationSetting": "Autentique-se para alterar o e-mail de verificação",
   "exportYourData": "Exportar dados",
@@ -1038,7 +1038,7 @@
   "appleId": "ID da Apple",
   "playstoreSubscription": "Assinatura da PlayStore",
   "appstoreSubscription": "Assinatura da AppStore",
-  "subAlreadyLinkedErrMessage": "Seu {id} já está vinculado a outra conta Ente. Se você gostaria de usar seu {id} com esta conta, entre em contato conosco\"",
+  "subAlreadyLinkedErrMessage": "Seu {id} já está vinculado a outra conta Ente. Se deseja usar seu {id} com esta conta, entre em contato com nosso suporte.",
   "visitWebToManage": "Visite {webUrl} para gerenciar sua assinatura",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
@@ -1220,6 +1220,17 @@
   "favorite": "Favorito",
   "removeFromFavorite": "Desfavoritar",
   "shareMemories": "Compartilhar memórias",
+  "shareMemory": "Compartilhar memória",
+  "shareItemCount": "{count, plural, one{Compartilhar {count} item} other{Compartilhar {count} itens}}",
+  "@shareItemCount": {
+    "description": "Action to share the selected number of memory items",
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    }
+  },
   "shareTheseMemories": "Compartilhar estas memórias",
   "shareThisPhoto": "Compartilhar esta foto",
   "shareThisVideo": "Compartilhar este vídeo",
@@ -1376,7 +1387,7 @@
       }
     }
   },
-  "downloadSkippedInSelectionSingleFile": "A instalação de {fileName} foi pulada por ela já estar disponível no álbum {albumName} em seu dispositivo",
+  "downloadSkippedInSelectionSingleFile": "A instalação de {fileName} foi ignorada por ela já estar disponível no álbum {albumName} em seu dispositivo",
   "@downloadSkippedInSelectionSingleFile": {
     "description": "Toast shown after multi-selection download when exactly one selected file is skipped because it already exists locally",
     "placeholders": {
@@ -1388,7 +1399,7 @@
       }
     }
   },
-  "downloadSkippedInSelectionMultipleFiles": "A instalação de {fileCount} arquivos foram pulados por eles já estarem disponíveis em seu dispositivo",
+  "downloadSkippedInSelectionMultipleFiles": "A instalação de {fileCount} arquivos foram ignorados por eles já estarem disponíveis em seu dispositivo",
   "@downloadSkippedInSelectionMultipleFiles": {
     "description": "Toast shown after multi-selection download when multiple selected files are skipped because they already exist locally",
     "placeholders": {
@@ -1413,7 +1424,7 @@
   "unlock": "Desbloquear",
   "freeUpSpace": "Liberar espaço",
   "freeUpSpaceSaving": "{count, plural, one {Ele pode ser excluído do dispositivo para liberar {formattedSize}} other {Eles podem ser excluídos do dispositivo para liberar {formattedSize}}}",
-  "filesBackedUpInAlbum": "{count, plural, one {{formattedNumber} arquivo} other {{formattedNumber} arquivos}} deste álbum possui um backup feito",
+  "filesBackedUpInAlbum": "{count, plural, one {{formattedNumber} arquivo deste álbum possui} other {{formattedNumber} arquivos deste álbum possuem}} um backup feito",
   "@filesBackedUpInAlbum": {
     "description": "Text to tell user how many files have been backed up in the album",
     "placeholders": {
@@ -1428,7 +1439,7 @@
       }
     }
   },
-  "filesBackedUpFromDevice": "{count, plural, one {{formattedNumber} arquivo} other {{formattedNumber} arquivos}} deste álbum foi feito um backup",
+  "filesBackedUpFromDevice": "{count, plural, one {{formattedNumber} arquivo deste álbum foi feito backup} other {{formattedNumber} arquivos deste álbum foram feitos backup}}",
   "@filesBackedUpFromDevice": {
     "description": "Text to tell user how many files have been backed up from this device",
     "placeholders": {
@@ -1558,7 +1569,7 @@
   "loadMessage5": "Nosso código-fonte e criptografia foram auditadas externamente",
   "loadMessage6": "Você pode compartilhar links para seus álbuns com seus entes queridos",
   "loadMessage7": "Nossos aplicativos móveis executam em segundo plano para criptografar e fazer backup de quaisquer fotos novas que você acessar",
-  "loadMessage8": "{webUrl} tem um enviador mais rápido",
+  "loadMessage8": "{webUrl} possui um enviador melhor",
   "@loadMessage8": {
     "description": "Loading screen message about the web uploader.",
     "placeholders": {
@@ -1727,10 +1738,10 @@
     "description": "Label for the map view"
   },
   "maps": "Mapas",
-  "mapsPrivacyNotice": "Coordenadas aproximadas serão enviadas a terceiros conscientes da privacidade, como o OpenStreetMap para mostrar o mapa e a localização.",
+  "mapsPrivacyNotice": "As coordenadas aproximadas serão enviadas para terceiros conscientes da privacidade como OpenStreetMap para mostrar o mapa e o local.",
   "enableMaps": "Ativar mapas",
-  "links": "Vínculos",
-  "noLinksYet": "Sem vínculos",
+  "links": "Links",
+  "noLinksYet": "Sem links",
   "activeLinksWillShowUpHere": "Links ativos aparecerão aqui",
   "quickLinks": "Links rápidos",
   "selectItemsToAdd": "Selecionar itens para adicionar",
@@ -1870,6 +1881,8 @@
   "editPerson": "Editar pessoa",
   "enterDateOfBirthHint": "Insira a data de nascimento",
   "setAContactPhoto": "Defina uma foto de contato",
+  "setSelectedPhoto": "Definir foto selecionada",
+  "removeContactPhoto": "Remover foto de contato",
   "mergedPhotos": "Fotos mescladas",
   "orMergeWithExistingPerson": "Ou mesclar com existente",
   "enterDateOfBirth": "Aniversário (opcional)",
@@ -2395,6 +2408,9 @@
   "@linkEmailToContactBannerCaption": {
     "description": "Caption for the 'Link email' title. It should be a continuation of the 'Link email' title. Just like how 'Link email' + 'for faster sharing' forms a proper sentence in English, the combination of these two strings should also be a proper sentence in other languages."
   },
+  "selectPerson": "Selecionar pessoa",
+  "selectPersonToLinkToThisContact": "Selecione uma pessoa para preencher automaticamente este contato",
+  "searchAllPeople": "Buscar todas as pessoas",
   "selectPersonToLink": "Selecione a pessoa para vincular",
   "linkPersonToEmail": "Vincular pessoa a {email}",
   "@linkPersonToEmail": {
@@ -2446,6 +2462,7 @@
   "joinAlbumConfirmationDialogBody": "Unir-se ao álbum fará que seu e-mail seja visível a todos do álbum.",
   "pleaseWaitThisWillTakeAWhile": "Aguarde um pouco, isso talvez leve um tempo.",
   "editTime": "Editar tempo",
+  "editDateAndTime": "Editar data e hora",
   "selectTime": "Selecionar tempo",
   "selectDate": "Selecionar data",
   "previous": "Anterior",

@@ -69,6 +69,13 @@
 # It must be specified if running in a non-local environment.
 log-file: ""
 
+# The minimum level of logs to emit: "panic", "fatal", "error", "warn", "info",
+# "debug" or "trace".
+#
+# Anything below the configured level is dropped, e.g. "warn" suppresses info
+# and debug logs. If not specified or invalid defaults to "info".
+#log-level: info
+
 # HTTP connection parameters
 http:
     # The port to bind to.
@@ -82,14 +89,27 @@ http:
 
 # Specify the base endpoints for various apps
 apps:
+    # Default is https://photos.ente.com
+    #
+    # Set this to the URL where your photos web app is running.
+    photos:
     # Default is https://albums.ente.com
     #
     # If you're running a self hosted instance and wish to serve public links for photos,
     # set this to the URL where your albums web app is running.
     public-albums:
     # Default is https://embed.ente.com
+    #
     # For self-hosted instances, set this to the URL where your embed app is running.
     embed-albums:
+    # Default is https://auth.ente.com
+    #
+    # Set this to the URL where your auth web app is running.
+    auth:
+    # Default is https://locker.ente.com
+    #
+    # Set this to the URL where your locker web app is running.
+    locker:
     # Default is https://share.ente.com
     #
     # If you're running a self-hosted instance and wish to serve public links for locker,
@@ -102,8 +122,9 @@ apps:
     public-paste:
     # Default is https://cast.ente.com
     cast:
-    # Set this to the URL where your accounts web app is running, primarily used for
-    # passkey based 2FA.
+    # Set this to the URL where your accounts web app is running. It is used
+    # for passkey based 2FA and other cross-app flows like accepting family
+    # invites.
     #
     # Default is https://accounts.ente.com
     accounts:
@@ -113,8 +134,14 @@ apps:
     #
     # Default is https://accounts.ente.io
     accounts-legacy:
+    # Default is https://payments.ente.com
+    payments:
     # Default is https://family.ente.io
     family:
+    # Default is https://ente.space
+    #
+    # Set this to the URL where your space web app is running.
+    space:
     # Default is https://memories.ente.com
     #
     # If you're running a self-hosted instance and wish to serve public memory shares,
@@ -125,9 +152,25 @@ apps:
     # If you're running a self-hosted instance and wish to serve legacy kit recovery,
     # set this to the URL where your legacy recovery web app is running.
     legacy:
+    # Additional trusted browser origins not represented by an app above.
+    #
+    # Default is a list of Ente domains: ente.com and older production aliases.
+    extra-origins:
+    # Default is true if none of photos, auth, locker or extra-origins above
+    # are set, and false otherwise.
+    #
+    # When false, museum rejects browser requests from origins not listed in
+    # this section. When true, it only logs them.
+    cors-report-only:
     custom-domain:
         # Default is my.ente.com
         cname:
+
+space:
+    assets:
+        # Bucket ID used for Space post, avatar, and cover uploads.
+        # If omitted, Space asset uploads return SPACE_ASSETS_UNAVAILABLE.
+        primaryBucket:
 
 # Database connection parameters
 db:

@@ -9,6 +9,7 @@ void showToast(
   toastLength = Toast.LENGTH_LONG,
   iOSDismissOnTap = true,
 }) async {
+  final colorScheme = getEnteColorScheme(context);
   try {
     await Fluttertoast.cancel();
     await Fluttertoast.showToast(
@@ -16,23 +17,23 @@ void showToast(
       toastLength: toastLength,
       gravity: ToastGravity.BOTTOM,
       timeInSecForIosWeb: 1,
-      backgroundColor: getEnteColorScheme(context).toastBackgroundColor,
-      textColor: getEnteColorScheme(context).toastTextColor,
+      backgroundColor: colorScheme.toastBackgroundColor,
+      textColor: colorScheme.toastTextColor,
       fontSize: 16.0,
     );
   } on MissingPluginException catch (_) {
+    if (!context.mounted) {
+      return;
+    }
     final toast = Container(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(25.0),
-        color: getEnteColorScheme(context).toastBackgroundColor,
+        color: colorScheme.toastBackgroundColor,
       ),
       child: Text(
         message,
-        style: TextStyle(
-          color: getEnteColorScheme(context).toastTextColor,
-          fontSize: 16.0,
-        ),
+        style: TextStyle(color: colorScheme.toastTextColor, fontSize: 16.0),
       ),
     );
 

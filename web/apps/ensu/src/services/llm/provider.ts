@@ -59,13 +59,22 @@ interface ConfigDefaults {
 }
 
 interface TauriLlmModelDownloadProgress {
-    label: string;
     percent: number;
     status: string;
     bytesDownloaded: number;
     totalBytes?: number;
-    fileBytesDownloaded: number;
-    fileTotalBytes?: number;
+}
+
+interface ModelTarget {
+    id: string;
+    url: string;
+    mmprojUrl?: string | null;
+}
+
+interface TauriModelStatus {
+    modelPath: string;
+    mmprojPath?: string | null;
+    downloaded: boolean;
 }
 
 export interface ResolvedModelPreset {
@@ -130,6 +139,7 @@ export class LlmProvider {
     private useDesktopRustDefaults = false;
 
     private downloadActive = false;
+    private migrated?: Promise<void>;
     private progressListeners = new Set<(progress: DownloadProgress) => void>();
     private modelReady = false;
     private ensureInFlight?: {
@@ -221,28 +231,29 @@ export class LlmProvider {
         const { model, contextSize } = this.resolveRuntimeSettings(settings);
         const contextKey = JSON.stringify({ contextSize });
 
-        const modelPath = await this.resolveModelPath(model, settings);
-        const mmprojUrl =
-            this.backend.kind === "tauri"
-                ? this.resolveMmprojUrl(model, settings)
-                : undefined;
-        const mmprojPath =
-            this.backend.kind === "tauri" && mmprojUrl
-                ? await this.resolveAuxModelPath(mmprojUrl, settings)
-                : undefined;
+        if (this.backend.kind !== "tauri") {
+            const modelPath = model.url;
+            return {
+                model,
+                modelPath,
+                mmprojPath: undefined,
+                contextKey,
+                modelAvailable: await this.backend.isModelAvailable(modelPath),
+                mmprojAvailable: undefined,
+            };
+        }
 
-        const modelAvailable = await this.backend.isModelAvailable(modelPath);
-        const mmprojAvailable = mmprojPath
-            ? await this.backend.isModelAvailable(mmprojPath)
-            : undefined;
-
+        await this.ensureMigrated(settings);
+        const status = await this.modelStatus(
+            this.resolveTarget(model, settings),
+        );
         return {
             model,
-            modelPath,
-            mmprojPath,
+            modelPath: status.modelPath,
+            mmprojPath: status.mmprojPath ?? undefined,
             contextKey,
-            modelAvailable,
-            mmprojAvailable,
+            modelAvailable: status.downloaded,
+            mmprojAvailable: status.mmprojPath ? status.downloaded : undefined,
         };
     }
 
@@ -255,15 +266,16 @@ export class LlmProvider {
         const { model, contextSize } = this.resolveRuntimeSettings(settings);
         const contextKey = JSON.stringify({ contextSize });
 
-        const modelPath = await this.resolveModelPath(model, settings);
-        const mmprojUrl =
+        const target =
             this.backend.kind === "tauri"
-                ? this.resolveMmprojUrl(model, settings)
+                ? this.resolveTarget(model, settings)
                 : undefined;
-        const mmprojPath =
-            this.backend.kind === "tauri" && mmprojUrl
-                ? await this.resolveAuxModelPath(mmprojUrl, settings)
-                : undefined;
+        if (target) {
+            await this.ensureMigrated(settings);
+        }
+        const status = target ? await this.modelStatus(target) : undefined;
+        const modelPath = status?.modelPath ?? model.url;
+        const mmprojPath = status?.mmprojPath ?? undefined;
 
         const ensureKey = JSON.stringify({
             modelId: model.id,
@@ -328,54 +340,8 @@ export class LlmProvider {
             this.currentMmprojPath = undefined;
             this.currentContextKey = undefined;
 
-            if (this.backend.kind === "tauri") {
-                const downloads: Array<{
-                    url: string;
-                    path: string;
-                    label: string;
-                }> = [];
-                const installed =
-                    await this.backend.isModelAvailable(modelPath);
-                log.info("LLM model installed", { modelPath, installed });
-                if (!installed) {
-                    downloads.push({
-                        url: model.url,
-                        path: modelPath,
-                        label: "model",
-                    });
-                }
-                if (mmprojUrl && mmprojPath) {
-                    const mmprojInstalled =
-                        await this.backend.isModelAvailable(mmprojPath);
-                    log.info("LLM mmproj installed", {
-                        mmprojPath,
-                        mmprojInstalled,
-                    });
-                    if (!mmprojInstalled) {
-                        downloads.push({
-                            url: mmprojUrl,
-                            path: mmprojPath,
-                            label: "mmproj",
-                        });
-                    }
-                }
-
-                log.info("LLM download plan", {
-                    downloads: downloads.map((download) => ({
-                        url: download.url,
-                        path: download.path,
-                        label: download.label,
-                    })),
-                });
-
-                if (downloads.length === 1) {
-                    const download = downloads[0];
-                    if (download) {
-                        await this.downloadModel(download.url, download.path);
-                    }
-                } else if (downloads.length > 1) {
-                    await this.downloadModelsCombined(downloads);
-                }
+            if (target && !(await this.modelStatus(target)).downloaded) {
+                await this.downloadModelNative(target);
             }
 
             if (emitProgress) {
@@ -581,90 +547,74 @@ export class LlmProvider {
         return model.mmprojUrl;
     }
 
-    private async resolveModelPath(
+    private resolveTarget(
         model: ModelInfo,
         settings: ModelSettings,
-    ): Promise<string> {
-        if (this.backend.kind !== "tauri") {
-            return model.url;
-        }
-
-        const { appDataDir, join } = await import("@tauri-apps/api/path");
-
-        const baseDir = await appDataDir();
-        const modelsDir = await join(baseDir, "models");
-        const filename = filenameFromUrl(model.url);
-
-        if (settings.useCustomModel && settings.modelUrl) {
-            const hash = await hashUrl(settings.modelUrl);
-            const customDir = await join(modelsDir, "custom");
-            return join(customDir, `${hash}_${filename}`);
-        }
-
-        return join(modelsDir, filename);
-    }
-
-    private async resolveAuxModelPath(
-        url: string,
-        settings: ModelSettings,
-    ): Promise<string> {
-        const { appDataDir, join } = await import("@tauri-apps/api/path");
-
-        const baseDir = await appDataDir();
-        const modelsDir = await join(baseDir, "models");
-        const filename = filenameFromUrl(url);
-        const hash = await hashUrl(url);
-
-        if (settings.useCustomModel) {
-            const customDir = await join(modelsDir, "custom");
-            return join(customDir, `${hash}_${filename}`);
-        }
-
-        return join(modelsDir, `${hash}_${filename}`);
-    }
-
-    private async downloadModelsCombined(
-        downloads: Array<{ url: string; path: string; label: string }>,
-    ) {
-        await this.downloadModelsNative(downloads);
-    }
-
-    private async downloadModel(
-        url: string,
-        destPath: string,
-        onProgress?: (progress: DownloadProgress) => void,
-    ) {
-        const emit = onProgress ?? ((progress) => this.emitProgress(progress));
-        emit({
-            percent: 0,
-            status: "Starting download...",
-            bytesDownloaded: 0,
-            totalBytes: 0,
-        });
-
-        await this.downloadModelsNative(
-            [{ url, path: destPath, label: "Model" }],
-            emit,
+    ): ModelTarget {
+        const mmprojUrl = this.resolveMmprojUrl(model, settings) ?? null;
+        const defaults = this.configDefaults;
+        const presets = defaults
+            ? [
+                  defaults.mobileDefaultModel,
+                  defaults.desktopDefaultModel,
+                  ...defaults.mobileModelPresets,
+                  ...defaults.desktopModelPresets,
+              ]
+            : [];
+        const preset = presets.find(
+            (preset) =>
+                preset.url == model.url &&
+                (preset.mmprojUrl ?? null) == mmprojUrl,
         );
+        return { id: preset?.id ?? model.id, url: model.url, mmprojUrl };
     }
 
-    private async downloadModelsNative(
-        downloads: Array<{ url: string; path: string; label: string }>,
-        onProgress?: (progress: DownloadProgress) => void,
-    ) {
-        const emit = onProgress ?? ((progress) => this.emitProgress(progress));
+    private ensureMigrated(settings: ModelSettings): Promise<void> {
+        this.migrated ??= (async () => {
+            const { invoke } = await import("@tauri-apps/api/core");
+            const customTargets: ModelTarget[] =
+                settings.useCustomModel && settings.modelUrl
+                    ? [
+                          {
+                              id: `custom:${settings.modelUrl}`,
+                              url: settings.modelUrl,
+                              mmprojUrl: settings.mmprojUrl?.trim() || null,
+                          },
+                      ]
+                    : [];
+            await invoke("llm_migrate_models", { customTargets }).catch(
+                (error: unknown) => {
+                    log.warn("LLM model migration failed", { error });
+                },
+            );
+        })();
+        return this.migrated;
+    }
+
+    private async modelStatus(target: ModelTarget): Promise<TauriModelStatus> {
+        const { invoke } = await import("@tauri-apps/api/core");
+        return invoke<TauriModelStatus>("llm_model_status", { target });
+    }
+
+    private async downloadModelNative(target: ModelTarget) {
         const [{ invoke }, { listen }] = await Promise.all([
             import("@tauri-apps/api/core"),
             import("@tauri-apps/api/event"),
         ]);
 
-        log.info("LLM native download start", { downloads });
+        log.info("LLM native download start", { target });
+        this.emitProgress({
+            percent: 0,
+            status: "Starting download...",
+            bytesDownloaded: 0,
+            totalBytes: 0,
+        });
         this.downloadActive = true;
         const unlisten = await listen<TauriLlmModelDownloadProgress>(
             "llm-download-progress",
             (event) => {
                 const progress = event.payload;
-                emit({
+                this.emitProgress({
                     percent: Math.min(99, progress.percent),
                     status: progress.status,
                     bytesDownloaded: progress.bytesDownloaded,
@@ -674,29 +624,11 @@ export class LlmProvider {
         );
 
         try {
-            await invoke("llm_download_model_files", { downloads });
-            log.info("LLM native download complete", { downloads });
+            await invoke("llm_download_model", { target });
+            log.info("LLM native download complete", { target });
         } finally {
             this.downloadActive = false;
             unlisten();
         }
     }
 }
-
-const filenameFromUrl = (url: string) => {
-    try {
-        const parsed = new URL(url);
-        const name = parsed.pathname.split("/").pop();
-        return name && name.length ? name : "model.gguf";
-    } catch {
-        return "model.gguf";
-    }
-};
-
-const hashUrl = async (url: string) => {
-    const data = new TextEncoder().encode(url);
-    const digest = await crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(digest))
-        .map((byte) => byte.toString(16).padStart(2, "0"))
-        .join("");
-};

@@ -14,12 +14,16 @@ dependencies:
     path: ../accounts
   ente_base:
     path: ../base
+  ente_components:
+    path: ../ente_components
   ente_configuration:
     path: ../configuration
   ente_contacts:
     path: ../contacts
   ente_crypto_api:
     path: ../ente_crypto_api
+  ente_events:
+    path: ../events
   ente_network:
     path: ../network
   ente_pure_utils:
@@ -41,7 +45,9 @@ dependencies:
   password_strength: 0.2.0
   pdf: 3.11.3
   pointycastle: 3.9.1
+  rive: 0.14.0-dev.13
   share_plus: 11.1.0
+  shared_preferences: 2.5.3
   uuid: 4.5.3
 
 dev_dependencies:

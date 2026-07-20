@@ -7,6 +7,7 @@ import { AlbumAddedNotification } from "@/components/AlbumAddedNotification";
 import { AuthenticateUser } from "@/components/AuthenticateUser";
 import { GalleryBarAndListHeader } from "@/components/Collections/GalleryBarAndListHeader";
 import { PickCoverPhotoDialog } from "@/components/Collections/PickCoverPhotoDialog";
+import { FamilyManagement } from "@/components/FamilyManagement";
 import type { FileListHeaderOrFooter } from "@/components/FileList";
 import { FileListWithViewer } from "@/components/FileListWithViewer";
 import { FixCreationTime } from "@/components/FixCreationTime";
@@ -79,6 +80,7 @@ import {
 import { WhatsNew } from "ente-new/photos/components/WhatsNew";
 import {
     GalleryEmptyState,
+    GalleryEmptyStateV2,
     PeopleEmptyState,
     SearchResultsHeader,
     type RemotePullOpts,
@@ -259,7 +261,7 @@ const Page: React.FC = () => {
     const [collectionSelectorAttributes, setCollectionSelectorAttributes] =
         useState<CollectionSelectorAttributes | undefined>();
 
-    const { customDomain } = useSettingsSnapshot();
+    const { customDomain, isInternalUser } = useSettingsSnapshot();
     const userDetails = useUserDetailsSnapshot();
     const peopleState = usePeopleStateSnapshot();
 
@@ -303,6 +305,10 @@ const Page: React.FC = () => {
         useModalVisibility();
     const { show: showPlanSelector, props: planSelectorVisibilityProps } =
         useModalVisibility();
+    const {
+        show: showFamilyManagement,
+        props: familyManagementVisibilityProps,
+    } = useModalVisibility();
     const { show: showWhatsNew, props: whatsNewVisibilityProps } =
         useModalVisibility();
     const { show: showFixCreationTime, props: fixCreationTimeVisibilityProps } =
@@ -1112,6 +1118,9 @@ const Page: React.FC = () => {
                         albumId: collection.id,
                         albumName: collection.name,
                     });
+                    setOpenCollectionSelector(false);
+                    setPostCreateAlbumOp(undefined);
+                    return;
                 }
 
                 setPostCreateAlbumOp((postCreateAlbumOp) => {
@@ -1897,6 +1906,10 @@ const Page: React.FC = () => {
         () => setOpenCollectionSelector(false),
         [],
     );
+    const handleCollectionSelectorExited = useCallback(
+        () => setCollectionSelectorAttributes(undefined),
+        [],
+    );
 
     /**
      * Handles adding a single file to a collection by opening a collection selector dialog.
@@ -2001,10 +2014,16 @@ const Page: React.FC = () => {
             <PlanSelector
                 {...planSelectorVisibilityProps}
                 setLoading={(v) => setBlockingLoad(v)}
+                onManageFamily={showFamilyManagement}
+            />
+            <FamilyManagement
+                {...familyManagementVisibilityProps}
+                onShowPlanSelector={showPlanSelector}
             />
             <CollectionSelector
                 open={openCollectionSelector}
                 onClose={handleCloseCollectionSelector}
+                onExited={handleCollectionSelectorExited}
                 attributes={collectionSelectorAttributes}
                 collectionSummaries={
                     collectionSelectorAttributes?.showHiddenCollections
@@ -2198,10 +2217,17 @@ const Page: React.FC = () => {
             !isFirstLoad &&
             !state.collectionFiles.length &&
             activeCollectionID === PseudoCollectionID.all ? (
-                <GalleryEmptyState
-                    isUploadInProgress={uploadManager.isUploadInProgress()}
-                    onUpload={openUploader}
-                />
+                isInternalUser ? (
+                    <GalleryEmptyStateV2
+                        isUploadInProgress={uploadManager.isUploadInProgress()}
+                        onUpload={openUploader}
+                    />
+                ) : (
+                    <GalleryEmptyState
+                        isUploadInProgress={uploadManager.isUploadInProgress()}
+                        onUpload={openUploader}
+                    />
+                )
             ) : !isInSearchMode &&
               !isFirstLoad &&
               state.view?.type == "people" &&

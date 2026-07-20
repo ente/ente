@@ -9,6 +9,7 @@ import io.ente.ensu.bindings.Transcriber
 import io.ente.ensu.device.AndroidDeviceCapabilityProvider
 import io.ente.ensu.llm.DownloadPhase
 import io.ente.ensu.llm.LlmProvider
+import io.ente.ensu.llm.ModelDownloader
 import io.ente.ensu.logging.FileLogRepository
 import io.ente.ensu.chat.Attachment
 import io.ente.ensu.chat.ChatMessage
@@ -28,6 +29,7 @@ class AppStore(
     private val sessionPreferences: SessionPreferencesDataStore,
     private val chatRepository: ChatRepository,
     private val llmProvider: LlmProvider,
+    val modelDownloader: ModelDownloader,
     val transcriber: Transcriber,
     private val deviceCapabilityProvider: AndroidDeviceCapabilityProvider,
     val configDefaults: ConfigDefaults,
@@ -40,12 +42,13 @@ class AppStore(
     private val messageStore = mutableMapOf<String, MutableList<ChatMessage>>()
     private val attachmentActions = AttachmentStoreActions(_state, messageStore)
     private val modelSettingsActions =
-        ModelSettingsActions(_state, sessionPreferences, llmProvider, logRepository, configDefaults)
+        ModelSettingsActions(_state, sessionPreferences, llmProvider, modelDownloader, logRepository, configDefaults)
     private val chatActions = ChatStoreActions(
         state = _state,
         sessionPreferences = sessionPreferences,
         chatRepository = chatRepository,
         llmProvider = llmProvider,
+        modelDownloader = modelDownloader,
         clock = clock,
         logRepository = logRepository,
         messageStore = messageStore,
@@ -59,6 +62,9 @@ class AppStore(
         refreshDeviceCapability(scope)
         chatActions.bootstrap(scope)
         modelSettingsActions.refreshModelDownloadInfo()
+        _state.value = _state.value.copy(
+            chat = _state.value.chat.copy(isModelStateKnown = true)
+        )
     }
 
     fun refreshDeviceCapability(scope: CoroutineScope? = null) {

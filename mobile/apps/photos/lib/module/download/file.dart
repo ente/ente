@@ -293,6 +293,17 @@ Future<File?> _downloadAndCache(
       });
 }
 
+Future<void> removeFromDownloadCache(EnteFile file) async {
+  if (file.fileType == FileType.video) {
+    await VideoCacheManager.instance.removeFile(file.downloadUrl);
+  } else {
+    await DefaultCacheManager().removeFile(file.downloadUrl);
+    if (file.fileType == FileType.livePhoto) {
+      await VideoCacheManager.instance.removeFile(file.downloadUrl);
+    }
+  }
+}
+
 String getExtension(String nameOrPath) {
   var fileExtension = "unknown";
   try {
@@ -304,11 +315,7 @@ String getExtension(String nameOrPath) {
 }
 
 Future<void> clearCache(EnteFile file) async {
-  if (file.fileType == FileType.video) {
-    await VideoCacheManager.instance.removeFile(file.downloadUrl);
-  } else {
-    await DefaultCacheManager().removeFile(file.downloadUrl);
-  }
+  await removeFromDownloadCache(file);
   final cachedThumbnail = File(
     Configuration.instance.getThumbnailCacheDirectory() +
         "/" +

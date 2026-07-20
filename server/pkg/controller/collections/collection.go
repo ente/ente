@@ -31,6 +31,7 @@ type CollectionController struct {
 	EmailCtrl             *email.EmailNotificationController
 	AccessCtrl            access.Controller
 	BillingCtrl           *controller.BillingController
+	UserLookup            controller.UserLookup
 	CollectionRepo        *repo.CollectionRepository
 	UserRepo              *repo.UserRepository
 	FileRepo              *repo.FileRepository

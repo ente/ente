@@ -38,6 +38,37 @@ import 'package:photos/utils/dialog_util.dart';
 
 final _logger = Logger("DeleteFileUtil");
 
+Future<({Set<String> deletedIDs, Set<String> trashedIDs})>
+_tryTrashOrDeleteFiles(List<String> assetIDs) async {
+  if (assetIDs.isEmpty) {
+    return (deletedIDs: <String>{}, trashedIDs: <String>{});
+  }
+  try {
+    if (flagService.internalUser &&
+        Platform.isAndroid &&
+        !await isAndroidSDKVersionLowerThan(android11SDKINT)) {
+      final assets = (await Future.wait(
+        assetIDs.map(AssetEntity.fromId),
+      )).whereType<AssetEntity>().toList();
+      return (
+        deletedIDs: <String>{},
+        trashedIDs: (await PhotoManager.editor.android.moveToTrash(
+          assets,
+        )).toSet(),
+      );
+    }
+    final removedIDs = (await PhotoManager.editor.deleteWithIds(
+      assetIDs,
+    )).toSet();
+    return Platform.isAndroid
+        ? (deletedIDs: removedIDs, trashedIDs: <String>{})
+        : (deletedIDs: <String>{}, trashedIDs: removedIDs);
+  } catch (e, s) {
+    _logger.severe("Could not delete file", e, s);
+    return (deletedIDs: <String>{}, trashedIDs: <String>{});
+  }
+}
+
 Future<void> deleteFilesFromEverywhere(
   BuildContext context,
   List<EnteFile> files,
@@ -45,7 +76,7 @@ Future<void> deleteFilesFromEverywhere(
   _logger.info("Trying to deleteFilesFromEverywhere " + files.toString());
   final List<String> localAssetIDs = [];
   final List<String> localSharedMediaIDs = [];
-  final List<String> alreadyDeletedIDs = []; // to ignore already deleted files
+  final List<String> alreadyDeletedIDs = []; // Files already missing from disk.
   bool hasLocalOnlyFiles = false;
   for (final file in files) {
     if (file.localID != null) {
@@ -62,22 +93,17 @@ Future<void> deleteFilesFromEverywhere(
       hasLocalOnlyFiles = true;
     }
   }
-  Set<String> deletedIDs = <String>{};
-  try {
-    deletedIDs = (await PhotoManager.editor.deleteWithIds(
-      localAssetIDs,
-    )).toSet();
-  } catch (e, s) {
-    _logger.severe("Could not delete file", e, s);
-  }
-  deletedIDs.addAll(await _tryDeleteSharedMediaFiles(localSharedMediaIDs));
+  final result = await _tryTrashOrDeleteFiles(localAssetIDs);
+  final deletedIDs = result.deletedIDs
+    ..addAll(await _tryDeleteSharedMediaFiles(localSharedMediaIDs));
+  final removedIDs = deletedIDs.union(result.trashedIDs);
   final updatedCollectionIDs = <int>{};
   final List<TrashRequest> uploadedFilesToBeTrashed = [];
   final List<EnteFile> deletedFiles = [];
   for (final file in files) {
     if (file.localID != null) {
-      // Remove only those files that have already been removed from disk
-      if (deletedIDs.contains(file.localID) ||
+      // Handle only files deleted, moved to trash, or already missing.
+      if (removedIDs.contains(file.localID) ||
           alreadyDeletedIDs.contains(file.localID)) {
         deletedFiles.add(file);
         if (file.uploadedFileID != null) {
@@ -130,11 +156,10 @@ Future<void> deleteFilesFromEverywhere(
       ),
     );
     if (context.mounted) {
-      if (hasLocalOnlyFiles && Platform.isAndroid) {
-        showShortToast(context, AppLocalizations.of(context).filesDeleted);
-      } else {
-        showShortToast(context, AppLocalizations.of(context).movedToTrash);
-      }
+      final message = hasLocalOnlyFiles && deletedIDs.isNotEmpty
+          ? AppLocalizations.of(context).filesDeleted
+          : AppLocalizations.of(context).movedToTrash;
+      showShortToast(context, message);
     }
   }
   if (uploadedFilesToBeTrashed.isNotEmpty) {
@@ -202,9 +227,8 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
   _logger.info("Trying to deleteFilesOnDeviceOnly" + files.toString());
   final List<String> localAssetIDs = [];
   final List<String> localSharedMediaIDs = [];
-  final List<String> alreadyDeletedIDs = []; // to ignore already deleted files
-  final List<String?> localOnlyIDs = [];
-  bool hasLocalOnlyFiles = false;
+  final List<String> alreadyDeletedIDs = []; // Files already missing from disk.
+  final localOnlyIDs = <String?>{};
   for (final file in files) {
     if (file.localID != null) {
       if (!(await _localFileExist(file))) {
@@ -217,26 +241,20 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
       }
     }
     if (file.uploadedFileID == null) {
-      hasLocalOnlyFiles = true;
       localOnlyIDs.add(file.localID);
     }
   }
-  Set<String> deletedIDs = <String>{};
-  try {
-    deletedIDs = (await PhotoManager.editor.deleteWithIds(
-      localAssetIDs,
-    )).toSet();
-  } catch (e, s) {
-    _logger.severe("Could not delete file", e, s);
-  }
-  deletedIDs.addAll(await _tryDeleteSharedMediaFiles(localSharedMediaIDs));
+  final result = await _tryTrashOrDeleteFiles(localAssetIDs);
+  final deletedIDs = result.deletedIDs
+    ..addAll(await _tryDeleteSharedMediaFiles(localSharedMediaIDs));
+  final removedIDs = deletedIDs.union(result.trashedIDs);
   final List<EnteFile> deletedFiles = [];
   for (final file in files) {
-    // Remove only those files that have been removed from disk
-    if (deletedIDs.contains(file.localID) ||
+    // Handle only files deleted, moved to trash, or already missing.
+    if (removedIDs.contains(file.localID) ||
         alreadyDeletedIDs.contains(file.localID)) {
       deletedFiles.add(file);
-      if (hasLocalOnlyFiles && localOnlyIDs.contains(file.localID)) {
+      if (localOnlyIDs.contains(file.localID)) {
         await FilesDB.instance.deleteLocalFile(file);
       } else {
         file.localID = null;
@@ -252,6 +270,12 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
         source: "deleteFilesOnDeviceOnly",
       ),
     );
+  }
+  if (removedIDs.isNotEmpty && context.mounted) {
+    final message = deletedIDs.isNotEmpty
+        ? AppLocalizations.of(context).filesDeleted
+        : AppLocalizations.of(context).movedToTrash;
+    showShortToast(context, message);
   }
   return deletedFiles;
 }

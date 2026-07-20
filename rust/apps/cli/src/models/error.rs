@@ -7,9 +7,6 @@ pub enum Error {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
-    #[error("Network error: {0}")]
-    Network(#[from] reqwest::Error),
-
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
 
@@ -40,15 +37,26 @@ pub enum Error {
     #[error("ZIP error: {0}")]
     Zip(#[from] zip::result::ZipError),
 
-    #[error("API error ({status}): {message}")]
-    ApiError {
-        status: u16,
-        code: Option<String>,
-        message: String,
-    },
+    #[error(transparent)]
+    Http(#[from] ente_core::http::Error),
 
     #[error("{0}")]
     Generic(String),
+}
+
+impl From<ente_paste::Error> for Error {
+    fn from(err: ente_paste::Error) -> Self {
+        use ente_paste::Error as E;
+        match err {
+            E::Http(source) => Error::Http(source),
+            E::Crypto(source) => Error::from(source),
+            E::IncorrectPassword => {
+                Error::AuthenticationFailed("Incorrect paste password".to_string())
+            }
+            E::InvalidInput(message) => Error::InvalidInput(message),
+            other => Error::Generic(other.to_string()),
+        }
+    }
 }
 
 impl From<crypto::Error> for Error {
@@ -84,27 +92,7 @@ impl From<AuthError> for Error {
 impl From<AccountsError> for Error {
     fn from(err: AccountsError) -> Self {
         match err {
-            AccountsError::Http(error) => {
-                let message = error.to_string();
-                match error {
-                    ente_core::http::Error::Http { status, .. } => Error::ApiError {
-                        status,
-                        code: None,
-                        message,
-                    },
-                    ente_core::http::Error::Api { status, code, .. } => Error::ApiError {
-                        status,
-                        code: Some(code),
-                        message,
-                    },
-                    ente_core::http::Error::Network(_) => {
-                        Error::Generic(format!("Network error: {message}"))
-                    }
-                    ente_core::http::Error::Parse(_) => {
-                        Error::Generic(format!("JSON parse error: {message}"))
-                    }
-                }
-            }
+            AccountsError::Http(error) => Error::from(error),
             AccountsError::Serialization(source) => Error::Serialization(source),
             AccountsError::Crypto(message) => Error::Crypto(message),
             AccountsError::AuthenticationFailed(message) => Error::AuthenticationFailed(message),

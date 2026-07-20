@@ -1,8 +1,8 @@
+import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/module/metadata/exif.dart';
-import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/common/loading_widget.dart';
 
 class ExifInfoDialog extends StatelessWidget {
@@ -11,34 +11,30 @@ class ExifInfoDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = getEnteTextTheme(context);
-    return AlertDialog(
-      title: Column(
+    final colors = context.componentColors;
+    return BottomSheetComponent(
+      title: AppLocalizations.of(context).exif,
+      isScrollable: true,
+      snap: true,
+      initialChildSize: 0.75,
+      snapSizes: const [0.5, 0.75, 0.95],
+      content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(AppLocalizations.of(context).exif, style: textTheme.h3Bold),
-          Text(file.title!, style: textTheme.smallMuted),
+          Text(
+            file.title!,
+            style: TextStyles.body.copyWith(color: colors.textLight),
+          ),
+          const SizedBox(height: Spacing.lg),
+          _getInfo(context),
         ],
       ),
-      content: Scrollbar(
-        thumbVisibility: true,
-        child: SingleChildScrollView(child: _getInfo()),
-      ),
-      actions: [
-        TextButton(
-          child: Text(
-            AppLocalizations.of(context).close,
-            style: textTheme.body,
-          ),
-          onPressed: () {
-            Navigator.of(context).pop('dialog');
-          },
-        ),
-      ],
     );
   }
 
-  Widget _getInfo() {
+  Widget _getInfo(BuildContext context) {
+    final colors = context.componentColors;
     return FutureBuilder(
       future: getExif(file),
       builder: (BuildContext context, AsyncSnapshot snapshot) {
@@ -48,27 +44,11 @@ class ExifInfoDialog extends StatelessWidget {
               .map((entry) => "${entry.key}: ${entry.value}")
               .join("\n");
           if (data.isEmpty) {
-            data = "no exif data found";
+            data = AppLocalizations.of(context).noExifData;
           }
-          return Container(
-            padding: const EdgeInsets.all(2),
-            color: Colors.white.withValues(alpha: 0.05),
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Text(
-                  data,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                    height: 1.4,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-                ),
-              ),
-            ),
+          return Text(
+            data,
+            style: TextStyles.body.copyWith(color: colors.textLight),
           );
         } else {
           return const EnteLoadingWidget();

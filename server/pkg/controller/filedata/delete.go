@@ -83,12 +83,15 @@ func (c *Controller) deleteFileRow(fileDataRow filedata.Row) error {
 		return err
 	}
 	if fileDataRow.UserID != ownerID {
-		// this should never happen
-		panic(fmt.Sprintf("file %d does not belong to user %d", fileID, ownerID))
+		return c.reportDeletionInvariant(fileDataRow, fmt.Errorf(
+			"file data owner mismatch for file %d: row user %d, file owner %d",
+			fileID, fileDataRow.UserID, ownerID))
 	}
 	ctxLogger := log.WithField("file_id", fileDataRow.DeleteFromBuckets).WithField("type", fileDataRow.Type).WithField("user_id", fileDataRow.UserID)
 	if fileDataRow.Type != ente.MlData {
-		panic(fmt.Sprintf("unsupported object type for filedata deletion %s", fileDataRow.Type))
+		return c.reportDeletionInvariant(fileDataRow, fmt.Errorf(
+			"unexpected file data type for deletion: got %s, want %s",
+			fileDataRow.Type, ente.MlData))
 	}
 	objectKeys := filedata.AllObjects(fileID, ownerID, fileDataRow.Type)
 	bucketColumnMap, err := getMapOfBucketItToColumn(fileDataRow)
@@ -127,9 +130,8 @@ func (c *Controller) deleteFileRow(fileDataRow filedata.Row) error {
 			return err
 		}
 	}
-	dbErr := c.Repo.DeleteFileData(context.Background(), fileDataRow)
-	if dbErr != nil {
-		ctxLogger.WithError(dbErr).Error("Failed to remove from db")
+	if err := c.Repo.DeleteFileData(context.Background(), fileDataRow); err != nil {
+		ctxLogger.WithError(err).Error("Failed to remove from db")
 		return err
 	}
 	return nil
@@ -145,12 +147,15 @@ func (c *Controller) deleteFileRowV2(fileDataRow filedata.Row) error {
 		return err
 	}
 	if fileDataRow.UserID != ownerID {
-		// this should never happen
-		panic(fmt.Sprintf("file %d does not belong to user %d", fileID, ownerID))
+		return c.reportDeletionInvariant(fileDataRow, fmt.Errorf(
+			"file data owner mismatch for file %d: row user %d, file owner %d",
+			fileID, fileDataRow.UserID, ownerID))
 	}
 	ctxLogger := log.WithField("file_id", fileDataRow.DeleteFromBuckets).WithField("type", fileDataRow.Type).WithField("user_id", fileDataRow.UserID)
 	if fileDataRow.Type != ente.PreviewVideo {
-		panic(fmt.Sprintf("unsupported object type for filedata deletion %s", fileDataRow.Type))
+		return c.reportDeletionInvariant(fileDataRow, fmt.Errorf(
+			"unexpected file data type for deletion: got %s, want %s",
+			fileDataRow.Type, ente.PreviewVideo))
 	}
 	delPrefix := filedata.DeletePrefix(fileID, ownerID, fileDataRow.Type)
 
@@ -188,9 +193,8 @@ func (c *Controller) deleteFileRowV2(fileDataRow filedata.Row) error {
 		return err
 	}
 
-	dbErr := c.Repo.DeleteFileData(context.Background(), fileDataRow)
-	if dbErr != nil {
-		ctxLogger.WithError(dbErr).Error("Failed to remove from db")
+	if err := c.Repo.DeleteFileData(context.Background(), fileDataRow); err != nil {
+		ctxLogger.WithError(err).Error("Failed to remove from db")
 		return err
 	}
 	return nil
@@ -217,4 +221,14 @@ func getMapOfBucketItToColumn(row filedata.Row) (map[string]string, error) {
 		bucketColumnMap[bucketID] = fileDataRepo.InflightRepColumn
 	}
 	return bucketColumnMap, nil
+}
+
+func (c *Controller) reportDeletionInvariant(row filedata.Row, err error) error {
+	log.WithFields(log.Fields{
+		"file_id": row.FileID,
+		"user_id": row.UserID,
+		"type":    row.Type,
+	}).WithError(err).Error("File data deletion invariant failed")
+	c.DiscordController.Notify(fmt.Sprintf("%s: file data deletion invariant failed: %v", c.DiscordController.HostName, err))
+	return err
 }

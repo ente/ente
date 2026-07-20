@@ -45,11 +45,19 @@ class _AppVersionWidgetState extends State<AppVersionWidget> {
         future: _getAppVersion(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(
-                "Version: ${snapshot.data!}",
-                style: Theme.of(context).textTheme.bodySmall,
+            return SizedBox(
+              width: double.infinity,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Semantics(
+                  identifier: 'auth_settings_app_version',
+                  child: Center(
+                    child: Text(
+                      "Version: ${snapshot.data!}",
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ),
               ),
             );
           }

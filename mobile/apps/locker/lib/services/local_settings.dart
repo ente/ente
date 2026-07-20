@@ -6,6 +6,7 @@ class LocalSettings {
 
   static const _legacySetupBannerDismissedKey =
       "ls.legacy_setup_banner_dismissed";
+  static const _hasSetupLegacyKitKey = "ls.has_setup_legacy_kit";
 
   late final SharedPreferences _prefs;
 
@@ -18,4 +19,9 @@ class LocalSettings {
 
   Future<void> setLegacySetupBannerDismissed(bool value) =>
       _prefs.setBool(_legacySetupBannerDismissedKey, value);
+
+  bool get hasSetupLegacyKit => _prefs.getBool(_hasSetupLegacyKitKey) ?? false;
+
+  Future<void> setHasSetupLegacyKit(bool value) =>
+      _prefs.setBool(_hasSetupLegacyKitKey, value);
 }

@@ -1,0 +1,1 @@
+- Reduced app storage growth by removing remote photos downloaded for machine learning after indexing.

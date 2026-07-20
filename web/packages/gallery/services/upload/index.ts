@@ -494,6 +494,7 @@ export type UploadResult =
     | { type: "unsupported" }
     | { type: "zeroSize" }
     | { type: "tooLarge" }
+    | { type: "partnerShared" }
     | { type: "largerThanAvailableStorage" }
     | { type: "blocked" }
     | { type: "failed" }

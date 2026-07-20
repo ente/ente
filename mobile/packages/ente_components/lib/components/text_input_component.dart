@@ -607,6 +607,7 @@ class _TextInputComponentState extends State<TextInputComponent> {
     if (widget.onSubmit == null || widget.isDisabled || _isSubmitting) {
       return;
     }
+    final popNavAfterSubmission = widget.popNavAfterSubmission;
 
     setState(() {
       _isSubmitting = true;
@@ -619,18 +620,19 @@ class _TextInputComponentState extends State<TextInputComponent> {
     try {
       await widget.onSubmit!.call(_controller.text);
     } catch (error) {
-      if (error.toString().contains('Incorrect password')) {
-        _surfaceWrongPasswordState();
-      }
       if (mounted) {
+        if (error.toString().contains('Incorrect password')) {
+          _surfaceWrongPasswordState();
+        }
         setState(() => _isSubmitting = false);
+        if (popNavAfterSubmission) {
+          _popNavigatorStack(
+            context,
+            e: error is Exception ? error : Exception(error.toString()),
+          );
+        }
       }
-      if (widget.popNavAfterSubmission) {
-        _popNavigatorStack(
-          context,
-          e: error is Exception ? error : Exception(error.toString()),
-        );
-      } else {
+      if (!popNavAfterSubmission) {
         rethrow;
       }
       return;

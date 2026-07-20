@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base64::{Engine, engine::general_purpose::URL_SAFE};
@@ -22,6 +24,8 @@ pub struct TestAccount {
     pub user_id: i64,
     pub auth_token: String,
     pub master_key: Vec<u8>,
+    pub secret_key: Vec<u8>,
+    pub public_key: Vec<u8>,
     pub key_attributes: KeyAttributes,
 }
 
@@ -223,6 +227,8 @@ pub fn test_account_from_authenticated(
         user_id: authenticated.user_id,
         auth_token: auth_token_from_authenticated(&authenticated),
         master_key: authenticated.secrets.master_key.clone(),
+        secret_key: authenticated.secrets.secret_key.clone(),
+        public_key: authenticated.secrets.public_key.clone(),
         key_attributes: authenticated.key_attributes,
     }
 }
@@ -279,7 +285,7 @@ fn decode_base32(secret: &str) -> Vec<u8> {
 fn accounts_client(endpoint: &str) -> CliResult<AccountsClient> {
     AccountsClient::new(
         AccountsClientConfig::new(App::Photos.client_package())
-            .with_base_url(endpoint.to_string())
+            .with_origin(endpoint.to_string())
             .with_user_agent("ente-e2e"),
     )
 }

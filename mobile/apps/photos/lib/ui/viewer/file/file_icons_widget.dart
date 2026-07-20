@@ -7,6 +7,7 @@ import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/file/file.dart";
 import 'package:photos/models/file/trash_file.dart';
 import 'package:photos/ui/sharing/user_avator_widget.dart';
+import "package:photos/utils/avatar_util.dart";
 
 class ThumbnailPlaceHolder extends StatelessWidget {
   final Color? color;
@@ -136,10 +137,12 @@ class VideoOverlayDuration extends StatelessWidget {
 class OwnerAvatarOverlayIcon extends StatelessWidget {
   final User user;
   final AvatarType type;
+  final AvatarIdentity? fallbackIdentity;
   const OwnerAvatarOverlayIcon(
     this.user, {
     super.key,
     this.type = AvatarType.small,
+    this.fallbackIdentity,
   });
 
   @override
@@ -148,7 +151,12 @@ class OwnerAvatarOverlayIcon extends StatelessWidget {
       alignment: Alignment.topRight,
       child: Padding(
         padding: const EdgeInsets.only(right: 4, top: 4),
-        child: UserAvatarWidget(user, type: type, thumbnailView: true),
+        child: UserAvatarWidget(
+          user,
+          type: type,
+          thumbnailView: true,
+          fallbackIdentity: fallbackIdentity,
+        ),
       ),
     );
   }

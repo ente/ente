@@ -35,12 +35,22 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type SpaceAccessResetter interface {
+	ResetUserAccess(ctx context.Context, userID int64) error
+	RevokeBrowserSessions(ctx context.Context, userID int64) error
+}
+
+type SpaceAccountDeletionAccessResetter interface {
+	ResetAccountDeletionAccess(ctx context.Context, userID int64) error
+}
+
 // UserController exposes request handlers for all user related requests
 type UserController struct {
 	UserRepo                *repo.UserRepository
 	TwoFactorRecoveryRepo   *two_factor_recovery.Repository
 	UsageRepo               *repo.UsageRepository
 	UserAuthRepo            *repo.UserAuthRepository
+	UserLookup              controller.UserLookup
 	TwoFactorRepo           *repo.TwoFactorRepository
 	PasskeyRepo             *passkey.Repository
 	StorageBonusRepo        *storageBonusRepo.Repository
@@ -56,6 +66,7 @@ type UserController struct {
 	DiscordController       *discord.DiscordController
 	MailingListsController  *controller.MailingListsController
 	PushController          *controller.PushController
+	SpaceAccessResetter     SpaceAccessResetter
 	ContactRepo             *contactrepo.Repository
 	HashingKey              []byte
 	SecretEncryptionKey     []byte
@@ -131,6 +142,7 @@ func NewUserController(
 	billingController *controller.BillingController,
 	familyController *family.Controller,
 	discordController *discord.DiscordController,
+	userLookup controller.UserLookup,
 	mailingListsController *controller.MailingListsController,
 	pushController *controller.PushController,
 	userCache *cache2.UserCache,
@@ -145,6 +157,7 @@ func NewUserController(
 		UsageRepo:               usageRepo,
 		TwoFactorRecoveryRepo:   twoFactorRecoveryRepo,
 		UserAuthRepo:            userAuthRepo,
+		UserLookup:              userLookup,
 		StorageBonusRepo:        storageBonusRepo,
 		TwoFactorRepo:           twoFactorRepo,
 		AuthenticatorRepo:       authenticatorRepo,
@@ -230,8 +243,8 @@ func (c *UserController) SetRecoveryKey(userID int64, request ente.SetRecoveryKe
 }
 
 // GetPublicKey returns the public key of a user
-func (c *UserController) GetPublicKey(email string) (string, error) {
-	userID, err := c.UserRepo.GetUserIDWithEmail(email)
+func (c *UserController) GetPublicKey(requesterUserID int64, email string) (string, error) {
+	userID, err := c.UserLookup.LookupUserID(requesterUserID, email)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
@@ -260,6 +273,31 @@ func (c *UserController) HandleAutomatedAccountDeletion(ctx context.Context, use
 }
 
 func (c *UserController) ResetUserAccess(ctx context.Context, userID int64, logger *logrus.Entry) error {
+	return c.resetUserAccess(ctx, userID, logger, false)
+}
+
+func (c *UserController) resetAccountDeletionAccess(ctx context.Context, userID int64, logger *logrus.Entry) error {
+	return c.resetUserAccess(ctx, userID, logger, true)
+}
+
+func (c *UserController) resetUserAccess(ctx context.Context, userID int64, logger *logrus.Entry, accountDeletion bool) error {
+	if c.SpaceAccessResetter != nil {
+		logger.Info("reset space access for user")
+		var err error
+		if accountDeletion {
+			if resetter, ok := c.SpaceAccessResetter.(SpaceAccountDeletionAccessResetter); ok {
+				err = resetter.ResetAccountDeletionAccess(ctx, userID)
+			} else {
+				err = c.SpaceAccessResetter.ResetUserAccess(ctx, userID)
+			}
+		} else {
+			err = c.SpaceAccessResetter.ResetUserAccess(ctx, userID)
+		}
+		if err != nil {
+			return stacktrace.Propagate(err, "")
+		}
+	}
+
 	logger.Info("remove locker and photos tokens for user")
 	if err := c.RemoveTokensForApps(userID, []ente.App{ente.Locker, ente.Photos}); err != nil {
 		return stacktrace.Propagate(err, "")
@@ -286,7 +324,7 @@ func (c *UserController) handleAccountDeletion(
 		return nil, stacktrace.Propagate(err, "")
 	}
 
-	err = c.ResetUserAccess(ctx, userID, logger)
+	err = c.resetAccountDeletionAccess(ctx, userID, logger)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}

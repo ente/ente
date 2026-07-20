@@ -16,12 +16,15 @@ const _pickedImagesDirectoryName = 'picked_images';
 
 class GalleryImportResult {
   final Code? code;
-  final List<Code>? googleAuthCodes;
+  final GoogleAuthMigration? googleAuthMigration;
 
-  const GalleryImportResult.code(Code this.code) : googleAuthCodes = null;
+  const GalleryImportResult.code(Code this.code) : googleAuthMigration = null;
 
-  const GalleryImportResult.googleAuthCodes(List<Code> this.googleAuthCodes)
-    : code = null;
+  const GalleryImportResult.googleAuthMigration(
+    GoogleAuthMigration this.googleAuthMigration,
+  ) : code = null;
+
+  List<Code>? get googleAuthCodes => googleAuthMigration?.codes;
 }
 
 Future<Directory> _getPickedImagesDirectory({
@@ -32,9 +35,19 @@ Future<Directory> _getPickedImagesDirectory({
   return Directory(p.join(documentsDirectory.path, _pickedImagesDirectoryName));
 }
 
-Future<File?> _getManagedPickedGalleryImage(
+class _PickedImageCleanup {
+  const _PickedImageCleanup(this.file, {required this.excludeParentFromBackup});
+
+  final File file;
+  final bool excludeParentFromBackup;
+}
+
+Future<_PickedImageCleanup?> _getPickedImageCleanup(
   String imagePath, {
+  bool includeTemporaryDirectory = false,
   Future<Directory> Function()? documentsDirectoryProvider,
+  Future<Directory> Function()? temporaryDirectoryProvider,
+  Directory? systemTemporaryDirectory,
 }) async {
   if (!Platform.isIOS) {
     return null;
@@ -43,13 +56,30 @@ Future<File?> _getManagedPickedGalleryImage(
   final pickedImagesDirectory = await _getPickedImagesDirectory(
     documentsDirectoryProvider: documentsDirectoryProvider,
   );
-  if (!p.isWithin(
+  if (p.isWithin(
     p.normalize(pickedImagesDirectory.path),
     p.normalize(imagePath),
   )) {
-    return null;
+    return _PickedImageCleanup(File(imagePath), excludeParentFromBackup: true);
   }
-  return File(imagePath);
+
+  if (!includeTemporaryDirectory) return null;
+  final temporaryDirectories = <Directory>[
+    await (temporaryDirectoryProvider ?? getTemporaryDirectory)(),
+    systemTemporaryDirectory ?? Directory.systemTemp,
+  ];
+  for (final temporaryDirectory in temporaryDirectories) {
+    if (p.isWithin(
+      p.normalize(temporaryDirectory.path),
+      p.normalize(imagePath),
+    )) {
+      return _PickedImageCleanup(
+        File(imagePath),
+        excludeParentFromBackup: false,
+      );
+    }
+  }
+  return null;
 }
 
 Future<void> _clearPickedImagesDirectoryContents(
@@ -103,27 +133,31 @@ Future<void> cleanupPickedImagesOnStartup({Logger? logger}) async {
 
 GalleryImportResult parseQrImportPayload(String qrCodeData) {
   if (isGoogleAuthExportQr(qrCodeData)) {
-    final codes = parseGoogleAuth(qrCodeData);
-    if (codes.isEmpty) {
+    final migration = parseGoogleAuthMigration(qrCodeData);
+    if (migration.codes.isEmpty) {
       throw const FormatException('No Google Authenticator codes found');
     }
-    return GalleryImportResult.googleAuthCodes(codes);
+    return GalleryImportResult.googleAuthMigration(migration);
   }
   return GalleryImportResult.code(Code.fromOTPAuthUrl(qrCodeData));
 }
 
 /// Prompts the user to pick an image and tries to extract auth codes from it.
 /// Returns the parsed QR import result when successful, otherwise null.
-Future<GalleryImportResult?> pickCodeFromGallery(
+Future<GalleryImportResult?> pickCodeFromImage(
   BuildContext context, {
   Logger? logger,
+  bool pickFromFiles = false,
 }) async {
   final l10n = context.l10n;
 
   try {
     if (!context.mounted) return null;
     final FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
+      type: pickFromFiles ? FileType.custom : FileType.image,
+      allowedExtensions: pickFromFiles
+          ? const ['png', 'jpg', 'jpeg', 'webp', 'heic']
+          : null,
     );
 
     if (result == null || result.files.single.path == null) {
@@ -131,9 +165,12 @@ Future<GalleryImportResult?> pickCodeFromGallery(
     }
 
     final String imagePath = result.files.single.path!;
-    final managedPickedImage = await _getManagedPickedGalleryImage(imagePath);
-    if (managedPickedImage != null) {
-      await excludeFromBackup(managedPickedImage.parent.path);
+    final pickedImageCleanup = await _getPickedImageCleanup(
+      imagePath,
+      includeTemporaryDirectory: pickFromFiles,
+    );
+    if (pickedImageCleanup?.excludeParentFromBackup ?? false) {
+      await excludeFromBackup(pickedImageCleanup!.file.parent.path);
     }
 
     try {
@@ -177,9 +214,9 @@ Future<GalleryImportResult?> pickCodeFromGallery(
       );
       return null;
     } finally {
-      if (managedPickedImage != null) {
+      if (pickedImageCleanup != null) {
         await _cleanupPickedGalleryImageIfNeeded(
-          managedPickedImage,
+          pickedImageCleanup.file,
           logger: logger,
         );
       }

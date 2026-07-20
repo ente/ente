@@ -5,31 +5,38 @@ import "package:ente_auth/l10n/l10n.dart";
 import 'package:ente_auth/models/all_icon_data.dart';
 import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/models/code_display.dart';
-import 'package:ente_auth/onboarding/model/tag_enums.dart';
-import 'package:ente_auth/onboarding/view/common/add_chip.dart';
-import 'package:ente_auth/onboarding/view/common/add_tag.dart';
-import 'package:ente_auth/onboarding/view/common/field_label.dart';
-import 'package:ente_auth/onboarding/view/common/tag_chip.dart';
 import 'package:ente_auth/store/code_display_store.dart';
-import 'package:ente_auth/theme/ente_theme.dart';
-import 'package:ente_auth/ui/algorithm_selector_widget.dart';
 import 'package:ente_auth/ui/components/buttons/button_widget.dart';
 import 'package:ente_auth/ui/components/custom_icon_widget.dart';
 import 'package:ente_auth/ui/components/models/button_result.dart';
 import 'package:ente_auth/ui/custom_icon_page.dart';
-import 'package:ente_auth/ui/topt_selector_widget.dart';
+import 'package:ente_auth/ui/settings/components/auth_settings_page_scaffold.dart';
 import 'package:ente_auth/ui/utils/icon_utils.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_auth/utils/toast_util.dart';
 import 'package:ente_auth/utils/totp_util.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_events/event_bus.dart';
 import "package:flutter/material.dart";
+import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 
 class SetupEnterSecretKeyPage extends StatefulWidget {
+  static const manualCodeTextLimit = 200;
+
   final Code? code;
 
   SetupEnterSecretKeyPage({this.code, super.key});
+
+  static int? manualCodeTextLimitFor(Code? code) {
+    if (code == null ||
+        (code.issuer.length < manualCodeTextLimit &&
+            code.account.length < manualCodeTextLimit &&
+            code.secret.length < manualCodeTextLimit)) {
+      return manualCodeTextLimit;
+    }
+    return null;
+  }
 
   @override
   State<SetupEnterSecretKeyPage> createState() =>
@@ -39,16 +46,15 @@ class SetupEnterSecretKeyPage extends StatefulWidget {
 class _SetupEnterSecretKeyPageState extends State<SetupEnterSecretKeyPage> {
   final Logger _logger = Logger('_SetupEnterSecretKeyPageState');
   final int _notesLimit = 500;
-  final int _otherTextLimit = 200;
   final int defaultDigits = 6;
   final int defaultPeriodInSeconds = 30;
+  late final int? _textLimit;
   late TextEditingController _issuerController;
   late TextEditingController _accountController;
   late TextEditingController _secretController;
   late TextEditingController _notesController;
   late TextEditingController _digitsController;
   late TextEditingController _periodController;
-  late bool _secretKeyObscured;
   late List<String> selectedTags = [...?widget.code?.display.tags];
   List<String> allTags = [];
   StreamSubscription<CodesUpdatedEvent>? _streamSubscription;
@@ -61,6 +67,7 @@ class _SetupEnterSecretKeyPageState extends State<SetupEnterSecretKeyPage> {
 
   @override
   void initState() {
+    _textLimit = SetupEnterSecretKeyPage.manualCodeTextLimitFor(widget.code);
     _issuerController = TextEditingController(
       text: widget.code != null ? safeDecode(widget.code!.issuer).trim() : null,
     );
@@ -82,7 +89,6 @@ class _SetupEnterSecretKeyPageState extends State<SetupEnterSecretKeyPage> {
           : defaultPeriodInSeconds.toString(),
     );
 
-    _secretKeyObscured = widget.code != null;
     _loadTags();
     _streamSubscription = Bus.instance.on<CodesUpdatedEvent>().listen((event) {
       _loadTags();
@@ -96,15 +102,6 @@ class _SetupEnterSecretKeyPageState extends State<SetupEnterSecretKeyPage> {
         showToast(context, context.l10n.notesLengthLimit(_notesLimit));
       }
     });
-
-    if (widget.code == null ||
-        (widget.code!.issuer.length < _otherTextLimit &&
-            widget.code!.account.length < _otherTextLimit &&
-            widget.code!.secret.length < _otherTextLimit)) {
-      _limitTextLength(_issuerController, _otherTextLimit);
-      _limitTextLength(_accountController, _otherTextLimit);
-      _limitTextLength(_secretController, _otherTextLimit);
-    }
 
     isCustomIcon = widget.code?.display.isCustomIcon ?? false;
     if (isCustomIcon) {
@@ -124,25 +121,16 @@ class _SetupEnterSecretKeyPageState extends State<SetupEnterSecretKeyPage> {
     super.initState();
   }
 
-  void _limitTextLength(TextEditingController controller, int limit) {
-    controller.addListener(() {
-      if (controller.text.length > limit) {
-        controller.text = controller.text.substring(0, limit);
-        controller.selection = TextSelection.fromPosition(
-          TextPosition(offset: controller.text.length),
-        );
-      }
-    });
-  }
-
   @override
   void dispose() {
     _streamSubscription?.cancel();
     _issuerController.dispose();
     _accountController.dispose();
+    _secretController.dispose();
     _notesController.dispose();
     _digitsController.dispose();
     _periodController.dispose();
+    showAdvancedOptions.dispose();
     super.dispose();
   }
 
@@ -156,268 +144,380 @@ class _SetupEnterSecretKeyPageState extends State<SetupEnterSecretKeyPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.importAccountPageTitle)),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              if (widget.code != null)
-                GestureDetector(
-                  onTap: () async {
-                    await navigateToCustomIconPage();
-                  },
-                  child: CustomIconWidget(iconData: _customIconID),
-                ),
-              const SizedBox(height: 20),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return AuthSettingsPageScaffold(
+      title: l10n.importAccountPageTitle,
+      children: [
+        Semantics(
+          identifier: 'auth_manual_code_page',
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    children: [
-                      FieldLabel(l10n.codeIssuerHint),
-                      Expanded(
-                        child: TextFormField(
-                          // The validator receives the text that the user has entered.
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return "Please enter some text";
-                            }
-                            return null;
-                          },
-                          decoration: const InputDecoration(
-                            contentPadding: EdgeInsets.symmetric(
-                              vertical: 12.0,
-                            ),
+                  if (widget.code != null) ...[
+                    Semantics(
+                      identifier: 'auth_manual_code_icon',
+                      button: true,
+                      label: l10n.appIcon,
+                      child: Center(
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(Radii.sheet),
+                          onTap: navigateToCustomIconPage,
+                          child: Padding(
+                            padding: const EdgeInsets.all(Spacing.sm),
+                            child: CustomIconWidget(iconData: _customIconID),
                           ),
-                          style: getEnteTextTheme(context).small,
-                          controller: _issuerController,
-                          autofocus: true,
                         ),
                       ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      FieldLabel(l10n.secret),
-                      Expanded(
-                        child: TextFormField(
-                          // The validator receives the text that the user has entered.
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return "Please enter some text";
-                            }
-                            return null;
-                          },
-                          style: getEnteTextTheme(context).small,
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 12.0,
-                            ),
-                            suffixIcon: GestureDetector(
-                              // padding: EdgeInsets.zero,
-                              onTap: () {
-                                setState(() {
-                                  _secretKeyObscured = !_secretKeyObscured;
-                                });
-                              },
-                              child: _secretKeyObscured
-                                  ? const Icon(
-                                      Icons.visibility_off_rounded,
-                                      size: 18,
-                                    )
-                                  : const Icon(
-                                      Icons.visibility_rounded,
-                                      size: 18,
-                                    ),
-                            ),
-                          ),
-                          obscureText: _secretKeyObscured,
-                          controller: _secretController,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      FieldLabel(l10n.account),
-                      Expanded(
-                        child: TextFormField(
-                          // The validator receives the text that the user has entered.
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return "Please enter some text";
-                            }
-                            return null;
-                          },
-                          decoration: const InputDecoration(
-                            contentPadding: EdgeInsets.symmetric(
-                              vertical: 12.0,
-                            ),
-                          ),
-                          style: getEnteTextTheme(context).small,
-                          controller: _accountController,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      FieldLabel(l10n.notes),
-                      Expanded(
-                        child: TextFormField(
-                          // The validator receives the text that the user has entered.
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return "Please enter some text";
-                            }
-                            if (value.length > _notesLimit) {
-                              return "Notes can't be more than 1000 characters";
-                            }
-                            return null;
-                          },
-                          maxLength: _notesLimit,
-                          minLines: 1,
-                          maxLines: 5,
-                          decoration: const InputDecoration(
-                            contentPadding: EdgeInsets.symmetric(
-                              vertical: 12.0,
-                            ),
-                          ),
-                          style: getEnteTextTheme(context).small,
-                          controller: _notesController,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.start,
-                    children: [
-                      ...allTags.map(
-                        (e) => TagChip(
-                          label: e,
-                          action: TagChipAction.check,
-                          state: selectedTags.contains(e)
-                              ? TagChipState.selected
-                              : TagChipState.unselected,
-                          onTap: () {
-                            if (selectedTags.contains(e)) {
-                              selectedTags.remove(e);
-                            } else {
-                              selectedTags.add(e);
-                            }
-                            setState(() {});
-                          },
-                        ),
-                      ),
-                      AddChip(
-                        onTap: () {
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AddTagDialog(
-                                onTap: (tag) {
-                                  final exist = allTags.contains(tag);
-                                  if (exist && selectedTags.contains(tag)) {
-                                    return Navigator.pop(context);
-                                  }
-                                  if (!exist) allTags.add(tag);
-                                  selectedTags.add(tag);
-                                  setState(() {});
-                                  Navigator.pop(context);
-                                },
-                              );
-                            },
-                            barrierColor: Colors.black.withValues(alpha: 0.85),
-                            barrierDismissible: false,
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  widget.code == null
-                      ? advanceOptionWidget()
-                      : const SizedBox.shrink(),
-                  const SizedBox(height: 40),
-                  SizedBox(
-                    width: 400,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 0),
-                      ),
-                      onPressed: () async {
-                        final digits = int.tryParse(
-                          _digitsController.text.trim(),
-                        );
-                        if (digits != null && (digits < 1 || digits > 10)) {
-                          String message = "Digits must be between 1 and 10";
-                          _showIncorrectDetailsDialog(
-                            context,
-                            message: message,
-                          );
-                          return;
-                        }
-
-                        final period = int.tryParse(
-                          _periodController.text.trim(),
-                        );
-                        if (period != null && (period < 10 || period > 60)) {
-                          String message =
-                              "Period must be between 10 and 60 seconds";
-                          _showIncorrectDetailsDialog(
-                            context,
-                            message: message,
-                          );
-                          return;
-                        }
-
-                        if ((_accountController.text.trim().isEmpty &&
-                                _issuerController.text.trim().isEmpty) ||
-                            _secretController.text.trim().isEmpty ||
-                            _digitsController.text.trim().isEmpty ||
-                            digits == null ||
-                            _periodController.text.trim().isEmpty ||
-                            period == null) {
-                          String message;
-                          if (_secretController.text.trim().isEmpty) {
-                            message = context.l10n.secretCanNotBeEmpty;
-                          } else if (_digitsController.text.isEmpty) {
-                            message = "Digits cannot be empty";
-                          } else if (digits == null) {
-                            message = "Digits is not a integer";
-                          } else if (_periodController.text.isEmpty) {
-                            message = "Period cannot be empty";
-                          } else if (period == null) {
-                            message = "Period is not a integer";
-                          } else {
-                            message =
-                                context.l10n.bothIssuerAndAccountCanNotBeEmpty;
-                          }
-                          _showIncorrectDetailsDialog(
-                            context,
-                            message: message,
-                          );
-                          return;
-                        }
-                        await _saveCode();
-                      },
-                      child: Text(l10n.saveAction),
                     ),
+                    const SizedBox(height: Spacing.xl),
+                  ],
+                  Semantics(
+                    identifier: 'auth_manual_issuer',
+                    child: TextInputComponent(
+                      controller: _issuerController,
+                      label: l10n.codeIssuerHint,
+                      isClearable: true,
+                      maxLength: _textLimit,
+                      textInputAction: TextInputAction.next,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.lg),
+                  Semantics(
+                    identifier: 'auth_manual_secret',
+                    child: TextInputComponent(
+                      controller: _secretController,
+                      label: l10n.secret,
+                      isRequired: true,
+                      isPasswordInput: true,
+                      maxLength: _textLimit,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      textInputAction: TextInputAction.next,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.lg),
+                  Semantics(
+                    identifier: 'auth_manual_account',
+                    child: TextInputComponent(
+                      controller: _accountController,
+                      label: l10n.account,
+                      isClearable: true,
+                      maxLength: _textLimit,
+                      textInputAction: TextInputAction.next,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.lg),
+                  Semantics(
+                    identifier: 'auth_manual_notes',
+                    child: TextInputComponent(
+                      controller: _notesController,
+                      label: l10n.notes,
+                      isClearable: true,
+                      maxLength: _notesLimit,
+                      minLines: 3,
+                      maxLines: 5,
+                      textInputAction: TextInputAction.newline,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.xl),
+                  _buildTags(context),
+                  if (widget.code == null) ...[
+                    const SizedBox(height: Spacing.xl),
+                    _buildAdvancedOptions(context),
+                  ],
+                  const SizedBox(height: Spacing.xxl),
+                  Semantics(
+                    identifier: 'auth_manual_save',
+                    child: ButtonComponent(
+                      label: l10n.saveAction,
+                      onTap: _validateAndSave,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.xl),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTags(BuildContext context) {
+    final colors = context.componentColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          context.l10n.tags,
+          style: TextStyles.bodyBold.copyWith(color: colors.textBase),
+        ),
+        const SizedBox(height: Spacing.sm),
+        Wrap(
+          spacing: Spacing.sm,
+          runSpacing: Spacing.sm,
+          children: [
+            for (final tag in allTags)
+              TagChipComponent(
+                label: tag,
+                state: selectedTags.contains(tag)
+                    ? TagChipComponentState.selected
+                    : TagChipComponentState.unselected,
+                onTap: () => _toggleTag(tag),
+              ),
+            Semantics(
+              button: true,
+              label: context.l10n.addTag,
+              identifier: 'auth_manual_add_tag',
+              child: TagChipComponent(
+                label: context.l10n.addTag,
+                leading: const Icon(Icons.add, size: IconSizes.small),
+                onTap: _createTag,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _toggleTag(String tag) {
+    setState(() {
+      selectedTags.contains(tag)
+          ? selectedTags.remove(tag)
+          : selectedTags.add(tag);
+    });
+  }
+
+  Future<void> _createTag() async {
+    await showTextInputDialog(
+      context,
+      title: context.l10n.createNewTag,
+      label: context.l10n.tag,
+      submitButtonLabel: context.l10n.create,
+      maxLength: 100,
+      onSubmit: (value) async {
+        final tag = value.trim();
+        if (tag.isEmpty) return;
+        if (!allTags.contains(tag)) allTags.add(tag);
+        if (!selectedTags.contains(tag)) selectedTags.add(tag);
+        if (mounted) setState(() {});
+      },
+    );
+  }
+
+  Widget _buildAdvancedOptions(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: showAdvancedOptions,
+      builder: (context, isExpanded, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Semantics(
+              button: true,
+              label: context.l10n.advanced,
+              identifier: 'auth_manual_advanced',
+              child: MenuGroupComponent(
+                items: [
+                  MenuComponent(
+                    title: context.l10n.advanced,
+                    trailing: Icon(
+                      isExpanded
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      size: IconSizes.medium,
+                    ),
+                    onTap: () => showAdvancedOptions.value = !isExpanded,
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              child: !isExpanded
+                  ? const SizedBox.shrink()
+                  : Padding(
+                      padding: const EdgeInsets.only(top: Spacing.lg),
+                      child: Column(
+                        children: [
+                          MenuGroupComponent(
+                            showDividers: true,
+                            dividerPadding: const EdgeInsets.only(
+                              left: Spacing.lg,
+                            ),
+                            items: [
+                              Semantics(
+                                button: true,
+                                label: context.l10n.algorithm,
+                                identifier: 'auth_manual_algorithm',
+                                child: MenuComponent(
+                                  title: context.l10n.algorithm,
+                                  subtitle: _algorithm.name.toUpperCase(),
+                                  trailing: const Icon(
+                                    Icons.chevron_right_outlined,
+                                  ),
+                                  onTap: _selectAlgorithm,
+                                ),
+                              ),
+                              Semantics(
+                                button: true,
+                                label: context.l10n.type,
+                                identifier: 'auth_manual_type',
+                                child: MenuComponent(
+                                  title: context.l10n.type,
+                                  subtitle: _type.name.toUpperCase(),
+                                  trailing: const Icon(
+                                    Icons.chevron_right_outlined,
+                                  ),
+                                  onTap: _selectType,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: Spacing.lg),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Semantics(
+                                  textField: true,
+                                  identifier: 'auth_manual_period',
+                                  child: TextInputComponent(
+                                    controller: _periodController,
+                                    label: context.l10n.period,
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: Spacing.lg),
+                              Expanded(
+                                child: Semantics(
+                                  textField: true,
+                                  identifier: 'auth_manual_digits',
+                                  child: TextInputComponent(
+                                    controller: _digitsController,
+                                    label: context.l10n.digits,
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _selectAlgorithm() async {
+    final selected = await _showOptionPicker<Algorithm>(
+      title: context.l10n.algorithm,
+      values: Algorithm.values,
+      selected: _algorithm,
+      labelFor: (value) => value.name.toUpperCase(),
+    );
+    if (selected != null && mounted) setState(() => _algorithm = selected);
+  }
+
+  Future<void> _selectType() async {
+    final selected = await _showOptionPicker<Type>(
+      title: context.l10n.type,
+      values: Type.values,
+      selected: _type,
+      labelFor: (value) => value.name.toUpperCase(),
+    );
+    if (selected != null && mounted) setState(() => _type = selected);
+  }
+
+  Future<T?> _showOptionPicker<T>({
+    required String title,
+    required List<T> values,
+    required T selected,
+    required String Function(T value) labelFor,
+  }) {
+    return showBottomSheetComponent<T>(
+      context: context,
+      builder: (sheetContext) => BottomSheetComponent(
+        title: title,
+        closeTooltip: context.l10n.close,
+        content: MenuGroupComponent(
+          showDividers: true,
+          items: [
+            for (final value in values)
+              MenuComponent(
+                title: labelFor(value),
+                selected: value == selected,
+                trailing: RadioComponent(
+                  selected: value == selected,
+                  onChanged: (_) => Navigator.of(sheetContext).pop(value),
+                ),
+                onTap: () => Navigator.of(sheetContext).pop(value),
+              ),
+          ],
         ),
       ),
     );
+  }
+
+  Future<void> _validateAndSave() async {
+    final digits = int.tryParse(_digitsController.text.trim());
+    if (digits != null && (digits < 1 || digits > 10)) {
+      _showIncorrectDetailsDialog(
+        context,
+        message: 'Digits must be between 1 and 10',
+      );
+      return;
+    }
+
+    final period = int.tryParse(_periodController.text.trim());
+    if (period != null && (period < 10 || period > 60)) {
+      _showIncorrectDetailsDialog(
+        context,
+        message: 'Period must be between 10 and 60 seconds',
+      );
+      return;
+    }
+
+    if ((_accountController.text.trim().isEmpty &&
+            _issuerController.text.trim().isEmpty) ||
+        _secretController.text.trim().isEmpty ||
+        _digitsController.text.trim().isEmpty ||
+        digits == null ||
+        _periodController.text.trim().isEmpty ||
+        period == null) {
+      final String message;
+      if (_secretController.text.trim().isEmpty) {
+        message = context.l10n.secretCanNotBeEmpty;
+      } else if (_digitsController.text.isEmpty) {
+        message = 'Digits cannot be empty';
+      } else if (digits == null) {
+        message = 'Digits is not an integer';
+      } else if (_periodController.text.isEmpty) {
+        message = 'Period cannot be empty';
+      } else if (period == null) {
+        message = 'Period is not an integer';
+      } else {
+        message = context.l10n.bothIssuerAndAccountCanNotBeEmpty;
+      }
+      _showIncorrectDetailsDialog(context, message: message);
+      return;
+    }
+
+    await _saveCode();
   }
 
   Future<void> _saveCode() async {
@@ -512,161 +612,17 @@ class _SetupEnterSecretKeyPageState extends State<SetupEnterSecretKeyPage> {
     } else {
       currentIcon = widget.code!.issuer;
     }
-    final AllIconData newCustomIcon = await Navigator.of(context).push(
-      MaterialPageRoute(
+    final AllIconData? newCustomIcon = await Navigator.of(context).push(
+      MaterialPageRoute<AllIconData>(
         builder: (context) {
           return CustomIconPage(currentIcon: currentIcon, allIcons: allIcons);
         },
       ),
     );
+    if (newCustomIcon == null || !mounted) return;
     setState(() {
       _customIconID = newCustomIcon.title;
       _iconSrc = newCustomIcon.type;
     });
-  }
-
-  Widget advanceOptionWidget() {
-    final l10n = context.l10n;
-    return Padding(
-      padding: const EdgeInsets.only(top: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            onTap: () {
-              showAdvancedOptions.value = !showAdvancedOptions.value;
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(l10n.advanced),
-                ValueListenableBuilder<bool>(
-                  valueListenable: showAdvancedOptions,
-                  builder: (context, isExpanded, child) {
-                    return Icon(
-                      isExpanded
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
-                      size: 24,
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-          ValueListenableBuilder<bool>(
-            valueListenable: showAdvancedOptions,
-            builder: (context, isExpanded, child) {
-              return AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                transitionBuilder: (child, animation) {
-                  return SizeTransition(sizeFactor: animation, child: child);
-                },
-                child: isExpanded
-                    ? SizedBox(
-                        width: 400,
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 16),
-                          child: GridView.count(
-                            crossAxisCount: 2,
-                            shrinkWrap: true,
-                            childAspectRatio: 2.5,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 14,
-                            physics: const NeverScrollableScrollPhysics(),
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  FieldLabel(l10n.algorithm, width: 60),
-                                  AlgorithmSelectorWidget(
-                                    currentAlgorithm: _algorithm,
-                                    onSelected: (newAlgorithm) async {
-                                      setState(() {
-                                        _algorithm = newAlgorithm;
-                                      });
-                                    },
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  FieldLabel(l10n.type, width: 60),
-                                  ToptSelectorWidget(
-                                    currentTopt: _type,
-                                    onSelected: (newTopt) async {
-                                      setState(() {
-                                        _type = newTopt;
-                                      });
-                                    },
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  FieldLabel(l10n.period, width: 60),
-                                  Expanded(
-                                    child: TextFormField(
-                                      keyboardType: TextInputType.number,
-                                      // The validator receives the text that the user has entered.
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return "Please enter a number";
-                                        }
-                                        final intValue = int.tryParse(value);
-                                        if (intValue == null) {
-                                          return "Only integers are allowed";
-                                        }
-                                        if (intValue < 1 || intValue > 60) {
-                                          return "Period must be between 1 and 60";
-                                        }
-                                        return null;
-                                      },
-                                      maxLines: 1,
-                                      style: getEnteTextTheme(context).small,
-                                      controller: _periodController,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  FieldLabel(l10n.digits, width: 60),
-                                  Expanded(
-                                    child: TextFormField(
-                                      keyboardType: TextInputType.number,
-                                      // The validator receives the text that the user has entered.
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return "Please enter a number";
-                                        }
-                                        final intValue = int.tryParse(value);
-                                        if (intValue == null) {
-                                          return "Only integers are allowed";
-                                        }
-                                        if (intValue < 1 || intValue > 10) {
-                                          return "OTP digits must be between 1 and 10";
-                                        }
-                                        return null;
-                                      },
-                                      maxLines: 1,
-                                      style: getEnteTextTheme(context).small,
-                                      controller: _digitsController,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : const SizedBox.shrink(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
   }
 }

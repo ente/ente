@@ -337,7 +337,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
     if (confirmed == true) {
       try {
         final success = await EmergencyContactService.instance.addContact(
-          context,
+          mounted ? context : null,
           emailToAdd,
           _selectedRecoveryDays,
         );

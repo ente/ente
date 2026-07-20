@@ -5,7 +5,7 @@ description: Casting your photos on to a large screen or a TV or a Chromecast de
 
 # Cast
 
-With Ente Cast, you can play a slideshow of your favourite albums on your Google Chromecast TVs or any other internet-connected large screen devices.
+With Ente Cast, you can play a slideshow of your favourite albums on your Google Chromecast TVs or any other internet-connected large screen devices. You can also manage multiple active cast sessions, making it easier to switch between screens or control more than one ongoing cast.
 
 ## Get Started
 
@@ -44,6 +44,16 @@ With Ente Cast, you can play a slideshow of your favourite albums on your Google
 </div>
 
 6. Once you enter the correct PIN, you will see a screen on your TV with a green checkmark confirming the connection. Your photos will start showing up in a bit.
+
+## Managing cast sessions
+
+After you start casting, Ente lets you return to the cast controls to manage your active sessions.
+
+- Reopen the cast controls from the album you started casting from.
+- Switch between active cast sessions if you have more than one screen connected.
+- Disconnect a screen when you no longer want that session to keep playing.
+
+This is especially useful if you cast the same album to different screens at different times, or if you accidentally leave an older cast session running.
 
 ## Pairing options explained
 

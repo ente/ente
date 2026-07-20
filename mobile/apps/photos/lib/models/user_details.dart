@@ -162,6 +162,7 @@ class FamilyMember {
   final String email;
   final int usage;
   final String id;
+  final int? userID;
   final bool isAdmin;
   final FamilyMemberStatus status;
   final int? storageLimit;
@@ -170,6 +171,7 @@ class FamilyMember {
     this.email,
     this.usage,
     this.id,
+    this.userID,
     this.isAdmin,
     this.status,
     this.storageLimit,
@@ -186,6 +188,7 @@ class FamilyMember {
       (map['email'] ?? '') as String,
       (map['usage'] ?? 0) as int,
       map['id'] as String,
+      map['userID'] as int?,
       map['isAdmin'] as bool,
       FamilyMemberStatus.fromServerValue(map['status'] as String?),
       map['storageLimit'] as int?,
@@ -197,6 +200,7 @@ class FamilyMember {
       'email': email,
       'usage': usage,
       'id': id,
+      'userID': userID,
       'isAdmin': isAdmin,
       'status': status.serverValue,
       'storageLimit': storageLimit,

@@ -226,7 +226,7 @@ To avoid this, ensure video streaming is enabled so that streamable versions are
 
 ### How does Cast work? {#how-does-cast-work}
 
-Ente Cast lets you play slideshow albums on Chromecast TVs or any internet-connected large screen. You can pair using auto-pair (Chromium browsers with Chromecast) or PIN pairing (works with any device).
+Ente Cast lets you play slideshow albums on Chromecast TVs or any internet-connected large screen. You can pair using auto-pair (Chromium browsers with Chromecast) or PIN pairing (works with any device). You can also manage multiple active cast sessions and disconnect screens you are no longer using.
 
 For setup instructions, see the [Cast feature guide](/photos/features/utilities/cast/).
 

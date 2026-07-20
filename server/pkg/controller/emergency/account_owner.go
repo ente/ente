@@ -10,7 +10,7 @@ import (
 )
 
 func (c *Controller) AddContact(ctx *gin.Context, userID int64, request ente.AddContact) error {
-	emergencyContactID, err := c.UserRepo.GetUserIDWithEmail(request.Email)
+	emergencyContactID, err := c.UserLookup.LookupUserID(userID, request.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return stacktrace.Propagate(ente.ErrNotFound, "invited member is not on ente")

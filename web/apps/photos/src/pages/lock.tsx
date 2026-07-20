@@ -1,23 +1,12 @@
-import { LockScreenContents } from "@/components/app-lock/LockScreenContents";
-import { Modal } from "@mui/material";
-import { t } from "i18next";
+import {
+    AppLockScreen,
+    LockScreenContents,
+} from "@/components/app-lock/LockScreenContents";
 
 export const LockPage = () => (
-    <Modal
-        open
-        aria-label={t("app_lock")}
-        slotProps={{
-            backdrop: {
-                sx: (theme) => ({
-                    backgroundColor: "secondary.main",
-                    ...theme.applyStyles("dark", { backgroundColor: "#000" }),
-                }),
-            },
-        }}
-        sx={{ zIndex: "calc(var(--mui-zIndex-tooltip) + 1)" }}
-    >
+    <AppLockScreen>
         <LockScreenContents />
-    </Modal>
+    </AppLockScreen>
 );
 
 export default LockPage;

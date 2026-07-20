@@ -300,6 +300,8 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
     // Handle collection membership changes
     await _updateCollectionMembership();
 
+    if (!mounted) return;
+
     // Update the local data to reflect the changes in the UI
     // Use the infoItem data directly since it contains the updated values
     setState(() {
@@ -336,15 +338,9 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
     );
 
     if (wasFavorite && !isFavoriteNow) {
-      await FavoritesService.instance.removeFromFavorites(
-        context,
-        widget.existingFile!,
-      );
+      await FavoritesService.instance.removeFromFavorites(widget.existingFile!);
     } else if (!wasFavorite && isFavoriteNow) {
-      await FavoritesService.instance.addToFavorites(
-        context,
-        widget.existingFile!,
-      );
+      await FavoritesService.instance.addToFavorites(widget.existingFile!);
     }
 
     // Only favorites is special-cased; Uncategorized is treated as a normal
@@ -371,7 +367,7 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
             (c) => c.id == collectionId,
           );
           await CollectionService.instance.moveFilesFromCurrentCollection(
-            context,
+            mounted ? context : null,
             collection,
             [widget.existingFile!],
           );
@@ -405,7 +401,7 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
             (c) => c.id == collectionId,
           );
           await CollectionService.instance.moveFilesFromCurrentCollection(
-            context,
+            mounted ? context : null,
             collection,
             [widget.existingFile!],
           );
@@ -449,6 +445,8 @@ abstract class BaseInfoPageState<T extends InfoData, W extends BaseInfoPage<T>>
     // Trigger sync after successful save
     await CollectionService.instance.sync();
     Bus.instance.fire(UserDetailsRefreshEvent());
+
+    if (!mounted) return;
 
     // Show success message
     final collectionCount = selectedCollections.length;

@@ -899,7 +899,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "Google Play-előfizetés",
   "appstoreSubscription": "App Store-előfizetés",
-  "subAlreadyLinkedErrMessage": "Az {id} már egy másik Ente fiókhoz van kapcsolva.\nHa ezt az {id}-t ezzel a fiókkal szeretnéd használni, kérjük, vedd fel a kapcsolatot az ügyfélszolgálattal",
   "visitWebToManage": "Az előfizetésed kezeléséhez látogass el a {webUrl} oldalra",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

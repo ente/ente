@@ -6,6 +6,7 @@ import (
 	b64 "encoding/base64"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path"
@@ -72,8 +73,12 @@ import (
 	userEntityRepo "github.com/ente/museum/pkg/repo/userentity"
 	"github.com/ente/museum/pkg/utils/billing"
 	"github.com/ente/museum/pkg/utils/config"
+	"github.com/ente/museum/pkg/utils/network"
 	"github.com/ente/museum/pkg/utils/s3config"
 	timeUtil "github.com/ente/museum/pkg/utils/time"
+	spaceapi "github.com/ente/museum/space/api"
+	spacecontroller "github.com/ente/museum/space/controller"
+	spacerepo "github.com/ente/museum/space/repo"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-contrib/timeout"
@@ -104,19 +109,15 @@ func main() {
 		panic(err)
 	}
 
-	viper.SetDefault("apps.public-albums", "https://albums.ente.com")
-	viper.SetDefault("apps.embed-albums", "https://embed.ente.com")
-	viper.SetDefault("apps.custom-domain.cname", "my.ente.com")
-	viper.SetDefault("apps.public-locker", "https://share.ente.com")
-	viper.SetDefault("apps.public-paste", "https://paste.ente.com")
-	viper.SetDefault("apps.public-memories", "https://memories.ente.com")
-	viper.SetDefault("apps.accounts", "https://accounts.ente.com")
-	viper.SetDefault("apps.accounts-legacy", "https://accounts.ente.io")
-	viper.SetDefault("apps.cast", "https://cast.ente.com")
-	viper.SetDefault("apps.family", "https://family.ente.io")
+	setAppDefaults()
 
 	setupLogger(environment)
 	log.Infof("Booting up %s server with commit #%s", environment, os.Getenv("GIT_COMMIT"))
+	if viper.GetBool("apps.cors-report-only") {
+		log.Info("CORS report-only: allowing unknown browser origins (configure apps.* to enforce)")
+	} else {
+		log.Info("CORS: rejecting unknown browser origins")
+	}
 
 	secretEncryptionKey := viper.GetString("key.encryption")
 	hashingKey := viper.GetString("key.hash")
@@ -219,6 +220,7 @@ func main() {
 	authCache := cache.New(1*time.Minute, 15*time.Minute)
 	accessTokenCache := cache.New(1*time.Minute, 15*time.Minute)
 	discordController := discord.NewDiscordController(userRepo, hostName, environment)
+	userLookupController := controller.NewUserLookupController(userRepo, discordController)
 	rateLimiter := middleware.NewRateLimitMiddleware(discordController, 1000, 1*time.Second)
 	defer rateLimiter.Stop()
 
@@ -297,13 +299,15 @@ func main() {
 	reactionsRepo := &socialrepo.ReactionsRepository{DB: db}
 	anonUsersRepo := &socialrepo.AnonUsersRepository{DB: db}
 	commentsController := &socialcontroller.CommentsController{
-		Repo:       commentsRepo,
-		AccessCtrl: accessCtrl,
+		Repo:           commentsRepo,
+		CollectionRepo: collectionRepo,
+		AccessCtrl:     accessCtrl,
 	}
 	reactionsController := &socialcontroller.ReactionsController{
-		Repo:         reactionsRepo,
-		CommentsRepo: commentsRepo,
-		AccessCtrl:   accessCtrl,
+		Repo:           reactionsRepo,
+		CommentsRepo:   commentsRepo,
+		CollectionRepo: collectionRepo,
+		AccessCtrl:     accessCtrl,
 	}
 	socialController := &socialcontroller.Controller{
 		CommentsRepo:   commentsRepo,
@@ -312,7 +316,7 @@ func main() {
 		AccessCtrl:     accessCtrl,
 		AnonUsersRepo:  anonUsersRepo,
 	}
-	fileDataCtrl := filedata.New(fileDataRepo, accessCtrl, objectCleanupController, s3Config, fileRepo, collectionRepo)
+	fileDataCtrl := filedata.New(fileDataRepo, accessCtrl, objectCleanupController, s3Config, fileRepo, collectionRepo, discordController)
 
 	fileController := &controller.FileController{
 		FileRepo:              fileRepo,
@@ -352,6 +356,7 @@ func main() {
 	familyController := &family.Controller{
 		FamilyRepo:      familyRepo,
 		BillingCtrl:     billingController,
+		UserLookup:      userLookupController,
 		UserRepo:        userRepo,
 		UserCacheCtrl:   userCacheCtrl,
 		UsageRepo:       usageRepo,
@@ -398,6 +403,7 @@ func main() {
 		TrashRepo:             trashRepo,
 		CastRepo:              &castDb,
 		BillingCtrl:           billingController,
+		UserLookup:            userLookupController,
 		QueueRepo:             queueRepo,
 		TaskRepo:              taskLockingRepo,
 		CollectionActionsRepo: collectionActionRepo,
@@ -435,6 +441,7 @@ func main() {
 		billingController,
 		familyController,
 		discordController,
+		userLookupController,
 		mailingListsController,
 		pushController,
 		userCache,
@@ -538,9 +545,9 @@ func main() {
 	paymentJwtAuthAPI := server.Group("/")
 	paymentJwtAuthAPI.Use(rateLimiter.GlobalRateLimiter(), authMiddleware.TokenAuthMiddleware(jwt.PAYMENT.Ptr()))
 
-	familiesJwtAuthAPI := server.Group("/")
+	familyAuthAPI := server.Group("/")
 	//The middleware order matters. First, the userID must be set in the context, so that we can apply limit for user.
-	familiesJwtAuthAPI.Use(rateLimiter.GlobalRateLimiter(), authMiddleware.TokenAuthMiddleware(jwt.FAMILIES.Ptr()), rateLimiter.APIRateLimitForUserMiddleware(urlSanitizer))
+	familyAuthAPI.Use(rateLimiter.GlobalRateLimiter(), authMiddleware.TokenOrJWTAuthMiddleware(jwt.FAMILIES), rateLimiter.APIRateLimitForUserMiddleware(urlSanitizer))
 
 	publicCollectionAPI := server.Group("/public-collection")
 	publicCollectionAPI.Use(
@@ -596,7 +603,9 @@ func main() {
 	storageAPI.POST("/files/upload-url", fileHandler.GetUploadURLV2)
 	storageAPI.POST("/files/multipart-upload-url", fileHandler.GetMultipartUploadURLV2)
 	storageAPI.GET("/files/download/:fileID", fileHandler.Get)
+	storageAPI.GET("/files/download/v2/:fileID", fileHandler.GetV2)
 	storageAPI.GET("/files/preview/:fileID", fileHandler.GetThumbnail)
+	storageAPI.GET("/files/preview/v2/:fileID", fileHandler.GetThumbnailV2)
 
 	storageAPI.POST("/files/share-url", fileHandler.ShareUrl)
 	storageAPI.GET("/files/share-url", fileHandler.GetUrls)
@@ -620,7 +629,6 @@ func main() {
 	storageAPI.POST("/files/size", fileHandler.GetSize)
 	storageAPI.POST("/files/info", fileHandler.GetInfo)
 	storageAPI.GET("/files/duplicates", fileHandler.GetDuplicates)
-	storageAPI.GET("/files/large-thumbnails", fileHandler.GetLargeThumbnailFiles)
 	storageAPI.PUT("/files/thumbnail", fileHandler.UpdateThumbnail)
 	storageAPI.PUT("/files/magic-metadata", fileHandler.UpdateMagicMetadata)
 	storageAPI.PUT("/files/public-magic-metadata", fileHandler.UpdatePublicMagicMetadata)
@@ -661,6 +669,7 @@ func main() {
 	emergencyCtrl := &emergency.Controller{
 		Repo:              emergencyContactRepository,
 		UserRepo:          userRepo,
+		UserLookup:        userLookupController,
 		UserCtrl:          userController,
 		PasskeyController: passkeyCtrl,
 		LockCtrl:          lockController,
@@ -775,9 +784,7 @@ func main() {
 	publicCollectionAPI.GET("/files/data/preview", publicCollectionHandler.GetPreviewURL)
 	publicCollectionAPI.GET("/diff", publicCollectionHandler.GetDiff)
 	publicCollectionAPI.GET("/info", publicCollectionHandler.GetCollection)
-	publicCollectionAPI.GET("/upload-urls", publicCollectionHandler.GetUploadUrls)
 	publicCollectionAPI.POST("/upload-url", publicCollectionHandler.GetUploadURLV2)
-	publicCollectionAPI.GET("/multipart-upload-urls", publicCollectionHandler.GetMultipartUploadURLs)
 	publicCollectionAPI.POST("/multipart-upload-url", publicCollectionHandler.GetMultipartUploadURLV2)
 	publicCollectionAPI.POST("/file", publicCollectionHandler.CreateFile)
 	publicCollectionAPI.POST("/verify-password", publicCollectionHandler.VerifyPassword)
@@ -857,12 +864,12 @@ func main() {
 
 	privateAPI.DELETE("/family/leave", familyHandler.Leave) // native/web app
 
-	familiesJwtAuthAPI.POST("/family/create", familyHandler.CreateFamily)
-	familiesJwtAuthAPI.POST("/family/add-member", familyHandler.InviteMember)
-	familiesJwtAuthAPI.GET("/family/members", familyHandler.FetchMembers)
-	familiesJwtAuthAPI.DELETE("/family/remove-member/:id", familyHandler.RemoveMember)
-	familiesJwtAuthAPI.DELETE("/family/revoke-invite/:id", familyHandler.RevokeInvite)
-	familiesJwtAuthAPI.POST("/family/modify-storage", familyHandler.ModifyStorageLimit)
+	familyAuthAPI.POST("/family/create", familyHandler.CreateFamily)
+	familyAuthAPI.POST("/family/add-member", familyHandler.InviteMember)
+	familyAuthAPI.GET("/family/members", familyHandler.FetchMembers)
+	familyAuthAPI.DELETE("/family/remove-member/:id", familyHandler.RemoveMember)
+	familyAuthAPI.DELETE("/family/revoke-invite/:id", familyHandler.RevokeInvite)
+	familyAuthAPI.POST("/family/modify-storage", familyHandler.ModifyStorageLimit)
 
 	emergencyHandler := &api.EmergencyHandler{
 		Controller: emergencyCtrl,
@@ -974,13 +981,25 @@ func main() {
 
 	userEntityController := &userEntityCtrl.Controller{Repo: userEntityRepo}
 	userEntityHandler := &api.UserEntityHandler{Controller: userEntityController}
+	spaceRepos := spacerepo.NewModule(db, s3Config)
+	userController.SpaceAccessResetter = spaceRepos
+	spaceModule := spacecontroller.NewModule(spaceRepos, userAuthRepo, spacecontroller.NewSpaceEmailSender(userRepo))
+	spaceModule.Posts.AbuseNotifier = discordController
+	spaceDripController := spacecontroller.NewSpaceDripController(spaceRepos, userRepo, notificationHistoryRepo, lockController)
+	spaceModule.UserTokens = userController
+	spaceHandlers := spaceapi.NewHandlers(spaceModule)
+	spacePrivateAPI := server.Group("/")
+	spacePrivateAPI.Use(rateLimiter.GlobalRateLimiter(), spaceHandlers.RequireSpaceBrowserSession(), rateLimiter.APIRateLimitForUserMiddleware(urlSanitizer))
 
 	storageAPI.POST("/user-entity/key", userEntityHandler.CreateKey)
+	storageAPI.POST("/user-entity/key/ensure", userEntityHandler.EnsureKey)
 	storageAPI.GET("/user-entity/key", userEntityHandler.GetKey)
 	storageAPI.POST("/user-entity/entity", userEntityHandler.CreateEntity)
 	storageAPI.PUT("/user-entity/entity", userEntityHandler.UpdateEntity)
 	storageAPI.DELETE("/user-entity/entity", userEntityHandler.DeleteEntity)
 	storageAPI.GET("/user-entity/entity/diff", userEntityHandler.GetDiff)
+	spaceapi.RegisterTokenSessionRoutes(privateAPI, spaceHandlers)
+	spaceapi.Register(spacePrivateAPI, publicAPI, spaceHandlers)
 
 	contactController := contactCtrl.New(contactRepository, objectCleanupController, s3Config)
 	contactHandler := &api.ContactHandler{Controller: contactController}
@@ -1017,6 +1036,7 @@ func main() {
 		TaskLockRepo:   taskLockingRepo,
 		TrashRepo:      trashRepo,
 		UsageRepo:      usageRepo,
+		SpaceDataRepo:  spaceRepos,
 		HostName:       hostName,
 	}
 	remoteStoreHandler := &api.RemoteStoreHandler{Controller: remoteStoreController}
@@ -1048,11 +1068,11 @@ func main() {
 	adminAPI.POST("/discount/add-coupons", discountCouponHandler.AddCoupons)
 
 	setKnownAPIs(server.Routes())
-	setupAndStartBackgroundJobs(objectCleanupController, replicationController3, fileDataCtrl, contactController)
+	setupAndStartBackgroundJobs(objectCleanupController, replicationController3, fileDataCtrl, contactController, spaceModule)
 	setupAndStartCrons(
 		userAuthRepo, collectionLinkRepo, fileLinkRepo, pasteRepo, twoFactorRepo, passkeysRepo, fileController, taskLockingRepo, emailNotificationCtrl,
 		trashController, pushController, objectController, dataCleanupController, storageBonusCtrl, emergencyCtrl,
-		embeddingController, healthCheckHandler, castDb, inactiveUserOrchestrator)
+		embeddingController, healthCheckHandler, castDb, inactiveUserOrchestrator, spaceDripController)
 
 	// Create new collectors, the names will be used as labels on the metrics
 	primaryDBCollector := sqlstats.NewStatsCollector("prod_db", db)
@@ -1071,6 +1091,33 @@ func main() {
 	<-quit
 	log.Println("Shutting down server...")
 	discordController.NotifyShutdown()
+}
+
+func setAppDefaults() {
+	// In the future, the default will become:
+	// viper.SetDefault("apps.cors-report-only", false)
+	viper.SetDefault("apps.cors-report-only", viper.GetString("apps.photos") == "" &&
+		viper.GetString("apps.auth") == "" &&
+		viper.GetString("apps.locker") == "" &&
+		len(viper.GetStringSlice("apps.extra-origins")) == 0)
+
+	viper.SetDefault("apps.photos", "https://photos.ente.com")
+	viper.SetDefault("apps.public-albums", "https://albums.ente.com")
+	viper.SetDefault("apps.embed-albums", "https://embed.ente.com")
+	viper.SetDefault("apps.auth", "https://auth.ente.com")
+	viper.SetDefault("apps.locker", "https://locker.ente.com")
+	viper.SetDefault("apps.public-locker", "https://share.ente.com")
+	viper.SetDefault("apps.public-paste", "https://paste.ente.com")
+	viper.SetDefault("apps.public-memories", "https://memories.ente.com")
+	viper.SetDefault("apps.accounts", "https://accounts.ente.com")
+	viper.SetDefault("apps.accounts-legacy", "https://accounts.ente.io")
+	viper.SetDefault("apps.payments", "https://payments.ente.com")
+	viper.SetDefault("apps.cast", "https://cast.ente.com")
+	viper.SetDefault("apps.family", "https://family.ente.io")
+	viper.SetDefault("apps.space", "https://ente.space")
+	viper.SetDefault("apps.legacy", "https://legacy.ente.com")
+	viper.SetDefault("apps.extra-origins", []string{"https://ente.com", "https://ente.io", "https://web.ente.io", "https://auth.ente.io", "https://locker.ente.io", "https://share.ente.io", "https://payments.ente.io", "https://embed.ente.io", "https://cast.ente.io", "https://staff.ente.sh"})
+	viper.SetDefault("apps.custom-domain.cname", "my.ente.com")
 }
 
 func runServer(environment string, server *gin.Engine) {
@@ -1125,6 +1172,9 @@ func setupLogger(environment string) {
 			MaxAge:   30,
 			Compress: true,
 		})
+	}
+	if level, err := log.ParseLevel(viper.GetString("log-level")); err == nil {
+		log.SetLevel(level)
 	}
 }
 
@@ -1196,6 +1246,7 @@ func setupAndStartBackgroundJobs(
 	replicationController3 *controller.ReplicationController3,
 	fileDataCtrl *filedata.Controller,
 	contactController *contactCtrl.Controller,
+	spaceModule *spacecontroller.Module,
 ) {
 	isReplicationEnabled := viper.GetBool("replication.enabled")
 	if isReplicationEnabled {
@@ -1223,6 +1274,7 @@ func setupAndStartBackgroundJobs(
 	fileDataCtrl.StartDataDeletion() // Start data deletion for file data;
 	contactController.StartDataDeletion()
 	objectCleanupController.StartRemovingUnreportedObjects()
+	spaceModule.Cleanup.StartRemovingUnreportedObjects()
 }
 
 func setupAndStartCrons(userAuthRepo *repo.UserAuthRepository, collectionLinkRepo *public.CollectionLinkRepo,
@@ -1238,7 +1290,8 @@ func setupAndStartCrons(userAuthRepo *repo.UserAuthRepository, collectionLinkRep
 	embeddingCtrl *embeddingCtrl.Controller,
 	healthCheckHandler *api.HealthCheckHandler,
 	castDb castRepo.Repository,
-	inactiveUserOrchestrator *user.InactiveUserOrchestrator) {
+	inactiveUserOrchestrator *user.InactiveUserOrchestrator,
+	spaceDripController *spacecontroller.SpaceDripController) {
 	if viper.GetBool("jobs.cron.skip") {
 		log.Info("Skipping cron jobs")
 		return
@@ -1354,6 +1407,10 @@ func setupAndStartCrons(userAuthRepo *repo.UserAuthRepository, collectionLinkRep
 		emailNotificationCtrl.SendStorageWarningMails()
 	})
 
+	scheduleAndRun(c, "@every 24h", func() {
+		spaceDripController.ProcessSpaceDrips()
+	})
+
 	schedule(c, "@every 1m", func() {
 		pushController.SendPushes()
 	})
@@ -1366,10 +1423,59 @@ func setupAndStartCrons(userAuthRepo *repo.UserAuthRepository, collectionLinkRep
 }
 
 func cors() gin.HandlerFunc {
+	origins := []string{"ente://app"}
+	apps, _ := viper.AllSettings()["apps"].(map[string]interface{})
+	for _, value := range apps {
+		if origin, ok := value.(string); ok {
+			origins = append(origins, origin)
+		}
+	}
+	origins = append(origins, viper.GetStringSlice("apps.extra-origins")...)
+	return corsForOrigins(origins, !viper.GetBool("apps.cors-report-only"))
+}
+
+func corsForOrigins(origins []string, enforce bool) gin.HandlerFunc {
+	knownOrigins := make(map[string]bool, len(origins))
+	for _, origin := range origins {
+		if origin = normalizeOrigin(origin); origin != "" {
+			knownOrigins[origin] = true
+		}
+	}
+	isAllowed := func(c *gin.Context, origin string) bool {
+		path := c.Request.URL.Path
+		if path == "/files/count" || path == "/billing/plans/v2" {
+			return true
+		}
+		if origin == "" || knownOrigins[normalizeOrigin(origin)] || network.IsLoopbackOrigin(origin) {
+			return true
+		}
+		// CollectionLinkMiddleware validates custom album domains.
+		return path == "/public-collection" || strings.HasPrefix(path, "/public-collection/")
+	}
+
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", c.GetHeader("Origin"))
+		origin := c.GetHeader("Origin")
+		if !isAllowed(c, origin) {
+			if c.Request.Method != http.MethodOptions || enforce {
+				message := "unknown CORS origin"
+				if enforce {
+					message = "rejecting unknown CORS origin"
+				}
+				log.WithFields(log.Fields{
+					"clientPackage": c.GetHeader("X-Client-Package"),
+					"origin":        origin,
+					"path":          c.FullPath(),
+				}).Warn(message)
+			}
+			if enforce {
+				c.AbortWithStatus(http.StatusForbidden)
+				return
+			}
+		}
+
+		c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-Auth-Token, X-Auth-Access-Token, X-Cast-Access-Token, X-Auth-Access-Token-JWT, X-Auth-Link-Device-Token, X-Client-Package, X-Client-Version, X-Paste-Consume, Authorization, accept, origin, Cache-Control, X-Requested-With, upgrade-insecure-requests, Range")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-Auth-Token, X-Space-Session-Token, X-Auth-Access-Token, X-Cast-Access-Token, X-Auth-Access-Token-JWT, X-Auth-Link-Device-Token, X-Client-Package, X-Client-Version, X-Paste-Consume, Authorization, accept, origin, Cache-Control, X-Requested-With, upgrade-insecure-requests, Range")
 		c.Writer.Header().Set("Access-Control-Expose-Headers", "X-Request-Id, X-Ente-Link-Device-Token")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH, DELETE")
 		c.Writer.Header().Set("Access-Control-Max-Age", "1728000")
@@ -1384,19 +1490,27 @@ func cors() gin.HandlerFunc {
 	}
 }
 
+func normalizeOrigin(origin string) string {
+	parsed, err := url.Parse(strings.TrimSpace(origin))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return ""
+	}
+	return strings.ToLower(parsed.Scheme + "://" + parsed.Host)
+}
+
 func cacheHeaders() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Add "Cache-Control: no-store" to HTTP GET API responses.
 		if c.Request.Method == http.MethodGet {
 			reqPath := urlSanitizer(c)
-			if strings.HasPrefix(reqPath, "/files/preview/") ||
-				strings.HasPrefix(reqPath, "/files/download/") ||
-				strings.HasPrefix(reqPath, "/public-collection/files/preview/") ||
-				strings.HasPrefix(reqPath, "/public-collection/files/download/") ||
-				strings.HasPrefix(reqPath, "/public-memory/files/preview/") ||
-				strings.HasPrefix(reqPath, "/public-memory/files/download/") ||
-				strings.HasPrefix(reqPath, "/cast/files/preview/") ||
-				strings.HasPrefix(reqPath, "/cast/files/download/") {
+			if reqPath == "/files/preview/:fileID" ||
+				reqPath == "/files/download/:fileID" ||
+				reqPath == "/public-collection/files/preview/:fileID" ||
+				reqPath == "/public-collection/files/download/:fileID" ||
+				reqPath == "/public-memory/files/preview/:fileID" ||
+				reqPath == "/public-memory/files/download/:fileID" ||
+				reqPath == "/cast/files/preview/:fileID" ||
+				reqPath == "/cast/files/download/:fileID" {
 				// Exclude those that redirect to S3 for file downloads.
 			} else {
 				c.Writer.Header().Set("Cache-Control", "no-store")

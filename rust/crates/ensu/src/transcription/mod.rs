@@ -1,9 +1,7 @@
 mod audio;
-mod model;
 mod text;
 mod transcriber;
 
-pub use model::ModelEvent;
 pub use transcriber::Transcriber;
 
 #[derive(Debug, thiserror::Error)]
@@ -14,8 +12,6 @@ pub enum TranscriptionError {
     VadNotDownloaded,
     #[error("{0}")]
     InvalidAudio(String),
-    #[error(transparent)]
-    Download(#[from] crate::download::Error),
     #[error("{0}")]
     Transcribe(String),
     #[error("not enough storage space")]

@@ -1,0 +1,1 @@
+- Choose photos and videos before sharing a memory link.

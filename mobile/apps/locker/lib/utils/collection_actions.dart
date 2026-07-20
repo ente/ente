@@ -74,31 +74,31 @@ class CollectionActions {
     Collection collection, {
     VoidCallback? onSuccess,
   }) async {
+    final l10n = context.l10n;
     if (!collection.type.canEdit) {
-      showToast(context, context.l10n.collectionCannotBeEdited);
+      showToast(context, l10n.collectionCannotBeEdited);
       return;
     }
 
     await showTextInputSheet(
       context,
-      title: context.l10n.renameCollection,
+      title: l10n.renameCollection,
       initialValue: collection.name ?? '',
-      hintText: context.l10n.documentsHint,
-      submitButtonLabel: context.l10n.save,
+      hintText: l10n.documentsHint,
+      submitButtonLabel: l10n.save,
       onSubmit: (String newName) async {
         if (newName.isEmpty || newName == collection.name) return;
 
-        final progressDialog = createProgressDialog(
-          context,
-          context.l10n.pleaseWait,
-        );
+        final progressDialog = createProgressDialog(context, l10n.pleaseWait);
         await progressDialog.show();
 
         try {
           await CollectionService.instance.rename(collection, newName);
           await progressDialog.hide();
 
-          showToast(context, context.l10n.collectionRenamedSuccessfully);
+          if (context.mounted) {
+            showToast(context, l10n.collectionRenamedSuccessfully);
+          }
 
           // Update the collection name locally
           collection.setName(newName);
@@ -108,7 +108,9 @@ class CollectionActions {
         } catch (error) {
           await progressDialog.hide();
 
-          await showLockerErrorSheet(context, error);
+          if (context.mounted) {
+            await showLockerErrorSheet(context, error);
+          }
         }
       },
     );
@@ -120,31 +122,31 @@ class CollectionActions {
     VoidCallback? onSuccess,
   }) async {
     if (collections.isEmpty) return;
+    final l10n = context.l10n;
 
     final dialogChoice = await showDeleteConfirmationSheet(
       context,
-      title: context.l10n.areYouSure,
-      body: context.l10n.deleteMultipleCollectionsDialogBody(
-        collections.length,
-      ),
-      deleteButtonLabel: context.l10n.yesDeleteCollections(collections.length),
+      title: l10n.areYouSure,
+      body: l10n.deleteMultipleCollectionsDialogBody(collections.length),
+      deleteButtonLabel: l10n.yesDeleteCollections(collections.length),
       illustration: LockerBottomSheetIllustration.collectionDelete,
       showDeleteFromAllCollectionsOption: true,
     );
 
     if (dialogChoice?.buttonResult.action != ButtonAction.first) return;
 
-    final progressDialog = createProgressDialog(
-      context,
-      context.l10n.pleaseWait,
-    );
-    await progressDialog.show();
+    ProgressDialog? progressDialog;
+    if (context.mounted) {
+      progressDialog = createProgressDialog(context, l10n.pleaseWait);
+      await progressDialog.show();
+    }
 
     bool isFavoriteCollection = false;
     final bool keepFiles = !(dialogChoice?.deleteFromAllCollections ?? false);
     final List<Collection> emptyCollections = [];
     final List<Collection> nonEmptyCollections = [];
     final List<dynamic> errors = [];
+    var deletedCount = 0;
 
     try {
       for (final collection in collections) {
@@ -173,6 +175,7 @@ class CollectionActions {
             collection,
             isBulkDelete: true,
           );
+          deletedCount++;
         } catch (e, s) {
           _logger.severe("Failed to trash empty collection", e, s);
           errors.add(e);
@@ -187,36 +190,42 @@ class CollectionActions {
       for (final collection in nonEmptyCollections) {
         try {
           await CollectionService.instance.trashCollection(
-            context,
+            context.mounted ? context : null,
             collection,
             keepFiles: keepFiles,
           );
+          deletedCount++;
         } catch (e, s) {
           _logger.severe("Failed to trash collection", e, s);
           errors.add(e);
         }
       }
 
-      await progressDialog.hide();
+      await progressDialog?.hide();
 
-      if (errors.isNotEmpty) {
+      if (deletedCount > 0) {
+        onSuccess?.call();
+      }
+
+      if (errors.isNotEmpty && context.mounted) {
         await showLockerErrorSheet(context, errors.first);
       }
 
-      showToast(
-        context,
-        context.l10n.collectionsDeletedSuccessfully(collections.length),
-      );
+      if (context.mounted) {
+        if (deletedCount > 0) {
+          showToast(context, l10n.collectionsDeletedSuccessfully(deletedCount));
+        }
 
-      if (isFavoriteCollection) {
-        showToast(context, context.l10n.actionNotSupportedOnFavouritesAlbum);
+        if (isFavoriteCollection) {
+          showToast(context, l10n.actionNotSupportedOnFavouritesAlbum);
+        }
       }
-
-      onSuccess?.call();
     } catch (error) {
-      await progressDialog.hide();
+      await progressDialog?.hide();
 
-      await showLockerErrorSheet(context, error);
+      if (context.mounted) {
+        await showLockerErrorSheet(context, error);
+      }
     }
   }
 
@@ -235,13 +244,16 @@ class CollectionActions {
     final fileCount = await CollectionService.instance.getFileCount(collection);
 
     if (fileCount == 0) {
-      final progressDialog = createProgressDialog(context, l10n.pleaseWait);
-      await progressDialog.show();
+      ProgressDialog? progressDialog;
+      if (context.mounted) {
+        progressDialog = createProgressDialog(context, l10n.pleaseWait);
+        await progressDialog.show();
+      }
 
       try {
         await CollectionService.instance.trashEmptyCollection(collection);
 
-        await progressDialog.hide();
+        await progressDialog?.hide();
 
         if (context.mounted) {
           showToast(context, l10n.collectionDeletedSuccessfully);
@@ -250,7 +262,7 @@ class CollectionActions {
         // Call success callback if provided
         onSuccess?.call();
       } catch (error) {
-        await progressDialog.hide();
+        await progressDialog?.hide();
 
         if (context.mounted) {
           await showLockerErrorSheet(context, error);
@@ -260,6 +272,7 @@ class CollectionActions {
     }
 
     final collectionName = collection.name ?? 'this collection';
+    if (!context.mounted) return;
 
     final result = await showDeleteConfirmationSheet(
       context,
@@ -270,23 +283,26 @@ class CollectionActions {
       showDeleteFromAllCollectionsOption: true,
     );
 
-    if (result?.buttonResult.action != ButtonAction.first && context.mounted) {
+    if (result?.buttonResult.action != ButtonAction.first) {
       return;
     }
 
-    final progressDialog = createProgressDialog(context, l10n.pleaseWait);
-    await progressDialog.show();
+    ProgressDialog? progressDialog;
+    if (context.mounted) {
+      progressDialog = createProgressDialog(context, l10n.pleaseWait);
+      await progressDialog.show();
+    }
 
     try {
       // If deleteFromAllCollections is true → keepFiles should be false (move files to trash)
       // If deleteFromAllCollections is false → keepFiles should be true (keep files in other collections)
       await CollectionService.instance.trashCollection(
-        context,
+        context.mounted ? context : null,
         collection,
         keepFiles: !(result?.deleteFromAllCollections ?? false),
       );
 
-      await progressDialog.hide();
+      await progressDialog?.hide();
 
       if (context.mounted) {
         showToast(context, l10n.collectionDeletedSuccessfully);
@@ -295,7 +311,7 @@ class CollectionActions {
       // Call success callback if provided
       onSuccess?.call();
     } catch (error) {
-      await progressDialog.hide();
+      await progressDialog?.hide();
 
       if (context.mounted) {
         await showLockerErrorSheet(context, error);
@@ -325,8 +341,8 @@ class CollectionActions {
     if (confirmed == true) {
       try {
         await CollectionApiClient.instance.leaveCollection(collection);
+        onSuccess?.call();
         if (context.mounted) {
-          onSuccess?.call();
           showToast(context, context.l10n.leaveCollectionSuccessfully);
         }
       } catch (e) {
@@ -362,8 +378,8 @@ class CollectionActions {
         for (final col in collections) {
           await CollectionApiClient.instance.leaveCollection(col);
         }
+        onSuccess?.call();
         if (context.mounted) {
-          onSuccess?.call();
           showToast(
             context,
             context.l10n.leftCollectionsSuccessfully(collections.length),
@@ -390,11 +406,15 @@ class CollectionActions {
       );
       return true;
     } catch (e) {
-      if (e is SharingNotPermittedForFreeAccountsError) {
-        await showSubscriptionRequiredSheet(context);
-      } else {
+      if (e is! SharingNotPermittedForFreeAccountsError) {
         _logger.severe("Failed to update shareUrl collection", e);
-        await showLockerErrorSheet(context, e);
+      }
+      if (context.mounted) {
+        if (e is SharingNotPermittedForFreeAccountsError) {
+          await showSubscriptionRequiredSheet(context);
+        } else {
+          await showLockerErrorSheet(context, e);
+        }
       }
       return false;
     }
@@ -457,7 +477,9 @@ class CollectionActions {
     } catch (e) {
       await dialog?.hide();
       _logger.severe("Failed to get public key", e);
-      await showLockerErrorSheet(context, e);
+      if (context.mounted) {
+        await showLockerErrorSheet(context, e);
+      }
       return false;
     }
     // getPublicKey can return null when no user is associated with given
@@ -465,7 +487,9 @@ class CollectionActions {
     if (publicKey == null || publicKey == '') {
       // todo: neeraj replace this as per the design where a new screen
       // is used for error. Do this change along with handling of network errors
-      await showInviteSheet(context, email: email);
+      if (context.mounted) {
+        await showInviteSheet(context, email: email);
+      }
       return false;
     } else {
       return true;
@@ -474,37 +498,41 @@ class CollectionActions {
 
   // addEmailToCollection returns true if add operation was successful
   Future<bool> addEmailToCollection(
-    BuildContext context,
+    BuildContext? context,
     Collection collection,
     String email,
     CollectionParticipantRole role, {
     bool showProgress = false,
   }) async {
     if (!isValidEmail(email)) {
-      await showBottomSheetComponent(
-        context: context,
-        builder: (_) => BottomSheetComponent(
-          title: context.l10n.invalidEmailAddress,
-          message: context.l10n.enterValidEmail,
-          illustration: LockerBottomSheetIllustration.warningBlue,
-        ),
-      );
+      if (context != null && context.mounted) {
+        await showBottomSheetComponent(
+          context: context,
+          builder: (_) => BottomSheetComponent(
+            title: context.l10n.invalidEmailAddress,
+            message: context.l10n.enterValidEmail,
+            illustration: LockerBottomSheetIllustration.warningBlue,
+          ),
+        );
+      }
       return false;
     } else if (email.trim() == Configuration.instance.getEmail()) {
-      await showBottomSheetComponent(
-        context: context,
-        builder: (_) => BottomSheetComponent(
-          title: context.l10n.oops,
-          message: context.l10n.youCannotShareWithYourself,
-          illustration: LockerBottomSheetIllustration.warningBlue,
-        ),
-      );
+      if (context != null && context.mounted) {
+        await showBottomSheetComponent(
+          context: context,
+          builder: (_) => BottomSheetComponent(
+            title: context.l10n.oops,
+            message: context.l10n.youCannotShareWithYourself,
+            illustration: LockerBottomSheetIllustration.warningBlue,
+          ),
+        );
+      }
       return false;
     }
 
     ProgressDialog? dialog;
     String? publicKey;
-    if (showProgress) {
+    if (showProgress && context != null && context.mounted) {
       dialog = createProgressDialog(
         context,
         context.l10n.sharing,
@@ -518,14 +546,18 @@ class CollectionActions {
     } catch (e) {
       await dialog?.hide();
       _logger.severe("Failed to get public key", e);
-      await showLockerErrorSheet(context, e);
+      if (context != null && context.mounted) {
+        await showLockerErrorSheet(context, e);
+      }
       return false;
     }
     // getPublicKey can return null when no user is associated with given
     // email id
     if (publicKey == null || publicKey == '') {
       await dialog?.hide();
-      await showInviteSheet(context, email: email);
+      if (context != null && context.mounted) {
+        await showInviteSheet(context, email: email);
+      }
       return false;
     } else {
       try {
@@ -540,11 +572,15 @@ class CollectionActions {
         return true;
       } catch (e) {
         await dialog?.hide();
-        if (e is SharingNotPermittedForFreeAccountsError) {
-          await showSubscriptionRequiredSheet(context);
-        } else {
+        if (e is! SharingNotPermittedForFreeAccountsError) {
           _logger.severe("failed to share collection", e);
-          await showLockerErrorSheet(context, e);
+        }
+        if (context != null && context.mounted) {
+          if (e is SharingNotPermittedForFreeAccountsError) {
+            await showSubscriptionRequiredSheet(context);
+          } else {
+            await showLockerErrorSheet(context, e);
+          }
         }
         return false;
       }
@@ -566,7 +602,9 @@ class CollectionActions {
       return true;
     } catch (e) {
       _logger.severe("Failed to remove participant", e);
-      await showLockerErrorSheet(context, e);
+      if (context.mounted) {
+        await showLockerErrorSheet(context, e);
+      }
       return false;
     }
   }

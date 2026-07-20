@@ -16,6 +16,7 @@ export const appHomeRoute: string = {
     ensu: "/",
     locker: "/locker",
     legacy: "/",
+    space: "/app",
 }[appName];
 
 let _stashedRedirect: string | undefined;

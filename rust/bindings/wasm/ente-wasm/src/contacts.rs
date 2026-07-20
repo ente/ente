@@ -93,7 +93,6 @@ struct ContactRecordJs {
     contact_user_id: i64,
     email: Option<String>,
     name: Option<String>,
-    birth_date: Option<String>,
     #[serde(rename = "profilePictureAttachmentID")]
     profile_picture_attachment_id: Option<String>,
     is_deleted: bool,
@@ -115,7 +114,6 @@ impl From<ente_contacts::ContactRecord> for ContactRecordJs {
             contact_user_id: value.contact_user_id,
             email: value.email,
             name: value.name,
-            birth_date: value.birth_date,
             profile_picture_attachment_id: value.profile_picture_attachment_id,
             is_deleted: value.is_deleted,
             created_at: value.created_at,

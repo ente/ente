@@ -223,6 +223,17 @@ func (h *FileHandler) Get(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
+// GetV2 returns the URL of the file to the client
+func (h *FileHandler) GetV2(c *gin.Context) {
+	userID, fileID := getUserAndFileIDs(c)
+	url, err := h.Controller.GetFileURL(c, userID, fileID)
+	if err != nil {
+		handler.Error(c, stacktrace.Propagate(err, ""))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"url": url})
+}
+
 // GetThumbnail redirects the request to the file's thumbnail location
 func (h *FileHandler) GetThumbnail(c *gin.Context) {
 	userID, fileID := getUserAndFileIDs(c)
@@ -233,6 +244,17 @@ func (h *FileHandler) GetThumbnail(c *gin.Context) {
 	}
 	h.logBadRedirect(c)
 	c.Redirect(http.StatusTemporaryRedirect, url)
+}
+
+// GetThumbnailV2 returns the URL of the thumbnail to the client
+func (h *FileHandler) GetThumbnailV2(c *gin.Context) {
+	userID, fileID := getUserAndFileIDs(c)
+	url, err := h.Controller.GetThumbnailURL(c, userID, fileID)
+	if err != nil {
+		handler.Error(c, stacktrace.Propagate(err, ""))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"url": url})
 }
 
 // Trash moves the given files to the trash bin
@@ -351,20 +373,6 @@ func (h *FileHandler) GetDuplicates(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"duplicates": dupes,
-	})
-}
-
-// GetLargeThumbnail returns the list of files whose thumbnail size is larger than threshold size
-func (h *FileHandler) GetLargeThumbnailFiles(c *gin.Context) {
-	userID := auth.GetUserID(c.Request.Header)
-	threshold, _ := strconv.ParseInt(c.Query("threshold"), 10, 64)
-	largeThumbnailFiles, err := h.Controller.GetLargeThumbnailFiles(userID, threshold)
-	if err != nil {
-		handler.Error(c, stacktrace.Propagate(err, ""))
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"largeThumbnailFiles": largeThumbnailFiles,
 	})
 }
 

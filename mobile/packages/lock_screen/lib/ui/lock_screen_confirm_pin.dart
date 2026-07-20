@@ -41,8 +41,10 @@ class _LockScreenConfirmPinState extends State<LockScreenConfirmPin> {
     if (widget.pin == _confirmPinController.text) {
       await _lockscreenSetting.setPin(_confirmPinController.text);
 
-      Navigator.of(context).pop(true);
-      Navigator.of(context).pop(true);
+      if (mounted) {
+        Navigator.of(context).pop(true);
+        Navigator.of(context).pop(true);
+      }
       return;
     }
     setState(() {
@@ -50,10 +52,12 @@ class _LockScreenConfirmPinState extends State<LockScreenConfirmPin> {
     });
     await HapticFeedback.vibrate();
     await Future.delayed(const Duration(milliseconds: 75));
-    _confirmPinController.clear();
-    setState(() {
-      isConfirmPinValid = false;
-    });
+    if (mounted) {
+      _confirmPinController.clear();
+      setState(() {
+        isConfirmPinValid = false;
+      });
+    }
   }
 
   @override

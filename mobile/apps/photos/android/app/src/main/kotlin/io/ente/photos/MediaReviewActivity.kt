@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.webkit.MimeTypeMap
+import androidx.core.content.IntentCompat
 import java.util.Locale
 
 class MediaReviewActivity : Activity() {
@@ -77,8 +78,7 @@ class MediaReviewActivity : Activity() {
     }
 
     private val Intent.streamUri: Uri?
-        @Suppress("DEPRECATION")
-        get() = getParcelableExtra(Intent.EXTRA_STREAM)
+        get() = IntentCompat.getParcelableExtra(this, Intent.EXTRA_STREAM, Uri::class.java)
 
     private val Intent.reviewUri: Uri?
         get() = data ?: streamUri ?: firstClipDataUri

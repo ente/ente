@@ -81,7 +81,7 @@ export type ImageEditorOverlayProps = ModalVisibilityProps & {
         editedFile: File,
         collection: Collection,
         enteFile: EnteFile,
-    ) => void;
+    ) => boolean;
 };
 
 const filterDefaultValues = {
@@ -484,8 +484,9 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
             const collection = collections.find(
                 (c) => c.id == file.collectionID,
             );
-            onSaveEditedCopy(await getEditedFile(), collection!, file);
-            setFileURL(undefined);
+            if (onSaveEditedCopy(await getEditedFile(), collection!, file)) {
+                setFileURL(undefined);
+            }
         } catch (e) {
             log.error("Error saving copy to ente", e);
         }

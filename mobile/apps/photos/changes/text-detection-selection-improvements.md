@@ -1,0 +1,1 @@
+- Improved the reliability and performance of text detection and selection in photos.

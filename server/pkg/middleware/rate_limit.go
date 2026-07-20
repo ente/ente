@@ -24,6 +24,7 @@ type RateLimitMiddleware struct {
 	reset              time.Duration
 	ticker             *time.Ticker
 	limit10ReqPerMin   *limiter.Limiter
+	limit60ReqPerMin   *limiter.Limiter
 	limit120ReqPerHour *limiter.Limiter
 	limit200ReqPerMin  *limiter.Limiter
 	limit250ReqPerMin  *limiter.Limiter
@@ -36,6 +37,7 @@ type RateLimitMiddleware struct {
 func NewRateLimitMiddleware(discordCtrl *discord.DiscordController, limit int64, reset time.Duration) *RateLimitMiddleware {
 	rl := &RateLimitMiddleware{
 		limit10ReqPerMin:   util.NewRateLimiter("10-M"),
+		limit60ReqPerMin:   util.NewRateLimiter("60-M"),
 		limit120ReqPerHour: util.NewRateLimiter("120-H"),
 		limit200ReqPerMin:  util.NewRateLimiter("200-M"),
 		limit250ReqPerMin:  util.NewRateLimiter("250-M"),
@@ -185,9 +187,7 @@ func (r *RateLimitMiddleware) getRateLimitKey(c *gin.Context, reqPath string) st
 }
 
 func isPublicCollectionUploadURLPath(reqPath string) bool {
-	return reqPath == "/public-collection/upload-urls" ||
-		reqPath == "/public-collection/upload-url" ||
-		reqPath == "/public-collection/multipart-upload-urls" ||
+	return reqPath == "/public-collection/upload-url" ||
 		reqPath == "/public-collection/multipart-upload-url"
 }
 
@@ -203,11 +203,47 @@ func isEventURLPath(reqPath string) bool {
 		reqPath == "/events/user"
 }
 
+func isSpaceViewerReadURLPath(reqPath string) bool {
+	return reqPath == "/spaces/:spaceID/profile" ||
+		reqPath == "/spaces/:spaceID/posts" ||
+		reqPath == "/spaces/:spaceID/posts/:postID" ||
+		reqPath == "/spaces/:spaceID/versions"
+}
+
 // getLimiter, based on reqPath & reqMethod, return instance of limiter.Limiter which needs to
 // be applied for a request. It returns nil if the request is not rate limited
 func (r *RateLimitMiddleware) getLimiter(reqPath string, reqMethod string) *limiter.Limiter {
 	if strings.HasPrefix(reqPath, "/files/preview/") {
 		return r.limit700ReqPerSec
+	}
+	if reqPath == "/space/public/by-slug/:spaceSlug" ||
+		reqPath == "/space/public/slug-availability/:spaceSlug" {
+		return r.limit200ReqPerMin
+	}
+	if reqPath == "/spaces/:spaceID/uploads/presign" && reqMethod == http.MethodPost {
+		return r.limit10ReqPerMin
+	}
+	if reqPath == "/spaces/:spaceID/assets/redirect" && reqMethod == http.MethodGet {
+		return r.limit500ReqPerMin
+	}
+	if reqPath == "/spaces/:spaceID/conversations" && reqMethod == http.MethodGet {
+		return r.limit60ReqPerMin
+	}
+	if reqPath == "/spaces/:spaceID/feed" && reqMethod == http.MethodGet {
+		return r.limit60ReqPerMin
+	}
+	if reqMethod == http.MethodGet && isSpaceViewerReadURLPath(reqPath) {
+		return r.limit200ReqPerMin
+	}
+	if strings.HasPrefix(reqPath, "/spaces/") &&
+		(reqMethod == http.MethodPost || reqMethod == http.MethodPut || reqMethod == http.MethodPatch || reqMethod == http.MethodDelete) {
+		return r.limit200ReqPerMin
+	}
+	if (reqPath == "/account/space" && reqMethod == http.MethodPost) ||
+		(reqPath == "/account/space/sessions" && reqMethod == http.MethodPost) ||
+		(reqPath == "/account/space/sessions/bootstrap" && reqMethod == http.MethodPost) ||
+		(reqPath == "/account/space/sessions/current" && reqMethod == http.MethodDelete) {
+		return r.limit10ReqPerMin
 	}
 	if isAuthenticatedUploadURLPath(reqPath) {
 		return r.limit500ReqPerMin

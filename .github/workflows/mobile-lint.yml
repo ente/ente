@@ -89,18 +89,28 @@ jobs:
             - run: flutter pub get --enforce-lockfile
               working-directory: mobile
 
-            - name: Lint and test
+            - run: dart format --output=none --set-exit-if-changed .
+              working-directory: mobile
+
+            - run: flutter analyze --no-pub
+              working-directory: mobile
+
+            - name: Test
               working-directory: mobile
               run: |
-                  members=$(dart pub workspace list --json | jq -r '.packages[] | select(.name != "ente_workspace") | .path')
-                  for member in $members; do
-                      echo "Checking ${member#"$PWD/"}"
-                      (
-                          cd "$member"
-                          dart format --output=none --set-exit-if-changed .
-                          flutter analyze
-                          if [[ -d test ]]; then
-                              flutter test
+                  test_package() (
+                      member=${1#"$PWD/"}
+                      echo "Testing $member"
+                      cd "$member"
+                      flutter test --no-pub
+                  )
+                  export -f test_package
+
+                  dart pub workspace list --json |
+                      jq -r '.packages[] | select(.name != "ente_workspace") | .path' |
+                      while IFS= read -r member; do
+                          if [[ -d "$member/test" ]]; then
+                              printf '%s\n' "$member"
                           fi
-                      )
-                  done
+                      done |
+                      xargs -P4 -n1 bash -e -c 'test_package "$1"' _

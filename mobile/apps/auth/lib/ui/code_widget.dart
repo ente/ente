@@ -24,6 +24,7 @@ import 'package:ente_auth/ui/utils/icon_utils.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_auth/utils/toast_util.dart';
 import 'package:ente_auth/utils/totp_util.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_events/event_bus.dart';
 import 'package:ente_lock_screen/local_authentication_service.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
@@ -150,14 +151,6 @@ class _CodeWidgetState extends State<CodeWidget> {
                 size: widget.isCompactMode
                     ? const Size(24, 24)
                     : const Size(39, 39),
-              ),
-            ),
-          if (widget.code.isTrashed && kDebugMode)
-            Align(
-              alignment: Alignment.topLeft,
-              child: CustomPaint(
-                painter: PinBgPainter(color: colorScheme.warning700),
-                size: const Size(39, 39),
               ),
             ),
           Column(
@@ -368,15 +361,29 @@ class _CodeWidgetState extends State<CodeWidget> {
         },
       ),
     );
-    if (!isIOS) return content;
-    final double scale = capCodeWidgetTextScaleForIOS(
-      MediaQuery.textScalerOf(context).scale(1.0),
-    );
-    return MediaQuery(
-      data: MediaQuery.of(
-        context,
-      ).copyWith(textScaler: TextScaler.linear(scale)),
-      child: content,
+    final Widget scaledContent;
+    if (isIOS) {
+      final double scale = capCodeWidgetTextScaleForIOS(
+        MediaQuery.textScalerOf(context).scale(1.0),
+      );
+      scaledContent = MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(scale)),
+        child: content,
+      );
+    } else {
+      scaledContent = content;
+    }
+
+    return Semantics(
+      container: true,
+      identifier: 'auth_code_item',
+      label: [
+        widget.code.issuer,
+        widget.code.account,
+      ].where((value) => value.isNotEmpty).join(', '),
+      child: scaledContent,
     );
   }
 
@@ -947,9 +954,10 @@ class _CodeWidgetState extends State<CodeWidget> {
         .replaceAll('algorithm=sha512', 'algorithm=SHA512');
 
     if (!mounted) return;
-    await showDialog(
+    await showBottomSheetComponent<void>(
       context: context,
-      builder: (BuildContext dialogContext) {
+      useRootNavigator: true,
+      builder: (_) {
         return AuthQrDialog(
           data: qrData,
           title: widget.code.issuer,

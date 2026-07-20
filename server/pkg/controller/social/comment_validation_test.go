@@ -1,11 +1,40 @@
 package social
 
 import (
+	"context"
+	"errors"
 	"testing"
 
+	"github.com/ente/museum/ente"
 	socialentity "github.com/ente/museum/ente/social"
+	"github.com/ente/museum/pkg/repo"
 	"github.com/stretchr/testify/require"
 )
+
+type fileCollectionRepoStub struct {
+	state repo.CollectionFileState
+	err   error
+}
+
+func (s fileCollectionRepoStub) GetCollectionFileState(_ context.Context, _, _ int64) (repo.CollectionFileState, error) {
+	return s.state, s.err
+}
+
+func TestValidateFileInCollection(t *testing.T) {
+	require.NoError(t, validateFileInCollection(t.Context(), fileCollectionRepoStub{state: repo.CollectionFileActive}, 1, 2))
+	for _, state := range []repo.CollectionFileState{
+		repo.CollectionFileAbsent,
+		repo.CollectionFileDeleted,
+		repo.CollectionFilePendingRemove,
+	} {
+		err := validateFileInCollection(t.Context(), fileCollectionRepoStub{state: state}, 1, 2)
+		require.ErrorIs(t, err, ente.ErrPermissionDenied)
+		require.ErrorContains(t, err, "membership_"+string(state))
+	}
+
+	repoErr := errors.New("lookup failed")
+	require.ErrorIs(t, validateFileInCollection(t.Context(), fileCollectionRepoStub{err: repoErr}, 1, 2), repoErr)
+}
 
 func TestValidateReplyFileContext(t *testing.T) {
 	fileID := int64(42)

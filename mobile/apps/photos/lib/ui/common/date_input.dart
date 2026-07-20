@@ -1,182 +1,142 @@
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import "package:ente_components/ente_components.dart";
+import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
+import "package:intl/intl.dart";
 import "package:photos/l10n/l10n.dart";
-import "package:photos/theme/ente_theme.dart";
 
 class DatePickerField extends StatefulWidget {
-  final String? initialValue;
-  final String? hintText;
-  final void Function(DateTime?)? onChanged;
-  final DateTime? firstDate;
-  final DateTime? lastDate;
-  final bool isRequired; // New parameter for optional/required state
-
   const DatePickerField({
     super.key,
     this.initialValue,
+    this.label,
     this.hintText,
     this.onChanged,
+    this.onValidityChanged,
     this.firstDate,
     this.lastDate,
-    this.isRequired = true, // Default to required for backward compatibility
+    this.isRequired = true,
   });
+
+  final String? initialValue;
+  final String? label;
+  final String? hintText;
+  final ValueChanged<DateTime?>? onChanged;
+  final ValueChanged<bool>? onValidityChanged;
+  final DateTime? firstDate;
+  final DateTime? lastDate;
+  final bool isRequired;
 
   @override
   State<DatePickerField> createState() => _DatePickerFieldState();
 }
 
 class _DatePickerFieldState extends State<DatePickerField> {
-  final TextEditingController _controller = TextEditingController();
+  final _controller = TextEditingController();
   DateTime? _selectedDate;
   bool _hasError = false;
-  bool isUSLocale = false;
+  bool _initialized = false;
+  bool _isUSLocale = false;
+
+  String get _displayFormat => _isUSLocale ? 'MM/dd/yyyy' : 'dd/MM/yyyy';
 
   @override
-  void initState() {
-    super.initState();
-    if (widget.initialValue != null) {
-      _controller.text = widget.initialValue!;
-      _tryParseDate(widget.initialValue!, initialParse: true).ignore();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) return;
+
+    final locale = Localizations.localeOf(context);
+    Locale? formatLocale;
+    for (final deviceLocale
+        in WidgetsBinding.instance.platformDispatcher.locales) {
+      if (deviceLocale.languageCode == locale.languageCode) {
+        if (deviceLocale.countryCode == locale.countryCode) {
+          formatLocale = deviceLocale;
+          break;
+        }
+        formatLocale ??= deviceLocale;
+      }
     }
+    _isUSLocale = (formatLocale ?? locale).countryCode == 'US';
+    _selectedDate = _parseDate(widget.initialValue ?? '');
+    _controller.text = _selectedDate == null
+        ? widget.initialValue ?? ''
+        : _formatDate(_selectedDate!);
+    _hasError = _controller.text.isNotEmpty && _selectedDate == null;
+    _initialized = true;
   }
 
-  Future<void> _tryParseDate(String value, {bool initialParse = false}) async {
-    Locale? locale = await getLocale();
-    locale ??= const Locale('en', 'US');
-    isUSLocale = locale.toString().toLowerCase().contains('us');
-    // If the field is empty and not required, reset error state and clear date
-    if (value.isEmpty && !widget.isRequired) {
-      setState(() {
-        _selectedDate = null;
-        _hasError = false;
-      });
-      widget.onChanged?.call(null);
-      return;
+  DateTime? _parseDate(String value) {
+    final formats = _isUSLocale
+        ? const ['MM/dd/yyyy', 'MM-dd-yyyy', 'yyyy-MM-dd']
+        : const ['dd/MM/yyyy', 'dd-MM-yyyy', 'yyyy-MM-dd'];
+    for (final format in formats) {
+      try {
+        return DateFormat(format).parseStrict(value.trim());
+      } catch (_) {}
     }
+    return null;
+  }
 
-    // Skip validation for empty optional fields
-    if (value.isEmpty) {
-      return;
-    }
+  String _formatDate(DateTime date) => DateFormat(_displayFormat).format(date);
 
-    try {
-      // Try parsing different date formats
-      DateTime? parsed;
-      final List<String> formats = isUSLocale
-          ? [
-              'MM/dd/yyyy',
-              'MM-dd-yyyy',
-              'yyyy-MM-dd', // Corrected format
-            ]
-          : [
-              'dd/MM/yyyy',
-              'dd-MM-yyyy',
-              'yyyy-MM-dd', // Corrected format
-            ];
+  void _onTextChanged(String value) {
+    final trimmedValue = value.trim();
+    final parsed = trimmedValue.isEmpty ? null : _parseDate(trimmedValue);
+    final isValid = trimmedValue.isEmpty
+        ? !widget.isRequired
+        : parsed != null &&
+              (widget.firstDate == null ||
+                  !parsed.isBefore(widget.firstDate!)) &&
+              (widget.lastDate == null || !parsed.isAfter(widget.lastDate!));
 
-      for (String format in formats) {
-        try {
-          parsed = DateFormat(format).parseStrict(value);
-          break;
-        } catch (_) {
-          continue;
-        }
+    setState(() {
+      if (isValid) {
+        _selectedDate = parsed;
       }
-
-      if (parsed != null) {
-        // Validate date range if specified
-        bool isValid = true;
-        if (widget.firstDate != null && parsed.isBefore(widget.firstDate!)) {
-          isValid = false;
-        }
-        if (widget.lastDate != null && parsed.isAfter(widget.lastDate!)) {
-          isValid = false;
-        }
-
-        setState(() {
-          _selectedDate = isValid ? parsed : null;
-          _hasError = !isValid;
-        });
-
-        if (isValid) {
-          if (initialParse) {
-            _controller.text = isUSLocale
-                ? DateFormat('MM-dd-yyyy').format(parsed)
-                : DateFormat('dd-MM-yyyy').format(parsed);
-          }
-          widget.onChanged?.call(parsed);
-        }
-      } else {
-        setState(() {
-          _selectedDate = null;
-          _hasError = true;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _selectedDate = null;
-        _hasError = true;
-      });
+      _hasError = !isValid;
+    });
+    widget.onValidityChanged?.call(isValid);
+    if (isValid) {
+      widget.onChanged?.call(parsed);
     }
   }
 
   Future<void> _showDatePicker() async {
-    final Locale locale = await getFormatLocale();
+    final locale = await getFormatLocale();
     if (!mounted) return;
-    final DateTime? picked = await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
       locale: locale,
       initialDate: _selectedDate ?? DateTime.now(),
       firstDate: widget.firstDate ?? DateTime(1900),
       lastDate: widget.lastDate ?? DateTime(2100),
     );
-
-    if (picked != null) {
-      setState(() {
-        _selectedDate = picked;
-        _hasError = false;
-        _controller.text = isUSLocale
-            ? DateFormat('MM-dd-yyyy').format(picked)
-            : DateFormat('dd-MM-yyyy').format(picked);
-      });
-      widget.onChanged?.call(picked);
+    if (picked != null && mounted) {
+      _controller.text = _formatDate(picked);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
+    return TextInputComponent(
       controller: _controller,
-      onChanged: (value) => _tryParseDate(value),
-      decoration: InputDecoration(
-        focusedBorder: OutlineInputBorder(
-          borderRadius: const BorderRadius.all(Radius.circular(8.0)),
-          borderSide: BorderSide(
-            color: getEnteColorScheme(context).strokeMuted,
-          ),
-        ),
-        fillColor: getEnteColorScheme(context).fillFaint,
-        filled: true,
-        hintText:
-            widget.hintText ??
-            "Enter date (DD/MM/YYYY)${widget.isRequired ? '' : ' (optional)'}",
-        hintStyle: getEnteTextTheme(context).bodyFaint,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
-        border: UnderlineInputBorder(
-          borderSide: BorderSide.none,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        suffixIcon: IconButton(
-          icon: const Icon(Icons.calendar_today),
-          onPressed: _showDatePicker,
-          color: _hasError
-              ? getEnteColorScheme(context).warning500
-              : getEnteColorScheme(context).strokeMuted,
-        ),
+      label: widget.label,
+      hintText: widget.hintText,
+      keyboardType: TextInputType.datetime,
+      autocorrect: false,
+      enableSuggestions: false,
+      isRequired: widget.isRequired,
+      message: _hasError ? _displayFormat.toUpperCase() : null,
+      messageType: _hasError
+          ? TextInputComponentMessageType.error
+          : TextInputComponentMessageType.helper,
+      suffix: HugeIcon(
+        icon: HugeIcons.strokeRoundedCalendar03,
+        color: context.componentColors.textLighter,
+        size: IconSizes.small,
       ),
+      onSuffixTap: _showDatePicker,
+      onChanged: _onTextChanged,
     );
   }
 

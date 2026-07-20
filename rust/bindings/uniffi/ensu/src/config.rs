@@ -18,6 +18,8 @@ pub struct ConfigDefaults {
     pub mobile_model_presets: Vec<ConfigModelPreset>,
     pub desktop_default_model: ConfigModelPreset,
     pub desktop_model_presets: Vec<ConfigModelPreset>,
+    pub transcription_model: ConfigModelPreset,
+    pub voice_activity_model: ConfigModelPreset,
 }
 
 impl From<config::ModelPreset> for ConfigModelPreset {
@@ -50,6 +52,8 @@ impl From<config::Defaults> for ConfigDefaults {
                 .into_iter()
                 .map(Into::into)
                 .collect(),
+            transcription_model: value.transcription_model.into(),
+            voice_activity_model: value.voice_activity_model.into(),
         }
     }
 }

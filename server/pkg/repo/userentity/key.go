@@ -35,6 +35,20 @@ func (r *Repository) CreateKey(ctx context.Context, userID int64, entry model.En
 	return ente.NewAlreadyExistsError("Key already exists")
 }
 
+func (r *Repository) EnsureKey(ctx context.Context, userID int64, entry model.EntityKeyRequest) (model.EntityKey, error) {
+	if _, err := r.DB.ExecContext(ctx, `INSERT into entity_key(
+                         user_id, type, encrypted_key, header) VALUES ($1,$2,$3, $4)
+                         ON CONFLICT (user_id, type) DO NOTHING`,
+		userID, entry.Type, entry.EncryptedKey, entry.Header); err != nil {
+		return model.EntityKey{}, stacktrace.Propagate(err, "Failed to ensure entity key")
+	}
+	key, err := r.GetKey(ctx, userID, entry.Type)
+	if err != nil {
+		return model.EntityKey{}, stacktrace.Propagate(err, "failed to fetch ensured key")
+	}
+	return key, nil
+}
+
 func (r *Repository) GetKey(ctx context.Context, userID int64, eType model.EntityType) (model.EntityKey, error) {
 	row := r.DB.QueryRowContext(ctx, `SELECT user_id, type, encrypted_key, header,
 	 created_at from entity_key where user_id = $1 and type = $2`, userID, eType)

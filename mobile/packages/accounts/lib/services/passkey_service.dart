@@ -43,7 +43,9 @@ class PasskeyService {
       await launchUrlString(url, mode: LaunchMode.externalApplication);
     } catch (e) {
       Logger('PasskeyService').severe("failed to open passkey page", e);
-      showGenericErrorDialog(context: context, error: e).ignore();
+      if (context.mounted) {
+        showGenericErrorDialog(context: context, error: e).ignore();
+      }
     }
   }
 }

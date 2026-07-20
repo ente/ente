@@ -1,44 +1,66 @@
 import "dart:async";
 import "dart:io";
 
-import "package:flutter/foundation.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/rendering.dart";
 import "package:flutter/services.dart";
 import "package:logging/logging.dart";
-import "package:mobile_ocr/mobile_ocr.dart" show MobileOcr;
+import "package:mobile_ocr/mobile_ocr.dart"
+    show
+        DisplayImageHelper,
+        MobileOcr,
+        OcrModelComponent,
+        TextDetectorController,
+        TextDetectorStrings,
+        TextDetectorWidget,
+        TextRegionDetectionResult,
+        ZoomedInteractionPolicy;
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/reset_zoom_of_photo_view_event.dart";
 import "package:photos/l10n/l10n.dart";
+import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/file/trash_file.dart";
 import "package:photos/module/download/file.dart";
 import "package:photos/states/detail_page_state.dart";
-import "package:photos/ui/viewer/file/ocr/display_image_helper.dart";
 import "package:photos/ui/viewer/file/ocr/ocr_dot_wave_overlay.dart";
-import "package:photos/ui/viewer/file/ocr/text_detector_widget.dart";
-import "package:photos/ui/viewer/file/ocr/text_overlay_widget.dart"
-    show ZoomedInteractionPolicy;
+import "package:photos/ui/viewer/file/ocr/text_region_hit_test.dart";
 import "package:photos/utils/image_util.dart";
 
-/// Inline text detection widget that mimics Apple's Live Text behavior:
+/// Routes still-photo gestures from the viewer to its OCR overlay.
+class InlineTextDetectionController {
+  _InlineTextDetectionState? _state;
+
+  void _attach(_InlineTextDetectionState state) => _state = state;
+
+  void _detach(_InlineTextDetectionState state) {
+    if (identical(_state, state)) {
+      _state = null;
+    }
+  }
+
+  void startTextSelectionAt(EnteFile file, Offset globalPosition) {
+    final state = _state;
+    if (state == null || state._didFileChange(file, state.widget.file)) return;
+    state._handleLongPressAt(globalPosition);
+  }
+}
+
+/// Inline on-demand text selection for the photo viewer.
 ///
-/// 1. Quick `hasText()` check runs silently when the image loads.
-/// 2. If text is found and the user stays on the image for 1 second, full
-///    detection runs automatically and text boundaries appear as a
-///    transparent overlay.
-/// 3. Long press on detected text lets users select and copy.
-/// 4. Taps and swipes pass through to the underlying image viewer.
+/// Still images use long press as the signal to start recognition. Live and
+/// motion photos precompute detector-only regions so a long press on text
+/// starts selection, while a long press elsewhere continues to play video.
 class InlineTextDetection extends StatefulWidget {
   final EnteFile file;
-  final ValueListenable<bool> enableFullScreenNotifier;
+  final InlineTextDetectionController controller;
   final bool isGuestView;
 
   const InlineTextDetection({
     required this.file,
-    required this.enableFullScreenNotifier,
+    required this.controller,
     required this.isGuestView,
     super.key,
   });
@@ -49,22 +71,27 @@ class InlineTextDetection extends StatefulWidget {
 
 class _InlineTextDetectionState extends State<InlineTextDetection> {
   static const int _maxCacheSize = 200;
-  static const Duration _hasTextTimeout = Duration(seconds: 15);
-  static const Duration _autoActivateDelay = Duration(seconds: 1);
+  static const int _maxRegionDetectionAttempts = 2;
+  static const Duration _regionDetectionTimeout = Duration(seconds: 15);
+  static const Duration _regionDetectionRetryDelay = Duration(seconds: 1);
   static const double _globalGestureSlop = 18.0;
   static const double _photoGestureEdgeSlop = 8.0;
-  static const double _visibleBottomControlsHeight = 120.0;
-  static final Map<String, _HasTextResult> _hasTextCache = {};
+  static const double _textRegionHitSlop = 8.0;
+  static final Map<String, _RegionCacheEntry> _regionCache = {};
   final Logger _logger = Logger("InlineTextDetection");
   final MobileOcr _mobileOcr = MobileOcr();
   final TextDetectorController _detectorController = TextDetectorController();
 
   bool _isEligible = false;
   String? _localFilePath;
-  int _requestId = 0;
+  int _evaluationGeneration = 0;
+  int _regionDetectionAttempt = 0;
+  String? _activeRegionRequestId;
+  Timer? _regionRetryTimer;
+  TextRegionDetectionResult? _detectedRegions;
   bool _overlayActive = false;
+  bool _isPreparingOnDemand = false;
   Offset? _pendingLongPressPosition;
-  Timer? _autoActivateTimer;
   bool _zoomGestureSettled = false;
   Timer? _zoomSettleTimer;
   ZoomTransform? _lastSeenTransform;
@@ -77,6 +104,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
   bool _trackedGlobalPointerMoved = false;
   bool _trackedGlobalLongPressTriggered = false;
   Timer? _globalLongPressTimer;
+  final Set<int> _ocrHitPointers = <int>{};
   String? _resolvedImageSizePath;
   Size? _resolvedImageSize;
   int _imageSizeRequestId = 0;
@@ -84,6 +112,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
   @override
   void initState() {
     super.initState();
+    widget.controller._attach(this);
     GestureBinding.instance.pointerRouter.addGlobalRoute(
       _handleGlobalPointerEvent,
     );
@@ -93,7 +122,12 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
   @override
   void didUpdateWidget(covariant InlineTextDetection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_didFileChange(oldWidget.file, widget.file)) {
+    if (!identical(oldWidget.controller, widget.controller)) {
+      oldWidget.controller._detach(this);
+      widget.controller._attach(this);
+    }
+    if (_didFileChange(oldWidget.file, widget.file) ||
+        oldWidget.isGuestView != widget.isGuestView) {
       _resetState();
       _evaluateFile();
     }
@@ -101,23 +135,32 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
 
   @override
   void dispose() {
-    _autoActivateTimer?.cancel();
+    _cancelActiveRegionRequest();
+    _regionRetryTimer?.cancel();
     _zoomSettleTimer?.cancel();
     _globalLongPressTimer?.cancel();
     GestureBinding.instance.pointerRouter.removeGlobalRoute(
       _handleGlobalPointerEvent,
     );
+    widget.controller._detach(this);
     _detectorController.dispose();
     super.dispose();
   }
 
   void _resetState() {
-    _autoActivateTimer?.cancel();
+    _evaluationGeneration++;
+    _cancelActiveRegionRequest();
+    _regionRetryTimer?.cancel();
+    _regionRetryTimer = null;
+    _regionDetectionAttempt = 0;
     _cancelTrackedGlobalPointer();
+    _ocrHitPointers.clear();
     _imageSizeRequestId++;
     setState(() {
       _localFilePath = null;
+      _detectedRegions = null;
       _overlayActive = false;
+      _isPreparingOnDemand = false;
       _pendingLongPressPosition = null;
       _resolvedImageSizePath = null;
       _resolvedImageSize = null;
@@ -125,6 +168,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
   }
 
   bool _didFileChange(EnteFile oldFile, EnteFile newFile) {
+    if ((oldFile is TrashFile) != (newFile is TrashFile)) return true;
     if (oldFile.generatedID != newFile.generatedID) return true;
     if (oldFile.uploadedFileID != newFile.uploadedFileID) return true;
     if (oldFile.localID != newFile.localID) return true;
@@ -137,145 +181,163 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
     return "generated_${file.generatedID}";
   }
 
-  static void _cacheResult(String key, _HasTextResult result) {
-    if (_hasTextCache.length >= _maxCacheSize) {
-      _hasTextCache.remove(_hasTextCache.keys.first);
+  static void _cacheRegionResult(String key, _RegionCacheEntry result) {
+    if (_regionCache.length >= _maxCacheSize) {
+      _regionCache.remove(_regionCache.keys.first);
     }
-    _hasTextCache[key] = result;
+    _regionCache[key] = result;
   }
 
   bool _isFileEligible(EnteFile file) {
+    if (widget.isGuestView || file is TrashFile) return false;
     return file.fileType == FileType.image ||
         file.fileType == FileType.livePhoto;
   }
 
-  Future<bool?> _checkHasText(File localFile) async {
-    _logger.info("running hasText check");
-    try {
-      final bool hasText = await _mobileOcr
-          .hasText(imagePath: localFile.path)
-          .timeout(_hasTextTimeout);
-      _logger.info("hasText result: $hasText");
-      return hasText;
-    } on TimeoutException {
-      _logger.info("hasText timed out");
-      return null;
-    } catch (error, stackTrace) {
-      _logger.warning("hasText failed", error, stackTrace);
-      return null;
+  bool get _requiresRegionRouting => widget.file.isLiveOrMotionPhoto;
+
+  void _cancelActiveRegionRequest() {
+    final requestId = _activeRegionRequestId;
+    _activeRegionRequestId = null;
+    if (requestId != null) {
+      unawaited(_mobileOcr.cancelRequest(requestId).catchError((_) {}));
     }
   }
 
-  Future<void> _evaluateFile() async {
+  Future<void> _evaluateFile({bool isRetry = false}) async {
     final bool isEligible = _isFileEligible(widget.file);
-    final int requestId = ++_requestId;
+    final int generation = isRetry
+        ? _evaluationGeneration
+        : ++_evaluationGeneration;
     _logger.info(
       "evaluateFile: eligible=$isEligible, type=${widget.file.fileType}",
     );
 
     if (!isEligible) {
-      setState(() {
-        _isEligible = false;
-        _localFilePath = null;
-      });
-      return;
-    }
-
-    setState(() {
-      _isEligible = true;
-      _localFilePath = null;
-    });
-
-    // Check cache first
-    final String cacheKey = _cacheKey(widget.file);
-    final _HasTextResult? cached = _hasTextCache[cacheKey];
-    if (cached != null) {
-      if (!mounted || requestId != _requestId) return;
-      setState(() {
-        _localFilePath = cached.localPath;
-        if (!cached.hasText) {
-          _pendingLongPressPosition = null;
-        }
-      });
-      if (cached.hasText) {
-        final localPath = cached.localPath;
-        if (localPath != null) {
-          unawaited(_resolveDisplayImageSize(localPath));
-        }
-        _scheduleAutoActivate(requestId);
+      if (!isRetry) {
+        setState(() {
+          _isEligible = false;
+          _localFilePath = null;
+          _detectedRegions = null;
+        });
       }
       return;
     }
 
-    // Resolve local file
+    if (!isRetry) {
+      _regionDetectionAttempt = 0;
+      setState(() {
+        _isEligible = true;
+        _localFilePath = null;
+        _detectedRegions = null;
+      });
+    }
+    if (!_requiresRegionRouting) {
+      return;
+    }
+
+    final String cacheKey = _cacheKey(widget.file);
+    if (!isRetry) {
+      final _RegionCacheEntry? cached = _regionCache[cacheKey];
+      if (cached != null && File(cached.localPath).existsSync()) {
+        if (!mounted || generation != _evaluationGeneration) return;
+        setState(() {
+          _localFilePath = cached.localPath;
+          _detectedRegions = cached.result;
+        });
+        return;
+      }
+      if (cached != null) {
+        _regionCache.remove(cacheKey);
+      }
+    }
+
+    _regionDetectionAttempt++;
     try {
       final File? localFile = await getFile(widget.file);
-      if (!mounted || requestId != _requestId) return;
+      if (!mounted || generation != _evaluationGeneration) return;
       if (localFile == null || !localFile.existsSync()) {
-        _cacheResult(cacheKey, const _HasTextResult(hasText: false));
-        setState(() {
-          _pendingLongPressPosition = null;
-        });
-        return;
+        throw StateError("Live-photo still is unavailable");
       }
 
-      final bool? hasText = await _checkHasText(localFile);
-      if (!mounted || requestId != _requestId) return;
-      if (hasText == null) {
-        setState(() {
-          _pendingLongPressPosition = null;
-        });
-        return;
-      }
-
-      final result = _HasTextResult(
-        hasText: hasText,
-        localPath: hasText ? localFile.path : null,
+      setState(() {
+        _localFilePath = localFile.path;
+      });
+      final detectorStatus = await _mobileOcr.prepareModels(
+        components: {OcrModelComponent.detector},
       );
-      _cacheResult(cacheKey, result);
+      if (!mounted || generation != _evaluationGeneration) return;
+      if (!detectorStatus.isReady) {
+        throw StateError("OCR detector is not ready");
+      }
 
-      setState(() {
-        _localFilePath = result.localPath;
-        if (!hasText) {
-          _pendingLongPressPosition = null;
-        }
-      });
-
-      if (hasText) {
-        unawaited(_resolveDisplayImageSize(localFile.path));
-        if (_pendingLongPressPosition != null) {
-          _activateOverlay();
-        } else {
-          _scheduleAutoActivate(requestId);
+      final regionRequestId = "photos-$cacheKey-$generation";
+      _activeRegionRequestId = regionRequestId;
+      late final TextRegionDetectionResult result;
+      try {
+        result = await _mobileOcr
+            .detectTextRegions(
+              imagePath: localFile.path,
+              requestId: regionRequestId,
+            )
+            .timeout(_regionDetectionTimeout);
+      } on TimeoutException {
+        await _mobileOcr.cancelRequest(regionRequestId);
+        rethrow;
+      } finally {
+        if (_activeRegionRequestId == regionRequestId) {
+          _activeRegionRequestId = null;
         }
       }
-    } catch (error, stackTrace) {
-      _logger.severe("Text detection pre-check failed", error, stackTrace);
-      if (!mounted || requestId != _requestId) return;
+      if (!mounted || generation != _evaluationGeneration) return;
+
+      _cacheRegionResult(
+        cacheKey,
+        _RegionCacheEntry(localPath: localFile.path, result: result),
+      );
       setState(() {
-        _pendingLongPressPosition = null;
+        _detectedRegions = result;
       });
+      _logger.info("Detected ${result.regions.length} live-photo text regions");
+    } catch (error, stackTrace) {
+      if (!mounted || generation != _evaluationGeneration) return;
+      _logger.warning(
+        "Live-photo text region detection failed",
+        error,
+        stackTrace,
+      );
+      _scheduleRegionRetry(generation);
     }
   }
 
+  void _scheduleRegionRetry(int generation) {
+    if (_regionDetectionAttempt >= _maxRegionDetectionAttempts ||
+        _regionRetryTimer != null) {
+      return;
+    }
+
+    _regionRetryTimer = Timer(_regionDetectionRetryDelay, () {
+      _regionRetryTimer = null;
+      if (!mounted || generation != _evaluationGeneration) return;
+      _logger.info("Retrying live-photo text region detection");
+      unawaited(_evaluateFile(isRetry: true));
+    });
+  }
+
   void _activateOverlay() {
-    _autoActivateTimer?.cancel();
     if (_overlayActive) return;
     setState(() {
       _overlayActive = true;
     });
   }
 
-  void _scheduleAutoActivate(int requestId) {
-    _autoActivateTimer?.cancel();
-    _autoActivateTimer = Timer(_autoActivateDelay, () {
-      if (!mounted || requestId != _requestId) return;
-      if (_localFilePath == null || _overlayActive) return;
-      _activateOverlay();
-    });
-  }
-
   Size? get _displayImageSize {
+    final regionImageSize = _detectedRegions?.imageSize;
+    if (regionImageSize != null &&
+        regionImageSize.width > 0 &&
+        regionImageSize.height > 0) {
+      return regionImageSize;
+    }
     if (widget.file.hasDimensions &&
         widget.file.width > 0 &&
         widget.file.height > 0) {
@@ -324,18 +386,45 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
   }
 
   void _handleLongPressAt(Offset globalPosition) {
+    if (!_isEligible) return;
     if (_overlayActive) return; // Already active, let overlay handle it
     if (!_isGlobalPointEligibleForOcrGesture(globalPosition)) return;
-    _autoActivateTimer?.cancel();
+    if (_isPreparingOnDemand) return;
     setState(() {
       _pendingLongPressPosition = globalPosition;
     });
-    // If hasText already completed and file path is ready, activate now
     if (_localFilePath != null) {
       _activateOverlay();
-      return;
+    } else {
+      unawaited(_prepareStillImageOnDemand());
     }
-    unawaited(_evaluateFile());
+  }
+
+  Future<void> _prepareStillImageOnDemand() async {
+    final generation = _evaluationGeneration;
+    setState(() {
+      _isPreparingOnDemand = true;
+    });
+    try {
+      final localFile = await getFile(widget.file);
+      if (!mounted || generation != _evaluationGeneration) return;
+      if (localFile == null || !localFile.existsSync()) {
+        throw StateError("Could not resolve image for OCR");
+      }
+      setState(() {
+        _localFilePath = localFile.path;
+        _isPreparingOnDemand = false;
+      });
+      unawaited(_resolveDisplayImageSize(localFile.path));
+      _activateOverlay();
+    } catch (error, stackTrace) {
+      if (!mounted || generation != _evaluationGeneration) return;
+      _logger.warning("Could not prepare image for OCR", error, stackTrace);
+      setState(() {
+        _isPreparingOnDemand = false;
+        _pendingLongPressPosition = null;
+      });
+    }
   }
 
   void _handleLongPress(LongPressStartDetails details) {
@@ -350,14 +439,6 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
       _isCurrentlyZoomed &&
       _zoomGestureSettled &&
       !_isPinching;
-
-  bool get _canRetryHasTextFromLongPress =>
-      _isEligible &&
-      !_overlayActive &&
-      _localFilePath == null &&
-      _pendingLongPressPosition == null &&
-      widget.file is! TrashFile &&
-      !widget.isGuestView;
 
   bool _isPrimaryGlobalPointer(PointerDownEvent event) {
     if (event.kind == PointerDeviceKind.mouse) {
@@ -391,17 +472,13 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
     final bool pointEligibleForOcr = _isGlobalPointEligibleForOcrGesture(
       event.position,
     );
-    final bool longPressCanRetry =
-        pointEligibleForOcr &&
-        widget.enableFullScreenNotifier.value &&
-        _canRetryHasTextFromLongPress;
     final bool longPressCanSelect =
         pointEligibleForOcr &&
         _canTrackZoomedPanFirstLongPress &&
         !pointOnInteractiveUi &&
         _detectorController.isPointOnSelectableText(event.position);
 
-    if (!tapCanClearSelection && !longPressCanSelect && !longPressCanRetry) {
+    if (!tapCanClearSelection && !longPressCanSelect) {
       return;
     }
 
@@ -415,7 +492,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
     _trackedGlobalPointerMoved = false;
     _trackedGlobalLongPressTriggered = false;
 
-    if (longPressCanSelect || longPressCanRetry) {
+    if (longPressCanSelect) {
       final Offset position = event.position;
       final int pointer = event.pointer;
       _globalLongPressTimer = Timer(kLongPressTimeout, () {
@@ -423,16 +500,12 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
             _trackedGlobalPointer != pointer ||
             _trackedGlobalPointerMoved ||
             _globalActivePointers != 1 ||
+            !_ocrHitPointers.contains(pointer) ||
             (longPressCanSelect && !_canTrackZoomedPanFirstLongPress)) {
           return;
         }
-        if (longPressCanSelect) {
-          _trackedGlobalLongPressTriggered = _detectorController
-              .selectTextAtPosition(position);
-        } else if (_canRetryHasTextFromLongPress) {
-          _trackedGlobalLongPressTriggered = true;
-          _handleLongPressAt(position);
-        }
+        _trackedGlobalLongPressTriggered = _detectorController
+            .selectTextAtPosition(position);
       });
     }
   }
@@ -505,54 +578,49 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
       return allowViewportFallback ? Offset.zero & viewportSize : Rect.zero;
     }
 
-    final double imageAspect = imageSize.width / imageSize.height;
-    final double viewportAspect = viewportSize.width / viewportSize.height;
-    late final double displayWidth;
-    late final double displayHeight;
-    if (imageAspect > viewportAspect) {
-      displayWidth = viewportSize.width;
-      displayHeight = displayWidth / imageAspect;
-    } else {
-      displayHeight = viewportSize.height;
-      displayWidth = displayHeight * imageAspect;
-    }
-
-    return Rect.fromLTWH(
-      (viewportSize.width - displayWidth) / 2,
-      (viewportSize.height - displayHeight) / 2,
-      displayWidth,
-      displayHeight,
-    );
+    return containedImageRect(viewportSize, imageSize);
   }
 
-  bool _isLocalPointInVisibleControls(Offset localPosition, Size viewportSize) {
-    if (widget.enableFullScreenNotifier.value) {
+  bool _isLocalPointInDetectedTextRegion(
+    Offset localPosition,
+    Size viewportSize,
+    ZoomTransform zoomTransform,
+  ) {
+    final detection = _detectedRegions;
+    if (detection == null || detection.regions.isEmpty) {
       return false;
     }
-
-    final EdgeInsets padding =
-        MediaQuery.maybeOf(context)?.padding ?? EdgeInsets.zero;
-    final double topControlsHeight = padding.top + kToolbarHeight;
-    final double bottomControlsHeight =
-        padding.bottom + _visibleBottomControlsHeight;
-
-    return localPosition.dy < topControlsHeight ||
-        localPosition.dy > viewportSize.height - bottomControlsHeight;
+    return isZoomedViewportPointInTextRegions(
+      point: localPosition,
+      viewportSize: viewportSize,
+      imageSize: detection.imageSize,
+      regions: detection.regions,
+      scale: zoomTransform.scale,
+      offset: zoomTransform.offset,
+      hitSlop: _textRegionHitSlop,
+    );
   }
 
   bool _isLocalPointEligibleForOcrGesture(
     Offset localPosition,
     Size viewportSize,
+    ZoomTransform zoomTransform,
   ) {
     if (viewportSize.width <= 0 || viewportSize.height <= 0) {
       return false;
     }
-    if (_isLocalPointInVisibleControls(localPosition, viewportSize)) {
+    if (zoomTransform.scale <= 0 || !zoomTransform.scale.isFinite) {
       return false;
     }
+    final point = viewportPointBeforeZoom(
+      point: localPosition,
+      viewportSize: viewportSize,
+      scale: zoomTransform.scale,
+      offset: zoomTransform.offset,
+    );
     return _displayedPhotoRect(
       viewportSize,
-    ).inflate(_photoGestureEdgeSlop).contains(localPosition);
+    ).inflate(_photoGestureEdgeSlop / zoomTransform.scale).contains(point);
   }
 
   bool _isGlobalPointEligibleForOcrGesture(Offset globalPosition) {
@@ -564,6 +632,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
       return _isLocalPointEligibleForOcrGesture(
         renderObject.globalToLocal(globalPosition),
         renderObject.size,
+        InheritedDetailPageState.of(context).zoomTransformNotifier.value,
       );
     }
 
@@ -571,16 +640,43 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
     if (viewportSize == null) {
       return false;
     }
-    return _isLocalPointEligibleForOcrGesture(globalPosition, viewportSize);
+    return _isLocalPointEligibleForOcrGesture(
+      globalPosition,
+      viewportSize,
+      InheritedDetailPageState.of(context).zoomTransformNotifier.value,
+    );
   }
 
-  Widget _buildOcrGestureRegion(Widget child) {
+  Widget _buildOcrGestureRegion(Widget child, {bool textRegionsOnly = false}) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final Size viewportSize = constraints.biggest;
         return _OcrGestureHitTestBox(
-          hitTest: (localPosition) =>
-              _isLocalPointEligibleForOcrGesture(localPosition, viewportSize),
+          hitTest: (localPosition, globalPosition) {
+            if (textRegionsOnly &&
+                _detectorController.isPointOnInteractiveSelectionUi(
+                  globalPosition,
+                )) {
+              return true;
+            }
+            final zoomTransform = InheritedDetailPageState.of(
+              context,
+            ).zoomTransformNotifier.value;
+            if (!_isLocalPointEligibleForOcrGesture(
+              localPosition,
+              viewportSize,
+              zoomTransform,
+            )) {
+              return false;
+            }
+            return !textRegionsOnly ||
+                _detectorController.isPointOnSelectableText(globalPosition) ||
+                _isLocalPointInDetectedTextRegion(
+                  localPosition,
+                  viewportSize,
+                  zoomTransform,
+                );
+          },
           child: child,
         );
       },
@@ -595,6 +691,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
           onLongPressStart: _handleLongPress,
           child: const SizedBox.expand(),
         ),
+        textRegionsOnly: _requiresRegionRouting,
       ),
     );
   }
@@ -604,7 +701,8 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
       child: _buildOcrGestureRegion(
         Listener(
           behavior: HitTestBehavior.translucent,
-          onPointerDown: (_) {
+          onPointerDown: (event) {
+            _ocrHitPointers.add(event.pointer);
             _activePointers++;
             if (_activePointers >= 2 && !_isPinching) {
               setState(() {
@@ -613,13 +711,15 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
               });
             }
           },
-          onPointerUp: (_) {
+          onPointerUp: (event) {
+            _ocrHitPointers.remove(event.pointer);
             if (_activePointers > 0) _activePointers--;
             if (_activePointers < 2 && _isPinching) {
               setState(() => _isPinching = false);
             }
           },
-          onPointerCancel: (_) {
+          onPointerCancel: (event) {
+            _ocrHitPointers.remove(event.pointer);
             if (_activePointers > 0) _activePointers--;
             if (_activePointers < 2 && _isPinching) {
               setState(() => _isPinching = false);
@@ -627,6 +727,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
           },
           child: IgnorePointer(ignoring: ignoring, child: overlay),
         ),
+        textRegionsOnly: _requiresRegionRouting,
       ),
     );
   }
@@ -656,18 +757,29 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isEligible || widget.file is TrashFile || widget.isGuestView) {
+    if (!_isEligible) {
       return const SizedBox.shrink();
     }
 
     final detailState = InheritedDetailPageState.of(context);
     final isZoomedNotifier = detailState.isZoomedNotifier;
 
+    if (!_overlayActive) {
+      if (!_requiresRegionRouting) {
+        return _isPreparingOnDemand
+            ? _buildImageBoundedProcessingOverlay()
+            : const SizedBox.shrink();
+      }
+      if (_localFilePath == null) {
+        return const SizedBox.shrink();
+      }
+      if (_detectedRegions?.regions.isEmpty ?? true) {
+        return const SizedBox.shrink();
+      }
+      return _buildInactiveGestureLayer();
+    }
     if (_localFilePath == null) {
       return const SizedBox.shrink();
-    }
-    if (!_overlayActive) {
-      return _buildInactiveGestureLayer();
     }
 
     final zoomTransformNotifier = detailState.zoomTransformNotifier;
@@ -782,6 +894,7 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
         showProcessingOverlay: false,
         showScanAnimation: false,
         showEditorHint: false,
+        showNoTextMessageOnAutoDetect: false,
         initialInteractionPosition: _pendingLongPressPosition,
         controller: _detectorController,
         isImageZoomed: isZoomed,
@@ -817,15 +930,15 @@ class _InlineTextDetectionState extends State<InlineTextDetection> {
   }
 }
 
-class _HasTextResult {
-  final bool hasText;
-  final String? localPath;
+class _RegionCacheEntry {
+  final String localPath;
+  final TextRegionDetectionResult result;
 
-  const _HasTextResult({required this.hasText, this.localPath});
+  const _RegionCacheEntry({required this.localPath, required this.result});
 }
 
 class _OcrGestureHitTestBox extends SingleChildRenderObjectWidget {
-  final bool Function(Offset localPosition) hitTest;
+  final bool Function(Offset localPosition, Offset globalPosition) hitTest;
 
   const _OcrGestureHitTestBox({required this.hitTest, required super.child});
 
@@ -844,13 +957,15 @@ class _OcrGestureHitTestBox extends SingleChildRenderObjectWidget {
 }
 
 class _RenderOcrGestureHitTestBox extends RenderProxyBox {
-  bool Function(Offset localPosition) hitTestCallback;
+  bool Function(Offset localPosition, Offset globalPosition) hitTestCallback;
 
   _RenderOcrGestureHitTestBox(this.hitTestCallback);
 
   @override
   bool hitTest(BoxHitTestResult result, {required Offset position}) {
-    if (size.width <= 0 || size.height <= 0 || !hitTestCallback(position)) {
+    if (size.width <= 0 ||
+        size.height <= 0 ||
+        !hitTestCallback(position, localToGlobal(position))) {
       return false;
     }
     return super.hitTest(result, position: position);

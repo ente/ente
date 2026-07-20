@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:ente_components/theme/colors.dart';
 import 'package:ente_components/theme/spacing.dart';
 import 'package:ente_components/theme/text_styles.dart';
@@ -104,7 +106,58 @@ enum AvatarComponentSize {
   final TextStyle textStyle;
 }
 
-enum AvatarComponentColor { yellow, green, orange, pink, purple, blue, cyan }
+enum AvatarComponentColor {
+  yellow,
+  green,
+  orange,
+  pink,
+  purple,
+  blue,
+  cyan,
+  black,
+}
+
+const List<AvatarComponentColor> avatarComponentIdentityPalette = [
+  AvatarComponentColor.yellow,
+  AvatarComponentColor.green,
+  AvatarComponentColor.orange,
+  AvatarComponentColor.pink,
+  AvatarComponentColor.purple,
+  AvatarComponentColor.blue,
+  AvatarComponentColor.cyan,
+];
+
+/// A stable FNV-1a seed for identity colors across processes and platforms.
+int avatarSeedForIdentity(String identityKey) {
+  var hash = 0x811c9dc5;
+  for (final byte in utf8.encode(identityKey.trim().toLowerCase())) {
+    hash ^= byte;
+    hash = (hash * 0x01000193) & 0xffffffff;
+  }
+  return hash;
+}
+
+AvatarComponentColor avatarComponentColorForIdentity(String identityKey) {
+  return avatarComponentIdentityPalette[avatarSeedForIdentity(identityKey) %
+      avatarComponentIdentityPalette.length];
+}
+
+Color avatarComponentColorValue(
+  BuildContext context,
+  AvatarComponentColor color,
+) {
+  final colors = context.componentColors;
+  return switch (color) {
+    AvatarComponentColor.yellow => colors.caution,
+    AvatarComponentColor.green => colors.primary,
+    AvatarComponentColor.orange => colors.accentOrange,
+    AvatarComponentColor.pink => colors.accentPink,
+    AvatarComponentColor.purple => colors.purple,
+    AvatarComponentColor.blue => colors.blue,
+    AvatarComponentColor.cyan => avatarCyan,
+    AvatarComponentColor.black => Colors.black,
+  };
+}
 
 /// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2482-6547&m=dev
 /// Section: Labels and avatars / Avatar
@@ -240,23 +293,13 @@ class AvatarComponent extends StatelessWidget {
   }
 
   Color _backgroundColor(BuildContext context) {
-    final colors = context.componentColors;
     if (seed != null) {
       final palette = Theme.of(context).brightness == Brightness.dark
           ? avatarDark
           : avatarLight;
       return palette[seed!.abs() % palette.length];
     }
-
-    return switch (color) {
-      AvatarComponentColor.yellow => colors.caution,
-      AvatarComponentColor.green => colors.primary,
-      AvatarComponentColor.orange => colors.accentOrange,
-      AvatarComponentColor.pink => colors.accentPink,
-      AvatarComponentColor.purple => colors.purple,
-      AvatarComponentColor.blue => colors.blue,
-      AvatarComponentColor.cyan => avatarCyan,
-    };
+    return avatarComponentColorValue(context, color);
   }
 
   String? get _semanticLabel {

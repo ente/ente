@@ -607,7 +607,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "PlayStore abonnement",
   "appstoreSubscription": "AppStore subscription",
-  "subAlreadyLinkedErrMessage": "Din {id} er allerede koblet til en annen Ente-konto.\nHvis du ønsker å bruke din {id} med denne kontoen, vennligst kontakt vår brukerstøtte''",
   "visitWebToManage": "Vennligst besøk {webUrl} for å administrere abonnementet",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

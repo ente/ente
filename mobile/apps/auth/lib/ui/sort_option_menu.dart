@@ -1,13 +1,10 @@
 import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/services/preference_service.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class SortCodeMenuWidget extends StatelessWidget {
-  final CodeSortKey currentKey;
-  final void Function(CodeSortKey) onSelected;
-  final Color? iconColor;
-
   const SortCodeMenuWidget({
     super.key,
     required this.currentKey,
@@ -15,72 +12,76 @@ class SortCodeMenuWidget extends StatelessWidget {
     this.iconColor,
   });
 
+  final CodeSortKey currentKey;
+  final void Function(CodeSortKey) onSelected;
+  final Color? iconColor;
+
   @override
   Widget build(BuildContext context) {
-    Text sortOptionText(CodeSortKey key) {
-      String text = key.toString();
-      switch (key) {
-        case CodeSortKey.issuerName:
-          text = context.l10n.codeIssuerHint;
-          break;
-        case CodeSortKey.accountName:
-          text = context.l10n.account;
-          break;
-        case CodeSortKey.mostFrequentlyUsed:
-          text = context.l10n.mostFrequentlyUsed;
-          break;
-        case CodeSortKey.recentlyUsed:
-          text = context.l10n.mostRecentlyUsed;
-          break;
-        case CodeSortKey.manual:
-          text = context.l10n.manualSort;
-      }
-      return Text(
-        text,
-        style: Theme.of(context).textTheme.titleMedium!.copyWith(
-          fontSize: 14,
-          color: Theme.of(context).iconTheme.color!.withValues(alpha: 0.7),
-        ),
-      );
-    }
-
-    return GestureDetector(
-      onTapDown: (TapDownDetails details) async {
-        final int? selectedValue = await showMenu<int>(
-          context: context,
-          position: RelativeRect.fromLTRB(
-            details.globalPosition.dx,
-            details.globalPosition.dy,
-            details.globalPosition.dx,
-            details.globalPosition.dy + 300,
+    final l10n = context.l10n;
+    return Semantics(
+      button: true,
+      label: l10n.editOrder,
+      identifier: 'auth_sort_codes',
+      child: IconButtonComponent(
+        variant: IconButtonComponentVariant.unfilled,
+        shouldSurfaceExecutionStates: false,
+        tooltip: l10n.editOrder,
+        icon: SvgPicture.asset(
+          'assets/svg/filter-icon.svg',
+          width: IconSizes.medium,
+          height: IconSizes.medium,
+          colorFilter: ColorFilter.mode(
+            iconColor ?? context.componentColors.textBase,
+            BlendMode.srcIn,
           ),
-          items: List.generate(CodeSortKey.values.length, (index) {
-            return PopupMenuItem(
-              value: index,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  sortOptionText(CodeSortKey.values[index]),
-                  if (CodeSortKey.values[index] == currentKey)
-                    Icon(Icons.check, color: Theme.of(context).iconTheme.color),
-                ],
-              ),
-            );
-          }),
-        );
-        if (selectedValue != null) {
-          onSelected(CodeSortKey.values[selectedValue]);
-        }
-      },
-      child: SvgPicture.asset(
-        'assets/svg/filter-icon.svg',
-        width: 26,
-        height: 26,
-        colorFilter: ColorFilter.mode(
-          iconColor ?? Theme.of(context).iconTheme.color!,
-          BlendMode.srcIn,
+        ),
+        onTap: () => _showSortOptions(context),
+      ),
+    );
+  }
+
+  Future<void> _showSortOptions(BuildContext context) {
+    final l10n = context.l10n;
+    return showBottomSheetComponent<void>(
+      context: context,
+      builder: (sheetContext) => Semantics(
+        identifier: 'auth_sort_sheet',
+        child: BottomSheetComponent(
+          title: l10n.editOrder,
+          closeTooltip: l10n.close,
+          content: MenuGroupComponent(
+            showDividers: true,
+            items: [
+              for (final key in CodeSortKey.values)
+                MenuComponent(
+                  title: _labelFor(l10n, key),
+                  selected: key == currentKey,
+                  trailing: RadioComponent(
+                    selected: key == currentKey,
+                    onChanged: (_) => _select(sheetContext, key),
+                  ),
+                  onTap: () => _select(sheetContext, key),
+                ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  void _select(BuildContext sheetContext, CodeSortKey key) {
+    Navigator.of(sheetContext).pop();
+    onSelected(key);
+  }
+
+  String _labelFor(AppLocalizations l10n, CodeSortKey key) {
+    return switch (key) {
+      CodeSortKey.issuerName => l10n.codeIssuerHint,
+      CodeSortKey.accountName => l10n.account,
+      CodeSortKey.mostFrequentlyUsed => l10n.mostFrequentlyUsed,
+      CodeSortKey.recentlyUsed => l10n.mostRecentlyUsed,
+      CodeSortKey.manual => l10n.manualSort,
+    };
   }
 }

@@ -45,7 +45,6 @@ dependencies:
   convert: 3.1.2
   crypto: 3.0.7
   cupertino_icons: 1.0.8
-  dart_ui_isolate: 1.1.1
   defer_pointer: 0.0.2
   device_info_plus: 11.5.0
   dio: 5.9.2
@@ -173,7 +172,7 @@ dependencies:
   mobile_ocr:
     git:
       url: https://github.com/ente/mobile_ocr
-      ref: bd1cce917e914690c00cc138b000b728742dde2b
+      ref: 37aee4c4ff77c59a4ab46e272e31a53a035f628e
   modal_bottom_sheet: 3.0.0
   motionphoto:
     git:
@@ -188,12 +187,6 @@ dependencies:
   native_video_editor:
     path: ../../packages/native_video_editor
   native_video_player: 4.0.1
-  onnx_dart:
-    path: plugins/onnx_dart
-  onnxruntime:
-    git:
-      url: https://github.com/ente/onnxruntime.git
-      ref: 212b2cab85647c6d2ffee213dc3b875ef2bf6504
   open_mail_app: # replace plugin, git is archived
     git:
       url: https://github.com/ente/open-mail-app-flutter.git

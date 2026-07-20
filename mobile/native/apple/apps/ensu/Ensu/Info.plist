@@ -62,6 +62,11 @@
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
 
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>io.ente.ensu.model-download</string>
+    </array>
+
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsArbitraryLoads</key>

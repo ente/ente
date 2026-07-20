@@ -3,6 +3,7 @@ import "dart:convert";
 import "dart:developer";
 
 import "package:computer/computer.dart";
+import "package:ente_contacts/contacts.dart" as contacts;
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart";
 import "package:logging/logging.dart";
@@ -17,7 +18,9 @@ import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/entity_service.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
+import "package:photos/services/photos_contacts_service.dart";
 import "package:photos/settings/local_settings.dart";
+import "package:photos/utils/contact_photo_util.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
@@ -26,15 +29,26 @@ typedef ManualPersonAssignmentResult = ({
   List<int> addedFileIds,
   List<int> alreadyAssignedFileIds,
 });
+typedef PersonAvatarUpdateResult = ({
+  PersonEntity person,
+  bool contactPictureUpdateFailed,
+});
 
 class PersonService {
   static const Object _attributeNotProvided = Object();
   final EntityService entityService;
   final MLDataDB faceMLDataDB;
   final SharedPreferences prefs;
+  final PhotosContactsService _contactsService;
   final _emailToPartialPersonDataMapCache = <String, Map<String, String>>{};
+  final _userIdToPartialPersonDataMapCache = <int, Map<String, String>>{};
 
-  PersonService(this.entityService, this.faceMLDataDB, this.prefs);
+  PersonService(
+    this.entityService,
+    this.faceMLDataDB,
+    this.prefs, {
+    PhotosContactsService? contactsService,
+  }) : _contactsService = contactsService ?? PhotosContactsService.instance;
 
   // instance
   static PersonService? _instance;
@@ -44,7 +58,9 @@ class PersonService {
   static double autoMergeThreshold = kDefaultAutoMergeThreshold;
 
   Future<List<PersonEntity>>? _cachedPersonsFuture;
-  int _lastCacheRefreshTime = 0;
+  Map<String, PersonEntity>? _cachedPersonsById;
+  int _personCacheGeneration = 0;
+  int _cachedRemoteSyncTime = 0;
 
   static PersonService get instance {
     if (_instance == null) {
@@ -73,19 +89,35 @@ class PersonService {
   Map<String, Map<String, String>> get emailToPartialPersonDataMapCache =>
       _emailToPartialPersonDataMapCache;
 
+  Map<String, String>? getCachedPartialPersonData({
+    required int? userID,
+    required String email,
+  }) {
+    final userIdMatch = userID != null && userID > 0
+        ? _userIdToPartialPersonDataMapCache[userID]
+        : null;
+    return userIdMatch ?? _emailToPartialPersonDataMapCache[email];
+  }
+
   void clearCache() {
     _emailToPartialPersonDataMapCache.clear();
+    _userIdToPartialPersonDataMapCache.clear();
+    _invalidatePersonCache();
+    _cachedRemoteSyncTime = 0;
+  }
+
+  void _invalidatePersonCache() {
     _cachedPersonsFuture = null;
-    _lastCacheRefreshTime = 0;
+    _cachedPersonsById = null;
+    _personCacheGeneration++;
   }
 
   Future<void> refreshPersonCache({
     bool notifyListeners = false,
     String source = "",
   }) async {
-    _lastCacheRefreshTime = 0;
-    // wait to ensure cache is refreshed
-    final _ = await getPersons();
+    _invalidatePersonCache();
+    await getPersons();
     if (notifyListeners) {
       Bus.instance.fire(
         PeopleChangedEvent(type: PeopleEventType.syncDone, source: source),
@@ -110,15 +142,19 @@ class PersonService {
   }
 
   Future<List<PersonEntity>> getPersons() async {
-    if (_lastCacheRefreshTime != lastRemoteSyncTime()) {
-      _lastCacheRefreshTime = lastRemoteSyncTime();
-      _cachedPersonsFuture = null; // Invalidate cache
+    final remoteSyncTime = lastRemoteSyncTime();
+    if (_cachedRemoteSyncTime != remoteSyncTime) {
+      _cachedRemoteSyncTime = remoteSyncTime;
+      _invalidatePersonCache();
     }
-    _cachedPersonsFuture ??= _fetchAndCachePersons();
+    if (_cachedPersonsFuture == null) {
+      final generation = _personCacheGeneration;
+      _cachedPersonsFuture = _fetchAndCachePersons(generation);
+    }
     return _cachedPersonsFuture!;
   }
 
-  Future<List<PersonEntity>> _fetchAndCachePersons() async {
+  Future<List<PersonEntity>> _fetchAndCachePersons(int generation) async {
     logger.finest("reading all persons from local db");
     final entities = await entityService.getEntities(EntityType.cgroup);
     final persons = await Computer.shared().compute(
@@ -126,13 +162,26 @@ class PersonService {
       param: {"entity": entities},
       taskName: "decode_person_entities",
     );
+    if (generation != _personCacheGeneration) {
+      return persons;
+    }
+    _cachedPersonsById = {
+      for (final person in persons) person.remoteID: person,
+    };
     _emailToPartialPersonDataMapCache.clear();
+    _userIdToPartialPersonDataMapCache.clear();
     for (PersonEntity person in persons) {
-      if (person.data.email != null && person.data.email!.isNotEmpty) {
-        _emailToPartialPersonDataMapCache[person.data.email!] = {
-          kPersonIDKey: person.remoteID,
-          kNameKey: person.data.name,
-        };
+      final partialData = {
+        kPersonIDKey: person.remoteID,
+        kNameKey: person.data.name,
+      };
+      final email = person.data.email;
+      if (email != null && email.isNotEmpty) {
+        _emailToPartialPersonDataMapCache[email] = partialData;
+      }
+      final userID = person.data.userID;
+      if (userID != null && userID > 0) {
+        _userIdToPartialPersonDataMapCache[userID] = partialData;
       }
     }
 
@@ -157,13 +206,17 @@ class PersonService {
     });
   }
 
+  PersonEntity? getCachedPerson(String id) {
+    if (_cachedRemoteSyncTime != lastRemoteSyncTime()) {
+      return null;
+    }
+    return _cachedPersonsById?[id];
+  }
+
   Future<Map<String, PersonEntity>> getPersonsMap() async {
     final persons = await getPersons();
-    final Map<String, PersonEntity> map = {};
-    for (var person in persons) {
-      map[person.remoteID] = person;
-    }
-    return map;
+    return _cachedPersonsById ??
+        {for (final person in persons) person.remoteID: person};
   }
 
   Future<void> reconcileClusters() async {
@@ -300,6 +353,7 @@ class PersonService {
     bool hideFromMemories = false,
     String? birthdate,
     String? email,
+    int? userID,
   }) async {
     final faceIds = await faceMLDataDB.getFaceIDsForCluster(clusterID);
     final data = PersonData(
@@ -312,6 +366,7 @@ class PersonService {
       hideFromMemories: hideFromMemories,
       birthDate: birthdate,
       email: email,
+      userID: userID,
     );
     final result = await _addOrUpdateEntity(EntityType.cgroup, data.toJson());
     await faceMLDataDB.assignClusterToPerson(
@@ -569,7 +624,10 @@ class PersonService {
     return changed;
   }
 
-  Future<PersonEntity> updateAvatar(PersonEntity p, EnteFile file) async {
+  Future<PersonAvatarUpdateResult> updateAvatar(
+    PersonEntity p,
+    EnteFile file,
+  ) async {
     final Face? face = await faceMLDataDB.getCoverFaceForPerson(
       recentFileID: file.uploadedFileID!,
       personID: p.remoteID,
@@ -581,12 +639,46 @@ class PersonService {
     }
 
     final person = (await getPerson(p.remoteID))!;
+    var contactPictureUpdateFailed = false;
+    try {
+      await _updateLinkedContactAvatarBeforePerson(person, file, face);
+    } catch (e, s) {
+      contactPictureUpdateFailed = true;
+      logger.warning("Failed to update linked contact picture", e, s);
+    }
     final updatedPerson = person.copyWith(
       data: person.data.copyWith(avatarFaceId: face.faceID),
     );
     await updatePerson(updatedPerson);
     await putFaceIdCachedForPersonOrCluster(p.remoteID, face.faceID);
-    return updatedPerson;
+    return (
+      person: updatedPerson,
+      contactPictureUpdateFailed: contactPictureUpdateFailed,
+    );
+  }
+
+  Future<void> _updateLinkedContactAvatarBeforePerson(
+    PersonEntity person,
+    EnteFile file,
+    Face face,
+  ) async {
+    final contact = await _getLinkedContact(person);
+    if (contact == null) {
+      return;
+    }
+    final Uint8List? bytes = await buildContactPhotoAttachmentBytesFromFace(
+      file: file,
+      face: face,
+    );
+    if (bytes == null) {
+      throw StateError(
+        "Failed to prepare contact avatar for linked person ${person.remoteID}",
+      );
+    }
+    await _contactsService.setProfilePicture(
+      contactId: contact.id,
+      bytes: bytes,
+    );
   }
 
   Future<PersonEntity> updateAttributes(
@@ -596,24 +688,36 @@ class PersonService {
     bool? isHidden,
     bool? isPinned,
     bool? hideFromMemories,
-    int? version,
     Object? birthDate = _attributeNotProvided,
-    String? email,
+    Object? email = _attributeNotProvided,
+    Object? userID = _attributeNotProvided,
+    bool syncLinkedContactName = true,
   }) async {
     final person = (await getPerson(id))!;
+    final trimmedName = name?.trim();
     var updatedData = person.data.copyWith(
       name: name,
       avatarFaceId: avatarFaceId,
       isHidden: isHidden,
       isPinned: isPinned,
       hideFromMemories: hideFromMemories,
-      version: version,
-      email: email,
     );
     if (!identical(birthDate, _attributeNotProvided)) {
       updatedData = updatedData.copyWith(birthDate: birthDate as String?);
     }
+    if (!identical(email, _attributeNotProvided)) {
+      updatedData = updatedData.copyWith(email: email as String?);
+    }
+    if (!identical(userID, _attributeNotProvided)) {
+      updatedData = updatedData.copyWith(userID: userID as int?);
+    }
     final updatedPerson = person.copyWith(data: updatedData);
+    if (syncLinkedContactName &&
+        trimmedName != null &&
+        trimmedName.isNotEmpty &&
+        trimmedName != person.data.name.trim()) {
+      await _updateLinkedContactNameBeforePerson(updatedPerson, trimmedName);
+    }
     await updatePerson(updatedPerson);
     await refreshPersonCache();
     if (hideFromMemories != null &&
@@ -625,6 +729,26 @@ class PersonService {
     }
     return updatedPerson;
   }
+
+  Future<void> _updateLinkedContactNameBeforePerson(
+    PersonEntity person,
+    String name,
+  ) async {
+    final contact = await _getLinkedContact(person);
+    if (contact == null) {
+      return;
+    }
+    await _contactsService.createOrUpdateContact(
+      contactUserId: contact.contactUserId,
+      name: name,
+    );
+  }
+
+  Future<contacts.ContactRecord?> _getLinkedContact(PersonEntity person) =>
+      _contactsService.getContact(
+        contactUserId: person.data.userID,
+        email: person.data.email,
+      );
 
   Future<ManualPersonAssignmentResult> addManualFileAssignments({
     required String personID,
@@ -697,9 +821,7 @@ class PersonService {
     String? id,
   }) async {
     final result = await entityService.addOrUpdate(type, jsonMap, id: id);
-    _lastCacheRefreshTime = 0; // Invalidate cache
-    _cachedPersonsFuture =
-        null; // Force refresh even if last sync time unchanged
+    _invalidatePersonCache();
     return result;
   }
 

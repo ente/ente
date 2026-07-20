@@ -687,6 +687,11 @@ interface UploadContext {
      */
     skipDuplicateAddToUploadCollection?: boolean;
     /**
+     * If true, media originating from Google Photos partner sharing is
+     * uploaded. Otherwise it is skipped before reading the media file.
+     */
+    includePartnerSharedFiles?: boolean;
+    /**
      * If present, then the upload is happening in the context of the public
      * albums app and these are the credentials that should be used for
      * performing API requests (instead of trying to obtain and use the
@@ -735,11 +740,27 @@ export const upload = async (
     worker: CryptoWorker,
     uploadContext: UploadContext,
 ): Promise<UploadResult> => {
-    const { abortIfCancelled, skipDuplicateAddToUploadCollection } =
-        uploadContext;
+    const {
+        abortIfCancelled,
+        includePartnerSharedFiles = true,
+        skipDuplicateAddToUploadCollection,
+    } = uploadContext;
 
     log.info(`Upload ${fileName} | start`);
     try {
+        if (!includePartnerSharedFiles) {
+            const parsedMetadataJSON = matchJSONMetadata(
+                uploadAsset.pathPrefix,
+                collection.id,
+                fileName,
+                parsedMetadataJSONMap,
+            );
+            if (parsedMetadataJSON?.fromPartnerSharing) {
+                log.info(`Not uploading ${fileName} (from partner sharing)`);
+                return { type: "partnerShared" };
+            }
+        }
+
         /*
          * We read the file four times:
          * 1. To determine its MIME type (only needs first few KBs).

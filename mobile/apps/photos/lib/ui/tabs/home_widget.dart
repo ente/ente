@@ -192,8 +192,8 @@ class _HomeWidgetState extends State<HomeWidget> {
           if (pageDelta <= 1) {
             _pageController.animateToPage(
               event.selectedIndex,
-              duration: const Duration(milliseconds: 100),
-              curve: Curves.easeIn,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
             );
           } else {
             _pageController.jumpToPage(event.selectedIndex);

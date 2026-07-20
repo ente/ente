@@ -10,6 +10,7 @@ import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/ui/components/base_bottom_sheet.dart';
 import 'package:photos/ui/components/buttons/button_widget_v2.dart';
 import 'package:photos/ui/family/family_ui.dart';
+import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/utils/dialog_util.dart';
 import 'package:photos/utils/share_util.dart';
 
@@ -360,7 +361,7 @@ class _InviteMembersPageState extends State<InviteMembersPage> {
           ..addAll(failedEmails);
       });
       if (mounted) {
-        showFamilySnackBar(
+        showToast(
           context,
           failedEmails.length == 1
               ? AppLocalizations.of(

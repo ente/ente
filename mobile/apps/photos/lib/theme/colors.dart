@@ -56,7 +56,6 @@ class EnteColorScheme {
 
   //other colors
   final Color tabIcon;
-  final List<Color> avatarColors;
 
   // Menu item icon stroke color
   final Color menuItemIconStroke;
@@ -115,7 +114,6 @@ class EnteColorScheme {
     this.blurStrokeFaint,
     this.blurStrokePressed,
     this.tabIcon,
-    this.avatarColors,
     this.menuItemIconStroke,
     this.fill,
     this.fillDark,
@@ -180,7 +178,6 @@ const EnteColorScheme lightScheme = EnteColorScheme(
   blurStrokeFaintLight,
   blurStrokePressedLight,
   tabIconLight,
-  avatarLight,
   menuItemIconStrokeLight,
   fillLight,
   fillDarkLight,
@@ -233,7 +230,6 @@ const EnteColorScheme darkScheme = EnteColorScheme(
   blurStrokeFaintDark,
   blurStrokePressedDark,
   tabIconDark,
-  avatarDark,
   menuItemIconStrokeDark,
   fillDark,
   fillDarkDark,
@@ -356,58 +352,6 @@ const Color _caution500 = Color.fromRGBO(255, 194, 71, 1);
 
 const Color _golden700 = Color(0xFFFDB816);
 const Color _golden500 = Color(0xFFFFC336);
-
-const List<Color> avatarLight = [
-  Color.fromRGBO(118, 84, 154, 1),
-  Color.fromRGBO(223, 120, 97, 1),
-  Color.fromRGBO(148, 180, 159, 1),
-  Color.fromRGBO(135, 162, 251, 1),
-  Color.fromRGBO(198, 137, 198, 1),
-  Color.fromRGBO(198, 137, 198, 1),
-  Color.fromRGBO(50, 82, 136, 1),
-  Color.fromRGBO(133, 180, 224, 1),
-  Color.fromRGBO(193, 163, 163, 1),
-  Color.fromRGBO(193, 163, 163, 1),
-  Color.fromRGBO(66, 97, 101, 1),
-  Color.fromRGBO(66, 97, 101, 1),
-  Color.fromRGBO(66, 97, 101, 1),
-  Color.fromRGBO(221, 157, 226, 1),
-  Color.fromRGBO(130, 171, 139, 1),
-  Color.fromRGBO(155, 187, 232, 1),
-  Color.fromRGBO(143, 190, 190, 1),
-  Color.fromRGBO(138, 195, 161, 1),
-  Color.fromRGBO(168, 176, 242, 1),
-  Color.fromRGBO(176, 198, 149, 1),
-  Color.fromRGBO(233, 154, 173, 1),
-  Color.fromRGBO(209, 132, 132, 1),
-  Color.fromRGBO(120, 181, 167, 1),
-];
-
-const List<Color> avatarDark = [
-  Color.fromRGBO(118, 84, 154, 1),
-  Color.fromRGBO(223, 120, 97, 1),
-  Color.fromRGBO(148, 180, 159, 1),
-  Color.fromRGBO(135, 162, 251, 1),
-  Color.fromRGBO(198, 137, 198, 1),
-  Color.fromRGBO(147, 125, 194, 1),
-  Color.fromRGBO(50, 82, 136, 1),
-  Color.fromRGBO(133, 180, 224, 1),
-  Color.fromRGBO(193, 163, 163, 1),
-  Color.fromRGBO(225, 160, 89, 1),
-  Color.fromRGBO(66, 97, 101, 1),
-  Color.fromRGBO(107, 119, 178, 1),
-  Color.fromRGBO(149, 127, 239, 1),
-  Color.fromRGBO(221, 157, 226, 1),
-  Color.fromRGBO(130, 171, 139, 1),
-  Color.fromRGBO(155, 187, 232, 1),
-  Color.fromRGBO(143, 190, 190, 1),
-  Color.fromRGBO(138, 195, 161, 1),
-  Color.fromRGBO(168, 176, 242, 1),
-  Color.fromRGBO(176, 198, 149, 1),
-  Color.fromRGBO(233, 154, 173, 1),
-  Color.fromRGBO(209, 132, 132, 1),
-  Color.fromRGBO(120, 181, 167, 1),
-];
 
 // Green Colors
 const Color green = Color.fromRGBO(8, 194, 37, 1);

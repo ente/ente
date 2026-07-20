@@ -106,6 +106,7 @@ services:
       # - 3006:3006 # Embed
       # - 3008:3008 # Paste
       # - 3009:3009 # Locker
+      # - 3010:3010 # Memories
     # Modify these values to your custom subdomains, if using any
     environment:
       ENTE_API_ORIGIN: http://localhost:8080
@@ -202,21 +203,18 @@ s3:
          region: eu-central-2
          bucket: scw-eu-fr-v3
 
-# Specify the base endpoints for various web apps
+# Specify the base endpoints for various web apps you're running.
 apps:
-    # If you're running a self hosted instance and wish to serve public links,
-    # set this to the URL where your albums web app is running.
+    photos: http://localhost:3000
     public-albums: http://localhost:3002
-    cast: http://localhost:3004
-    # Public locker (share) app
-    public-locker: http://localhost:3005
-    # Public paste app
-    public-paste: http://localhost:3008
-    # Embed app for embedded album sharing
     embed-albums: http://localhost:3006
-    # Set this to the URL where your accounts web app is running, primarily used for
-    # passkey based 2FA.
+    auth: http://localhost:3003
+    locker: http://localhost:3009
+    public-locker: http://localhost:3005
+    public-paste: http://localhost:3008
+    cast: http://localhost:3004
     accounts: http://localhost:3001
+    public-memories: http://localhost:3010
 
 key:
       encryption: $museum_key

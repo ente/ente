@@ -1,1 +1,1 @@
-- Update changelog's sheet
+- Updated the What's New sheet.

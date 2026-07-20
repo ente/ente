@@ -63,61 +63,65 @@ class AccountSettingsPage extends StatelessWidget {
     final l10n = context.l10n;
     final hasAuthenticated = await LocalAuthenticationService.instance
         .requestLocalAuthentication(context, l10n.authToChangeYourEmail);
-    if (hasAuthenticated) {
-      // ignore: unawaited_futures
-      showChangeEmailDialog(context);
+    if (!context.mounted || !hasAuthenticated) {
+      return;
     }
+    // ignore: unawaited_futures
+    showChangeEmailDialog(context);
   }
 
   Future<void> _onRecoveryKeyTapped(BuildContext context) async {
     final l10n = context.l10n;
     final hasAuthenticated = await LocalAuthenticationService.instance
         .requestLocalAuthentication(context, l10n.authToViewYourRecoveryKey);
-    if (hasAuthenticated) {
-      String recoveryKey;
-      try {
-        recoveryKey = CryptoUtil.bin2hex(
-          Configuration.instance.getRecoveryKey(),
-        );
-      } catch (e) {
-        await showErrorBottomSheetComponent<void>(
-          context: context,
-          message: parseErrorForUI(
-            context,
-            context.strings.itLooksLikeSomethingWentWrongPleaseRetryAfterSome,
-            error: e,
-            surfaceError: false,
-          ),
-          title: context.strings.error,
-          actionLabel: context.strings.contactSupport,
-          onActionTap: () async {
-            await sendLogs(context, "support@ente.com", postShare: () {});
-          },
-        );
-        return;
-      }
-      await showRecoveryKeySheet(context, recoveryKey: recoveryKey);
+    if (!context.mounted || !hasAuthenticated) {
+      return;
     }
+    String recoveryKey;
+    try {
+      recoveryKey = CryptoUtil.bin2hex(Configuration.instance.getRecoveryKey());
+    } catch (e) {
+      await showErrorBottomSheetComponent<void>(
+        context: context,
+        message: parseErrorForUI(
+          context,
+          context.strings.itLooksLikeSomethingWentWrongPleaseRetryAfterSome,
+          error: e,
+          surfaceError: false,
+        ),
+        title: context.strings.error,
+        actionLabel: context.strings.contactSupport,
+        onActionTap: () async {
+          await sendLogs(context, "support@ente.com", postShare: () {});
+        },
+      );
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+    await showRecoveryKeySheet(context, recoveryKey: recoveryKey);
   }
 
   Future<void> _onChangePasswordTapped(BuildContext context) async {
     final l10n = context.l10n;
     final hasAuthenticated = await LocalAuthenticationService.instance
         .requestLocalAuthentication(context, l10n.authToChangeYourPassword);
-    if (hasAuthenticated) {
-      // ignore: unawaited_futures
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return PasswordEntryPage(
-              Configuration.instance,
-              PasswordEntryMode.update,
-              const HomePage(),
-            );
-          },
-        ),
-      );
+    if (!context.mounted || !hasAuthenticated) {
+      return;
     }
+    // ignore: unawaited_futures
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (BuildContext context) {
+          return PasswordEntryPage(
+            Configuration.instance,
+            PasswordEntryMode.update,
+            const HomePage(),
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _onDeleteAccountTapped(BuildContext context) async {

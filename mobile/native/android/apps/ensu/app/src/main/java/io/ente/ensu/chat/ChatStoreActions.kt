@@ -9,6 +9,7 @@ import io.ente.ensu.llm.DownloadPhase
 import io.ente.ensu.llm.LlmMessage
 import io.ente.ensu.llm.LlmMessageRole
 import io.ente.ensu.llm.LlmModelTarget
+import io.ente.ensu.llm.ModelDownloader
 import io.ente.ensu.llm.LlmProvider
 import io.ente.ensu.chat.Attachment
 import io.ente.ensu.chat.ChatMessage
@@ -43,6 +44,7 @@ internal class ChatStoreActions(
     private val sessionPreferences: SessionPreferencesDataStore,
     private val chatRepository: ChatRepository,
     private val llmProvider: LlmProvider,
+    private val modelDownloader: ModelDownloader,
     private val clock: () -> Long,
     private val logRepository: FileLogRepository,
     private val messageStore: MutableMap<String, MutableList<ChatMessage>>,
@@ -777,7 +779,7 @@ internal class ChatStoreActions(
         if (!state.value.chat.deviceCapability.isChatSupported()) {
             return sessionTitleFromText(fallback, fallback = fallback)
         }
-        if (!llmProvider.isModelDownloaded(target)) {
+        if (!modelDownloader.isDownloaded(target.downloadTarget)) {
             return sessionTitleFromText(fallback, fallback = fallback)
         }
         val cleanedInput = sanitizeTitleText(input)

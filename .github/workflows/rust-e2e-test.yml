@@ -19,8 +19,17 @@ env:
 
 jobs:
     integration:
+        name: ${{ matrix.name }}
         runs-on: ubuntu-latest
         timeout-minutes: 30
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - name: CLI integration tests
+                      package: ente-rs
+                    - name: E2E suite
+                      package: ente-e2e
         defaults:
             run:
                 working-directory: rust
@@ -42,12 +51,9 @@ jobs:
                   shared-key: rust-cli
                   save-if: false
 
-            - name: Run CLI integration tests
-              run: cargo test -p ente-rs --features museum --locked
+            - name: Run ${{ matrix.name }}
+              run: cargo test -p ${{ matrix.package }} --features museum --locked
               # GITHUB_TOKEN lifts GitHub API rate limit when fetching
               # postgresql_embedded binaries.
               env:
                   GITHUB_TOKEN: ${{ github.token }}
-
-            - name: Run E2E suite
-              run: cargo test -p ente-e2e --features museum --locked

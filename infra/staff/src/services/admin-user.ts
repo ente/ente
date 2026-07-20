@@ -26,6 +26,7 @@ const FamilyMember = z.object({
     id: z.string(),
     email: z.string(),
     status: z.string(),
+    userID: z.number().nullish().transform(nullToUndefined),
     usage: z.number().nullish().transform(nullToUndefined),
     storageLimit: z.number().nullish().transform(nullToUndefined),
 });

@@ -92,6 +92,7 @@ type FinishedUploadType =
     | "unsupported"
     | "zeroSize"
     | "tooLarge"
+    | "partnerShared"
     | "largerThanAvailableStorage"
     | "blocked"
     | "failed"
@@ -495,6 +496,7 @@ const notUploadedFileCount = (
     if (!finishedUploads) return c;
 
     c += finishedUploads.get("alreadyUploaded")?.length ?? 0;
+    c += finishedUploads.get("partnerShared")?.length ?? 0;
     c += finishedUploads.get("blocked")?.length ?? 0;
     c += finishedUploads.get("failed")?.length ?? 0;
     c += finishedUploads.get("largerThanAvailableStorage")?.length ?? 0;
@@ -593,6 +595,11 @@ function UploadProgressDialog() {
                         resultType="alreadyUploaded"
                         sectionTitle={t("ignored_uploads")}
                         sectionInfo={t("ignored_uploads_hint")}
+                    />
+                    <ResultSection
+                        resultType="partnerShared"
+                        sectionTitle={t("partner_shared_files")}
+                        sectionInfo={t("partner_shared_files_hint")}
                     />
                     <ResultSection
                         resultType="largerThanAvailableStorage"
