@@ -108,3 +108,154 @@ class InspectorTest < Minitest::Test
     }
   end
 end
+
+class FakeInspector
+  def initialize(report)
+    @report = report
+  end
+
+  def check(fetch:)
+    @fetch = fetch
+    @report
+  end
+end
+
+class SynchronizerTest < Minitest::Test
+  FORK_SHA = "a" * 40
+  OFFICIAL_SHA = "b" * 40
+  MERGE_SHA = "c" * 40
+  BRANCH = "sync/upstream-2026-07-20-#{OFFICIAL_SHA[0, 10]}"
+
+  def test_creates_sha_qualified_branch_and_merges_recorded_official_commit
+    runner = FakeRunner.new(
+      ["git", "show-ref", "--verify", "--quiet", "refs/heads/#{BRANCH}"] => result(status: 1),
+      ["git", "switch", "-c", BRANCH, FORK_SHA] => "",
+      ["git", "merge", "--no-ff", "--no-edit", "-m", "Merge official Ente main at #{OFFICIAL_SHA}", OFFICIAL_SHA] => "Merged\n",
+      ["git", "merge-base", "--is-ancestor", OFFICIAL_SHA, "HEAD"] => result(status: 0),
+      ["git", "rev-parse", "HEAD"] => "#{MERGE_SHA}\n",
+    )
+
+    response = synchronizer(runner, ready_report).start(
+      fetch: false,
+      expected_official_sha: OFFICIAL_SHA,
+      date: Date.new(2026, 7, 20),
+    )
+
+    assert_equal :merged, response.status
+    assert_equal BRANCH, response.branch
+    assert_equal MERGE_SHA, response.merge_commit
+  end
+
+  def test_existing_branch_stops_without_switching_or_merging
+    runner = FakeRunner.new(
+      ["git", "show-ref", "--verify", "--quiet", "refs/heads/#{BRANCH}"] => result(status: 0),
+    )
+
+    error = assert_raises(EnteUpstreamSync::SafetyFailure) do
+      synchronizer(runner, ready_report).start(fetch: false, date: Date.new(2026, 7, 20))
+    end
+
+    assert_includes error.message, "already exists"
+    refute runner.commands.any? { |command| command[0, 2] == ["git", "switch"] }
+  end
+
+  def test_merge_conflict_preserves_branch_and_reports_files
+    runner = FakeRunner.new(
+      ["git", "show-ref", "--verify", "--quiet", "refs/heads/#{BRANCH}"] => result(status: 1),
+      ["git", "switch", "-c", BRANCH, FORK_SHA] => "",
+      ["git", "merge", "--no-ff", "--no-edit", "-m", "Merge official Ente main at #{OFFICIAL_SHA}", OFFICIAL_SHA] => result(
+        stdout: "",
+        stderr: "CONFLICT",
+        status: 1,
+      ),
+      ["git", "diff", "--name-only", "--diff-filter=U"] => "mobile/example.dart\n",
+    )
+
+    error = assert_raises(EnteUpstreamSync::MergeStopped) do
+      synchronizer(runner, ready_report).start(fetch: false, date: Date.new(2026, 7, 20))
+    end
+
+    assert_equal BRANCH, error.branch
+    assert_equal ["mobile/example.dart"], error.conflicts
+    refute runner.commands.any? { |command| command == ["git", "merge", "--abort"] }
+  end
+
+  def test_mismatched_requested_sha_stops_before_branch_creation
+    runner = FakeRunner.new({})
+
+    assert_raises(EnteUpstreamSync::SafetyFailure) do
+      synchronizer(runner, ready_report).start(
+        fetch: false,
+        expected_official_sha: "d" * 40,
+        date: Date.new(2026, 7, 20),
+      )
+    end
+    assert_empty runner.commands
+  end
+
+  def test_resume_refuses_unresolved_conflicts
+    runner = FakeRunner.new(
+      ["git", "symbolic-ref", "--quiet", "--short", "HEAD"] => "#{BRANCH}\n",
+      ["git", "rev-parse", "--verify", "MERGE_HEAD^{commit}"] => "#{OFFICIAL_SHA}\n",
+      ["git", "diff", "--name-only", "--diff-filter=U"] => "mobile/example.dart\n",
+    )
+
+    error = assert_raises(EnteUpstreamSync::SafetyFailure) do
+      synchronizer(runner, ready_report).resume
+    end
+
+    assert_includes error.message, "unresolved files"
+    refute runner.commands.any? { |command| command[0, 2] == ["git", "commit"] }
+  end
+
+  def test_resume_commits_only_fully_staged_resolution
+    runner = FakeRunner.new(
+      ["git", "symbolic-ref", "--quiet", "--short", "HEAD"] => "#{BRANCH}\n",
+      ["git", "rev-parse", "--verify", "MERGE_HEAD^{commit}"] => "#{OFFICIAL_SHA}\n",
+      ["git", "diff", "--name-only", "--diff-filter=U"] => "",
+      ["git", "diff", "--quiet"] => result(status: 0),
+      ["git", "diff", "--cached", "--quiet"] => result(status: 1),
+      ["git", "diff", "--check"] => "",
+      ["git", "diff", "--cached", "--check"] => "",
+      ["git", "commit", "--no-edit"] => "Committed\n",
+      ["git", "merge-base", "--is-ancestor", OFFICIAL_SHA, "HEAD"] => result(status: 0),
+      ["git", "rev-parse", "HEAD"] => "#{MERGE_SHA}\n",
+    )
+
+    response = synchronizer(runner, ready_report).resume
+
+    assert_equal :merged, response.status
+    assert_equal OFFICIAL_SHA, response.official_sha
+    assert_equal MERGE_SHA, response.merge_commit
+  end
+
+  private
+
+  def synchronizer(runner, report)
+    EnteUpstreamSync::Synchronizer.new(
+      runner: runner,
+      inspector: FakeInspector.new(report),
+      root: Pathname("/tmp/example"),
+    )
+  end
+
+  def ready_report
+    EnteUpstreamSync::CheckReport.new(
+      repository_root: "/tmp/example",
+      branch: "main",
+      base_branch: "main",
+      fork_sha: FORK_SHA,
+      official_sha: OFFICIAL_SHA,
+      merge_base_sha: "e" * 40,
+      fork_only_commits: 3,
+      upstream_only_commits: 5,
+      official_contained: false,
+      fetched: false,
+      problems: [],
+    )
+  end
+
+  def result(stdout: "", stderr: "", status:)
+    EnteUpstreamSync::CommandResult.new(stdout: stdout, stderr: stderr, status: status)
+  end
+end

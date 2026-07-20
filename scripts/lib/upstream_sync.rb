@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "json"
+require "date"
 require "open3"
 require "pathname"
 
@@ -24,6 +25,29 @@ module EnteUpstreamSync
       detail = result.stderr.strip
       detail = result.stdout.strip if detail.empty?
       super("Command failed (#{argv.join(" ")}): #{detail}")
+    end
+  end
+
+  class SafetyFailure < StandardError; end
+
+  class NotReady < SafetyFailure
+    attr_reader :report
+
+    def initialize(report)
+      @report = report
+      super("Repository is not ready for upstream synchronization.")
+    end
+  end
+
+  class MergeStopped < SafetyFailure
+    attr_reader :branch, :official_sha, :result, :conflicts
+
+    def initialize(branch:, official_sha:, result:, conflicts:)
+      @branch = branch
+      @official_sha = official_sha
+      @result = result
+      @conflicts = conflicts
+      super("Upstream merge stopped on #{branch}.")
     end
   end
 
@@ -299,6 +323,160 @@ module EnteUpstreamSync
       command_value(problems, "resolve #{ref}") do
         @runner.run("git", "rev-parse", "--verify", "#{ref}^{commit}")
       end
+    end
+  end
+
+  StartResult = Struct.new(
+    :status,
+    :branch,
+    :fork_sha,
+    :official_sha,
+    :merge_commit,
+    keyword_init: true,
+  )
+
+  class Synchronizer
+    BRANCH_PREFIX = "sync/upstream-"
+
+    def initialize(runner:, inspector:, root:)
+      @runner = runner
+      @inspector = inspector
+      @root = Pathname(root).expand_path
+    end
+
+    def start(fetch: true, expected_official_sha: nil, date: Date.today)
+      report = @inspector.check(fetch: fetch)
+      raise NotReady, report unless report.ready?
+
+      unless report.sync_required?
+        return StartResult.new(
+          status: :already_synchronized,
+          fork_sha: report.fork_sha,
+          official_sha: report.official_sha,
+        )
+      end
+
+      if expected_official_sha && expected_official_sha != report.official_sha
+        raise SafetyFailure,
+              "Requested official SHA #{expected_official_sha} does not match fetched upstream/#{report.base_branch} #{report.official_sha}."
+      end
+
+      branch = branch_name(date, report.official_sha)
+      branch_ref = "refs/heads/#{branch}"
+      branch_check = @runner.capture("git", "show-ref", "--verify", "--quiet", branch_ref)
+      if branch_check.status.zero?
+        raise SafetyFailure,
+              "Integration branch #{branch} already exists. Inspect it and run resume instead of overwriting it."
+      end
+      unless branch_check.status == 1
+        raise SafetyFailure, "Unable to determine whether #{branch} already exists."
+      end
+
+      @runner.run("git", "switch", "-c", branch, report.fork_sha)
+      message = "Merge official Ente main at #{report.official_sha}"
+      merge = @runner.capture(
+        "git",
+        "merge",
+        "--no-ff",
+        "--no-edit",
+        "-m",
+        message,
+        report.official_sha,
+      )
+      unless merge.success?
+        conflicts = lines(
+          @runner.capture("git", "diff", "--name-only", "--diff-filter=U").stdout,
+        )
+        raise MergeStopped.new(
+          branch: branch,
+          official_sha: report.official_sha,
+          result: merge,
+          conflicts: conflicts,
+        )
+      end
+
+      verify_official_ancestry(report.official_sha)
+      StartResult.new(
+        status: :merged,
+        branch: branch,
+        fork_sha: report.fork_sha,
+        official_sha: report.official_sha,
+        merge_commit: @runner.run("git", "rev-parse", "HEAD"),
+      )
+    end
+
+    def resume
+      branch = @runner.run("git", "symbolic-ref", "--quiet", "--short", "HEAD")
+      unless branch.start_with?(BRANCH_PREFIX)
+        raise SafetyFailure, "Resume requires a #{BRANCH_PREFIX}* branch; current branch is #{branch}."
+      end
+
+      merge_head = @runner.capture("git", "rev-parse", "--verify", "MERGE_HEAD^{commit}")
+      if merge_head.success?
+        official_sha = merge_head.stdout.strip
+        conflicts = lines(
+          @runner.capture("git", "diff", "--name-only", "--diff-filter=U").stdout,
+        )
+        unless conflicts.empty?
+          raise SafetyFailure,
+                "Merge still has unresolved files: #{conflicts.join(", ")}. Resolve and stage them before resume."
+        end
+
+        unstaged = @runner.capture("git", "diff", "--quiet")
+        unless unstaged.status.zero?
+          raise SafetyFailure, "Merge resolution has unstaged changes. Stage the complete resolution before resume."
+        end
+        cached = @runner.capture("git", "diff", "--cached", "--quiet")
+        if cached.status.zero?
+          raise SafetyFailure, "Merge resolution has no staged changes to commit."
+        end
+
+        @runner.run("git", "diff", "--check")
+        @runner.run("git", "diff", "--cached", "--check")
+        @runner.run("git", "commit", "--no-edit")
+        verify_official_ancestry(official_sha)
+        return StartResult.new(
+          status: :merged,
+          branch: branch,
+          official_sha: official_sha,
+          merge_commit: @runner.run("git", "rev-parse", "HEAD"),
+        )
+      end
+
+      official_sha = @runner.run("git", "rev-parse", "HEAD^2")
+      verify_official_ancestry(official_sha)
+      status = @runner.run("git", "status", "--porcelain", "--untracked-files=all")
+      raise SafetyFailure, "Integration branch is not clean; inspect changes before validation." unless status.empty?
+
+      StartResult.new(
+        status: :ready_for_validation,
+        branch: branch,
+        official_sha: official_sha,
+        merge_commit: @runner.run("git", "rev-parse", "HEAD"),
+      )
+    rescue CommandFailure => error
+      if error.argv == ["git", "rev-parse", "HEAD^2"]
+        raise SafetyFailure, "Current branch does not end in the required upstream merge commit."
+      end
+
+      raise
+    end
+
+    private
+
+    def branch_name(date, official_sha)
+      "#{BRANCH_PREFIX}#{date.iso8601}-#{official_sha[0, 10]}"
+    end
+
+    def verify_official_ancestry(official_sha)
+      result = @runner.capture("git", "merge-base", "--is-ancestor", official_sha, "HEAD")
+      return if result.status.zero?
+
+      raise SafetyFailure, "Merged branch does not contain recorded official SHA #{official_sha}."
+    end
+
+    def lines(value)
+      value.lines.map(&:strip).reject(&:empty?)
     end
   end
 
