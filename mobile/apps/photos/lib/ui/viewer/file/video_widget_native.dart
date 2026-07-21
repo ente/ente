@@ -81,6 +81,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   String? duration;
   double? aspectRatio;
   final _isPlaybackReady = ValueNotifier(false);
+  File? _iosCacheFile;
   bool _isCompletelyVisible = false;
   final _showControls = ValueNotifier(true);
   final _isSeeking = ValueNotifier(false);
@@ -215,7 +216,13 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
               _loadNetworkVideo(update);
               return;
             }
-            _setFilePathForNativePlayer(mediaUrl, update);
+            final mediaFile = mediaUrl.startsWith("file://")
+                ? File.fromUri(Uri.parse(mediaUrl))
+                : null;
+            _setFilePathForNativePlayer(mediaFile?.path ?? mediaUrl, update);
+            if (mediaFile != null) {
+              _iosCacheFile = mediaFile;
+            }
           });
         }
       });
@@ -242,6 +249,18 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     if (downloadTaskSubscription != null) {
       downloadTaskSubscription!.cancel();
       downloadManager.pause(widget.file.uploadedFileID!).ignore();
+    }
+    // https://github.com/fluttercandies/flutter_photo_manager/blob/8afba2745ebaac6af8af75de9cbded9157bc2690/README.md#clear-caches
+    final iosCacheFile = _iosCacheFile;
+    if (iosCacheFile != null) {
+      iosCacheFile.delete().onError((error, stackTrace) {
+        _logger.warning(
+          "Failed to clear iOS cache path: ${iosCacheFile.path}",
+          error,
+          stackTrace,
+        );
+        return iosCacheFile;
+      }).ignore();
     }
     _streamSwitchedSubscription?.cancel();
     _guestViewEventSubscription.cancel();
