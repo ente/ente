@@ -3,7 +3,6 @@ import "dart:io";
 import "package:flutter/cupertino.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/l10n/l10n.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/models/file/file.dart";
@@ -16,7 +15,6 @@ import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/collections/album/column_item.dart";
 import "package:photos/ui/collections/album/new_list_item.dart";
 import "package:photos/ui/components/thumbnail_list_item.dart";
-import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/utils/dialog_util.dart";
 
@@ -548,14 +546,6 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                                         // ignore: use_build_context_synchronously
                                                         context,
                                                       )) {
-                                                if (context.mounted) {
-                                                  showToast(
-                                                    context,
-                                                    AppLocalizations.of(
-                                                      context,
-                                                    ).enableNotificationsHint,
-                                                  );
-                                                }
                                                 return;
                                               }
                                               final updated =

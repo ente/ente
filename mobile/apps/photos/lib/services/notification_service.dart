@@ -8,9 +8,7 @@ import "package:flutter_timezone/flutter_timezone.dart";
 import "package:logging/logging.dart";
 import "package:package_info_plus/package_info_plus.dart";
 import "package:permission_handler/permission_handler.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/services/timezone_aliases.dart";
-import "package:photos/ui/notification/toast.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import 'package:timezone/data/latest_10y.dart' as tzdb;
 import "package:timezone/timezone.dart" as tz;
@@ -168,7 +166,7 @@ class NotificationService {
     if (!context.mounted) return false;
     if (await _askPermissions()) return true;
     if (!context.mounted) return false;
-    await _openNotificationSettings(context);
+    await _openNotificationSettings();
     const interval = Duration(milliseconds: 500);
     const maxAttempts = 1000;
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
@@ -194,7 +192,7 @@ class NotificationService {
     return await impl?.requestNotificationsPermission() ?? false;
   }
 
-  Future<void> _openNotificationSettings(BuildContext context) async {
+  Future<void> _openNotificationSettings() async {
     if (Platform.isIOS) {
       await openAppSettings();
       return;
@@ -206,9 +204,6 @@ class NotificationService {
         "android.provider.extra.APP_PACKAGE": packageInfo.packageName,
       },
     ).launch();
-    if (!context.mounted) return;
-    final l10n = AppLocalizations.of(context);
-    showToast(context, l10n.enableNotificationsHint);
   }
 
   Future<bool> hasGrantedPermissions() async {
