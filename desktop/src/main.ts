@@ -76,6 +76,24 @@ export const allowWindowClose = (): void => {
  * We call this at the end of this file.
  */
 const main = () => {
+    // [Note: Renderer V8 flags]
+    //
+    // Append V8 flags that get propagated to renderer (zygote) processes.
+    // `--js-flags` passed on the CLI only affects the main process's Node V8,
+    // not the Electron renderers; `app.commandLine.appendSwitch` before the
+    // app is ready is the way to reach them.
+    //
+    // `--single-generation` makes V8 allocate objects directly in the old
+    // generation, bypassing the young generation. This avoids a V8 Scavenger
+    // ("semi-space copy") OOM that otherwise consistently crashes the
+    // renderer during folder-watch upload of large libraries (thousands of
+    // pending files), making the desktop app unable to upload them. Raising
+    // `--max-old-space-size` gives the renderer additional headroom for the
+    // live set accumulated while processing such libraries.
+    app.commandLine.appendSwitch(
+        "js-flags",
+        "--single-generation --max-old-space-size=8192",
+    );
     const gotTheLock = app.requestSingleInstanceLock();
     if (!gotTheLock) {
         app.quit();
