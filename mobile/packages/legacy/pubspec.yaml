@@ -43,7 +43,7 @@ dependencies:
   intl: 0.20.2
   logging: 1.3.0
   password_strength: 0.2.0
-  pdf: 3.11.3
+  pdf: 3.12.0
   pointycastle: 3.9.1
   rive: 0.14.0-dev.13
   share_plus: 11.1.0

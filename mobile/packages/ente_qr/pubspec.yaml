@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  image: 4.5.4
+  image: 4.7.0
   plugin_platform_interface: 2.1.8
   zxing2: 0.2.4
 
