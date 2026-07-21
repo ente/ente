@@ -658,10 +658,10 @@ const annotateExif = (
         if (exif.Make && exif.Model)
             info.takenOnDevice = `${exif.Make.description} ${exif.Model.description}`;
 
-        if (exif.FNumber)
+        if (exif.FNumber && exif.FNumber.description !== "NaN")
             info.fNumber = exif.FNumber.description; /* e.g. "f/16" */
 
-        if (exif.ExposureTime)
+        if (exif.ExposureTime && exif.ExposureTime.description !== "NaN")
             info.exposureTime = exif.ExposureTime.description; /* "1/10" */
 
         if (exif.ISOSpeedRatings)
