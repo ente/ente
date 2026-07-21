@@ -167,17 +167,6 @@ class _MemoryShareSelectionSheetState
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         SelectionSummaryChipComponent(
-          key: const ValueKey("memory-share-selected-count"),
-          label: l10n.selectedPhotos(count: _selectedFiles.files.length),
-          icon: const HugeIcon(
-            icon: HugeIcons.strokeRoundedCancel01,
-            size: IconSizes.small,
-          ),
-          semanticLabel: l10n.clearSelection,
-          isSelected: _hasSelection,
-          onTap: _hasSelection ? _clearSelection : null,
-        ),
-        SelectionSummaryChipComponent(
           key: const ValueKey("memory-share-select-all"),
           label: l10n.selectAll,
           icon: const HugeIcon(
@@ -187,6 +176,17 @@ class _MemoryShareSelectionSheetState
           semanticLabel: l10n.selectAll,
           isSelected: _areAllSelected,
           onTap: _areAllSelected ? null : _selectAll,
+        ),
+        SelectionSummaryChipComponent(
+          key: const ValueKey("memory-share-selected-count"),
+          label: l10n.selectedPhotos(count: _selectedFiles.files.length),
+          icon: const HugeIcon(
+            icon: HugeIcons.strokeRoundedCancel01,
+            size: IconSizes.small,
+          ),
+          semanticLabel: l10n.clearSelection,
+          isSelected: _hasSelection,
+          onTap: _hasSelection ? _clearSelection : null,
         ),
       ],
     );
