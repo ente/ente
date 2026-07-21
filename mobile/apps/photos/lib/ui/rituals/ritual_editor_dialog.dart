@@ -543,6 +543,7 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                                   !await NotificationService
                                                       .instance
                                                       .requestPermissions(
+                                                        // ignore: use_build_context_synchronously
                                                         context,
                                                       )) {
                                                 if (context.mounted) {

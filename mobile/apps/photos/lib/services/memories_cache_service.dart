@@ -1433,25 +1433,23 @@ class MemoriesCacheService {
 
   Future<void> setOnThisDayNotifications(bool value) async {
     if (localSettings.isOnThisDayNotificationsEnabled == value) return;
-
     await localSettings.setOnThisDayNotificationsEnabled(value);
     _logger.info("Turning onThisDayNotifications ${value ? "on" : "off"}");
-    if (!value) {
-      await _clearAllScheduledOnThisDayNotifications();
-    } else {
+    if (value) {
       queueUpdateCache();
+    } else {
+      await _clearAllScheduledOnThisDayNotifications();
     }
   }
 
   Future<void> setBirthdayNotifications(bool value) async {
     if (localSettings.birthdayNotificationsEnabled == value) return;
-
     await localSettings.setBirthdayNotificationsEnabled(value);
     _logger.info("Turning birthdayNotifications ${value ? "on" : "off"}");
-    if (!value) {
-      await _clearAllScheduledBirthdayNotifications();
-    } else {
+    if (value) {
       queueUpdateCache();
+    } else {
+      await _clearAllScheduledBirthdayNotifications();
     }
   }
 

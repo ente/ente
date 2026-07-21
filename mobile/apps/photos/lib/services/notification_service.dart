@@ -22,8 +22,6 @@ class NotificationService {
       "notifications_enabled_shared_photos";
   static const String keyShouldShowSocialNotifications =
       "notifications_enabled_social";
-  static const String _androidAppNotificationSettingsAction =
-      "android.settings.APP_NOTIFICATION_SETTINGS";
 
   NotificationService._privateConstructor();
 
@@ -166,90 +164,67 @@ class NotificationService {
   }
 
   Future<bool> requestPermissions(BuildContext context) async {
-    if (await hasGrantedPermissions()) {
-      return true;
-    }
-
-    if (await _askPermissions()) {
-      return true;
-    }
-
-    if (!context.mounted) {
-      return false;
-    }
-
+    if (await hasGrantedPermissions()) return true;
+    if (!context.mounted) return false;
+    if (await _askPermissions()) return true;
+    if (!context.mounted) return false;
     await _openNotificationSettings(context);
-
     const interval = Duration(milliseconds: 500);
     const maxAttempts = 1000;
-
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       await Future.delayed(interval);
-
-      if (await hasGrantedPermissions()) {
-        return true;
-      }
+      if (await hasGrantedPermissions()) return true;
     }
-
     return false;
   }
 
   Future<bool> _askPermissions() async {
     await _ensurePluginInitialized();
-    final granted =
-        (Platform.isIOS
-            ? await _notificationsPlugin
-                  .resolvePlatformSpecificImplementation<
-                    IOSFlutterLocalNotificationsPlugin
-                  >()
-                  ?.requestPermissions(sound: true, alert: true)
-            : await _notificationsPlugin
-                  .resolvePlatformSpecificImplementation<
-                    AndroidFlutterLocalNotificationsPlugin
-                  >()
-                  ?.requestNotificationsPermission()) ??
-        false;
-    return granted;
+    if (Platform.isIOS) {
+      final impl = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
+      return await impl?.requestPermissions(sound: true, alert: true) ?? false;
+    }
+    final impl = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    return await impl?.requestNotificationsPermission() ?? false;
   }
 
   Future<void> _openNotificationSettings(BuildContext context) async {
-    if (!Platform.isAndroid) {
+    if (Platform.isIOS) {
       await openAppSettings();
       return;
     }
-
     final packageInfo = await PackageInfo.fromPlatform();
     await AndroidIntent(
-      action: _androidAppNotificationSettingsAction,
+      action: "android.settings.APP_NOTIFICATION_SETTINGS",
       arguments: {
         "android.provider.extra.APP_PACKAGE": packageInfo.packageName,
       },
     ).launch();
-    if (context.mounted) {
-      final l10n = AppLocalizations.of(context);
-      showToast(context, l10n.enableNotificationsHint);
-    }
+    if (!context.mounted) return;
+    final l10n = AppLocalizations.of(context);
+    showToast(context, l10n.enableNotificationsHint);
   }
 
   Future<bool> hasGrantedPermissions() async {
     await _ensurePluginInitialized();
-
     if (Platform.isIOS) {
-      final permissions = await _notificationsPlugin
+      final impl = _notificationsPlugin
           .resolvePlatformSpecificImplementation<
             IOSFlutterLocalNotificationsPlugin
-          >()
-          ?.checkPermissions();
-
-      return permissions?.isEnabled ?? false;
+          >();
+      return (await impl?.checkPermissions())?.isEnabled ?? false;
     }
-
-    return await _notificationsPlugin
-            .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin
-            >()
-            ?.areNotificationsEnabled() ??
-        false;
+    final impl = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    return await impl?.areNotificationsEnabled() ?? false;
   }
 
   bool shouldShowNotificationsForSharedPhotosAndAlbums() {

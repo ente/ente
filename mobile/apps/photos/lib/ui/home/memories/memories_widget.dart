@@ -229,11 +229,11 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
               parent: BouncingScrollPhysics(),
             ),
             scrollDirection: Axis.horizontal,
-            itemCount: hasNotificationsPermissions
-                ? memories.length
-                : memories.length + 1,
+            itemCount:
+                (hasNotificationsPermissions == false ? 1 : 0) +
+                memories.length,
             itemBuilder: (context, itemIndex) {
-              if (!hasNotificationsPermissions && itemIndex == 0) {
+              if (hasNotificationsPermissions == false && itemIndex == 0) {
                 return CraftMemories(
                   width: _memoryWidth * 0.75,
                   height: _memoryheight,
@@ -245,9 +245,8 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
                   },
                 );
               }
-              final memoryIndex = hasNotificationsPermissions
-                  ? itemIndex
-                  : itemIndex - 1;
+              final memoryIndex =
+                  itemIndex - (hasNotificationsPermissions == false ? 1 : 0);
               return MemoryCoverWidget(
                 smartMemory: memories[memoryIndex],
                 allMemories: memories,
