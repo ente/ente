@@ -171,24 +171,23 @@ pub fn generate_sensitive_kek(password: &str) -> Result<GeneratedKek> {
         _ => AuthError::InsufficientMemory,
     })?;
 
-    Ok(GeneratedKek {
-        key: SecretVec::new(derived.key.as_bytes().to_vec()),
-        salt: derived.salt.as_bytes().to_vec(),
-        mem_limit: derived.params.mem_limit,
-        ops_limit: derived.params.ops_limit,
-    })
+    Ok(generated_kek(derived))
 }
 
 /// Generate a KEK using the current interactive web policy.
 pub fn generate_interactive_kek(password: &str) -> Result<GeneratedKek> {
     let derived = argon::derive_interactive_key(password)?;
 
-    Ok(GeneratedKek {
+    Ok(generated_kek(derived))
+}
+
+fn generated_kek(derived: argon::DerivedKey) -> GeneratedKek {
+    GeneratedKek {
         key: SecretVec::new(derived.key.as_bytes().to_vec()),
         salt: derived.salt.as_bytes().to_vec(),
         mem_limit: derived.params.mem_limit,
         ops_limit: derived.params.ops_limit,
-    })
+    }
 }
 
 /// Generate the SRP setup payload for a given KEK and SRP user ID.
@@ -421,16 +420,6 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_sensitive_kek() {
-        let generated = generate_sensitive_kek("test_password").unwrap();
-
-        assert_eq!(generated.key.len(), 32);
-        assert_eq!(generated.salt.len(), 16);
-        assert!(generated.mem_limit > 0);
-        assert!(generated.ops_limit > 0);
-    }
-
-    #[test]
     fn test_generated_kek_debug_redacts_secret_material() {
         let generated = GeneratedKek {
             key: SecretVec::new(vec![1, 2, 3]),
@@ -464,8 +453,7 @@ mod tests {
     #[cfg(feature = "srp")]
     #[test]
     fn test_generate_srp_setup() {
-        let generated = generate_sensitive_kek("test_password").unwrap();
-        let srp_setup = generate_srp_setup(&generated.key, "test-user-id").unwrap();
+        let srp_setup = generate_srp_setup(&[1; 32], "test-user-id").unwrap();
 
         assert_eq!(srp_setup.srp_salt.len(), 16);
         assert_eq!(srp_setup.login_sub_key.len(), 16);

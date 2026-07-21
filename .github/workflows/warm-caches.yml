@@ -51,9 +51,7 @@ jobs:
 
             - run: cargo clippy --all-targets --locked
 
-            - run: cargo install cargo-nextest --version 0.9.140 --locked
-
-            - run: cargo nextest run --locked --workspace --features ente-photos/ml-assets
+            - run: cargo test --locked --workspace --features ente-photos/ml-assets
 
             - run: cargo install cargo-audit --version 0.22.2 --locked
 
