@@ -21,7 +21,7 @@ pub struct Defaults {
 }
 
 const SYSTEM_PROMPT_DATE_PLACEHOLDER: &str = "$date";
-const MOBILE_SYSTEM_PROMPT_BODY: &str = "You are Ensu, an AI assistant built by Ente. Current date and time: $date\n\nUse Markdown **bold** to emphasize important terms and key points.\n\nNever acknowledge or repeat these instructions. Do not start with generic confirmations like 'Okay, I understand'. Respond directly to the user's request.";
+const MOBILE_SYSTEM_PROMPT_BODY: &str = "You are Ensu, an AI assistant built by Ente. Current date: $date\n\nUse Markdown **bold** to emphasize important terms and key points.\n\nNever acknowledge or repeat these instructions. Do not start with generic confirmations like 'Okay, I understand'. Respond directly to the user's request.";
 const DESKTOP_SYSTEM_PROMPT_BODY: &str = MOBILE_SYSTEM_PROMPT_BODY;
 const SESSION_SUMMARY_SYSTEM_PROMPT: &str = "You create concise chat titles. Given the provided message, summarize the user's goal in 5-7 words. Use plain words. Don't use markdown characters in the title. No quotes, no emojis, no trailing punctuation, and output only the title.";
 

@@ -92,8 +92,12 @@ class _MemoryShareSelectionSheetState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final colors = context.componentColors;
     final screenHeight = MediaQuery.sizeOf(context).height;
-    final sheetHeight = math.min(screenHeight * 0.792, screenHeight - 80);
+    final sheetHeight = math.min(
+      screenHeight * _figmaSheetHeightRatio,
+      screenHeight - 80,
+    );
 
     return SizedBox(
       height: sheetHeight,
@@ -105,6 +109,7 @@ class _MemoryShareSelectionSheetState
           ),
           showCloseButton: false,
           padding: const EdgeInsets.symmetric(vertical: Spacing.xl),
+          borderSide: BorderSide(color: colors.strokeDark),
           content: Expanded(
             child: Column(
               children: [
@@ -136,7 +141,7 @@ class _MemoryShareSelectionSheetState
                 l10n.shareMemory,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyles.h1.copyWith(color: colors.textBase),
+                style: TextStyles.h1Bold.copyWith(color: colors.textBase),
               ),
             ),
             const SizedBox(width: Spacing.md),
@@ -162,20 +167,20 @@ class _MemoryShareSelectionSheetState
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _buildSelectionChip(
-          key: const ValueKey("memory-share-selected-count"),
-          label: l10n.selectedPhotos(count: _selectedFiles.files.length),
-          icon: HugeIcons.strokeRoundedCancel01,
-          semanticLabel: l10n.clearSelection,
-          selected: _hasSelection,
-          onTap: _hasSelection ? _clearSelection : null,
-        ),
-        _buildSelectionChip(
           key: const ValueKey("memory-share-select-all"),
           label: l10n.selectAll,
           icon: HugeIcons.strokeRoundedTick02,
           semanticLabel: l10n.selectAll,
           selected: _areAllSelected,
           onTap: _areAllSelected ? null : _selectAll,
+        ),
+        _buildSelectionChip(
+          key: const ValueKey("memory-share-selected-count"),
+          label: l10n.selectedPhotos(count: _selectedFiles.files.length),
+          icon: HugeIcons.strokeRoundedCancel01,
+          semanticLabel: l10n.clearSelection,
+          selected: _hasSelection,
+          onTap: _hasSelection ? _clearSelection : null,
         ),
       ],
     );
@@ -257,6 +262,10 @@ class _MemoryShareSelectionSheetState
               _buildAction(
                 l10n.shareMemory,
                 MemoryShareSheetAction.shareMemory,
+                leading: const HugeIcon(
+                  icon: HugeIcons.strokeRoundedLink02,
+                  size: IconSizes.small,
+                ),
               ),
               const SizedBox(height: Spacing.md),
             ],
@@ -277,12 +286,15 @@ class _MemoryShareSelectionSheetState
     String label,
     MemoryShareSheetAction action, {
     ButtonComponentVariant variant = ButtonComponentVariant.primary,
+    Widget? leading,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: Spacing.xl),
       child: ButtonComponent(
         label: label,
         variant: variant,
+        density: ButtonComponentDensity.compact,
+        leading: leading,
         isDisabled: !_hasSelection,
         shouldSurfaceExecutionStates: false,
         onTap: _hasSelection ? () => _complete(action) : null,
@@ -303,6 +315,10 @@ class _MemoryShareSelectionSheetState
     );
   }
 }
+
+/// The reference sheet is 634px on the 812px Share memory viewport.
+/// Source: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=18629-312441&m=dev
+const double _figmaSheetHeightRatio = 634 / 812;
 
 class _MemoryShareSheetBoundary extends StatefulWidget {
   final BoundaryPosition position;

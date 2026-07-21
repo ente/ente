@@ -7,6 +7,7 @@ import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import "package:photos/module/download/file.dart";
+import "package:photos/ui/components/info_item_widget.dart";
 import "package:photos/utils/image_util.dart";
 import "package:photos/utils/magic_util.dart";
 
@@ -31,49 +32,36 @@ class _FilePropertiesItemWidgetState extends State<FilePropertiesItemWidget> {
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
-    final canEdit =
-        !(widget.file.uploadedFileID == null ||
-            widget.file.ownerID != widget.currentUserID ||
-            widget.file.isTrash);
-    final title =
-        path.basenameWithoutExtension(widget.file.displayName) +
-        path.extension(widget.file.displayName).toUpperCase();
-    return FutureBuilder<String>(
-      future: _subtitle(),
-      builder: (context, snapshot) {
-        return MenuComponent(
-          key: const ValueKey("File properties"),
-          leading: HugeIcon(
-            icon: widget.isImage
-                ? HugeIcons.strokeRoundedImage01
-                : HugeIcons.strokeRoundedVideo02,
-            size: IconSizes.small,
-            color: colors.textLight,
-          ),
-          title: title,
-          subtitle: snapshot.data,
-          trailing: canEdit
-              ? IconButtonComponent(
-                  icon: HugeIcon(
-                    icon: HugeIcons.strokeRoundedEdit03,
-                    size: IconSizes.small,
-                    color: colors.textLight,
-                  ),
-                  variant: IconButtonComponentVariant.secondary,
-                  shouldSurfaceExecutionStates: false,
-                  onTap: () async {
-                    await editFilename(context, widget.file);
-                    setState(() {});
-                  },
-                )
-              : null,
-        );
-      },
+    return InfoItemWidget(
+      key: const ValueKey("File properties"),
+      leadingIconWidget: HugeIcon(
+        icon: widget.isImage
+            ? HugeIcons.strokeRoundedImage01
+            : HugeIcons.strokeRoundedVideo02,
+        size: IconSizes.small,
+        color: colors.textLight,
+      ),
+      title:
+          path.basenameWithoutExtension(widget.file.displayName) +
+          path.extension(widget.file.displayName).toUpperCase(),
+      subtitleSection: _subTitleSection(),
+      editOnTap:
+          widget.file.uploadedFileID == null ||
+              widget.file.ownerID != widget.currentUserID ||
+              widget.file.isTrash
+          ? null
+          : () async {
+              await editFilename(context, widget.file);
+              setState(() {});
+            },
+      useMenuStyle: true,
     );
   }
 
-  Future<String> _subtitle() async {
-    final parts = <String>[];
+  Future<List<Widget>> _subTitleSection() async {
+    final textStyle = TextStyles.mini.copyWith(
+      color: context.componentColors.textLight,
+    );
     final StringBuffer dimString = StringBuffer();
     int? width;
     int? height;
@@ -106,9 +94,10 @@ class _FilePropertiesItemWidgetState extends State<FilePropertiesItemWidget> {
       dimString.write('${widget.exifData["megaPixels"]}MP   ');
       dimString.write('${widget.exifData["resolution"]}');
     }
+    final subSectionWidgets = <Widget>[];
 
     if (dimString.isNotEmpty) {
-      parts.add(dimString.toString());
+      subSectionWidgets.add(Text(dimString.toString(), style: textStyle));
     }
 
     int fileSize;
@@ -117,21 +106,25 @@ class _FilePropertiesItemWidgetState extends State<FilePropertiesItemWidget> {
     } else {
       fileSize = await getFile(widget.file).then((f) => f!.length());
     }
-    parts.add(formatBytes(fileSize));
+    subSectionWidgets.add(Text(formatBytes(fileSize), style: textStyle));
 
     if ((widget.file.fileType == FileType.video) &&
         (widget.file.localID != null || widget.file.duration != 0)) {
       if (widget.file.duration != 0) {
-        parts.add(secondsToHHMMSS(widget.file.duration!));
+        subSectionWidgets.add(
+          Text(secondsToHHMMSS(widget.file.duration!), style: textStyle),
+        );
       } else {
         final asset = await widget.file.getAsset;
-        final duration = asset?.videoDuration.toString().split(".")[0] ?? "";
-        if (duration.isNotEmpty) {
-          parts.add(duration);
-        }
+        subSectionWidgets.add(
+          Text(
+            asset?.videoDuration.toString().split(".")[0] ?? "",
+            style: textStyle,
+          ),
+        );
       }
     }
 
-    return parts.join("   ");
+    return Future.value(subSectionWidgets);
   }
 }

@@ -11,7 +11,7 @@ final class ChatViewModel: ObservableObject {
     private static let defaultTemperature: Float = 0.5
     private static let systemPromptDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss z"
+        formatter.dateFormat = "yyyy-MM-dd"
         return formatter
     }()
     private static let systemPromptDatePlaceholder = ConfigDefaults.shared.systemPromptDatePlaceholder
@@ -24,9 +24,9 @@ final class ChatViewModel: ObservableObject {
     private static let sessionSummarySystemPrompt = ConfigDefaults.shared.sessionSummarySystemPrompt
 
     private func systemPrompt() -> String {
-        let dateAndTime = Self.systemPromptDateFormatter.string(from: Date())
+        let date = Self.systemPromptDateFormatter.string(from: Date())
         let promptBody = ModelSettingsStore.currentSystemPromptBody()
-        return promptBody.replacingOccurrences(of: Self.systemPromptDatePlaceholder, with: dateAndTime)
+        return promptBody.replacingOccurrences(of: Self.systemPromptDatePlaceholder, with: date)
     }
 
     private let logger = EnsuLogging.shared.logger("ChatViewModel")
@@ -1847,25 +1847,34 @@ final class ChatViewModel: ObservableObject {
             total + estimateTokens(historyText(node))
         }
         let inputTokens = systemTokens + promptTokens + historyTokens
-        var remaining = inputBudget - systemTokens - promptTokens
+        let remaining = inputBudget - systemTokens - promptTokens
 
         if remaining <= 0 || historyMessages.isEmpty {
             return HistorySelection(messages: [], inputTokens: inputTokens, inputBudget: inputBudget, wasTrimmed: inputTokens > inputBudget)
         }
 
-        var selected: [LlmMessage] = []
-        for node in historyMessages.reversed() {
-            let text = historyText(node)
-            let cost = estimateTokens(text)
-            if cost <= remaining {
-                selected.append(LlmMessage(text: text, role: node.role == .user ? .user : .assistant, hasAttachments: !node.attachments.isEmpty))
-                remaining -= cost
-            } else {
-                break
-            }
+        let quantum = max(1, inputBudget / 4)
+        let overflow = max(0, historyTokens - remaining)
+        let quantaToDiscard = (overflow + quantum - 1) / quantum
+        let discardTarget = quantaToDiscard * quantum
+        var discarded = 0
+        var startIndex = historyMessages.startIndex
+        while startIndex < historyMessages.endIndex && discarded < discardTarget {
+            discarded += estimateTokens(historyText(historyMessages[startIndex]))
+            startIndex = historyMessages.index(after: startIndex)
         }
 
-        return HistorySelection(messages: selected.reversed(), inputTokens: inputTokens, inputBudget: inputBudget, wasTrimmed: inputTokens > inputBudget)
+        var retained = historyMessages[startIndex...]
+        if retained.isEmpty, let last = historyMessages.last, estimateTokens(historyText(last)) <= remaining {
+            retained = historyMessages.suffix(1)
+        }
+
+        let selected = retained.map { node in
+            let text = historyText(node)
+            return LlmMessage(text: text, role: node.role == .user ? .user : .assistant, hasAttachments: !node.attachments.isEmpty)
+        }
+
+        return HistorySelection(messages: selected, inputTokens: inputTokens, inputBudget: inputBudget, wasTrimmed: inputTokens > inputBudget)
     }
 
     private func resolveGenerationLimits(target: LlmModelTarget) -> GenerationLimits {

@@ -146,7 +146,7 @@ dependencies:
   html_unescape: 2.0.0
   http: 1.6.0
   hugeicons: 1.1.7
-  image: 4.5.4
+  image: 4.7.0
   in_app_purchase: 3.2.1
   intl: 0.20.2
   just_audio: 0.10.5

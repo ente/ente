@@ -166,6 +166,9 @@ class _TextInputComponentState extends State<TextInputComponent> {
   @override
   void didUpdateWidget(covariant TextInputComponent oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.isDisabled != widget.isDisabled) {
+      _configureGroupId();
+    }
     if (oldWidget.submitNotifier != widget.submitNotifier) {
       oldWidget.submitNotifier?.removeListener(_handleSubmitRequested);
       widget.submitNotifier?.addListener(_handleSubmitRequested);
@@ -216,7 +219,7 @@ class _TextInputComponentState extends State<TextInputComponent> {
     super.dispose();
   }
 
-  Object? _groupId;
+  late Object _groupId;
   final _defaultGroupId = Object();
   final _disabledGroupId = Object();
 
@@ -300,6 +303,7 @@ class _TextInputComponentState extends State<TextInputComponent> {
                         ],
                         Expanded(
                           child: TextField(
+                            groupId: _groupId,
                             controller: _controller,
                             focusNode: _focusNode,
                             enabled: !widget.isDisabled,

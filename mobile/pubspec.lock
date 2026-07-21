@@ -1426,10 +1426,10 @@ packages:
     dependency: transitive
     description:
       name: image
-      sha256: "4e973fcf4caae1a4be2fa0a13157aa38a8f9cb049db6529aa00b4d71abc4d928"
+      sha256: "6acdc597ab31dc6cd2bf108335f820c81f32cbf33df5d94e94781f417155a273"
       url: "https://pub.dev"
     source: hosted
-    version: "4.5.4"
+    version: "4.7.0"
   in_app_purchase:
     dependency: transitive
     description:
@@ -2150,10 +2150,10 @@ packages:
     dependency: transitive
     description:
       name: pdf
-      sha256: "28eacad99bffcce2e05bba24e50153890ad0255294f4dd78a17075a2ba5c8416"
+      sha256: e47a275b267873d5944ad5f5ff0dcc7ac2e36c02b3046a0ffac9b72fd362c44b
       url: "https://pub.dev"
     source: hosted
-    version: "3.11.3"
+    version: "3.12.0"
   permission_handler:
     dependency: transitive
     description:

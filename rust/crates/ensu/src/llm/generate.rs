@@ -326,6 +326,7 @@ fn run_generation_loop(
     max_tokens: usize,
     stop_sequences: &[String],
     generated_tokens_count: &mut i32,
+    mut cached_tokens: Option<&mut Vec<LlamaToken>>,
     mut pos: i32,
     mut logits_index: i32,
 ) -> Result<(), Error> {
@@ -375,10 +376,19 @@ fn run_generation_loop(
                 op: "Failed to add token",
                 message: err.to_string(),
             })?;
-        ctx.decode(&mut step_batch).map_err(|err| Error::Llama {
-            op: "Decode failed",
-            message: err.to_string(),
-        })?;
+        if let Err(err) = ctx.decode(&mut step_batch) {
+            ctx.clear_kv_cache();
+            if let Some(cached) = cached_tokens.as_deref_mut() {
+                cached.clear();
+            }
+            return Err(Error::Llama {
+                op: "Decode failed",
+                message: err.to_string(),
+            });
+        }
+        if let Some(cached) = cached_tokens.as_deref_mut() {
+            cached.push(token);
+        }
 
         logits_index = 0;
         pos += 1;
@@ -511,7 +521,7 @@ fn generate_chat_stream(
     let mut generated_tokens_count: i32 = 0;
 
     let result = match catch_unwind(AssertUnwindSafe(|| {
-        context.with_context_mut(|ctx| -> Result<(), Error> {
+        context.with_context_and_cache_mut(|ctx, cached_tokens| -> Result<(), Error> {
             let add_assistant = add_assistant.unwrap_or(true);
             let mut messages = messages;
             let image_paths = image_paths.unwrap_or_default();
@@ -594,9 +604,14 @@ fn generate_chat_stream(
                     return Err(Error::InvalidInput("Context batch size is 0".to_string()));
                 }
 
-                ctx.clear_kv_cache();
+                let keep = append_only_prefix_len(cached_tokens, &prompt_tokens);
 
-                let mut token_offset = 0usize;
+                if keep == 0 {
+                    ctx.clear_kv_cache();
+                    cached_tokens.clear();
+                }
+
+                let mut token_offset = keep;
                 let mut logits_index: i32 = 0;
                 while token_offset < prompt_tokens.len() {
                     check_cancelled(&cancel_flag)?;
@@ -613,10 +628,18 @@ fn generate_chat_stream(
                                 message: err.to_string(),
                             })?;
                     }
-                    ctx.decode(&mut batch).map_err(|err| Error::Llama {
-                        op: "Prompt decode failed",
-                        message: err.to_string(),
-                    })?;
+
+                    if let Err(err) = ctx.decode(&mut batch) {
+                        ctx.clear_kv_cache();
+                        cached_tokens.clear();
+                        return Err(Error::Llama {
+                            op: "Prompt decode failed",
+                            message: err.to_string(),
+                        });
+                    }
+
+                    cached_tokens.extend_from_slice(chunk);
+
                     if end == prompt_tokens.len() {
                         logits_index = (chunk.len() - 1) as i32;
                     }
@@ -636,6 +659,7 @@ fn generate_chat_stream(
                     max_tokens,
                     &stop_sequences,
                     &mut generated_tokens_count,
+                    Some(cached_tokens),
                     pos,
                     logits_index,
                 )?;
@@ -710,6 +734,7 @@ fn generate_chat_stream(
             }
 
             ctx.clear_kv_cache();
+            cached_tokens.clear();
             check_cancelled(&cancel_flag)?;
 
             let n_past = chunks
@@ -740,6 +765,7 @@ fn generate_chat_stream(
                 max_tokens,
                 &stop_sequences,
                 &mut generated_tokens_count,
+                None,
                 n_past,
                 -1,
             )?;
@@ -748,7 +774,10 @@ fn generate_chat_stream(
         })
     })) {
         Ok(inner) => inner,
-        Err(_) => Err(Error::Panicked),
+        Err(_) => {
+            context.invalidate_cache();
+            Err(Error::Panicked)
+        }
     };
     result?;
 
@@ -766,6 +795,14 @@ fn generate_chat_stream(
     Ok(summary)
 }
 
+fn append_only_prefix_len(cached: &[LlamaToken], prompt: &[LlamaToken]) -> usize {
+    if !cached.is_empty() && cached.len() < prompt.len() && prompt.starts_with(cached) {
+        cached.len()
+    } else {
+        0
+    }
+}
+
 pub fn cancel(job_id: JobId) {
     if job_id <= 0 {
         cancel_all();
@@ -778,7 +815,12 @@ pub fn cancel(job_id: JobId) {
 
 #[cfg(test)]
 mod tests {
-    use super::StreamDecoder;
+    use super::{StreamDecoder, append_only_prefix_len};
+    use llama_cpp_2::token::LlamaToken;
+
+    fn tokens(ids: &[i32]) -> Vec<LlamaToken> {
+        ids.iter().copied().map(LlamaToken).collect()
+    }
 
     #[test]
     fn stream_decoder_emits_complete_utf8() {
@@ -790,5 +832,26 @@ mod tests {
         let step = decoder.push_bytes(&[0x99, 0x82]);
         assert_eq!(step.text.as_deref(), Some("🙂"));
         assert!(!step.stop);
+    }
+
+    #[test]
+    fn only_strict_extensions_reuse_cache() {
+        assert_eq!(append_only_prefix_len(&[], &tokens(&[1])), 0);
+        assert_eq!(
+            append_only_prefix_len(&tokens(&[1, 2]), &tokens(&[1, 2])),
+            0
+        );
+        assert_eq!(
+            append_only_prefix_len(&tokens(&[1, 2, 3]), &tokens(&[1, 2])),
+            0
+        );
+        assert_eq!(
+            append_only_prefix_len(&tokens(&[1, 2]), &tokens(&[1, 3, 4])),
+            0
+        );
+        assert_eq!(
+            append_only_prefix_len(&tokens(&[1, 2]), &tokens(&[1, 2, 3])),
+            2
+        );
     }
 }

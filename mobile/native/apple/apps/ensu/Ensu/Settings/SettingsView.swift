@@ -312,7 +312,7 @@ private struct SystemPromptSettingsView: View {
             VStack(alignment: .leading, spacing: EnsuSpacing.xxl) {
                 sectionHeader("Prompt text")
 
-                Text("This prompt is used as-is. Use $date anywhere to insert the current date and time.")
+                Text("This prompt is used as-is. Use $date anywhere to insert the current date.")
                     .font(EnsuTypography.small)
                     .foregroundStyle(EnsuColor.textMuted)
 
