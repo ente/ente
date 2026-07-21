@@ -18,7 +18,7 @@ void main() {
     expect(tester.getSize(find.byType(AnimatedContainer)).height, 52);
   });
 
-  testWidgets("Compact ButtonComponent uses Button Large geometry and type", (
+  testWidgets("Compact ButtonComponent uses 48px geometry and body type", (
     tester,
   ) async {
     await tester.pumpWidget(

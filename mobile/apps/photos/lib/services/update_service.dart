@@ -70,10 +70,6 @@ class UpdateService {
     return _prefs.setInt(changeLogVersionKey, currentChangeLogVersion);
   }
 
-  Future<bool> resetChangeLog() async {
-    return _prefs.remove(changeLogVersionKey);
-  }
-
   Future<bool> shouldUpdate() async {
     if (!isIndependent()) {
       return false;

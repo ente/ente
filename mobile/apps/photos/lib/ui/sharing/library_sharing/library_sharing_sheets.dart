@@ -51,7 +51,6 @@ Future<bool> showEnableLibrarySharingSheet({
             return BottomSheetComponent(
               title: LibrarySharingStrings.enableLibrarySharing,
               borderSide: BorderSide(color: colors.strokeDark),
-              useSafeArea: false,
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -122,7 +121,6 @@ Future<bool?> showLibrarySharingRolesSheet({
               title: LibrarySharingStrings.roles,
               showCloseButton: !controller.isMutating,
               borderSide: BorderSide(color: colors.strokeDark),
-              useSafeArea: false,
               content: _LibrarySharingRoleList(
                 controller: controller,
                 thumbnailBuilder: albumThumbnailBuilder,
@@ -218,7 +216,6 @@ Future<bool> confirmStopLibrarySharing({
             message: LibrarySharingStrings.stopSharingMessage(count),
             illustration: Image.asset('assets/warning-red.png'),
             borderSide: BorderSide(color: colors.strokeDark),
-            useSafeArea: false,
             actions: [
               ButtonComponent(
                 label: LibrarySharingStrings.stopSharing,

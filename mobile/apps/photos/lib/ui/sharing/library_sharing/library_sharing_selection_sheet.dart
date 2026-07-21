@@ -27,7 +27,6 @@ class LibrarySharingSelectionSheet extends StatelessWidget {
     final colors = context.componentColors;
     return BottomSheetComponent(
       showCloseButton: false,
-      useSafeArea: false,
       borderSide: BorderSide(color: colors.strokeDark),
       content: Column(
         mainAxisSize: MainAxisSize.min,

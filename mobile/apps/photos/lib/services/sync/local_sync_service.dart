@@ -337,21 +337,6 @@ class LocalSyncService {
         backupPreferenceService.isOnlyNewBackupEnabled;
   }
 
-  // Warning: resetLocalSync should only be used for testing imported related
-  // changes
-  Future<void> resetLocalSync() async {
-    assert(kDebugMode, "only available in debug mode");
-    await FilesDB.instance.deleteDB();
-    for (var element in [
-      kHasCompletedFirstImportKey,
-      kDbUpdationTimeKey,
-      "has_synced_edit_time",
-      "has_selected_all_folders_for_backup",
-    ]) {
-      await _prefs.remove(element);
-    }
-  }
-
   Future<void> _loadAndStoreDiff(
     Set<String> existingLocalDs, {
     required int fromTime,

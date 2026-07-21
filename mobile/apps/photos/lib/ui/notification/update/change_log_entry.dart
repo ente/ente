@@ -33,11 +33,9 @@ class ChangeLogEntryWidget extends StatelessWidget {
         Text(
           entry.title,
           textAlign: TextAlign.left,
-          style: TextStyles.large.copyWith(
-            color: entry.isFeature ? colors.primary : colors.textLight,
-          ),
+          style: TextStyles.large.copyWith(color: colors.textBase),
         ),
-        const SizedBox(height: Spacing.sm),
+        const SizedBox(height: Spacing.md),
         if (hasDescription)
           Padding(
             padding: EdgeInsets.only(bottom: hasItems ? Spacing.md : 0),

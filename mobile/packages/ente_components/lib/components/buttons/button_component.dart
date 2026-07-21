@@ -26,11 +26,10 @@ enum ButtonComponentSize { small, large }
 enum ButtonComponentDensity {
   regular,
 
-  /// Opt-in Figma Button Large treatment used by selection sheets: 48px high
-  /// with the Body text token. The existing Button Small-based default remains
-  /// 52px with Body Bold.
+  /// Opt-in 48px Button Large treatment used by sharing selection sheets.
+  /// The existing 52px default remains unchanged.
   /// Sources:
-  /// https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=18629-313326&m=dev
+  /// https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=18629-312441&m=dev
   /// https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=15782-102259&m=dev
   compact,
 }
@@ -256,14 +255,14 @@ class _ButtonComponentState extends State<ButtonComponent>
     final underlined =
         widget.variant == ButtonComponentVariant.link ||
         widget.variant == ButtonComponentVariant.tertiaryCritical;
-    final textStyle = widget.density == ButtonComponentDensity.compact
+    final labelStyle = widget.density == ButtonComponentDensity.compact
         ? TextStyles.body
         : TextStyles.bodyBold;
     final label = Text(
       widget.label,
       overflow: TextOverflow.ellipsis,
       maxLines: 2,
-      style: textStyle.copyWith(
+      style: labelStyle.copyWith(
         color: foreground,
         decoration: underlined ? TextDecoration.underline : null,
         decorationColor: underlined ? foreground : null,

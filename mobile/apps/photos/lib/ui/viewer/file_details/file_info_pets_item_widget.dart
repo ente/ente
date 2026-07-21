@@ -1,7 +1,6 @@
 import "dart:convert";
 import "dart:typed_data";
 
-import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/db/ml/db.dart";
@@ -12,7 +11,10 @@ import "package:photos/models/ml/face/box.dart";
 import "package:photos/models/ml/face/detection.dart";
 import "package:photos/models/ml/face/face.dart";
 import "package:photos/service_locator.dart" show isLocalGalleryMode;
+import "package:photos/theme/ente_theme.dart";
+import "package:photos/theme/text_style.dart";
 import "package:photos/ui/common/loading_widget.dart";
+import "package:photos/ui/components/buttons/icon_button_widget.dart";
 import "package:photos/ui/viewer/people/face_thumbnail_squircle.dart";
 import "package:photos/ui/viewer/people/file_face_widget.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
@@ -138,21 +140,31 @@ class _PetsItemWidgetState extends State<PetsItemWidget> {
     if (!_isLoading && _petFaces.isEmpty) {
       return const SizedBox.shrink();
     }
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Spacing.xxl),
-      child: _buildContent(context),
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const IconButtonWidget(
+          icon: Icons.pets,
+          iconButtonType: IconButtonType.secondary,
+        ),
+        const SizedBox(width: 12),
+        _buildContent(context),
+      ],
     );
   }
 
   Widget _buildContent(BuildContext context) {
     if (_isLoading) {
-      return const Padding(
-        padding: EdgeInsets.only(top: 8),
-        child: Center(
-          child: EnteLoadingWidget(
-            padding: 6,
-            size: 20,
-            alignment: Alignment.center,
+      return const Expanded(
+        child: Padding(
+          padding: EdgeInsets.only(top: 8, right: 12),
+          child: Center(
+            child: EnteLoadingWidget(
+              padding: 6,
+              size: 20,
+              alignment: Alignment.center,
+            ),
           ),
         ),
       );
@@ -160,25 +172,40 @@ class _PetsItemWidgetState extends State<PetsItemWidget> {
 
     final screenWidth = MediaQuery.of(context).size.width;
     final thumbnailWidth = screenWidth * 0.16;
+    final textTheme = getEnteTextTheme(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(AppLocalizations.of(context).discover_pets, style: TextStyles.h2),
-        const SizedBox(height: Spacing.lg),
-        Wrap(
-          runSpacing: 8,
-          spacing: 12,
-          children: _petFaces
-              .map((info) => _buildPetThumbnail(info, thumbnailWidth))
-              .toList(),
-        ),
-      ],
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            AppLocalizations.of(context).discover_pets,
+            style: textTheme.small,
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: Wrap(
+              runSpacing: 8,
+              spacing: 12,
+              children: _petFaces
+                  .map(
+                    (info) =>
+                        _buildPetThumbnail(info, thumbnailWidth, textTheme),
+                  )
+                  .toList(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildPetThumbnail(_PetFaceInfo info, double thumbnailWidth) {
+  Widget _buildPetThumbnail(
+    _PetFaceInfo info,
+    double thumbnailWidth,
+    EnteTextTheme textTheme,
+  ) {
     final l10n = AppLocalizations.of(context);
     final speciesLabel = info.species == 0 ? l10n.dog : l10n.cat;
 
@@ -196,7 +223,7 @@ class _PetsItemWidgetState extends State<PetsItemWidget> {
           const SizedBox(height: 4),
           Text(
             speciesLabel,
-            style: TextStyles.mini,
+            style: textTheme.mini,
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),

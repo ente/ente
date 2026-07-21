@@ -111,9 +111,11 @@ Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
       opened: true,
     ),
   );
-  await showBottomSheetComponent(
+  await showModalBottomSheet(
     context: context,
-    builder: (_) => FileDetailsWidget(file),
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _DraggableDetailsSheet(file: file),
   );
   Bus.instance.fire(
     DetailsSheetEvent(
@@ -122,4 +124,67 @@ Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
       opened: false,
     ),
   );
+}
+
+class _DraggableDetailsSheet extends StatefulWidget {
+  final EnteFile file;
+  const _DraggableDetailsSheet({required this.file});
+
+  @override
+  State<_DraggableDetailsSheet> createState() => _DraggableDetailsSheetState();
+}
+
+class _DraggableDetailsSheetState extends State<_DraggableDetailsSheet> {
+  final _sheetController = DraggableScrollableController();
+  bool _isExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _sheetController.addListener(_onSheetSizeChanged);
+  }
+
+  @override
+  void dispose() {
+    _sheetController.removeListener(_onSheetSizeChanged);
+    _sheetController.dispose();
+    super.dispose();
+  }
+
+  void _onSheetSizeChanged() {
+    final isNowExpanded = _sheetController.size >= 0.75;
+    if (isNowExpanded != _isExpanded) {
+      setState(() {
+        _isExpanded = isNowExpanded;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 60;
+    final disableSnap = isKeyboardOpen || _isExpanded;
+    return DraggableScrollableSheet(
+      controller: _sheetController,
+      initialChildSize: disableSnap ? 0.95 : 0.75,
+      minChildSize: disableSnap ? 0.75 : 0.5,
+      maxChildSize: 0.95,
+      snap: !disableSnap,
+      snapSizes: disableSnap ? null : const [0.75],
+      expand: false,
+      builder: (context, scrollController) => Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: context.componentColors.backgroundBase,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(Radii.bottomSheet),
+          ),
+        ),
+        child: FileDetailsWidget(
+          widget.file,
+          scrollController: scrollController,
+        ),
+      ),
+    );
+  }
 }
