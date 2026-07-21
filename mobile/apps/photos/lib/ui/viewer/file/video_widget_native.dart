@@ -777,7 +777,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       await _setAspectAndDurationFromIosPlayerProbe();
       return;
     }
-    final videoProps = await getVideoProps(File(_filePath!));
+    final videoProps = await getVideoProps(_filePath!);
     if (videoProps != null) {
       duration = videoProps.propData?["duration"];
 

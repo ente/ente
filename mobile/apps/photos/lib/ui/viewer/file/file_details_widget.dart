@@ -125,7 +125,7 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
   Future<void> getMediaInfo() async {
     final File? originFile = await getFile(widget.file, isOrigin: true);
     if (originFile == null) return;
-    final properties = await getVideoProps(originFile);
+    final properties = await getVideoProps(originFile.path);
     if (!mounted) return;
     _videoMetadataNotifier.value = properties;
     if (kDebugMode) {

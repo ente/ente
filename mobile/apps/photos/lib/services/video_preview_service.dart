@@ -493,7 +493,7 @@ class VideoPreviewService {
       }
 
       // check metadata for bitrate, codec, color space
-      props ??= await getVideoProps(file);
+      props ??= await getVideoProps(file.path);
       final fileSize = enteFile.fileSize ?? file.lengthSync();
 
       if (props == null) {
@@ -664,7 +664,7 @@ class VideoPreviewService {
               FFProbeProps? playlistFrameProps;
               final file2 = File("$prefix/frame.ts");
 
-              playlistFrameProps = await getVideoProps(file2);
+              playlistFrameProps = await getVideoProps(file2.path);
               width = playlistFrameProps?.width;
               height = playlistFrameProps?.height;
             }
@@ -1240,7 +1240,7 @@ class VideoPreviewService {
       if (isFileUnder10MB) {
         file = await getFile(enteFile, isOrigin: true);
         if (file != null) {
-          props = await getVideoProps(file);
+          props = await getVideoProps(file.path);
           final videoData = List.from(
             props?.propData?["streams"] ?? [],
           ).firstWhereOrNull((e) => e["type"] == "video");

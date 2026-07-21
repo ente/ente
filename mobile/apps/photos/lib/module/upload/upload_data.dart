@@ -338,7 +338,7 @@ Future<MediaUploadData> _getMediaUploadDataFromAppCache(EnteFile file) async {
   }
 
   if (!file.hasLocation && file.isVideo && Platform.isAndroid) {
-    final FFProbeProps? props = await getVideoProps(sourceFile);
+    final FFProbeProps? props = await getVideoProps(sourceFile.path);
     if (props?.location != null) {
       file.location = props!.location;
     }
