@@ -81,7 +81,6 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   String? duration;
   double? aspectRatio;
   final _isPlaybackReady = ValueNotifier(false);
-  bool _shouldClearCache = false;
   bool _isCompletelyVisible = false;
   final _showControls = ValueNotifier(true);
   final _isSeeking = ValueNotifier(false);
@@ -206,15 +205,17 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
           }
         } else {
           // ignore: unawaited_futures
-          getFile(widget.file, isOrigin: true).then((file) {
-            if (file == null) {
+          widget.file.getAsset.then((asset) async {
+            if (asset == null || !(await asset.exists)) {
               _loadNetworkVideo(update);
               return;
             }
-            _setFilePathForNativePlayer(file.path, update);
-            if (Platform.isIOS) {
-              _shouldClearCache = true;
+            final mediaUrl = await asset.getMediaUrl();
+            if (mediaUrl == null) {
+              _loadNetworkVideo(update);
+              return;
             }
+            _setFilePathForNativePlayer(mediaUrl, update);
           });
         }
       });
@@ -241,20 +242,6 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     if (downloadTaskSubscription != null) {
       downloadTaskSubscription!.cancel();
       downloadManager.pause(widget.file.uploadedFileID!).ignore();
-    }
-
-    //https://github.com/fluttercandies/flutter_photo_manager/blob/8afba2745ebaac6af8af75de9cbded9157bc2690/README.md#clear-caches
-    if (_shouldClearCache) {
-      _logger.info("Clearing cache");
-      final file = File(_filePath!);
-
-      /// Checking if exists to avoid observed PathNotFoundException. Didn't find
-      /// root cause.
-      if (file.existsSync()) {
-        file.delete().then((value) {
-          _logger.info("Cache cleared");
-        });
-      }
     }
     _streamSwitchedSubscription?.cancel();
     _guestViewEventSubscription.cancel();
