@@ -3,6 +3,7 @@ import "dart:io";
 import "package:flutter/cupertino.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
+import "package:photos/generated/l10n.dart";
 import "package:photos/l10n/l10n.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/models/file/file.dart";
@@ -550,7 +551,9 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                                 if (context.mounted) {
                                                   showToast(
                                                     context,
-                                                    "Notifications denied",
+                                                    AppLocalizations.of(
+                                                      context,
+                                                    ).enableNotificationsHint,
                                                   );
                                                 }
                                                 return;
