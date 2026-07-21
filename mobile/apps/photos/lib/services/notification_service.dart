@@ -168,7 +168,7 @@ class NotificationService {
     if (!context.mounted) return false;
     await _openNotificationSettings();
     const interval = Duration(milliseconds: 500);
-    const maxAttempts = 1000;
+    const maxAttempts = 400;
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       await Future.delayed(interval);
       if (await hasGrantedPermissions()) return true;
