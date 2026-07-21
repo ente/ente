@@ -29,7 +29,7 @@ class _CraftMemoriesState extends State<CraftMemories> {
   void initState() {
     super.initState();
     _riveFileLoader = rive.FileLoader.fromAsset(
-      "assets/ente_rewind_banner.riv",
+      "assets/memories.riv",
       riveFactory: rive.Factory.flutter,
     );
   }
