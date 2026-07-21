@@ -8,6 +8,7 @@ import "package:hugeicons/hugeicons.dart";
 import "package:locker/l10n/l10n.dart";
 import "package:locker/services/local_settings.dart";
 import "package:locker/ui/utils/legacy_utils.dart";
+import "package:rive/rive.dart" as rive;
 
 const _titleStyle = TextStyle(
   fontFamily: TextStyles.outfitFontFamily,
@@ -41,9 +42,11 @@ class LegacySetupBanner extends StatefulWidget {
 }
 
 class _LegacySetupBannerState extends State<LegacySetupBanner> {
-  static const _illustrationWidth = 155.0;
+  static const _illustrationWidth = 202.0;
+  static const _illustrationHeight = 173.0;
   static const _contentRightReserve = 150.0;
 
+  late final rive.FileLoader _illustrationLoader;
   late final StreamSubscription<LegacyKitCreatedEvent>
   _legacyKitCreatedSubscription;
   bool _shouldShow = false;
@@ -51,6 +54,10 @@ class _LegacySetupBannerState extends State<LegacySetupBanner> {
   @override
   void initState() {
     super.initState();
+    _illustrationLoader = rive.FileLoader.fromAsset(
+      "assets/share_your_legacy.riv",
+      riveFactory: rive.Factory.flutter,
+    );
     _legacyKitCreatedSubscription = Bus.instance
         .on<LegacyKitCreatedEvent>()
         .listen((_) => unawaited(_evaluateVisibility()));
@@ -60,6 +67,7 @@ class _LegacySetupBannerState extends State<LegacySetupBanner> {
   @override
   void dispose() {
     _legacyKitCreatedSubscription.cancel();
+    _illustrationLoader.dispose();
     super.dispose();
   }
 
@@ -114,13 +122,24 @@ class _LegacySetupBannerState extends State<LegacySetupBanner> {
             child: Stack(
               children: [
                 Positioned(
-                  right: 24,
-                  bottom: -12,
+                  right: -14,
+                  bottom: -38,
                   child: IgnorePointer(
-                    child: Image.asset(
-                      "assets/legacy_banner.png",
+                    child: SizedBox(
                       width: _illustrationWidth,
-                      fit: BoxFit.contain,
+                      height: _illustrationHeight,
+                      child: rive.RiveWidgetBuilder(
+                        fileLoader: _illustrationLoader,
+                        builder: (context, state) {
+                          if (state is rive.RiveLoaded) {
+                            return rive.RiveWidget(
+                              controller: state.controller,
+                              fit: rive.Fit.contain,
+                            );
+                          }
+                          return const SizedBox.expand();
+                        },
+                      ),
                     ),
                   ),
                 ),
