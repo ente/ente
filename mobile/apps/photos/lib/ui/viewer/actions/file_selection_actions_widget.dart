@@ -1120,6 +1120,9 @@ class _FileSelectionActionsWidgetState
 
     if (actionResult?.action == ButtonAction.first) {
       widget.selectedFiles.clearAll();
+      if (mounted) {
+        await showMediaManagementHintSheet(context);
+      }
     }
   }
 
