@@ -44,7 +44,7 @@ fun SystemPromptSettingsScreen(
             .padding(EnsuSpacing.pageHorizontal.dp)
     ) {
         Text(
-            text = "This prompt is used as-is. Use $datePlaceholder anywhere to insert the current date and time.",
+            text = "This prompt is used as-is. Use $datePlaceholder anywhere to insert the current date.",
             style = EnsuTypography.small,
             color = EnsuColor.textMuted()
         )
@@ -59,7 +59,7 @@ fun SystemPromptSettingsScreen(
                 .height(220.dp),
             placeholder = {
                 Text(
-                    text = "Example: You are a concise assistant. Current date and time: $datePlaceholder",
+                    text = "Example: You are a concise assistant. Current date: $datePlaceholder",
                     style = EnsuTypography.body
                 )
             },

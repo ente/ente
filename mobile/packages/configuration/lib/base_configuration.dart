@@ -76,6 +76,7 @@ abstract class BaseConfiguration {
   }
 
   Future<void> logout({bool autoLogout = false}) async {
+    await _clearTempFolderOnLogout();
     await _preferences.clear();
     await resetSecureStorage();
     for (final db in _databases) {
@@ -85,6 +86,19 @@ abstract class BaseConfiguration {
     _cachedToken = null;
     _secretKey = null;
     Bus.instance.fire(SignedOutEvent());
+  }
+
+  Future<void> _clearTempFolderOnLogout() async {
+    final tempDirectory = io.Directory(_tempDocumentsDirPath);
+    try {
+      if (await tempDirectory.exists()) {
+        await tempDirectory.delete(recursive: true);
+      }
+      await tempDirectory.create(recursive: true);
+      _logger.info("Cleared temp folder on logout");
+    } catch (e, s) {
+      _logger.warning("Failed to clear temp folder on logout", e, s);
+    }
   }
 
   Future<void> resetSecureStorage() async {

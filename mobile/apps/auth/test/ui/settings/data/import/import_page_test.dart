@@ -21,6 +21,7 @@ void main() {
       expect(find.byType(MenuGroupComponent), findsOneWidget);
       expect(find.text('Plain text'), findsOneWidget);
       expect(find.text('Ente Encrypted export'), findsOneWidget);
+      expect(find.text('OTP Auth'), findsOneWidget);
       expect(
         find.byWidgetPredicate(
           (widget) =>

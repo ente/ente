@@ -120,13 +120,25 @@ export const useSpacePWAInstallPrompt = (): SpacePWAInstallPromptState => {
         };
         const standaloneChange = () => setInstalled(isStandalone());
         const standaloneQuery = window.matchMedia("(display-mode: standalone)");
+        const supportsEventListener =
+            typeof standaloneQuery.addEventListener == "function";
 
         window.addEventListener("appinstalled", appInstalled);
-        standaloneQuery.addEventListener("change", standaloneChange);
+        if (supportsEventListener) {
+            standaloneQuery.addEventListener("change", standaloneChange);
+        } else {
+            // eslint-disable-next-line @typescript-eslint/no-deprecated
+            standaloneQuery.addListener(standaloneChange);
+        }
 
         return () => {
             window.removeEventListener("appinstalled", appInstalled);
-            standaloneQuery.removeEventListener("change", standaloneChange);
+            if (supportsEventListener) {
+                standaloneQuery.removeEventListener("change", standaloneChange);
+            } else {
+                // eslint-disable-next-line @typescript-eslint/no-deprecated
+                standaloneQuery.removeListener(standaloneChange);
+            }
         };
     }, []);
 

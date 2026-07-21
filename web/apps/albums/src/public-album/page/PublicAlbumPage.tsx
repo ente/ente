@@ -52,6 +52,7 @@ import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton"
 import { NavbarBase } from "ente-base/components/Navbar";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
+import { isDevBuild } from "ente-base/env";
 import {
     isHTTP401Error,
     isHTTPErrorWithStatus,
@@ -623,7 +624,7 @@ export default function PublicAlbumPage() {
     const commentsEnabled =
         publicCollection?.publicURLs[0]?.enableComment ?? false;
     const joinEnabled =
-        !isCustomAPIOrigin &&
+        (isDevBuild || !isCustomAPIOrigin) &&
         (publicCollection?.publicURLs[0]?.enableJoin ?? false);
     const handleDrop = useCallback((files: FileWithPath[]) => {
         setShouldRenderUpload(true);
@@ -799,6 +800,8 @@ export default function PublicAlbumPage() {
                                 </EnteLogoLink>
                                 <Stack direction="row" spacing={2}>
                                     <SecondaryActionButton
+                                        onAddPhotos={onAddPhotos}
+                                        addPhotosDisabled={isUploadInProgress}
                                         enableJoin={joinEnabled}
                                         onJoinAlbum={handleJoinAlbum}
                                     />
@@ -1042,20 +1045,37 @@ const PrimaryActionButton: React.FC = () => {
 
     return (
         <GreenButton color="accent" onClick={handleGetEnte}>
-            {t("get_ente_photos")}
+            {t("join_ente")}
         </GreenButton>
     );
 };
 
 interface SecondaryActionButtonProps {
+    onAddPhotos?: () => void;
+    addPhotosDisabled?: boolean;
     enableJoin?: boolean;
     onJoinAlbum?: () => void;
 }
 
 const SecondaryActionButton: React.FC<SecondaryActionButtonProps> = ({
+    onAddPhotos,
+    addPhotosDisabled,
     enableJoin,
     onJoinAlbum,
 }) => {
+    if (onAddPhotos) {
+        return (
+            <FocusVisibleButton
+                color="secondary"
+                sx={navbarActionButtonSx}
+                onClick={onAddPhotos}
+                disabled={addPhotosDisabled}
+            >
+                {t("upload")}
+            </FocusVisibleButton>
+        );
+    }
+
     if (enableJoin) {
         return (
             <FocusVisibleButton

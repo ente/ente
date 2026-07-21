@@ -1,3 +1,5 @@
+import "package:ente_components/ente_components.dart";
+import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:photos/utils/avatar_util.dart";
 
@@ -69,5 +71,55 @@ void main() {
 
     expect(identity.role, AvatarIdentityRole.currentUser);
     expect(identity.key, "email:alice@example.com");
+  });
+
+  test("component colors preserve explicit black avatar roles", () {
+    final currentUser = AvatarIdentity.account(
+      label: "Alice",
+      email: "alice@example.com",
+      userID: 7,
+      currentUserEmail: "alice@example.com",
+    );
+    final publicUploader = AvatarIdentity.publicUploader(label: "Alice");
+
+    expect(
+      avatarComponentColorForAvatarIdentity(currentUser),
+      AvatarComponentColor.black,
+    );
+    expect(
+      avatarComponentColorForAvatarIdentity(publicUploader),
+      AvatarComponentColor.black,
+    );
+  });
+
+  testWidgets("standard avatar backgrounds use the component palette", (
+    tester,
+  ) async {
+    final identity = AvatarIdentity.account(
+      label: "Alice",
+      email: "alice@example.com",
+      userID: 7,
+      currentUserEmail: null,
+    );
+    late Color actual;
+    late Color expected;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ComponentTheme.lightTheme(),
+        home: Builder(
+          builder: (context) {
+            actual = avatarBackgroundColor(context, identity);
+            expected = avatarComponentColorValue(
+              context,
+              avatarComponentColorForIdentity(identity.key),
+            );
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    );
+
+    expect(actual, expected);
   });
 }

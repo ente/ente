@@ -878,7 +878,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "Abbonamento su PlayStore",
   "appstoreSubscription": "abbonamento AppStore",
-  "subAlreadyLinkedErrMessage": "Il tuo {id} è già collegato a un altro account Ente.\nSe desideri utilizzare il tuo {id} con questo account, per favore contatta il nostro supporto''",
   "visitWebToManage": "Visita {webUrl} per gestire il tuo abbonamento",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

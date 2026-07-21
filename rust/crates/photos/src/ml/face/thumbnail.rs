@@ -14,6 +14,7 @@ use crate::ml::{
 
 const REGULAR_PADDING: f64 = 0.4;
 const MINIMUM_PADDING: f64 = 0.1;
+const FACE_THUMBNAIL_MAX_DIMENSION: u32 = 4096;
 
 #[derive(Clone, Debug)]
 pub struct FaceBox {
@@ -57,7 +58,7 @@ pub fn generate_face_thumbnails(
             MlError::InvalidRequest(format!("invalid face box at index {index}: {e}",))
         })?;
         let (target_width, target_height) =
-            dimensions_with_min_side(crop.output_width, crop.output_height)?;
+            face_thumbnail_dimensions(crop.output_width, crop.output_height)?;
         let resized =
             resize_crop_with_fir(&source, &crop, target_width, target_height, &mut resizer)?;
         let compressed = encode_rgb(
@@ -188,44 +189,58 @@ fn select_resize_filter(crop: &CropRect, target_width: u32, target_height: u32) 
     }
 }
 
-fn dimensions_with_min_side(width: u32, height: u32) -> MlResult<(u32, u32)> {
+fn face_thumbnail_dimensions(width: u32, height: u32) -> MlResult<(u32, u32)> {
     if width == 0 || height == 0 {
         return Err(MlError::Postprocess(
             "cannot compute resize dimensions for zero-sized crop".to_string(),
         ));
     }
 
-    if width <= height {
-        Ok((
-            FACE_THUMBNAIL_MIN_DIMENSION,
-            scaled_long_side(height, width)?,
-        ))
+    let (short_side, long_side, width_is_short) = if width <= height {
+        (width, height, true)
     } else {
-        Ok((
-            scaled_long_side(width, height)?,
+        (height, width, false)
+    };
+
+    // Preserve the minimum short side when possible; otherwise cap the long side.
+    let (target_short_side, target_long_side) = if u128::from(long_side)
+        * u128::from(FACE_THUMBNAIL_MIN_DIMENSION)
+        <= u128::from(short_side) * u128::from(FACE_THUMBNAIL_MAX_DIMENSION)
+    {
+        (
             FACE_THUMBNAIL_MIN_DIMENSION,
-        ))
-    }
+            scaled_dimension(long_side, short_side, FACE_THUMBNAIL_MIN_DIMENSION)?,
+        )
+    } else {
+        (
+            scaled_dimension(short_side, long_side, FACE_THUMBNAIL_MAX_DIMENSION)?,
+            FACE_THUMBNAIL_MAX_DIMENSION,
+        )
+    };
+
+    Ok(if width_is_short {
+        (target_short_side, target_long_side)
+    } else {
+        (target_long_side, target_short_side)
+    })
 }
 
-fn scaled_long_side(long_side: u32, short_side: u32) -> MlResult<u32> {
-    if short_side == 0 {
+fn scaled_dimension(value: u32, original_dimension: u32, target_dimension: u32) -> MlResult<u32> {
+    if original_dimension == 0 {
         return Err(MlError::Postprocess(
-            "cannot scale with zero short side".to_string(),
+            "cannot scale from a zero-sized dimension".to_string(),
         ));
     }
 
-    let numerator = u128::from(long_side) * u128::from(FACE_THUMBNAIL_MIN_DIMENSION);
-    let denominator = u128::from(short_side);
+    let numerator = u128::from(value) * u128::from(target_dimension);
+    let denominator = u128::from(original_dimension);
     let rounded = (numerator + (denominator / 2)) / denominator;
 
-    if rounded == 0 || rounded > u128::from(u32::MAX) {
-        return Err(MlError::Postprocess(format!(
-            "invalid scaled dimension computed from long={long_side}, short={short_side}",
-        )));
-    }
-
-    Ok(rounded as u32)
+    u32::try_from(rounded.max(1)).map_err(|_| {
+        MlError::Postprocess(format!(
+            "scaled dimension exceeds u32 for value={value}, original={original_dimension}, target={target_dimension}",
+        ))
+    })
 }
 
 #[cfg(test)]
@@ -234,7 +249,7 @@ mod tests {
     use image::ImageFormat;
 
     use super::{
-        FaceBox, compute_crop_rect, dimensions_with_min_side, generate_face_thumbnails,
+        FaceBox, compute_crop_rect, face_thumbnail_dimensions, generate_face_thumbnails,
         select_resize_filter,
     };
     use crate::ml::types::{DecodedImage, Dimensions};
@@ -376,14 +391,42 @@ mod tests {
     }
 
     #[test]
-    fn dimensions_with_min_side_keeps_aspect_ratio_and_sets_short_side_to_512() {
-        let (w1, h1) = dimensions_with_min_side(100, 200).expect("resize should succeed");
+    fn face_thumbnail_dimensions_set_short_side_to_512_for_regular_aspect_ratios() {
+        let (w1, h1) = face_thumbnail_dimensions(100, 200).expect("resize should succeed");
         assert_eq!(w1, 512);
         assert_eq!(h1, 1024);
 
-        let (w2, h2) = dimensions_with_min_side(300, 120).expect("resize should succeed");
+        let (w2, h2) = face_thumbnail_dimensions(300, 120).expect("resize should succeed");
         assert_eq!(w2, 1280);
         assert_eq!(h2, 512);
+    }
+
+    #[test]
+    fn face_thumbnail_dimensions_cap_extreme_aspect_ratios() {
+        assert_eq!(face_thumbnail_dimensions(512, 4096).unwrap(), (512, 4096));
+        assert_eq!(face_thumbnail_dimensions(4096, 512).unwrap(), (4096, 512));
+        assert_eq!(face_thumbnail_dimensions(512, 4097).unwrap(), (512, 4096));
+        assert_eq!(face_thumbnail_dimensions(4097, 512).unwrap(), (4096, 512));
+        assert_eq!(face_thumbnail_dimensions(1, 10_000).unwrap(), (1, 4096));
+        assert_eq!(face_thumbnail_dimensions(10_000, 1).unwrap(), (4096, 1));
+    }
+
+    #[test]
+    fn generate_face_thumbnails_caps_extreme_aspect_ratio() {
+        let decoded = synthetic_decoded_image(1, 10_000);
+        let face_boxes = vec![FaceBox {
+            x: 0.0,
+            y: 0.0,
+            width: 1.0,
+            height: 1.0,
+        }];
+
+        let thumbnails =
+            generate_face_thumbnails(&decoded, &face_boxes).expect("thumbnail should generate");
+        let decoded_jpeg = image::load_from_memory_with_format(&thumbnails[0], ImageFormat::Jpeg)
+            .expect("thumbnail bytes should decode as JPEG");
+
+        assert_eq!((decoded_jpeg.width(), decoded_jpeg.height()), (1, 4096));
     }
 
     #[test]

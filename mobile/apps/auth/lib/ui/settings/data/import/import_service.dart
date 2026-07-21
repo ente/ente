@@ -4,6 +4,7 @@ import 'package:ente_auth/ui/settings/data/import/bitwarden_import.dart';
 import 'package:ente_auth/ui/settings/data/import/encrypted_ente_import.dart';
 import 'package:ente_auth/ui/settings/data/import/google_auth_import.dart';
 import 'package:ente_auth/ui/settings/data/import/lastpass_import.dart';
+import 'package:ente_auth/ui/settings/data/import/otp_auth_import.dart';
 import 'package:ente_auth/ui/settings/data/import/plain_text_import.dart';
 import 'package:ente_auth/ui/settings/data/import/proton_import.dart';
 import 'package:ente_auth/ui/settings/data/import/raivo_plain_text_import.dart';
@@ -48,6 +49,9 @@ class ImportService {
         return false;
       case ImportType.andOTP:
         await showAndOTPImportInstruction(context);
+        return false;
+      case ImportType.otpAuth:
+        await showOtpAuthImportInstruction(context);
         return false;
     }
   }

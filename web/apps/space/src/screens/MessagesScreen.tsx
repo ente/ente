@@ -388,6 +388,7 @@ const ConversationListItem: React.FC<{
         conversation: SpaceMessageConversation,
     ) => Promise<void>;
     onLoadActivityPost?: (post: SpaceMessageActivityPost) => void;
+    onOpenFriendProfile: (friend: SpaceMessageConversation["friend"]) => void;
     onOpenThread: (conversation: SpaceMessageConversation) => void;
 }> = ({
     activityPost,
@@ -395,6 +396,7 @@ const ConversationListItem: React.FC<{
     onConfirmFriendRequest,
     onDeleteFriendRequest,
     onLoadActivityPost,
+    onOpenFriendProfile,
     onOpenThread,
 }) => {
     const name =
@@ -438,36 +440,19 @@ const ConversationListItem: React.FC<{
     return (
         <Box component="li" sx={{ listStyle: "none" }}>
             <Box
-                component={isFriendRequest ? "div" : "button"}
-                type={isFriendRequest ? undefined : "button"}
-                onClick={
-                    isFriendRequest
-                        ? undefined
-                        : () => onOpenThread(conversation)
-                }
                 sx={{
                     alignItems: "center",
-                    appearance: "none",
-                    bgcolor: "transparent",
-                    border: 0,
                     borderRadius: "8px",
                     color: textBase,
-                    cursor: isFriendRequest ? "default" : "pointer",
                     display: "grid",
                     gap: "10px",
                     gridTemplateColumns: isFriendRequest
                         ? "44px minmax(0, 1fr) auto"
-                        : postThumbnailUrl
-                          ? "44px minmax(0, 1fr) 44px"
-                          : "44px minmax(0, 1fr)",
+                        : "44px minmax(0, 1fr)",
                     minHeight: 64,
                     p: "8px 0",
                     textAlign: "left",
                     width: "100%",
-                    "&:focus-visible": {
-                        outline: `2px solid ${green}`,
-                        outlineOffset: 2,
-                    },
                 }}
             >
                 <Box
@@ -478,10 +463,41 @@ const ConversationListItem: React.FC<{
                         width: 44,
                     }}
                 >
-                    <Avatar
-                        avatarUrl={conversation.friend.avatarUrl}
-                        size={44}
-                    />
+                    {isFriendRequest ? (
+                        <Avatar
+                            avatarUrl={conversation.friend.avatarUrl}
+                            size={44}
+                        />
+                    ) : (
+                        <Box
+                            component="button"
+                            type="button"
+                            aria-label={`Open ${name}'s profile`}
+                            onClick={() =>
+                                onOpenFriendProfile(conversation.friend)
+                            }
+                            sx={{
+                                appearance: "none",
+                                bgcolor: "transparent",
+                                border: 0,
+                                borderRadius: "50%",
+                                cursor: "pointer",
+                                display: "block",
+                                height: 44,
+                                p: 0,
+                                width: 44,
+                                "&:focus-visible": {
+                                    outline: `2px solid ${green}`,
+                                    outlineOffset: 2,
+                                },
+                            }}
+                        >
+                            <Avatar
+                                avatarUrl={conversation.friend.avatarUrl}
+                                size={44}
+                            />
+                        </Box>
+                    )}
                     {unreadCount > 0 && !isFriendRequest && (
                         <Box
                             aria-label={`${unreadCount} unread update${unreadCount == 1 ? "" : "s"}`}
@@ -503,6 +519,7 @@ const ConversationListItem: React.FC<{
                                 lineHeight: "16px",
                                 minWidth: 16,
                                 position: "absolute",
+                                pointerEvents: "none",
                                 px: "4px",
                                 right: -2,
                                 top: -2,
@@ -513,82 +530,120 @@ const ConversationListItem: React.FC<{
                         </Box>
                     )}
                 </Box>
-                <Box sx={{ minWidth: 0 }}>
-                    <Box
-                        sx={{
-                            alignItems: "center",
-                            display: "flex",
-                            gap: "4px",
-                            minWidth: 0,
-                        }}
-                    >
+                <Box
+                    component={isFriendRequest ? "div" : "button"}
+                    type={isFriendRequest ? undefined : "button"}
+                    aria-label={
+                        isFriendRequest
+                            ? undefined
+                            : `Open conversation with ${name}`
+                    }
+                    onClick={
+                        isFriendRequest
+                            ? undefined
+                            : () => onOpenThread(conversation)
+                    }
+                    sx={{
+                        alignItems: "center",
+                        appearance: "none",
+                        bgcolor: "transparent",
+                        border: 0,
+                        color: "inherit",
+                        cursor: isFriendRequest ? "default" : "pointer",
+                        display: "grid",
+                        gap: "10px",
+                        gridColumn: isFriendRequest ? undefined : "2 / -1",
+                        gridTemplateColumns: postThumbnailUrl
+                            ? "minmax(0, 1fr) 44px"
+                            : "minmax(0, 1fr)",
+                        minWidth: 0,
+                        p: 0,
+                        textAlign: "left",
+                        width: "100%",
+                        "&:focus-visible": {
+                            borderRadius: "8px",
+                            outline: `2px solid ${green}`,
+                            outlineOffset: 2,
+                        },
+                    }}
+                >
+                    <Box sx={{ minWidth: 0 }}>
                         <Box
                             sx={{
-                                flex: "0 1 auto",
-                                fontFamily:
-                                    '"Inter Variable", Inter, sans-serif',
-                                fontSize: 14,
-                                fontWeight: 700,
-                                lineHeight: "20px",
+                                alignItems: "center",
+                                display: "flex",
+                                gap: "4px",
                                 minWidth: 0,
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
                             }}
                         >
-                            {firstNameFrom(name)}
+                            <Box
+                                sx={{
+                                    flex: "0 1 auto",
+                                    fontFamily:
+                                        '"Inter Variable", Inter, sans-serif',
+                                    fontSize: 14,
+                                    fontWeight: 700,
+                                    lineHeight: "20px",
+                                    minWidth: 0,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                }}
+                            >
+                                {firstNameFrom(name)}
+                            </Box>
+                            <Box
+                                aria-hidden
+                                component="span"
+                                sx={{
+                                    color: textSecondary,
+                                    flexShrink: 0,
+                                    fontFamily:
+                                        '"Inter Variable", Inter, sans-serif',
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    lineHeight: "16px",
+                                }}
+                            >
+                                &middot;
+                            </Box>
+                            <Box
+                                component="time"
+                                dateTime={new Date(
+                                    conversation.latestActivity.createdAtMs,
+                                ).toISOString()}
+                                sx={{
+                                    color: textSecondary,
+                                    flexShrink: 0,
+                                    fontFamily:
+                                        '"Inter Variable", Inter, sans-serif',
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    lineHeight: "16px",
+                                    whiteSpace: "nowrap",
+                                }}
+                            >
+                                {timestampLabel}
+                            </Box>
                         </Box>
-                        <Box
-                            aria-hidden
-                            component="span"
-                            sx={{
-                                color: textSecondary,
-                                flexShrink: 0,
-                                fontFamily:
-                                    '"Inter Variable", Inter, sans-serif',
-                                fontSize: 12,
-                                fontWeight: 600,
-                                lineHeight: "16px",
-                            }}
-                        >
-                            &middot;
-                        </Box>
-                        <Box
-                            component="time"
-                            dateTime={new Date(
-                                conversation.latestActivity.createdAtMs,
-                            ).toISOString()}
-                            sx={{
-                                color: textSecondary,
-                                flexShrink: 0,
-                                fontFamily:
-                                    '"Inter Variable", Inter, sans-serif',
-                                fontSize: 12,
-                                fontWeight: 600,
-                                lineHeight: "16px",
-                                whiteSpace: "nowrap",
-                            }}
-                        >
-                            {timestampLabel}
-                        </Box>
+                        <ConversationPreviewLine conversation={conversation} />
                     </Box>
-                    <ConversationPreviewLine conversation={conversation} />
+                    {postThumbnailUrl && (
+                        <Box
+                            component="img"
+                            alt=""
+                            src={postThumbnailUrl}
+                            sx={{
+                                borderRadius: "6px",
+                                display: "block",
+                                height: 44,
+                                objectFit: "cover",
+                                objectPosition: "center",
+                                width: 44,
+                            }}
+                        />
+                    )}
                 </Box>
-                {postThumbnailUrl && (
-                    <Box
-                        component="img"
-                        alt=""
-                        src={postThumbnailUrl}
-                        sx={{
-                            borderRadius: "6px",
-                            display: "block",
-                            height: 44,
-                            objectFit: "cover",
-                            objectPosition: "center",
-                            width: 44,
-                        }}
-                    />
-                )}
                 {isFriendRequest && (
                     <Box sx={{ display: "flex", flexShrink: 0, gap: "6px" }}>
                         <Box
@@ -654,6 +709,7 @@ const ConversationSection: React.FC<{
         conversation: SpaceMessageConversation,
     ) => Promise<void>;
     onLoadActivityPost?: (post: SpaceMessageActivityPost) => void;
+    onOpenFriendProfile: (friend: SpaceMessageConversation["friend"]) => void;
     onOpenThread: (conversation: SpaceMessageConversation) => void;
     section: ConversationSection;
 }> = ({
@@ -661,6 +717,7 @@ const ConversationSection: React.FC<{
     onConfirmFriendRequest,
     onDeleteFriendRequest,
     onLoadActivityPost,
+    onOpenFriendProfile,
     onOpenThread,
     section,
 }) => {
@@ -700,6 +757,7 @@ const ConversationSection: React.FC<{
                         onConfirmFriendRequest={onConfirmFriendRequest}
                         onDeleteFriendRequest={onDeleteFriendRequest}
                         onLoadActivityPost={onLoadActivityPost}
+                        onOpenFriendProfile={onOpenFriendProfile}
                         onOpenThread={onOpenThread}
                     />
                 ))}
@@ -2576,6 +2634,9 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
                                             }
                                             onLoadActivityPost={
                                                 loadActivityPost
+                                            }
+                                            onOpenFriendProfile={
+                                                onOpenSelectedFriendProfile
                                             }
                                             onOpenThread={onOpenThread}
                                             section={section}

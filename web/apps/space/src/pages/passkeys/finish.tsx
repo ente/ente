@@ -1,5 +1,5 @@
 import { SpaceRouteFallback } from "components/SpaceRouteFallback";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { verifyEmailBackground } from "screens/VerifyEmailScreen";
 import { completeSpaceLoginPasskey } from "services/spaceLogin";
 import { clearPendingSpacePasskeyVerification } from "services/spacePasskeyVerification";
@@ -12,8 +12,12 @@ const Page: React.FC = () => {
     const router = useSpaceRouter();
     const { refreshProfile, setPendingPasskeyVerification } =
         useSpaceAppState();
+    const hasStartedRef = useRef(false);
 
     useEffect(() => {
+        if (hasStartedRef.current) return;
+        hasStartedRef.current = true;
+
         const searchParams = new URLSearchParams(window.location.search);
         const passkeySessionID = searchParams.get("passkeySessionID");
         const response = searchParams.get("response");

@@ -15,7 +15,10 @@ const MaxSpacesPerOwner = 1
 var ErrSpaceOwnerLimitReached = errors.New("space owner limit reached")
 
 func (r *SpacesRepository) CreateSpace(ctx context.Context, ownerID int64, spaceSlug string, rootWrappedSpaceKey, publicKey, encryptedSecretKey, encryptedProfile []byte, referredBySpaceID string) (*SpaceRecord, error) {
-	normalizedSpaceSlug := normalizeSlug(spaceSlug)
+	normalizedSpaceSlug, err := ValidateSpaceSlug(spaceSlug)
+	if err != nil {
+		return nil, err
+	}
 	spaceID := base.MustNewID("space")
 	referredBySpaceID = strings.TrimSpace(referredBySpaceID)
 	tx, err := r.DB.BeginTx(ctx, nil)
@@ -199,6 +202,10 @@ func (r *SpacesRepository) UpdateProfile(ctx context.Context, spaceID string, ke
 }
 
 func (r *SpacesRepository) UpdateSlug(ctx context.Context, spaceID, spaceSlug string) (*SpaceRecord, error) {
+	normalizedSpaceSlug, err := ValidateSpaceSlug(spaceSlug)
+	if err != nil {
+		return nil, err
+	}
 	rec, err := scanSpaceRecord(r.DB.QueryRowContext(ctx, `
 		WITH updated AS (
 			UPDATE spaces
@@ -210,7 +217,7 @@ func (r *SpacesRepository) UpdateSlug(ctx context.Context, spaceID, spaceSlug st
 		FROM spaces s
 		JOIN updated u ON u.space_id = s.space_id
 		`+spaceRecordProfileAssetJoins+`
-	`, normalizeSlug(spaceSlug), spaceID))
+	`, normalizedSpaceSlug, spaceID))
 	if err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "duplicate key value") {
 			return nil, wrapUnique(err, "space slug already exists")

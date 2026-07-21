@@ -116,7 +116,16 @@ String? _anonymousIDFromPlaceholderEmail(String? email) {
 }
 
 Color avatarBackgroundColor(BuildContext context, AvatarIdentity identity) {
+  return avatarComponentColorValue(
+    context,
+    avatarComponentColorForAvatarIdentity(identity),
+  );
+}
+
+AvatarComponentColor avatarComponentColorForAvatarIdentity(
+  AvatarIdentity identity,
+) {
   return identity.role == AvatarIdentityRole.standard
-      ? avatarColorForIdentity(context, identity.key)
-      : Colors.black;
+      ? avatarComponentColorForIdentity(identity.key)
+      : AvatarComponentColor.black;
 }

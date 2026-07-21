@@ -1,25 +1,34 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
+import 'package:ente_components/ente_components.dart';
+import 'package:ente_contacts/contacts.dart' as contacts;
 import 'package:ente_pure_utils/ente_pure_utils.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
+import 'package:photos/core/event_bus.dart';
+import 'package:photos/events/contacts_changed_event.dart';
+import 'package:photos/events/people_changed_event.dart';
 import 'package:photos/gateways/billing/models/billing_plan.dart';
 import 'package:photos/gateways/billing/models/subscription.dart';
 import 'package:photos/generated/l10n.dart';
 import 'package:photos/models/user_details.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/family_service.dart';
+import 'package:photos/services/machine_learning/face_ml/person/person_service.dart';
+import 'package:photos/services/photos_contacts_service.dart';
 import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/theme/text_style.dart';
-import 'package:photos/ui/components/base_bottom_sheet.dart';
 import 'package:photos/ui/components/buttons/button_widget_v2.dart';
 import 'package:photos/ui/family/edit_storage_limit_page.dart';
+import 'package:photos/ui/family/family_dashboard.dart';
 import 'package:photos/ui/family/family_ui.dart';
 import 'package:photos/ui/family/invite_members_page.dart';
+import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/payment/subscription.dart';
-import 'package:photos/utils/avatar_util.dart';
+import 'package:photos/ui/viewer/search/result/edit_contact_page.dart';
 import 'package:photos/utils/dialog_util.dart';
 
 class FamilyPlanPage extends StatefulWidget {
@@ -45,8 +54,13 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
   static const double _advertBalancedMinHeight = 560;
 
   late UserDetails _userDetails = widget.initialUserDetails;
+  final Map<int, contacts.ContactRecord?> _contactsByUserId = {};
+  final Map<int, Uint8List?> _profilePictureBytesByUserId = {};
   String? _startingPrice;
   bool _isRefreshing = false;
+  int _memberContactsLoadGeneration = 0;
+  StreamSubscription<ContactsChangedEvent>? _contactsChangedSubscription;
+  StreamSubscription<PeopleChangedEvent>? _peopleChangedSubscription;
 
   bool get _isFreeUser =>
       _userDetails.subscription.productID == freeProductID &&
@@ -81,9 +95,37 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
     if (widget.refreshOnOpen) {
       unawaited(_refreshUserDetails());
     }
+    unawaited(_loadMemberContacts());
+    _contactsChangedSubscription = Bus.instance
+        .on<ContactsChangedEvent>()
+        .listen(_onContactsChanged);
+    _peopleChangedSubscription = Bus.instance.on<PeopleChangedEvent>().listen((
+      _,
+    ) {
+      if (mounted && _showsDashboard) {
+        setState(() {});
+      }
+    });
     if (_isFreeUser && !_userDetails.isPartOfFamily()) {
       unawaited(_loadStartingPrice());
     }
+  }
+
+  @override
+  void dispose() {
+    _contactsChangedSubscription?.cancel();
+    _peopleChangedSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _onContactsChanged(ContactsChangedEvent event) {
+    if (!mounted || !_showsDashboard) {
+      return;
+    }
+    if (!_familyMemberUserIDs().any(event.matchesContactUserId)) {
+      return;
+    }
+    unawaited(_loadMemberContacts());
   }
 
   @override
@@ -98,6 +140,8 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
 
     return FamilyPageScaffold(
       title: _showsDashboard ? AppLocalizations.of(context).family : null,
+      actions: _showsDashboard ? [_buildDashboardOverflow(context)] : const [],
+      scrollable: _showsDashboard,
       child: content,
     );
   }
@@ -303,75 +347,67 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
   }
 
   Widget _buildDashboard(BuildContext context, {required bool isAdminView}) {
-    final l10n = AppLocalizations.of(context);
-    final members = _sortedMembersForDashboard(isAdminView: isAdminView);
-    final activeMembers = members.where((member) => member.isActive).toList();
-    final colorMap = _memberColorMap(members);
-
-    final currentEmail = _userDetails.email.trim().toLowerCase();
-    final currentMember = members.firstWhereOrNull(
-      (m) => m.email.trim().toLowerCase() == currentEmail,
+    final members = _userDetails.familyData?.members ?? const <FamilyMember>[];
+    return FamilyDashboard(
+      userDetails: _userDetails,
+      members: members,
+      isAdmin: isAdminView,
+      contactsByUserId: _contactsByUserId,
+      profilePictureBytesByUserId: _profilePictureBytesByUserId,
+      linkedPersonIdsByUserId: _linkedPersonIdsFor(members),
+      onMemberTap: _showMemberActions,
+      onAddMember: () => unawaited(_openInvitePage()),
+      remainingSlots: _remainingSlots,
     );
-    final storageLimit = !isAdminView ? currentMember?.storageLimit : null;
+  }
 
-    return ListView(
-      children: [
-        _FamilyStorageOverviewCard(
-          userDetails: _userDetails,
-          members: activeMembers,
-          colorMap: colorMap,
-          storageLimit: storageLimit,
+  Map<int, String> _linkedPersonIdsFor(List<FamilyMember> members) {
+    if (!PersonService.isInitialized) {
+      return const {};
+    }
+    final result = <int, String>{};
+    for (final member in members) {
+      final userID = member.userID;
+      if (userID == null) {
+        continue;
+      }
+      final personID = PersonService.instance.getCachedPartialPersonData(
+        userID: userID,
+        email: member.email,
+      )?[PersonService.kPersonIDKey];
+      if (personID != null) {
+        result[userID] = personID;
+      }
+    }
+    return result;
+  }
+
+  Widget _buildDashboardOverflow(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final action = _isFamilyAdmin
+        ? _FamilyDashboardOverflowAction.closePlan
+        : _FamilyDashboardOverflowAction.leavePlan;
+    final label = _isFamilyAdmin ? l10n.closeFamilyPlan : l10n.leaveFamilyPlan;
+
+    return EntePopupMenuButton<_FamilyDashboardOverflowAction>(
+      optionsBuilder: () async => [
+        EntePopupMenuOption(
+          value: action,
+          label: label,
+          labelColor: context.componentColors.warning,
+          showDivider: false,
         ),
-        const SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 8),
-          child: Text(
-            l10n.members,
-            style: getEnteTextTheme(context).smallMuted,
-          ),
-        ),
-        _FamilyMembersCard(
-          members: members,
-          userDetails: _userDetails,
-          memberColor: _memberColor,
-          isAdminView: isAdminView,
-          onMemberTap: _showMemberActions,
-        ),
-        const SizedBox(height: 24),
-        if (isAdminView) ...[
-          if (_remainingSlots > 0) ...[
-            ButtonWidgetV2(
-              buttonType: ButtonTypeV2.primary,
-              labelText: l10n.addMember,
-              leadingWidget: const Icon(
-                Icons.person_add_outlined,
-                color: Colors.white,
-                size: 20,
-              ),
-              onTap: () async {
-                unawaited(_openInvitePage());
-              },
-            ),
-            const SizedBox(height: 12),
-          ],
-          ButtonWidgetV2(
-            buttonType: ButtonTypeV2.tertiaryCritical,
-            labelText: l10n.closeFamilyPlan,
-            onTap: () async {
-              unawaited(_confirmCloseFamily());
-            },
-          ),
-        ] else ...[
-          ButtonWidgetV2(
-            buttonType: ButtonTypeV2.tertiaryCritical,
-            labelText: l10n.leaveFamilyPlan,
-            onTap: () async {
-              unawaited(_confirmLeaveFamily());
-            },
-          ),
-        ],
-        const SizedBox(height: 16),
       ],
+      onSelected: (selected) async {
+        switch (selected) {
+          case _FamilyDashboardOverflowAction.closePlan:
+            await _confirmCloseFamily();
+            break;
+          case _FamilyDashboardOverflowAction.leavePlan:
+            await _confirmLeaveFamily();
+            break;
+        }
+      },
     );
   }
 
@@ -401,6 +437,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
         return;
       }
       setState(() => _userDetails = details);
+      unawaited(_loadMemberContacts());
     } catch (error) {
       if (mounted && showError) {
         await showGenericErrorDialog(context: context, error: error);
@@ -425,7 +462,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
       return;
     }
     if (result?.invitesSent ?? false) {
-      showFamilySnackBar(
+      showToast(
         context,
         AppLocalizations.of(context).invitesSentCount(count: result!.sentCount),
       );
@@ -433,92 +470,227 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
   }
 
   Future<void> _showMemberActions(FamilyMember member) async {
-    final isCurrentUser = member.email.trim() == _userDetails.email.trim();
-    if (!_isFamilyAdmin || isCurrentUser) {
+    final isCurrentUser =
+        member.email.trim().toLowerCase() ==
+        _userDetails.email.trim().toLowerCase();
+    final savedContact = await _resolveMemberContact(member);
+    if (!mounted) {
+      return;
+    }
+    final actions = familyMemberActions(
+      isAdmin: _isFamilyAdmin,
+      isCurrentUser: isCurrentUser,
+      member: member,
+      hasSavedContact: savedContact != null,
+    );
+    if (actions.isEmpty) {
       return;
     }
 
+    final displayName = savedContact?.data?.name.trim();
     final l10n = AppLocalizations.of(context);
-    final colorScheme = getEnteColorScheme(context);
-    await showBaseBottomSheet<void>(
-      context,
-      title: member.email,
-      titleStyle: getEnteTextTheme(context).large,
-      headerSpacing: 16,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-      topCornerRadius: 24,
-      modalBackgroundColor: Colors.transparent,
-      closeButtonBackgroundColor: colorScheme.fillFaint,
-      closeButtonSize: 36,
-      closeIconSize: 20,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ActionGroup(
-            children: member.isPending
-                ? [
-                    _ActionTile(
-                      icon: Icons.send_outlined,
-                      title: l10n.resendInvite,
-                      onTap: () async {
-                        Navigator.of(context).pop();
-                        await _resendInvite(member);
-                      },
-                    ),
-                    _ActionTile(
-                      icon: Icons.link_off_outlined,
-                      title: l10n.revokeInvite,
-                      isDestructive: true,
-                      onTap: () async {
-                        Navigator.of(context).pop();
-                        await _confirmRevokeInvite(member);
-                      },
-                    ),
-                  ]
-                : [
-                    _ActionTile(
-                      icon: Icons.tune,
-                      title: l10n.editStorageLimit,
-                      subtitle: member.storageLimit == null
-                          ? l10n.noLimitSet
-                          : convertBytesToReadableFormat(member.storageLimit!),
-                      trailingChevron: true,
-                      onTap: () async {
-                        Navigator.of(context).pop();
-                        final updatedUserDetails =
-                            await routeToPage<UserDetails>(
-                              context,
-                              EditStorageLimitPage(
-                                member: member,
-                                totalStorageInBytes: _userDetails
-                                    .getTotalStorage(),
-                                avatarColor: _memberColor(member),
-                              ),
-                            );
-                        if (!mounted) {
-                          return;
-                        }
-                        if (updatedUserDetails != null) {
-                          setState(() => _userDetails = updatedUserDetails);
-                        } else {
-                          await _refreshUserDetails();
-                        }
-                      },
-                    ),
-                    _ActionTile(
-                      icon: Icons.person_remove_outlined,
-                      title: l10n.removeFromFamily,
-                      isDestructive: true,
-                      onTap: () async {
-                        Navigator.of(context).pop();
-                        await _confirmRemoveMember(member);
-                      },
-                    ),
-                  ],
-          ),
-        ],
+    await showBottomSheetComponent<void>(
+      context: context,
+      builder: (sheetContext) => BottomSheetComponent(
+        title: displayName == null || displayName.isEmpty
+            ? member.email
+            : displayName,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var index = 0; index < actions.length; index++) ...[
+              _buildMemberActionItem(
+                sheetContext,
+                member: member,
+                action: actions[index],
+                l10n: l10n,
+              ),
+              if (index < actions.length - 1)
+                const SizedBox(height: Spacing.sm),
+            ],
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildMemberActionItem(
+    BuildContext sheetContext, {
+    required FamilyMember member,
+    required FamilyMemberAction action,
+    required AppLocalizations l10n,
+  }) {
+    final actionLabel = switch (action) {
+      FamilyMemberAction.saveContact => l10n.saveContact,
+      FamilyMemberAction.editContact => l10n.editContact,
+      FamilyMemberAction.editStorageLimit => l10n.editStorageLimit,
+      FamilyMemberAction.removeMember => l10n.removeFromFamily,
+      FamilyMemberAction.resendInvite => l10n.resendInvite,
+      FamilyMemberAction.revokeInvite => l10n.revokeInvite,
+    };
+    final icon = switch (action) {
+      FamilyMemberAction.saveContact => HugeIcons.strokeRoundedUserAdd01,
+      FamilyMemberAction.editContact => HugeIcons.strokeRoundedEdit03,
+      FamilyMemberAction.editStorageLimit =>
+        HugeIcons.strokeRoundedFilterHorizontal,
+      FamilyMemberAction.removeMember => HugeIcons.strokeRoundedUserRemove01,
+      FamilyMemberAction.resendInvite => HugeIcons.strokeRoundedRefresh,
+      FamilyMemberAction.revokeInvite => HugeIcons.strokeRoundedUserRemove01,
+    };
+    final isDestructive =
+        action == FamilyMemberAction.removeMember ||
+        action == FamilyMemberAction.revokeInvite;
+    final subtitle = action == FamilyMemberAction.editStorageLimit
+        ? member.storageLimit == null
+              ? l10n.noLimitSet
+              : convertBytesToReadableFormat(member.storageLimit!)
+        : null;
+
+    return MenuComponent(
+      title: actionLabel,
+      subtitle: subtitle,
+      titleColor: isDestructive ? context.componentColors.warning : null,
+      iconColor: isDestructive ? context.componentColors.warning : null,
+      leading: HugeIcon(icon: icon, size: IconSizes.small, strokeWidth: 1.6),
+      trailing: const Icon(Icons.chevron_right_rounded, size: IconSizes.medium),
+      onTap: () async {
+        Navigator.of(sheetContext).pop();
+        switch (action) {
+          case FamilyMemberAction.saveContact:
+          case FamilyMemberAction.editContact:
+            await _openMemberContact(member);
+            break;
+          case FamilyMemberAction.editStorageLimit:
+            final updatedUserDetails = await routeToPage<UserDetails>(
+              context,
+              EditStorageLimitPage(
+                member: member,
+                totalStorageInBytes: _userDetails.getTotalStorage(),
+                avatarColor: avatarComponentColorValue(
+                  context,
+                  familyMemberAvatarComponentColor(
+                    member,
+                    currentUserEmail: _userDetails.email,
+                  ),
+                ),
+              ),
+            );
+            if (!mounted) {
+              return;
+            }
+            if (updatedUserDetails != null) {
+              setState(() => _userDetails = updatedUserDetails);
+              unawaited(_loadMemberContacts());
+            } else {
+              await _refreshUserDetails();
+            }
+            break;
+          case FamilyMemberAction.removeMember:
+            await _confirmRemoveMember(member);
+            break;
+          case FamilyMemberAction.resendInvite:
+            await _resendInvite(member);
+            break;
+          case FamilyMemberAction.revokeInvite:
+            await _confirmRevokeInvite(member);
+            break;
+        }
+      },
+    );
+  }
+
+  Future<contacts.ContactRecord?> _resolveMemberContact(
+    FamilyMember member,
+  ) async {
+    final userID = member.userID;
+    if (userID == null) {
+      return null;
+    }
+    if (_contactsByUserId.containsKey(userID)) {
+      return _contactsByUserId[userID];
+    }
+
+    final resolved = await _loadMemberContact(userID);
+    if (!mounted) {
+      return resolved.contact;
+    }
+    setState(() {
+      _contactsByUserId[userID] = resolved.contact;
+      _profilePictureBytesByUserId[userID] = resolved.profilePictureBytes;
+    });
+    return resolved.contact;
+  }
+
+  Future<void> _openMemberContact(FamilyMember member) async {
+    final userID = member.userID;
+    if (userID == null) {
+      return;
+    }
+    final existingContact = await _resolveMemberContact(member);
+    if (!mounted) {
+      return;
+    }
+
+    final updatedContact = await routeToPage<contacts.ContactRecord>(
+      context,
+      EditContactPage(
+        contactUserId: userID,
+        email: member.email,
+        existingContact: existingContact,
+      ),
+    );
+    if (updatedContact == null || !mounted) {
+      return;
+    }
+
+    final profilePicture = await PhotosContactsService.instance
+        .getProfilePictureBytesByUserId(userID);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _contactsByUserId[userID] = updatedContact;
+      _profilePictureBytesByUserId[userID] = profilePicture;
+    });
+  }
+
+  Future<void> _loadMemberContacts() async {
+    final generation = ++_memberContactsLoadGeneration;
+    final userIDs = _familyMemberUserIDs();
+    final resolvedContacts = await Future.wait(userIDs.map(_loadMemberContact));
+    if (!mounted || generation != _memberContactsLoadGeneration) {
+      return;
+    }
+    setState(() {
+      _contactsByUserId.removeWhere((userID, _) => !userIDs.contains(userID));
+      _profilePictureBytesByUserId.removeWhere(
+        (userID, _) => !userIDs.contains(userID),
+      );
+      for (final resolved in resolvedContacts) {
+        _contactsByUserId[resolved.userID] = resolved.contact;
+        _profilePictureBytesByUserId[resolved.userID] =
+            resolved.profilePictureBytes;
+      }
+    });
+  }
+
+  Set<int> _familyMemberUserIDs() =>
+      _userDetails.familyData?.members
+          ?.map((member) => member.userID)
+          .whereType<int>()
+          .toSet() ??
+      const <int>{};
+
+  Future<_ResolvedMemberContact> _loadMemberContact(int userID) async {
+    final contact = await PhotosContactsService.instance.getContact(
+      contactUserId: userID,
+    );
+    final profilePicture = contact == null
+        ? null
+        : await PhotosContactsService.instance.getProfilePictureBytesByUserId(
+            userID,
+          );
+    return _ResolvedMemberContact(userID, contact, profilePicture);
   }
 
   Future<void> _resendInvite(FamilyMember member) async {
@@ -526,7 +698,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
       await FamilyService.instance.resendInvite(member);
       await _refreshUserDetails();
       if (mounted) {
-        showFamilySnackBar(context, AppLocalizations.of(context).inviteResent);
+        showToast(context, AppLocalizations.of(context).inviteResent);
       }
     } catch (error) {
       if (mounted) {
@@ -626,44 +798,6 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
     }
   }
 
-  List<FamilyMember> _sortedMembersForDashboard({required bool isAdminView}) {
-    final members = List<FamilyMember>.from(
-      _userDetails.familyData?.members ?? const <FamilyMember>[],
-    );
-    final currentEmail = _userDetails.email.trim().toLowerCase();
-
-    if (!isAdminView) {
-      members.removeWhere((member) => !member.isActive);
-    }
-
-    members.sort((a, b) {
-      if (a.email.trim().toLowerCase() == currentEmail) return -1;
-      if (b.email.trim().toLowerCase() == currentEmail) return 1;
-      if (isAdminView && a.isPending != b.isPending) {
-        return a.isPending ? 1 : -1;
-      }
-      if (a.isAdmin != b.isAdmin) return a.isAdmin ? -1 : 1;
-      return a.email.compareTo(b.email);
-    });
-    return members;
-  }
-
-  Map<String, Color> _memberColorMap(List<FamilyMember> members) {
-    return {for (final member in members) member.email: _memberColor(member)};
-  }
-
-  Color _memberColor(FamilyMember member) {
-    return avatarBackgroundColor(
-      context,
-      AvatarIdentity.account(
-        label: member.email,
-        email: member.email,
-        userID: null,
-        currentUserEmail: _userDetails.email,
-      ),
-    );
-  }
-
   _MonthlyPrice? _monthlyPriceForPlan(BillingPlan plan) {
     if (plan.price.isEmpty) {
       return null;
@@ -748,546 +882,18 @@ class _BenefitItem extends StatelessWidget {
   }
 }
 
-class _FamilyStorageOverviewCard extends StatelessWidget {
-  const _FamilyStorageOverviewCard({
-    required this.userDetails,
-    required this.members,
-    required this.colorMap,
-    this.storageLimit,
-  });
+enum _FamilyDashboardOverflowAction { closePlan, leavePlan }
 
-  final UserDetails userDetails;
-  final List<FamilyMember> members;
-  final Map<String, Color> colorMap;
-  final int? storageLimit;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final l10n = AppLocalizations.of(context);
-    final totalUsed =
-        userDetails.familyData?.getTotalUsage() ?? userDetails.usage;
-    final totalStorage = userDetails.getTotalStorage();
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colorScheme.fill,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(l10n.storage, style: textTheme.bodyBold),
-              Text(
-                l10n.storageUsedOfTotal(
-                  used: convertBytesToReadableFormat(totalUsed),
-                  total: convertBytesToReadableFormat(totalStorage),
-                ),
-                style: textTheme.smallMuted,
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 14,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                var currentLeft = 0.0;
-                final segmentWidgets = <Widget>[];
-                for (final member in members) {
-                  final width = totalStorage == 0
-                      ? 0.0
-                      : constraints.maxWidth * (member.usage / totalStorage);
-                  if (width <= 0) {
-                    continue;
-                  }
-                  segmentWidgets.add(
-                    Positioned(
-                      left: currentLeft,
-                      child: Container(
-                        width: width,
-                        height: 14,
-                        color: colorMap[member.email] ?? colorScheme.primary500,
-                      ),
-                    ),
-                  );
-                  currentLeft += width;
-                }
-
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(7),
-                  child: Stack(
-                    children: [
-                      Container(color: colorScheme.fillMuted),
-                      ...segmentWidgets,
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-          if (storageLimit != null) ...[
-            const SizedBox(height: 10),
-            Text(
-              AppLocalizations.of(context).yourStorageIsLimitedTo(
-                limit: convertBytesToReadableFormat(storageLimit!),
-              ),
-              style: textTheme.miniMuted,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _FamilyMembersCard extends StatefulWidget {
-  const _FamilyMembersCard({
-    required this.members,
-    required this.userDetails,
-    required this.memberColor,
-    required this.isAdminView,
-    required this.onMemberTap,
-  });
-
-  final List<FamilyMember> members;
-  final UserDetails userDetails;
-  final Color Function(FamilyMember) memberColor;
-  final bool isAdminView;
-  final ValueChanged<FamilyMember> onMemberTap;
-
-  @override
-  State<_FamilyMembersCard> createState() => _FamilyMembersCardState();
-}
-
-class _FamilyMembersCardState extends State<_FamilyMembersCard> {
-  static const _animationDuration = Duration(milliseconds: 200);
-
-  final _listKey = GlobalKey<AnimatedListState>();
-  late List<FamilyMember> _displayedMembers = List<FamilyMember>.from(
-    widget.members,
+class _ResolvedMemberContact {
+  const _ResolvedMemberContact(
+    this.userID,
+    this.contact,
+    this.profilePictureBytes,
   );
 
-  @override
-  void didUpdateWidget(covariant _FamilyMembersCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _syncMembers();
-  }
-
-  void _syncMembers() {
-    final nextMembers = List<FamilyMember>.from(widget.members);
-    final nextMembersById = {
-      for (final member in nextMembers) member.id: member,
-    };
-    final currentMemberIds = {
-      for (final member in _displayedMembers) member.id,
-    };
-    final currentSharedOrder = _displayedMembers
-        .where((member) => nextMembersById.containsKey(member.id))
-        .map((member) => member.id)
-        .toList();
-    final nextSharedOrder = nextMembers
-        .where((member) => currentMemberIds.contains(member.id))
-        .map((member) => member.id)
-        .toList();
-
-    if (!listEquals(currentSharedOrder, nextSharedOrder) ||
-        _listKey.currentState == null) {
-      setState(() {
-        _displayedMembers = nextMembers;
-      });
-      return;
-    }
-
-    var needsRebuild = false;
-
-    for (var i = _displayedMembers.length - 1; i >= 0; i--) {
-      final member = _displayedMembers[i];
-      if (nextMembersById.containsKey(member.id)) {
-        continue;
-      }
-
-      final hadDivider = i != _displayedMembers.length - 1;
-      final removedMember = _displayedMembers.removeAt(i);
-      needsRebuild = true;
-      _listKey.currentState!.removeItem(
-        i,
-        (context, animation) => _buildAnimatedMemberItem(
-          removedMember,
-          animation,
-          showDivider: hadDivider,
-        ),
-        duration: _animationDuration,
-      );
-    }
-
-    for (var i = 0; i < nextMembers.length; i++) {
-      final nextMember = nextMembers[i];
-      if (i < _displayedMembers.length &&
-          _displayedMembers[i].id == nextMember.id) {
-        if (!_matchesMemberState(_displayedMembers[i], nextMember)) {
-          _displayedMembers[i] = nextMember;
-          needsRebuild = true;
-        }
-        continue;
-      }
-
-      final existingIndex = _displayedMembers.indexWhere(
-        (member) => member.id == nextMember.id,
-      );
-      if (existingIndex != -1) {
-        setState(() {
-          _displayedMembers = nextMembers;
-        });
-        return;
-      }
-
-      _displayedMembers.insert(i, nextMember);
-      needsRebuild = true;
-      _listKey.currentState!.insertItem(i, duration: _animationDuration);
-    }
-
-    if (needsRebuild) {
-      setState(() {});
-    }
-  }
-
-  bool _matchesMemberState(FamilyMember a, FamilyMember b) {
-    return a.id == b.id &&
-        a.email == b.email &&
-        a.usage == b.usage &&
-        a.isAdmin == b.isAdmin &&
-        a.status == b.status &&
-        a.storageLimit == b.storageLimit;
-  }
-
-  Widget _buildAnimatedMemberItem(
-    FamilyMember member,
-    Animation<double> animation, {
-    required bool showDivider,
-  }) {
-    final curvedAnimation = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
-    );
-
-    return FadeTransition(
-      opacity: curvedAnimation,
-      child: SizeTransition(
-        sizeFactor: curvedAnimation,
-        axisAlignment: -1,
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, -0.04),
-            end: Offset.zero,
-          ).animate(curvedAnimation),
-          child: _FamilyMemberListItem(
-            member: member,
-            currentEmail: widget.userDetails.email,
-            avatarColor: widget.memberColor(member),
-            isAdminView: widget.isAdminView,
-            onTap: () => widget.onMemberTap(member),
-            showDivider: showDivider,
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-
-    return AnimatedSize(
-      duration: _animationDuration,
-      curve: Curves.easeOutCubic,
-      alignment: Alignment.topCenter,
-      child: Container(
-        decoration: BoxDecoration(
-          color: colorScheme.fill,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: AnimatedList(
-          key: _listKey,
-          shrinkWrap: true,
-          primary: false,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: EdgeInsets.zero,
-          initialItemCount: _displayedMembers.length,
-          itemBuilder: (context, index, animation) {
-            final member = _displayedMembers[index];
-            return _buildAnimatedMemberItem(
-              member,
-              animation,
-              showDivider: index != _displayedMembers.length - 1,
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _FamilyMemberListItem extends StatelessWidget {
-  const _FamilyMemberListItem({
-    required this.member,
-    required this.currentEmail,
-    required this.isAdminView,
-    required this.onTap,
-    required this.showDivider,
-    required this.avatarColor,
-  });
-
-  final FamilyMember member;
-  final String currentEmail;
-  final bool isAdminView;
-  final VoidCallback onTap;
-  final bool showDivider;
-  final Color avatarColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _FamilyMemberRow(
-          member: member,
-          currentEmail: currentEmail,
-          avatarColor: avatarColor,
-          isAdminView: isAdminView,
-          onTap: onTap,
-        ),
-        if (showDivider)
-          Divider(
-            height: 1,
-            indent: 16,
-            endIndent: 16,
-            color: colorScheme.strokeSolid,
-          ),
-      ],
-    );
-  }
-}
-
-class _FamilyMemberRow extends StatelessWidget {
-  const _FamilyMemberRow({
-    required this.member,
-    required this.currentEmail,
-    required this.isAdminView,
-    required this.onTap,
-    required this.avatarColor,
-  });
-
-  final FamilyMember member;
-  final String currentEmail;
-  final bool isAdminView;
-  final VoidCallback onTap;
-  final Color avatarColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final l10n = AppLocalizations.of(context);
-    final isCurrentUser =
-        member.email.trim().toLowerCase() == currentEmail.trim().toLowerCase();
-    final canTap = isAdminView && !isCurrentUser;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: canTap ? onTap : null,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: avatarColor,
-              child: Text(
-                member.email.substring(0, 1).toUpperCase(),
-                style: textTheme.bodyBold.copyWith(color: Colors.white),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    member.email,
-                    style: member.isPending
-                        ? textTheme.body.copyWith(color: colorScheme.textMuted)
-                        : textTheme.body,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    member.isPending
-                        ? l10n.pending
-                        : l10n.memberStorageUsed(
-                            amount: convertBytesToReadableFormat(member.usage),
-                          ),
-                    style: textTheme.smallMuted,
-                  ),
-                ],
-              ),
-            ),
-            if (member.isAdmin) _BadgeChip(label: l10n.admin),
-            if (!isAdminView && isCurrentUser) ...[
-              if (member.isAdmin) const SizedBox(width: 8),
-              _BadgeChip(label: l10n.you, isMuted: true),
-            ],
-            if (member.isPending) ...[
-              if (member.isAdmin || (!isAdminView && isCurrentUser))
-                const SizedBox(width: 8),
-              _BadgeChip(label: l10n.pending, isMuted: true),
-            ],
-            if (canTap) ...[
-              const SizedBox(width: 8),
-              Icon(
-                Icons.chevron_right,
-                size: 20,
-                color: colorScheme.contentLighter,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BadgeChip extends StatelessWidget {
-  const _BadgeChip({required this.label, this.isMuted = false});
-
-  final String label;
-  final bool isMuted;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: isMuted ? colorScheme.fillMuted : colorScheme.greenBase,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        label,
-        style: textTheme.tinyBold.copyWith(
-          color: isMuted ? colorScheme.textMuted : Colors.white,
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionGroup extends StatelessWidget {
-  const _ActionGroup({required this.children});
-
-  final List<_ActionTile> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.fill,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        children: [
-          for (final entry in children.indexed) ...[
-            entry.$2,
-            if (entry.$1 != children.length - 1)
-              Divider(
-                height: 1,
-                indent: 16,
-                endIndent: 16,
-                color: colorScheme.fillMuted,
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-    this.subtitle,
-    this.isDestructive = false,
-    this.trailingChevron = false,
-  });
-
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final VoidCallback onTap;
-  final bool isDestructive;
-  final bool trailingChevron;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final foregroundColor = isDestructive
-        ? colorScheme.redBase
-        : colorScheme.content;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 56),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              Icon(icon, size: 20, color: foregroundColor),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: textTheme.body.copyWith(color: foregroundColor),
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(subtitle!, style: textTheme.smallMuted),
-                    ],
-                  ],
-                ),
-              ),
-              if (trailingChevron)
-                Icon(
-                  Icons.chevron_right,
-                  size: 16,
-                  color: colorScheme.contentLighter,
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  final int userID;
+  final contacts.ContactRecord? contact;
+  final Uint8List? profilePictureBytes;
 }
 
 class _MonthlyPrice {

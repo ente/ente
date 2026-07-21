@@ -172,7 +172,7 @@ class PersonData {
           )
         : <int>[];
     return PersonData(
-      name: json['name'] as String,
+      name: (json['name'] as String?) ?? '',
       assigned: assigned,
       rejectedFaceIDs: rejectedFaceIDs,
       manuallyAssigned: manuallyAssigned,

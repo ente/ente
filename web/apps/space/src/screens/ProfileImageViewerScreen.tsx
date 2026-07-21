@@ -1,9 +1,9 @@
-import { ArrowLeft02Icon } from "@hugeicons/core-free-icons";
+import { ArrowLeft02Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box, Skeleton } from "@mui/material";
 import { spaceAppAvatarCropSize } from "components/SpaceAvatarCropPage";
 import { SpaceAvatarImage } from "components/SpaceAvatarImage";
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import type { SetupProfile } from "screens/SetupProfileScreen";
 import { spaceTouchTargetSize } from "styles/touchTargets";
 import {
@@ -18,6 +18,100 @@ const textBase = "#000";
 const profileBackground = "#FFFFFF";
 const profileCoverBackground = "#1F1F1F";
 const profileAvatarSkeletonBackground = "#E6E6E6";
+export const friendProfileImageViewerBackground = "#000000";
+
+interface FriendProfileImageViewerScreenProps {
+    displayName: string;
+    imageUrl: string;
+    onClose: () => void;
+}
+
+export const FriendProfileImageViewerScreen: React.FC<
+    FriendProfileImageViewerScreenProps
+> = ({ displayName, imageUrl, onClose }) => {
+    useEffect(() => {
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key == "Escape") onClose();
+        };
+        window.addEventListener("keydown", closeOnEscape);
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            window.removeEventListener("keydown", closeOnEscape);
+        };
+    }, [onClose]);
+
+    return (
+        <Box
+            role="dialog"
+            aria-label={`${displayName} profile picture`}
+            aria-modal="true"
+            onClick={onClose}
+            sx={{
+                alignItems: "center",
+                bgcolor: friendProfileImageViewerBackground,
+                display: "flex",
+                inset: 0,
+                justifyContent: "center",
+                overflow: "hidden",
+                position: "fixed",
+                zIndex: 1300,
+            }}
+        >
+            <Box
+                component="img"
+                alt={`${displayName}'s profile picture`}
+                src={imageUrl}
+                onClick={(event) => event.stopPropagation()}
+                sx={{
+                    aspectRatio: "1 / 1",
+                    borderRadius: "50%",
+                    display: "block",
+                    objectFit: "cover",
+                    width: "min(calc(100vw - 48px), calc(100svh - 112px), 512px)",
+                }}
+            />
+            <Box
+                component="button"
+                type="button"
+                aria-label="Close profile picture"
+                autoFocus
+                onClick={(event) => {
+                    event.stopPropagation();
+                    onClose();
+                }}
+                sx={{
+                    alignItems: "center",
+                    bgcolor: "transparent",
+                    border: 0,
+                    color: "#D8D8D8",
+                    cursor: "pointer",
+                    display: "flex",
+                    height: spaceTouchTargetSize,
+                    justifyContent: "center",
+                    p: 0,
+                    position: "absolute",
+                    right: "max(4px, env(safe-area-inset-right))",
+                    top: "calc(2px + env(safe-area-inset-top))",
+                    width: spaceTouchTargetSize,
+                    "&:focus-visible": {
+                        outline: `2px solid ${green}`,
+                        outlineOffset: 2,
+                    },
+                }}
+            >
+                <HugeiconsIcon
+                    icon={Cancel01Icon}
+                    size={18}
+                    strokeWidth={1.8}
+                />
+            </Box>
+        </Box>
+    );
+};
 
 interface ProfileImageViewerScreenProps {
     onBack: () => void;

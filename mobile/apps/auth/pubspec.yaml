@@ -91,7 +91,7 @@ dependencies:
   gradient_borders: 1.0.1
   http: 1.6.0
   hugeicons: 1.1.7
-  image: 4.5.4
+  image: 4.7.0
   intl: 0.20.2
   io: 1.0.5
   json_annotation: 4.9.0

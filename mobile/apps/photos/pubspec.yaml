@@ -146,7 +146,7 @@ dependencies:
   html_unescape: 2.0.0
   http: 1.6.0
   hugeicons: 1.1.7
-  image: 4.5.4
+  image: 4.7.0
   in_app_purchase: 3.2.1
   intl: 0.20.2
   just_audio: 0.10.5
@@ -172,7 +172,7 @@ dependencies:
   mobile_ocr:
     git:
       url: https://github.com/ente/mobile_ocr
-      ref: 69780e0dab62db9def55ab07bcf52442ec0b9f94
+      ref: 37aee4c4ff77c59a4ab46e272e31a53a035f628e
   modal_bottom_sheet: 3.0.0
   motionphoto:
     git:

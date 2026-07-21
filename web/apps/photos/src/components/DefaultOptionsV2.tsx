@@ -78,7 +78,11 @@ export function DefaultOptionsV2({
     return (
         <Stack
             data-default-options-v2
-            sx={{ gap: intent == "upload" ? "20px" : "36px", p: "20px" }}
+            sx={{
+                gap: intent == "upload" ? "20px" : "36px",
+                p: "20px",
+                pb: intent == "upload" ? "28px" : "20px",
+            }}
         >
             <SpacedRow>
                 <Typography
@@ -233,7 +237,6 @@ function UploadOptions({
                     onClick={onSelectGooglePhotos}
                 />
             </ImportSection>
-            {importHelp}
         </Stack>
     );
 }

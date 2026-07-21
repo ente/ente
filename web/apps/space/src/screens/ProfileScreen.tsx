@@ -621,7 +621,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     );
     const canOpenFriends = isOwnerProfile && Boolean(onOpenFriends);
     const canOpenProfileCover = isOwnerProfile && Boolean(onOpenProfileCover);
-    const canOpenProfilePhoto = isOwnerProfile && Boolean(onOpenProfilePhoto);
+    const canOpenProfilePhoto = Boolean(onOpenProfilePhoto);
     const hasProfilePosts = postsSharedCount > 0;
     const shouldShowPostLoadingIndicator =
         isPostsLoading && (showPostLoadingIndicator ?? true);

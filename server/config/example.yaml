@@ -49,28 +49,19 @@ s3:
       region: eu-central-2
       bucket: scw-eu-fr-v3
 
-# Specify the base endpoints for various web apps
+# Specify the base endpoints for various web apps you're running.
 apps:
-    # If you're running a self hosted instance and wish to serve public links,
-    # set this to the URL where your albums web app is running.
+    photos: http://localhost:3000
     public-albums: http://localhost:3002
-    # If you're running a self hosted instance and wish to serve public links
-    # for locker, set this to the URL where your share web app is running.
-    public-locker: http://localhost:3005
-    # If you're running a self hosted instance and wish to serve Ente Paste,
-    # set this to the URL where your paste web app is running.
-    public-paste: http://localhost:3008
-    # If you're running a self hosted instance and wish to serve public memory
-    # shares, set this to the URL where your memories web app is running.
-    public-memories: http://localhost:3010
-    cast: http://localhost:3004
     embed-albums: http://localhost:3006
-    # Set this to the URL where your accounts web app is running, primarily used for
-    # passkey based 2FA.
+    auth: http://localhost:3003
+    locker: http://localhost:3009
+    public-locker: http://localhost:3005
+    public-paste: http://localhost:3008
+    cast: http://localhost:3004
     accounts: http://localhost:3001
-    # Set this to the URL where your space web app is running.
     space: http://localhost:3013
-    # Set this to the URL where your legacy recovery web app is running.
+    public-memories: http://localhost:3010
     legacy: http://localhost:3011
 
 space:

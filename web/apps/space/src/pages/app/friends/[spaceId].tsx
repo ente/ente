@@ -1,7 +1,12 @@
 import { SpacePageMeta } from "components/SpacePageMeta";
 import { SpaceRouteFallback } from "components/SpaceRouteFallback";
+import { useBrowserBackClose } from "hooks/useBrowserBackClose";
 import React, { useEffect, useMemo, useState } from "react";
 import { friendsBackground } from "screens/FriendsScreen";
+import {
+    FriendProfileImageViewerScreen,
+    friendProfileImageViewerBackground,
+} from "screens/ProfileImageViewerScreen";
 import { ProfileScreen } from "screens/ProfileScreen";
 import {
     loadCurrentSpaceFriends,
@@ -47,6 +52,7 @@ const Page: React.FC = () => {
     const [friendsLoadAttempted, setFriendsLoadAttempted] = useState(false);
     const [isProfileLoading, setIsProfileLoading] = useState(false);
     const [isPostsLoading, setIsPostsLoading] = useState(false);
+    const [isProfilePhotoOpen, setIsProfilePhotoOpen] = useState(false);
     const [loadedProfileSpaceId, setLoadedProfileSpaceId] = useState<string>();
     const [loadedPostsSpaceId, setLoadedPostsSpaceId] = useState<string>();
     const [selectedProfile, setSelectedProfile] = useState(selectedFriend);
@@ -73,6 +79,20 @@ const Page: React.FC = () => {
         selectedProfile?.spaceId == selectedFriendSpaceId
             ? selectedProfile
             : undefined;
+    const friendAvatarUrl =
+        currentSelectedProfile?.avatarUrl ?? selectedFriend?.avatarUrl ?? null;
+    const friendDisplayName =
+        currentSelectedProfile?.fullName.trim() ||
+        selectedFriend?.fullName.trim() ||
+        currentSelectedProfile?.username.trim() ||
+        selectedFriend?.username.trim() ||
+        "Friend";
+
+    useBrowserBackClose({
+        open: isProfilePhotoOpen,
+        onClose: () => setIsProfilePhotoOpen(false),
+        stateKey: "space-friend-profile-photo",
+    });
 
     useEffect(() => {
         if (!router.isReady) return;
@@ -236,6 +256,11 @@ const Page: React.FC = () => {
                 }}
                 onBack={goBack}
                 onLoadPostImage={loadCurrentSpacePostAssetURL}
+                onOpenProfilePhoto={
+                    friendAvatarUrl
+                        ? () => setIsProfilePhotoOpen(true)
+                        : undefined
+                }
                 onReplyToPost={(postSpaceId, postId, text) =>
                     replyToCurrentPost(actorSpaceId, postSpaceId, postId, text)
                 }
@@ -244,6 +269,18 @@ const Page: React.FC = () => {
                 }
                 showPostLoadingIndicator={false}
             />
+            {isProfilePhotoOpen && friendAvatarUrl && (
+                <>
+                    <SpacePageMeta
+                        themeColor={friendProfileImageViewerBackground}
+                    />
+                    <FriendProfileImageViewerScreen
+                        displayName={friendDisplayName}
+                        imageUrl={friendAvatarUrl}
+                        onClose={() => setIsProfilePhotoOpen(false)}
+                    />
+                </>
+            )}
         </>
     );
 };

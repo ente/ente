@@ -40,10 +40,12 @@ func TestEventsUse120PerHourGlobalRateLimit(t *testing.T) {
 
 func TestSpaceRoutesUseRouteSpecificRateLimits(t *testing.T) {
 	limit10ReqPerMin := util.NewRateLimiter("10-M")
+	limit60ReqPerMin := util.NewRateLimiter("60-M")
 	limit200ReqPerMin := util.NewRateLimiter("200-M")
 	limit500ReqPerMin := util.NewRateLimiter("500-M")
 	rateLimiter := &RateLimitMiddleware{
 		limit10ReqPerMin:  limit10ReqPerMin,
+		limit60ReqPerMin:  limit60ReqPerMin,
 		limit200ReqPerMin: limit200ReqPerMin,
 		limit500ReqPerMin: limit500ReqPerMin,
 	}
@@ -53,7 +55,8 @@ func TestSpaceRoutesUseRouteSpecificRateLimits(t *testing.T) {
 	require.Same(t, limit10ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/uploads/presign", http.MethodPost))
 	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/profile", http.MethodGet))
 	require.Same(t, limit500ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/assets/redirect", http.MethodGet))
-	require.Same(t, limit10ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/conversations", http.MethodGet))
+	require.Same(t, limit60ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/conversations", http.MethodGet))
+	require.Same(t, limit60ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/feed", http.MethodGet))
 	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/posts", http.MethodGet))
 	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/posts/:postID", http.MethodGet))
 	require.Same(t, limit200ReqPerMin, rateLimiter.getLimiter("/spaces/:spaceID/versions", http.MethodGet))
@@ -64,7 +67,6 @@ func TestSpaceRoutesUseRouteSpecificRateLimits(t *testing.T) {
 	require.Same(t, limit10ReqPerMin, rateLimiter.getLimiter("/account/space/sessions/bootstrap", http.MethodPost))
 	require.Same(t, limit10ReqPerMin, rateLimiter.getLimiter("/account/space/sessions/current", http.MethodDelete))
 	require.Nil(t, rateLimiter.getLimiter("/account/space", http.MethodGet))
-	require.Nil(t, rateLimiter.getLimiter("/spaces/:spaceID/feed", http.MethodGet))
 }
 
 func TestEventsShareGlobalRateLimitAcrossPublicAndAuthenticatedRoutes(t *testing.T) {

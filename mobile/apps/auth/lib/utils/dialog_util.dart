@@ -28,12 +28,15 @@ Future<ButtonResult?> showErrorDialog(
   String? body, {
   bool isDismissable = true,
   bool showContactSupport = true,
+  String dismissButtonLabel = "OK",
+  bool useRootNavigator = false,
 }) async {
   return showDialogWidget(
     context: context,
     title: title,
     body: body,
     isDismissible: isDismissable,
+    useRootNavigator: useRootNavigator,
     buttons: [
       if (showContactSupport)
         ButtonWidget(
@@ -45,9 +48,9 @@ Future<ButtonResult?> showErrorDialog(
             await sendEmail(context, to: "support@ente.com", body: body);
           },
         ),
-      const ButtonWidget(
+      ButtonWidget(
         buttonType: ButtonType.secondary,
-        labelText: "OK",
+        labelText: dismissButtonLabel,
         isInAlert: true,
         buttonAction: ButtonAction.second,
       ),

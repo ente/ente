@@ -1033,7 +1033,6 @@
   "appleId": "ID Apple",
   "playstoreSubscription": "Gói PlayStore",
   "appstoreSubscription": "Gói AppStore",
-  "subAlreadyLinkedErrMessage": "ID {id} của bạn đã được liên kết với một tài khoản Ente khác.\nNếu bạn muốn sử dụng ID {id} này với tài khoản này, vui lòng liên hệ bộ phận hỗ trợ của chúng tôi.",
   "visitWebToManage": "Vui lòng truy cập {webUrl} để quản lý gói đăng ký",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

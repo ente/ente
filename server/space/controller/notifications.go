@@ -117,8 +117,8 @@ func (n *SpaceEmailSender) send(actorUserID int64, actorSlug, action, event stri
 		}
 		if err := sendSpaceNotificationEmail(
 			[]string{user.Email},
-			"Ente",
-			"team@ente.com",
+			"Ente Space",
+			"space@ente.com",
 			subject,
 			spaceNotificationTemplate,
 			templateData,

@@ -925,6 +925,10 @@ export interface PendingUploads {
      * or they are hidden dot files.
      */
     preUploadSkippedFiles?: PreUploadSkippedFile[];
+    /** Whether Takeout-favorited uploads should be added to Favorites. */
+    importTakeoutFavorites?: boolean;
+    /** Whether media originating from Google Photos partner sharing is uploaded. */
+    includePartnerSharedFiles?: boolean;
 }
 
 /**

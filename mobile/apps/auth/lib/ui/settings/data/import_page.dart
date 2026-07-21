@@ -16,6 +16,7 @@ enum ImportType {
   lastpass,
   proton,
   andOTP,
+  otpAuth,
 }
 
 class ImportCodePage extends StatelessWidget {
@@ -32,6 +33,7 @@ class ImportCodePage extends StatelessWidget {
     ImportType.proton,
     ImportType.ravio,
     ImportType.lastpass,
+    ImportType.otpAuth,
   ];
 
   String getTitle(BuildContext context, ImportType type) {
@@ -56,6 +58,8 @@ class ImportCodePage extends StatelessWidget {
         return 'Proton Authenticator';
       case ImportType.andOTP:
         return 'andOTP';
+      case ImportType.otpAuth:
+        return 'OTP Auth';
     }
   }
 

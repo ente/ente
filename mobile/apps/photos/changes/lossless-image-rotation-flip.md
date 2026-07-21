@@ -1,0 +1,1 @@
+- (i) Preserve image quality when saving rotation or flip-only image edits.

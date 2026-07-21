@@ -35,17 +35,11 @@ class AddedByWidget extends StatelessWidget {
       identity = getUserAvatarIdentity(fileOwner);
     }
     final colors = context.componentColors;
-    final avatar = identity.role == AvatarIdentityRole.standard
-        ? AvatarComponent.seeded(
-            initials: identity.initial,
-            seed: avatarSeedForIdentity(identity.key),
-            size: AvatarComponentSize.defaultSize,
-          )
-        : AvatarComponent(
-            initials: identity.initial,
-            color: AvatarComponentColor.black,
-            size: AvatarComponentSize.defaultSize,
-          );
+    final avatar = AvatarComponent(
+      initials: identity.initial,
+      color: avatarComponentColorForAvatarIdentity(identity),
+      size: AvatarComponentSize.defaultSize,
+    );
     return Padding(
       padding: const EdgeInsets.only(bottom: Spacing.lg),
       child: Row(

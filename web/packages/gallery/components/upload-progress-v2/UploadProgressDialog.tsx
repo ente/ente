@@ -1,5 +1,5 @@
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
+import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import {
     Box,
     Dialog,
@@ -60,32 +60,29 @@ function UploadProgressV2Header() {
 
     return (
         <Stack direction="row" sx={[headerSx, isDone && quietHeaderSx]}>
-            <Stack
-                direction="row"
-                sx={{ alignItems: "center", gap: 1, minWidth: 0 }}
+            <Typography
+                id="upload-progress-v2-title"
+                component="h2"
+                sx={uploadTitleSx}
             >
+                {title}
+            </Typography>
+            <Stack direction="row" sx={headerActionsSx}>
                 <IconButton
                     aria-label="Minimize"
                     onClick={handleMinimize}
-                    sx={headerIconButtonSx}
+                    sx={headerActionButtonSx}
                 >
-                    <ArrowBackIcon sx={{ fontSize: 21 }} />
+                    <UnfoldLessIcon sx={{ fontSize: 22 }} />
                 </IconButton>
-                <Typography
-                    id="upload-progress-v2-title"
-                    component="h2"
-                    sx={uploadTitleSx}
+                <IconButton
+                    aria-label={t("close")}
+                    onClick={onClose}
+                    sx={headerActionButtonSx}
                 >
-                    {title}
-                </Typography>
+                    <CloseIcon sx={{ fontSize: 18 }} />
+                </IconButton>
             </Stack>
-            <IconButton
-                aria-label={t("close")}
-                onClick={onClose}
-                sx={closeIconButtonSx}
-            >
-                <CloseIcon sx={{ fontSize: 18 }} />
-            </IconButton>
         </Stack>
     );
 }
@@ -189,9 +186,12 @@ const headerSx = (theme: Theme) => ({
     }),
 });
 const quietHeaderSx = { pb: 0, borderBottom: "none" };
-const headerIconButtonSx = { width: 38, height: 38, p: 0, color: "text.base" };
-const closeIconButtonSx = (theme: Theme) => ({
-    ...headerIconButtonSx,
+const headerActionsSx = { alignItems: "center", gap: 1, flexShrink: 0 };
+const headerActionButtonSx = (theme: Theme) => ({
+    width: 38,
+    height: 38,
+    p: 0,
+    color: "text.base",
     backgroundColor: "background.paper",
     "&:hover": { backgroundColor: "fill.faintHover" },
     ...theme.applyStyles("dark", {

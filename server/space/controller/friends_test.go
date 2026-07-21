@@ -23,7 +23,7 @@ func TestFriendRelationshipReportsSelfFriendAndEmpty(t *testing.T) {
 	charlieID := insertSpaceControllerUser(t, repos, "charlie@example.com", "charlie-public")
 	aliceSpace, err := testCreateSpace(ctx, repos, aliceID, "alice", "alice-space-key", "alice-public", "alice-secret", "alice-secret-nonce", "alice-profile")
 	require.NoError(t, err)
-	bobSpace, err := testCreateSpace(ctx, repos, bobID, "bob", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
+	bobSpace, err := testCreateSpace(ctx, repos, bobID, "bobb", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
 	require.NoError(t, err)
 	charlieSpace, err := testCreateSpace(ctx, repos, charlieID, "charlie", "charlie-space-key", "charlie-public", "charlie-secret", "charlie-secret-nonce", "charlie-profile")
 	require.NoError(t, err)

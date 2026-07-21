@@ -746,7 +746,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "PlayStoreサブスクリプション",
   "appstoreSubscription": "AppStore サブスクリプション",
-  "subAlreadyLinkedErrMessage": "あなたの {id} はすでに別のEnteアカウントにリンクされています。\nこのアカウントであなたの {id} を使用したい場合は、サポートにお問い合わせください。",
   "visitWebToManage": "サブスクリプションを管理するには{webUrl}をご覧ください",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

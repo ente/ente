@@ -119,7 +119,9 @@ func TestSpaceEmailSenderLimitsEachSenderToFiftyEmailsPerHour(t *testing.T) {
 		sendSpaceNotificationEmail = originalSend
 	})
 	sent := 0
-	sendSpaceNotificationEmail = func(_ []string, _ string, _ string, _ string, _ string, _ map[string]interface{}, _ []map[string]interface{}) error {
+	sendSpaceNotificationEmail = func(_ []string, fromName string, fromEmail string, _ string, _ string, _ map[string]interface{}, _ []map[string]interface{}) error {
+		require.Equal(t, "Ente Space", fromName)
+		require.Equal(t, "space@ente.com", fromEmail)
 		sent++
 		return nil
 	}

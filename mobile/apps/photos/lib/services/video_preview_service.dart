@@ -968,7 +968,7 @@ class VideoPreviewService {
         return false;
       }
     }
-    if (previewInfo == null && file.isOwner) {
+    if (!file.isOwner || previewInfo == null) {
       return false;
     }
     final playlist = await _getPlaylist(

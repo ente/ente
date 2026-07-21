@@ -9,7 +9,7 @@ The environment variables needed for running Ente and the default configuration 
 
 ## Environment Variables
 
-A self-hosted Ente web app only needs the Museum API endpoint. Web app origins are configured in `museum.yaml` under `apps`.
+Point each self-hosted web app at your Museum API endpoint, and add the app's public URL to the `apps` section of `museum.yaml`.
 
 This document outlines the essential environment variables and port mappings of the web apps.
 

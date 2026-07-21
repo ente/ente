@@ -79,15 +79,17 @@ class UserService {
   }
 
   Future<void> sendOtt(
-    BuildContext context,
+    BuildContext? context,
     String email, {
     bool isChangeEmail = false,
     bool isCreateAccountScreen = false,
     bool isResetPasswordScreen = false,
     String? purpose,
   }) async {
-    final dialog = createProgressDialog(context, context.strings.pleaseWait);
-    await dialog.show();
+    final dialog = context != null && context.mounted
+        ? createProgressDialog(context, context.strings.pleaseWait)
+        : null;
+    await dialog?.show();
     try {
       final response = await _dio.post(
         "${_config.getHttpEndpoint()}/users/ott",
@@ -97,7 +99,10 @@ class UserService {
           "mobile": Platform.isIOS || Platform.isAndroid,
         },
       );
-      await dialog.hide();
+      await dialog?.hide();
+      if (context == null || !context.mounted) {
+        return;
+      }
       if (response.statusCode == 200) {
         unawaited(
           Navigator.of(context).push(
@@ -117,8 +122,11 @@ class UserService {
       }
       unawaited(showGenericErrorDialog(context: context, error: null));
     } on DioException catch (e) {
-      await dialog.hide();
+      await dialog?.hide();
       _logger.info(e);
+      if (context == null || !context.mounted) {
+        return;
+      }
       final responseData = e.response?.data;
       final Object? enteErrCode = responseData is Map
           ? responseData["code"]
@@ -163,9 +171,11 @@ class UserService {
         unawaited(showGenericErrorDialog(context: context, error: e));
       }
     } catch (e) {
-      await dialog.hide();
+      await dialog?.hide();
       _logger.severe(e);
-      unawaited(showGenericErrorDialog(context: context, error: e));
+      if (context != null && context.mounted) {
+        unawaited(showGenericErrorDialog(context: context, error: e));
+      }
     }
   }
 
@@ -278,7 +288,7 @@ class UserService {
     try {
       final response = await _enteDio.post("/users/logout");
       if (response.statusCode == 200) {
-        await _logoutLocally(context);
+        await _logoutLocally(context.mounted ? context : null);
       } else {
         throw Exception("Log out action failed");
       }
@@ -295,28 +305,30 @@ class UserService {
         } else {
           _logger.info("Token already invalid, proceeding with local logout");
         }
-        await _logoutLocally(context);
+        await _logoutLocally(context.mounted ? context : null);
         return;
       }
 
       _logger.severe(e);
       //This future is for waiting for the dialog from which logout() is called
       //to close and only then to show the error dialog.
-      Future.delayed(
-        const Duration(milliseconds: 150),
-        () => showGenericErrorDialog(context: context, error: e),
-      );
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (context.mounted) {
+          unawaited(showGenericErrorDialog(context: context, error: e));
+        }
+      });
       rethrow;
     }
   }
 
-  Future<void> _logoutLocally(BuildContext context) async {
+  Future<void> _logoutLocally(BuildContext? context) async {
     await _config.logout();
-    if (context.mounted) {
-      unawaited(
-        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false),
-      );
+    if (context == null || !context.mounted) {
+      return;
     }
+    unawaited(
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false),
+    );
   }
 
   Future<dynamic> getTokenForPasskeySession(String sessionID) async {
@@ -342,27 +354,21 @@ class UserService {
     }
   }
 
-  Future<void> onPassKeyVerified(BuildContext context, Map response) async {
-    final ProgressDialog dialog = createProgressDialog(
-      context,
-      context.strings.pleaseWait,
-    );
-    await dialog.show();
+  Future<void> onPassKeyVerified(BuildContext? context, Map response) async {
+    final ProgressDialog? dialog = context != null && context.mounted
+        ? createProgressDialog(context, context.strings.pleaseWait)
+        : null;
+    await dialog?.show();
     try {
       final userPassword = _config.getVolatilePassword();
       await _saveConfiguration(response);
-      if (!context.mounted) {
-        await dialog.hide();
-        return;
-      }
-      final navigator = Navigator.of(context);
       if (userPassword == null) {
-        await dialog.hide();
-        if (!context.mounted) {
+        await dialog?.hide();
+        if (context == null || !context.mounted) {
           return;
         }
         // ignore: unawaited_futures
-        navigator.pushAndRemoveUntil(
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (BuildContext _) {
               return PasswordReentryPage(_config, _homePage);
@@ -384,13 +390,13 @@ class UserService {
         } else {
           throw Exception("unexpected response during passkey verification");
         }
-        await dialog.hide();
-        if (!context.mounted) {
+        await dialog?.hide();
+        if (context == null || !context.mounted) {
           return;
         }
 
         // ignore: unawaited_futures
-        navigator.pushAndRemoveUntil(
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (BuildContext _) {
               return page;
@@ -402,7 +408,7 @@ class UserService {
       }
     } catch (e) {
       _logger.severe(e);
-      await dialog.hide();
+      await dialog?.hide();
       rethrow;
     }
   }
@@ -458,6 +464,9 @@ class UserService {
             page = PasswordEntryPage(_config, PasswordEntryMode.set, _homePage);
           }
         }
+        if (!context.mounted) {
+          return;
+        }
         // ignore: unawaited_futures
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
@@ -474,6 +483,9 @@ class UserService {
     } on DioException catch (e) {
       _logger.info(e);
       await dialog.hide();
+      if (!context.mounted) {
+        return;
+      }
       if (e.response != null && e.response!.statusCode == 410) {
         await showAlertBottomSheet(
           context,
@@ -481,7 +493,9 @@ class UserService {
           message: context.strings.yourVerificationCodeHasExpired,
           assetPath: 'assets/warning-grey.png',
         );
-        Navigator.of(context).pop();
+        if (context.mounted) {
+          Navigator.of(context).pop();
+        }
       } else {
         // ignore: unawaited_futures
         showAlertBottomSheet(
@@ -494,13 +508,15 @@ class UserService {
     } catch (e) {
       await dialog.hide();
       _logger.severe(e);
-      // ignore: unawaited_futures
-      showAlertBottomSheet(
-        context,
-        title: context.strings.oops,
-        message: context.strings.verificationFailedPleaseTryAgain,
-        assetPath: 'assets/warning-grey.png',
-      );
+      if (context.mounted) {
+        // ignore: unawaited_futures
+        showAlertBottomSheet(
+          context,
+          title: context.strings.oops,
+          message: context.strings.verificationFailedPleaseTryAgain,
+          assetPath: 'assets/warning-grey.png',
+        );
+      }
     }
   }
 
@@ -523,10 +539,15 @@ class UserService {
       );
       await dialog.hide();
       if (response.statusCode == 200) {
-        showShortToast(context, context.strings.emailChangedTo(email));
         await setEmail(email);
-        Navigator.of(context).popUntil((route) => route.isFirst);
         Bus.instance.fire(UserDetailsChangedEvent());
+        if (context.mounted) {
+          showShortToast(context, context.strings.emailChangedTo(email));
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+        return;
+      }
+      if (!context.mounted) {
         return;
       }
       // ignore: unawaited_futures
@@ -537,6 +558,9 @@ class UserService {
       );
     } on DioException catch (e) {
       await dialog.hide();
+      if (!context.mounted) {
+        return;
+      }
       if (e.response != null && e.response!.statusCode == 403) {
         // ignore: unawaited_futures
         showErrorDialog(
@@ -555,12 +579,14 @@ class UserService {
     } catch (e) {
       await dialog.hide();
       _logger.severe(e);
-      // ignore: unawaited_futures
-      showErrorDialog(
-        context,
-        context.strings.oops,
-        context.strings.verificationFailedPleaseTryAgain,
-      );
+      if (context.mounted) {
+        // ignore: unawaited_futures
+        showErrorDialog(
+          context,
+          context.strings.oops,
+          context.strings.verificationFailedPleaseTryAgain,
+        );
+      }
     }
   }
 
@@ -687,7 +713,7 @@ class UserService {
   }
 
   Future<void> verifyEmailViaPassword(
-    BuildContext context,
+    BuildContext? context,
     SrpAttributes srpAttributes,
     String userPassword,
     ProgressDialog dialog,
@@ -778,17 +804,19 @@ class UserService {
         }
       }
       await dialog.hide();
-      // ignore: unawaited_futures
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return page!;
-          },
-        ),
-        identical(page, _homePage)
-            ? (route) => false
-            : (route) => route.isFirst,
-      );
+      if (context != null && context.mounted) {
+        // ignore: unawaited_futures
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return page!;
+            },
+          ),
+          identical(page, _homePage)
+              ? (route) => false
+              : (route) => route.isFirst,
+        );
+      }
     } else {
       // should never reach here
       throw Exception("unexpected response during email verification");
@@ -853,21 +881,26 @@ class UserService {
       );
       await dialog.hide();
       if (response.statusCode == 200) {
-        showShortToast(context, context.strings.authenticationSuccessful);
         await _saveConfiguration(response);
-        // ignore: unawaited_futures
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return PasswordReentryPage(_config, _homePage);
-            },
-          ),
-          (route) => route.isFirst,
-        );
+        if (context.mounted) {
+          showShortToast(context, context.strings.authenticationSuccessful);
+          // ignore: unawaited_futures
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (BuildContext context) {
+                return PasswordReentryPage(_config, _homePage);
+              },
+            ),
+            (route) => route.isFirst,
+          );
+        }
       }
     } on DioException catch (e) {
       await dialog.hide();
       _logger.severe(e);
+      if (!context.mounted) {
+        return;
+      }
       if (e.response != null && e.response!.statusCode == 404) {
         showToast(context, "Session expired");
         // ignore: unawaited_futures
@@ -891,13 +924,15 @@ class UserService {
     } catch (e) {
       await dialog.hide();
       _logger.severe(e);
-      // ignore: unawaited_futures
-      showAlertBottomSheet(
-        context,
-        title: context.strings.oops,
-        message: context.strings.authenticationFailedPleaseTryAgain,
-        assetPath: 'assets/warning-grey.png',
-      );
+      if (context.mounted) {
+        // ignore: unawaited_futures
+        showAlertBottomSheet(
+          context,
+          title: context.strings.oops,
+          message: context.strings.authenticationFailedPleaseTryAgain,
+          assetPath: 'assets/warning-grey.png',
+        );
+      }
     }
   }
 
@@ -918,24 +953,29 @@ class UserService {
       );
       await dialog.hide();
       if (response.statusCode == 200) {
-        // ignore: unawaited_futures
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return TwoFactorRecoveryPage(
-                type,
-                sessionID,
-                response.data["encryptedSecret"],
-                response.data["secretDecryptionNonce"],
-              );
-            },
-          ),
-          (route) => route.isFirst,
-        );
+        if (context.mounted) {
+          // ignore: unawaited_futures
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (BuildContext context) {
+                return TwoFactorRecoveryPage(
+                  type,
+                  sessionID,
+                  response.data["encryptedSecret"],
+                  response.data["secretDecryptionNonce"],
+                );
+              },
+            ),
+            (route) => route.isFirst,
+          );
+        }
       }
     } on DioException catch (e) {
       await dialog.hide();
       _logger.severe(e);
+      if (!context.mounted) {
+        return;
+      }
       if (e.response != null && e.response!.statusCode == 404) {
         showToast(context, context.strings.sessionExpired);
         // ignore: unawaited_futures
@@ -959,13 +999,15 @@ class UserService {
     } catch (e) {
       await dialog.hide();
       _logger.severe(e);
-      // ignore: unawaited_futures
-      showAlertBottomSheet(
-        context,
-        title: context.strings.oops,
-        message: context.strings.somethingWentWrongPleaseTryAgain,
-        assetPath: 'assets/warning-grey.png',
-      );
+      if (context.mounted) {
+        // ignore: unawaited_futures
+        showAlertBottomSheet(
+          context,
+          title: context.strings.oops,
+          message: context.strings.somethingWentWrongPleaseTryAgain,
+          assetPath: 'assets/warning-grey.png',
+        );
+      }
     } finally {
       await dialog.hide();
     }
@@ -1000,6 +1042,9 @@ class UserService {
       );
     } catch (e) {
       await dialog.hide();
+      if (!context.mounted) {
+        return;
+      }
       await showAlertBottomSheet(
         context,
         title: context.strings.incorrectRecoveryKey,
@@ -1019,24 +1064,29 @@ class UserService {
       );
       await dialog.hide();
       if (response.statusCode == 200) {
-        showShortToast(
-          context,
-          context.strings.twofactorAuthenticationSuccessfullyReset,
-        );
         await _saveConfiguration(response);
-        // ignore: unawaited_futures
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return PasswordReentryPage(_config, _homePage);
-            },
-          ),
-          (route) => route.isFirst,
-        );
+        if (context.mounted) {
+          showShortToast(
+            context,
+            context.strings.twofactorAuthenticationSuccessfullyReset,
+          );
+          // ignore: unawaited_futures
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (BuildContext context) {
+                return PasswordReentryPage(_config, _homePage);
+              },
+            ),
+            (route) => route.isFirst,
+          );
+        }
       }
     } on DioException catch (e) {
       await dialog.hide();
       _logger.severe(e);
+      if (!context.mounted) {
+        return;
+      }
       if (e.response != null && e.response!.statusCode == 404) {
         showToast(context, "Session expired");
         // ignore: unawaited_futures
@@ -1060,13 +1110,15 @@ class UserService {
     } catch (e) {
       await dialog.hide();
       _logger.severe(e);
-      // ignore: unawaited_futures
-      showAlertBottomSheet(
-        context,
-        title: context.strings.oops,
-        message: context.strings.somethingWentWrongPleaseTryAgain,
-        assetPath: 'assets/warning-grey.png',
-      );
+      if (context.mounted) {
+        // ignore: unawaited_futures
+        showAlertBottomSheet(
+          context,
+          title: context.strings.oops,
+          message: context.strings.somethingWentWrongPleaseTryAgain,
+          assetPath: 'assets/warning-grey.png',
+        );
+      }
     } finally {
       await dialog.hide();
     }

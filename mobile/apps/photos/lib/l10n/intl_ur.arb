@@ -977,7 +977,6 @@
   "appleId": "ایپل آئی ڈی",
   "playstoreSubscription": "پلے اسٹور سبسکرپشن",
   "appstoreSubscription": "ایپ اسٹور سبسکرپشن",
-  "subAlreadyLinkedErrMessage": "آپ کی {id} پہلے سے ہی کسی دوسرے Ente اکاؤنٹ سے منسلک ہے.\nاگر آپ اپنی {id} کو اس اکاؤنٹ کے ساتھ استعمال کرنا چاہتے ہیں، تو براہ کرم ہماری سپورٹ سے رابطہ کریں''",
   "visitWebToManage": "اپنی سبسکرپشن کا انتظام کرنے کے لیے براہ کرم {webUrl} پر جائیں",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

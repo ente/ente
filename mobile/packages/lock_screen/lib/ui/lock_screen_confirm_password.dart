@@ -37,8 +37,10 @@ class _LockScreenConfirmPasswordState extends State<LockScreenConfirmPassword> {
     if (widget.password == _confirmPasswordController.text) {
       await _lockscreenSetting.setPassword(_confirmPasswordController.text);
 
-      Navigator.of(context).pop(true);
-      Navigator.of(context).pop(true);
+      if (mounted) {
+        Navigator.of(context).pop(true);
+        Navigator.of(context).pop(true);
+      }
       return;
     }
     await HapticFeedback.vibrate();

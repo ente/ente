@@ -15,6 +15,10 @@ By default, Museum runs in local environment, thus `local.yaml` configuration is
 
 If `ENVIRONMENT` environment variable is set (say, to `production`), Museum will attempt to load `configurations/production.yaml`.
 
+> [!NOTE]
+>
+> Ente uses the `production` configuration for its own deployments, and it may change between releases.
+
 If `credentials-file` is defined and found, it overrides the defaults.
 
 Use `museum.yaml` file for declaring configuration over `local.yaml`.
@@ -51,21 +55,28 @@ in `museum.yaml` is read as `s3.b2-eu-cen.endpoint` by Museum.
 
 ### App Endpoints
 
-The web apps for Ente (Accounts, Cast, Albums, Share, Paste, Embed, Memories) use different endpoints.
+The `apps` section tells Museum where each Ente web app is hosted. Configure the public URL of every web app you deploy; these URLs form Museum's list of trusted browser origins.
 
-These endpoints are configurable in `museum.yaml` under the apps.\* section.
-
-Upon configuration, the application will start utilizing the specified endpoints instead of Ente's production instances or local endpoints (overridden values used for Compose and quickstart for ease of use.)
+If you set any of `apps.photos`, `apps.auth`, `apps.locker` or `apps.extra-origins`, Museum rejects browser requests from origins that are not in this list. If you set none of these keys, Museum only logs the unknown origins. This is a fallback so that older setups do not break; a future version of Museum will reject unknown origins by default. To choose the behavior explicitly, set `apps.cors-report-only` to `true` or `false`.
 
 | Variable               | Description                                             | Default                     |
 | ---------------------- | ------------------------------------------------------- | --------------------------- |
+| `apps.photos`          | Photos web app base endpoint                            | `https://photos.ente.com`   |
 | `apps.public-albums`   | Albums app base endpoint for public sharing             | `https://albums.ente.com`   |
+| `apps.embed-albums`    | Embed app base endpoint                                 | `https://embed.ente.com`    |
+| `apps.auth`            | Auth web app base endpoint                              | `https://auth.ente.com`     |
+| `apps.locker`          | Locker web app base endpoint                            | `https://locker.ente.com`   |
 | `apps.public-locker`   | Public Locker (share) app base endpoint                 | `https://share.ente.com`    |
 | `apps.public-paste`    | Ente Paste app base endpoint                            | `https://paste.ente.com`    |
 | `apps.public-memories` | Memories app base endpoint for public memory shares     | `https://memories.ente.com` |
-| `apps.cast`            | Cast app base endpoint                                  | `https://cast.ente.com`     |
-| `apps.embed-albums`    | Embed app base endpoint for embedded sharing            | `https://embed.ente.com`    |
 | `apps.accounts`        | Accounts app base endpoint (used for passkey-based 2FA) | `https://accounts.ente.com` |
+| `apps.accounts-legacy` | Legacy Accounts endpoint for passkey migration          | `https://accounts.ente.io`  |
+| `apps.payments`        | Payments web app base endpoint                          | `https://payments.ente.com` |
+| `apps.cast`            | Cast app base endpoint                                  | `https://cast.ente.com`     |
+| `apps.family`          | Family web app base endpoint                            | `https://family.ente.io`    |
+| `apps.space`           | Space web app base endpoint                             | `https://ente.space`        |
+| `apps.legacy`          | Legacy recovery web app base endpoint                   | `https://legacy.ente.com`   |
+| `apps.extra-origins`   | Additional trusted browser origins                      | Ente's other production origins |
 
 ### Database
 

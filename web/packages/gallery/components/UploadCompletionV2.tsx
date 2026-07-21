@@ -125,7 +125,7 @@ export function UploadCompletionV2({
                                 : primaryButtonSx
                         }
                     >
-                        View photos
+                        Close
                     </Button>
                 </Stack>
             </Stack>

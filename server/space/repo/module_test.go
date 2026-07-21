@@ -221,6 +221,57 @@ func TestCreateSpaceEnforcesOneSpacePerOwner(t *testing.T) {
 	require.Equal(t, int64(1), countSpaceRows(t, module, `SELECT COUNT(*) FROM spaces WHERE owner_id = $1`, userID))
 }
 
+func TestCreateSpaceRejectsInvalidSlug(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		slug    string
+		message string
+	}{
+		{name: "reserved", slug: "ente", message: "spaceSlug is reserved"},
+		{name: "invalid syntax", slug: "ali/ce", message: "spaceSlug can only contain"},
+		{name: "too short", slug: "abc", message: "spaceSlug must be 4-30 characters"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			module := newSpaceTestModule(t)
+			ctx := context.Background()
+			userID := insertSpaceUser(t, module, "create-invalid-"+tc.name+"@example.com", "create-invalid-public")
+
+			_, err := testCreateSpace(ctx, module, userID, tc.slug, "root", "public", "secret", "nonce", "profile")
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.message)
+			require.Equal(t, int64(0), countSpaceRows(t, module, `SELECT COUNT(*) FROM spaces WHERE owner_id = $1`, userID))
+		})
+	}
+}
+
+func TestUpdateSlugRejectsInvalidSlug(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		slug    string
+		message string
+	}{
+		{name: "reserved", slug: "ente", message: "spaceSlug is reserved"},
+		{name: "invalid syntax", slug: "ali/ce", message: "spaceSlug can only contain"},
+		{name: "too short", slug: "abc", message: "spaceSlug must be 4-30 characters"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			module := newSpaceTestModule(t)
+			ctx := context.Background()
+			userID := insertSpaceUser(t, module, "update-invalid-"+tc.name+"@example.com", "update-invalid-public")
+			space, err := testCreateSpace(ctx, module, userID, "valid_slug", "root", "public", "secret", "nonce", "profile")
+			require.NoError(t, err)
+
+			_, err = module.Spaces.UpdateSlug(ctx, space.SpaceID, tc.slug)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tc.message)
+
+			unchanged, err := module.Spaces.GetSpaceByID(ctx, space.SpaceID)
+			require.NoError(t, err)
+			require.Equal(t, "valid_slug", unchanged.SpaceSlug)
+		})
+	}
+}
+
 func TestCreatePostEnforcesSpacePostLimit(t *testing.T) {
 	module := newSpaceTestModule(t)
 	ctx := context.Background()
@@ -1293,7 +1344,7 @@ func TestSpaceModuleLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, aliceSpace.CurrentVersion)
 
-	bobSpace, err := testCreateSpace(ctx, module, bobID, "bob", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
+	bobSpace, err := testCreateSpace(ctx, module, bobID, "bobb", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
 	require.NoError(t, err)
 
 	listedSpaces, err := module.Spaces.ListSpacesByOwner(ctx, aliceID)
@@ -1346,7 +1397,7 @@ func TestSpaceModuleLifecycle(t *testing.T) {
 	friends, err := module.Friends.ListFriendsForSpace(ctx, aliceSpace.SpaceID)
 	require.NoError(t, err)
 	require.Len(t, friends, 1)
-	require.Equal(t, "bob", friends[0].Friend.SpaceSlug)
+	require.Equal(t, "bobb", friends[0].Friend.SpaceSlug)
 
 	bobFriends, err := module.Friends.ListFriendsForSpace(ctx, bobSpace.SpaceID)
 	require.NoError(t, err)
@@ -1631,7 +1682,7 @@ func TestAddFriendCreatesReciprocalShares(t *testing.T) {
 	bobID := insertSpaceUser(t, module, "bob@example.com", "bob-public")
 	aliceSpace, err := testCreateSpace(ctx, module, aliceID, "alice", "alice-space-key", "alice-public", "alice-secret", "alice-secret-nonce", "alice-profile")
 	require.NoError(t, err)
-	bobSpace, err := testCreateSpace(ctx, module, bobID, "bob", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
+	bobSpace, err := testCreateSpace(ctx, module, bobID, "bobb", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
 	require.NoError(t, err)
 
 	err = testAddFriend(ctx, module, bobID, bobSpace.SpaceID, aliceSpace.SpaceID, "alice-share-key", aliceSpace.CurrentVersion, "bob-share-key", bobSpace.CurrentVersion)
@@ -1670,7 +1721,7 @@ func TestCreateFriendRequestRejectsExistingFriends(t *testing.T) {
 	bobID := insertSpaceUser(t, module, "bob@example.com", "bob-public")
 	aliceSpace, err := testCreateSpace(ctx, module, aliceID, "alice", "alice-space-key", "alice-public", "alice-secret", "alice-secret-nonce", "alice-profile")
 	require.NoError(t, err)
-	bobSpace, err := testCreateSpace(ctx, module, bobID, "bob", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
+	bobSpace, err := testCreateSpace(ctx, module, bobID, "bobb", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
 	require.NoError(t, err)
 	err = testAddFriend(ctx, module, bobID, bobSpace.SpaceID, aliceSpace.SpaceID, "alice-share-key", aliceSpace.CurrentVersion, "bob-share-key", bobSpace.CurrentVersion)
 	require.NoError(t, err)
@@ -1735,7 +1786,7 @@ func TestUpdateShareOnlyRefreshesExistingShares(t *testing.T) {
 	bobID := insertSpaceUser(t, module, "bob@example.com", "bob-public")
 	aliceSpace, err := testCreateSpace(ctx, module, aliceID, "alice", "alice-space-key", "alice-public", "alice-secret", "alice-secret-nonce", "alice-profile")
 	require.NoError(t, err)
-	bobSpace, err := testCreateSpace(ctx, module, bobID, "bob", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
+	bobSpace, err := testCreateSpace(ctx, module, bobID, "bobb", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
 	require.NoError(t, err)
 
 	err = testUpsertShare(ctx, module, aliceSpace.SpaceID, bobSpace.SpaceID, "share-key-v1", aliceSpace.CurrentVersion)
@@ -1834,7 +1885,7 @@ func TestAddFriendRejectsStaleKeyVersion(t *testing.T) {
 	bobID := insertSpaceUser(t, module, "bob@example.com", "bob-public")
 	aliceSpace, err := testCreateSpace(ctx, module, aliceID, "alice", "alice-space-key", "alice-public", "alice-secret", "alice-secret-nonce", "alice-profile")
 	require.NoError(t, err)
-	bobSpace, err := testCreateSpace(ctx, module, bobID, "bob", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
+	bobSpace, err := testCreateSpace(ctx, module, bobID, "bobb", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
 	require.NoError(t, err)
 	_, err = testRotateKey(ctx, module, aliceID, aliceSpace.SpaceID, aliceSpace.CurrentVersion, "alice-space-key-v2", "wrapped-prev-key", "alice-profile-v2")
 	require.NoError(t, err)
@@ -1856,7 +1907,7 @@ func TestUpdateShareRejectsStaleKeyVersion(t *testing.T) {
 	bobID := insertSpaceUser(t, module, "bob@example.com", "bob-public")
 	aliceSpace, err := testCreateSpace(ctx, module, aliceID, "alice", "alice-space-key", "alice-public", "alice-secret", "alice-secret-nonce", "alice-profile")
 	require.NoError(t, err)
-	bobSpace, err := testCreateSpace(ctx, module, bobID, "bob", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
+	bobSpace, err := testCreateSpace(ctx, module, bobID, "bobb", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
 	require.NoError(t, err)
 	err = testUpsertShare(ctx, module, aliceSpace.SpaceID, bobSpace.SpaceID, "share-key-v1", aliceSpace.CurrentVersion)
 	require.NoError(t, err)
@@ -1962,7 +2013,7 @@ func TestListFeedCursorUsesCreatedAtSortOrder(t *testing.T) {
 	charlieID := insertSpaceUser(t, module, "charlie@example.com", "charlie-public")
 	aliceSpace, err := testCreateSpace(ctx, module, aliceID, "alice", "alice-space-key", "alice-public", "alice-secret", "alice-secret-nonce", "alice-profile")
 	require.NoError(t, err)
-	bobSpace, err := testCreateSpace(ctx, module, bobID, "bob", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
+	bobSpace, err := testCreateSpace(ctx, module, bobID, "bobb", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
 	require.NoError(t, err)
 	charlieSpace, err := testCreateSpace(ctx, module, charlieID, "charlie", "charlie-space-key", "charlie-public", "charlie-secret", "charlie-secret-nonce", "charlie-profile")
 	require.NoError(t, err)

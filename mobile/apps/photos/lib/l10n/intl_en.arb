@@ -1220,6 +1220,17 @@
   "favorite": "Favorite",
   "removeFromFavorite": "Remove from favorites",
   "shareMemories": "Share memories",
+  "shareMemory": "Share memory",
+  "shareItemCount": "{count, plural, one{Share {count} item} other{Share {count} items}}",
+  "@shareItemCount": {
+    "description": "Action to share the selected number of memory items",
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    }
+  },
   "shareTheseMemories": "Share these memories",
   "shareThisPhoto": "Share this photo",
   "shareThisVideo": "Share this video",
@@ -2451,7 +2462,6 @@
   "joinAlbumConfirmationDialogBody": "Joining an album will make your email visible to its participants.",
   "pleaseWaitThisWillTakeAWhile": "Please wait, this will take a while.",
   "editTime": "Edit time",
-  "editDateAndTime": "Edit date and time",
   "selectTime": "Select time",
   "selectDate": "Select date",
   "previous": "Previous",

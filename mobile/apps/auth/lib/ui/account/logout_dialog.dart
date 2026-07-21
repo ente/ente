@@ -14,48 +14,35 @@ Future<void> autoLogoutAlert(BuildContext context) async {
   try {
     showingLogoutDialog = true;
     final l10n = context.l10n;
-    final AlertDialog alert = AlertDialog(
-      title: Text(l10n.sessionExpired),
-      content: Text(l10n.pleaseLoginAgain),
-      actions: [
-        TextButton(
-          child: Text(
-            l10n.ok,
-            style: TextStyle(color: Theme.of(context).colorScheme.primary),
-          ),
-          onPressed: () async {
-            Navigator.of(context, rootNavigator: true).pop('dialog');
-            Navigator.of(context).popUntil((route) => route.isFirst);
-            int pendingSyncCount = await AuthenticatorDB.instance
-                .getNeedSyncCount();
-            if (pendingSyncCount > 0) {
-              if (!context.mounted) return;
-              // ignore: unawaited_futures
-              showChoiceActionSheet(
-                context,
-                title: l10n.pendingSyncs,
-                body: l10n.pendingSyncsWarningBody,
-                firstButtonLabel: context.l10n.yesLogout,
-                isCritical: true,
-                firstButtonOnTap: () async {
-                  await _logout(context, l10n);
-                },
-              );
-            } else {
-              if (!context.mounted) return;
-              await _logout(context, l10n);
-            }
-          },
-        ),
-      ],
+    await showErrorDialog(
+      context,
+      l10n.sessionExpired,
+      l10n.pleaseLoginAgain,
+      isDismissable: false,
+      showContactSupport: false,
+      dismissButtonLabel: l10n.ok,
+      useRootNavigator: true,
     );
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return alert;
-      },
-    );
+    if (!context.mounted) return;
+
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    final pendingSyncCount = await AuthenticatorDB.instance.getNeedSyncCount();
+    if (!context.mounted) return;
+    if (pendingSyncCount > 0) {
+      // ignore: unawaited_futures
+      showChoiceActionSheet(
+        context,
+        title: l10n.pendingSyncs,
+        body: l10n.pendingSyncsWarningBody,
+        firstButtonLabel: context.l10n.yesLogout,
+        isCritical: true,
+        firstButtonOnTap: () async {
+          await _logout(context, l10n);
+        },
+      );
+    } else {
+      await _logout(context, l10n);
+    }
   } catch (e) {
     Logger("LogoutDialog").severe('failed to process sign out action', e);
   } finally {

@@ -8,6 +8,7 @@ import 'package:ente_account_deletion/account_deletion.dart';
 import 'package:ente_contacts/contacts.dart';
 import "package:ente_crypto/ente_crypto.dart";
 import 'package:ente_lock_screen/lock_screen_host.dart';
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/services.dart";
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -208,6 +209,8 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
       }
     }
 
+    await _clearTempFolderOnLogout();
+
     // Clear preferences and secure storage
     await _preferences.clear();
     await _secureStorage.deleteAll();
@@ -303,6 +306,16 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
       Bus.instance.fire(UserLoggedOutEvent());
     } else {
       await _preferences.setBool("auto_logout", true);
+    }
+  }
+
+  Future<void> _clearTempFolderOnLogout() async {
+    try {
+      await deleteDirectoryContents(_tempDocumentsDirPath);
+      await Directory(_tempDocumentsDirPath).create(recursive: true);
+      _logger.info("Cleared temp folder on logout");
+    } catch (e, s) {
+      _logger.warning("Failed to clear temp folder on logout", e, s);
     }
   }
 

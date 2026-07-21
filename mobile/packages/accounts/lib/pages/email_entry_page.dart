@@ -144,12 +144,14 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                 await _referralSourceForSubmission(),
               );
               await UserService.instance.sendOtt(
-                context,
+                context.mounted ? context : null,
                 _email!,
                 isCreateAccountScreen: true,
                 purpose: "signup",
               );
-              FocusScope.of(context).unfocus();
+              if (context.mounted) {
+                FocusScope.of(context).unfocus();
+              }
             },
           ),
         ],

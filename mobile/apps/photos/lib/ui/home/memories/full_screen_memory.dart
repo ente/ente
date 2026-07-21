@@ -8,8 +8,6 @@ import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/cupertino.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
-import "package:flutter_svg/flutter_svg.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/details_sheet_event.dart";
@@ -18,7 +16,6 @@ import "package:photos/events/reset_zoom_of_photo_view_event.dart";
 import "package:photos/events/resume_video_event.dart";
 import "package:photos/events/retry_failed_image_load_event.dart";
 import "package:photos/generated/l10n.dart";
-import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/memories/memory.dart";
@@ -31,9 +28,9 @@ import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/theme/text_style.dart";
 import "package:photos/ui/actions/file/file_actions.dart";
-import "package:photos/ui/components/base_bottom_sheet.dart";
 import "package:photos/ui/home/memories/custom_listener.dart";
 import "package:photos/ui/home/memories/memory_progress_indicator.dart";
+import "package:photos/ui/home/memories/memory_share_sheet.dart";
 import "package:photos/ui/home/memories/memory_video_prefetcher.dart";
 import "package:photos/ui/viewer/file/file_widget.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
@@ -1189,53 +1186,47 @@ Future<void> _shareMemory(
   String memoryTitle,
 ) async {
   if (inheritedData.memories.isEmpty) return;
-  final l10n = AppLocalizations.of(context);
   final currentIndex = _clampedMemoryIndex(
     inheritedData.indexNotifier.value,
     inheritedData.memories.length,
   );
   if (currentIndex == null) return;
-  final currentFile = inheritedData.memories[currentIndex].file;
-  final shareSingleItemLabel = currentFile.isVideo
-      ? _titleCase(l10n.videoSmallCase)
-      : _titleCase(l10n.photoSmallCase);
   final canShowMemoryShareLinkOption =
       flagService.enableMemoryShareLink &&
       !(isLocalGalleryMode && !Configuration.instance.hasConfiguredAccount());
-  final shouldShareLink = await showBaseBottomSheet<bool>(
+  final result = await showMemoryShareSelectionSheet(
     context,
-    title: l10n.shareMemories,
-    child: _MemoryShareSheet(
-      canShowMemoryShareLinkOption: canShowMemoryShareLinkOption,
-      shareSingleItemLabel: shareSingleItemLabel,
-    ),
+    memories: inheritedData.memories,
+    initialIndex: currentIndex,
+    canShareMemoryLink: canShowMemoryShareLinkOption,
   );
-  if (!context.mounted || shouldShareLink == null) {
+  if (!context.mounted || result == null) {
     return;
   }
 
-  if (shouldShareLink) {
-    final shareLinkData = await _getOrCreateMemoryLink(
-      context,
-      inheritedData,
-      memoryTitle,
-    );
-    if (!context.mounted || shareLinkData == null) {
+  switch (result.action) {
+    case MemoryShareSheetAction.shareMemory:
+      final shareLinkData = await _getOrCreateMemoryLink(
+        context,
+        result.selectedMemories,
+        memoryTitle,
+      );
+      if (!context.mounted || shareLinkData == null) {
+        return;
+      }
+      await shareText(shareLinkData.$1, context: context);
       return;
-    }
-    await shareText(shareLinkData.$1, context: context);
-    return;
+    case MemoryShareSheetAction.shareItems:
+      await share(context, Memory.filesFromMemories(result.selectedMemories));
   }
-
-  await share(context, [currentFile]);
 }
 
 Future<(String, int)?> _getOrCreateMemoryLink(
   BuildContext context,
-  FullScreenMemoryData inheritedData,
+  List<Memory> memories,
   String memoryTitle,
 ) async {
-  if (inheritedData.memories.isEmpty) return null;
+  if (memories.isEmpty) return null;
   final l10n = AppLocalizations.of(context);
   final dialog = createProgressDialog(context, l10n.creatingLink);
   await dialog.show();
@@ -1243,7 +1234,7 @@ Future<(String, int)?> _getOrCreateMemoryLink(
     final normalizedTitle = memoryTitle.trim();
     final shareLinkData = await MemoryShareService.instance
         .getOrCreateMemoryLink(
-          memories: inheritedData.memories,
+          memories: memories,
           title: normalizedTitle.isNotEmpty ? normalizedTitle : l10n.memories,
         );
     await dialog.hide();
@@ -1254,100 +1245,5 @@ Future<(String, int)?> _getOrCreateMemoryLink(
       await showGenericErrorBottomSheet(context: context, error: e);
     }
     return null;
-  }
-}
-
-String _titleCase(String value) {
-  if (value.isEmpty) return value;
-  return value[0].toUpperCase() + value.substring(1);
-}
-
-class _MemoryShareSheet extends StatelessWidget {
-  final bool canShowMemoryShareLinkOption;
-  final String shareSingleItemLabel;
-
-  const _MemoryShareSheet({
-    required this.canShowMemoryShareLinkOption,
-    required this.shareSingleItemLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Row(
-      children: [
-        if (canShowMemoryShareLinkOption)
-          _MemoryShareOption(
-            icon: HugeIcons.strokeRoundedLink02,
-            svgAssetPath: "assets/icons/memory-share-link-icon.svg",
-            label: l10n.memories,
-            onTap: () => Navigator.of(context).pop(true),
-          ),
-        if (canShowMemoryShareLinkOption) const SizedBox(width: 24),
-        _MemoryShareOption(
-          icon: HugeIcons.strokeRoundedShare05,
-          label: shareSingleItemLabel,
-          onTap: () => Navigator.of(context).pop(false),
-        ),
-      ],
-    );
-  }
-}
-
-class _MemoryShareOption extends StatelessWidget {
-  final List<List<dynamic>> icon;
-  final String label;
-  final VoidCallback onTap;
-  final String? svgAssetPath;
-
-  const _MemoryShareOption({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.svgAssetPath,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            color: colorScheme.fillDark,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (svgAssetPath != null)
-                SvgPicture.asset(
-                  svgAssetPath!,
-                  width: 26,
-                  height: 26,
-                  colorFilter: ColorFilter.mode(
-                    colorScheme.textBase,
-                    BlendMode.srcIn,
-                  ),
-                )
-              else
-                HugeIcon(icon: icon, color: colorScheme.textBase, size: 24),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: textTheme.small.copyWith(color: colorScheme.textBase),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

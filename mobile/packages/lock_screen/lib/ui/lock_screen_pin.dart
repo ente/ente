@@ -76,30 +76,36 @@ class _LockScreenPinState extends State<LockScreenPin> {
     if (matched) {
       invalidAttemptsCount = 0;
       await _lockscreenSetting.setInvalidAttemptCount(0);
-      widget.isAuthenticatingOnAppLaunch ||
-              widget.isAuthenticatingForInAppChange
-          ? Navigator.of(context).pop(true)
-          : Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => const LockScreenOptions(),
-              ),
-            );
+      if (mounted) {
+        widget.isAuthenticatingOnAppLaunch ||
+                widget.isAuthenticatingForInAppChange
+            ? Navigator.of(context).pop(true)
+            : Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const LockScreenOptions(),
+                ),
+              );
+      }
       return true;
     } else {
-      setState(() {
-        isPinValid = true;
-      });
+      if (mounted) {
+        setState(() {
+          isPinValid = true;
+        });
+      }
       await HapticFeedback.vibrate();
       await Future.delayed(const Duration(milliseconds: 75));
-      _pinController.clear();
-      setState(() {
-        isPinValid = false;
-      });
+      if (mounted) {
+        _pinController.clear();
+        setState(() {
+          isPinValid = false;
+        });
+      }
 
       if (widget.isAuthenticatingOnAppLaunch) {
         invalidAttemptsCount++;
         await _lockscreenSetting.setInvalidAttemptCount(invalidAttemptsCount);
-        if (invalidAttemptsCount > 4) {
+        if (invalidAttemptsCount > 4 && mounted) {
           Navigator.of(context).pop(false);
         }
       }
@@ -118,7 +124,9 @@ class _LockScreenPinState extends State<LockScreenPin> {
               LockScreenConfirmPin(pin: inputtedPin),
         ),
       );
-      _pinController.clear();
+      if (mounted) {
+        _pinController.clear();
+      }
     }
   }
 

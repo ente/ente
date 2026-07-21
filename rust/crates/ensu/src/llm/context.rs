@@ -2,6 +2,7 @@ use llama_cpp_2::context::LlamaContext;
 use llama_cpp_2::context::params::LlamaContextParams;
 use llama_cpp_2::model::LlamaModel;
 use llama_cpp_2::mtmd::{MtmdContext, MtmdContextParams, mtmd_default_marker};
+use llama_cpp_2::token::LlamaToken;
 use parking_lot::Mutex;
 use self_cell::self_cell;
 use serde::{Deserialize, Serialize};
@@ -43,8 +44,13 @@ struct CachedMtmdContext {
     context: Arc<MtmdContext>,
 }
 
+struct ContextState {
+    cell: ContextCell,
+    cached_tokens: Vec<LlamaToken>,
+}
+
 pub struct Context {
-    cell: Mutex<ContextCell>,
+    state: Mutex<ContextState>,
     mtmd_context: Mutex<Option<CachedMtmdContext>>,
 }
 
@@ -59,17 +65,24 @@ impl Context {
         builder: impl for<'a> FnOnce(&'a ModelRef) -> Result<LlamaContext<'a>, Error>,
     ) -> Result<Self, Error> {
         ContextCell::try_new(owner, builder).map(|cell| Context {
-            cell: Mutex::new(cell),
+            state: Mutex::new(ContextState {
+                cell,
+                cached_tokens: Vec::new(),
+            }),
             mtmd_context: Mutex::new(None),
         })
     }
 
-    pub(super) fn with_context_mut<R>(
+    pub(super) fn with_context_and_cache_mut<R>(
         &self,
-        func: impl for<'a, 'b> FnOnce(&'b mut LlamaContext<'a>) -> R,
+        func: impl for<'a, 'b> FnOnce(&'b mut LlamaContext<'a>, &'b mut Vec<LlamaToken>) -> R,
     ) -> R {
-        let mut guard = self.cell.lock();
-        guard.with_dependent_mut(|_owner, context| func(context))
+        let mut state = self.state.lock();
+        let ContextState {
+            cell,
+            cached_tokens,
+        } = &mut *state;
+        cell.with_dependent_mut(|_owner, context| func(context, cached_tokens))
     }
 
     pub(super) fn cached_mtmd_context(
@@ -112,6 +125,10 @@ impl Context {
             context: mtmd_ctx.clone(),
         });
         Ok(mtmd_ctx)
+    }
+
+    pub(super) fn invalidate_cache(&self) {
+        self.state.lock().cached_tokens.clear();
     }
 }
 
@@ -189,7 +206,7 @@ impl Context {
         media_marker: Option<String>,
     ) -> Result<(), Error> {
         let marker = media_marker.unwrap_or_else(|| mtmd_default_marker().to_string());
-        self.with_context_mut(|ctx| {
+        self.with_context_and_cache_mut(|ctx, _| {
             self.cached_mtmd_context(ctx.model, &mmproj_path, &marker)
                 .map(|_| ())
         })

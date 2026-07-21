@@ -117,6 +117,16 @@ enum AvatarComponentColor {
   black,
 }
 
+const List<AvatarComponentColor> avatarComponentIdentityPalette = [
+  AvatarComponentColor.yellow,
+  AvatarComponentColor.green,
+  AvatarComponentColor.orange,
+  AvatarComponentColor.pink,
+  AvatarComponentColor.purple,
+  AvatarComponentColor.blue,
+  AvatarComponentColor.cyan,
+];
+
 /// A stable FNV-1a seed for identity colors across processes and platforms.
 int avatarSeedForIdentity(String identityKey) {
   var hash = 0x811c9dc5;
@@ -127,11 +137,26 @@ int avatarSeedForIdentity(String identityKey) {
   return hash;
 }
 
-Color avatarColorForIdentity(BuildContext context, String identityKey) {
-  final palette = Theme.of(context).brightness == Brightness.dark
-      ? avatarDark
-      : avatarLight;
-  return palette[avatarSeedForIdentity(identityKey) % palette.length];
+AvatarComponentColor avatarComponentColorForIdentity(String identityKey) {
+  return avatarComponentIdentityPalette[avatarSeedForIdentity(identityKey) %
+      avatarComponentIdentityPalette.length];
+}
+
+Color avatarComponentColorValue(
+  BuildContext context,
+  AvatarComponentColor color,
+) {
+  final colors = context.componentColors;
+  return switch (color) {
+    AvatarComponentColor.yellow => colors.caution,
+    AvatarComponentColor.green => colors.primary,
+    AvatarComponentColor.orange => colors.accentOrange,
+    AvatarComponentColor.pink => colors.accentPink,
+    AvatarComponentColor.purple => colors.purple,
+    AvatarComponentColor.blue => colors.blue,
+    AvatarComponentColor.cyan => avatarCyan,
+    AvatarComponentColor.black => Colors.black,
+  };
 }
 
 /// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2482-6547&m=dev
@@ -268,24 +293,13 @@ class AvatarComponent extends StatelessWidget {
   }
 
   Color _backgroundColor(BuildContext context) {
-    final colors = context.componentColors;
     if (seed != null) {
       final palette = Theme.of(context).brightness == Brightness.dark
           ? avatarDark
           : avatarLight;
       return palette[seed!.abs() % palette.length];
     }
-
-    return switch (color) {
-      AvatarComponentColor.yellow => colors.caution,
-      AvatarComponentColor.green => colors.primary,
-      AvatarComponentColor.orange => colors.accentOrange,
-      AvatarComponentColor.pink => colors.accentPink,
-      AvatarComponentColor.purple => colors.purple,
-      AvatarComponentColor.blue => colors.blue,
-      AvatarComponentColor.cyan => avatarCyan,
-      AvatarComponentColor.black => Colors.black,
-    };
+    return avatarComponentColorValue(context, color);
   }
 
   String? get _semanticLabel {

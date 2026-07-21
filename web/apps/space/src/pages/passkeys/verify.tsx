@@ -2,6 +2,7 @@ import { SpacePageMeta } from "components/SpacePageMeta";
 import { SpaceRouteFallback } from "components/SpaceRouteFallback";
 import { savedPartialLocalUser } from "ente-accounts-rs/services/accounts-db";
 import { openPasskeyVerificationURL } from "ente-accounts-rs/services/passkey";
+import log from "ente-base/log";
 import React, { useEffect, useState } from "react";
 import {
     PasskeyVerificationScreen,
@@ -108,7 +109,7 @@ const Page: React.FC = () => {
             clearPasskeyVerification();
             await routeAfterCompletedLogin(router, refreshProfile);
         } catch (error) {
-            console.error("Space passkey status check failed", error);
+            log.error("Space passkey status check failed", error);
             setErrorMessage(passkeyErrorMessage(error));
             setStatus("waiting");
         }

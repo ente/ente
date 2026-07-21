@@ -4,6 +4,7 @@ import { isCustomAPIOrigin } from "../origins";
 
 interface CustomHeadProps {
     title: string;
+    description?: string;
     viewportContent?: string;
 }
 
@@ -28,16 +29,14 @@ const AlbumsFontPreloads: React.FC = () => (
 export const CustomHead: React.FC<React.PropsWithChildren<CustomHeadProps>> = ({
     title,
     children,
+    description = "Ente - end-to-end encrypted cloud with open-source apps",
     viewportContent = "width=device-width, initial-scale=1",
 }) => (
     <Head>
         {children}
         <title>{title}</title>
         <link rel="icon" href="/images/favicon.png" type="image/png" />
-        <meta
-            name="description"
-            content="Ente - end-to-end encrypted cloud with open-source apps"
-        />
+        <meta name="description" content={description} />
         <meta name="viewport" content={viewportContent} />
         <meta name="referrer" content="strict-origin-when-cross-origin" />
     </Head>

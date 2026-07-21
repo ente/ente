@@ -1,12 +1,12 @@
+import { clearStashedKeyEncryptionKeyFromSession } from "ente-accounts-rs/services/session-storage";
 import { z } from "zod";
 
 const windowNamePrefix = "ente-space-secure-session:";
 const sessionStorageKey = "enteSpaceSecureSession";
-const legacyAccountsSessionKeys = ["encryptionKey", "keyEncryptionKey"];
+const legacyAccountsSessionKeys = ["encryptionKey"];
 
 const SecureSessionState = z.object({
     authMasterKey: z.string().optional(),
-    keyEncryptionKey: z.string().optional(),
     spaceRootKey: z.string().optional(),
 });
 
@@ -38,12 +38,16 @@ const base64ToBytes = (value: string) => {
 };
 
 const hasSecret = (state: SecureSessionState) =>
-    state.authMasterKey !== undefined ||
-    state.keyEncryptionKey !== undefined ||
-    state.spaceRootKey !== undefined;
+    state.authMasterKey !== undefined || state.spaceRootKey !== undefined;
 
 const clearLegacyAccountsSessionKeys = () => {
     for (const key of legacyAccountsSessionKeys) sessionStorage.removeItem(key);
+};
+
+const clearSecureSessionState = () => {
+    if (window.name.startsWith(windowNamePrefix)) window.name = "";
+    sessionStorage.removeItem(sessionStorageKey);
+    clearLegacyAccountsSessionKeys();
 };
 
 const readWindowShare = () => {
@@ -110,7 +114,7 @@ const secureSessionState = (): SecureSessionState => {
     try {
         return SecureSessionState.parse(JSON.parse(secret));
     } catch {
-        clearSpaceSecureSessionStorage();
+        clearSecureSessionState();
         return {};
     }
 };
@@ -118,7 +122,7 @@ const secureSessionState = (): SecureSessionState => {
 const saveSecureSessionState = (state: SecureSessionState) => {
     clearLegacyAccountsSessionKeys();
     if (!hasSecret(state)) {
-        clearSpaceSecureSessionStorage();
+        clearSecureSessionState();
         return;
     }
     const [windowShare, sessionShare] = splitSecret(JSON.stringify(state));
@@ -127,9 +131,8 @@ const saveSecureSessionState = (state: SecureSessionState) => {
 };
 
 export const clearSpaceSecureSessionStorage = () => {
-    if (window.name.startsWith(windowNamePrefix)) window.name = "";
-    sessionStorage.removeItem(sessionStorageKey);
-    clearLegacyAccountsSessionKeys();
+    clearSecureSessionState();
+    clearStashedKeyEncryptionKeyFromSession();
 };
 
 export const authMasterKeyFromSpaceSession = () =>
@@ -151,16 +154,4 @@ export const spaceRootKeyFromSpaceSession = () =>
 
 export const saveSpaceRootKeyInSpaceSession = (spaceRootKey: string) => {
     saveSecureSessionState({ ...secureSessionState(), spaceRootKey });
-};
-
-export const stashSpaceKeyEncryptionKeyInSessionStore = (kek: string) => {
-    saveSecureSessionState({ ...secureSessionState(), keyEncryptionKey: kek });
-};
-
-export const unstashSpaceKeyEncryptionKeyFromSession = () => {
-    const state = secureSessionState();
-    const kek = state.keyEncryptionKey;
-    if (kek === undefined) return undefined;
-    saveSecureSessionState({ ...state, keyEncryptionKey: undefined });
-    return kek;
 };

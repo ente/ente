@@ -107,6 +107,7 @@ interface HomeScreenProps {
     feedItems: SpacePost[];
     friendRequestSentToastName?: string;
     friendsCount: number;
+    hasFeedLoadMoreError?: boolean;
     hasMoreFeedItems?: boolean;
     hasUnreadMessages?: boolean;
     isFeedLoading?: boolean;
@@ -1356,6 +1357,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     feedItems,
     friendRequestSentToastName,
     friendsCount,
+    hasFeedLoadMoreError = false,
     hasMoreFeedItems = false,
     hasUnreadMessages,
     isFeedLoading = false,
@@ -1645,7 +1647,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     }, [feedScrollRequest]);
 
     React.useEffect(() => {
-        if (!hasMoreFeedItems || isFeedLoadingMore || !onLoadMoreFeedItems) {
+        if (
+            hasFeedLoadMoreError ||
+            !hasMoreFeedItems ||
+            isFeedLoadingMore ||
+            !onLoadMoreFeedItems
+        ) {
             return;
         }
 
@@ -1680,7 +1687,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         );
         observer.observe(element);
         return () => observer.disconnect();
-    }, [hasMoreFeedItems, isFeedLoadingMore, onLoadMoreFeedItems]);
+    }, [
+        hasFeedLoadMoreError,
+        hasMoreFeedItems,
+        isFeedLoadingMore,
+        onLoadMoreFeedItems,
+    ]);
 
     const prepareSelectedPostPhoto = async (file: File) => {
         if (!profile) return;
@@ -2068,10 +2080,48 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                                         width: "100%",
                                     }}
                                 >
-                                    <SpaceLoadingSpinner
-                                        ariaLabel="Loading more posts"
-                                        size={22}
-                                    />
+                                    {hasFeedLoadMoreError ? (
+                                        <Box
+                                            component="button"
+                                            type="button"
+                                            aria-label="Retry loading posts"
+                                            onClick={onLoadMoreFeedItems}
+                                            sx={{
+                                                alignItems: "center",
+                                                appearance: "none",
+                                                bgcolor: paleGreen,
+                                                border: 0,
+                                                borderRadius: "18px",
+                                                color: green,
+                                                cursor: "pointer",
+                                                display: "inline-flex",
+                                                fontFamily:
+                                                    '"Inter Variable", Inter, sans-serif',
+                                                fontSize: 13,
+                                                fontWeight: 600,
+                                                height: spaceTouchTargetSize,
+                                                justifyContent: "center",
+                                                lineHeight: "18px",
+                                                minWidth: 116,
+                                                px: "18px",
+                                                whiteSpace: "nowrap",
+                                                "&:focus-visible": {
+                                                    outline: `2px solid ${green}`,
+                                                    outlineOffset: 2,
+                                                },
+                                                "&:hover": {
+                                                    bgcolor: "#DDF1E1",
+                                                },
+                                            }}
+                                        >
+                                            Retry
+                                        </Box>
+                                    ) : (
+                                        <SpaceLoadingSpinner
+                                            ariaLabel="Loading more posts"
+                                            size={22}
+                                        />
+                                    )}
                                 </Box>
                             )}
                         </>

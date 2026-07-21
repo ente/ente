@@ -990,8 +990,8 @@ export const ChatDialogs = memo(
                                 sx={{ color: "text.muted" }}
                             >
                                 This prompt is used as-is. Use $date anywhere to
-                                insert the current date and time. Leave blank to
-                                use the default prompt.
+                                insert the current date. Leave blank to use the
+                                default prompt.
                             </Typography>
                             <TextField
                                 fullWidth
@@ -999,7 +999,7 @@ export const ChatDialogs = memo(
                                 minRows={10}
                                 maxRows={18}
                                 label="Prompt text"
-                                placeholder="You are a concise assistant. Current date and time: $date"
+                                placeholder="You are a concise assistant. Current date: $date"
                                 value={draftSystemPrompt}
                                 onChange={(event) =>
                                     setDraftSystemPrompt(event.target.value)

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import "package:photos/generated/l10n.dart";
 import "package:photos/service_locator.dart";
 import 'package:photos/ui/notification/update/change_log_entry.dart';
@@ -31,10 +32,9 @@ class _ChangeLogPageState extends State<ChangeLogPage> {
     final colors = context.componentColors;
     final isLocalGallery = isLocalGalleryMode;
     return BottomSheetComponent(
-      title: l10n.whatsNew,
-      showCloseButton: false,
+      header: _ChangeLogHeader(title: l10n.whatsNew),
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      actionsTopSpacing: Spacing.xxl,
+      actionsTopSpacing: Spacing.lg,
       content: _getChangeLog(),
       actions: [
         ButtonComponent(
@@ -51,8 +51,14 @@ class _ChangeLogPageState extends State<ChangeLogPage> {
         ButtonComponent(
           variant: ButtonComponentVariant.secondary,
           size: ButtonComponentSize.large,
-          label: isLocalGallery ? l10n.rateUs : l10n.changeLogReferralCta,
-          leading: Icon(Icons.favorite_rounded, color: colors.primary),
+          label: isLocalGallery ? l10n.rateUs : 'Gift 10 GB',
+          leading: isLocalGallery
+              ? Icon(Icons.favorite_rounded, color: colors.primary)
+              : HugeIcon(
+                  icon: HugeIcons.strokeRoundedGift,
+                  color: colors.textBase,
+                  size: IconSizes.small,
+                ),
           shouldSurfaceExecutionStates: false,
           onTap: () async {
             if (isLocalGallery) {
@@ -67,6 +73,7 @@ class _ChangeLogPageState extends State<ChangeLogPage> {
   }
 
   Widget _getChangeLog() {
+    final colors = context.componentColors;
     final strings = ChangeLogStrings.maybeForLocale(
       Localizations.localeOf(context),
       isLocalGallery: isLocalGalleryMode,
@@ -83,23 +90,10 @@ class _ChangeLogPageState extends State<ChangeLogPage> {
                 items: [strings.desc1Item1, strings.desc1Item2]
                     .where((item) => item.trim().isNotEmpty)
                     .toList(growable: false),
-                isFeature: true,
               ),
-              ChangeLogEntry(
-                strings.title2,
-                description: strings.desc2,
-                isFeature: true,
-              ),
-              ChangeLogEntry(
-                strings.title3,
-                description: strings.desc3,
-                isFeature: true,
-              ),
-              ChangeLogEntry(
-                strings.title4,
-                description: strings.desc4,
-                isFeature: true,
-              ),
+              ChangeLogEntry(strings.title2, description: strings.desc2),
+              ChangeLogEntry(strings.title3, description: strings.desc3),
+              ChangeLogEntry(strings.title4, description: strings.desc4),
             ]
             .where(
               (entry) =>
@@ -109,22 +103,76 @@ class _ChangeLogPageState extends State<ChangeLogPage> {
             )
             .toList(growable: false);
     return Flexible(
-      child: Scrollbar(
-        controller: _scrollController,
-        thumbVisibility: true,
-        thickness: 2.0,
-        child: ListView.separated(
+      child: ScrollbarTheme(
+        data: ScrollbarTheme.of(context).copyWith(
+          thumbColor: WidgetStatePropertyAll(colors.fillDarkest),
+          trackColor: WidgetStatePropertyAll(colors.fillDark),
+          trackBorderColor: const WidgetStatePropertyAll(Colors.transparent),
+        ),
+        child: Scrollbar(
           controller: _scrollController,
-          shrinkWrap: true,
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.only(right: Spacing.md),
-          itemBuilder: (context, index) {
-            return ChangeLogEntryWidget(entry: items[index]);
-          },
-          separatorBuilder: (_, _) => const SizedBox(height: Spacing.lg),
-          itemCount: items.length,
+          thumbVisibility: true,
+          trackVisibility: true,
+          thickness: 5.0,
+          radius: const Radius.circular(39),
+          child: ListView.separated(
+            controller: _scrollController,
+            shrinkWrap: true,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(right: Spacing.lg),
+            itemBuilder: (context, index) {
+              return ChangeLogEntryWidget(entry: items[index]);
+            },
+            separatorBuilder: (_, _) => const SizedBox(height: Spacing.lg),
+            itemCount: items.length,
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _ChangeLogHeader extends StatelessWidget {
+  const _ChangeLogHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: IconButtonComponent(
+            tooltip: 'Close',
+            variant: IconButtonComponentVariant.circular,
+            shouldSurfaceExecutionStates: false,
+            icon: const HugeIcon(
+              icon: HugeIcons.strokeRoundedCancel01,
+              size: IconSizes.small,
+            ),
+            onTap: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        ),
+        const SizedBox(height: Spacing.xs),
+        Image.asset(
+          'assets/whats_new_illustration.png',
+          width: 115,
+          height: 108,
+        ),
+        const SizedBox(height: Spacing.sm),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: TextStyles.display2.copyWith(color: colors.textBase),
+        ),
+      ],
     );
   }
 }

@@ -598,6 +598,9 @@ class _EmergencyPageState extends State<EmergencyPage> {
     final result = await showTrustedContactSheet(context, contact: contact);
 
     if (result?.action == TrustedContactAction.revoke) {
+      if (!context.mounted) {
+        return;
+      }
       final isPending = contact.isPendingInvite();
       final colorScheme = getEnteColorScheme(context);
       final confirmed = await showAlertBottomSheet<bool>(
@@ -652,7 +655,7 @@ class _EmergencyPageState extends State<EmergencyPage> {
             setState(() {});
           }
         } else {
-          if (mounted) {
+          if (context.mounted) {
             await showAlertBottomSheet(
               context,
               title: context.strings.cannotUpdateRecoveryTime,
@@ -662,7 +665,7 @@ class _EmergencyPageState extends State<EmergencyPage> {
           }
         }
       } catch (e) {
-        if (mounted) {
+        if (context.mounted) {
           showShortToast(context, context.strings.somethingWentWrong);
         }
       }

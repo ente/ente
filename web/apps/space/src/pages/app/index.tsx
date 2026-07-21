@@ -45,6 +45,7 @@ const Page: React.FC = () => {
     const [friendRequestSentToastName, setFriendRequestSentToastName] =
         useState<string>();
     const [feedItems, setFeedItems] = useState<SpacePost[]>([]);
+    const [hasFeedLoadMoreError, setHasFeedLoadMoreError] = useState(false);
     const [feedNextCursor, setFeedNextCursor] = useState<string>();
     const [hasUnreadMessages, setHasUnreadMessages] = useState<boolean>();
     const [isFeedLoading, setIsFeedLoading] = useState(true);
@@ -85,6 +86,7 @@ const Page: React.FC = () => {
         const spaceId = profile?.spaceId;
         if (!spaceId) {
             setFeedItems([]);
+            setHasFeedLoadMoreError(false);
             setFeedNextCursor(undefined);
             setHasUnreadMessages(false);
             setIsFeedLoading(false);
@@ -96,6 +98,7 @@ const Page: React.FC = () => {
 
         let cancelled = false;
         setFeedItems([]);
+        setHasFeedLoadMoreError(false);
         setFeedNextCursor(undefined);
         setHasUnreadMessages(undefined);
         setIsFeedLoading(true);
@@ -153,6 +156,7 @@ const Page: React.FC = () => {
         const spaceId = profile?.spaceId;
         if (!spaceId || !feedNextCursor || isFeedLoadingMore) return;
 
+        setHasFeedLoadMoreError(false);
         setIsFeedLoadingMore(true);
         try {
             const feed = await loadCurrentFeedPage(spaceId, feedNextCursor);
@@ -169,6 +173,7 @@ const Page: React.FC = () => {
             });
             setFeedNextCursor(feed.nextCursor);
         } catch (error) {
+            setHasFeedLoadMoreError(true);
             console.error("Failed to load more space feed", error);
         } finally {
             setIsFeedLoadingMore(false);
@@ -211,6 +216,7 @@ const Page: React.FC = () => {
                 feedItems={feedItems}
                 friendsCount={friends.length}
                 friendRequestSentToastName={friendRequestSentToastName}
+                hasFeedLoadMoreError={hasFeedLoadMoreError}
                 hasUnreadMessages={hasUnreadMessages}
                 hasMoreFeedItems={Boolean(feedNextCursor)}
                 isFeedLoading={isHomeFeedLoading}
