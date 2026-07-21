@@ -182,14 +182,14 @@ class _UserAvatarWidgetState extends State<UserAvatarWidget> {
                         }
                       },
                     )
-                  : _FirstLetterCircularAvatar(
+                  : _InitialsCircularAvatar(
                       user: widget.user,
                       type: widget.type,
                       fallbackIdentity: widget.fallbackIdentity,
                     ),
             ),
           )
-        : _FirstLetterCircularAvatar(
+        : _InitialsCircularAvatar(
             user: widget.user,
             type: widget.type,
             fallbackIdentity: widget.fallbackIdentity,
@@ -197,11 +197,11 @@ class _UserAvatarWidgetState extends State<UserAvatarWidget> {
   }
 }
 
-class _FirstLetterCircularAvatar extends StatelessWidget {
+class _InitialsCircularAvatar extends StatelessWidget {
   final User user;
   final AvatarType type;
   final AvatarIdentity? fallbackIdentity;
-  const _FirstLetterCircularAvatar({
+  const _InitialsCircularAvatar({
     required this.user,
     required this.type,
     required this.fallbackIdentity,
@@ -220,7 +220,7 @@ class _FirstLetterCircularAvatar extends StatelessWidget {
       child: CircleAvatar(
         backgroundColor: avatarBackgroundColor(context, identity),
         child: Text(
-          identity.initial,
+          identity.initials,
           // fixed color
           style: textStyle.copyWith(color: Colors.white),
         ),
@@ -267,9 +267,9 @@ double getAvatarSize(AvatarType type) {
   }
 }
 
-class FirstLetterUserAvatar extends StatelessWidget {
+class UserInitialsAvatar extends StatelessWidget {
   final User user;
-  const FirstLetterUserAvatar(this.user, {super.key});
+  const UserInitialsAvatar(this.user, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -278,7 +278,7 @@ class FirstLetterUserAvatar extends StatelessWidget {
       color: avatarBackgroundColor(context, identity),
       child: Center(
         child: Text(
-          identity.initial,
+          identity.initials,
           style: getEnteTextTheme(context).small.copyWith(color: Colors.white),
         ),
       ),

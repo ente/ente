@@ -149,7 +149,7 @@ class NoFaceForContactWidget extends StatelessWidget {
             : null,
         color: enteColorScheme.fillFaint,
       ),
-      child: Center(child: FirstLetterUserAvatar(user)),
+      child: Center(child: UserInitialsAvatar(user)),
     );
   }
 }

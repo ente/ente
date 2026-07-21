@@ -839,6 +839,21 @@ class CollectionsService {
     return sharees;
   }
 
+  Future<List<User>> refreshSharees(int collectionID) async {
+    final sharees = await getSharees(collectionID);
+    final collection = _collectionIDToCollections[collectionID];
+    if (collection != null) {
+      _cacheSharees(collection, sharees);
+    }
+    return sharees;
+  }
+
+  void _cacheSharees(Collection collection, List<User> sharees) {
+    final updatedCollection = collection.copyWith(sharees: sharees);
+    _collectionIDToCollections[collection.id] = updatedCollection;
+    unawaited(_db.insert([updatedCollection]));
+  }
+
   String getCastData(
     String castToken,
     Collection collection,
@@ -873,9 +888,7 @@ class CollectionsService {
         encryptedKey: CryptoUtil.bin2base64(encryptedKey),
         role: role.toStringVal(),
       );
-      _collectionIDToCollections[collectionID] =
-          _collectionIDToCollections[collectionID]!.copyWith(sharees: sharees);
-      unawaited(_db.insert([_collectionIDToCollections[collectionID]!]));
+      _cacheSharees(_collectionIDToCollections[collectionID]!, sharees);
       RemoteSyncService.instance.sync(silently: true).ignore();
       return sharees;
     } on DioException catch (e) {
@@ -892,9 +905,7 @@ class CollectionsService {
         collectionID: collectionID,
         email: email,
       );
-      _collectionIDToCollections[collectionID] =
-          _collectionIDToCollections[collectionID]!.copyWith(sharees: sharees);
-      unawaited(_db.insert([_collectionIDToCollections[collectionID]!]));
+      _cacheSharees(_collectionIDToCollections[collectionID]!, sharees);
       RemoteSyncService.instance.sync(silently: true).ignore();
       return sharees;
     } catch (e) {

@@ -9,14 +9,17 @@ import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/core/event_bus.dart';
+import 'package:photos/events/collection_updated_event.dart';
 import 'package:photos/events/contacts_changed_event.dart';
 import 'package:photos/events/people_changed_event.dart';
 import 'package:photos/gateways/billing/models/billing_plan.dart';
 import 'package:photos/gateways/billing/models/subscription.dart';
 import 'package:photos/generated/l10n.dart';
+import 'package:photos/models/library_sharing/library_sharing_recipient.dart';
 import 'package:photos/models/user_details.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/family_service.dart';
+import 'package:photos/services/library_sharing_service.dart';
 import 'package:photos/services/machine_learning/face_ml/person/person_service.dart';
 import 'package:photos/services/photos_contacts_service.dart';
 import 'package:photos/theme/ente_theme.dart';
@@ -28,6 +31,8 @@ import 'package:photos/ui/family/family_ui.dart';
 import 'package:photos/ui/family/invite_members_page.dart';
 import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/payment/subscription.dart';
+import 'package:photos/ui/sharing/library_sharing/library_sharing_page.dart';
+import 'package:photos/ui/sharing/library_sharing/library_sharing_strings.dart';
 import 'package:photos/ui/viewer/search/result/edit_contact_page.dart';
 import 'package:photos/utils/dialog_util.dart';
 
@@ -56,9 +61,12 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
   late UserDetails _userDetails = widget.initialUserDetails;
   final Map<int, contacts.ContactRecord?> _contactsByUserId = {};
   final Map<int, Uint8List?> _profilePictureBytesByUserId = {};
+  Map<int, int> _sharedAlbumCountsByUserId = const {};
   String? _startingPrice;
   bool _isRefreshing = false;
   int _memberContactsLoadGeneration = 0;
+  int _sharedAlbumCountsLoadGeneration = 0;
+  StreamSubscription<CollectionUpdatedEvent>? _collectionUpdatedSubscription;
   StreamSubscription<ContactsChangedEvent>? _contactsChangedSubscription;
   StreamSubscription<PeopleChangedEvent>? _peopleChangedSubscription;
 
@@ -78,6 +86,8 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
 
   bool get _showsDashboard => _showsAdminDashboard || _showsMemberDashboard;
 
+  bool get _librarySharingEnabled => flagService.librarySharing;
+
   int get _remainingSlots {
     final memberCount =
         _userDetails.familyData?.members
@@ -96,6 +106,10 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
       unawaited(_refreshUserDetails());
     }
     unawaited(_loadMemberContacts());
+    unawaited(_loadSharedAlbumCounts());
+    _collectionUpdatedSubscription = Bus.instance
+        .on<CollectionUpdatedEvent>()
+        .listen(_onCollectionUpdated);
     _contactsChangedSubscription = Bus.instance
         .on<ContactsChangedEvent>()
         .listen(_onContactsChanged);
@@ -113,6 +127,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
 
   @override
   void dispose() {
+    _collectionUpdatedSubscription?.cancel();
     _contactsChangedSubscription?.cancel();
     _peopleChangedSubscription?.cancel();
     super.dispose();
@@ -126,6 +141,16 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
       return;
     }
     unawaited(_loadMemberContacts());
+  }
+
+  void _onCollectionUpdated(CollectionUpdatedEvent event) {
+    if (!mounted ||
+        !_showsDashboard ||
+        !_librarySharingEnabled ||
+        event.updatedFiles.isNotEmpty) {
+      return;
+    }
+    unawaited(_loadSharedAlbumCounts());
   }
 
   @override
@@ -355,6 +380,8 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
       contactsByUserId: _contactsByUserId,
       profilePictureBytesByUserId: _profilePictureBytesByUserId,
       linkedPersonIdsByUserId: _linkedPersonIdsFor(members),
+      librarySharingEnabled: _librarySharingEnabled,
+      sharedAlbumCountsByUserId: _sharedAlbumCountsByUserId,
       onMemberTap: _showMemberActions,
       onAddMember: () => unawaited(_openInvitePage()),
       remainingSlots: _remainingSlots,
@@ -438,6 +465,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
       }
       setState(() => _userDetails = details);
       unawaited(_loadMemberContacts());
+      unawaited(_loadSharedAlbumCounts());
     } catch (error) {
       if (mounted && showError) {
         await showGenericErrorDialog(context: context, error: error);
@@ -482,6 +510,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
       isCurrentUser: isCurrentUser,
       member: member,
       hasSavedContact: savedContact != null,
+      librarySharingEnabled: _librarySharingEnabled,
     );
     if (actions.isEmpty) {
       return;
@@ -523,6 +552,8 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
     final actionLabel = switch (action) {
       FamilyMemberAction.saveContact => l10n.saveContact,
       FamilyMemberAction.editContact => l10n.editContact,
+      FamilyMemberAction.shareAlbums =>
+        LibrarySharingStrings.internalShareAlbums,
       FamilyMemberAction.editStorageLimit => l10n.editStorageLimit,
       FamilyMemberAction.removeMember => l10n.removeFromFamily,
       FamilyMemberAction.resendInvite => l10n.resendInvite,
@@ -531,6 +562,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
     final icon = switch (action) {
       FamilyMemberAction.saveContact => HugeIcons.strokeRoundedUserAdd01,
       FamilyMemberAction.editContact => HugeIcons.strokeRoundedEdit03,
+      FamilyMemberAction.shareAlbums => HugeIcons.strokeRoundedAlbum02,
       FamilyMemberAction.editStorageLimit =>
         HugeIcons.strokeRoundedFilterHorizontal,
       FamilyMemberAction.removeMember => HugeIcons.strokeRoundedUserRemove01,
@@ -540,11 +572,18 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
     final isDestructive =
         action == FamilyMemberAction.removeMember ||
         action == FamilyMemberAction.revokeInvite;
-    final subtitle = action == FamilyMemberAction.editStorageLimit
-        ? member.storageLimit == null
-              ? l10n.noLimitSet
-              : convertBytesToReadableFormat(member.storageLimit!)
-        : null;
+    final sharedAlbumCount = _sharedAlbumCountsByUserId[member.userID];
+    final subtitle = switch (action) {
+      FamilyMemberAction.shareAlbums =>
+        sharedAlbumCount == null
+            ? null
+            : LibrarySharingStrings.sharedAlbumCount(sharedAlbumCount),
+      FamilyMemberAction.editStorageLimit =>
+        member.storageLimit == null
+            ? l10n.noLimitSet
+            : convertBytesToReadableFormat(member.storageLimit!),
+      _ => null,
+    };
 
     return MenuComponent(
       title: actionLabel,
@@ -560,6 +599,9 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
           case FamilyMemberAction.editContact:
             await _openMemberContact(member);
             break;
+          case FamilyMemberAction.shareAlbums:
+            await _openLibrarySharing(member);
+            break;
           case FamilyMemberAction.editStorageLimit:
             final updatedUserDetails = await routeToPage<UserDetails>(
               context,
@@ -568,10 +610,7 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
                 totalStorageInBytes: _userDetails.getTotalStorage(),
                 avatarColor: avatarComponentColorValue(
                   context,
-                  familyMemberAvatarComponentColor(
-                    member,
-                    currentUserEmail: _userDetails.email,
-                  ),
+                  familyMemberAvatarComponentColor(member),
                 ),
               ),
             );
@@ -672,6 +711,48 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
             resolved.profilePictureBytes;
       }
     });
+  }
+
+  Future<void> _loadSharedAlbumCounts() async {
+    if (!_librarySharingEnabled) {
+      _sharedAlbumCountsByUserId = const {};
+      return;
+    }
+    final generation = ++_sharedAlbumCountsLoadGeneration;
+    final userIDs = _familyMemberUserIDs();
+    try {
+      final counts = await LibrarySharingService().sharedAlbumCounts(userIDs);
+      if (!mounted || generation != _sharedAlbumCountsLoadGeneration) {
+        return;
+      }
+      setState(() => _sharedAlbumCountsByUserId = counts);
+    } catch (_) {
+      // Album counts are supporting information; Family remains usable when
+      // local collection state is temporarily unavailable.
+    }
+  }
+
+  Future<void> _openLibrarySharing(FamilyMember member) async {
+    final userID = member.userID;
+    if (!_librarySharingEnabled || userID == null || !member.isActive) {
+      return;
+    }
+    final savedName = _contactsByUserId[userID]?.data?.name.trim();
+    await routeToPage(
+      context,
+      LibrarySharingPage(
+        recipient: LibrarySharingRecipient(
+          userID: userID,
+          email: member.email,
+          displayName: savedName == null || savedName.isEmpty
+              ? null
+              : savedName,
+        ),
+      ),
+    );
+    if (mounted) {
+      await _loadSharedAlbumCounts();
+    }
   }
 
   Set<int> _familyMemberUserIDs() =>

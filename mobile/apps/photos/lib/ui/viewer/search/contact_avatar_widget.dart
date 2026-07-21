@@ -96,7 +96,7 @@ class _ContactAvatarWidgetState extends State<ContactAvatarWidget> {
                 },
               );
             }
-            return FirstLetterUserAvatar(_fallbackUser());
+            return UserInitialsAvatar(_fallbackUser());
           },
         ),
       ),

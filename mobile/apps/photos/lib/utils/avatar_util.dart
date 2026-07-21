@@ -56,10 +56,7 @@ class AvatarIdentity {
   final String key;
   final AvatarIdentityRole role;
 
-  String get initial {
-    final trimmed = label.trim();
-    return trimmed.isEmpty ? " " : trimmed.characters.first.toUpperCase();
-  }
+  String get initials => avatarInitials(label);
 }
 
 String avatarIdentityKey({

@@ -162,6 +162,31 @@ void main() {
     expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
   });
 
+  testWidgets("ToggleSwitchComponent can wait for a controlled value", (
+    tester,
+  ) async {
+    const selected = false;
+    final completer = Completer<void>();
+
+    await tester.pumpWidget(
+      _wrap(
+        ToggleSwitchComponent(
+          selected: selected,
+          optimisticallyUpdate: false,
+          onChanged: (_) => completer.future,
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(Switch));
+    await tester.pump();
+    expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
+
+    completer.complete();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
+  });
+
   testWidgets("ToggleSwitchComponent rolls back after async errors", (
     tester,
   ) async {
@@ -358,6 +383,49 @@ void main() {
       tester.getSize(find.byKey(const ValueKey("filter-chip-surface"))).height,
       greaterThan(40),
     );
+  });
+
+  testWidgets("SelectionSummaryChipComponent invokes only enabled actions", (
+    tester,
+  ) async {
+    var tapCount = 0;
+    await tester.pumpWidget(
+      _wrap(
+        SelectionSummaryChipComponent(
+          label: "Select all",
+          semanticLabel: "Select all",
+          icon: const HugeIcon(
+            icon: HugeIcons.strokeRoundedTick02,
+            size: IconSizes.small,
+          ),
+          onTap: () => tapCount += 1,
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey("selection-summary-chip-surface")),
+    );
+    expect(tapCount, 1);
+
+    await tester.pumpWidget(
+      _wrap(
+        const SelectionSummaryChipComponent(
+          label: "Select all",
+          semanticLabel: "Select all",
+          icon: HugeIcon(
+            icon: HugeIcons.strokeRoundedTick02,
+            size: IconSizes.small,
+          ),
+        ),
+      ),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey("selection-summary-chip-surface")),
+    );
+    expect(tapCount, 1);
+    final label = tester.widget<Text>(find.text("Select all"));
+    expect(label.style?.color, ColorTokens.light.textLighter);
   });
 
   testWidgets("FilterChipComponent keeps avatar fixed by default", (

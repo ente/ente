@@ -24,9 +24,11 @@ void main() {
           isCurrentUser: false,
           member: memberWithUserID,
           hasSavedContact: false,
+          librarySharingEnabled: true,
         ),
         [
           FamilyMemberAction.saveContact,
+          FamilyMemberAction.shareAlbums,
           FamilyMemberAction.editStorageLimit,
           FamilyMemberAction.removeMember,
         ],
@@ -37,6 +39,7 @@ void main() {
           isCurrentUser: false,
           member: memberWithoutUserID,
           hasSavedContact: false,
+          librarySharingEnabled: true,
         ),
         [FamilyMemberAction.editStorageLimit, FamilyMemberAction.removeMember],
       );
@@ -46,9 +49,11 @@ void main() {
           isCurrentUser: false,
           member: memberWithUserID,
           hasSavedContact: true,
+          librarySharingEnabled: true,
         ),
         [
           FamilyMemberAction.editContact,
+          FamilyMemberAction.shareAlbums,
           FamilyMemberAction.editStorageLimit,
           FamilyMemberAction.removeMember,
         ],
@@ -64,8 +69,9 @@ void main() {
             isCurrentUser: false,
             member: _member(userID: 42),
             hasSavedContact: true,
+            librarySharingEnabled: true,
           ),
-          [FamilyMemberAction.editContact],
+          [FamilyMemberAction.editContact, FamilyMemberAction.shareAlbums],
         );
         expect(
           familyMemberActions(
@@ -73,8 +79,9 @@ void main() {
             isCurrentUser: false,
             member: _member(userID: 42),
             hasSavedContact: false,
+            librarySharingEnabled: true,
           ),
-          [FamilyMemberAction.saveContact],
+          [FamilyMemberAction.saveContact, FamilyMemberAction.shareAlbums],
         );
         expect(
           familyMemberActions(
@@ -82,6 +89,7 @@ void main() {
             isCurrentUser: false,
             member: _member(),
             hasSavedContact: false,
+            librarySharingEnabled: true,
           ),
           isEmpty,
         );
@@ -91,6 +99,7 @@ void main() {
             isCurrentUser: true,
             member: _member(userID: 42),
             hasSavedContact: true,
+            librarySharingEnabled: true,
           ),
           isEmpty,
         );
@@ -106,6 +115,7 @@ void main() {
             isCurrentUser: false,
             member: _member(status: FamilyMemberStatus.invited, userID: 42),
             hasSavedContact: true,
+            librarySharingEnabled: true,
           ),
           [
             FamilyMemberAction.editContact,
@@ -119,30 +129,59 @@ void main() {
             isCurrentUser: false,
             member: _member(status: FamilyMemberStatus.invited),
             hasSavedContact: false,
+            librarySharingEnabled: true,
           ),
           [FamilyMemberAction.resendInvite, FamilyMemberAction.revokeInvite],
         );
       },
     );
+
+    test('gates only library sharing actions behind its flag', () {
+      final member = _member(userID: 42);
+
+      expect(
+        familyMemberActions(
+          isAdmin: true,
+          isCurrentUser: false,
+          member: member,
+          hasSavedContact: false,
+          librarySharingEnabled: false,
+        ),
+        [
+          FamilyMemberAction.saveContact,
+          FamilyMemberAction.editStorageLimit,
+          FamilyMemberAction.removeMember,
+        ],
+      );
+      expect(
+        familyMemberActions(
+          isAdmin: false,
+          isCurrentUser: false,
+          member: member,
+          hasSavedContact: true,
+          librarySharingEnabled: false,
+        ),
+        [FamilyMemberAction.editContact],
+      );
+    });
   });
 
   group('familyMemberAvatarComponentColor', () {
-    test('uses black for the current user and hashes other members', () {
+    test('hashes every member including the current user', () {
       final currentUser = _member(email: 'admin@example.com', userID: 1);
       final otherMember = _member(email: 'saved@example.com', userID: 42);
 
       expect(
-        familyMemberAvatarComponentColor(
-          currentUser,
-          currentUserEmail: 'ADMIN@example.com',
+        familyMemberAvatarComponentColor(currentUser),
+        avatarComponentColorForIdentity(
+          avatarIdentityKey(
+            email: currentUser.email,
+            userID: currentUser.userID,
+          ),
         ),
-        AvatarComponentColor.black,
       );
       expect(
-        familyMemberAvatarComponentColor(
-          otherMember,
-          currentUserEmail: currentUser.email,
-        ),
+        familyMemberAvatarComponentColor(otherMember),
         avatarComponentColorForIdentity(
           avatarIdentityKey(
             email: otherMember.email,
@@ -153,122 +192,114 @@ void main() {
     });
   });
 
-  testWidgets(
-    'renders saved contacts and no shared-album content at 375 pixels',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(375, 812));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final semantics = tester.ensureSemantics();
+  testWidgets('renders saved contacts without a storage legend at 375 pixels', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(375, 812));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final semantics = tester.ensureSemantics();
 
-      final savedMember = _member(email: 'saved@example.com', userID: 42);
-      final pendingMember = _member(
-        email: 'pending@example.com',
-        status: FamilyMemberStatus.invited,
-      );
-      final members = [
-        _member(
-          email: 'admin@example.com',
-          userID: 1,
-          isAdmin: true,
-          status: FamilyMemberStatus.self,
-        ),
-        savedMember,
-        pendingMember,
-      ];
-      FamilyMember? selectedMember;
+    final savedMember = _member(email: 'saved@example.com', userID: 42);
+    final pendingMember = _member(
+      email: 'pending@example.com',
+      status: FamilyMemberStatus.invited,
+    );
+    final members = [
+      _member(
+        email: 'admin@example.com',
+        userID: 1,
+        isAdmin: true,
+        status: FamilyMemberStatus.self,
+      ),
+      savedMember,
+      pendingMember,
+    ];
+    FamilyMember? selectedMember;
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: lightThemeData,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: FamilyDashboard(
-                  userDetails: _userDetails(members),
-                  members: members,
-                  isAdmin: true,
-                  contactsByUserId: {
-                    42: _contact(savedMember, name: 'Saved member'),
-                  },
-                  profilePictureBytesByUserId: const {},
-                  linkedPersonIdsByUserId: const {},
-                  onMemberTap: (member) => selectedMember = member,
-                  onAddMember: () {},
-                  remainingSlots: 2,
-                ),
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: lightThemeData,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: FamilyDashboard(
+                userDetails: _userDetails(members),
+                members: members,
+                isAdmin: true,
+                contactsByUserId: {
+                  42: _contact(savedMember, name: 'Saved member'),
+                },
+                profilePictureBytesByUserId: const {},
+                linkedPersonIdsByUserId: const {},
+                librarySharingEnabled: true,
+                sharedAlbumCountsByUserId: const {42: 5},
+                onMemberTap: (member) => selectedMember = member,
+                onAddMember: () {},
+                remainingSlots: 2,
               ),
             ),
           ),
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.text('admin@example.com'), findsOneWidget);
-      expect(find.text('admin'), findsOneWidget);
-      expect(find.text('Saved member'), findsNWidgets(2));
-      expect(find.text('pending@example.com'), findsOneWidget);
-      expect(
-        find.textContaining(RegExp('shared album', caseSensitive: false)),
-        findsNothing,
-      );
-      final avatars = tester
-          .widgetList<AvatarComponent>(find.byType(AvatarComponent))
-          .where((avatar) => avatar.image == null)
-          .toList();
-      expect(avatars, hasLength(3));
-      expect(
-        avatars.map((avatar) => avatar.color),
-        everyElement(
-          isIn(const [
-            AvatarComponentColor.yellow,
-            AvatarComponentColor.green,
-            AvatarComponentColor.orange,
-            AvatarComponentColor.pink,
-            AvatarComponentColor.purple,
-            AvatarComponentColor.blue,
-            AvatarComponentColor.cyan,
-            AvatarComponentColor.black,
-          ]),
-        ),
-      );
-      expect(avatars.map((avatar) => avatar.seed), everyElement(isNull));
-      final currentUserAvatar = avatars.singleWhere(
-        (avatar) => avatar.semanticLabel == 'admin@example.com',
-      );
-      expect(currentUserAvatar.color, AvatarComponentColor.black);
-      final savedMemberAvatar = avatars.singleWhere(
-        (avatar) => avatar.semanticLabel == 'Saved member',
-      );
-      expect(
-        savedMemberAvatar.color,
-        avatarComponentColorForIdentity(
-          avatarIdentityKey(
-            email: savedMember.email,
-            userID: savedMember.userID,
-          ),
-        ),
-      );
-      final crown = tester
-          .widgetList<HugeIcon>(find.byType(HugeIcon))
-          .singleWhere(
-            (icon) => identical(icon.icon, HugeIcons.strokeRoundedCrown02),
-          );
-      expect(crown.icon, HugeIcons.strokeRoundedCrown02);
-      expect(find.bySemanticsLabel(RegExp(r'Admin')), findsOneWidget);
-      semantics.dispose();
+    expect(find.text('admin@example.com'), findsOneWidget);
+    expect(find.text('admin'), findsNothing);
+    expect(find.text('Saved member'), findsOneWidget);
+    expect(find.text('pending@example.com'), findsOneWidget);
+    expect(find.textContaining('5 albums shared'), findsOneWidget);
+    final avatars = tester
+        .widgetList<AvatarComponent>(find.byType(AvatarComponent))
+        .where((avatar) => avatar.image == null)
+        .toList();
+    expect(avatars, hasLength(3));
+    expect(
+      avatars.map((avatar) => avatar.color),
+      everyElement(isIn(avatarComponentIdentityPalette)),
+    );
+    expect(avatars.map((avatar) => avatar.seed), everyElement(isNull));
+    final currentUserAvatar = avatars.singleWhere(
+      (avatar) => avatar.semanticLabel == 'admin@example.com',
+    );
+    expect(
+      currentUserAvatar.color,
+      familyMemberAvatarComponentColor(members.first),
+    );
+    final savedMemberAvatar = avatars.singleWhere(
+      (avatar) => avatar.semanticLabel == 'Saved member',
+    );
+    expect(savedMemberAvatar.initials, 'SM');
+    expect(
+      savedMemberAvatar.color,
+      avatarComponentColorForIdentity(
+        avatarIdentityKey(email: savedMember.email, userID: savedMember.userID),
+      ),
+    );
+    final crown = tester
+        .widgetList<HugeIcon>(find.byType(HugeIcon))
+        .singleWhere(
+          (icon) => identical(icon.icon, HugeIcons.strokeRoundedCrown02),
+        );
+    expect(crown.icon, HugeIcons.strokeRoundedCrown02);
+    expect(find.bySemanticsLabel(RegExp(r'Admin')), findsOneWidget);
+    semantics.dispose();
 
-      await tester.tap(find.byType(MenuComponent).at(1));
-      expect(selectedMember, same(savedMember));
-    },
-  );
+    await tester.tap(find.byType(MenuComponent).at(1));
+    expect(selectedMember, same(savedMember));
+  });
 
-  testWidgets('uses a linked Person face when no contact photo is saved', (
+  testWidgets('rings a linked Person face with its storage color for self', (
     tester,
   ) async {
-    final member = _member(email: 'me@example.com', userID: 42);
+    final member = _member(
+      email: 'admin@example.com',
+      userID: 42,
+      status: FamilyMemberStatus.self,
+    );
     final members = [member];
 
     await tester.pumpWidget(
@@ -284,6 +315,7 @@ void main() {
             contactsByUserId: const {},
             profilePictureBytesByUserId: const {},
             linkedPersonIdsByUserId: const {42: 'person-42'},
+            librarySharingEnabled: false,
             onMemberTap: (_) {},
             onAddMember: () {},
             remainingSlots: 0,
@@ -297,6 +329,112 @@ void main() {
       find.byType(PersonFaceWidget),
     );
     expect(personAvatar.personId, 'person-42');
+    final ringFinder = find.ancestor(
+      of: find.byType(PersonFaceWidget),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is DecoratedBox &&
+            widget.position == DecorationPosition.foreground &&
+            widget.decoration is BoxDecoration &&
+            (widget.decoration as BoxDecoration).shape == BoxShape.circle,
+      ),
+    );
+    expect(ringFinder, findsOneWidget);
+    final ring = tester.widget<DecoratedBox>(ringFinder);
+    final decoration = ring.decoration as BoxDecoration;
+    final border = decoration.border! as Border;
+    final avatarColor = familyMemberAvatarComponentColor(member);
+    expect(
+      border.top.color,
+      avatarComponentColorValue(
+        tester.element(find.byType(PersonFaceWidget)),
+        avatarColor,
+      ),
+    );
+  });
+
+  testWidgets('does not report zero shared albums before counts are known', (
+    tester,
+  ) async {
+    final currentUser = _member(
+      email: 'admin@example.com',
+      userID: 1,
+      isAdmin: true,
+      status: FamilyMemberStatus.self,
+    );
+    final otherMember = _member(email: 'member@example.com', userID: 42);
+    final members = [currentUser, otherMember];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: lightThemeData,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: FamilyDashboard(
+            userDetails: _userDetails(members),
+            members: members,
+            isAdmin: true,
+            contactsByUserId: const {},
+            profilePictureBytesByUserId: const {},
+            linkedPersonIdsByUserId: const {},
+            librarySharingEnabled: true,
+            onMemberTap: (_) {},
+            onAddMember: () {},
+            remainingSlots: 3,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('No albums shared'), findsNothing);
+    expect(
+      find.textContaining(RegExp('used', caseSensitive: false)),
+      findsWidgets,
+    );
+  });
+
+  testWidgets('hides shared-album counts when library sharing is disabled', (
+    tester,
+  ) async {
+    final currentUser = _member(
+      email: 'admin@example.com',
+      userID: 1,
+      isAdmin: true,
+      status: FamilyMemberStatus.self,
+    );
+    final otherMember = _member(email: 'member@example.com', userID: 42);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: lightThemeData,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: FamilyDashboard(
+            userDetails: _userDetails([currentUser, otherMember]),
+            members: [currentUser, otherMember],
+            isAdmin: true,
+            contactsByUserId: const {},
+            profilePictureBytesByUserId: const {},
+            linkedPersonIdsByUserId: const {},
+            librarySharingEnabled: false,
+            sharedAlbumCountsByUserId: const {42: 5},
+            onMemberTap: (_) {},
+            onAddMember: () {},
+            remainingSlots: 3,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('albums shared'), findsNothing);
+    expect(
+      find.textContaining(RegExp('used', caseSensitive: false)),
+      findsWidgets,
+    );
   });
 
   testWidgets('sorts other members by their displayed name or email', (
@@ -330,6 +468,7 @@ void main() {
               },
               profilePictureBytesByUserId: const {},
               linkedPersonIdsByUserId: const {},
+              librarySharingEnabled: false,
               onMemberTap: (_) {},
               onAddMember: () {},
               remainingSlots: 0,

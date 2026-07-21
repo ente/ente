@@ -36,7 +36,7 @@ class AddedByWidget extends StatelessWidget {
     }
     final colors = context.componentColors;
     final avatar = AvatarComponent(
-      initials: identity.initial,
+      initials: identity.initials,
       color: avatarComponentColorForAvatarIdentity(identity),
       size: AvatarComponentSize.defaultSize,
     );

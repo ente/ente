@@ -819,6 +819,37 @@ void main() {
     },
   );
 
+  testWidgets('SliverAppBarComponent reserves custom title height', (
+    tester,
+  ) async {
+    const customTitleKey = ValueKey('custom-title');
+    const firstItemKey = ValueKey('first-item');
+
+    await pumpComponent(
+      tester,
+      CustomScrollView(
+        slivers: [
+          SliverAppBarComponent(
+            title: 'Library sharing',
+            titleBuilderHeight: 80,
+            titleBuilder: (_, _) =>
+                const SizedBox(key: customTitleKey, height: 80),
+          ),
+          const SliverToBoxAdapter(
+            child: SizedBox(key: firstItemKey, height: 80),
+          ),
+        ],
+      ),
+      width: 390,
+      height: 600,
+    );
+
+    expect(
+      tester.getBottomLeft(find.byKey(customTitleKey)).dy,
+      lessThanOrEqualTo(tester.getTopLeft(find.byKey(firstItemKey)).dy),
+    );
+  });
+
   testWidgets('AppBarComponent lets short content stick collapsed', (
     tester,
   ) async {

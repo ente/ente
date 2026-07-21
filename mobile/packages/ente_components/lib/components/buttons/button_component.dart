@@ -23,6 +23,18 @@ enum ButtonComponentVariant {
 
 enum ButtonComponentSize { small, large }
 
+enum ButtonComponentDensity {
+  regular,
+
+  /// Opt-in Figma Button Large treatment used by selection sheets: 48px high
+  /// with the Body text token. The existing Button Small-based default remains
+  /// 52px with Body Bold.
+  /// Sources:
+  /// https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=18629-313326&m=dev
+  /// https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=15782-102259&m=dev
+  compact,
+}
+
 /// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2207-41578&m=dev
 /// Section: Buttons / Button Small
 /// Specs: 52px height, 20px radius, 24px horizontal padding.
@@ -34,6 +46,7 @@ class ButtonComponent extends StatefulWidget {
     this.onTap,
     this.variant = ButtonComponentVariant.primary,
     this.size = ButtonComponentSize.large,
+    this.density = ButtonComponentDensity.regular,
     this.isDisabled = false,
     this.shouldSurfaceExecutionStates = true,
     this.shouldShowSuccessState = true,
@@ -47,6 +60,7 @@ class ButtonComponent extends StatefulWidget {
   final FutureOr<void> Function()? onTap;
   final ButtonComponentVariant variant;
   final ButtonComponentSize size;
+  final ButtonComponentDensity density;
   final bool isDisabled;
   final bool shouldSurfaceExecutionStates;
   final bool shouldShowSuccessState;
@@ -68,7 +82,8 @@ class _ButtonComponentState extends State<ButtonComponent>
     with SingleTickerProviderStateMixin {
   static const double _executionIconSize = IconSizes.medium;
   static const double _contentMinHeight = 24;
-  static const double _verticalPadding = 14;
+  static const double _regularVerticalPadding = 14;
+  static const double _compactVerticalPadding = 12;
   static const Duration _loadingDelay = Duration(milliseconds: 300);
   static const Duration _successDisplayDuration = Duration(seconds: 1);
   static const Duration _minimumPressDuration = Duration(milliseconds: 120);
@@ -241,11 +256,14 @@ class _ButtonComponentState extends State<ButtonComponent>
     final underlined =
         widget.variant == ButtonComponentVariant.link ||
         widget.variant == ButtonComponentVariant.tertiaryCritical;
+    final textStyle = widget.density == ButtonComponentDensity.compact
+        ? TextStyles.body
+        : TextStyles.bodyBold;
     final label = Text(
       widget.label,
       overflow: TextOverflow.ellipsis,
       maxLines: 2,
-      style: TextStyles.bodyBold.copyWith(
+      style: textStyle.copyWith(
         color: foreground,
         decoration: underlined ? TextDecoration.underline : null,
         decorationColor: underlined ? foreground : null,
@@ -340,7 +358,9 @@ class _ButtonComponentState extends State<ButtonComponent>
   }
 
   double get _buttonVerticalPadding {
-    return _verticalPadding;
+    return widget.density == ButtonComponentDensity.compact
+        ? _compactVerticalPadding
+        : _regularVerticalPadding;
   }
 
   _ResolvedButtonColors _colors(BuildContext context) {
