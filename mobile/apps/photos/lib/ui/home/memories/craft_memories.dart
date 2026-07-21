@@ -30,7 +30,7 @@ class _CraftMemoriesState extends State<CraftMemories> {
     super.initState();
     _riveFileLoader = rive.FileLoader.fromAsset(
       "assets/memories.riv",
-      riveFactory: rive.Factory.flutter,
+      riveFactory: rive.Factory.rive,
     );
   }
 

@@ -15,6 +15,7 @@ import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/collections/album/column_item.dart";
 import "package:photos/ui/collections/album/new_list_item.dart";
 import "package:photos/ui/components/thumbnail_list_item.dart";
+import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/utils/dialog_util.dart";
 
@@ -547,7 +548,10 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                                         context,
                                                       )) {
                                                 if (context.mounted) {
-                                                  Navigator.of(context).pop();
+                                                  showToast(
+                                                    context,
+                                                    "Notifications denied",
+                                                  );
                                                 }
                                                 return;
                                               }
