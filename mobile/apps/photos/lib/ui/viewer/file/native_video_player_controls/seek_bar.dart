@@ -70,8 +70,8 @@ class _SeekBarState extends State<SeekBar> with SingleTickerProviderStateMixin {
           data: SliderTheme.of(context).copyWith(
             trackHeight: 1.0,
             tickMarkShape: SliderTickMarkShape.noTickMark,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8.0),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0),
             activeTrackColor: backgroundElevatedLight,
             inactiveTrackColor: fillMutedDark,
             thumbColor: backgroundElevatedLight,

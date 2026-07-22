@@ -1,6 +1,7 @@
 use crate::Result;
 use crate::api::AppClient;
 use crate::api::methods::ApiMethods;
+use crate::live_photo::extract_live_photo;
 use crate::models::{
     account::Account,
     export_metadata::{AlbumMetadata, DiskFileMetadata},
@@ -12,7 +13,6 @@ use crate::sync::SyncEngine;
 use base64::Engine;
 use ente_core::crypto;
 use std::collections::HashMap;
-use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
@@ -80,8 +80,9 @@ async fn load_album_metadata(
 
         // Check if the actual file exists
         for filename in &disk_metadata.info.file_names {
+            let filename = validate_stored_file_name(filename)?;
             let file_path = export_path.join(album_name).join(filename);
-            if file_path.exists() {
+            if file_path.try_exists()? {
                 existing_files.insert(
                     disk_metadata.info.id,
                     ExistingFile {
@@ -1027,31 +1028,53 @@ fn decrypt_file_key(encrypted_key: &str, nonce: &str, collection_key: &[u8]) -> 
 
 // Removed generate_fallback_filename - Go CLI panics if no title, we return error instead
 
+/// Reduce a sanitized name to a single path component, never `.`, `..`, or empty.
+fn safe_path_component(name: String) -> String {
+    let trimmed = name.trim();
+    if trimmed.is_empty() || trimmed == "." || trimmed == ".." {
+        "_".to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
+fn validate_stored_file_name(name: &str) -> Result<&str> {
+    let path = Path::new(name);
+    if path.file_name() == Some(path.as_os_str()) {
+        Ok(name)
+    } else {
+        Err(crate::Error::Generic(format!(
+            "Unsafe filename in export metadata: {name:?}"
+        )))
+    }
+}
+
 /// Sanitize a filename for the filesystem
 fn sanitize_filename(name: &str) -> String {
-    name.chars()
+    let sanitized = name
+        .chars()
         .map(|c| match c {
             '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => '_',
             '\0' => '_',
             c if c.is_control() => '_',
             c => c,
         })
-        .collect::<String>()
-        .trim()
-        .to_string()
+        .collect::<String>();
+    safe_path_component(sanitized)
 }
 
-/// Sanitize an album/collection name for filesystem (matching Go CLI's logic)
+/// Sanitize an album/collection name into a safe single path component
 fn sanitize_album_name(name: &str) -> String {
-    // Go CLI replaces : and / with _ in album names
-    name.chars()
+    let sanitized = name
+        .chars()
         .map(|c| match c {
-            ':' | '/' => '_',
+            '/' | '\\' | ':' => '_',
+            '\0' => '_',
+            c if c.is_control() => '_',
             c => c,
         })
-        .collect::<String>()
-        .trim()
-        .to_string()
+        .collect::<String>();
+    safe_path_component(sanitized)
 }
 
 /// Decrypt file metadata
@@ -1107,79 +1130,6 @@ fn decrypt_magic_metadata(
     // Parse as generic JSON since magic metadata structure can vary
     let metadata: serde_json::Value = serde_json::from_slice(&decrypted)?;
     Ok(Some(metadata))
-}
-
-/// Extract live photo components from a ZIP file
-async fn extract_live_photo(zip_data: &[u8], output_path: &Path) -> Result<()> {
-    use zip::ZipArchive;
-
-    // Parse the ZIP archive
-    let cursor = Cursor::new(zip_data);
-    let mut archive = ZipArchive::new(cursor)?;
-
-    // Get the parent directory and base name
-    let parent_dir = output_path
-        .parent()
-        .ok_or_else(|| crate::Error::Generic("Invalid output path".into()))?;
-
-    let base_name = output_path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .ok_or_else(|| crate::Error::Generic("Invalid filename".into()))?;
-
-    // Extract each file from the ZIP
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i)?;
-        let file_name = file.name().to_string();
-
-        // Determine the output filename preserving original extension
-        // Following Go CLI's approach: use the actual extension from the file in the ZIP
-        let output_file_path = if file_name.to_lowercase().contains("image") {
-            // Image component - preserve its original extension
-            let ext = std::path::Path::new(&file_name)
-                .extension()
-                .and_then(|e| e.to_str())
-                .ok_or_else(|| {
-                    crate::Error::Generic(format!(
-                        "Live photo image component has no extension: {}",
-                        file_name
-                    ))
-                })?;
-            parent_dir.join(format!("{}.{}", base_name, ext))
-        } else if file_name.to_lowercase().contains("video") {
-            // Video component - preserve its original extension
-            let ext = std::path::Path::new(&file_name)
-                .extension()
-                .and_then(|e| e.to_str())
-                .ok_or_else(|| {
-                    crate::Error::Generic(format!(
-                        "Live photo video component has no extension: {}",
-                        file_name
-                    ))
-                })?;
-            parent_dir.join(format!("{}.{}", base_name, ext))
-        } else {
-            // Go CLI returns error for unexpected files in live photo ZIP
-            return Err(crate::Error::Generic(format!(
-                "Unexpected file in live photo ZIP: {}",
-                file_name
-            )));
-        };
-
-        // Read the file contents
-        let mut contents = Vec::new();
-        use std::io::Read;
-        file.read_to_end(&mut contents)?;
-
-        // Write to disk
-        let mut output_file = fs::File::create(&output_file_path).await?;
-        output_file.write_all(&contents).await?;
-        output_file.sync_all().await?;
-
-        log::debug!("Extracted live photo component: {:?}", output_file_path);
-    }
-
-    Ok(())
 }
 
 /// Check if a collection is hidden based on its metadata
@@ -1269,4 +1219,25 @@ async fn write_file_metadata(
     fs::write(&meta_path, json).await?;
 
     Ok(meta_path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_stored_file_name;
+
+    #[test]
+    fn validates_stored_file_names_without_rewriting() {
+        assert_eq!(validate_stored_file_name("a*b.jpg").unwrap(), "a*b.jpg");
+
+        for name in [
+            "",
+            ".",
+            "..",
+            "../photo.jpg",
+            "album/photo.jpg",
+            "/photo.jpg",
+        ] {
+            assert!(validate_stored_file_name(name).is_err());
+        }
+    }
 }

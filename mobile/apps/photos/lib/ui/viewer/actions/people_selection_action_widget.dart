@@ -352,12 +352,12 @@ class _PeopleSelectionActionWidgetState
     final selectedPersonIds = _getSelectedPersonIds(personMap);
     if (selectedPersonIds.isEmpty) return;
     if (!mounted) return;
-    showCollectionActionSheet(
+    widget.selectedPeople.clearAll();
+    await showCollectionActionSheet(
       context,
       selectedPeople: selectedPersonIds,
       actionType: CollectionActionType.autoAddPeople,
     );
-    widget.selectedPeople.clearAll();
   }
 
   Future<void> _updatePinState(bool shouldPin) async {

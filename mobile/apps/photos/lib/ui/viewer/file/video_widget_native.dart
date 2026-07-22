@@ -877,6 +877,10 @@ class _SeekBarAndDuration extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final caption = file.caption;
+    final textStyle = getEnteTextTheme(
+      context,
+    ).mini.copyWith(color: textBaseDark);
     return ValueListenableBuilder(
       valueListenable: showControls,
       builder: (BuildContext context, bool value, _) {
@@ -889,58 +893,57 @@ class _SeekBarAndDuration extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Container(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.3),
                   borderRadius: const BorderRadius.all(Radius.circular(8)),
                   border: Border.all(color: strokeFaintDark, width: 1),
                 ),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    file.caption != null && file.caption!.isNotEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 8, 0, 12),
-                            child: GestureDetector(
-                              onTap: () {
-                                showDetailsSheet(context, file);
-                              },
-                              child: Text(
-                                file.caption!,
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                                style: getEnteTextTheme(
-                                  context,
-                                ).mini.copyWith(color: textBaseDark),
+                    if (caption != null && caption.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+                        child: GestureDetector(
+                          onTap: () => showDetailsSheet(context, file),
+                          child: Row(
+                            children: [
+                              Text('"', style: textStyle),
+                              Flexible(
+                                child: Text(
+                                  caption,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: textStyle,
+                                ),
                               ),
+                              Text('"', style: textStyle),
+                            ],
+                          ),
+                        ),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          AnimatedSize(
+                            duration: const Duration(seconds: 5),
+                            curve: Curves.easeInOut,
+                            child: Text(
+                              secondsToDuration(position ~/ 1000),
+                              style: textStyle,
                             ),
-                          )
-                        : const SizedBox.shrink(),
-                    Row(
-                      children: [
-                        AnimatedSize(
-                          duration: const Duration(seconds: 5),
-                          curve: Curves.easeInOut,
-                          child: Text(
-                            secondsToDuration(position ~/ 1000),
-                            style: getEnteTextTheme(
-                              context,
-                            ).mini.copyWith(color: textBaseDark),
                           ),
-                        ),
-                        Expanded(
-                          child: SeekBar(
-                            controller!,
-                            durationToSeconds(duration),
-                            isSeeking,
+                          Expanded(
+                            child: SeekBar(
+                              controller!,
+                              durationToSeconds(duration),
+                              isSeeking,
+                            ),
                           ),
-                        ),
-                        Text(
-                          duration ?? "0:00",
-                          style: getEnteTextTheme(
-                            context,
-                          ).mini.copyWith(color: textBaseDark),
-                        ),
-                      ],
+                          Text(duration ?? "0:00", style: textStyle),
+                        ],
+                      ),
                     ),
                   ],
                 ),

@@ -295,48 +295,76 @@ class CollectionsService {
     return false;
   }
 
-  /// Returns the count of shared collections containing this file.
-  /// Uses early exit optimization - stops counting at 2.
+  /// Returns the shared collections containing [uploadedFileID].
   ///
-  /// Returns:
-  /// - 0: File not in any shared collection
-  /// - 1: File in exactly one shared collection
-  /// - 2: File in multiple shared collections (early exit)
-  Future<int> getSharedCollectionCountForFile(int uploadedFileID) async {
+  /// A collection is considered shared if it has sharees, has a public link,
+  /// or is owned by someone else (incoming share).
+  Future<List<Collection>> getSharedCollectionsForFile(
+    int uploadedFileID, {
+    bool includeHidden = false,
+  }) async {
     final Set<int> collectionIDs = await _filesDB.getAllCollectionIDsOfFile(
       uploadedFileID,
     );
-
-    if (collectionIDs.isEmpty) {
-      return 0;
-    }
-
     final int? currentUserID = _config.getUserID();
-    if (currentUserID == null) {
-      return 0;
+    if (collectionIDs.isEmpty || currentUserID == null) {
+      return [];
     }
 
-    int sharedCount = 0;
-    for (final int collectionID in collectionIDs) {
-      final Collection? collection = _collectionIDToCollections[collectionID];
-
-      if (collection == null || collection.isDeleted) {
-        continue;
-      }
-
-      // Same logic as isFileInSharedCollection
-      if (collection.hasSharees ||
-          collection.hasLink ||
-          !collection.isOwner(currentUserID)) {
-        sharedCount++;
-        // Early exit: we only need to distinguish between 0, 1, and >1
-        if (sharedCount > 1) {
-          return 2;
-        }
+    final sharedCollections = <Collection>[];
+    for (final collectionID in collectionIDs) {
+      final collection = _collectionIDToCollections[collectionID];
+      if (_isEligibleSharedCollection(
+        collection,
+        currentUserID,
+        includeHidden: includeHidden,
+      )) {
+        sharedCollections.add(collection!);
       }
     }
+    return sharedCollections;
+  }
 
-    return sharedCount;
+  /// Returns IDs of shared collections containing [uploadedFileID].
+  ///
+  /// Use this to scope social content on the view path without constructing a
+  /// list of collection objects.
+  Future<List<int>> getSharedCollectionIDsForFile(
+    int uploadedFileID, {
+    bool includeHidden = false,
+  }) async {
+    final collectionIDs = await _filesDB.getAllCollectionIDsOfFile(
+      uploadedFileID,
+    );
+    final currentUserID = _config.getUserID();
+    if (collectionIDs.isEmpty || currentUserID == null) {
+      return [];
+    }
+
+    final sharedCollectionIDs = <int>[];
+    for (final collectionID in collectionIDs) {
+      if (_isEligibleSharedCollection(
+        _collectionIDToCollections[collectionID],
+        currentUserID,
+        includeHidden: includeHidden,
+      )) {
+        sharedCollectionIDs.add(collectionID);
+      }
+    }
+    return sharedCollectionIDs;
+  }
+
+  bool _isEligibleSharedCollection(
+    Collection? collection,
+    int currentUserID, {
+    required bool includeHidden,
+  }) {
+    return collection != null &&
+        !collection.isDeleted &&
+        (includeHidden || !collection.isHidden()) &&
+        (collection.hasSharees ||
+            collection.hasLink ||
+            !collection.isOwner(currentUserID));
   }
 
   Future<List<Collection>> getArchivedCollection() async {
