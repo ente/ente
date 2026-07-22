@@ -27,6 +27,7 @@ import 'package:photos/module/upload/model/media_upload_data.dart';
 import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/src/rust/api/motion_photo_api.dart";
 import "package:photos/utils/apple_photos_errors.dart";
+import "package:photos/utils/device_storage_error.dart";
 import "package:photos/utils/image_util.dart";
 import 'package:video_thumbnail/video_thumbnail.dart';
 
@@ -226,6 +227,10 @@ Future<Uint8List?> _getThumbnailForUpload(
     }
     return compressThumbnailToSizeLimit(thumbnailData);
   } catch (e) {
+    if (isDeviceStorageFullError(e)) {
+      // Not a problem with the file; don't mark it as invalid/ignored.
+      rethrow;
+    }
     final String errMessage =
         "thumbErr for ${file.fileType}, ${extension(file.displayName)} ${file.tag}";
     _logger.warning(errMessage, e);
@@ -362,6 +367,10 @@ Future<Uint8List?> _getAppCacheThumbnailForUpload(EnteFile file) async {
   try {
     return await getThumbnailFromInAppCacheFile(file);
   } catch (e, s) {
+    if (isDeviceStorageFullError(e)) {
+      // Not a problem with the file; don't mark it as invalid/ignored.
+      rethrow;
+    }
     _logger.warning("failed to generate thumbnail", e, s);
     throw InvalidFileError(
       "thumbnail failed for appCache fileType: ${file.fileType.toString()}",

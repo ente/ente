@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:photos/core/errors.dart';
 import 'package:photos/models/backup/backup_item.dart';
 import 'package:photos/models/backup/backup_item_status.dart';
 import 'package:photos/models/backup/backup_items_change.dart';
@@ -129,6 +130,40 @@ void main() {
     expect(queue.backupItems['active']!.status, BackupItemStatus.uploading);
     expect(queue.backupItems['pending-1']!.status, BackupItemStatus.retry);
     expect(queue.backupItems['pending-2']!.status, BackupItemStatus.retry);
+    await firstResult;
+    await secondResult;
+    queue.finishAttempt(active);
+  });
+
+  test(
+      'device-storage-full clear stops pending uploads without losing them',
+      () async {
+    final queue = UploadQueue((_) {});
+    final active = queue.add(_file('active'), 1).item;
+    final firstPending = queue.add(_file('pending-1'), 1).item;
+    final secondPending = queue.add(_file('pending-2'), 1).item;
+    _start(queue);
+    final error = DeviceStorageFullError();
+    final firstResult = expectLater(
+      firstPending.completer.future,
+      throwsA(error),
+    );
+    final secondResult = expectLater(
+      secondPending.completer.future,
+      throwsA(error),
+    );
+
+    queue.clear(error);
+
+    // Pending items stop immediately (no further materialization/encryption
+    // attempts against a full disk), but stay tracked for retry once storage
+    // is freed; nothing is marked uploaded or dropped.
+    expect(queue.backupItems['pending-1']!.status, BackupItemStatus.retry);
+    expect(queue.backupItems['pending-1']!.error, same(error));
+    expect(queue.backupItems['pending-2']!.status, BackupItemStatus.retry);
+    expect(queue.backupItems['pending-2']!.error, same(error));
+    expect(queue.backupItems['active']!.status, BackupItemStatus.uploading);
+    expect(queue.sessionUploadCount, 0);
     await firstResult;
     await secondResult;
     queue.finishAttempt(active);

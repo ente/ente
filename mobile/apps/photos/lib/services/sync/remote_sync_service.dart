@@ -39,6 +39,7 @@ import 'package:photos/services/social_notification_coordinator.dart';
 import 'package:photos/services/social_sync_service.dart';
 import 'package:photos/services/sync/diff_fetcher.dart';
 import 'package:photos/services/sync/sync_service.dart';
+import 'package:photos/utils/device_storage_error.dart';
 import 'package:photos/utils/network_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -218,6 +219,7 @@ class RemoteSyncService {
             NoActiveSubscriptionError,
             WiFiUnavailableError,
             StorageLimitExceededError,
+            DeviceStorageFullError,
             SyncStopRequestedError,
             NoMediaLocationAccessError,
           }.contains(e.runtimeType)) {
@@ -764,7 +766,12 @@ class RemoteSyncService {
       await Future.wait(futures);
     } on InvalidFileError {
       // Do nothing
-    } on FileSystemException {
+    } on FileSystemException catch (e) {
+      if (isDeviceStorageFullError(e)) {
+        // The device itself is out of space; surface it so that backup shows
+        // an actionable error state instead of silently retrying.
+        throw DeviceStorageFullError(e);
+      }
       // Do nothing since it's caused mostly due to concurrency issues
       // when the foreground app deletes temporary files, interrupting a background
       // upload
