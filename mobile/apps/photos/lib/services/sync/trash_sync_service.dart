@@ -244,15 +244,10 @@ class TrashSyncService {
     await _gateway.trashFiles(items);
   }
 
-  Future<void> markTrashedOnDevice(
+  Future<void> insertTrashedOnDevice(
     Map<int, String> localIDsByUploadedID,
   ) async {
-    final markedCount = await _trashDB.markTrashedOnDevice(
-      localIDsByUploadedID,
-    );
-    if (markedCount > 0) {
-      Bus.instance.fire(TrashUpdatedEvent());
-    }
+    await _trashDB.insertTrashedOnDevice(localIDsByUploadedID);
   }
 
   Future<void> deleteFromTrash(List<EnteFile> files) async {
