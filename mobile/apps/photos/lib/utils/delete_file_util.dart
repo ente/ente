@@ -128,16 +128,13 @@ Future<void> deleteFilesFromEverywhere(
       final fileIDs = uploadedFilesToBeTrashed
           .map((item) => item.fileID)
           .toList();
-      final trashedLocalIDsByUploadedID = <int, String>{
-        for (final file in deletedFiles)
-          if (file.uploadedFileID != null &&
-              file.localID != null &&
-              result.trashedIDs.contains(file.localID))
-            file.uploadedFileID!: file.localID!,
-      };
       await trashSyncService.trashFilesOnServer(
         uploadedFilesToBeTrashed,
-        localIDsByUploadedID: trashedLocalIDsByUploadedID,
+        deviceLocalIDs: {
+          for (final file in deletedFiles)
+            if (result.trashedIDs.contains(file.localID))
+              ?file.uploadedFileID: ?file.localID,
+        },
       );
       await FilesDB.instance.deleteMultipleUploadedFiles(fileIDs);
     } catch (e) {

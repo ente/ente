@@ -107,7 +107,7 @@ class TrashSyncService {
 
   Future<void> trashFilesOnServer(
     List<TrashRequest> trashRequestItems, {
-    Map<int, String> localIDsByUploadedID = const {},
+    Map<int, String> deviceLocalIDs = const {},
   }) async {
     final includedFileIDs = <int>{};
     final uniqueItems = <TrashRequest>[];
@@ -141,18 +141,11 @@ class TrashSyncService {
         }
       }
     }
-    final batchedItems = uniqueItems.chunks(batchSize);
-    for (final batch in batchedItems) {
-      final batchLocalIDsByUploadedID = <int, String>{};
-      for (final item in batch) {
-        final localID = localIDsByUploadedID[item.fileID];
-        if (localID != null) {
-          batchLocalIDsByUploadedID[item.fileID] = localID;
-        }
-      }
-      await _trashDB.insertTrashedOnDevice(batchLocalIDsByUploadedID);
-      final items = batch.map((item) => item.toJson()).toList();
-      await _trashFiles(items);
+    for (final batch in uniqueItems.chunks(batchSize)) {
+      await _trashDB.markTrashedOnDevice({
+        for (final item in batch) item.fileID: ?deviceLocalIDs[item.fileID],
+      });
+      await _trashFiles(batch.map((item) => item.toJson()).toList());
     }
   }
 
