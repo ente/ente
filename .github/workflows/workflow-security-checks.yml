@@ -12,19 +12,24 @@ permissions:
 
 jobs:
   workflow-security-checks:
-    runs-on: ubuntu-latest
+    if: github.repository == 'vanton1/ente'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     environment:
       # Require admin approval for workflow changes.
       name: workflow-change-approval
     steps:
       - name: Checkout PR
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Checkout trusted checker
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           path: trusted
+          persist-credentials: false
           sparse-checkout: .github/scripts/check_workflow_security.rb
           sparse-checkout-cone-mode: false
 

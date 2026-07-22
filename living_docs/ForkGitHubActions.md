@@ -16,7 +16,7 @@
 | 1 | 1.2 | Remove inherited deployment, release, translation, and scheduled runner automation | M | 🟢 done | Deleted the 23 audited upstream release, deployment, translation, container-publication, cache-warming, stale-PR, and scheduled product-build workflows. The 15 intentionally deferred or retained checks still parse; workflow security passes across the remaining 17 workflow/action files. No GitHub setting or external application, server, signing, distribution, issue, or pull-request state changed. |
 | 2 | 2.1 | Add Linux CI for the self-hosted Photos mobile behavior and source quality | M | 🟢 done | Replaced the inherited broad mobile lint with a least-privilege Linux workflow and one reproducible script covering standard, configurable, and locked endpoint modes, Linux-portable Android release contracts, generated Rust bindings, tracked-Dart formatting, and full mobile analysis. Local proof: 181 focused tests passed across the three modes, formatting was unchanged, analysis reported no issues, the workflow parses, and the workflow-security contract passes. |
 | 2 | 2.2 | Add macOS CI for the self-hosted iOS contracts and deterministic CocoaPods state | M | 🟢 done | Replaced the all-app Podfile check with a Photos-only macOS workflow that pins Flutter, Ruby, and CocoaPods 1.17.0, runs the four Apple-tool/release contracts, and verifies `pod install --deployment` without signing or publication. Local proof: all 51 iOS tests passed, the pinned Podfile installed with no tracked changes, the workflow parses, and workflow security passes. |
-| 2 | 2.3 | Preserve and harden upstream-drift and workflow-security checks | S | ⚪ not started | Retain the fork-specific drift issue and workflow security boundary while minimizing permissions, credentials, triggers, and untrusted pull-request exposure. |
+| 2 | 2.3 | Preserve and harden upstream-drift and workflow-security checks | S | 🟢 done | Kept the two fork-owned maintenance workflows, moved both to a fixed Ubuntu image, added the exact fork guard and timeout to the trusted workflow checker, and disabled persisted checkout credentials in both of its checkouts. The drift job remains schedule/manual only with the minimum `contents: read` and `issues: write` permissions. All 42 Ruby/Node drift contracts and 187 assertions passed with the workflow-security scan. |
 | 3 | 3.1 | Repair dependency review and retain only useful security scanning | M | ⚪ not started | Enable or adapt supported GitHub dependency features and keep CodeQL coverage only where it produces relevant, actionable results for this fork. |
 | 3 | 3.2 | Remove remaining unrelated product and monorepo checks | S | ⚪ not started | Remove inherited Ensu, Auth, Locker, desktop, web, server, Rust, docs, infrastructure, and other checks that do not protect the self-hosted Photos mobile fork. |
 | 3 | 3.3 | Enforce the exact fork workflow allowlist and security contract | M | ⚪ not started | Reject unapproved workflow files, unpinned actions, excessive permissions, unsafe triggers, or silently reintroduced upstream automation. |
@@ -214,6 +214,22 @@ in the 38-file inherited inventory.
 > Append-only. Newest entries stay on top. Never delete an entry; if a decision
 > changes, add a newer entry explaining the reversal.
 
+### 2026-07-22 — Keep maintenance mutations isolated from pull requests
+
+**Decision:** Keep upstream drift detection on schedule/manual triggers with
+only `contents: read` and `issues: write`, and keep pull-request workflow
+validation read-only behind its existing approval environment. Disable
+persisted Git credentials for every checkout and require the exact fork name.
+
+**Why:** The drift reconciler legitimately mutates one tracking issue but never
+runs pull-request code. The workflow checker does run pull-request source, so
+it receives no write token and executes the trusted checker from the base
+revision.
+
+**Alternatives considered:** Combine maintenance checks, which would mix write
+authority with untrusted code, or remove the approval boundary, which would
+weaken review of workflow changes.
+
 ### 2026-07-22 — Match CocoaPods to the checked-in lockfile
 
 **Decision:** Pin Ruby 3.3 and CocoaPods 1.17.0 in the macOS workflow, verify
@@ -388,3 +404,14 @@ with the resolution as the decision._
 - Removing high-risk automation first leaves a much smaller review surface:
   15 workflow files remain for replacement, hardening, or deferred removal,
   and none of the deleted files was needed to validate that reduced set.
+
+### Phase 2 — Separate portable checks and authority boundaries
+
+- Platform contracts are clearest when Linux owns portable behavior and source
+  quality while macOS owns real Apple tooling and CocoaPods.
+- A dependency lockfile is only deterministic when CI also pins the tool that
+  generated its metadata; CocoaPods 1.16.2 and 1.17.0 produced different
+  deployment results from identical source.
+- Pull-request validation and issue mutation should remain separate workflows:
+  the former can stay read-only, while the latter never evaluates untrusted PR
+  code.
