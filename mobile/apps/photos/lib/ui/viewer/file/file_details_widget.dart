@@ -23,6 +23,7 @@ import "package:photos/module/download/file.dart";
 import "package:photos/module/metadata/exif.dart";
 import "package:photos/module/metadata/video.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/services/collections_service.dart";
 import "package:photos/services/file_magic_service.dart";
 import "package:photos/ui/components/divider_widget.dart";
 import 'package:photos/ui/viewer/file/file_caption_widget.dart';
@@ -157,6 +158,16 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
     //not be rendered only if a condition is met.
     final fileDetailsTiles = <Widget>[];
     final bool canEditCaption = isFileOwner && !file.isTrash;
+    final sourceCollectionID = file.collectionID;
+    final collectionsService = CollectionsService.instance;
+    final showHiddenCollections =
+        sourceCollectionID != null &&
+        (sourceCollectionID ==
+                collectionsService.cachedDefaultHiddenCollection?.id ||
+            (collectionsService
+                    .getCollectionByID(sourceCollectionID)
+                    ?.isHidden() ??
+                false));
     fileDetailsTiles.add(
       !widget.file.isUploaded ||
               (!canEditCaption && (widget.file.caption?.isEmpty ?? true))
@@ -266,7 +277,11 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
 
     if (!file.isTrash) {
       fileDetailsTiles.addAll([
-        AlbumsItemWidget(file, _currentUserID),
+        AlbumsItemWidget(
+          file,
+          _currentUserID,
+          showHiddenCollections: showHiddenCollections,
+        ),
         const SizedBox(height: Spacing.xxl),
       ]);
     }

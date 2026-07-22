@@ -17,7 +17,13 @@ import "package:photos/ui/viewer/gallery/collection_page.dart";
 class AlbumsItemWidget extends StatelessWidget {
   final EnteFile file;
   final int currentUserID;
-  const AlbumsItemWidget(this.file, this.currentUserID, {super.key});
+  final bool showHiddenCollections;
+  const AlbumsItemWidget(
+    this.file,
+    this.currentUserID, {
+    required this.showHiddenCollections,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +93,9 @@ class AlbumsItemWidget extends StatelessWidget {
       if (!context.mounted) return const [];
       for (var collectionID in collectionIDs) {
         final c = CollectionsService.instance.getCollectionByID(collectionID)!;
+        if (c.isHidden() && !showHiddenCollections) {
+          continue;
+        }
         chips.add(
           FilterChipComponent(
             label: c.isHidden()
