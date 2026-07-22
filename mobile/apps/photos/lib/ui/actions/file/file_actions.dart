@@ -13,6 +13,7 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/media_store_service.dart";
 import "package:photos/ui/notification/toast.dart";
 import 'package:photos/ui/viewer/file/file_details_widget.dart';
+import "package:photos/ui/viewer/file_details_new/file_details_sheet.dart";
 import "package:photos/utils/delete_file_util.dart";
 
 Future<void> showSingleFileDeleteSheet(
@@ -101,6 +102,10 @@ Future<void> showSingleFileDeleteSheet(
 }
 
 Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
+  if (Platform.isAndroid && localSettings.useNewFileDetailsSheet) {
+    await showFileDetailsNewSheet(context, file);
+    return;
+  }
   if (file.canEditMetaInfo && file.isPanorama() == null) {
     guardedCheckPanorama(file).ignore();
   }
