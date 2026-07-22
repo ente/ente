@@ -31,30 +31,26 @@ class _CreationTimeItemNewState extends State<CreationTimeItemNew> {
             widget.file.ownerID == widget.currentUserID) &&
         widget.file.uploadedFileID != null &&
         !widget.file.isTrash;
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
+    return FileDetailsInfoItemNew(
+      leading: HugeIcon(
+        icon: HugeIcons.strokeRoundedCalendar04,
+        size: IconSizes.small,
+        color: colors.textLight,
+      ),
+      title: DateFormat.yMMMEd(
+        Localizations.localeOf(context).languageCode,
+      ).format(dateTime),
+      subtitles: [
+        Text(
+          getTimeIn12hrFormat(dateTime),
+          style: TextStyles.mini.copyWith(color: colors.textLight),
+        ),
+      ],
       onTap: () {
         Bus.instance.fire(PauseVideoEvent());
         routeToPage(context, JumpToDateGallery(fileToJumpTo: widget.file));
       },
-      child: FileDetailsInfoItemNew(
-        key: const ValueKey("Creation time new"),
-        leading: HugeIcon(
-          icon: HugeIcons.strokeRoundedCalendar04,
-          size: IconSizes.small,
-          color: colors.textLight,
-        ),
-        title: DateFormat.yMMMEd(
-          Localizations.localeOf(context).languageCode,
-        ).format(dateTime),
-        subtitles: [
-          Text(
-            getTimeIn12hrFormat(dateTime),
-            style: TextStyles.mini.copyWith(color: colors.textLight),
-          ),
-        ],
-        onEdit: canEdit ? _showDateTimePicker : null,
-      ),
+      onEdit: canEdit ? _showDateTimePicker : null,
     );
   }
 
