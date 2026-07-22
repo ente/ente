@@ -46,6 +46,7 @@ class _FileDetailsNewWidgetState extends State<FileDetailsNewWidget> {
 
   late final FileDetailsMetadataController _metadata;
   late final int _currentUserID;
+  Timer? _metadataTimer;
 
   @override
   void initState() {
@@ -57,14 +58,15 @@ class _FileDetailsNewWidgetState extends State<FileDetailsNewWidget> {
     );
     if (widget.file.fileType == FileType.image ||
         widget.file.fileType == FileType.livePhoto) {
-      Timer(_metadataDelay, _metadata.loadExif);
+      _metadataTimer = Timer(_metadataDelay, _metadata.loadExif);
     } else if (widget.file.isVideo && flagService.internalUser) {
-      Timer(_videoMetadataDelay, _metadata.loadVideo);
+      _metadataTimer = Timer(_videoMetadataDelay, _metadata.loadVideo);
     }
   }
 
   @override
   void dispose() {
+    _metadataTimer?.cancel();
     _metadata.dispose();
     super.dispose();
   }

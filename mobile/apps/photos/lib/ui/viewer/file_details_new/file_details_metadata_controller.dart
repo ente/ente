@@ -31,9 +31,15 @@ class FileDetailsMetadataController {
   Future<void>? _videoLoad;
   bool _disposed = false;
 
-  Future<void> loadExif() => _exifLoad ??= _loadExif();
+  Future<void> loadExif() {
+    if (_disposed) return Future<void>.value();
+    return _exifLoad ??= _loadExif();
+  }
 
-  Future<void> loadVideo() => _videoLoad ??= _loadVideo();
+  Future<void> loadVideo() {
+    if (_disposed) return Future<void>.value();
+    return _videoLoad ??= _loadVideo();
+  }
 
   Future<void> _loadExif() async {
     Map<String, IfdTag> tags;
@@ -43,14 +49,13 @@ class FileDetailsMetadataController {
       _logger.warning("Unable to load file EXIF", error, stackTrace);
       tags = <String, IfdTag>{};
     }
-    if (!_disposed) {
-      exifTags.value = tags;
-      try {
-        exifDetails.value = FileDetailsExif.fromTags(tags);
-      } catch (error, stackTrace) {
-        _logger.warning("Unable to parse file EXIF", error, stackTrace);
-        exifDetails.value = FileDetailsExif.fromTags(const {});
-      }
+    if (_disposed) return;
+    exifTags.value = tags;
+    try {
+      exifDetails.value = FileDetailsExif.fromTags(tags);
+    } catch (error, stackTrace) {
+      _logger.warning("Unable to parse file EXIF", error, stackTrace);
+      exifDetails.value = FileDetailsExif.fromTags(const {});
     }
     await _persistDiscoveredLocation(locationFromExif(tags));
   }
@@ -63,13 +68,13 @@ class FileDetailsMetadataController {
     } catch (error, stackTrace) {
       _logger.warning("Unable to load video metadata", error, stackTrace);
     }
-    if (!_disposed) {
-      videoMetadata.value = metadata ?? (FFProbeProps()..propData = {});
-    }
+    if (_disposed) return;
+    videoMetadata.value = metadata ?? (FFProbeProps()..propData = {});
     await _persistDiscoveredLocation(metadata?.location);
   }
 
   Future<void> _persistDiscoveredLocation(Location? location) async {
+    if (_disposed) return;
     if (file.hasLocation || location == null) return;
     if (!file.isUploaded || file.ownerID != currentUserID) return;
     if (location.latitude == null || location.longitude == null) return;

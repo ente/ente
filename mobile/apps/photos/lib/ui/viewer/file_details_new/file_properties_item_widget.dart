@@ -86,8 +86,10 @@ Future<_FileDetailsProperties> _loadFileDetailsProperties(
   if (file.fileType == FileType.video &&
       duration == null &&
       file.localID != null) {
-    final asset = await file.getAsset;
-    duration = asset?.videoDuration.toString().split(".")[0];
+    try {
+      final asset = await file.getAsset;
+      duration = asset?.videoDuration.toString().split(".")[0];
+    } catch (_) {}
   }
   return _FileDetailsProperties(
     width: width,
