@@ -6,6 +6,7 @@ import io.ente.ensu.AppState
 import io.ente.ensu.bindings.ConfigDefaults
 import io.ente.ensu.bindings.DownloadError
 import io.ente.ensu.bindings.LlmException
+import io.ente.ensu.bindings.mobileLlmTarget
 import io.ente.ensu.device.isChatSupported
 import io.ente.ensu.logging.FileLogRepository
 import io.ente.ensu.logging.LogLevel
@@ -33,15 +34,14 @@ internal class ModelSettingsActions(
     }
 
     fun updateModelSettings(settings: ModelSettingsState) {
-        val oldTarget = resolveTarget(state.value.modelSettings)
-        val newTarget = resolveTarget(settings)
+        val oldSelection = resolveSelection(state.value.modelSettings)
+        val newSelection = resolveSelection(settings)
         state.update { appState ->
             appState.copy(modelSettings = settings)
         }
-        if (downloadIdentityChanged(oldTarget, newTarget)) {
+        if (downloadIdentityChanged(oldSelection, newSelection)) {
             modelDownloadJob?.cancel()
             modelDownloadJob = null
-            modelDownloader.cancel()
         }
         refreshModelDownloadInfo()
     }
@@ -63,7 +63,6 @@ internal class ModelSettingsActions(
     fun refreshModelDownloadInfo() {
         if (!state.value.chat.deviceCapability.isChatSupported()) {
             modelDownloadJob?.cancel()
-            modelDownloader.cancel()
             persistModelDownloadRequested(false)
             state.update { appState ->
                 appState.copy(
@@ -79,8 +78,8 @@ internal class ModelSettingsActions(
             }
             return
         }
-        val target = resolveTarget(state.value.modelSettings)
-        val isDownloaded = modelDownloader.isDownloaded(target.downloadTarget)
+        val selection = resolveSelection(state.value.modelSettings)
+        val isDownloaded = modelDownloader.isDownloaded(selection.modelTarget)
         if (isDownloaded) {
             persistModelDownloadRequested(false)
         }
@@ -117,7 +116,7 @@ internal class ModelSettingsActions(
                 }
             }
 
-            val size = modelDownloader.estimateDownloadSize(target.downloadTarget)
+            val size = modelDownloader.estimateDownloadSize(selection.modelTarget)
             state.update { appState ->
                 appState.copy(
                     chat = appState.chat.copy(
@@ -136,8 +135,8 @@ internal class ModelSettingsActions(
         if (currentState.chat.isDownloading || currentState.chat.isGenerating) return
         if (!userInitiated && !currentState.chat.hasRequestedModelDownload) return
 
-        val target = resolveTarget(currentState.modelSettings)
-        val isDownloaded = modelDownloader.isDownloaded(target.downloadTarget)
+        val selection = resolveSelection(currentState.modelSettings)
+        val isDownloaded = modelDownloader.isDownloaded(selection.modelTarget)
         if (isDownloaded) {
             state.update { appState ->
                 appState.copy(
@@ -156,7 +155,7 @@ internal class ModelSettingsActions(
             logRepository.log(
                 LogLevel.Info,
                 "Model download started",
-                details = "model=${target.id}",
+                details = "model=${selection.id}",
                 tag = "Model"
             )
             state.update { appState ->
@@ -182,14 +181,14 @@ internal class ModelSettingsActions(
                 var retryCount = 0
                 while (true) {
                     try {
-                        llmProvider.ensureModelReady(target) { progress ->
+                        llmProvider.ensureModelReady(selection) { progress ->
                             val resolvedProgress = progressTracker.resolve(progress)
                             if (!isDownloaded && resolvedProgress.isFinished && !loggedComplete) {
                                 loggedComplete = true
                                 logRepository.log(
                                     LogLevel.Info,
                                     "Model download complete",
-                                    details = "model=${target.id}",
+                                    details = "model=${selection.id}",
                                     tag = "Model"
                                 )
                             }
@@ -262,12 +261,12 @@ internal class ModelSettingsActions(
         if (currentState.chat.isGenerating || currentState.chat.isDownloading) return
         if (!currentState.chat.deviceCapability.isChatSupported()) return
 
-        val target = resolveTarget(currentState.modelSettings)
-        if (!modelDownloader.isDownloaded(target.downloadTarget)) return
+        val selection = resolveSelection(currentState.modelSettings)
+        if (!modelDownloader.isDownloaded(selection.modelTarget)) return
 
         scope.launch {
             try {
-                llmProvider.prewarmImageInference(target)
+                llmProvider.prewarmImageInference(selection)
             } catch (err: Throwable) {
                 logRepository.log(
                     LogLevel.Warning,
@@ -282,7 +281,6 @@ internal class ModelSettingsActions(
     fun cancelModelDownload() {
         modelDownloadJob?.cancel()
         modelDownloadJob = null
-        modelDownloader.cancel()
         persistModelDownloadRequested(false)
         state.update { appState ->
             appState.copy(
@@ -314,29 +312,16 @@ internal class ModelSettingsActions(
         }
     }
 
-    fun resolveTarget(settings: ModelSettingsState): LlmModelTarget {
-        val useCustom = settings.useCustomModel && settings.modelUrl.isNotBlank()
-        val url = if (useCustom) settings.modelUrl else configDefaults.mobileDefaultModel.url
-        val mmproj = if (useCustom) {
-            settings.mmprojUrl.takeIf { it.isNotBlank() }
-        } else {
-            configDefaults.mobileDefaultModel.mmprojUrl
-        }
+    fun resolveSelection(settings: ModelSettingsState): LlmModelSelection {
+        val presets = listOf(configDefaults.mobileDefaultModel) + configDefaults.mobileModelPresets
+        val preset = presets.firstOrNull { it.id == settings.modelId }
+            ?: configDefaults.mobileDefaultModel
         val contextLength = settings.contextLength.toIntOrNull()
         val maxTokens = settings.maxTokens.toIntOrNull()?.takeIf { it > 0 }
-        val id = if (useCustom) {
-            (listOf(configDefaults.mobileDefaultModel) + configDefaults.mobileModelPresets)
-                .firstOrNull { it.url == url && it.mmprojUrl == mmproj }
-                ?.id
-                ?: "custom:$url"
-        } else {
-            configDefaults.mobileDefaultModel.id
-        }
 
-        return LlmModelTarget(
-            id = id,
-            url = url,
-            mmprojUrl = mmproj,
+        return LlmModelSelection(
+            id = preset.id,
+            modelTarget = mobileLlmTarget(preset.id),
             contextLength = contextLength,
             maxTokens = maxTokens
         )
@@ -349,12 +334,10 @@ internal class ModelSettingsActions(
     }
 
     private fun downloadIdentityChanged(
-        oldTarget: LlmModelTarget,
-        newTarget: LlmModelTarget
+        oldSelection: LlmModelSelection,
+        newSelection: LlmModelSelection
     ): Boolean {
-        return oldTarget.id != newTarget.id ||
-            oldTarget.url != newTarget.url ||
-            oldTarget.mmprojUrl != newTarget.mmprojUrl
+        return oldSelection.id != newSelection.id
     }
 
     companion object {

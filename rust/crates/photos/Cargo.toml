@@ -56,13 +56,14 @@ ort = { workspace = true, features = [
 
 [dev-dependencies]
 anyhow = "1"
+ente-model-download.workspace = true
 flate2 = "1.1"
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls-webpki-roots"] }
 serde = { version = "1", features = ["derive"] }
 serde_json.workspace = true
-sha2 = "0.10"
 tar = "0.4"
 tempfile = "3.12"
+tokio = { version = "1", features = ["rt"] }
+url = "2.5.8"
 
 [[test]]
 name = "ml_indexing"

@@ -8,8 +8,8 @@ class EnsuApplication : Application() {
     val modelDownloader by lazy { ModelDownloader(this) }
     val transcriber by lazy {
         Transcriber(
-            modelDownloader.modelPath(modelDownloader.transcriptionModelTarget).absolutePath,
-            modelDownloader.modelPath(modelDownloader.voiceActivityModelTarget).absolutePath
+            modelDownloader.modelDir(modelDownloader.transcriptionTarget).absolutePath,
+            modelDownloader.voiceActivityModelPath().absolutePath
         )
     }
 }

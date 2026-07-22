@@ -2,16 +2,12 @@ package user
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
-	enteJWT "github.com/ente/museum/ente/jwt"
 	"github.com/ente/museum/pkg/controller/collections"
 	"github.com/ente/museum/pkg/repo/two_factor_recovery"
 	util "github.com/ente/museum/pkg/utils"
-	"github.com/ente/museum/pkg/utils/time"
 	"github.com/ulule/limiter/v3"
-	"strings"
 
 	cache2 "github.com/ente/museum/ente/cache"
 	"github.com/ente/museum/pkg/controller/discord"
@@ -116,8 +112,6 @@ const (
 	AccountDeletedEmailTemplate                       = "account_deleted.html"
 	AccountDeletedWithActiveSubscriptionEmailTemplate = "account_deleted_active_sub.html"
 	AccountDeletedEmailSubject                        = "Your Ente account has been deleted"
-	accountRecoveryLinkHost                           = "https://api.ente.com"
-	accountRecoveryLinkValidityDays                   = 7
 )
 
 func NewUserController(
@@ -395,93 +389,6 @@ func (c *UserController) NotifyAccountDeletion(userID int64, userEmail string, i
 	if err != nil {
 		logrus.WithError(err).Errorf("Failed to send the account deletion email to %s", userEmail)
 	}
-}
-
-func (c *UserController) getAccountRecoveryLink(userID int64, userEmail string) (string, error) {
-	recoverToken, err := c.GetJWTTokenForClaim(&enteJWT.WebCommonJWTClaim{
-		UserID:     userID,
-		ExpiryTime: time.MicrosecondsAfterDays(accountRecoveryLinkValidityDays),
-		ClaimScope: enteJWT.RestoreAccount.Ptr(),
-		Email:      userEmail,
-	})
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%s/users/recover-account?token=%s", accountRecoveryLinkHost, recoverToken), nil
-}
-
-func (c *UserController) HandleSelfAccountRecovery(ctx *gin.Context, token string) error {
-	jwtToken, err := c.ValidateJWTToken(token, enteJWT.RestoreAccount)
-	if err != nil {
-		return stacktrace.Propagate(ente.NewPermissionDeniedError("invalid token"), "failed to validate jwt token: %s", err.Error())
-	}
-	if jwtToken.UserID == 0 || jwtToken.Email == "" {
-		return stacktrace.Propagate(ente.NewBadRequestError(&ente.ApiErrorParams{
-			Message: "Invalid token",
-		}), "userID or email is empty")
-	}
-	if jwtToken.ExpiryTime < time.Microseconds() {
-		return stacktrace.Propagate(ente.NewBadRequestError(&ente.ApiErrorParams{
-			Message: "Token expired",
-		}), "")
-	}
-	// check if account is already recovered
-	if user, userErr := c.UserRepo.Get(jwtToken.UserID); userErr == nil {
-		if strings.EqualFold(user.Email, jwtToken.Email) {
-			logrus.WithField("userID", jwtToken.UserID).Error("account is already recovered")
-			return nil
-		}
-	}
-	return c.HandleAccountRecovery(ctx, ente.RecoverAccountRequest{
-		UserID:  jwtToken.UserID,
-		EmailID: jwtToken.Email,
-	})
-}
-
-func (c *UserController) HandleAccountRecovery(ctx *gin.Context, req ente.RecoverAccountRequest) error {
-	logger := logrus.WithFields(logrus.Fields{
-		"req_id":  ctx.GetString("req_id"),
-		"req_ctx": "account_recovery",
-		"email":   req.EmailID,
-		"userID":  req.UserID,
-	})
-	logger.Info("initiating account recovery")
-	_, err := c.UserRepo.Get(req.UserID)
-	if err == nil {
-		return stacktrace.Propagate(ente.NewBadRequestError(&ente.ApiErrorParams{
-			Message: "account is already recovered or userID is linked to another active account",
-		}), "")
-	}
-	if !errors.Is(err, ente.ErrUserDeleted) {
-		return stacktrace.Propagate(err, "error while getting the user")
-	}
-	// check if the user keyAttributes are still available
-	if _, keyErr := c.UserRepo.GetKeyAttributes(req.UserID); keyErr != nil {
-		if errors.Is(keyErr, sql.ErrNoRows) {
-			return stacktrace.Propagate(ente.NewBadRequestWithMessage("account can not be recovered now"), "")
-		}
-		return stacktrace.Propagate(keyErr, "keyAttributes missing? Account can not be recovered")
-	}
-	email := email.NormalizeEmail(req.EmailID)
-	encryptedEmail, err := crypto.Encrypt(email, c.SecretEncryptionKey)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	emailHash, err := crypto.GetHash(email, c.HashingKey)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	err = c.UserRepo.UpdateEmail(req.UserID, encryptedEmail, emailHash)
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to update email")
-	}
-	c.touchContactsAfterEmailUpdate(ctx, req.UserID)
-	err = c.DataCleanupRepo.RemoveScheduledDelete(ctx, req.UserID)
-	if err != nil {
-		logrus.WithError(err).Error("failed to remove scheduled delete")
-		return stacktrace.Propagate(err, "")
-	}
-	return stacktrace.Propagate(err, "")
 }
 
 func (c *UserController) attachFreeSubscription(userID int64) (ente.Subscription, error) {

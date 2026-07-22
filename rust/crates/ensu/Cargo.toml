@@ -13,6 +13,7 @@ rusqlite = { version = "0.38", features = ["bundled"], optional = true }
 self_cell = "1"
 serde.workspace = true
 serde_json.workspace = true
+sha2 = "0.11.0"
 thiserror.workspace = true
 tokio = { version = "1", features = ["rt", "time"] }
 transcribe-rs = { version = "0.3.11", default-features = false, features = ["onnx", "vad-silero"], optional = true }

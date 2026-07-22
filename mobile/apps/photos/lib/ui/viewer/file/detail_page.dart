@@ -25,6 +25,7 @@ import "package:photos/services/collections_service.dart";
 import "package:photos/states/detail_page_state.dart";
 import "package:photos/ui/common/fast_scroll_physics.dart";
 import 'package:photos/ui/notification/toast.dart';
+import "package:photos/ui/social/widgets/file_social_overlay.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_page.dart";
 import "package:photos/ui/tools/editor/video_editor_page.dart";
 import "package:photos/ui/viewer/file/file_app_bar.dart";
@@ -36,6 +37,9 @@ import "package:photos/ui/viewer/file/qr_code_detection_helper.dart";
 import "package:photos/ui/viewer/file/qr_code_highlight_overlay.dart";
 import 'package:photos/ui/viewer/gallery/gallery.dart';
 import 'package:photos/utils/dialog_util.dart';
+
+const _socialRightInset = 24.0;
+const _socialBottomBarClearance = 130.0;
 
 enum DetailPageMode { minimalistic, full }
 
@@ -301,6 +305,16 @@ class _BodyState extends State<_Body> {
                         );
                 },
                 valueListenable: _selectedIndexNotifier,
+              ),
+              ValueListenableBuilder(
+                valueListenable: _selectedIndexNotifier,
+                builder: (BuildContext context, int selectedIndex, _) {
+                  return _GallerySocialOverlay(
+                    file: _files![selectedIndex],
+                    mode: widget.config.mode,
+                    isGuestView: isGuestView,
+                  );
+                },
               ),
               if (_qrHelper != null)
                 ValueListenableBuilder(
@@ -632,5 +646,53 @@ class _BodyState extends State<_Body> {
       return null;
     }
     return files[index];
+  }
+}
+
+/// Must remain under a [Stack] because this widget builds a [Positioned].
+class _GallerySocialOverlay extends StatelessWidget {
+  final EnteFile file;
+  final DetailPageMode mode;
+  final bool isGuestView;
+
+  const _GallerySocialOverlay({
+    required this.file,
+    required this.mode,
+    required this.isGuestView,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (mode == DetailPageMode.minimalistic ||
+        isGuestView ||
+        file is TrashFile) {
+      return const SizedBox.shrink();
+    }
+
+    final padding = MediaQuery.paddingOf(context);
+    final fullScreenNotifier = InheritedDetailPageState.of(
+      context,
+    ).enableFullScreenNotifier;
+    return Positioned(
+      right: padding.right + _socialRightInset,
+      bottom: padding.bottom + _socialBottomBarClearance,
+      child: ValueListenableBuilder<bool>(
+        valueListenable: fullScreenNotifier,
+        builder: (context, isFullScreen, child) => IgnorePointer(
+          ignoring: isFullScreen,
+          child: AnimatedOpacity(
+            opacity: isFullScreen ? 0 : 1,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            child: child,
+          ),
+        ),
+        child: FileSocialOverlay(
+          file: file,
+          currentUserID: Configuration.instance.getUserID(),
+          openingCollectionID: file.collectionID,
+        ),
+      ),
+    );
   }
 }

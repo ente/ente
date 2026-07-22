@@ -76,7 +76,7 @@ String _actionName(
   return text;
 }
 
-void showCollectionActionSheet(
+Future<void> showCollectionActionSheet(
   BuildContext context, {
   SelectedFiles? selectedFiles,
   List<SharedMediaFile>? sharedFiles,
@@ -99,7 +99,7 @@ void showCollectionActionSheet(
       ? selectedPeople.length
       : selectedFiles?.files.length ?? 0;
 
-  showBottomSheetComponent<void>(
+  return showBottomSheetComponent<void>(
     context: context,
     builder: (_) => BottomSheetComponent(
       title: _actionName(context, actionType, filesCount),

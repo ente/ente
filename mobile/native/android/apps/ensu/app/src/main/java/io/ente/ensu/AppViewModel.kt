@@ -11,7 +11,6 @@ import io.ente.ensu.device.AndroidDeviceCapabilityProvider
 import io.ente.ensu.settings.SessionPreferencesDataStore
 import io.ente.ensu.chat.ChatRepository
 import io.ente.ensu.config.loadConfigDefaults
-import io.ente.ensu.bindings.ModelDownloadTarget
 import io.ente.ensu.llm.LlmProvider
 import io.ente.ensu.llm.ModelDownloader
 import io.ente.ensu.llm.ModelSettingsState
@@ -63,12 +62,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         logRepository.log(LogLevel.Info, launchMessage, tag = "App")
 
         viewModelScope.launch {
+            runCatching {
+                advancedSettingsDataStore.migrateLegacyModelSelection { url, mmproj ->
+                    withContext(Dispatchers.IO) {
+                        modelDownloader.migrate(url, mmproj)
+                    }
+                }
+            }
             val initialSettings = runCatching {
                 advancedSettingsDataStore.settingsFlow.first()
             }.getOrDefault(AdvancedSettingsSnapshot())
-            withContext(Dispatchers.IO) {
-                modelDownloader.migrate(migrationTargets(initialSettings.modelSettings))
-            }
             store.applyPersistedSettings(
                 developerSettings = initialSettings.developerSettings,
                 modelSettings = initialSettings.modelSettings
@@ -86,21 +89,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         }
-    }
-
-    private fun migrationTargets(settings: ModelSettingsState): List<ModelDownloadTarget> {
-        val presets = listOf(configDefaults.mobileDefaultModel) + configDefaults.mobileModelPresets
-        val targets = presets
-            .map { ModelDownloadTarget.Gguf(it.id, it.url, it.mmprojUrl) }
-            .toMutableList()
-        if (settings.useCustomModel && settings.modelUrl.isNotBlank()) {
-            targets += ModelDownloadTarget.Gguf(
-                "custom:${settings.modelUrl}",
-                settings.modelUrl,
-                settings.mmprojUrl.takeIf { it.isNotBlank() }
-            )
-        }
-        return targets
     }
 
     @Suppress("DEPRECATION")

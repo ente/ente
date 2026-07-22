@@ -5,5 +5,5 @@ pub mod db;
 pub mod download;
 pub mod image;
 pub mod llm;
-pub mod model_downloader;
+pub mod model;
 pub mod transcription;

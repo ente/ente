@@ -717,6 +717,8 @@ func main() {
 	privateAPI.GET("/users/delete-challenge", userHandler.GetDeleteChallenge)
 	privateAPI.DELETE("/users/delete", userHandler.DeleteUser)
 	publicAPI.GET("/users/recover-account", userHandler.SelfAccountRecovery)
+	publicAPI.POST("/users/recover-account/validate", userHandler.ValidateSelfAccountRecovery)
+	publicAPI.POST("/users/recover-account", userHandler.RecoverSelfAccount)
 
 	accountsJwtAuthAPI := server.Group("/")
 	accountsJwtAuthAPI.Use(rateLimiter.GlobalRateLimiter(), authMiddleware.TokenAuthMiddleware(jwt.ACCOUNTS.Ptr()), rateLimiter.APIRateLimitForUserMiddleware(urlSanitizer))

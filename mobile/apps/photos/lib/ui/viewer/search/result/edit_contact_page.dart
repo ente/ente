@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:typed_data";
 
 import "package:ente_components/ente_components.dart";
@@ -11,9 +12,9 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/ml/face/person.dart";
-import "package:photos/models/search/search_constants.dart";
 import "package:photos/module/download/thumbnail.dart";
 import "package:photos/services/machine_learning/face_ml/face_filtering/face_filtering_constants.dart";
+import "package:photos/services/machine_learning/face_ml/feedback/cluster_feedback.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/photos_contacts_service.dart";
 import "package:photos/services/search_service.dart";
@@ -62,6 +63,7 @@ class _EditContactPageState extends State<EditContactPage> {
   int _photoLoadGeneration = 0;
   PersonEntity? _initialLinkedPerson;
   PersonEntity? _draftLinkedPerson;
+  String? _draftUnassignedClusterID;
   bool _linkDirty = false;
 
   @override
@@ -90,7 +92,8 @@ class _EditContactPageState extends State<EditContactPage> {
   String get _initialName => (widget.existingContact?.data?.name ?? "").trim();
   bool get _hasUnsavedChanges =>
       _nameController.text.trim() != _initialName || _photoDirty || _linkDirty;
-  bool get _hasLinkedPersonDraft => _draftLinkedPerson != null;
+  bool get _hasLinkedPersonDraft =>
+      _draftLinkedPerson != null || _draftUnassignedClusterID != null;
   bool get _hasContactPhoto =>
       _draftPhotoBytes != null ||
       (!_photoDirty &&
@@ -318,19 +321,16 @@ class _EditContactPageState extends State<EditContactPage> {
     if (_isSaving) {
       return;
     }
-    List<PersonEntity> persons;
+    List<ContactPersonPickerCandidate> candidates;
     try {
       final faceResults = await SearchService.instance.getAllFace(
         null,
         minClusterSize: kMinimumClusterSizeAllFaces,
       );
-      final personIdsWithFiles = faceResults
-          .map((result) => result.params[kPersonParamID])
-          .whereType<String>()
-          .toSet();
-      persons = (await PersonService.instance.getPersons())
-          .where((person) => personIdsWithFiles.contains(person.remoteID))
-          .toList();
+      candidates = buildContactPersonPickerCandidates(
+        faceResultParams: faceResults.map((result) => result.params),
+        persons: await PersonService.instance.getPersons(),
+      );
     } catch (e, s) {
       _logger.warning(
         "Failed to load people before editing contact photo",
@@ -343,7 +343,7 @@ class _EditContactPageState extends State<EditContactPage> {
     if (!mounted) {
       return;
     }
-    if (persons.isEmpty) {
+    if (candidates.isEmpty) {
       await _pickContactPhoto();
       return;
     }
@@ -353,7 +353,7 @@ class _EditContactPageState extends State<EditContactPage> {
       ContactPersonPickerPage(
         contactUserId: widget.contactUserId,
         contactEmail: widget.email,
-        persons: persons,
+        candidates: candidates,
       ),
     );
     if (!mounted || result == null) {
@@ -364,13 +364,19 @@ class _EditContactPageState extends State<EditContactPage> {
       return;
     }
     if (result is ContactPersonPickerSelected) {
-      await _draftSelectedPerson(result.person);
+      switch (result.candidate) {
+        case ContactPersonPickerPersonCandidate(:final person):
+          await _draftSelectedPerson(person);
+        case ContactPersonPickerClusterCandidate(:final clusterID):
+          await _draftSelectedCluster(clusterID);
+      }
     }
   }
 
   void _draftUnlinkPerson() {
     setState(() {
       _draftLinkedPerson = null;
+      _draftUnassignedClusterID = null;
       _linkDirty = _initialLinkedPerson != null;
     });
   }
@@ -388,14 +394,40 @@ class _EditContactPageState extends State<EditContactPage> {
     _nameController.text = person.data.name;
     setState(() {
       _draftLinkedPerson = person;
+      _draftUnassignedClusterID = null;
       _linkDirty =
           _initialLinkedPerson?.remoteID != person.remoteID ||
           _personNeedsContactLinkUpdate(person);
     });
   }
 
+  Future<void> _draftSelectedCluster(String clusterID) async {
+    setState(() {
+      _draftLinkedPerson = null;
+      _draftUnassignedClusterID = clusterID;
+      _linkDirty = true;
+    });
+    await _loadClusterPhotoDraft(clusterID, showError: true);
+  }
+
   Future<void> _loadPersonPhotoDraft(
     PersonEntity person, {
+    required bool showError,
+  }) => _loadFacePhotoDraft(
+    () => buildContactPhotoAttachmentBytesFromPerson(person),
+    showError: showError,
+  );
+
+  Future<void> _loadClusterPhotoDraft(
+    String clusterID, {
+    required bool showError,
+  }) => _loadFacePhotoDraft(
+    () => buildContactPhotoAttachmentBytesFromCluster(clusterID),
+    showError: showError,
+  );
+
+  Future<void> _loadFacePhotoDraft(
+    Future<Uint8List?> Function() loadPhotoBytes, {
     required bool showError,
   }) async {
     final loadGeneration = ++_photoLoadGeneration;
@@ -404,9 +436,9 @@ class _EditContactPageState extends State<EditContactPage> {
     });
     Uint8List? photoBytes;
     try {
-      photoBytes = await buildContactPhotoAttachmentBytesFromPerson(person);
+      photoBytes = await loadPhotoBytes();
     } catch (e, s) {
-      _logger.warning("Failed to build contact photo from person", e, s);
+      _logger.warning("Failed to build contact photo from face", e, s);
     }
     if (!mounted || loadGeneration != _photoLoadGeneration) {
       return;
@@ -487,6 +519,39 @@ class _EditContactPageState extends State<EditContactPage> {
     });
   }
 
+  Future<void> _createPersonForDraftCluster(String contactName) async {
+    final clusterID = _draftUnassignedClusterID;
+    if (clusterID == null) {
+      return;
+    }
+
+    final person = await PersonService.instance.addPerson(
+      name: contactName,
+      clusterID: clusterID,
+    );
+    unawaited(
+      ClusterFeedbackService.instance
+          .checkAndDoAutomaticMerges(person, personClusterID: clusterID)
+          .catchError((Object error, StackTrace stackTrace) {
+            _logger.warning(
+              "Failed to automatically merge clusters for new person",
+              error,
+              stackTrace,
+            );
+            return false;
+          }),
+    );
+    _draftLinkedPerson = person;
+    _draftUnassignedClusterID = null;
+    Bus.instance.fire(
+      PeopleChangedEvent(
+        type: PeopleEventType.saveOrEditPerson,
+        person: person,
+        source: "edit_contact_create_person",
+      ),
+    );
+  }
+
   Future<void> _saveContact() async {
     if (!_canSave) {
       return;
@@ -497,6 +562,7 @@ class _EditContactPageState extends State<EditContactPage> {
     try {
       final contactName = _nameController.text.trim();
       final contactNameChanged = contactName != _initialName;
+      await _createPersonForDraftCluster(contactName);
       var saved = await PhotosContactsService.instance.createOrUpdateContact(
         contactUserId: widget.contactUserId,
         name: contactName,

@@ -4,7 +4,6 @@ import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
-import "package:photos/db/files_db.dart";
 import "package:photos/events/comment_deleted_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/api/collection/user.dart";
@@ -42,6 +41,7 @@ Future<void> showFileCommentsBottomSheet(
   required int collectionID,
   required int fileID,
   String? highlightCommentID,
+  List<Collection>? sharedCollections,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -52,6 +52,7 @@ Future<void> showFileCommentsBottomSheet(
       collectionID: collectionID,
       fileID: fileID,
       highlightCommentID: highlightCommentID,
+      sharedCollections: sharedCollections,
     ),
   );
 }
@@ -61,12 +62,14 @@ class _DraggableCommentsSheet extends StatefulWidget {
   final int collectionID;
   final int fileID;
   final String? highlightCommentID;
+  final List<Collection>? sharedCollections;
 
   const _DraggableCommentsSheet({
     required this.launchContext,
     required this.collectionID,
     required this.fileID,
     this.highlightCommentID,
+    this.sharedCollections,
   });
 
   @override
@@ -99,6 +102,7 @@ class _DraggableCommentsSheetState extends State<_DraggableCommentsSheet> {
         collectionID: widget.collectionID,
         fileID: widget.fileID,
         highlightCommentID: widget.highlightCommentID,
+        sharedCollections: widget.sharedCollections,
         dragController: scrollController,
         sheetController: sheetController,
       ),
@@ -110,6 +114,7 @@ class FileCommentsBottomSheet extends StatefulWidget {
   final BuildContext launchContext;
   final int collectionID;
   final int fileID;
+  final List<Collection>? sharedCollections;
 
   /// Optional comment ID to scroll to and highlight.
   final String? highlightCommentID;
@@ -124,6 +129,7 @@ class FileCommentsBottomSheet extends StatefulWidget {
     required this.launchContext,
     required this.collectionID,
     required this.fileID,
+    this.sharedCollections,
     required this.dragController,
     required this.sheetController,
     this.highlightCommentID,
@@ -205,29 +211,17 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
     super.dispose();
   }
 
+  bool _isOpenedFromHiddenCollection() => CollectionsService.instance
+      .getHiddenCollectionIds()
+      .contains(widget.collectionID);
+
   Future<void> _loadSharedCollections() async {
-    final collectionIDs = await FilesDB.instance.getAllCollectionIDsOfFile(
-      widget.fileID,
-    );
-
-    // Filter to shared collections first (sync operation)
-    var sharedCollectionsList = collectionIDs
-        .map((id) => CollectionsService.instance.getCollectionByID(id))
-        .whereType<Collection>()
-        .where((c) => c.hasSharees || c.hasLink || !c.isOwner(_currentUserID))
-        .toList();
-
-    // Filter out hidden collections unless viewing from a hidden collection
-    final hiddenCollectionIds = CollectionsService.instance
-        .getHiddenCollectionIds();
-    final isInitialCollectionHidden = hiddenCollectionIds.contains(
-      widget.collectionID,
-    );
-    if (!isInitialCollectionHidden) {
-      sharedCollectionsList = sharedCollectionsList
-          .where((c) => !hiddenCollectionIds.contains(c.id))
-          .toList();
-    }
+    final sharedCollectionsList =
+        widget.sharedCollections ??
+        await CollectionsService.instance.getSharedCollectionsForFile(
+          widget.fileID,
+          includeHidden: _isOpenedFromHiddenCollection(),
+        );
 
     // Fetch data in parallel
     final sharedCollections = await Future.wait(

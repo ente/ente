@@ -4,18 +4,61 @@ import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/ml/face/person.dart";
+import "package:photos/models/search/search_constants.dart";
 import "package:photos/ui/viewer/people/face_thumbnail_squircle.dart";
 import "package:photos/ui/viewer/people/person_face_widget.dart";
 import "package:photos/utils/person_contact_linking_util.dart";
+
+sealed class ContactPersonPickerCandidate {
+  const ContactPersonPickerCandidate();
+}
+
+class ContactPersonPickerPersonCandidate extends ContactPersonPickerCandidate {
+  const ContactPersonPickerPersonCandidate(this.person);
+
+  final PersonEntity person;
+}
+
+class ContactPersonPickerClusterCandidate extends ContactPersonPickerCandidate {
+  const ContactPersonPickerClusterCandidate(this.clusterID);
+
+  final String clusterID;
+}
+
+List<ContactPersonPickerCandidate> buildContactPersonPickerCandidates({
+  required Iterable<Map<String, dynamic>> faceResultParams,
+  required Iterable<PersonEntity> persons,
+}) {
+  final personsByID = {for (final person in persons) person.remoteID: person};
+  final candidates = <ContactPersonPickerCandidate>[];
+
+  for (final params in faceResultParams) {
+    final personID = params[kPersonParamID] as String?;
+    if (personID != null) {
+      final person = personsByID[personID];
+      if (person != null) {
+        candidates.add(ContactPersonPickerPersonCandidate(person));
+      }
+      continue;
+    }
+
+    final clusterID = params[kClusterParamId] as String?;
+    if (clusterID != null) {
+      candidates.add(ContactPersonPickerClusterCandidate(clusterID));
+    }
+  }
+
+  return candidates;
+}
 
 abstract class ContactPersonPickerResult {
   const ContactPersonPickerResult();
 }
 
 class ContactPersonPickerSelected extends ContactPersonPickerResult {
-  const ContactPersonPickerSelected(this.person);
+  const ContactPersonPickerSelected(this.candidate);
 
-  final PersonEntity person;
+  final ContactPersonPickerCandidate candidate;
 }
 
 class ContactPersonPickerPickPhoto extends ContactPersonPickerResult {
@@ -26,13 +69,13 @@ class ContactPersonPickerPage extends StatefulWidget {
   const ContactPersonPickerPage({
     required this.contactUserId,
     required this.contactEmail,
-    required this.persons,
+    required this.candidates,
     super.key,
   });
 
   final int contactUserId;
   final String contactEmail;
-  final List<PersonEntity> persons;
+  final List<ContactPersonPickerCandidate> candidates;
   static const _horizontalPadding = 16.0;
   static const _gridGap = 10.0;
 
@@ -49,26 +92,34 @@ class _ContactPersonPickerPageState extends State<ContactPersonPickerPage> {
   Widget build(BuildContext context) {
     final colors = context.componentColors;
     final l10n = AppLocalizations.of(context);
-    final persons =
-        widget.persons
+    final personCandidates =
+        widget.candidates
+            .whereType<ContactPersonPickerPersonCandidate>()
             .where(
-              (person) => !isLinkedToDifferentContact(
-                person,
+              (candidate) => !isLinkedToDifferentContact(
+                candidate.person,
                 contactUserId: widget.contactUserId,
                 email: widget.contactEmail,
               ),
             )
             .where(
-              (person) => person.data.name.toLowerCase().contains(_searchQuery),
+              (candidate) => candidate.person.data.name.toLowerCase().contains(
+                _searchQuery,
+              ),
             )
             .toList()
           ..sort((first, second) {
             final comparison = compareAsciiLowerCaseNatural(
-              first.data.name,
-              second.data.name,
+              first.person.data.name,
+              second.person.data.name,
             );
             return _sortAscending ? comparison : -comparison;
           });
+    final candidates = <ContactPersonPickerCandidate>[
+      ...personCandidates,
+      if (_searchQuery.isEmpty)
+        ...widget.candidates.whereType<ContactPersonPickerClusterCandidate>(),
+    ];
 
     return Scaffold(
       backgroundColor: colors.backgroundBase,
@@ -96,7 +147,7 @@ class _ContactPersonPickerPageState extends State<ContactPersonPickerPage> {
             ),
             sliver: SliverToBoxAdapter(child: _buildSearchRow(context)),
           ),
-          _buildGrid(persons),
+          _buildGrid(candidates),
         ],
       ),
     );
@@ -163,7 +214,7 @@ class _ContactPersonPickerPageState extends State<ContactPersonPickerPage> {
     }
   }
 
-  Widget _buildGrid(List<PersonEntity> persons) {
+  Widget _buildGrid(List<ContactPersonPickerCandidate> candidates) {
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(
         ContactPersonPickerPage._horizontalPadding,
@@ -186,10 +237,15 @@ class _ContactPersonPickerPageState extends State<ContactPersonPickerPage> {
               childAspectRatio: tileSize / (tileSize + 28),
             ),
             delegate: SliverChildBuilderDelegate(
-              childCount: persons.length,
+              childCount: candidates.length,
               (context, index) => _PersonTile(
-                key: ValueKey(persons[index].remoteID),
-                person: persons[index],
+                key: ValueKey(switch (candidates[index]) {
+                  ContactPersonPickerPersonCandidate(:final person) =>
+                    "person-${person.remoteID}",
+                  ContactPersonPickerClusterCandidate(:final clusterID) =>
+                    "cluster-$clusterID",
+                }),
+                candidate: candidates[index],
                 size: tileSize,
               ),
             ),
@@ -201,20 +257,28 @@ class _ContactPersonPickerPageState extends State<ContactPersonPickerPage> {
 }
 
 class _PersonTile extends StatelessWidget {
-  const _PersonTile({super.key, required this.person, required this.size});
+  const _PersonTile({super.key, required this.candidate, required this.size});
 
-  final PersonEntity person;
+  final ContactPersonPickerCandidate candidate;
   final double size;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
     final pixelWidth = (size * MediaQuery.devicePixelRatioOf(context)).round();
+    final person = switch (candidate) {
+      ContactPersonPickerPersonCandidate(:final person) => person,
+      ContactPersonPickerClusterCandidate() => null,
+    };
+    final clusterID = switch (candidate) {
+      ContactPersonPickerPersonCandidate() => null,
+      ContactPersonPickerClusterCandidate(:final clusterID) => clusterID,
+    };
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () =>
-          Navigator.of(context).pop(ContactPersonPickerSelected(person)),
+          Navigator.of(context).pop(ContactPersonPickerSelected(candidate)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,7 +290,8 @@ class _PersonTile extends StatelessWidget {
               child: ColoredBox(
                 color: colors.strokeFaint,
                 child: PersonFaceWidget(
-                  personId: person.remoteID,
+                  personId: person?.remoteID,
+                  clusterID: clusterID,
                   keepAlive: true,
                   cachedPixelWidth: pixelWidth,
                 ),
@@ -237,7 +302,7 @@ class _PersonTile extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: Text(
-              person.data.name,
+              person?.data.name ?? " ",
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyles.body.copyWith(color: colors.textBase),

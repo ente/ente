@@ -127,22 +127,21 @@ void main() {
   });
 
   group('familyMemberAvatarComponentColor', () {
-    test('uses black for the current user and hashes other members', () {
+    test('hashes every member including the current user', () {
       final currentUser = _member(email: 'admin@example.com', userID: 1);
       final otherMember = _member(email: 'saved@example.com', userID: 42);
 
       expect(
-        familyMemberAvatarComponentColor(
-          currentUser,
-          currentUserEmail: 'ADMIN@example.com',
+        familyMemberAvatarComponentColor(currentUser),
+        avatarComponentColorForIdentity(
+          avatarIdentityKey(
+            email: currentUser.email,
+            userID: currentUser.userID,
+          ),
         ),
-        AvatarComponentColor.black,
       );
       expect(
-        familyMemberAvatarComponentColor(
-          otherMember,
-          currentUserEmail: currentUser.email,
-        ),
+        familyMemberAvatarComponentColor(otherMember),
         avatarComponentColorForIdentity(
           avatarIdentityKey(
             email: otherMember.email,
@@ -165,16 +164,13 @@ void main() {
         email: 'pending@example.com',
         status: FamilyMemberStatus.invited,
       );
-      final members = [
-        _member(
-          email: 'admin@example.com',
-          userID: 1,
-          isAdmin: true,
-          status: FamilyMemberStatus.self,
-        ),
-        savedMember,
-        pendingMember,
-      ];
+      final currentUser = _member(
+        email: 'admin@example.com',
+        userID: 1,
+        isAdmin: true,
+        status: FamilyMemberStatus.self,
+      );
+      final members = [currentUser, savedMember, pendingMember];
       FamilyMember? selectedMember;
 
       await tester.pumpWidget(
@@ -191,11 +187,16 @@ void main() {
                   members: members,
                   isAdmin: true,
                   contactsByUserId: {
+                    1: _contact(currentUser, name: 'Current user'),
                     42: _contact(savedMember, name: 'Saved member'),
                   },
                   profilePictureBytesByUserId: const {},
                   linkedPersonIdsByUserId: const {},
-                  onMemberTap: (member) => selectedMember = member,
+                  linkedPersonNamesByUserId: const {
+                    1: 'Person current user',
+                    42: 'Person saved member',
+                  },
+                  onMemberTap: (member, _) => selectedMember = member,
                   onAddMember: () {},
                   remainingSlots: 2,
                 ),
@@ -206,8 +207,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('admin@example.com'), findsOneWidget);
-      expect(find.text('admin'), findsOneWidget);
+      expect(find.text('Current user'), findsWidgets);
       expect(find.text('Saved member'), findsNWidgets(2));
       expect(find.text('pending@example.com'), findsOneWidget);
       expect(
@@ -236,9 +236,9 @@ void main() {
       );
       expect(avatars.map((avatar) => avatar.seed), everyElement(isNull));
       final currentUserAvatar = avatars.singleWhere(
-        (avatar) => avatar.semanticLabel == 'admin@example.com',
+        (avatar) => avatar.semanticLabel == 'Current user',
       );
-      expect(currentUserAvatar.color, AvatarComponentColor.black);
+      expect(currentUserAvatar.color, isIn(avatarComponentIdentityPalette));
       final savedMemberAvatar = avatars.singleWhere(
         (avatar) => avatar.semanticLabel == 'Saved member',
       );
@@ -265,11 +265,12 @@ void main() {
     },
   );
 
-  testWidgets('uses a linked Person face when no contact photo is saved', (
+  testWidgets('uses a linked Person name and face without a saved contact', (
     tester,
   ) async {
-    final member = _member(email: 'me@example.com', userID: 42);
+    final member = _member(email: 'member@example.com', userID: 42);
     final members = [member];
+    String? selectedDisplayName;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -284,7 +285,10 @@ void main() {
             contactsByUserId: const {},
             profilePictureBytesByUserId: const {},
             linkedPersonIdsByUserId: const {42: 'person-42'},
-            onMemberTap: (_) {},
+            linkedPersonNamesByUserId: const {42: 'Current person'},
+            onMemberTap: (_, displayName) {
+              selectedDisplayName = displayName;
+            },
             onAddMember: () {},
             remainingSlots: 0,
           ),
@@ -292,11 +296,15 @@ void main() {
       ),
     );
 
+    expect(find.text('Current person'), findsWidgets);
     expect(find.byType(PersonFaceWidget), findsOneWidget);
     final personAvatar = tester.widget<PersonFaceWidget>(
       find.byType(PersonFaceWidget),
     );
     expect(personAvatar.personId, 'person-42');
+
+    await tester.tap(find.byType(MenuComponent));
+    expect(selectedDisplayName, 'Current person');
   });
 
   testWidgets('sorts other members by their displayed name or email', (
@@ -330,7 +338,8 @@ void main() {
               },
               profilePictureBytesByUserId: const {},
               linkedPersonIdsByUserId: const {},
-              onMemberTap: (_) {},
+              linkedPersonNamesByUserId: const {4: 'Aaron'},
+              onMemberTap: (_, _) {},
               onAddMember: () {},
               remainingSlots: 0,
             ),
@@ -343,7 +352,7 @@ void main() {
       tester
           .widgetList<MenuComponent>(find.byType(MenuComponent))
           .map((item) => item.title),
-      ['admin@example.com', 'Amy', 'bob@example.com', 'Zoe'],
+      ['admin@example.com', 'Aaron', 'Amy', 'Zoe'],
     );
   });
 }

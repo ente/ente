@@ -1,12 +1,12 @@
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
 use ente_ensu::llm;
 use ente_model_download::download;
-use ente_model_download::{ModelDownloadTarget, ModelDownloader, migrate_flat_models_dir};
-use serde::{Deserialize, Serialize};
+use ente_model_download::{ModelDownloader, ModelTarget};
+use serde::Serialize;
 use tauri::async_runtime;
 use tauri::{AppHandle, Emitter, Manager, State as TauriState, WebviewWindow};
 
@@ -22,6 +22,7 @@ pub struct State {
 pub struct ModelDownloadState {
     downloader: Arc<ModelDownloader>,
     models_dir: PathBuf,
+    active_token: Mutex<Option<download::CancellationToken>>,
 }
 
 impl ModelDownloadState {
@@ -29,24 +30,7 @@ impl ModelDownloadState {
         Self {
             downloader: Arc::new(ModelDownloader::new(&models_dir)),
             models_dir,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ModelTarget {
-    id: String,
-    url: String,
-    mmproj_url: Option<String>,
-}
-
-impl From<ModelTarget> for ModelDownloadTarget {
-    fn from(value: ModelTarget) -> Self {
-        Self::Gguf {
-            id: value.id,
-            url: value.url,
-            mmproj_url: value.mmproj_url,
+            active_token: Mutex::new(None),
         }
     }
 }
@@ -108,6 +92,11 @@ fn llm_thread_error() -> ApiError {
 
 fn fs_thread_error() -> ApiError {
     ApiError::new("io_thread", "FS task failed")
+}
+
+fn desktop_target(model_id: &str) -> Result<ModelTarget, ApiError> {
+    ente_ensu::model::desktop_llm_target(model_id)
+        .map_err(|err| ApiError::new("invalid_target", err.to_string()))
 }
 
 pub(crate) fn replace_state(
@@ -254,52 +243,61 @@ impl llm::EventSink for EventSink {
 #[tauri::command]
 pub fn llm_model_status(
     state: TauriState<'_, ModelDownloadState>,
-    target: ModelTarget,
-) -> ModelStatus {
-    let target = ModelDownloadTarget::from(target);
-    ModelStatus {
-        model_path: state.downloader.model_path(&target).display().to_string(),
-        mmproj_path: state
-            .downloader
-            .mmproj_path(&target)
+    model_id: String,
+) -> Result<ModelStatus, ApiError> {
+    let target = desktop_target(&model_id)?;
+    Ok(ModelStatus {
+        model_path: ente_ensu::model::llm_model_path(&state.downloader, &target)
+            .map(|path| path.display().to_string())
+            .unwrap_or_default(),
+        mmproj_path: ente_ensu::model::llm_mmproj_path(&state.downloader, &target)
             .map(|path| path.display().to_string()),
         downloaded: state.downloader.is_downloaded(&target),
-    }
+    })
 }
 
 #[tauri::command]
 pub async fn llm_migrate_models(
     state: TauriState<'_, ModelDownloadState>,
-    custom_targets: Vec<ModelTarget>,
-) -> Result<(), ApiError> {
+    legacy_model_url: Option<String>,
+    legacy_mmproj_url: Option<String>,
+) -> Result<Option<String>, ApiError> {
     let models_dir = state.models_dir.clone();
-    let defaults = ente_ensu::config::defaults();
-    let mut targets: Vec<ModelDownloadTarget> = std::iter::once(defaults.mobile_default_model)
-        .chain(defaults.mobile_model_presets)
-        .chain(std::iter::once(defaults.desktop_default_model))
-        .chain(defaults.desktop_model_presets)
-        .map(|preset| ModelDownloadTarget::Gguf {
-            id: preset.id,
-            url: preset.url,
-            mmproj_url: preset.mmproj_url,
-        })
-        .collect();
-    targets.extend(custom_targets.into_iter().map(Into::into));
-
-    async_runtime::spawn_blocking(move || migrate_flat_models_dir(&models_dir, &targets))
-        .await
-        .map_err(|_| fs_thread_error())
+    async_runtime::spawn_blocking(move || {
+        ente_ensu::model::migrations::migrate_desktop_models(
+            &models_dir,
+            legacy_model_url.as_deref(),
+            legacy_mmproj_url.as_deref(),
+        )
+    })
+    .await
+    .map_err(|_| fs_thread_error())
 }
 
 #[tauri::command]
 pub async fn llm_download_model(
     window: WebviewWindow,
     state: TauriState<'_, ModelDownloadState>,
-    target: ModelTarget,
+    model_id: String,
 ) -> Result<(), ApiError> {
     let downloader = Arc::clone(&state.downloader);
-    let target = ModelDownloadTarget::from(target);
-    async_runtime::spawn_blocking(move || {
+    let target = desktop_target(&model_id)?;
+    let token = {
+        let mut slot = state
+            .active_token
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        if slot.is_some() {
+            return Err(ApiError::new(
+                "download_active",
+                "A model download is already in progress",
+            ));
+        }
+        let token = download::CancellationToken::new();
+        *slot = Some(token.clone());
+        token
+    };
+    let result = async_runtime::spawn_blocking(move || {
         downloader
             .download(
                 std::slice::from_ref(&target),
@@ -317,18 +315,29 @@ pub async fn llm_download_model(
                         },
                     );
                 },
-                || false,
+                &token,
             )
-            .map(|_| ())
             .map_err(|err| ApiError::new(download_code(&err), err.to_string()))
     })
     .await
-    .map_err(|_| fs_thread_error())?
+    .map_err(|_| fs_thread_error());
+    *state
+        .active_token
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner) = None;
+    result?
 }
 
 #[tauri::command]
 pub fn llm_cancel_model_download(state: TauriState<'_, ModelDownloadState>) {
-    state.downloader.cancel();
+    if let Some(token) = state
+        .active_token
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .as_ref()
+    {
+        token.cancel();
+    }
 }
 
 #[tauri::command]

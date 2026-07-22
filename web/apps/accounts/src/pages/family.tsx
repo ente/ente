@@ -32,7 +32,6 @@ const Page: React.FC = () => {
             setPhase("loading");
             try {
                 setInvite(await getFamilyInviteInfo(token));
-                window.history.replaceState(null, "", window.location.pathname);
                 setPhase("ready");
             } catch (e) {
                 const invalid =
@@ -61,6 +60,7 @@ const Page: React.FC = () => {
         setPhase("accepting");
         try {
             setInvite(await acceptFamilyInvite(token!));
+            window.history.replaceState(null, "", window.location.pathname);
             setPhase("accepted");
         } catch (e) {
             const invalid =

@@ -187,12 +187,13 @@ impl AuthFlowUi for DialoguerAuthFlowUi {
         println!("\nPasskey verification required");
         println!("Open this URL in your browser to verify your passkey:\n{url}");
 
-        if !self.passkey_presented {
-            if let Err(error) = open::that(url) {
-                log::error!("failed to open browser: {error}");
-            }
-            self.passkey_presented = true;
+        if !self.passkey_presented
+            && can_open_automatically(url)
+            && let Err(error) = open::that(url)
+        {
+            log::error!("failed to open browser: {error}");
         }
+        self.passkey_presented = true;
 
         Ok(())
     }
@@ -588,6 +589,12 @@ fn is_retryable_password_error(error: &AccountsError) -> bool {
     ) || error.is_http_status(&[401])
 }
 
+fn can_open_automatically(url: &str) -> bool {
+    url.split_once("://").is_some_and(|(scheme, _)| {
+        scheme.eq_ignore_ascii_case("https") || scheme.eq_ignore_ascii_case("http")
+    })
+}
+
 fn read_six_digit_code(prompt: &str) -> Result<String> {
     Input::new()
         .with_prompt(prompt)
@@ -604,4 +611,17 @@ fn read_six_digit_code(prompt: &str) -> Result<String> {
 
 fn read_six_digit_code_for_accounts(prompt: &str) -> AccountsResult<String> {
     read_six_digit_code(prompt).map_err(|error| AccountsError::InvalidInput(error.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::can_open_automatically;
+
+    #[test]
+    fn automatic_opening_is_limited_to_web_urls() {
+        assert!(can_open_automatically("https://accounts.ente.io"));
+        assert!(can_open_automatically("HTTP://localhost:3000"));
+        assert!(!can_open_automatically("ente-cli://passkey"));
+        assert!(!can_open_automatically("file:///etc/hosts"));
+    }
 }

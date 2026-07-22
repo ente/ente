@@ -780,6 +780,8 @@ const userOwnedEquivalentFilesByHashAndType = (
 // Bridges shared favorite toggles before the remote add/move has been pulled
 // into local DB.
 const pendingFavoriteFilesByHashAndType = new Map<string, EnteFile>();
+let pendingUserFavoritesCollection: Collection | undefined;
+let pendingUserFavoritesCollectionPromise: Promise<Collection> | undefined;
 
 /**
  *
@@ -1882,19 +1884,38 @@ export const createUncategorizedCollection = () =>
  *
  * Reads local state but does not modify it. The effects are on remote.
  */
-const savedOrCreateUserFavoritesCollection = async () =>
-    (await savedUserFavoritesCollection()) ?? createFavoritesCollection();
+const savedOrCreateUserFavoritesCollection = async () => {
+    const favoritesCollection = await savedUserFavoritesCollection();
+    if (favoritesCollection) return favoritesCollection;
+
+    pendingUserFavoritesCollectionPromise ??= createFavoritesCollection()
+        .then((collection) => {
+            pendingUserFavoritesCollection = collection;
+            return collection;
+        })
+        .finally(() => {
+            pendingUserFavoritesCollectionPromise = undefined;
+        });
+
+    return pendingUserFavoritesCollectionPromise;
+};
 
 /**
- * Return the user's own favorites collection if present in the local database.
+ * Return the user's own favorites collection if present in the local database,
+ * or one created during this session before the next remote pull.
  */
 export const savedUserFavoritesCollection = async () => {
     const userID = ensureLocalUser().id;
     const collections = await savedCollections();
-    return collections.find(
-        (collection) =>
-            // See: [Note: User and shared favorites]
-            collection.type == "favorites" && collection.owner.id == userID,
+    return (
+        collections.find(
+            (collection) =>
+                // See: [Note: User and shared favorites]
+                collection.type == "favorites" && collection.owner.id == userID,
+        ) ??
+        (pendingUserFavoritesCollection?.owner.id == userID
+            ? pendingUserFavoritesCollection
+            : undefined)
     );
 };
 

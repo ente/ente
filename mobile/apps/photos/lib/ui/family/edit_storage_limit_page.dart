@@ -13,12 +13,14 @@ import 'package:photos/utils/dialog_util.dart';
 class EditStorageLimitPage extends StatefulWidget {
   const EditStorageLimitPage({
     required this.member,
+    required this.displayName,
     required this.totalStorageInBytes,
     required this.avatarColor,
     super.key,
   });
 
   final FamilyMember member;
+  final String displayName;
   final int totalStorageInBytes;
   final Color avatarColor;
 
@@ -97,7 +99,7 @@ class _EditStorageLimitPageState extends State<EditStorageLimitPage> {
                         radius: 20,
                         backgroundColor: widget.avatarColor,
                         child: Text(
-                          widget.member.email.substring(0, 1).toUpperCase(),
+                          widget.displayName.substring(0, 1).toUpperCase(),
                           style: textTheme.bodyBold.copyWith(
                             color: Colors.white,
                           ),
@@ -108,7 +110,7 @@ class _EditStorageLimitPageState extends State<EditStorageLimitPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(widget.member.email, style: textTheme.body),
+                            Text(widget.displayName, style: textTheme.body),
                             const SizedBox(height: 2),
                             Text(
                               l10n.usingStorage(

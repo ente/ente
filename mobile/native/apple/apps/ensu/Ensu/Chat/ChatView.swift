@@ -44,7 +44,7 @@ struct ChatView: View {
     }
 
     private var modelSettingsSignature: String {
-        "\(modelSettings.useCustomModel)|\(modelSettings.modelUrl)|\(modelSettings.mmprojUrl)"
+        modelSettings.modelId
     }
 
     private let drawerWidth: CGFloat = 320

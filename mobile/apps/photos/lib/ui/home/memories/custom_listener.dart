@@ -28,6 +28,8 @@ class ActivePointers with ChangeNotifier {
 class MemoriesPointerGestureListener extends StatefulWidget {
   final Widget child;
   final Function(PointerEvent)? onTap;
+  final VoidCallback? onSwipeUp;
+  final bool Function()? canSwipeUp;
   // final VoidCallback? onLongPress;
   // final VoidCallback? onLongPressUp;
 
@@ -37,6 +39,9 @@ class MemoriesPointerGestureListener extends StatefulWidget {
   /// Maximum movement (in logical pixels) before we consider it a drag.
   final double touchSlop;
 
+  /// Minimum upward displacement before a gesture opens file details.
+  final double swipeUpThreshold;
+
   /// Notifier that indicates whether there are active pointers.
   final ValueNotifier<bool>? hasPointerNotifier;
   static const double kTouchSlop = 18.0; // Default touch slop value
@@ -45,11 +50,14 @@ class MemoriesPointerGestureListener extends StatefulWidget {
     super.key,
     required this.child,
     this.onTap,
+    this.onSwipeUp,
+    this.canSwipeUp,
     // this.onLongPress,
     // this.onLongPressUp,
     this.hasPointerNotifier,
     this.longPressDuration = const Duration(milliseconds: 500),
     this.touchSlop = kTouchSlop, // from flutter/gestures/constants.dart
+    this.swipeUpThreshold = 48,
   });
 
   @override
@@ -62,6 +70,7 @@ class MemoriesPointerGestureListenerState
   Timer? _longPressTimer;
   bool _longPressFired = false;
   Offset? _downPosition;
+  int? _trackedPointer;
   bool hasPointerMoved = false;
   final _activePointers = ActivePointers();
 
@@ -79,6 +88,12 @@ class MemoriesPointerGestureListenerState
 
   void _handlePointerDown(PointerDownEvent event) {
     _addPointer(event.pointer);
+    if (_trackedPointer != null) {
+      _longPressTimer?.cancel();
+      _longPressTimer = null;
+      return;
+    }
+    _trackedPointer = event.pointer;
     _downPosition = event.localPosition;
     _longPressFired = false;
     _longPressTimer?.cancel();
@@ -89,34 +104,57 @@ class MemoriesPointerGestureListenerState
   }
 
   void _handlePointerMove(PointerMoveEvent event) {
-    if (_longPressTimer != null && _downPosition != null) {
+    if (event.pointer == _trackedPointer && _downPosition != null) {
       final distance = (event.localPosition - _downPosition!).distance;
       if (distance > widget.touchSlop) {
         // user started dragging – cancel long‐press
         hasPointerMoved = true;
-        _longPressTimer!.cancel();
+        _longPressTimer?.cancel();
         _longPressTimer = null;
       }
     }
   }
 
   void _handlePointerUp(PointerUpEvent event) {
+    if (event.pointer != _trackedPointer) {
+      _removePointer(event.pointer);
+      return;
+    }
+
     _longPressTimer?.cancel();
     _longPressTimer = null;
+    final wasPartOfMultitouch =
+        _activePointers.activePointerWasPartOfMultitouch;
+    final displacement = event.localPosition - _downPosition!;
+    final isSwipeUp =
+        widget.onSwipeUp != null &&
+        (widget.canSwipeUp?.call() ?? true) &&
+        !wasPartOfMultitouch &&
+        displacement.dy <= -widget.swipeUpThreshold &&
+        displacement.dy.abs() > displacement.dx.abs() &&
+        displacement.dx.abs() <= widget.touchSlop;
 
-    if (_longPressFired) {
+    // Release the pointer before callbacks so opening a sheet can take over
+    // the viewer's pause state without the release immediately resuming it.
+    _removePointer(event.pointer);
+
+    if (isSwipeUp) {
+      widget.onSwipeUp?.call();
+    } else if (_longPressFired) {
       // widget.onLongPressUp?.call();
     } else {
-      if (!_activePointers.activePointerWasPartOfMultitouch &&
-          !hasPointerMoved) {
+      if (!wasPartOfMultitouch && !hasPointerMoved) {
         widget.onTap?.call(event);
       }
     }
-    _removePointer(event.pointer);
     _reset();
   }
 
   void _handlePointerCancel(PointerCancelEvent event) {
+    if (event.pointer != _trackedPointer) {
+      _removePointer(event.pointer);
+      return;
+    }
     _longPressTimer?.cancel();
     _longPressTimer = null;
     _longPressFired = false;
@@ -154,5 +192,7 @@ class MemoriesPointerGestureListenerState
 
   void _reset() {
     hasPointerMoved = false;
+    _downPosition = null;
+    _trackedPointer = null;
   }
 }

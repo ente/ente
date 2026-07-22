@@ -5,7 +5,9 @@ pub struct ConfigModelPreset {
     pub id: String,
     pub title: String,
     pub url: String,
+    pub sha256: String,
     pub mmproj_url: Option<String>,
+    pub mmproj_sha256: Option<String>,
 }
 
 #[derive(Debug, Clone, uniffi::Record)]
@@ -28,7 +30,9 @@ impl From<config::ModelPreset> for ConfigModelPreset {
             id: value.id,
             title: value.title,
             url: value.url,
+            sha256: value.sha256,
             mmproj_url: value.mmproj_url,
+            mmproj_sha256: value.mmproj_sha256,
         }
     }
 }
