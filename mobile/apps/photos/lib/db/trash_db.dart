@@ -199,7 +199,7 @@ class TrashDB {
             $columnCreationTime,
             $columnLocalID,
             $columnIsTrashedOnDevice
-          ) VALUES (?, -1, 0, 0, 0, ?, 1)
+          ) VALUES (?, 0, 0, -1, 0, ?, 1)
           ON CONFLICT($columnUploadedFileID) DO UPDATE SET
             $columnLocalID = excluded.$columnLocalID,
             $columnIsTrashedOnDevice = 1
@@ -223,7 +223,7 @@ class TrashDB {
     final results = await db.query(
       tableName,
       where:
-          '$columnCollectionID != -1 AND '
+          '$columnTrashDeleteBy != -1 AND '
           '$columnCreationTime >= ? AND $columnCreationTime <= ?',
       whereArgs: [startTime, endTime],
       orderBy: '$columnCreationTime ' + order,
