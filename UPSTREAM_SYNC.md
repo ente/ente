@@ -9,6 +9,8 @@ For the design and security boundaries behind these commands, see the
 [upstream synchronization architecture](living_docs/UpstreamEnteSynchronizationArchitecture.md).
 The first large manual catch-up remains available as historical evidence in
 the [implementation record](living_docs/UpstreamEnteSynchronization.md).
+The pull request created by this runbook is enforced by the five checks in the
+[fork GitHub Actions architecture](living_docs/ForkGitHubActionsArchitecture.md).
 
 ## 1. Automated drift notice
 

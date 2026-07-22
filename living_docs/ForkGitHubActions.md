@@ -1,10 +1,10 @@
 # Fork GitHub Actions Maintenance
 
-**Status:** Living document. Updated at the end of every task.
+**Status:** Complete. The tracker and decision history are retained as implementation evidence.
 **Started:** 2026-07-22
 **Owner:** vanton
 **Planning doc:** n/a
-**Companion docs:** [Fork overview](../FORK.md), [self-hosted mobile documentation index](../mobile/apps/photos/SELF_HOSTED_DOCUMENTATION.md), [upstream synchronization runbook](../UPSTREAM_SYNC.md), [upstream synchronization architecture](UpstreamEnteSynchronizationArchitecture.md), planned `ForkGitHubActionsArchitecture.md`
+**Companion docs:** [Fork overview](../FORK.md), [self-hosted mobile documentation index](../mobile/apps/photos/SELF_HOSTED_DOCUMENTATION.md), [upstream synchronization runbook](../UPSTREAM_SYNC.md), [upstream synchronization architecture](UpstreamEnteSynchronizationArchitecture.md), [fork GitHub Actions architecture](ForkGitHubActionsArchitecture.md)
 
 ---
 
@@ -19,9 +19,9 @@
 | 2 | 2.3 | Preserve and harden upstream-drift and workflow-security checks | S | 🟢 done | Kept the two fork-owned maintenance workflows, moved both to a fixed Ubuntu image, added the exact fork guard and timeout to the trusted workflow checker, and disabled persisted checkout credentials in both of its checkouts. The drift job remains schedule/manual only with the minimum `contents: read` and `issues: write` permissions. All 42 Ruby/Node drift contracts and 187 assertions passed with the workflow-security scan. |
 | 3 | 3.1 | Repair dependency review and retain only useful security scanning | M | 🟢 done | Enabled GitHub vulnerability alerts and the dependency graph, then narrowed dependency review to Photos mobile Pub/Rust manifests and pinned workflow actions. The dependency graph now exports 3,902 packages and its comparison API succeeds. Replaced broad Go/JavaScript/Actions CodeQL with least-privilege Actions-only PR, weekly, and manual scanning; both workflows use fixed runners, timeouts, exact fork guards, SHA-pinned actions, and no secrets. |
 | 3 | 3.2 | Remove remaining unrelated product and monorepo checks | S | 🟢 done | Deleted the nine audited read-only but unrelated desktop, documentation-site, Ensu Android/iOS, staff-infrastructure, broad Rust, server, and web checks. Exactly six intended workflows remain; all parse and the current security checker passes across the six workflows and two local actions. |
-| 3 | 3.3 | Enforce the exact fork workflow allowlist and security contract | M | 🟢 done | Replaced the advisory checker with an exact contract for six workflow files and the pinned Flutter setup action, and removed the now-unused inherited web-deployment action. The checker rejects missing/unexpected automation, trigger or permission drift, secrets, unpinned actions, persisted checkout credentials, mutable runner labels, missing fork guards/timeouts, and unapproved environments. Four fixture tests with 28 assertions prove pass and fail cases; the complete drift/security suite remains green. |
-| 4 | 4.1 | Validate the complete workflow set locally and in controlled GitHub runs | M | 🟡 working | Prove relevant-path execution, irrelevant-path filtering, blocking failures, successful checks, and absence of release/deployment mutations through local contracts and owner-reviewed GitHub runs. |
-| 4 | 4.2 | Document the as-built fork GitHub Actions architecture | S | ⚪ not started | Update fork navigation and write `ForkGitHubActionsArchitecture.md` with the final allowlist, triggers, jobs, permissions, failure behavior, rollback, and upstream-adoption procedure. |
+| 3 | 3.3 | Enforce the exact fork workflow allowlist and security contract | M | 🟢 done | Replaced the advisory checker with an exact contract for six workflow files and the pinned Flutter setup action, and removed the now-unused inherited web-deployment action. The checker rejects missing/unexpected automation, trigger or permission drift, secrets, unpinned actions, persisted checkout credentials, mutable runner labels, missing fork guards/timeouts, and unapproved environments. Five fixture tests with 37 assertions prove pass and fail cases; the complete drift/security suite remains green. |
+| 4 | 4.1 | Validate the complete workflow set locally and in controlled GitHub runs | M | 🟢 done | Local YAML, shell, allowlist, five checker fixtures/37 assertions, 42 drift contracts/189 Ruby assertions, endpoint modes, formatting, analysis, iOS contracts, and CocoaPods checks passed. Relevant-path PR #5 passed all five uniquely named gates (Linux 13m56s; macOS 5m43s; CodeQL 44s; dependency 8s; workflow security 11s). Disposable Markdown-only PR #6 returned all five green gates in 2–5s while skipping heavy validation. Main protection now requires the exact GitHub Actions checks, strict freshness, admin enforcement, and resolved conversations; force pushes/deletion are disabled. |
+| 4 | 4.2 | Document the as-built fork GitHub Actions architecture | S | 🟢 done | Added `ForkGitHubActionsArchitecture.md` with the final allowlist, triggers, path/gate flow, responsibilities, permissions, branch settings, failures, rollback, upstream adoption, and live evidence. Linked it from the fork overview, self-hosted documentation index, upstream runbook, and this record; local-link and privacy validation passed. |
 
 **Legend:** ⚪ not started · 🟡 working · 🟢 done · 🔴 blocked / needs decision
 **Size:** XS · S · M · L · XL (never days or weeks).
@@ -195,6 +195,7 @@ in the 38-file inherited inventory.
 |------|--------|-----|
 | Add unsigned Android debug and iOS Simulator builds to pull-request CI | V1.1 backlog | The selected thorough V1 validates source and packaging contracts without the runner cost of complete platform builds; builds can be added after the stable check set is measured. |
 | Add retained test artifacts, trend dashboards, or runner-cost reports | V1.1 backlog | V1 relies on concise Actions logs and summaries; historical reporting is useful only after the workflow set is stable. |
+| Triage the 22 baseline Dependabot alerts reported when the dependency graph was enabled | V1.1 backlog | Dependency review blocks newly introduced vulnerable changes; the 16 high and six moderate alerts already on fork `main` require separate product-scoped ownership and dependency upgrades rather than an unreviewed monorepo rewrite. |
 | Use private or self-hosted GitHub Actions runners | V1.1 backlog | Hosted runners avoid a new privileged machine and credential-maintenance boundary during cleanup. |
 | Recreate official Ente deployment, release, app-store, container, translation, documentation-site, or cache-warming automation | Out of scope | Those workflows serve official Ente infrastructure and products rather than this private self-hosted mobile fork. |
 | Preserve broad CI for Ensu, Auth, Locker, desktop Photos, web, server, Rust, documentation, or staff infrastructure | Out of scope | The selected problem framing protects the self-hosted Android and iOS Photos applications and their maintenance automation. |
@@ -213,6 +214,21 @@ in the 38-file inherited inventory.
 
 > Append-only. Newest entries stay on top. Never delete an entry; if a decision
 > changes, add a newer entry explaining the reversal.
+
+### 2026-07-22 — Protect main with five unique GitHub Actions gates
+
+**Decision:** Require `Actions CodeQL gate`, `Dependency review gate`, `Linux
+mobile gate`, `macOS mobile gate`, and `Workflow security gate` from the GitHub
+Actions app. Require a fresh branch and resolved conversations, enforce the
+checks for administrators, and disable force pushes and branch deletion.
+
+**Why:** The repository had no branch protection. Unique app-bound names avoid
+one generic `validate` result satisfying another workflow and turn the selected
+fail-closed policy into an actual merge boundary.
+
+**Alternatives considered:** Leave green checks advisory, or require an
+additional reviewer, which would prevent the sole owner from merging their own
+validated maintenance PRs.
 
 ### 2026-07-22 — Keep required checks stable while filtering expensive work
 
@@ -435,11 +451,7 @@ would require recreating official Ente infrastructure and credentials.
 
 ## 6. Open questions
 
-_Add new questions as they arise. Move resolved questions to §5 once answered,
-with the resolution as the decision._
-
-- Does fork `main` already have branch protection or rulesets, and which final
-  check names must become required after controlled live validation?
+_None. Resolved decisions are recorded in §5._
 
 ---
 
@@ -478,3 +490,14 @@ with the resolution as the decision._
   Photos mobile dependency review provide evidence the fork can act on.
 - An allowlist must reject missing files as well as unexpected ones; otherwise
   a security workflow can be deleted while the checker still reports success.
+
+### Phase 4 — Prove both sides of path-aware enforcement
+
+- Live relevant-path proof alone is incomplete. A disposable docs-only PR
+  showed that stable required checks remain green without allocating macOS or
+  running Flutter/CodeQL setup.
+- Required check names must be unique and bound to their GitHub App; generic
+  `validate` and `Required gate` names are ambiguous in branch protection.
+- GitHub repository settings are part of the architecture even though they are
+  not stored in Git. API readback and a merge-state check provide the handoff
+  evidence needed to keep them aligned with source.

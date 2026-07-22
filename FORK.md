@@ -21,6 +21,7 @@ supported by Ente, and its mobile builds are not official Ente releases.
 | Distribution | Ente's official distribution channels | Closed-group Android and iOS distribution through guarded Firebase App Distribution workflows; iOS uses Apple Ad Hoc device provisioning |
 | Release tooling | Upstream release processes | Fork-specific build, audit, immutable preparation, confirmation, publication, receipt, and recovery scripts |
 | Upstream maintenance | Source of official Ente development | Daily/manual drift reporting plus a guarded local synchronization command that opens a reviewable pull request and never merges it automatically |
+| GitHub Actions | Official Ente production, product, deployment, and release automation | An exact fork-owned allowlist for self-hosted mobile, dependency/workflow security, and upstream drift; no signing, publication, deployment, or operational secrets |
 
 Most fork-specific runtime changes are limited to Ente Photos mobile. The rest
 of the monorepo follows upstream unless a compatibility, documentation, test,
@@ -101,6 +102,13 @@ operator procedure and the
 [upstream synchronization architecture](living_docs/UpstreamEnteSynchronizationArchitecture.md)
 for its provenance and safety model.
 
+Pull requests into fork `main` must pass five fork-owned GitHub Actions gates.
+Expensive mobile and CodeQL work runs only for relevant changes, while stable
+checks still report for documentation-only pull requests. See the
+[fork GitHub Actions architecture](living_docs/ForkGitHubActionsArchitecture.md)
+for the exact allowlist, permissions, branch protection, and upstream-adoption
+procedure.
+
 ## Documentation map
 
 Start with the
@@ -112,7 +120,8 @@ It routes each audience to the current canonical guide:
 - [iOS closed-beta operations](mobile/apps/photos/SELF_HOSTED_IOS_DISTRIBUTION_GUIDE.md);
 - [Android and iOS tester onboarding](mobile/apps/photos/SELF_HOSTED_TESTER_ONBOARDING_GUIDE.md);
 - [configurable-server architecture](living_docs/ConfigurableSelfHostedMobileServerArchitecture.md); and
-- [upstream synchronization](UPSTREAM_SYNC.md).
+- [upstream synchronization](UPSTREAM_SYNC.md); and
+- [fork GitHub Actions architecture](living_docs/ForkGitHubActionsArchitecture.md).
 
 Files under `living_docs/` preserve implementation decisions and acceptance
 evidence. Unless explicitly marked as current architecture, they are historical
