@@ -2,15 +2,13 @@ name: CodeQL (GitHub Actions)
 
 on:
   pull_request:
-    paths:
-      - ".github/actions/**"
-      - ".github/workflows/**"
   schedule:
     - cron: "22 1 * * 1"
   workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: read
   security-events: write
 
 concurrency:
@@ -23,18 +21,42 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
+      - name: Detect workflow-code changes
+        id: paths
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            if (context.eventName !== "pull_request") {
+              core.setOutput("relevant", "true");
+              return;
+            }
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              per_page: 100,
+            });
+            const relevant = files.some(({ filename }) =>
+              filename.startsWith(".github/actions/") ||
+              filename.startsWith(".github/workflows/")
+            );
+            core.setOutput("relevant", relevant ? "true" : "false");
+
       - name: Checkout workflow source
+        if: steps.paths.outputs.relevant == 'true'
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
       - name: Initialize CodeQL for GitHub Actions
+        if: steps.paths.outputs.relevant == 'true'
         uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
         with:
           languages: actions
           build-mode: none
 
       - name: Analyze GitHub Actions
+        if: steps.paths.outputs.relevant == 'true'
         uses: github/codeql-action/analyze@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
         with:
           category: /language:actions

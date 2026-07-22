@@ -2,18 +2,41 @@ name: Workflow security checks
 
 on:
   pull_request:
-    paths:
-      - '.github/workflows/**'
-      - '.github/actions/**'
-      - '.github/scripts/check_workflow_security.rb'
-      - '.github/scripts/check_workflow_security_test.rb'
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
-  workflow-security-checks:
+  changes:
     if: github.repository == 'vanton1/ente'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      relevant: ${{ steps.paths.outputs.relevant }}
+    steps:
+      - name: Detect automation-policy changes
+        id: paths
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              per_page: 100,
+            });
+            const relevant = files.some(({ filename }) =>
+              filename.startsWith(".github/actions/") ||
+              filename.startsWith(".github/workflows/") ||
+              filename === ".github/scripts/check_workflow_security.rb" ||
+              filename === ".github/scripts/check_workflow_security_test.rb"
+            );
+            core.setOutput("relevant", relevant ? "true" : "false");
+
+  validate:
+    needs: changes
+    if: github.repository == 'vanton1/ente' && needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment:
@@ -36,3 +59,24 @@ jobs:
 
       - name: Run workflow security checks
         run: ruby trusted/.github/scripts/check_workflow_security.rb
+
+  gate:
+    name: Required gate
+    needs: [changes, validate]
+    if: always() && github.repository == 'vanton1/ente'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require relevant workflow validation
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          RELEVANT: ${{ needs.changes.outputs.relevant }}
+          VALIDATE_RESULT: ${{ needs.validate.result }}
+        run: |
+          set -euo pipefail
+          test "$CHANGES_RESULT" = success
+          if test "$RELEVANT" = true; then
+            test "$VALIDATE_RESULT" = success
+          else
+            test "$VALIDATE_RESULT" = skipped
+          fi

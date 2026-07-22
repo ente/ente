@@ -20,7 +20,7 @@
 | 3 | 3.1 | Repair dependency review and retain only useful security scanning | M | 🟢 done | Enabled GitHub vulnerability alerts and the dependency graph, then narrowed dependency review to Photos mobile Pub/Rust manifests and pinned workflow actions. The dependency graph now exports 3,902 packages and its comparison API succeeds. Replaced broad Go/JavaScript/Actions CodeQL with least-privilege Actions-only PR, weekly, and manual scanning; both workflows use fixed runners, timeouts, exact fork guards, SHA-pinned actions, and no secrets. |
 | 3 | 3.2 | Remove remaining unrelated product and monorepo checks | S | 🟢 done | Deleted the nine audited read-only but unrelated desktop, documentation-site, Ensu Android/iOS, staff-infrastructure, broad Rust, server, and web checks. Exactly six intended workflows remain; all parse and the current security checker passes across the six workflows and two local actions. |
 | 3 | 3.3 | Enforce the exact fork workflow allowlist and security contract | M | 🟢 done | Replaced the advisory checker with an exact contract for six workflow files and the pinned Flutter setup action, and removed the now-unused inherited web-deployment action. The checker rejects missing/unexpected automation, trigger or permission drift, secrets, unpinned actions, persisted checkout credentials, mutable runner labels, missing fork guards/timeouts, and unapproved environments. Four fixture tests with 28 assertions prove pass and fail cases; the complete drift/security suite remains green. |
-| 4 | 4.1 | Validate the complete workflow set locally and in controlled GitHub runs | M | ⚪ not started | Prove relevant-path execution, irrelevant-path filtering, blocking failures, successful checks, and absence of release/deployment mutations through local contracts and owner-reviewed GitHub runs. |
+| 4 | 4.1 | Validate the complete workflow set locally and in controlled GitHub runs | M | 🟡 working | Prove relevant-path execution, irrelevant-path filtering, blocking failures, successful checks, and absence of release/deployment mutations through local contracts and owner-reviewed GitHub runs. |
 | 4 | 4.2 | Document the as-built fork GitHub Actions architecture | S | ⚪ not started | Update fork navigation and write `ForkGitHubActionsArchitecture.md` with the final allowlist, triggers, jobs, permissions, failure behavior, rollback, and upstream-adoption procedure. |
 
 **Legend:** ⚪ not started · 🟡 working · 🟢 done · 🔴 blocked / needs decision
@@ -213,6 +213,21 @@ in the 38-file inherited inventory.
 
 > Append-only. Newest entries stay on top. Never delete an entry; if a decision
 > changes, add a newer entry explaining the reversal.
+
+### 2026-07-22 — Keep required checks stable while filtering expensive work
+
+**Decision:** Trigger every retained pull-request workflow on every PR, return
+a stable successful check for irrelevant changes, and perform path detection
+inside jobs before Flutter, macOS, or CodeQL setup. Use explicit macOS and
+workflow-security gate jobs to aggregate skipped/relevant validation safely.
+
+**Why:** GitHub leaves a path-filtered workflow pending when its check is
+required but the workflow never starts. Stable checks make branch protection
+possible without running expensive platform work for unrelated changes.
+
+**Alternatives considered:** Keep top-level path filters and leave checks
+non-required, which does not fail closed, or require them anyway, which blocks
+irrelevant pull requests indefinitely.
 
 ### 2026-07-22 — Treat the workflow set as a tested allowlist
 

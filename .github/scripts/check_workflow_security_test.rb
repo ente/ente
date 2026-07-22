@@ -70,6 +70,23 @@ class WorkflowSecurityCheckerTest < Minitest::Test
     end
   end
 
+  def test_workflow_identity_jobs_and_stable_pull_request_checks_are_exact
+    with_fixture do |root|
+      path = File.join(root, ".github/workflows/dependency-review.yml")
+      source = File.read(path)
+        .sub("name: Dependency review", "name: Renamed check")
+        .sub("pull_request:\n", "pull_request:\n    paths:\n      - mobile/**\n")
+        .sub("jobs:\n", "jobs:\n  unexpected: {}\n")
+      File.write(path, source)
+
+      status, output = run_checker(root)
+      assert_equal 1, status
+      assert_includes output, "expected name \"Dependency review\", found \"Renamed check\""
+      assert_includes output, "pull_request must always create a stable check"
+      assert_includes output, "expected jobs dependency-review, found dependency-review, unexpected"
+    end
+  end
+
   private
 
   def run_checker(root)

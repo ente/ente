@@ -15,28 +15,40 @@ class WorkflowSecurityChecker
   ].to_set.freeze
   WORKFLOW_RULES = {
     ".github/workflows/codeql.yml" => {
+      name: "CodeQL (GitHub Actions)",
       triggers: %w[pull_request schedule workflow_dispatch],
-      permissions: { "contents" => "read", "security-events" => "write" },
+      permissions: { "contents" => "read", "pull-requests" => "read", "security-events" => "write" },
+      jobs: %w[analyze-actions],
     },
     ".github/workflows/dependency-review.yml" => {
+      name: "Dependency review",
       triggers: %w[pull_request],
       permissions: { "contents" => "read" },
+      jobs: %w[dependency-review],
     },
     ".github/workflows/self-hosted-mobile-linux.yml" => {
+      name: "Self-hosted mobile (Linux)",
       triggers: %w[pull_request workflow_dispatch],
-      permissions: { "contents" => "read" },
+      permissions: { "contents" => "read", "pull-requests" => "read" },
+      jobs: %w[validate],
     },
     ".github/workflows/self-hosted-mobile-macos.yml" => {
+      name: "Self-hosted mobile (macOS)",
       triggers: %w[pull_request workflow_dispatch],
-      permissions: { "contents" => "read" },
+      permissions: { "contents" => "read", "pull-requests" => "read" },
+      jobs: %w[changes gate validate],
     },
     ".github/workflows/upstream-sync-drift.yml" => {
+      name: "Upstream sync drift",
       triggers: %w[schedule workflow_dispatch],
       permissions: { "contents" => "read", "issues" => "write" },
+      jobs: %w[detect],
     },
     ".github/workflows/workflow-security-checks.yml" => {
+      name: "Workflow security checks",
       triggers: %w[pull_request],
-      permissions: { "contents" => "read" },
+      permissions: { "contents" => "read", "pull-requests" => "read" },
+      jobs: %w[changes gate validate],
     },
   }.freeze
   ALLOWED_ACTION_FILES = Set[
@@ -44,7 +56,7 @@ class WorkflowSecurityChecker
   ].freeze
   ALLOWED_ENVIRONMENTS = {
     ".github/workflows/workflow-security-checks.yml" => {
-      "workflow-security-checks" => "workflow-change-approval",
+      "validate" => "workflow-change-approval",
     },
   }.freeze
   USES_REF = %r{\A([A-Za-z0-9._-]+/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._/-]+)?)@(\S+)\z}.freeze
@@ -75,9 +87,11 @@ class WorkflowSecurityChecker
       next unless rule
 
       workflow = workflow_yaml(path)
+      validate_name(path, workflow, rule.fetch(:name))
       validate_triggers(path, workflow, rule.fetch(:triggers))
+      validate_pull_request_gate(path, workflow)
       validate_permissions(path, workflow, rule.fetch(:permissions))
-      validate_jobs(path, workflow)
+      validate_jobs(path, workflow, rule.fetch(:jobs))
     end
 
     print_report(workflow_paths.length + action_paths.length)
@@ -126,6 +140,21 @@ class WorkflowSecurityChecker
     add(:triggers, "#{path}: expected #{expected.sort.join(', ')}, found #{actual.to_a.sort.join(', ')}")
   end
 
+  def validate_name(path, workflow, expected)
+    actual = workflow["name"]
+    add(:identity, "#{path}: expected name #{expected.inspect}, found #{actual.inspect}") unless actual == expected
+  end
+
+  def validate_pull_request_gate(path, workflow)
+    events = workflow["on"] || workflow[true]
+    return unless events.is_a?(Hash) && events.key?("pull_request")
+
+    configuration = events["pull_request"]
+    return if configuration.nil? || configuration == {}
+
+    add(:triggers, "#{path}: pull_request must always create a stable check; filter paths inside jobs")
+  end
+
   def validate_permissions(path, workflow, expected)
     actual = stringify_hash(workflow["permissions"] || {})
     return if actual == expected
@@ -133,11 +162,16 @@ class WorkflowSecurityChecker
     add(:permissions, "#{path}: expected #{expected.inspect}, found #{actual.inspect}")
   end
 
-  def validate_jobs(path, workflow)
+  def validate_jobs(path, workflow, expected_jobs)
     jobs = workflow["jobs"]
     unless jobs.is_a?(Hash) && !jobs.empty?
       add(:jobs, "#{path}: no jobs declared")
       return
+    end
+
+    actual_jobs = jobs.keys.map(&:to_s).sort
+    unless actual_jobs == expected_jobs.sort
+      add(:jobs, "#{path}: expected jobs #{expected_jobs.sort.join(', ')}, found #{actual_jobs.join(', ')}")
     end
 
     jobs.each do |name, job|

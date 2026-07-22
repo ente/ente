@@ -4,22 +4,6 @@ name: Dependency review
 
 on:
   pull_request:
-    paths:
-      - ".github/actions/**"
-      - ".github/workflows/dependency-review.yml"
-      - "mobile/apps/photos/**/pubspec.lock"
-      - "mobile/apps/photos/**/pubspec.yaml"
-      - "mobile/packages/**/pubspec.lock"
-      - "mobile/packages/**/pubspec.yaml"
-      - "mobile/pubspec.lock"
-      - "mobile/pubspec.yaml"
-      - "rust/Cargo.lock"
-      - "rust/Cargo.toml"
-      - "rust/bindings/frb/Cargo.toml"
-      - "rust/crates/contacts/Cargo.toml"
-      - "rust/crates/core/Cargo.toml"
-      - "rust/crates/image/Cargo.toml"
-      - "rust/crates/photos/Cargo.toml"
 
 permissions:
   contents: read
