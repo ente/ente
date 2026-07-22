@@ -19,7 +19,6 @@ class BasicExifItemWidgetNew extends StatelessWidget {
     final colors = context.componentColors;
     final style = TextStyles.tiny.copyWith(color: colors.textLight);
     return FileDetailsInfoItemNew(
-      key: const ValueKey("Basic EXIF new"),
       leading: HugeIcon(
         icon: HugeIcons.strokeRoundedCamera01,
         size: IconSizes.small,
