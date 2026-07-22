@@ -18,6 +18,7 @@ import "package:photos/events/reset_zoom_of_photo_view_event.dart";
 import "package:photos/events/retry_failed_image_load_event.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
+import 'package:photos/models/file/trash_file.dart';
 import 'package:photos/module/download/file.dart';
 import 'package:photos/module/download/thumbnail.dart';
 import "package:photos/module/metadata/exif.dart";
@@ -485,8 +486,11 @@ class _ZoomableImageState extends State<ZoomableImage> {
         } else {
           _logger.info("File was deleted " + _photo.toString());
           if (_photo.uploadedFileID != null) {
-            _photo.localID = null;
-            FilesDB.instance.update(_photo);
+            if (_photo is! TrashFile ||
+                !(_photo as TrashFile).isTrashedOnDevice) {
+              _photo.localID = null;
+              FilesDB.instance.update(_photo);
+            }
             _loadNetworkImage();
           } else {
             FilesDB.instance.deleteLocalFile(_photo);
