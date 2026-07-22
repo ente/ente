@@ -204,7 +204,8 @@ class TrashDB {
     trashFile.creationTime = row[columnCreationTime];
     final fileMetadata = row[columnFileMetadata] ?? '{}';
     trashFile.applyMetadata(jsonDecode(fileMetadata));
-    trashFile.localID = row[columnLocalID];
+    // local_id keeps the asset ID that was set when the file was trashed.
+    trashFile.trashedLocalID = row[columnLocalID];
 
     trashFile.mMdVersion = row[columnMMdVersion] ?? 0;
     trashFile.mMdEncodedJson = row[columnMMdEncodedJson] ?? '{}';
@@ -235,7 +236,8 @@ class TrashDB {
     row[columnThumbnailDecryptionHeader] = trash.thumbnailDecryptionHeader;
     row[columnUpdationTime] = trash.updationTime;
 
-    row[columnLocalID] = trash.localID;
+    // Keep this ID when localID is cleared and saved in file_metadata.
+    row[columnLocalID] = trash.trashedLocalID ?? trash.localID;
     row[columnCreationTime] = trash.creationTime;
     row[columnFileMetadata] = jsonEncode(trash.metadata);
 

@@ -188,6 +188,7 @@ class TrashSyncService {
           utf8.decode(encodedMetadata),
         );
         trash.applyMetadata(metadata);
+        trash.trashedLocalID = trash.localID;
         if (item["file"]['magicMetadata'] != null) {
           final utfEncodedMmd = await CryptoUtil.decryptChaCha(
             CryptoUtil.base642bin(item["file"]['magicMetadata']['data']),

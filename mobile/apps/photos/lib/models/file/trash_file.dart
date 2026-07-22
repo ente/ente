@@ -1,6 +1,9 @@
 import 'package:photos/models/file/file.dart';
 
 class TrashFile extends EnteFile {
+  // Keep the asset ID after localID is cleared when the asset is in device trash.
+  String? trashedLocalID;
+
   // time when file was put in the trash for first time
   late int createdAt;
 

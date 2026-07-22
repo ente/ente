@@ -262,6 +262,12 @@ dev_dependencies:
   mockito: 5.5.1
   test: 1.26.3
 
+dependency_overrides:
+  photo_manager:
+    git:
+      url: https://github.com/ente/flutter_photo_manager.git
+      ref: 622c957494c73d2e8d11fc89ee1d838bb2f8f086
+
 # ------------------------------
 # ICONs
 # ------------------------------

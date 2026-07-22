@@ -5,6 +5,7 @@ import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import "package:flutter/services.dart";
 import 'package:logging/logging.dart';
+import "package:photo_manager/photo_manager.dart";
 import 'package:photos/core/configuration.dart';
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/create_new_album_event.dart";
@@ -12,6 +13,8 @@ import "package:photos/events/tab_changed_event.dart";
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/collection/collection_items.dart';
+import 'package:photos/models/file/file_type.dart';
+import 'package:photos/models/file/trash_file.dart';
 import 'package:photos/models/selected_files.dart';
 import 'package:photos/services/collections_service.dart';
 import "package:photos/services/hidden_service.dart";
@@ -585,11 +588,35 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
       isDismissible: true,
     );
     await dialog.show();
+    final files = widget.selectedFiles!.files.toList();
+    final assetEntities = [
+      for (final file in files)
+        if (file is TrashFile &&
+            file.trashedLocalID != null &&
+            !file.isSharedMediaToAppSandbox)
+          AssetEntity(
+            id: file.trashedLocalID!,
+            typeInt: switch (file.fileType) {
+              FileType.image || FileType.livePhoto => AssetType.image.index,
+              FileType.video => AssetType.video.index,
+              FileType.other => AssetType.other.index,
+            },
+            width: 0,
+            height: 0,
+          ),
+    ];
     try {
-      await CollectionsService.instance.restore(
-        toCollectionID,
-        widget.selectedFiles!.files.toList(),
-      );
+      await Future.wait([
+        PhotoManager.editor.android
+            .restoreFromTrash(assetEntities)
+            .then(
+              (_) {},
+              onError: (e, s) {
+                _logger.severe("Failed to restore from trash", e, s);
+              },
+            ),
+        CollectionsService.instance.restore(toCollectionID, files),
+      ]);
       CollectionsService.instance.recordCollectionUsage(toCollectionID);
       unawaited(RemoteSyncService.instance.sync(silently: true));
       widget.selectedFiles?.clearAll();
