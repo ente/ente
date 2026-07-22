@@ -13,7 +13,7 @@
 | Phase | Task | Title | Size | Status | Notes |
 |------:|----:|-------|:----:|--------|-------|
 | 1 | 1.1 | Inventory every inherited workflow and record an evidence-based disposition | M | 🟢 done | Audited all 38 active workflow files, their triggers, permissions, secret/service dependencies, recent runs, representative failure logs, and fork relevance. The disposition is 23 risk-first removals in Task 1.2, nine unrelated check removals in Task 3.2, four fork-focused replacements/repairs, and two retained fork workflows to harden. No workflow or GitHub setting changed. |
-| 1 | 1.2 | Remove inherited deployment, release, translation, and scheduled runner automation | M | ⚪ not started | Remove workflows that depend on Ente production infrastructure or perform unrelated scheduled work, without changing external application, server, signing, or distribution state. |
+| 1 | 1.2 | Remove inherited deployment, release, translation, and scheduled runner automation | M | 🟢 done | Deleted the 23 audited upstream release, deployment, translation, container-publication, cache-warming, stale-PR, and scheduled product-build workflows. The 15 intentionally deferred or retained checks still parse; workflow security passes across the remaining 17 workflow/action files. No GitHub setting or external application, server, signing, distribution, issue, or pull-request state changed. |
 | 2 | 2.1 | Add Linux CI for the self-hosted Photos mobile behavior and source quality | M | ⚪ not started | Run focused endpoint and release-tool contracts, tracked-Dart formatting, and full mobile analysis with fork-relevant triggers and no signing or publication secrets. |
 | 2 | 2.2 | Add macOS CI for the self-hosted iOS contracts and deterministic CocoaPods state | M | ⚪ not started | Run iOS-specific tests with the required Apple tooling and verify the lockfile without archiving, signing, registering devices, or publishing an IPA. |
 | 2 | 2.3 | Preserve and harden upstream-drift and workflow-security checks | S | ⚪ not started | Retain the fork-specific drift issue and workflow security boundary while minimizing permissions, credentials, triggers, and untrusted pull-request exposure. |
@@ -353,4 +353,13 @@ with the resolution as the decision._
 > Populated at the end of each phase. Surprises, anti-patterns discovered, and
 > things to do differently next time.
 
-_Empty until first phase completes._
+### Phase 1 — Audit permissions, triggers, services, and relevance together
+
+- A workflow with nominally read-only repository permissions can still deploy
+  through external credentials; permission, secret, environment, command, and
+  trigger evidence all matter.
+- Successful inherited checks can be as noisy and costly as failed ones when
+  they protect unrelated products. Outcome alone is not a retention reason.
+- Removing high-risk automation first leaves a much smaller review surface:
+  15 workflow files remain for replacement, hardening, or deferred removal,
+  and none of the deleted files was needed to validate that reduced set.
