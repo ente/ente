@@ -185,10 +185,12 @@ class TrashDB {
   Future<void> markTrashedOnDevice(Map<int, String> localIDs) async {
     if (localIDs.isEmpty) return;
     final db = await instance.database;
-    final batch = db.batch();
-    for (final entry in localIDs.entries) {
-      batch.rawInsert(
-        '''
+    await db.transaction((transaction) async {
+      for (final entries in localIDs.entries.toList().chunks(400)) {
+        final batch = transaction.batch();
+        for (final entry in entries) {
+          batch.rawInsert(
+            '''
           INSERT INTO $tableName (
             $columnUploadedFileID,
             $columnCollectionID,
@@ -202,10 +204,12 @@ class TrashDB {
             $columnLocalID = excluded.$columnLocalID,
             $columnIsTrashedOnDevice = 1
         ''',
-        [entry.key, entry.value],
-      );
-    }
-    await batch.commit(noResult: true);
+            [entry.key, entry.value],
+          );
+        }
+        await batch.commit(noResult: true);
+      }
+    });
   }
 
   Future<FileLoadResult> getTrashedFiles(
