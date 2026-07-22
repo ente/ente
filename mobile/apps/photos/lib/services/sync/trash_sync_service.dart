@@ -244,6 +244,17 @@ class TrashSyncService {
     await _gateway.trashFiles(items);
   }
 
+  Future<void> markTrashedOnDevice(
+    Map<int, String> localIDsByUploadedID,
+  ) async {
+    final markedCount = await _trashDB.markTrashedOnDevice(
+      localIDsByUploadedID,
+    );
+    if (markedCount > 0) {
+      Bus.instance.fire(TrashUpdatedEvent());
+    }
+  }
+
   Future<void> deleteFromTrash(List<EnteFile> files) async {
     final uniqueFileIds = files.map((e) => e.uploadedFileID!).toSet().toList();
     final batchedFileIDs = uniqueFileIds.chunks(batchSize);
