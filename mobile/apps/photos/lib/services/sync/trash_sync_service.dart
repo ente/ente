@@ -142,9 +142,11 @@ class TrashSyncService {
       }
     }
     for (final batch in uniqueItems.chunks(batchSize)) {
-      await _trashDB.markTrashedOnDevice({
-        for (final item in batch) item.fileID: ?deviceLocalIDs[item.fileID],
-      });
+      await _trashDB.markTrashedOnDevice([
+        for (final item in batch)
+          if (deviceLocalIDs[item.fileID] case final localID?)
+            (item.fileID, localID),
+      ]);
       await _trashFiles(batch.map((item) => item.toJson()).toList());
     }
   }
