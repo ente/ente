@@ -90,6 +90,7 @@ class LocalSettings {
   static const _kInternalUserDisabled = "ls.internal_user_disabled";
   static const _kBGDebugNotificationsEnabled =
       "ls.bg_debug_notifications_enabled";
+  static const _kUseNewFileDetailsSheet = "debug.use_new_file_details_sheet";
   static const _kCFUploadProxyEnabled = "ls.cf_upload_proxy_enabled";
   static const _kSharedPhotoFeedCutoffTime = "ls.shared_photo_feed_cutoff_time";
   static const _kWrapped2025ResumeIndex = "ls.wrapped_2025_resume_index";
@@ -517,6 +518,13 @@ class LocalSettings {
 
   Future<void> setBGDebugNotificationsEnabled(bool value) async {
     await _prefs.setBool(_kBGDebugNotificationsEnabled, value);
+  }
+
+  bool get useNewFileDetailsSheet =>
+      _prefs.getBool(_kUseNewFileDetailsSheet) ?? false;
+
+  Future<void> setUseNewFileDetailsSheet(bool value) async {
+    await _prefs.setBool(_kUseNewFileDetailsSheet, value);
   }
 
   /// User's explicit override for the Cloudflare upload proxy toggle.

@@ -183,7 +183,9 @@ class _SettingsBody extends StatelessWidget {
             const AppVersionWidget(),
             if (hasLoggedIn &&
                 !isLocalGalleryMode &&
-                (flagService.flags.internalUser || kDebugMode)) ...[
+                (flagService.flags.internalUser ||
+                    kDebugMode ||
+                    kProfileMode)) ...[
               // Debug section
               _buildMenuItem(
                 title: "Debug",
