@@ -1,7 +1,10 @@
 package user
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
+
 	"github.com/ente/museum/ente"
 	enteJWT "github.com/ente/museum/ente/jwt"
 	"github.com/ente/museum/pkg/utils/time"
@@ -11,6 +14,12 @@ import (
 
 // jwt token validity = 1 day
 const ValidForDays = 1
+
+var errJWTExpired = &ente.ApiError{
+	Code:           ente.BadRequest,
+	Message:        "token expired",
+	HttpStatusCode: http.StatusBadRequest,
+}
 
 func (c *UserController) GetJWTToken(userID int64, scope enteJWT.ClaimScope) (string, error) {
 	tokenExpiry := time.NDaysFromNow(1)
@@ -46,8 +55,8 @@ func (c *UserController) ValidateJWTToken(jwtToken string, scope enteJWT.ClaimSc
 		return c.JwtSecret, nil
 	})
 	if err != nil {
-		if ve, ok := err.(*jwt.ValidationError); ok && ve.Error() == "token expired" {
-			return nil, stacktrace.Propagate(ente.NewBadRequestWithMessage("token expired"), "")
+		if errors.Is(err, enteJWT.ErrTokenExpired) {
+			return nil, stacktrace.Propagate(errJWTExpired, "")
 		}
 		return nil, stacktrace.Propagate(err, "JWT parsed failed")
 	}

@@ -2,8 +2,11 @@ package jwt
 
 import (
 	"errors"
+
 	"github.com/ente/museum/pkg/utils/time"
 )
+
+var ErrTokenExpired = errors.New("token expired")
 
 type ClaimScope string
 
@@ -35,7 +38,7 @@ func (w *WebCommonJWTClaim) GetScope() ClaimScope {
 
 func (w WebCommonJWTClaim) Valid() error {
 	if w.ExpiryTime < time.Microseconds() {
-		return errors.New("token expired")
+		return ErrTokenExpired
 	}
 	return nil
 }
@@ -48,7 +51,7 @@ type LinkPasswordClaim struct {
 
 func (c LinkPasswordClaim) Valid() error {
 	if c.ExpiryTime < time.Microseconds() {
-		return errors.New("token expired")
+		return ErrTokenExpired
 	}
 	return nil
 }
@@ -62,7 +65,7 @@ type PasteGuardClaim struct {
 
 func (c PasteGuardClaim) Valid() error {
 	if c.ExpiryTime < time.Microseconds() {
-		return errors.New("token expired")
+		return ErrTokenExpired
 	}
 	return nil
 }
