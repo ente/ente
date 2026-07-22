@@ -1,75 +1,92 @@
-name: Workflow security checks
+name: Self-hosted mobile (macOS)
 
 on:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
   pull-requests: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   changes:
-    name: Detect workflow changes
+    name: Detect macOS mobile changes
     if: github.repository == 'vanton1/ente'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       relevant: ${{ steps.paths.outputs.relevant }}
     steps:
-      - name: Detect automation-policy changes
+      - name: Detect macOS-relevant pull-request paths
         id: paths
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
+            if (context.eventName !== "pull_request") {
+              core.setOutput("relevant", "true");
+              return;
+            }
             const files = await github.paginate(github.rest.pulls.listFiles, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number,
               per_page: 100,
             });
+            const exact = new Set([
+              ".github/workflows/self-hosted-mobile-macos.yml",
+              "mobile/pubspec.lock",
+              "mobile/pubspec.yaml",
+              "scripts/test_self_hosted_mobile_macos.sh",
+            ]);
+            const prefixes = [
+              ".github/actions/setup-flutter/",
+              "mobile/apps/photos/",
+              "mobile/packages/",
+            ];
             const relevant = files.some(({ filename }) =>
-              filename.startsWith(".github/actions/") ||
-              filename.startsWith(".github/workflows/") ||
-              filename === ".github/scripts/check_workflow_security.rb" ||
-              filename === ".github/scripts/check_workflow_security_test.rb"
+              exact.has(filename) || prefixes.some((prefix) => filename.startsWith(prefix))
             );
             core.setOutput("relevant", relevant ? "true" : "false");
 
   validate:
-    name: Workflow security validation
+    name: macOS mobile validation
     needs: changes
     if: github.repository == 'vanton1/ente' && needs.changes.outputs.relevant == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    environment:
-      # Require admin approval for workflow changes.
-      name: workflow-change-approval
+    runs-on: macos-26
+    timeout-minutes: 45
     steps:
-      - name: Checkout PR
+      - name: Checkout source and submodules
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+          submodules: recursive
 
-      - name: Checkout trusted checker
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Install pinned Flutter
+        uses: ./.github/actions/setup-flutter
+
+      - name: Install pinned Ruby
+        uses: ruby/setup-ruby@a30dfa457ad68707b8b910ac3a244714b61c0626 # v1
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          path: trusted
-          persist-credentials: false
-          sparse-checkout: .github/scripts/check_workflow_security.rb
-          sparse-checkout-cone-mode: false
+          ruby-version: "3.3"
 
-      - name: Run workflow security checks
-        run: ruby trusted/.github/scripts/check_workflow_security.rb
+      - name: Install lockfile-compatible CocoaPods
+        run: gem install cocoapods --version 1.17.0 --no-document
+
+      - name: Run self-hosted iOS and CocoaPods validation
+        run: ./scripts/test_self_hosted_mobile_macos.sh
 
   gate:
-    name: Workflow security gate
+    name: macOS mobile gate
     needs: [changes, validate]
     if: always() && github.repository == 'vanton1/ente'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Require relevant workflow validation
+      - name: Require relevant macOS validation
         env:
           CHANGES_RESULT: ${{ needs.changes.result }}
           RELEVANT: ${{ needs.changes.outputs.relevant }}

@@ -1,28 +1,25 @@
-name: CodeQL (GitHub Actions)
+name: Self-hosted mobile (Linux)
 
 on:
   pull_request:
-  schedule:
-    - cron: "22 1 * * 1"
   workflow_dispatch:
 
 permissions:
   contents: read
   pull-requests: read
-  security-events: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  analyze-actions:
-    name: Actions CodeQL gate
+  validate:
+    name: Linux mobile gate
     if: github.repository == 'vanton1/ente'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
-      - name: Detect workflow-code changes
+      - name: Detect Linux-relevant pull-request paths
         id: paths
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
@@ -37,27 +34,38 @@ jobs:
               pull_number: context.issue.number,
               per_page: 100,
             });
+            const exact = new Set([
+              ".github/workflows/self-hosted-mobile-linux.yml",
+              "rust/Cargo.lock",
+              "rust/Cargo.toml",
+              "scripts/test_self_hosted_mobile_linux.sh",
+            ]);
+            const prefixes = [
+              ".github/actions/setup-flutter/",
+              "mobile/",
+              "rust/apps/codegen/",
+              "rust/bindings/frb/",
+              "rust/crates/contacts/",
+              "rust/crates/core/",
+              "rust/crates/image/",
+              "rust/crates/photos/",
+            ];
             const relevant = files.some(({ filename }) =>
-              filename.startsWith(".github/actions/") ||
-              filename.startsWith(".github/workflows/")
+              exact.has(filename) || prefixes.some((prefix) => filename.startsWith(prefix))
             );
             core.setOutput("relevant", relevant ? "true" : "false");
 
-      - name: Checkout workflow source
+      - name: Checkout source and submodules
         if: steps.paths.outputs.relevant == 'true'
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+          submodules: recursive
 
-      - name: Initialize CodeQL for GitHub Actions
+      - name: Install pinned Flutter
         if: steps.paths.outputs.relevant == 'true'
-        uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
-        with:
-          languages: actions
-          build-mode: none
+        uses: ./.github/actions/setup-flutter
 
-      - name: Analyze GitHub Actions
+      - name: Run portable self-hosted mobile validation
         if: steps.paths.outputs.relevant == 'true'
-        uses: github/codeql-action/analyze@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
-        with:
-          category: /language:actions
+        run: ./scripts/test_self_hosted_mobile_linux.sh

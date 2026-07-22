@@ -1,0 +1,503 @@
+# Fork GitHub Actions Maintenance
+
+**Status:** Complete. The tracker and decision history are retained as implementation evidence.
+**Started:** 2026-07-22
+**Owner:** vanton
+**Planning doc:** n/a
+**Companion docs:** [Fork overview](../FORK.md), [self-hosted mobile documentation index](../mobile/apps/photos/SELF_HOSTED_DOCUMENTATION.md), [upstream synchronization runbook](../UPSTREAM_SYNC.md), [upstream synchronization architecture](UpstreamEnteSynchronizationArchitecture.md), [fork GitHub Actions architecture](ForkGitHubActionsArchitecture.md)
+
+---
+
+## 1. Phase / Task tracker
+
+| Phase | Task | Title | Size | Status | Notes |
+|------:|----:|-------|:----:|--------|-------|
+| 1 | 1.1 | Inventory every inherited workflow and record an evidence-based disposition | M | 🟢 done | Audited all 38 active workflow files, their triggers, permissions, secret/service dependencies, recent runs, representative failure logs, and fork relevance. The disposition is 23 risk-first removals in Task 1.2, nine unrelated check removals in Task 3.2, four fork-focused replacements/repairs, and two retained fork workflows to harden. No workflow or GitHub setting changed. |
+| 1 | 1.2 | Remove inherited deployment, release, translation, and scheduled runner automation | M | 🟢 done | Deleted the 23 audited upstream release, deployment, translation, container-publication, cache-warming, stale-PR, and scheduled product-build workflows. The 15 intentionally deferred or retained checks still parse; workflow security passes across the remaining 17 workflow/action files. No GitHub setting or external application, server, signing, distribution, issue, or pull-request state changed. |
+| 2 | 2.1 | Add Linux CI for the self-hosted Photos mobile behavior and source quality | M | 🟢 done | Replaced the inherited broad mobile lint with a least-privilege Linux workflow and one reproducible script covering standard, configurable, and locked endpoint modes, Linux-portable Android release contracts, generated Rust bindings, tracked-Dart formatting, and full mobile analysis. Local proof: 181 focused tests passed across the three modes, formatting was unchanged, analysis reported no issues, the workflow parses, and the workflow-security contract passes. |
+| 2 | 2.2 | Add macOS CI for the self-hosted iOS contracts and deterministic CocoaPods state | M | 🟢 done | Replaced the all-app Podfile check with a Photos-only macOS workflow that pins Flutter, Ruby, and CocoaPods 1.17.0, runs the four Apple-tool/release contracts, and verifies `pod install --deployment` without signing or publication. Local proof: all 51 iOS tests passed, the pinned Podfile installed with no tracked changes, the workflow parses, and workflow security passes. |
+| 2 | 2.3 | Preserve and harden upstream-drift and workflow-security checks | S | 🟢 done | Kept the two fork-owned maintenance workflows, moved both to a fixed Ubuntu image, added the exact fork guard and timeout to the trusted workflow checker, and disabled persisted checkout credentials in both of its checkouts. The drift job remains schedule/manual only with the minimum `contents: read` and `issues: write` permissions. All 42 Ruby/Node drift contracts and 187 assertions passed with the workflow-security scan. |
+| 3 | 3.1 | Repair dependency review and retain only useful security scanning | M | 🟢 done | Enabled GitHub vulnerability alerts and the dependency graph, then narrowed dependency review to Photos mobile Pub/Rust manifests and pinned workflow actions. The dependency graph now exports 3,902 packages and its comparison API succeeds. Replaced broad Go/JavaScript/Actions CodeQL with least-privilege Actions-only PR, weekly, and manual scanning; both workflows use fixed runners, timeouts, exact fork guards, SHA-pinned actions, and no secrets. |
+| 3 | 3.2 | Remove remaining unrelated product and monorepo checks | S | 🟢 done | Deleted the nine audited read-only but unrelated desktop, documentation-site, Ensu Android/iOS, staff-infrastructure, broad Rust, server, and web checks. Exactly six intended workflows remain; all parse and the current security checker passes across the six workflows and two local actions. |
+| 3 | 3.3 | Enforce the exact fork workflow allowlist and security contract | M | 🟢 done | Replaced the advisory checker with an exact contract for six workflow files and the pinned Flutter setup action, and removed the now-unused inherited web-deployment action. The checker rejects missing/unexpected automation, trigger or permission drift, secrets, unpinned actions, persisted checkout credentials, mutable runner labels, missing fork guards/timeouts, and unapproved environments. Five fixture tests with 37 assertions prove pass and fail cases; the complete drift/security suite remains green. |
+| 4 | 4.1 | Validate the complete workflow set locally and in controlled GitHub runs | M | 🟢 done | Local YAML, shell, allowlist, five checker fixtures/37 assertions, 42 drift contracts/189 Ruby assertions, endpoint modes, formatting, analysis, iOS contracts, and CocoaPods checks passed. Relevant-path PR #5 passed all five uniquely named gates (Linux 13m56s; macOS 5m43s; CodeQL 44s; dependency 8s; workflow security 11s). Disposable Markdown-only PR #6 returned all five green gates in 2–5s while skipping heavy validation. Main protection now requires the exact GitHub Actions checks, strict freshness, admin enforcement, and resolved conversations; force pushes/deletion are disabled. |
+| 4 | 4.2 | Document the as-built fork GitHub Actions architecture | S | 🟢 done | Added `ForkGitHubActionsArchitecture.md` with the final allowlist, triggers, path/gate flow, responsibilities, permissions, branch settings, failures, rollback, upstream adoption, and live evidence. Linked it from the fork overview, self-hosted documentation index, upstream runbook, and this record; local-link and privacy validation passed. |
+
+**Legend:** ⚪ not started · 🟡 working · 🟢 done · 🔴 blocked / needs decision
+**Size:** XS · S · M · L · XL (never days or weeks).
+
+One task = one row = one reviewable step. Mark a row 🟡 working before starting
+and 🟢 done only after its acceptance evidence passes. Task naming follows
+`Task <phase>.<sub> — <short imperative title>`; commits, when requested, mirror
+that title.
+
+---
+
+## 2. Goal
+
+Give the owner and contributors of this self-hosted Ente Photos mobile fork a
+quiet, trustworthy GitHub Actions surface. V1 is complete when every inherited
+workflow has an evidence-based disposition; workflows tied to Ente production,
+unrelated products, scheduled builds, translations, signing, or deployment are
+gone; fork-owned mobile, dependency, workflow-security, and upstream-drift
+checks pass on the paths they protect; relevant failures block merging; and an
+exact allowlist prevents a future upstream synchronization from silently
+reactivating automation.
+
+Success is observable in GitHub: relevant pull requests receive only useful,
+actionable checks; irrelevant changes do not consume expensive runners; the
+Actions page no longer fills with expected missing-secret or missing-service
+failures; the upstream drift workflow continues to manage its single tracking
+issue; and no retained workflow can sign, publish, deploy, translate, or mutate
+private operational state.
+
+The work targets the fork owner and occasional contributors reviewing changes
+or upstream synchronization pull requests. It does not recreate official
+Ente's CI, release infrastructure, or organization secrets. There is no
+application-runtime latency or throughput objective; CI must provide bounded,
+non-duplicated feedback only for relevant changes.
+
+---
+
+## 3. Architecture / approach
+
+The selected architecture replaces inherited automation with a small,
+fork-owned allowlist:
+
+```text
+pull request or manual check
+          |
+          +--> Linux self-hosted mobile validation
+          +--> macOS iOS contract + CocoaPods validation
+          +--> dependency/security validation
+          +--> workflow allowlist + security validation
+
+daily/manual detector
+          |
+          +--> read official upstream history
+          +--> create/update/close one fork drift issue
+
+anything else
+          |
+          +--> no workflow file, no runner, no secret, no mutation
+```
+
+The intended retained set has separate responsibilities:
+
+- a Linux workflow owns fork-specific Photos endpoint and release-tool tests,
+  tracked-Dart formatting, and complete mobile analysis;
+- a macOS workflow owns tests requiring Apple command-line tools and
+  deterministic CocoaPods verification, without building a signed artifact;
+- dependency review and only demonstrably useful code scanning own third-party
+  and supported-language security evidence;
+- the existing workflow-security check owns action pinning, minimal
+  permissions, safe checkout/authentication, and the exact workflow allowlist;
+  and
+- the existing upstream-drift workflow retains its fork identity guard and
+  narrow `contents: read` plus `issues: write` role.
+
+Every retained pull-request check fails closed. External actions stay pinned to
+full commit SHAs. Jobs default to read-only repository permissions and do not
+receive signing, Firebase, Apple, Cloudflare, Crowdin, Tailscale, Museum,
+container-registry, app-store, or deployment credentials. Pull requests are
+treated as untrusted input; workflows must not execute mutable privileged
+operations on their code.
+
+Path filters and job boundaries keep Linux-only work off macOS and avoid
+unrelated monorepo activity. Platform-specific tests run on the platform that
+provides their real tools rather than weakening production scripts or tests to
+make them pass on an incompatible runner. The allowlist is checked from the
+repository itself so a later upstream merge that restores or adds a workflow
+fails review before that workflow is accepted into fork `main`.
+
+The implementation is sequenced risk-first. It records a complete inventory,
+then removes production and scheduled automation, introduces the replacement
+checks, repairs supported dependency security, removes the remaining unrelated
+checks, enforces the final allowlist, and finishes with controlled live proof.
+Each source change is reversible with Git. Repository security settings changed
+for dependency review must also be individually reversible and recorded.
+
+Preliminary evidence from 2026-07-21 and 2026-07-22 already shows the central
+failure classes: Crowdin runs lack the official API token; Ente deployment and
+release workflows expect official environments, signing material, or service
+credentials; dependency review reports that the repository feature is not
+enabled; and the broad Linux mobile lint invokes iOS-only `plutil` tests and
+finds fork release-directory permission assumptions. Task 1.1 will turn the
+sample into a complete, reviewable disposition matrix instead of treating it
+as the final audit.
+
+### Task 1.1 workflow disposition inventory
+
+The inventory was captured on 2026-07-22 from the local YAML, the GitHub
+workflow API, the latest available 100 fork runs, failed job/step metadata, and
+representative failed logs from 2026-07-20 through 2026-07-22. GitHub reported
+all 38 files as active. “No recent run” means no execution appeared in that
+bounded fork history; it does not claim that the official repository never ran
+the workflow. Secret names were classified without reading secret values.
+
+| Workflow | Trigger and access boundary | Fork evidence | Disposition and reason |
+|---|---|---|---|
+| `app-release.yml` | Manual; `contents: write`, `pull-requests: write`; official GitHub App credentials | No recent fork run | **Remove in Task 1.2.** Official multi-application release orchestration is outside the fork and can mutate releases and pull requests. |
+| `auth-build.yml` | Push, manual, schedule; `contents: write`; Android, Apple, Windows, Firebase, Azure, GitHub App, and notification secrets | Two scheduled failures; signing, token minting, and certificate steps failed | **Remove in Task 1.2.** Auth builds and official signed releases are unrelated and depend on unavailable production credentials. |
+| `cli-release.yml` | Version-tag push; read-only token plus release commands; official-repository condition present inside the job | No recent fork run | **Remove in Task 1.2.** The fork does not publish the Ente CLI, and retaining dormant release logic adds unnecessary surface. |
+| `codeql.yml` | Manual and weekly schedule; job grants `security-events: write` and `packages: read`; no repository secrets | No recent fork run | **Replace/adapt in Task 3.1.** Actions scanning is relevant, but broad Go and JavaScript/TypeScript analysis must earn its runner cost against fork scope. |
+| `copycat-db-release.yml` | Manual; `contents: read`; external container-registry username/password | No recent fork run | **Remove in Task 1.2.** Publishing the server database image is unrelated and requires external release credentials. |
+| `dependency-review.yml` | Dependency-changing pull requests; `contents: read`; no secrets | One PR failure: dependency review is unsupported until the repository dependency graph is enabled | **Repair in Task 3.1.** Dependency risk is in scope, but repository support and useful manifest coverage must be enabled and proven. |
+| `desktop-lint.yml` | Desktop-changing pull requests; `contents: read`; no secrets | No recent fork run | **Remove in Task 3.2.** Desktop Photos is outside the self-hosted Android/iOS client boundary. |
+| `docs-deploy-redirect.yml` | Docs redirect push and manual; `contents: read`; Cloudflare credentials | No recent fork run | **Remove in Task 1.2.** The fork does not control the official help-domain redirect or its Cloudflare account. |
+| `docs-deploy.yml` | Docs push and manual; `contents: read`; production environment and Cloudflare credentials | One push failure in the publish step | **Remove in Task 1.2.** Official documentation-site deployment is not owned by the fork. |
+| `docs-verify-build.yml` | Docs-changing pull requests; `contents: read`; no secrets | No recent fork run | **Remove in Task 3.2.** The official documentation site is outside V1; fork Markdown contracts will live in the replacement validation. |
+| `ensu-android-build.yml` | Ensu Android pull requests; `contents: read`; no secrets | One successful PR run | **Remove in Task 3.2.** A green but unrelated Ensu build still consumes runners and does not protect self-hosted Photos. |
+| `ensu-build.yml` | Push, manual, schedule; `contents: write`; signing, Apple, Azure, Firebase, GitHub App, updater, and notification secrets | Two scheduled failures across signed Android, iOS, and desktop jobs | **Remove in Task 1.2.** Official Ensu release automation is unrelated and credential-bound. |
+| `ensu-ios-build.yml` | Ensu iOS pull requests on macOS; `contents: read`; no secrets | One successful PR run | **Remove in Task 3.2.** It consumes an expensive runner for an unrelated application. |
+| `infra-deploy-staff.yml` | Staff-site push and manual; `contents: read`; production environment and Cloudflare credentials | One push failure in the publish step | **Remove in Task 1.2.** The fork neither owns nor deploys Ente staff infrastructure. |
+| `infra-lint-staff.yml` | Staff-infrastructure pull requests; `contents: read`; no secrets | No recent fork run | **Remove in Task 3.2.** Staff infrastructure is unrelated to mobile self-hosting. |
+| `locker-build.yml` | Push, manual, schedule; `contents: write`; Android, Apple, Firebase, GitHub App, and notification secrets | Two scheduled failures in Android and Apple signing steps | **Remove in Task 1.2.** Locker and its official signed distribution are outside fork scope. |
+| `mobile-crowdin-push-sources-and-translations.yml` | Manual; `contents: read`; Crowdin token and GitHub token | No recent fork run | **Remove in Task 1.2.** The fork does not own the official Crowdin project or translation publication flow. |
+| `mobile-crowdin-push-sources.yml` | Mobile source push; `contents: read`; Crowdin token and GitHub token | Two push failures; required Crowdin API token was absent | **Remove in Task 1.2.** It fails by design without the official translation service and runs on accepted fork changes. |
+| `mobile-crowdin-sync.yml` | Manual and schedule; `contents: write`, `pull-requests: write`; Crowdin token | No recent fork run | **Remove in Task 1.2.** It can create translation commits/PRs using an official service the fork does not own. |
+| `mobile-lint.yml` | Mobile-changing PR and manual; `contents: read`; no secrets; broad Linux Flutter/Rust/test workload | Two PR failures; latest run passed 416 tests but failed 12 fork release-tool tests because Linux lacks `plutil` and two temporary directories were not mode `0700` | **Replace in Task 2.1.** Formatting, analysis, and fork tests matter, but platform-specific contracts must not be forced through one broad Linux test sweep. |
+| `mobile-podfile-lock.yml` | Mobile dependency/iOS changes and manual; `contents: read`; no secrets; macOS | One PR failure; Photos failed first because deployment mode recalculated Flutter plugin podspec checksums | **Replace in Task 2.2.** Deterministic self-hosted iOS dependencies matter, but the fork needs a focused, reproducible Photos contract rather than all official mobile apps. |
+| `photos-build.yml` | Push, manual, schedule; `contents: write`; Android, Apple, Firebase, GitHub App, and notification secrets | Two scheduled failures; Android signing material was invalid/absent and iOS pod installation failed | **Remove in Task 1.2.** This is official signed Photos release automation, not the fork's guarded local build/distribution path. |
+| `photos-desktop-build.yml` | Push, manual, schedule; nominally `contents: read`; GitHub App, Apple, Azure, and notification secrets | Two scheduled failures; nightly token minting failed | **Remove in Task 1.2.** Desktop release automation is unrelated and depends on official credentials. |
+| `rust-e2e-test.yml` | Rust-changing pull requests; `contents: read`; no secrets | One successful PR run | **Remove in Task 3.2.** Broad Rust end-to-end server coverage exceeds the selected mobile-fork boundary; mobile-used Rust generation/analysis belongs in replacement CI. |
+| `rust-lint.yml` | Rust-changing pull requests; `contents: read`; no secrets | One successful PR run | **Remove in Task 3.2.** Repository-wide Rust lint is outside V1; only Rust paths required by Photos mobile will be exercised by replacement validation. |
+| `server-lint.yml` | Server-changing pull requests; `contents: read`; no secrets | One successful PR run | **Remove in Task 3.2.** The fork consumes a self-hosted server but does not maintain a divergent server product. |
+| `server-publish-ghcr.yml` | Manual and schedule; `contents: read`, `packages: write`; GitHub token | No recent fork run | **Remove in Task 1.2.** Publishing server containers is an external mutation outside the local mobile fork. |
+| `server-release.yml` | Manual; `contents: read`; external container-registry username/password | No recent fork run | **Remove in Task 1.2.** Official server release publication is not owned by the fork. |
+| `stale.yml` | Manual and schedule; `issues: write`, `pull-requests: write`, `statuses: read`; no secrets | Two successful scheduled runs | **Remove in Task 1.2.** Automatic upstream PR lifecycle mutation is unnecessary for this low-volume personal fork. |
+| `upstream-sync-drift.yml` | Daily and manual; `contents: read`, `issues: write`; exact fork guard; no secrets | No recent run in the bounded history; deterministic local contracts and prior implementation validation pass | **Keep and harden in Task 2.3.** It is fork-owned, reports official drift through one issue, and cannot change source or releases. |
+| `warm-caches.yml` | Manual and schedule; `contents: read`; seven Linux/macOS cache jobs; no secrets | Two scheduled failures; latest failure occurred in Go server lint | **Remove in Task 1.2.** It spends runners across unrelated products to support upstream CI that the fork is removing. |
+| `web-crowdin-push-sources-and-translations.yml` | Manual; `contents: read`; Crowdin token and GitHub token | No recent fork run | **Remove in Task 1.2.** The official web translation project is outside fork ownership. |
+| `web-crowdin-sync.yml` | Web push, manual, schedule; `contents: write`, `pull-requests: write`; Crowdin token | One push failure consistent with absent official Crowdin credentials | **Remove in Task 1.2.** It can author source/PR changes through an unavailable official service. |
+| `web-deploy-2of3.yml` | Manual; `contents: read`; production environment and Cloudflare credentials | No recent fork run | **Remove in Task 1.2.** The fork does not deploy the official 2of3 web application. |
+| `web-deploy.yml` | Manual and schedule; `contents: read`; production environment and Cloudflare credentials | Two scheduled failures; latest failed while installing/running Wrangler | **Remove in Task 1.2.** Official web deployment is unrelated even when a failure is an upstream tool issue rather than only a missing secret. |
+| `web-lint.yml` | Web-changing pull requests; `contents: read`; no secrets | One successful PR run | **Remove in Task 3.2.** A successful but unrelated web lint does not protect the self-hosted mobile applications. |
+| `web-publish-ghcr.yml` | Manual and schedule; `contents: read`, `packages: write`; GitHub token | No recent fork run | **Remove in Task 1.2.** Publishing web containers is an external mutation outside fork scope. |
+| `workflow-security-checks.yml` | Workflow/action-changing pull requests; `contents: read`; protected approval environment; no secrets | One successful PR run; the same trusted checker passes locally across all 40 workflow/action files | **Keep and harden in Tasks 2.3 and 3.3.** It is fork-owned and already protects action pinning and permissions; it will also enforce the final allowlist. |
+
+The final count is internally consistent: 23 workflows are removed in the
+risk-first Task 1.2; nine read-only but unrelated checks are removed in Task
+3.2; `mobile-lint.yml`, `mobile-podfile-lock.yml`, `dependency-review.yml`, and
+`codeql.yml` are replaced or adapted; and `upstream-sync-drift.yml` plus
+`workflow-security-checks.yml` are retained and hardened. The replacement
+Linux and macOS fork workflows do not exist yet and therefore are not included
+in the 38-file inherited inventory.
+
+---
+
+## 4. Future work / out-of-scope
+
+> Single source of truth for everything that is NOT in V1. Items move into V1
+> only with explicit owner approval and a decision-log entry.
+
+| Item | Status | Why |
+|------|--------|-----|
+| Add unsigned Android debug and iOS Simulator builds to pull-request CI | V1.1 backlog | The selected thorough V1 validates source and packaging contracts without the runner cost of complete platform builds; builds can be added after the stable check set is measured. |
+| Add retained test artifacts, trend dashboards, or runner-cost reports | V1.1 backlog | V1 relies on concise Actions logs and summaries; historical reporting is useful only after the workflow set is stable. |
+| Triage the 22 baseline Dependabot alerts reported when the dependency graph was enabled | V1.1 backlog | Dependency review blocks newly introduced vulnerable changes; the 16 high and six moderate alerts already on fork `main` require separate product-scoped ownership and dependency upgrades rather than an unreviewed monorepo rewrite. |
+| Use private or self-hosted GitHub Actions runners | V1.1 backlog | Hosted runners avoid a new privileged machine and credential-maintenance boundary during cleanup. |
+| Recreate official Ente deployment, release, app-store, container, translation, documentation-site, or cache-warming automation | Out of scope | Those workflows serve official Ente infrastructure and products rather than this private self-hosted mobile fork. |
+| Preserve broad CI for Ensu, Auth, Locker, desktop Photos, web, server, Rust, documentation, or staff infrastructure | Out of scope | The selected problem framing protects the self-hosted Android and iOS Photos applications and their maintenance automation. |
+| Put Firebase, Apple, signing, server, tester, Tailscale, Crowdin, Cloudflare, or deployment credentials in GitHub Actions | Out of scope | Private application distribution and operations remain guarded local owner workflows with secrets outside this public repository. |
+| Automatically approve, merge, sign, publish, deploy, or synchronize source | Out of scope | Owner review and explicit local confirmations remain hard mutation boundaries. |
+
+**Status values:**
+
+- `V1.1 backlog` — deferred but planned for the next milestone.
+- `Out of scope` — will not be done in this initiative; distinct from deferred
+  work.
+
+---
+
+## 5. Decision log
+
+> Append-only. Newest entries stay on top. Never delete an entry; if a decision
+> changes, add a newer entry explaining the reversal.
+
+### 2026-07-22 — Protect main with five unique GitHub Actions gates
+
+**Decision:** Require `Actions CodeQL gate`, `Dependency review gate`, `Linux
+mobile gate`, `macOS mobile gate`, and `Workflow security gate` from the GitHub
+Actions app. Require a fresh branch and resolved conversations, enforce the
+checks for administrators, and disable force pushes and branch deletion.
+
+**Why:** The repository had no branch protection. Unique app-bound names avoid
+one generic `validate` result satisfying another workflow and turn the selected
+fail-closed policy into an actual merge boundary.
+
+**Alternatives considered:** Leave green checks advisory, or require an
+additional reviewer, which would prevent the sole owner from merging their own
+validated maintenance PRs.
+
+### 2026-07-22 — Keep required checks stable while filtering expensive work
+
+**Decision:** Trigger every retained pull-request workflow on every PR, return
+a stable successful check for irrelevant changes, and perform path detection
+inside jobs before Flutter, macOS, or CodeQL setup. Use explicit macOS and
+workflow-security gate jobs to aggregate skipped/relevant validation safely.
+
+**Why:** GitHub leaves a path-filtered workflow pending when its check is
+required but the workflow never starts. Stable checks make branch protection
+possible without running expensive platform work for unrelated changes.
+
+**Alternatives considered:** Keep top-level path filters and leave checks
+non-required, which does not fail closed, or require them anyway, which blocks
+irrelevant pull requests indefinitely.
+
+### 2026-07-22 — Treat the workflow set as a tested allowlist
+
+**Decision:** Approve exactly six workflow files and one local setup action.
+Reject both additions and removals unless the trusted checker, its fixture
+tests, and the allowlist change together under the workflow approval
+environment.
+
+**Why:** Upstream synchronization can restore deleted workflows or supporting
+actions without producing a merge conflict. Exact filenames, triggers,
+permissions, runners, timeouts, environments, credentials, action pins, and
+secret-free source turn that silent reintroduction into a blocking review
+failure.
+
+**Alternatives considered:** Scan only whatever files happen to exist, which
+cannot detect restored automation, or keep the unused deployment composite
+action, which leaves executable but unowned publication code in the fork.
+
+### 2026-07-22 — Enable dependency evidence and scan workflow code only
+
+**Decision:** Enable vulnerability alerts and the dependency graph for the
+public fork, retain dependency review for the Photos mobile Pub/Rust boundary,
+and reduce CodeQL to the `actions` language on workflow changes plus a weekly
+backstop.
+
+**Why:** GitHub documents the dependency graph as the prerequisite for
+dependency review, and enabling vulnerability alerts enabled that graph. Its
+SBOM and comparison APIs now return valid data. GitHub Actions is the only
+CodeQL language directly owned by this workflow-cleanup scope; repository-wide
+Go and JavaScript scanning would restore unrelated monorepo cost.
+
+**Rollback:** `DELETE /repos/vanton1/ente/vulnerability-alerts` disables the
+alerts and dependency graph. Deleting or reverting the two workflow edits
+removes their checks without changing application or distribution state.
+
+**References:** [GitHub dependency review](https://docs.github.com/en/code-security/concepts/supply-chain-security/dependency-review),
+[enabling the dependency graph](https://docs.github.com/en/enterprise-cloud@latest/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/enable-dependency-graph),
+and [repository security endpoints](https://docs.github.com/en/rest/repos/repos).
+
+**Alternatives considered:** Leave dependency review broken, or keep broad
+upstream CodeQL coverage for languages the fork does not maintain.
+
+### 2026-07-22 — Keep maintenance mutations isolated from pull requests
+
+**Decision:** Keep upstream drift detection on schedule/manual triggers with
+only `contents: read` and `issues: write`, and keep pull-request workflow
+validation read-only behind its existing approval environment. Disable
+persisted Git credentials for every checkout and require the exact fork name.
+
+**Why:** The drift reconciler legitimately mutates one tracking issue but never
+runs pull-request code. The workflow checker does run pull-request source, so
+it receives no write token and executes the trusted checker from the base
+revision.
+
+**Alternatives considered:** Combine maintenance checks, which would mix write
+authority with untrusted code, or remove the approval boundary, which would
+weaken review of workflow changes.
+
+### 2026-07-22 — Match CocoaPods to the checked-in lockfile
+
+**Decision:** Pin Ruby 3.3 and CocoaPods 1.17.0 in the macOS workflow, verify
+that version before running, and check only the Photos iOS lockfile in
+deployment mode.
+
+**Why:** The checked-in lockfile was generated by CocoaPods 1.17.0. CocoaPods
+1.16.2 rejects it in deployment mode solely because it rewrites the generator
+version, while 1.17.0 verifies and installs all 78 pods without a tracked diff.
+
+**Alternatives considered:** Use the runner's mutable preinstalled CocoaPods,
+which reproduced the false failure, or verify all upstream apps, which exceeds
+the fork's Photos boundary.
+
+### 2026-07-22 — Split portable mobile checks from Apple-specific contracts
+
+**Decision:** Run endpoint behavior, Android release-tool contracts, Rust
+binding generation, tracked-Dart formatting, and complete mobile analysis on
+Linux. Reserve tests that invoke Apple tools and CocoaPods for the macOS lane.
+
+**Why:** The inherited Linux workflow mixed portable source validation with
+tests that correctly require `plutil`. The replacement keeps broad source
+quality while preserving the platform contract instead of weakening it.
+
+**Alternatives considered:** Skip all release-tool tests on Linux, which would
+lose Android coverage, or mock Apple tooling on Linux, which would not prove
+the actual iOS contract.
+
+### 2026-07-22 — Remove 32 inherited workflows and replace four broad checks
+
+**Decision:** Remove 23 mutation-capable or scheduled workflows in the first
+risk-reduction task and nine unrelated read-only checks after replacement CI
+exists. Replace or adapt mobile lint, Podfile verification, dependency review,
+and CodeQL; retain and harden only upstream drift and workflow security.
+
+**Why:** The complete 38-file audit shows that official releases, deployments,
+translations, cache warming, products, and monorepo checks either fail for
+expected infrastructure reasons or succeed without protecting this fork.
+Six workflows map directly to the selected mobile, dependency, workflow, and
+upstream-maintenance scope.
+
+**Alternatives considered:** Retain successful unrelated checks, which still
+consume runners and enlarge the security surface; or disable files in GitHub
+while keeping them in source, which hides rather than removes the ambiguity and
+allows upstream edits to remain silently present.
+
+### 2026-07-22 — Integrate workflow maintenance with current fork documentation
+
+**Decision:** Link this effort and its as-built companion to the fork overview,
+self-hosted mobile index, upstream synchronization runbook and architecture,
+workflow security contracts, and relevant build/test scripts.
+
+**Why:** GitHub Actions are part of the fork's maintenance and security model,
+not an isolated subsystem. A future maintainer should reach the active policy
+from the same entry points used for builds and upstream catch-up.
+
+**Alternatives considered:** A workflow-only document, which would be easier to
+miss, and minimal standalone records, which would duplicate existing context
+and weaken traceability.
+
+### 2026-07-22 — Fail closed on every fork-owned check
+
+**Decision:** Treat retained mobile, dependency, workflow-security, and
+allowlist failures as merge-blocking defects from V1, with least privilege,
+SHA-pinned actions, and no operational secrets.
+
+**Why:** A green check must mean the protected behavior passed. Advisory or
+ignored failures would recreate the noisy Actions surface this initiative is
+removing.
+
+**Alternatives considered:** An advisory rollout, which permits regressions
+during transition, and mixed enforcement, which protects workflows while
+allowing mobile or dependency failures into `main`.
+
+### 2026-07-22 — Produce an as-built GitHub Actions architecture companion
+
+**Decision:** End V1 with `ForkGitHubActionsArchitecture.md` describing the
+settled workflow set, triggers, permissions, path filters, failures, rollback,
+and future upstream adoption process.
+
+**Why:** Multiple workflows, repository settings, permission boundaries, and
+an upstream-reintroduction guard interact. A settled companion will be more
+useful than reconstructing the final system from task history.
+
+**Alternatives considered:** Keep architecture only in this living record,
+which would mix historical implementation decisions with current maintenance
+instructions.
+
+### 2026-07-22 — Implement risk-first with pause-safe task boundaries
+
+**Decision:** Audit first; remove mutation-capable and scheduled inherited
+automation before building the replacement; then harden security, prune the
+remaining checks, enforce the allowlist, and run controlled live validation.
+
+**Why:** The inherited set is actively producing scheduled failures and
+contains official deployment and release surfaces. Each task should leave a
+reviewable state that can be reverted without operational side effects.
+
+**Alternatives considered:** Replacement-first, which keeps noisy and
+potentially dangerous workflows active longer, and one atomic replacement,
+which is harder to review, diagnose, and roll back.
+
+### 2026-07-22 — Replace inherited automation with a fork-owned allowlist
+
+**Decision:** Delete irrelevant inherited workflow files, introduce focused
+fork workflows, and test the exact allowed set so upstream synchronization
+cannot silently reactivate automation.
+
+**Why:** Keeping or merely skipping dozens of official workflows leaves a
+large security and maintenance surface and a confusing Actions page. Explicit
+adoption makes each workflow intentional.
+
+**Alternatives considered:** Repair inherited core workflows in place, which
+retains broad upstream assumptions, and guard every inherited workflow to the
+official repository, which preserves clutter and skipped runs.
+
+### 2026-07-22 — Deliver a thorough source-validation V1 without platform builds
+
+**Decision:** Retain upstream drift, workflow security, dependency security,
+focused self-hosted mobile tests, formatting, full mobile analysis, and macOS
+Podfile verification. Do not build signed or unsigned Android/iOS applications
+in V1 CI.
+
+**Why:** This catches the fork's likely source and dependency regressions while
+avoiding long, unrelated official builds and all signing/publication state.
+
+**Alternatives considered:** A narrow focused-test-only V1, which misses broad
+Flutter or dependency regressions, and a strategic V1 with Android and iOS
+builds, which adds substantial hosted-runner use before the core workflow set
+is stable.
+
+### 2026-07-22 — Frame CI around self-hosted Photos mobile reliability
+
+**Decision:** GitHub Actions in this fork serve the self-hosted Android and iOS
+Ente Photos clients, their documentation and security boundaries, and guarded
+upstream synchronization.
+
+**Why:** This is the fork's stated purpose. Most inherited failures come from
+official Ente products, production infrastructure, and secrets the fork does
+not own.
+
+**Alternatives considered:** Broad monorepo integrity, which consumes runners
+and maintenance effort on unrelated systems, and upstream CI parity, which
+would require recreating official Ente infrastructure and credentials.
+
+---
+
+## 6. Open questions
+
+_None. Resolved decisions are recorded in §5._
+
+---
+
+## 7. Lessons learned
+
+> Populated at the end of each phase. Surprises, anti-patterns discovered, and
+> things to do differently next time.
+
+### Phase 1 — Audit permissions, triggers, services, and relevance together
+
+- A workflow with nominally read-only repository permissions can still deploy
+  through external credentials; permission, secret, environment, command, and
+  trigger evidence all matter.
+- Successful inherited checks can be as noisy and costly as failed ones when
+  they protect unrelated products. Outcome alone is not a retention reason.
+- Removing high-risk automation first leaves a much smaller review surface:
+  15 workflow files remain for replacement, hardening, or deferred removal,
+  and none of the deleted files was needed to validate that reduced set.
+
+### Phase 2 — Separate portable checks and authority boundaries
+
+- Platform contracts are clearest when Linux owns portable behavior and source
+  quality while macOS owns real Apple tooling and CocoaPods.
+- A dependency lockfile is only deterministic when CI also pins the tool that
+  generated its metadata; CocoaPods 1.16.2 and 1.17.0 produced different
+  deployment results from identical source.
+- Pull-request validation and issue mutation should remain separate workflows:
+  the former can stay read-only, while the latter never evaluates untrusted PR
+  code.
+
+### Phase 3 — Make security scope explicit and machine-checkable
+
+- Enabling GitHub's dependency graph must be proven through the same comparison
+  API used by dependency review, not inferred from a settings response alone.
+- Broad security scanning is not automatically better: Actions-only CodeQL and
+  Photos mobile dependency review provide evidence the fork can act on.
+- An allowlist must reject missing files as well as unexpected ones; otherwise
+  a security workflow can be deleted while the checker still reports success.
+
+### Phase 4 — Prove both sides of path-aware enforcement
+
+- Live relevant-path proof alone is incomplete. A disposable docs-only PR
+  showed that stable required checks remain green without allocating macOS or
+  running Flutter/CodeQL setup.
+- Required check names must be unique and bound to their GitHub App; generic
+  `validate` and `Required gate` names are ambiguous in branch protection.
+- GitHub repository settings are part of the architecture even though they are
+  not stored in Git. API readback and a merge-state check provide the handoff
+  evidence needed to keep them aligned with source.
