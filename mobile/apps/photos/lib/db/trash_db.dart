@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -123,39 +124,31 @@ class TrashDB {
     final startTime = DateTime.now();
     final db = await instance.database;
     await db.transaction((transaction) async {
-      final uploadedFileIDs = trashFiles
-          .map((trash) => trash.uploadedFileID!)
-          .join(',');
-      final rowsTrashedOnDevice = await transaction.query(
-        tableName,
-        columns: [columnUploadedFileID, columnLocalID],
-        where:
-            '$columnIsTrashedOnDevice = 1 AND $columnUploadedFileID IN ($uploadedFileIDs)',
-      );
-      final localIDsTrashedOnDevice = <int, String?>{
-        for (final row in rowsTrashedOnDevice)
+      final localIDs = <int, String?>{
+        for (final row in await transaction.query(
+          tableName,
+          columns: [columnUploadedFileID, columnLocalID],
+          where:
+              '$columnIsTrashedOnDevice = 1 AND $columnUploadedFileID '
+              'IN (${trashFiles.map((trash) => trash.uploadedFileID!).join(',')})',
+        ))
           row[columnUploadedFileID] as int: row[columnLocalID] as String?,
       };
-      var batch = transaction.batch();
-      int batchCounter = 0;
-      for (TrashFile trash in trashFiles) {
-        if (localIDsTrashedOnDevice.containsKey(trash.uploadedFileID)) {
-          trash.localID = localIDsTrashedOnDevice[trash.uploadedFileID];
-          trash.isTrashedOnDevice = true;
+      for (final trashFileBatch in trashFiles.chunks(400)) {
+        final batch = transaction.batch();
+        for (final trash in trashFileBatch) {
+          if (localIDs.containsKey(trash.uploadedFileID)) {
+            trash.localID = localIDs[trash.uploadedFileID];
+            trash.isTrashedOnDevice = true;
+          }
+          batch.insert(
+            tableName,
+            _getRowForTrash(trash),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
         }
-        if (batchCounter == 400) {
-          await batch.commit(noResult: true);
-          batch = transaction.batch();
-          batchCounter = 0;
-        }
-        batch.insert(
-          tableName,
-          _getRowForTrash(trash),
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
-        batchCounter++;
+        await batch.commit(noResult: true);
       }
-      await batch.commit(noResult: true);
     });
     final endTime = DateTime.now();
     final duration = Duration(
@@ -189,13 +182,11 @@ class TrashDB {
     );
   }
 
-  Future<void> insertTrashedOnDevice(
-    Map<int, String> localIDsByUploadedID,
-  ) async {
-    if (localIDsByUploadedID.isEmpty) return;
+  Future<void> markTrashedOnDevice(Map<int, String> localIDs) async {
+    if (localIDs.isEmpty) return;
     final db = await instance.database;
     final batch = db.batch();
-    for (final entry in localIDsByUploadedID.entries) {
+    for (final entry in localIDs.entries) {
       batch.rawInsert(
         '''
           INSERT INTO $tableName (
