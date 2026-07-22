@@ -105,7 +105,10 @@ class TrashSyncService {
     return _prefs.getInt(kLastTrashSyncTime) ?? 0;
   }
 
-  Future<void> trashFilesOnServer(List<TrashRequest> trashRequestItems) async {
+  Future<void> trashFilesOnServer(
+    List<TrashRequest> trashRequestItems, {
+    Map<int, String> localIDsByUploadedID = const {},
+  }) async {
     final includedFileIDs = <int>{};
     final uniqueItems = <TrashRequest>[];
     final ownedCollectionIDs = CollectionsService.instance
@@ -140,6 +143,14 @@ class TrashSyncService {
     }
     final batchedItems = uniqueItems.chunks(batchSize);
     for (final batch in batchedItems) {
+      final batchLocalIDsByUploadedID = <int, String>{};
+      for (final item in batch) {
+        final localID = localIDsByUploadedID[item.fileID];
+        if (localID != null) {
+          batchLocalIDsByUploadedID[item.fileID] = localID;
+        }
+      }
+      await _trashDB.insertTrashedOnDevice(batchLocalIDsByUploadedID);
       final items = batch.map((item) => item.toJson()).toList();
       await _trashFiles(items);
     }
@@ -242,12 +253,6 @@ class TrashSyncService {
 
   Future<void> _trashFiles(List<Map<String, dynamic>> items) async {
     await _gateway.trashFiles(items);
-  }
-
-  Future<void> insertTrashedOnDevice(
-    Map<int, String> localIDsByUploadedID,
-  ) async {
-    await _trashDB.insertTrashedOnDevice(localIDsByUploadedID);
   }
 
   Future<void> deleteFromTrash(List<EnteFile> files) async {
