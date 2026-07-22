@@ -104,12 +104,20 @@ class _DatePickerFieldState extends State<DatePickerField> {
   Future<void> _showDatePicker() async {
     final locale = await getFormatLocale();
     if (!mounted) return;
+    final firstDate = widget.firstDate ?? DateTime(1900);
+    final lastDate = widget.lastDate ?? DateTime(2100);
+    final selectedDate = _selectedDate ?? DateTime.now();
+    final initialDate = selectedDate.isBefore(firstDate)
+        ? firstDate
+        : selectedDate.isAfter(lastDate)
+        ? lastDate
+        : selectedDate;
     final picked = await showDatePicker(
       context: context,
       locale: locale,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: widget.firstDate ?? DateTime(1900),
-      lastDate: widget.lastDate ?? DateTime(2100),
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
     );
     if (picked != null && mounted) {
       _controller.text = _formatDate(picked);
