@@ -135,9 +135,8 @@ Future<void> deleteFilesFromEverywhere(
               result.trashedIDs.contains(file.localID))
             file.uploadedFileID!: file.localID!,
       };
+      await trashSyncService.insertTrashedOnDevice(trashedLocalIDsByUploadedID);
       await trashSyncService.trashFilesOnServer(uploadedFilesToBeTrashed);
-      await trashSyncService.syncTrash();
-      await trashSyncService.markTrashedOnDevice(trashedLocalIDsByUploadedID);
       await FilesDB.instance.deleteMultipleUploadedFiles(fileIDs);
     } catch (e) {
       _logger.severe(e);

@@ -122,39 +122,41 @@ class TrashDB {
     if (trashFiles.isEmpty) return;
     final startTime = DateTime.now();
     final db = await instance.database;
-    final uploadedFileIDs = trashFiles
-        .map((trash) => trash.uploadedFileID!)
-        .join(',');
-    final rowsTrashedOnDevice = await db.query(
-      tableName,
-      columns: [columnUploadedFileID, columnLocalID],
-      where:
-          '$columnIsTrashedOnDevice = 1 AND $columnUploadedFileID IN ($uploadedFileIDs)',
-    );
-    final localIDsTrashedOnDevice = <int, String?>{
-      for (final row in rowsTrashedOnDevice)
-        row[columnUploadedFileID] as int: row[columnLocalID] as String?,
-    };
-    var batch = db.batch();
-    int batchCounter = 0;
-    for (TrashFile trash in trashFiles) {
-      if (localIDsTrashedOnDevice.containsKey(trash.uploadedFileID)) {
-        trash.localID = localIDsTrashedOnDevice[trash.uploadedFileID];
-        trash.isTrashedOnDevice = true;
-      }
-      if (batchCounter == 400) {
-        await batch.commit(noResult: true);
-        batch = db.batch();
-        batchCounter = 0;
-      }
-      batch.insert(
+    await db.transaction((transaction) async {
+      final uploadedFileIDs = trashFiles
+          .map((trash) => trash.uploadedFileID!)
+          .join(',');
+      final rowsTrashedOnDevice = await transaction.query(
         tableName,
-        _getRowForTrash(trash),
-        conflictAlgorithm: ConflictAlgorithm.replace,
+        columns: [columnUploadedFileID, columnLocalID],
+        where:
+            '$columnIsTrashedOnDevice = 1 AND $columnUploadedFileID IN ($uploadedFileIDs)',
       );
-      batchCounter++;
-    }
-    await batch.commit(noResult: true);
+      final localIDsTrashedOnDevice = <int, String?>{
+        for (final row in rowsTrashedOnDevice)
+          row[columnUploadedFileID] as int: row[columnLocalID] as String?,
+      };
+      var batch = transaction.batch();
+      int batchCounter = 0;
+      for (TrashFile trash in trashFiles) {
+        if (localIDsTrashedOnDevice.containsKey(trash.uploadedFileID)) {
+          trash.localID = localIDsTrashedOnDevice[trash.uploadedFileID];
+          trash.isTrashedOnDevice = true;
+        }
+        if (batchCounter == 400) {
+          await batch.commit(noResult: true);
+          batch = transaction.batch();
+          batchCounter = 0;
+        }
+        batch.insert(
+          tableName,
+          _getRowForTrash(trash),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+        batchCounter++;
+      }
+      await batch.commit(noResult: true);
+    });
     final endTime = DateTime.now();
     final duration = Duration(
       microseconds:
@@ -187,20 +189,32 @@ class TrashDB {
     );
   }
 
-  Future<int> markTrashedOnDevice(Map<int, String> localIDsByUploadedID) async {
-    if (localIDsByUploadedID.isEmpty) return 0;
+  Future<void> insertTrashedOnDevice(
+    Map<int, String> localIDsByUploadedID,
+  ) async {
+    if (localIDsByUploadedID.isEmpty) return;
     final db = await instance.database;
     final batch = db.batch();
     for (final entry in localIDsByUploadedID.entries) {
-      batch.update(
-        tableName,
-        {columnLocalID: entry.value, columnIsTrashedOnDevice: 1},
-        where: '$columnUploadedFileID = ?',
-        whereArgs: [entry.key],
+      batch.rawInsert(
+        '''
+          INSERT INTO $tableName (
+            $columnUploadedFileID,
+            $columnCollectionID,
+            $columnTrashUpdatedAt,
+            $columnTrashDeleteBy,
+            $columnCreationTime,
+            $columnLocalID,
+            $columnIsTrashedOnDevice
+          ) VALUES (?, -1, 0, 0, 0, ?, 1)
+          ON CONFLICT($columnUploadedFileID) DO UPDATE SET
+            $columnLocalID = excluded.$columnLocalID,
+            $columnIsTrashedOnDevice = 1
+        ''',
+        [entry.key, entry.value],
       );
     }
-    final results = await batch.commit();
-    return results.whereType<int>().fold<int>(0, (sum, count) => sum + count);
+    await batch.commit(noResult: true);
   }
 
   Future<FileLoadResult> getTrashedFiles(
@@ -213,7 +227,9 @@ class TrashDB {
     final order = (asc ?? false ? 'ASC' : 'DESC');
     final results = await db.query(
       tableName,
-      where: '$columnCreationTime >= ? AND $columnCreationTime <= ?',
+      where:
+          '$columnCollectionID != -1 AND '
+          '$columnCreationTime >= ? AND $columnCreationTime <= ?',
       whereArgs: [startTime, endTime],
       orderBy: '$columnCreationTime ' + order,
       limit: limit,
