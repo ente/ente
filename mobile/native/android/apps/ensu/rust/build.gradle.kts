@@ -98,7 +98,7 @@ val buildRustJniRelease = registerBuildRustJni(
 
 android {
     namespace = "io.ente.ensu.rust"
-    compileSdk = 34
+    compileSdk = 36
     // Pin the NDK instead of relying on AGP defaults. GitHub-hosted Ubuntu
     // runners already ship 27.3.13750724, so this keeps CI lean while making
     // the requirement explicit for local builds too.
