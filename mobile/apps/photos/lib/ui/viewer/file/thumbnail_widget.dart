@@ -337,10 +337,13 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
           if (thumbData == null) {
             if (widget.file.isUploaded) {
               _logger.info("Removing localID reference for " + widget.file.tag);
-              widget.file.localID = null;
-              if (widget.file.isTrash) {
-                unawaited(TrashDB.instance.update(widget.file as TrashFile));
+              if (widget.file is TrashFile) {
+                if (!(widget.file as TrashFile).isTrashedOnDevice) {
+                  widget.file.localID = null;
+                  unawaited(TrashDB.instance.update(widget.file as TrashFile));
+                }
               } else {
+                widget.file.localID = null;
                 unawaited(FilesDB.instance.update(widget.file));
               }
               _loadNetworkImage();
