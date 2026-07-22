@@ -1,0 +1,43 @@
+name: Self-hosted mobile (Linux)
+
+on:
+  pull_request:
+    paths:
+      - ".github/actions/setup-flutter/**"
+      - ".github/workflows/self-hosted-mobile-linux.yml"
+      - "mobile/**"
+      - "rust/apps/codegen/**"
+      - "rust/bindings/frb/**"
+      - "rust/Cargo.lock"
+      - "rust/Cargo.toml"
+      - "rust/crates/contacts/**"
+      - "rust/crates/core/**"
+      - "rust/crates/image/**"
+      - "rust/crates/photos/**"
+      - "scripts/test_self_hosted_mobile_linux.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    if: github.repository == 'vanton1/ente'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source and submodules
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Install pinned Flutter
+        uses: ./.github/actions/setup-flutter
+
+      - name: Run portable self-hosted mobile validation
+        run: ./scripts/test_self_hosted_mobile_linux.sh

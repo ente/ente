@@ -14,7 +14,7 @@
 |------:|----:|-------|:----:|--------|-------|
 | 1 | 1.1 | Inventory every inherited workflow and record an evidence-based disposition | M | 🟢 done | Audited all 38 active workflow files, their triggers, permissions, secret/service dependencies, recent runs, representative failure logs, and fork relevance. The disposition is 23 risk-first removals in Task 1.2, nine unrelated check removals in Task 3.2, four fork-focused replacements/repairs, and two retained fork workflows to harden. No workflow or GitHub setting changed. |
 | 1 | 1.2 | Remove inherited deployment, release, translation, and scheduled runner automation | M | 🟢 done | Deleted the 23 audited upstream release, deployment, translation, container-publication, cache-warming, stale-PR, and scheduled product-build workflows. The 15 intentionally deferred or retained checks still parse; workflow security passes across the remaining 17 workflow/action files. No GitHub setting or external application, server, signing, distribution, issue, or pull-request state changed. |
-| 2 | 2.1 | Add Linux CI for the self-hosted Photos mobile behavior and source quality | M | ⚪ not started | Run focused endpoint and release-tool contracts, tracked-Dart formatting, and full mobile analysis with fork-relevant triggers and no signing or publication secrets. |
+| 2 | 2.1 | Add Linux CI for the self-hosted Photos mobile behavior and source quality | M | 🟢 done | Replaced the inherited broad mobile lint with a least-privilege Linux workflow and one reproducible script covering standard, configurable, and locked endpoint modes, Linux-portable Android release contracts, generated Rust bindings, tracked-Dart formatting, and full mobile analysis. Local proof: 181 focused tests passed across the three modes, formatting was unchanged, analysis reported no issues, the workflow parses, and the workflow-security contract passes. |
 | 2 | 2.2 | Add macOS CI for the self-hosted iOS contracts and deterministic CocoaPods state | M | ⚪ not started | Run iOS-specific tests with the required Apple tooling and verify the lockfile without archiving, signing, registering devices, or publishing an IPA. |
 | 2 | 2.3 | Preserve and harden upstream-drift and workflow-security checks | S | ⚪ not started | Retain the fork-specific drift issue and workflow security boundary while minimizing permissions, credentials, triggers, and untrusted pull-request exposure. |
 | 3 | 3.1 | Repair dependency review and retain only useful security scanning | M | ⚪ not started | Enable or adapt supported GitHub dependency features and keep CodeQL coverage only where it produces relevant, actionable results for this fork. |
@@ -213,6 +213,20 @@ in the 38-file inherited inventory.
 
 > Append-only. Newest entries stay on top. Never delete an entry; if a decision
 > changes, add a newer entry explaining the reversal.
+
+### 2026-07-22 — Split portable mobile checks from Apple-specific contracts
+
+**Decision:** Run endpoint behavior, Android release-tool contracts, Rust
+binding generation, tracked-Dart formatting, and complete mobile analysis on
+Linux. Reserve tests that invoke Apple tools and CocoaPods for the macOS lane.
+
+**Why:** The inherited Linux workflow mixed portable source validation with
+tests that correctly require `plutil`. The replacement keeps broad source
+quality while preserving the platform contract instead of weakening it.
+
+**Alternatives considered:** Skip all release-tool tests on Linux, which would
+lose Android coverage, or mock Apple tooling on Linux, which would not prove
+the actual iOS contract.
 
 ### 2026-07-22 — Remove 32 inherited workflows and replace four broad checks
 

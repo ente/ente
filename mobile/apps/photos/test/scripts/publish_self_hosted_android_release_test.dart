@@ -279,6 +279,7 @@ void main() {
       "ente-firebase-receipt-test-",
     );
     try {
+      Process.runSync("chmod", ["0700", temporaryDirectory.path]);
       final receiptPath = p.join(
         temporaryDirectory.path,
         "release-2158.firebase-release.json",
@@ -332,6 +333,7 @@ void main() {
       "ente-firebase-attempt-test-",
     );
     try {
+      Process.runSync("chmod", ["0700", temporaryDirectory.path]);
       final path = writeFailedPublicationAttempt(
         temporaryDirectory.path,
         prepared: preparedRelease(),
