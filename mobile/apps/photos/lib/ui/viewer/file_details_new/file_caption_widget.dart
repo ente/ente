@@ -1,5 +1,3 @@
-import "dart:async";
-
 import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
@@ -56,7 +54,6 @@ class _FileCaptionWidgetNewState extends State<FileCaptionWidgetNew> {
             maxLines: 10,
             textCapitalization: TextCapitalization.sentences,
             keyboardType: TextInputType.multiline,
-            onSubmit: (_) => _saveInteractive(),
             onChanged: (value) {
               if (_editedCaption == value) return;
               setState(() => _editedCaption = value);
