@@ -84,7 +84,12 @@ caller-supplied flavors or Dart defines. The release application ID is
 `.debug` suffix. Existing Android flavors and their application IDs are
 unchanged. Release builds use the existing Gradle signing configuration, with
 the keystore path and credentials supplied through ignored `key.properties` or
-the `SIGNING_*` environment variables.
+the `SIGNING_*` environment variables. On this fork's macOS release machine,
+`key.properties` contains only the keystore path and alias; load the password
+from Keychain into both `SIGNING_STORE_PASSWORD` and `SIGNING_KEY_PASSWORD` in
+the same subshell that invokes the release build. A bare release build without
+those variables fails at APK packaging. The exact copy-paste-safe command and
+toolchain troubleshooting are in the build guide.
 
 See the [configurable mobile build guide](SELF_HOSTED_BUILD_GUIDE.md) for signed
 release preparation and the

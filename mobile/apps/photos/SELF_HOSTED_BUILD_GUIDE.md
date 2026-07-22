@@ -135,18 +135,28 @@ The ignored `android/key.properties` file contains only the keystore path and
 alias. The generated password is stored in the macOS login Keychain under the
 service `ente-photos-selfhosted-release`.
 
-Load the password into Gradle's existing signing variables, build, and remove
-the variables from the current shell:
+Load the password into Gradle's existing signing variables inside a subshell.
+The variables then disappear when the build finishes or fails instead of
+remaining in the operator's interactive shell:
 
 ```sh
-SIGNING_PASSWORD="$(security find-generic-password -w -s ente-photos-selfhosted-release)"
-export SIGNING_STORE_PASSWORD="$SIGNING_PASSWORD"
-export SIGNING_KEY_PASSWORD="$SIGNING_PASSWORD"
+(
+  export SIGNING_PASSWORD="$(
+    security find-generic-password \
+      -w \
+      -s ente-photos-selfhosted-release
+  )"
+  export SIGNING_STORE_PASSWORD="$SIGNING_PASSWORD"
+  export SIGNING_KEY_PASSWORD="$SIGNING_PASSWORD"
 
-./scripts/build_self_hosted_android.sh --release
-
-unset SIGNING_PASSWORD SIGNING_STORE_PASSWORD SIGNING_KEY_PASSWORD
+  ./scripts/build_self_hosted_android.sh --release
+)
 ```
+
+The ignored `key.properties` supplies `storeFile` and `keyAlias`; both
+`SIGNING_STORE_PASSWORD` and `SIGNING_KEY_PASSWORD` must reach the same build
+process. A bare release invocation without them eventually fails with
+`SigningConfig "release" is missing required property "storePassword"`.
 
 Do not add `--no-pub` to the final release build. Flutter must regenerate its
 release-only plugin registrant so development plugins are excluded correctly.
@@ -169,8 +179,18 @@ Choose an absolute output directory outside the Git repository. Prepared files
 are never overwritten and are made read-only:
 
 ```sh
-./scripts/prepare_self_hosted_android_release.sh \
-  --output-dir "$ENTE_MOBILE_TOOLCHAIN_ROOT/prepared-releases"
+(
+  export SIGNING_PASSWORD="$(
+    security find-generic-password \
+      -w \
+      -s ente-photos-selfhosted-release
+  )"
+  export SIGNING_STORE_PASSWORD="$SIGNING_PASSWORD"
+  export SIGNING_KEY_PASSWORD="$SIGNING_PASSWORD"
+
+  ./scripts/prepare_self_hosted_android_release.sh \
+    --output-dir "$ENTE_MOBILE_TOOLCHAIN_ROOT/prepared-releases"
+)
 ```
 
 The command verifies:
@@ -280,6 +300,35 @@ Its SHA-256 is:
 ```text
 2f5f6011035e396f7b1d3660fe7043fc509115554dcca2051e3fe5a868461fc8
 ```
+
+### Android build troubleshooting
+
+- A solver conflict between `test 1.26.3`, `test_api 0.7.7`, and
+  `flutter_test` requiring `test_api 0.7.10` means the build used a newer
+  Flutter SDK instead of the repository-pinned Flutter 3.38.10. Set both
+  `FLUTTER_BIN` and `DART_BIN` to the pinned installation; do not change the
+  lockfile or upgrade only the `test` package.
+- Gradle report-task creation failures ending in `Type T not present` indicate
+  an incompatible newer Java runtime. Set `JAVA_HOME` to JDK 17 before running
+  the wrapper.
+- `SigningConfig "release" is missing required property "storePassword"`
+  means the release build did not receive the Keychain password. Use the
+  subshell command in **Signed release APK** above. A debug build does not need
+  release-signing credentials.
+
+Confirm the active tools before a long clean build:
+
+```sh
+"$FLUTTER_BIN" --version
+"$JAVA_HOME/bin/java" -version
+security find-generic-password \
+  -s ente-photos-selfhosted-release \
+  >/dev/null
+```
+
+The expected versions are Flutter 3.38.10 with bundled Dart 3.10.9 and JDK 17.
+The Keychain check prints nothing and returns success when the signing item is
+available.
 
 ### Optional Android artifact checks
 

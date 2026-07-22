@@ -131,11 +131,25 @@ git branch -r --contains HEAD
 ```
 
 The first command must print nothing. The second must include an `origin/*`
-reference. Configure release signing as described in the build guide, then run:
+reference. Configure release signing as described in the build guide. In
+particular, the Keychain-backed `SIGNING_STORE_PASSWORD` and
+`SIGNING_KEY_PASSWORD` must be exported in the same subshell that runs the
+preparer; a bare release process cannot recover them from `key.properties`.
+Then run:
 
 ```sh
-./scripts/prepare_self_hosted_android_release.sh \
-  --output-dir "$ENTE_ANDROID_RELEASE_OUTPUT_DIR"
+(
+  export SIGNING_PASSWORD="$(
+    security find-generic-password \
+      -w \
+      -s ente-photos-selfhosted-release
+  )"
+  export SIGNING_STORE_PASSWORD="$SIGNING_PASSWORD"
+  export SIGNING_KEY_PASSWORD="$SIGNING_PASSWORD"
+
+  ./scripts/prepare_self_hosted_android_release.sh \
+    --output-dir "$ENTE_ANDROID_RELEASE_OUTPUT_DIR"
+)
 ```
 
 Copy the exact manifest path printed by the command. Do not select a manifest
