@@ -1,6 +1,10 @@
 import 'package:photos/models/file/file.dart';
 
 class TrashFile extends EnteFile {
+  // Keep the deleting device's localID when it moves the asset to system trash,
+  // instead of replacing it with the upload-time localID from server metadata.
+  bool isTrashedOnDevice = false;
+
   // time when file was put in the trash for first time
   late int createdAt;
 
