@@ -1,9 +1,13 @@
+import "dart:async";
 import 'dart:io';
 
+import "package:android_intent_plus/android_intent.dart";
+import "package:flutter/widgets.dart";
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import "package:flutter_timezone/flutter_timezone.dart";
 import "package:logging/logging.dart";
-import "package:photos/services/sync/remote_sync_service.dart";
+import "package:package_info_plus/package_info_plus.dart";
+import "package:permission_handler/permission_handler.dart";
 import "package:photos/services/timezone_aliases.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import 'package:timezone/data/latest_10y.dart' as tzdb;
@@ -12,8 +16,6 @@ import "package:timezone/timezone.dart" as tz;
 class NotificationService {
   static final NotificationService instance =
       NotificationService._privateConstructor();
-  static const String keyGrantedNotificationPermission =
-      "notification_permission_granted";
   static const String keyShouldShowNotificationsForSharedPhotos =
       "notifications_enabled_shared_photos";
   static const String keyShouldShowSocialNotifications =
@@ -43,10 +45,6 @@ class NotificationService {
     _onNotificationTapped = onNotificationTapped;
     await _ensurePluginInitialized();
     await _handleLaunchDetailsIfNeeded();
-    if (!hasGrantedPermissions() &&
-        RemoteSyncService.instance.isFirstRemoteSyncDone()) {
-      await requestPermissions();
-    }
   }
 
   Future<void> initializeForBackground() async {
@@ -163,30 +161,65 @@ class NotificationService {
     return 'UTC';
   }
 
-  Future<void> requestPermissions() async {
-    await _ensurePluginInitialized();
-    bool? result;
-    if (Platform.isIOS) {
-      result = await _notificationsPlugin
-          .resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin
-          >()
-          ?.requestPermissions(sound: true, alert: true);
-    } else {
-      result = await _notificationsPlugin
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >()
-          ?.requestNotificationsPermission();
+  Future<bool> requestPermissions(BuildContext context) async {
+    if (await hasGrantedPermissions()) return true;
+    if (!context.mounted) return false;
+    if (await _askPermissions()) return true;
+    if (!context.mounted) return false;
+    await _openNotificationSettings();
+    const interval = Duration(milliseconds: 500);
+    const maxAttempts = 400;
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      await Future.delayed(interval);
+      if (await hasGrantedPermissions()) return true;
     }
-    if (result != null) {
-      await _preferences.setBool(keyGrantedNotificationPermission, result);
-    }
+    return false;
   }
 
-  bool hasGrantedPermissions() {
-    final result = _preferences.getBool(keyGrantedNotificationPermission);
-    return result ?? false;
+  Future<bool> _askPermissions() async {
+    await _ensurePluginInitialized();
+    if (Platform.isIOS) {
+      final impl = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
+      return await impl?.requestPermissions(sound: true, alert: true) ?? false;
+    }
+    final impl = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    return await impl?.requestNotificationsPermission() ?? false;
+  }
+
+  Future<void> _openNotificationSettings() async {
+    if (Platform.isIOS) {
+      await openAppSettings();
+      return;
+    }
+    final packageInfo = await PackageInfo.fromPlatform();
+    await AndroidIntent(
+      action: "android.settings.APP_NOTIFICATION_SETTINGS",
+      arguments: {
+        "android.provider.extra.APP_PACKAGE": packageInfo.packageName,
+      },
+    ).launch();
+  }
+
+  Future<bool> hasGrantedPermissions() async {
+    await _ensurePluginInitialized();
+    if (Platform.isIOS) {
+      final impl = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
+      return (await impl?.checkPermissions())?.isEnabled ?? false;
+    }
+    final impl = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    return await impl?.areNotificationsEnabled() ?? false;
   }
 
   bool shouldShowNotificationsForSharedPhotosAndAlbums() {
@@ -266,18 +299,6 @@ class NotificationService {
         );
       }
       await initTimezones();
-      if (!hasGrantedPermissions()) {
-        _logger.warning("Notification permissions not granted");
-        await requestPermissions();
-        if (!hasGrantedPermissions()) {
-          _logger.severe("Failed to get notification permissions");
-          return;
-        }
-      } else {
-        if (logSchedule) {
-          _logger.info("Notification permissions already granted");
-        }
-      }
       final androidSpecs = AndroidNotificationDetails(
         channelID,
         channelName,
