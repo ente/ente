@@ -578,19 +578,18 @@ type PeopleListItem =
     | { type: "people"; people: Person[]; topSpacing?: boolean }
     | { type: "showMoreButton" };
 
-interface ItemData
-    extends Pick<
-        AllPeopleContentProps,
-        | "showingAllPeople"
-        | "onToggleShowingAllPeople"
-        | "onSelectPerson"
-        | "onRenamePerson"
-        | "onPinPerson"
-        | "onAddName"
-        | "onIgnorePerson"
-        | "multiSelectedPeople"
-        | "toggleMultiSelectPerson"
-    > {
+interface ItemData extends Pick<
+    AllPeopleContentProps,
+    | "showingAllPeople"
+    | "onToggleShowingAllPeople"
+    | "onSelectPerson"
+    | "onRenamePerson"
+    | "onPinPerson"
+    | "onAddName"
+    | "onIgnorePerson"
+    | "multiSelectedPeople"
+    | "toggleMultiSelectPerson"
+> {
     items: PeopleListItem[];
     isMultiSelectionActive: boolean;
 }
