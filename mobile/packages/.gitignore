@@ -1,4 +1,3 @@
-.dart_tool/
-.flutter-plugins-dependencies
-build/
-**/.gradle/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/**/gradle-wrapper.jar

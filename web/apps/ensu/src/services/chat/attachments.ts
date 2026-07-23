@@ -36,7 +36,7 @@ export const encryptAttachmentBytes = async (
     bytes: Uint8Array,
     chatKeyB64: string,
     sessionUuid: string,
-): Promise<Uint8Array> => {
+): Promise<Uint8Array<ArrayBuffer>> => {
     await ensureCryptoInit();
     const wasm = await enteWasm();
     const derivedKeyB64 = await deriveAttachmentKeyB64(chatKeyB64, sessionUuid);
@@ -58,7 +58,7 @@ export const decryptAttachmentBytes = async (
     encrypted: Uint8Array,
     chatKeyB64: string,
     sessionUuid: string,
-): Promise<Uint8Array> => {
+): Promise<Uint8Array<ArrayBuffer>> => {
     if (encrypted.length < BLOB_HEADER_BYTES) {
         throw new Error("Invalid attachment blob length");
     }

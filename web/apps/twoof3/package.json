@@ -3,9 +3,9 @@
     "version": "0.0.0",
     "private": true,
     "dependencies": {
-        "@fontsource/space-grotesk": "^5.2.10",
+        "@fontsource/space-grotesk": "5.2.10",
         "ente-base": "*",
-        "qr": "^0.5.5"
+        "qr": "0.6.0"
     },
     "devDependencies": {
         "ente-build-config": "*"

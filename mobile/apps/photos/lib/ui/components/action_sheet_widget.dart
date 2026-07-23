@@ -1,21 +1,20 @@
 import "dart:io";
 
+import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
-import 'package:photos/core/constants.dart';
+import "package:photos/generated/l10n.dart";
 import 'package:photos/models/button_result.dart';
-import 'package:photos/theme/colors.dart';
-import 'package:photos/theme/effects.dart';
-import 'package:photos/theme/ente_theme.dart';
+import 'package:photos/ui/components/buttons/button_component_adapter.dart';
 import 'package:photos/ui/components/buttons/button_widget.dart';
-import 'package:photos/utils/separators_util.dart';
 
-enum ActionSheetType {
-  defaultActionSheet,
-  iconOnly,
-}
+enum ActionSheetType { defaultActionSheet, iconOnly }
 
-///Returns null if dismissed
+/// Compatibility adapter for legacy Photos action sheets.
+///
+/// Preserves existing [ButtonWidget]/[ButtonResult] behavior while rendering
+/// through [BottomSheetComponent]. Prefer [BottomSheetComponent] directly for
+/// new sheets.
 Future<ButtonResult?> showActionSheet({
   required BuildContext context,
   required List<ButtonWidget> buttons,
@@ -24,22 +23,25 @@ Future<ButtonResult?> showActionSheet({
   bool isDismissible = true,
   bool isCheckIconGreen = false,
   String? title,
+  Widget? illustration,
   Widget? bodyWidget,
   String? body,
   String? bodyHighlight,
 }) {
+  final colors = context.componentColors;
   return showMaterialModalBottomSheet(
     backgroundColor: Colors.transparent,
-    barrierColor: backdropFaintDark,
+    barrierColor: colors.specialScrim.withValues(alpha: 0.55),
     // On iOS setting it to false causes previous page to shift
     // So we're explicitly setting it to true
-    useRootNavigator: Platform.isIOS ? true : false,
+    useRootNavigator: Platform.isIOS,
     context: context,
     isDismissible: isDismissible,
     enableDrag: enableDrag,
     builder: (_) {
-      return ActionSheetWidget(
+      return LegacyActionSheetWidget(
         title: title,
+        illustration: illustration,
         bodyWidget: bodyWidget,
         body: body,
         bodyHighlight: bodyHighlight,
@@ -51,8 +53,9 @@ Future<ButtonResult?> showActionSheet({
   );
 }
 
-class ActionSheetWidget extends StatelessWidget {
+class LegacyActionSheetWidget extends StatelessWidget {
   final String? title;
+  final Widget? illustration;
   final Widget? bodyWidget;
   final String? body;
   final String? bodyHighlight;
@@ -60,11 +63,12 @@ class ActionSheetWidget extends StatelessWidget {
   final ActionSheetType actionSheetType;
   final bool isCheckIconGreen;
 
-  const ActionSheetWidget({
+  const LegacyActionSheetWidget({
     required this.actionButtons,
     required this.actionSheetType,
     required this.isCheckIconGreen,
     this.title,
+    this.illustration,
     this.bodyWidget,
     this.body,
     this.bodyHighlight,
@@ -73,147 +77,104 @@ class ActionSheetWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isTitleAndBodyNull =
-        title == null && bodyWidget == null && body == null;
-    final extraWidth = MediaQuery.of(context).size.width - restrictedMaxWidth;
-    final double? horizontalPadding = extraWidth > 0 ? extraWidth / 2 : null;
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          horizontalPadding ?? 12,
-          12,
-          horizontalPadding ?? 12,
-          32,
-        ),
-        child: Container(
-          decoration: BoxDecoration(boxShadow: shadowMenuLight),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.all(Radius.circular(8)),
-            child: Container(
-              color: backgroundElevated2Dark,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  24,
-                  24,
-                  24,
-                  isTitleAndBodyNull ? 24 : 28,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    isTitleAndBodyNull
-                        ? const SizedBox.shrink()
-                        : Padding(
-                            padding: const EdgeInsets.only(bottom: 36),
-                            child: ContentContainerWidget(
-                              title: title,
-                              bodyWidget: bodyWidget,
-                              body: body,
-                              bodyHighlight: bodyHighlight,
-                              actionSheetType: actionSheetType,
-                              isCheckIconGreen: isCheckIconGreen,
-                            ),
-                          ),
-                    ActionButtons(
-                      actionButtons,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+    final hasDefaultContent =
+        actionSheetType == ActionSheetType.defaultActionSheet &&
+        (bodyWidget != null || body != null || bodyHighlight != null);
+    final hasContent =
+        title != null ||
+        hasDefaultContent ||
+        actionSheetType == ActionSheetType.iconOnly;
+    final colors = context.componentColors;
+    final cancelButtonIndex = sheetCancelButtonIndex(context, actionButtons);
+    final cancelButton = cancelButtonIndex == -1
+        ? null
+        : actionButtons[cancelButtonIndex];
+    final visibleButtons = [
+      for (var index = 0; index < actionButtons.length; index++)
+        if (index != cancelButtonIndex) actionButtons[index],
+    ];
+    final effectiveIllustration =
+        illustration ??
+        (actionSheetType == ActionSheetType.iconOnly
+            ? Icon(
+                Icons.check_outlined,
+                size: 48,
+                color: isCheckIconGreen ? colors.primary : colors.iconColor,
+              )
+            : null);
+
+    return BottomSheetComponent(
+      title: title,
+      illustration: effectiveIllustration,
+      content: hasDefaultContent
+          ? _LegacyActionSheetContent(
+              bodyWidget: bodyWidget,
+              body: body,
+              bodyHighlight: bodyHighlight,
+              textAlign: illustration == null ? null : TextAlign.center,
+            )
+          : null,
+      actions: [
+        for (final button in visibleButtons)
+          ButtonComponentAdapter(button: button),
+      ],
+      showCloseButton: cancelButton != null,
+      closeTooltip: AppLocalizations.of(context).close,
+      closeResult: cancelButton == null ? null : sheetCloseResult(cancelButton),
+      onClose: cancelButton == null
+          ? null
+          : () => sheetCloseAction(context, cancelButton),
+      actionsTopSpacing: illustration != null
+          ? null
+          : hasContent
+          ? Spacing.lg
+          : 0,
     );
   }
 }
 
-class ContentContainerWidget extends StatelessWidget {
-  final String? title;
+class _LegacyActionSheetContent extends StatelessWidget {
   final Widget? bodyWidget;
   final String? body;
   final String? bodyHighlight;
-  final ActionSheetType actionSheetType;
-  final bool isCheckIconGreen;
+  final TextAlign? textAlign;
 
-  const ContentContainerWidget({
-    required this.actionSheetType,
-    required this.isCheckIconGreen,
-    this.title,
+  const _LegacyActionSheetContent({
     this.bodyWidget,
     this.body,
     this.bodyHighlight,
-    super.key,
+    this.textAlign,
   });
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = getEnteTextTheme(context);
-    final bool bodyMissing = body == null && bodyWidget == null;
-    debugPrint("body missing $bodyMissing");
+    final colors = context.componentColors;
+    final hasBody = body != null || bodyWidget != null;
+
+    if (!hasBody && bodyHighlight == null) {
+      return const SizedBox.shrink();
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
-      //todo: set cross axis to center when icon should be shown in place of body
-      crossAxisAlignment: actionSheetType == ActionSheetType.defaultActionSheet
-          ? CrossAxisAlignment.stretch
-          : CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        title == null
-            ? const SizedBox.shrink()
-            : Text(
-                title!,
-                style: textTheme.largeBold
-                    .copyWith(color: textBaseDark), //constant color
+        if (hasBody)
+          bodyWidget ??
+              Text(
+                body!,
+                textAlign: textAlign,
+                style: TextStyles.body.copyWith(color: colors.textLight),
               ),
-        title == null || bodyMissing
-            ? const SizedBox.shrink()
-            : const SizedBox(height: 19),
-        actionSheetType == ActionSheetType.defaultActionSheet
-            ? bodyMissing
-                ? const SizedBox.shrink()
-                : (bodyWidget != null
-                    ? bodyWidget!
-                    : Text(
-                        body!,
-                        style: textTheme.body
-                            .copyWith(color: textMutedDark), //constant color
-                      ))
-            : Icon(
-                Icons.check_outlined,
-                size: 48,
-                color: isCheckIconGreen
-                    ? getEnteColorScheme(context).primary700
-                    : strokeBaseDark,
-              ),
-        actionSheetType == ActionSheetType.defaultActionSheet &&
-                bodyHighlight != null
-            ? Padding(
-                padding: const EdgeInsets.only(top: 19.0),
-                child: Text(
-                  bodyHighlight!,
-                  style: textTheme.body
-                      .copyWith(color: textBaseDark), //constant color
-                ),
-              )
-            : const SizedBox.shrink(),
+        if (bodyHighlight != null) ...[
+          if (hasBody) const SizedBox(height: Spacing.lg),
+          Text(
+            bodyHighlight!,
+            textAlign: textAlign,
+            style: TextStyles.body.copyWith(color: colors.textBase),
+          ),
+        ],
       ],
-    );
-  }
-}
-
-class ActionButtons extends StatelessWidget {
-  final List<Widget> actionButtons;
-  const ActionButtons(this.actionButtons, {super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final actionButtonsWithSeparators = actionButtons;
-    return Column(
-      children:
-          //Separator height is 8pts in figma. -2pts here as the action
-          //buttons are 2pts extra in height in code compared to figma because
-          //of the border(1pt top + 1pt bottom) of action buttons.
-          addSeparators(actionButtonsWithSeparators, const SizedBox(height: 6)),
     );
   }
 }

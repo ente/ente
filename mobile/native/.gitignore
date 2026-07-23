@@ -1,6 +1,0 @@
-**/.build/
-.DS_Store
-# Xcode user settings
-xcuserdata/
-
-.swiftpm/

@@ -105,11 +105,13 @@ All shared albums, including albums shared with you as well as albums shared by 
 
 Exports create a **one-way sync** from Ente to your local storage. Changes to exported files do not sync back to Ente.
 
-**Important:** Do **not** export to the same folder that you're watching for uploads. This will cause:
-
-- Duplicate files
-- Export stalling
-- Undefined behavior
+> [!IMPORTANT]
+>
+> Do **not** export to the same folder that you're watching for uploads. This will cause:
+>
+> - Duplicate files
+> - Export stalling
+> - Undefined behavior
 
 **Best practice:** Use separate folders for:
 

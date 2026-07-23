@@ -1,12 +1,11 @@
 package repo
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"testing"
 
-	"github.com/ente-io/museum/internal/testutil"
+	"github.com/ente/museum/internal/testutil"
 	"github.com/google/uuid"
 )
 
@@ -82,7 +81,7 @@ func insertStorageWarningTestFamilyMember(t *testing.T, db *sql.DB, adminID int6
 func TestGetStorageWarningCandidatesCollapsesThresholdQualifiedMembersToAdmin(t *testing.T) {
 	db := getStorageWarningRepoTestDB(t)
 	repo := &UsageRepository{DB: db}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	adminID := int64(101)
 	memberOneID := int64(102)
@@ -117,7 +116,7 @@ func TestGetStorageWarningCandidatesCollapsesThresholdQualifiedMembersToAdmin(t 
 func TestGetStorageWarningCandidatesExcludesFamilyTotalBelowPerMemberThreshold(t *testing.T) {
 	db := getStorageWarningRepoTestDB(t)
 	repo := &UsageRepository{DB: db}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	adminID := int64(201)
 	memberID := int64(202)
@@ -142,7 +141,7 @@ func TestGetStorageWarningCandidatesExcludesFamilyTotalBelowPerMemberThreshold(t
 func TestGetStorageWarningCandidatesUsesFamilyAdminIDForMembershipAwareness(t *testing.T) {
 	db := getStorageWarningRepoTestDB(t)
 	repo := &UsageRepository{DB: db}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	adminID := int64(251)
 	memberID := int64(252)
@@ -170,7 +169,7 @@ func TestGetStorageWarningCandidatesUsesFamilyAdminIDForMembershipAwareness(t *t
 func TestGetStorageWarningCandidatesIncludesFreeFamiliesAboveThreshold(t *testing.T) {
 	db := getStorageWarningRepoTestDB(t)
 	repo := &UsageRepository{DB: db}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	adminID := int64(301)
 
@@ -194,7 +193,7 @@ func TestGetStorageWarningCandidatesIncludesFreeFamiliesAboveThreshold(t *testin
 func TestGetStorageWarningCandidatesIncludeFreeUsersAndExcludeLowUsage(t *testing.T) {
 	db := getStorageWarningRepoTestDB(t)
 	repo := &UsageRepository{DB: db}
-	ctx := context.Background()
+	ctx := t.Context()
 
 	paidUserID := int64(401)
 	freeUserID := int64(402)

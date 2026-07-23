@@ -22,10 +22,7 @@ class ConstrainedCustomScrollView extends StatelessWidget {
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
-        child: CustomScrollView(
-          primary: primary,
-          slivers: slivers,
-        ),
+        child: CustomScrollView(primary: primary, slivers: slivers),
       ),
     );
   }

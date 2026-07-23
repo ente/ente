@@ -6,5 +6,4 @@ Utility functions, types and assortments.
 
 ### Packaging
 
-This (internal) package exports a vanilla TypeScript library. We rely on the
-importing project to transpile and bundle it.
+This (internal) package exports a vanilla TypeScript library. We rely on the importing project to transpile and bundle it.

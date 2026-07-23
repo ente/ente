@@ -1,8 +1,7 @@
+import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
-import "package:flutter_svg/svg.dart";
-import "package:photos/ente_theme_data.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/generated/l10n.dart";
-import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/tools/editor/image_editor/circular_icon_button.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_color_picker.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_configs_mixin.dart";
@@ -46,9 +45,7 @@ class _ImageEditorTextBarState extends State<ImageEditorTextBar>
       builder: (context, constraints) {
         return Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildFunctions(constraints),
-          ],
+          children: [_buildFunctions(constraints)],
         );
       },
     );
@@ -62,10 +59,7 @@ class _ImageEditorTextBarState extends State<ImageEditorTextBar>
         duration: fadeInDuration,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: <Widget>[
-            _buildMainActionButtons(),
-            _buildHelperWidget(),
-          ],
+          children: <Widget>[_buildMainActionButtons(), _buildHelperWidget()],
         ),
       ),
     );
@@ -76,7 +70,7 @@ class _ImageEditorTextBarState extends State<ImageEditorTextBar>
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         CircularIconButton(
-          svgPath: "assets/image-editor/image-editor-text-color.svg",
+          hugeIcon: HugeIcons.strokeRoundedTextColor,
           label: AppLocalizations.of(context).color,
           isSelected: selectedActionIndex == 0,
           onTap: () {
@@ -84,7 +78,7 @@ class _ImageEditorTextBarState extends State<ImageEditorTextBar>
           },
         ),
         CircularIconButton(
-          svgPath: "assets/image-editor/image-editor-text-font.svg",
+          hugeIcon: HugeIcons.strokeRoundedTextFont,
           label: AppLocalizations.of(context).font,
           isSelected: selectedActionIndex == 1,
           onTap: () {
@@ -92,7 +86,7 @@ class _ImageEditorTextBarState extends State<ImageEditorTextBar>
           },
         ),
         CircularIconButton(
-          svgPath: "assets/image-editor/image-editor-text-background.svg",
+          hugeIcon: HugeIcons.strokeRoundedTextSquare,
           label: AppLocalizations.of(context).background,
           isSelected: selectedActionIndex == 2,
           onTap: () {
@@ -102,7 +96,7 @@ class _ImageEditorTextBarState extends State<ImageEditorTextBar>
           },
         ),
         CircularIconButton(
-          svgPath: "assets/image-editor/image-editor-text-align-left.svg",
+          hugeIcon: HugeIcons.strokeRoundedTextAlignLeft,
           label: AppLocalizations.of(context).align,
           isSelected: selectedActionIndex == 3,
           onTap: () {
@@ -122,16 +116,16 @@ class _ImageEditorTextBarState extends State<ImageEditorTextBar>
       switchOutCurve: Curves.easeInOut,
       child: switch (selectedActionIndex) {
         0 => ImageEditorColorPicker(
-            value: colorSliderValue,
-            onChanged: (value) {
-              setState(() {
-                colorSliderValue = value;
-              });
-              final hue = value * 360;
-              final color = HSVColor.fromAHSV(1.0, hue, 1.0, 1.0).toColor();
-              widget.editor.primaryColor = color;
-            },
-          ),
+          value: colorSliderValue,
+          onChanged: (value) {
+            setState(() {
+              colorSliderValue = value;
+            });
+            final hue = value * 360;
+            final color = HSVColor.fromAHSV(1.0, hue, 1.0, 1.0).toColor();
+            widget.editor.primaryColor = color;
+          },
+        ),
         1 => _FontPickerWidget(editor: widget.editor),
         2 => _BackgroundPickerWidget(editor: widget.editor),
         3 => _AlignPickerWidget(editor: widget.editor),
@@ -148,17 +142,17 @@ class _FontPickerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
+    final selectedBackground = colors.fillBase.withValues(alpha: 0.9);
     if (editor.textEditorConfigs.customTextStyles == null) {
       return const SizedBox.shrink();
     }
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: editor.textEditorConfigs.customTextStyles!
-          .asMap()
-          .entries
-          .map((entry) {
+      children: editor.textEditorConfigs.customTextStyles!.asMap().entries.map((
+        entry,
+      ) {
         final item = entry.value;
         final selected = editor.selectedTextStyle;
         final bool isSelected = selected.hashCode == item.hashCode;
@@ -173,18 +167,14 @@ class _FontPickerWidget extends StatelessWidget {
               height: 40,
               width: 48,
               decoration: BoxDecoration(
-                color: isSelected
-                    ? colorScheme.fillBasePressed
-                    : Theme.of(context).colorScheme.editorBackgroundColor,
+                color: isSelected ? selectedBackground : colors.fillLight,
                 borderRadius: BorderRadius.circular(25),
               ),
               child: Center(
                 child: Text(
                   'Aa',
                   style: item.copyWith(
-                    color: isSelected
-                        ? colorScheme.backdropBase
-                        : colorScheme.tabIcon,
+                    color: isSelected ? colors.textReverse : colors.iconColor,
                   ),
                 ),
               ),
@@ -203,14 +193,16 @@ class _BackgroundPickerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
     final isLightMode = Theme.of(context).brightness == Brightness.light;
+    final faintFill = colors.fillBase.withValues(
+      alpha: isLightMode ? 0.04 : 0.12,
+    );
     final backgroundStyles = {
       LayerBackgroundMode.background: {
         'text': 'Aa',
-        'selectedBackgroundColor':
-            isLightMode ? colorScheme.fillFaint : Colors.white,
-        'backgroundColor': Theme.of(context).colorScheme.editorBackgroundColor,
+        'selectedBackgroundColor': isLightMode ? faintFill : Colors.white,
+        'backgroundColor': colors.fillLight,
         'border': null,
         'textColor': Colors.white,
         'selectedInnerBackgroundColor': Colors.black,
@@ -218,9 +210,8 @@ class _BackgroundPickerWidget extends StatelessWidget {
       },
       LayerBackgroundMode.backgroundAndColor: {
         'text': 'Aa',
-        'selectedBackgroundColor':
-            isLightMode ? colorScheme.fillFaint : Colors.white,
-        'backgroundColor': Theme.of(context).colorScheme.editorBackgroundColor,
+        'selectedBackgroundColor': isLightMode ? faintFill : Colors.white,
+        'backgroundColor': colors.fillLight,
         'border': null,
         'textColor': Colors.black,
         'selectedInnerBackgroundColor': Colors.transparent,
@@ -228,9 +219,8 @@ class _BackgroundPickerWidget extends StatelessWidget {
       },
       LayerBackgroundMode.backgroundAndColorWithOpacity: {
         'text': 'Aa',
-        'selectedBackgroundColor':
-            isLightMode ? colorScheme.fillFaint : Colors.white,
-        'backgroundColor': Theme.of(context).colorScheme.editorBackgroundColor,
+        'selectedBackgroundColor': isLightMode ? faintFill : Colors.white,
+        'backgroundColor': colors.fillLight,
         'border': null,
         'textColor': Colors.black,
         'selectedInnerBackgroundColor': Colors.black.withValues(alpha: 0.11),
@@ -240,11 +230,11 @@ class _BackgroundPickerWidget extends StatelessWidget {
       },
       LayerBackgroundMode.onlyColor: {
         'text': 'Aa',
-        'selectedBackgroundColor':
-            isLightMode ? colorScheme.fillFaint : Colors.black,
-        'backgroundColor': Theme.of(context).colorScheme.editorBackgroundColor,
-        'border':
-            isLightMode ? null : Border.all(color: Colors.white, width: 2),
+        'selectedBackgroundColor': isLightMode ? faintFill : Colors.black,
+        'backgroundColor': colors.fillLight,
+        'border': isLightMode
+            ? null
+            : Border.all(color: Colors.white, width: 2),
         'textColor': Colors.black,
         'selectedInnerBackgroundColor': Colors.white,
         'innerBackgroundColor': Colors.white.withValues(alpha: 0.6),
@@ -300,7 +290,7 @@ class _BackgroundPickerWidget extends StatelessWidget {
                         style: TextStyle(
                           color: isSelected
                               ? style['textColor'] as Color
-                              : colorScheme.tabIcon,
+                              : colors.iconColor,
                         ),
                       ),
                     ),
@@ -322,23 +312,18 @@ class _AlignPickerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final alignments = [
-      (TextAlign.left, "assets/image-editor/image-editor-text-align-left.svg"),
-      (
-        TextAlign.center,
-        "assets/image-editor/image-editor-text-align-center.svg"
-      ),
-      (
-        TextAlign.right,
-        "assets/image-editor/image-editor-text-align-right.svg"
-      ),
+    final colors = context.componentColors;
+    final selectedBackground = colors.fillBase.withValues(alpha: 0.9);
+    final alignments = <(TextAlign, List<List<dynamic>>)>[
+      (TextAlign.left, HugeIcons.strokeRoundedTextAlignLeft),
+      (TextAlign.center, HugeIcons.strokeRoundedTextAlignCenter),
+      (TextAlign.right, HugeIcons.strokeRoundedTextAlignRight),
     ];
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: alignments.map((alignmentData) {
-        final (alignment, svgPath) = alignmentData;
+        final (alignment, hugeIcon) = alignmentData;
         final isSelected = editor.align == alignment;
 
         return Padding(
@@ -353,24 +338,17 @@ class _AlignPickerWidget extends StatelessWidget {
               height: 40,
               width: 48,
               decoration: BoxDecoration(
-                color: isSelected
-                    ? colorScheme.fillBasePressed
-                    : Theme.of(context).colorScheme.editorBackgroundColor,
+                color: isSelected ? selectedBackground : colors.fillLight,
                 borderRadius: BorderRadius.circular(25),
                 border: isSelected
                     ? Border.all(color: Colors.black, width: 2)
                     : null,
               ),
               child: Center(
-                child: SvgPicture.asset(
-                  svgPath,
-                  width: 22,
-                  height: 22,
-                  fit: BoxFit.scaleDown,
-                  colorFilter: ColorFilter.mode(
-                    isSelected ? colorScheme.backdropBase : colorScheme.tabIcon,
-                    BlendMode.srcIn,
-                  ),
+                child: HugeIcon(
+                  icon: hugeIcon,
+                  size: 22,
+                  color: isSelected ? colors.textReverse : colors.iconColor,
                 ),
               ),
             ),

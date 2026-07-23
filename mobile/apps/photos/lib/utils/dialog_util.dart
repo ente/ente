@@ -1,12 +1,13 @@
 import "package:dio/dio.dart";
+import "package:ente_components/ente_components.dart";
 import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import "package:flutter/services.dart";
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/button_result.dart';
 import 'package:photos/models/typedefs.dart';
+import "package:photos/module/download/manager.dart";
 import "package:photos/service_locator.dart";
-import 'package:photos/theme/colors.dart';
 import 'package:photos/ui/common/loading_widget.dart';
 import 'package:photos/ui/common/progress_dialog.dart';
 import 'package:photos/ui/components/action_sheet_widget.dart';
@@ -17,9 +18,7 @@ import 'package:photos/ui/components/dialog_widget.dart';
 import 'package:photos/ui/components/models/button_type.dart';
 import "package:photos/utils/email_util.dart";
 
-typedef DialogBuilder = DialogWidget Function(BuildContext context);
-
-///Will return null if dismissed by tapping outside
+/// Legacy info-dialog helper backed by [showDialogWidget].
 Future<ButtonResult?> showInfoDialog(
   BuildContext context, {
   String title = "",
@@ -44,7 +43,7 @@ Future<ButtonResult?> showInfoDialog(
   );
 }
 
-///Will return null if dismissed by tapping outside
+/// Legacy error-dialog helper backed by [showDialogWidget].
 Future<ButtonResult?> showErrorDialog(
   BuildContext context,
   String title,
@@ -69,6 +68,7 @@ Future<ButtonResult?> showErrorDialog(
   );
 }
 
+/// Legacy exception-dialog helper backed by [showDialogWidget].
 Future<ButtonResult?> showErrorDialogForException({
   required BuildContext context,
   required Exception exception,
@@ -108,6 +108,9 @@ String parseErrorForUI(
 }) {
   if (error == null) {
     return genericError;
+  }
+  if (error.toString() == DownloadManager.applePhotosUnsupportedResourceError) {
+    return AppLocalizations.of(context).applePhotosUnsupportedResource;
   }
   if (error is DioException) {
     final DioException dioError = error;
@@ -153,7 +156,7 @@ String parseErrorForUI(
   return genericError;
 }
 
-///Will return null if dismissed by tapping outside
+/// Legacy parsed-error dialog helper backed by [showDialogWidget].
 Future<ButtonResult?> showGenericErrorDialog({
   required BuildContext context,
   bool isDismissible = true,
@@ -161,8 +164,9 @@ Future<ButtonResult?> showGenericErrorDialog({
 }) async {
   final errorBody = parseErrorForUI(
     context,
-    AppLocalizations.of(context)
-        .itLooksLikeSomethingWentWrongPleaseRetryAfterSome,
+    AppLocalizations.of(
+      context,
+    ).itLooksLikeSomethingWentWrongPleaseRetryAfterSome,
     error: error,
   );
 
@@ -203,15 +207,16 @@ Future<void> showGenericErrorBottomSheet({
 }) async {
   final errorBody = parseErrorForUI(
     context,
-    AppLocalizations.of(context)
-        .itLooksLikeSomethingWentWrongPleaseRetryAfterSome,
+    AppLocalizations.of(
+      context,
+    ).itLooksLikeSomethingWentWrongPleaseRetryAfterSome,
     error: error,
   );
   await showAlertBottomSheet(
     context,
     title: AppLocalizations.of(context).error,
     message: errorBody,
-    assetPath: 'assets/warning-green.png',
+    assetPath: 'assets/warning-grey.png',
     buttons: [
       ButtonWidgetV2(
         buttonType: ButtonTypeV2.secondary,
@@ -229,41 +234,7 @@ Future<void> showGenericErrorBottomSheet({
   );
 }
 
-DialogWidget choiceDialog({
-  required String title,
-  String? body,
-  required String firstButtonLabel,
-  String secondButtonLabel = "Cancel",
-  ButtonType firstButtonType = ButtonType.neutral,
-  ButtonType secondButtonType = ButtonType.secondary,
-  ButtonAction firstButtonAction = ButtonAction.first,
-  ButtonAction secondButtonAction = ButtonAction.cancel,
-  FutureVoidCallback? firstButtonOnTap,
-  FutureVoidCallback? secondButtonOnTap,
-  bool isCritical = false,
-  IconData? icon,
-}) {
-  final buttons = [
-    ButtonWidget(
-      buttonType: isCritical ? ButtonType.critical : firstButtonType,
-      labelText: firstButtonLabel,
-      isInAlert: true,
-      onTap: firstButtonOnTap,
-      buttonAction: firstButtonAction,
-    ),
-    ButtonWidget(
-      buttonType: secondButtonType,
-      labelText: secondButtonLabel,
-      isInAlert: true,
-      onTap: secondButtonOnTap,
-      buttonAction: secondButtonAction,
-    ),
-  ];
-
-  return DialogWidget(title: title, body: body, buttons: buttons, icon: icon);
-}
-
-///Will return null if dismissed by tapping outside
+/// Legacy two-choice dialog helper backed by [showDialogWidget].
 Future<ButtonResult?> showChoiceDialog(
   BuildContext context, {
   required String title,
@@ -306,11 +277,16 @@ Future<ButtonResult?> showChoiceDialog(
   );
 }
 
-///Will return null if dismissed by tapping outside
+/// Compatibility adapter for legacy Photos choice sheets.
+///
+/// Preserves existing two-choice [ButtonResult] behavior while rendering
+/// through [BottomSheetComponent]. Prefer [BottomSheetComponent] directly for
+/// new sheets.
 Future<ButtonResult?> showChoiceActionSheet(
   BuildContext context, {
   required String title,
   String? body,
+  Widget? illustration,
   required String firstButtonLabel,
   String secondButtonLabel = "Cancel",
   ButtonType firstButtonType = ButtonType.neutral,
@@ -344,6 +320,7 @@ Future<ButtonResult?> showChoiceActionSheet(
   return showActionSheet(
     context: context,
     title: title,
+    illustration: illustration,
     body: body,
     buttons: buttons,
     isDismissible: isDismissible,
@@ -372,7 +349,10 @@ ProgressDialog createProgressDialog(
   return dialog;
 }
 
-///Can return ButtonResult? from ButtonWidget or Exception? from TextInputDialog
+/// Compatibility adapter for legacy Photos text-input dialogs.
+///
+/// Returns null on successful submit, [ButtonResult] on cancel, and [Exception]
+/// on submit failure. Prefer [BottomSheetComponent] directly for new sheets.
 Future<dynamic> showTextInputDialog(
   BuildContext context, {
   required String title,
@@ -397,39 +377,31 @@ Future<dynamic> showTextInputDialog(
   bool useRootNavigator = false,
   bool popnavAfterSubmission = true,
 }) {
-  return showDialog(
-    barrierColor: backdropFaintDark,
+  return showBottomSheetComponent<dynamic>(
     context: context,
     useRootNavigator: useRootNavigator,
-    builder: (context) {
-      final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-      final isKeyboardUp = bottomInset > 100;
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.only(bottom: isKeyboardUp ? bottomInset : 0),
-          child: TextInputDialog(
-            title: title,
-            message: message,
-            label: label,
-            body: body,
-            icon: icon,
-            submitButtonLabel: submitButtonLabel,
-            onSubmit: onSubmit,
-            hintText: hintText,
-            prefixIcon: prefixIcon,
-            initialValue: initialValue,
-            alignMessage: alignMessage,
-            maxLength: maxLength,
-            showOnlyLoadingState: showOnlyLoadingState,
-            textCapitalization: textCapitalization,
-            alwaysShowSuccessState: alwaysShowSuccessState,
-            isPasswordInput: isPasswordInput,
-            textEditingController: textEditingController,
-            textInputFormatter: textInputFormatter,
-            textInputType: textInputType,
-            popnavAfterSubmission: popnavAfterSubmission,
-          ),
-        ),
+    builder: (_) {
+      return LegacyTextInputDialog(
+        title: title,
+        message: message,
+        label: label,
+        body: body,
+        icon: icon,
+        submitButtonLabel: submitButtonLabel,
+        onSubmit: onSubmit,
+        hintText: hintText,
+        prefixIcon: prefixIcon,
+        initialValue: initialValue,
+        alignMessage: alignMessage,
+        maxLength: maxLength,
+        showOnlyLoadingState: showOnlyLoadingState,
+        textCapitalization: textCapitalization,
+        alwaysShowSuccessState: alwaysShowSuccessState,
+        isPasswordInput: isPasswordInput,
+        textEditingController: textEditingController,
+        textInputFormatter: textInputFormatter,
+        textInputType: textInputType,
+        popnavAfterSubmission: popnavAfterSubmission,
       );
     },
   );

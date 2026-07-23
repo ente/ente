@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/ente-io/museum/ente"
+	"github.com/ente/museum/ente"
 	"github.com/lib/pq"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 )
 
 // Repository defines the methods for inserting, updating and retrieving

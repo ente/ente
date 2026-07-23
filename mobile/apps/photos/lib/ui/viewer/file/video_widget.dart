@@ -47,7 +47,7 @@ class _VideoWidgetState extends State<VideoWidget> {
   final _logger = Logger("VideoWidget");
   bool useNativeVideoPlayer = true;
   late final StreamSubscription<UseMediaKitForVideo>
-      useMediaKitForVideoSubscription;
+  useMediaKitForVideoSubscription;
   late bool selectPreviewForPlay = widget.file.localID == null;
   PlaylistData? playlistData;
   final nativePlayerKey = GlobalKey();
@@ -59,22 +59,24 @@ class _VideoWidgetState extends State<VideoWidget> {
   void initState() {
     super.initState();
     // Automatic error fallback: switch to MediaKit when native player fails
-    useMediaKitForVideoSubscription =
-        Bus.instance.on<UseMediaKitForVideo>().listen((event) {
-      _logger.info(
-        "Automatically switching to MediaKit due to native player error",
-      );
-      setState(() {
-        useNativeVideoPlayer = false;
-      });
-    });
+    useMediaKitForVideoSubscription = Bus.instance
+        .on<UseMediaKitForVideo>()
+        .listen((event) {
+          _logger.info(
+            "Automatically switching to MediaKit due to native player error",
+          );
+          setState(() {
+            useNativeVideoPlayer = false;
+          });
+        });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _maybeShowTransformToast();
     });
     if (widget.file.isUploaded) {
-      isPreviewLoadable =
-          fileDataService.previewIds.containsKey(widget.file.uploadedFileID);
+      isPreviewLoadable = fileDataService.previewIds.containsKey(
+        widget.file.uploadedFileID,
+      );
       if (!widget.file.isOwner) {
         // For shared video, we need to on-demand check if the file is streamable
         // and if not, we need to set isPreviewLoadable to false
@@ -92,8 +94,8 @@ class _VideoWidgetState extends State<VideoWidget> {
 
   Future<void> _checkForPreview() async {
     if (!widget.file.isOwner) {
-      final bool isStreamable =
-          await VideoPreviewService.instance.isSharedFileStreamble(widget.file);
+      final bool isStreamable = await VideoPreviewService.instance
+          .isSharedFileStreamble(widget.file);
       if (!isStreamable && mounted) {
         isPreviewLoadable = false;
         setState(() {});
@@ -109,11 +111,15 @@ class _VideoWidgetState extends State<VideoWidget> {
     final data = await VideoPreviewService.instance
         .getPlaylist(widget.file)
         .onError((error, stackTrace) {
-      if (!mounted) return;
-      _logger.warning("Failed to download preview video", error, stackTrace);
-      Fluttertoast.showToast(msg: "Failed to download preview!");
-      return null;
-    });
+          if (!mounted) return;
+          _logger.warning(
+            "Failed to download preview video",
+            error,
+            stackTrace,
+          );
+          Fluttertoast.showToast(msg: "Failed to download preview!");
+          return null;
+        });
     if (!mounted) return;
     if (data != null) {
       if (flagService.internalUser &&
@@ -145,10 +151,7 @@ class _VideoWidgetState extends State<VideoWidget> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
             color: Colors.black.withValues(alpha: 0.3),
-            border: Border.all(
-              color: strokeFaintDark,
-              width: 1,
-            ),
+            border: Border.all(color: strokeFaintDark, width: 1),
           ),
           child: const EnteLoadingWidget(
             size: 32,

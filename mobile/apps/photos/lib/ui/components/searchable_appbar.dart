@@ -1,6 +1,6 @@
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
-import "package:flutter_svg/flutter_svg.dart";
-import "package:photos/theme/ente_theme.dart";
+import "package:hugeicons/hugeicons.dart";
 
 class SearchableAppBar extends StatefulWidget {
   final Widget title;
@@ -12,6 +12,7 @@ class SearchableAppBar extends StatefulWidget {
   final Color? backgroundColor;
   final bool? centerTitle;
   final EdgeInsetsGeometry searchIconPadding;
+  final bool pinned;
 
   const SearchableAppBar({
     super.key,
@@ -24,6 +25,7 @@ class SearchableAppBar extends StatefulWidget {
     this.backgroundColor,
     this.centerTitle,
     this.searchIconPadding = const EdgeInsets.all(12.0),
+    this.pinned = false,
   });
 
   @override
@@ -86,9 +88,9 @@ class _SearchableAppBarState extends State<SearchableAppBar> {
 
   @override
   Widget build(BuildContext context) {
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
     return SliverAppBar(
-      floating: true,
+      floating: !widget.pinned,
+      pinned: widget.pinned,
       backgroundColor:
           widget.backgroundColor ?? Theme.of(context).colorScheme.surface,
       surfaceTintColor: Colors.transparent,
@@ -100,37 +102,28 @@ class _SearchableAppBarState extends State<SearchableAppBar> {
         switchInCurve: Curves.easeOut,
         switchOutCurve: Curves.easeIn,
         transitionBuilder: (Widget child, Animation<double> animation) {
-          return FadeTransition(
-            opacity: animation,
-            child: child,
-          );
+          return FadeTransition(opacity: animation, child: child);
         },
         child: _isSearchActive
             ? _buildSearchField()
             : widget.heroTag.isNotEmpty
-                ? Hero(
-                    key: const ValueKey('titleBar'),
-                    tag: widget.heroTag,
-                    child: widget.title,
-                  )
-                : widget.title,
+            ? Hero(
+                key: const ValueKey('titleBar'),
+                tag: widget.heroTag,
+                child: widget.title,
+              )
+            : widget.title,
       ),
       actions: _isSearchActive
           ? null
           : [
-              GestureDetector(
-                onTap: _activateSearch,
-                child: Padding(
-                  padding: widget.searchIconPadding,
-                  child: SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: SvgPicture.asset(
-                      isLightMode
-                          ? "assets/icons/search_icon_light.svg"
-                          : "assets/icons/search_icon_dark.svg",
-                    ),
-                  ),
+              Padding(
+                padding: widget.searchIconPadding,
+                child: IconButtonComponent(
+                  variant: IconButtonComponentVariant.primary,
+                  shouldSurfaceExecutionStates: false,
+                  icon: const HugeIcon(icon: HugeIcons.strokeRoundedSearch01),
+                  onTap: _activateSearch,
                 ),
               ),
               ...?widget.actions,
@@ -139,38 +132,26 @@ class _SearchableAppBarState extends State<SearchableAppBar> {
   }
 
   Widget _buildSearchField() {
-    final colorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
     return Container(
       key: const ValueKey('searchBar'),
       alignment: Alignment.center,
-      child: TextFormField(
+      child: TextInputComponent(
         controller: _searchController,
         focusNode: _searchFocusNode,
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: colorScheme.fillFaint,
-          prefixIcon: Icon(
-            Icons.search_rounded,
-            color: colorScheme.strokeMuted,
-          ),
-          suffixIcon: IconButton(
-            icon: Icon(
-              Icons.cancel_rounded,
-              color: colorScheme.strokeMuted,
-            ),
-            onPressed: _deactivateSearch,
-          ),
-          border: const UnderlineInputBorder(
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.fromLTRB(12, 12, 0, 12),
-          focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(
-              color: colorScheme.strokeFaint,
-            ),
-            borderRadius: BorderRadius.circular(8),
-          ),
+        autofocus: true,
+        shouldUnfocusOnClearOrSubmit: true,
+        prefix: HugeIcon(
+          icon: HugeIcons.strokeRoundedSearch01,
+          size: 18,
+          color: colors.textLight,
         ),
+        suffix: HugeIcon(
+          icon: HugeIcons.strokeRoundedCancel01,
+          size: 18,
+          color: colors.textLight,
+        ),
+        onSuffixTap: _deactivateSearch,
         onChanged: widget.onSearch,
       ),
     );

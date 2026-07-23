@@ -85,7 +85,10 @@ export const detectFileTypeInfoFromChunk = async (
 
         if (extension && KnownNonMediaFileExtensions.includes(extension)) {
             // This string should satisfy `isFileTypeNotSupportedError`.
-            throw new Error(`Unsupported file format (extension ${extension})`);
+            throw new Error(
+                `Unsupported file format (extension ${extension})`,
+                { cause: e },
+            );
         }
 
         throw e;

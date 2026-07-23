@@ -42,7 +42,7 @@
       }
     }
   },
-  "codeAccountHint": "Уліковы запіс (vy@damen.com)",
+  "codeAccountHint": "Уліковы запіс (vy@damien.com)",
   "codeTagHint": "Тэг",
   "accountKeyType": "Тып ключа",
   "sessionExpired": "Сеанс завяршыўся",
@@ -112,15 +112,20 @@
   "passwordEmptyError": "Пароль не можа быць пустым",
   "passwordTooShort": "Даўжыня пароля павінна быць прынамсі 8 сімвалаў.",
   "importFromApp": "Імпартаваць коды з {appName}",
-  "importGoogleAuthGuide": "Экспартуйце свае ўліковыя запісы з Google Authenticator у QR-код з дапамогай параметра «Перанесці ўліковыя запісы». Потым скарыстайцеся іншай прыладай, якая можа адсканіраваць QR-код.\n\nПарада: вы можаце скарыстацца вэб-камерай свайго ноўтбука, каб сфатаграфаваць QR-код.",
+  "importGoogleAuthGuide": "Экспартуйце вашы ўліковыя запісы з Google Authenticator у QR-код праз опцыю «Перадаць уліковыя запісы». Затым, адскануйце QR-код, або імпартуйце яго з відарысу.",
+  "scannerTorchOn": "Уключыць ліхтарык",
+  "scannerTorchOff": "Выключыць ліхтарык",
   "importSelectJsonFile": "Выбраць файл JSON",
   "importSelectAppExport": "Выбраць файл экспартавання {appName}",
   "importEnteEncGuide": "Выберыце зашыфраваны файл JSON, які экспартаваны з Ente",
   "importRaivoGuide": "Скарыстайцеся параметрам «Экспартаваць OTP у архіў ZIP» у наладах Raivo.\n\nВыньце файл ZIP і імпартуйце файл JSON.",
   "importBitwardenGuide": "Скарыстайцеся параметрам «Экспартаваць сховішча» ў Bitwarden Tools і імпартуйце файл JSON.",
-  "importAegisGuide": "Скарыстайцеся параметрам «Экспартаваць сховішча» ў наладах Aegis.\n\nВам спатрэбіцца ўвесці пароль ад сховішча, каб дэшыфраваць яго (у выпадку, калі яно было зашыфравана раней).",
-  "import2FasGuide": "Скарыстайцеся параметрам «Налады -> Рэзервовае капіяванне -> Экспартаванне» ў наладах 2FAS.\n\nВам спатрэбіцца ўвесці пароль, каб дэшыфраваць рэзервовую копію (у выпадку, калі яна была зашыфравана раней)",
+  "importAegisGuide": "Скарыстайцеся параметрам «Экспартаваць сховішча» ў наладах Aegis.\n\nКалі ваша сховішча абаронены паролем, для расшыфроўкі вам спатрэбіцца яго ўвесці.",
+  "import2FasGuide": "Скарыстайцеся параметрам «Налады -> Рэзервовае капіяванне -> Экспартаванне» ў наладах 2FAS.\n\nКалі ваша рэзервовая копія абаронена паролем, для расшыфроўкі вам спатрэбіцца яго ўвесці",
   "importLastpassGuide": "Скарыстайцеся параметрам «Перанесці ўліковыя запісы» ў наладах Lastpass Authenticator і націсніце «Экспартаваць уліковыя запісы ў файл», а потым імпартуйце спампаваны файл JSON.",
+  "importProtonAuthGuide": "Скарыстайцеся функцыяй «Экспарт» у наладах Proton Authenticator, каб экспартаваць вашы коды.\n\nКалі ваш экспарт абаронены паролем, для расшыфроўкі вам спатрэбіцца яго ўвесці.",
+  "invalidProtonExportTitle": "Несапраўдны экспарт Proton",
+  "invalidProtonExportMessage": "Выбраны файл не з'яўляецца сапраўдным экспартам Proton Authenticator.",
   "exportCodes": "Экспартаваць коды",
   "importLabel": "Імпарт",
   "importInstruction": "Выберыце файл, які змяшчае спіс вашых кодаў у наступным фармаце",
@@ -191,7 +196,7 @@
   "deleteAccountQuery": "Вельмі шкада, што вы пакідаеце нас. Вы сутыкнуліся з нейкай праблемай?",
   "yesSendFeedbackAction": "Так, адправіць водгук",
   "noDeleteAccountAction": "Не, выдаліць уліковы запіс",
-  "initiateAccountDeleteTitle": "Прайдзіце аўтэнтыфікацыю, каб пачаць выдаленне ўліковага запісу",
+  "authToInitiateAccountDeletion": "Разблакіруйце, каб выдаліць ваш уліковы запіс",
   "sendEmail": "Адправіць ліст",
   "createNewAccount": "Стварыць новы ўліковы запіс",
   "weakStrength": "Ненадзейны",
@@ -231,8 +236,8 @@
   "saveKey": "Захаваць ключ",
   "save": "Захаваць",
   "send": "Адправіць",
-  "saveOrSendDescription": "Вы сапраўды хочаце захаваць гэта ў сваім сховішчы (прадвызначана папка са спампоўваннямі) або адправіць у іншыя праграмы?",
-  "saveOnlyDescription": "Вы сапраўды хочаце захаваць гэта ў сваім сховішчы (прадвызначана папка са спампоўваннямі)?",
+  "saveOrSendDescription": "Вы сапраўды хочаце захаваць гэта ў сваім сховішчы (прадвызначана папка са спампоўкамі) або адправіць у іншыя праграмы?",
+  "saveOnlyDescription": "Вы сапраўды хочаце захаваць гэта ў сваім сховішчы (прадвызначана папка са спампоўкамі)?",
   "back": "Назад",
   "createAccount": "Стварыць уліковы запіс",
   "passwordStrength": "Надзейнасць пароля: {passwordStrengthValue}",
@@ -326,6 +331,16 @@
         "description": "The number of codes imported",
         "type": "int",
         "example": "1"
+      }
+    }
+  },
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{Імпартаваць {codeCount} код з Google Authenticator?} few{Імпартаваць {codeCount} кода з Google Authenticator?} other{Імпартаваць {codeCount} кодаў з Google Authenticator?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
       }
     }
   },
@@ -483,6 +498,9 @@
   "somethingWentWrongParsingCode": "Немагчыма прааналізаваць коды (колькасць: {x}).",
   "updateNotAvailable": "Абнаўленне недаступна",
   "viewRawCodes": "Паглядзець неапрацаваныя коды",
+  "parsingError": "Памылка аналіза",
+  "deleteUnparseableCodeTitle": "Выдаліць код, які нельга прааналізаваць?",
+  "deleteUnparseableCodeMessage": "Гэта назаўсёды выдаліць гэты код з Auth. Ён не будзе перамешчаны ў сметніцу.",
   "rawCodes": "Неапрацаваныя коды",
   "rawCodeData": "Неапрацаваныя даныя кода",
   "appLock": "Блакіроўка праграмы",
@@ -523,6 +541,7 @@
   "dropReviewAndroid": "Пакіньце водгук у Play Store",
   "supportEnte": "Падтрымка <bold-green>ente</bold-green>",
   "giveUsAStarOnGithub": "Адзначце нас зоркай на Github",
+  "free10GB": "10 ГБ бясплатнай прасторы на <bold-green>ente</bold-green> Photos",
   "loginWithAuthAccount": "Увайсці з дапамогай уліковага запісу Auth",
   "freeStorageOffer": "Скідка ў памеры 10% на <bold-green>ente</bold-green> Photos",
   "freeStorageOfferDescription": "Выкарыстоўвайце код «AUTH», каб атрымаць скідку ў памеры 10% за першы год",
@@ -563,8 +582,65 @@
   "selectBackupFolder": "Выберыце папку для рэзервовага капіявання",
   "setBackupFolder": "Задаць папку з рэзервовымі копіямі",
   "backupFolderLabel": "Папка з рэзервовымі копіямі:",
+  "backupPasswordHint": "Ваша рэзервовая копія будзе зашыфравана гэтым паролем.",
+  "authToUpdateBackupPassword": "Прайдзіце аўтэнтыфікацыю, каб абнавіць пароль рэзервовага капіравання",
+  "authToSetBackupPassword": "Прайдзіце аўтэнтыфікацыю, каб задаць пароль рэзервовага капіравання",
+  "backupPasswordCleared": "Пароль рэзервовага капіравання ачышчаны",
+  "enableBackupsIosInstruction": "Каб уключыць рэзервовае капіраванне на iOS, выберыце папку ў Files (напрыклад, «On My iPhone»).",
+  "currentBackupFolder": "Бягучая папка з рэзервовымі копіямі:",
+  "selectFolder": "Выбраць папку",
+  "selectFolderToContinue": "Выберыце папку, каб працягнуць",
+  "iosOnMyDeviceNotSupported": "Нельга напрамую скарыстацца «On My iPhone». Выберыце або стварыце папку ўнутры.",
   "done": "Гатова",
   "addNew": "Дадаць новы",
   "selected": "выбраныя",
-  "moveMultipleToTrashMessage": "Наступная колькасць элементаў будзе выдалена: {count}. Працягнуць?"
+  "moveMultipleToTrashMessage": "Наступная колькасць элементаў будзе выдалена: {count}. Працягнуць?",
+  "nSelected": "{count, plural, one {{count} выбраны} other{{count} выбрана}}",
+  "@nSelected": {
+    "description": "Text to indicate number of items selected",
+    "placeholders": {
+      "count": {
+        "description": "Number of items selected",
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "pinnedCount": "{count, plural, one {{count} элемент замацаваны} few{{count} элемента замацавана} other{{count} элементаў замацавана}}",
+  "@pinnedCount": {
+    "description": "Text to show number of items pinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items pinned",
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "unpinnedCount": "{count, plural, one {{count} элемент адмацаваны} few {{count} элемента адмацавана} other {{count} элементаў адмацавана}}",
+  "@unpinnedCount": {
+    "description": "Text to show number of items unpinned",
+    "placeholders": {
+      "count": {
+        "description": "Number of items unpinned",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "enterPasswordToAegisVault": "Увядзіце пароль сховішча aegis",
+  "submit": "Пацвердзіць",
+  "failedToDecryptAegisVault": "Не ўдалося расшыфраваць сховішча aegis",
+  "pleaseCheckPasswordAndTryAgain": "Праверце пароль і паспрабуйце яшчэ раз.",
+  "enterPasswordToDecrypt2FASBackup": "Увядзіце пароль, каб расшыфраваць рэзервовую копію 2ФА",
+  "failedToDecrypt2FASExport": "Не ўдалося расшыфраваць экспарт 2ФА",
+  "chooseIcon": "Выбраць значок",
+  "customOrder": "Уласны парадак",
+  "selectAnOption": "Выберыце варыянт",
+  "todaysLogs": "Сённяшнія журналы",
+  "appIcon": "Значок праграмы",
+  "importAndOTPGuide": "Экспартуйце вашу рэзервовую копію з andOTP праз функцыю «Рэзервовае капіраванне» ў наладах.\n\nКалі ваша рэзервовая копія абаронена паролем, для расшыфроўкі вам спатрэбіцца яго ўвесці.",
+  "enterPasswordToDecryptAndOTP": "Увядзіце пароль, каб расшыфраваць рэзервовую копію andOTP",
+  "failedToDecryptAndOTPBackup": "Не ўдалося расшыфраваць рэзервовую копію andOTP",
+  "notSupportedForHOTP": "Не падтрымліваецца на HOTP"
 }

@@ -1,46 +1,113 @@
 import 'dart:async';
 
-import "package:ente_ui/components/close_icon_button.dart";
-import "package:ente_ui/theme/colors.dart";
-import 'package:ente_ui/theme/ente_theme.dart';
-import "package:ente_ui/theme/text_style.dart";
+import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:locker/l10n/l10n.dart';
-import 'package:locker/models/info/info_item.dart';
 import 'package:locker/ui/pages/account_credentials_page.dart';
 import 'package:locker/ui/pages/personal_note_page.dart';
 import 'package:locker/ui/pages/physical_records_page.dart';
-import 'package:locker/utils/info_item_utils.dart';
 
-enum SaveOptionType {
-  document,
-  note,
-  physicalRecord,
-  credentials,
+enum SaveOptionType { document, note, physicalRecord, credentials }
+
+class SaveOption {
+  const SaveOption({
+    required this.type,
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+
+  final SaveOptionType type;
+  final List<List<dynamic>> icon;
+  final String title;
+  final String description;
+}
+
+List<SaveOption> saveOptions(BuildContext context) {
+  final l10n = context.l10n;
+  return [
+    SaveOption(
+      type: SaveOptionType.document,
+      icon: HugeIcons.strokeRoundedFile01,
+      title: l10n.saveDocumentTitle,
+      description: l10n.saveDocumentDescription,
+    ),
+    SaveOption(
+      type: SaveOptionType.note,
+      icon: HugeIcons.strokeRoundedNote,
+      title: l10n.personalNote,
+      description: l10n.personalNoteDescription,
+    ),
+    SaveOption(
+      type: SaveOptionType.physicalRecord,
+      icon: HugeIcons.strokeRoundedBriefcase04,
+      title: l10n.physicalRecords,
+      description: l10n.physicalRecordsDescription,
+    ),
+    SaveOption(
+      type: SaveOptionType.credentials,
+      icon: HugeIcons.strokeRoundedSquareLock01,
+      title: l10n.accountCredentials,
+      description: l10n.accountCredentialsDescription,
+    ),
+  ];
+}
+
+void handleSaveOption(
+  BuildContext context,
+  SaveOptionType type, {
+  required Future<bool> Function() onUploadDocument,
+  VoidCallback? onCancelWithoutSaving,
+}) {
+  switch (type) {
+    case SaveOptionType.document:
+      unawaited(
+        onUploadDocument().then((didUpload) {
+          if (!didUpload) {
+            onCancelWithoutSaving?.call();
+          }
+        }),
+      );
+      return;
+    case SaveOptionType.note:
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) =>
+              PersonalNotePage(onCancelWithoutSaving: onCancelWithoutSaving),
+        ),
+      );
+      break;
+    case SaveOptionType.physicalRecord:
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) =>
+              PhysicalRecordsPage(onCancelWithoutSaving: onCancelWithoutSaving),
+        ),
+      );
+      break;
+    case SaveOptionType.credentials:
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => AccountCredentialsPage(
+            onCancelWithoutSaving: onCancelWithoutSaving,
+          ),
+        ),
+      );
+      break;
+  }
 }
 
 Future<void> showSaveBottomSheet(
   BuildContext context, {
   required Future<bool> Function() onUploadDocument,
 }) {
-  final colorScheme = getEnteColorScheme(context);
-  return showModalBottomSheet<void>(
+  return showBottomSheetComponent<void>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: colorScheme.backdropBase,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.only(
-        topLeft: Radius.circular(24),
-        topRight: Radius.circular(24),
-      ),
+    builder: (_) => SaveBottomSheet(
+      rootContext: context,
+      onUploadDocument: onUploadDocument,
     ),
-    builder: (sheetContext) {
-      return SaveBottomSheet(
-        rootContext: context,
-        onUploadDocument: onUploadDocument,
-      );
-    },
   );
 }
 
@@ -56,131 +123,39 @@ class SaveBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final colors = context.componentColors;
     final maxHeight = MediaQuery.of(context).size.height * 0.75;
+    final options = saveOptions(context);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.backdropBase,
-        border: Border(top: BorderSide(color: colorScheme.strokeFaint)),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 20,
-            bottom: bottomInset + 24,
+    return BottomSheetComponent(
+      title: context.l10n.saveToLocker,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.l10n.informationDescription,
+            style: TextStyles.body.copyWith(color: colors.textLight),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 24),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: SingleChildScrollView(
+              child: Column(
                 children: [
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 12, left: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.l10n.saveToLocker,
-                            style: textTheme.largeBold,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            context.l10n.informationDescription,
-                            style: textTheme.smallMuted,
-                          ),
-                        ],
-                      ),
+                  for (var i = 0; i < options.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 16),
+                    _buildSaveOption(
+                      context,
+                      rootContext: rootContext,
+                      option: options[i],
                     ),
-                  ),
-                  const CloseIconButton(),
+                  ],
                 ],
               ),
-              const SizedBox(height: 24),
-              ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: maxHeight),
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      _buildSaveOption(
-                        context,
-                        rootContext: rootContext,
-                        icon: HugeIcon(
-                          icon: HugeIcons.strokeRoundedFileUpload,
-                          size: 24,
-                          color: colorScheme.primary700,
-                        ),
-                        title: context.l10n.saveDocumentTitle,
-                        description: context.l10n.saveDocumentDescription,
-                        type: SaveOptionType.document,
-                        colorScheme: colorScheme,
-                        textTheme: textTheme,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildSaveOption(
-                        context,
-                        rootContext: rootContext,
-                        icon: InfoItemUtils.getInfoIcon(
-                          InfoType.note,
-                          showBackground: false,
-                          size: 24,
-                        ),
-                        title: context.l10n.personalNote,
-                        description: context.l10n.personalNoteDescription,
-                        type: SaveOptionType.note,
-                        colorScheme: colorScheme,
-                        textTheme: textTheme,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildSaveOption(
-                        context,
-                        rootContext: rootContext,
-                        icon: InfoItemUtils.getInfoIcon(
-                          InfoType.physicalRecord,
-                          showBackground: false,
-                          size: 24,
-                        ),
-                        title: context.l10n.physicalRecords,
-                        description: context.l10n.physicalRecordsDescription,
-                        type: SaveOptionType.physicalRecord,
-                        colorScheme: colorScheme,
-                        textTheme: textTheme,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildSaveOption(
-                        context,
-                        rootContext: rootContext,
-                        icon: InfoItemUtils.getInfoIcon(
-                          InfoType.accountCredential,
-                          showBackground: false,
-                          size: 24,
-                        ),
-                        title: context.l10n.accountCredentials,
-                        description: context.l10n.accountCredentialsDescription,
-                        type: SaveOptionType.credentials,
-                        colorScheme: colorScheme,
-                        textTheme: textTheme,
-                      ),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -188,54 +163,22 @@ class SaveBottomSheet extends StatelessWidget {
   Widget _buildSaveOption(
     BuildContext sheetContext, {
     required BuildContext rootContext,
-    required Widget icon,
-    required String title,
-    required String description,
-    required SaveOptionType type,
-    required EnteColorScheme colorScheme,
-    required EnteTextTheme textTheme,
+    required SaveOption option,
   }) {
-    return GestureDetector(
+    final colors = sheetContext.componentColors;
+    return MenuComponent(
+      title: option.title,
+      subtitle: option.description,
+      subtitleMaxLines: 2,
+      leading: HugeIcon(icon: option.icon, size: 20, color: colors.primary),
+      trailing: Icon(Icons.chevron_right, color: colors.textBase),
       onTap: () {
         Navigator.of(sheetContext).pop();
         // Push the form route after the sheet has dismissed to avoid UI jank.
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _handleSaveOption(rootContext, type);
+          _handleSaveOption(rootContext, option.type);
         });
       },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: colorScheme.backdropBase,
-        ),
-        child: Row(
-          children: [
-            icon,
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: textTheme.bodyBold,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: textTheme.smallMuted,
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right,
-              color: colorScheme.textBase,
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -253,43 +196,11 @@ class SaveBottomSheet extends StatelessWidget {
       });
     }
 
-    switch (type) {
-      case SaveOptionType.document:
-        unawaited(
-          onUploadDocument().then((didUpload) {
-            if (!didUpload) {
-              reopenSheet();
-            }
-          }),
-        );
-        return;
-      case SaveOptionType.note:
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => PersonalNotePage(
-              onCancelWithoutSaving: reopenSheet,
-            ),
-          ),
-        );
-        break;
-      case SaveOptionType.physicalRecord:
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => PhysicalRecordsPage(
-              onCancelWithoutSaving: reopenSheet,
-            ),
-          ),
-        );
-        break;
-      case SaveOptionType.credentials:
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => AccountCredentialsPage(
-              onCancelWithoutSaving: reopenSheet,
-            ),
-          ),
-        );
-        break;
-    }
+    handleSaveOption(
+      context,
+      type,
+      onUploadDocument: onUploadDocument,
+      onCancelWithoutSaving: reopenSheet,
+    );
   }
 }

@@ -38,11 +38,7 @@ class SubscriptionPlanWidget extends StatelessWidget {
     final bool isSelected = isActive;
 
     return Padding(
-      padding: const EdgeInsets.only(
-        left: 16,
-        right: 16,
-        bottom: 24,
-      ),
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -120,10 +116,7 @@ class SubscriptionPlanWidget extends StatelessWidget {
                   Flexible(
                     child: Align(
                       alignment: Alignment.centerRight,
-                      child: _Price(
-                        price: price,
-                        period: period,
-                      ),
+                      child: _Price(price: price, period: period),
                     ),
                   ),
                 ],
@@ -169,10 +162,7 @@ class _Price extends StatelessWidget {
   final String price;
   final String period;
 
-  const _Price({
-    required this.price,
-    required this.period,
-  });
+  const _Price({required this.price, required this.period});
 
   @override
   Widget build(BuildContext context) {
@@ -201,9 +191,7 @@ class _Price extends StatelessWidget {
             TextSpan(text: price),
             TextSpan(
               text: "/${AppLocalizations.of(context).month}",
-              style: textTheme.small.copyWith(
-                color: colorScheme.contentLight,
-              ),
+              style: textTheme.small.copyWith(color: colorScheme.contentLight),
             ),
           ],
         ),
@@ -219,8 +207,10 @@ class _Price extends StatelessWidget {
       String pricePerMonthString = pricePerMonth.toStringAsFixed(2);
 
       if (pricePerMonthString.endsWith(".00")) {
-        pricePerMonthString =
-            pricePerMonthString.substring(0, pricePerMonthString.length - 3);
+        pricePerMonthString = pricePerMonthString.substring(
+          0,
+          pricePerMonthString.length - 3,
+        );
       }
 
       final bool isPlayStore = updateService.isPlayStoreFlavor();
@@ -264,14 +254,10 @@ class _Price extends StatelessWidget {
           if (!isPlayStore)
             Text.rich(
               TextSpan(
-                style: textTheme.tiny.copyWith(
-                  color: colorScheme.contentLight,
-                ),
+                style: textTheme.tiny.copyWith(color: colorScheme.contentLight),
                 children: [
                   TextSpan(text: price),
-                  TextSpan(
-                    text: "/${AppLocalizations.of(context).yearShort}",
-                  ),
+                  TextSpan(text: "/${AppLocalizations.of(context).yearShort}"),
                 ],
               ),
               textAlign: TextAlign.end,

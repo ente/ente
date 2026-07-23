@@ -30,10 +30,7 @@ Future<void> encodeAndSaveData(
   }
 }
 
-Future<File> _writeStringToFile(
-  String dataString,
-  String fileName,
-) async {
+Future<File> _writeStringToFile(String dataString, String fileName) async {
   final directory = await getExternalStorageDirectory();
   final file = File('${directory!.path}/$fileName.json');
   return file.writeAsString(dataString);

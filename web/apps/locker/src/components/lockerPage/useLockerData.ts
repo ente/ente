@@ -1,3 +1,10 @@
+import {
+    LOCKER_FILE_LIMIT_FREE,
+    LOCKER_FILE_LIMIT_PAID,
+    type LockerUploadLimitState,
+} from "@/services/locker-limits";
+import { loadPersistedLockerState, syncLockerState } from "@/services/remote";
+import type { LockerCollection, LockerItem } from "@/types";
 import { sessionExpiredDialogAttributes } from "ente-accounts-rs/components/utils/dialog";
 import {
     isSavedUserTokenMismatch,
@@ -20,13 +27,6 @@ import { ensureContactsReady } from "ente-contacts-web";
 import { t } from "i18next";
 import type { NextRouter } from "next/router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-    LOCKER_FILE_LIMIT_FREE,
-    LOCKER_FILE_LIMIT_PAID,
-    type LockerUploadLimitState,
-} from "services/locker-limits";
-import { loadPersistedLockerState, syncLockerState } from "services/remote";
-import type { LockerCollection, LockerItem } from "types";
 
 interface LockerUserProfileResponse {
     email?: string;

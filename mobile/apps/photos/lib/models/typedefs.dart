@@ -11,9 +11,8 @@ typedef VoidCallbackParamDouble = Function(double);
 typedef VoidCallbackParamBool = void Function(bool);
 typedef VoidCallbackParamListDouble = void Function(List<double>);
 typedef VoidCallbackParamLocation = void Function(Location);
-typedef VoidCallbackParamSearchResutlsStream = void Function(
-  Stream<List<SearchResult>>,
-);
+typedef VoidCallbackParamSearchResutlsStream =
+    void Function(Stream<List<SearchResult>>);
 
 typedef FutureVoidCallback = Future<void> Function();
 typedef FutureOrVoidCallback = FutureOr<void> Function();

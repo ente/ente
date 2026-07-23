@@ -3,9 +3,9 @@ title: Network Drives (NAS)
 description: Troubleshoot NAS and network drive issues with Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Network Drives (NAS)

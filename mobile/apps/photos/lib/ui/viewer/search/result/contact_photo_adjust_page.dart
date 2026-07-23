@@ -1,17 +1,13 @@
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
-import "package:photos/ente_theme_data.dart";
 import "package:photos/generated/l10n.dart";
-import "package:photos/theme/ente_theme.dart";
 import "package:pro_image_editor/pro_image_editor.dart";
 
 class ContactPhotoAdjustPage extends StatefulWidget {
   final Uint8List imageBytes;
 
-  const ContactPhotoAdjustPage({
-    required this.imageBytes,
-    super.key,
-  });
+  const ContactPhotoAdjustPage({required this.imageBytes, super.key});
 
   @override
   State<ContactPhotoAdjustPage> createState() => _ContactPhotoAdjustPageState();
@@ -22,23 +18,23 @@ class _ContactPhotoAdjustPageState extends State<ContactPhotoAdjustPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
+    final actionTextStyle = TextStyles.large.copyWith(color: colors.textBase);
     final isLightMode = Theme.of(context).brightness == Brightness.light;
 
     return Scaffold(
-      backgroundColor: colorScheme.backgroundBase,
+      backgroundColor: colors.backgroundBase,
       body: CropRotateEditor.memory(
         widget.imageBytes,
         initConfigs: CropRotateEditorInitConfigs(
           theme: ThemeData(
-            scaffoldBackgroundColor: colorScheme.backgroundBase,
+            scaffoldBackgroundColor: colors.backgroundBase,
             appBarTheme: AppBarTheme(
-              titleTextStyle: textTheme.body,
-              backgroundColor: colorScheme.backgroundBase,
+              titleTextStyle: actionTextStyle,
+              backgroundColor: colors.backgroundBase,
             ),
             bottomAppBarTheme: BottomAppBarThemeData(
-              color: colorScheme.backgroundBase,
+              color: colors.backgroundBase,
             ),
             brightness: isLightMode ? Brightness.light : Brightness.dark,
           ),
@@ -57,18 +53,12 @@ class _ContactPhotoAdjustPageState extends State<ContactPhotoAdjustPage> {
               pngLevel: 0,
             ),
             cropRotateEditor: CropRotateEditorConfigs(
-              showRotateButton: false,
-              showFlipButton: false,
-              showAspectRatioButton: false,
-              showResetButton: false,
+              tools: const [],
               initAspectRatio: 1.0,
-              aspectRatios: const [
-                AspectRatioItem(text: "1*1", value: 1.0),
-              ],
+              aspectRatios: const [AspectRatioItem(text: "1*1", value: 1.0)],
               style: CropRotateEditorStyle(
-                background: colorScheme.backgroundBase,
-                cropCornerColor:
-                    Theme.of(context).colorScheme.imageEditorPrimaryColor,
+                background: colors.backgroundBase,
+                cropCornerColor: colors.primary,
               ),
               widgets: CropRotateEditorWidgets(
                 appBar: (editor, rebuildStream) => ReactiveAppbar(
@@ -76,7 +66,7 @@ class _ContactPhotoAdjustPageState extends State<ContactPhotoAdjustPage> {
                   builder: (_) => AppBar(
                     elevation: 0,
                     automaticallyImplyLeading: false,
-                    backgroundColor: colorScheme.backgroundBase,
+                    backgroundColor: colors.backgroundBase,
                     titleSpacing: 0,
                     title: Row(
                       children: [
@@ -84,7 +74,7 @@ class _ContactPhotoAdjustPageState extends State<ContactPhotoAdjustPage> {
                           onPressed: () => Navigator.of(context).pop(),
                           child: Text(
                             AppLocalizations.of(context).cancel,
-                            style: textTheme.body,
+                            style: actionTextStyle,
                           ),
                         ),
                         const Spacer(),
@@ -99,12 +89,10 @@ class _ContactPhotoAdjustPageState extends State<ContactPhotoAdjustPage> {
                                 },
                           child: Text(
                             AppLocalizations.of(context).useSelectedPhoto,
-                            style: textTheme.body.copyWith(
+                            style: actionTextStyle.copyWith(
                               color: _isReturningBytes
-                                  ? colorScheme.textMuted
-                                  : Theme.of(context)
-                                      .colorScheme
-                                      .imageEditorPrimaryColor,
+                                  ? colors.textLight
+                                  : colors.primary,
                             ),
                           ),
                         ),

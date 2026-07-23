@@ -27,7 +27,7 @@ FUNCTIES
 - en nog veel meer!
 
 TOESTEMMINGEN
-ente heeft bepaalde machtigingen nodig om uw foto's op te slaan, die hier bekeken kunnen worden: https://github.com/ente-io/ente/blob/f-droid/mobile/android/permissions.md
+ente heeft bepaalde machtigingen nodig om uw foto's op te slaan, die hier bekeken kunnen worden: https://github.com/ente/ente/blob/f-droid/mobile/android/permissions.md
 
 PRIJZEN
 We bieden geen oneindig gratis plannen aan, omdat het voor ons belangrijk is dat we duurzaam blijven en de tand des tijds weerstaan. In plaats daarvan bieden we betaalbare plannen aan die je vrij kunt delen met je familie. Je kunt meer informatie vinden op ente.com.

@@ -73,6 +73,7 @@ services:
       - 3005:3005
       - 3006:3006
       - 3008:3008
+      - 3009:3009
       - 3010:3010
     environment:
       - NODE_ENV=development

@@ -11,12 +11,25 @@ import "package:photos/models/api/collection/user.dart";
 import "package:photos/services/contacts/contact_identity_resolver.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/photos_contacts_service.dart";
-import "package:photos/theme/colors.dart";
 import 'package:photos/theme/ente_theme.dart';
 import "package:photos/ui/viewer/people/person_face_widget.dart";
+import "package:photos/utils/avatar_util.dart";
 import 'package:tuple/tuple.dart';
 
-enum AvatarType { xl, lg, md, sm, xs }
+enum AvatarType { xs, small, medium, regular, large, huge }
+
+Color getUserAvatarColor(BuildContext context, User user) {
+  return avatarBackgroundColor(context, getUserAvatarIdentity(user));
+}
+
+AvatarIdentity getUserAvatarIdentity(User user) {
+  return AvatarIdentity.account(
+    label: resolveDisplayName(user),
+    email: resolveKnownEmail(user) ?? user.email,
+    userID: user.id,
+    currentUserEmail: Configuration.instance.getEmail(),
+  );
+}
 
 class UserAvatarWidget extends StatefulWidget {
   final User user;
@@ -24,14 +37,16 @@ class UserAvatarWidget extends StatefulWidget {
   final int currentUserID;
   final bool thumbnailView;
   final bool addStroke;
+  final AvatarIdentity? fallbackIdentity;
 
   const UserAvatarWidget(
     this.user, {
     super.key,
     this.currentUserID = -1,
-    this.type = AvatarType.md,
+    this.type = AvatarType.medium,
     this.thumbnailView = false,
     this.addStroke = true,
+    this.fallbackIdentity,
   });
 
   @override
@@ -57,19 +72,21 @@ class _UserAvatarWidgetState extends State<UserAvatarWidget> {
   void initState() {
     super.initState();
     _reload();
-    _peopleChangedSubscription =
-        Bus.instance.on<PeopleChangedEvent>().listen((event) {
+    _peopleChangedSubscription = Bus.instance.on<PeopleChangedEvent>().listen((
+      event,
+    ) {
       if (event.type == PeopleEventType.saveOrEditPerson ||
           event.type == PeopleEventType.syncDone) {
         _reload();
       }
     });
-    _contactsChangedSubscription =
-        Bus.instance.on<ContactsChangedEvent>().listen((event) {
-      if (event.matchesContactUserId(widget.user.id)) {
-        _reload();
-      }
-    });
+    _contactsChangedSubscription = Bus.instance
+        .on<ContactsChangedEvent>()
+        .listen((event) {
+          if (event.matchesContactUserId(widget.user.id)) {
+            _reload();
+          }
+        });
   }
 
   @override
@@ -93,8 +110,10 @@ class _UserAvatarWidgetState extends State<UserAvatarWidget> {
     _debouncer.run(() async {
       if (!mounted) return;
       setState(() {
-        final data = PersonService
-            .instance.emailToPartialPersonDataMapCache[widget.user.email];
+        final data = PersonService.instance.getCachedPartialPersonData(
+          userID: widget.user.id,
+          email: widget.user.email,
+        );
         if (data != null && data.containsKey(PersonService.kPersonIDKey)) {
           _canUsePersonFaceWidget = true;
           _personId = data[PersonService.kPersonIDKey] as String;
@@ -114,10 +133,8 @@ class _UserAvatarWidgetState extends State<UserAvatarWidget> {
         return;
       }
       final loadGeneration = ++_photoLoadGeneration;
-      final photoBytes =
-          await PhotosContactsService.instance.getProfilePictureBytesByUserId(
-        userId,
-      );
+      final photoBytes = await PhotosContactsService.instance
+          .getProfilePictureBytesByUserId(userId);
       if (!mounted ||
           loadGeneration != _photoLoadGeneration ||
           widget.user.id != userId) {
@@ -132,158 +149,82 @@ class _UserAvatarWidgetState extends State<UserAvatarWidget> {
   @override
   Widget build(BuildContext context) {
     final double size = getAvatarSize(widget.type);
-    final int cachedPixelWidth =
-        (size * MediaQuery.devicePixelRatioOf(context)).toInt();
+    final int cachedPixelWidth = (size * MediaQuery.devicePixelRatioOf(context))
+        .toInt();
     if (_contactPhotoBytes != null) {
-      return Container(
-        padding: widget.addStroke ? const EdgeInsets.all(0.5) : EdgeInsets.zero,
-        decoration: widget.addStroke
-            ? BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: widget.thumbnailView
-                      ? strokeMutedDark
-                      : getEnteColorScheme(context).strokeMuted,
-                  width: UserAvatarWidget.strokeWidth,
-                  strokeAlign: BorderSide.strokeAlignOutside,
-                ),
-              )
-            : null,
-        child: SizedBox(
-          height: size,
-          width: size,
-          child: ClipOval(
-            child: Image.memory(
-              _contactPhotoBytes!,
-              fit: BoxFit.cover,
-              gaplessPlayback: true,
-            ),
+      return SizedBox(
+        height: size,
+        width: size,
+        child: ClipOval(
+          child: Image.memory(
+            _contactPhotoBytes!,
+            fit: BoxFit.cover,
+            gaplessPlayback: true,
+            cacheWidth: cachedPixelWidth,
           ),
         ),
       );
     }
     return _personId != null
-        ? Container(
-            padding:
-                widget.addStroke ? const EdgeInsets.all(0.5) : EdgeInsets.zero,
-            decoration: widget.addStroke
-                ? BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: widget.thumbnailView
-                          ? strokeMutedDark
-                          : getEnteColorScheme(context).strokeMuted,
-                      width: UserAvatarWidget.strokeWidth,
-                      strokeAlign: BorderSide.strokeAlignOutside,
+        ? SizedBox(
+            height: size,
+            width: size,
+            child: ClipOval(
+              child: _canUsePersonFaceWidget
+                  ? PersonFaceWidget(
+                      key: ValueKey('$_personId-$lastSyncTimeForKey'),
+                      personId: _personId!,
+                      cachedPixelWidth: cachedPixelWidth,
+                      onErrorCallback: () {
+                        if (mounted) {
+                          setState(() {
+                            _personId = null;
+                            _canUsePersonFaceWidget = false;
+                          });
+                        }
+                      },
+                    )
+                  : _FirstLetterCircularAvatar(
+                      user: widget.user,
+                      type: widget.type,
+                      fallbackIdentity: widget.fallbackIdentity,
                     ),
-                  )
-                : null,
-            child: SizedBox(
-              height: size,
-              width: size,
-              child: ClipOval(
-                child: _canUsePersonFaceWidget
-                    ? PersonFaceWidget(
-                        key: ValueKey('$_personId-$lastSyncTimeForKey'),
-                        personId: _personId!,
-                        cachedPixelWidth: cachedPixelWidth,
-                        onErrorCallback: () {
-                          if (mounted) {
-                            setState(() {
-                              _personId = null;
-                              _canUsePersonFaceWidget = false;
-                            });
-                          }
-                        },
-                      )
-                    : _FirstLetterCircularAvatar(
-                        user: widget.user,
-                        currentUserID: widget.currentUserID,
-                        thumbnailView: widget.thumbnailView,
-                        type: widget.type,
-                        addStroke: widget.addStroke,
-                      ),
-              ),
             ),
           )
         : _FirstLetterCircularAvatar(
             user: widget.user,
-            currentUserID: widget.currentUserID,
-            thumbnailView: widget.thumbnailView,
             type: widget.type,
-            addStroke: widget.addStroke,
+            fallbackIdentity: widget.fallbackIdentity,
           );
   }
 }
 
-class _FirstLetterCircularAvatar extends StatefulWidget {
+class _FirstLetterCircularAvatar extends StatelessWidget {
   final User user;
-  final int currentUserID;
-  final bool thumbnailView;
   final AvatarType type;
-  final bool addStroke;
+  final AvatarIdentity? fallbackIdentity;
   const _FirstLetterCircularAvatar({
     required this.user,
-    required this.currentUserID,
-    required this.thumbnailView,
     required this.type,
-    required this.addStroke,
+    required this.fallbackIdentity,
   });
 
   @override
-  State<_FirstLetterCircularAvatar> createState() =>
-      _FirstLetterCircularAvatarState();
-}
-
-class _FirstLetterCircularAvatarState
-    extends State<_FirstLetterCircularAvatar> {
-  @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final resolvedDisplayName = resolveDisplayName(widget.user);
-    final displayChar = resolvedDisplayName.isEmpty
-        ? ((widget.user.email.isEmpty)
-            ? " "
-            : widget.user.email.substring(0, 1))
-        : resolvedDisplayName.substring(0, 1);
-    Color decorationColor;
-    if (widget.user.email == Configuration.instance.getEmail()) {
-      decorationColor = Colors.black;
-    } else {
-      final colorIndex = widget.user.email.contains("unknown.com")
-          ? resolvedDisplayName.length
-          : widget.user.email.length;
-      decorationColor = colorScheme
-          .avatarColors[colorIndex.remainder(colorScheme.avatarColors.length)];
-    }
+    final identity = fallbackIdentity ?? getUserAvatarIdentity(user);
 
-    final avatarStyle = getAvatarStyle(context, widget.type);
+    final avatarStyle = getAvatarStyle(context, type);
     final double size = avatarStyle.item1;
     final TextStyle textStyle = avatarStyle.item2;
-    return Container(
-      padding: widget.addStroke ? const EdgeInsets.all(0.5) : EdgeInsets.zero,
-      decoration: widget.addStroke
-          ? BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: widget.thumbnailView
-                    ? strokeMutedDark
-                    : getEnteColorScheme(context).strokeMuted,
-                width: UserAvatarWidget.strokeWidth,
-                strokeAlign: BorderSide.strokeAlignOutside,
-              ),
-            )
-          : null,
-      child: SizedBox(
-        height: size,
-        width: size,
-        child: CircleAvatar(
-          backgroundColor: decorationColor,
-          child: Text(
-            displayChar.toUpperCase(),
-            // fixed color
-            style: textStyle.copyWith(color: Colors.white),
-          ),
+    return SizedBox(
+      height: size,
+      width: size,
+      child: CircleAvatar(
+        backgroundColor: avatarBackgroundColor(context, identity),
+        child: Text(
+          identity.initial,
+          // fixed color
+          style: textStyle.copyWith(color: Colors.white),
         ),
       ),
     );
@@ -295,87 +236,51 @@ class _FirstLetterCircularAvatarState
   ) {
     final enteTextTheme = getEnteTextTheme(context);
     switch (type) {
-      case AvatarType.xl:
-        return Tuple2(32.0, enteTextTheme.small);
-      case AvatarType.lg:
+      case AvatarType.huge:
+        return Tuple2(56.0, enteTextTheme.largeBold);
+      case AvatarType.large:
+        return Tuple2(32.0, enteTextTheme.mini);
+      case AvatarType.regular:
         return Tuple2(28.0, enteTextTheme.mini);
-      case AvatarType.md:
+      case AvatarType.medium:
         return Tuple2(24.0, enteTextTheme.mini);
-      case AvatarType.sm:
-        return Tuple2(18.0, enteTextTheme.tiny);
+      case AvatarType.small:
+        return Tuple2(20.0, enteTextTheme.tiny);
       case AvatarType.xs:
-        return Tuple2(18.0, enteTextTheme.tiny);
+        return Tuple2(16.0, enteTextTheme.tiny);
     }
   }
 }
 
-double getAvatarSize(
-  AvatarType type,
-) {
+double getAvatarSize(AvatarType type) {
   switch (type) {
-    case AvatarType.xl:
+    case AvatarType.huge:
+      return 56.0;
+    case AvatarType.large:
       return 32.0;
-    case AvatarType.lg:
+    case AvatarType.regular:
       return 28.0;
-    case AvatarType.md:
+    case AvatarType.medium:
       return 24.0;
-    case AvatarType.sm:
-      return 18.0;
+    case AvatarType.small:
+      return 20.0;
     case AvatarType.xs:
-      return 18.0;
+      return 16.0;
   }
 }
 
-class FirstLetterUserAvatar extends StatefulWidget {
+class FirstLetterUserAvatar extends StatelessWidget {
   final User user;
   const FirstLetterUserAvatar(this.user, {super.key});
 
   @override
-  State<FirstLetterUserAvatar> createState() => _FirstLetterUserAvatarState();
-}
-
-class _FirstLetterUserAvatarState extends State<FirstLetterUserAvatar> {
-  final currentUserEmail = Configuration.instance.getEmail();
-  late User user;
-
-  @override
-  void initState() {
-    super.initState();
-    user = widget.user;
-  }
-
-  @override
-  void didUpdateWidget(covariant FirstLetterUserAvatar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.user != widget.user) {
-      setState(() {
-        user = widget.user;
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final resolvedDisplayName = resolveDisplayName(user);
-    final displayChar = resolvedDisplayName.isEmpty
-        ? ((user.email.isEmpty) ? " " : user.email.substring(0, 1))
-        : resolvedDisplayName.substring(0, 1);
-    Color decorationColor;
-    if (user.email == currentUserEmail) {
-      decorationColor = Colors.black;
-    } else {
-      final colorIndex = user.email.contains("unknown.com")
-          ? resolvedDisplayName.length
-          : user.email.length;
-      decorationColor = colorScheme
-          .avatarColors[colorIndex.remainder(colorScheme.avatarColors.length)];
-    }
+    final identity = getUserAvatarIdentity(user);
     return Container(
-      color: decorationColor,
+      color: avatarBackgroundColor(context, identity),
       child: Center(
         child: Text(
-          displayChar.toUpperCase(),
+          identity.initial,
           style: getEnteTextTheme(context).small.copyWith(color: Colors.white),
         ),
       ),

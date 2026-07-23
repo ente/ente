@@ -53,10 +53,7 @@ class CollectionSharingService {
     try {
       final response = await _enteDio.post(
         "/collections/unshare",
-        data: {
-          "collectionID": collectionID,
-          "email": email,
-        },
+        data: {"collectionID": collectionID, "email": email},
       );
       final sharees = <User>[];
       for (final user in response.data["sharees"]) {
@@ -70,10 +67,7 @@ class CollectionSharingService {
   }
 
   /// Create a public sharing URL for a collection
-  Future<Response> createShareUrl(
-    int collectionID,
-    bool enableCollect,
-  ) async {
+  Future<Response> createShareUrl(int collectionID, bool enableCollect) async {
     try {
       final response = await _enteDio.post(
         '/collections/share-url',
@@ -136,9 +130,7 @@ class CollectionSharingService {
   /// Leave a shared collection
   Future<void> leaveCollection(int collectionID) async {
     try {
-      await _enteDio.post(
-        "/collections/leave/$collectionID",
-      );
+      await _enteDio.post("/collections/leave/$collectionID");
     } catch (e) {
       _logger.severe('Failed to leave collection', e);
       rethrow;

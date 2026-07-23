@@ -3,9 +3,9 @@ title: Face Recognition FAQ
 description: FAQ about face recognition in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Face Recognition FAQ

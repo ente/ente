@@ -213,14 +213,14 @@ const createWorkerState = async () => {
         await fs.access(COMPILED_ML_WORKER_PATH);
     } catch {
         throw new Error(
-            "Compiled desktop ML worker not found. Run `yarn --cwd desktop tsc` first.",
+            "Compiled desktop ML worker not found. Run `npm --prefix desktop exec -- tsc -p desktop/tsconfig.json` first.",
         );
     }
     try {
         await fs.access(COMPILED_IMAGE_SERVICE_PATH);
     } catch {
         throw new Error(
-            "Compiled desktop image service not found. Run `yarn --cwd desktop tsc` first.",
+            "Compiled desktop image service not found. Run `npm --prefix desktop exec -- tsc -p desktop/tsconfig.json` first.",
         );
     }
 

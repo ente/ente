@@ -3,8 +3,8 @@ package controller
 import (
 	"context"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/repo"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/repo"
 )
 
 type CollectionActionsController struct {

@@ -21,11 +21,7 @@ Future<void> showInviteDialog(BuildContext context, String email) async {
         labelText: context.strings.sendInvite,
         isInAlert: true,
         onTap: () async {
-          unawaited(
-            shareText(
-              context.strings.shareTextRecommendUsingEnte,
-            ),
-          );
+          unawaited(shareText(context.strings.shareTextRecommendUsingEnte));
         },
       ),
     ],

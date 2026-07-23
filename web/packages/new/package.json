@@ -3,21 +3,21 @@
     "version": "0.0.0",
     "private": true,
     "dependencies": {
-        "@hugeicons/core-free-icons": "^1.0.5",
-        "@hugeicons/react": "^1.0.5",
-        "@mui/material": "^7.3.4",
-        "@mui/system": "^7.3.3",
-        "@mui/x-date-pickers": "^8.14.0",
-        "dayjs": "^1.11.18",
+        "@hugeicons/core-free-icons": "1.2.1",
+        "@hugeicons/react": "1.1.6",
+        "@mui/material": "9.2.0",
+        "@mui/system": "9.2.0",
+        "@mui/x-date-pickers": "9.8.0",
+        "dayjs": "1.11.21",
         "ente-base": "*",
         "ente-gallery": "*",
         "ente-utils": "*",
-        "react": "^19.2.0",
-        "react-dom": "^19.2.0"
+        "react": "19.2.7",
+        "react-dom": "19.2.7"
     },
     "devDependencies": {
-        "@types/react": "^19.2.2",
-        "@types/react-dom": "^19.2.2",
+        "@types/react": "19.2.17",
+        "@types/react-dom": "19.2.3",
         "ente-build-config": "*"
     }
 }

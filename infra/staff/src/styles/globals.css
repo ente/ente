@@ -12,11 +12,3 @@ body {
     text-align: center;
     min-height: 100svh;
 }
-
-a {
-    color: light-dark(green, lightgreen);
-}
-
-a:hover {
-    color: light-dark(darkgreen, chartreuse);
-}

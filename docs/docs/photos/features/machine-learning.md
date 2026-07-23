@@ -3,9 +3,9 @@ title: Machine Learning
 description: On-device machine learning for face recognition and search in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Machine Learning

@@ -74,12 +74,12 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     ClusterCentroidVectorDB? clusterCentroidVectorDB,
     bool isLocalGallery = false,
     List<String>? migrationScripts,
-  })  : _databaseName = databaseName,
-        _clipVectorDB = clipVectorDB ?? ClipVectorDB.instance,
-        _clusterCentroidVectorDB =
-            clusterCentroidVectorDB ?? ClusterCentroidVectorDB.instance,
-        _isLocalGallery = isLocalGallery,
-        _migrationScripts = migrationScripts ?? _defaultMigrationScripts;
+  }) : _databaseName = databaseName,
+       _clipVectorDB = clipVectorDB ?? ClipVectorDB.instance,
+       _clusterCentroidVectorDB =
+           clusterCentroidVectorDB ?? ClusterCentroidVectorDB.instance,
+       _isLocalGallery = isLocalGallery,
+       _migrationScripts = migrationScripts ?? _defaultMigrationScripts;
 
   static final MLDataDB instance = MLDataDB._privateConstructor();
   static final MLDataDB localGalleryInstance = MLDataDB._privateConstructor(
@@ -121,17 +121,19 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
 
   Future<SqliteDatabase> _initSqliteAsyncDatabase() async {
     final documentsDirectory = await getApplicationDocumentsDirectory();
-    final String databaseDirectory =
-        join(documentsDirectory.path, _databaseName);
+    final String databaseDirectory = join(
+      documentsDirectory.path,
+      _databaseName,
+    );
     _logger.info("Opening sqlite_async access: DB path " + databaseDirectory);
-    final asyncDBConnection =
-        SqliteDatabase(path: databaseDirectory, maxReaders: 2);
+    final asyncDBConnection = SqliteDatabase(
+      path: databaseDirectory,
+      maxReaders: 2,
+    );
     final stopwatch = Stopwatch()..start();
     _logger.info("MLDataDB: Starting migration");
     await migrate(asyncDBConnection, _migrationScripts);
-    _logger.info(
-      "MLDataDB Migration took ${stopwatch.elapsedMilliseconds} ms",
-    );
+    _logger.info("MLDataDB Migration took ${stopwatch.elapsedMilliseconds} ms");
     stopwatch.stop();
 
     return asyncDBConnection;
@@ -157,7 +159,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
       final end = min((i + 1) * batchSize, faces.length);
       final batch = faces.sublist(start, end);
 
-      const String sql = '''
+      const String sql =
+          '''
         INSERT INTO $facesTable (
           $fileIDColumn, $faceIDColumn, $faceDetectionColumn, $embeddingColumn, $faceScore, $faceBlur, $isSideways, $imageHeight, $imageWidth, $mlVersionColumn
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -193,7 +196,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
       final end = min((i + 1) * batchSize, petFaces.length);
       final batch = petFaces.sublist(start, end);
 
-      const String sql = '''
+      const String sql =
+          '''
         INSERT INTO $petFacesTable (
           $fileIDColumn, $petFaceIDColumn, $faceDetectionColumn, $faceVectorIdColumn, $speciesColumn, $faceScore, $imageHeight, $imageWidth, $mlVersionColumn
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -228,7 +232,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
       final end = min((i + 1) * batchSize, petBodies.length);
       final batch = petBodies.sublist(start, end);
 
-      const String sql = '''
+      const String sql =
+          '''
         INSERT INTO $petBodiesTable (
           $fileIDColumn, $petBodyIDColumn, $detectionColumn, $bodyVectorIdColumn, $speciesColumn, $bodyScore, $imageHeight, $imageWidth, $mlVersionColumn
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -267,7 +272,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
       final end = min((i + 1) * batchSize, entries.length);
       final batch = entries.sublist(start, end);
 
-      const String sql = '''
+      const String sql =
+          '''
         UPDATE $petFacesTable
         SET $faceVectorIdColumn = ?
         WHERE $petFaceIDColumn = ?
@@ -291,7 +297,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
       final end = min((i + 1) * batchSize, entries.length);
       final batch = entries.sublist(start, end);
 
-      const String sql = '''
+      const String sql =
+          '''
         UPDATE $petBodiesTable
         SET $bodyVectorIdColumn = ?
         WHERE $petBodyIDColumn = ?
@@ -354,10 +361,7 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
             vectorIds: vectorIds,
             embeddings: embeddings,
           );
-          final updateMap = Map.fromIterables(
-            insertedPetFaceIds,
-            vectorIds,
-          );
+          final updateMap = Map.fromIterables(insertedPetFaceIds, vectorIds);
           await updatePetFaceVectorIds(updateMap);
         }
       }
@@ -420,19 +424,12 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
             vectorIds: vectorIds,
             embeddings: embeddings,
           );
-          final updateMap = Map.fromIterables(
-            insertedBodyIds,
-            vectorIds,
-          );
+          final updateMap = Map.fromIterables(insertedBodyIds, vectorIds);
           await updatePetBodyVectorIds(updateMap);
         }
       }
     } catch (e, s) {
-      _logger.severe(
-        "Failed to store pet body embeddings in vector DB",
-        e,
-        s,
-      );
+      _logger.severe("Failed to store pet body embeddings in vector DB", e, s);
       rethrow;
     }
   }
@@ -449,7 +446,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
       final end = min((i + 1) * batchSize, faceIDToClusterID.length);
       final batch = faceIDToClusterID.entries.toList().sublist(start, end);
 
-      const String sql = '''
+      const String sql =
+          '''
         INSERT INTO $faceClustersTable ($faceIDColumn, $clusterIDColumn)
         VALUES (?, ?)
         ON CONFLICT($faceIDColumn) DO UPDATE SET $clusterIDColumn = excluded.$clusterIDColumn
@@ -466,7 +464,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     int minimumMlVersion = faceMlVersion,
   }) async {
     final db = await asyncDB;
-    final String query = '''
+    final String query =
+        '''
         SELECT $fileIDColumn, $mlVersionColumn
         FROM $facesTable
         WHERE $mlVersionColumn >= $minimumMlVersion
@@ -511,14 +510,16 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
       'SELECT $clusterIDColumn FROM $clusterPersonTable WHERE $personIdColumn != ? AND $personIdColumn IS NOT NULL',
       [personID],
     );
-    final Set<String> ignoredClusterIDs =
-        otherPersonMaps.map((e) => e[clusterIDColumn] as String).toSet();
+    final Set<String> ignoredClusterIDs = otherPersonMaps
+        .map((e) => e[clusterIDColumn] as String)
+        .toSet();
     final List<Map<String, dynamic>> rejectMaps = await db.getAll(
       'SELECT $clusterIDColumn FROM $notPersonFeedback WHERE $personIdColumn = ?',
       [personID],
     );
-    final Set<String> rejectClusterIDs =
-        rejectMaps.map((e) => e[clusterIDColumn] as String).toSet();
+    final Set<String> rejectClusterIDs = rejectMaps
+        .map((e) => e[clusterIDColumn] as String)
+        .toSet();
     return ignoredClusterIDs.union(rejectClusterIDs);
   }
 
@@ -614,12 +615,15 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
         : _maxSqlBindParamsPerQuery;
     int? remainingLimit = limit;
 
-    for (final clusterChunk
-        in _chunkList(clusterIDList, maxClusterIDsPerQuery)) {
+    for (final clusterChunk in _chunkList(
+      clusterIDList,
+      maxClusterIDsPerQuery,
+    )) {
       if (remainingLimit != null && remainingLimit <= 0) {
         break;
       }
-      final selectQuery = '''
+      final selectQuery =
+          '''
   SELECT fc.$clusterIDColumn, fe.$embeddingColumn
   FROM $faceClustersTable fc
   INNER JOIN $facesTable fe ON fc.$faceIDColumn = fe.$faceIDColumn
@@ -632,8 +636,10 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
         selectQueryParams.add(remainingLimit);
       }
 
-      final List<Map<String, dynamic>> maps =
-          await db.getAll(selectQuery, selectQueryParams);
+      final List<Map<String, dynamic>> maps = await db.getAll(
+        selectQuery,
+        selectQueryParams,
+      );
       if (remainingLimit != null) {
         remainingLimit -= maps.length;
       }
@@ -666,17 +672,16 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
           fileId.add(avatarFileId);
         }
       }
-      const String queryClusterID = '''
+      const String queryClusterID =
+          '''
         SELECT $clusterIDColumn
         FROM $clusterPersonTable
         WHERE $personIdColumn = ?
       ''';
-      final clusterRows = await db.getAll(
-        queryClusterID,
-        [personID],
-      );
-      final clusterIDs =
-          clusterRows.map((e) => e[clusterIDColumn] as String).toList();
+      final clusterRows = await db.getAll(queryClusterID, [personID]);
+      final clusterIDs = clusterRows
+          .map((e) => e[clusterIDColumn] as String)
+          .toList();
 
       final List<Map<String, dynamic>> faceMaps = await db.getAll(
         '''
@@ -704,15 +709,15 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
       }
     }
     if (clusterID != null) {
-      const String queryFaceID = '''
+      const String queryFaceID =
+          '''
         SELECT $faceIDColumn
         FROM $faceClustersTable
         WHERE $clusterIDColumn = ?
       ''';
-      final List<Map<String, dynamic>> faceMaps = await db.getAll(
-        queryFaceID,
-        [clusterID],
-      );
+      final List<Map<String, dynamic>> faceMaps = await db.getAll(queryFaceID, [
+        clusterID,
+      ]);
       final List<Face>? faces = await getFacesForGivenFileID(recentFileID);
       if (faces != null) {
         for (final face in faces) {
@@ -737,14 +742,14 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   @override
   Future<List<Face>?> getFacesForGivenFileID(int fileUploadID) async {
     final db = await asyncDB;
-    const String query = '''
+    const String query =
+        '''
       SELECT * FROM $facesTable
       WHERE $fileIDColumn = ?
     ''';
-    final List<Map<String, dynamic>> maps = await db.getAll(
-      query,
-      [fileUploadID],
-    );
+    final List<Map<String, dynamic>> maps = await db.getAll(query, [
+      fileUploadID,
+    ]);
     if (maps.isEmpty) {
       return null;
     }
@@ -754,14 +759,14 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   @override
   Future<List<DBPetFace>?> getPetFacesForFileID(int fileUploadID) async {
     final db = await asyncDB;
-    const String query = '''
+    const String query =
+        '''
       SELECT * FROM $petFacesTable
       WHERE $fileIDColumn = ? AND $speciesColumn != -1
     ''';
-    final List<Map<String, dynamic>> maps = await db.getAll(
-      query,
-      [fileUploadID],
-    );
+    final List<Map<String, dynamic>> maps = await db.getAll(query, [
+      fileUploadID,
+    ]);
     if (maps.isEmpty) {
       return null;
     }
@@ -769,18 +774,16 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   }
 
   @override
-  Future<List<DBPetBody>?> getPetBodiesForFileID(
-    int fileUploadID,
-  ) async {
+  Future<List<DBPetBody>?> getPetBodiesForFileID(int fileUploadID) async {
     final db = await asyncDB;
-    const String query = '''
+    const String query =
+        '''
       SELECT * FROM $petBodiesTable
       WHERE $fileIDColumn = ? AND $speciesColumn != -1
     ''';
-    final List<Map<String, dynamic>> maps = await db.getAll(
-      query,
-      [fileUploadID],
-    );
+    final List<Map<String, dynamic>> maps = await db.getAll(query, [
+      fileUploadID,
+    ]);
     if (maps.isEmpty) {
       return null;
     }
@@ -789,13 +792,11 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
 
   @override
   Future<Map<int, List<FaceWithoutEmbedding>>>
-      getFileIDsToFacesWithoutEmbedding() async {
+  getFileIDsToFacesWithoutEmbedding() async {
     final db = await asyncDB;
-    final List<Map<String, dynamic>> maps = await db.getAll(
-      '''
+    final List<Map<String, dynamic>> maps = await db.getAll('''
       SELECT $faceIDColumn, $fileIDColumn, $faceScore, $faceDetectionColumn, $faceBlur FROM $facesTable
-    ''',
-    );
+    ''');
     if (maps.isEmpty) {
       return {};
     }
@@ -819,16 +820,15 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     final Map<String, List<String>> result = {};
     final clusterIDList = clusterIDs.toList(growable: false);
 
-    for (final clusterChunk
-        in _chunkList(clusterIDList, _maxSqlBindParamsPerQuery)) {
-      final List<Map<String, dynamic>> maps = await db.getAll(
-        '''
+    for (final clusterChunk in _chunkList(
+      clusterIDList,
+      _maxSqlBindParamsPerQuery,
+    )) {
+      final List<Map<String, dynamic>> maps = await db.getAll('''
   SELECT $clusterIDColumn, $faceIDColumn
   FROM $faceClustersTable
   WHERE $clusterIDColumn IN (${SqlDbBase.getParams(clusterChunk.length)})
-  ''',
-        clusterChunk,
-      );
+  ''', clusterChunk);
 
       for (final map in maps) {
         final clusterID = map[clusterIDColumn] as String;
@@ -897,7 +897,7 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   // Get Map of personID to Map of clusterID to faceIDs
   @override
   Future<Map<String, Map<String, Set<String>>>>
-      getPersonToClusterIdToFaceIds() async {
+  getPersonToClusterIdToFaceIds() async {
     final db = await asyncDB;
     final List<Map<String, dynamic>> maps = await db.getAll(
       'SELECT $personIdColumn, $faceClustersTable.$clusterIDColumn, $faceIDColumn FROM $clusterPersonTable '
@@ -999,7 +999,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   @override
   Future<Iterable<double>> getBlurValuesForCluster(String clusterID) async {
     final db = await asyncDB;
-    const String query = '''
+    const String query =
+        '''
         SELECT $facesTable.$faceBlur
         FROM $facesTable
         JOIN $faceClustersTable ON $facesTable.$faceIDColumn = $faceClustersTable.$faceIDColumn
@@ -1010,10 +1011,7 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     //     FROM $facesTable
     //     WHERE $faceIDColumn IN (SELECT $faceIDColumn FROM $faceClustersTable WHERE $clusterIDColumn = ?)
     //   ''';
-    final List<Map<String, dynamic>> maps = await db.getAll(
-      query,
-      [clusterID],
-    );
+    final List<Map<String, dynamic>> maps = await db.getAll(query, [clusterID]);
     return maps.map((e) => e[faceBlur] as double).toSet();
   }
 
@@ -1055,13 +1053,15 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   ) async {
     final db = await asyncDB;
 
-    const String sql = '''
+    const String sql =
+        '''
       INSERT INTO $faceClustersTable ($faceIDColumn, $clusterIDColumn)
       VALUES (?, ?)
       ON CONFLICT($faceIDColumn) DO UPDATE SET $clusterIDColumn = excluded.$clusterIDColumn
     ''';
-    final parameterSets =
-        faceIDToClusterID.entries.map((e) => [e.key, e.value]).toList();
+    final parameterSets = faceIDToClusterID.entries
+        .map((e) => [e.key, e.value])
+        .toList();
     await db.executeBatch(sql, parameterSets);
   }
 
@@ -1070,12 +1070,14 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     Map<String, String> faceIDToClusterID,
   ) async {
     final db = await asyncDB;
-    const String sql = '''
+    const String sql =
+        '''
       DELETE FROM $faceClustersTable
       WHERE $faceIDColumn = ? AND $clusterIDColumn = ?
     ''';
-    final parameterSets =
-        faceIDToClusterID.entries.map((e) => [e.key, e.value]).toList();
+    final parameterSets = faceIDToClusterID.entries
+        .map((e) => [e.key, e.value])
+        .toList();
     await db.executeBatch(sql, parameterSets);
   }
 
@@ -1175,7 +1177,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     final Map<String, Uint8List> result = {};
     while (true) {
       // Query a batch of rows
-      final String query = '''
+      final String query =
+          '''
         SELECT $faceIDColumn, $embeddingColumn
         FROM $facesTable
         WHERE $faceIDColumn IN (${faceIDs.map((id) => "'$id'").join(",")})
@@ -1230,7 +1233,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   @override
   Future<void> deleteFaceIndexForFiles(List<int> fileIDs) async {
     final db = await asyncDB;
-    final String sql = '''
+    final String sql =
+        '''
       DELETE FROM $facesTable WHERE $fileIDColumn IN (${fileIDs.join(", ")})
     ''';
     await db.execute(sql);
@@ -1278,8 +1282,9 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   @override
   Future<int> getUnclusteredFaceCount() async {
     final db = await asyncDB;
-    const String query = '''
-      SELECT f.$faceIDColumn
+    const String query =
+        '''
+      SELECT COUNT(*) as count
       FROM $facesTable f
       LEFT JOIN $faceClustersTable fc ON f.$faceIDColumn = fc.$faceIDColumn
       WHERE f.$faceScore > $kMinimumQualityFaceScore
@@ -1287,7 +1292,7 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
       AND fc.$faceIDColumn IS NULL
     ''';
     final List<Map<String, dynamic>> maps = await db.getAll(query);
-    return maps.length;
+    return maps.first['count'] as int;
   }
 
   /// WARNING: Only use this method if the person has just been created.
@@ -1299,7 +1304,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   }) async {
     final db = await asyncDB;
 
-    const String sql = '''
+    const String sql =
+        '''
       INSERT INTO $clusterPersonTable ($personIdColumn, $clusterIDColumn) VALUES (?, ?) ON CONFLICT($personIdColumn, $clusterIDColumn) DO NOTHING
     ''';
     await db.execute(sql, [personID, clusterID]);
@@ -1311,11 +1317,13 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   ) async {
     final db = await asyncDB;
 
-    const String sql = '''
+    const String sql =
+        '''
       INSERT INTO $clusterPersonTable ($personIdColumn, $clusterIDColumn) VALUES (?, ?) ON CONFLICT($personIdColumn, $clusterIDColumn) DO NOTHING
     ''';
-    final parameterSets =
-        clusterToPersonID.entries.map((e) => [e.value, e.key]).toList();
+    final parameterSets = clusterToPersonID.entries
+        .map((e) => [e.value, e.key])
+        .toList();
     await db.executeBatch(sql, parameterSets);
   }
 
@@ -1326,7 +1334,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   }) async {
     final db = await asyncDB;
 
-    const String sql = '''
+    const String sql =
+        '''
       INSERT INTO $notPersonFeedback ($personIdColumn, $clusterIDColumn) VALUES (?, ?) ON CONFLICT DO NOTHING
     ''';
     await db.execute(sql, [personID, clusterID]);
@@ -1338,11 +1347,13 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   ) async {
     final db = await asyncDB;
 
-    const String sql = '''
+    const String sql =
+        '''
       INSERT INTO $notPersonFeedback ($personIdColumn, $clusterIDColumn) VALUES (?, ?) ON CONFLICT DO NOTHING
     ''';
-    final parameterSets =
-        clusterToPersonID.entries.map((e) => [e.value, e.key]).toList();
+    final parameterSets = clusterToPersonID.entries
+        .map((e) => [e.value, e.key])
+        .toList();
 
     await db.executeBatch(sql, parameterSets);
   }
@@ -1354,7 +1365,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   }) async {
     final db = await asyncDB;
 
-    const String sql = '''
+    const String sql =
+        '''
       DELETE FROM $notPersonFeedback WHERE $personIdColumn = ? AND $clusterIDColumn = ?
     ''';
     await db.execute(sql, [personID, clusterID]);
@@ -1367,7 +1379,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   }) async {
     final db = await asyncDB;
 
-    const String sql = '''
+    const String sql =
+        '''
       DELETE FROM $clusterPersonTable WHERE $personIdColumn = ? AND $clusterIDColumn = ?
     ''';
     await db.execute(sql, [personID, clusterID]);
@@ -1432,7 +1445,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
 
     final db = await asyncDB;
     if (createIfMissing) {
-      const insertSql = '''
+      const insertSql =
+          '''
         INSERT OR IGNORE INTO $clusterCentroidVectorIdMappingTable ($clusterIDColumn)
         VALUES (?)
       ''';
@@ -1450,14 +1464,11 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
         i,
         min(i + chunkSize, uniqueClusterIDs.length),
       );
-      final rows = await db.getAll(
-        '''
+      final rows = await db.getAll('''
           SELECT $clusterIDColumn, $clusterCentroidVectorIdColumn
           FROM $clusterCentroidVectorIdMappingTable
           WHERE $clusterIDColumn IN (${List.filled(chunk.length, '?').join(',')})
-        ''',
-        chunk,
-      );
+        ''', chunk);
       for (final row in rows) {
         result[row[clusterIDColumn] as String] =
             row[clusterCentroidVectorIdColumn] as int;
@@ -1468,7 +1479,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
 
   Future<void> deleteClusterCentroidVectorIdMapping(String clusterID) async {
     final db = await asyncDB;
-    const deleteSql = '''
+    const deleteSql =
+        '''
       DELETE FROM $clusterCentroidVectorIdMappingTable
       WHERE $clusterIDColumn = ?
     ''';
@@ -1497,7 +1509,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     }
     final db = await asyncDB;
 
-    const String sql = '''
+    const String sql =
+        '''
       INSERT INTO $clusterSummaryTable ($clusterIDColumn, $avgColumn, $countColumn) VALUES (?, ?, ?) ON CONFLICT($clusterIDColumn) DO UPDATE SET $avgColumn = excluded.$avgColumn, $countColumn = excluded.$countColumn
     ''';
     final List<List<Object?>> parameterSets = [];
@@ -1590,10 +1603,9 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     }
 
     try {
-      final clusterIDToVectorID = await getClusterCentroidVectorIdMap(
-        [clusterID],
-        createIfMissing: false,
-      );
+      final clusterIDToVectorID = await getClusterCentroidVectorIdMap([
+        clusterID,
+      ], createIfMissing: false);
       final vectorID = clusterIDToVectorID[clusterID];
       if (vectorID != null) {
         await _clusterCentroidVectorDB.deleteCentroids([vectorID]);
@@ -1755,14 +1767,12 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   @override
   Future<Set<int>> getAllFileIDsOfFaceIDsNotInAnyCluster() async {
     final db = await asyncDB;
-    final result = await db.getAll(
-      '''
+    final result = await db.getAll('''
         SELECT DISTINCT file_id
         FROM faces
         LEFT JOIN face_clusters ON faces.face_id = face_clusters.face_id
         WHERE face_clusters.face_id IS NULL;
-    ''',
-    );
+    ''');
     return <int>{for (final row in result) row[fileIDColumn]};
   }
 
@@ -1786,8 +1796,9 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   Future<List<EmbeddingVector>> getAllClipVectors() async {
     Logger("ClipDB").info("reading all embeddings from DB");
     final db = await asyncDB;
-    final results = await db
-        .getAll('SELECT $fileIDColumn, $embeddingColumn FROM $clipTable');
+    final results = await db.getAll(
+      'SELECT $fileIDColumn, $embeddingColumn FROM $clipTable',
+    );
 
     // Convert rows to vectors
     final List<EmbeddingVector> embeddings = [];
@@ -1807,11 +1818,12 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     bool force = false,
   }) async {
     await _clusterCentroidVectorMigrationLock.synchronized(() async {
-      final migrationDone =
-          await _clusterCentroidVectorDB.checkIfMigrationDone();
+      final migrationDone = await _clusterCentroidVectorDB
+          .checkIfMigrationDone();
       if (migrationDone && !force) {
-        _logger
-            .info("ClusterCentroidVectorDB migration not needed, already done");
+        _logger.info(
+          "ClusterCentroidVectorDB migration not needed, already done",
+        );
         return;
       }
       _logger.info("Starting ClusterCentroidVectorDB migration");
@@ -1909,14 +1921,14 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
 
       await _recoverClusterCentroidVectorDbFromSqlite();
 
-      final shouldContinue =
-          await _clusterCentroidVectorRecoveryLock.synchronized(() {
-        if (_clusterCentroidVectorDbRecoveryRequested) {
-          return true;
-        }
-        _clusterCentroidVectorDbRecoveryFuture = null;
-        return false;
-      });
+      final shouldContinue = await _clusterCentroidVectorRecoveryLock
+          .synchronized(() {
+            if (_clusterCentroidVectorDbRecoveryRequested) {
+              return true;
+            }
+            _clusterCentroidVectorDbRecoveryFuture = null;
+            return false;
+          });
       if (!shouldContinue) {
         return;
       }
@@ -1983,14 +1995,12 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
 
         late final List<Map<String, dynamic>> results;
         if (lastClusterID == null) {
-          results = await db.getAll(
-            '''
+          results = await db.getAll('''
               SELECT $clusterIDColumn, $avgColumn
               FROM $clusterSummaryTable
               ORDER BY $clusterIDColumn DESC
               LIMIT $batchSize
-            ''',
-          );
+            ''');
         } else {
           results = await db.getAll(
             '''
@@ -2171,8 +2181,9 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
           final List<int> fileIDs = [];
           final List<Float32List> embeddings = [];
           for (final result in results) {
-            final embedding =
-                Float32List.view((result[embeddingColumn] as Uint8List).buffer);
+            final embedding = Float32List.view(
+              (result[embeddingColumn] as Uint8List).buffer,
+            );
             if (embedding.length == ClipVectorDB.embeddingDimensions) {
               fileIDs.add(result[fileIDColumn] as int);
               embeddings.add(Float32List.view(result[embeddingColumn].buffer));
@@ -2318,8 +2329,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     late Future<void> recoveryFuture;
     await _clipVectorRecoveryLock.synchronized(() {
       _clipVectorDbRecoveryRequested = true;
-      recoveryFuture =
-          _clipVectorDbRecoveryFuture ??= _runClipVectorDbRecoveryLoop();
+      recoveryFuture = _clipVectorDbRecoveryFuture ??=
+          _runClipVectorDbRecoveryLoop();
     });
     await recoveryFuture;
   }
@@ -2369,8 +2380,9 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
   @override
   Future<Map<int, int>> clipIndexedFileWithVersion() async {
     final db = await asyncDB;
-    final maps = await db
-        .getAll('SELECT $fileIDColumn , $mlVersionColumn FROM $clipTable');
+    final maps = await db.getAll(
+      'SELECT $fileIDColumn , $mlVersionColumn FROM $clipTable',
+    );
     final Map<int, int> result = {};
     for (final map in maps) {
       result[map[fileIDColumn] as int] = map[mlVersionColumn] as int;
@@ -2408,13 +2420,15 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     int minimumMlVersion = petMlVersion,
   }) async {
     final db = await asyncDB;
-    const String query = '''
+    const String query =
+        '''
       SELECT DISTINCT $fileIDColumn, $mlVersionColumn
       FROM $petFacesTable
       WHERE $mlVersionColumn >= ?
     ''';
-    final List<Map<String, dynamic>> maps =
-        await db.getAll(query, [minimumMlVersion]);
+    final List<Map<String, dynamic>> maps = await db.getAll(query, [
+      minimumMlVersion,
+    ]);
     final Map<int, int> result = {};
     for (final map in maps) {
       result[map[fileIDColumn] as int] = map[mlVersionColumn] as int;
@@ -2429,8 +2443,9 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     final db = await asyncDB;
     const String query =
         'SELECT COUNT(DISTINCT $fileIDColumn) as count FROM $petFacesTable WHERE $mlVersionColumn >= ?';
-    final List<Map<String, dynamic>> maps =
-        await db.getAll(query, [minimumMlVersion]);
+    final List<Map<String, dynamic>> maps = await db.getAll(query, [
+      minimumMlVersion,
+    ]);
     return maps.first['count'] as int;
   }
 
@@ -2713,7 +2728,8 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     String personOrClusterID,
   ) async {
     final db = await asyncDB;
-    const String sql = '''
+    const String sql =
+        '''
       DELETE FROM $faceCacheTable
       WHERE $personOrClusterIdColumn = ?
     ''';

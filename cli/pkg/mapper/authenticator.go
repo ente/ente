@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/ente-io/cli/internal/api/models"
-	eCrypto "github.com/ente-io/cli/internal/crypto"
+	"github.com/ente/cli/internal/api/models"
+	eCrypto "github.com/ente/cli/internal/crypto"
 )
 
 func MapRemoteAuthEntityToString(ctx context.Context, authEntity models.AuthEntity, authKey []byte) (*string, error) {

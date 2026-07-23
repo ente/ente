@@ -77,12 +77,12 @@ class _BlurMenuItemWidgetState extends State<BlurMenuItemWidget> {
                                 widget.labelText!,
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
-                                style:
-                                    getEnteTextTheme(context).bodyBold.copyWith(
-                                          color: isDisabled
-                                              ? colorScheme.textFaint
-                                              : colorScheme.blurTextBase,
-                                        ),
+                                style: getEnteTextTheme(context).bodyBold
+                                    .copyWith(
+                                      color: isDisabled
+                                          ? colorScheme.textFaint
+                                          : colorScheme.blurTextBase,
+                                    ),
                               ),
                             ),
                           ],
@@ -97,13 +97,13 @@ class _BlurMenuItemWidgetState extends State<BlurMenuItemWidget> {
     );
   }
 
-  void _onTapDown(details) {
+  void _onTapDown(TapDownDetails details) {
     setState(() {
       menuItemColor = widget.pressedColor ?? widget.menuItemColor;
     });
   }
 
-  void _onTapUp(details) {
+  void _onTapUp(TapUpDetails details) {
     Future.delayed(
       const Duration(milliseconds: 100),
       () => setState(() {

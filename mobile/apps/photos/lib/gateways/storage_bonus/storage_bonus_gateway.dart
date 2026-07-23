@@ -18,9 +18,7 @@ class StorageBonusGateway {
   Future<void> updateCode(String code) {
     return _enteDio.post(
       "/storage-bonus/change-code?code=$code",
-      data: {
-        "code": code,
-      },
+      data: {"code": code},
     );
   }
 

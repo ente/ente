@@ -5,11 +5,11 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller/access"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller/access"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/lithammer/shortuuid/v3"
 )
@@ -102,7 +102,7 @@ func (c *Controller) Create(ctx *gin.Context, userID int64, req ente.CreateMemor
 	}
 
 	var share ente.MemoryShare
-	for attempt := 0; attempt < 5; attempt++ {
+	for range 5 {
 		// Retry on rare access-token collisions to match collection/file link behavior.
 		accessToken := strings.ToUpper(shortuuid.New()[0:AccessTokenLength])
 

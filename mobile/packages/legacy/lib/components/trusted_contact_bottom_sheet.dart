@@ -19,28 +19,19 @@ Future<TrustedContactResult?> showTrustedContactSheet(
   );
 }
 
-enum TrustedContactAction {
-  revoke,
-  updateTime,
-}
+enum TrustedContactAction { revoke, updateTime }
 
 class TrustedContactResult {
   final TrustedContactAction action;
   final int? selectedDays;
 
-  TrustedContactResult({
-    required this.action,
-    this.selectedDays,
-  });
+  TrustedContactResult({required this.action, this.selectedDays});
 }
 
 class TrustedContactSheet extends StatefulWidget {
   final EmergencyContact contact;
 
-  const TrustedContactSheet({
-    required this.contact,
-    super.key,
-  });
+  const TrustedContactSheet({required this.contact, super.key});
 
   @override
   State<TrustedContactSheet> createState() => _TrustedContactSheetState();
@@ -70,8 +61,9 @@ class _TrustedContactSheetState extends State<TrustedContactSheet> {
         ? context.strings.trustedContactInvitePending(email)
         : context.strings.trustedContactAccepted(email);
 
-    final String label =
-        isPending ? context.strings.revokeInvite : context.strings.remove;
+    final String label = isPending
+        ? context.strings.revokeInvite
+        : context.strings.remove;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -107,9 +99,9 @@ class _TrustedContactSheetState extends State<TrustedContactSheet> {
         const SizedBox(height: 20),
         GestureDetector(
           onTap: () {
-            Navigator.of(context).pop(
-              TrustedContactResult(action: TrustedContactAction.revoke),
-            );
+            Navigator.of(
+              context,
+            ).pop(TrustedContactResult(action: TrustedContactAction.revoke));
           },
           child: SizedBox(
             width: double.infinity,

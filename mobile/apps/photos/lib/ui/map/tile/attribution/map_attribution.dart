@@ -173,34 +173,29 @@ class MapAttributionWidgetState extends State<MapAttributionWidget> {
         duration: widget.animationConfig.buttonDuration,
         child: popupExpanded
             ? (widget.closeButton ??
-                (context, close) => IconButtonWidget(
-                      size: widget.iconSize,
-                      onTap: close,
-                      icon: Icons.cancel_outlined,
-                      iconButtonType: IconButtonType.primary,
-                      iconColor: getEnteColorScheme(context).strokeBase,
-                    ))(
-                context,
-                () => setState(() => popupExpanded = false),
-              )
+                  (context, close) => IconButtonWidget(
+                    size: widget.iconSize,
+                    onTap: close,
+                    icon: Icons.cancel_outlined,
+                    iconButtonType: IconButtonType.primary,
+                    iconColor: getEnteColorScheme(context).strokeBase,
+                  ))(context, () => setState(() => popupExpanded = false))
             : (widget.openButton ??
-                (context, open) => IconButtonWidget(
-                      size: widget.iconSize,
-                      onTap: open,
-                      icon: Icons.info_outlined,
-                      iconButtonType: IconButtonType.primary,
-                      iconColor: strokeBaseLight,
-                    ))(
-                context,
-                () {
-                  setState(() => popupExpanded = true);
-                  mapEventSubscription =
-                      MapController().mapEventStream.listen((e) {
-                    setState(() => popupExpanded = false);
-                    mapEventSubscription?.cancel();
-                  });
-                },
-              ),
+                  (context, open) => IconButtonWidget(
+                    size: widget.iconSize,
+                    onTap: open,
+                    icon: Icons.info_outlined,
+                    iconButtonType: IconButtonType.primary,
+                    iconColor: strokeBaseLight,
+                  ))(context, () {
+                setState(() => popupExpanded = true);
+                mapEventSubscription = MapController().mapEventStream.listen((
+                  e,
+                ) {
+                  setState(() => popupExpanded = false);
+                  mapEventSubscription?.cancel();
+                });
+              }),
       ),
     ];
 
@@ -220,18 +215,22 @@ class MapAttributionWidgetState extends State<MapAttributionWidget> {
                   alignment: widget.alignment.real,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: widget.popupBackgroundColor ??
+                      color:
+                          widget.popupBackgroundColor ??
                           Theme.of(context).colorScheme.surface,
                       border: Border.all(width: 0, style: BorderStyle.none),
-                      borderRadius: widget.popupBorderRadius ??
+                      borderRadius:
+                          widget.popupBorderRadius ??
                           BorderRadius.only(
                             topLeft: const Radius.circular(10),
                             topRight: const Radius.circular(10),
-                            bottomLeft: widget.alignment ==
+                            bottomLeft:
+                                widget.alignment ==
                                     AttributionAlignment.bottomLeft
                                 ? Radius.zero
                                 : const Radius.circular(10),
-                            bottomRight: widget.alignment ==
+                            bottomRight:
+                                widget.alignment ==
                                     AttributionAlignment.bottomRight
                                 ? Radius.zero
                                 : const Radius.circular(10),
@@ -279,8 +278,8 @@ class MapAttributionWidgetState extends State<MapAttributionWidget> {
                       mainAxisSize: MainAxisSize.min,
                       children:
                           widget.alignment == AttributionAlignment.bottomLeft
-                              ? persistentAttributionItems.reversed.toList()
-                              : persistentAttributionItems,
+                          ? persistentAttributionItems.reversed.toList()
+                          : persistentAttributionItems,
                     ),
                   ),
                 ),

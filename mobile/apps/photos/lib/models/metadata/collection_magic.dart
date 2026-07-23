@@ -49,8 +49,7 @@ class CollectionMagicMetadata {
   factory CollectionMagicMetadata.fromJson(dynamic json) =>
       CollectionMagicMetadata.fromMap(json);
 
-  static fromMap(Map<String, dynamic>? map) {
-    if (map == null) return null;
+  static CollectionMagicMetadata fromMap(Map<String, dynamic> map) {
     return CollectionMagicMetadata(
       visibility: map[magicKeyVisibility] ?? visibleVisibility,
       subType: map[subTypeKey],
@@ -88,8 +87,7 @@ class CollectionPubMagicMetadata {
   factory CollectionPubMagicMetadata.fromJson(dynamic json) =>
       CollectionPubMagicMetadata.fromMap(json);
 
-  static fromMap(Map<String, dynamic>? map) {
-    if (map == null) return null;
+  static CollectionPubMagicMetadata fromMap(Map<String, dynamic> map) {
     return CollectionPubMagicMetadata(
       asc: map["asc"] as bool?,
       coverID: map["coverID"],
@@ -131,8 +129,7 @@ class ShareeMagicMetadata {
   factory ShareeMagicMetadata.fromJson(dynamic json) =>
       ShareeMagicMetadata.fromMap(json);
 
-  static fromMap(Map<String, dynamic>? map) {
-    if (map == null) return null;
+  static ShareeMagicMetadata fromMap(Map<String, dynamic> map) {
     return ShareeMagicMetadata(
       visibility: map[magicKeyVisibility] ?? visibleVisibility,
       mute: map[muteKey],

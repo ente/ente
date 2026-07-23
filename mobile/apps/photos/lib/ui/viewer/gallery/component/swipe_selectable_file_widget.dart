@@ -33,8 +33,9 @@ class _SwipeSelectableFileWidgetState extends State<SwipeSelectableFileWidget> {
   @override
   Widget build(BuildContext context) {
     final swipeHelper = GallerySwipeHelper.of(context);
-    final swipeActiveNotifier =
-        GallerySwipeHelper.swipeActiveNotifierOf(context);
+    final swipeActiveNotifier = GallerySwipeHelper.swipeActiveNotifierOf(
+      context,
+    );
 
     return ValueListenableBuilder<bool>(
       valueListenable: swipeActiveNotifier ?? ValueNotifier(false),

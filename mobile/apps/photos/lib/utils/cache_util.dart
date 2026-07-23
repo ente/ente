@@ -51,10 +51,7 @@ Future<P?> decodeJsonFile<P>(
   String filePath,
   P Function(String) jsonDecodeMethod,
 ) async {
-  final args = {
-    "filePath": filePath,
-    "jsonDecode": jsonDecodeMethod,
-  };
+  final args = {"filePath": filePath, "jsonDecode": jsonDecodeMethod};
   final cache = await _computer.compute<Map<String, dynamic>, P?>(
     _decodeJsonFile<P>,
     param: args,
@@ -84,8 +81,9 @@ Future<P?> _decodeJsonFile<P>(Map<String, dynamic> args) async {
       log("Successfully decoded JSON file as UTF-8");
     } catch (e, s) {
       log("Failed to decode bytes as UTF-8, trying UTF-16 $e \n $s");
-      final jsonString =
-          String.fromCharCodes(bytes); // Fallback to UTF-16 decoding
+      final jsonString = String.fromCharCodes(
+        bytes,
+      ); // Fallback to UTF-16 decoding
       decodedData = jsonDecodeMethod(jsonString);
       log("Successfully decoded JSON file as UTF-16");
     }

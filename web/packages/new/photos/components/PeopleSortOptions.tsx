@@ -32,7 +32,7 @@ const isPeopleSortAscending = (sortBy: PeopleSortBy) => sortBy.endsWith("asc");
 const getPeopleSortBy = (
     category: PeopleSortCategory,
     ascending: boolean,
-): PeopleSortBy => `${category}-${ascending ? "asc" : "desc"}` as PeopleSortBy;
+): PeopleSortBy => `${category}-${ascending ? "asc" : "desc"}`;
 
 export const PeopleSortOptions: React.FC<PeopleSortOptionsProps> = ({
     activeSortBy,

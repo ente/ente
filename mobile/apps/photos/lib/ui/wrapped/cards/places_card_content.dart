@@ -40,15 +40,9 @@ class _TopCitiesCardContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _HeroMediaCollage(
-          media: card.media,
-          colorScheme: colorScheme,
-        ),
+        _HeroMediaCollage(media: card.media, colorScheme: colorScheme),
         const SizedBox(height: 24),
-        buildWrappedCardTitle(
-          card.title,
-          textTheme.h2Bold,
-        ),
+        buildWrappedCardTitle(card.title, textTheme.h2Bold),
         if (card.subtitle != null && card.subtitle!.isNotEmpty)
           buildWrappedCardSubtitle(
             card.subtitle!,
@@ -131,10 +125,7 @@ class _CityShareRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            Text(
-              "${stat.sharePercent}%",
-              style: textTheme.smallMuted,
-            ),
+            Text("${stat.sharePercent}%", style: textTheme.smallMuted),
           ],
         ),
         const SizedBox(height: 6),
@@ -142,25 +133,16 @@ class _CityShareRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(6),
           child: Stack(
             children: [
-              Container(
-                height: 6,
-                color: colorScheme.fillFaint,
-              ),
+              Container(height: 6, color: colorScheme.fillFaint),
               FractionallySizedBox(
                 widthFactor: progress,
-                child: Container(
-                  height: 6,
-                  color: colorScheme.primary500,
-                ),
+                child: Container(height: 6, color: colorScheme.primary500),
               ),
             ],
           ),
         ),
         const SizedBox(height: 6),
-        Text(
-          detailsLabel,
-          style: textTheme.smallMuted,
-        ),
+        Text(detailsLabel, style: textTheme.smallMuted),
       ],
     );
   }
@@ -230,17 +212,16 @@ class _MostVisitedSpotCardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<String> chips = _stringListFromMeta(card.meta, "detailChips");
-    final List<MediaRef> extraMedia =
-        card.media.skip(3).toList(growable: false);
-    final List<MediaRef> secondRowMedia =
-        extraMedia.take(3).toList(growable: false);
+    final List<MediaRef> extraMedia = card.media
+        .skip(3)
+        .toList(growable: false);
+    final List<MediaRef> secondRowMedia = extraMedia
+        .take(3)
+        .toList(growable: false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _HeroMediaCollage(
-          media: card.media,
-          colorScheme: colorScheme,
-        ),
+        _HeroMediaCollage(media: card.media, colorScheme: colorScheme),
         if (secondRowMedia.isNotEmpty) ...[
           const SizedBox(height: 12),
           SizedBox(
@@ -255,14 +236,9 @@ class _MostVisitedSpotCardContent extends StatelessWidget {
                           : null;
                       return Expanded(
                         child: Padding(
-                          padding: EdgeInsets.only(
-                            bottom: index == 0 ? 12 : 0,
-                          ),
+                          padding: EdgeInsets.only(bottom: index == 0 ? 12 : 0),
                           child: ref != null
-                              ? _MediaTile(
-                                  mediaRef: ref,
-                                  borderRadius: 20,
-                                )
+                              ? _MediaTile(mediaRef: ref, borderRadius: 20)
                               : _MediaPlaceholder(
                                   colorScheme: colorScheme,
                                   borderRadius: 20,
@@ -288,10 +264,7 @@ class _MostVisitedSpotCardContent extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 24),
-        buildWrappedCardTitle(
-          card.title,
-          textTheme.h2Bold,
-        ),
+        buildWrappedCardTitle(card.title, textTheme.h2Bold),
         if (card.subtitle != null && card.subtitle!.isNotEmpty)
           buildWrappedCardSubtitle(
             card.subtitle!,

@@ -1,21 +1,12 @@
-# Let folks use their custom editor settings
-.vscode
-.idea
+# Editors
+.vscode/
+.idea/
 
 # macOS
 .DS_Store
 
-# Ignore CLAUDE.local.md files anywhere in the repository
+# Local assistant files
 CLAUDE.local.md
-
-# Local cargo config / per-dev exports
-.cargo/
-!rust/.cargo/
-!rust/.cargo/config.toml
-rust/apps/cli/exports/
 
 # Node
 node_modules/
-
-# Build artifacts
-target/

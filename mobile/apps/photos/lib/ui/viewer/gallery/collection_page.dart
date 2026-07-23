@@ -15,7 +15,6 @@ import 'package:photos/models/selected_files.dart';
 import 'package:photos/services/ignored_files_service.dart';
 import 'package:photos/ui/viewer/actions/file_selection_overlay_bar.dart';
 import "package:photos/ui/viewer/actions/smart_albums_status_widget.dart";
-import "package:photos/ui/viewer/gallery/collect_photos_bottom_buttons.dart";
 import "package:photos/ui/viewer/gallery/empty_album_state.dart";
 import 'package:photos/ui/viewer/gallery/empty_state.dart';
 import 'package:photos/ui/viewer/gallery/gallery.dart';
@@ -31,14 +30,12 @@ class CollectionPage extends StatelessWidget {
   final CollectionWithThumbnail c;
   final String tagPrefix;
   final bool? hasVerifiedLock;
-  final bool isFromCollectPhotos;
   final EnteFile? fileToJumpTo;
 
   CollectionPage(
     this.c, {
     this.tagPrefix = "collection",
     this.hasVerifiedLock = false,
-    this.isFromCollectPhotos = false,
     this.fileToJumpTo,
     super.key,
   });
@@ -55,18 +52,26 @@ class CollectionPage extends StatelessWidget {
       c.collection,
       Configuration.instance.getUserID()!,
     );
-    final List<EnteFile>? initialFiles =
-        c.thumbnail != null ? [c.thumbnail!] : null;
+    final List<EnteFile>? initialFiles = c.thumbnail != null
+        ? [c.thumbnail!]
+        : null;
+    final appBar = GalleryAppBarWidget.sliverConfig(
+      galleryType,
+      c.collection.displayName,
+      _selectedFiles,
+      collection: c.collection,
+    );
     final gallery = Gallery(
+      appBar: appBar,
       asyncLoader: (creationStartTime, creationEndTime, {limit, asc}) async {
-        final FileLoadResult result =
-            await FilesDB.instance.getFilesInCollection(
-          c.collection.id,
-          creationStartTime,
-          creationEndTime,
-          limit: limit,
-          asc: asc,
-        );
+        final FileLoadResult result = await FilesDB.instance
+            .getFilesInCollection(
+              c.collection.id,
+              creationStartTime,
+              creationEndTime,
+              limit: limit,
+              asc: asc,
+            );
         // hide ignored files from home page UI
         final ignoredIDs =
             await IgnoredFilesService.instance.idToIgnoreReasonMap;
@@ -77,15 +82,15 @@ class CollectionPage extends StatelessWidget {
         );
         return result;
       },
-      reloadEvent: Bus.instance
-          .on<CollectionUpdatedEvent>()
-          .where((event) => event.collectionID == c.collection.id),
+      reloadEvent: Bus.instance.on<CollectionUpdatedEvent>().where(
+        (event) => event.collectionID == c.collection.id,
+      ),
       forceReloadEvents: [
         Bus.instance.on<CollectionMetaEvent>().where(
-              (event) =>
-                  event.id == c.collection.id &&
-                  event.type == CollectionMetaEventType.sortChanged,
-            ),
+          (event) =>
+              event.id == c.collection.id &&
+              event.type == CollectionMetaEventType.sortChanged,
+        ),
       ],
       removalEventTypes: const {
         EventType.deletedFromRemote,
@@ -102,7 +107,6 @@ class CollectionPage extends StatelessWidget {
       emptyState: galleryType == GalleryType.ownedCollection
           ? EmptyAlbumState(
               c.collection,
-              isFromCollectPhotos: isFromCollectPhotos,
               onAddPhotos: () {
                 Bus.instance.fire(
                   CollectionMetaEvent(
@@ -113,9 +117,7 @@ class CollectionPage extends StatelessWidget {
               },
             )
           : const EmptyState(),
-      footer: isFromCollectPhotos
-          ? const SizedBox(height: 20)
-          : const SizedBox(height: 212),
+      footer: const SizedBox(height: 212),
       fileToJumpTo: fileToJumpTo,
     );
 
@@ -130,22 +132,6 @@ class CollectionPage extends StatelessWidget {
         ),
         child: GalleryBoundariesProvider(
           child: Scaffold(
-            appBar: PreferredSize(
-              preferredSize: const Size.fromHeight(90.0),
-              child: GalleryAppBarWidget(
-                galleryType,
-                c.collection.displayName,
-                _selectedFiles,
-                collection: c.collection,
-                isFromCollectPhotos: isFromCollectPhotos,
-              ),
-            ),
-            bottomNavigationBar: isFromCollectPhotos
-                ? CollectPhotosBottomButtons(
-                    c.collection,
-                    selectedFiles: _selectedFiles,
-                  )
-                : null,
             body: SelectionState(
               selectedFiles: _selectedFiles,
               child: Stack(
@@ -154,23 +140,22 @@ class CollectionPage extends StatelessWidget {
                   Builder(
                     builder: (context) {
                       return ValueListenableBuilder(
-                        valueListenable: InheritedSearchFilterData.of(context)
-                            .searchFilterDataProvider!
-                            .isSearchingNotifier,
+                        valueListenable: InheritedSearchFilterData.of(
+                          context,
+                        ).searchFilterDataProvider!.isSearchingNotifier,
                         builder: (context, value, _) {
                           return value
                               ? HierarchicalSearchGallery(
                                   tagPrefix: tagPrefix,
                                   selectedFiles: _selectedFiles,
+                                  appBar: appBar,
                                 )
                               : gallery;
                         },
                       );
                     },
                   ),
-                  SmartAlbumsStatusWidget(
-                    collection: c.collection,
-                  ),
+                  SmartAlbumsStatusWidget(collection: c.collection),
                   FileSelectionOverlayBar(
                     galleryType,
                     _selectedFiles,

@@ -16,10 +16,7 @@ class GradientButton extends StatelessWidget {
 
   const GradientButton({
     super.key,
-    this.linearGradientColors = const [
-      Color(0xFF2CD267),
-      Color(0xFF1DB954),
-    ],
+    this.linearGradientColors = const [Color(0xFF2CD267), Color(0xFF1DB954)],
     this.onTap,
     this.text = '',
     this.iconData,
@@ -44,11 +41,7 @@ class GradientButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(
-            iconData,
-            size: 20,
-            color: Colors.white,
-          ),
+          Icon(iconData, size: 20, color: Colors.white),
           const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
           Text(
             text,

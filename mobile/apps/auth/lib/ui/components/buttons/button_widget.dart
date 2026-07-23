@@ -75,13 +75,15 @@ class ButtonWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme =
-        shouldStickToDarkTheme ? darkScheme : getEnteColorScheme(context);
+    final colorScheme = shouldStickToDarkTheme
+        ? darkScheme
+        : getEnteColorScheme(context);
     final inverseColorScheme = shouldStickToDarkTheme
         ? lightScheme
         : getEnteColorScheme(context, inverse: true);
-    final textTheme =
-        shouldStickToDarkTheme ? darkTextTheme : getEnteTextTheme(context);
+    final textTheme = shouldStickToDarkTheme
+        ? darkTextTheme
+        : getEnteTextTheme(context);
     final inverseTextTheme = shouldStickToDarkTheme
         ? lightTextTheme
         : getEnteTextTheme(context, inverse: true);
@@ -94,33 +96,49 @@ class ButtonWidget extends StatelessWidget {
     );
     buttonStyle.defaultButtonColor = buttonType.defaultButtonColor(colorScheme);
     buttonStyle.pressedButtonColor = buttonType.pressedButtonColor(colorScheme);
-    buttonStyle.disabledButtonColor =
-        buttonType.disabledButtonColor(colorScheme, buttonSize);
-    buttonStyle.defaultBorderColor =
-        buttonType.defaultBorderColor(colorScheme, buttonSize);
+    buttonStyle.disabledButtonColor = buttonType.disabledButtonColor(
+      colorScheme,
+      buttonSize,
+    );
+    buttonStyle.defaultBorderColor = buttonType.defaultBorderColor(
+      colorScheme,
+      buttonSize,
+    );
     buttonStyle.pressedBorderColor = buttonType.pressedBorderColor(
       colorScheme: colorScheme,
       buttonSize: buttonSize,
     );
-    buttonStyle.disabledBorderColor =
-        buttonType.disabledBorderColor(colorScheme, buttonSize);
-    buttonStyle.defaultIconColor = iconColor ??
+    buttonStyle.disabledBorderColor = buttonType.disabledBorderColor(
+      colorScheme,
+      buttonSize,
+    );
+    buttonStyle.defaultIconColor =
+        iconColor ??
         buttonType.defaultIconColor(
           colorScheme: colorScheme,
           inverseColorScheme: inverseColorScheme,
         );
-    buttonStyle.pressedIconColor =
-        buttonType.pressedIconColor(colorScheme, buttonSize);
-    buttonStyle.disabledIconColor =
-        buttonType.disabledIconColor(colorScheme, buttonSize);
+    buttonStyle.pressedIconColor = buttonType.pressedIconColor(
+      colorScheme,
+      buttonSize,
+    );
+    buttonStyle.disabledIconColor = buttonType.disabledIconColor(
+      colorScheme,
+      buttonSize,
+    );
     buttonStyle.defaultLabelStyle = buttonType.defaultLabelStyle(
       textTheme: textTheme,
       inverseTextTheme: inverseTextTheme,
     );
-    buttonStyle.pressedLabelStyle =
-        buttonType.pressedLabelStyle(textTheme, colorScheme, buttonSize);
-    buttonStyle.disabledLabelStyle =
-        buttonType.disabledLabelStyle(textTheme, colorScheme);
+    buttonStyle.pressedLabelStyle = buttonType.pressedLabelStyle(
+      textTheme,
+      colorScheme,
+      buttonSize,
+    );
+    buttonStyle.disabledLabelStyle = buttonType.disabledLabelStyle(
+      textTheme,
+      colorScheme,
+    );
     buttonStyle.checkIconColor = buttonType.checkIconColor(colorScheme);
 
     return ButtonChildWidget(
@@ -236,126 +254,130 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
               duration: const Duration(milliseconds: 175),
               switchInCurve: Curves.easeInOutExpo,
               switchOutCurve: Curves.easeInOutExpo,
-              child: executionState == ExecutionState.idle ||
+              child:
+                  executionState == ExecutionState.idle ||
                       !widget.shouldSurfaceExecutionStates
                   ? widget.buttonType.hasTrailingIcon
-                      ? Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            widget.labelText == null
-                                ? const SizedBox.shrink()
-                                : Flexible(
-                                    child: Padding(
-                                      padding: widget.icon == null
-                                          ? const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                            )
-                                          : const EdgeInsets.only(right: 16),
-                                      child: Text(
-                                        widget.labelText!,
-                                        overflow: TextOverflow.ellipsis,
-                                        maxLines: 2,
-                                        style: labelStyle,
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              widget.labelText == null
+                                  ? const SizedBox.shrink()
+                                  : Flexible(
+                                      child: Padding(
+                                        padding: widget.icon == null
+                                            ? const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                              )
+                                            : const EdgeInsets.only(right: 16),
+                                        child: Text(
+                                          widget.labelText!,
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 2,
+                                          style: labelStyle,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                            widget.icon == null
-                                ? const SizedBox.shrink()
-                                : Icon(
-                                    widget.icon,
-                                    size: 20,
-                                    color: iconColor,
-                                  ),
-                          ],
-                        )
-                      : Builder(
-                          builder: (context) {
-                            SchedulerBinding.instance.addPostFrameCallback(
-                              (timeStamp) {
+                              widget.icon == null
+                                  ? const SizedBox.shrink()
+                                  : Icon(
+                                      widget.icon,
+                                      size: 20,
+                                      color: iconColor,
+                                    ),
+                            ],
+                          )
+                        : Builder(
+                            builder: (context) {
+                              SchedulerBinding.instance.addPostFrameCallback((
+                                timeStamp,
+                              ) {
                                 final box =
                                     context.findRenderObject() as RenderBox;
                                 widthOfButton = box.size.width;
-                              },
-                            );
-                            return Row(
-                              mainAxisSize:
-                                  widget.buttonSize == ButtonSize.large
-                                      ? MainAxisSize.max
-                                      : MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                widget.icon == null
-                                    ? const SizedBox.shrink()
-                                    : Icon(
-                                        widget.icon,
-                                        size: 20,
-                                        color: iconColor,
-                                      ),
-                                widget.icon == null || widget.labelText == null
-                                    ? const SizedBox.shrink()
-                                    : const SizedBox(width: 8),
-                                widget.labelText == null
-                                    ? const SizedBox.shrink()
-                                    : Flexible(
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                          ),
-                                          child: Text(
-                                            widget.labelText!,
-                                            style: labelStyle,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
+                              });
+                              return Row(
+                                mainAxisSize:
+                                    widget.buttonSize == ButtonSize.large
+                                    ? MainAxisSize.max
+                                    : MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  widget.icon == null
+                                      ? const SizedBox.shrink()
+                                      : Icon(
+                                          widget.icon,
+                                          size: 20,
+                                          color: iconColor,
+                                        ),
+                                  widget.icon == null ||
+                                          widget.labelText == null
+                                      ? const SizedBox.shrink()
+                                      : const SizedBox(width: 8),
+                                  widget.labelText == null
+                                      ? const SizedBox.shrink()
+                                      : Flexible(
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                            ),
+                                            child: Text(
+                                              widget.labelText!,
+                                              style: labelStyle,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                              ],
-                            );
-                          },
-                        )
+                                ],
+                              );
+                            },
+                          )
                   : executionState == ExecutionState.inProgress
-                      ? SizedBox(
-                          width: widthOfButton,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              progressStatus == null
-                                  ? const SizedBox.shrink()
-                                  : ValueListenableBuilder<String>(
-                                      valueListenable: progressStatus!,
-                                      builder: (
+                  ? SizedBox(
+                      width: widthOfButton,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          progressStatus == null
+                              ? const SizedBox.shrink()
+                              : ValueListenableBuilder<String>(
+                                  valueListenable: progressStatus!,
+                                  builder:
+                                      (
                                         BuildContext context,
                                         String value,
                                         Widget? child,
                                       ) {
                                         return Padding(
-                                          padding:
-                                              const EdgeInsets.only(right: 8.0),
+                                          padding: const EdgeInsets.only(
+                                            right: 8.0,
+                                          ),
                                           child: Text(
                                             value,
                                             style: lightTextTheme.smallBold,
                                           ),
                                         );
                                       },
-                                    ),
-                              EnteLoadingWidget(
-                                padding: 3,
-                                color: loadingIconColor,
-                              ),
-                            ],
+                                ),
+                          EnteLoadingWidget(
+                            padding: 3,
+                            color: loadingIconColor,
                           ),
-                        )
-                      : executionState == ExecutionState.successful
-                          ? SizedBox(
-                              width: widthOfButton,
-                              child: Icon(
-                                Icons.check_outlined,
-                                size: 20,
-                                color: checkIconColor,
-                              ),
-                            )
-                          : const SizedBox.shrink(), //fallback
+                        ],
+                      ),
+                    )
+                  : executionState == ExecutionState.successful
+                  ? SizedBox(
+                      width: widthOfButton,
+                      child: Icon(
+                        Icons.check_outlined,
+                        size: 20,
+                        color: checkIconColor,
+                      ),
+                    )
+                  : const SizedBox.shrink(), //fallback
             ),
           ),
         ),
@@ -365,17 +387,22 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
 
   void _setButtonTheme() {
     progressStatus = widget.progressStatus;
-    checkIconColor = widget.buttonStyle.checkIconColor ??
+    checkIconColor =
+        widget.buttonStyle.checkIconColor ??
         widget.buttonStyle.defaultIconColor;
     loadingIconColor = widget.buttonStyle.defaultIconColor;
     if (widget.isDisabled) {
-      buttonColor = widget.buttonStyle.disabledButtonColor ??
+      buttonColor =
+          widget.buttonStyle.disabledButtonColor ??
           widget.buttonStyle.defaultButtonColor;
-      borderColor = widget.buttonStyle.disabledBorderColor ??
+      borderColor =
+          widget.buttonStyle.disabledBorderColor ??
           widget.buttonStyle.defaultBorderColor;
-      iconColor = widget.buttonStyle.disabledIconColor ??
+      iconColor =
+          widget.buttonStyle.disabledIconColor ??
           widget.buttonStyle.defaultIconColor;
-      labelStyle = widget.buttonStyle.disabledLabelStyle ??
+      labelStyle =
+          widget.buttonStyle.disabledLabelStyle ??
           widget.buttonStyle.defaultLabelStyle;
     } else {
       buttonColor = widget.buttonStyle.defaultButtonColor;
@@ -424,28 +451,32 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
     }
     if (executionState == ExecutionState.inProgress ||
         executionState == ExecutionState.error) {
+      if (!mounted) return;
       if (executionState == ExecutionState.inProgress) {
         if (mounted) {
           setState(() {
             executionState = ExecutionState.successful;
             Future.delayed(
-                Duration(
-                  seconds: widget.shouldSurfaceExecutionStates
-                      ? (widget.isInAlert ? 1 : 2)
-                      : 0,
-                ), () {
-              widget.isInAlert
-                  ? _popWithButtonAction(
-                      context,
-                      buttonAction: widget.buttonAction,
-                    )
-                  : null;
-              if (mounted) {
-                setState(() {
-                  executionState = ExecutionState.idle;
-                });
-              }
-            });
+              Duration(
+                seconds: widget.shouldSurfaceExecutionStates
+                    ? (widget.isInAlert ? 1 : 2)
+                    : 0,
+              ),
+              () {
+                if (!mounted) return;
+                widget.isInAlert
+                    ? _popWithButtonAction(
+                        context,
+                        buttonAction: widget.buttonAction,
+                      )
+                    : null;
+                if (mounted) {
+                  setState(() {
+                    executionState = ExecutionState.idle;
+                  });
+                }
+              },
+            );
           });
         }
       }
@@ -453,14 +484,14 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
         setState(() {
           executionState = ExecutionState.idle;
           widget.isInAlert
-              ? Future.delayed(
-                  const Duration(seconds: 0),
-                  () => _popWithButtonAction(
+              ? Future.delayed(const Duration(seconds: 0), () {
+                  if (!mounted) return;
+                  _popWithButtonAction(
                     context,
                     buttonAction: ButtonAction.error,
                     exception: _exception,
-                  ),
-                )
+                  );
+                })
               : null;
         });
       }
@@ -468,8 +499,10 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
       if (widget.isInAlert) {
         Future.delayed(
           Duration(seconds: widget.shouldShowSuccessConfirmation ? 1 : 0),
-          () =>
-              _popWithButtonAction(context, buttonAction: widget.buttonAction),
+          () {
+            if (!mounted) return;
+            _popWithButtonAction(context, buttonAction: widget.buttonAction);
+          },
         );
       }
     }
@@ -485,27 +518,28 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
     } else if (exception != null) {
       //This is to show the execution was unsuccessful if the dialog is manually
       //closed before the execution completes.
-      showGenericErrorDialog(
-        context: context,
-        error: exception,
-      );
+      showGenericErrorDialog(context: context, error: exception);
     }
   }
 
-  void _onTapDown(details) {
+  void _onTapDown(TapDownDetails details) {
     setState(() {
-      buttonColor = widget.buttonStyle.pressedButtonColor ??
+      buttonColor =
+          widget.buttonStyle.pressedButtonColor ??
           widget.buttonStyle.defaultButtonColor;
-      borderColor = widget.buttonStyle.pressedBorderColor ??
+      borderColor =
+          widget.buttonStyle.pressedBorderColor ??
           widget.buttonStyle.defaultBorderColor;
-      iconColor = widget.buttonStyle.pressedIconColor ??
+      iconColor =
+          widget.buttonStyle.pressedIconColor ??
           widget.buttonStyle.defaultIconColor;
-      labelStyle = widget.buttonStyle.pressedLabelStyle ??
+      labelStyle =
+          widget.buttonStyle.pressedLabelStyle ??
           widget.buttonStyle.defaultLabelStyle;
     });
   }
 
-  void _onTapUp(details) {
+  void _onTapUp(TapUpDetails details) {
     Future.delayed(
       const Duration(milliseconds: 84),
       () => setState(() {

@@ -34,13 +34,16 @@ extension AppLocalizationsX on BuildContext {
 List<Locale> _onDeviceLocales = [];
 Locale? autoDetectedLocale;
 
-Locale localResolutionCallBack(deviceLocales, supportedLocales) {
-  _onDeviceLocales = deviceLocales;
+Locale localResolutionCallBack(
+  List<Locale>? deviceLocales,
+  Iterable<Locale> supportedLocales,
+) {
+  _onDeviceLocales = deviceLocales ?? [];
   final Set<String> languageSupport = {};
   for (Locale supportedLocale in appSupportedLocales) {
     languageSupport.add(supportedLocale.languageCode);
   }
-  for (Locale locale in deviceLocales) {
+  for (Locale locale in _onDeviceLocales) {
     // check if exact local is supported, if yes, return it
     if (appSupportedLocales.contains(locale)) {
       autoDetectedLocale = locale;
@@ -78,11 +81,10 @@ Future<Locale> getFormatLocale() async {
   return firstLanguageMatch ?? locale;
 }
 
-Future<Locale?> getLocale({
-  bool noFallback = false,
-}) async {
-  final String? savedValue =
-      (await SharedPreferences.getInstance()).getString('locale');
+Future<Locale?> getLocale({bool noFallback = false}) async {
+  final String? savedValue = (await SharedPreferences.getInstance()).getString(
+    'locale',
+  );
   // if savedLocale is not null and is supported by the app, return it
   if (savedValue != null) {
     late Locale savedLocale;
@@ -114,6 +116,8 @@ Future<void> setLocale(Locale locale) async {
     out.write('_');
     out.write(locale.countryCode);
   }
-  await (await SharedPreferences.getInstance())
-      .setString('locale', out.toString());
+  await (await SharedPreferences.getInstance()).setString(
+    'locale',
+    out.toString(),
+  );
 }

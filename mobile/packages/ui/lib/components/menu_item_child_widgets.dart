@@ -61,9 +61,7 @@ class _TrailingWidgetState extends State<TrailingWidget> {
         _setTrailingIcon();
       } else if (widget.executionStateNotifier.value ==
           ExecutionState.inProgress) {
-        trailingWidget = EnteLoadingWidget(
-          color: colorScheme.strokeMuted,
-        );
+        trailingWidget = EnteLoadingWidget(color: colorScheme.strokeMuted);
       } else if (widget.executionStateNotifier.value ==
           ExecutionState.successful) {
         trailingWidget = Icon(
@@ -80,9 +78,7 @@ class _TrailingWidgetState extends State<TrailingWidget> {
   void _setTrailingIcon() {
     if (widget.trailingIcon != null) {
       trailingWidget = Padding(
-        padding: EdgeInsets.only(
-          right: widget.trailingExtraMargin,
-        ),
+        padding: EdgeInsets.only(right: widget.trailingExtraMargin),
         child: Icon(
           widget.trailingIcon,
           color: widget.trailingIconIsMuted
@@ -121,10 +117,7 @@ class ExpansionTrailingIcon extends StatelessWidget {
         switchInCurve: Curves.easeOut,
         child: isExpanded
             ? const SizedBox.shrink()
-            : Icon(
-                trailingIcon,
-                color: trailingIconColor,
-              ),
+            : Icon(trailingIcon, color: trailingIconColor),
       ),
     );
   }
@@ -154,16 +147,14 @@ class LeadingWidget extends StatelessWidget {
         width: leadingIconSize,
         child: leadingIcon == null
             ? (leadingIconWidget != null
-                ? FittedBox(
-                    fit: BoxFit.contain,
-                    child: leadingIconWidget,
-                  )
-                : const SizedBox.shrink())
+                  ? FittedBox(fit: BoxFit.contain, child: leadingIconWidget)
+                  : const SizedBox.shrink())
             : FittedBox(
                 fit: BoxFit.contain,
                 child: Icon(
                   leadingIcon,
-                  color: leadingIconColor ??
+                  color:
+                      leadingIconColor ??
                       getEnteColorScheme(context).strokeBase,
                 ),
               ),

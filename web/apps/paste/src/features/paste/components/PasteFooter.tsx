@@ -1,7 +1,7 @@
+import { usePasteColorMode } from "@/features/paste/hooks/usePasteColorMode";
+import { getPasteThemeTokens } from "@/features/paste/theme/pasteThemeTokens";
 import { Box, Stack, Typography } from "@mui/material";
 import { EnteLogo } from "ente-base/components/EnteLogo";
-import { usePasteColorMode } from "features/paste/hooks/usePasteColorMode";
-import { getPasteThemeTokens } from "features/paste/theme/pasteThemeTokens";
 
 const productLinkSx = (color: string, hoverColor: string) => ({
     color,
@@ -26,7 +26,7 @@ export const PasteFooter = () => {
     const tokens = getPasteThemeTokens(resolvedMode);
 
     return (
-        <Stack alignItems="center" spacing={1.1}>
+        <Stack spacing={1.1} sx={{ alignItems: "center" }}>
             <Box
                 component="a"
                 href="https://ente.com"
@@ -46,9 +46,11 @@ export const PasteFooter = () => {
             <Stack
                 direction="row"
                 spacing={1}
-                alignItems="center"
-                justifyContent="center"
-                flexWrap="nowrap"
+                sx={{
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexWrap: "nowrap",
+                }}
             >
                 <Typography
                     component="a"

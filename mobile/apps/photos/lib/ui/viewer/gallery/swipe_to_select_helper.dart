@@ -15,10 +15,7 @@ class SwipeToSelectHelper {
   final List<EnteFile> allFiles;
   final SelectedFiles selectedFiles;
 
-  SwipeToSelectHelper({
-    required this.allFiles,
-    required this.selectedFiles,
-  }) {
+  SwipeToSelectHelper({required this.allFiles, required this.selectedFiles}) {
     selectedFiles.addListener(_onSelectionChanged);
   }
 
@@ -173,8 +170,10 @@ class SwipeToSelectHelper {
         // Moving right of starting point
         if (lastToIndex < toIndex) {
           // Extending rightward
-          final itemsToRemove =
-              getRange(max(fromIndex, lastToIndex), toIndex + 1);
+          final itemsToRemove = getRange(
+            max(fromIndex, lastToIndex),
+            toIndex + 1,
+          );
           if (itemsToRemove.isNotEmpty) {
             selectedFiles.unSelectAll(itemsToRemove);
             HapticFeedback.selectionClick();

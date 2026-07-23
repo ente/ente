@@ -1,11 +1,11 @@
 import 'package:ente_pure_utils/ente_pure_utils.dart';
-import "package:ente_ui/theme/ente_theme.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:locker/l10n/l10n.dart";
 import "package:locker/services/trash/trash_service.dart";
 import "package:locker/ui/pages/all_collections_page.dart";
 import "package:locker/ui/pages/trash_page.dart";
+import "package:locker/ui/settings/components/settings_item.dart";
 import "package:locker/ui/utils/legacy_utils.dart";
 
 class LegacyCollectionsTrashWidget extends StatelessWidget {
@@ -36,39 +36,12 @@ class _CollectionsItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final borderRadius = BorderRadius.circular(20);
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return SettingsItem(
+      title: context.l10n.collections,
+      icon: HugeIcons.strokeRoundedWallet05,
+      showChevron: false,
+      titleMaxLines: 1,
       onTap: () => _openCollections(context),
-      child: Container(
-        height: 56,
-        decoration: BoxDecoration(
-          color: colorScheme.backdropBase,
-          borderRadius: borderRadius,
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            HugeIcon(
-              icon: HugeIcons.strokeRoundedWallet05,
-              color: colorScheme.textMuted,
-              size: 24,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                context.l10n.collections,
-                style: textTheme.small,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -82,39 +55,13 @@ class _TrashItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final borderRadius = BorderRadius.circular(20);
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return SettingsItem(
+      title: context.l10n.trash,
+      icon: HugeIcons.strokeRoundedDelete02,
+      showChevron: false,
+      showOnlyLoadingState: true,
+      titleMaxLines: 1,
       onTap: () => _openTrash(context),
-      child: Container(
-        height: 56,
-        decoration: BoxDecoration(
-          color: colorScheme.backdropBase,
-          borderRadius: borderRadius,
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            HugeIcon(
-              icon: HugeIcons.strokeRoundedDelete02,
-              color: colorScheme.textMuted,
-              size: 24,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                context.l10n.trash,
-                style: textTheme.small,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -130,41 +77,10 @@ class _LegacyItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final borderRadius = BorderRadius.circular(20);
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return SettingsItem(
+      title: context.l10n.legacy,
+      icon: HugeIcons.strokeRoundedFavourite,
       onTap: () => openLegacyPage(context),
-      child: Container(
-        height: 56,
-        decoration: BoxDecoration(
-          color: colorScheme.backdropBase,
-          borderRadius: borderRadius,
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            HugeIcon(
-              icon: HugeIcons.strokeRoundedFavourite,
-              color: colorScheme.textMuted,
-              size: 24,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                context.l10n.legacy,
-                style: textTheme.small,
-              ),
-            ),
-            Icon(
-              Icons.chevron_right,
-              color: colorScheme.textMuted,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -15,6 +15,7 @@ import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/location/location.dart";
+import "package:photos/module/metadata/local_file.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/sync/sync_service.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -31,6 +32,7 @@ import "package:photos/ui/tools/editor/video_editor/video_editor_player_control.
 import "package:photos/ui/tools/editor/video_rotate_page.dart";
 import "package:photos/ui/tools/editor/video_trim_page.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
+import "package:photos/utils/gallery_save_title.dart";
 import "package:video_editor/video_editor.dart";
 
 class VideoEditorPage extends StatefulWidget {
@@ -75,6 +77,7 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
     // First determine rotation correction for Android
     _doRotationCorrectionIfAndroid().then((_) {
       // Then initialize the controller
+      if (!mounted) return;
       _controller = VideoEditorController.file(
         widget.ioFile,
         minDuration: const Duration(seconds: 1),
@@ -96,23 +99,24 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
         ),
       );
 
-      _controller!.initialize().then((_) {
-        // Apply metadata rotation to the video player
-        if (_quarterTurnsForRotationCorrection != null &&
-            _quarterTurnsForRotationCorrection! != 0) {
-          final rotationDegrees = _quarterTurnsForRotationCorrection! * 90;
-          _controller!.video.value = _controller!.video.value.copyWith(
-            rotationCorrection: rotationDegrees,
-          );
-        }
-        setState(() {});
-      }).catchError(
-        (error) {
-          // handle minimum duration bigger than video duration error
-          Navigator.pop(context);
-        },
-        test: (e) => e is VideoMinDurationError,
-      );
+      _controller!
+          .initialize()
+          .then((_) {
+            // Apply metadata rotation to the video player
+            if (_quarterTurnsForRotationCorrection != null &&
+                _quarterTurnsForRotationCorrection! != 0) {
+              final rotationDegrees = _quarterTurnsForRotationCorrection! * 90;
+              _controller!.video.value = _controller!.video.value.copyWith(
+                rotationCorrection: rotationDegrees,
+              );
+            }
+            setState(() {});
+          })
+          .catchError((error) {
+            // handle minimum duration bigger than video duration error
+            if (!mounted) return;
+            Navigator.pop(context);
+          }, test: (e) => e is VideoMinDurationError);
     });
   }
 
@@ -139,12 +143,13 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
       child: ValueListenableBuilder<bool>(
         valueListenable: _isExporting,
         builder: (context, isExporting, _) {
-          final isReady = _controller != null &&
+          final isReady =
+              _controller != null &&
               _controller!.initialized &&
               _quarterTurnsForRotationCorrection != null;
 
           return Scaffold(
-            backgroundColor: colorScheme.backgroundBase,
+            backgroundColor: colorScheme.backgroundColour,
             appBar: VideoEditorAppBar(
               onCancel: () {
                 if (isExporting) return;
@@ -206,8 +211,7 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
                                 children: [
                                   Text(
                                     "Native (i)",
-                                    style: getEnteTextTheme(context)
-                                        .mini
+                                    style: getEnteTextTheme(context).mini
                                         .copyWith(color: colorScheme.textMuted),
                                   ),
                                   const SizedBox(width: 4),
@@ -310,6 +314,7 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
         Navigator.of(dialogKey.currentContext!).pop();
       }
 
+      if (!mounted) return;
       showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
     }
   }
@@ -545,10 +550,12 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
         return;
       }
 
-      final fileName = path.basenameWithoutExtension(widget.file.title!) +
+      final fileName =
+          path.basenameWithoutExtension(widget.file.title!) +
           "_edited_" +
           DateTime.now().microsecondsSinceEpoch.toString() +
           ".mp4";
+      final galleryTitle = await getMediaStoreCompatibleTitle(fileName);
 
       //Disabling notifications for assets changing to insert the file into
       //files db before triggering a sync.
@@ -557,15 +564,12 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
       try {
         final AssetEntity newAsset = await (PhotoManager.editor.saveVideo(
           result,
-          title: fileName,
+          title: galleryTitle,
         ));
 
         result.deleteSync();
 
-        final newFile = await EnteFile.fromAsset(
-          widget.file.deviceFolder ?? '',
-          newAsset,
-        );
+        final newFile = fileFromAsset(widget.file.deviceFolder ?? '', newAsset);
 
         newFile.creationTime = widget.file.creationTime;
         newFile.collectionID = widget.file.collectionID;
@@ -589,6 +593,7 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
 
         SyncService.instance.sync().ignore();
 
+        if (!mounted) return;
         showShortToast(context, AppLocalizations.of(context).editsSaved);
         final files = List<EnteFile>.of(widget.detailPageConfig.files);
 
@@ -612,6 +617,7 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
         }
         Navigator.of(dialogKey.currentContext!).pop('dialog');
 
+        if (!mounted) return;
         replacePage(
           context,
           DetailPage(
@@ -706,22 +712,22 @@ class _VideoEditorPageState extends State<VideoEditorPage> {
 
 class _VideoEditorSubPageRoute extends PageRouteBuilder<void> {
   _VideoEditorSubPageRoute(this.child)
-      : super(
-          fullscreenDialog: true,
-          transitionDuration: const Duration(milliseconds: 220),
-          reverseTransitionDuration: const Duration(milliseconds: 180),
-          pageBuilder: (_, __, ___) => child,
-          transitionsBuilder: (_, animation, __, child) {
-            return FadeTransition(
-              opacity: CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeOutCubic,
-                reverseCurve: Curves.easeInCubic,
-              ),
-              child: child,
-            );
-          },
-        );
+    : super(
+        fullscreenDialog: true,
+        transitionDuration: const Duration(milliseconds: 220),
+        reverseTransitionDuration: const Duration(milliseconds: 180),
+        pageBuilder: (_, _, _) => child,
+        transitionsBuilder: (_, animation, _, child) {
+          return FadeTransition(
+            opacity: CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+              reverseCurve: Curves.easeInCubic,
+            ),
+            child: child,
+          );
+        },
+      );
 
   final Widget child;
 }

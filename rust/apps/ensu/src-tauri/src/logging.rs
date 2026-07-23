@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 static LOG_PATH: OnceLock<PathBuf> = OnceLock::new();
 static LOG_LOCK: Mutex<()> = Mutex::new(());
@@ -14,10 +14,10 @@ const LOG_FILE_NAME: &str = "backend.log";
 
 pub fn init_logging(app: &AppHandle) {
     let path = app
-        .path_resolver()
+        .path()
         .app_data_dir()
         .map(|dir| dir.join(LOG_FILE_NAME))
-        .unwrap_or_else(default_log_path);
+        .unwrap_or_else(|_| default_log_path());
 
     if let Some(parent) = path.parent() {
         let _ = fs::create_dir_all(parent);

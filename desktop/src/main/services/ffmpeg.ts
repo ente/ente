@@ -31,7 +31,7 @@ export const ffmpegExec = async (
     command: FFmpegCommand,
     pathOrZipItem: string | ZipItem,
     outputFileExtension: string,
-): Promise<Uint8Array> =>
+): Promise<Uint8Array<ArrayBuffer>> =>
     withInputFile(pathOrZipItem, async (worker, inputFilePath) => {
         const outputFilePath = await makeTempFilePath(outputFileExtension);
         try {

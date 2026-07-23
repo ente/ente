@@ -49,8 +49,9 @@ class _UpdateLocationDataWidgetState extends State<UpdateLocationDataWidget> {
         FlutterMap(
           mapController: _mapController,
           options: MapOptions(
-            interactionOptions:
-                const InteractionOptions(enableMultiFingerGestureRace: true),
+            interactionOptions: const InteractionOptions(
+              enableMultiFingerGestureRace: true,
+            ),
             backgroundColor: const Color.fromARGB(255, 246, 246, 246),
             initialZoom: 3,
             maxZoom: 18.0,
@@ -77,18 +78,12 @@ class _UpdateLocationDataWidgetState extends State<UpdateLocationDataWidget> {
               }
             },
           ),
-          children: const [
-            OSMTileLayer(),
-            OSMTileAttributes(),
-          ],
+          children: const [OSMTileLayer(), OSMTileAttributes()],
         ),
         Positioned(
           top: 20,
           child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 10,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               color: getEnteColorScheme(context).backgroundElevated,
@@ -110,15 +105,9 @@ class _UpdateLocationDataWidgetState extends State<UpdateLocationDataWidget> {
                         ),
                         child: Column(
                           children: [
-                            Text(
-                              locationInDMS[0],
-                              style: textTheme.mini,
-                            ),
+                            Text(locationInDMS[0], style: textTheme.mini),
                             const SizedBox(height: 8),
-                            Text(
-                              locationInDMS[1],
-                              style: textTheme.mini,
-                            ),
+                            Text(locationInDMS[1], style: textTheme.mini),
                           ],
                         ),
                       )
@@ -171,6 +160,7 @@ class _UpdateLocationDataWidgetState extends State<UpdateLocationDataWidget> {
                     selectedLocation.value!,
                     context,
                   );
+                  if (!context.mounted) return;
                   Navigator.of(context).pop();
                 },
                 heroTag: 'add-location',
@@ -278,10 +268,7 @@ class _UpdateLocationInfoState extends State<UpdateLocationInfo> {
               child: bottomChild,
               // top: 0,
             ),
-            Positioned(
-              key: topChildKey,
-              child: topChild,
-            ),
+            Positioned(key: topChildKey, child: topChild),
           ],
         );
       },

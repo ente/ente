@@ -5,8 +5,7 @@ description: How Ente Locker protects your data with end-to-end encryption and z
 
 # Security FAQ
 
-Answers to common questions about security, encryption, and privacy in Ente
-Locker.
+Answers to common questions about security, encryption, and privacy in Ente Locker.
 
 ## Encryption
 
@@ -55,12 +54,9 @@ We store 3 copies across 3 providers in 3 countries for reliability.
 
 ### What is the recovery key? {#locker-recovery-key}
 
-Your recovery key is a 24-word phrase that can recover your account if you
-forget your password. It's generated when you create your account.
+Your recovery key is a 24-word phrase that can recover your account if you forget your password. It's generated when you create your account.
 
-**Critical**: Store your recovery key securely. Without it, you cannot recover
-your account if you forget your password and are logged out of all devices,
-unless you previously set up [Legacy recovery](/locker/features/legacy/).
+**Critical**: Store your recovery key securely. Without it, you cannot recover your account if you forget your password and are logged out of all devices, unless you previously set up [Legacy recovery](/locker/features/legacy/).
 
 ### I forgot my password. How do I recover my account? {#locker-forgot-password}
 
@@ -78,9 +74,7 @@ unless you previously set up [Legacy recovery](/locker/features/legacy/).
 
 **If you've lost both your password and recovery key:**
 
-Your account cannot be recovered unless you previously set up
-[Legacy recovery](/locker/features/legacy/). This is by design - it ensures no
-one else can access your data either.
+Your account cannot be recovered unless you previously set up [Legacy recovery](/locker/features/legacy/). This is by design - it ensures no one else can access your data either.
 
 ### Does Locker support two-factor authentication? {#locker-2fa-support}
 
@@ -93,15 +87,13 @@ We support:
 
 ### Can I change my password? {#locker-change-password}
 
-Yes. Open `Settings > Account > Change password`, enter your current
-password, then set a new one.
+Yes. Open `Settings > Account > Change password`, enter your current password, then set a new one.
 
 Your data does not need to be re-encrypted when you change your password.
 
 ### Is my account shared with Ente Photos? {#locker-shared-account}
 
-Yes. Ente Locker, Ente Photos, and Ente Auth use the same account. Your
-password, recovery key, and 2FA settings apply to all Ente products.
+Yes. Ente Locker, Ente Photos, and Ente Auth use the same account. Your password, recovery key, and 2FA settings apply to all Ente products.
 
 Your data in each product remains separate.
 
@@ -117,13 +109,11 @@ After multiple failed attempts:
 
 ### Can I change my PIN? {#locker-change-pin}
 
-Yes. Open `Settings > Security > Lock screen > Change PIN` and follow the
-prompts.
+Yes. Open `Settings > Security > Lock screen > Change PIN` and follow the prompts.
 
 ### Is lock screen available on all devices? {#locker-lock-screen-availability}
 
-Lock screen is available on all iOS and Android devices. The specific
-biometric options depend on your device capabilities:
+Lock screen is available on all iOS and Android devices. The specific biometric options depend on your device capabilities:
 
 - **iOS**: Face ID, Touch ID
 - **Android**: Fingerprint, face unlock (device dependent)

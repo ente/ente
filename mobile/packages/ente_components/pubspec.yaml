@@ -1,8 +1,7 @@
 name: ente_components
 description: Production-ready Flutter design-system components for mobile apps.
-version: 0.1.0
-publish_to: none
 
+resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
   flutter: ">=3.32.0"
@@ -10,11 +9,33 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  hugeicons: 1.1.5
+  fluttertoast: 8.2.14
+  hugeicons: 1.1.7
 
 dev_dependencies:
-  flutter_lints: 5.0.0
+  flutter_lints: 6.0.0
   flutter_test:
     sdk: flutter
 
 flutter:
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: fonts/Inter-Regular.ttf
+        - asset: fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: fonts/Inter-Light.ttf
+          weight: 300
+        - asset: fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: fonts/Inter-Bold.ttf
+          weight: 700
+    - family: Outfit
+      fonts:
+        - asset: fonts/Outfit-Regular.ttf
+        - asset: fonts/Outfit-Medium.ttf
+          weight: 500
+        - asset: fonts/Outfit-SemiBold.ttf
+          weight: 600
+        - asset: fonts/Outfit-Bold.ttf
+          weight: 700

@@ -163,8 +163,9 @@ class FeedItemWidget extends StatelessWidget {
               _FeedTypeIconWithTimeline(
                 type: feedItem.type,
                 showTimeline: !isLastItem,
-                timelineExtensionHeight:
-                    hasSharedPhotos ? 400 : 95, // Longer only when grid exists
+                timelineExtensionHeight: hasSharedPhotos
+                    ? 400
+                    : 95, // Longer only when grid exists
               ),
               const SizedBox(width: 10),
               // Avatar and text
@@ -244,8 +245,9 @@ class _FeedTypeIconWithTimeline extends StatelessWidget {
     final colorScheme = getEnteColorScheme(context);
     // Timeline color: black with 8% opacity for light, white with 20% for dark
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final timelineColor =
-        isDarkMode ? const Color(0x33FFFFFF) : const Color(0x14000000);
+    final timelineColor = isDarkMode
+        ? const Color(0x33FFFFFF)
+        : const Color(0x14000000);
 
     return SizedBox(
       width: 32,
@@ -273,9 +275,7 @@ class _FeedTypeIconWithTimeline extends StatelessWidget {
                   : const Color(0xFFFFFFFF),
               shape: BoxShape.circle,
             ),
-            child: Center(
-              child: _buildIcon(context),
-            ),
+            child: Center(child: _buildIcon(context)),
           ),
         ],
       ),
@@ -388,51 +388,51 @@ class _StackedAvatars extends StatelessWidget {
     // Stacked avatars with overlap
     return _wrapActorTap(
       SizedBox(
-      width: 28 + 21, // First avatar + second avatar offset
-      height: 28,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // First (front) avatar
-          Positioned(
-            left: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: colorScheme.backgroundBase,
-                  width: 1.167,
+        width: 28 + 21, // First avatar + second avatar offset
+        height: 28,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // First (front) avatar
+            Positioned(
+              left: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: colorScheme.backgroundColour,
+                    width: 1.167,
+                  ),
+                ),
+                child: UserAvatarWidget(
+                  actors.first,
+                  type: AvatarType.regular,
+                  currentUserID: currentUserID,
+                  addStroke: false,
                 ),
               ),
-              child: UserAvatarWidget(
-                actors.first,
-                type: AvatarType.lg,
-                currentUserID: currentUserID,
-                addStroke: false,
-              ),
             ),
-          ),
-          // Second (back) avatar
-          Positioned(
-            left: 21, // Overlap by 7px (28 - 21 = 7)
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: colorScheme.backgroundBase,
-                  width: 1.167,
+            // Second (back) avatar
+            Positioned(
+              left: 21, // Overlap by 7px (28 - 21 = 7)
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: colorScheme.backgroundColour,
+                    width: 1.167,
+                  ),
+                ),
+                child: UserAvatarWidget(
+                  actors[1],
+                  type: AvatarType.regular,
+                  currentUserID: currentUserID,
+                  addStroke: false,
                 ),
               ),
-              child: UserAvatarWidget(
-                actors[1],
-                type: AvatarType.lg,
-                currentUserID: currentUserID,
-                addStroke: false,
-              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
       actors.first,
     );
@@ -442,14 +442,11 @@ class _StackedAvatars extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-          color: colorScheme.backgroundBase,
-          width: 1.167,
-        ),
+        border: Border.all(color: colorScheme.backgroundColour, width: 1.167),
       ),
       child: UserAvatarWidget(
         user,
-        type: AvatarType.lg,
+        type: AvatarType.regular,
         currentUserID: currentUserID,
         addStroke: false,
       ),
@@ -480,16 +477,14 @@ class _StackedAvatars extends StatelessWidget {
         // Anonymous user - use decrypted display name if available
         final displayName = anonDisplayNames[anonID] ?? anonID;
         users.add(
-          User(
-            id: userID,
-            email: "$anonID@unknown.com",
-            name: displayName,
-          ),
+          User(id: userID, email: "$anonID@unknown.com", name: displayName),
         );
       } else {
         // Get user from collections service
-        final user = CollectionsService.instance
-            .getFileOwner(userID, feedItem.collectionID);
+        final user = CollectionsService.instance.getFileOwner(
+          userID,
+          feedItem.collectionID,
+        );
         users.add(user);
       }
     }
@@ -711,15 +706,13 @@ class _FeedTextContent extends StatelessWidget {
     if (userID <= 0 && anonID != null) {
       // Anonymous user - use decrypted display name if available
       final displayName = anonDisplayNames[anonID] ?? anonID;
-      return User(
-        id: userID,
-        email: "$anonID@unknown.com",
-        name: displayName,
-      );
+      return User(id: userID, email: "$anonID@unknown.com", name: displayName);
     }
 
-    return CollectionsService.instance
-        .getFileOwner(userID, feedItem.collectionID);
+    return CollectionsService.instance.getFileOwner(
+      userID,
+      feedItem.collectionID,
+    );
   }
 }
 
@@ -815,11 +808,7 @@ class _FeedThumbnailState extends State<_FeedThumbnail> {
         child: SizedBox(
           width: 66,
           height: 66,
-          child: ThumbnailWidget(
-            _file!,
-            fit: BoxFit.cover,
-            rawThumbnail: true,
-          ),
+          child: ThumbnailWidget(_file!, fit: BoxFit.cover, rawThumbnail: true),
         ),
       ),
     );
@@ -828,10 +817,7 @@ class _FeedThumbnailState extends State<_FeedThumbnail> {
       return thumbnail;
     }
 
-    return Hero(
-      tag: widget.heroTagPrefix + _file!.tag,
-      child: thumbnail,
-    );
+    return Hero(tag: widget.heroTagPrefix + _file!.tag, child: thumbnail);
   }
 }
 

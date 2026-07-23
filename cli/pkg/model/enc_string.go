@@ -1,8 +1,8 @@
 package model
 
 import (
-	"github.com/ente-io/cli/internal/crypto"
-	"github.com/ente-io/cli/utils/encoding"
+	"github.com/ente/cli/internal/crypto"
+	"github.com/ente/cli/utils/encoding"
 	"log"
 )
 

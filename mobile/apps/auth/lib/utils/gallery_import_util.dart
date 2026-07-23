@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:backup_exclusion/backup_exclusion.dart';
 import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/models/code.dart';
+import 'package:ente_auth/ui/settings/data/import/google_auth_qr_parser.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
-import 'package:ente_auth_qr/ente_qr.dart';
+import 'package:ente_qr/ente_qr.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
@@ -13,19 +14,40 @@ import 'package:path_provider/path_provider.dart';
 
 const _pickedImagesDirectoryName = 'picked_images';
 
+class GalleryImportResult {
+  final Code? code;
+  final GoogleAuthMigration? googleAuthMigration;
+
+  const GalleryImportResult.code(Code this.code) : googleAuthMigration = null;
+
+  const GalleryImportResult.googleAuthMigration(
+    GoogleAuthMigration this.googleAuthMigration,
+  ) : code = null;
+
+  List<Code>? get googleAuthCodes => googleAuthMigration?.codes;
+}
+
 Future<Directory> _getPickedImagesDirectory({
   Future<Directory> Function()? documentsDirectoryProvider,
 }) async {
   final documentsDirectory =
       await (documentsDirectoryProvider ?? getApplicationDocumentsDirectory)();
-  return Directory(
-    p.join(documentsDirectory.path, _pickedImagesDirectoryName),
-  );
+  return Directory(p.join(documentsDirectory.path, _pickedImagesDirectoryName));
 }
 
-Future<File?> _getManagedPickedGalleryImage(
+class _PickedImageCleanup {
+  const _PickedImageCleanup(this.file, {required this.excludeParentFromBackup});
+
+  final File file;
+  final bool excludeParentFromBackup;
+}
+
+Future<_PickedImageCleanup?> _getPickedImageCleanup(
   String imagePath, {
+  bool includeTemporaryDirectory = false,
   Future<Directory> Function()? documentsDirectoryProvider,
+  Future<Directory> Function()? temporaryDirectoryProvider,
+  Directory? systemTemporaryDirectory,
 }) async {
   if (!Platform.isIOS) {
     return null;
@@ -34,13 +56,30 @@ Future<File?> _getManagedPickedGalleryImage(
   final pickedImagesDirectory = await _getPickedImagesDirectory(
     documentsDirectoryProvider: documentsDirectoryProvider,
   );
-  if (!p.isWithin(
+  if (p.isWithin(
     p.normalize(pickedImagesDirectory.path),
     p.normalize(imagePath),
   )) {
-    return null;
+    return _PickedImageCleanup(File(imagePath), excludeParentFromBackup: true);
   }
-  return File(imagePath);
+
+  if (!includeTemporaryDirectory) return null;
+  final temporaryDirectories = <Directory>[
+    await (temporaryDirectoryProvider ?? getTemporaryDirectory)(),
+    systemTemporaryDirectory ?? Directory.systemTemp,
+  ];
+  for (final temporaryDirectory in temporaryDirectories) {
+    if (p.isWithin(
+      p.normalize(temporaryDirectory.path),
+      p.normalize(imagePath),
+    )) {
+      return _PickedImageCleanup(
+        File(imagePath),
+        excludeParentFromBackup: false,
+      );
+    }
+  }
+  return null;
 }
 
 Future<void> _clearPickedImagesDirectoryContents(
@@ -75,9 +114,7 @@ Future<void> _cleanupPickedGalleryImageIfNeeded(
   }
 }
 
-Future<void> cleanupPickedImagesOnStartup({
-  Logger? logger,
-}) async {
+Future<void> cleanupPickedImagesOnStartup({Logger? logger}) async {
   if (!Platform.isIOS) {
     return;
   }
@@ -94,17 +131,33 @@ Future<void> cleanupPickedImagesOnStartup({
   );
 }
 
-/// Prompts the user to pick an image and tries to extract an OTP code from it.
-/// Returns the parsed code when successful, otherwise null.
-Future<Code?> pickCodeFromGallery(
+GalleryImportResult parseQrImportPayload(String qrCodeData) {
+  if (isGoogleAuthExportQr(qrCodeData)) {
+    final migration = parseGoogleAuthMigration(qrCodeData);
+    if (migration.codes.isEmpty) {
+      throw const FormatException('No Google Authenticator codes found');
+    }
+    return GalleryImportResult.googleAuthMigration(migration);
+  }
+  return GalleryImportResult.code(Code.fromOTPAuthUrl(qrCodeData));
+}
+
+/// Prompts the user to pick an image and tries to extract auth codes from it.
+/// Returns the parsed QR import result when successful, otherwise null.
+Future<GalleryImportResult?> pickCodeFromImage(
   BuildContext context, {
   Logger? logger,
+  bool pickFromFiles = false,
 }) async {
   final l10n = context.l10n;
 
   try {
+    if (!context.mounted) return null;
     final FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
+      type: pickFromFiles ? FileType.custom : FileType.image,
+      allowedExtensions: pickFromFiles
+          ? const ['png', 'jpg', 'jpeg', 'webp', 'heic']
+          : null,
     );
 
     if (result == null || result.files.single.path == null) {
@@ -112,37 +165,48 @@ Future<Code?> pickCodeFromGallery(
     }
 
     final String imagePath = result.files.single.path!;
-    final managedPickedImage = await _getManagedPickedGalleryImage(imagePath);
-    if (managedPickedImage != null) {
-      await excludeFromBackup(managedPickedImage.parent.path);
+    final pickedImageCleanup = await _getPickedImageCleanup(
+      imagePath,
+      includeTemporaryDirectory: pickFromFiles,
+    );
+    if (pickedImageCleanup?.excludeParentFromBackup ?? false) {
+      await excludeFromBackup(pickedImageCleanup!.file.parent.path);
     }
 
     try {
-      final qrResult = await EnteQr().scanQrFromImage(imagePath);
+      final qrResult = await EnteQr().scanQrFromImage(
+        imagePath,
+        tryOriginalResolution: true,
+      );
 
       if (qrResult.success && qrResult.content != null) {
         try {
-          return Code.fromOTPAuthUrl(qrResult.content!);
+          return parseQrImportPayload(qrResult.content!);
         } catch (e, stackTrace) {
           logger?.severe('Error adding code from QR scan', e, stackTrace);
+          if (!context.mounted) return null;
           await showErrorDialog(
             context,
             l10n.errorInvalidQRCode,
             l10n.errorInvalidQRCodeBody,
+            showContactSupport: false,
           );
           return null;
         }
       } else {
         logger?.warning('QR scan failed: ${qrResult.error}');
+        if (!context.mounted) return null;
         await showErrorDialog(
           context,
           l10n.errorNoQRCode,
           qrResult.error ?? l10n.errorNoQRCode,
+          showContactSupport: false,
         );
         return null;
       }
     } catch (e, stackTrace) {
       logger?.severe('Failed to import from gallery', e, stackTrace);
+      if (!context.mounted) return null;
       await showErrorDialog(
         context,
         l10n.errorGenericTitle,
@@ -150,15 +214,16 @@ Future<Code?> pickCodeFromGallery(
       );
       return null;
     } finally {
-      if (managedPickedImage != null) {
+      if (pickedImageCleanup != null) {
         await _cleanupPickedGalleryImageIfNeeded(
-          managedPickedImage,
+          pickedImageCleanup.file,
           logger: logger,
         );
       }
     }
   } catch (e, stackTrace) {
     logger?.severe('Failed to import from gallery', e, stackTrace);
+    if (!context.mounted) return null;
     await showErrorDialog(
       context,
       l10n.errorGenericTitle,

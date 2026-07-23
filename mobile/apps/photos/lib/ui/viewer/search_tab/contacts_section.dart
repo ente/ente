@@ -1,24 +1,86 @@
 import "dart:async";
 
-import "package:dotted_border/dotted_border.dart";
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
-import "package:photos/core/constants.dart";
+import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/events/event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/recent_searches.dart";
 import "package:photos/models/search/search_constants.dart";
 import "package:photos/models/search/search_types.dart";
+import "package:photos/service_locator.dart" show isLocalGalleryMode;
+import "package:photos/services/search_service.dart";
 import "package:photos/theme/ente_theme.dart";
+import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/viewer/search/contact_avatar_widget.dart";
 import "package:photos/ui/viewer/search/result/contact_result_page.dart";
-import "package:photos/ui/viewer/search/search_section_cta.dart";
+import "package:photos/ui/viewer/search_tab/search_tab_horizontal_scroll.dart";
 import "package:photos/ui/viewer/search_tab/section_header.dart";
+
+class ContactsSectionLoader extends StatefulWidget {
+  final int resultLimit;
+
+  const ContactsSectionLoader({super.key, required this.resultLimit});
+
+  @override
+  State<ContactsSectionLoader> createState() => _ContactsSectionLoaderState();
+}
+
+class _ContactsSectionLoaderState extends State<ContactsSectionLoader> {
+  Future<List<GenericSearchResult>>? _contactsFuture;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLocalGalleryMode) {
+      return const SizedBox.shrink();
+    }
+    _contactsFuture ??= SearchService.instance.getAllContactsSearchResults(
+      widget.resultLimit + 1,
+    );
+    return FutureBuilder<List<GenericSearchResult>>(
+      future: _contactsFuture!,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return ContactsSection(
+            snapshot.data!,
+            resultLimit: widget.resultLimit,
+          );
+        }
+        return const ContactsLoadingSection();
+      },
+    );
+  }
+}
+
+class ContactsLoadingSection extends StatelessWidget {
+  const ContactsLoadingSection({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(SectionType.contacts, hasMore: false),
+          SizedBox(height: 92, child: EnteLoadingWidget()),
+        ],
+      ),
+    );
+  }
+}
 
 class ContactsSection extends StatefulWidget {
   final List<GenericSearchResult> contactSearchResults;
-  const ContactsSection(this.contactSearchResults, {super.key});
+  final int resultLimit;
+
+  const ContactsSection(
+    this.contactSearchResults, {
+    super.key,
+    required this.resultLimit,
+  });
 
   @override
   State<ContactsSection> createState() => _ContactsSectionState();
@@ -27,9 +89,7 @@ class ContactsSection extends StatefulWidget {
 class _ContactsSectionState extends State<ContactsSection> {
   late List<GenericSearchResult> _contactSearchResults;
   final streamSubscriptions = <StreamSubscription>[];
-  final _debouncer = Debouncer(
-    const Duration(milliseconds: 1500),
-  );
+  final _debouncer = Debouncer(const Duration(milliseconds: 1500));
 
   @override
   void initState() {
@@ -41,11 +101,16 @@ class _ContactsSectionState extends State<ContactsSection> {
       streamSubscriptions.add(
         stream.listen((event) async {
           _debouncer.run(() async {
-            _contactSearchResults = (await SectionType.contacts.getData(
-              context,
-              limit: kSearchSectionLimit,
-            )) as List<GenericSearchResult>;
-            setState(() {});
+            final contactSearchResults =
+                (await SectionType.contacts.getData(
+                      context,
+                      limit: widget.resultLimit + 1,
+                    ))
+                    as List<GenericSearchResult>;
+            if (!mounted) return;
+            setState(() {
+              _contactSearchResults = contactSearchResults;
+            });
           });
         }),
       );
@@ -70,9 +135,13 @@ class _ContactsSectionState extends State<ContactsSection> {
   @override
   Widget build(BuildContext context) {
     if (_contactSearchResults.isEmpty) {
-      final textTheme = getEnteTextTheme(context);
+      final colors = context.componentColors;
       return Padding(
-        padding: const EdgeInsets.only(left: 12, right: 8),
+        padding: const EdgeInsets.only(
+          left: searchTabSectionHorizontalPadding,
+          right: searchTabSectionHorizontalPadding,
+          bottom: 20,
+        ),
         child: Row(
           children: [
             Expanded(
@@ -81,57 +150,48 @@ class _ContactsSectionState extends State<ContactsSection> {
                 children: [
                   Text(
                     SectionType.contacts.sectionTitle(context),
-                    style: textTheme.largeBold,
+                    style: TextStyles.display3.copyWith(color: colors.textBase),
                   ),
-                  const SizedBox(height: 24),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4),
-                    child: Text(
-                      SectionType.contacts.getEmptyStateText(context),
-                      style: textTheme.smallMuted,
-                    ),
+                  const SizedBox(height: 16),
+                  Text(
+                    SectionType.contacts.getEmptyStateText(context),
+                    style: TextStyles.body.copyWith(color: colors.textLight),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            const SearchSectionEmptyCTAIcon(SectionType.contacts),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: ContactCTA(),
+            ),
           ],
         ),
       );
     } else {
-      final recommendations = <Widget>[
-        ..._contactSearchResults.map(
-          (contactSearchResult) => ContactRecommendation(
-            contactSearchResult,
-            key: ValueKey(
-              contactSearchResult.name(),
-            ),
-          ),
-        ),
-        const ContactCTA(),
-      ];
+      final visibleResults = _contactSearchResults
+          .take(widget.resultLimit)
+          .toList(growable: false);
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.only(bottom: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SectionHeader(
               SectionType.contacts,
-              hasMore:
-                  (_contactSearchResults.length >= kSearchSectionLimit - 1),
+              hasMore: _contactSearchResults.length > widget.resultLimit,
             ),
-            const SizedBox(height: 2),
-            SizedBox(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 4.5),
-                physics: const BouncingScrollPhysics(),
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: recommendations,
-                ),
-              ),
+            const SizedBox(height: 4),
+            SearchTabHorizontalRow(
+              spacing: 12,
+              children: [
+                for (final contactSearchResult in visibleResults)
+                  ContactRecommendation(
+                    contactSearchResult,
+                    key: ValueKey(contactSearchResult.name()),
+                  ),
+                const ContactCTA(),
+              ],
             ),
           ],
         ),
@@ -140,83 +200,49 @@ class _ContactsSectionState extends State<ContactsSection> {
   }
 }
 
-class ContactRecommendation extends StatefulWidget {
+class ContactRecommendation extends StatelessWidget {
+  static const _avatarSize = 62.0;
+
   final GenericSearchResult contactSearchResult;
   const ContactRecommendation(this.contactSearchResult, {super.key});
 
   @override
-  State<ContactRecommendation> createState() => _ContactRecommendationState();
-}
-
-class _ContactRecommendationState extends State<ContactRecommendation> {
-  @override
   Widget build(BuildContext context) {
-    final enteTextTheme = getEnteTextTheme(context);
-    final personId =
-        widget.contactSearchResult.params[kPersonParamID] as String?;
-    final contactUserId =
-        widget.contactSearchResult.params[kContactUserId] as int?;
-    final contactEmail =
-        widget.contactSearchResult.params[kContactEmail] as String;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2.5),
-      child: GestureDetector(
-        onTap: () {
-          RecentSearches().add(widget.contactSearchResult.name());
-          if (widget.contactSearchResult.onResultTap != null) {
-            widget.contactSearchResult.onResultTap!(context);
-          } else {
-            routeToPage(
-              context,
-              ContactResultPage(widget.contactSearchResult),
-            );
-          }
-        },
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxHeight: double.infinity,
-            minHeight: 115.5,
-            maxWidth: 100,
-            minWidth: 100,
-          ),
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 4.25, vertical: 10.5),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                ClipOval(
-                  child: SizedBox(
-                    width: 67.75,
-                    height: 67.75,
-                    child: ContactAvatarWidget(
-                      contactUserId: contactUserId,
-                      email: contactEmail,
-                      personId: personId,
-                      size: 67.75,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10.5),
-                SizedBox(
-                  width: 91.5,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        widget.contactSearchResult.name(),
-                        style: enteTextTheme.small,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+    final colors = context.componentColors;
+    final personId = contactSearchResult.params[kPersonParamID] as String?;
+    final contactUserId = contactSearchResult.params[kContactUserId] as int;
+    final contactEmail = contactSearchResult.params[kContactEmail] as String;
+    final displayName = contactSearchResult.hierarchicalSearchFilter.name();
+    return GestureDetector(
+      onTap: () {
+        RecentSearches().add(displayName);
+        if (contactSearchResult.onResultTap != null) {
+          contactSearchResult.onResultTap!(context);
+        } else {
+          routeToPage(context, ContactResultPage(contactSearchResult));
+        }
+      },
+      child: SizedBox(
+        width: 92,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            ContactAvatarWidget(
+              contactUserId: contactUserId,
+              email: contactEmail,
+              personId: personId,
+              size: ContactRecommendation._avatarSize,
             ),
-          ),
+            const SizedBox(height: 10),
+            Text(
+              displayName,
+              style: TextStyles.mini.copyWith(color: colors.textBase),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
@@ -224,53 +250,42 @@ class _ContactRecommendationState extends State<ContactRecommendation> {
 }
 
 class ContactCTA extends StatelessWidget {
+  static const _inviteAsset = "assets/invite_contact.svg";
+  static const _iconSize = 62.0;
+
   const ContactCTA({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final enteColorScheme = getEnteColorScheme(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2.5),
-      child: GestureDetector(
-        onTap: SectionType.contacts.ctaOnTap(context),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxHeight: double.infinity,
-            minHeight: 115.5,
-            maxWidth: 100,
-            minWidth: 100,
-          ),
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 4.25, vertical: 10.5),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                DottedBorder(
-                  borderType: BorderType.Circle,
-                  strokeWidth: 1.5,
-                  borderPadding: const EdgeInsets.all(0.75),
-                  dashPattern: const [4, 4],
-                  radius: const Radius.circular(2.35),
-                  padding: EdgeInsets.zero,
-                  color: enteColorScheme.strokeFaint,
-                  child: SizedBox(
-                    height: 67.75,
-                    width: 67.75,
-                    child: Icon(
-                      Icons.adaptive.share,
-                      color: enteColorScheme.strokeFaint,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10.5),
-                Text(
-                  AppLocalizations.of(context).invite,
-                  style: getEnteTextTheme(context).smallFaint,
-                ),
-              ],
+    final colorScheme = getEnteColorScheme(context);
+    return GestureDetector(
+      onTap: SectionType.contacts.ctaOnTap(context),
+      child: SizedBox(
+        width: 62,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: _iconSize,
+              height: _iconSize,
+              decoration: BoxDecoration(
+                color: colorScheme.fill,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: SvgPicture.asset(_inviteAsset, width: 24, height: 24),
+              ),
             ),
-          ),
+            const SizedBox(height: 10),
+            Text(
+              AppLocalizations.of(context).invite,
+              style: TextStyles.mini.copyWith(color: colorScheme.textMuted),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

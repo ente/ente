@@ -63,11 +63,11 @@ class RenderTouchCrossDetector extends RenderProxyBox {
     void Function(PointerHoverEvent)? onHover,
     void Function(PointerDownEvent)? onPointerDown,
     RenderBox? child,
-  })  : _onEnter = onEnter,
-        _onExit = onExit,
-        _onHover = onHover,
-        _onPointerDown = onPointerDown,
-        super(child);
+  }) : _onEnter = onEnter,
+       _onExit = onExit,
+       _onHover = onHover,
+       _onPointerDown = onPointerDown,
+       super(child);
 
   void Function(PointerEnterEvent)? _onEnter;
   set onEnter(void Function(PointerEnterEvent)? value) {

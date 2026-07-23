@@ -5,9 +5,7 @@ description: Add an extra layer of security with Face ID, Touch ID, fingerprint,
 
 # Lock Screen
 
-Lock screen adds an extra layer of protection to your Locker app. Even if
-someone has access to your unlocked phone, they can't open Locker without
-authenticating.
+Lock screen adds an extra layer of protection to your Locker app. Even if someone has access to your unlocked phone, they can't open Locker without authenticating.
 
 ## Available authentication methods
 

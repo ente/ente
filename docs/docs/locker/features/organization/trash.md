@@ -5,9 +5,7 @@ description: Manage deleted items in Ente Locker
 
 # Trash
 
-When you delete an item in Ente Locker, it moves to Trash instead of being
-immediately removed. This gives you a safety net to recover accidentally
-deleted items.
+When you delete an item in Ente Locker, it moves to Trash instead of being immediately removed. This gives you a safety net to recover accidentally deleted items.
 
 ## How Trash works
 
@@ -47,8 +45,9 @@ The item is moved to Trash.
 3. Select **Empty Trash**
 4. Confirm permanent deletion
 
-> **Warning**: Emptying Trash permanently deletes all items. This action cannot
-> be undone.
+> [!WARNING]
+>
+> Emptying Trash permanently deletes all items. This action cannot be undone.
 
 ### Delete individual items
 
@@ -59,9 +58,7 @@ The item is moved to Trash.
 
 ## Storage and Trash
 
-Items in Trash **still count** against your storage quota until they are
-permanently deleted (either automatically after 30 days or when you manually
-delete them).
+Items in Trash **still count** against your storage quota until they are permanently deleted (either automatically after 30 days or when you manually delete them).
 
 ## Related FAQs
 

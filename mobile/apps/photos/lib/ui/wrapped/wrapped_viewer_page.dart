@@ -3,6 +3,7 @@ import "dart:math" as math;
 import "dart:ui" as ui;
 
 import "package:audio_session/audio_session.dart";
+import "package:ente_components/theme/colors.dart" as components;
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter/rendering.dart";
@@ -68,10 +69,7 @@ const double _kStoryControlBottomMarginFromEdge = _kStoryCardOuterVerticalInset;
 
 /// Basic viewer for the stats-only Ente Rewind experience.
 class WrappedViewerPage extends StatefulWidget {
-  const WrappedViewerPage({
-    required this.initialState,
-    super.key,
-  });
+  const WrappedViewerPage({required this.initialState, super.key});
 
   final WrappedEntryState initialState;
 
@@ -143,8 +141,9 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
     _stateListener = () => _handleServiceUpdate(wrappedService.state);
     wrappedService.stateListenable.addListener(_stateListener!);
     _audioPlayer = AudioPlayer();
-    _playerStateSubscription =
-        _audioPlayer.playerStateStream.listen(_handlePlayerState);
+    _playerStateSubscription = _audioPlayer.playerStateStream.listen(
+      _handlePlayerState,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
@@ -159,7 +158,7 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
       _didRegisterWillPop = true;
     });
     unawaited(_initBackgroundMusic());
-    EnteWakeLockService.instance.updateWakeLock(
+    wakeLockService.updateWakeLock(
       enable: true,
       wakeLockFor: WakeLockFor.rewindViewer,
     );
@@ -183,7 +182,7 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
     _pageController.dispose();
     unawaited(_playerStateSubscription?.cancel());
     unawaited(_audioPlayer.dispose());
-    EnteWakeLockService.instance.updateWakeLock(
+    wakeLockService.updateWakeLock(
       enable: false,
       wakeLockFor: WakeLockFor.rewindViewer,
     );
@@ -234,11 +233,7 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
     }
     if (_currentIndex >= newCardCount) {
       unawaited(
-        _goToIndex(
-          newCardCount - 1,
-          restartProgress: false,
-          animate: false,
-        ),
+        _goToIndex(newCardCount - 1, restartProgress: false, animate: false),
       );
     } else {
       _configureForCurrentCard(restartProgress: false);
@@ -296,14 +291,14 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
         ..["badgeKey"] = candidateKey;
       final List<int> uploadedIDs =
           (meta.remove("uploadedFileIDs") as List<dynamic>?)
-                  ?.map(
-                    (dynamic value) =>
-                        value is num ? value.toInt() : int.tryParse("$value"),
-                  )
-                  .whereType<int>()
-                  .where((int id) => id > 0)
-                  .toList(growable: false) ??
-              const <int>[];
+              ?.map(
+                (dynamic value) =>
+                    value is num ? value.toInt() : int.tryParse("$value"),
+              )
+              .whereType<int>()
+              .where((int id) => id > 0)
+              .toList(growable: false) ??
+          const <int>[];
       final List<MediaRef> mediaRefs = uploadedIDs.isNotEmpty
           ? uploadedIDs.map(MediaRef.new).toList(growable: false)
           : badgeCard.media;
@@ -312,12 +307,12 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
       final String title = (candidateTitle != null && candidateTitle.isNotEmpty)
           ? candidateTitle
           : badgeCard.title;
-      final String? candidateSubtitle =
-          (meta.remove("subtitle") as String?)?.trim();
+      final String? candidateSubtitle = (meta.remove("subtitle") as String?)
+          ?.trim();
       final String? subtitleValue =
           (candidateSubtitle != null && candidateSubtitle.isNotEmpty)
-              ? candidateSubtitle
-              : badgeCard.subtitle;
+          ? candidateSubtitle
+          : badgeCard.subtitle;
 
       meta["uploadedFileIDs"] = uploadedIDs;
       meta["detailChips"] ??= badgeCard.meta["detailChips"];
@@ -373,8 +368,9 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
     }
     final WrappedCard card = _cards[index];
     final Object? durationMeta = card.meta["displayDurationMillis"];
-    final int durationMillis =
-        durationMeta is num ? durationMeta.clamp(1500, 20000).toInt() : 6000;
+    final int durationMillis = durationMeta is num
+        ? durationMeta.clamp(1500, 20000).toInt()
+        : 6000;
     return Duration(milliseconds: durationMillis);
   }
 
@@ -457,10 +453,7 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
     }
   }
 
-  void _handleTap(
-    Offset localPosition,
-    BoxConstraints constraints,
-  ) {
+  void _handleTap(Offset localPosition, BoxConstraints constraints) {
     final double dx = localPosition.dx;
     final double width = constraints.maxWidth;
     final double leftZoneBoundary = width * 0.25;
@@ -470,20 +463,10 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
       if (_progressController.value > 0.1) {
         _configureForCurrentCard(restartProgress: true);
       } else {
-        unawaited(
-          _goToIndex(
-            _currentIndex - 1,
-            animate: false,
-          ),
-        );
+        unawaited(_goToIndex(_currentIndex - 1, animate: false));
       }
     } else if (dx > rightZoneBoundary) {
-      unawaited(
-        _goToIndex(
-          _currentIndex + 1,
-          animate: false,
-        ),
-      );
+      unawaited(_goToIndex(_currentIndex + 1, animate: false));
     } else {
       _togglePause();
       setState(() {});
@@ -543,6 +526,7 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
     if (!_didRegisterWillPop) {
       await _fadeOutAndStopMusic();
     }
+    if (!mounted) return;
     final bool didPop = await Navigator.of(context).maybePop();
     if (!didPop && mounted) {
       _isClosing = false;
@@ -610,8 +594,9 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
     if (!wasPaused) {
       _pauseAutoplay();
     }
-    final EnteFile? cached =
-        WrappedMediaPreloader.instance.getCachedFile(ref.uploadedFileID);
+    final EnteFile? cached = WrappedMediaPreloader.instance.getCachedFile(
+      ref.uploadedFileID,
+    );
     setState(() {
       _previewUploadedFileID = ref.uploadedFileID;
       _previewFile = cached;
@@ -622,27 +607,29 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
     if (cached != null) {
       return;
     }
-    WrappedMediaPreloader.instance.ensureFile(ref.uploadedFileID).then(
-      (EnteFile? file) {
-        if (!mounted || requestID != _previewRequestID) {
-          return;
-        }
-        setState(() {
-          _previewFile = file;
-          _isPreviewLoading = false;
-        });
-      },
-      onError: (Object error, StackTrace stackTrace) {
-        if (!mounted || requestID != _previewRequestID) {
-          return;
-        }
-        _logger.warning("Unable to load preview media", error, stackTrace);
-        setState(() {
-          _previewFile = null;
-          _isPreviewLoading = false;
-        });
-      },
-    );
+    WrappedMediaPreloader.instance
+        .ensureFile(ref.uploadedFileID)
+        .then(
+          (EnteFile? file) {
+            if (!mounted || requestID != _previewRequestID) {
+              return;
+            }
+            setState(() {
+              _previewFile = file;
+              _isPreviewLoading = false;
+            });
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            if (!mounted || requestID != _previewRequestID) {
+              return;
+            }
+            _logger.warning("Unable to load preview media", error, stackTrace);
+            setState(() {
+              _previewFile = null;
+              _isPreviewLoading = false;
+            });
+          },
+        );
   }
 
   void _hideMediaPreview() {
@@ -697,7 +684,7 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
 
     final bool isCurrentCardBadge =
         _cards[_currentIndex].type == WrappedCardType.badge ||
-            _cards[_currentIndex].type == WrappedCardType.badgeDebug;
+        _cards[_currentIndex].type == WrappedCardType.badgeDebug;
 
     return Theme(
       data: darkThemeData,
@@ -715,10 +702,10 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
                 final textTheme = getEnteTextTheme(context);
                 final MediaQueryData mediaQuery = MediaQuery.of(context);
                 final double bottomPadding = mediaQuery.padding.bottom;
-                final Color controlIconColor =
-                    enteColorScheme.textMuted.withValues(alpha: 0.62);
-                final Color controlBackdropColor =
-                    enteColorScheme.textMuted.withValues(alpha: 0.14);
+                final Color controlIconColor = enteColorScheme.textMuted
+                    .withValues(alpha: 0.62);
+                final Color controlBackdropColor = enteColorScheme.textMuted
+                    .withValues(alpha: 0.14);
 
                 return PopScope(
                   canPop: true,
@@ -735,10 +722,7 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
                       leading: BackButton(
                         onPressed: () => unawaited(_closeViewer()),
                       ),
-                      title: Text(
-                        "Ente Rewind",
-                        style: textTheme.largeBold,
-                      ),
+                      title: Text("Ente Rewind", style: textTheme.largeBold),
                       backgroundColor: Colors.black,
                       foregroundColor: enteColorScheme.textBase,
                       elevation: 0,
@@ -757,19 +741,18 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
                                   animation: _progressController,
                                   builder: (BuildContext context, _) {
                                     final List<double> segments =
-                                        List<double>.generate(
-                                      cardCount,
-                                      (int index) {
-                                        if (index < _currentIndex) {
-                                          return 1.0;
-                                        }
-                                        if (index > _currentIndex) {
-                                          return 0.0;
-                                        }
-                                        return _progressController.value
-                                            .clamp(0.0, 1.0);
-                                      },
-                                    );
+                                        List<double>.generate(cardCount, (
+                                          int index,
+                                        ) {
+                                          if (index < _currentIndex) {
+                                            return 1.0;
+                                          }
+                                          if (index > _currentIndex) {
+                                            return 0.0;
+                                          }
+                                          return _progressController.value
+                                              .clamp(0.0, 1.0);
+                                        });
                                     return _StoryProgressBar(
                                       progressValues: segments,
                                       colorScheme: enteColorScheme,
@@ -780,58 +763,68 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
                             ),
                             Expanded(
                               child: LayoutBuilder(
-                                builder: (
-                                  BuildContext context,
-                                  BoxConstraints constraints,
-                                ) {
-                                  return GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
-                                    onTapUp: (TapUpDetails details) =>
-                                        _handleTapUp(details, constraints),
-                                    onTapCancel: () {
-                                      _suppressNextTapUp = false;
-                                    },
-                                    onLongPressStart: _handleLongPressStart,
-                                    onLongPressEnd: _handleLongPressEnd,
-                                    onLongPressCancel: _handleLongPressCancel,
-                                    onVerticalDragStart:
-                                        _handleVerticalDragStart,
-                                    onVerticalDragUpdate:
-                                        _handleVerticalDragUpdate,
-                                    onVerticalDragEnd: _handleVerticalDragEnd,
-                                    onVerticalDragCancel:
-                                        _handleVerticalDragCancel,
-                                    child: RepaintBoundary(
-                                      key: _cardBoundaryKey,
-                                      child: _MediaPreviewController(
-                                        onPreviewStart: _showMediaPreview,
-                                        onPreviewTapDown: _handlePreviewTapDown,
-                                        onPreviewTapCancel:
-                                            _handlePreviewTapCancel,
-                                        child: PageView.builder(
-                                          physics: const PageScrollPhysics(),
-                                          controller: _pageController,
-                                          onPageChanged: _handlePageChanged,
-                                          itemCount: cardCount,
-                                          itemBuilder: (
-                                            BuildContext context,
-                                            int index,
-                                          ) {
-                                            final WrappedCard card =
-                                                _cards[index];
-                                            return _StoryCard(
-                                              card: card,
-                                              colorScheme: enteColorScheme,
-                                              textTheme: textTheme,
-                                              isActive: index == _currentIndex,
-                                              gradientVariantIndex: index,
-                                            );
-                                          },
+                                builder:
+                                    (
+                                      BuildContext context,
+                                      BoxConstraints constraints,
+                                    ) {
+                                      return GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTapUp: (TapUpDetails details) =>
+                                            _handleTapUp(details, constraints),
+                                        onTapCancel: () {
+                                          _suppressNextTapUp = false;
+                                        },
+                                        onLongPressStart: _handleLongPressStart,
+                                        onLongPressEnd: _handleLongPressEnd,
+                                        onLongPressCancel:
+                                            _handleLongPressCancel,
+                                        onVerticalDragStart:
+                                            _handleVerticalDragStart,
+                                        onVerticalDragUpdate:
+                                            _handleVerticalDragUpdate,
+                                        onVerticalDragEnd:
+                                            _handleVerticalDragEnd,
+                                        onVerticalDragCancel:
+                                            _handleVerticalDragCancel,
+                                        child: RepaintBoundary(
+                                          key: _cardBoundaryKey,
+                                          child: _MediaPreviewController(
+                                            onPreviewStart: _showMediaPreview,
+                                            onPreviewTapDown:
+                                                _handlePreviewTapDown,
+                                            onPreviewTapCancel:
+                                                _handlePreviewTapCancel,
+                                            child: PageView.builder(
+                                              physics:
+                                                  const PageScrollPhysics(),
+                                              controller: _pageController,
+                                              onPageChanged: _handlePageChanged,
+                                              itemCount: cardCount,
+                                              itemBuilder:
+                                                  (
+                                                    BuildContext context,
+                                                    int index,
+                                                  ) {
+                                                    final WrappedCard card =
+                                                        _cards[index];
+                                                    return _StoryCard(
+                                                      card: card,
+                                                      colorScheme:
+                                                          enteColorScheme,
+                                                      textTheme: textTheme,
+                                                      isActive:
+                                                          index ==
+                                                          _currentIndex,
+                                                      gradientVariantIndex:
+                                                          index,
+                                                    );
+                                                  },
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                  );
-                                },
+                                      );
+                                    },
                               ),
                             ),
                           ],
@@ -839,7 +832,8 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
                         if (!isCurrentCardBadge) ...[
                           Positioned(
                             right: _kStoryControlHorizontalMarginFromEdge,
-                            bottom: bottomPadding +
+                            bottom:
+                                bottomPadding +
                                 _kStoryControlBottomMarginFromEdge,
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -871,7 +865,8 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
                           ),
                           Positioned(
                             left: _kStoryControlHorizontalMarginFromEdge,
-                            bottom: bottomPadding +
+                            bottom:
+                                bottomPadding +
                                 _kStoryControlBottomMarginFromEdge,
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -942,15 +937,17 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
     try {
       final bool hideShareControls =
           currentCard.type == WrappedCardType.badge ||
-              currentCard.type == WrappedCardType.badgeDebug;
+          currentCard.type == WrappedCardType.badgeDebug;
       final Uint8List? bytes = await _captureCurrentCard(
         includeBranding: shouldShowBranding,
         hideInteractiveControls: hideShareControls,
       );
       if (bytes == null) {
+        if (!mounted) return;
         showShortToast(context, "Unable to prepare share");
         return;
       }
+      if (!mounted) return;
       await SharePlus.instance.share(
         ShareParams(
           files: <XFile>[
@@ -1003,8 +1000,9 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
       }
     }
     await Future<void>.delayed(Duration.zero);
-    final RenderRepaintBoundary? boundary = _cardBoundaryKey.currentContext
-        ?.findRenderObject() as RenderRepaintBoundary?;
+    final RenderRepaintBoundary? boundary =
+        _cardBoundaryKey.currentContext?.findRenderObject()
+            as RenderRepaintBoundary?;
     if (boundary == null) {
       await showShareControlsIfHidden();
       return null;
@@ -1015,13 +1013,16 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
       return null;
     }
     final double pixelRatio = (1080 / logicalWidth).clamp(1.0, 6.0);
-    final ui.Image image =
-        await boundary.toImage(pixelRatio: pixelRatio.toDouble());
+    final ui.Image image = await boundary.toImage(
+      pixelRatio: pixelRatio.toDouble(),
+    );
     final double scale = image.width / logicalWidth;
-    final ui.Image finalImage =
-        includeBranding ? await _compositeBranding(image, scale) : image;
-    final ByteData? byteData =
-        await finalImage.toByteData(format: ui.ImageByteFormat.png);
+    final ui.Image finalImage = includeBranding
+        ? await _compositeBranding(image, scale)
+        : image;
+    final ByteData? byteData = await finalImage.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
     await showShareControlsIfHidden();
     return byteData?.buffer.asUint8List();
   }
@@ -1036,8 +1037,9 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
       return;
     }
     final overlayState = Overlay.of(context, rootOverlay: true);
-    final RenderRepaintBoundary? shareBoundary = _shareButtonKey.currentContext
-        ?.findRenderObject() as RenderRepaintBoundary?;
+    final RenderRepaintBoundary? shareBoundary =
+        _shareButtonKey.currentContext?.findRenderObject()
+            as RenderRepaintBoundary?;
     if (shareBoundary == null) {
       return;
     }
@@ -1046,8 +1048,9 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
     try {
       final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
       final double pixelRatio = math.max(1.0, math.min(devicePixelRatio, 4.0));
-      final ui.Image snapshot =
-          await shareBoundary.toImage(pixelRatio: pixelRatio);
+      final ui.Image snapshot = await shareBoundary.toImage(
+        pixelRatio: pixelRatio,
+      );
       _sharePillOverlaySnapshot?.dispose();
       _sharePillOverlaySnapshot = snapshot;
       final OverlayEntry entry = OverlayEntry(
@@ -1058,10 +1061,7 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
             width: size.width,
             height: size.height,
             child: IgnorePointer(
-              child: RawImage(
-                image: snapshot,
-                fit: BoxFit.fill,
-              ),
+              child: RawImage(image: snapshot, fit: BoxFit.fill),
             ),
           );
         },
@@ -1069,11 +1069,7 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
       overlayState.insert(entry);
       _sharePillOverlayEntry = entry;
     } catch (error, stackTrace) {
-      _logger.fine(
-        "Failed to create share pill overlay",
-        error,
-        stackTrace,
-      );
+      _logger.fine("Failed to create share pill overlay", error, stackTrace);
     }
   }
 
@@ -1102,10 +1098,7 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
       size.width,
       brandingHeight,
     );
-    canvas.drawRect(
-      brandingRect,
-      Paint()..color = const Color(0x80000000),
-    );
+    canvas.drawRect(brandingRect, Paint()..color = const Color(0x80000000));
 
     if (logo != null) {
       final Rect srcRect = Rect.fromLTWH(
@@ -1129,9 +1122,9 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
     }
 
     final ui.Image composedImage = await recorder.endRecording().toImage(
-          baseImage.width,
-          baseImage.height,
-        );
+      baseImage.width,
+      baseImage.height,
+    );
     return composedImage;
   }
 
@@ -1196,10 +1189,7 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
       await _ensureAudioSessionConfigured();
       const String assetPath = "assets/ente_rewind_2025_music.mp3";
       _logger.fine("Setting music asset: $assetPath");
-      await _audioPlayer.setAsset(
-        assetPath,
-        preload: true,
-      );
+      await _audioPlayer.setAsset(assetPath, preload: true);
       _logger.fine("Music asset loaded, configuring player");
       await _audioPlayer.setLoopMode(LoopMode.one);
       await _audioPlayer.setShuffleModeEnabled(false);
@@ -1282,11 +1272,7 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
         await _audioPlayer.pause();
       }
     } catch (error, stackTrace) {
-      _logger.fine(
-        "Failed to pause Ente Rewind music",
-        error,
-        stackTrace,
-      );
+      _logger.fine("Failed to pause Ente Rewind music", error, stackTrace);
     } finally {
       _updateMusicPlaying(false);
     }
@@ -1305,24 +1291,18 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
       _logger.finer("Calling audioPlayer.play()");
       final Future<void> playFuture = _audioPlayer.play();
       unawaited(
-        playFuture.catchError(
-          (Object error, StackTrace stackTrace) {
-            _logger.warning(
-              "Failed to play Ente Rewind music",
-              error,
-              stackTrace,
-            );
-            _updateMusicPlaying(false);
-          },
-        ),
+        playFuture.catchError((Object error, StackTrace stackTrace) {
+          _logger.warning(
+            "Failed to play Ente Rewind music",
+            error,
+            stackTrace,
+          );
+          _updateMusicPlaying(false);
+        }),
       );
       _updateMusicPlaying(true);
     } catch (error, stackTrace) {
-      _logger.warning(
-        "Failed to play Ente Rewind music",
-        error,
-        stackTrace,
-      );
+      _logger.warning("Failed to play Ente Rewind music", error, stackTrace);
       _updateMusicPlaying(false);
     }
   }
@@ -1352,8 +1332,10 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
       return;
     }
     _isFadingOutMusic = true;
-    final double initialVolume =
-        math.min(1.0, math.max(0.0, _audioPlayer.volume));
+    final double initialVolume = math.min(
+      1.0,
+      math.max(0.0, _audioPlayer.volume),
+    );
     try {
       if (!_audioPlayer.playing) {
         await _pauseMusic();
@@ -1373,11 +1355,7 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
       }
       await _pauseMusic();
     } catch (error, stackTrace) {
-      _logger.fine(
-        "Failed to fade out Ente Rewind music",
-        error,
-        stackTrace,
-      );
+      _logger.fine("Failed to fade out Ente Rewind music", error, stackTrace);
       await _pauseMusic();
     } finally {
       try {
@@ -1591,9 +1569,7 @@ class _MediaPreviewOverlay extends StatelessWidget {
                 borderRadius: BorderRadius.circular(32),
                 clipBehavior: Clip.antiAlias,
                 child: DecoratedBox(
-                  decoration: const BoxDecoration(
-                    color: Colors.black,
-                  ),
+                  decoration: const BoxDecoration(color: Colors.black),
                   child: ZoomableImage(
                     file,
                     tagPrefix: "rewind_preview_",

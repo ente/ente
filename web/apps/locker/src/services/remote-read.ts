@@ -1,3 +1,8 @@
+import type {
+    LockerCollection,
+    LockerCollectionParticipant,
+    LockerItem,
+} from "@/types";
 import {
     ensureLocalUser,
     ensureUserKeyPair,
@@ -10,11 +15,6 @@ import {
 import log from "ente-base/log";
 import { apiURL, customAPIOrigin } from "ente-base/origins";
 import { ensureAuthToken } from "ente-base/token";
-import type {
-    LockerCollection,
-    LockerCollectionParticipant,
-    LockerItem,
-} from "types";
 import { z } from "zod";
 import {
     boxSealOpen,

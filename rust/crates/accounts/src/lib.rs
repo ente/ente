@@ -2,7 +2,7 @@
 //!
 //! Preferred usage:
 //! - Use [`AccountsClient`] when a caller needs raw server failures, including
-//!   HTTP status, API code, and API message.
+//!   the HTTP status and API error code.
 //! - Use [`AuthFlow`] for CLI/e2e-style interactive orchestration where the
 //!   library drives OTP/TOTP/passkey steps via a UI adapter.
 
@@ -20,4 +20,4 @@ pub use flow::{
     SecondFactorMethod, SessionValidity, SetupTwoFactorParams, SetupTwoFactorResult, TotpPurpose,
 };
 pub use models::KeyAttributes;
-pub use types::{AccountSecrets, AccountsClientConfig, DEFAULT_ACCOUNTS_URL};
+pub use types::{AccountSecrets, AccountsClientConfig};

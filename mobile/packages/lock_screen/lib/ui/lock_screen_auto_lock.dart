@@ -29,30 +29,24 @@ class _LockScreenAutoLockState extends State<LockScreenAutoLock> {
             ),
           ),
           SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 20,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Column(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.all(Radius.circular(8)),
-                            child: AutoLockItems(),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              },
-              childCount: 1,
-            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.all(Radius.circular(8)),
+                          child: AutoLockItems(),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }, childCount: 1),
           ),
         ],
       ),
@@ -88,9 +82,7 @@ class _AutoLockItemsState extends State<AutoLockItems> {
   Widget build(BuildContext context) {
     items.clear();
     for (Duration autoLockDuration in autoLockDurations) {
-      items.add(
-        _menuItemForPicker(autoLockDuration),
-      );
+      items.add(_menuItemForPicker(autoLockDuration));
     }
     items = addSeparators(
       items,
@@ -99,10 +91,7 @@ class _AutoLockItemsState extends State<AutoLockItems> {
         bgColor: getEnteColorScheme(context).fillFaint,
       ),
     );
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: items,
-    );
+    return Column(mainAxisSize: MainAxisSize.min, children: items);
   }
 
   Widget _menuItemForPicker(Duration autoLockTime) {
@@ -118,7 +107,9 @@ class _AutoLockItemsState extends State<AutoLockItems> {
       isBottomBorderRadiusRemoved: true,
       showOnlyLoadingState: true,
       onTap: () async {
-        await LockScreenSettings.instance.setAutoLockTime(autoLockTime).then(
+        await LockScreenSettings.instance
+            .setAutoLockTime(autoLockTime)
+            .then(
               (value) => {
                 setState(() {
                   currentAutoLockTime = autoLockTime;

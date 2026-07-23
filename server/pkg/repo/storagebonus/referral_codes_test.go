@@ -3,13 +3,12 @@ package storagebonus
 // Unittest cases for storagebonus code repository
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"testing"
 
-	entity "github.com/ente-io/museum/ente/storagebonus"
-	"github.com/ente-io/museum/internal/testutil"
+	entity "github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/museum/internal/testutil"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 
 	"github.com/stretchr/testify/assert"
@@ -30,7 +29,7 @@ func newStorageBonusTestRepository(t *testing.T) *Repository {
 
 // TestGetReferralCode tests the GetCode method
 func TestGetReferralCode(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	repo := newStorageBonusTestRepository(t)
 	// Test for a user that doesn't have a storagebonus code
 	userID := int64(1)
@@ -59,31 +58,33 @@ func TestGetReferralCode(t *testing.T) {
 
 // TestInsertReferralCode tests the InsertCode method
 func TestInsertReferralCode(t *testing.T) {
+	ctx := t.Context()
 	repo := newStorageBonusTestRepository(t)
 	// Insert a referral code
 	userID := int64(2)
 	code := "AAEEDD"
-	err := repo.InsertCode(context.Background(), userID, code)
+	err := repo.InsertCode(ctx, userID, code)
 	assert.Nil(t, err)
 
-	codeNew, err := repo.GetCode(context.Background(), userID)
+	codeNew, err := repo.GetCode(ctx, userID)
 	assert.Nil(t, err)
 	assert.Equal(t, code, *codeNew)
 }
 
 // TestAddNewReferralCode tests the AddNewCode method
 func TestAddNewReferralCode(t *testing.T) {
+	ctx := t.Context()
 	repo := newStorageBonusTestRepository(t)
 	userID := int64(3)
 	code := "B22222"
-	err := repo.InsertCode(context.Background(), userID, code)
+	err := repo.InsertCode(ctx, userID, code)
 	assert.Nil(t, err)
 
 	newCode := "C22222"
-	err = repo.AddNewCode(context.Background(), userID, newCode, false)
+	err = repo.AddNewCode(ctx, userID, newCode, false)
 	assert.Nil(t, err)
 
-	referralCode, err := repo.GetCode(context.Background(), userID)
+	referralCode, err := repo.GetCode(ctx, userID)
 	assert.Nil(t, err)
 	assert.Equal(t, newCode, *referralCode)
 

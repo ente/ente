@@ -559,7 +559,7 @@ export interface EmailOrSRPVerificationResponse {
  *
  * See: [Note: Duplicated Zod schema and TypeScript type]
  */
-const RemoteEmailOrSRPVerificationResponse = z.object({
+const RemoteEmailOrSRPVerificationResponseBase = z.object({
     id: z.number(),
     keyAttributes: RemoteKeyAttributes.nullish().transform(nullToUndefined),
     encryptedToken: z.string().nullish().transform(nullToUndefined),
@@ -570,6 +570,22 @@ const RemoteEmailOrSRPVerificationResponse = z.object({
     twoFactorSessionIDV2: z.string().nullish().transform(nullToUndefined),
 });
 
+const requireAccountsUrlForPasskey = (response: {
+    passkeySessionID?: string;
+    accountsUrl?: string;
+}) => (response.passkeySessionID ? !!response.accountsUrl : true);
+
+const accountsUrlForPasskeyRefinement = {
+    path: ["accountsUrl"],
+    message: "accountsUrl is required when passkeySessionID is present",
+};
+
+const RemoteEmailOrSRPVerificationResponse =
+    RemoteEmailOrSRPVerificationResponseBase.refine(
+        requireAccountsUrlForPasskey,
+        accountsUrlForPasskeyRefinement,
+    );
+
 /**
  * A specialization of {@link RemoteEmailOrSRPVerificationResponse} for SRP
  * verification, which results in the {@link srpM2} field in addition to the
@@ -578,14 +594,14 @@ const RemoteEmailOrSRPVerificationResponse = z.object({
  * The declaration conceptually belongs to `srp.ts`, but is here to avoid cyclic
  * dependencies.
  */
-export const RemoteSRPVerificationResponse = z.object({
-    ...RemoteEmailOrSRPVerificationResponse.shape,
-    /**
-     * The SRP M2 (evidence message), the proof that the server has the
-     * verifier.
-     */
-    srpM2: z.string(),
-});
+export const RemoteSRPVerificationResponse =
+    RemoteEmailOrSRPVerificationResponseBase.extend({
+        /**
+         * The SRP M2 (evidence message), the proof that the server has the
+         * verifier.
+         */
+        srpM2: z.string(),
+    }).refine(requireAccountsUrlForPasskey, accountsUrlForPasskeyRefinement);
 
 /**
  * Verify user's access to the given {@link email} by comparing the OTT that

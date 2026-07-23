@@ -1,3 +1,4 @@
+import type { SelectedState } from "@/utils/file";
 import CloseIcon from "@mui/icons-material/Close";
 import {
     Box,
@@ -21,7 +22,6 @@ import { FileType } from "ente-media/file-type";
 import { t } from "i18next";
 import React, { useCallback, useEffect, useId, useMemo, useState } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
-import { type SelectedState } from "utils/file";
 import { FileList, type FileListAnnotatedFile } from "../FileList";
 
 interface PickCoverPhotoDialogProps {
@@ -300,14 +300,13 @@ const createSingleSelection = (
     file: EnteFile,
     collectionID: number,
     userID: number,
-): SelectedState =>
-    ({
-        [file.id]: true,
-        ownCount: file.ownerID === userID ? 1 : 0,
-        count: 1,
-        collectionID,
-        context: { mode: "albums", collectionID },
-    }) as SelectedState;
+): SelectedState => ({
+    [file.id]: true,
+    ownCount: file.ownerID === userID ? 1 : 0,
+    count: 1,
+    collectionID,
+    context: { mode: "albums", collectionID },
+});
 
 const fileTimelineDateString = (file: EnteFile) => {
     const date = fileCreationPhotoDate(file);

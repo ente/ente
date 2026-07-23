@@ -15,13 +15,11 @@ Marker mapMarker(
     key: key,
     width: markerSize.width,
     height: markerSize.height,
-    point: LatLng(
-      imageMarker.latitude,
-      imageMarker.longitude,
-    ),
+    point: LatLng(imageMarker.latitude, imageMarker.longitude),
     child: MarkerImage(
       file: imageMarker.imageFile,
-      seperator: (MapView.defaultMarkerSize.height + 10) -
+      seperator:
+          (MapView.defaultMarkerSize.height + 10) -
           (MapView.defaultMarkerSize.height - markerSize.height),
     ),
   );

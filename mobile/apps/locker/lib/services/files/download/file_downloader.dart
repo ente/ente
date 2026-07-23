@@ -65,13 +65,13 @@ Future<File> ensureEncryptedOfflineCopy(
       late final Response response;
       try {
         response = await Network.instance.getDio().download(
-              file.downloadUrl,
-              tempEncryptedFilePath,
-              options: Options(
-                headers: {"X-Auth-Token": Configuration.instance.getToken()},
-              ),
-              onReceiveProgress: progressCallback,
-            );
+          file.downloadUrl,
+          tempEncryptedFilePath,
+          options: Options(
+            headers: {"X-Auth-Token": Configuration.instance.getToken()},
+          ),
+          onReceiveProgress: progressCallback,
+        );
       } catch (e) {
         try {
           if (await encryptedFile.exists()) {
@@ -98,11 +98,7 @@ Future<File> ensureEncryptedOfflineCopy(
     await encryptedFile.delete();
     return finalEncryptedFile;
   } catch (e, s) {
-    _logger.severe(
-      '$logPrefix failed to ensure encrypted offline copy',
-      e,
-      s,
-    );
+    _logger.severe('$logPrefix failed to ensure encrypted offline copy', e, s);
     try {
       if (await encryptedFile.exists() &&
           encryptedFile.path != finalEncryptedFilePath) {
@@ -166,8 +162,9 @@ Future<File?> openFile(
 
       final double elapsedSeconds =
           (DateTime.now().millisecondsSinceEpoch - startTime) / 1000;
-      final double speedInKBps =
-          elapsedSeconds <= 0 ? 0 : sizeInBytes / 1024.0 / elapsedSeconds;
+      final double speedInKBps = elapsedSeconds <= 0
+          ? 0
+          : sizeInBytes / 1024.0 / elapsedSeconds;
       _logger.info(
         '$logPrefix local decrypt completed: ${formatBytes(sizeInBytes)}, avg speed: ${speedInKBps.toStringAsFixed(2)} KB/s',
       );

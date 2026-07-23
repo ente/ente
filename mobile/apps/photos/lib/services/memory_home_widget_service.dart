@@ -155,8 +155,8 @@ class MemoryHomeWidgetService {
   // Private methods
   Future<bool> _hasAnyBlockers() async {
     // Check if first import is completed
-    final hasCompletedFirstImport =
-        LocalSyncService.instance.hasCompletedFirstImportOrBypassed();
+    final hasCompletedFirstImport = LocalSyncService.instance
+        .hasCompletedFirstImportOrBypassed();
     if (!hasCompletedFirstImport) {
       return true;
     }
@@ -227,10 +227,8 @@ class MemoryHomeWidgetService {
 
     return Map.fromEntries(
       memories.map(
-        (memory) => MapEntry(
-          memory.title,
-          memory.memories.map((m) => m.file).toList(),
-        ),
+        (memory) =>
+            MapEntry(memory.title, memory.memories.map((m) => m.file).toList()),
       ),
     );
   }
@@ -297,15 +295,15 @@ class MemoryHomeWidgetService {
 
       final renderResult = await HomeWidgetService.instance
           .renderFile(
-        randomMemoryFile,
-        "memory_widget_$renderedCount",
-        memoryTitle,
-        null,
-      )
+            randomMemoryFile,
+            "memory_widget_$renderedCount",
+            memoryTitle,
+            null,
+          )
           .catchError((e, stackTrace) {
-        _logger.severe("Error rendering widget", e, stackTrace);
-        return null;
-      });
+            _logger.severe("Error rendering widget", e, stackTrace);
+            return null;
+          });
 
       if (renderResult != null) {
         // Check for blockers again before continuing

@@ -11,9 +11,13 @@ import "package:rive/rive.dart" as rive;
 
 class FavoriteWidget extends StatefulWidget {
   final EnteFile file;
+  final double? iconSize;
+  final double? tapTargetSize;
 
   const FavoriteWidget(
     this.file, {
+    this.iconSize,
+    this.tapTargetSize,
     super.key,
   });
 
@@ -123,6 +127,7 @@ class _FavoriteWidgetState extends State<FavoriteWidget> {
       } catch (e, s) {
         _logger.severe("Failed to add file to favorites", e, s);
         hasError = true;
+        if (!mounted) return;
         showToast(
           context,
           AppLocalizations.of(context).sorryCouldNotAddToFavorites,
@@ -141,6 +146,7 @@ class _FavoriteWidgetState extends State<FavoriteWidget> {
       } catch (e, s) {
         _logger.severe("Failed to remove file from favorites", e, s);
         hasError = true;
+        if (!mounted) return;
         showToast(
           context,
           AppLocalizations.of(context).sorryCouldNotRemoveFromFavorites,
@@ -166,39 +172,47 @@ class _FavoriteWidgetState extends State<FavoriteWidget> {
   Widget build(BuildContext context) {
     // Show blank while initial state is being fetched
     if (_isFavorite == null || _isLoading) {
-      return const SizedBox(width: 22, height: 22);
+      final placeholderSize = widget.tapTargetSize ?? 22;
+      return SizedBox.square(dimension: placeholderSize);
     }
+
+    final riveWidget = rive.RiveWidgetBuilder(
+      fileLoader: _riveFileLoader,
+      stateMachineSelector: const rive.StateMachineNamed("State Machine 1"),
+      onLoaded: _handleRiveLoaded,
+      builder: (BuildContext context, rive.RiveState state) {
+        if (state is rive.RiveLoaded) {
+          return rive.RiveWidget(
+            controller: state.controller,
+            fit: rive.Fit.contain,
+          );
+        }
+        if (state is rive.RiveFailed) {
+          _logger.warning("Failed to load Rive file: ${state.error}");
+        }
+        return const SizedBox.shrink();
+      },
+    );
 
     return GestureDetector(
       onTap: _onTap,
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-        width: 34,
-        height: 30,
-        child: rive.RiveWidgetBuilder(
-          fileLoader: _riveFileLoader,
-          stateMachineSelector: const rive.StateMachineNamed(
-            "State Machine 1",
-          ),
-          onLoaded: _handleRiveLoaded,
-          builder: (BuildContext context, rive.RiveState state) {
-            if (state is rive.RiveLoaded) {
-              return rive.RiveWidget(
-                controller: state.controller,
-                fit: rive.Fit.contain,
-              );
-            }
-            if (state is rive.RiveFailed) {
-              _logger.warning(
-                "Failed to load Rive file: ${state.error}",
-              );
-            }
-            // Loading state
-            return const SizedBox.shrink();
-          },
-        ),
-      ),
+      child: widget.iconSize != null || widget.tapTargetSize != null
+          ? SizedBox.square(
+              dimension: widget.tapTargetSize ?? widget.iconSize!,
+              child: Center(
+                child: SizedBox.square(
+                  dimension: widget.iconSize ?? widget.tapTargetSize!,
+                  child: riveWidget,
+                ),
+              ),
+            )
+          : Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+              width: 34,
+              height: 30,
+              child: riveWidget,
+            ),
     );
   }
 }

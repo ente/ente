@@ -61,10 +61,10 @@ class RenderFixedExtentGridRow extends RenderBox
     required double height,
     required double spacing,
     required TextDirection textDirection,
-  })  : _width = width,
-        _height = height,
-        _spacing = spacing,
-        _textDirection = textDirection {
+  }) : _width = width,
+       _height = height,
+       _spacing = spacing,
+       _textDirection = textDirection {
     addAll(children);
   }
 

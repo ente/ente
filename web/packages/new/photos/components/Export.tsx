@@ -35,7 +35,7 @@ import { ensureElectron } from "ente-base/electron";
 import { formattedNumber } from "ente-base/i18n";
 import { formattedDateTime } from "ente-base/i18n-date";
 import log from "ente-base/log";
-import { type EnteFile } from "ente-media/file";
+import type { EnteFile } from "ente-media/file";
 import { fileFileName } from "ente-media/file-metadata";
 import { ItemCard, PreviewItemTile } from "ente-new/photos/components/Tiles";
 import { t } from "i18next";

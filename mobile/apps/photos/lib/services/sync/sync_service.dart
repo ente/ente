@@ -9,18 +9,19 @@ import 'package:photos/core/configuration.dart';
 import 'package:photos/core/constants.dart';
 import 'package:photos/core/errors.dart';
 import 'package:photos/core/event_bus.dart';
+import 'package:photos/events/account_configured_event.dart';
 import 'package:photos/events/subscription_purchased_event.dart';
 import 'package:photos/events/sync_status_update_event.dart';
 import 'package:photos/events/trigger_logout_event.dart';
 import 'package:photos/main.dart';
 import 'package:photos/models/file/file_type.dart';
+import 'package:photos/module/upload/service/file_uploader.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/language_service.dart';
 import 'package:photos/services/notification_service.dart';
 import 'package:photos/services/sync/local_sync_service.dart';
 import 'package:photos/services/sync/offline_import_metadata_service.dart';
 import 'package:photos/services/sync/remote_sync_service.dart';
-import 'package:photos/utils/file_uploader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SyncService {
@@ -32,14 +33,59 @@ class SyncService {
   Completer<bool>? _existingSync;
   late SharedPreferences _prefs;
   SyncStatusUpdate? _lastSyncStatusEvent;
+  bool _isInitialized = false;
 
   static const kLastStorageLimitExceededNotificationPushTime =
       "last_storage_limit_exceeded_notification_push_time";
 
-  SyncService._privateConstructor() {
+  SyncService._privateConstructor();
+
+  static final SyncService instance = SyncService._privateConstructor();
+
+  Future<void> init(SharedPreferences preferences) async {
+    _prefs = preferences;
+    if (Platform.isIOS) {
+      _logger.info("Clearing file cache");
+      await PhotoManager.clearFileCache();
+      _logger.info("Cleared file cache");
+    }
+    if (!_isInitialized) {
+      _isInitialized = true;
+      _registerListeners();
+    }
+  }
+
+  void _registerListeners() {
     Bus.instance.on<SubscriptionPurchasedEvent>().listen((event) {
       _uploader.clearQueue(SilentlyCancelUploadsError());
       sync();
+    });
+
+    Bus.instance.on<AccountConfiguredEvent>().listen((event) {
+      // This listener is only a transition hook for local-gallery -> online
+      // login. First import must have materialized local rows before remote
+      // sync can merge server files into them.
+      if (!Configuration.instance.hasConfiguredAccount() ||
+          isLocalGalleryMode) {
+        _logger.info(
+          "Account configured event ignored; account is not ready for online sync",
+        );
+        return;
+      }
+      if (!_localSyncService.hasCompletedFirstImport()) {
+        _logger.info(
+          "Account configured event ignored; first gallery import is not completed",
+        );
+        return;
+      }
+      if (isSyncInProgress()) {
+        _logger.info(
+          "Account configured while sync is already in progress, skipping extra trigger",
+        );
+        return;
+      }
+      _logger.info("Account configured, triggering sync");
+      unawaited(sync());
     });
 
     Connectivity().onConnectivityChanged.listen((
@@ -57,17 +103,6 @@ class SyncService {
     });
   }
 
-  static final SyncService instance = SyncService._privateConstructor();
-
-  Future<void> init(SharedPreferences preferences) async {
-    _prefs = preferences;
-    if (Platform.isIOS) {
-      _logger.info("Clearing file cache");
-      await PhotoManager.clearFileCache();
-      _logger.info("Cleared file cache");
-    }
-  }
-
   // Note: Do not use this future for anything except log out.
   // This is prone to bugs due to any potential race conditions
   Future<bool> existingSync() async {
@@ -75,6 +110,10 @@ class SyncService {
   }
 
   Future<bool> sync() async {
+    if (!_isInitialized) {
+      _logger.warning("Sync requested before init, skipping");
+      return false;
+    }
     _syncStopRequested = false;
     if (_existingSync != null) {
       _logger.warning("Sync already in progress, skipping.");
@@ -165,25 +204,25 @@ class SyncService {
   }
 
   Future<void> onPermissionGranted() async {
+    if (!_isInitialized) {
+      _logger.warning(
+        "Permission-granted sync requested before init, skipping",
+      );
+      return;
+    }
     _doSync().ignore();
   }
 
   void onDeviceCollectionSet(Set<int> collectionIDs) {
-    _uploader.removeFromQueueWhere(
-      (file) {
-        return !collectionIDs.contains(file.collectionID);
-      },
-      UserCancelledUploadError(),
-    );
+    _uploader.removeFromQueueWhere((file) {
+      return !collectionIDs.contains(file.collectionID);
+    }, UserCancelledUploadError());
   }
 
   void onVideoBackupPaused() {
-    _uploader.removeFromQueueWhere(
-      (file) {
-        return file.fileType == FileType.video;
-      },
-      UserCancelledUploadError(),
-    );
+    _uploader.removeFromQueueWhere((file) {
+      return file.fileType == FileType.video;
+    }, UserCancelledUploadError());
   }
 
   Future<void> _doSync() async {
@@ -209,7 +248,7 @@ class SyncService {
 
     final bool allowRemoteSync =
         _localSyncService.hasCompletedFirstImportOrBypassed() &&
-            !isLocalGalleryMode;
+        !isLocalGalleryMode;
 
     if (allowRemoteSync) {
       _logger.info("[SYNC] Starting remote sync");

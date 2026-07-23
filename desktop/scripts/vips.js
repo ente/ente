@@ -6,19 +6,19 @@
  * writing) upstream doesn't publish these.
  *
  * This is our custom workflow, which runs on a fork of upstream:
- * https://github.com/ente-io/libvips-packaging/commit/a298aff3e1f25f713508d31d0c3a55a4f828fdd3
+ * https://github.com/ente/libvips-packaging/commit/a298aff3e1f25f713508d31d0c3a55a4f828fdd3
  *
  * The binaries it creates are available at
- * https://github.com/ente-io/libvips-packaging/releases/tag/v8.16.0
+ * https://github.com/ente/libvips-packaging/releases/tag/v8.16.0
  *
  * To integrate this binary, we need to modify two places:
  *
- * 1. This script, `vips.js`, runs during "yarn install" (it is set as the
+ * 1. This script, `vips.js`, runs during "npm install" (it is set as the
  *    "prepare" step in our `package.json`). It downloads the relevant binary
  *    for the current OS/arch combination and places it in the `build` folder,
  *    allowing it to be used during development.
  *
- * 2. The sibling script, `beforeBuild.js`, runs during "yarn build" (it is set
+ * 2. The sibling script, `beforeBuild.js`, runs during "npm run build" (it is set
  *    as the beforeBuild script in `electrons-builder.yml`). It downloads the
  *    relevant binary for the OS/arch combination being built.
  *
@@ -58,7 +58,7 @@ const downloadIfNeeded = (downloadName, outputName) => {
     } catch {}
 
     console.log(`Downloading ${downloadName}`);
-    const downloadPath = `https://github.com/ente-io/libvips-packaging/releases/download/v8.16.0/${downloadName}`;
+    const downloadPath = `https://github.com/ente/libvips-packaging/releases/download/v8.16.0/${downloadName}`;
     return fetch(downloadPath)
         .then((res) => res.blob())
         .then((blob) => fsp.writeFile(out, blob.stream()))

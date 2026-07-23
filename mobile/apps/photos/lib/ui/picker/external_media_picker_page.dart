@@ -18,6 +18,7 @@ import "package:photos/models/file/file_type.dart";
 import "package:photos/models/file_load_result.dart";
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/selected_files.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/filter/db_filters.dart";
@@ -29,7 +30,6 @@ import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/state/selection_state.dart";
-import "package:photos/utils/file_util.dart";
 
 class ExternalMediaPickerPage extends StatefulWidget {
   final MediaType? requestedType;
@@ -68,9 +68,9 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
     final ownerID = Configuration.instance.getUserIDV2();
     final hasSelectedAllForBackup =
         backupPreferenceService.hasSelectedAllFoldersForBackup ||
-            isLocalGalleryMode;
-    final collectionsToHide =
-        CollectionsService.instance.archivedOrHiddenCollectionIds();
+        isLocalGalleryMode;
+    final collectionsToHide = CollectionsService.instance
+        .archivedOrHiddenCollectionIds();
     final filterOptions = DBFilterOptions(
       hideIgnoredForUpload: true,
       dedupeUploadID: true,
@@ -139,10 +139,7 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
       return;
     }
     if (uris.isEmpty) {
-      showShortToast(
-        context,
-        AppLocalizations.of(context).somethingWentWrong,
-      );
+      showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
       setState(() {
         _isCompleting = false;
       });
@@ -220,9 +217,9 @@ class _ExternalMediaPickerPageState extends State<ExternalMediaPickerPage> {
                     return Text(
                       selectedCount == 0
                           ? AppLocalizations.of(context).selectItemsToAdd
-                          : AppLocalizations.of(context).selectedPhotos(
-                              count: selectedCount,
-                            ),
+                          : AppLocalizations.of(
+                              context,
+                            ).selectedPhotos(count: selectedCount),
                       style: getEnteTextTheme(context).largeBold,
                     );
                   },
@@ -275,9 +272,7 @@ class _PickerActionBar extends StatelessWidget {
                   key: const ValueKey("picker-action-bar"),
                   padding: const EdgeInsets.only(top: 8),
                   child: Container(
-                    decoration: BoxDecoration(
-                      boxShadow: shadowFloatFaintLight,
-                    ),
+                    decoration: BoxDecoration(boxShadow: shadowFloatFaintLight),
                     child: _PickerBottomActionBar(
                       selectedCount: selectedCount,
                       isCompleting: isCompleting,

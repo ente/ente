@@ -4,21 +4,16 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/stacktrace"
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/nacl/box"
 	"golang.org/x/crypto/nacl/secretbox"
 )
 
 func EncryptNative(data string, encryptionKey []byte) (ente.EncryptionResult, error) {
-	// Generate nonce
-	nonce, err := auth.GenerateRandomBytes(SecretBoxNonceBytes)
-	if err != nil {
-		return ente.EncryptionResult{}, stacktrace.Propagate(err, "")
-	}
-	return encryptWithNonceNative(data, encryptionKey, nonce)
+	return encryptWithNonceNative(data, encryptionKey, auth.GenerateRandomBytes(SecretBoxNonceBytes))
 }
 
 func encryptWithNonceNative(data string, encryptionKey []byte, nonce []byte) (ente.EncryptionResult, error) {

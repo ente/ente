@@ -53,15 +53,9 @@ class _TotalsCardContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _HeroMediaCollage(
-          media: card.media,
-          colorScheme: colorScheme,
-        ),
+        _HeroMediaCollage(media: card.media, colorScheme: colorScheme),
         const SizedBox(height: 24),
-        buildWrappedCardTitle(
-          card.title,
-          textTheme.h2Bold,
-        ),
+        buildWrappedCardTitle(card.title, textTheme.h2Bold),
         if (card.subtitle != null && card.subtitle!.isNotEmpty)
           buildWrappedCardSubtitle(
             card.subtitle!,
@@ -96,10 +90,12 @@ class _RhythmCardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<String> chips = _stringListFromMeta(card.meta, "detailChips");
-    final Map<int, int> monthCounts =
-        _parseMonthCounts(card.meta["monthCounts"]);
-    final Map<String, int> formatCounts =
-        _parseFormatCounts(card.meta["formatCounts"]);
+    final Map<int, int> monthCounts = _parseMonthCounts(
+      card.meta["monthCounts"],
+    );
+    final Map<String, int> formatCounts = _parseFormatCounts(
+      card.meta["formatCounts"],
+    );
     final int totalFormatCount = formatCounts.values.fold(
       0,
       (int sum, int value) => sum + value,
@@ -108,10 +104,7 @@ class _RhythmCardContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        buildWrappedCardTitle(
-          card.title,
-          textTheme.h2Bold,
-        ),
+        buildWrappedCardTitle(card.title, textTheme.h2Bold),
         if (card.subtitle != null && card.subtitle!.isNotEmpty)
           buildWrappedCardSubtitle(
             card.subtitle!,
@@ -198,9 +191,7 @@ double _resolveAxisMax(double rawMax) {
 
 List<_ChartTick> _buildAxisTicks(double axisMax) {
   if (axisMax <= 0) {
-    return const <_ChartTick>[
-      _ChartTick(value: 0, label: "0"),
-    ];
+    return const <_ChartTick>[_ChartTick(value: 0, label: "0")];
   }
 
   const int divisions = 2; // top, mid, baseline
@@ -222,12 +213,7 @@ List<_ChartTick> _buildAxisTicks(double axisMax) {
       label = integerFormat.format(normalized.round());
     }
 
-    ticks.add(
-      _ChartTick(
-        value: normalized,
-        label: label,
-      ),
-    );
+    ticks.add(_ChartTick(value: normalized, label: label));
   }
   return ticks;
 }
@@ -265,9 +251,12 @@ List<MapEntry<String, int>> _limitFormatEntries(
   if (entries.length <= maxEntries) {
     return entries;
   }
-  final List<MapEntry<String, int>> limited =
-      entries.take(maxEntries).toList(growable: true);
-  final int remainder = entries.skip(maxEntries).fold<int>(
+  final List<MapEntry<String, int>> limited = entries
+      .take(maxEntries)
+      .toList(growable: true);
+  final int remainder = entries
+      .skip(maxEntries)
+      .fold<int>(
         0,
         (int sum, MapEntry<String, int> entry) => sum + entry.value,
       );
@@ -278,10 +267,7 @@ List<MapEntry<String, int>> _limitFormatEntries(
 }
 
 class _ChartTick {
-  const _ChartTick({
-    required this.value,
-    required this.label,
-  });
+  const _ChartTick({required this.value, required this.label});
 
   final double value;
   final String label;
@@ -381,10 +367,7 @@ class _MonthlyCaptureChart extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Padding(
-            padding: EdgeInsets.only(
-              left: leftInset,
-              right: rightInset,
-            ),
+            padding: EdgeInsets.only(left: leftInset, right: rightInset),
             child: Row(
               children: [
                 for (final String label in _labels)
@@ -453,8 +436,9 @@ class _MonthlyCaptureChartPainter extends CustomPainter {
       size.width - leftPadding - rightPadding,
     );
     final double baselineY = topPadding + chartHeight;
-    final double segmentWidth =
-        values.isEmpty ? 0 : (chartWidth / values.length);
+    final double segmentWidth = values.isEmpty
+        ? 0
+        : (chartWidth / values.length);
     final double chartLeft = values.length <= 1
         ? leftPadding + (chartWidth / 2)
         : leftPadding + (segmentWidth / 2);
@@ -462,31 +446,26 @@ class _MonthlyCaptureChartPainter extends CustomPainter {
         ? chartLeft
         : size.width - rightPadding - (segmentWidth / 2);
     final double gridStartX = values.length <= 1 ? leftPadding : chartLeft;
-    final double gridEndX =
-        values.length <= 1 ? size.width - rightPadding : chartRight;
+    final double gridEndX = values.length <= 1
+        ? size.width - rightPadding
+        : chartRight;
 
     final Paint gridPaint = Paint()
       ..color = gridColor
       ..strokeWidth = 1;
 
     for (final _ChartTick tick in ticks) {
-      final double fraction =
-          maxValue <= 0 ? 0 : (tick.value / maxValue).clamp(0, 1);
+      final double fraction = maxValue <= 0
+          ? 0
+          : (tick.value / maxValue).clamp(0, 1);
       final double y = baselineY - (fraction * chartHeight);
 
       if (tick.value > 0) {
-        canvas.drawLine(
-          Offset(gridStartX, y),
-          Offset(gridEndX, y),
-          gridPaint,
-        );
+        canvas.drawLine(Offset(gridStartX, y), Offset(gridEndX, y), gridPaint);
       }
 
       final TextPainter labelPainter = TextPainter(
-        text: TextSpan(
-          text: tick.label,
-          style: axisLabelStyle,
-        ),
+        text: TextSpan(text: tick.label, style: axisLabelStyle),
         textAlign: TextAlign.right,
         textDirection: ui.TextDirection.ltr,
       )..layout();
@@ -503,8 +482,9 @@ class _MonthlyCaptureChartPainter extends CustomPainter {
     final List<Offset> points = <Offset>[];
     final double stepX = values.length <= 1 ? 0 : segmentWidth;
     for (int i = 0; i < values.length; i += 1) {
-      final double fraction =
-          maxValue <= 0 ? 0 : (values[i] / maxValue).clamp(0, 1);
+      final double fraction = maxValue <= 0
+          ? 0
+          : (values[i] / maxValue).clamp(0, 1);
       final double x = (values.length <= 1 || stepX <= 0)
           ? chartLeft
           : chartLeft + (stepX * i);
@@ -531,10 +511,7 @@ class _MonthlyCaptureChartPainter extends CustomPainter {
     );
     final Paint fillPaint = Paint()
       ..shader = LinearGradient(
-        colors: <Color>[
-          fillColor,
-          fillColor.withValues(alpha: 0.02),
-        ],
+        colors: <Color>[fillColor, fillColor.withValues(alpha: 0.02)],
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
       ).createShader(fillBounds);
@@ -699,23 +676,28 @@ class _FormatDistributionChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<MapEntry<String, int>> sortedEntries = formatCounts.entries
-        .where((MapEntry<String, int> entry) => entry.value > 0)
-        .toList(growable: false)
-      ..sort(
-        (MapEntry<String, int> a, MapEntry<String, int> b) =>
-            b.value.compareTo(a.value),
-      );
+    final List<MapEntry<String, int>> sortedEntries =
+        formatCounts.entries
+            .where((MapEntry<String, int> entry) => entry.value > 0)
+            .toList(growable: false)
+          ..sort(
+            (MapEntry<String, int> a, MapEntry<String, int> b) =>
+                b.value.compareTo(a.value),
+          );
     if (sortedEntries.isEmpty) {
       return const SizedBox.shrink();
     }
 
     const int maxLegendEntries = 6;
-    final List<MapEntry<String, int>> entries =
-        _limitFormatEntries(sortedEntries, maxLegendEntries);
+    final List<MapEntry<String, int>> entries = _limitFormatEntries(
+      sortedEntries,
+      maxLegendEntries,
+    );
 
     final NumberFormat numberFormat = NumberFormat.decimalPattern();
-    final List<Color> palette = colorScheme.avatarColors;
+    final palette = Theme.of(context).brightness == Brightness.dark
+        ? components.avatarDark
+        : components.avatarLight;
     final List<Color> colors = <Color>[];
     for (int i = 0; i < entries.length; i += 1) {
       final String label = entries[i].key;
@@ -758,8 +740,9 @@ class _FormatDistributionChart extends StatelessWidget {
                   totalCaption: "files",
                   totalStyle: textTheme.largeBold,
                   captionStyle: textTheme.tinyMuted,
-                  ringBackgroundColor:
-                      colorScheme.fillMuted.withValues(alpha: 0.18),
+                  ringBackgroundColor: colorScheme.fillMuted.withValues(
+                    alpha: 0.18,
+                  ),
                 ),
               ),
             ),
@@ -853,19 +836,13 @@ class _FormatPieChartPainter extends CustomPainter {
 
   void _drawTotal(Canvas canvas, Offset center) {
     final TextPainter totalPainter = TextPainter(
-      text: TextSpan(
-        text: totalLabel,
-        style: totalStyle,
-      ),
+      text: TextSpan(text: totalLabel, style: totalStyle),
       textAlign: TextAlign.center,
       textDirection: ui.TextDirection.ltr,
     )..layout();
 
     final TextPainter captionPainter = TextPainter(
-      text: TextSpan(
-        text: totalCaption,
-        style: captionStyle,
-      ),
+      text: TextSpan(text: totalCaption, style: captionStyle),
       textAlign: TextAlign.center,
       textDirection: ui.TextDirection.ltr,
     )..layout();
@@ -918,16 +895,10 @@ class _FormatLegendEntry extends StatelessWidget {
         Container(
           width: 10,
           height: 10,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 8),
-        Text(
-          label,
-          style: textTheme.smallMuted,
-        ),
+        Text(label, style: textTheme.smallMuted),
       ],
     );
   }
@@ -951,10 +922,7 @@ class _BusiestDayCardContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        buildWrappedCardTitle(
-          card.title,
-          textTheme.h2Bold,
-        ),
+        buildWrappedCardTitle(card.title, textTheme.h2Bold),
         if (card.subtitle != null && card.subtitle!.isNotEmpty)
           buildWrappedCardSubtitle(
             card.subtitle!,
@@ -999,17 +967,16 @@ class _HeatmapCardContent extends StatelessWidget {
         (card.meta["weekdayLabels"] as List<dynamic>? ?? const <dynamic>[])
             .whereType<String>()
             .toList(growable: false);
-    final List<String> weekLabels =
-        _stringListFromMeta(card.meta, "weekLabels");
+    final List<String> weekLabels = _stringListFromMeta(
+      card.meta,
+      "weekLabels",
+    );
     final int maxCount = (card.meta["maxCount"] as num?)?.toInt() ?? 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        buildWrappedCardTitle(
-          card.title,
-          textTheme.h2Bold,
-        ),
+        buildWrappedCardTitle(card.title, textTheme.h2Bold),
         if (card.subtitle != null && card.subtitle!.isNotEmpty)
           buildWrappedCardSubtitle(
             card.subtitle!,
@@ -1018,10 +985,7 @@ class _HeatmapCardContent extends StatelessWidget {
           ),
         const SizedBox(height: 20),
         if (grid.isEmpty)
-          _MediaPlaceholder(
-            height: 180,
-            colorScheme: colorScheme,
-          )
+          _MediaPlaceholder(height: 180, colorScheme: colorScheme)
         else
           _HeatmapBackground(
             colorScheme: colorScheme,
@@ -1089,10 +1053,7 @@ class _YearHeatmap extends StatelessWidget {
   Widget build(BuildContext context) {
     final int columnCount = grid.isNotEmpty ? grid.first.length : 0;
     if (columnCount == 0) {
-      return _MediaPlaceholder(
-        height: 180,
-        colorScheme: colorScheme,
-      );
+      return _MediaPlaceholder(height: 180, colorScheme: colorScheme);
     }
 
     return LayoutBuilder(
@@ -1111,18 +1072,24 @@ class _YearHeatmap extends StatelessWidget {
               labelColumnWidth -
               horizontalSpacing * math.max(0, columnCount - 1),
         );
-        final double rawCellWidth =
-            columnCount > 0 ? usableWidth / columnCount : minCellSize;
-        final double cellWidth =
-            rawCellWidth.clamp(minCellSize, maxCellWidth.toDouble()).toDouble();
+        final double rawCellWidth = columnCount > 0
+            ? usableWidth / columnCount
+            : minCellSize;
+        final double cellWidth = rawCellWidth
+            .clamp(minCellSize, maxCellWidth.toDouble())
+            .toDouble();
         final double compressedHeight = cellWidth * heightCompression;
-        final double cellHeight =
-            compressedHeight.clamp(minCellSize, maxCellHeight).toDouble();
-        final double gridWidth = labelColumnWidth +
+        final double cellHeight = compressedHeight
+            .clamp(minCellSize, maxCellHeight)
+            .toDouble();
+        final double gridWidth =
+            labelColumnWidth +
             (cellWidth * columnCount) +
             horizontalSpacing * math.max(0, columnCount - 1);
-        final TextStyle axisStyle =
-            textTheme.tinyMuted.copyWith(fontSize: 8.0, height: 1.1);
+        final TextStyle axisStyle = textTheme.tinyMuted.copyWith(
+          fontSize: 8.0,
+          height: 1.1,
+        );
 
         return Align(
           alignment: Alignment.topCenter,
@@ -1134,9 +1101,11 @@ class _YearHeatmap extends StatelessWidget {
                 Row(
                   children: [
                     const SizedBox(width: labelColumnWidth),
-                    for (int columnIndex = 0;
-                        columnIndex < columnCount;
-                        columnIndex += 1) ...[
+                    for (
+                      int columnIndex = 0;
+                      columnIndex < columnCount;
+                      columnIndex += 1
+                    ) ...[
                       SizedBox(
                         width: cellWidth,
                         child: Text(
@@ -1166,8 +1135,9 @@ class _YearHeatmap extends StatelessWidget {
                         : "";
                     return Padding(
                       padding: EdgeInsets.only(
-                        bottom:
-                            rowIndex == grid.length - 1 ? 0 : verticalSpacing,
+                        bottom: rowIndex == grid.length - 1
+                            ? 0
+                            : verticalSpacing,
                       ),
                       child: Row(
                         children: [
@@ -1178,15 +1148,14 @@ class _YearHeatmap extends StatelessWidget {
                               maintainSize: true,
                               maintainAnimation: true,
                               maintainState: true,
-                              child: Text(
-                                label,
-                                style: axisStyle,
-                              ),
+                              child: Text(label, style: axisStyle),
                             ),
                           ),
-                          for (int columnIndex = 0;
-                              columnIndex < columnCount;
-                              columnIndex += 1) ...[
+                          for (
+                            int columnIndex = 0;
+                            columnIndex < columnCount;
+                            columnIndex += 1
+                          ) ...[
                             _HeatmapCell(
                               value: columnIndex < row.length
                                   ? row[columnIndex]
@@ -1217,10 +1186,7 @@ class _YearHeatmap extends StatelessWidget {
 }
 
 class _HeatmapBackground extends StatelessWidget {
-  const _HeatmapBackground({
-    required this.child,
-    required this.colorScheme,
-  });
+  const _HeatmapBackground({required this.child, required this.colorScheme});
 
   final Widget child;
   final EnteColorScheme colorScheme;

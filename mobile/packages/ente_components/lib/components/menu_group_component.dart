@@ -1,3 +1,4 @@
+import 'package:ente_components/components/divider_component.dart';
 import 'package:ente_components/src/components/menu_component_surface_style.dart';
 import 'package:ente_components/theme/radii.dart';
 import 'package:ente_components/theme/theme.dart';
@@ -14,12 +15,18 @@ class MenuGroupComponent extends StatelessWidget {
     this.backgroundColor,
     this.borderRadius = const BorderRadius.all(Radius.circular(Radii.button)),
     this.clipBehavior = Clip.hardEdge,
+    this.showDividers = false,
+    this.dividerPadding = EdgeInsets.zero,
+    this.dividerColor,
   });
 
   final List<Widget> items;
   final Color? backgroundColor;
   final BorderRadius borderRadius;
   final Clip clipBehavior;
+  final bool showDividers;
+  final EdgeInsetsGeometry dividerPadding;
+  final Color? dividerColor;
 
   static BorderRadius itemBorderRadius({
     required int index,
@@ -59,13 +66,16 @@ class MenuGroupComponent extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (var index = 0; index < items.length; index++)
+          for (var index = 0; index < items.length; index++) ...[
             _groupedItem(
               items[index],
               index: index,
               itemCount: items.length,
               backgroundColor: backgroundColor ?? colors.fillLight,
             ),
+            if (showDividers && index < items.length - 1)
+              DividerComponent(color: dividerColor, padding: dividerPadding),
+          ],
         ],
       ),
     );

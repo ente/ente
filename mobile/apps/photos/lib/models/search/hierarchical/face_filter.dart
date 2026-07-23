@@ -1,4 +1,3 @@
-import "package:flutter/material.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 
@@ -6,7 +5,7 @@ class FaceFilter extends HierarchicalSearchFilter {
   final String? personId;
   final String? clusterId;
   final String? faceName;
-  final EnteFile faceFile;
+  final EnteFile? faceFile;
   final int occurrence;
 
   FaceFilter({
@@ -18,9 +17,9 @@ class FaceFilter extends HierarchicalSearchFilter {
     super.filterTypeName = "faceFilter",
     super.matchedUploadedIDs,
   }) : assert(
-          personId != null || clusterId != null,
-          "personId or clusterId must be provided",
-        );
+         personId != null || clusterId != null,
+         "personId or clusterId must be provided",
+       );
 
   @override
   String name() {
@@ -33,7 +32,7 @@ class FaceFilter extends HierarchicalSearchFilter {
   }
 
   @override
-  IconData? icon() {
+  SearchFilterIcon? icon() {
     throw UnimplementedError(
       "FaceFilter does not use an icon, the face crop should be used instead",
     );

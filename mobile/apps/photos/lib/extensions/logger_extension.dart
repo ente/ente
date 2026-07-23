@@ -24,11 +24,7 @@ extension LoggerExtension on Logger {
   }
 
   /// Logs a severe message only if the user is an internal user.
-  void internalSevere(
-    String message, [
-    Object? error,
-    StackTrace? stackTrace,
-  ]) {
+  void internalSevere(String message, [Object? error, StackTrace? stackTrace]) {
     if (flagService.internalUser) {
       severe(message, error, stackTrace);
     }

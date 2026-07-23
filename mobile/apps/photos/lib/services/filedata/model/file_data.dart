@@ -28,11 +28,7 @@ class FileDataEntity {
   final Map<String, dynamic> remoteRawData;
   final DataType type;
 
-  FileDataEntity(
-    this.fileID,
-    this.remoteRawData,
-    this.type,
-  );
+  FileDataEntity(this.fileID, this.remoteRawData, this.type);
 
   void validate() {
     if (type == DataType.mlData) {
@@ -52,11 +48,7 @@ class FileDataEntity {
     String type,
     Map<String, dynamic> json,
   ) {
-    return FileDataEntity(
-      fileID,
-      json,
-      DataType.fromString(type),
-    );
+    return FileDataEntity(fileID, json, DataType.fromString(type));
   }
 
   static FileDataEntity empty(int fileID, DataType type) {
@@ -80,14 +72,13 @@ class FileDataEntity {
         )
       : null;
 
-  RemoteClipEmbedding? getClipEmbeddingIfCompatible(
-    int minClipMlVersion,
-  ) {
+  RemoteClipEmbedding? getClipEmbeddingIfCompatible(int minClipMlVersion) {
     final clipData = remoteRawData[_clipKey];
     if (clipData == null) return null;
 
-    final clipEmbedding =
-        RemoteClipEmbedding.fromJson(clipData as Map<String, dynamic>);
+    final clipEmbedding = RemoteClipEmbedding.fromJson(
+      clipData as Map<String, dynamic>,
+    );
     return clipEmbedding.version >= minClipMlVersion ? clipEmbedding : null;
   }
 }
@@ -117,13 +108,13 @@ class RemoteFaceEmbedding {
 
   // toJson
   Map<String, dynamic> toJson() => {
-        'faces': faces.map((x) => x.toJson()).toList(),
-        'version': version,
-        'client': client,
-        'height': height,
-        'width': width,
-        if (flags != 0) 'flags': flags,
-      };
+    'faces': faces.map((x) => x.toJson()).toList(),
+    'version': version,
+    'client': client,
+    'height': height,
+    'width': width,
+    if (flags != 0) 'flags': flags,
+  };
 
   // fromJson
   factory RemoteFaceEmbedding.fromJson(Map<String, dynamic> json) {
@@ -159,11 +150,11 @@ class RemoteClipEmbedding {
 
   // toJson
   Map<String, dynamic> toJson() => {
-        'embedding': embedding,
-        'version': version,
-        'client': client,
-        if (flags != 0) 'flags': flags,
-      };
+    'embedding': embedding,
+    'version': version,
+    'client': client,
+    if (flags != 0) 'flags': flags,
+  };
 
   // fromJson
   factory RemoteClipEmbedding.fromJson(Map<String, dynamic> json) {
@@ -215,9 +206,5 @@ class PreviewInfo {
   final String objectId;
   final int objectSize;
   String? nonce;
-  PreviewInfo({
-    required this.objectId,
-    required this.objectSize,
-    this.nonce,
-  });
+  PreviewInfo({required this.objectId, required this.objectSize, this.nonce});
 }

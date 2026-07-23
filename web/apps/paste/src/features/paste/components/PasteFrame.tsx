@@ -1,8 +1,8 @@
+import { usePasteColorMode } from "@/features/paste/hooks/usePasteColorMode";
+import { getPasteThemeTokens } from "@/features/paste/theme/pasteThemeTokens";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import { Box, IconButton, Stack, Typography } from "@mui/material";
 import { EnteLogo } from "ente-base/components/EnteLogo";
-import { usePasteColorMode } from "features/paste/hooks/usePasteColorMode";
-import { getPasteThemeTokens } from "features/paste/theme/pasteThemeTokens";
 import type { ReactNode } from "react";
 
 interface PasteFrameProps {
@@ -71,10 +71,10 @@ export const PasteFrame = ({ children, footer }: PasteFrameProps) => {
                         component="a"
                         href="https://paste.ente.com"
                         direction="row"
-                        alignItems="center"
                         spacing={0.35}
                         aria-label="Go to Ente Paste home"
                         sx={{
+                            alignItems: "center",
                             color: tokens.frame.logoTint,
                             lineHeight: 0,
                             textDecoration: "none",
@@ -98,10 +98,14 @@ export const PasteFrame = ({ children, footer }: PasteFrameProps) => {
                             paste
                         </Typography>
                     </Stack>
-                    <Stack direction="row" spacing={0.85} alignItems="center">
+                    <Stack
+                        direction="row"
+                        spacing={0.85}
+                        sx={{ alignItems: "center" }}
+                    >
                         <IconButton
                             component="a"
-                            href="https://github.com/ente-io/ente"
+                            href="https://github.com/ente/ente"
                             target="_blank"
                             rel="noopener noreferrer"
                             aria-label="View source on GitHub"

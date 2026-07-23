@@ -49,21 +49,17 @@ class _TopPersonCardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<String> chips = _stringListFromMeta(card.meta, "detailChips");
-    final List<MediaRef> supportingMedia =
-        card.media.skip(3).take(2).toList(growable: false);
+    final List<MediaRef> supportingMedia = card.media
+        .skip(3)
+        .take(2)
+        .toList(growable: false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _HeroMediaCollage(
-          media: card.media,
-          colorScheme: colorScheme,
-        ),
+        _HeroMediaCollage(media: card.media, colorScheme: colorScheme),
         const SizedBox(height: 24),
-        buildWrappedCardTitle(
-          card.title,
-          textTheme.h2Bold,
-        ),
+        buildWrappedCardTitle(card.title, textTheme.h2Bold),
         if (card.subtitle != null && card.subtitle!.isNotEmpty)
           buildWrappedCardSubtitle(
             card.subtitle!,
@@ -111,10 +107,7 @@ class _TopThreePeopleCardContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        buildWrappedCardTitle(
-          card.title,
-          textTheme.h2Bold,
-        ),
+        buildWrappedCardTitle(card.title, textTheme.h2Bold),
         if (card.subtitle != null && card.subtitle!.isNotEmpty)
           buildWrappedCardSubtitle(
             card.subtitle!,
@@ -123,10 +116,7 @@ class _TopThreePeopleCardContent extends StatelessWidget {
           ),
         if (gridMedia.isNotEmpty) ...[
           const SizedBox(height: 24),
-          _SquareMediaGrid(
-            media: gridMedia,
-            colorScheme: colorScheme,
-          ),
+          _SquareMediaGrid(media: gridMedia, colorScheme: colorScheme),
         ],
         if (chips.isNotEmpty) ...[
           const SizedBox(height: 20),
@@ -156,16 +146,14 @@ class _GroupVsSoloCardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<String> chips = _stringListFromMeta(card.meta, "detailChips");
-    final List<MediaRef> collageMedia =
-        card.media.take(5).toList(growable: false);
+    final List<MediaRef> collageMedia = card.media
+        .take(5)
+        .toList(growable: false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        buildWrappedCardTitle(
-          card.title,
-          textTheme.h2Bold,
-        ),
+        buildWrappedCardTitle(card.title, textTheme.h2Bold),
         if (card.subtitle != null && card.subtitle!.isNotEmpty)
           buildWrappedCardSubtitle(
             card.subtitle!,
@@ -174,10 +162,7 @@ class _GroupVsSoloCardContent extends StatelessWidget {
           ),
         if (collageMedia.isNotEmpty) ...[
           const SizedBox(height: 20),
-          _GroupSoloMediaCollage(
-            media: collageMedia,
-            colorScheme: colorScheme,
-          ),
+          _GroupSoloMediaCollage(media: collageMedia, colorScheme: colorScheme),
         ],
         if (chips.isNotEmpty) ...[
           const SizedBox(height: 20),
@@ -207,21 +192,17 @@ class _NewFacesCardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<String> chips = _stringListFromMeta(card.meta, "detailChips");
-    final List<MediaRef> supportingMedia =
-        card.media.skip(3).take(2).toList(growable: false);
+    final List<MediaRef> supportingMedia = card.media
+        .skip(3)
+        .take(2)
+        .toList(growable: false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _HeroMediaCollage(
-          media: card.media,
-          colorScheme: colorScheme,
-        ),
+        _HeroMediaCollage(media: card.media, colorScheme: colorScheme),
         const SizedBox(height: 24),
-        buildWrappedCardTitle(
-          card.title,
-          textTheme.h2Bold,
-        ),
+        buildWrappedCardTitle(card.title, textTheme.h2Bold),
         if (card.subtitle != null && card.subtitle!.isNotEmpty)
           buildWrappedCardSubtitle(
             card.subtitle!,

@@ -88,8 +88,9 @@ class _CommentLikesBottomSheetState extends State<CommentLikesBottomSheet> {
   User _getUserForReaction(Reaction reaction) {
     if (reaction.isAnonymous) {
       final anonID = reaction.anonUserID;
-      final displayName =
-          anonID != null ? (_anonDisplayNames[anonID] ?? anonID) : "Anonymous";
+      final displayName = anonID != null
+          ? (_anonDisplayNames[anonID] ?? anonID)
+          : "Anonymous";
       return User(
         id: reaction.userID,
         email: "${anonID ?? "anonymous"}@unknown.com",
@@ -97,8 +98,10 @@ class _CommentLikesBottomSheetState extends State<CommentLikesBottomSheet> {
       );
     }
 
-    return CollectionsService.instance
-        .getFileOwner(reaction.userID, widget.collectionID);
+    return CollectionsService.instance.getFileOwner(
+      reaction.userID,
+      widget.collectionID,
+    );
   }
 
   @override
@@ -113,10 +116,8 @@ class _CommentLikesBottomSheetState extends State<CommentLikesBottomSheet> {
         maxHeight: mediaQuery.size.height * _maxHeightFraction,
       ),
       decoration: BoxDecoration(
-        color: colorScheme.backgroundBase,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
+        color: colorScheme.backgroundColour,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         top: false,
@@ -147,8 +148,10 @@ class _CommentLikesBottomSheetState extends State<CommentLikesBottomSheet> {
               )
             else if (_likes.isEmpty)
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 48,
+                  horizontal: 24,
+                ),
                 child: Text(
                   l10n.noLikesYet,
                   style: textTheme.smallMuted,
@@ -210,7 +213,7 @@ class _CommentLikeListItem extends StatelessWidget {
           UserAvatarWidget(
             user,
             currentUserID: currentUserID,
-            type: AvatarType.lg,
+            type: AvatarType.regular,
             addStroke: false,
           ),
           const SizedBox(width: 12),
@@ -242,11 +245,7 @@ class _CommentLikeListItem extends StatelessWidget {
                     ),
                   ),
           ),
-          const Icon(
-            EnteIcons.likeFilled,
-            color: Color(0xFF08C225),
-            size: 20,
-          ),
+          const Icon(EnteIcons.likeFilled, color: Color(0xFF08C225), size: 20),
         ],
       ),
     );

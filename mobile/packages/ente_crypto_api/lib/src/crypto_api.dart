@@ -142,56 +142,49 @@ class CryptoUtil {
     Uint8List cipher,
     Uint8List key,
     Uint8List nonce,
-  ) =>
-      _impl.decrypt(cipher, key, nonce);
+  ) => _impl.decrypt(cipher, key, nonce);
 
   static Uint8List decryptSync(
     Uint8List cipher,
     Uint8List key,
     Uint8List nonce,
-  ) =>
-      _impl.decryptSync(cipher, key, nonce);
+  ) => _impl.decryptSync(cipher, key, nonce);
 
   static Future<EncryptionResult> encryptData(
     Uint8List source,
     Uint8List key,
-  ) =>
-      _impl.encryptData(source, key);
+  ) => _impl.encryptData(source, key);
 
   static Future<Uint8List> decryptData(
     Uint8List source,
     Uint8List key,
     Uint8List header,
-  ) =>
-      _impl.decryptData(source, key, header);
+  ) => _impl.decryptData(source, key, header);
 
   static Future<EncryptionResult> encryptFile(
     String sourceFilePath,
     String destinationFilePath, {
     Uint8List? key,
-  }) =>
-      _impl.encryptFile(sourceFilePath, destinationFilePath, key: key);
+  }) => _impl.encryptFile(sourceFilePath, destinationFilePath, key: key);
 
   static Future<FileEncryptResult> encryptFileWithMd5(
     String sourceFilePath,
     String destinationFilePath, {
     Uint8List? key,
     int? multiPartChunkSizeInBytes,
-  }) =>
-      _impl.encryptFileWithMd5(
-        sourceFilePath,
-        destinationFilePath,
-        key: key,
-        multiPartChunkSizeInBytes: multiPartChunkSizeInBytes,
-      );
+  }) => _impl.encryptFileWithMd5(
+    sourceFilePath,
+    destinationFilePath,
+    key: key,
+    multiPartChunkSizeInBytes: multiPartChunkSizeInBytes,
+  );
 
   static Future<void> decryptFile(
     String sourceFilePath,
     String destinationFilePath,
     Uint8List header,
     Uint8List key,
-  ) =>
-      _impl.decryptFile(sourceFilePath, destinationFilePath, header, key);
+  ) => _impl.decryptFile(sourceFilePath, destinationFilePath, header, key);
 
   static Uint8List generateKey() => _impl.generateKey();
   static CryptoKeyPair generateKeyPair() => _impl.generateKeyPair();
@@ -200,8 +193,7 @@ class CryptoUtil {
     Uint8List input,
     Uint8List publicKey,
     Uint8List secretKey,
-  ) =>
-      _impl.openSealSync(input, publicKey, secretKey);
+  ) => _impl.openSealSync(input, publicKey, secretKey);
 
   static Uint8List sealSync(Uint8List input, Uint8List publicKey) =>
       _impl.sealSync(input, publicKey);
@@ -209,22 +201,19 @@ class CryptoUtil {
   static Future<DerivedKeyResult> deriveSensitiveKey(
     Uint8List password,
     Uint8List salt,
-  ) =>
-      _impl.deriveSensitiveKey(password, salt);
+  ) => _impl.deriveSensitiveKey(password, salt);
 
   static Future<DerivedKeyResult> deriveInteractiveKey(
     Uint8List password,
     Uint8List salt,
-  ) =>
-      _impl.deriveInteractiveKey(password, salt);
+  ) => _impl.deriveInteractiveKey(password, salt);
 
   static Future<Uint8List> deriveKey(
     Uint8List password,
     Uint8List salt,
     int memLimit,
     int opsLimit,
-  ) =>
-      _impl.deriveKey(password, salt, memLimit, opsLimit);
+  ) => _impl.deriveKey(password, salt, memLimit, opsLimit);
 
   static Future<Uint8List> deriveLoginKey(Uint8List key) =>
       _impl.deriveLoginKey(key);
@@ -236,8 +225,7 @@ class CryptoUtil {
     Uint8List salt,
     int memLimit,
     int opsLimit,
-  ) =>
-      _impl.cryptoPwHash(password, salt, memLimit, opsLimit);
+  ) => _impl.cryptoPwHash(password, salt, memLimit, opsLimit);
 
   static int get pwhashMemLimitInteractive => _impl.pwhashMemLimitInteractive;
   static int get pwhashMemLimitSensitive => _impl.pwhashMemLimitSensitive;

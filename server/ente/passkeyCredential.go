@@ -42,8 +42,7 @@ func (c *PasskeyCredential) WebAuthnCredential() (cred *webauthn.Credential, err
 	}
 
 	transports := []protocol.AuthenticatorTransport{}
-	transportStrings := strings.Split(c.AuthenticatorTransports, ",")
-	for _, t := range transportStrings {
+	for t := range strings.SplitSeq(c.AuthenticatorTransports, ",") {
 		transports = append(transports, protocol.AuthenticatorTransport(string(t)))
 	}
 

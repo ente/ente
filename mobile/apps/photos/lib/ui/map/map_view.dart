@@ -62,11 +62,9 @@ class _MapViewState extends State<MapView> {
   }
 
   void onChange(LatLngBounds bounds) {
-    _debouncer.run(
-      () async {
-        widget.updateVisibleImages(bounds);
-      },
-    );
+    _debouncer.run(() async {
+      widget.updateVisibleImages(bounds);
+    });
   }
 
   @override
@@ -77,7 +75,7 @@ class _MapViewState extends State<MapView> {
           mapController: widget.controller,
           options: MapOptions(
             onTap: widget.onTap != null
-                ? (_, __) {
+                ? (_, _) {
                     widget.onTap!.call();
                   }
                 : null,
@@ -137,9 +135,7 @@ class _MapViewState extends State<MapView> {
               padding: EdgeInsets.only(
                 bottom: widget.bottomSheetDraggableAreaHeight,
               ),
-              child: OSMTileAttributes(
-                options: widget.mapAttributionOptions,
-              ),
+              child: OSMTileAttributes(options: widget.mapAttributionOptions),
             ),
           ],
         ),

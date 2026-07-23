@@ -2,7 +2,7 @@
 # or https://pub.dev/packages/lint (Effective dart)
 # use "flutter analyze ." or "dart  analyze ." for running lint checks
 
-include: package:lints/recommended.yaml
+include: package:flutter_lints/flutter.yaml
 linter:
   rules:
     # Ref https://github.com/flutter/packages/blob/master/packages/flutter_lints/lib/flutter.yaml
@@ -49,6 +49,7 @@ analyzer:
     unawaited_futures: warning # convert to warning after fixing existing issues
 
     avoid_renaming_method_parameters: ignore # incorrect warnings for `equals` overrides
+    use_build_context_synchronously: error
 
   exclude:
     - thirdparty/**

@@ -3,6 +3,9 @@ import 'dart:async';
 import "package:ente_lock_screen/lock_screen_settings.dart";
 import 'package:flutter/material.dart';
 
+@visibleForTesting
+const appLockContentObscurerKey = ValueKey('app_lock_content_obscurer');
+
 /// A widget which handles app lifecycle events for showing and hiding a lock screen.
 /// This should wrap around a `MyApp` widget (or equivalent).
 ///
@@ -37,6 +40,10 @@ class AppLock extends StatefulWidget {
   final List<Locale>? supportedLocales;
   final List<LocalizationsDelegate<dynamic>> localizationsDelegates;
   final LocaleListResolutionCallback? localeListResolutionCallback;
+  final bool debugShowCheckedModeBanner;
+
+  /// Invoked on each successful unlock (launch, resume, or manual).
+  final VoidCallback? onUnlock;
 
   const AppLock({
     super.key,
@@ -46,11 +53,13 @@ class AppLock extends StatefulWidget {
     required this.supportedLocales,
     required this.localizationsDelegates,
     required this.localeListResolutionCallback,
+    this.debugShowCheckedModeBanner = true,
     this.enabled = true,
     this.locale,
     this.backgroundLockLatency = const Duration(seconds: 0),
     this.darkTheme,
     this.lightTheme,
+    this.onUnlock,
   });
 
   static _AppLockState? of(BuildContext context) =>
@@ -66,6 +75,8 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
   late bool _didUnlockForAppLaunch;
   late bool _isLocked;
   late bool _enabled;
+  late ThemeMode _themeMode;
+  int? _backgroundedAt;
 
   Timer? _backgroundLockLatencyTimer;
 
@@ -78,6 +89,15 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
     this._didUnlockForAppLaunch = !this.widget.enabled;
     this._isLocked = false;
     this._enabled = this.widget.enabled;
+    this._themeMode = this.widget.savedThemeMode;
+  }
+
+  @override
+  void didUpdateWidget(covariant AppLock oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.savedThemeMode != this.widget.savedThemeMode) {
+      this._themeMode = this.widget.savedThemeMode;
+    }
   }
 
   @override
@@ -88,16 +108,31 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
 
     if (state == AppLifecycleState.paused &&
         (!this._isLocked && this._didUnlockForAppLaunch)) {
+      this._backgroundedAt = DateTime.now().millisecondsSinceEpoch;
+      this._setLocked(true);
       this._backgroundLockLatencyTimer = Timer(
-        Duration(
-          milliseconds: LockScreenSettings.instance.getAutoLockTime(),
-        ),
-        () => this.showLockScreen(),
+        Duration(milliseconds: LockScreenSettings.instance.getAutoLockTime()),
+        () {
+          this._backgroundedAt = null;
+          unawaited(this.showLockScreen());
+        },
       );
     }
 
     if (state == AppLifecycleState.resumed) {
       this._backgroundLockLatencyTimer?.cancel();
+      final int? backgroundedAt = this._backgroundedAt;
+      this._backgroundedAt = null;
+
+      if (backgroundedAt != null) {
+        final int elapsed =
+            DateTime.now().millisecondsSinceEpoch - backgroundedAt;
+        if (elapsed >= LockScreenSettings.instance.getAutoLockTime()) {
+          unawaited(this.showLockScreen());
+        } else {
+          this._setLocked(false);
+        }
+      }
     }
 
     super.didChangeAppLifecycleState(state);
@@ -115,9 +150,12 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: this.widget.enabled ? this._lockScreen : this.widget.builder(null),
+      debugShowCheckedModeBanner: widget.debugShowCheckedModeBanner,
+      home: this.widget.enabled
+          ? this._lockScreen
+          : this._unlockedContent(null),
       navigatorKey: _navigatorKey,
-      themeMode: widget.savedThemeMode,
+      themeMode: this._themeMode,
       theme: widget.lightTheme,
       darkTheme: widget.darkTheme,
       locale: widget.locale,
@@ -129,13 +167,13 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
         switch (settings.name) {
           case '/lock-screen':
             return PageRouteBuilder(
-              pageBuilder: (_, __, ___) => this._lockScreen,
+              pageBuilder: (_, _, _) => this._lockScreen,
               settings: settings,
             );
           case '/unlocked':
             return PageRouteBuilder(
-              pageBuilder: (_, __, ___) =>
-                  this.widget.builder(settings.arguments),
+              pageBuilder: (_, _, _) =>
+                  this._unlockedContent(settings.arguments),
               settings: settings,
             );
         }
@@ -145,9 +183,26 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
   }
 
   Widget get _lockScreen {
-    return PopScope(
-      canPop: false,
-      child: this.widget.lockScreen,
+    return PopScope(canPop: false, child: this.widget.lockScreen);
+  }
+
+  Widget _unlockedContent(Object? args) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        this.widget.builder(args),
+        if (this._isLocked)
+          Positioned.fill(
+            key: appLockContentObscurerKey,
+            child: AbsorbPointer(
+              child: Builder(
+                builder: (context) => ColoredBox(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -160,6 +215,7 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
   /// [lockScreen] in to the rest of your app so you can better guarantee that some
   /// objects, services or databases are already instantiated before using them.
   void didUnlock([Object? args]) {
+    this.widget.onUnlock?.call();
     if (this._didUnlockForAppLaunch) {
       this._didUnlockOnAppPaused();
     } else {
@@ -181,6 +237,15 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
     }
   }
 
+  void setThemeMode(ThemeMode themeMode) {
+    if (this._themeMode == themeMode) {
+      return;
+    }
+    setState(() {
+      this._themeMode = themeMode;
+    });
+  }
+
   /// Makes sure that [AppLock] shows the [lockScreen] on subsequent app pauses.
   void enable() {
     setState(() {
@@ -197,26 +262,45 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
 
   /// Show the [lockScreen] for automatic locking (app launch, background resume).
   Future<void> showLockScreen() {
-    this._isLocked = true;
-    return _navigatorKey.currentState!
-        .pushNamed('/lock-screen', arguments: {"manual": false});
+    this._setLocked(true);
+    return _navigatorKey.currentState!.pushNamed(
+      '/lock-screen',
+      arguments: {"manual": false},
+    );
   }
 
   /// Show the [lockScreen] for user-initiated manual lock (no auto-auth on first frame).
   Future<void> showManualLockScreen() {
-    this._isLocked = true;
-    return _navigatorKey.currentState!
-        .pushNamed('/lock-screen', arguments: {"manual": true});
+    this._setLocked(true);
+    return _navigatorKey.currentState!.pushNamed(
+      '/lock-screen',
+      arguments: {"manual": true},
+    );
   }
 
   void _didUnlockOnAppLaunch(Object? args) {
     this._didUnlockForAppLaunch = true;
-    _navigatorKey.currentState!
-        .pushReplacementNamed('/unlocked', arguments: args);
+    _navigatorKey.currentState!.pushReplacementNamed(
+      '/unlocked',
+      arguments: args,
+    );
   }
 
   void _didUnlockOnAppPaused() {
-    this._isLocked = false;
+    this._setLocked(false);
     _navigatorKey.currentState!.pop();
+  }
+
+  void _setLocked(bool locked) {
+    if (this._isLocked == locked) {
+      return;
+    }
+    if (!mounted) {
+      this._isLocked = locked;
+      return;
+    }
+    setState(() {
+      this._isLocked = locked;
+    });
   }
 }

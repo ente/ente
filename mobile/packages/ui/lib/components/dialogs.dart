@@ -8,10 +8,7 @@ import 'package:flutter/material.dart';
 
 enum DialogUserChoice { firstChoice, secondChoice }
 
-enum ActionType {
-  confirm,
-  critical,
-}
+enum ActionType { confirm, critical }
 
 // if dialog is dismissed by tapping outside, this will return null
 Future<DialogUserChoice?> showChoiceDialogOld<T>(
@@ -33,39 +30,40 @@ Future<DialogUserChoice?> showChoiceDialogOld<T>(
             : getEnteColorScheme(context).primary500,
       ),
     ),
-    content: Text(
-      content,
-      style: const TextStyle(
-        height: 1.4,
-      ),
-    ),
+    content: Text(content, style: const TextStyle(height: 1.4)),
     actions: [
       TextButton(
         child: Text(
           firstAction,
           style: TextStyle(
-            color: firstActionColor ??
+            color:
+                firstActionColor ??
                 (actionType == ActionType.critical
                     ? Colors.red
                     : getEnteColorScheme(context).surface),
           ),
         ),
         onPressed: () {
-          Navigator.of(context, rootNavigator: true)
-              .pop(DialogUserChoice.firstChoice);
+          Navigator.of(
+            context,
+            rootNavigator: true,
+          ).pop(DialogUserChoice.firstChoice);
         },
       ),
       TextButton(
         child: Text(
           secondAction,
           style: TextStyle(
-            color: secondActionColor ??
+            color:
+                secondActionColor ??
                 getEnteColorScheme(context).alternativeColor,
           ),
         ),
         onPressed: () {
-          Navigator.of(context, rootNavigator: true)
-              .pop(DialogUserChoice.secondChoice);
+          Navigator.of(
+            context,
+            rootNavigator: true,
+          ).pop(DialogUserChoice.secondChoice);
         },
       ),
     ],

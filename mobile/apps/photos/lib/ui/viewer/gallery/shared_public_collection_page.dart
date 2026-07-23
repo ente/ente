@@ -44,10 +44,7 @@ class SharedPublicCollectionPage extends StatefulWidget {
     super.key,
     this.files,
     this.shouldShowJoinDialog = false,
-  }) : assert(
-          !(files == null),
-          'sharedLinkFiles cannot be empty',
-        );
+  }) : assert(!(files == null), 'sharedLinkFiles cannot be empty');
 
   @override
   State<SharedPublicCollectionPage> createState() =>
@@ -80,6 +77,7 @@ class _SharedPublicCollectionPageState
       firstButtonLabel: context.l10n.join,
     );
     if (result != null && result.action == ButtonAction.first) {
+      if (!mounted) return;
       final dialog = createProgressDialog(
         context,
         context.l10n.pleaseWait,
@@ -87,12 +85,18 @@ class _SharedPublicCollectionPageState
       );
       await dialog.show();
       try {
-        await RemoteSyncService.instance
-            .joinAndSyncCollection(context, widget.c.collection.id);
-        final c = CollectionsService.instance
-            .getCollectionByID(widget.c.collection.id);
+        if (!mounted) return;
+        await RemoteSyncService.instance.joinAndSyncCollection(
+          context,
+          widget.c.collection.id,
+        );
+        final c = CollectionsService.instance.getCollectionByID(
+          widget.c.collection.id,
+        );
         await dialog.hide();
+        if (!mounted) return;
         Navigator.of(context).pop();
+        if (!mounted) return;
         await routeToPage(
           context,
           CollectionPage(CollectionWithThumbnail(c!, null)),
@@ -100,6 +104,7 @@ class _SharedPublicCollectionPageState
       } catch (e, s) {
         logger.severe("Failed to join public album", e, s);
         await dialog.hide();
+        if (!mounted) return;
         await showGenericErrorDialog(context: context, error: e);
       }
     }
@@ -114,18 +119,28 @@ class _SharedPublicCollectionPageState
   @override
   Widget build(BuildContext context) {
     logger.info("Building SharedPublicCollectionPage");
-    final List<EnteFile>? initialFiles =
-        widget.c.thumbnail != null ? [widget.c.thumbnail!] : null;
+    final List<EnteFile>? initialFiles = widget.c.thumbnail != null
+        ? [widget.c.thumbnail!]
+        : null;
 
     // Determine groupType based on collection layout.
     // masonry/continuous (or unset) map to non-grouped rendering.
     final normalizedLayout = normalizePublicLinkLayout(
       widget.c.collection.pubMagicMetadata.layout,
     );
-    final GroupType groupType =
-        normalizedLayout == "masonry" ? GroupType.none : GroupType.day;
+    final GroupType groupType = normalizedLayout == "masonry"
+        ? GroupType.none
+        : GroupType.day;
+    final appBar = GalleryAppBarWidget.sliverConfig(
+      galleryType,
+      widget.c.collection.displayName,
+      _selectedFiles,
+      collection: widget.c.collection,
+      files: widget.files,
+    );
 
     final gallery = Gallery(
+      appBar: appBar,
       asyncLoader: (creationStartTime, creationEndTime, {limit, asc}) async {
         widget.files!.sort(
           (a, b) => b.creationTime!.compareTo(a.creationTime!),
@@ -133,15 +148,15 @@ class _SharedPublicCollectionPageState
 
         return FileLoadResult(widget.files!, false);
       },
-      reloadEvent: Bus.instance
-          .on<CollectionUpdatedEvent>()
-          .where((event) => event.collectionID == widget.c.collection.id),
+      reloadEvent: Bus.instance.on<CollectionUpdatedEvent>().where(
+        (event) => event.collectionID == widget.c.collection.id,
+      ),
       forceReloadEvents: [
         Bus.instance.on<CollectionMetaEvent>().where(
-              (event) =>
-                  event.id == widget.c.collection.id &&
-                  event.type == CollectionMetaEventType.sortChanged,
-            ),
+          (event) =>
+              event.id == widget.c.collection.id &&
+              event.type == CollectionMetaEventType.sortChanged,
+        ),
       ],
       removalEventTypes: const {
         EventType.deletedFromRemote,
@@ -154,7 +169,8 @@ class _SharedPublicCollectionPageState
       albumName: widget.c.collection.displayName,
       galleryType: galleryType,
       groupType: groupType,
-      header: widget.c.collection.isJoinEnabled &&
+      header:
+          widget.c.collection.isJoinEnabled &&
               Configuration.instance.isLoggedIn()
           ? Padding(
               padding: const EdgeInsets.all(8.0),
@@ -181,16 +197,6 @@ class _SharedPublicCollectionPageState
     return GalleryBoundariesProvider(
       child: GalleryFilesState(
         child: Scaffold(
-          appBar: PreferredSize(
-            preferredSize: const Size.fromHeight(50.0),
-            child: GalleryAppBarWidget(
-              galleryType,
-              widget.c.collection.displayName,
-              _selectedFiles,
-              collection: widget.c.collection,
-              files: widget.files,
-            ),
-          ),
           body: SelectionState(
             selectedFiles: _selectedFiles,
             child: Stack(
@@ -218,6 +224,7 @@ class _SharedPublicCollectionPageState
       firstButtonLabel: context.l10n.join,
     );
     if (result != null && result.action == ButtonAction.first) {
+      if (!mounted) return;
       final dialog = createProgressDialog(
         context,
         AppLocalizations.of(context).pleaseWait,
@@ -225,12 +232,18 @@ class _SharedPublicCollectionPageState
       );
       await dialog.show();
       try {
-        await RemoteSyncService.instance
-            .joinAndSyncCollection(context, widget.c.collection.id);
-        final c = CollectionsService.instance
-            .getCollectionByID(widget.c.collection.id);
+        if (!mounted) return;
+        await RemoteSyncService.instance.joinAndSyncCollection(
+          context,
+          widget.c.collection.id,
+        );
+        final c = CollectionsService.instance.getCollectionByID(
+          widget.c.collection.id,
+        );
         await dialog.hide();
+        if (!mounted) return;
         Navigator.of(context).pop();
+        if (!mounted) return;
         await routeToPage(
           context,
           CollectionPage(CollectionWithThumbnail(c!, null)),
@@ -238,6 +251,7 @@ class _SharedPublicCollectionPageState
       } catch (e, s) {
         logger.severe("Failed to join collection", e, s);
         await dialog.hide();
+        if (!mounted) return;
         showToast(context, AppLocalizations.of(context).somethingWentWrong);
       }
     }

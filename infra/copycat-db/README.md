@@ -83,9 +83,9 @@ Location of the config file, that contains the destination bucket where you want
 
 Specifically, the config file contains two remotes:
 
--   The bucket itself, where data will be stored.
+- The bucket itself, where data will be stored.
 
--   A "crypt" remote that wraps the bucket by applying client side encryption.
+- A "crypt" remote that wraps the bucket by applying client side encryption.
 
 The configuration file will contain (lightly) obfuscated versions of the password, and as long as we have the configuration file we can continue using rclone to download and decrypt the plaintext. Still, it is helpful to retain the original password too separately so that the file can be recreated if needed.
 
@@ -112,7 +112,9 @@ The service logs to its standard out/error. The systemd unit is configured to ro
 
 The provided `test.sh` script can be used to do a smoke test for building and running the image. For example,
 
-    ./test.sh bin/bash
+```sh
+./test.sh bin/bash
+```
 
 gives us a shell prompt inside the built and running container.
 
@@ -134,33 +136,45 @@ Ensure that promtail is running, and is configured to scrape `/root/var/logs/cop
 
 Create that the config and log destination directories
 
-    sudo mkdir -p /root/var/config/scw
-    sudo mkdir -p /root/var/config/rclone
-    sudo mkdir -p /root/var/logs
+```sh
+sudo mkdir -p /root/var/config/scw
+sudo mkdir -p /root/var/config/rclone
+sudo mkdir -p /root/var/logs
+```
 
 Create the env, scw and rclone configuration files
 
-    sudo tee /root/copycat-db.env
-    sudo tee /root/var/config/scw/copycat-db-config.yaml
-    sudo tee /root/var/config/rclone/copycat-db-rclone.conf
+```sh
+sudo tee /root/copycat-db.env
+sudo tee /root/var/config/scw/copycat-db-config.yaml
+sudo tee /root/var/config/rclone/copycat-db-rclone.conf
+```
 
 Add the service definition, and start the service
 
-    scp copycat-db.{service,timer} instance:
+```bash
+scp copycat-db.{service,timer} instance:
 
-    sudo mv copycat-db.{service,timer} /etc/systemd/system
-    sudo systemctl daemon-reload
+sudo mv copycat-db.{service,timer} /etc/systemd/system
+sudo systemctl daemon-reload
+```
 
 To start the cron job
 
-    sudo systemctl start copycat-db.timer
+```sh
+sudo systemctl start copycat-db.timer
+```
 
 The timer will trigger the service on the specified schedule. In addition, if you wish to force the job to service immediately
 
-    sudo systemctl start copycat-db.service
+```sh
+sudo systemctl start copycat-db.service
+```
 
 ## Updating
 
 To update, run the [GitHub workflow](../../.github/workflows/copycat-db-release.yaml) to build and push the latest image to our Docker Registry, then restart the systemd service on the instance
 
-    sudo systemctl restart copycat-db
+```sh
+sudo systemctl restart copycat-db
+```

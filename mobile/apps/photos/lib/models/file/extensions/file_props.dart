@@ -77,3 +77,8 @@ extension FilePropsExtn on EnteFile {
               ?.isOwner(userID) ??
           false);
 }
+
+Set<int> filesToUploadedFileIDs(Iterable<EnteFile> files) => files
+    .where((file) => file.isUploaded)
+    .map((file) => file.uploadedFileID!)
+    .toSet();

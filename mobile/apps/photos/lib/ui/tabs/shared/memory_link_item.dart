@@ -1,22 +1,34 @@
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:photos/db/files_db.dart";
+import "package:photos/generated/l10n.dart";
 import 'package:photos/models/file/file.dart';
-import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/components/buttons/icon_button_widget.dart";
+import "package:photos/ui/components/collection_share_badge.dart";
 import "package:photos/ui/viewer/file/no_thumbnail_widget.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 
 class MemoryLinkAlbumItem extends StatelessWidget {
+  static const _thumbSize = 52.0;
+  static const _cornerRadius = 12.0;
+  static const _rowHeight = 68.0;
+  static const _cardRadius = 20.0;
+
   static const heroTagPrefix = "memory_link";
   final String title;
   final int? fileCount;
   final int? previewUploadedFileID;
+  final bool isSelected;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const MemoryLinkAlbumItem({
     super.key,
     required this.title,
     this.fileCount,
     this.previewUploadedFileID,
+    this.isSelected = false,
+    this.onTap,
+    this.onLongPress,
   });
 
   Future<EnteFile?> _loadPreviewFile() async {
@@ -29,88 +41,124 @@ class MemoryLinkAlbumItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
 
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: colorScheme.strokeFainter),
-        borderRadius: const BorderRadius.all(
-          Radius.circular(6),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: AnimatedContainer(
+        curve: Curves.easeOut,
+        duration: const Duration(milliseconds: 200),
+        constraints: const BoxConstraints(minHeight: _rowHeight),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: colors.fillLight,
+          border: Border.all(
+            color: isSelected ? colors.strokeDark : colors.fillLight,
+          ),
+          borderRadius: const BorderRadius.all(Radius.circular(_cardRadius)),
         ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Flexible(
-            flex: 6,
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 60,
-                  height: 60,
-                  child: FutureBuilder<EnteFile?>(
-                    future: _loadPreviewFile(),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData && snapshot.data != null) {
-                        final String heroTag =
-                            heroTagPrefix + snapshot.data!.tag;
-                        return Hero(
-                          tag: heroTag,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: ThumbnailWidget(
-                              snapshot.data!,
-                              key: ValueKey(heroTag),
-                            ),
-                          ),
-                        );
-                      }
-                      return const NoThumbnailWidget();
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Flexible(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(
+              flex: 6,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: _thumbSize,
+                    height: _thumbSize,
+                    child: Stack(
+                      clipBehavior: Clip.none,
                       children: [
-                        Text(
-                          title,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Text(
-                              (fileCount ?? 0).toString() + "  \u2022  ",
-                              style: textTheme.smallMuted,
-                            ),
-                            Icon(
-                              Icons.link_outlined,
-                              color: colorScheme.strokeMuted,
-                              size: 22,
-                            ),
-                          ],
+                        FutureBuilder<EnteFile?>(
+                          future: _loadPreviewFile(),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasData && snapshot.data != null) {
+                              final String heroTag =
+                                  heroTagPrefix + snapshot.data!.tag;
+                              return Hero(
+                                tag: heroTag,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(
+                                    _cornerRadius,
+                                  ),
+                                  child: ThumbnailWidget(
+                                    snapshot.data!,
+                                    key: ValueKey(heroTag),
+                                  ),
+                                ),
+                              );
+                            }
+                            return const NoThumbnailWidget(
+                              addBorder: false,
+                              borderRadius: _cornerRadius,
+                            );
+                          },
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                title,
+                                maxLines: 1,
+                                softWrap: false,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const CollectionLinkBadge(
+                              variant: CollectionShareBadgeVariant.outlined,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          AppLocalizations.of(
+                            context,
+                          ).itemCount(count: fileCount ?? 0),
+                          style: TextStyles.mini.copyWith(
+                            color: colors.textLight,
+                          ),
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Flexible(
-            flex: 1,
-            child: IconButtonWidget(
-              icon: Icons.chevron_right_outlined,
-              iconButtonType: IconButtonType.secondary,
-              iconColor: colorScheme.blurStrokePressed,
+            Flexible(
+              flex: 1,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                child: isSelected
+                    ? const Padding(
+                        key: ValueKey("selected"),
+                        padding: EdgeInsets.only(right: 8),
+                        child: CollectionSelectedBadge(),
+                      )
+                    : null,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

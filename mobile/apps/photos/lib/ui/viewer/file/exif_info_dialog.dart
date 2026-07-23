@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/file/file.dart';
+import 'package:photos/module/metadata/exif.dart';
 import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/common/loading_widget.dart';
-import 'package:photos/utils/exif_util.dart';
 
 class ExifInfoDialog extends StatelessWidget {
   final EnteFile file;
@@ -16,21 +16,13 @@ class ExifInfoDialog extends StatelessWidget {
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            AppLocalizations.of(context).exif,
-            style: textTheme.h3Bold,
-          ),
-          Text(
-            file.title!,
-            style: textTheme.smallMuted,
-          ),
+          Text(AppLocalizations.of(context).exif, style: textTheme.h3Bold),
+          Text(file.title!, style: textTheme.smallMuted),
         ],
       ),
       content: Scrollbar(
         thumbVisibility: true,
-        child: SingleChildScrollView(
-          child: _getInfo(),
-        ),
+        child: SingleChildScrollView(child: _getInfo()),
       ),
       actions: [
         TextButton(
@@ -56,7 +48,7 @@ class ExifInfoDialog extends StatelessWidget {
               .map((entry) => "${entry.key}: ${entry.value}")
               .join("\n");
           if (data.isEmpty) {
-            data = "no exif data found";
+            data = AppLocalizations.of(context).noExifData;
           }
           return Container(
             padding: const EdgeInsets.all(2),
@@ -68,14 +60,11 @@ class ExifInfoDialog extends StatelessWidget {
                   data,
                   style: TextStyle(
                     fontSize: 14,
-                    fontFeatures: const [
-                      FontFeature.tabularFigures(),
-                    ],
+                    fontFeatures: const [FontFeature.tabularFigures()],
                     height: 1.4,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.7),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ),

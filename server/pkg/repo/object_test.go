@@ -1,13 +1,12 @@
 package repo
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"testing"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/internal/testutil"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/internal/testutil"
 	"github.com/lib/pq"
 )
 
@@ -30,6 +29,35 @@ func TestObjectLookupDBFallsBackToPrimaryDB(t *testing.T) {
 	}
 }
 
+func TestGetObjectReferenceStatuses(t *testing.T) {
+	repository, db := setupAccessibleObjectTest(t)
+
+	ownerID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       1,
+		Email:        "reference-status-owner@ente.com",
+		CreationTime: 1,
+	})
+	fileID := insertObjectTestFile(t, db, ownerID)
+	insertObjectTestKey(t, db, fileID, ente.FILE, "in-object-keys", 100, []string{"b2-eu-cen"})
+	if _, err := db.Exec(`INSERT INTO temp_objects(object_key, expiration_time) VALUES($1, $2)`, "in-temp-objects", int64(1)); err != nil {
+		t.Fatalf("failed to insert temp object: %v", err)
+	}
+
+	statuses, err := repository.GetObjectReferenceStatuses(t.Context(), []string{"in-object-keys", "in-temp-objects", "unreferenced"})
+	if err != nil {
+		t.Fatalf("GetObjectReferenceStatuses() error = %v", err)
+	}
+	if !statuses["in-object-keys"].InObjectKeys || statuses["in-object-keys"].InTempObjects {
+		t.Fatalf("unexpected object_keys status: %+v", statuses["in-object-keys"])
+	}
+	if statuses["in-temp-objects"].InObjectKeys || !statuses["in-temp-objects"].InTempObjects {
+		t.Fatalf("unexpected temp_objects status: %+v", statuses["in-temp-objects"])
+	}
+	if statuses["unreferenced"].InObjectKeys || statuses["unreferenced"].InTempObjects {
+		t.Fatalf("unexpected unreferenced status: %+v", statuses["unreferenced"])
+	}
+}
+
 func TestGetAccessibleObjectAllowsOwnerFileAndThumbnail(t *testing.T) {
 	repository, db := setupAccessibleObjectTest(t)
 
@@ -42,7 +70,7 @@ func TestGetAccessibleObjectAllowsOwnerFileAndThumbnail(t *testing.T) {
 	insertObjectTestKey(t, db, fileID, ente.FILE, "owner-file-object", 100, []string{"b2-eu-cen"})
 	insertObjectTestKey(t, db, fileID, ente.THUMBNAIL, "owner-thumbnail-object", 10, []string{"b2-eu-cen"})
 
-	fileObject, err := repository.GetAccessibleObject(context.Background(), fileID, ownerID, ente.FILE)
+	fileObject, err := repository.GetAccessibleObject(t.Context(), fileID, ownerID, ente.FILE)
 	if err != nil {
 		t.Fatalf("GetAccessibleObject(file) error = %v", err)
 	}
@@ -50,7 +78,7 @@ func TestGetAccessibleObjectAllowsOwnerFileAndThumbnail(t *testing.T) {
 		t.Fatalf("unexpected file object: %+v", fileObject)
 	}
 
-	thumbnailObject, err := repository.GetAccessibleObject(context.Background(), fileID, ownerID, ente.THUMBNAIL)
+	thumbnailObject, err := repository.GetAccessibleObject(t.Context(), fileID, ownerID, ente.THUMBNAIL)
 	if err != nil {
 		t.Fatalf("GetAccessibleObject(thumbnail) error = %v", err)
 	}
@@ -78,7 +106,7 @@ func TestGetAccessibleObjectAllowsSharedFile(t *testing.T) {
 	linkObjectTestFileToCollection(t, db, collectionID, fileID, ownerID)
 	insertObjectTestKey(t, db, fileID, ente.FILE, "shared-file-object", 100, []string{"b2-eu-cen"})
 
-	fileObject, err := repository.GetAccessibleObject(context.Background(), fileID, actorID, ente.FILE)
+	fileObject, err := repository.GetAccessibleObject(t.Context(), fileID, actorID, ente.FILE)
 	if err != nil {
 		t.Fatalf("GetAccessibleObject(shared file) error = %v", err)
 	}
@@ -103,7 +131,7 @@ func TestGetAccessibleObjectRejectsUnsharedForeignFile(t *testing.T) {
 	fileID := insertObjectTestFile(t, db, ownerID)
 	insertObjectTestKey(t, db, fileID, ente.FILE, "unshared-file-object", 100, []string{"b2-eu-cen"})
 
-	_, err := repository.GetAccessibleObject(context.Background(), fileID, actorID, ente.FILE)
+	_, err := repository.GetAccessibleObject(t.Context(), fileID, actorID, ente.FILE)
 	if !errors.Is(err, ente.ErrPermissionDenied) {
 		t.Fatalf("expected permission denied, got %v", err)
 	}
@@ -119,7 +147,7 @@ func TestGetAccessibleObjectReturnsNoRowsForAllowedFileWithMissingObject(t *test
 	})
 	fileID := insertObjectTestFile(t, db, ownerID)
 
-	_, err := repository.GetAccessibleObject(context.Background(), fileID, ownerID, ente.FILE)
+	_, err := repository.GetAccessibleObject(t.Context(), fileID, ownerID, ente.FILE)
 	if !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("expected sql.ErrNoRows, got %v", err)
 	}
@@ -128,7 +156,7 @@ func TestGetAccessibleObjectReturnsNoRowsForAllowedFileWithMissingObject(t *test
 func TestGetAccessibleObjectReturnsNoRowsForMissingFile(t *testing.T) {
 	repository, _ := setupAccessibleObjectTest(t)
 
-	_, err := repository.GetAccessibleObject(context.Background(), 404, 1, ente.FILE)
+	_, err := repository.GetAccessibleObject(t.Context(), 404, 1, ente.FILE)
 	if !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("expected sql.ErrNoRows, got %v", err)
 	}
@@ -148,7 +176,7 @@ func TestGetAccessibleObjectReturnsNoRowsForDeletedObject(t *testing.T) {
 		t.Fatalf("failed to mark object deleted: %v", err)
 	}
 
-	_, err := repository.GetAccessibleObject(context.Background(), fileID, ownerID, ente.FILE)
+	_, err := repository.GetAccessibleObject(t.Context(), fileID, ownerID, ente.FILE)
 	if !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("expected sql.ErrNoRows, got %v", err)
 	}
@@ -166,7 +194,7 @@ func TestGetAccessibleObjectWithDCsReturnsDatacenters(t *testing.T) {
 	wantDCs := []string{"b2-eu-cen", "wasabi-eu-central-2-v3"}
 	insertObjectTestKey(t, db, fileID, ente.FILE, "dcs-file-object", 100, wantDCs)
 
-	fileObject, gotDCs, err := repository.GetAccessibleObjectWithDCs(context.Background(), fileID, ownerID, ente.FILE)
+	fileObject, gotDCs, err := repository.GetAccessibleObjectWithDCs(t.Context(), fileID, ownerID, ente.FILE)
 	if err != nil {
 		t.Fatalf("GetAccessibleObjectWithDCs() error = %v", err)
 	}
@@ -180,6 +208,144 @@ func TestGetAccessibleObjectWithDCsReturnsDatacenters(t *testing.T) {
 		if gotDCs[i] != wantDCs[i] {
 			t.Fatalf("unexpected datacenters: got %v want %v", gotDCs, wantDCs)
 		}
+	}
+}
+
+func TestGetOwnedObjectAllowsOwner(t *testing.T) {
+	repository, db := setupAccessibleObjectTest(t)
+
+	ownerID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       1,
+		Email:        "owned-object-owner@ente.com",
+		CreationTime: 1,
+	})
+	fileID := insertObjectTestFile(t, db, ownerID)
+	insertObjectTestKey(t, db, fileID, ente.FILE, "owned-file-object", 100, []string{"b2-eu-cen"})
+
+	fileObject, err := repository.GetOwnedObject(t.Context(), fileID, ownerID, ente.FILE)
+	if err != nil {
+		t.Fatalf("GetOwnedObject() error = %v", err)
+	}
+	if fileObject.ObjectKey != "owned-file-object" || fileObject.FileSize != 100 || fileObject.Type != ente.FILE {
+		t.Fatalf("unexpected owned file object: %+v", fileObject)
+	}
+}
+
+func TestGetOwnedObjectRejectsForeignOwner(t *testing.T) {
+	repository, db := setupAccessibleObjectTest(t)
+
+	ownerID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       1,
+		Email:        "owned-object-real-owner@ente.com",
+		CreationTime: 1,
+	})
+	actorID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       2,
+		Email:        "owned-object-actor@ente.com",
+		CreationTime: 1,
+	})
+	fileID := insertObjectTestFile(t, db, ownerID)
+	insertObjectTestKey(t, db, fileID, ente.FILE, "foreign-owned-file-object", 100, []string{"b2-eu-cen"})
+
+	_, err := repository.GetOwnedObject(t.Context(), fileID, actorID, ente.FILE)
+	if !errors.Is(err, ente.ErrPermissionDenied) {
+		t.Fatalf("expected permission denied, got %v", err)
+	}
+}
+
+func TestGetOwnedObjectReturnsNoRowsForOwnedFileWithMissingObject(t *testing.T) {
+	repository, db := setupAccessibleObjectTest(t)
+
+	ownerID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       1,
+		Email:        "owned-object-missing-owner@ente.com",
+		CreationTime: 1,
+	})
+	fileID := insertObjectTestFile(t, db, ownerID)
+
+	_, err := repository.GetOwnedObject(t.Context(), fileID, ownerID, ente.FILE)
+	if !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("expected sql.ErrNoRows, got %v", err)
+	}
+}
+
+func TestGetCollectionObjectAllowsCollectionFile(t *testing.T) {
+	repository, db := setupAccessibleObjectTest(t)
+
+	ownerID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       1,
+		Email:        "collection-object-owner@ente.com",
+		CreationTime: 1,
+	})
+	collectionID := insertObjectTestCollection(t, db, ownerID)
+	fileID := insertObjectTestFile(t, db, ownerID)
+	linkObjectTestFileToCollection(t, db, collectionID, fileID, ownerID)
+	insertObjectTestKey(t, db, fileID, ente.THUMBNAIL, "collection-thumbnail-object", 10, []string{"b2-eu-cen"})
+
+	thumbnailObject, err := repository.GetCollectionObject(t.Context(), collectionID, fileID, ente.THUMBNAIL)
+	if err != nil {
+		t.Fatalf("GetCollectionObject() error = %v", err)
+	}
+	if thumbnailObject.ObjectKey != "collection-thumbnail-object" || thumbnailObject.Type != ente.THUMBNAIL {
+		t.Fatalf("unexpected collection thumbnail object: %+v", thumbnailObject)
+	}
+}
+
+func TestGetCollectionObjectRejectsFileOutsideCollection(t *testing.T) {
+	repository, db := setupAccessibleObjectTest(t)
+
+	ownerID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       1,
+		Email:        "collection-object-outside-owner@ente.com",
+		CreationTime: 1,
+	})
+	collectionID := insertObjectTestCollection(t, db, ownerID)
+	fileID := insertObjectTestFile(t, db, ownerID)
+	insertObjectTestKey(t, db, fileID, ente.FILE, "outside-collection-file-object", 100, []string{"b2-eu-cen"})
+
+	_, err := repository.GetCollectionObject(t.Context(), collectionID, fileID, ente.FILE)
+	if !errors.Is(err, ente.ErrPermissionDenied) {
+		t.Fatalf("expected permission denied, got %v", err)
+	}
+}
+
+func TestGetCollectionObjectReturnsNoRowsForMissingObject(t *testing.T) {
+	repository, db := setupAccessibleObjectTest(t)
+
+	ownerID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       1,
+		Email:        "collection-object-missing-owner@ente.com",
+		CreationTime: 1,
+	})
+	collectionID := insertObjectTestCollection(t, db, ownerID)
+	fileID := insertObjectTestFile(t, db, ownerID)
+	linkObjectTestFileToCollection(t, db, collectionID, fileID, ownerID)
+
+	_, err := repository.GetCollectionObject(t.Context(), collectionID, fileID, ente.FILE)
+	if !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("expected sql.ErrNoRows, got %v", err)
+	}
+}
+
+func TestGetCollectionObjectRejectsDeletedCollectionFile(t *testing.T) {
+	repository, db := setupAccessibleObjectTest(t)
+
+	ownerID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       1,
+		Email:        "collection-object-deleted-owner@ente.com",
+		CreationTime: 1,
+	})
+	collectionID := insertObjectTestCollection(t, db, ownerID)
+	fileID := insertObjectTestFile(t, db, ownerID)
+	linkObjectTestFileToCollection(t, db, collectionID, fileID, ownerID)
+	insertObjectTestKey(t, db, fileID, ente.FILE, "deleted-collection-file-object", 100, []string{"b2-eu-cen"})
+	if _, err := db.Exec(`UPDATE collection_files SET is_deleted = TRUE WHERE collection_id = $1 AND file_id = $2`, collectionID, fileID); err != nil {
+		t.Fatalf("failed to mark collection file deleted: %v", err)
+	}
+
+	_, err := repository.GetCollectionObject(t.Context(), collectionID, fileID, ente.FILE)
+	if !errors.Is(err, ente.ErrPermissionDenied) {
+		t.Fatalf("expected permission denied, got %v", err)
 	}
 }
 

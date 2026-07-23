@@ -283,7 +283,7 @@ const LoadFailed: React.FC = () => (
 
 const NoLargeFilesFound: React.FC = () => (
     <CenteredFill>
-        <Typography color="text.muted" sx={{ textAlign: "center" }}>
+        <Typography sx={{ color: "text.muted", textAlign: "center" }}>
             {t("no_large_files")}
         </Typography>
     </CenteredFill>
@@ -474,14 +474,10 @@ const GridItem: React.FC<GridItemProps> = memo(({ item, onToggle, onOpen }) => {
         null,
     );
     const isLongPress = React.useRef(false);
-
-    // Use refs for callbacks to avoid stale closures in long-press timer
     const onOpenRef = React.useRef(onOpen);
-    const onToggleRef = React.useRef(onToggle);
     useEffect(() => {
         onOpenRef.current = onOpen;
-        onToggleRef.current = onToggle;
-    }, [onOpen, onToggle]);
+    }, [onOpen]);
 
     // Memoize touch device detection to avoid media query on every render
     const isTouchDevice = useMemo(
@@ -705,8 +701,7 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
                         {t("delete_files_button", { count: selectedCount })}
                     </Typography>
                     <Typography
-                        sx={{ fontSize: "inherit" }}
-                        fontWeight="regular"
+                        sx={{ fontSize: "inherit", fontWeight: "regular" }}
                     >
                         ({formattedByteSize(selectedSize)})
                     </Typography>

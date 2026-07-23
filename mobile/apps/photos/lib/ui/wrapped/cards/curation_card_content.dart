@@ -67,8 +67,10 @@ class _FavoritesCardContentState extends State<_FavoritesCardContent> {
 
     final Object? rawRotation = widget.card.meta["rotationMillis"];
     final int? rotation = rawRotation is num ? rawRotation.toInt() : null;
-    _rotationMillis =
-        ((rotation ?? _kDefaultRotationMillis).clamp(1200, 6000)).toInt();
+    _rotationMillis = ((rotation ?? _kDefaultRotationMillis).clamp(
+      1200,
+      6000,
+    )).toInt();
 
     if (_groups.length > 1) {
       _rotationTimer = Timer.periodic(
@@ -89,8 +91,10 @@ class _FavoritesCardContentState extends State<_FavoritesCardContent> {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> detailChips =
-        _stringListFromMeta(widget.card.meta, "detailChips");
+    final List<String> detailChips = _stringListFromMeta(
+      widget.card.meta,
+      "detailChips",
+    );
     final List<MediaRef> currentMedia = _groups.isEmpty
         ? const <MediaRef>[]
         : _groups[_groupIndex.clamp(0, _groups.length - 1)];
@@ -98,10 +102,7 @@ class _FavoritesCardContentState extends State<_FavoritesCardContent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        buildWrappedCardTitle(
-          widget.card.title,
-          widget.textTheme.h2Bold,
-        ),
+        buildWrappedCardTitle(widget.card.title, widget.textTheme.h2Bold),
         if (widget.card.subtitle != null && widget.card.subtitle!.isNotEmpty)
           buildWrappedCardSubtitle(
             widget.card.subtitle!,
@@ -155,13 +156,9 @@ class _FavoritesCardContentState extends State<_FavoritesCardContent> {
     }
 
     if (card.media.isNotEmpty) {
-      return <List<MediaRef>>[
-        card.media.toList(growable: false),
-      ];
+      return <List<MediaRef>>[card.media.toList(growable: false)];
     }
 
-    return const <List<MediaRef>>[
-      <MediaRef>[],
-    ];
+    return const <List<MediaRef>>[<MediaRef>[]];
   }
 }

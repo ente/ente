@@ -3,13 +3,14 @@ package emergency
 import (
 	"context"
 	"fmt"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/repo/emergency"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/repo/emergency"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	stime "time"
 )
 
 const (
@@ -66,13 +67,13 @@ func (c *Controller) ChangePassword(ctx *gin.Context, userID int64, request ente
 		return nil, stacktrace.Propagate(err, "")
 	}
 
-	hasUpdate, err := c.Repo.UpdateRecoveryStatusForID(ctx, sessionID, ente.RecoveryStatusRecovered)
+	hasUpdate, err := c.Repo.UpdateRecoveryStatusForSession(ctx, sessionID, contact.UserID, contact.EmergencyContactID, ente.RecoveryStatusRecovered)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to update recovery status")
 	}
 	if !hasUpdate {
 		log.WithField("userID", userID).WithField("req", request).
-			Warn("no row updated while rejecting recovery")
+			Warn("no row updated while marking recovery complete")
 	} else {
 		go c.sendRecoveryNotification(ctx, contact.UserID, contact.EmergencyContactID, ente.RecoveryStatusRecovered, nil)
 	}
@@ -128,7 +129,7 @@ func (c *Controller) SendRecoveryReminder() {
 		return
 	}
 	log.Info(fmt.Sprintf("Found %d recovery rows", len(*rows)))
-	microsecondsInDay := 1000 * 1000 * 24 * 60 * 60
+	microsecondsInDay := (stime.Hour * 24).Microseconds()
 	for _, row := range *rows {
 		logger := log.WithFields(log.Fields{
 			"userID":         row.UserID,
@@ -139,7 +140,7 @@ func (c *Controller) SendRecoveryReminder() {
 			"sessionID":      row.ID,
 		})
 
-		daysLeft := (row.WaitTill - row.NextReminderAt) / int64(microsecondsInDay)
+		daysLeft := (row.WaitTill - row.NextReminderAt) / microsecondsInDay
 		logger.Infof("Days left: %d", daysLeft)
 		if row.WaitTill < time.Microseconds() && row.Status == ente.RecoveryStatusWaiting {
 			_, updateErr := c.Repo.UpdateRecoveryStatusForID(context.Background(), row.ID, ente.RecoveryStatusReady)

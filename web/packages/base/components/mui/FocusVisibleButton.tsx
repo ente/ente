@@ -1,4 +1,5 @@
 import { Button, styled, type ButtonProps } from "@mui/material";
+import type {} from "ente-base/components/utils/mui-theme";
 import React from "react";
 
 export const RippleDisabledButton: React.FC<ButtonProps> = (props) => (

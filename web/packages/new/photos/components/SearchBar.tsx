@@ -347,10 +347,8 @@ const SearchInputWrapper = styled("div")`
 `;
 
 const loadOptions = pDebounce(async (input: string) => {
-    const [sidebarActions, photoOptions] = await Promise.all([
-        sidebarSearchOptionsForString(input),
-        searchOptionsForString(input),
-    ]);
+    const sidebarActions = sidebarSearchOptionsForString(input);
+    const photoOptions = await searchOptionsForString(input);
 
     return [...photoOptions, ...sidebarActions];
 }, 250);

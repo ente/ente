@@ -129,7 +129,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
                           titleColor: colorScheme.textMuted,
                           leadingIconWidget: UserAvatarWidget(
                             user,
-                            type: AvatarType.md,
+                            type: AvatarType.medium,
                             currentUserID: Configuration.instance.getUserID()!,
                           ),
                           leadingIconSize: 24,
@@ -155,10 +155,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
             ),
           ],
           const SizedBox(height: 20),
-          Text(
-            context.l10n.chooseARecoveryTime,
-            style: textTheme.bodyMuted,
-          ),
+          Text(context.l10n.chooseARecoveryTime, style: textTheme.bodyMuted),
           const SizedBox(height: 12),
           RecoveryDateSelector(
             selectedDays: _selectedRecoveryDays,
@@ -197,6 +194,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
   }
 
   Future<void> _onAddContactTap() async {
+    final sheetContext = context;
     final emailsToAdd = _emailsToAdd;
     if (emailsToAdd.isEmpty) {
       return;
@@ -213,11 +211,20 @@ class _AddContactSheetState extends State<AddContactSheet> {
     var hasSuccess = false;
     for (final email in emailsToAdd) {
       try {
-        final success = await EmergencyContactService.instance.addContact(
-          context,
-          email,
-          recoveryNoticeInDays: _selectedRecoveryDays,
-        );
+        late final bool success;
+        if (sheetContext.mounted) {
+          success = await EmergencyContactService.instance.addContact(
+            sheetContext,
+            email,
+            recoveryNoticeInDays: _selectedRecoveryDays,
+          );
+        } else {
+          success = await EmergencyContactService.instance.addContact(
+            null,
+            email,
+            recoveryNoticeInDays: _selectedRecoveryDays,
+          );
+        }
         if (success) {
           hasSuccess = true;
         } else {
@@ -236,7 +243,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
         context,
         title: AppLocalizations.of(context).error,
         message: AppLocalizations.of(context).somethingWentWrong,
-        assetPath: "assets/warning-green.png",
+        assetPath: "assets/warning-grey.png",
       );
     }
   }
@@ -260,7 +267,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
       context,
       title: l10n.warning,
       message: message,
-      assetPath: "assets/warning-green.png",
+      assetPath: "assets/warning-grey.png",
       buttons: [
         ButtonWidgetV2(
           buttonType: ButtonTypeV2.critical,
@@ -278,7 +285,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
         context,
         title: AppLocalizations.of(context).invalidEmailAddress,
         message: AppLocalizations.of(context).enterValidEmail,
-        assetPath: "assets/warning-green.png",
+        assetPath: "assets/warning-grey.png",
       );
       return;
     }
@@ -335,8 +342,8 @@ class _AddContactSheetState extends State<AddContactSheet> {
     if (_textController.text.trim().isNotEmpty) {
       suggestedUsers.removeWhere(
         (element) => !element.email.toLowerCase().contains(
-              _textController.text.trim().toLowerCase(),
-            ),
+          _textController.text.trim().toLowerCase(),
+        ),
       );
     }
     suggestedUsers.sort((a, b) => a.email.compareTo(b.email));

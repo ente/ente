@@ -60,8 +60,7 @@ export type SidebarActionID =
     | "help.blog"
     | "help.requestFeature"
     | "help.support"
-    | "help.viewLogs"
-    | "help.testUpload";
+    | "help.viewLogs";
 
 /**
  * A search suggestion.

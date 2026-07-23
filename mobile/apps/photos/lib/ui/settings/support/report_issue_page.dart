@@ -1,5 +1,7 @@
 import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/generated/l10n.dart";
@@ -32,6 +34,16 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final colors = context.componentColors;
+    final subjectHasText = _subjectController.text.isNotEmpty;
+    final descriptionHasText = _descriptionController.text.isNotEmpty;
+
+    Widget copyIcon() => HugeIcon(
+      icon: HugeIcons.strokeRoundedCopy01,
+      size: IconSizes.small,
+      color: colors.textLighter,
+      strokeWidth: 1.6,
+    );
 
     return SettingsPageScaffold(
       title: l10n.reportAnIssue,
@@ -52,8 +64,12 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
           hintText: l10n.oneLineAboutTheIssue,
           controller: _subjectController,
           textCapitalization: TextCapitalization.sentences,
-          isClearable: true,
           maxLines: 1,
+          onChanged: (_) => setState(() {}),
+          suffix: subjectHasText ? copyIcon() : null,
+          onSuffixTap: subjectHasText
+              ? () => _copyToClipboard(_subjectController.text)
+              : null,
         ),
         const SizedBox(height: 16),
         TextInputComponent(
@@ -63,6 +79,11 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
           textCapitalization: TextCapitalization.sentences,
           maxLines: 6,
           minLines: 6,
+          onChanged: (_) => setState(() {}),
+          suffix: descriptionHasText ? copyIcon() : null,
+          onSuffixTap: descriptionHasText
+              ? () => _copyToClipboard(_descriptionController.text)
+              : null,
         ),
         const SizedBox(height: 16),
         MenuComponent(
@@ -81,6 +102,13 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
         const SizedBox(height: 8),
       ],
     );
+  }
+
+  Future<void> _copyToClipboard(String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    if (mounted) {
+      showShortToast(context, AppLocalizations.of(context).copied);
+    }
   }
 
   Future<void> _onSend() async {
@@ -115,24 +143,30 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
       );
 
       if (_attachLogs) {
+        if (!mounted) return;
         logsZipFilePath = await getZippedLogsFile(context);
         logsLabel = l10n.export;
       }
 
-      final didOpenComposer = _attachLogs
-          ? await sendLogsWithSubjectAndBody(
-              context,
-              toEmail: recipientEmail,
-              subject: subject,
-              body: body,
-              zipFilePath: logsZipFilePath,
-            )
-          : await sendComposedEmail(
-              context,
-              to: recipientEmail,
-              subject: subject,
-              body: body,
-            );
+      late final bool didOpenComposer;
+      if (_attachLogs) {
+        if (!mounted) return;
+        didOpenComposer = await sendLogsWithSubjectAndBody(
+          context,
+          toEmail: recipientEmail,
+          subject: subject,
+          body: body,
+          zipFilePath: logsZipFilePath,
+        );
+      } else {
+        if (!mounted) return;
+        didOpenComposer = await sendComposedEmail(
+          context,
+          to: recipientEmail,
+          subject: subject,
+          body: body,
+        );
+      }
 
       if (didOpenComposer && mounted) {
         Navigator.of(context).pop();

@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/ente-io/museum/ente/base"
+	"github.com/ente/museum/ente/base"
 	"github.com/lib/pq"
 	"github.com/spf13/viper"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/stacktrace"
 )
 
 // FileLinkRepository defines the methods for inserting, updating and
@@ -199,19 +199,49 @@ func (pcr *FileLinkRepository) DisableLinksForUser(ctx context.Context, userID i
 }
 
 func (pcr *FileLinkRepository) GetFileUrlRowByToken(ctx context.Context, accessToken string) (*ente.FileLinkRow, error) {
+	result, err := pcr.getActiveFileUrlRowByToken(ctx, accessToken)
+	if err == nil {
+		return result, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, stacktrace.Propagate(err, "failed to get active public file url summary by token")
+	}
+	result, err = pcr.getDisabledFileUrlRowByToken(ctx, accessToken)
+	if err == nil {
+		return result, nil
+	}
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ente.ErrNotFound
+	}
+	return nil, stacktrace.Propagate(err, "failed to get disabled public file url summary by token")
+}
+
+func (pcr *FileLinkRepository) getActiveFileUrlRowByToken(ctx context.Context, accessToken string) (*ente.FileLinkRow, error) {
 	row := pcr.DB.QueryRowContext(ctx,
 		`SELECT id, file_id, owner_id, is_disabled, valid_till, device_limit, enable_download, pw_hash, pw_nonce, mem_limit, ops_limit,
        created_at, updated_at, encrypted_file_key, encrypted_file_key_nonce, kdf_nonce, kdf_mem_limit, kdf_ops_limit, encrypted_share_key
 		from public_file_tokens
-		where access_token = $1
+		where access_token = $1 and is_disabled = FALSE
 `, accessToken)
+	return scanFileLinkRow(row)
+}
+
+func (pcr *FileLinkRepository) getDisabledFileUrlRowByToken(ctx context.Context, accessToken string) (*ente.FileLinkRow, error) {
+	row := pcr.DB.QueryRowContext(ctx,
+		`SELECT id, file_id, owner_id, is_disabled, valid_till, device_limit, enable_download, pw_hash, pw_nonce, mem_limit, ops_limit,
+       created_at, updated_at, encrypted_file_key, encrypted_file_key_nonce, kdf_nonce, kdf_mem_limit, kdf_ops_limit, encrypted_share_key
+		from public_file_tokens
+		where access_token = $1 and is_disabled = TRUE
+		limit 1
+`, accessToken)
+	return scanFileLinkRow(row)
+}
+
+func scanFileLinkRow(row interface{ Scan(dest ...any) error }) (*ente.FileLinkRow, error) {
 	var result = ente.FileLinkRow{}
 	err := row.Scan(&result.LinkID, &result.FileID, &result.OwnerID, &result.IsDisabled, &result.ValidTill, &result.DeviceLimit, &result.EnableDownload, &result.PassHash, &result.Nonce, &result.MemLimit, &result.OpsLimit, &result.CreatedAt, &result.UpdatedAt, &result.EncryptedFileKey, &result.EncryptedFileKeyNonce, &result.KdfNonce, &result.KdfMemLimit, &result.KdfOpsLimit, &result.EncryptedShareKey)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ente.ErrNotFound
-		}
-		return nil, stacktrace.Propagate(err, "failed to get public file url summary by token")
+		return nil, err
 	}
 	return &result, nil
 }

@@ -4,9 +4,9 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   file_saver
-  flutter_local_authentication
   flutter_secure_storage_linux
   gtk
+  local_auth_linux
   screen_retriever_linux
   sentry_flutter
   sodium_libs

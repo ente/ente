@@ -1,0 +1,7 @@
+cargo:
+    debug:
+        extra_flags: ["--features", "flutter"]
+    profile:
+        extra_flags: ["--features", "flutter"]
+    release:
+        extra_flags: ["--features", "flutter"]

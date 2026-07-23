@@ -1,9 +1,9 @@
+import "package:ente_lock_screen/local_authentication_service.dart";
 import "package:flutter/material.dart";
 import "package:photos/l10n/l10n.dart";
 import "package:photos/models/rituals/ritual_models.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
-import "package:photos/services/local_authentication_service.dart";
 
 bool isRitualAlbumHidden(Ritual ritual) {
   final albumId = ritual.albumId;
@@ -22,8 +22,9 @@ bool isHiddenCollectionId(int? collectionId) {
   if (collectionId == null || collectionId <= 0) {
     return false;
   }
-  final collection =
-      CollectionsService.instance.getCollectionByID(collectionId);
+  final collection = CollectionsService.instance.getCollectionByID(
+    collectionId,
+  );
   return collection?.isHidden() ?? false;
 }
 

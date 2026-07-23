@@ -148,8 +148,9 @@ extension MatrixCalculations on Matrix {
     // ignore: non_constant_identifier_names
     final S1 = a * a + b * b + c * c + d * d;
     // ignore: non_constant_identifier_names
-    final S2 =
-        math.sqrt(math.pow(tempCalc, 2) + 4 * math.pow(a * c + b * d, 2));
+    final S2 = math.sqrt(
+      math.pow(tempCalc, 2) + 4 * math.pow(a * c + b * d, 2),
+    );
     final sigma1 = math.sqrt((S1 + S2) / 2);
     final sigma2 = math.sqrt((S1 - S2) / 2);
     final S = Vector.fromList([sigma1, sigma2]);
@@ -157,20 +158,18 @@ extension MatrixCalculations on Matrix {
     // Computation of V matrix
     final tempCalc2 = a * a - b * b + c * c - d * d;
     final phi = 0.5 * math.atan2(2 * a * b + 2 * c * d, tempCalc2);
-    final s11 = (a * math.cos(theta) + c * math.sin(theta)) * math.cos(phi) +
+    final s11 =
+        (a * math.cos(theta) + c * math.sin(theta)) * math.cos(phi) +
         (b * math.cos(theta) + d * math.sin(theta)) * math.sin(phi);
-    final s22 = (a * math.sin(theta) - c * math.cos(theta)) * math.sin(phi) +
+    final s22 =
+        (a * math.sin(theta) - c * math.cos(theta)) * math.sin(phi) +
         (-b * math.sin(theta) + d * math.cos(theta)) * math.cos(phi);
     final V = Matrix.fromList([
       [s11.sign * math.cos(phi), s22.sign * math.sin(phi)],
       [s11.sign * math.sin(phi), -s22.sign * math.cos(phi)],
     ]);
 
-    return {
-      'U': U,
-      'S': S,
-      'V': V,
-    };
+    return {'U': U, 'S': S, 'V': V};
   }
 
   int matrixRank() {

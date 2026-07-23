@@ -33,22 +33,23 @@ import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/models/preview/playlist_data.dart";
 import "package:photos/models/preview/preview_item.dart";
 import "package:photos/models/preview/preview_item_status.dart";
+import "package:photos/module/download/file.dart";
+import "package:photos/module/metadata/video.dart";
+import "package:photos/module/upload/service/file_uploader.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/file_magic_service.dart";
 import "package:photos/services/filedata/model/file_data.dart";
 import "package:photos/services/isolated_ffmpeg_service.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
 import "package:photos/ui/notification/toast.dart";
-import "package:photos/utils/exif_util.dart";
 import "package:photos/utils/file_key.dart";
-import "package:photos/utils/file_uploader.dart";
-import "package:photos/utils/file_util.dart";
 import "package:photos/utils/gzip.dart";
 import "package:photos/utils/network_util.dart";
 
 const _maxRetryCount = 3;
 const _maxFfmpegOutputLines = 24;
 const _maxFfmpegOutputChars = 4000;
+const _missingVideoStreamError = "No video stream found in FFprobe metadata";
 
 class VideoPreviewService {
   final _logger = Logger("VideoPreviewService");
@@ -60,14 +61,14 @@ class VideoPreviewService {
   bool get _hasQueuedFile => fileQueue.isNotEmpty;
 
   VideoPreviewService._privateConstructor()
-      : serviceLocator = ServiceLocator.instance,
-        filesDB = FilesDB.instance,
-        uploadLocksDB = UploadLocksDB.instance,
-        ffmpegService = IsolatedFfmpegService.instance,
-        fileMagicService = FileMagicService.instance,
-        cacheManager = DefaultCacheManager(),
-        videoCacheManager = VideoCacheManager.instance,
-        config = Configuration.instance {
+    : serviceLocator = ServiceLocator.instance,
+      filesDB = FilesDB.instance,
+      uploadLocksDB = UploadLocksDB.instance,
+      ffmpegService = IsolatedFfmpegService.instance,
+      fileMagicService = FileMagicService.instance,
+      cacheManager = DefaultCacheManager(),
+      videoCacheManager = VideoCacheManager.instance,
+      config = Configuration.instance {
     if (flagService.stopStreamProcess) {
       _registerStopSafelyListeners();
     }
@@ -189,8 +190,9 @@ class VideoPreviewService {
       );
     }
 
-    final progressStr =
-        progress != null ? "${(progress * 100).toStringAsFixed(1)}%" : "N/A";
+    final progressStr = progress != null
+        ? "${(progress * 100).toStringAsFixed(1)}%"
+        : "N/A";
 
     // Don't interrupt upload or compression >= 75%, but clear queue
     if (status == PreviewItemStatus.uploading ||
@@ -348,8 +350,9 @@ class VideoPreviewService {
     // If total is empty then mark all as processed else compute the ratio
     // of processed files and total remote video files
     // netProcessedItems = processed / total
-    final double netProcessedItems =
-        total.isEmpty ? 1 : (processed.length / total.length).clamp(0, 1);
+    final double netProcessedItems = total.isEmpty
+        ? 1
+        : (processed.length / total.length).clamp(0, 1);
 
     // Store the data and return it
     final status = netProcessedItems;
@@ -378,6 +381,7 @@ class VideoPreviewService {
   Future<void> chunkAndUploadVideo(
     BuildContext? ctx,
     EnteFile enteFile, {
+
     /// Indicates this function is an continuation of a chunking thread
     bool continuation = false,
     // not used currently
@@ -470,8 +474,9 @@ class VideoPreviewService {
       _items[enteFile.uploadedFileID!] = PreviewItem(
         status: PreviewItemStatus.compressing,
         file: enteFile,
-        retryCount:
-            forceUpload ? 0 : _items[enteFile.uploadedFileID!]?.retryCount ?? 0,
+        retryCount: forceUpload
+            ? 0
+            : _items[enteFile.uploadedFileID!]?.retryCount ?? 0,
         collectionID: enteFile.collectionID ?? 0,
       );
       _fireVideoPreviewStateChange(
@@ -488,23 +493,40 @@ class VideoPreviewService {
       }
 
       // check metadata for bitrate, codec, color space
-      props ??= await getVideoPropsAsync(file);
+      props ??= await getVideoProps(file);
       final fileSize = enteFile.fileSize ?? file.lengthSync();
 
+      if (props == null) {
+        error =
+            "Failed to read FFprobe metadata for ${enteFile.displayName} "
+            "(fileID=${enteFile.uploadedFileID})";
+        _logger.warning(error);
+        return;
+      }
+
       final videoData = List.from(
-        props?.propData?["streams"] ?? [],
+        props.propData?["streams"] ?? [],
       ).firstWhereOrNull((e) => e["type"] == "video");
+      if (videoData == null) {
+        error =
+            "$_missingVideoStreamError for ${enteFile.displayName} "
+            "(fileID=${enteFile.uploadedFileID})";
+        _logger.warning("$error; skipping preview creation");
+        return;
+      }
 
       final codec = videoData["codec_name"]?.toString().toLowerCase();
       final isH264 = codec?.contains("h264") ?? false;
 
-      final bitrate = props?.duration?.inSeconds != null
-          ? (fileSize * 8) / props!.duration!.inSeconds
+      final bitrate = props.duration?.inSeconds != null
+          ? (fileSize * 8) / props.duration!.inSeconds
           : null;
 
-      final colorTransfer =
-          videoData["color_transfer"]?.toString().toLowerCase();
-      final isHDR = colorTransfer != null &&
+      final colorTransfer = videoData["color_transfer"]
+          ?.toString()
+          .toLowerCase();
+      final isHDR =
+          colorTransfer != null &&
           (colorTransfer == "smpte2084" || colorTransfer == "arib-std-b67");
 
       // create temp file & directory for preview generation
@@ -532,7 +554,7 @@ class VideoPreviewService {
           !(isH264 && bitrate != null && bitrate <= 4000 * 1000);
       final rescaleVideo = !(bitrate != null && bitrate <= 2000 * 1000);
       final needsTonemap = isHDR;
-      final applyFPS = (double.tryParse(props?.fps ?? "") ?? 100) > 30;
+      final applyFPS = (double.tryParse(props.fps ?? "") ?? 100) > 30;
 
       String filters = "";
 
@@ -624,16 +646,16 @@ class VideoPreviewService {
           // Fetch resolution of generated stream by decrypting a single frame
           final playlistFrameResult = await ffmpegService
               .runFfmpeg(
-            '-allowed_extensions ALL -i "$prefix/output.m3u8" -frames:v 1 -c copy "$prefix/frame.ts"',
-          )
+                '-allowed_extensions ALL -i "$prefix/output.m3u8" -frames:v 1 -c copy "$prefix/frame.ts"',
+              )
               .onError((error, stackTrace) {
-            _logger.warning(
-              "FFmpeg command failed for frame",
-              error,
-              stackTrace,
-            );
-            return {};
-          });
+                _logger.warning(
+                  "FFmpeg command failed for frame",
+                  error,
+                  stackTrace,
+                );
+                return {};
+              });
           final playlistFrameReturnCode =
               playlistFrameResult["returnCode"] as int?;
           int? width, height;
@@ -642,7 +664,7 @@ class VideoPreviewService {
               FFProbeProps? playlistFrameProps;
               final file2 = File("$prefix/frame.ts");
 
-              playlistFrameProps = await getVideoPropsAsync(file2);
+              playlistFrameProps = await getVideoProps(file2);
               width = playlistFrameProps?.width;
               height = playlistFrameProps?.height;
             }
@@ -720,7 +742,11 @@ class VideoPreviewService {
         final entry = fileQueue.entries.first;
         final file = entry.value;
         fileQueue.remove(entry.key);
-        await chunkAndUploadVideo(ctx, file, continuation: true);
+        if (ctx != null && ctx.mounted) {
+          await chunkAndUploadVideo(ctx, file, continuation: true);
+        } else {
+          await chunkAndUploadVideo(null, file, continuation: true);
+        }
       } else {
         // Release compute when queue is empty or network is unavailable
         stop(shouldStopProcessing ? "network error" : "nothing to process");
@@ -775,6 +801,9 @@ class VideoPreviewService {
         "Network error detected, marking file as failed instead of retrying",
       );
       shouldRetry = false;
+    } else if (error is String && error.startsWith(_missingVideoStreamError)) {
+      shouldRetry = false;
+      uploadLocksDB.removeFromStreamQueue(enteFile.uploadedFileID!).ignore();
     }
 
     if (!_items.containsKey(enteFile.uploadedFileID!)) return;
@@ -835,16 +864,13 @@ class VideoPreviewService {
     try {
       final encryptionKey = getFileKey(file);
       final playlistContent = playlist.readAsStringSync();
-      final result = await gzipAndEncryptJson(
-        {
-          "playlist": playlistContent,
-          'type': 'hls_video',
-          'width': width,
-          'height': height,
-          'size': objectSize,
-        },
-        encryptionKey,
-      );
+      final result = await gzipAndEncryptJson({
+        "playlist": playlistContent,
+        'type': 'hls_video',
+        'width': width,
+        'height': height,
+        'size': objectSize,
+      }, encryptionKey);
       await _fileDataGateway.putVideoData(
         fileID: file.uploadedFileID!,
         objectID: objectId,
@@ -942,7 +968,7 @@ class VideoPreviewService {
         return false;
       }
     }
-    if (previewInfo == null && file.isOwner) {
+    if (!file.isOwner || previewInfo == null) {
       return false;
     }
     final playlist = await _getPlaylist(
@@ -1025,14 +1051,14 @@ class VideoPreviewService {
       }
       final videoFile = (await videoCacheManager.getFileFromCache(
         _getVideoPreviewKey(objectID),
-      ))
-          ?.file;
+      ))?.file;
       final effectiveSize = size ?? previewInfo?.objectSize;
       final maxPreviewCacheSize =
           maxPreviewSizeBytes ?? _maxPreviewSizeLimitForCache;
       if (videoFile == null) {
         previewURLResult = previewURLResult ?? await _getPreviewUrl(file);
-        final canCachePreview = effectiveSize != null &&
+        final canCachePreview =
+            effectiveSize != null &&
             effectiveSize <= maxPreviewCacheSize &&
             (tryReserveBytes == null || tryReserveBytes(effectiveSize));
         if (canCachePreview) {
@@ -1120,8 +1146,8 @@ class VideoPreviewService {
     }
     final encryptionKey =
         collectionsService.isSharedPublicLink(file.collectionID!)
-            ? getPublicFileKey(file)
-            : getFileKey(file);
+        ? getPublicFileKey(file)
+        : getFileKey(file);
     final playlistData = await decryptAndUnzipJson(
       encryptionKey,
       encryptedData: fetchResult.encryptedData,
@@ -1149,8 +1175,9 @@ class VideoPreviewService {
   Future<(String, String)> _getPreviewUrl(EnteFile file) async {
     try {
       late String url;
-      final previewType =
-          file.fileType == FileType.video ? "vid_preview" : "img_preview";
+      final previewType = file.fileType == FileType.video
+          ? "vid_preview"
+          : "img_preview";
       if (collectionsService.isSharedPublicLink(file.collectionID!)) {
         url = await _fileDataGateway.getPublicPreview(
           baseUrl: endpointConfig.endpoint,
@@ -1213,11 +1240,11 @@ class VideoPreviewService {
       if (isFileUnder10MB) {
         file = await getFile(enteFile, isOrigin: true);
         if (file != null) {
-          props = await getVideoPropsAsync(file);
+          props = await getVideoProps(file);
           final videoData = List.from(
             props?.propData?["streams"] ?? [],
           ).firstWhereOrNull((e) => e["type"] == "video");
-          final codec = videoData["codec_name"]?.toString().toLowerCase();
+          final codec = videoData?["codec_name"]?.toString().toLowerCase();
           skipFile = codec?.contains("h264") ?? false;
 
           if (skipFile) {
@@ -1301,8 +1328,9 @@ class VideoPreviewService {
       );
 
       // If not found in 60-day list, fetch it individually
-      queueFile ??=
-          await filesDB.getAnyUploadedFile(queueFileId).catchError((e) => null);
+      queueFile ??= await filesDB
+          .getAnyUploadedFile(queueFileId)
+          .catchError((e) => null);
 
       if (queueFile == null) {
         await uploadLocksDB
@@ -1460,7 +1488,8 @@ String _summarizeFfmpegOutput(String? output) {
     summary = summary.substring(summary.length - _maxFfmpegOutputChars);
   }
 
-  final wasTruncated = lines.length > summarizedLines.length ||
+  final wasTruncated =
+      lines.length > summarizedLines.length ||
       trimmedOutput.length > _maxFfmpegOutputChars;
   return wasTruncated
       ? "FFmpeg output (truncated):\n$summary"

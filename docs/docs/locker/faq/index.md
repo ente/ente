@@ -5,9 +5,7 @@ description: Answers to common questions about secure document storage, sharing,
 
 # Ente Locker FAQ
 
-Welcome to the Ente Locker FAQ index. Browse questions by category below, or
-use the search function at the top of the page to find specific answers
-quickly.
+Welcome to the Ente Locker FAQ index. Browse questions by category below, or use the search function at the top of the page to find specific answers quickly.
 
 ## Quick Navigation
 

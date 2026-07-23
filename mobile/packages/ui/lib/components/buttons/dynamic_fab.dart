@@ -39,8 +39,9 @@ class DynamicFAB extends StatelessWidget {
           children: [
             FloatingActionButton(
               heroTag: 'FAB',
-              backgroundColor:
-                  Theme.of(context).colorScheme.dynamicFABBackgroundColor,
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.dynamicFABBackgroundColor,
               foregroundColor: getEnteColorScheme(context).dynamicFABTextColor,
               onPressed: isFormValid!
                   ? onPressedFunction as void Function()?
@@ -49,10 +50,7 @@ class DynamicFAB extends StatelessWidget {
                     },
               child: Transform.rotate(
                 angle: isFormValid! ? 0 : math.pi / 2,
-                child: const Icon(
-                  Icons.chevron_right,
-                  size: 36,
-                ),
+                child: const Icon(Icons.chevron_right, size: 36),
               ), //keypad down here
             ),
           ],

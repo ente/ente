@@ -8,8 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/ente-io/museum/pkg/external/wasabi"
-	"github.com/ente-io/museum/tools/pkg/cli"
+	"github.com/ente/museum/pkg/external/wasabi"
+	"github.com/ente/museum/tools/pkg/cli"
 )
 
 const (

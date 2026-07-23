@@ -1,7 +1,0 @@
-- Added local voice transcription for chat input on iOS and Android.
-- Improved image attachments with compression, thumbnails, full-screen previews, and cleaner composer previews.
-- Improved image prompt performance on native apps by resizing to model limits and caching multimodal context.
-- Added Gemma model presets, including a larger desktop default and a mobile preset.
-- Improved model downloads with shared native downloading, cache reuse, parallel/range downloads, retries, and better progress reporting.
-- Improved desktop model selection by using better system memory detection.
-- Fixed Android back button handling when the sidebar is open.

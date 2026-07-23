@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class AppVersionWidget extends StatefulWidget {
-  const AppVersionWidget({
-    super.key,
-  });
+  const AppVersionWidget({super.key});
 
   @override
   State<AppVersionWidget> createState() => _AppVersionWidgetState();
@@ -28,8 +26,10 @@ class _AppVersionWidgetState extends State<AppVersionWidget> {
         if (now - (_lastTap ?? now) < kConsecutiveTapTimeWindowInMilliseconds) {
           _consecutiveTaps++;
           if (_consecutiveTaps == kTapThresholdForInspector) {
-            final dialog =
-                createProgressDialog(context, "Starting network inspector...");
+            final dialog = createProgressDialog(
+              context,
+              "Starting network inspector...",
+            );
             await dialog.show();
             await Future.delayed(
               const Duration(milliseconds: kDummyDelayDurationInMilliseconds),
@@ -45,11 +45,19 @@ class _AppVersionWidgetState extends State<AppVersionWidget> {
         future: _getAppVersion(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(
-                "Version: ${snapshot.data!}",
-                style: Theme.of(context).textTheme.bodySmall,
+            return SizedBox(
+              width: double.infinity,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Semantics(
+                  identifier: 'auth_settings_app_version',
+                  child: Center(
+                    child: Text(
+                      "Version: ${snapshot.data!}",
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ),
               ),
             );
           }

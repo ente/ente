@@ -8,8 +8,9 @@ class AppLifecycleService {
   final _logger = Logger("AppLifecycleService");
 
   bool isForeground = false;
-  MediaExtentionAction mediaExtensionAction =
-      MediaExtentionAction(action: IntentAction.main);
+  MediaExtentionAction mediaExtensionAction = MediaExtentionAction(
+    action: IntentAction.main,
+  );
   late SharedPreferences _preferences;
 
   static final AppLifecycleService instance =

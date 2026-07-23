@@ -7,14 +7,7 @@
     main/AndroidManifest.xml once
     https://github.com/flutter/flutter/issues/38965 is fixed. -->
     <application>
-        <activity android:name=".MainActivity"
-            android:launchMode="singleTask"
-            android:theme="@style/LaunchTheme"
-            android:exported="true"
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
-            android:hardwareAccelerated="true"
-            android:windowSoftInputMode="adjustResize">
-
+        <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER" tools:node="remove"/>

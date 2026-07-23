@@ -7,6 +7,7 @@
 // ignore_for_file: annotate_overrides, camel_case_types
 // ignore_for_file: constant_identifier_names, library_prefixes
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
+// ignore_for_file: require_trailing_commas
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
 
 import 'dart:convert' as $convert;
@@ -17,14 +18,25 @@ import 'dart:typed_data' as $typed_data;
 const MigrationPayload$json = {
   '1': 'MigrationPayload',
   '2': [
-    {'1': 'otp_parameters', '3': 1, '4': 3, '5': 11, '6': '.googleauth.MigrationPayload.OtpParameters', '10': 'otpParameters'},
+    {
+      '1': 'otp_parameters',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.googleauth.MigrationPayload.OtpParameters',
+      '10': 'otpParameters'
+    },
     {'1': 'version', '3': 2, '4': 1, '5': 5, '10': 'version'},
     {'1': 'batch_size', '3': 3, '4': 1, '5': 5, '10': 'batchSize'},
     {'1': 'batch_index', '3': 4, '4': 1, '5': 5, '10': 'batchIndex'},
     {'1': 'batch_id', '3': 5, '4': 1, '5': 5, '10': 'batchId'},
   ],
   '3': [MigrationPayload_OtpParameters$json],
-  '4': [MigrationPayload_Algorithm$json, MigrationPayload_DigitCount$json, MigrationPayload_OtpType$json],
+  '4': [
+    MigrationPayload_Algorithm$json,
+    MigrationPayload_DigitCount$json,
+    MigrationPayload_OtpType$json
+  ],
 };
 
 @$core.Deprecated('Use migrationPayloadDescriptor instead')
@@ -34,9 +46,30 @@ const MigrationPayload_OtpParameters$json = {
     {'1': 'secret', '3': 1, '4': 1, '5': 12, '10': 'secret'},
     {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
     {'1': 'issuer', '3': 3, '4': 1, '5': 9, '10': 'issuer'},
-    {'1': 'algorithm', '3': 4, '4': 1, '5': 14, '6': '.googleauth.MigrationPayload.Algorithm', '10': 'algorithm'},
-    {'1': 'digits', '3': 5, '4': 1, '5': 14, '6': '.googleauth.MigrationPayload.DigitCount', '10': 'digits'},
-    {'1': 'type', '3': 6, '4': 1, '5': 14, '6': '.googleauth.MigrationPayload.OtpType', '10': 'type'},
+    {
+      '1': 'algorithm',
+      '3': 4,
+      '4': 1,
+      '5': 14,
+      '6': '.googleauth.MigrationPayload.Algorithm',
+      '10': 'algorithm'
+    },
+    {
+      '1': 'digits',
+      '3': 5,
+      '4': 1,
+      '5': 14,
+      '6': '.googleauth.MigrationPayload.DigitCount',
+      '10': 'digits'
+    },
+    {
+      '1': 'type',
+      '3': 6,
+      '4': 1,
+      '5': 14,
+      '6': '.googleauth.MigrationPayload.OtpType',
+      '10': 'type'
+    },
     {'1': 'counter', '3': 7, '4': 1, '5': 3, '10': 'counter'},
   ],
 };
@@ -90,4 +123,3 @@ final $typed_data.Uint8List migrationPayloadDescriptor = $convert.base64Decode(
     'R0lUX0NPVU5UX1VOU1BFQ0lGSUVEEAASEwoPRElHSVRfQ09VTlRfU0lYEAESFQoRRElHSVRfQ0'
     '9VTlRfRUlHSFQQAiJJCgdPdHBUeXBlEhgKFE9UUF9UWVBFX1VOU1BFQ0lGSUVEEAASEQoNT1RQ'
     'X1RZUEVfSE9UUBABEhEKDU9UUF9UWVBFX1RPVFAQAg==');
-

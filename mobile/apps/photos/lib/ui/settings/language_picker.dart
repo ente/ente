@@ -22,11 +22,7 @@ class LanguageSelectorPage extends StatelessWidget {
     return SettingsPageScaffold(
       title: context.l10n.selectLanguage,
       children: [
-        ItemsWidget(
-          supportedLocales,
-          onLocaleChanged,
-          currentLocale,
-        ),
+        ItemsWidget(supportedLocales, onLocaleChanged, currentLocale),
         const SizedBox(height: 12),
       ],
     );
@@ -81,7 +77,7 @@ class _ItemsWidgetState extends State<ItemsWidget> {
         : null;
 
     final children = <Widget>[
-      if (debugLocaleText != null) debugLocaleText,
+      ?debugLocaleText,
       MenuGroupComponent(items: items),
     ];
     return Column(mainAxisSize: MainAxisSize.min, children: children);
@@ -93,10 +89,7 @@ class _ItemsWidgetState extends State<ItemsWidget> {
       key: ValueKey(locale.toString()),
       title: getLocaleDisplayName(locale) + (kDebugMode ? ' ($locale)' : ''),
       trailing: isSelected
-          ? Icon(
-              Icons.check,
-              color: context.componentColors.primary,
-            )
+          ? Icon(Icons.check, color: context.componentColors.primary)
           : null,
       showOnlyLoadingState: true,
       onTap: () async => _selectLocale(locale),

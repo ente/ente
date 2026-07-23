@@ -54,7 +54,8 @@ class SmartAlbumConfig {
       if (newInfoMap.containsKey(personId)) {
         isUpdated = true;
         newInfoMap[personId] = (
-          updatedAt: personUpdatedAt[personId] ??
+          updatedAt:
+              personUpdatedAt[personId] ??
               DateTime.now().millisecondsSinceEpoch,
           addedFiles: {...?newInfoMap[personId]?.addedFiles, ...fileIds},
         );
@@ -78,13 +79,10 @@ class SmartAlbumConfig {
       "collection_id": collectionId,
       "person_ids": personIDs.toList(),
       "info_map": infoMap.map(
-        (key, value) => MapEntry(
-          key,
-          {
-            "updated_at": value.updatedAt,
-            "added_files": value.addedFiles.toList(),
-          },
-        ),
+        (key, value) => MapEntry(key, {
+          "updated_at": value.updatedAt,
+          "added_files": value.addedFiles.toList(),
+        }),
       ),
     };
   }
@@ -96,14 +94,12 @@ class SmartAlbumConfig {
   ) {
     final personIDs = Set<String>.from(json["person_ids"] as List? ?? []);
     final infoMap = (json["info_map"] as Map<String, dynamic>).map(
-      (key, value) => MapEntry(
-        key,
-        (
-          updatedAt: value["updated_at"] as int? ??
-              DateTime.now().millisecondsSinceEpoch,
-          addedFiles: Set<int>.from(value["added_files"] as List? ?? []),
-        ),
-      ),
+      (key, value) => MapEntry(key, (
+        updatedAt:
+            value["updated_at"] as int? ??
+            DateTime.now().millisecondsSinceEpoch,
+        addedFiles: Set<int>.from(value["added_files"] as List? ?? []),
+      )),
     );
 
     return SmartAlbumConfig(

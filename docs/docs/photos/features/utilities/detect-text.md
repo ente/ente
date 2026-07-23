@@ -13,7 +13,9 @@ Detect Text lets you pull text out of your photos without leaving Ente Photos. R
 - **Supported files**: Photos and Live Photos (videos are not supported)
 - **Viewer contexts**: Available in the standard photo viewer for supported files. It is not available for Trash items or guest views.
 
-> **Note**: On Android, the first scan downloads the OCR models. Keep a network connection for that download. Later scans work offline.
+> [!NOTE]
+>
+> On Android, the first scan downloads the OCR models. Keep a network connection for that download. Later scans work offline.
 
 ## Use Detect Text
 

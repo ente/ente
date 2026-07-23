@@ -3,7 +3,7 @@ package model
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/ente-io/cli/internal/api"
+	"github.com/ente/cli/internal/api"
 )
 
 type Account struct {

@@ -22,6 +22,8 @@ import "package:locker/ui/pages/base_info_page.dart";
 import "package:locker/ui/pages/emergency_contact_page.dart";
 import "package:locker/ui/pages/personal_note_page.dart";
 import "package:locker/ui/pages/physical_records_page.dart";
+import "package:locker/utils/bottom_sheet_illustration.dart";
+import "package:locker/utils/error_sheet.dart";
 import "package:logging/logging.dart";
 
 /// Utility class for common file actions like edit, share, delete, and favorites
@@ -46,41 +48,42 @@ class FileActions {
       return;
     }
 
-    _logger.info(
-      'Opening edit dialog for file ${file.uploadedFileID}',
-    );
+    _logger.info('Opening edit dialog for file ${file.uploadedFileID}');
 
-    final editableCollections =
-        await CollectionService.instance.getCollectionsForUI();
+    final editableCollections = await CollectionService.instance
+        .getCollectionsForUI(includeUncategorized: true);
 
-    final currentCollections =
-        await CollectionService.instance.getCollectionsForFile(file);
+    final currentCollections = await CollectionService.instance
+        .getCollectionsForFile(file);
 
-    final favoriteCollection =
-        await CollectionService.instance.getOrCreateImportantCollection();
+    final favoriteCollection = await CollectionService.instance
+        .getOrCreateImportantCollection();
 
     final currentCollectionIds = currentCollections.map((c) => c.id).toSet();
 
+    if (!context.mounted) return;
     final result = await showFileEditSheet(
       context,
       file: file,
       collections: editableCollections,
     );
 
-    if (result == null || !context.mounted) {
+    if (result == null) {
       return;
     }
 
     // Fetch collections in case new ones were created during file edit dialog
-    final updatedAllCollections =
-        await CollectionService.instance.getCollections();
+    final updatedAllCollections = await CollectionService.instance
+        .getCollections();
 
-    final dialog = createProgressDialog(
-      context,
-      context.l10n.pleaseWait,
-      isDismissible: false,
-    );
-    await dialog.show();
+    final dialog = context.mounted
+        ? createProgressDialog(
+            context,
+            context.l10n.pleaseWait,
+            isDismissible: false,
+          )
+        : null;
+    await dialog?.show();
 
     try {
       final currentTitle = file.displayName;
@@ -92,7 +95,7 @@ class FileActions {
             .editFileName(file, result.title);
 
         if (!metadataUpdateSuccess) {
-          await dialog.hide();
+          await dialog?.hide();
           if (!context.mounted) {
             return;
           }
@@ -103,17 +106,19 @@ class FileActions {
           return;
         }
       }
-      final selectedCollectionIds =
-          result.selectedCollections.map((c) => c.id).toSet();
+      final selectedCollectionIds = result.selectedCollections
+          .map((c) => c.id)
+          .toSet();
 
       final wasFavorite = currentCollectionIds.contains(favoriteCollection.id);
-      final isFavoriteNow =
-          selectedCollectionIds.contains(favoriteCollection.id);
+      final isFavoriteNow = selectedCollectionIds.contains(
+        favoriteCollection.id,
+      );
 
       if (wasFavorite && !isFavoriteNow) {
-        await FavoritesService.instance.removeFromFavorites(context, file);
+        await FavoritesService.instance.removeFromFavorites(file);
       } else if (!wasFavorite && isFavoriteNow) {
-        await FavoritesService.instance.addToFavorites(context, file);
+        await FavoritesService.instance.addToFavorites(file);
       }
 
       final regularCurrentIds = currentCollectionIds
@@ -123,8 +128,9 @@ class FileActions {
           .where((id) => id != favoriteCollection.id)
           .toSet();
 
-      final collectionsToRemove =
-          regularCurrentIds.difference(regularSelectedIds);
+      final collectionsToRemove = regularCurrentIds.difference(
+        regularSelectedIds,
+      );
 
       final collectionsToAdd = regularSelectedIds.difference(regularCurrentIds);
 
@@ -133,16 +139,18 @@ class FileActions {
 
         for (final collectionId in collectionsToRemove) {
           try {
-            final collection =
-                updatedAllCollections.firstWhere((c) => c.id == collectionId);
+            final collection = updatedAllCollections.firstWhere(
+              (c) => c.id == collectionId,
+            );
             await CollectionService.instance.moveFilesFromCurrentCollection(
-              context,
+              context.mounted ? context : null,
               collection,
               [file],
             );
           } catch (e) {
-            final collection =
-                updatedAllCollections.firstWhere((c) => c.id == collectionId);
+            final collection = updatedAllCollections.firstWhere(
+              (c) => c.id == collectionId,
+            );
             _logger.severe(
               'Failed to remove file from collection (ID: ${collection.id}): $e',
             );
@@ -150,8 +158,9 @@ class FileActions {
         }
       } else {
         for (final collectionId in collectionsToAdd) {
-          final collection =
-              updatedAllCollections.firstWhere((c) => c.id == collectionId);
+          final collection = updatedAllCollections.firstWhere(
+            (c) => c.id == collectionId,
+          );
 
           try {
             await CollectionService.instance.addToCollection(
@@ -167,41 +176,38 @@ class FileActions {
         }
 
         for (final collectionId in collectionsToRemove) {
-          final collection =
-              updatedAllCollections.firstWhere((c) => c.id == collectionId);
-          await CollectionService.instance
-              .moveFilesFromCurrentCollection(context, collection, [file]);
+          final collection = updatedAllCollections.firstWhere(
+            (c) => c.id == collectionId,
+          );
+          await CollectionService.instance.moveFilesFromCurrentCollection(
+            context.mounted ? context : null,
+            collection,
+            [file],
+          );
         }
       }
 
       await CollectionService.instance.sync();
-      await dialog.hide();
+      await dialog?.hide();
+      onSuccess?.call();
 
       if (!context.mounted) {
         return;
       }
 
       showToast(context, context.l10n.fileUpdatedSuccessfully);
-
-      onSuccess?.call();
     } catch (e) {
-      await dialog.hide();
+      await dialog?.hide();
       _logger.severe('Failed to update file collections: $e');
 
       if (!context.mounted) {
         return;
       }
-      await showGenericErrorBottomSheet(
-        context: context,
-        error: e,
-      );
+      await showLockerErrorSheet(context, e);
     }
   }
 
-  static Future<void> _editInfoFile(
-    BuildContext context,
-    EnteFile file,
-  ) async {
+  static Future<void> _editInfoFile(BuildContext context, EnteFile file) async {
     Widget page;
     final infoItem = InfoFileService.instance.extractInfoFromFile(file);
 
@@ -214,10 +220,7 @@ class FileActions {
 
     switch (infoItem.type) {
       case InfoType.note:
-        page = PersonalNotePage(
-          mode: InfoPageMode.edit,
-          existingFile: file,
-        );
+        page = PersonalNotePage(mode: InfoPageMode.edit, existingFile: file);
         break;
       case InfoType.accountCredential:
         page = AccountCredentialsPage(
@@ -226,10 +229,7 @@ class FileActions {
         );
         break;
       case InfoType.physicalRecord:
-        page = PhysicalRecordsPage(
-          mode: InfoPageMode.edit,
-          existingFile: file,
-        );
+        page = PhysicalRecordsPage(mode: InfoPageMode.edit, existingFile: file);
         break;
       case InfoType.emergencyContact:
         page = EmergencyContactPage(
@@ -239,18 +239,13 @@ class FileActions {
         break;
     }
 
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => page,
-      ),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => page));
   }
 
   /// Creates and shows a shareable link for a file
-  static Future<void> shareFileLink(
-    BuildContext context,
-    EnteFile file,
-  ) async {
+  static Future<void> shareFileLink(BuildContext context, EnteFile file) async {
     final dialog = createProgressDialog(
       context,
       context.l10n.creatingShareLink,
@@ -279,10 +274,7 @@ class FileActions {
         if (e is SharingNotPermittedForFreeAccountsError) {
           await showSubscriptionRequiredSheet(context);
         } else {
-          await showGenericErrorBottomSheet(
-            context: context,
-            error: e,
-          );
+          await showLockerErrorSheet(context, e);
         }
       }
     }
@@ -299,46 +291,42 @@ class FileActions {
       title: context.l10n.areYouSure,
       body: context.l10n.deleteMultipleFilesDialogBody(1),
       deleteButtonLabel: context.l10n.yesDeleteFiles(1),
-      assetPath: "assets/file_delete_icon.png",
+      illustration: LockerBottomSheetIllustration.fileDelete,
     );
 
     if (confirmation?.buttonResult.action != ButtonAction.first) {
       return;
     }
 
-    final dialog = createProgressDialog(
-      context,
-      context.l10n.deletingFile,
-      isDismissible: false,
-    );
+    final dialog = context.mounted
+        ? createProgressDialog(
+            context,
+            context.l10n.deletingFile,
+            isDismissible: false,
+          )
+        : null;
 
     try {
-      await dialog.show();
+      await dialog?.show();
 
-      final collections =
-          await CollectionService.instance.getCollectionsForFile(file);
+      final collections = await CollectionService.instance
+          .getCollectionsForFile(file);
       if (collections.isNotEmpty) {
         await CollectionService.instance.trashFile(file, collections.first);
       }
 
-      await dialog.hide();
+      await dialog?.hide();
 
       if (context.mounted) {
-        showToast(
-          context,
-          context.l10n.fileDeletedSuccessfully,
-        );
+        showToast(context, context.l10n.fileDeletedSuccessfully);
       }
 
       onSuccess?.call();
     } catch (e) {
-      await dialog.hide();
+      await dialog?.hide();
 
       if (context.mounted) {
-        await showGenericErrorBottomSheet(
-          context: context,
-          error: e,
-        );
+        await showLockerErrorSheet(context, e);
       }
     }
   }
@@ -358,25 +346,27 @@ class FileActions {
       title: context.l10n.areYouSure,
       body: context.l10n.deleteMultipleFilesDialogBody(files.length),
       deleteButtonLabel: context.l10n.yesDeleteFiles(files.length),
-      assetPath: "assets/file_delete_icon.png",
+      illustration: LockerBottomSheetIllustration.fileDelete,
     );
 
     if (confirmation?.buttonResult.action != ButtonAction.first) {
       return;
     }
 
-    final dialog = createProgressDialog(
-      context,
-      context.l10n.deletingFile,
-      isDismissible: false,
-    );
+    final dialog = context.mounted
+        ? createProgressDialog(
+            context,
+            context.l10n.deletingFile,
+            isDismissible: false,
+          )
+        : null;
 
     try {
-      await dialog.show();
+      await dialog?.show();
 
       for (final file in files) {
-        final collections =
-            await CollectionService.instance.getCollectionsForFile(file);
+        final collections = await CollectionService.instance
+            .getCollectionsForFile(file);
 
         if (collections.isNotEmpty) {
           await CollectionService.instance.trashFile(
@@ -390,31 +380,21 @@ class FileActions {
       await CollectionService.instance.sync();
       await TrashService.instance.syncTrash();
 
-      await dialog.hide();
+      await dialog?.hide();
 
       if (context.mounted) {
-        showToast(
-          context,
-          context.l10n.fileDeletedSuccessfully,
-        );
+        showToast(context, context.l10n.fileDeletedSuccessfully);
       }
 
       onSuccess?.call();
     } catch (e, stackTrace) {
-      await dialog.hide();
+      await dialog?.hide();
 
-      _logger.severe(
-        'Failed to delete files: $e',
-        e,
-        stackTrace,
-      );
+      _logger.severe('Failed to delete files: $e', e, stackTrace);
       if (!context.mounted) {
         return;
       }
-      await showGenericErrorBottomSheet(
-        context: context,
-        error: e,
-      );
+      await showLockerErrorSheet(context, e);
     }
   }
 
@@ -442,9 +422,9 @@ class FileActions {
       await dialog.show();
 
       if (isCurrentlyImportant) {
-        await FavoritesService.instance.removeFromFavorites(context, file);
+        await FavoritesService.instance.removeFromFavorites(file);
       } else {
-        await FavoritesService.instance.addToFavorites(context, file);
+        await FavoritesService.instance.addToFavorites(file);
       }
 
       await dialog.hide();
@@ -464,10 +444,7 @@ class FileActions {
       await dialog.hide();
 
       if (context.mounted) {
-        await showGenericErrorBottomSheet(
-          context: context,
-          error: e,
-        );
+        await showLockerErrorSheet(context, e);
       }
     }
   }
@@ -494,19 +471,12 @@ class FileActions {
       if (filesToMark.isEmpty) {
         await dialog.hide();
         if (context.mounted) {
-          showToast(
-            context,
-            context.l10n.allFilesAlreadyMarkedAsImportant,
-          );
+          showToast(context, context.l10n.allFilesAlreadyMarkedAsImportant);
         }
         return;
       }
 
-      await FavoritesService.instance.updateFavorites(
-        context,
-        filesToMark,
-        true,
-      );
+      await FavoritesService.instance.updateFavorites(filesToMark, true);
 
       await dialog.hide();
 
@@ -527,10 +497,7 @@ class FileActions {
       await dialog.hide();
 
       if (context.mounted) {
-        await showGenericErrorBottomSheet(
-          context: context,
-          error: e,
-        );
+        await showLockerErrorSheet(context, e);
       }
     }
   }

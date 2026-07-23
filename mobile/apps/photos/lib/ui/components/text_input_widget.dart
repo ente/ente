@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -150,14 +152,16 @@ class _TextInputWidgetState extends State<TextInputWidget> {
   @override
   Widget build(BuildContext context) {
     if (executionState == ExecutionState.successful) {
-      Future.delayed(Duration(seconds: widget.popNavAfterSubmission ? 1 : 2),
-          () {
-        if (mounted) {
-          setState(() {
-            executionState = ExecutionState.idle;
-          });
-        }
-      });
+      Future.delayed(
+        Duration(seconds: widget.popNavAfterSubmission ? 1 : 2),
+        () {
+          if (mounted) {
+            setState(() {
+              executionState = ExecutionState.idle;
+            });
+          }
+        },
+      );
     }
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
@@ -173,11 +177,13 @@ class _TextInputWidgetState extends State<TextInputWidget> {
             keyboardType: widget.keyboardType,
             textCapitalization: widget.textCapitalization!,
             autofocus: widget.autoFocus ?? false,
-            autofillHints:
-                widget.isPasswordInput ? [AutofillHints.password] : [],
+            autofillHints: widget.isPasswordInput
+                ? [AutofillHints.password]
+                : [],
             controller: _textController,
             focusNode: widget.focusNode,
-            inputFormatters: widget.textInputFormatter ??
+            inputFormatters:
+                widget.textInputFormatter ??
                 (widget.maxLength != null
                     ? [LengthLimitingTextInputFormatter(50)]
                     : null),
@@ -187,15 +193,8 @@ class _TextInputWidgetState extends State<TextInputWidget> {
               hintStyle: textTheme.body.copyWith(color: colorScheme.textMuted),
               filled: widget.enableFillColor,
               fillColor: colorScheme.fillFaint,
-              contentPadding: const EdgeInsets.fromLTRB(
-                12,
-                12,
-                0,
-                12,
-              ),
-              border: const UnderlineInputBorder(
-                borderSide: BorderSide.none,
-              ),
+              contentPadding: const EdgeInsets.fromLTRB(12, 12, 0, 12),
+              border: const UnderlineInputBorder(borderSide: BorderSide.none),
               focusedBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: _incorrectPassword
@@ -229,10 +228,7 @@ class _TextInputWidgetState extends State<TextInputWidget> {
                 minWidth: 0,
               ),
               prefixIcon: widget.prefixIcon != null
-                  ? Icon(
-                      widget.prefixIcon,
-                      color: colorScheme.strokeMuted,
-                    )
+                  ? Icon(widget.prefixIcon, color: colorScheme.strokeMuted)
                   : null,
             ),
             onEditingComplete: () {
@@ -257,8 +253,10 @@ class _TextInputWidgetState extends State<TextInputWidget> {
         ),
       );
     }
-    textInputChildren =
-        addSeparators(textInputChildren, const SizedBox(height: 4));
+    textInputChildren = addSeparators(
+      textInputChildren,
+      const SizedBox(height: 4),
+    );
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -275,6 +273,7 @@ class _TextInputWidgetState extends State<TextInputWidget> {
   void _onSubmit() async {
     _debouncer.run(
       () => Future(() {
+        if (!mounted) return;
         setState(() {
           executionState = ExecutionState.inProgress;
         });
@@ -291,7 +290,9 @@ class _TextInputWidgetState extends State<TextInputWidget> {
       _exception = e is Exception ? e : Exception(e.toString());
       if (e.toString().contains("Incorrect password")) {
         _logger.warning("Incorrect password");
+        executionState = ExecutionState.idle;
         _surfaceWrongPasswordState();
+        return;
       }
       if (!widget.popNavAfterSubmission) {
         rethrow;
@@ -324,21 +325,23 @@ class _TextInputWidgetState extends State<TextInputWidget> {
             setState(() {
               executionState = ExecutionState.successful;
               Future.delayed(
-                  Duration(
-                    seconds: widget.shouldSurfaceExecutionStates
-                        ? (widget.popNavAfterSubmission ? 1 : 2)
-                        : 0,
-                  ), () {
-                if (!mounted) return;
-                widget.popNavAfterSubmission
-                    ? _popNavigatorStack(context)
-                    : null;
-                if (mounted) {
-                  setState(() {
-                    executionState = ExecutionState.idle;
-                  });
-                }
-              });
+                Duration(
+                  seconds: widget.shouldSurfaceExecutionStates
+                      ? (widget.popNavAfterSubmission ? 1 : 2)
+                      : 0,
+                ),
+                () {
+                  if (!mounted) return;
+                  widget.popNavAfterSubmission
+                      ? _popNavigatorStack(context)
+                      : null;
+                  if (mounted) {
+                    setState(() {
+                      executionState = ExecutionState.idle;
+                    });
+                  }
+                },
+              );
             });
           }
         }
@@ -346,13 +349,15 @@ class _TextInputWidgetState extends State<TextInputWidget> {
       if (executionState == ExecutionState.error) {
         setState(() {
           executionState = ExecutionState.idle;
-          widget.popNavAfterSubmission
-              ? Future.delayed(
-                  const Duration(seconds: 0),
-                  () => _popNavigatorStack(context, e: _exception),
-                )
-              : null;
         });
+        if (widget.popNavAfterSubmission) {
+          unawaited(
+            Future.delayed(Duration.zero, () {
+              if (!mounted) return;
+              _popNavigatorStack(context, e: _exception);
+            }),
+          );
+        }
       }
     } else {
       if (widget.popNavAfterSubmission) {
@@ -388,8 +393,9 @@ class _TextInputWidgetState extends State<TextInputWidget> {
       );
       _textController.value = TextEditingValue(
         text: formattedInitialValue,
-        selection:
-            TextSelection.collapsed(offset: formattedInitialValue.length),
+        selection: TextSelection.collapsed(
+          offset: formattedInitialValue.length,
+        ),
       );
     }
   }
@@ -466,10 +472,7 @@ class SuffixIconWidget extends StatelessWidget {
               FocusScope.of(context).unfocus();
             }
           },
-          child: Icon(
-            Icons.cancel_rounded,
-            color: colorScheme.strokeMuted,
-          ),
+          child: Icon(Icons.cancel_rounded, color: colorScheme.strokeMuted),
         );
       } else if (isPasswordInput) {
         assert(obscureTextNotifier != null);
@@ -488,9 +491,7 @@ class SuffixIconWidget extends StatelessWidget {
         trailingWidget = null;
       }
     } else if (executionState == ExecutionState.inProgress) {
-      trailingWidget = EnteLoadingWidget(
-        color: colorScheme.strokeMuted,
-      );
+      trailingWidget = EnteLoadingWidget(color: colorScheme.strokeMuted);
     } else if (executionState == ExecutionState.successful) {
       trailingWidget = Icon(
         Icons.check_outlined,

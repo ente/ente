@@ -23,30 +23,17 @@ void openRitualCamera(BuildContext context, Ritual ritual) {
   final albumId = ritual.albumId;
   if (albumId == null) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          context.l10n.ritualSetAlbumToLaunchCamera,
-        ),
-      ),
+      SnackBar(content: Text(context.l10n.ritualSetAlbumToLaunchCamera)),
     );
     return;
   }
-  routeToPage(
-    context,
-    RitualCameraPage(
-      ritualId: ritual.id,
-      albumId: albumId,
-    ),
-  );
+  routeToPage(context, RitualCameraPage(ritualId: ritual.id, albumId: albumId));
 }
 
 enum _CameraScreenMode { capture, review }
 
 class _RitualCapture {
-  const _RitualCapture({
-    required this.file,
-    required this.mirrorPreview,
-  });
+  const _RitualCapture({required this.file, required this.mirrorPreview});
 
   final XFile file;
   final bool mirrorPreview;
@@ -210,8 +197,9 @@ class _RitualCameraPageState extends State<RitualCameraPage>
 
   Future<void> _loadAlbum() async {
     if (widget.albumId == null) return;
-    final collection =
-        CollectionsService.instance.getCollectionByID(widget.albumId!);
+    final collection = CollectionsService.instance.getCollectionByID(
+      widget.albumId!,
+    );
     if (mounted) {
       setState(() {
         _album = collection;
@@ -263,8 +251,9 @@ class _RitualCameraPageState extends State<RitualCameraPage>
       try {
         await controller.initialize();
         final Size? size = controller.value.previewSize;
-        final int pixels =
-            size == null ? -1 : (size.width * size.height).toInt();
+        final int pixels = size == null
+            ? -1
+            : (size.width * size.height).toInt();
         if (pixels > bestPixels) {
           bestPixels = pixels;
           bestCamera = camera;
@@ -299,7 +288,8 @@ class _RitualCameraPageState extends State<RitualCameraPage>
         });
         return;
       }
-      final CameraDescription target = description ??
+      final CameraDescription target =
+          description ??
           (_controller == null
               ? await _pickPreferredBackCamera() ?? _cameras.first
               : _preferredCamera() ?? _cameras.first);
@@ -413,10 +403,7 @@ class _RitualCameraPageState extends State<RitualCameraPage>
       setState(() {
         _captures = List<_RitualCapture>.from(_captures)
           ..add(
-            _RitualCapture(
-              file: capture,
-              mirrorPreview: shouldMirrorPreview,
-            ),
+            _RitualCapture(file: capture, mirrorPreview: shouldMirrorPreview),
           );
       });
       _ensurePageVisible(_captures.length - 1, animate: true);
@@ -468,16 +455,15 @@ class _RitualCameraPageState extends State<RitualCameraPage>
       if (!mounted) return;
       final navContext = context;
       ScaffoldMessenger.of(navContext).showSnackBar(
-        SnackBar(
-          content: Text(
-            navContext.l10n.ritualAlbumMissing,
-          ),
-        ),
+        SnackBar(content: Text(navContext.l10n.ritualAlbumMissing)),
       );
       await _pausePreview();
       if (!mounted) return;
-      await routeToPage(navContext, const AllRitualsScreen())
-          .whenComplete(_resumePreview);
+      if (!navContext.mounted) return;
+      await routeToPage(
+        navContext,
+        const AllRitualsScreen(),
+      ).whenComplete(_resumePreview);
       return;
     }
     final List<_RitualCapture> pending = List<_RitualCapture>.from(_captures);
@@ -507,8 +493,9 @@ class _RitualCameraPageState extends State<RitualCameraPage>
         context,
         _album == null
             ? context.l10n.ritualAddedToAlbum
-            : context.l10n
-                .ritualAddedToAlbumWithName(albumName: _album!.displayName),
+            : context.l10n.ritualAddedToAlbumWithName(
+                albumName: _album!.displayName,
+              ),
       );
       await ritualsService.refresh();
       if (!mounted) return;
@@ -635,7 +622,8 @@ class _RitualCameraPageState extends State<RitualCameraPage>
     }
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final bool isReady = _controller != null &&
+    final bool isReady =
+        _controller != null &&
         _controller!.value.isInitialized &&
         !_initializing;
     return Scaffold(
@@ -712,17 +700,12 @@ class _RitualCameraPageState extends State<RitualCameraPage>
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.08),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  icon,
-                  style: const TextStyle(fontSize: 18),
-                ),
+                Text(icon, style: const TextStyle(fontSize: 18)),
                 const SizedBox(width: 8),
                 Text(
                   title,
@@ -754,11 +737,7 @@ class _RitualCameraPageState extends State<RitualCameraPage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              color: colorScheme.textMuted,
-              size: 32,
-            ),
+            Icon(Icons.error_outline, color: colorScheme.textMuted, size: 32),
             const SizedBox(height: 8),
             Text(
               _error!,
@@ -774,8 +753,10 @@ class _RitualCameraPageState extends State<RitualCameraPage>
               onPressed: () async {
                 await _pausePreview();
                 if (!mounted) return;
-                await routeToPage(context, const AllRitualsScreen())
-                    .whenComplete(_resumePreview);
+                await routeToPage(
+                  context,
+                  const AllRitualsScreen(),
+                ).whenComplete(_resumePreview);
               },
               child: Text(context.l10n.ritualBackToList),
             ),
@@ -791,20 +772,24 @@ class _RitualCameraPageState extends State<RitualCameraPage>
         final mediaOrientation = MediaQuery.of(context).orientation;
 
         final Size? rawPreviewSize = _controller!.value.previewSize;
-        final Size fallbackSize =
-            Size(constraints.maxWidth, constraints.maxHeight);
+        final Size fallbackSize = Size(
+          constraints.maxWidth,
+          constraints.maxHeight,
+        );
         final Size viewSize = Size(constraints.maxWidth, constraints.maxHeight);
         final Size rotatedPreviewSize =
             mediaOrientation == Orientation.portrait && rawPreviewSize != null
-                ? Size(rawPreviewSize.height, rawPreviewSize.width)
-                : (rawPreviewSize ?? fallbackSize);
+            ? Size(rawPreviewSize.height, rawPreviewSize.width)
+            : (rawPreviewSize ?? fallbackSize);
         final FittedSizes fittedSizes = applyBoxFit(
           BoxFit.contain,
           rotatedPreviewSize,
           viewSize,
         );
-        final Rect previewRect = Alignment.center
-            .inscribe(fittedSizes.destination, Offset.zero & viewSize);
+        final Rect previewRect = Alignment.center.inscribe(
+          fittedSizes.destination,
+          Offset.zero & viewSize,
+        );
 
         final Offset? focus = _focusPointRel == null
             ? null
@@ -835,19 +820,12 @@ class _RitualCameraPageState extends State<RitualCameraPage>
                 onScaleStart: _handleScaleStart,
                 onScaleUpdate: _handleScaleUpdate,
                 onScaleEnd: _handleScaleEnd,
-                onTapDown: (details) => _onViewFinderTap(
-                  details,
-                  previewRect,
-                ),
+                onTapDown: (details) => _onViewFinderTap(details, previewRect),
               ),
             ),
             Positioned.fromRect(
               rect: previewRect,
-              child: IgnorePointer(
-                child: CustomPaint(
-                  painter: _GridPainter(),
-                ),
-              ),
+              child: IgnorePointer(child: CustomPaint(painter: _GridPainter())),
             ),
             if (focus != null)
               Positioned(
@@ -948,18 +926,13 @@ class _RitualCameraPageState extends State<RitualCameraPage>
     );
   }
 
-  Widget _buildCaptureControls(
-    EnteColorScheme colorScheme,
-    bool isReady,
-  ) {
+  Widget _buildCaptureControls(EnteColorScheme colorScheme, bool isReady) {
     final double bottomPadding = MediaQuery.of(context).padding.bottom;
     final bool canCapture =
         !_capturing && !_saving && isReady && _captures.length < _maxCaptures;
     return Container(
       padding: EdgeInsets.fromLTRB(16, 32, 16, 26 + bottomPadding),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.60),
-      ),
+      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.60)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -967,10 +940,7 @@ class _RitualCameraPageState extends State<RitualCameraPage>
             width: 96,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: _LatestPreview(
-                captures: _captures,
-                onTap: _enterReview,
-              ),
+              child: _LatestPreview(captures: _captures, onTap: _enterReview),
             ),
           ),
           Expanded(
@@ -1014,9 +984,7 @@ class _RitualCameraPageState extends State<RitualCameraPage>
     final double bottomPadding = MediaQuery.of(context).padding.bottom;
     return Container(
       padding: EdgeInsets.fromLTRB(16, 18, 16, 24 + bottomPadding),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.60),
-      ),
+      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.60)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1035,13 +1003,16 @@ class _RitualCameraPageState extends State<RitualCameraPage>
               ),
               const Spacer(),
               ElevatedButton(
-                onPressed:
-                    (_captures.isNotEmpty && !_saving) ? _onAccept : null,
+                onPressed: (_captures.isNotEmpty && !_saving)
+                    ? _onAccept
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: Colors.black,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -1062,8 +1033,9 @@ class _RitualCameraPageState extends State<RitualCameraPage>
                           const SizedBox(width: 8),
                           Text(
                             context.l10n.addToAlbum,
-                            style: textTheme.bodyBold
-                                .copyWith(color: Colors.black),
+                            style: textTheme.bodyBold.copyWith(
+                              color: Colors.black,
+                            ),
                           ),
                         ],
                       ),
@@ -1095,8 +1067,10 @@ class _RitualCameraPageState extends State<RitualCameraPage>
       _isPinching = true;
       _baseZoom = _currentZoom;
     }
-    final double newZoom =
-        (_baseZoom * details.scale).clamp(_minAvailableZoom, _maxAvailableZoom);
+    final double newZoom = (_baseZoom * details.scale).clamp(
+      _minAvailableZoom,
+      _maxAvailableZoom,
+    );
     if ((newZoom - _currentZoom).abs() < 0.001) return;
     _currentZoom = newZoom;
     try {
@@ -1107,10 +1081,7 @@ class _RitualCameraPageState extends State<RitualCameraPage>
     }
   }
 
-  void _onViewFinderTap(
-    TapDownDetails details,
-    Rect previewRect,
-  ) {
+  void _onViewFinderTap(TapDownDetails details, Rect previewRect) {
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) {
       return;
@@ -1129,8 +1100,9 @@ class _RitualCameraPageState extends State<RitualCameraPage>
       );
       final bool shouldMirrorPreview =
           _activeCamera?.lensDirection == CameraLensDirection.front;
-      final Offset cameraPoint =
-          shouldMirrorPreview ? Offset(1.0 - clamped.dx, clamped.dy) : clamped;
+      final Offset cameraPoint = shouldMirrorPreview
+          ? Offset(1.0 - clamped.dx, clamped.dy)
+          : clamped;
       controller.setExposurePoint(cameraPoint);
       controller.setFocusPoint(cameraPoint);
       _showFocusIndicator(clamped);
@@ -1192,7 +1164,7 @@ class _ThumbnailStrip extends StatelessWidget {
         itemCount: captures.length,
         clipBehavior: Clip.none,
         controller: controller,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final capture = captures[index];
           return GestureDetector(
@@ -1217,8 +1189,9 @@ class _LatestPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final _RitualCapture? lastCapture =
-        captures.isNotEmpty ? captures.last : null;
+    final _RitualCapture? lastCapture = captures.isNotEmpty
+        ? captures.last
+        : null;
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 220),
       switchInCurve: Curves.easeOut,
@@ -1298,11 +1271,7 @@ class _ConfirmChip extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             const Center(
-              child: Icon(
-                Icons.check,
-                color: Colors.white,
-                size: 26,
-              ),
+              child: Icon(Icons.check, color: Colors.white, size: 26),
             ),
             Positioned(
               right: -2,
@@ -1357,10 +1326,7 @@ class _ShutterButton extends StatelessWidget {
         height: 78,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(26),
-          border: Border.all(
-            color: Colors.white,
-            width: 3,
-          ),
+          border: Border.all(color: Colors.white, width: 3),
         ),
         child: Center(
           child: Container(
@@ -1401,19 +1367,14 @@ class _RoundIconButton extends StatelessWidget {
           shape: BoxShape.circle,
           color: background ?? Colors.black.withValues(alpha: 0.1),
         ),
-        child: Center(
-          child: icon,
-        ),
+        child: Center(child: icon),
       ),
     );
   }
 }
 
 class _MirroredImage extends StatelessWidget {
-  const _MirroredImage({
-    required this.mirror,
-    required this.child,
-  });
+  const _MirroredImage({required this.mirror, required this.child});
 
   final bool mirror;
   final Widget child;
@@ -1450,10 +1411,7 @@ class _ReviewThumb extends StatelessWidget {
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.white,
-              width: selected ? 2 : 1,
-            ),
+            border: Border.all(color: Colors.white, width: selected ? 2 : 1),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
@@ -1481,11 +1439,7 @@ class _ReviewThumb extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 1.5),
               ),
-              child: const Icon(
-                Icons.close,
-                size: 16,
-                color: Colors.white,
-              ),
+              child: const Icon(Icons.close, size: 16, color: Colors.white),
             ),
           ),
         ),

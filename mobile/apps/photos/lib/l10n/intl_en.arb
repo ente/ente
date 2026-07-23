@@ -1,5 +1,7 @@
 {
   "@@locale ": "en",
+  "onboardingTitle": "For everything you don't want to forget",
+  "onboardingDesc": "Save your photos and videos. Every memory, in one place.",
   "enterYourEmailAddress": "Enter your email address",
   "enterYourNewEmailAddress": "Enter your new email address",
   "accountWelcomeBack": "Welcome back!",
@@ -8,28 +10,15 @@
   "accountSetupIncompleteCreateAccount": "Account setup incomplete. Create account to finish setup.",
   "email": "Email",
   "cancel": "Cancel",
+  "cast": "Cast",
+  "castSessions": "Cast sessions",
+  "noSessionsFound": "No sessions found!",
   "verify": "Verify",
   "invalidEmailAddress": "Invalid email address",
   "validEmailAddress": "Valid email address",
   "enterValidEmail": "Please enter a valid email address.",
   "deleteAccount": "Delete account",
-  "deleteAccountWarning": "This will delete your Ente Auth, Ente Photos and Ente Locker account.",
-  "askDeleteReason": "What is the main reason you are deleting your account?",
-  "deleteAccountFeedbackPrompt": "We are sorry to see you go. Please share your feedback to help us improve.",
-  "feedback": "Feedback",
-  "kindlyHelpUsWithThisInformation": "Kindly help us with this information",
-  "confirmDeletePrompt": "Yes, I want to permanently delete this account and its data across all apps.",
-  "confirmAccountDeletion": "Confirm Account Deletion",
-  "deleteAccountPermanentlyButton": "Delete Account Permanently",
-  "yourAccountHasBeenDeleted": "Your account has been deleted",
-  "selectReason": "Select reason",
-  "deleteReason1": "It’s missing a key feature that I need",
-  "deleteReason2": "The app or a certain feature does not behave as I think it should",
-  "deleteReason3": "I found another service that I like better",
-  "deleteReason4": "My reason isn’t listed",
   "sendEmail": "Send email",
-  "deleteRequestSLAText": "Your request will be processed within 72 hours.",
-  "deleteEmailRequest": "Please send an email to <warning>account-deletion@ente.com</warning> from your registered email address.",
   "entePhotosPerm": "Ente <i>needs permission to</i> preserve your photos",
   "ok": "Ok",
   "createAccount": "Create account",
@@ -283,7 +272,7 @@
     },
     "description": "Number of participants in an album, including the album owner."
   },
-  "collabLinkSectionDescription": "Create a link to allow people to add and view photos in your shared album without needing an Ente app or account. Great for collecting event photos.",
+  "collabLinkSectionDescription": "Let people add photos without an Ente account",
   "collectPhotos": "Collect photos",
   "collaborativeLink": "Collaborative link",
   "shareWithNonenteUsers": "Share with non-Ente users",
@@ -355,7 +344,7 @@
   "theyAlsoGetXGb": "They also get {storageAmountInGB} GB",
   "referralStorageForBoth": "{storageAmountInGB} GB for them + {storageAmountInGB} GB for you when they upgrade.",
   "freeStorageOnReferralSuccess": "{storageAmountInGB} GB each time someone signs up for a paid plan and applies your code",
-  "shareTextReferralCode": "Ente Photos is a private and safe home for your photos\n* Download Ente Photos from https://ente.com/app\n* Create an account\n* Apply the referral code {referralCode} in Settings->Referral\n* Get {referralStorageInGB}GB free when you upgrade to a paid plan",
+  "shareTextReferralCode": "Ente Photos is a private and safe home for your photos\n* Download Ente Photos from https://ente.com/app\n* Create an account\n* Apply the referral code {referralCode} in Settings->Referral\n* Get extra {referralStorageInGB} GB free!",
   "claimFreeStorage": "Claim free storage",
   "inviteYourFriends": "Invite your friends",
   "earnFreeStorage": "Earn free storage",
@@ -413,13 +402,14 @@
   "cannotMoveToSharedAlbumsMessage": "Items can only be added to shared albums, not moved. Would you like to add instead?",
   "deleteSharedAlbum": "Delete shared album?",
   "deleteAlbum": "Delete album",
+  "deleteAlbumQuestion": "Delete this album?",
   "deleteAlbumDialog": "Also delete the photos (and videos) present in this album from <bold>all</bold> other albums they are part of?",
   "deleteSharedAlbumDialogBody": "The album will be deleted for everyone\n\nYou will lose access to shared photos in this album that are owned by others",
   "yesRemove": "Yes, remove",
   "creatingLink": "Creating link...",
   "removeWithQuestionMark": "Remove?",
   "removeParticipantBody": "{userEmail} will be removed from this shared album\n\nAny photos added by them will also be removed from the album",
-  "keepPhotos": "Keep Photos",
+  "keepPhotos": "Keep photos",
   "deletePhotos": "Delete photos",
   "inviteToEnte": "Invite to Ente",
   "removePublicLink": "Remove public link",
@@ -427,6 +417,9 @@
   "sharing": "Sharing...",
   "youCannotShareWithYourself": "You cannot share with yourself",
   "archive": "Archive",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
   "createAlbumActionHint": "Long press to select photos and click + to create an album",
   "importing": "Importing....",
   "failedToLoadAlbums": "Failed to load albums",
@@ -435,19 +428,60 @@
   "authToViewTrashedFiles": "Please authenticate to view your trashed files",
   "trash": "Trash",
   "uncategorized": "Uncategorized",
+  "uncategorizedItemsWillShowUpHere": "Uncategorized items will show up here",
   "videoSmallCase": "video",
   "photoSmallCase": "photo",
   "singleFileDeleteHighlight": "It will be deleted from all albums.",
-  "singleFileInBothLocalAndRemote": "This {fileType} is in both Ente and your device.",
-  "singleFileInRemoteOnly": "This {fileType} will be deleted from Ente.",
-  "singleFileDeleteFromDevice": "This {fileType} will be deleted from your device.",
+  "singleFileInBothLocalAndRemote": "This item is available on your device and Ente.",
+  "@singleFileInBothLocalAndRemote": {
+    "description": "Delete confirmation message for a single item that exists both on the device and in Ente."
+  },
+  "singleFileInRemoteOnly": "This item will be deleted from all albums. You can recover it from Trash.",
+  "@singleFileInRemoteOnly": {
+    "description": "Delete confirmation message for a single item that exists only in Ente."
+  },
+  "singleFileDeleteFromDevice": "Item not backed up. Permanently delete from device?",
+  "@singleFileDeleteFromDevice": {
+    "description": "Delete confirmation message for a single item that exists only on the device."
+  },
+  "deleteItemsQuestion": "{count, plural, one {Delete item?} other {Delete {count} items?}}",
+  "@deleteItemsQuestion": {
+    "description": "Delete confirmation title for one or more selected items.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "selectedFilesSavedOnDeviceOnly": "Items not backed up. Permanently delete from device?",
+  "@selectedFilesSavedOnDeviceOnly": {
+    "description": "Delete confirmation message for selected items that exist only on the device."
+  },
+  "selectedFilesBackedUpToEnte": "These items will be deleted from all albums. You can recover them from Trash.",
+  "@selectedFilesBackedUpToEnte": {
+    "description": "Delete confirmation message for selected items that are backed up to Ente."
+  },
+  "someSelectedFilesBackedUpToEnte": "These items are available on device and Ente.",
+  "@someSelectedFilesBackedUpToEnte": {
+    "description": "Delete confirmation message for selected items that exist both on the device and in Ente."
+  },
   "deleteFromEnte": "Delete from Ente",
   "yesDelete": "Yes, delete",
   "movedToTrash": "Moved to trash",
+  "deleteFromDeviceQuestion": "Delete from device?",
   "deleteFromDevice": "Delete from device",
   "deleteFromBoth": "Delete from both",
+  "moreOptions": "More options",
+  "@moreOptions": {
+    "description": "Button label for showing additional delete options."
+  },
+  "setAsMyDefaultChoice": "Set as my default choice",
+  "@setAsMyDefaultChoice": {
+    "description": "Checkbox label for saving the selected delete action as the default choice."
+  },
   "newAlbum": "New album",
   "albums": "Albums",
+  "ente": "Ente",
   "memoryCount": "{count, plural, =0{no memories} one{{formattedCount} memory} other{{formattedCount} memories}}",
   "@memoryCount": {
     "description": "The text to display the number of memories",
@@ -600,11 +634,11 @@
   "authToChangeYourEmail": "Please authenticate to change your email",
   "changePassword": "Change password",
   "authToChangeYourPassword": "Please authenticate to change your password",
+  "authToInitiateAccountDeletion": "Unlock to delete your account",
   "emailVerificationToggle": "Email verification",
   "authToChangeEmailVerificationSetting": "Please authenticate to change email verification",
   "exportYourData": "Export your data",
   "logout": "Logout",
-  "authToInitiateAccountDeletion": "Please authenticate to initiate account deletion",
   "areYouSureYouWantToLogout": "Are you sure you want to logout?",
   "yesLogout": "Yes, logout",
   "aNewVersionOfEnteIsAvailable": "A new version of Ente is available.",
@@ -621,6 +655,7 @@
   "backup": "Backup",
   "freeUpDeviceSpace": "Free up device space",
   "freeUpDeviceSpaceDesc": "Save space on your device by clearing files that have already been backed up.",
+  "freeUpDeviceSpaceConfirmDesc": "{count, plural, one{{count} backed-up file} other{{count} backed-up files}} will be permanently deleted from this device.",
   "freeUpDeviceSpaceDescICloud": "Files in iCloud shared albums cannot be cleared.",
   "@freeUpDeviceSpaceDescICloud": {
     "description": "Here 'cleared' means 'deleted' from the device"
@@ -629,6 +664,14 @@
   "noDeviceThatCanBeDeleted": "You've no files on this device that can be deleted",
   "removeDuplicates": "Remove duplicates",
   "removeDuplicatesDesc": "Review and remove files that are exact duplicates.",
+  "mediaManagementHintTitle": "Tired of confirming every delete?",
+  "@mediaManagementHintTitle": {
+    "description": "Title of a sheet prompting Android users to enable media management permission."
+  },
+  "mediaManagementHintMessage": "Turn on media management for Ente in settings, and the prompts stop.",
+  "@mediaManagementHintMessage": {
+    "description": "Message explaining that enabling Android media management permission avoids repeated delete confirmations."
+  },
   "viewLargeFiles": "Large files",
   "viewLargeFilesDesc": "View files that are consuming the most amount of storage.",
   "deleteSuggestions": "Delete suggestions",
@@ -841,6 +884,7 @@
   "advanced": "Advanced",
   "general": "General",
   "security": "Security",
+  "settings": "Settings",
   "authToViewYourRecoveryKey": "Please authenticate to view your recovery key",
   "twofactor": "Two-factor",
   "authToConfigureTwofactorAuthentication": "Please authenticate to configure two-factor authentication",
@@ -994,7 +1038,7 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "PlayStore subscription",
   "appstoreSubscription": "AppStore subscription",
-  "subAlreadyLinkedErrMessage": "Your {id} is already linked to another Ente account.\nIf you would like to use your {id} with this account, please contact our support''",
+  "subAlreadyLinkedErrMessage": "Your {id} is already linked to another Ente account.\nIf you would like to use your {id} with this account, please contact our support.",
   "visitWebToManage": "Please visit {webUrl} to manage your subscription",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
@@ -1058,6 +1102,36 @@
   "grantFullAccessPrompt": "Please allow access to all photos in the Settings app",
   "allowPermTitle": "Allow access to photos",
   "allowPermBody": "Please allow access to your photos from Settings so Ente can display and backup your library.",
+  "allowAccessToYourPhotos": "Allow access to your photos",
+  "enteNeedsPermissionToSeeDeviceAlbums": "Ente needs permission to see your device albums",
+  "allYourDeviceAlbumsInOnePlace": "All your device albums, in one place",
+  "albumsOnEnteEmptyTitle": "Back up your memories",
+  "albumsOnEnteEmptyFeatureAccessAnyDevice": "Access them on any device",
+  "albumsOnEnteEmptyFeatureShareLovedOnes": "Share them with loved ones - they can react and chat, without an account",
+  "albumsOnEnteEmptyFeaturePrivacy": "Full privacy with end-to-end encryption",
+  "albumsOnEnteEmptyCta": "Select albums to backup",
+  "albumsSharedEmptyTitle": "Share your memories",
+  "albumsSharedEmptyFeatureShareLovedOnes": "Share your photos and videos with loved ones",
+  "albumsSharedEmptyFeatureReactAndComment": "They can view, react and add comments, without an account",
+  "albumsSharedEmptyFeaturePrivacy": "Full privacy with end-to-end encryption",
+  "albumsReceivedEmptyTitle": "View memories shared\n with you",
+  "albumsReceivedEmptyFeatureSharedByOthers": "Albums shared by others will appear here",
+  "albumsReceivedEmptyFeatureAcceptInvites": "Accept invites to view photos and videos",
+  "albumsReceivedEmptyFeatureSaveToLibrary": "Save shared memories to your own library",
+  "albumsOnDevicePermissionCta": "Allow access",
+  "albumsOnDevicePermissionFeatureAllowAccessFaceRecognition": "Allow Ente to access and organize your photos with face recognition",
+  "albumsOnDevicePermissionFeatureLocalProcessing": "All processing happens on your device",
+  "albumsOnDevicePermissionFeatureControlUploads": "You're in control of what gets uploaded",
+  "noAlbumsOnThisDevice": "No albums\non this device",
+  "startSnappingYourPhotosWillShowUpHere": "Start snapping, your photos will show up here",
+  "youPickWhatGetsBackedUp": "You pick what gets backed up",
+  "privateAndEndToEndEncryptedAlways": "Private and end-to-end encrypted, always",
+  "grantAccess": "Grant access",
+  "albumsSharedWithYouShowUpHere": "Albums shared with you show up here",
+  "inviteFamilyToSharePhotosPrivately": "Invite your family to share photos privately",
+  "shareStorageWithUpToFiveFamilyMembers": "Share storage with up to 5 family members",
+  "reactAndChatOnSharedMemories": "React and chat on shared memories",
+  "addFamily": "Add family",
   "openSettings": "Open settings",
   "selectMorePhotos": "Select more photos",
   "existingUser": "Existing user",
@@ -1068,7 +1142,7 @@
   "shareTheMoment": "Share the moment",
   "letFriendsAndFamilyReact": "Let friends and family react and comment on your photos.",
   "pleaseLoginAgain": "Please login again",
-  "autoLogoutMessage": "Due to technical glitch, you have been logged out. Our apologies for the inconvenience.",
+  "autoLogoutMessage": "Due to a technical glitch, you have been logged out. Our apologies for the inconvenience.",
   "yourSubscriptionHasExpired": "Your subscription has expired",
   "storageLimitExceeded": "Storage limit exceeded",
   "upgrade": "Upgrade",
@@ -1095,13 +1169,16 @@
     "description": "The text displayed above folders/albums stored on device",
     "type": "text"
   },
-  "onDevice": "On device",
+  "onDevice": "Device",
   "@onEnte": {
     "description": "The text displayed above albums backed up to Ente",
     "type": "text"
   },
   "onEnte": "On <branding>ente</branding>",
+  "grid": "Grid",
+  "list": "List",
   "name": "Name",
+  "created": "Created",
   "newest": "Newest",
   "lastUpdated": "Last updated",
   "updated": "Updated",
@@ -1137,9 +1214,23 @@
   "moveToAlbum": "Move to album",
   "unhide": "Unhide",
   "unarchive": "Unarchive",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
   "favorite": "Favorite",
   "removeFromFavorite": "Remove from favorites",
   "shareMemories": "Share memories",
+  "shareMemory": "Share memory",
+  "shareItemCount": "{count, plural, one{Share {count} item} other{Share {count} items}}",
+  "@shareItemCount": {
+    "description": "Action to share the selected number of memory items",
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    }
+  },
   "shareTheseMemories": "Share these memories",
   "shareThisPhoto": "Share this photo",
   "shareThisVideo": "Share this video",
@@ -1149,6 +1240,7 @@
   "deleteLinkQuestion": "Delete link?",
   "deleteMemoryLinkMessage": "People you shared this link with will lose access once it is deleted.",
   "linkDeletedSuccessfully": "Link deleted successfully",
+  "memoryLink": "Memory link",
   "memoryLinks": "Memory links",
   "openLink": "Open link",
   "pay": "Pay",
@@ -1175,6 +1267,7 @@
   "createOrSelectAlbum": "Create or select album",
   "selectAlbum": "Select album",
   "searchByAlbumNameHint": "Album name",
+  "searchAlbums": "Search albums",
   "albumTitle": "Album title",
   "enterAlbumName": "Enter album name",
   "restoringFiles": "Restoring files...",
@@ -1224,11 +1317,21 @@
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Photos added by you will be removed from the album",
   "youveNoFilesInThisAlbumThatCanBeDeleted": "You've no files in this album that can be deleted",
   "youDontHaveAnyArchivedItems": "You don't have any archived items.",
-  "ignoredFolderUploadReason": "Some files in this album are ignored from upload because they had previously been deleted from Ente.",
+  "archivedItemsWillShowUpHere": "Archived items will show up here",
+  "deletedItemsStayHereForThirtyDays": "Deleted items stay here for 30 days",
   "resetIgnoredFiles": "Reset ignored files",
-  "deviceFilesAutoUploading": "Files added to this device album will automatically get uploaded to Ente.",
-  "turnOnBackupForAutoUpload": "Turn on backup to automatically upload files added to this device folder to Ente.",
+  "resetIgnoredFilesDescription": "Reset these ignored files to let Ente try uploading them again.",
+  "notBackedUp": "Not backed up",
+  "backedUpAutomatically": "Backed up automatically",
+  "autoUploadFromThisDeviceFolder": "Auto-upload from this device folder",
+  "skippedFiles": "Skipped files",
+  "chooseReasonToViewFiles": "Choose a reason to view these files",
+  "deletedFromEnte": "Deleted from Ente",
+  "iCloudUnavailable": "iCloud unavailable",
+  "others": "Others",
+  "disableBackup": "Disable backup",
   "noHiddenPhotosOrVideos": "No hidden photos or videos",
+  "hiddenItemsWillShowUpHere": "Hidden items will show up here",
   "toHideAPhotoOrVideo": "To hide a photo or video",
   "openTheItem": "• Open the item",
   "clickOnTheOverflowMenu": "• Click on the overflow menu",
@@ -1252,6 +1355,7 @@
   "searchByExamples": "• Album names (e.g. \"Camera\")\n• Types of files (e.g. \"Videos\", \".gif\")\n• Years and months (e.g. \"2022\", \"January\")\n• Holidays (e.g. \"Christmas\")\n• Photo descriptions (e.g. “#fun”)",
   "youCanTrySearchingForADifferentQuery": "You can try searching for a different query.",
   "noResultsFound": "No results found",
+  "noMatchesFound": "No matches found!",
   "addedBy": "Added by {emailOrName}",
   "loadingExifData": "Loading EXIF data...",
   "viewAllExifData": "View all EXIF data",
@@ -1266,6 +1370,10 @@
   "fileSavedToGallery": "File saved to gallery",
   "filesSavedToGallery": "Files saved to gallery",
   "fileFailedToSaveToGallery": "Failed to save file to gallery",
+  "applePhotosUnsupportedResource": "This file could not be saved to Apple Photos. You can still view it in Ente.",
+  "@applePhotosUnsupportedResource": {
+    "description": "Shown when iOS Photos rejects a file while saving to gallery because the media resource is invalid or unsupported"
+  },
   "download": "Download",
   "downloadSkippedAlreadyAvailableOnDevice": "{fileName} is already available in the {albumName} album on your device",
   "@downloadSkippedAlreadyAvailableOnDevice": {
@@ -1412,6 +1520,7 @@
   "filesDeleted": "Files deleted",
   "selectedFilesAreNotOnEnte": "Selected files are not on Ente",
   "thisActionCannotBeUndone": "This action cannot be undone",
+  "selectedItemsWillBePermanentlyDeletedAndCannotBeRecovered": "Selected items will be permanently deleted and cannot be recovered.",
   "emptyTrash": "Empty trash?",
   "permDeleteWarning": "All items in trash will be permanently deleted\n\nThis action cannot be undone",
   "empty": "Empty",
@@ -1492,9 +1601,14 @@
   "@searchResultPerson": {
     "description": "Search result subtitle label for person results"
   },
-  "searchResultShared": "Shared",
-  "@searchResultShared": {
-    "description": "Search result subtitle label for shared-with-you results"
+  "shared": "Shared",
+  "sharedAlbumsLabel": "Shared",
+  "@sharedAlbumsLabel": {
+    "description": "Albums tab label for albums shared by you"
+  },
+  "receivedAlbumsLabel": "Received",
+  "@receivedAlbumsLabel": {
+    "description": "Albums tab filter label for albums received from other people"
   },
   "searchResultUploadedBy": "Uploaded by",
   "@searchResultUploadedBy": {
@@ -1557,6 +1671,7 @@
   "light": "Light",
   "color": "Color",
   "yesDiscardChanges": "Yes, discard changes",
+  "discardEditsQuestion": "Discard edits?",
   "doYouWantToDiscardTheEditsYouHaveMade": "Do you want to discard the edits you have made?",
   "saving": "Saving...",
   "editsSaved": "Edits saved",
@@ -1588,10 +1703,6 @@
     "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
   },
   "setRadius": "Set radius",
-  "androidBiometricHint": "Verify identity",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
   "androidBiometricNotRecognized": "Not recognized. Try again.",
   "@androidBiometricNotRecognized": {
     "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
@@ -1599,14 +1710,6 @@
   "androidBiometricSuccess": "Success",
   "@androidBiometricSuccess": {
     "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Cancel",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Authentication required",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
   "androidBiometricRequiredTitle": "Biometric required",
   "@androidBiometricRequiredTitle": {
@@ -1620,25 +1723,13 @@
   "@androidDeviceCredentialsSetupDescription": {
     "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
   },
-  "goToSettings": "Go to settings",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
   "androidGoToSettingsDescription": "Biometric authentication is not set up on your device. Go to 'Settings > Security' to add biometric authentication.",
   "@androidGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
   },
-  "iOSLockOut": "Biometric authentication is disabled. Please lock and unlock your screen to enable it.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
   "iOSGoToSettingsDescription": "Biometric authentication is not set up on your device. Please either enable Touch ID or Face ID on your phone.",
   "@iOSGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure Biometrics for their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "OK",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
   },
   "openstreetmapContributors": "OpenStreetMap contributors",
   "hostedAtOsmFrance": "Hosted at OSM France",
@@ -1649,6 +1740,9 @@
   "maps": "Maps",
   "mapsPrivacyNotice": "Approximate coordinates will be sent to privacy conscious third parties like OpenStreetMap to show the map and location.",
   "enableMaps": "Enable Maps",
+  "links": "Links",
+  "noLinksYet": "No links yet",
+  "activeLinksWillShowUpHere": "Active links will show up here",
   "quickLinks": "Quick links",
   "selectItemsToAdd": "Select items to add",
   "addSelected": "Add selected",
@@ -1657,8 +1751,6 @@
   "noPhotosFoundHere": "No photos found here",
   "zoomOutToSeePhotos": "Zoom out to see photos",
   "noImagesWithLocation": "No images with location",
-  "unpinAlbum": "Unpin album",
-  "pinAlbum": "Pin album",
   "pin": "Pin",
   "pinPerson": "Pin person",
   "pinToTop": "Pin to top",
@@ -1673,7 +1765,6 @@
   "nothingSharedWithYouYet": "Nothing shared with you yet",
   "noAlbumsSharedByYouYet": "No albums shared by you yet",
   "sharedWithYou": "Shared with you",
-  "sharedByYou": "Shared by you",
   "inviteYourFriendsToEnte": "Invite your friends to Ente",
   "failedToDownloadVideo": "Failed to download video",
   "hiding": "Hiding...",
@@ -1686,7 +1777,6 @@
   "addToHiddenAlbum": "Add to hidden album",
   "moveToHiddenAlbum": "Move to hidden album",
   "fileTypes": "File types",
-  "deleteConfirmDialogBody": "This account is linked to other Ente apps, if you use any. Your uploaded data, across all Ente apps, will be scheduled for deletion, and your account will be permanently deleted.",
   "hearUsWhereTitle": "How did you hear about Ente?",
   "hearUsExplanation": "We don't track app installs. It'd help if you told us where you found us!",
   "viewAddOnButton": "View add-ons",
@@ -1698,6 +1788,7 @@
   "upto50OffUntil4thDec": "Upto 50% off, until 4th Dec.",
   "photos": "Photos",
   "videos": "Videos",
+  "camera": "Camera",
   "livePhotos": "Live Photos",
   "searchHint1": "Fast, on-device search",
   "searchHint2": "Photo dates, descriptions",
@@ -1747,7 +1838,7 @@
   "playOnTv": "Play album on TV",
   "pair": "Pair",
   "deviceNotFound": "Device not found",
-  "castInstruction": "Visit {castUrl} on the device you want to pair.\n\nEnter the code below to play the album on your TV.",
+  "castInstruction": "Visit {castUrl} on the device you want to pair.",
   "@castInstruction": {
     "description": "Instructions shown when pairing a device to play an album on TV.",
     "placeholders": {
@@ -1790,6 +1881,8 @@
   "editPerson": "Edit person",
   "enterDateOfBirthHint": "Enter date of birth",
   "setAContactPhoto": "Set a contact photo",
+  "setSelectedPhoto": "Set selected photo",
+  "removeContactPhoto": "Remove contact photo",
   "mergedPhotos": "Merged photos",
   "orMergeWithExistingPerson": "Or merge with existing",
   "enterDateOfBirth": "Birthday (optional)",
@@ -1797,8 +1890,8 @@
   "removePersonLabel": "Remove person label",
   "removePersonTag": "Remove person tag",
   "areYouSureRemoveThisPersonTag": "Are you sure you want to remove this person tag?",
-  "autoPairDesc": "Auto pair works only with devices that support Chromecast.",
-  "manualPairDesc": "Pair with PIN works with any screen you wish to view your album on.",
+  "pairWithAutoDesc": "Auto pair works only with devices that support Cast.",
+  "pairWithCodeDesc": "Pair with PIN works with any screen you wish to view your album on.",
   "connectToDevice": "Connect to device",
   "autoCastDialogBody": "You'll see available Cast devices here.",
   "autoCastiOSPermission": "Make sure Local Network permissions are turned on for the Ente Photos app, in Settings.",
@@ -1810,7 +1903,7 @@
   "pairingComplete": "Pairing complete",
   "savingEdits": "Saving edits...",
   "autoPair": "Auto pair",
-  "pairWithPin": "Pair with PIN",
+  "pairUsingCode": "Pair using code",
   "faceRecognition": "Face recognition",
   "foundFaces": "Found faces",
   "clusteringProgress": "Clustering progress",
@@ -1835,25 +1928,19 @@
   },
   "enable": "Enable",
   "enabled": "Enabled",
+  "more": "More",
   "moreDetails": "More details",
   "enableMLIndexingDesc": "Ente supports on-device machine learning for face recognition, magic search and other advanced search features",
   "magicSearchHint": "Magic search allows to search photos by their contents, e.g. 'flower', 'red car', 'identity documents'",
   "panorama": "Panorama",
-  "reenterPassword": "Re-enter password",
-  "reenterPin": "Re-enter PIN",
   "deviceLock": "Device lock",
   "pinLock": "PIN lock",
   "next": "Next",
-  "setNewPassword": "Set new password",
-  "enterPin": "Enter PIN",
-  "setNewPin": "Set new PIN",
   "appLock": "App lock",
   "lockScreenType": "Lock type",
   "noSystemLockFound": "No system lock found",
-  "tapToUnlock": "Tap to unlock",
   "tooManyIncorrectAttempts": "Too many incorrect attempts",
   "videoInfo": "Video Info",
-  "autoLock": "Auto lock",
   "immediately": "Immediately",
   "autoLockFeatureDescription": "Time after which the app locks after being put in the background",
   "hideContent": "Hide content",
@@ -1978,6 +2065,7 @@
   "onlyThem": "Only them",
   "checkingModels": "Checking models...",
   "enableMachineLearningBanner": "Enable machine learning for magic search and face recognition",
+  "machineLearningBannerSubtitle": "For magic search and face recognition",
   "searchDiscoverEmptySection": "Images will be shown here once processing and syncing is complete",
   "searchPersonsEmptySection": "People will be shown here once processing and syncing is complete",
   "viewersSuccessfullyAdded": "{count, plural, =0 {Added 0 viewers} one {Added {count} viewer} other {Added {count} viewers}}",
@@ -2320,6 +2408,9 @@
   "@linkEmailToContactBannerCaption": {
     "description": "Caption for the 'Link email' title. It should be a continuation of the 'Link email' title. Just like how 'Link email' + 'for faster sharing' forms a proper sentence in English, the combination of these two strings should also be a proper sentence in other languages."
   },
+  "selectPerson": "Select person",
+  "selectPersonToLinkToThisContact": "Select a person to autofill this contact",
+  "searchAllPeople": "Search all people",
   "selectPersonToLink": "Select person to link",
   "linkPersonToEmail": "Link person to {email}",
   "@linkPersonToEmail": {
@@ -2394,6 +2485,7 @@
   },
   "appIcon": "App icon",
   "notThisPerson": "Not this person?",
+  "removeFromPersonQuestion": "Remove from person?",
   "selectedItemsWillBeRemovedFromThisPerson": "Selected items will be removed from this person, but not deleted from your library.",
   "throughTheYears": "{dateFormat} through the years",
   "thisWeekThroughTheYears": "This week through the years",
@@ -2438,6 +2530,7 @@
   "memoriesWidgetDesc": "Select the kinds of memories you want to see on your home screen.",
   "smartMemories": "Smart memories",
   "pastYearsMemories": "Past years' memories",
+  "deleteMultipleAlbumsQuestion": "Delete these albums?",
   "deleteMultipleAlbumDialog": "Also delete the photos (and videos) present in these {count} albums from <bold>all</bold> other albums they are part of?",
   "addParticipants": "Add participants",
   "selectedAlbums": "{count} selected",
@@ -2504,6 +2597,7 @@
   "addSomePhotosDesc1": "Add some photos or pick ",
   "addSomePhotosDesc2": "familiar faces",
   "addSomePhotosDesc3": "\nto begin with",
+  "startWithAddingPhotosOrFamiliarFaces": "Start with adding\nphotos or familiar faces",
   "ignorePerson": "Ignore person",
   "mixedGrouping": "Mixed grouping?",
   "analysis": "Analysis",
@@ -2514,6 +2608,7 @@
   "undo": "Undo",
   "redo": "Redo",
   "filter": "Filter",
+  "filters": "Filters",
   "adjust": "Adjust",
   "draw": "Draw",
   "sticker": "Sticker",
@@ -2964,6 +3059,16 @@
     }
   },
   "noActivityYet": "No activity yet",
+  "nothingHereYet": "Nothing here yet",
+  "shareAnAlbumWithSomeoneYouLove": "Share an album with someone you love",
+  "seeTheLoveYourPhotosGet": "See the love your photos get",
+  "yourConversationsAttachedToTheMoment": "Your conversations, attached to the moment",
+  "stayConnectedWithThePeopleYouShareWith": "Stay connected with the people you share with",
+  "shareAnAlbum": "Share an album",
+  "seeWhatYourPeopleAreUpTo": "See what your people are up to",
+  "signUpToShareMomentsPrivately": "Sign up to share moments privately",
+  "reactToTheMomentsThatMatter": "React to the moments that matter",
+  "leaveANoteOnTheMomentsSharedWithYou": "Leave a note on the moments shared with you",
   "like": "Like",
   "comments": "Comments",
   "commentHint": "Say something nice!",
@@ -3086,6 +3191,7 @@
   },
   "searchSettings": "Search settings",
   "suggestions": "Suggestions",
+  "smartSuggestions": "Smart suggestions",
   "cleanupHiddenFiles": "Clean up hidden files",
   "cleanupHiddenFilesDescription": "Some files in hidden albums still exist in non-hidden albums making them visible outside of the hidden section. Cleaning up will remove them from non-hidden albums.",
   "cleanupComplete": "Cleanup complete",
@@ -3093,7 +3199,7 @@
   "deleteHiddenFilesFromDeviceDescription": "Delete local copies of hidden files from your device",
   "deleteOnDeviceFiles": "Delete on device files",
   "noHiddenFilesOnDevice": "No hidden files on device",
-  "welcome": "Welcome",
+  "grantGalleryPermissionTitle": "Let's find your favourites",
   "grantGalleryPermissionDesc": "Grant permission to access and organize photos with face recognition. All processing happens on your device.",
   "grantPermission": "Grant permission",
   "privateAI": "Private AI",
@@ -3113,17 +3219,18 @@
   "offlineEnableBackupDesc": "Sign up to preserve your memories with Ente.",
   "offlineEnableBackupTagLabel": "10 GB FREE!",
   "offlineEnableBackupAction": "Start with 10 GB FREE",
+  "organizeYourMemories": "Organize your memories",
+  "groupPhotosTheWayYouThinkAboutThem": "Group your photos the way you think about them",
+  "endToEndEncryptedOnlyYourPeopleCanSeeIt": "End-to-end encrypted, so only your people can see it",
+  "backedUpSafelyAcrossDevices": "Backed up safely across your devices",
+  "smartAlbumsOrganizePhotosForYou": "Smart albums organize photos for you",
+  "createAlbum": "Create album",
+  "createASmartAlbum": "Create a smart album",
   "offlineSettingsBannerTitle": "We can't see your photos. Ever.",
   "offlineSettingsBannerDesc": "Zero-knowledge encryption means your memories stay yours.",
   "alreadyHaveAnAccount": "Already have an account?",
   "dontHaveAnAccount": "Don't have an account?",
   "loginToEnte": "Login to Ente",
-  "searchAndDiscover": "Search and Discover",
-  "searchAndDiscoverDesc": "Search photos and discover memories with on-device machine learning",
-  "shareYourMemories": "Share your Memories",
-  "shareYourMemoriesDesc": "Share albums, collect photos and gather comments with public links",
-  "privateAndSecureBackups": "Backup with Privacy",
-  "privateAndSecureBackupsDesc": "End-to-end encrypted, independently audited and fully open source",
   "mlProgressBannerTitle": "Hang tight!",
   "mlProgressBannerDescription": "Your photos are getting processed on device to detect faces, objects and more.",
   "mlProgressBannerStatus": "{indexed} out of {total} photos processed",
@@ -3143,5 +3250,9 @@
   "offlineNameFaceBannerSubtitle": "Sign up to tag them and easily find their photos later.",
   "signUp": "Sign up",
   "dog": "Dog",
-  "cat": "Cat"
+  "cat": "Cat",
+  "archiveCollectionName": "Archive",
+  "@archiveCollectionName": {
+    "description": "Name of the 'Archive' collection"
+  }
 }

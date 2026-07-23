@@ -19,45 +19,34 @@ Format markdown files with Prettier for consistent styling
 
 ## Commands
 
-```bash
-# Install dependencies from the committed lockfile (uses Yarn classic 1.22.22)
-yarn install --frozen-lockfile
+```sh
+# Install dependencies from the committed lockfile
+npm ci
+# Fast path when the lock file has not changed since the last npm ci, OR when
+# adding or updating dependencies.
+npm install
 
 # Run development servers
-yarn dev              # Photos app (port 3000)
-yarn dev:auth         # Auth app (port 3003)
-yarn dev:embed        # Embed app (port 3006)
-yarn dev:accounts     # Accounts app (port 3001)
-yarn dev:cast         # Cast app (port 3004)
-yarn dev:share       # Public Locker app (port 3005)
+npm run dev          # Photos app (port 3000)
+npm run dev:auth     # Auth app (port 3003)
+# ...
+npm run              # To see the full list of apps
 
 # Production builds
-yarn build            # Photos app
-yarn build:auth       # Auth app
-yarn build:embed      # Embed app
-yarn build:accounts   # Accounts app
-yarn build:cast       # Cast app
+npm run build        # Photos app
+npm run build:auth   # Auth app
+...
 
-# Code quality - ONLY run when:
+# Code quality. Run when:
 # 1. Explicitly requested by user
 # 2. Before creating a commit (pre-commit)
-# DO NOT run automatically after file modifications
-yarn lint             # Check formatting, linting, and TypeScript types
-yarn lint-fix         # Auto-fix linting and formatting issues
+# Do not run automatically after file modifications
+npm run lint          # Check formatting, linting, and TypeScript types
+npm run lint:fix      # Auto-fix linting and formatting issues
 ```
-
-Use plain `yarn install` only when intentionally updating dependencies and
-reviewing the resulting `yarn.lock` changes.
 
 ## Structure
 
-This is a monorepo containing multiple Ente web applications using Yarn workspaces.
+This is a monorepo containing multiple Ente web applications using npm workspaces.
 
 Shared code goes in `packages/`. All apps use Next.js for static export except `payments`. Run `ls apps/` and `ls packages/` to see the full list.
-
-## Important Notes
-
-- Always run `yarn lint` when explicitly requested or before committing (but not after file modifications)
-- Use Yarn (not npm) for package management
-- Follow existing Material-UI theming patterns
-- Maintain TypeScript strict mode compliance

@@ -18,7 +18,7 @@ import { downloadManager } from "ente-gallery/services/download";
 import { extractCollectionKeyFromShareURL } from "ente-gallery/services/share";
 import { sortFiles } from "ente-gallery/utils/file";
 import type { Collection } from "ente-media/collection";
-import { type EnteFile } from "ente-media/file";
+import type { EnteFile } from "ente-media/file";
 import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { t } from "i18next";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -43,6 +43,9 @@ import {
 const isDeviceLimitExceededError = async (e: unknown) =>
     isHTTPErrorWithStatus(e, 429) ||
     (await isMuseumHTTPError(e, 403, "LINK_DEVICE_LIMIT_EXCEEDED"));
+
+const accessTokenFromURL = (url: URL) =>
+    url.searchParams.get("t") || url.pathname.split("/").find(Boolean);
 
 export default function EmbedGallery() {
     const { onGenericError } = useBaseContext();
@@ -145,22 +148,21 @@ export default function EmbedGallery() {
             let redirectingToWebsite = false;
             try {
                 const currentURL = new URL(window.location.href);
-                const t = currentURL.searchParams.get("t");
+                const accessToken = accessTokenFromURL(currentURL);
                 const ck = await extractCollectionKeyFromShareURL(currentURL);
-                if (!t && !ck) {
+                if (!accessToken && !ck) {
                     // Only redirect to ente.com if this is not a self-hosted instance.
                     if (!isCustomAPIOrigin) {
                         window.location.href = "https://ente.com";
                         redirectingToWebsite = true;
                     }
                 }
-                if (!t || !ck) {
+                if (!accessToken || !ck) {
                     return;
                 }
 
                 collectionKey.current = ck;
                 const collection = savedPublicCollectionByKey(ck);
-                const accessToken = t;
                 const currentAPIOrigin = await apiOrigin();
                 let accessTokenJWT: string | undefined;
                 const linkDeviceToken = savedPublicCollectionLinkDeviceToken(
@@ -215,7 +217,7 @@ export default function EmbedGallery() {
         } catch (e) {
             log.error("Failed to verify password", e);
             if (isHTTP401Error(e)) {
-                throw new Error(t("incorrect_password"));
+                throw new Error(t("incorrect_password"), { cause: e });
             }
             throw e;
         }

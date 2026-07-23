@@ -1,12 +1,12 @@
 // TODO: Audit this file
-import { AllAlbums } from "components/Collections/AllAlbums";
-import { AllPeople } from "components/Collections/AllPeople";
+import { AllAlbums } from "@/components/Collections/AllAlbums";
+import { AllPeople } from "@/components/Collections/AllPeople";
 import {
     CollectionShare,
     type CollectionShareIntent,
     type CollectionShareProps,
-} from "components/Collections/CollectionShare";
-import type { FileListHeaderOrFooter } from "components/FileList";
+} from "@/components/Collections/CollectionShare";
+import type { FileListHeaderOrFooter } from "@/components/FileList";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import {
     isSaveCancelled,
@@ -64,10 +64,13 @@ type GalleryBarAndListHeaderProps = Omit<
     activeCollection: Collection | undefined;
     setActiveCollectionID: (collectionID: number) => void;
     setFileListHeader: (header: FileListHeaderOrFooter) => void;
+    hasActiveFileSelection: boolean;
     saveGroups: SaveGroup[];
+    canCreateAlbum: boolean;
 } & Pick<
         CollectionHeaderProps,
         | "files"
+        | "mapFileSource"
         | "onRemotePull"
         | "onAddSaveGroup"
         | "onMarkTempDeleted"
@@ -119,7 +122,10 @@ export const GalleryBarAndListHeader: React.FC<
     people,
     allPeople,
     saveGroups,
+    canCreateAlbum,
+    hasActiveFileSelection,
     files,
+    mapFileSource,
     activePerson,
     emailByUserID,
     shareSuggestionEmails,
@@ -216,6 +222,7 @@ export const GalleryBarAndListHeader: React.FC<
                     {...{
                         activeCollection,
                         files,
+                        mapFileSource,
                         setActiveCollectionID,
                         isActiveCollectionDownloadInProgress,
                         onRemotePull,
@@ -226,6 +233,7 @@ export const GalleryBarAndListHeader: React.FC<
                         onVisualFeedback,
                         fileNormalCollectionIDs,
                         collectionNameByID,
+                        emailByUserID,
                         onSelectCollection,
                         onSelectPerson,
                     }}
@@ -235,6 +243,7 @@ export const GalleryBarAndListHeader: React.FC<
                     onCollectionCast={showCollectionCast}
                     canSetAlbumCover={canSetAlbumCover}
                     onSetAlbumCover={onSetAlbumCover}
+                    hasActiveFileSelection={hasActiveFileSelection}
                 />
             ) : mode != "people" && collectionSummary ? (
                 <GalleryItemsHeaderAdapter>
@@ -262,11 +271,13 @@ export const GalleryBarAndListHeader: React.FC<
         activeCollectionID,
         isActiveCollectionDownloadInProgress,
         files,
+        mapFileSource,
         activePerson,
         showCollectionShare,
         openCollectionShare,
         openCollectionManageLink,
         showCollectionCast,
+        hasActiveFileSelection,
         onRemotePull,
         onAddSaveGroup,
         onMarkTempDeleted,
@@ -275,6 +286,7 @@ export const GalleryBarAndListHeader: React.FC<
         onVisualFeedback,
         fileNormalCollectionIDs,
         collectionNameByID,
+        emailByUserID,
         onSelectCollection,
         onSelectPerson,
         canSetAlbumCover,
@@ -320,6 +332,7 @@ export const GalleryBarAndListHeader: React.FC<
                 onChangeCollectionsSortBy={setCollectionsSortBy}
                 collectionsSortBy={collectionsSortBy}
                 isInHiddenSection={mode == "hidden-albums"}
+                canCreateAlbum={canCreateAlbum}
                 onRemotePull={onRemotePull}
             />
             <AllPeople

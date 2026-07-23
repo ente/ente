@@ -1,0 +1,1 @@
+- Allow uploading to uncategorized collection

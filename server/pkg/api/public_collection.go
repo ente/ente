@@ -5,18 +5,18 @@ import (
 	"net/http"
 	"strconv"
 
-	fileData "github.com/ente-io/museum/ente/filedata"
-	"github.com/ente-io/museum/pkg/controller/collections"
-	"github.com/ente-io/museum/pkg/controller/filedata"
-	"github.com/ente-io/museum/pkg/controller/public"
+	fileData "github.com/ente/museum/ente/filedata"
+	"github.com/ente/museum/pkg/controller/collections"
+	"github.com/ente/museum/pkg/controller/filedata"
+	"github.com/ente/museum/pkg/controller/public"
 
-	"github.com/ente-io/museum/pkg/controller/storagebonus"
+	"github.com/ente/museum/pkg/controller/storagebonus"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/handler"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/handler"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
@@ -42,7 +42,7 @@ func (h *PublicCollectionHandler) GetFile(c *gin.Context) {
 func (h *PublicCollectionHandler) GetPreviewURL(c *gin.Context) {
 	var req fileData.GetPreviewURLRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, fmt.Sprintf("Request binding failed %s", err)))
+		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "Request binding failed %s", err))
 		return
 	}
 	collectionOwner, err := h.getCollectionOwnerAndVerifyAccess(c, req.FileID)
@@ -122,32 +122,11 @@ func (h *PublicCollectionHandler) GetCollection(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// GetUploadUrls returns upload Urls where files can be uploaded
-func (h *PublicCollectionHandler) GetUploadUrls(c *gin.Context) {
-	enteApp := auth.GetApp(c)
-
-	collection, err := h.Controller.GetPublicCollection(c, true)
-	if err != nil {
-		handler.Error(c, stacktrace.Propagate(err, ""))
-		return
-	}
-	userID := collection.Owner.ID
-	count, _ := strconv.Atoi(c.Query("count"))
-	urls, err := h.FileCtrl.GetUploadURLs(c, userID, count, enteApp, false)
-	if err != nil {
-		handler.Error(c, stacktrace.Propagate(err, ""))
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"urls": urls,
-	})
-}
-
 // GetUploadURLV2 returns a single upload URL that enforces checksum + content-length headers
 func (h *PublicCollectionHandler) GetUploadURLV2(c *gin.Context) {
 	enteApp := auth.GetApp(c)
 	var req ente.UploadURLRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(c, &req); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -164,32 +143,11 @@ func (h *PublicCollectionHandler) GetUploadURLV2(c *gin.Context) {
 	c.JSON(http.StatusOK, url)
 }
 
-// GetMultipartUploadURLs returns upload Urls where files can be uploaded
-func (h *PublicCollectionHandler) GetMultipartUploadURLs(c *gin.Context) {
-	enteApp := auth.GetApp(c)
-
-	collection, err := h.Controller.GetPublicCollection(c, true)
-	if err != nil {
-		handler.Error(c, stacktrace.Propagate(err, ""))
-		return
-	}
-	userID := collection.Owner.ID
-	count, _ := strconv.Atoi(c.Query("count"))
-	urls, err := h.FileCtrl.GetMultipartUploadURLs(c, userID, count, enteApp)
-	if err != nil {
-		handler.Error(c, stacktrace.Propagate(err, ""))
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"urls": urls,
-	})
-}
-
 // GetMultipartUploadURLV2 returns multipart upload URLs for a single object with enforced metadata
 func (h *PublicCollectionHandler) GetMultipartUploadURLV2(c *gin.Context) {
 	enteApp := auth.GetApp(c)
 	var req ente.MultipartUploadURLRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(c, &req); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -209,7 +167,7 @@ func (h *PublicCollectionHandler) GetMultipartUploadURLV2(c *gin.Context) {
 // CreateFile create a new file inside the collection corresponding to the public accessToken
 func (h *PublicCollectionHandler) CreateFile(c *gin.Context) {
 	var file ente.File
-	if err := c.ShouldBindJSON(&file); err != nil {
+	if err := handler.BindJSON(c, &file); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -232,7 +190,7 @@ func (h *PublicCollectionHandler) CreateFile(c *gin.Context) {
 // VerifyPassword verifies the password for given public access token and return signed jwt token if it's valid
 func (h *PublicCollectionHandler) VerifyPassword(c *gin.Context) {
 	var req ente.VerifyPasswordRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(c, &req); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -251,7 +209,7 @@ func (h *PublicCollectionHandler) GetDiff(c *gin.Context) {
 	sinceTime, err := strconv.ParseInt(c.Query("sinceTime"), 10, 64)
 	if err != nil {
 		errorMessage := fmt.Sprintf("invalid sinceTime val: %s", c.Query("sinceTime"))
-		handler.Error(c, stacktrace.Propagate(ente.NewBadRequestWithMessage(errorMessage), err.Error()))
+		handler.Error(c, stacktrace.Propagate(ente.NewBadRequestWithMessage(errorMessage), "%v", err))
 		return
 	}
 	files, hasMore, err := h.CollectionCtrl.GetPublicDiff(c, sinceTime)

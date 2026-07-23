@@ -14,13 +14,13 @@ class FillerMemory extends SmartMemory {
     super.firstCreationTime,
     super.lastCreationTime,
   }) : super(
-          memories,
-          MemoryType.filler,
-          'filler',
-          firstDateToShow,
-          lastDateToShow,
-          id: id,
-        );
+         memories,
+         MemoryType.filler,
+         'filler',
+         firstDateToShow,
+         lastDateToShow,
+         id: id,
+       );
 
   @override
   String createTitle(AppLocalizations locals, String languageCode) {

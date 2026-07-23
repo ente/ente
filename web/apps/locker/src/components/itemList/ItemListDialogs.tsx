@@ -1,3 +1,4 @@
+import type { LockerCollection } from "@/types";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import {
     Box,
@@ -16,7 +17,6 @@ import {
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { t } from "i18next";
 import React from "react";
-import type { LockerCollection } from "types";
 import { LockerFileLinkDialog } from "../LockerFileLinkDialog";
 import { lockerDialogPaperSx } from "../lockerDialogStyles";
 

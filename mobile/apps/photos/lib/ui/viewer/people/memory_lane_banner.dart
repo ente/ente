@@ -11,6 +11,7 @@ import "package:photos/models/ml/face/face.dart";
 import "package:photos/models/ml/face/person.dart";
 import "package:photos/services/memory_lane/memory_lane_service.dart";
 import "package:photos/theme/ente_theme.dart";
+import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
 
 class MemoryLaneBanner extends StatelessWidget {
@@ -28,47 +29,26 @@ class MemoryLaneBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final brightness = Theme.of(context).brightness;
-    final Color backgroundColor = brightness == Brightness.dark
-        ? colorScheme.backgroundElevated2
-        : colorScheme.fillBaseGrey;
-    final TextStyle titleStyle = textTheme.body.copyWith(
-      fontFamily: "Inter",
-      fontWeight: FontWeight.w500,
-      fontSize: 16,
-      height: 20 / 16,
-      letterSpacing: -0.32,
-      color:
-          brightness == Brightness.dark ? colorScheme.textBase : Colors.black,
-    );
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        padding: const EdgeInsets.fromLTRB(9, 7, 18, 7),
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(28),
+    final backgroundColor = colorScheme.fill;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: MenuItemWidgetNew(
+        title: title,
+        titleMaxLines: 1,
+        titleColor: colorScheme.textBase,
+        leadingIconSize: 56,
+
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        leadingIconWidget: _FaceThumbnail(
+          image: thumbnail,
+          backgroundColor: backgroundColor,
         ),
-        child: Row(
-          children: [
-            _FaceThumbnail(
-              image: thumbnail,
-              backgroundColor: backgroundColor,
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                title,
-                style: titleStyle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Icon(Icons.chevron_right, color: colorScheme.textBase),
-          ],
-        ),
+
+        trailingIcon: Icons.chevron_right,
+
+        trailingIconColor: colorScheme.textBase,
+        menuItemColor: backgroundColor,
+        onTap: () async => onTap(),
       ),
     );
   }
@@ -99,10 +79,7 @@ class _FaceThumbnail extends StatelessWidget {
             ),
             clipBehavior: Clip.hardEdge,
             child: image != null
-                ? Image(
-                    image: image!,
-                    fit: BoxFit.cover,
-                  )
+                ? Image(image: image!, fit: BoxFit.cover)
                 : Center(
                     child: Icon(
                       Icons.person_outline,
@@ -233,7 +210,7 @@ class MemoryLaneBannerSection extends StatefulWidget {
   final PersonEntity person;
   final VoidCallback? onTap;
   final Future<MemoryLanePersonTimeline?> Function(String personId)?
-      loadTimeline;
+  loadTimeline;
 
   const MemoryLaneBannerSection({
     required this.showBanner,

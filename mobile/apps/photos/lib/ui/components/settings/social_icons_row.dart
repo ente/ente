@@ -25,7 +25,7 @@ class SocialIconsRow extends StatelessWidget {
       ),
       _SocialLink(
         icon: HugeIcons.strokeRoundedGithub,
-        url: "https://github.com/ente-io/ente",
+        url: "https://github.com/ente/ente",
         label: "GitHub",
       ),
       _SocialLink(

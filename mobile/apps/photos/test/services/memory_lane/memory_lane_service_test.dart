@@ -44,20 +44,22 @@ void main() {
       );
     });
 
-    test("minimumEligibleCreationTimeMicros uses the same anniversary date",
-        () {
-      expect(
-        DateTime.fromMicrosecondsSinceEpoch(
-          MemoryLaneService.minimumEligibleCreationTimeMicros("2016-02-29")!,
-        ),
-        DateTime(2019, 2, 28),
-      );
-      expect(
-        DateTime.fromMicrosecondsSinceEpoch(
-          MemoryLaneService.minimumEligibleCreationTimeMicros("2010-10-15")!,
-        ),
-        DateTime(2013, 10, 15),
-      );
-    });
+    test(
+      "minimumEligibleCreationTimeMicros uses the same anniversary date",
+      () {
+        expect(
+          DateTime.fromMicrosecondsSinceEpoch(
+            MemoryLaneService.minimumEligibleCreationTimeMicros("2016-02-29")!,
+          ),
+          DateTime(2019, 2, 28),
+        );
+        expect(
+          DateTime.fromMicrosecondsSinceEpoch(
+            MemoryLaneService.minimumEligibleCreationTimeMicros("2010-10-15")!,
+          ),
+          DateTime(2013, 10, 15),
+        );
+      },
+    );
   });
 }

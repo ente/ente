@@ -1,24 +1,14 @@
-name: "Lint (rust)"
+name: "Lint (Rust)"
 
 on:
-    # Run on every pull request (open or push to it) that changes Rust code
-    #
-    # See also: rust-lint-cli.yml
     pull_request:
         paths:
-            - "rust/crates/core/**"
-            - "rust/crates/contacts/**"
-            - "rust/crates/image/**"
-            - "rust/bindings/wasm/ente-wasm/**"
-            - "rust/photos/**"
-            - "rust/Cargo.lock"
-            - "rust/Cargo.toml"
             - ".github/workflows/rust-lint.yml"
+            - "rust/**"
 
 permissions:
     contents: read
 
-# Cancel in-progress lint runs when a new commit is pushed.
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
@@ -29,63 +19,34 @@ env:
 jobs:
     lint:
         runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: rust
         steps:
-            - name: Checkout code
-              uses: actions/checkout@v6
+            - name: Checkout
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-            - name: Cache
-              uses: actions/cache@v4
+            - name: Free runner disk space
+              run: sudo rm -rf /usr/share/dotnet
+
+            - name: Install Linux dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libvulkan-dev glslc
+
+            # Restore-only; primed on main by warm-caches.yml.
+            - name: Restore Rust cache
+              uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
               with:
-                  path: |
-                      ~/.cargo/registry
-                      ~/.cargo/git
-                      rust/target
-                  key: ${{ runner.os }}-cargo-${{ hashFiles('rust/Cargo.lock') }}
+                  workspaces: rust
+                  shared-key: rust-workspace
+                  save-if: false
+                  cache-directories: rust/.cache
 
-            - name: Check formatting (core)
-              working-directory: rust
-              run: cargo fmt --check -p ente-core
+            - run: cargo fmt --check
 
-            - name: Run clippy (core)
-              working-directory: rust
-              run: cargo clippy -p ente-core --all-targets --all-features
+            - run: cargo clippy --locked --all-targets --features museum,ente-photos/ml-assets
 
-            - name: Build (core)
-              working-directory: rust
-              run: cargo build -p ente-core
+            - run: cargo install cargo-audit --version 0.22.2 --locked
 
-            - name: Test (core)
-              working-directory: rust
-              run: cargo test -p ente-core
-
-            - name: Check formatting (photos)
-              working-directory: rust
-              run: cargo fmt --check -p ente_photos
-
-            - name: Run clippy (photos)
-              working-directory: rust
-              run: cargo clippy -p ente_photos --all-targets --all-features
-
-            - name: Build (photos)
-              working-directory: rust
-              run: cargo build -p ente_photos
-
-            - name: Test (photos)
-              working-directory: rust
-              run: cargo test -p ente_photos
-
-            - name: Check formatting (wasm)
-              working-directory: rust
-              run: cargo fmt --check -p ente-wasm
-
-            - name: Run clippy (wasm)
-              working-directory: rust
-              run: cargo clippy -p ente-wasm --all-targets --all-features
-
-            - name: Build (wasm)
-              working-directory: rust
-              run: cargo build -p ente-wasm
-
-            - name: Test (wasm)
-              working-directory: rust
-              run: cargo test -p ente-wasm
+            - run: cargo audit

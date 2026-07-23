@@ -2,11 +2,7 @@ import 'package:ente_ui/theme/colors.dart';
 import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:flutter/material.dart';
 
-enum GradientButtonType {
-  primary,
-  secondary,
-  critical,
-}
+enum GradientButtonType { primary, secondary, critical }
 
 class GradientButton extends StatelessWidget {
   final VoidCallback? onTap;
@@ -36,8 +32,10 @@ class GradientButton extends StatelessWidget {
     final colorScheme = getEnteColorScheme(context);
     final bool isEnabled = onTap != null;
 
-    final Color effectiveBackgroundColor =
-        _getBackgroundColor(colorScheme, isEnabled);
+    final Color effectiveBackgroundColor = _getBackgroundColor(
+      colorScheme,
+      isEnabled,
+    );
     final Color effectiveTextColor = _getTextColor(colorScheme, isEnabled);
 
     final TextStyle effectiveTextStyle = _textStyle.copyWith(
@@ -52,10 +50,7 @@ class GradientButton extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                color: effectiveTextColor,
-              ),
+              Icon(icon, color: effectiveTextColor),
               Padding(padding: EdgeInsets.symmetric(horizontal: paddingValue)),
               if (text.isNotEmpty) textWidget,
             ],
@@ -70,10 +65,7 @@ class GradientButton extends StatelessWidget {
           onTap: onTap,
           splashColor: isEnabled ? null : Colors.transparent,
           highlightColor: isEnabled ? null : Colors.transparent,
-          child: SizedBox(
-            height: 56,
-            child: Center(child: content),
-          ),
+          child: SizedBox(height: 56, child: Center(child: content)),
         ),
       ),
     );

@@ -145,10 +145,7 @@ class _TwoFactorRecoveryPageState extends State<TwoFactorRecoveryPage> {
                         GestureDetector(
                           behavior: HitTestBehavior.translucent,
                           onTap: () async {
-                            await sendEmail(
-                              context,
-                              to: "support@ente.com",
-                            );
+                            await sendEmail(context, to: "support@ente.com");
                           },
                           child: Text(
                             context.strings.noRecoveryKeyTitle,

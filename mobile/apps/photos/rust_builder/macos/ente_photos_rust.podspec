@@ -22,13 +22,15 @@ A new Flutter FFI plugin project.
   s.dependency 'FlutterMacOS'
 
   s.platform = :osx, '10.11'
-  s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
+  # ONNX Runtime 1.27 does not publish Apple x86_64 binaries, so consumers
+  # must also avoid trying to link an x86_64 application slice.
+  s.user_target_xcconfig = { 'EXCLUDED_ARCHS[sdk=macosx*]' => 'x86_64' }
   s.swift_version = '5.0'
 
   s.script_phase = {
     :name => 'Build Rust library',
     # First argument is relative path to the `rust` folder, second is name of rust library
-    :script => 'sh "$PODS_TARGET_SRCROOT/../cargokit/build_pod.sh" ../../rust ente_photos_rust',
+    :script => 'sh "$PODS_TARGET_SRCROOT/../cargokit/build_pod.sh" ../../../../../rust/bindings/frb/photos ente_photos_rust',
     :execution_position => :before_compile,
     :input_files => ['${BUILT_PRODUCTS_DIR}/cargokit_phony'],
     # Let XCode know that the static library referenced in -force_load below is
@@ -37,8 +39,8 @@ A new Flutter FFI plugin project.
   }
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
-    # Flutter.framework does not contain a i386 slice.
-    'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386',
+    # ONNX Runtime 1.27 does not publish Apple x86_64 binaries.
+    'EXCLUDED_ARCHS[sdk=macosx*]' => 'x86_64',
     'OTHER_LDFLAGS' => '-force_load ${BUILT_PRODUCTS_DIR}/libente_photos_rust.a -lc++',
   }
 end

@@ -3,9 +3,9 @@ title: Referral Program
 description: Earn free storage by inviting friends to Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Referral Program

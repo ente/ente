@@ -1,15 +1,12 @@
 # Status
 
-Our status page ([status.ente.com](https://status.ente.com)) is a self-hosted
-[Uptime Kuma](https://github.com/louislam/uptime-kuma).
+Our status page ([status.ente.com](https://status.ente.com)) is a self-hosted [Uptime Kuma](https://github.com/louislam/uptime-kuma).
 
 ## Installing
 
 Install [nginx](../nginx/README.md).
 
-Create a directory where Uptime Kuma will keep its state. This is the directory
-we can optionally backup if we wish to preserve history and settings when moving
-instances in the future.
+Create a directory where Uptime Kuma will keep its state. This is the directory we can optionally backup if we wish to preserve history and settings when moving instances in the future.
 
 ```sh
 sudo mkdir -p /root/uptime-kuma
@@ -24,8 +21,7 @@ sudo mv uptime-kuma.service /etc/systemd/system/
 sudo mv uptime-kuma.nginx.conf /root/nginx/conf.d
 ```
 
-Tell systemd to pick up new service definitions, enable the unit (so that it
-automatically starts on boot), and start it this time around.
+Tell systemd to pick up new service definitions, enable the unit (so that it automatically starts on boot), and start it this time around.
 
 ```sh
 sudo systemctl daemon-reload

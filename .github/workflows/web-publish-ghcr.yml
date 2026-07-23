@@ -1,4 +1,4 @@
-name: "Publish ghcr (web)"
+name: "Publish GHCR (Web)"
 
 on:
     # Run automatically every Wednesday, at 07:00 UTC.
@@ -8,31 +8,27 @@ on:
     workflow_dispatch:
 
 permissions:
-    contents: write  # for pushing the `ghcr/web` branch
+    contents: read
     packages: write
 
 jobs:
     publish:
         runs-on: ubuntu-latest
         steps:
-            - name: Checkout code
-              uses: actions/checkout@v6
+            - name: Checkout
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+            - name: Log in to GHCR
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: printf '%s' "${GITHUB_TOKEN}" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
 
             - name: Build and push
-              uses: mr-smithers-excellent/docker-build-push@v6
-              with:
-                  dockerfile: web/Dockerfile
-                  directory: . # repo root
-                  # Resultant package name will be ghcr.io/ente-io/web
-                  image: web
-                  registry: ghcr.io
-                  enableBuildKit: true
-                  multiPlatform: true
-                  platform: linux/amd64,linux/arm64
-                  tags: ${{ github.sha }}, latest
-                  username: ${{ github.actor }}
-                  password: ${{ secrets.GITHUB_TOKEN }}
-
-            - name: Update branch ghcr/web to point to source commit
               run: |
-                  git push -f origin HEAD:refs/heads/ghcr/web
+                  docker buildx create --use
+                  docker buildx build --push \
+                      --file web/Dockerfile \
+                      --platform linux/amd64,linux/arm64 \
+                      --tag ghcr.io/ente/web:${GITHUB_SHA} \
+                      --tag ghcr.io/ente/web:latest \
+                      .

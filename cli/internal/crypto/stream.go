@@ -67,7 +67,7 @@ type decryptor struct {
 
 func NewStreamKey() []byte {
 	k := make([]byte, chacha20poly1305.KeySize)
-	_, _ = rand.Read(k)
+	rand.Read(k)
 	return k
 }
 
@@ -77,7 +77,7 @@ func NewEncryptor(key []byte) (Encryptor, []byte, error) {
 	}
 
 	header := make([]byte, StreamHeaderBytes)
-	_, _ = rand.Read(header)
+	rand.Read(header)
 
 	stream := &encryptor{}
 

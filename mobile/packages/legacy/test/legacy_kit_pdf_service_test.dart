@@ -6,17 +6,19 @@ import "package:flutter_test/flutter_test.dart";
 
 void main() {
   test("normalizes compact legacy kit payload fields", () {
-    final payload = jsonDecode(
-      const LegacyKitShare(
-        payloadVersion: 1,
-        variant: 1,
-        kitId: " e04efa62-2607-4c8b-b4c7-6c84f08fe162 ",
-        shareIndex: 2,
-        share: "USpH7sFwOXQ/TeSu1BeAJqfeVxwlKXZLnlCZ mOfmQiY=",
-        checksum: " c1T4uxBh7ws= ",
-        partName: "Amit, Brother, 98",
-      ).toQrPayload(),
-    ) as Map<String, dynamic>;
+    final payload =
+        jsonDecode(
+              const LegacyKitShare(
+                payloadVersion: 1,
+                variant: 1,
+                kitId: " e04efa62-2607-4c8b-b4c7-6c84f08fe162 ",
+                shareIndex: 2,
+                share: "USpH7sFwOXQ/TeSu1BeAJqfeVxwlKXZLnlCZ mOfmQiY=",
+                checksum: " c1T4uxBh7ws= ",
+                partName: "Amit, Brother, 98",
+              ).toQrPayload(),
+            )
+            as Map<String, dynamic>;
 
     expect(payload["k"], "e04efa62-2607-4c8b-b4c7-6c84f08fe162");
     expect(payload["s"], "USpH7sFwOXQ/TeSu1BeAJqfeVxwlKXZLnlCZmOfmQiY=");
@@ -48,11 +50,7 @@ void main() {
   });
 
   test("builds individual legacy kit recovery sheet PDFs", () async {
-    final shares = [
-      _share(1, "Mom"),
-      _share(2, "Alex"),
-      _share(3, "Lawyer"),
-    ];
+    final shares = [_share(1, "Mom"), _share(2, "Alex"), _share(3, "Lawyer")];
 
     const service = LegacyKitPdfService();
     final sheets = await Future.wait(

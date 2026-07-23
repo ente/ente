@@ -6,10 +6,7 @@ import 'package:photos/models/ml/face/face.dart';
 const double _regularPadding = 0.4;
 const double _minimumPadding = 0.1;
 
-FaceBox resolveLaneFaceBox(
-  String faceID, {
-  List<Face>? faces,
-}) {
+FaceBox resolveLaneFaceBox(String faceID, {List<Face>? faces}) {
   if (faces != null) {
     for (final face in faces) {
       if (face.faceID == faceID) {
@@ -36,12 +33,7 @@ FaceBox parseFaceBoxFromFaceID(String faceID) {
     final x = xMin.clamp(0.0, 1.0);
     final y = yMin.clamp(0.0, 1.0);
 
-    return FaceBox(
-      x: x,
-      y: y,
-      width: width,
-      height: height,
-    );
+    return FaceBox(x: x, y: y, width: width, height: height);
   } catch (_) {
     return const FaceBox(x: 0, y: 0, width: 1, height: 1);
   }
@@ -54,12 +46,14 @@ FaceBox computePaddedFaceCropBox(FaceBox faceBox) {
 
   final xCrop = faceBox.x - faceBox.width * _regularPadding;
   final xOvershoot = min(0.0, xCrop).abs() / faceBox.width;
-  final widthCrop = faceBox.width * (1 + 2 * _regularPadding) -
+  final widthCrop =
+      faceBox.width * (1 + 2 * _regularPadding) -
       2 * min(xOvershoot, _regularPadding - _minimumPadding) * faceBox.width;
 
   final yCrop = faceBox.y - faceBox.height * _regularPadding;
   final yOvershoot = min(0.0, yCrop).abs() / faceBox.height;
-  final heightCrop = faceBox.height * (1 + 2 * _regularPadding) -
+  final heightCrop =
+      faceBox.height * (1 + 2 * _regularPadding) -
       2 * min(yOvershoot, _regularPadding - _minimumPadding) * faceBox.height;
 
   final xCropSafe = xCrop.clamp(0.0, 1.0);

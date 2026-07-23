@@ -1,27 +1,24 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/core/configuration.dart';
 import 'package:photos/generated/l10n.dart';
 import 'package:photos/models/api/collection/user.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/contacts/contact_identity_resolver.dart';
-import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/ui/actions/collection/collection_sharing_actions.dart';
-import 'package:photos/ui/components/captioned_text_widget.dart';
-import 'package:photos/ui/components/divider_widget.dart';
-import 'package:photos/ui/components/menu_item_widget/menu_item_widget.dart';
-import 'package:photos/ui/components/menu_section_description_widget.dart';
-import 'package:photos/ui/components/menu_section_title.dart';
 import 'package:photos/ui/sharing/add_participant_page.dart';
 import 'package:photos/ui/sharing/album_participants_page.dart';
 import 'package:photos/ui/sharing/album_share_info_widget.dart';
 import 'package:photos/ui/sharing/manage_album_participant.dart';
 import 'package:photos/ui/sharing/manage_links_widget.dart';
 import 'package:photos/ui/sharing/public_link_enabled_actions_widget.dart';
+import 'package:photos/ui/sharing/share_components.dart';
 import 'package:photos/ui/sharing/user_avator_widget.dart';
 
 class ShareCollectionPage extends StatefulWidget {
@@ -34,30 +31,51 @@ class ShareCollectionPage extends StatefulWidget {
 }
 
 class _ShareCollectionPageState extends State<ShareCollectionPage> {
+  late Collection _collection;
   late List<User?> _sharees;
-  final CollectionActions collectionActions =
-      CollectionActions(CollectionsService.instance);
+  final CollectionActions collectionActions = CollectionActions(
+    CollectionsService.instance,
+  );
   final GlobalKey sendLinkButtonKey = GlobalKey();
   bool _redirectedToParticipants = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _collection = widget.collection;
+  }
+
+  Future<void> _refreshCollection() async {
+    try {
+      final latest = await CollectionsService.instance.fetchCollectionByID(
+        _collection.id,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _collection = latest;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
 
   Future<void> _navigateToManageUser() async {
     if (_sharees.length == 1) {
       await routeToPage(
         context,
         ManageIndividualParticipant(
-          collection: widget.collection,
+          collection: _collection,
           user: _sharees.first!,
         ),
       );
     } else {
-      await routeToPage(
-        context,
-        AlbumParticipantsPage(widget.collection),
-      );
+      await routeToPage(context, AlbumParticipantsPage(_collection));
     }
-    if (mounted) {
-      setState(() => {});
-    }
+    await _refreshCollection();
   }
 
   @override
@@ -65,279 +83,168 @@ class _ShareCollectionPageState extends State<ShareCollectionPage> {
     final int userID = Configuration.instance.getUserID() ?? -1;
 
     if (!_redirectedToParticipants) {
-      final bool isOwner = widget.collection.owner.id == userID;
+      final bool isOwner = _collection.owner.id == userID;
       if (!isOwner) {
         _redirectedToParticipants = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) {
             return;
           }
-          replacePage(
-            context,
-            AlbumParticipantsPage(widget.collection),
-          );
+          replacePage(context, AlbumParticipantsPage(_collection));
         });
       } else {
         _redirectedToParticipants = true;
       }
     }
 
-    _sharees = widget.collection.sharees;
-    final bool hasUrl = widget.collection.hasLink;
-    final bool isOwner = widget.collection.owner.id == userID;
+    _sharees = _collection.sharees;
+    final bool hasUrl = _collection.hasLink;
+    final bool isOwner = _collection.owner.id == userID;
     final bool canManageParticipants = isOwner;
-    final children = <Widget>[];
-    children.add(
-      MenuSectionTitle(
-        title: AppLocalizations.of(context)
-            .shareWithPeopleSectionTitle(numberOfPeople: _sharees.length),
-        iconData: Icons.workspaces,
+    final children = <Widget>[
+      ShareSectionTitle(
+        AppLocalizations.of(
+          context,
+        ).shareWithPeopleSectionTitle(numberOfPeople: _sharees.length),
       ),
-    );
-
-    children.add(
-      EmailItemWidget(
-        widget.collection,
-        onTap: _navigateToManageUser,
-      ),
-    );
+      EmailItemWidget(_collection, onTap: _navigateToManageUser),
+    ];
 
     if (canManageParticipants) {
-      children.add(
-        MenuItemWidget(
-          captionedTextWidget: CaptionedTextWidget(
-            title: AppLocalizations.of(context).addAdmin,
-            makeTextBold: true,
-          ),
-          leadingIcon: Icons.add,
-          menuItemColor: getEnteColorScheme(context).fillFaint,
-          isTopBorderRadiusRemoved: _sharees.isNotEmpty,
-          isBottomBorderRadiusRemoved: true,
+      children.addAll([
+        if (_sharees.isNotEmpty) const SizedBox(height: Spacing.sm),
+        ShareMenuItem(
+          title: AppLocalizations.of(context).addAdmin,
+          icon: HugeIcons.strokeRoundedCrown,
+          showChevron: true,
           onTap: () async {
             await routeToPage(
               context,
               AddParticipantPage(
-                [widget.collection],
+                [_collection],
                 const [ActionTypesToShow.addAdmin],
               ),
             );
-            if (mounted) {
-              setState(() => {});
-            }
+            await _refreshCollection();
           },
         ),
-      );
-      children.add(
-        DividerWidget(
-          dividerType: DividerType.menu,
-          bgColor: getEnteColorScheme(context).fillFaint,
-        ),
-      );
-      children.add(
-        MenuItemWidget(
-          captionedTextWidget: CaptionedTextWidget(
-            title: AppLocalizations.of(context).addCollaborator,
-            makeTextBold: true,
-          ),
-          leadingIcon: Icons.add,
-          menuItemColor: getEnteColorScheme(context).fillFaint,
-          isTopBorderRadiusRemoved: true,
-          isBottomBorderRadiusRemoved: true,
+        const SizedBox(height: Spacing.sm),
+        ShareMenuItem(
+          title: AppLocalizations.of(context).addCollaborator,
+          icon: HugeIcons.strokeRoundedUserGroup,
+          showChevron: true,
           onTap: () async {
             unawaited(
               routeToPage(
                 context,
                 AddParticipantPage(
-                  [widget.collection],
+                  [_collection],
                   const [ActionTypesToShow.addCollaborator],
                 ),
               ).then((value) {
-                if (mounted) {
-                  setState(() {});
-                }
+                _refreshCollection().ignore();
               }),
             );
           },
         ),
-      );
-      children.add(
-        DividerWidget(
-          dividerType: DividerType.menu,
-          bgColor: getEnteColorScheme(context).fillFaint,
-        ),
-      );
-      children.add(
-        MenuItemWidget(
-          captionedTextWidget: CaptionedTextWidget(
-            title: AppLocalizations.of(context).addViewer,
-            makeTextBold: true,
-          ),
-          leadingIcon: Icons.add,
-          menuItemColor: getEnteColorScheme(context).fillFaint,
-          isTopBorderRadiusRemoved: true,
-          isBottomBorderRadiusRemoved: false,
+        const SizedBox(height: Spacing.sm),
+        ShareMenuItem(
+          title: AppLocalizations.of(context).addViewer,
+          icon: HugeIcons.strokeRoundedView,
+          showChevron: true,
           onTap: () async {
             await routeToPage(
               context,
               AddParticipantPage(
-                [widget.collection],
+                [_collection],
                 const [ActionTypesToShow.addViewer],
               ),
             );
-            if (mounted) {
-              setState(() => {});
-            }
+            await _refreshCollection();
           },
         ),
-      );
-      if (_sharees.isEmpty && !hasUrl) {
-        children.add(
-          MenuSectionDescriptionWidget(
-            content: AppLocalizations.of(context).sharedAlbumSectionDescription,
+        if (_sharees.isEmpty && !hasUrl)
+          ShareSectionDescription(
+            AppLocalizations.of(context).sharedAlbumSectionDescription,
           ),
-        );
-      }
+      ]);
     }
 
     if (isOwner) {
       children.addAll([
-        const SizedBox(
-          height: 24,
-        ),
-        MenuSectionTitle(
-          title: hasUrl
+        const SizedBox(height: Spacing.xxl),
+        ShareSectionTitle(
+          hasUrl
               ? AppLocalizations.of(context).publicLinkEnabled
               : AppLocalizations.of(context).shareALink,
-          iconData: Icons.public,
         ),
       ]);
       if (hasUrl) {
         children.add(
           PublicLinkEnabledActionsWidget(
-            collection: widget.collection,
+            collection: _collection,
             sendLinkButtonKey: sendLinkButtonKey,
-          ),
-        );
-
-        children.addAll(
-          [
-            DividerWidget(
-              dividerType: DividerType.menu,
-              bgColor: getEnteColorScheme(context).fillFaint,
-            ),
-            MenuItemWidget(
-              captionedTextWidget: CaptionedTextWidget(
+            additionalItems: [
+              ShareMenuItem(
                 title: AppLocalizations.of(context).manageLink,
-                makeTextBold: true,
+                icon: HugeIcons.strokeRoundedSetting07,
+                showChevron: true,
+                onTap: () async {
+                  unawaited(
+                    routeToPage(
+                      context,
+                      ManageSharedLinkWidget(collection: _collection),
+                    ).then((value) {
+                      _refreshCollection().ignore();
+                    }),
+                  );
+                },
               ),
-              leadingIcon: Icons.link,
-              trailingIcon: Icons.navigate_next,
-              menuItemColor: getEnteColorScheme(context).fillFaint,
-              trailingIconIsMuted: true,
-              onTap: () async {
-                unawaited(
-                  routeToPage(
-                    context,
-                    ManageSharedLinkWidget(collection: widget.collection),
-                  ).then((value) {
-                    if (mounted) {
-                      setState(() {});
-                    }
-                  }),
-                );
-              },
-              isTopBorderRadiusRemoved: true,
-            ),
-          ],
+            ],
+          ),
         );
       } else {
-        children.add(
-          MenuItemWidget(
-            captionedTextWidget: CaptionedTextWidget(
-              title: AppLocalizations.of(context).createPublicLink,
-              makeTextBold: true,
-            ),
-            leadingIcon: Icons.link,
-            menuItemColor: getEnteColorScheme(context).fillFaint,
-            showOnlyLoadingState: true,
-            onTap: () async {
-              final bool result =
-                  await collectionActions.enableUrl(context, widget.collection);
-              if (result && mounted) {
-                setState(() => {});
-              }
-            },
-          ),
-        );
-        if (_sharees.isEmpty) {
-          children.add(
-            MenuSectionDescriptionWidget(
-              content: AppLocalizations.of(context).shareWithNonenteUsers,
-            ),
-          );
-        }
         children.addAll([
-          const SizedBox(
-            height: 24,
-          ),
-          MenuSectionTitle(
-            title: AppLocalizations.of(context).collectPhotos,
-            iconData: Icons.public,
-          ),
-          MenuItemWidget(
-            captionedTextWidget: CaptionedTextWidget(
-              title: AppLocalizations.of(context).createCollaborativeLink,
-              makeTextBold: true,
-            ),
-            leadingIcon: Icons.people_alt_outlined,
-            menuItemColor: getEnteColorScheme(context).fillFaint,
+          ShareMenuItem(
+            title: AppLocalizations.of(context).createPublicLink,
+            subtitle: AppLocalizations.of(context).shareWithNonenteUsers,
+            icon: HugeIcons.strokeRoundedLink04,
+            showChevron: true,
             showOnlyLoadingState: true,
             onTap: () async {
               final bool result = await collectionActions.enableUrl(
                 context,
-                widget.collection,
-                enableCollect: true,
+                _collection,
               );
-              if (result && mounted) {
-                setState(() => {});
+              if (result) {
+                await _refreshCollection();
               }
             },
           ),
-          _sharees.isEmpty
-              ? MenuSectionDescriptionWidget(
-                  content:
-                      AppLocalizations.of(context).collabLinkSectionDescription,
-                )
-              : const SizedBox.shrink(),
+          const SizedBox(height: Spacing.xxl),
+          ShareSectionTitle(AppLocalizations.of(context).collectPhotos),
+          ShareMenuItem(
+            title: AppLocalizations.of(context).createCollaborativeLink,
+            subtitle: AppLocalizations.of(context).collabLinkSectionDescription,
+            icon: HugeIcons.strokeRoundedUserGroup,
+            showChevron: true,
+            showOnlyLoadingState: true,
+            onTap: () async {
+              final bool result = await collectionActions.enableUrl(
+                context,
+                _collection,
+                enableCollect: true,
+              );
+              if (result) {
+                await _refreshCollection();
+              }
+            },
+          ),
         ]);
       }
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.collection.displayName,
-          style:
-              Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 16),
-        ),
-        elevation: 0,
-        centerTitle: false,
-      ),
-      body: SingleChildScrollView(
-        child: ListBody(
-          children: <Widget>[
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: children,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return ShareScaffold(title: _collection.displayName, children: children);
   }
 }
 
@@ -345,11 +252,7 @@ class EmailItemWidget extends StatelessWidget {
   final Collection collection;
   final Function? onTap;
 
-  const EmailItemWidget(
-    this.collection, {
-    this.onTap,
-    super.key,
-  });
+  const EmailItemWidget(this.collection, {this.onTap, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -358,71 +261,46 @@ class EmailItemWidget extends StatelessWidget {
     } else if (collection.getSharees().length == 1) {
       final User? user = collection.getSharees().firstOrNull;
       final resolvedName = user == null ? '' : resolveDisplayName(user);
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          MenuItemWidget(
-            captionedTextWidget: CaptionedTextWidget(
-              title: resolvedName,
-            ),
-            leadingIconWidget: UserAvatarWidget(
-              collection.getSharees().first,
-              thumbnailView: false,
-            ),
-            leadingIconSize: 24,
-            menuItemColor: getEnteColorScheme(context).fillFaint,
-            trailingIconIsMuted: true,
-            trailingIcon: Icons.chevron_right,
-            onTap: () async {
-              if (onTap != null) {
-                onTap!();
-              }
-            },
-            isBottomBorderRadiusRemoved: true,
-          ),
-          DividerWidget(
-            dividerType: DividerType.menu,
-            bgColor: getEnteColorScheme(context).fillFaint,
-          ),
-        ],
+      return ShareMenuItem(
+        title: resolvedName,
+        leading: UserAvatarWidget(
+          collection.getSharees().first,
+          thumbnailView: false,
+        ),
+        showChevron: true,
+        onTap: () async {
+          if (onTap != null) {
+            onTap!();
+          }
+        },
       );
     } else {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          MenuItemWidget(
-            captionedTextWidget: Flexible(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
-                child: SizedBox(
-                  height: 24,
-                  child: AlbumSharesIcons(
-                    sharees: collection.getSharees(),
-                    padding: const EdgeInsets.all(0),
-                    limitCountTo: 10,
-                    type: AvatarType.md,
-                    removeBorder: false,
-                  ),
-                ),
-              ),
-            ),
-            alignCaptionedTextToLeft: true,
-            // leadingIcon: Icons.people_outline,
-            menuItemColor: getEnteColorScheme(context).fillFaint,
-            trailingIconIsMuted: true,
-            trailingIcon: Icons.chevron_right,
-            onTap: () async {
-              if (onTap != null) {
-                onTap!();
-              }
-            },
-            isBottomBorderRadiusRemoved: true,
+      final sharees = collection.getSharees();
+      const avatarSize = 24.0;
+      final total = sharees.length;
+      final limit = total > 2 ? 1 : 2;
+
+      return ShareMenuItem(
+        title: AppLocalizations.of(context).manageParticipants,
+        subtitle: AppLocalizations.of(
+          context,
+        ).albumParticipantsCount(count: sharees.length + 1),
+        leading: SizedBox(
+          height: avatarSize,
+          child: AlbumSharesIcons(
+            sharees: sharees,
+            padding: EdgeInsets.zero,
+            limitCountTo: limit,
+            type: AvatarType.medium,
+            removeBorder: false,
           ),
-          DividerWidget(
-            dividerType: DividerType.menu,
-            bgColor: getEnteColorScheme(context).fillFaint,
-          ),
-        ],
+        ),
+        showChevron: true,
+        onTap: () async {
+          if (onTap != null) {
+            onTap!();
+          }
+        },
       );
     }
   }

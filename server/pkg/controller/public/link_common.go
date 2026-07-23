@@ -3,10 +3,10 @@ package public
 import (
 	"errors"
 	"fmt"
-	"github.com/ente-io/museum/ente"
-	enteJWT "github.com/ente-io/museum/ente/jwt"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	enteJWT "github.com/ente/museum/ente/jwt"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/golang-jwt/jwt/v4"
 )
 

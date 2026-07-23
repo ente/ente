@@ -50,14 +50,15 @@ class _AppStorageViewerState extends State<AppStorageViewer> {
         "${appTemporaryDirectory.path}/image_manager_disk_cache/";
 
     final String tempDownload = Configuration.instance.getTempDirectory();
-    final String personFaceThumbnails =
-        Configuration.instance.getPersonFaceThumbnailCacheDirectory();
-    final String cacheDirectory =
-        Configuration.instance.getThumbnailCacheDirectory();
+    final String personFaceThumbnails = Configuration.instance
+        .getPersonFaceThumbnailCacheDirectory();
+    final String cacheDirectory = Configuration.instance
+        .getThumbnailCacheDirectory();
     final imageCachePath =
         appTemporaryDirectory.path + "/" + DefaultCacheManager.key;
     final videoCachePath =
         appTemporaryDirectory.path + "/" + VideoCacheManager.key;
+    if (!mounted) return;
     paths.addAll([
       PathStorageItem.name(
         imageCachePath,
@@ -158,75 +159,71 @@ class _AppStorageViewerState extends State<AppStorageViewer> {
             ],
           ),
           SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Column(
-                        children: [
-                          MenuSectionTitle(
-                            title: AppLocalizations.of(context).cachedData,
+            delegate: SliverChildBuilderDelegate((context, index) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Column(
+                      children: [
+                        MenuSectionTitle(
+                          title: AppLocalizations.of(context).cachedData,
+                        ),
+                        ListView.builder(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.all(0),
+                          physics: const ScrollPhysics(),
+                          // to disable GridView's scrolling
+                          itemBuilder: (context, index) {
+                            final path = paths[index];
+                            return PathStorageViewer(
+                              path,
+                              removeTopRadius: index > 0,
+                              removeBottomRadius: index < paths.length - 1,
+                              enableDoubleTapClear: internalUser,
+                              key: ValueKey("$index-$_refreshCounterKey"),
+                            );
+                          },
+                          itemCount: paths.length,
+                        ),
+                        const SizedBox(height: 24),
+                        MenuItemWidget(
+                          leadingIcon: Icons.delete_sweep_outlined,
+                          captionedTextWidget: CaptionedTextWidget(
+                            title: AppLocalizations.of(context).clearCaches,
                           ),
-                          ListView.builder(
-                            shrinkWrap: true,
-                            padding: const EdgeInsets.all(0),
-                            physics: const ScrollPhysics(),
-                            // to disable GridView's scrolling
-                            itemBuilder: (context, index) {
-                              final path = paths[index];
-                              return PathStorageViewer(
-                                path,
-                                removeTopRadius: index > 0,
-                                removeBottomRadius: index < paths.length - 1,
-                                enableDoubleTapClear: internalUser,
-                                key: ValueKey("$index-$_refreshCounterKey"),
+                          menuItemColor: getEnteColorScheme(context).fillFaint,
+                          singleBorderRadius: 8,
+                          alwaysShowSuccessState: true,
+                          onTap: () async {
+                            for (var pathItem in paths) {
+                              if (pathItem.allowCacheClear) {
+                                await deleteDirectoryContents(pathItem.path);
+                              }
+                            }
+                            if (!Platform.isAndroid) {
+                              await deleteDirectoryContents(
+                                iosTempDirectoryPath,
                               );
-                            },
-                            itemCount: paths.length,
-                          ),
-                          const SizedBox(height: 24),
-                          MenuItemWidget(
-                            leadingIcon: Icons.delete_sweep_outlined,
-                            captionedTextWidget: CaptionedTextWidget(
-                              title: AppLocalizations.of(context).clearCaches,
-                            ),
-                            menuItemColor:
-                                getEnteColorScheme(context).fillFaint,
-                            singleBorderRadius: 8,
-                            alwaysShowSuccessState: true,
-                            onTap: () async {
-                              for (var pathItem in paths) {
-                                if (pathItem.allowCacheClear) {
-                                  await deleteDirectoryContents(pathItem.path);
-                                }
-                              }
-                              if (!Platform.isAndroid) {
-                                await deleteDirectoryContents(
-                                  iosTempDirectoryPath,
-                                );
-                              }
-                              // Small delay to allow file system to sync
-                              await Future.delayed(
-                                const Duration(milliseconds: 300),
-                              );
-                              _refreshCounterKey++;
-                              if (mounted) {
-                                setState(() => {});
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 24),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              },
-              childCount: 1,
-            ),
+                            }
+                            // Small delay to allow file system to sync
+                            await Future.delayed(
+                              const Duration(milliseconds: 300),
+                            );
+                            _refreshCounterKey++;
+                            if (mounted) {
+                              setState(() => {});
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }, childCount: 1),
           ),
         ],
       ),

@@ -1,7 +1,9 @@
 import "package:dio/dio.dart";
 import "package:ente_cast/ente_cast.dart";
 import "package:ente_feature_flag/ente_feature_flag.dart";
+import "package:ente_install_source/ente_install_source.dart";
 import "package:package_info_plus/package_info_plus.dart";
+import "package:photos/core/configuration.dart";
 import "package:photos/core/network/endpoint_config.dart";
 import "package:photos/gateways/billing/billing_gateway.dart";
 import "package:photos/gateways/collections/collection_files_gateway.dart";
@@ -27,7 +29,7 @@ import "package:photos/services/entity_service.dart";
 import "package:photos/services/filedata/filedata_service.dart";
 import "package:photos/services/location_service.dart";
 import "package:photos/services/machine_learning/compute_controller.dart";
-import "package:photos/services/machine_learning/face_ml/face_recognition_service.dart";
+import "package:photos/services/machine_learning/face_ml/person/person_feedback_service.dart";
 import "package:photos/services/magic_cache_service.dart";
 import "package:photos/services/memories_cache_service.dart";
 import "package:photos/services/permission/service.dart";
@@ -38,34 +40,45 @@ import "package:photos/services/storage_bonus_service.dart";
 import "package:photos/services/sync/trash_sync_service.dart";
 import "package:photos/services/text_embeddings_cache_service.dart";
 import "package:photos/services/update_service.dart";
+import "package:photos/services/wake_lock_service.dart";
 import "package:photos/services/wrapped/wrapped_cache_service.dart";
 import "package:photos/services/wrapped/wrapped_service.dart";
-import "package:photos/utils/local_settings.dart";
+import "package:photos/settings/backup_settings.dart";
+import "package:photos/settings/local_settings.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 class ServiceLocator {
   late final SharedPreferences prefs;
   late final Dio enteDio;
   late final Dio nonEnteDio;
+  late final Dio downloadDio;
   late final PackageInfo packageInfo;
   late final EndpointConfig endpointConfig;
+  late final LocalSettings localSettings;
+  late final BackupSettings backupSettings;
+  late final EnteWakeLockService wakeLockService;
 
   // instance
   ServiceLocator._privateConstructor();
 
   static final ServiceLocator instance = ServiceLocator._privateConstructor();
 
-  init(
+  void init(
     SharedPreferences prefs,
     Dio enteDio,
     Dio nonEnteDio,
+    Dio downloadDio,
     PackageInfo packageInfo,
   ) {
     this.prefs = prefs;
     this.enteDio = enteDio;
     this.nonEnteDio = nonEnteDio;
+    this.downloadDio = downloadDio;
     this.packageInfo = packageInfo;
     endpointConfig = EndpointConfig(prefs);
+    localSettings = LocalSettings(prefs);
+    backupSettings = BackupSettings(prefs);
+    wakeLockService = EnteWakeLockService(prefs);
   }
 }
 
@@ -88,11 +101,12 @@ CastService get castService {
   return _castService!;
 }
 
-LocalSettings? _localSettings;
-LocalSettings get localSettings {
-  _localSettings ??= LocalSettings(ServiceLocator.instance.prefs);
-  return _localSettings!;
-}
+LocalSettings get localSettings => ServiceLocator.instance.localSettings;
+
+BackupSettings get backupSettings => ServiceLocator.instance.backupSettings;
+
+EnteWakeLockService get wakeLockService =>
+    ServiceLocator.instance.wakeLockService;
 
 /// Whether the app is currently showing the no-account local gallery experience.
 ///
@@ -134,7 +148,6 @@ BackupPreferenceService? _backupPreferenceService;
 BackupPreferenceService get backupPreferenceService {
   _backupPreferenceService ??= BackupPreferenceService(
     ServiceLocator.instance.prefs,
-    flagService,
   );
   return _backupPreferenceService!;
 }
@@ -219,10 +232,10 @@ ComputeController get computeController {
   return _computeController!;
 }
 
-FaceRecognitionService? _faceRecognitionService;
-FaceRecognitionService get faceRecognitionService {
-  _faceRecognitionService ??= FaceRecognitionService();
-  return _faceRecognitionService!;
+PersonFeedbackService? _personFeedbackService;
+PersonFeedbackService get personFeedbackService {
+  _personFeedbackService ??= PersonFeedbackService();
+  return _personFeedbackService!;
 }
 
 PermissionService? _permissionService;
@@ -242,7 +255,7 @@ FileDataService get fileDataService {
 
 DownloadManager? _downloadManager;
 DownloadManager get downloadManager {
-  _downloadManager ??= DownloadManager(ServiceLocator.instance.nonEnteDio);
+  _downloadManager ??= DownloadManager(ServiceLocator.instance.downloadDio);
   return _downloadManager!;
 }
 
@@ -280,6 +293,16 @@ WrappedCacheService? _wrappedCacheService;
 WrappedCacheService get wrappedCacheService {
   _wrappedCacheService ??= WrappedCacheService.instance;
   return _wrappedCacheService!;
+}
+
+InstallSourceService? _installSourceService;
+InstallSourceService get installSourceService {
+  _installSourceService ??= InstallSourceService(
+    ServiceLocator.instance.enteDio,
+    app: "photos",
+    getToken: Configuration.instance.getToken,
+  );
+  return _installSourceService!;
 }
 
 // Gateways

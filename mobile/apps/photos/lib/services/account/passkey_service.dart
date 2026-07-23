@@ -37,12 +37,10 @@ class PasskeyService {
   Future<void> openPasskeyPage(BuildContext context) async {
     try {
       final url = await getAccountsUrl();
-      await launchUrlString(
-        url,
-        mode: LaunchMode.externalApplication,
-      );
+      await launchUrlString(url, mode: LaunchMode.externalApplication);
     } catch (e) {
       Logger('PasskeyService').severe("failed to open passkey page", e);
+      if (!context.mounted) return;
       showGenericErrorDialog(context: context, error: e).ignore();
     }
   }

@@ -3,7 +3,7 @@ auth.exe
 connectivity_plus_plugin.dll
 dartjni.dll
 file_saver_plugin.dll
-flutter_local_authentication_plugin.dll
+flutter_local_notifications_windows.dll
 flutter_secure_storage_windows_plugin.dll
 flutter_windows.dll
 libsodium.dll

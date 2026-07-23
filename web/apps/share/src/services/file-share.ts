@@ -455,7 +455,7 @@ export const downloadFile = async (
 
     const encryptedData = new Uint8Array(await response.arrayBuffer());
 
-    let decryptedData: Uint8Array;
+    let decryptedData: Uint8Array<ArrayBuffer>;
 
     if (fileDecryptionHeader) {
         // Modern format: Decrypt the file using the decryption header
@@ -475,7 +475,7 @@ export const downloadFile = async (
     }
 
     // Create a blob from the decrypted data
-    const blob = new Blob([new Uint8Array(decryptedData)]);
+    const blob = new Blob([decryptedData]);
 
     // Create download link
     const blobUrl = URL.createObjectURL(blob);

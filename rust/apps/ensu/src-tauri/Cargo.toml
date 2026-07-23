@@ -1,20 +1,23 @@
 [package]
-name = "ensu-tauri"
-version = "0.1.16-beta"
-description = "Ensu Desktop (Tauri)"
-edition = "2021"
+name = "ensu-desktop"
+version = "0.1.18-beta"
+edition = "2024"
 
 [build-dependencies]
-tauri-build = { version = "1.5.0", features = [] }
+tauri-build = { version = "2.6.2", features = [] }
 
 [dependencies]
-tauri = { version = "1.5.0", features = [ "dialog-save", "dialog-open", "path-all", "fs-all", "shell-open", "process-relaunch"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-ente-core = { path = "../../../crates/core", features = ["srp"] }
-ensu-db = { path = "../../../crates/ensu/db" }
-ensu-sync = { path = "../../../crates/ensu/sync" }
-inference_rs = { path = "../../../crates/ensu/inference" }
+tauri = { version = "2.11.2", features = [] }
+tauri-plugin-dialog = "2.7.1"
+tauri-plugin-fs = "2.5.1"
+tauri-plugin-opener = "2.5.4"
+tauri-plugin-process = "2.3.1"
+tauri-plugin-updater = "2.10.1"
+serde.workspace = true
+serde_json.workspace = true
+ente-ensu.workspace = true
+ente-model-download.workspace = true
+ente-core.workspace = true
 uuid = { version = "1", features = ["v4"] }
 keyring = { version = "3", default-features = false, features = ["apple-native", "windows-native", "linux-native-sync-persistent", "crypto-rust"] }
 
@@ -26,4 +29,3 @@ windows-sys = { version = "0.61.2", features = ["Win32_System_SystemInformation"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
-updater = ["tauri/updater"]

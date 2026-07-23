@@ -1,9 +1,10 @@
-name: Workflow Security Checks
+name: Workflow security checks
 
 on:
   pull_request:
     paths:
       - '.github/workflows/**'
+      - '.github/actions/**'
       - '.github/scripts/check_workflow_security.rb'
 
 permissions:
@@ -17,9 +18,15 @@ jobs:
       name: workflow-change-approval
     steps:
       - name: Checkout PR
-        uses: actions/checkout@v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Checkout trusted checker
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          fetch-depth: 0
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          sparse-checkout: .github/scripts/check_workflow_security.rb
+          sparse-checkout-cone-mode: false
 
       - name: Run workflow security checks
-        run: ruby .github/scripts/check_workflow_security.rb "origin/${{ github.base_ref }}" HEAD
+        run: ruby trusted/.github/scripts/check_workflow_security.rb

@@ -6,12 +6,12 @@
         "build:post": "rm -f out/404.html"
     },
     "dependencies": {
-        "@fontsource/itim": "^5.2.7",
+        "@fontsource/itim": "5.2.7",
         "ente-base": "*",
         "ente-gallery": "*",
         "ente-media": "*",
         "ente-new": "*",
-        "zod": "^4.1.12"
+        "zod": "4.4.3"
     },
     "devDependencies": {
         "ente-build-config": "*"

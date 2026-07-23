@@ -1,10 +1,1 @@
-node_modules/
-.DS_Store
 .wrangler/
-
-# Workers mostly have dev dependencies, and usually only wrangler, so exact
-# version details and the resulting `yarn.lock` is unnecessary noise.
-#
-# If we need to pin some runtime dependency, we can pin it to an exact version
-# in the package.json itself.
-yarn.lock

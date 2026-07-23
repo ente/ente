@@ -1,4 +1,4 @@
-import { type LocalUser } from "ente-accounts/services/user";
+import type { LocalUser } from "ente-accounts/services/user";
 import {
     groupFilesByCollectionID,
     sortFiles,
@@ -47,7 +47,11 @@ import type { FamilyData, UserDetails } from "../../services/user-details";
  * TODO: Deprecated(?). Use GalleryView instead. Deprecated if it can be used in
  * all cases where the bar mode was in use.
  */
-export type GalleryBarMode = "albums" | "hidden-albums" | "people";
+export type GalleryBarMode =
+    | "albums"
+    | "hidden-albums"
+    | "archive-albums"
+    | "people";
 
 /**
  * Specifies what the gallery is currently displaying.
@@ -57,17 +61,16 @@ export type GalleryBarMode = "albums" | "hidden-albums" | "people";
 export type GalleryView =
     | {
           /**
-           * We're either in the "Albums" or "Hidden albums" section.
+           * We're in the Albums, Hidden albums, or Archive section.
            */
-          type: "albums" | "hidden-albums";
+          type: "albums" | "hidden-albums" | "archive-albums";
           activeCollectionSummaryID: number;
           /**
            * If the active collection ID is for a collection and not a
            * pseudo-collection, this property will be set to the corresponding
            * {@link Collection}.
            *
-           * It is guaranteed that this will be one of the {@link collections}
-           * or {@link hiddenCollections}.
+           * It is guaranteed that this will be one of the {@link collections}.
            */
           activeCollection: Collection | undefined;
           /**
@@ -286,6 +289,11 @@ export interface GalleryState {
      */
     hiddenCollectionSummaries: Map<number, CollectionSummary>;
     /**
+     * A variant of {@link normalCollectionSummaries}, but for archived
+     * collections and the archive section entry.
+     */
+    archivedCollectionSummaries: Map<number, CollectionSummary>;
+    /**
      * The ID of the collection summary that should be shown when the user
      * navigates to the uncategorized section.
      *
@@ -321,19 +329,23 @@ export interface GalleryState {
      */
     pendingFavoriteUpdates: Set<number>;
     /**
-     * Updates to the favorite status of files (triggered by some interactive
-     * user action) that have already been made to applied to remote, but whose
-     * effects on remote have not yet been synced back to our local DB.
+     * Local favorite status overlay for updates triggered by an interactive
+     * user action. Some entries may still be pending remote mutation, while
+     * others may have succeeded remotely but not yet been synced back to our
+     * local DB.
      *
-     * Each entry from a file ID to its favorite status (`true` if it belongs to
-     * the user's favorites, false otherwise) which should be used for that file
-     * instead of what we get from our local DB.
+     * Each entry is keyed by file ID for owned files, and by hash/type for
+     * non-owned shared files. This keeps equivalent shared-file updates
+     * last-writer-wins before the next remote pull.
      *
      * The next time a remote pull completes, we clear this map since thereafter
      * just deriving {@link favoriteFileIDs} from our local files would reflect
      * the correct state on remote too.
      */
-    unsyncedFavoriteUpdates: Map<number, boolean>;
+    unsyncedFavoriteUpdates: Map<
+        UnsyncedFavoriteUpdateKey,
+        UnsyncedFavoriteUpdate
+    >;
     /**
      * File (IDs) for which there is currently an in-flight archive / unarchive
      * operation.
@@ -481,7 +493,7 @@ export type GalleryAction =
     | { type: "clearTempHidden" }
     | { type: "addPendingFavoriteUpdate"; fileID: number }
     | { type: "removePendingFavoriteUpdate"; fileID: number }
-    | { type: "unsyncedFavoriteUpdate"; fileID: number; isFavorite: boolean }
+    | { type: "unsyncedFavoriteUpdate"; file: EnteFile; isFavorite: boolean }
     | { type: "addPendingVisibilityUpdate"; fileID: number }
     | { type: "removePendingVisibilityUpdate"; fileID: number }
     | {
@@ -522,6 +534,7 @@ const initialGalleryState: GalleryState = {
     shareSuggestionEmails: [],
     normalCollectionSummaries: new Map(),
     hiddenCollectionSummaries: new Map(),
+    archivedCollectionSummaries: new Map(),
     uncategorizedCollectionSummaryID:
         PseudoCollectionID.uncategorizedPlaceholder,
     tempDeletedFileIDs: new Set(),
@@ -547,7 +560,6 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
     state,
     action,
 ) => {
-    if (process.env.NEXT_PUBLIC_ENTE_TRACE) console.log("dispatch", action);
     switch (action.type) {
         case "mount": {
             const { user, familyData } = action;
@@ -589,6 +601,13 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 action.user,
                 collectionFiles,
             );
+            const archivedCollectionSummaries =
+                deriveArchivedCollectionSummaries(
+                    normalCollections,
+                    action.user,
+                    collectionFiles,
+                    hiddenFileIDs,
+                );
 
             const view = {
                 type: "albums" as const,
@@ -634,6 +653,7 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 ),
                 normalCollectionSummaries,
                 hiddenCollectionSummaries,
+                archivedCollectionSummaries,
                 uncategorizedCollectionSummaryID:
                     deriveUncategorizedCollectionSummaryID(normalCollections),
                 view,
@@ -697,6 +717,13 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 state.user!,
                 state.collectionFiles,
             );
+            const archivedCollectionSummaries =
+                deriveArchivedCollectionSummaries(
+                    normalCollections,
+                    state.user!,
+                    state.collectionFiles,
+                    hiddenFileIDs,
+                );
 
             // Revalidate the active view if needed.
             let view = state.view;
@@ -715,6 +742,13 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                         collections,
                         hiddenCollectionIDs,
                         hiddenCollectionSummaries,
+                        selectedCollectionSummaryID,
+                    ));
+            } else if (state.view?.type == "archive-albums") {
+                ({ view, selectedCollectionSummaryID } =
+                    deriveArchiveAlbumsViewAndSelectedID(
+                        collections,
+                        archivedCollectionSummaries,
                         selectedCollectionSummaryID,
                     ));
             }
@@ -750,6 +784,7 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 ),
                 normalCollectionSummaries,
                 hiddenCollectionSummaries,
+                archivedCollectionSummaries,
                 uncategorizedCollectionSummaryID:
                     deriveUncategorizedCollectionSummaryID(normalCollections),
                 selectedCollectionSummaryID,
@@ -885,7 +920,19 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
             const unsyncedFavoriteUpdates = new Map(
                 state.unsyncedFavoriteUpdates,
             );
-            unsyncedFavoriteUpdates.set(action.fileID, action.isFavorite);
+            const fileHashAndTypeKey =
+                action.file.ownerID == state.user!.id
+                    ? undefined
+                    : favoriteFileHashAndTypeKey(action.file);
+            if (action.file.ownerID != state.user!.id && !fileHashAndTypeKey) {
+                return state;
+            }
+            const updateKey = fileHashAndTypeKey ?? action.file.id;
+            unsyncedFavoriteUpdates.set(updateKey, {
+                fileID: action.file.id,
+                fileHashAndTypeKey,
+                isFavorite: action.isFavorite,
+            });
 
             // Skipping a call to stateByUpdatingFilteredFiles since it
             // currently doesn't depend on favorites.
@@ -940,16 +987,32 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
         }
 
         case "clearUnsyncedState": {
+            // Getting the last syncedCollectionFiles
+            const collectionFiles = state.lastSyncedCollectionFiles;
+
+            // Getting the FavoriteFileIDs from the syncedData
+            // without applying any optimistic chagnes.
+            const syncedFavoriteFileIDs = deriveFavoriteFileIDs(
+                state.user!,
+                state.collections,
+                collectionFiles,
+                new Map(),
+            );
+
             const unsyncedFavoriteUpdates: GalleryState["unsyncedFavoriteUpdates"] =
-                new Map();
+                preserveUnreflectedFavoriteUpdates(
+                    state.user!,
+                    collectionFiles,
+                    syncedFavoriteFileIDs,
+                    state.unsyncedFavoriteUpdates,
+                );
             const favoriteFileIDs = deriveFavoriteFileIDs(
                 state.user!,
                 state.collections,
-                state.collectionFiles,
+                collectionFiles,
                 unsyncedFavoriteUpdates,
             );
 
-            const collectionFiles = state.lastSyncedCollectionFiles;
             const unsyncedPrivateMagicMetadataUpdates: GalleryState["unsyncedPrivateMagicMetadataUpdates"] =
                 new Map();
 
@@ -963,7 +1026,7 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                         pendingFavoriteUpdates: new Set(),
                         pendingVisibilityUpdates: new Set(),
                         unsyncedPrivateMagicMetadataUpdates,
-                        unsyncedFavoriteUpdates: new Map(),
+                        unsyncedFavoriteUpdates,
                     },
                     collectionFiles,
                 ),
@@ -1053,6 +1116,25 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                     activeCollection,
                     activeCollectionSummary:
                         state.hiddenCollectionSummaries.get(
+                            activeCollectionSummaryID,
+                        )!,
+                };
+            } else if (
+                selectedCollectionSummaryID !== undefined &&
+                state.archivedCollectionSummaries.has(
+                    selectedCollectionSummaryID,
+                ) &&
+                (state.view?.type == "archive-albums" ||
+                    selectedCollectionSummaryID ==
+                        PseudoCollectionID.archiveItems)
+            ) {
+                const activeCollectionSummaryID = selectedCollectionSummaryID;
+                view = {
+                    type: "archive-albums",
+                    activeCollectionSummaryID,
+                    activeCollection,
+                    activeCollectionSummary:
+                        state.archivedCollectionSummaries.get(
                             activeCollectionSummaryID,
                         )!,
                 };
@@ -1285,22 +1367,137 @@ const deriveFavoriteFileIDs = (
     unsyncedFavoriteUpdates: GalleryState["unsyncedFavoriteUpdates"],
 ) => {
     let favoriteFileIDs = new Set<number>();
+    let favoriteFileHashAndTypeKeys = new Set<string>();
+
+    // Find the user's Favorites collection and derive both the concrete
+    // favorite file IDs and the hash/type keys used to match shared copies.
     for (const collection of collections) {
         // See: [Note: User and shared favorites]
         if (collection.type == "favorites" && collection.owner.id == user.id) {
-            favoriteFileIDs = new Set(
-                collectionFiles
-                    .filter((file) => file.collectionID == collection.id)
-                    .map((file) => file.id),
+            const favoriteFiles = collectionFiles.filter(
+                (file) => file.collectionID == collection.id,
+            );
+            favoriteFileIDs = new Set(favoriteFiles.map((file) => file.id));
+            favoriteFileHashAndTypeKeys = new Set(
+                favoriteFiles.flatMap((file) => {
+                    const key = favoriteFileHashAndTypeKey(file);
+                    return key ? [key] : [];
+                }),
             );
             break;
         }
     }
-    for (const [fileID, isFavorite] of unsyncedFavoriteUpdates.entries()) {
-        if (isFavorite) favoriteFileIDs.add(fileID);
-        else favoriteFileIDs.delete(fileID);
+    // A shared file has a different ID from the user-owned copy in Favorites.
+    // If its hash/type key matches a favorite entry, mark the visible shared
+    // file ID as favorite so the UI can show the star in shared albums.
+    for (const file of collectionFiles) {
+        if (file.ownerID == user.id) continue;
+
+        const key = favoriteFileHashAndTypeKey(file);
+        if (key && favoriteFileHashAndTypeKeys.has(key)) {
+            favoriteFileIDs.add(file.id);
+        }
+    }
+
+    // Apply favorite changes that have succeeded on remote but have not been
+    // pulled into local collectionFiles yet. Hash/type updates apply to every
+    // matching shared file; ID-based updates apply only to the clicked file.
+    for (const update of unsyncedFavoriteUpdates.values()) {
+        const updatedFileIDs = update.fileHashAndTypeKey
+            ? collectionFiles
+                  .filter(
+                      (file) =>
+                          file.ownerID != user.id &&
+                          favoriteFileHashAndTypeKey(file) ==
+                              update.fileHashAndTypeKey,
+                  )
+                  .map((file) => file.id)
+            : [update.fileID];
+        for (const fileID of updatedFileIDs) {
+            if (update.isFavorite) favoriteFileIDs.add(fileID);
+            else favoriteFileIDs.delete(fileID);
+        }
     }
     return favoriteFileIDs;
+};
+/**
+ *
+ * @param user The currentLoggedIn User
+ *
+ *  @param collectionFiles  The collectionsFiles which the user currently has
+ * from state.lastSyncedCollectionFiles
+ *
+ * @param syncedFavoriteFileIDs: The list of FavoriteFileIDs derived from
+ * the collectionFiles without any optimistic updations.
+ *
+ * @param unsyncedFavoriteUpdates The list of FavoriteFileIDs derived from
+ * the collectionFiles including any optimistic updates from the
+ * state.unsyncedFavoriteUpdates,
+ *
+ * @returns the preservedUpdates, If there is atleast one affected file
+ * where the synced state still disagrees with, we store that file's update in
+ * this variable and return it else, it will be an empty map.
+ */
+const preserveUnreflectedFavoriteUpdates = (
+    user: LocalUser,
+    collectionFiles: GalleryState["collectionFiles"],
+    syncedFavoriteFileIDs: GalleryState["favoriteFileIDs"],
+    unsyncedFavoriteUpdates: GalleryState["unsyncedFavoriteUpdates"],
+) => {
+    const preservedUpdates: GalleryState["unsyncedFavoriteUpdates"] = new Map();
+
+    /**
+     * Iterating through the unsyncedFavoriteUpdates, if the file has
+     * fileHashAndTypeKey it's a shared album file, if so then, finding
+     * all non-owned/shared file sin the gallery whose hash/type matches
+     * this update and storing their IDs to the updatedFileIDs.
+     */
+    for (const [key, update] of unsyncedFavoriteUpdates.entries()) {
+        const updatedFileIDs = update.fileHashAndTypeKey
+            ? collectionFiles
+                  .filter(
+                      (file) =>
+                          file.ownerID != user.id &&
+                          favoriteFileHashAndTypeKey(file) ==
+                              update.fileHashAndTypeKey,
+                  )
+                  .map((file) => file.id)
+            : [update.fileID];
+
+        // So, If there at least one affected file where synced state still
+        // disagrees with the optimistic update, we preserve the update, else ignore it.
+        if (
+            updatedFileIDs.some(
+                (fileID) =>
+                    syncedFavoriteFileIDs.has(fileID) != update.isFavorite,
+            )
+        ) {
+            preservedUpdates.set(key, update);
+        }
+    }
+
+    return preservedUpdates;
+};
+
+/**
+ * Earlier the UnsyncedFavoriteUpdate was just an fileID
+ * because we only had the option to favorite the owner files.
+ * Now we can favorite the non-owned files as well.
+ *
+ * For which we need to do a fileHashAndTypeKey matching
+ * therefore this new interface.
+ */
+interface UnsyncedFavoriteUpdate {
+    fileID: number;
+    fileHashAndTypeKey?: string;
+    isFavorite: boolean;
+}
+
+type UnsyncedFavoriteUpdateKey = number | string;
+
+const favoriteFileHashAndTypeKey = (file: EnteFile) => {
+    const hash = metadataHash(file.metadata);
+    return hash ? `${hash}:${file.metadata.fileType}` : undefined;
 };
 
 /**
@@ -1369,10 +1566,9 @@ const deriveNormalCollectionSummaries = (
         ),
     );
 
-    const archiveItemsFiles = uniqueFilesByID(
-        collectionFiles.filter(
-            (f) => !hiddenFileIDs.has(f.id) && isArchivedFile(f),
-        ),
+    const archiveItemsFiles = deriveArchiveItemsFiles(
+        collectionFiles,
+        hiddenFileIDs,
     );
 
     normalCollectionSummaries.set(PseudoCollectionID.all, {
@@ -1427,6 +1623,16 @@ const pseudoCollectionOptionsForLatestFileAndCount = (
     updationTime: file?.updationTime,
 });
 
+const deriveArchiveItemsFiles = (
+    collectionFiles: GalleryState["collectionFiles"],
+    hiddenFileIDs: GalleryState["hiddenFileIDs"],
+) =>
+    uniqueFilesByID(
+        collectionFiles.filter(
+            (file) => !hiddenFileIDs.has(file.id) && isArchivedFile(file),
+        ),
+    );
+
 /**
  * Compute hidden collection summaries from their dependencies.
  */
@@ -1455,6 +1661,35 @@ const deriveHiddenCollectionSummaries = (
     });
 
     return hiddenCollectionSummaries;
+};
+
+/**
+ * Compute archived collection summaries from their dependencies.
+ */
+const deriveArchivedCollectionSummaries = (
+    normalCollections: Collection[],
+    user: LocalUser,
+    collectionFiles: GalleryState["collectionFiles"],
+    hiddenFileIDs: GalleryState["hiddenFileIDs"],
+) => {
+    const archivedCollectionSummaries = createCollectionSummaries(
+        user,
+        normalCollections.filter(isArchivedCollection),
+        collectionFiles,
+    );
+
+    archivedCollectionSummaries.set(PseudoCollectionID.archiveItems, {
+        ...pseudoCollectionOptionsForFiles(
+            deriveArchiveItemsFiles(collectionFiles, hiddenFileIDs),
+        ),
+        id: PseudoCollectionID.archiveItems,
+        name: t("section_archive"),
+        type: "archiveItems",
+        attributes: new Set(["archiveItems", "system"]),
+        sortPriority: CollectionSummarySortPriority.system,
+    });
+
+    return archivedCollectionSummaries;
 };
 
 /**
@@ -1551,9 +1786,17 @@ const createCollectionSummaries = (
             attributes.add("shared");
             attributes.add("sharedOutgoing");
         }
-        if (collection.publicURLs.length && !collection.sharees.length) {
+        if (collection.publicURLs.length) {
             attributes.add("shared");
-            attributes.add("sharedOnlyViaLink");
+            attributes.add("sharedViaLink");
+            // "sharedOnlyViaLink" stays reserved for the case where the only
+            // way the collection is shared is via a public link (no sharees),
+            // which decides the primary icon. "sharedViaLink" instead tracks
+            // the mere presence of a link, so an album that is shared with
+            // people and also has a link still shows the link indicator.
+            if (!collection.sharees.length) {
+                attributes.add("sharedOnlyViaLink");
+            }
         }
         if (isArchivedCollection(collection)) {
             attributes.add("archived");
@@ -1654,9 +1897,15 @@ const deriveAlbumsViewAndSelectedID = (
     selectedCollectionSummaryID: GalleryState["selectedCollectionSummaryID"],
 ) => {
     // Make sure that the last selected ID is still valid by searching for it.
-    const selectedCollectionSummary = selectedCollectionSummaryID
+    const candidateCollectionSummary = selectedCollectionSummaryID
         ? collectionSummaries.get(selectedCollectionSummaryID)
         : undefined;
+    const selectedCollectionSummary =
+        candidateCollectionSummary &&
+        !candidateCollectionSummary.attributes.has("archiveItems") &&
+        !candidateCollectionSummary.attributes.has("archived")
+            ? candidateCollectionSummary
+            : undefined;
 
     const activeCollectionSummaryID =
         selectedCollectionSummary?.id ?? PseudoCollectionID.all;
@@ -1708,6 +1957,41 @@ const deriveHiddenAlbumsViewAndSelectedID = (
         selectedCollectionSummaryID: activeCollectionSummaryID,
         view: {
             type: "hidden-albums" as const,
+            activeCollectionSummaryID,
+            activeCollection,
+            activeCollectionSummary,
+        },
+    };
+};
+
+/**
+ * Sibling of {@link deriveAlbumsViewAndSelectedID} for when we're in the
+ * archive albums section.
+ */
+const deriveArchiveAlbumsViewAndSelectedID = (
+    collections: GalleryState["collections"],
+    archivedCollectionSummaries: GalleryState["archivedCollectionSummaries"],
+    selectedCollectionSummaryID: GalleryState["selectedCollectionSummaryID"],
+) => {
+    // Make sure that the last selected ID is still valid by searching for it.
+    const selectedCollectionSummary = selectedCollectionSummaryID
+        ? archivedCollectionSummaries.get(selectedCollectionSummaryID)
+        : undefined;
+
+    const activeCollectionSummaryID =
+        selectedCollectionSummary?.id ?? PseudoCollectionID.archiveItems;
+    const activeCollectionSummary = archivedCollectionSummaries.get(
+        activeCollectionSummaryID,
+    )!;
+    const activeCollection =
+        selectedCollectionSummary &&
+        activeCollectionSummaryID != PseudoCollectionID.archiveItems
+            ? collections.find(({ id }) => id == activeCollectionSummaryID)
+            : undefined;
+    return {
+        selectedCollectionSummaryID: activeCollectionSummaryID,
+        view: {
+            type: "archive-albums" as const,
             activeCollectionSummaryID,
             activeCollection,
             activeCollectionSummary,
@@ -1803,18 +2087,26 @@ const stateForUpdatedCollectionFiles = (
     state: GalleryState,
     collectionFiles: GalleryState["collectionFiles"],
 ): GalleryState => {
+    const normalCollections = state.collections.filter(
+        (c) => !state.hiddenCollectionIDs.has(c.id),
+    );
+    const hiddenCollections = state.collections.filter((c) =>
+        state.hiddenCollectionIDs.has(c.id),
+    );
     const hiddenFileIDs = deriveHiddenFileIDs(
         collectionFiles,
         state.hiddenCollectionIDs,
     );
+    const archivedFileIDs = deriveArchivedFileIDs(
+        state.archivedCollectionIDs,
+        collectionFiles,
+    );
+
     return {
         ...state,
         collectionFiles,
         hiddenFileIDs,
-        archivedFileIDs: deriveArchivedFileIDs(
-            state.archivedCollectionIDs,
-            collectionFiles,
-        ),
+        archivedFileIDs,
         favoriteFileIDs: deriveFavoriteFileIDs(
             state.user!,
             state.collections,
@@ -1826,21 +2118,23 @@ const stateForUpdatedCollectionFiles = (
             state.hiddenCollectionIDs,
         ),
         normalCollectionSummaries: deriveNormalCollectionSummaries(
-            state.collections.filter(
-                (c) => !state.hiddenCollectionIDs.has(c.id),
-            ),
+            normalCollections,
             state.user!,
             state.trashItems,
             collectionFiles,
             hiddenFileIDs,
-            state.archivedFileIDs,
+            archivedFileIDs,
         ),
         hiddenCollectionSummaries: deriveHiddenCollectionSummaries(
-            state.collections.filter((c) =>
-                state.hiddenCollectionIDs.has(c.id),
-            ),
+            hiddenCollections,
             state.user!,
             collectionFiles,
+        ),
+        archivedCollectionSummaries: deriveArchivedCollectionSummaries(
+            normalCollections,
+            state.user!,
+            collectionFiles,
+            hiddenFileIDs,
         ),
         pendingSearchSuggestions: enqueuePendingSearchSuggestionsIfNeeded(
             state.searchSuggestion,
@@ -1874,7 +2168,9 @@ const stateByUpdatingFilteredFiles = (state: GalleryState) => {
         const visibleSearchFiles = suppressSharedFilesSavedByUser(
             searchFiles,
             state.user?.id,
-            state.view?.type == "albums" || state.view?.type == "hidden-albums"
+            state.view?.type == "albums" ||
+                state.view?.type == "hidden-albums" ||
+                state.view?.type == "archive-albums"
                 ? state.view.activeCollection
                 : undefined,
         );
@@ -1887,7 +2183,8 @@ const stateByUpdatingFilteredFiles = (state: GalleryState) => {
         return { ...state, filteredFiles };
     } else if (
         state.view?.type == "albums" ||
-        state.view?.type == "hidden-albums"
+        state.view?.type == "hidden-albums" ||
+        state.view?.type == "archive-albums"
     ) {
         const filteredFiles = deriveAlbumsOrHiddenAlbumsFilteredFiles(
             state.trashItems,
@@ -1917,7 +2214,7 @@ const stateByUpdatingFilteredFiles = (state: GalleryState) => {
 
 /**
  * Compute the sorted list of files to show when we're in the "albums" or
- * "hidden-albums" view and the dependencies change.
+ * "hidden-albums", or "archive-albums" view and the dependencies change.
  */
 const deriveAlbumsOrHiddenAlbumsFilteredFiles = (
     trashItems: GalleryState["trashItems"],
@@ -1928,7 +2225,10 @@ const deriveAlbumsOrHiddenAlbumsFilteredFiles = (
     archivedFileIDs: GalleryState["archivedFileIDs"],
     tempDeletedFileIDs: GalleryState["tempDeletedFileIDs"],
     tempHiddenFileIDs: GalleryState["tempHiddenFileIDs"],
-    view: Extract<GalleryView, { type: "albums" | "hidden-albums" }>,
+    view: Extract<
+        GalleryView,
+        { type: "albums" | "hidden-albums" | "archive-albums" }
+    >,
     currentUserID: number | undefined,
 ) => {
     const activeCollectionSummaryID = view.activeCollectionSummaryID;

@@ -6,12 +6,13 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/contacts_changed_event.dart";
 import "package:photos/events/user_logged_out_event.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/utils/contact_string_util.dart";
 
 class PhotosContactsService {
   PhotosContactsService._privateConstructor()
-      : _contactsServiceFactory = (() => contacts.ContactsService(
-              preferences: ServiceLocator.instance.prefs,
-            )) {
+    : _contactsServiceFactory = (() => contacts.ContactsService(
+        preferences: ServiceLocator.instance.prefs,
+      )) {
     _attachSessionResetListeners();
   }
 
@@ -19,9 +20,10 @@ class PhotosContactsService {
   PhotosContactsService.forTesting({
     contacts.ContactsService? contactsService,
     contacts.ContactsService Function()? contactsServiceFactory,
-  })  : _contacts = contactsService,
-        _contactsServiceFactory = contactsServiceFactory ??
-            (contactsService != null ? () => contactsService : null) {
+  }) : _contacts = contactsService,
+       _contactsServiceFactory =
+           contactsServiceFactory ??
+           (contactsService != null ? () => contactsService : null) {
     _attachSessionResetListeners();
   }
 
@@ -30,7 +32,10 @@ class PhotosContactsService {
 
   final contacts.ContactsService Function()? _contactsServiceFactory;
   final _logger = Logger("PhotosContactsService");
-  final Map<int, contacts.ContactRecord> _contactsByUserId = {};
+  // Deleted records evict entries; these indexes contain active contacts only.
+  final Map<int, contacts.ContactRecord> _activeContactsByUserId = {};
+  final Map<String, contacts.ContactRecord> _activeContactsByNormalizedEmail =
+      {};
   final Map<int, Uint8List?> _profilePictureBytesByUserId = {};
   final Set<int> _resolvedProfilePictureUserIds = {};
   final Map<int, Future<Uint8List?>> _profilePictureLoadsByUserId = {};
@@ -44,15 +49,9 @@ class PhotosContactsService {
 
   bool get hasHydratedCache => _hasHydratedCache;
 
-  bool get needsWarmup =>
-      flagService.enableContact && (!_hasHydratedCache || _readyFuture == null);
+  bool get needsWarmup => !_hasHydratedCache || _readyFuture == null;
 
   Future<void> ensureReady() async {
-    if (!flagService.enableContact) {
-      _sessionGeneration += 1;
-      _resetSessionState(notify: true);
-      return;
-    }
     final session = _buildSession();
     if (session == null) {
       _sessionGeneration += 1;
@@ -79,72 +78,90 @@ class PhotosContactsService {
     _sessionAuthToken = session.authToken;
     late final Future<void> readyFuture;
     final generation = _sessionGeneration;
-    readyFuture = _openAndSync(
-      currentContacts,
-      session,
-      generation,
-    ).catchError((Object error, StackTrace stackTrace) {
-      if (identical(_readyFuture, readyFuture)) {
-        _readyFuture = null;
-      }
-      throw error;
-    });
+    readyFuture = _openAndSync(currentContacts, session, generation).catchError(
+      (Object error, StackTrace stackTrace) {
+        if (identical(_readyFuture, readyFuture)) {
+          _readyFuture = null;
+        }
+        throw error;
+      },
+    );
     _readyFuture = readyFuture;
     return readyFuture;
   }
 
-  Future<contacts.ContactRecord?> getContactByUserId(int contactUserId) async {
-    if (!flagService.enableContact) {
-      return null;
-    }
-    final cached = getCachedContactByUserId(contactUserId);
+  Future<contacts.ContactRecord?> getContact({
+    int? contactUserId,
+    String? email,
+  }) async {
+    final cached = getCachedContact(contactUserId: contactUserId, email: email);
     if (cached != null) {
       return cached;
     }
-    return _runReadSafely(
-      () async {
-        await ensureReady();
-        final contacts = _activeContactsOrNull();
-        if (contacts == null) {
-          return null;
-        }
-        final contact = await contacts.getContactByUserId(contactUserId);
-        if (contact == null || contact.isDeleted) {
-          return null;
-        }
+    return _runReadSafely(() async {
+      await ensureReady();
+      final hydratedCached = getCachedContact(
+        contactUserId: contactUserId,
+        email: email,
+      );
+      if (hydratedCached != null) {
+        return hydratedCached;
+      }
+      if (contactUserId == null) {
+        return null;
+      }
+      final contacts = _activeContactsOrNull();
+      if (contacts == null) {
+        return null;
+      }
+      final contact = await contacts.getContactByUserId(contactUserId);
+      if (contact != null) {
         _cacheContact(contact);
-        return contact;
-      },
-      description: "load contact for user $contactUserId",
+      }
+      return getCachedContact(contactUserId: contactUserId, email: email);
+    }, description: "load contact for user $contactUserId");
+  }
+
+  contacts.ContactRecord? getCachedContact({
+    int? contactUserId,
+    String? email,
+  }) {
+    if (_sessionKey == null) {
+      return null;
+    }
+    if (contactUserId != null) {
+      return _activeContactsByUserId[contactUserId];
+    }
+    final normalizedEmail = normalizeContactLinkEmail(email);
+    return normalizedEmail == null
+        ? null
+        : _activeContactsByNormalizedEmail[normalizedEmail];
+  }
+
+  List<contacts.ContactRecord> getCachedContacts() {
+    if (_sessionKey == null) {
+      return const [];
+    }
+    return List.unmodifiable(_activeContactsByUserId.values);
+  }
+
+  String? getCachedSavedName({int? contactUserId, String? email}) {
+    return trimToNull(
+      getCachedContact(contactUserId: contactUserId, email: email)?.data?.name,
     );
   }
 
-  contacts.ContactRecord? getCachedContactByUserId(int? contactUserId) {
-    if (contactUserId == null || _sessionKey == null) {
-      return null;
-    }
-    final contact = _contactsByUserId[contactUserId];
-    if (contact == null || contact.isDeleted) {
-      return null;
-    }
-    return contact;
-  }
-
-  String? getCachedSavedNameByUserId(int? contactUserId) {
-    return getCachedContactByUserId(contactUserId)?.data?.name;
-  }
-
-  String? getCachedResolvedEmailByUserId(int? contactUserId) {
-    return getCachedContactByUserId(contactUserId)?.email;
+  String? getCachedResolvedEmail({int? contactUserId, String? email}) {
+    return trimToNull(
+      getCachedContact(contactUserId: contactUserId, email: email)?.email,
+    );
   }
 
   Uint8List? getCachedProfilePictureBytesByUserId(int? contactUserId) {
-    if (contactUserId == null ||
-        _sessionKey == null ||
-        !_resolvedProfilePictureUserIds.contains(contactUserId)) {
+    if (!hasResolvedProfilePictureByUserId(contactUserId)) {
       return null;
     }
-    return _profilePictureBytesByUserId[contactUserId];
+    return _profilePictureBytesByUserId[contactUserId!];
   }
 
   bool hasResolvedProfilePictureByUserId(int? contactUserId) {
@@ -157,29 +174,39 @@ class PhotosContactsService {
     if (contactUserId == null) {
       return null;
     }
-    if (!flagService.enableContact || _sessionKey == null) {
+    if (_sessionKey == null) {
       return null;
     }
     if (hasResolvedProfilePictureByUserId(contactUserId)) {
+      return _profilePictureBytesByUserId[contactUserId];
+    }
+    final contact = await getContact(contactUserId: contactUserId);
+    if (contact == null) {
+      if (_hasHydratedCache) {
+        _profilePictureBytesByUserId.remove(contactUserId);
+        _resolvedProfilePictureUserIds.add(contactUserId);
+      }
+      return null;
+    }
+    if (_resolvedProfilePictureUserIds.contains(contactUserId)) {
       return _profilePictureBytesByUserId[contactUserId];
     }
     final inflightLoad = _profilePictureLoadsByUserId[contactUserId];
     if (inflightLoad != null) {
       return inflightLoad;
     }
-    final load = _loadProfilePictureBytesByUserId(contactUserId);
+    final load = _loadProfilePictureBytes(contact);
     _profilePictureLoadsByUserId[contactUserId] = load;
     return load.whenComplete(() {
       _profilePictureLoadsByUserId.remove(contactUserId);
     });
   }
 
-  Future<Uint8List?> _loadProfilePictureBytesByUserId(int contactUserId) async {
-    final contact = await getContactByUserId(contactUserId);
-    final attachmentId = contact?.profilePictureAttachmentId;
-    if (contact == null) {
-      return null;
-    }
+  Future<Uint8List?> _loadProfilePictureBytes(
+    contacts.ContactRecord contact,
+  ) async {
+    final contactUserId = contact.contactUserId;
+    final attachmentId = contact.profilePictureAttachmentId;
     if (attachmentId == null) {
       _profilePictureBytesByUserId.remove(contactUserId);
       _resolvedProfilePictureUserIds.add(contactUserId);
@@ -188,7 +215,7 @@ class PhotosContactsService {
     final contactId = contact.id;
     try {
       final bytes = await _requireContacts().getProfilePicture(contactId);
-      final latestContact = _contactsByUserId[contactUserId];
+      final latestContact = _activeContactsByUserId[contactUserId];
       if (latestContact == null ||
           latestContact.isDeleted ||
           latestContact.id != contactId ||
@@ -211,15 +238,9 @@ class PhotosContactsService {
   Future<contacts.ContactRecord> createOrUpdateContact({
     required int contactUserId,
     required String name,
-    String? birthDate,
   }) async {
     final contactsService = await _ensureReadyForWrite();
     final trimmedName = name.trim();
-    final trimmedBirthDate = birthDate?.trim();
-    final normalizedBirthDate =
-        trimmedBirthDate == null || trimmedBirthDate.isEmpty
-            ? null
-            : trimmedBirthDate;
     final existing = await contactsService.getContactByUserId(
       contactUserId,
       includeDeleted: true,
@@ -227,7 +248,6 @@ class PhotosContactsService {
     final data = contacts.ContactData(
       contactUserId: contactUserId,
       name: trimmedName,
-      birthDate: normalizedBirthDate,
     );
     final contact = existing == null
         ? await contactsService.createContact(data)
@@ -245,6 +265,18 @@ class PhotosContactsService {
     final contact = await contactsService.setProfilePicture(contactId, bytes);
     _cacheContact(contact);
     _profilePictureBytesByUserId[contact.contactUserId] = bytes;
+    _resolvedProfilePictureUserIds.add(contact.contactUserId);
+    _notifyChanged(contact);
+    return contact;
+  }
+
+  Future<contacts.ContactRecord> deleteProfilePicture({
+    required String contactId,
+  }) async {
+    final contactsService = await _ensureReadyForWrite();
+    final contact = await contactsService.deleteProfilePicture(contactId);
+    _cacheContact(contact);
+    _profilePictureBytesByUserId.remove(contact.contactUserId);
     _resolvedProfilePictureUserIds.add(contact.contactUserId);
     _notifyChanged(contact);
     return contact;
@@ -315,7 +347,7 @@ class PhotosContactsService {
       return;
     }
 
-    final cachedUserIdsBeforeHydration = _contactsByUserId.keys.toSet();
+    final cachedUserIdsBeforeHydration = _activeContactsByUserId.keys.toSet();
     final localContacts = await contactsService.getContacts();
     if (!_isSessionGenerationCurrent(generation, session)) {
       return;
@@ -408,8 +440,9 @@ class PhotosContactsService {
   }
 
   bool _isRustInitializationError(StateError error) {
-    return error.message
-        .contains("flutter_rust_bridge has not been initialized");
+    return error.message.contains(
+      "flutter_rust_bridge has not been initialized",
+    );
   }
 
   bool _isContactsDatabaseNotConfiguredError(StateError error) {
@@ -420,13 +453,23 @@ class PhotosContactsService {
 
   void _cacheContact(contacts.ContactRecord contact) {
     final userId = contact.contactUserId;
-    final existing = _contactsByUserId[userId];
+    final existing = _activeContactsByUserId[userId];
+    final previousEmail = normalizeContactLinkEmail(existing?.email);
+    if (previousEmail != null &&
+        _activeContactsByNormalizedEmail[previousEmail]?.contactUserId ==
+            userId) {
+      _activeContactsByNormalizedEmail.remove(previousEmail);
+    }
     if (contact.isDeleted) {
-      _contactsByUserId.remove(userId);
+      _activeContactsByUserId.remove(userId);
       _invalidateProfilePictureCache(userId);
       return;
     }
-    _contactsByUserId[userId] = contact;
+    _activeContactsByUserId[userId] = contact;
+    final normalizedEmail = normalizeContactLinkEmail(contact.email);
+    if (normalizedEmail != null) {
+      _activeContactsByNormalizedEmail[normalizedEmail] = contact;
+    }
     if (existing?.profilePictureAttachmentId !=
         contact.profilePictureAttachmentId) {
       _invalidateProfilePictureCache(userId);
@@ -434,8 +477,9 @@ class PhotosContactsService {
   }
 
   void _resetSessionState({required bool notify}) {
-    final hadCachedContacts = _contactsByUserId.isNotEmpty;
-    _contactsByUserId.clear();
+    final hadCachedContacts = _activeContactsByUserId.isNotEmpty;
+    _activeContactsByUserId.clear();
+    _activeContactsByNormalizedEmail.clear();
     _profilePictureBytesByUserId.clear();
     _resolvedProfilePictureUserIds.clear();
     _profilePictureLoadsByUserId.clear();
@@ -493,9 +537,7 @@ class PhotosContactsService {
     await ensureReady();
     final contacts = _activeContactsOrNull();
     if (contacts == null) {
-      throw StateError(
-        "Contacts are unavailable without an active session",
-      );
+      throw StateError("Contacts are unavailable without an active session");
     }
     return contacts;
   }

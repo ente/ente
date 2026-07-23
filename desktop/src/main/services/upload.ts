@@ -1,29 +1,54 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { existsSync } from "original-fs";
-import type { PendingUploads, ZipItem } from "../../types/ipc";
+import type {
+    PendingUploads,
+    PreUploadSkippedFile,
+    ZipItem,
+} from "../../types/ipc";
 import log from "../log";
 import { uploadStatusStore } from "../stores/upload-status";
 import { clearOpenZipCache, markClosableZip, openZip } from "./zip";
 
-export const listZipItems = async (zipPath: string): Promise<ZipItem[]> => {
-    const zip = openZip(zipPath);
-
+export const listZipItems = async (
+    zipPath: string,
+): Promise<{
+    items: ZipItem[];
+    preUploadSkippedFiles: PreUploadSkippedFile[];
+}> => {
     try {
-        const entries = await zip.entries();
-        const entryNames: string[] = [];
+        const zip = openZip(zipPath);
+        try {
+            const entries = await zip.entries();
+            const items: ZipItem[] = [];
+            const preUploadSkippedFiles: PreUploadSkippedFile[] = [];
 
-        for (const entry of Object.values(entries)) {
-            const basename = path.basename(entry.name);
-            // Ignore "hidden" files (files whose names begins with a dot).
-            if (entry.isFile && !basename.startsWith(".")) {
-                // `entry.name` is the path within the zip.
-                entryNames.push(entry.name);
+            for (const entry of Object.values(entries)) {
+                if (!entry.isFile) continue;
+
+                const basename = path.basename(entry.name);
+                if (basename.startsWith(".")) {
+                    preUploadSkippedFiles.push({
+                        name: entry.name,
+                        type: "hiddenFile",
+                    });
+                    continue;
+                }
+                items.push([zipPath, entry.name]);
             }
+
+            return { items, preUploadSkippedFiles };
+        } finally {
+            markClosableZip(zipPath);
         }
-        return entryNames.map((entryName) => [zipPath, entryName]);
-    } finally {
-        markClosableZip(zipPath);
+    } catch (e) {
+        log.error("Ignoring malformed zip", e);
+        return {
+            items: [],
+            preUploadSkippedFiles: [
+                { name: path.basename(zipPath), type: "failedZip" },
+            ],
+        };
     }
 };
 
@@ -49,42 +74,31 @@ export const pathOrZipItemSize = async (
     }
 };
 
-export const pendingUploads = async (): Promise<PendingUploads | undefined> => {
+export const pendingUploads = (): PendingUploads | undefined => {
     const collectionName = uploadStatusStore.get("collectionName") ?? undefined;
 
     const allFilePaths = uploadStatusStore.get("filePaths") ?? [];
     const filePaths = allFilePaths.filter((f) => existsSync(f));
 
-    const allZipItems = uploadStatusStore.get("zipItems");
-    let zipItems: typeof allZipItems;
-
-    // Migration code - May 2024. Remove after a bit (tag: Migration).
-    //
-    // The older store formats will not have zipItems and instead will have
-    // zipPaths. If we find such a case, read the zipPaths and enqueue all of
-    // their files as zipItems in the result.
-    //
-    // This potentially can be cause us to try reuploading an already uploaded
-    // file, but the dedup logic will kick in at that point so no harm will come
-    // of it.
-    if (allZipItems === undefined) {
-        const allZipPaths = uploadStatusStore.get("zipPaths") ?? [];
-        const zipPaths = allZipPaths.filter((f) => existsSync(f));
-        zipItems = [];
-        for (const zip of zipPaths) {
-            try {
-                zipItems = zipItems.concat(await listZipItems(zip));
-            } catch (e) {
-                log.error("Ignoring items in malformed zip", e);
-            }
-        }
-    } else {
-        zipItems = allZipItems.filter(([z]) => existsSync(z));
-    }
+    const allZipItems = uploadStatusStore.get("zipItems") ?? [];
+    const zipItems = allZipItems.filter(([z]) => existsSync(z));
+    const preUploadSkippedFiles =
+        uploadStatusStore.get("preUploadSkippedFiles") ?? [];
+    const importTakeoutFavorites =
+        uploadStatusStore.get("importTakeoutFavorites") ?? true;
+    const includePartnerSharedFiles =
+        uploadStatusStore.get("includePartnerSharedFiles") ?? true;
 
     if (filePaths.length == 0 && zipItems.length == 0) return undefined;
 
-    return { collectionName, filePaths, zipItems };
+    return {
+        collectionName,
+        filePaths,
+        zipItems,
+        preUploadSkippedFiles,
+        importTakeoutFavorites,
+        includePartnerSharedFiles,
+    };
 };
 
 /**
@@ -127,11 +141,17 @@ export const setPendingUploads = ({
     collectionName,
     filePaths,
     zipItems,
+    preUploadSkippedFiles,
+    importTakeoutFavorites,
+    includePartnerSharedFiles,
 }: PendingUploads) => {
     uploadStatusStore.set({
         collectionName: collectionName ?? "",
         filePaths: filePaths,
         zipItems: zipItems,
+        preUploadSkippedFiles: preUploadSkippedFiles ?? [],
+        importTakeoutFavorites: importTakeoutFavorites ?? true,
+        includePartnerSharedFiles: includePartnerSharedFiles ?? true,
     });
 };
 

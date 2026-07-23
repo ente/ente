@@ -59,8 +59,8 @@ class _WrappedRewindBannerButtonState extends State<WrappedRewindBannerButton> {
             builder: (BuildContext context, BoxConstraints constraints) {
               final double availableWidth =
                   constraints.hasBoundedWidth && constraints.maxWidth.isFinite
-                      ? constraints.maxWidth
-                      : MediaQuery.sizeOf(context).width;
+                  ? constraints.maxWidth
+                  : MediaQuery.sizeOf(context).width;
               double? resolvedHeight = widget.height;
               if (resolvedHeight == null &&
                   _artboardAspectRatio != null &&
@@ -87,17 +87,17 @@ class _WrappedRewindBannerButtonState extends State<WrappedRewindBannerButton> {
                           onLoaded: _handleRiveLoaded,
                           builder:
                               (BuildContext context, rive.RiveState state) {
-                            if (state is rive.RiveLoaded) {
-                              return rive.RiveWidget(
-                                controller: state.controller,
-                                fit: rive.Fit.cover,
-                              );
-                            }
-                            if (state is rive.RiveFailed) {
-                              return const ColoredBox(color: Colors.black);
-                            }
-                            return const SizedBox.expand();
-                          },
+                                if (state is rive.RiveLoaded) {
+                                  return rive.RiveWidget(
+                                    controller: state.controller,
+                                    fit: rive.Fit.cover,
+                                  );
+                                }
+                                if (state is rive.RiveFailed) {
+                                  return const ColoredBox(color: Colors.black);
+                                }
+                                return const SizedBox.expand();
+                              },
                         ),
                       ),
                       Container(
@@ -173,9 +173,8 @@ class _WrappedRewindBannerButtonState extends State<WrappedRewindBannerButton> {
     }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (BuildContext context) => WrappedViewerPage(
-          initialState: currentState,
-        ),
+        builder: (BuildContext context) =>
+            WrappedViewerPage(initialState: currentState),
       ),
     );
   }

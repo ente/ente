@@ -67,11 +67,7 @@ Future<List<String>> _appOwnedPickedFileRoots() async {
       getApplicationCacheDirectory,
       child: 'file_picker',
     );
-    await _addDirectoryRoot(
-      roots,
-      getTemporaryDirectory,
-      child: 'file_picker',
-    );
+    await _addDirectoryRoot(roots, getTemporaryDirectory, child: 'file_picker');
   }
 
   return roots.toSet().toList();

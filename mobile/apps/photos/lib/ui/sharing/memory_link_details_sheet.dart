@@ -31,8 +31,9 @@ Future<bool?> showMemoryLinkDetailsSheet(
           children: [
             Text(
               l10n.memoryShareLinkDescription,
-              style: textTheme.smallMuted
-                  .copyWith(color: colorScheme.contentLight),
+              style: textTheme.smallMuted.copyWith(
+                color: colorScheme.contentLight,
+              ),
             ),
             const SizedBox(height: 14),
             Container(

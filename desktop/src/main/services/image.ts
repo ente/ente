@@ -10,7 +10,9 @@ import {
     makeTempFilePath,
 } from "../utils/temp";
 
-export const convertToJPEG = async (imageData: Uint8Array) => {
+export const convertToJPEG = async (
+    imageData: Uint8Array,
+): Promise<Uint8Array<ArrayBuffer>> => {
     const inputFilePath = await makeTempFilePath();
     const outputFilePath = await makeTempFilePath("jpeg");
 
@@ -19,7 +21,7 @@ export const convertToJPEG = async (imageData: Uint8Array) => {
     try {
         await fs.writeFile(inputFilePath, imageData);
         await execAsync(command);
-        return new Uint8Array(await fs.readFile(outputFilePath));
+        return await fs.readFile(outputFilePath);
     } finally {
         await deleteTempFileIgnoringErrors(inputFilePath);
         await deleteTempFileIgnoringErrors(outputFilePath);
@@ -64,7 +66,7 @@ export const generateImageThumbnail = async (
     pathOrZipItem: string | ZipItem,
     maxDimension: number,
     maxSize: number,
-): Promise<Uint8Array> => {
+): Promise<Uint8Array<ArrayBuffer>> => {
     const {
         path: inputFilePath,
         isFileTemporary: isInputFileTemporary,
@@ -85,10 +87,10 @@ export const generateImageThumbnail = async (
     try {
         await writeToTemporaryInputFile();
 
-        let thumbnail: Uint8Array;
+        let thumbnail: Uint8Array<ArrayBuffer>;
         do {
             await execAsync(command);
-            thumbnail = new Uint8Array(await fs.readFile(outputFilePath));
+            thumbnail = await fs.readFile(outputFilePath);
             quality -= 10;
             command = generateImageThumbnailCommand(
                 inputFilePath,

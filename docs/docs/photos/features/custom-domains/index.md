@@ -3,9 +3,9 @@ title: Custom Domains
 description: Use your own domain for Ente Photos sharing links
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Custom Domains

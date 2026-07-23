@@ -1,6 +1,7 @@
 import { Backdrop } from "@mui/material";
 import { Stack100vhCenter } from "ente-base/components/containers";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
+import { t } from "i18next";
 import React from "react";
 
 /**
@@ -29,6 +30,14 @@ export const TranslucentLoadingOverlay: React.FC = () => (
         // few interstitial overlays, and if refactoring consider replacing this
         // entirely with a more localized activity indicator.
         open={true}
+        slotProps={{
+            root: {
+                "aria-busy": true,
+                "aria-hidden": false,
+                "aria-label": t("loading"),
+                role: "status",
+            },
+        }}
         sx={{
             backgroundColor: "var(--mui-palette-backdrop-muted)",
             backdropFilter: "blur(30px) opacity(95%)",

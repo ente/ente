@@ -40,9 +40,9 @@ class FaceWithoutEmbedding {
   // Note: Keep the information in toJson minimum. Keep in sync with desktop.
   // Derive fields like fileID from other values whenever possible
   Map<String, dynamic> toJson() => {
-        'faceID': faceID,
-        'detection': detection.toJson(),
-        'score': score,
-        'blur': blur,
-      };
+    'faceID': faceID,
+    'detection': detection.toJson(),
+    'score': score,
+    'blur': blur,
+  };
 }

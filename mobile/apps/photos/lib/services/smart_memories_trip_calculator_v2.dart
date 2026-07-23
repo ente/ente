@@ -7,16 +7,16 @@ class _LocationCluster {
   Location _center;
 
   _LocationCluster(EnteFile file)
-      : files = [file],
-        _latitudeSum = file.location!.latitude!,
-        _longitudeSum = file.location!.longitude!,
-        _center = file.location!;
+    : files = [file],
+      _latitudeSum = file.location!.latitude!,
+      _longitudeSum = file.location!.longitude!,
+      _center = file.location!;
 
   _LocationCluster.fromFiles(Iterable<EnteFile> files)
-      : files = List<EnteFile>.from(files),
-        _latitudeSum = 0,
-        _longitudeSum = 0,
-        _center = const Location(latitude: 0, longitude: 0) {
+    : files = List<EnteFile>.from(files),
+      _latitudeSum = 0,
+      _longitudeSum = 0,
+      _center = const Location(latitude: 0, longitude: 0) {
     for (final file in this.files) {
       _latitudeSum += file.location!.latitude!;
       _longitudeSum += file.location!.longitude!;
@@ -150,8 +150,9 @@ class TripMemoriesCalculatorV2 {
     if (allFiles.isEmpty) return (<TripMemory>[], <BaseLocation>[]);
 
     final nowInMicroseconds = currentTime.microsecondsSinceEpoch;
-    final windowEnd =
-        currentTime.add(kMemoriesUpdateFrequency).microsecondsSinceEpoch;
+    final windowEnd = currentTime
+        .add(kMemoriesUpdateFrequency)
+        .microsecondsSinceEpoch;
     final cutOffTime = currentTime.subtract(const Duration(days: 365));
 
     // ── Phase 1: Base location detection ──
@@ -281,10 +282,9 @@ class TripMemoriesCalculatorV2 {
     Iterable<EnteFile> allFiles, {
     required bool isLocalGalleryMode,
   }) {
-    final filesWithLocation = allFiles
-        .where((file) => file.hasLocation)
-        .toList()
-      ..sort((a, b) => a.creationTime!.compareTo(b.creationTime!));
+    final filesWithLocation =
+        allFiles.where((file) => file.hasLocation).toList()
+          ..sort((a, b) => a.creationTime!.compareTo(b.creationTime!));
     final smallRadiusClusters = _mergeNearbyLocationClusters(
       _clusterByLocation(filesWithLocation, radius: baseRadius),
       radius: _baseMergeRadius,
@@ -571,16 +571,19 @@ class TripMemoriesCalculatorV2 {
         final otherLast = DateTime.fromMicrosecondsSinceEpoch(
           other.lastCreationTime!,
         );
-        final timeClose = tripFirst.isBefore(
+        final timeClose =
+            tripFirst.isBefore(
               otherLast.add(const Duration(days: _mergeWindowDays)),
             ) &&
             tripLast.isAfter(
               otherFirst.subtract(const Duration(days: _mergeWindowDays)),
             );
-        final spaceClose = calculateDistance(trip.location, other.location) <
+        final spaceClose =
+            calculateDistance(trip.location, other.location) <
             _mergeMaxDistance;
-        final mergedFirst =
-            tripFirst.isBefore(otherFirst) ? tripFirst : otherFirst;
+        final mergedFirst = tripFirst.isBefore(otherFirst)
+            ? tripFirst
+            : otherFirst;
         final mergedLast = tripLast.isAfter(otherLast) ? tripLast : otherLast;
         final mergedSpanDays = mergedLast.difference(mergedFirst).inDays;
         if (timeClose && spaceClose && mergedSpanDays <= _maxTripDays) {
@@ -639,8 +642,9 @@ class TripMemoriesCalculatorV2 {
   }
 
   static Location _representativeLocationFromFiles(Iterable<EnteFile> files) {
-    final filesWithLocation =
-        files.where((file) => file.hasLocation).toList(growable: false);
+    final filesWithLocation = files
+        .where((file) => file.hasLocation)
+        .toList(growable: false);
     assert(filesWithLocation.isNotEmpty);
 
     double latitudeSum = 0;
@@ -712,10 +716,12 @@ class TripMemoriesCalculatorV2 {
     DateTime? latestShownAt;
     final tripKey = trip.tripKey;
     for (final shownTrip in shownTrips) {
-      final sameTripKey = tripKey != null &&
+      final sameTripKey =
+          tripKey != null &&
           shownTrip.tripKey != null &&
           tripKey == shownTrip.tripKey;
-      final sameLegacyLocation = shownTrip.tripKey == null &&
+      final sameLegacyLocation =
+          shownTrip.tripKey == null &&
           calculateDistance(trip.location, shownTrip.location) <
               _baseOverlapRadius;
       if (!sameTripKey && !sameLegacyLocation) {
@@ -761,7 +767,10 @@ class TripMemoriesCalculatorV2 {
       if (bestWindow == null ||
           candidateWindow.distanceDays < bestWindow.distanceDays ||
           (candidateWindow.distanceDays == bestWindow.distanceDays &&
-              candidateWindow.start.difference(currentTime).abs().compareTo(
+              candidateWindow.start
+                      .difference(currentTime)
+                      .abs()
+                      .compareTo(
                         bestWindow.start.difference(currentTime).abs(),
                       ) <
                   0)) {
@@ -975,7 +984,8 @@ class TripMemoriesCalculatorV2 {
         continue;
       }
       final lastShownAt = _lastShownAtForTrip(trip, shownTrips);
-      final cooldownExpired = lastShownAt == null ||
+      final cooldownExpired =
+          lastShownAt == null ||
           currentTime.difference(lastShownAt) >= kTripShowTimeout;
       candidates.add(
         _TripSurfaceCandidate(
@@ -991,29 +1001,32 @@ class TripMemoriesCalculatorV2 {
     final selectedCandidates = <_TripSurfaceCandidate>[];
     final selectedKeys = <String>{...excludedIdentityKeys};
 
-    final seasonalCandidates = candidates
-        .where(
-          (candidate) =>
-              candidate.cooldownExpired &&
-              candidate.anniversaryWindow.distanceDays <= _seasonalTripBandDays,
-        )
-        .where((candidate) => !selectedKeys.contains(candidate.identityKey))
-        .toList()
-      ..sort(_compareSeasonalCandidates);
+    final seasonalCandidates =
+        candidates
+            .where(
+              (candidate) =>
+                  candidate.cooldownExpired &&
+                  candidate.anniversaryWindow.distanceDays <=
+                      _seasonalTripBandDays,
+            )
+            .where((candidate) => !selectedKeys.contains(candidate.identityKey))
+            .toList()
+          ..sort(_compareSeasonalCandidates);
     for (final seasonalCandidate in seasonalCandidates) {
       if (selectedCandidates.length >= remainingSlots) break;
       selectedCandidates.add(seasonalCandidate);
       selectedKeys.add(seasonalCandidate.identityKey);
     }
 
-    final evergreenCandidates = candidates
-        .where(
-          (candidate) =>
-              candidate.cooldownExpired &&
-              !selectedKeys.contains(candidate.identityKey),
-        )
-        .toList()
-      ..sort(_compareEvergreenCandidates);
+    final evergreenCandidates =
+        candidates
+            .where(
+              (candidate) =>
+                  candidate.cooldownExpired &&
+                  !selectedKeys.contains(candidate.identityKey),
+            )
+            .toList()
+          ..sort(_compareEvergreenCandidates);
     for (final candidate in evergreenCandidates) {
       if (selectedCandidates.length >= remainingSlots) {
         break;
@@ -1025,29 +1038,31 @@ class TripMemoriesCalculatorV2 {
     final currentShownCount =
         activeTripIdentityKeys.length + selectedCandidates.length;
     if (isLocalGalleryMode && currentShownCount == 0 && candidates.isNotEmpty) {
-      final fallbackSeasonalCandidates = candidates
-          .where(
-            (candidate) =>
-                candidate.anniversaryWindow.distanceDays <=
-                    _seasonalTripBandDays &&
-                !selectedKeys.contains(candidate.identityKey),
-          )
-          .toList()
-        ..sort(_compareSeasonalCandidates);
+      final fallbackSeasonalCandidates =
+          candidates
+              .where(
+                (candidate) =>
+                    candidate.anniversaryWindow.distanceDays <=
+                        _seasonalTripBandDays &&
+                    !selectedKeys.contains(candidate.identityKey),
+              )
+              .toList()
+            ..sort(_compareSeasonalCandidates);
       final fallbackCandidates = fallbackSeasonalCandidates.isNotEmpty
           ? fallbackSeasonalCandidates
           : (candidates..sort(_compareEvergreenCandidates))
-              .where(
-                (candidate) => !selectedKeys.contains(candidate.identityKey),
-              )
-              .toList();
+                .where(
+                  (candidate) => !selectedKeys.contains(candidate.identityKey),
+                )
+                .toList();
       if (fallbackCandidates.isNotEmpty) {
         selectedCandidates.add(fallbackCandidates.first);
       }
     }
 
-    final lastDateToShow =
-        currentTime.add(_tripDisplayDuration).microsecondsSinceEpoch;
+    final lastDateToShow = currentTime
+        .add(_tripDisplayDuration)
+        .microsecondsSinceEpoch;
     for (final candidate in selectedCandidates) {
       final trip = candidate.trip;
       final year = DateTime.fromMicrosecondsSinceEpoch(

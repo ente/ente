@@ -11,13 +11,13 @@ class OnThisDayMemory extends SmartMemory {
     super.firstCreationTime,
     super.lastCreationTime,
   }) : super(
-          memories,
-          MemoryType.onThisDay,
-          '',
-          firstDateToShow,
-          lastDateToShow,
-          id: id,
-        );
+         memories,
+         MemoryType.onThisDay,
+         '',
+         firstDateToShow,
+         lastDateToShow,
+         id: id,
+       );
 
   @override
   String createTitle(AppLocalizations locals, String languageCode) {

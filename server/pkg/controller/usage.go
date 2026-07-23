@@ -3,15 +3,14 @@ package controller
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 
-	"github.com/ente-io/museum/ente"
-	bonus "github.com/ente-io/museum/ente/storagebonus"
-	"github.com/ente-io/museum/pkg/controller/storagebonus"
-	"github.com/ente-io/museum/pkg/controller/usercache"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	bonus "github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/museum/pkg/controller/storagebonus"
+	"github.com/ente/museum/pkg/controller/usercache"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/stacktrace"
 )
 
 // UsageController exposes functions which can be used to check around storage
@@ -156,8 +155,7 @@ func (c *UsageController) canUploadFile(ctx context.Context, userID int64, size 
 			projectedLockerUsage += *size
 		}
 		if projectedLockerUsage >= limits.StorageLimit {
-			return stacktrace.Propagate(ente.ErrStorageLimitExceeded,
-				fmt.Sprintf("locker storage limit exceeded (limit %d, usage %d)", limits.StorageLimit, projectedLockerUsage))
+			return stacktrace.Propagate(ente.ErrStorageLimitExceeded, "locker storage limit exceeded (limit %d, usage %d)", limits.StorageLimit, projectedLockerUsage)
 		}
 		// Locker uploads should not be blocked by Photos subscription limits.
 		return nil
@@ -192,8 +190,7 @@ func (c *UsageController) canUploadFile(ctx context.Context, userID int64, size 
 				}
 			}
 			if lockerUsage == nil || (newUsage-lockerUsage.TotalUsage) > (subStorage+eligibleBonus) {
-				return stacktrace.Propagate(ente.ErrStorageLimitExceeded,
-					fmt.Sprintf("subscription Storage Limit Exceeded (limit %d, usage %d, bonus %d) for admin %d", subStorage, usage, eligibleBonus, subscriptionAdminID))
+				return stacktrace.Propagate(ente.ErrStorageLimitExceeded, "subscription Storage Limit Exceeded (limit %d, usage %d, bonus %d) for admin %d", subStorage, usage, eligibleBonus, subscriptionAdminID)
 			}
 		}
 	}
@@ -210,7 +207,7 @@ func (c *UsageController) canUploadFile(ctx context.Context, userID int64, size 
 		}
 		// Upload fail if memberStorageLimit > memberUsage ((fileSize + total Usage) + StorageOverflowAboveSubscriptionLimit (50mb))
 		if memberUsage > (*memberStorageLimit + StorageOverflowAboveSubscriptionLimit) {
-			return stacktrace.Propagate(ente.ErrStorageLimitExceeded, fmt.Sprintf("member Storage Limit Exceeded (limit %d, usage %d)", *memberStorageLimit, memberUsage))
+			return stacktrace.Propagate(ente.ErrStorageLimitExceeded, "member Storage Limit Exceeded (limit %d, usage %d)", *memberStorageLimit, memberUsage)
 
 		}
 	}

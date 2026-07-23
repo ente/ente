@@ -16,11 +16,7 @@ class Debouncer {
   Timer? _debounceTimer;
   final bool leading;
 
-  Debouncer(
-    this._duration, {
-    this.executionInterval,
-    this.leading = false,
-  });
+  Debouncer(this._duration, {this.executionInterval, this.leading = false});
 
   final Stopwatch _stopwatch = Stopwatch();
 
@@ -50,13 +46,15 @@ class Debouncer {
     if (isActive()) {
       _debounceTimer!.cancel();
     }
-    _debounceTimer =
-        Timer(shouldRunImmediately ? Duration.zero : _duration, () async {
-      _stopwatch.stop();
-      _stopwatch.reset();
-      await fn();
-      _debounceActiveNotifier.value = false;
-    });
+    _debounceTimer = Timer(
+      shouldRunImmediately ? Duration.zero : _duration,
+      () async {
+        _stopwatch.stop();
+        _stopwatch.reset();
+        await fn();
+        _debounceActiveNotifier.value = false;
+      },
+    );
     _debounceActiveNotifier.value = true;
   }
 

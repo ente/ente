@@ -22,14 +22,9 @@ class FileUploadGateway {
   }) async {
     final response = await _enteDio.post(
       "/files/upload-url",
-      data: {
-        "contentLength": contentLength,
-        "contentMD5": contentMd5,
-      },
+      data: {"contentLength": contentLength, "contentMD5": contentMd5},
     );
-    return UploadURL.fromMap(
-      (response.data as Map).cast<String, dynamic>(),
-    );
+    return UploadURL.fromMap((response.data as Map).cast<String, dynamic>());
   }
 
   /// Validates that the user can upload without minting an upload URL.
@@ -42,10 +37,7 @@ class FileUploadGateway {
       await _enteDio.get("/files/upload-eligibility");
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
-        await _enteDio.get(
-          "/files/upload-urls",
-          queryParameters: {"count": 1},
-        );
+        await _enteDio.get("/files/upload-urls", queryParameters: {"count": 1});
         return;
       }
       rethrow;

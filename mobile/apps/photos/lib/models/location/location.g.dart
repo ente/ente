@@ -7,11 +7,11 @@ part of 'location.dart';
 // **************************************************************************
 
 _Location _$LocationFromJson(Map<String, dynamic> json) => _Location(
-      latitude: (json['latitude'] as num?)?.toDouble(),
-      longitude: (json['longitude'] as num?)?.toDouble(),
-    );
+  latitude: (json['latitude'] as num?)?.toDouble(),
+  longitude: (json['longitude'] as num?)?.toDouble(),
+);
 
 Map<String, dynamic> _$LocationToJson(_Location instance) => <String, dynamic>{
-      'latitude': instance.latitude,
-      'longitude': instance.longitude,
-    };
+  'latitude': instance.latitude,
+  'longitude': instance.longitude,
+};

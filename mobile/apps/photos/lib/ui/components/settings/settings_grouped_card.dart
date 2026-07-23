@@ -5,18 +5,16 @@ import "package:flutter/material.dart";
 class SettingsGroupedCard extends StatelessWidget {
   final List<Widget> children;
 
-  const SettingsGroupedCard({
-    required this.children,
-    super.key,
-  });
+  const SettingsGroupedCard({required this.children, super.key});
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     // Card background: Light #FFFFFF, Dark #212121
-    final cardColor =
-        isDarkMode ? const Color(0xFF212121) : const Color(0xFFFFFFFF);
+    final cardColor = isDarkMode
+        ? const Color(0xFF212121)
+        : const Color(0xFFFFFFFF);
 
     final childCount = children.length;
 

@@ -1,16 +1,19 @@
+import 'dart:math' as math;
+
+import 'package:ente_components/components/chip_surface.dart';
+import 'package:ente_components/theme/colors.dart';
 import 'package:ente_components/theme/icon_sizes.dart';
-import 'package:ente_components/theme/motion.dart';
-import 'package:ente_components/theme/radii.dart';
 import 'package:ente_components/theme/spacing.dart';
 import 'package:ente_components/theme/text_styles.dart';
 import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 enum FilterChipComponentState { selected, unselected, disabled }
 
 /// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=9524-4352&m=dev
 /// Section: Filter Chip
-/// Specs: 40px height, 24px radius, selected/unselected/disabled states with icon and avatar slots.
+/// Specs: 40px minimum height, pill radius, selected/unselected/disabled states with icon and avatar slots.
 class FilterChipComponent extends StatelessWidget {
   const FilterChipComponent({
     super.key,
@@ -21,6 +24,8 @@ class FilterChipComponent extends StatelessWidget {
     this.state = FilterChipComponentState.unselected,
     this.onChanged,
     this.tooltip,
+    this.avatarSize,
+    this.scaleAvatarWithText = false,
   }) : assert(label != null || avatar != null);
 
   final String? label;
@@ -30,6 +35,32 @@ class FilterChipComponent extends StatelessWidget {
   final FilterChipComponentState state;
   final ValueChanged<bool>? onChanged;
   final String? tooltip;
+  final double? avatarSize;
+  final bool scaleAvatarWithText;
+
+  static const minHeight = 40.0;
+  static const _textVerticalPadding = 24.0;
+  static const _labelLineHeight = 16.0;
+  static const _avatarVerticalPadding = Spacing.xs * 2;
+
+  static double heightForTextScale(BuildContext context) {
+    final textHeight = MediaQuery.textScalerOf(context).scale(_labelLineHeight);
+    final scaledHeight = _textVerticalPadding + textHeight;
+    return scaledHeight > minHeight ? scaledHeight : minHeight;
+  }
+
+  static double avatarSizeForTextScale(BuildContext context) {
+    return heightForTextScale(context) - _avatarVerticalPadding;
+  }
+
+  double _avatarSizeFor(BuildContext context) {
+    final baseAvatarSize = avatarSize ?? _avatarSize;
+    if (!scaleAvatarWithText) {
+      return baseAvatarSize;
+    }
+    final scaledAvatarSize = avatarSizeForTextScale(context);
+    return math.max(scaledAvatarSize, baseAvatarSize);
+  }
 
   bool get _selected => state == FilterChipComponentState.selected;
 
@@ -40,51 +71,49 @@ class FilterChipComponent extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.componentColors;
     final textColor = switch (state) {
-      FilterChipComponentState.selected => colors.primary,
+      FilterChipComponentState.selected => colors.textReverse,
       FilterChipComponentState.unselected => colors.textLight,
       FilterChipComponentState.disabled => colors.textLightest,
     };
-    final background = _selected ? colors.primaryLight : colors.fillLight;
+    final background = _selected
+        ? _inverseBackgroundBase(context)
+        : colors.fillLight;
+    final effectiveAvatarSize = _avatarSizeFor(context);
+    final textScaledHeight = heightForTextScale(context);
+    final effectiveChipHeight = avatar == null
+        ? textScaledHeight
+        : math.max(
+            textScaledHeight,
+            effectiveAvatarSize + _avatarVerticalPadding,
+          );
 
-    Widget chip = MouseRegion(
-      cursor: _enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _enabled ? () => onChanged!(!_selected) : null,
-        child: AnimatedContainer(
-          key: const ValueKey('filter-chip-surface'),
-          duration: Motion.quick,
-          curve: Curves.easeInOutCubic,
-          height: 40,
-          constraints: const BoxConstraints(minWidth: 40),
-          padding: _padding,
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: _children(textColor),
-          ),
-        ),
-      ),
-    );
-
-    if (tooltip != null) {
-      chip = Tooltip(message: tooltip!, child: chip);
-    }
-
-    return Semantics(
-      button: true,
+    return ChipSurface(
+      surfaceKey: const ValueKey('filter-chip-surface'),
       enabled: _enabled,
       selected: _selected,
-      label: tooltip ?? label,
-      child: chip,
+      semanticLabel: tooltip ?? label,
+      minHeight: effectiveChipHeight,
+      minWidth: effectiveChipHeight,
+      padding: _padding,
+      background: background,
+      borderRadius: BorderRadius.circular(effectiveChipHeight / 2),
+      onTap: _enabled ? () => onChanged!(!_selected) : null,
+      tooltip: tooltip,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: _children(effectiveAvatarSize, textColor),
+      ),
     );
   }
 
-  List<Widget> _children(Color color) {
+  Color _inverseBackgroundBase(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? ColorTokens.light.backgroundBase
+        : ColorTokens.dark.backgroundBase;
+  }
+
+  List<Widget> _children(double effectiveAvatarSize, Color color) {
     final children = <Widget>[];
     final gap = avatar != null ? Spacing.xs : Spacing.sm;
 
@@ -98,6 +127,7 @@ class FilterChipComponent extends StatelessWidget {
       children.add(
         _FilterChipAvatar(
           enabled: state != FilterChipComponentState.disabled,
+          size: effectiveAvatarSize,
           child: avatar!,
         ),
       );
@@ -105,7 +135,14 @@ class FilterChipComponent extends StatelessWidget {
 
     if (leading != null) {
       addGap();
-      children.add(_FilterChipIcon(color: color, child: leading!));
+      children.add(
+        ChipIconSlot(
+          color: color,
+          size: IconSizes.small,
+          slotSize: _iconSlotSize,
+          child: leading!,
+        ),
+      );
     }
 
     if (label != null) {
@@ -124,10 +161,18 @@ class FilterChipComponent extends StatelessWidget {
     if (trailing != null || selectedTrailing) {
       addGap();
       children.add(
-        _FilterChipIcon(
+        ChipIconSlot(
           color: color,
-          size: selectedTrailing ? IconSizes.tiny : IconSizes.small,
-          child: selectedTrailing ? const Icon(Icons.close_rounded) : trailing!,
+          size: selectedTrailing ? _selectedTrailingIconSize : IconSizes.small,
+          slotSize: selectedTrailing
+              ? _selectedTrailingIconSize
+              : _iconSlotSize,
+          child: selectedTrailing
+              ? const HugeIcon(
+                  icon: HugeIcons.strokeRoundedCancel01,
+                  size: _selectedTrailingIconSize,
+                )
+              : trailing!,
         ),
       );
     }
@@ -182,40 +227,19 @@ class FilterChipComponent extends StatelessWidget {
   }
 }
 
-class _FilterChipIcon extends StatelessWidget {
-  const _FilterChipIcon({
-    required this.color,
-    required this.child,
-    this.size = IconSizes.small,
-  });
-
-  final Color color;
-  final Widget child;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: size == IconSizes.tiny
-          ? _selectedTrailingIconSlotSize
-          : _iconSlotSize,
-      child: Center(
-        child: IconTheme.merge(
-          data: IconThemeData(color: color, size: size),
-          child: child,
-        ),
-      ),
-    );
-  }
-}
-
 const double _iconSlotSize = 16;
-const double _selectedTrailingIconSlotSize = 20;
+const double _selectedTrailingIconSize = 14;
+const double _avatarSize = 32;
 
 class _FilterChipAvatar extends StatelessWidget {
-  const _FilterChipAvatar({required this.enabled, required this.child});
+  const _FilterChipAvatar({
+    required this.enabled,
+    required this.size,
+    required this.child,
+  });
 
   final bool enabled;
+  final double size;
   final Widget child;
 
   @override
@@ -223,8 +247,8 @@ class _FilterChipAvatar extends StatelessWidget {
     return Opacity(
       opacity: enabled ? 1 : 0.6,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(Radii.button),
-        child: SizedBox.square(dimension: 32, child: child),
+        borderRadius: BorderRadius.circular(size / 2),
+        child: SizedBox.square(dimension: size, child: child),
       ),
     );
   }

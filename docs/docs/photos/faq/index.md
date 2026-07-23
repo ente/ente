@@ -368,7 +368,6 @@ Jump to a category:
 
 - [What payment methods does Ente support?](/photos/faq/storage-and-plans#supported-payment-methods)
 - [Can I pay with PayPal?](/photos/faq/storage-and-plans#paypal-payment)
-- [Does Ente accept crypto payments?](/photos/faq/storage-and-plans#crypto-payment)
 - [Does Ente store my card details?](/photos/faq/storage-and-plans#card-security)
 
 ### Managing Your Subscription
@@ -515,6 +514,7 @@ Jump to a category:
 ### Managing Shared Content
 
 - [Can I add photos from a shared album to my own albums?](/photos/faq/sharing-and-collaboration#add-shared-photos)
+- [Can I upload, add, or move files in shared albums on web/desktop?](/photos/faq/sharing-and-collaboration#manage-shared-album-files)
 - [Why does adding shared photos to my albums count against my storage?](/photos/faq/sharing-and-collaboration#shared-storage-count)
 - [Can I remove myself from a shared album?](/photos/faq/sharing-and-collaboration#leave-shared-album)
 - [How do I see all my shared albums?](/photos/faq/sharing-and-collaboration#view-shared-albums)

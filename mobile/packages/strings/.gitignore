@@ -1,4 +1,4 @@
-build/
+# Generated l10n audit output
 lib/l10n/untranslated_messages.json
 
 # Generated localization files

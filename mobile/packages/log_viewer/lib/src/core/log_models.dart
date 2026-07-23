@@ -248,8 +248,5 @@ class TimeRange {
   final DateTime start;
   final DateTime end;
 
-  const TimeRange({
-    required this.start,
-    required this.end,
-  });
+  const TimeRange({required this.start, required this.end});
 }

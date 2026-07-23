@@ -10,7 +10,9 @@ description: Uncategorized items in Ente Photos
 - When you remove a photo from its last album, it moves to Uncategorized
 - During album deletion, if you choose to keep photos but delete the album, all photos exclusive to that album move to Uncategorized
 
-**Note**: This does not include photos uploaded by others.
+> [!NOTE]
+>
+> This does not include photos uploaded by others.
 
 ## Cleaning up Uncategorized items
 

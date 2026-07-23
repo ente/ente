@@ -3,9 +3,9 @@ title: General FAQ
 description: General frequently asked questions about Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # General FAQ

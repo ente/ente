@@ -76,9 +76,7 @@ Future<void> showShareSheet(
               Platform.isLinux || Platform.isWindows
                   ? context.strings.saveOnlyDescription
                   : context.strings.saveOrSendDescription,
-              style: textTheme.body.copyWith(
-                color: colorScheme.textMuted,
-              ),
+              style: textTheme.body.copyWith(color: colorScheme.textMuted),
             ),
             const SizedBox(height: 20),
             GradientButton(
@@ -124,8 +122,8 @@ Rect _sharePosOrigin(BuildContext? context, GlobalKey? key) {
 /// If key is null, returned rect will be at the center of the screen
 Rect shareButtonRect(BuildContext context, GlobalKey? shareButtonKey) {
   Size size = MediaQuery.sizeOf(context);
-  final RenderObject? renderObject =
-      shareButtonKey?.currentContext?.findRenderObject();
+  final RenderObject? renderObject = shareButtonKey?.currentContext
+      ?.findRenderObject();
   RenderBox? renderBox;
   if (renderObject != null && renderObject is RenderBox) {
     renderBox = renderObject;
@@ -149,9 +147,8 @@ Future<ShareResult> shareText(
 }) async {
   try {
     final sharePosOrigin = _sharePosOrigin(context, key);
-    return Share.share(
-      text,
-      sharePositionOrigin: sharePosOrigin,
+    return SharePlus.instance.share(
+      ShareParams(text: text, sharePositionOrigin: sharePosOrigin),
     );
   } catch (e, s) {
     Logger("ShareUtil").severe("failed to share text", e, s);
@@ -167,10 +164,12 @@ Future<ShareResult> shareFiles(
 }) async {
   try {
     final sharePosOrigin = _sharePosOrigin(context, key);
-    return Share.shareXFiles(
-      files,
-      text: text,
-      sharePositionOrigin: sharePosOrigin,
+    return SharePlus.instance.share(
+      ShareParams(
+        files: files,
+        text: text,
+        sharePositionOrigin: sharePosOrigin,
+      ),
     );
   } catch (e, s) {
     Logger("ShareUtil").severe("failed to share files", e, s);

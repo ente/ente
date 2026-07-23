@@ -1,30 +1,30 @@
-import { savedLocalUser } from "ente-accounts-rs/services/accounts-db";
-import log from "ente-base/log";
-import { t } from "i18next";
-import type { ChangeEvent } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     formatLockerMutationError,
     lockerUpgradeCTAType,
     type LockerUpgradeCTAType,
-} from "services/locker-errors";
+} from "@/services/locker-errors";
 import {
     exceedsPaidLockerHardLimit,
     validateLockerUploadBatch,
     type LockerUploadLimitState,
     type LockerUploadPreflightFailure,
-} from "services/locker-limits";
-import type { LockerUploadProgress } from "services/remote";
+} from "@/services/locker-limits";
+import type { LockerUploadProgress } from "@/services/remote";
 import type {
     LockerCollection,
     LockerItemType,
     LockerUploadCandidate,
-} from "types";
+} from "@/types";
 import {
     isCollectionOwner,
     isUncategorizedCollection,
     visibleLockerCollections,
-} from "types";
+} from "@/types";
+import { savedLocalUser } from "ente-accounts-rs/services/accounts-db";
+import log from "ente-base/log";
+import { t } from "i18next";
+import type { ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     collectionNamesByUploadItem,
     dedupeCollectionNames,

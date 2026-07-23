@@ -3,7 +3,6 @@ import "dart:async";
 import "package:ente_icons/ente_icons.dart";
 import "package:flutter/material.dart";
 import "package:photos/core/configuration.dart";
-import "package:photos/db/files_db.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/collection/collection.dart";
@@ -26,6 +25,7 @@ Future<void> showLikesBottomSheet(
   BuildContext context, {
   required int fileID,
   required int initialCollectionID,
+  List<Collection>? sharedCollections,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -35,6 +35,7 @@ Future<void> showLikesBottomSheet(
       launchContext: context,
       fileID: fileID,
       initialCollectionID: initialCollectionID,
+      sharedCollections: sharedCollections,
     ),
   );
 }
@@ -43,11 +44,13 @@ class LikesBottomSheet extends StatefulWidget {
   final BuildContext launchContext;
   final int fileID;
   final int initialCollectionID;
+  final List<Collection>? sharedCollections;
 
   const LikesBottomSheet({
     required this.launchContext,
     required this.fileID,
     required this.initialCollectionID,
+    this.sharedCollections,
     super.key,
   });
 
@@ -76,40 +79,27 @@ class _LikesBottomSheetState extends State<LikesBottomSheet> {
     _loadSharedCollections();
   }
 
+  bool _isOpenedFromHiddenCollection() => CollectionsService.instance
+      .getHiddenCollectionIds()
+      .contains(widget.initialCollectionID);
+
   Future<void> _loadSharedCollections() async {
     try {
-      // Get all collections containing this file
-      final collectionIDs = await FilesDB.instance.getAllCollectionIDsOfFile(
-        widget.fileID,
-      );
-
-      // Filter to shared collections only
-      var sharedCollectionsList = collectionIDs
-          .map((id) => CollectionsService.instance.getCollectionByID(id))
-          .whereType<Collection>()
-          .where(
-            (c) => c.hasSharees || c.hasLink || !c.isOwner(_currentUserID),
-          )
-          .toList();
-
-      // Filter out hidden collections unless viewing from a hidden collection
-      final hiddenCollectionIds =
-          CollectionsService.instance.getHiddenCollectionIds();
-      final isInitialCollectionHidden =
-          hiddenCollectionIds.contains(widget.initialCollectionID);
-      if (!isInitialCollectionHidden) {
-        sharedCollectionsList = sharedCollectionsList
-            .where((c) => !hiddenCollectionIds.contains(c.id))
-            .toList();
-      }
+      final sharedCollectionsList =
+          widget.sharedCollections ??
+          await CollectionsService.instance.getSharedCollectionsForFile(
+            widget.fileID,
+            includeHidden: _isOpenedFromHiddenCollection(),
+          );
 
       // Fetch like counts and thumbnails in parallel
       final sharedCollections = await Future.wait(
         sharedCollectionsList.map((collection) async {
           final likes = await SocialDataProvider.instance
               .getReactionsForFileInCollection(widget.fileID, collection.id);
-          final thumbnail =
-              await CollectionsService.instance.getCover(collection);
+          final thumbnail = await CollectionsService.instance.getCover(
+            collection,
+          );
           return CollectionLikeInfo(
             collection: collection,
             likeCount: likes.length,
@@ -164,8 +154,9 @@ class _LikesBottomSheetState extends State<LikesBottomSheet> {
           widget.fileID,
           _selectedCollectionID,
         ),
-        SocialDataProvider.instance
-            .getAnonDisplayNamesForCollection(_selectedCollectionID),
+        SocialDataProvider.instance.getAnonDisplayNamesForCollection(
+          _selectedCollectionID,
+        ),
       ]);
 
       final likes = results[0] as List<Reaction>;
@@ -226,9 +217,7 @@ class _LikesBottomSheetState extends State<LikesBottomSheet> {
         color: isDarkMode
             ? const Color(0xFF0E0E0E)
             : colorScheme.backgroundElevated,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         top: false,
@@ -384,8 +373,9 @@ class _LikesList extends StatelessWidget {
   User _getUserForReaction(Reaction reaction) {
     if (reaction.isAnonymous) {
       final anonID = reaction.anonUserID;
-      final displayName =
-          anonID != null ? (anonDisplayNames[anonID] ?? anonID) : "Anonymous";
+      final displayName = anonID != null
+          ? (anonDisplayNames[anonID] ?? anonID)
+          : "Anonymous";
       return User(
         id: reaction.userID,
         email: "${anonID ?? "anonymous"}@unknown.com",
@@ -393,8 +383,10 @@ class _LikesList extends StatelessWidget {
       );
     }
 
-    return CollectionsService.instance
-        .getFileOwner(reaction.userID, selectedCollectionID);
+    return CollectionsService.instance.getFileOwner(
+      reaction.userID,
+      selectedCollectionID,
+    );
   }
 
   @override
@@ -443,7 +435,7 @@ class _LikeListItem extends StatelessWidget {
           UserAvatarWidget(
             user,
             currentUserID: currentUserID,
-            type: AvatarType.lg,
+            type: AvatarType.regular,
             addStroke: false,
           ),
           const SizedBox(width: 12),
@@ -475,11 +467,7 @@ class _LikeListItem extends StatelessWidget {
                     ),
                   ),
           ),
-          const Icon(
-            EnteIcons.likeFilled,
-            color: Color(0xFF08C225),
-            size: 20,
-          ),
+          const Icon(EnteIcons.likeFilled, color: Color(0xFF08C225), size: 20),
         ],
       ),
     );

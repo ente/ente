@@ -71,8 +71,8 @@ class _SettingsSearchPageState extends State<SettingsSearchPage> {
           final sectionKey = _sectionKey(item.sectionPath);
           final intraSectionOrder =
               sectionKey == l10n.freeUpSpace && freeUpSpacePriority.isNotEmpty
-                  ? (freeUpSpacePriority[item.title] ?? 100 + i)
-                  : i;
+              ? (freeUpSpacePriority[item.title] ?? 100 + i)
+              : i;
           entries.add(
             _SearchResultEntry(
               item: item,
@@ -101,13 +101,15 @@ class _SettingsSearchPageState extends State<SettingsSearchPage> {
             .toList();
 
         filteredEntries.sort((a, b) {
-          final matchPriority = _matchPriority(a.matchType)
-              .compareTo(_matchPriority(b.matchType));
+          final matchPriority = _matchPriority(
+            a.matchType,
+          ).compareTo(_matchPriority(b.matchType));
           if (matchPriority != 0) return matchPriority;
           final sectionPriority = a.sectionOrder.compareTo(b.sectionOrder);
           if (sectionPriority != 0) return sectionPriority;
-          final intraSection =
-              a.intraSectionOrder.compareTo(b.intraSectionOrder);
+          final intraSection = a.intraSectionOrder.compareTo(
+            b.intraSectionOrder,
+          );
           if (intraSection != 0) return intraSection;
           return a.itemOrder.compareTo(b.itemOrder);
         });
@@ -164,21 +166,15 @@ class _SettingsSearchPageState extends State<SettingsSearchPage> {
           color: colors.textLight,
           strokeWidth: 1.6,
         ),
-        suffix: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _searchQuery.isNotEmpty
-              ? _clearSearch
-              : () => Navigator.of(context).pop(),
-          child: SizedBox.square(
-            dimension: 24,
-            child: HugeIcon(
-              icon: HugeIcons.strokeRoundedCancel01,
-              size: 18,
-              color: colors.textLight,
-              strokeWidth: 1.6,
-            ),
-          ),
+        suffix: HugeIcon(
+          icon: HugeIcons.strokeRoundedCancel01,
+          size: 18,
+          color: colors.textLight,
+          strokeWidth: 1.6,
         ),
+        onSuffixTap: _searchQuery.isNotEmpty
+            ? _clearSearch
+            : () => Navigator.of(context).pop(),
       ),
     );
   }
@@ -197,7 +193,7 @@ class _SettingsSearchPageState extends State<SettingsSearchPage> {
           const SizedBox(height: 8),
           Text(
             AppLocalizations.of(context).suggestions,
-            style: TextStyles.bodyBold.copyWith(
+            style: TextStyles.large.copyWith(
               color: context.componentColors.textBase,
             ),
           ),
@@ -257,7 +253,8 @@ class _SettingsSearchPageState extends State<SettingsSearchPage> {
     final rows = <Widget>[];
     String? currentSectionKey;
     for (final entry in _filteredItems) {
-      final shouldShowHeader = sectionCounts[entry.sectionKey] != null &&
+      final shouldShowHeader =
+          sectionCounts[entry.sectionKey] != null &&
           sectionCounts[entry.sectionKey]! >= 2;
       if (shouldShowHeader && currentSectionKey != entry.sectionKey) {
         currentSectionKey = entry.sectionKey;
@@ -266,16 +263,14 @@ class _SettingsSearchPageState extends State<SettingsSearchPage> {
             padding: const EdgeInsets.only(top: 12, bottom: 8),
             child: Text(
               entry.sectionKey,
-              style: TextStyles.mini.copyWith(
-                color: context.componentColors.textLight,
+              style: TextStyles.large.copyWith(
+                color: context.componentColors.textBase,
               ),
             ),
           ),
         );
       }
-      rows.add(
-        _buildSearchResultItem(entry.item),
-      );
+      rows.add(_buildSearchResultItem(entry.item));
     }
     return rows;
   }

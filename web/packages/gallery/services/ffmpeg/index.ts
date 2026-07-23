@@ -41,8 +41,8 @@ export const generateVideoThumbnailWeb = async (blob: Blob) =>
     );
 
 const _generateVideoThumbnail = async (
-    thumbnailAtTime: (seekTime: number) => Promise<Uint8Array>,
-) => {
+    thumbnailAtTime: (seekTime: number) => Promise<Uint8Array<ArrayBuffer>>,
+): Promise<Uint8Array<ArrayBuffer>> => {
     try {
         // Try generating thumbnail at seekTime 1 second.
         return await thumbnailAtTime(1);
@@ -295,7 +295,9 @@ export const determineVideoDuration = async (
  *
  * @returns The mp4 video blob.
  */
-export const convertToMP4 = async (blob: Blob): Promise<Blob | Uint8Array> => {
+export const convertToMP4 = async (
+    blob: Blob,
+): Promise<Blob | Uint8Array<ArrayBuffer>> => {
     const electron = globalThis.electron;
     if (electron) {
         return convertToMP4Native(electron, blob);

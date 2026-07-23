@@ -55,8 +55,9 @@ class Network {
       BaseOptions(
         connectTimeout: Duration(milliseconds: kConnectTimeout),
         headers: {
-          HttpHeaders.userAgentHeader:
-              isMobile ? ua! : Platform.operatingSystem,
+          HttpHeaders.userAgentHeader: isMobile
+              ? ua!
+              : Platform.operatingSystem,
           'X-Client-Version': version,
           'X-Client-Package': packageName,
         },
@@ -109,8 +110,10 @@ class Network {
 class RequestIdInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    options.headers
-        .putIfAbsent("x-request-id", () => const Uuid().v4().toString());
+    options.headers.putIfAbsent(
+      "x-request-id",
+      () => const Uuid().v4().toString(),
+    );
     return super.onRequest(options, handler);
   }
 }
@@ -128,8 +131,10 @@ class EnteRequestInterceptor extends Interceptor {
         "interceptor should only be used for API endpoint",
       );
     }
-    options.headers
-        .putIfAbsent("x-request-id", () => const Uuid().v4().toString());
+    options.headers.putIfAbsent(
+      "x-request-id",
+      () => const Uuid().v4().toString(),
+    );
     final String? tokenValue = configuration.getToken();
     if (tokenValue != null) {
       options.headers.putIfAbsent("X-Auth-Token", () => tokenValue);

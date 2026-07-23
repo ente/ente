@@ -1,15 +1,15 @@
-import {
-    type FileViewerInitialSidebar,
-    type FileViewerProps,
+import type {
+    FileViewerInitialSidebar,
+    FileViewerProps,
 } from "@/public-album/viewer/components/FileViewer";
 import {
     LazyFileViewer,
     scheduleFileViewerPreload,
 } from "@/public-album/viewer/lib/lazy";
-import type { AddSaveGroup } from "@/shared/state/save-groups";
 import { styled } from "@mui/material";
 import { isSameDay } from "ente-base/date";
 import { formattedDate } from "ente-base/i18n-date";
+import type { AddSaveGroup } from "ente-gallery/components/utils/save-groups";
 import type { EnteFile } from "ente-media/file";
 import { fileCreationPhotoDate, fileFileName } from "ente-media/file-metadata";
 import { t } from "i18next";
@@ -164,9 +164,8 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
 
     const handleDownload = useCallback(
         async (file: EnteFile) => {
-            const { downloadAndSaveFiles } = await import(
-                "@/public-album/download/services/save"
-            );
+            const { downloadAndSaveFiles } =
+                await import("@/public-album/download/services/save");
             return downloadAndSaveFiles(
                 [file],
                 fileFileName(file),

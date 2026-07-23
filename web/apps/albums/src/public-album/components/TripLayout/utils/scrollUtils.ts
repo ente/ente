@@ -71,17 +71,12 @@ export const handleTimelineScroll = ({
 
     // Calculate scroll progress (0 to 1)
     const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
-    let progress = 0;
-    if (isAtBottom) {
-        progress = 1;
-    } else {
-        const maxScrollableDistance = scrollHeight - clientHeight;
-        if (maxScrollableDistance > 0) {
-            progress = scrollTop / maxScrollableDistance;
-        } else {
-            progress = 0;
-        }
-    }
+    const maxScrollableDistance = scrollHeight - clientHeight;
+    const progress = isAtBottom
+        ? 1
+        : maxScrollableDistance > 0
+          ? scrollTop / maxScrollableDistance
+          : 0;
     const clampedProgress = Math.min(1, Math.max(0, progress));
 
     if (isClusterClickScrollingRef.current) {

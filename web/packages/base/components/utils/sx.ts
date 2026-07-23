@@ -1,5 +1,5 @@
-import { type SxProps, type Theme } from "@mui/material";
-import { type SystemStyleObject } from "@mui/system";
+import type { SxProps, Theme } from "@mui/material";
+import type { SystemStyleObject } from "@mui/system";
 
 /**
  * Wrapper over Array.isArray that retains the TypeScript type for SxProps when

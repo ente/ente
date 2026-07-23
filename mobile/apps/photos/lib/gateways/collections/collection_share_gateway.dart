@@ -71,10 +71,7 @@ class CollectionShareGateway {
   }) async {
     final response = await _enteDio.post(
       "/collections/unshare",
-      data: {
-        "collectionID": collectionID,
-        "email": email,
-      },
+      data: {"collectionID": collectionID, "email": email},
     );
     final sharees = <User>[];
     for (final user in response.data["sharees"]) {
@@ -121,10 +118,7 @@ class CollectionShareGateway {
   }) async {
     final data = Map<String, dynamic>.from(props);
     data["collectionID"] = collectionID;
-    final response = await _enteDio.put(
-      "/collections/share-url",
-      data: data,
-    );
+    final response = await _enteDio.put("/collections/share-url", data: data);
     return PublicURL.fromMap(response.data["result"]);
   }
 
@@ -132,9 +126,7 @@ class CollectionShareGateway {
   ///
   /// [collectionID] - The collection whose public link to delete.
   Future<void> deleteShareUrl(int collectionID) async {
-    await _enteDio.delete(
-      "/collections/share-url/$collectionID",
-    );
+    await _enteDio.delete("/collections/share-url/$collectionID");
   }
 
   /// Gets information about a public collection.
@@ -153,9 +145,7 @@ class CollectionShareGateway {
     try {
       final response = await _enteDio.get(
         "/public-collection/info",
-        options: Options(
-          headers: {"X-Auth-Access-Token": authToken},
-        ),
+        options: Options(headers: {"X-Auth-Access-Token": authToken}),
       );
       return response.data;
     } on DioException catch (e) {
@@ -165,10 +155,7 @@ class CollectionShareGateway {
         case 410:
           throw PublicCollectionInfoExpiredException();
         case 403:
-          if (_hasErrorCode(
-            e.response?.data,
-            _linkDeviceLimitExceededCode,
-          )) {
+          if (_hasErrorCode(e.response?.data, _linkDeviceLimitExceededCode)) {
             throw PublicCollectionDeviceLimitExceededException();
           }
           rethrow;
@@ -197,9 +184,7 @@ class CollectionShareGateway {
     final response = await _enteDio.post(
       "/public-collection/verify-password",
       data: {"passHash": passwordHash},
-      options: Options(
-        headers: {"X-Auth-Access-Token": authToken},
-      ),
+      options: Options(headers: {"X-Auth-Access-Token": authToken}),
     );
     return response.data["jwtToken"];
   }

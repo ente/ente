@@ -66,8 +66,8 @@ Rect _sharePosOrigin(BuildContext? context, GlobalKey? key) {
 /// If key is null, returned rect will be at the center of the screen
 Rect shareButtonRect(BuildContext context, GlobalKey? shareButtonKey) {
   Size size = MediaQuery.sizeOf(context);
-  final RenderObject? renderObject =
-      shareButtonKey?.currentContext?.findRenderObject();
+  final RenderObject? renderObject = shareButtonKey?.currentContext
+      ?.findRenderObject();
   RenderBox? renderBox;
   if (renderObject != null && renderObject is RenderBox) {
     renderBox = renderObject;
@@ -92,10 +92,7 @@ Future<ShareResult> shareText(
   try {
     final sharePosOrigin = _sharePosOrigin(context, key);
     return SharePlus.instance.share(
-      ShareParams(
-        text: text,
-        sharePositionOrigin: sharePosOrigin,
-      ),
+      ShareParams(text: text, sharePositionOrigin: sharePosOrigin),
     );
   } catch (e, s) {
     Logger("ShareUtil").severe("failed to share text", e, s);

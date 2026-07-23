@@ -24,6 +24,7 @@ export const supportedLocales = [
     "de-DE" /* German */,
     "ca-ES" /* Catalan */,
     "zh-CN" /* Simplified Chinese */,
+    "zh-TW" /* Traditional Chinese */,
     "nl-NL" /* Dutch */,
     "es-ES" /* Spanish */,
     "pt-PT" /* Portuguese */,
@@ -33,6 +34,7 @@ export const supportedLocales = [
     "it-IT" /* Italian */,
     "lt-LT" /* Lithuanian */,
     "uk-UA" /* Ukrainian */,
+    "ur-IN" /* Urdu, India */,
     "vi-VN" /* Vietnamese */,
     "ja-JP" /* Japanese */,
     "ar-SA" /* Arabic */,
@@ -176,6 +178,13 @@ const closestSupportedLocale = (
             return "de-DE";
         } else if (ls.startsWith("ca")) {
             return "ca-ES";
+        } else if (
+            ls.startsWith("zh-Hant") ||
+            ls.startsWith("zh-TW") ||
+            ls.startsWith("zh-HK") ||
+            ls.startsWith("zh-MO")
+        ) {
+            return "zh-TW";
         } else if (ls.startsWith("zh")) {
             return "zh-CN";
         } else if (ls.startsWith("nl")) {
@@ -198,6 +207,8 @@ const closestSupportedLocale = (
             return "lt-LT";
         } else if (ls.startsWith("uk")) {
             return "uk-UA";
+        } else if (ls.startsWith("ur")) {
+            return "ur-IN";
         } else if (ls.startsWith("vi")) {
             return "vi-VN";
         } else if (ls.startsWith("ja")) {

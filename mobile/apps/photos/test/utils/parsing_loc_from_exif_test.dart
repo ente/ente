@@ -45,77 +45,80 @@ void main() {
       expect(location.longitude, closeTo(expectedLong, 0.00001));
     }
 
-    test('converts coordinates with different latRef and longRef combinations',
-        () {
-      testParsingLocation(
-        "N",
-        [40, 26, 46.84],
-        "E",
-        [79, 58, 56.33],
-        40.446344,
-        79.982313,
-      );
-      testParsingLocation(
-        "N",
-        [40, 26, 46.84],
-        "W",
-        [79, 58, 56.33],
-        40.446344,
-        -79.982313,
-      );
-      testParsingLocation(
-        "S",
-        [40, 26, 46.84],
-        "E",
-        [79, 58, 56.33],
-        -40.446344,
-        79.982313,
-      );
-      testParsingLocation(
-        "S",
-        [40, 26, 46.84],
-        "W",
-        [79, 58, 56.33],
-        -40.446344,
-        -79.982313,
-      );
-    });
+    test(
+      'converts coordinates with different latRef and longRef combinations',
+      () {
+        testParsingLocation(
+          "N",
+          [40, 26, 46.84],
+          "E",
+          [79, 58, 56.33],
+          40.446344,
+          79.982313,
+        );
+        testParsingLocation(
+          "N",
+          [40, 26, 46.84],
+          "W",
+          [79, 58, 56.33],
+          40.446344,
+          -79.982313,
+        );
+        testParsingLocation(
+          "S",
+          [40, 26, 46.84],
+          "E",
+          [79, 58, 56.33],
+          -40.446344,
+          79.982313,
+        );
+        testParsingLocation(
+          "S",
+          [40, 26, 46.84],
+          "W",
+          [79, 58, 56.33],
+          -40.446344,
+          -79.982313,
+        );
+      },
+    );
 
     test(
-        'converts coordinates with missing latRef and longRef but with signed lat and long',
-        () {
-      testParsingLocation(
-        null,
-        [40, 26, 46.84],
-        null,
-        [79, 58, 56.33],
-        40.446344,
-        79.982313,
-      );
-      testParsingLocation(
-        null,
-        [-40, 26, 46.84],
-        null,
-        [79, 58, 56.33],
-        -40.446344,
-        79.982313,
-      );
-      testParsingLocation(
-        null,
-        [40, 26, 46.84],
-        null,
-        [-79, 58, 56.33],
-        40.446344,
-        -79.982313,
-      );
-      testParsingLocation(
-        null,
-        [40, -26, 46.84],
-        null,
-        [79, -58, 56.33],
-        -40.446344,
-        -79.982313,
-      );
-    });
+      'converts coordinates with missing latRef and longRef but with signed lat and long',
+      () {
+        testParsingLocation(
+          null,
+          [40, 26, 46.84],
+          null,
+          [79, 58, 56.33],
+          40.446344,
+          79.982313,
+        );
+        testParsingLocation(
+          null,
+          [-40, 26, 46.84],
+          null,
+          [79, 58, 56.33],
+          -40.446344,
+          79.982313,
+        );
+        testParsingLocation(
+          null,
+          [40, 26, 46.84],
+          null,
+          [-79, 58, 56.33],
+          40.446344,
+          -79.982313,
+        );
+        testParsingLocation(
+          null,
+          [40, -26, 46.84],
+          null,
+          [79, -58, 56.33],
+          -40.446344,
+          -79.982313,
+        );
+      },
+    );
   });
 }

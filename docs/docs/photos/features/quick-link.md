@@ -3,9 +3,9 @@ title: Quick Links
 description: Quickly create shareable links in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Quick Links

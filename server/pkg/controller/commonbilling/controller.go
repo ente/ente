@@ -3,10 +3,10 @@ package commonbilling
 import (
 	"context"
 
-	"github.com/ente-io/museum/pkg/controller/email"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/repo/storagebonus"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/controller/email"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo/storagebonus"
+	"github.com/ente/stacktrace"
 	"github.com/sirupsen/logrus"
 )
 

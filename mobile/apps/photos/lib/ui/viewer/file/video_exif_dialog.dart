@@ -45,10 +45,7 @@ class VideoExifDialog extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          context.l10n.videoInfo,
-          style: getEnteTextTheme(context).large,
-        ),
+        Text(context.l10n.videoInfo, style: getEnteTextTheme(context).large),
         _buildInfoRow(context, 'Creation Time', props, 'creation_time'),
         _buildInfoRow(context, 'Duration', props, 'duration'),
         _buildInfoRow(context, context.l10n.location, props, 'location'),
@@ -89,8 +86,9 @@ class VideoExifDialog extends StatelessWidget {
     }
 
     return Column(
-      children:
-          data.map((stream) => _buildStreamInfo(context, stream)).toList(),
+      children: data
+          .map((stream) => _buildStreamInfo(context, stream))
+          .toList(),
     );
   }
 
@@ -101,10 +99,7 @@ class VideoExifDialog extends StatelessWidget {
       titleString += ' - $codeName';
     }
     return ExpansionTile(
-      title: Text(
-        titleString,
-        style: getEnteTextTheme(context).small,
-      ),
+      title: Text(titleString, style: getEnteTextTheme(context).small),
       childrenPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 4),
       tilePadding: EdgeInsets.zero,
       collapsedShape: const Border(), // Remove border when collapsed
@@ -146,8 +141,7 @@ class VideoExifDialog extends StatelessWidget {
       }
 
       if (value == null) {
-        return const SizedBox
-            .shrink(); // Return an empty container if there's no data for the key.
+        return const SizedBox.shrink(); // Return an empty container if there's no data for the key.
       }
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -156,10 +150,7 @@ class VideoExifDialog extends StatelessWidget {
           children: [
             SizedBox(
               width: 150,
-              child: Text(
-                rowName,
-                style: getEnteTextTheme(context).smallMuted,
-              ),
+              child: Text(rowName, style: getEnteTextTheme(context).smallMuted),
             ),
             Expanded(child: Text(value.toString())),
           ],

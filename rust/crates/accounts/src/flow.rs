@@ -10,8 +10,8 @@ use base64::{
 use ente_core::{
     auth::{
         self, DecryptedSecrets, GeneratedSrpSetup, KeyAttributes as CoreKeyAttributes,
-        KeyDerivationStrength, derive_kek, generate_keys_with_strength, generate_srp_setup,
-        get_recovery_key,
+        KeyDerivationStrength, derive_kek, generate_keys_with_strength,
+        generate_srp_setup_with_login_key, get_recovery_key,
     },
     crypto::{self, SecretVec, secretbox},
 };
@@ -28,7 +28,7 @@ use crate::{
         TwoFactorAuthorizationResponse, TwoFactorRecoveryResponse, TwoFactorType,
         UpdateSrpAndKeysRequest, UpdatedKeyAttr,
     },
-    types::{AccountSecrets, DEFAULT_ACCOUNTS_URL},
+    types::AccountSecrets,
 };
 
 const SRP_A_LEN: usize = 512;
@@ -305,10 +305,30 @@ where
             .await
     }
 
+    /// Create a new account after the caller has already sent and collected a signup OTP.
+    pub async fn create_account_with_otp(
+        &mut self,
+        params: CreateAccountParams,
+        otp: &str,
+    ) -> Result<AuthenticatedAccount> {
+        let email = params.email;
+        let password = params.password;
+        let verification = self
+            .client
+            .verify_email(&email, otp, params.source.as_deref())
+            .await?;
+
+        self.finish_verified_signup(
+            email,
+            password,
+            verification,
+            KeyDerivationStrength::Sensitive,
+        )
+        .await
+    }
+
     /// Login to an existing account.
     pub async fn login(&mut self, params: LoginParams) -> Result<AuthenticatedAccount> {
-        crypto::init()?;
-
         let srp_attrs = self.client.get_srp_attributes(&params.email).await?;
 
         let (auth_response, kek) = if srp_attrs.is_email_mfa_enabled {
@@ -343,8 +363,6 @@ where
         &mut self,
         params: SetupTwoFactorParams,
     ) -> Result<SetupTwoFactorResult> {
-        crypto::init()?;
-
         let key_attributes = if let Some(key_attributes) = params.key_attributes {
             key_attributes
         } else {
@@ -393,34 +411,35 @@ where
         &self,
         params: ChangePasswordParams,
     ) -> Result<ChangePasswordResult> {
-        crypto::init()?;
+        self.change_password_with_strength(params, KeyDerivationStrength::Sensitive)
+            .await
+    }
 
-        let (updated_key_attributes_core, _) = auth::generate_key_attributes_for_new_password(
-            &params.master_key,
-            &to_core_key_attributes(&params.key_attributes),
-            &params.password,
-        )?;
+    async fn change_password_with_strength(
+        &self,
+        params: ChangePasswordParams,
+        key_derivation_strength: KeyDerivationStrength,
+    ) -> Result<ChangePasswordResult> {
+        let (updated_key_attributes_core, login_key) =
+            auth::generate_key_attributes_for_new_password_with_strength(
+                &params.master_key,
+                &to_core_key_attributes(&params.key_attributes),
+                &params.password,
+                key_derivation_strength,
+            )?;
 
         let updated_key_attributes = to_api_key_attributes(&updated_key_attributes_core);
         let updated_key_attr = UpdatedKeyAttr::from(&updated_key_attributes);
 
-        let kek = derive_kek(
-            &params.password,
-            &updated_key_attributes.kek_salt,
-            updated_key_attributes.mem_limit as u32,
-            updated_key_attributes.ops_limit as u32,
-        )?;
-
         let srp_user_id = Uuid::new_v4();
-        let srp_setup = generate_srp_setup(&kek, &srp_user_id.to_string())?;
-        let update = self
-            .complete_srp_update(
-                &srp_user_id,
-                &srp_setup,
-                &updated_key_attr,
-                params.log_out_other_devices,
-            )
-            .await?;
+        let srp_setup = generate_srp_setup_with_login_key(&login_key, &srp_user_id.to_string())?;
+        self.complete_srp_update(
+            &srp_user_id,
+            &srp_setup,
+            &updated_key_attr,
+            params.log_out_other_devices,
+        )
+        .await?;
 
         let srp_attributes = self.client.get_srp_attributes(&params.email).await?;
 
@@ -447,8 +466,6 @@ where
                 mismatches.join(", ")
             )));
         }
-
-        let _ = update;
 
         Ok(ChangePasswordResult {
             key_attributes: updated_key_attributes,
@@ -543,8 +560,12 @@ where
         let recovery_key = auth::recovery_key_from_mnemonic_or_hex(recovery_key_mnemonic_or_hex)?;
         let encrypted_secret = crypto::decode_b64(&recovery_response.encrypted_secret)?;
         let nonce = crypto::decode_b64(&recovery_response.secret_decryption_nonce)?;
-        let secret = secretbox::decrypt(&encrypted_secret, &nonce, &recovery_key)
-            .map_err(|_| Error::AuthenticationFailed("Incorrect recovery key".into()))?;
+        let secret = secretbox::decrypt(
+            &encrypted_secret,
+            &crypto::Nonce::try_from_slice(&nonce)?,
+            &crypto::Key::try_from_slice(&recovery_key)?,
+        )
+        .map_err(|_| Error::AuthenticationFailed("Incorrect recovery key".into()))?;
         let request = RemoveTwoFactorRequest {
             session_id: session_id.to_string(),
             secret: String::from_utf8(secret)
@@ -580,11 +601,14 @@ where
         recovery_key_mnemonic_or_hex: &str,
     ) -> Result<()> {
         let recovery_key = auth::recovery_key_from_mnemonic_or_hex(recovery_key_mnemonic_or_hex)?;
-        let encrypted = secretbox::encrypt_with_key(secret.as_bytes(), &recovery_key)?;
+        let encrypted = secretbox::encrypt(
+            secret.as_bytes(),
+            &crypto::Key::try_from_slice(&recovery_key)?,
+        );
         let request = ConfigurePasskeyRecoveryRequest {
             secret: secret.to_string(),
-            user_secret_cipher: crypto::encode_b64(&encrypted.ciphertext),
-            user_secret_nonce: crypto::encode_b64(&encrypted.nonce),
+            user_secret_cipher: crypto::encode_b64(&encrypted.encrypted_data),
+            user_secret_nonce: crypto::encode_b64(encrypted.nonce.as_bytes()),
         };
         self.client.configure_passkey_recovery(&request).await
     }
@@ -631,8 +655,6 @@ where
         params: CreateAccountParams,
         key_derivation_strength: KeyDerivationStrength,
     ) -> Result<AuthenticatedAccount> {
-        crypto::init()?;
-
         let email = params.email;
         let password = params.password;
 
@@ -644,6 +666,17 @@ where
             .verify_email_otp(&email, OtpPurpose::Signup, params.source.as_deref())
             .await?;
 
+        self.finish_verified_signup(email, password, verification, key_derivation_strength)
+            .await
+    }
+
+    async fn finish_verified_signup(
+        &self,
+        email: String,
+        password: Zeroizing<String>,
+        verification: AuthResponse,
+        key_derivation_strength: KeyDerivationStrength,
+    ) -> Result<AuthenticatedAccount> {
         let token = verification.token.clone().ok_or_else(|| {
             Error::AuthenticationFailed("Signup verification did not return a session token".into())
         })?;
@@ -665,7 +698,7 @@ where
         let key_gen_result = generate_keys_with_strength(&password, key_derivation_strength)?;
         let srp_user_id = Uuid::new_v4();
         let srp_setup =
-            generate_srp_setup(&key_gen_result.key_encryption_key, &srp_user_id.to_string())?;
+            generate_srp_setup_with_login_key(&key_gen_result.login_key, &srp_user_id.to_string())?;
         let key_attributes = to_api_key_attributes(&key_gen_result.key_attributes);
 
         self.client
@@ -790,10 +823,8 @@ where
 
         let accounts_url = auth_response
             .accounts_url
-            .as_ref()
-            .filter(|url| !url.is_empty())
-            .map(String::as_str)
-            .unwrap_or(DEFAULT_ACCOUNTS_URL);
+            .as_deref()
+            .expect("accountsUrl is required when passkeySessionID is present");
 
         let verification_url = build_passkey_verification_url(
             accounts_url,
@@ -1043,12 +1074,15 @@ fn encrypt_two_factor_secret(
     code: &str,
 ) -> Result<EnableTwoFactorRequest> {
     let recovery_key = crypto::decode_hex(recovery_key_hex)?;
-    let encrypted = secretbox::encrypt_with_key(secret_code.as_bytes(), &recovery_key)?;
+    let encrypted = secretbox::encrypt(
+        secret_code.as_bytes(),
+        &crypto::Key::try_from_slice(&recovery_key)?,
+    );
 
     Ok(EnableTwoFactorRequest {
         code: code.to_string(),
-        encrypted_two_factor_secret: crypto::encode_b64(&encrypted.ciphertext),
-        two_factor_secret_decryption_nonce: crypto::encode_b64(&encrypted.nonce),
+        encrypted_two_factor_secret: crypto::encode_b64(&encrypted.encrypted_data),
+        two_factor_secret_decryption_nonce: crypto::encode_b64(encrypted.nonce.as_bytes()),
     })
 }
 
@@ -1206,10 +1240,10 @@ mod tests {
         }
     }
 
-    fn make_client(base_url: String) -> AccountsClient {
+    fn make_client(origin: String) -> AccountsClient {
         AccountsClient::new(
             AccountsClientConfig::new("io.ente.photos")
-                .with_base_url(base_url)
+                .with_origin(origin)
                 .with_user_agent("ente-accounts-test"),
         )
         .unwrap()
@@ -1225,7 +1259,11 @@ mod tests {
         let key_attributes = to_api_key_attributes(&key_gen.key_attributes);
         let encrypted_token = {
             let public_key = crypto::decode_b64(&key_attributes.public_key).unwrap();
-            let sealed = crypto::sealed::seal(token.as_bytes(), &public_key).unwrap();
+            let sealed = crypto::sealed::seal(
+                token.as_bytes(),
+                &crypto::PublicKey::try_from_slice(&public_key).unwrap(),
+            )
+            .unwrap();
             crypto::encode_b64(&sealed)
         };
 
@@ -1240,8 +1278,6 @@ mod tests {
 
     #[tokio::test]
     async fn login_with_email_mfa_and_totp_decrypts_account() {
-        crypto::init().unwrap();
-
         let password = "hunter2";
         let (key_attributes, encrypted_token, recovery_key, _, _) =
             build_login_response(password, "plain-auth-token");
@@ -1330,8 +1366,6 @@ mod tests {
 
     #[tokio::test]
     async fn login_with_email_mfa_treats_429_as_terminal_error() {
-        crypto::init().unwrap();
-
         let password = "hunter2";
         let key_gen =
             auth::generate_keys_with_strength(password, auth::KeyDerivationStrength::Interactive)
@@ -1407,8 +1441,6 @@ mod tests {
 
     #[tokio::test]
     async fn login_with_totp_treats_404_as_expired_session() {
-        crypto::init().unwrap();
-
         let password = "hunter2";
         let key_gen =
             auth::generate_keys_with_strength(password, auth::KeyDerivationStrength::Interactive)
@@ -1495,8 +1527,6 @@ mod tests {
 
     #[tokio::test]
     async fn login_with_totp_treats_429_as_terminal_error() {
-        crypto::init().unwrap();
-
         let password = "hunter2";
         let key_gen =
             auth::generate_keys_with_strength(password, auth::KeyDerivationStrength::Interactive)
@@ -1587,8 +1617,6 @@ mod tests {
 
     #[tokio::test]
     async fn setup_two_factor_encrypts_secret_with_recovery_key() {
-        crypto::init().unwrap();
-
         let password = "pw";
         let key_gen =
             auth::generate_keys_with_strength(password, auth::KeyDerivationStrength::Interactive)
@@ -1647,8 +1675,6 @@ mod tests {
 
     #[tokio::test]
     async fn configure_passkey_recovery_accepts_hex_recovery_key() {
-        crypto::init().unwrap();
-
         let key_gen =
             auth::generate_keys_with_strength("pw", auth::KeyDerivationStrength::Interactive)
                 .unwrap();
@@ -1665,8 +1691,12 @@ mod tests {
                 let payload: ConfigurePasskeyRecoveryPayload = parse_request_body(request);
                 let cipher = crypto::decode_b64(&payload.user_secret_cipher).unwrap();
                 let nonce = crypto::decode_b64(&payload.user_secret_nonce).unwrap();
-                let decrypted =
-                    secretbox::decrypt(&cipher, &nonce, &expected_recovery_key).unwrap();
+                let decrypted = secretbox::decrypt(
+                    &cipher,
+                    &crypto::Nonce::try_from_slice(&nonce).unwrap(),
+                    &crypto::Key::try_from_slice(&expected_recovery_key).unwrap(),
+                )
+                .unwrap();
                 assert_eq!(payload.secret, "reset-secret");
                 assert_eq!(String::from_utf8(decrypted).unwrap(), "reset-secret");
                 Vec::new()
@@ -1688,8 +1718,6 @@ mod tests {
 
     #[tokio::test]
     async fn login_with_passkey_treats_404_as_expired_session() {
-        crypto::init().unwrap();
-
         let password = "hunter2";
         let key_gen =
             auth::generate_keys_with_strength(password, auth::KeyDerivationStrength::Interactive)
@@ -1781,8 +1809,6 @@ mod tests {
 
     #[tokio::test]
     async fn create_account_uploads_keys_and_completes_srp_setup() {
-        crypto::init().unwrap();
-
         let email = "fresh-user@example.org";
         let encoded_email = urlencoding::encode(email).into_owned();
         let signup_token_bytes = b"signup-session-token";
@@ -2005,8 +2031,6 @@ mod tests {
 
     #[tokio::test]
     async fn change_password_updates_srp_and_keys() {
-        crypto::init().unwrap();
-
         let original = auth::generate_keys_with_strength(
             "old-password",
             auth::KeyDerivationStrength::Interactive,
@@ -2142,13 +2166,16 @@ mod tests {
         let flow = AuthFlow::new(&client, &mut ui);
 
         let result = flow
-            .change_password(ChangePasswordParams {
-                email: "user@example.org".into(),
-                password: Zeroizing::new("new-password".into()),
-                master_key: SecretVec::new(master_key),
-                key_attributes,
-                log_out_other_devices: true,
-            })
+            .change_password_with_strength(
+                ChangePasswordParams {
+                    email: "user@example.org".into(),
+                    password: Zeroizing::new("new-password".into()),
+                    master_key: SecretVec::new(master_key),
+                    key_attributes,
+                    log_out_other_devices: true,
+                },
+                KeyDerivationStrength::Interactive,
+            )
             .await
             .unwrap();
 

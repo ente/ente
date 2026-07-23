@@ -1052,7 +1052,7 @@ export const printBlob = (
             );
 
             const imageNode = doc.querySelector("img");
-            if (!imageNode || imageNode.tagName !== "IMG") {
+            if (imageNode?.tagName !== "IMG") {
                 throw new Error("Could not print this card.");
             }
             const image = imageNode;

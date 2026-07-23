@@ -44,15 +44,16 @@ void main() {
       final years = (result["years"] as List<dynamic>).cast<int>();
       expect(years, equals(List<int>.generate(5, (i) => 2010 + i)));
 
-      final entries =
-          (result["entries"] as List<dynamic>).cast<Map<String, dynamic>>();
+      final entries = (result["entries"] as List<dynamic>)
+          .cast<Map<String, dynamic>>();
       expect(entries.length, equals(20));
       final faceIds = entries.map((entry) => entry["faceId"]).toSet();
       expect(faceIds.length, equals(entries.length));
 
       for (final year in years) {
-        final yearEntries =
-            entries.where((entry) => entry["year"] == year).toList();
+        final yearEntries = entries
+            .where((entry) => entry["year"] == year)
+            .toList();
         expect(yearEntries.length, equals(4));
       }
     });
@@ -129,15 +130,13 @@ void main() {
       });
 
       expect(result["status"], equals("ready"));
-      final entries =
-          (result["entries"] as List<dynamic>).cast<Map<String, dynamic>>();
+      final entries = (result["entries"] as List<dynamic>)
+          .cast<Map<String, dynamic>>();
       final faceIds = entries.map((entry) => entry["faceId"]).toList();
       expect(
-          faceIds,
-          containsAll(<String>[
-            "sharp-and-high-score",
-            "high-resolution",
-          ]));
+        faceIds,
+        containsAll(<String>["sharp-and-high-score", "high-resolution"]),
+      );
       expect(faceIds.length, equals(4));
       expect(faceIds, isNot(contains("low-score")));
     });
@@ -164,12 +163,14 @@ void main() {
       });
 
       expect(result["status"], equals("ready"));
-      final entries =
-          (result["entries"] as List<dynamic>).cast<Map<String, dynamic>>();
+      final entries = (result["entries"] as List<dynamic>)
+          .cast<Map<String, dynamic>>();
       final dayKeys = entries
-          .map((entry) => DateTime.fromMicrosecondsSinceEpoch(
-                entry["creationTime"] as int,
-              ))
+          .map(
+            (entry) => DateTime.fromMicrosecondsSinceEpoch(
+              entry["creationTime"] as int,
+            ),
+          )
           .map((date) => DateTime(date.year, date.month, date.day))
           .toSet();
       expect(entries.length, equals(4));
@@ -177,59 +178,60 @@ void main() {
     });
 
     test(
-        "allows duplicate days only when fewer than four unique days are available",
-        () {
-      final baseDate = DateTime(2022, 3, 10);
-      final faces = <Map<String, dynamic>>[
-        _buildFace("day-1-a", 201, baseDate, score: 0.95, blur: 70),
-        _buildFace(
-          "day-1-b",
-          202,
-          baseDate.add(const Duration(hours: 6)),
-          score: 0.9,
-          blur: 65,
-        ),
-        _buildFace(
-          "day-2",
-          203,
-          baseDate.add(const Duration(days: 1)),
-          score: 0.93,
-          blur: 60,
-        ),
-        _buildFace(
-          "day-3",
-          204,
-          baseDate.add(const Duration(days: 2)),
-          score: 0.91,
-          blur: 62,
-        ),
-      ];
+      "allows duplicate days only when fewer than four unique days are available",
+      () {
+        final baseDate = DateTime(2022, 3, 10);
+        final faces = <Map<String, dynamic>>[
+          _buildFace("day-1-a", 201, baseDate, score: 0.95, blur: 70),
+          _buildFace(
+            "day-1-b",
+            202,
+            baseDate.add(const Duration(hours: 6)),
+            score: 0.9,
+            blur: 65,
+          ),
+          _buildFace(
+            "day-2",
+            203,
+            baseDate.add(const Duration(days: 1)),
+            score: 0.93,
+            blur: 60,
+          ),
+          _buildFace(
+            "day-3",
+            204,
+            baseDate.add(const Duration(days: 2)),
+            score: 0.91,
+            blur: 62,
+          ),
+        ];
 
-      final result = selectTimelineEntriesTask({
-        "faces": faces,
-        "minYears": 1,
-        "minFaces": 4,
-      });
+        final result = selectTimelineEntriesTask({
+          "faces": faces,
+          "minYears": 1,
+          "minFaces": 4,
+        });
 
-      expect(result["status"], equals("ready"));
-      final entries =
-          (result["entries"] as List<dynamic>).cast<Map<String, dynamic>>();
-      expect(entries.length, equals(4));
-      final normalizedDays = entries
-          .map(
-            (entry) => DateTime.fromMicrosecondsSinceEpoch(
-              entry["creationTime"] as int,
-            ),
-          )
-          .map((date) => DateTime(date.year, date.month, date.day))
-          .toList();
-      final dayCounts = <DateTime, int>{};
-      for (final day in normalizedDays) {
-        dayCounts.update(day, (value) => value + 1, ifAbsent: () => 1);
-      }
-      expect(dayCounts.keys.length, equals(3));
-      expect(dayCounts.values.any((count) => count > 1), isTrue);
-    });
+        expect(result["status"], equals("ready"));
+        final entries = (result["entries"] as List<dynamic>)
+            .cast<Map<String, dynamic>>();
+        expect(entries.length, equals(4));
+        final normalizedDays = entries
+            .map(
+              (entry) => DateTime.fromMicrosecondsSinceEpoch(
+                entry["creationTime"] as int,
+              ),
+            )
+            .map((date) => DateTime(date.year, date.month, date.day))
+            .toList();
+        final dayCounts = <DateTime, int>{};
+        for (final day in normalizedDays) {
+          dayCounts.update(day, (value) => value + 1, ifAbsent: () => 1);
+        }
+        expect(dayCounts.keys.length, equals(3));
+        expect(dayCounts.values.any((count) => count > 1), isTrue);
+      },
+    );
 
     test("excludes faces captured before minimum creation time", () {
       final faces = <Map<String, dynamic>>[];
@@ -291,14 +293,8 @@ void main() {
 
   group("minimum eligible creation time", () {
     test("returns null when birthdate missing", () {
-      expect(
-        MemoryLaneService.minimumEligibleCreationTimeMicros(null),
-        isNull,
-      );
-      expect(
-        MemoryLaneService.minimumEligibleCreationTimeMicros(""),
-        isNull,
-      );
+      expect(MemoryLaneService.minimumEligibleCreationTimeMicros(null), isNull);
+      expect(MemoryLaneService.minimumEligibleCreationTimeMicros(""), isNull);
     });
 
     test("returns null for invalid birthdate string", () {
@@ -313,9 +309,11 @@ void main() {
       final cutoff = MemoryLaneService.minimumEligibleCreationTimeMicros(
         "2010-06-15",
       );
-      final expected =
-          DateTime(birthDate.year + 3, birthDate.month, birthDate.day)
-              .microsecondsSinceEpoch;
+      final expected = DateTime(
+        birthDate.year + 3,
+        birthDate.month,
+        birthDate.day,
+      ).microsecondsSinceEpoch;
       expect(cutoff, equals(expected));
     });
 

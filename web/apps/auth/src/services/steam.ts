@@ -1,4 +1,5 @@
-import jsSHA from "jssha";
+import { hmac } from "@noble/hashes/hmac.js";
+import { sha1 } from "@noble/hashes/legacy.js";
 import { Secret } from "otpauth";
 
 /**
@@ -28,7 +29,7 @@ export class Steam {
         const counter = Math.floor(timestamp / 1000 / this.period);
 
         // Same as regular HOTP, but algorithm is fixed to SHA-1.
-        const digest = sha1HMACDigest(this.secret.buffer, uintToArray(counter));
+        const digest = hmac(sha1, this.secret.bytes, uintToArray(counter));
 
         // Same calculation as regular HOTP.
         const offset = digest[digest.length - 1]! & 15;
@@ -60,15 +61,4 @@ const uintToArray = (n: number): Uint8Array => {
         n >>= 8;
     }
     return result;
-};
-
-// We don't necessarily need a dependency on `jssha`, we could use SubtleCrypto
-// here too. However, SubtleCrypto has an async interface, and we already have a
-// transitive dependency on `jssha` via `otpauth`, so just using it here doesn't
-// increase our bundle size any further.
-const sha1HMACDigest = (key: ArrayBuffer, message: Uint8Array) => {
-    const hmac = new jsSHA("SHA-1", "UINT8ARRAY");
-    hmac.setHMACKey(key, "ARRAYBUFFER");
-    hmac.update(message);
-    return hmac.getHMAC("UINT8ARRAY");
 };

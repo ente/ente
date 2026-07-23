@@ -1,3 +1,6 @@
+import { generateOTPs, type Code } from "@/services/code";
+import { getAuthCodesAndTimeOffset } from "@/services/remote";
+import { prettyFormatCode } from "@/utils/format";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import {
@@ -28,9 +31,6 @@ import { masterKeyFromSession } from "ente-base/session";
 import { t } from "i18next";
 import { useRouter } from "next/router";
 import React, { useCallback, useEffect, useState } from "react";
-import { generateOTPs, type Code } from "services/code";
-import { getAuthCodesAndTimeOffset } from "services/remote";
-import { prettyFormatCode } from "utils/format";
 
 const Page: React.FC = () => {
     const { logout, showMiniDialog } = useBaseContext();

@@ -7,19 +7,19 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ente-io/museum/pkg/controller/file_copy"
-	"github.com/ente-io/museum/pkg/controller/filedata"
-	"github.com/ente-io/museum/pkg/controller/public"
+	"github.com/ente/museum/pkg/controller/file_copy"
+	"github.com/ente/museum/pkg/controller/filedata"
+	"github.com/ente/museum/pkg/controller/public"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 	"github.com/gin-contrib/requestid"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/handler"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/handler"
+	"github.com/ente/museum/pkg/utils/time"
 	"github.com/gin-gonic/gin"
 )
 
@@ -39,7 +39,7 @@ const DefaultCopyBatchSize = 100
 func (h *FileHandler) CreateOrUpdate(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	var file ente.File
-	if err := c.ShouldBindJSON(&file); err != nil {
+	if err := handler.BindJSON(c, &file); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -71,7 +71,7 @@ func (h *FileHandler) CreateOrUpdate(c *gin.Context) {
 func (h *FileHandler) CreateMetaFile(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	var file ente.MetaFile
-	if err := c.ShouldBindJSON(&file); err != nil {
+	if err := handler.BindJSON(c, &file); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -95,7 +95,7 @@ func (h *FileHandler) CreateMetaFile(c *gin.Context) {
 // CopyFiles copies files that are owned by another user
 func (h *FileHandler) CopyFiles(c *gin.Context) {
 	var req ente.CopyFileSyncRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(c, &req); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -117,7 +117,7 @@ func (h *FileHandler) Update(c *gin.Context) {
 
 	userID := auth.GetUserID(c.Request.Header)
 	var file ente.File
-	if err := c.ShouldBindJSON(&file); err != nil {
+	if err := handler.BindJSON(c, &file); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -166,7 +166,7 @@ func (h *FileHandler) GetUploadURLV2(c *gin.Context) {
 	enteApp := auth.GetApp(c)
 	userID := auth.GetUserID(c.Request.Header)
 	var req ente.UploadURLRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(c, &req); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -199,7 +199,7 @@ func (h *FileHandler) GetMultipartUploadURLV2(c *gin.Context) {
 	enteApp := auth.GetApp(c)
 	userID := auth.GetUserID(c.Request.Header)
 	var req ente.MultipartUploadURLRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(c, &req); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -223,20 +223,7 @@ func (h *FileHandler) Get(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
-// GetUsingFusedLookup redirects the request to the file location using a temporary
-// fused access-check and object lookup path.
-func (h *FileHandler) GetUsingFusedLookup(c *gin.Context) {
-	userID, fileID := getUserAndFileIDs(c)
-	url, err := h.Controller.GetFileURLUsingFusedLookup(c, userID, fileID)
-	if err != nil {
-		handler.Error(c, stacktrace.Propagate(err, ""))
-		return
-	}
-	h.logBadRedirect(c)
-	c.Redirect(http.StatusTemporaryRedirect, url)
-}
-
-// GetV2 returns the URL of the file to client
+// GetV2 returns the URL of the file to the client
 func (h *FileHandler) GetV2(c *gin.Context) {
 	userID, fileID := getUserAndFileIDs(c)
 	url, err := h.Controller.GetFileURL(c, userID, fileID)
@@ -244,28 +231,13 @@ func (h *FileHandler) GetV2(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"url": url,
-	})
+	c.JSON(http.StatusOK, gin.H{"url": url})
 }
 
 // GetThumbnail redirects the request to the file's thumbnail location
 func (h *FileHandler) GetThumbnail(c *gin.Context) {
 	userID, fileID := getUserAndFileIDs(c)
 	url, err := h.Controller.GetThumbnailURL(c, userID, fileID)
-	if err != nil {
-		handler.Error(c, stacktrace.Propagate(err, ""))
-		return
-	}
-	h.logBadRedirect(c)
-	c.Redirect(http.StatusTemporaryRedirect, url)
-}
-
-// GetThumbnailUsingFusedLookup redirects the request to the file's thumbnail
-// location using a temporary fused access-check and object lookup path.
-func (h *FileHandler) GetThumbnailUsingFusedLookup(c *gin.Context) {
-	userID, fileID := getUserAndFileIDs(c)
-	url, err := h.Controller.GetThumbnailURLUsingFusedLookup(c, userID, fileID)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
@@ -282,15 +254,13 @@ func (h *FileHandler) GetThumbnailV2(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"url": url,
-	})
+	c.JSON(http.StatusOK, gin.H{"url": url})
 }
 
 // Trash moves the given files to the trash bin
 func (h *FileHandler) Trash(c *gin.Context) {
 	var request ente.TrashRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "failed to bind"))
 		return
 	}
@@ -311,7 +281,7 @@ func (h *FileHandler) Trash(c *gin.Context) {
 // GetSize returns the size of files indicated by fileIDs
 func (h *FileHandler) GetSize(c *gin.Context) {
 	var request ente.FileIDsRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -339,7 +309,7 @@ func (h *FileHandler) GetSize(c *gin.Context) {
 // GetInfo returns the FileInfo of files indicated by fileIDs
 func (h *FileHandler) GetInfo(c *gin.Context) {
 	var request ente.FileIDsRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "failed to bind request"))
 		return
 	}
@@ -406,24 +376,10 @@ func (h *FileHandler) GetDuplicates(c *gin.Context) {
 	})
 }
 
-// GetLargeThumbnail returns the list of files whose thumbnail size is larger than threshold size
-func (h *FileHandler) GetLargeThumbnailFiles(c *gin.Context) {
-	userID := auth.GetUserID(c.Request.Header)
-	threshold, _ := strconv.ParseInt(c.Query("threshold"), 10, 64)
-	largeThumbnailFiles, err := h.Controller.GetLargeThumbnailFiles(userID, threshold)
-	if err != nil {
-		handler.Error(c, stacktrace.Propagate(err, ""))
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"largeThumbnailFiles": largeThumbnailFiles,
-	})
-}
-
 // UpdateMagicMetadata updates magic metadata for a list of files.
 func (h *FileHandler) UpdateMagicMetadata(c *gin.Context) {
 	var request ente.UpdateMultipleMagicMetadataRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -442,7 +398,7 @@ func (h *FileHandler) UpdateMagicMetadata(c *gin.Context) {
 // UpdatePublicMagicMetadata updates public magic metadata for a list of files.
 func (h *FileHandler) UpdatePublicMagicMetadata(c *gin.Context) {
 	var request ente.UpdateMultipleMagicMetadataRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -459,7 +415,7 @@ func (h *FileHandler) UpdateThumbnail(c *gin.Context) {
 	enteApp := auth.GetApp(c)
 
 	var request ente.UpdateThumbnailRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}

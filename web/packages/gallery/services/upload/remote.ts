@@ -153,25 +153,6 @@ export const fetchPublicAlbumsMultipartUploadURLsWithMetadata = async (
 };
 
 /**
- * Sibling of {@link fetchUploadURLs} for public albums.
- */
-export const fetchPublicAlbumsUploadURLs = async (
-    countHint: number,
-    credentials: PublicAlbumsCredentials,
-) => {
-    const count = Math.min(50, countHint * 2);
-    const res = await fetch(
-        await apiURL("/public-collection/upload-urls", {
-            count,
-            ts: Date.now(),
-        }),
-        { headers: authenticatedPublicAlbumsRequestHeaders(credentials) },
-    );
-    ensureOk(res);
-    return ObjectUploadURLResponse.parse(await res.json()).urls;
-};
-
-/**
  * A list of URLs to use for multipart uploads.
  *
  * This is a list of pre-signed URLs (one for each part), a URL to indicate
@@ -224,25 +205,6 @@ export const fetchMultipartUploadURLs = async (uploadPartCount: number) => {
 };
 
 /**
- * Sibling of {@link fetchMultipartUploadURLs} for public albums.
- */
-export const fetchPublicAlbumsMultipartUploadURLs = async (
-    uploadPartCount: number,
-    credentials: PublicAlbumsCredentials,
-) => {
-    const count = uploadPartCount;
-    const res = await fetch(
-        await apiURL("/public-collection/multipart-upload-urls", {
-            count,
-            ts: Date.now(),
-        }),
-        { headers: authenticatedPublicAlbumsRequestHeaders(credentials) },
-    );
-    ensureOk(res);
-    return MultipartUploadURLsResponse.parse(await res.json()).urls;
-};
-
-/**
  * Upload a file using a pre-signed URL.
  *
  * @param fileUploadURL A pre-signed URL that can be used to upload data to the
@@ -262,7 +224,7 @@ interface PutPartOptions {
 
 export const putFile = async (
     fileUploadURL: string,
-    fileData: Uint8Array,
+    fileData: Uint8Array<ArrayBuffer>,
     retrier: HTTPRequestRetrier,
     options?: PutFileOptions,
 ) =>
@@ -284,7 +246,7 @@ export const putFile = async (
  */
 export const putFileViaWorker = async (
     fileUploadURL: string,
-    fileData: Uint8Array,
+    fileData: Uint8Array<ArrayBuffer>,
     retrier: HTTPRequestRetrier,
     options?: PutFileOptions,
 ) =>
@@ -322,7 +284,7 @@ export const putFileViaWorker = async (
  */
 export const putFilePart = async (
     partUploadURL: string,
-    partData: Uint8Array,
+    partData: Uint8Array<ArrayBuffer>,
     retrier: HTTPRequestRetrier,
     options?: PutPartOptions,
 ) => {
@@ -346,7 +308,7 @@ export const putFilePart = async (
  */
 export const putFilePartViaWorker = async (
     partUploadURL: string,
-    partData: Uint8Array,
+    partData: Uint8Array<ArrayBuffer>,
     retrier: HTTPRequestRetrier,
     options?: PutPartOptions,
 ) => {
@@ -493,7 +455,8 @@ const createMultipartUploadRequestBody = (
  *    call will be different (because of the different authentication
  *    mechanisms) when we're running in the context of the photos app
  *    ({@link fetchMultipartUploadURLs}) and when we're running in the context
- *    of the public albums app ({@link fetchPublicAlbumsMultipartUploadURLs}).
+ *    of the public albums app
+ *    ({@link fetchPublicAlbumsMultipartUploadURLsWithMetadata}).
  *
  * 2. Break the file to be uploaded into parts, and upload each part using a PUT
  *    request to one of the pre-signed URLs we got in step 1. There are two

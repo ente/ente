@@ -9,10 +9,7 @@ class ChaChaEncryptionResult {
   final String encData;
   final String header;
 
-  ChaChaEncryptionResult({
-    required this.encData,
-    required this.header,
-  });
+  ChaChaEncryptionResult({required this.encData, required this.header});
 }
 
 Uint8List _unGzipUInt8List(Uint8List compressedData) {
@@ -34,16 +31,12 @@ Future<Map<String, dynamic>> decryptAndUnzipJson(
   required String header,
 }) async {
   final Computer computer = Computer.shared();
-  final response =
-      await computer.compute<Map<String, dynamic>, Map<String, dynamic>>(
-    _decryptAndUnzipJsonSync,
-    param: {
-      "key": key,
-      "encryptedData": encryptedData,
-      "header": header,
-    },
-    taskName: "decryptAndUnzipJson",
-  );
+  final response = await computer
+      .compute<Map<String, dynamic>, Map<String, dynamic>>(
+        _decryptAndUnzipJsonSync,
+        param: {"key": key, "encryptedData": encryptedData, "header": header},
+        taskName: "decryptAndUnzipJson",
+      );
   return response;
 }
 
@@ -84,27 +77,20 @@ Future<ChaChaEncryptionResult> gzipAndEncryptJson(
   Uint8List key,
 ) async {
   final Computer computer = Computer.shared();
-  final response =
-      await computer.compute<Map<String, dynamic>, ChaChaEncryptionResult>(
-    _gzipAndEncryptJsonSync,
-    param: {
-      "jsonData": jsonData,
-      "key": key,
-    },
-    taskName: "gzipAndEncryptJson",
-  );
+  final response = await computer
+      .compute<Map<String, dynamic>, ChaChaEncryptionResult>(
+        _gzipAndEncryptJsonSync,
+        param: {"jsonData": jsonData, "key": key},
+        taskName: "gzipAndEncryptJson",
+      );
   return response;
 }
 
-ChaChaEncryptionResult _gzipAndEncryptJsonSync(
-  Map<String, dynamic> args,
-) {
+ChaChaEncryptionResult _gzipAndEncryptJsonSync(Map<String, dynamic> args) {
   return gzipAndEncryptJsonSync(args["jsonData"], args["key"]);
 }
 
-Map<String, dynamic> _decryptAndUnzipJsonSync(
-  Map<String, dynamic> args,
-) {
+Map<String, dynamic> _decryptAndUnzipJsonSync(Map<String, dynamic> args) {
   return decryptAndUnzipJsonSync(
     args["key"],
     encryptedData: args["encryptedData"],

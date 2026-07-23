@@ -1,8 +1,8 @@
+import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
 import "package:flutter_svg/svg.dart";
-import "package:photos/ente_theme_data.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/generated/l10n.dart";
-import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/tools/editor/image_editor/circular_icon_button.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_configs_mixin.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_constants.dart";
@@ -87,17 +87,16 @@ class _ImageEditorCropRotateBarState extends State<ImageEditorCropRotateBar>
       builder: (context, constraints) {
         return Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildFunctions(constraints),
-          ],
+          children: [_buildFunctions(constraints)],
         );
       },
     );
   }
 
   Widget _buildFunctions(BoxConstraints constraints) {
+    final colors = context.componentColors;
     return BottomAppBar(
-      color: getEnteColorScheme(context).backgroundBase,
+      color: colors.backgroundBase,
       padding: EdgeInsets.zero,
       height: editorBottomBarHeight,
       child: Align(
@@ -111,7 +110,7 @@ class _ImageEditorCropRotateBarState extends State<ImageEditorCropRotateBar>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CircularIconButton(
-                    svgPath: "assets/image-editor/image-editor-crop-rotate.svg",
+                    hugeIcon: HugeIcons.strokeRoundedRotateCrop,
                     label: AppLocalizations.of(context).rotate,
                     onTap: () {
                       widget.editor.rotate();
@@ -119,7 +118,7 @@ class _ImageEditorCropRotateBarState extends State<ImageEditorCropRotateBar>
                   ),
                   const SizedBox(width: 6),
                   CircularIconButton(
-                    svgPath: "assets/image-editor/image-editor-flip.svg",
+                    hugeIcon: HugeIcons.strokeRoundedFlipLeft,
                     label: AppLocalizations.of(context).flip,
                     onTap: () {
                       widget.editor.flip();
@@ -136,10 +135,7 @@ class _ImageEditorCropRotateBarState extends State<ImageEditorCropRotateBar>
                     final aspectRatio = CropAspectRatioType.values[index];
                     final isSelected = selectedAspectRatio == aspectRatio;
                     return Padding(
-                      padding: const EdgeInsets.only(
-                        left: 6.0,
-                        right: 6.0,
-                      ),
+                      padding: const EdgeInsets.only(left: 6.0, right: 6.0),
                       child: CropAspectChip(
                         label: aspectRatio.label,
                         svg: aspectRatio.svg,
@@ -148,8 +144,9 @@ class _ImageEditorCropRotateBarState extends State<ImageEditorCropRotateBar>
                           setState(() {
                             selectedAspectRatio = aspectRatio;
                           });
-                          widget.editor
-                              .updateAspectRatio(aspectRatio.ratio ?? -1);
+                          widget.editor.updateAspectRatio(
+                            aspectRatio.ratio ?? -1,
+                          );
                         },
                       ),
                     );
@@ -182,14 +179,14 @@ class CropAspectChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
+    final selectedBackground = colors.fillBase.withValues(alpha: 0.9);
+    final selectedForeground = colors.textReverse;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: isSelected
-              ? colorScheme.fillBasePressed
-              : Theme.of(context).colorScheme.editorBackgroundColor,
+          color: isSelected ? selectedBackground : colors.fillLight,
           borderRadius: BorderRadius.circular(25),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -201,7 +198,7 @@ class CropAspectChip extends StatelessWidget {
                 svg!,
                 height: 32,
                 colorFilter: ColorFilter.mode(
-                  isSelected ? colorScheme.backdropBase : colorScheme.tabIcon,
+                  isSelected ? selectedForeground : colors.iconColor,
                   BlendMode.srcIn,
                 ),
               ),
@@ -210,10 +207,8 @@ class CropAspectChip extends StatelessWidget {
             if (label != null)
               Text(
                 label!,
-                style: TextStyle(
-                  color: isSelected
-                      ? colorScheme.backdropBase
-                      : colorScheme.tabIcon,
+                style: TextStyles.body.copyWith(
+                  color: isSelected ? selectedForeground : colors.iconColor,
                 ),
               ),
             const SizedBox(width: 4),

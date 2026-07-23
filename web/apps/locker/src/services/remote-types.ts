@@ -1,7 +1,7 @@
 import type {
     LockerCollectionParticipant,
     LockerCollectionParticipantRole,
-} from "types";
+} from "@/types";
 import { z } from "zod";
 
 export const RemoteCollectionUserSchema = z.object({

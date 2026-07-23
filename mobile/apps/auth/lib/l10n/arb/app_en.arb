@@ -112,7 +112,9 @@
   "passwordEmptyError": "Password can not be empty",
   "passwordTooShort": "Password must be at least 8 characters",
   "importFromApp": "Import codes from {appName}",
-  "importGoogleAuthGuide": "Export your accounts from Google Authenticator to a QR code using the \"Transfer Accounts\" option. Then using another device, scan the QR code.\n\nTip: You can use your laptop's webcam to take a picture of the QR code.",
+  "importGoogleAuthGuide": "Export your accounts from Google Authenticator to a QR code using the \"Transfer Accounts\" option. Then scan the QR code or import it from an image.",
+  "scannerTorchOn": "Turn on torch",
+  "scannerTorchOff": "Turn off torch",
   "importSelectJsonFile": "Select JSON file",
   "importSelectAppExport": "Select {appName} export file",
   "importEnteEncGuide": "Select the encrypted JSON file exported from Ente",
@@ -122,6 +124,7 @@
   "import2FasGuide": "Use the \"Settings->Backup -Export\" option in 2FAS.\n\nIf your backup is encrypted, you will need to enter the password to decrypt the backup",
   "importLastpassGuide": "Use the \"Transfer accounts\" option within Lastpass Authenticator Settings and press \"Export accounts to file\". Import the JSON downloaded.",
   "importProtonAuthGuide": "Use the \"Export\" option in Proton Authenticator Settings to export your codes.\n\nIf your export is password protected, you will need to enter the password to decrypt it.",
+  "importOtpAuthGuide": "Export an encrypted backup from OTP Auth, then select the .otpauthdb or .otpauthdp file. Single-account .otpauth exports are also supported.",
   "invalidProtonExportTitle": "Invalid Proton export",
   "invalidProtonExportMessage": "The selected file is not a valid Proton Authenticator export.",
   "exportCodes": "Export codes",
@@ -194,7 +197,7 @@
   "deleteAccountQuery": "We'll be sorry to see you go. Are you facing some issue?",
   "yesSendFeedbackAction": "Yes, send feedback",
   "noDeleteAccountAction": "No, delete account",
-  "initiateAccountDeleteTitle": "Please authenticate to initiate account deletion",
+  "authToInitiateAccountDeletion": "Unlock to delete your account",
   "sendEmail": "Send email",
   "createNewAccount": "Create new account",
   "weakStrength": "Weak",
@@ -329,6 +332,16 @@
         "description": "The number of codes imported",
         "type": "int",
         "example": "1"
+      }
+    }
+  },
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{Import 1 code from Google Authenticator?} other{Import {codeCount} codes from Google Authenticator?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
       }
     }
   },
@@ -486,6 +499,9 @@
   "somethingWentWrongParsingCode": "We were unable to parse {x} codes.",
   "updateNotAvailable": "Update not available",
   "viewRawCodes": "View raw codes",
+  "parsingError": "Parsing error",
+  "deleteUnparseableCodeTitle": "Delete unparseable code?",
+  "deleteUnparseableCodeMessage": "This will permanently delete this code from Auth. It will not be moved to trash.",
   "rawCodes": "Raw codes",
   "rawCodeData": "Raw code data",
   "appLock": "App lock",

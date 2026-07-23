@@ -32,7 +32,8 @@ class CaptionedTextWidgetV2 extends StatelessWidget {
     final enteColorScheme = getEnteColorScheme(context);
     final enteTextTheme = getEnteTextTheme(context);
 
-    final titleStyle = textStyle ??
+    final titleStyle =
+        textStyle ??
         (makeTextBold
             ? enteTextTheme.bodyBold.copyWith(color: textColor)
             : enteTextTheme.body.copyWith(color: textColor));
@@ -67,7 +68,8 @@ class CaptionedTextWidgetV2 extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       subTitle!,
-                      style: subTitleTextStyle ??
+                      style:
+                          subTitleTextStyle ??
                           enteTextTheme.mini.copyWith(
                             color: subTitleColor ?? enteColorScheme.textMuted,
                           ),
@@ -94,7 +96,8 @@ class CaptionedTextWidgetV2 extends StatelessWidget {
                                   TextSpan(
                                     text: ' \u2022 $subTitle',
                                     style: enteTextTheme.small.copyWith(
-                                      color: subTitleColor ??
+                                      color:
+                                          subTitleColor ??
                                           enteColorScheme.textMuted,
                                     ),
                                   ),

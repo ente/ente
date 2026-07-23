@@ -97,9 +97,7 @@ List<Code> parseProtonExport(Map<String, dynamic> decodedJson) {
 
       final note = entryMap['note'] as String?;
       if (note != null && note.isNotEmpty) {
-        code = code.copyWith(
-          display: code.display.copyWith(note: note),
-        );
+        code = code.copyWith(display: code.display.copyWith(note: note));
       }
 
       parsedCodes.add(_serializeImportedCode(code));

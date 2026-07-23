@@ -90,14 +90,10 @@ class TrashService {
     try {
       final response = await _enteDio.get(
         "/trash/v2/diff",
-        queryParameters: {
-          "sinceTime": sinceTime,
-        },
+        queryParameters: {"sinceTime": sinceTime},
       );
-      final List<Collection> allCollections =
-          await CollectionService.instance.getCollections(
-        includeDeleted: true,
-      );
+      final List<Collection> allCollections = await CollectionService.instance
+          .getCollections(includeDeleted: true);
       final Map<int, Collection> collectionMap = {
         for (final collection in allCollections) collection.id: collection,
       };
@@ -135,8 +131,9 @@ class TrashService {
         if (collection == null) {
           continue;
         }
-        final collectionKey =
-            CryptoHelper.instance.getCollectionKey(collection);
+        final collectionKey = CryptoHelper.instance.getCollectionKey(
+          collection,
+        );
         final key = CryptoHelper.instance.getFileKey(
           trash.encryptedKey!,
           trash.keyDecryptionNonce!,
@@ -147,8 +144,9 @@ class TrashService {
           key,
           CryptoUtil.base642bin(trash.metadataDecryptionHeader!),
         );
-        final Map<String, dynamic> metadata =
-            jsonDecode(utf8.decode(encodedMetadata));
+        final Map<String, dynamic> metadata = jsonDecode(
+          utf8.decode(encodedMetadata),
+        );
         trash.applyMetadata(metadata);
         if (item["file"]['magicMetadata'] != null) {
           final utfEncodedMmd = await CryptoUtil.decryptData(
@@ -167,8 +165,9 @@ class TrashService {
           );
           trash.pubMmdEncodedJson = utf8.decode(utfEncodedMmd);
           trash.pubMmdVersion = item["file"]['pubMagicMetadata']['version'];
-          trash.pubMagicMetadata =
-              PubMagicMetadata.fromEncodedJson(trash.pubMmdEncodedJson!);
+          trash.pubMagicMetadata = PubMagicMetadata.fromEncodedJson(
+            trash.pubMmdEncodedJson!,
+          );
         }
         if (item['isRestored']) {
           restoredFiles.add(trash);
@@ -179,10 +178,7 @@ class TrashService {
 
       final endTime = DateTime.now();
       _logger.info(
-        "time for parsing ${diff.length}: ${Duration(
-          microseconds: (endTime.microsecondsSinceEpoch -
-              startTime.microsecondsSinceEpoch),
-        ).inMilliseconds}",
+        "time for parsing ${diff.length}: ${Duration(microseconds: (endTime.microsecondsSinceEpoch - startTime.microsecondsSinceEpoch)).inMilliseconds}",
       );
       return TrashDiff(
         trashedFiles,
@@ -204,10 +200,7 @@ class TrashService {
     for (final fileID in uniqueFileIds) {
       params["fileIDs"].add(fileID);
     }
-    await _enteDio.post(
-      "/trash/delete",
-      data: params,
-    );
+    await _enteDio.post("/trash/delete", data: params);
     await _db.deleteTrashFiles(uniqueFileIds);
     await _db.deleteFilesByUploadedFileIDs(uniqueFileIds);
     // no need to await on syncing trash from remote
@@ -218,13 +211,15 @@ class TrashService {
     final params = <String, dynamic>{};
     params["lastUpdatedAt"] = _getSyncTime();
     final trashFiles = await _db.getTrashFiles();
-    final fileIDs =
-        trashFiles.map((trashFile) => trashFile.uploadedFileID!).toList();
+    if (trashFiles.isEmpty) {
+      _logger.info("Skipping empty trash because local trash is empty");
+      return;
+    }
+    final fileIDs = trashFiles
+        .map((trashFile) => trashFile.uploadedFileID!)
+        .toList();
 
-    await _enteDio.post(
-      "/trash/empty",
-      data: params,
-    );
+    await _enteDio.post("/trash/empty", data: params);
 
     await _db.clearTrashFilesTable();
     await _db.deleteFilesByUploadedFileIDs(fileIDs);
@@ -235,15 +230,17 @@ class TrashService {
   Future<void> restore(List<EnteFile> files, Collection toCollection) async {
     final params = <String, dynamic>{};
     params["collectionID"] = toCollection.id;
-    final toCollectionKey =
-        CryptoHelper.instance.getCollectionKey(toCollection);
+    final toCollectionKey = CryptoHelper.instance.getCollectionKey(
+      toCollection,
+    );
     params["files"] = [];
     for (final file in files) {
       final fileKey = await CollectionService.instance.getFileKey(file);
       file.collectionID = toCollection.id;
       final encryptedKeyData = CryptoUtil.encryptSync(fileKey, toCollectionKey);
-      final encryptedKey =
-          CryptoUtil.bin2base64(encryptedKeyData.encryptedData!);
+      final encryptedKey = CryptoUtil.bin2base64(
+        encryptedKeyData.encryptedData!,
+      );
       final keyDecryptionNonce = CryptoUtil.bin2base64(encryptedKeyData.nonce!);
       params["files"].add(
         CollectionFileItem(
@@ -253,10 +250,7 @@ class TrashService {
         ).toMap(),
       );
     }
-    await _enteDio.post(
-      "/collections/restore-files",
-      data: params,
-    );
+    await _enteDio.post("/collections/restore-files", data: params);
     await _db.deleteTrashFiles(files.map((e) => e.uploadedFileID!).toList());
     // Refresh collections so restored files are immediately available in UI
     await CollectionService.instance.sync();

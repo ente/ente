@@ -25,8 +25,6 @@ import type {
     UploadItemWithCollection,
 } from "@/public-album/upload/services/upload-manager";
 import { uploadManager } from "@/public-album/upload/services/upload-manager";
-import { hasReliableCanvasReadback } from "@/public-album/upload/utils/canvas-integrity";
-import { useFileInput } from "@/shared/hooks/useFileInput";
 import { Album02Icon, Folder01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -51,13 +49,15 @@ import { useBaseContext } from "ente-base/context";
 import { basename } from "ente-base/file-name";
 import type { PublicAlbumsCredentials } from "ente-base/http";
 import log from "ente-base/log";
-import { type Collection } from "ente-media/collection";
+import { CanvasReadbackBlockedDialog } from "ente-gallery/components/upload/CanvasReadbackBlockedDialog";
+import { UploadProgress } from "ente-gallery/components/UploadProgress";
+import { useFileInput } from "ente-gallery/components/utils/use-file-input";
+import { hasReliableCanvasReadback } from "ente-gallery/utils/upload/canvas-integrity";
+import type { Collection } from "ente-media/collection";
 import type { EnteFile } from "ente-media/file";
 import { firstNonEmpty } from "ente-utils/array";
 import { t } from "i18next";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { CanvasReadbackBlockedDialog } from "./CanvasReadbackBlockedDialog";
-import { UploadProgress } from "./UploadProgress";
 
 interface RemotePullOpts {
     /**
@@ -126,6 +126,7 @@ export const Upload: React.FC<UploadProps> = ({
     const [percentComplete, setPercentComplete] = useState(0);
     const [hasLivePhotos, setHasLivePhotos] = useState(false);
     const [uploaderName, setUploaderName] = useState("");
+    const [pendingUploadFileCount, setPendingUploadFileCount] = useState(0);
     const {
         show: showUploaderNameInput,
         props: uploaderNameInputVisibilityProps,
@@ -262,6 +263,7 @@ export const Upload: React.FC<UploadProps> = ({
             ([, path]) => !basename(path).startsWith("."),
         );
         uploadItemsAndPaths.current = prunedItemAndPaths;
+        setPendingUploadFileCount(prunedItemAndPaths.length);
         selectedUploadType.current = undefined;
         props.setLoading(false);
 
@@ -484,7 +486,7 @@ export const Upload: React.FC<UploadProps> = ({
                 open={uploaderNameInputVisibilityProps.open}
                 onClose={handleUploaderNameInputClose}
                 uploaderName={uploaderName}
-                uploadFileCount={uploadItemsAndPaths.current.length}
+                uploadFileCount={pendingUploadFileCount}
                 onSubmit={handlePublicUpload}
             />
         </>

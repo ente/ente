@@ -1,19 +1,11 @@
-import 'dart:io';
-
-import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
-import 'package:path/path.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:photos/core/constants.dart';
-import 'package:photos/core/errors.dart';
 import 'package:photos/models/file/file_type.dart';
 import 'package:photos/models/location/location.dart';
 import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/module/download/file_url.dart";
-import 'package:photos/utils/exif_util.dart';
-import 'package:photos/utils/file_uploader_util.dart';
-import "package:photos/utils/panorama_util.dart";
 
 //Todo: files with no location data have lat and long set to 0.0. This should ideally be null.
 class EnteFile {
@@ -42,24 +34,40 @@ class EnteFile {
   String? metadataDecryptionHeader;
   int? fileSize;
 
-  String? mMdEncodedJson;
+  String? _mMdEncodedJson;
+  String? get mMdEncodedJson => _mMdEncodedJson;
+
+  set mMdEncodedJson(String? value) {
+    if (_mMdEncodedJson == value) return;
+    _mMdEncodedJson = value;
+    _mmd = null;
+  }
+
   int mMdVersion = 0;
   MagicMetadata? _mmd;
 
   MagicMetadata get magicMetadata =>
-      _mmd ?? MagicMetadata.fromEncodedJson(mMdEncodedJson ?? '{}');
+      _mmd ??= MagicMetadata.fromEncodedJson(mMdEncodedJson ?? '{}');
 
-  set magicMetadata(val) => _mmd = val;
+  set magicMetadata(MagicMetadata? val) => _mmd = val;
 
   // public magic metadata is shared if during file/album sharing
-  String? pubMmdEncodedJson;
+  String? _pubMmdEncodedJson;
+  String? get pubMmdEncodedJson => _pubMmdEncodedJson;
+
+  set pubMmdEncodedJson(String? value) {
+    if (_pubMmdEncodedJson == value) return;
+    _pubMmdEncodedJson = value;
+    _pubMmd = null;
+  }
+
   int pubMmdVersion = 0;
   PubMagicMetadata? _pubMmd;
 
   PubMagicMetadata? get pubMagicMetadata =>
-      _pubMmd ?? PubMagicMetadata.fromEncodedJson(pubMmdEncodedJson ?? '{}');
+      _pubMmd ??= PubMagicMetadata.fromEncodedJson(pubMmdEncodedJson ?? '{}');
 
-  set pubMagicMetadata(val) => _pubMmd = val;
+  set pubMagicMetadata(PubMagicMetadata? val) => _pubMmd = val;
 
   // in Version 1, live photo hash is stored as zip's hash.
   // in V2: LivePhoto hash is stored as imgHash:vidHash
@@ -70,94 +78,6 @@ class EnteFile {
   static final _logger = Logger('File');
 
   EnteFile();
-
-  /// Safely extracts microsecondsSinceEpoch from DateTime, throwing InvalidDateTimeError if invalid
-  static int _safeGetMicroseconds(
-    DateTime dateTime,
-    String assetId,
-    String? assetTitle,
-    String label,
-  ) {
-    try {
-      return dateTime.microsecondsSinceEpoch;
-    } on RangeError catch (e) {
-      throw InvalidDateTimeError(
-        assetId: assetId,
-        assetTitle: assetTitle,
-        field: label,
-        originalError: e.message ?? e.toString(),
-      );
-    }
-  }
-
-  static Future<EnteFile> fromAsset(String pathName, AssetEntity asset) async {
-    final EnteFile file = EnteFile();
-    file.localID = asset.id;
-    file.title = asset.title;
-    file.deviceFolder = pathName;
-    file.location = Location(
-      latitude: asset.latitude,
-      longitude: asset.longitude,
-    );
-    file.fileType = fileTypeFromAsset(asset);
-    file.creationTime = parseFileCreationTime(file.title, asset);
-    file.modificationTime = _safeGetMicroseconds(
-      asset.modifiedDateTime,
-      asset.id,
-      asset.title,
-      'modificationTime',
-    );
-    file.fileSubType = asset.subtype;
-    file.metadataVersion = -1;
-    return file;
-  }
-
-  static int parseFileCreationTime(String? fileTitle, AssetEntity asset) {
-    int creationTime = _safeGetMicroseconds(
-      asset.createDateTime,
-      asset.id,
-      asset.title,
-      'createDateTime',
-    );
-    final int modificationTime = _safeGetMicroseconds(
-      asset.modifiedDateTime,
-      asset.id,
-      asset.title,
-      'modificationTime',
-    );
-    if (creationTime >= jan011981Time) {
-      // assuming that fileSystem is returning correct creationTime.
-      // During upload, this might get overridden with exif Creation time
-      // When the assetModifiedTime is less than creationTime, than just use
-      // that as creationTime. This is to handle cases where file might be
-      // copied to the fileSystem from somewhere else See #https://superuser.com/a/1091147
-      if (modificationTime >= jan011981Time &&
-          modificationTime < creationTime) {
-        _logger.info(
-          'LocalID: ${asset.id} modification time is less than creation time. Using modification time as creation time',
-        );
-        creationTime = modificationTime;
-      }
-      return creationTime;
-    } else {
-      if (modificationTime >= jan011981Time) {
-        creationTime = modificationTime;
-      } else {
-        creationTime = DateTime.now().toUtc().microsecondsSinceEpoch;
-      }
-      try {
-        final parsedDateTime = parseDateTimeFromFileNameV2(
-          basenameWithoutExtension(fileTitle ?? ""),
-        );
-        if (parsedDateTime != null) {
-          creationTime = parsedDateTime.microsecondsSinceEpoch;
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-    return creationTime;
-  }
 
   Future<AssetEntity?> get getAsset {
     if (localID == null) {
@@ -194,63 +114,6 @@ class EnteFile {
           '${metadata['imageHash']}$kLivePhotoHashSeparator${metadata['videoHash']}';
     }
     metadataVersion = metadata["version"] ?? 0;
-  }
-
-  Future<Map<String, dynamic>> getMetadataForUpload(
-    MediaUploadData mediaUploadData,
-    ParsedExifDateTime? exifTime,
-  ) async {
-    final asset = await getAsset;
-    // asset can be null for files shared to app
-    if (asset != null) {
-      fileSubType = asset.subtype;
-      if (fileType == FileType.video) {
-        duration = asset.duration;
-      }
-    }
-    bool hasExifTime = false;
-    if (exifTime != null && exifTime.time != null) {
-      hasExifTime = true;
-      creationTime = exifTime.time!.microsecondsSinceEpoch;
-    }
-    if (mediaUploadData.exifData != null) {
-      mediaUploadData.isPanorama = checkPanoramaFromEXIF(
-        null,
-        mediaUploadData.exifData,
-      );
-    }
-    if (mediaUploadData.isPanorama != true &&
-        fileType == FileType.image &&
-        mediaUploadData.sourceFile != null) {
-      try {
-        final xmpData = await getXmp(mediaUploadData.sourceFile!);
-        mediaUploadData.isPanorama = checkPanoramaFromXMP(xmpData);
-      } catch (_) {}
-      mediaUploadData.isPanorama ??= false;
-    }
-
-    // Try to get the timestamp from fileName. In case of iOS, file names are
-    // generic IMG_XXXX, so only parse it on Android devices
-    if (!hasExifTime && Platform.isAndroid && title != null) {
-      final timeFromFileName = parseDateTimeFromFileNameV2(title!);
-      if (timeFromFileName != null) {
-        // only use timeFromFileName if the existing creationTime and
-        // timeFromFilename belongs to different date.
-        // This is done because many times the fileTimeStamp will only give us
-        // the date, not time value but the photo_manager's creation time will
-        // contain the time.
-        final bool useFileTimeStamp = creationTime == null ||
-            !areFromSameDay(
-              creationTime!,
-              timeFromFileName.microsecondsSinceEpoch,
-            );
-        if (useFileTimeStamp) {
-          creationTime = timeFromFileName.microsecondsSinceEpoch;
-        }
-      }
-    }
-    hash = mediaUploadData.hashData?.fileHash;
-    return metadata;
   }
 
   Map<String, dynamic> get metadata {
@@ -312,10 +175,7 @@ class EnteFile {
     return height != 0 && width != 0;
   }
 
-  // returns true if the file isn't available in the user's gallery
-  bool get isRemoteFile {
-    return localID == null && uploadedFileID != null;
-  }
+  bool get isRemoteOnlyFile => localID == null && uploadedFileID != null;
 
   bool get isUploaded {
     return uploadedFileID != null;
@@ -351,6 +211,16 @@ class EnteFile {
     fileDecryptionHeader = uploadedFile.fileDecryptionHeader;
     thumbnailDecryptionHeader = uploadedFile.thumbnailDecryptionHeader;
     metadataDecryptionHeader = uploadedFile.metadataDecryptionHeader;
+    if (uploadedFile.metadataVersion != null) {
+      metadataVersion = uploadedFile.metadataVersion;
+    }
+    if (uploadedFile.fileSize != null) {
+      fileSize = uploadedFile.fileSize;
+    }
+    if (uploadedFile.pubMmdEncodedJson != null) {
+      pubMmdEncodedJson = uploadedFile.pubMmdEncodedJson;
+      pubMmdVersion = uploadedFile.pubMmdVersion;
+    }
   }
 
   @override

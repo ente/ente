@@ -3,7 +3,7 @@ package filedata
 import (
 	"fmt"
 
-	"github.com/ente-io/museum/ente"
+	"github.com/ente/museum/ente"
 )
 
 /*

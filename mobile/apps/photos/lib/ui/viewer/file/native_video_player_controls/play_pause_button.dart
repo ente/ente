@@ -55,10 +55,7 @@ class _PlayPauseButtonState extends State<PlayPauseButton> {
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.3),
           shape: BoxShape.circle,
-          border: Border.all(
-            color: strokeFaintDark,
-            width: 1,
-          ),
+          border: Border.all(color: strokeFaintDark, width: 1),
         ),
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 250),

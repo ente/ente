@@ -1,19 +1,15 @@
 import 'dart:async';
 
 import 'package:email_validator/email_validator.dart';
+import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
 import 'package:password_strength/password_strength.dart';
 import 'package:photos/core/configuration.dart';
 import "package:photos/generated/l10n.dart";
+import "package:photos/service_locator.dart";
 import 'package:photos/services/account/user_service.dart';
-import "package:photos/theme/colors.dart";
-import "package:photos/theme/ente_theme.dart";
-import "package:photos/theme/text_style.dart";
 import "package:photos/ui/account/login_page.dart";
 import 'package:photos/ui/common/web_page.dart';
-import "package:photos/ui/components/buttons/button_widget_v2.dart";
-import "package:photos/ui/components/models/text_input_type_v2.dart";
-import "package:photos/ui/components/text_input_widget_v2.dart";
 import "package:photos/ui/settings/developer_settings_tap_area.dart";
 import "package:styled_text/styled_text.dart";
 
@@ -48,6 +44,7 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
   bool _emailIsValid = false;
   bool _showEmailValidation = false;
   bool _hasAgreedToTOS = true;
+  bool _hasInstallSource = false;
   bool _passwordsMatch = false;
   bool _passwordIsValid = false;
   bool _showPasswordStrength = false;
@@ -60,6 +57,9 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
   void initState() {
     super.initState();
     _referralSource = widget.referralSource?.trim() ?? '';
+    if (widget.showReferralSourceField) {
+      unawaited(_updateReferralSourceFieldVisibility());
+    }
     final storedEmail = _config.getEmail();
     if (storedEmail != null && storedEmail.isNotEmpty) {
       _email = storedEmail;
@@ -81,19 +81,18 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
     final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: colorScheme.backgroundColour,
+      backgroundColor: colors.backgroundBase,
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: colorScheme.backgroundColour,
+        backgroundColor: colors.backgroundBase,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          color: colorScheme.content,
+          color: colors.iconColor,
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -102,58 +101,44 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
           behavior: HitTestBehavior.translucent,
           child: Text(
             AppLocalizations.of(context).createAccountTitle,
-            style: textTheme.largeBold,
+            style: TextStyles.large.copyWith(color: colors.textBase),
           ),
         ),
         centerTitle: true,
       ),
-      body: _getBody(colorScheme, textTheme),
+      body: _getBody(),
       floatingActionButton: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: ButtonWidgetV2(
+        child: ButtonComponent(
           key: const ValueKey("createAccountButton"),
-          buttonType: ButtonTypeV2.primary,
-          labelText: AppLocalizations.of(context).createAccountTitle,
+          label: AppLocalizations.of(context).createAccountTitle,
           isDisabled: !_isFormValid(),
-          onTap: _isFormValid()
-              ? () async {
-                  _config.setVolatilePassword(_passwordController1.text);
-                  await UserService.instance.setEmail(_email!);
-                  await UserService.instance.setRefSource(_referralSource);
-                  await UserService.instance.sendOtt(
-                    context,
-                    _email!,
-                    isCreateAccountScreen: true,
-                    purpose: "signup",
-                  );
-                  FocusScope.of(context).unfocus();
-                }
-              : null,
+          onTap: _isFormValid() ? _submitCreateAccount : null,
         ),
       ),
-      bottomNavigationBar:
-          isKeyboardOpen ? null : _getLoginPrompt(colorScheme, textTheme),
+      bottomNavigationBar: isKeyboardOpen ? null : _getLoginPrompt(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
-  Widget _getBody(EnteColorScheme colorScheme, EnteTextTheme textTheme) {
+  Widget _getBody() {
     String? passwordMessage;
-    TextInputMessageType passwordMessageType = TextInputMessageType.guide;
+    TextInputComponentMessageType passwordMessageType =
+        TextInputComponentMessageType.helper;
 
     if (_password != null && _password!.isNotEmpty && _showPasswordStrength) {
       if (_passwordStrength > kStrongPasswordStrengthThreshold) {
         passwordMessage = AppLocalizations.of(context).strongPassword;
-        passwordMessageType = TextInputMessageType.success;
+        passwordMessageType = TextInputComponentMessageType.success;
       } else if (_passwordStrength <= kMildPasswordStrengthThreshold) {
         passwordMessage = AppLocalizations.of(context).weakStrength;
-        passwordMessageType = TextInputMessageType.alert;
+        passwordMessageType = TextInputComponentMessageType.alert;
       }
     }
 
     String? confirmPasswordMessage;
-    TextInputMessageType confirmPasswordMessageType =
-        TextInputMessageType.guide;
+    TextInputComponentMessageType confirmPasswordMessageType =
+        TextInputComponentMessageType.helper;
 
     if (_cnfPassword.isNotEmpty &&
         _password != null &&
@@ -161,11 +146,12 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
         _showConfirmPasswordValidation) {
       if (_passwordsMatch) {
         confirmPasswordMessage = AppLocalizations.of(context).passwordsMatch;
-        confirmPasswordMessageType = TextInputMessageType.success;
+        confirmPasswordMessageType = TextInputComponentMessageType.success;
       } else {
-        confirmPasswordMessage =
-            AppLocalizations.of(context).passwordsDontMatch;
-        confirmPasswordMessageType = TextInputMessageType.error;
+        confirmPasswordMessage = AppLocalizations.of(
+          context,
+        ).passwordsDontMatch;
+        confirmPasswordMessageType = TextInputComponentMessageType.error;
       }
     }
 
@@ -179,40 +165,43 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 24),
-                  TextInputWidgetV2(
+                  TextInputComponent(
                     label: AppLocalizations.of(context).email,
                     hintText: AppLocalizations.of(context).email,
-                    textEditingController: _emailController,
+                    controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    autoCorrect: false,
+                    autofillHints: const [AutofillHints.email],
+                    autocorrect: false,
                     isRequired: true,
-                    onChange: _onEmailChanged,
+                    onChanged: _onEmailChanged,
                     message: _showEmailValidation && !_emailIsValid
                         ? AppLocalizations.of(context).invalidEmailAddress
                         : null,
                     messageType: _showEmailValidation && !_emailIsValid
-                        ? TextInputMessageType.alert
-                        : TextInputMessageType.guide,
+                        ? TextInputComponentMessageType.alert
+                        : TextInputComponentMessageType.helper,
                   ),
                   const SizedBox(height: 24),
-                  TextInputWidgetV2(
+                  TextInputComponent(
                     label: AppLocalizations.of(context).password,
                     hintText: AppLocalizations.of(context).password,
-                    textEditingController: _passwordController1,
+                    controller: _passwordController1,
                     isPasswordInput: true,
                     isRequired: true,
-                    autoCorrect: false,
+                    autocorrect: false,
                     autofillHints: const [AutofillHints.newPassword],
                     message: passwordMessage,
                     messageType: passwordMessageType,
-                    onChange: (password) {
+                    onChanged: (password) {
                       if (password != _password) {
                         _passwordStrengthTimer?.cancel();
                         setState(() {
                           _password = password;
-                          _passwordStrength =
-                              estimatePasswordStrength(password);
-                          _passwordIsValid = _passwordStrength >=
+                          _passwordStrength = estimatePasswordStrength(
+                            password,
+                          );
+                          _passwordIsValid =
+                              _passwordStrength >=
                               kMildPasswordStrengthThreshold;
                           _passwordsMatch = _password == _cnfPassword;
                           _showPasswordStrength = false;
@@ -231,18 +220,22 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                     },
                   ),
                   const SizedBox(height: 24),
-                  TextInputWidgetV2(
+                  TextInputComponent(
                     label: AppLocalizations.of(context).confirmPassword,
                     hintText: AppLocalizations.of(context).confirmPassword,
-                    textEditingController: _passwordController2,
+                    controller: _passwordController2,
                     isPasswordInput: true,
                     isRequired: true,
-                    autoCorrect: false,
+                    autocorrect: false,
                     autofillHints: const [],
                     finishAutofillContextOnEditingComplete: true,
+                    shouldUnfocusOnClearOrSubmit: true,
+                    onSubmit: _isFormValid()
+                        ? (_) => _submitCreateAccount()
+                        : null,
                     message: confirmPasswordMessage,
                     messageType: confirmPasswordMessageType,
-                    onChange: (cnfPassword) {
+                    onChanged: (cnfPassword) {
                       _confirmPasswordTimer?.cancel();
                       setState(() {
                         _cnfPassword = cnfPassword;
@@ -263,18 +256,22 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                       );
                     },
                   ),
-                  if (widget.showReferralSourceField) ...[
+                  if (_showReferralSourceField) ...[
                     const SizedBox(height: 24),
-                    TextInputWidgetV2(
+                    TextInputComponent(
                       label: AppLocalizations.of(context).hearUsWhereTitle,
-                      autoCorrect: false,
-                      onChange: (value) {
+                      autocorrect: false,
+                      shouldUnfocusOnClearOrSubmit: true,
+                      onSubmit: _isFormValid()
+                          ? (_) => _submitCreateAccount()
+                          : null,
+                      onChanged: (value) {
                         _referralSource = value.trim();
                       },
                     ),
                   ],
                   const SizedBox(height: 16),
-                  _getTOSAgreement(colorScheme, textTheme),
+                  _getTOSAgreement(),
                 ],
               ),
             ),
@@ -285,9 +282,7 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
               hasScrollBody: false,
               child: Column(
                 children: [
-                  Expanded(
-                    child: DeveloperSettingsTapArea(),
-                  ),
+                  Expanded(child: DeveloperSettingsTapArea()),
                   SizedBox(height: 80),
                 ],
               ),
@@ -298,10 +293,58 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
     );
   }
 
-  Widget _getLoginPrompt(
-    EnteColorScheme colorScheme,
-    EnteTextTheme textTheme,
-  ) {
+  bool get _showReferralSourceField =>
+      widget.showReferralSourceField && !_hasInstallSource;
+
+  String get _routeSource => widget.referralSource?.trim() ?? '';
+
+  Future<void> _submitCreateAccount() async {
+    if (!_isFormValid()) {
+      return;
+    }
+    _config.setVolatilePassword(_passwordController1.text);
+    await UserService.instance.setEmail(_email!);
+    await UserService.instance.setRefSource(
+      await _referralSourceForSubmission(),
+    );
+    if (!mounted) return;
+    await UserService.instance.sendOtt(
+      context,
+      _email!,
+      isCreateAccountScreen: true,
+      purpose: "signup",
+    );
+    if (!mounted) return;
+    FocusScope.of(context).unfocus();
+  }
+
+  Future<void> _updateReferralSourceFieldVisibility() async {
+    final hasInstallSource = await installSourceService.hasInstallSource();
+    _setHasInstallSource(hasInstallSource);
+  }
+
+  Future<String> _referralSourceForSubmission() async {
+    if (!widget.showReferralSourceField) {
+      return _routeSource;
+    }
+    if (_hasInstallSource) {
+      return _routeSource;
+    }
+    final hasInstallSource = await installSourceService.hasInstallSource();
+    _setHasInstallSource(hasInstallSource);
+    return hasInstallSource ? _routeSource : _referralSource;
+  }
+
+  void _setHasInstallSource(bool hasInstallSource) {
+    if (mounted && hasInstallSource != _hasInstallSource) {
+      setState(() {
+        _hasInstallSource = hasInstallSource;
+      });
+    }
+  }
+
+  Widget _getLoginPrompt() {
+    final colors = context.componentColors;
     return SafeArea(
       top: false,
       child: Padding(
@@ -311,12 +354,13 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
           children: [
             Text(
               AppLocalizations.of(context).alreadyHaveAnAccount,
-              style: textTheme.bodyMuted,
+              style: TextStyles.body.copyWith(color: colors.textLight),
             ),
-            ButtonWidgetV2(
-              buttonType: ButtonTypeV2.link,
-              labelText: AppLocalizations.of(context).logInLabel,
-              buttonSize: ButtonSizeV2.small,
+            const SizedBox(width: 4),
+            ButtonComponent(
+              label: AppLocalizations.of(context).logInLabel,
+              variant: ButtonComponentVariant.link,
+              size: ButtonComponentSize.small,
               shouldSurfaceExecutionStates: false,
               onTap: _goToLoginPage,
             ),
@@ -349,10 +393,8 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
     }
   }
 
-  Widget _getTOSAgreement(
-    EnteColorScheme colorScheme,
-    EnteTextTheme textTheme,
-  ) {
+  Widget _getTOSAgreement() {
+    final colors = context.componentColors;
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -365,7 +407,7 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
           Checkbox(
             fillColor: WidgetStateProperty.resolveWith((states) {
               if (states.contains(WidgetState.selected)) {
-                return colorScheme.greenBase;
+                return colors.primary;
               }
               return null;
             }),
@@ -385,40 +427,40 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
           Expanded(
             child: StyledText(
               text: AppLocalizations.of(context).signUpTerms,
-              style: textTheme.small.copyWith(color: colorScheme.textMuted),
+              style: TextStyles.mini.copyWith(color: colors.textLight),
               tags: {
                 'u-terms': StyledTextActionTag(
                   (String? text, Map<String?, String?> attrs) =>
                       Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (BuildContext context) {
-                        return WebPage(
-                          AppLocalizations.of(context).termsOfServicesTitle,
-                          "https://ente.com/terms",
-                        );
-                      },
-                    ),
-                  ),
+                        MaterialPageRoute(
+                          builder: (BuildContext context) {
+                            return WebPage(
+                              AppLocalizations.of(context).termsOfServicesTitle,
+                              "https://ente.com/terms",
+                            );
+                          },
+                        ),
+                      ),
                   style: TextStyle(
                     decoration: TextDecoration.underline,
-                    color: colorScheme.textMuted,
+                    color: colors.textLight,
                   ),
                 ),
                 'u-policy': StyledTextActionTag(
                   (String? text, Map<String?, String?> attrs) =>
                       Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (BuildContext context) {
-                        return WebPage(
-                          AppLocalizations.of(context).privacyPolicyTitle,
-                          "https://ente.com/privacy",
-                        );
-                      },
-                    ),
-                  ),
+                        MaterialPageRoute(
+                          builder: (BuildContext context) {
+                            return WebPage(
+                              AppLocalizations.of(context).privacyPolicyTitle,
+                              "https://ente.com/privacy",
+                            );
+                          },
+                        ),
+                      ),
                   style: TextStyle(
                     decoration: TextDecoration.underline,
-                    color: colorScheme.textMuted,
+                    color: colors.textLight,
                   ),
                 ),
               },
@@ -438,10 +480,8 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
 
   Future<void> _goToLoginPage() async {
     FocusScope.of(context).unfocus();
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const LoginPage(),
-      ),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const LoginPage()));
   }
 }

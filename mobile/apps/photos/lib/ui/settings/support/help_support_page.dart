@@ -39,19 +39,6 @@ class HelpSupportPage extends StatelessWidget {
       children: [
         _sectionTitle(context, l10n.getInTouch),
         SettingsItem(
-          title: l10n.reportAnIssue,
-          icon: HugeIcons.strokeRoundedBug01,
-          showOnlyLoadingState: true,
-          onTap: () async {
-            await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const ReportIssuePage(),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 8),
-        SettingsItem(
           title: l10n.askAQuestion,
           icon: HugeIcons.strokeRoundedHelpCircle,
           showOnlyLoadingState: true,
@@ -71,10 +58,21 @@ class HelpSupportPage extends StatelessWidget {
             );
           },
         ),
+        const SizedBox(height: 8),
+        SettingsItem(
+          title: l10n.reportAnIssue,
+          icon: HugeIcons.strokeRoundedBug01,
+          showOnlyLoadingState: true,
+          onTap: () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const ReportIssuePage()),
+            );
+          },
+        ),
         if (flagService.internalUser || kDebugMode) ...[
           const SizedBox(height: 8),
           SettingsItem(
-            title: l10n.viewLogs,
+            title: "(i) ${l10n.viewLogs}",
             icon: HugeIcons.strokeRoundedNote01,
             showOnlyLoadingState: true,
             onTap: () async {
@@ -145,8 +143,8 @@ class HelpSupportPage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(left: Spacing.sm, top: 6, bottom: 6),
       child: Text(
-        title.toUpperCase(),
-        style: TextStyles.mini.copyWith(color: colors.textLight),
+        title,
+        style: TextStyles.large.copyWith(color: colors.textBase),
       ),
     );
   }
@@ -187,22 +185,18 @@ class HelpSupportPage extends StatelessWidget {
   Future<void> _viewLogs(BuildContext context) async {
     final logFile = SuperLogging.logFile;
     if (logFile == null) {
-      showShortToast(
-        context,
-        AppLocalizations.of(context).somethingWentWrong,
-      );
+      showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
       return;
     }
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => LogFileViewer(logFile),
-      ),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => LogFileViewer(logFile)));
   }
 
   Future<void> _exportLogs(BuildContext context) async {
     try {
       final zipFilePath = await getZippedLogsFile(context);
+      if (!context.mounted) return;
       await exportLogs(context, zipFilePath);
     } catch (e, s) {
       _logger.severe("Failed to export logs", e, s);
@@ -220,10 +214,7 @@ class _SupportLink extends StatelessWidget {
   final String label;
   final Future<void> Function() onTap;
 
-  const _SupportLink({
-    required this.label,
-    required this.onTap,
-  });
+  const _SupportLink({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {

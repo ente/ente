@@ -9,10 +9,7 @@ import 'package:path/path.dart' as p;
 import '../../../test_utils/configuration_test_util.dart';
 
 void main() {
-  EnteFile lockerFile(
-    int uploadedFileID, {
-    String title = 'document.pdf',
-  }) {
+  EnteFile lockerFile(int uploadedFileID, {String title = 'document.pdf'}) {
     return EnteFile()
       ..uploadedFileID = uploadedFileID
       ..title = title;
@@ -123,97 +120,100 @@ void main() {
       expect(await unrelatedCacheFile.exists(), isTrue);
     });
 
-    test('can remove offline encrypted blobs while preserving working copies',
-        () async {
-      final file = lockerFile(123, title: 'document.pdf');
-      final offline = await writeFile(
-        await getOfflineEncryptedFilePath(file),
-        'offline 123',
-      );
-      final cachedEncrypted = await writeFile(
-        getCachedEncryptedFilePath(file),
-        'cached encrypted 123',
-      );
-      final cachedDecrypted = await writeFile(
-        getCachedDecryptedFilePath(file),
-        'cached decrypted 123',
-      );
-      final handoff = await createHandoff(123, '100');
+    test(
+      'can remove offline encrypted blobs while preserving working copies',
+      () async {
+        final file = lockerFile(123, title: 'document.pdf');
+        final offline = await writeFile(
+          await getOfflineEncryptedFilePath(file),
+          'offline 123',
+        );
+        final cachedEncrypted = await writeFile(
+          getCachedEncryptedFilePath(file),
+          'cached encrypted 123',
+        );
+        final cachedDecrypted = await writeFile(
+          getCachedDecryptedFilePath(file),
+          'cached decrypted 123',
+        );
+        final handoff = await createHandoff(123, '100');
 
-      await removeOfflineFileCopiesFromDisk(
-        [123],
-        removeWorkingCopies: false,
-      );
+        await removeOfflineFileCopiesFromDisk([
+          123,
+        ], removeWorkingCopies: false);
 
-      expect(await offline.exists(), isFalse);
-      expect(await cachedEncrypted.exists(), isTrue);
-      expect(await cachedDecrypted.exists(), isTrue);
-      expect(await handoff.exists(), isTrue);
-    });
+        expect(await offline.exists(), isFalse);
+        expect(await cachedEncrypted.exists(), isTrue);
+        expect(await cachedDecrypted.exists(), isTrue);
+        expect(await handoff.exists(), isTrue);
+      },
+    );
 
-    test('clears owned offline cache while preserving unrelated cache files',
-        () async {
-      final firstFile = lockerFile(123, title: 'first.pdf');
-      final secondFile = lockerFile(456, title: 'second.png');
-      final firstOffline = await writeFile(
-        await getOfflineEncryptedFilePath(firstFile),
-        'offline 123',
-      );
-      final secondOffline = await writeFile(
-        await getOfflineEncryptedFilePath(secondFile),
-        'offline 456',
-      );
-      final malformedOffline = await writeFile(
-        p.join(firstOffline.parent.path, 'not-a-file-id.encrypted'),
-        'malformed offline',
-      );
-      final firstCachedEncrypted = await writeFile(
-        getCachedEncryptedFilePath(firstFile),
-        'cached encrypted 123',
-      );
-      final firstCachedDecrypted = await writeFile(
-        getCachedDecryptedFilePath(firstFile),
-        'cached decrypted 123',
-      );
-      final secondCachedEncrypted = await writeFile(
-        getCachedEncryptedFilePath(secondFile),
-        'cached encrypted 456',
-      );
-      final secondCachedDecrypted = await writeFile(
-        getCachedDecryptedFilePath(secondFile),
-        'cached decrypted 456',
-      );
-      final firstHandoff = await createHandoff(123, '100');
-      final secondHandoff = await createHandoff(456, '100');
-      final nonIdHandoff = Directory(
-        p.join(getOpenHandoffDirectoryPath(), 'not-an-id', '100'),
-      );
-      await nonIdHandoff.create(recursive: true);
-      await writeFile(p.join(nonIdHandoff.path, 'document.pdf'), 'non id');
-      final rootHandoffFile = await writeFile(
-        p.join(getOpenHandoffDirectoryPath(), 'root-handoff.tmp'),
-        'root handoff',
-      );
-      final unrelatedCacheFile = await writeFile(
-        p.join(Configuration.instance.getCacheDirectory(), 'keep.me'),
-        'unrelated',
-      );
+    test(
+      'clears owned offline cache while preserving unrelated cache files',
+      () async {
+        final firstFile = lockerFile(123, title: 'first.pdf');
+        final secondFile = lockerFile(456, title: 'second.png');
+        final firstOffline = await writeFile(
+          await getOfflineEncryptedFilePath(firstFile),
+          'offline 123',
+        );
+        final secondOffline = await writeFile(
+          await getOfflineEncryptedFilePath(secondFile),
+          'offline 456',
+        );
+        final malformedOffline = await writeFile(
+          p.join(firstOffline.parent.path, 'not-a-file-id.encrypted'),
+          'malformed offline',
+        );
+        final firstCachedEncrypted = await writeFile(
+          getCachedEncryptedFilePath(firstFile),
+          'cached encrypted 123',
+        );
+        final firstCachedDecrypted = await writeFile(
+          getCachedDecryptedFilePath(firstFile),
+          'cached decrypted 123',
+        );
+        final secondCachedEncrypted = await writeFile(
+          getCachedEncryptedFilePath(secondFile),
+          'cached encrypted 456',
+        );
+        final secondCachedDecrypted = await writeFile(
+          getCachedDecryptedFilePath(secondFile),
+          'cached decrypted 456',
+        );
+        final firstHandoff = await createHandoff(123, '100');
+        final secondHandoff = await createHandoff(456, '100');
+        final nonIdHandoff = Directory(
+          p.join(getOpenHandoffDirectoryPath(), 'not-an-id', '100'),
+        );
+        await nonIdHandoff.create(recursive: true);
+        await writeFile(p.join(nonIdHandoff.path, 'document.pdf'), 'non id');
+        final rootHandoffFile = await writeFile(
+          p.join(getOpenHandoffDirectoryPath(), 'root-handoff.tmp'),
+          'root handoff',
+        );
+        final unrelatedCacheFile = await writeFile(
+          p.join(Configuration.instance.getCacheDirectory(), 'keep.me'),
+          'unrelated',
+        );
 
-      await clearAllOfflineFileCopies();
+        await clearAllOfflineFileCopies();
 
-      expect(await firstOffline.exists(), isFalse);
-      expect(await secondOffline.exists(), isFalse);
-      expect(await malformedOffline.exists(), isFalse);
-      expect(await firstCachedEncrypted.exists(), isFalse);
-      expect(await firstCachedDecrypted.exists(), isFalse);
-      expect(await secondCachedEncrypted.exists(), isFalse);
-      expect(await secondCachedDecrypted.exists(), isFalse);
-      expect(await firstHandoff.exists(), isFalse);
-      expect(await secondHandoff.exists(), isFalse);
-      expect(await nonIdHandoff.exists(), isFalse);
-      expect(await rootHandoffFile.exists(), isFalse);
-      expect(await unrelatedCacheFile.exists(), isTrue);
-    });
+        expect(await firstOffline.exists(), isFalse);
+        expect(await secondOffline.exists(), isFalse);
+        expect(await malformedOffline.exists(), isFalse);
+        expect(await firstCachedEncrypted.exists(), isFalse);
+        expect(await firstCachedDecrypted.exists(), isFalse);
+        expect(await secondCachedEncrypted.exists(), isFalse);
+        expect(await secondCachedDecrypted.exists(), isFalse);
+        expect(await firstHandoff.exists(), isFalse);
+        expect(await secondHandoff.exists(), isFalse);
+        expect(await nonIdHandoff.exists(), isFalse);
+        expect(await rootHandoffFile.exists(), isFalse);
+        expect(await unrelatedCacheFile.exists(), isTrue);
+      },
+    );
 
     test('stale cache cleanup is age gated and ID pattern scoped', () async {
       final oldFile = lockerFile(123, title: 'old.pdf');
@@ -286,8 +286,9 @@ void main() {
       await oldHandoff.create(recursive: true);
       await staleOnlyHandoff.create(recursive: true);
       await File(p.join(oldHandoff.path, 'document.pdf')).writeAsString('old');
-      await File(p.join(staleOnlyHandoff.path, 'document.pdf'))
-          .writeAsString('stale');
+      await File(
+        p.join(staleOnlyHandoff.path, 'document.pdf'),
+      ).writeAsString('stale');
       final staleRootHandoffFile = await writeFile(
         p.join(cacheDirectory, 'open_handoff', 'stale-root.tmp'),
         'stale root',
@@ -296,8 +297,9 @@ void main() {
 
       await Future<void>.delayed(const Duration(seconds: 2));
       await freshHandoff.create(recursive: true);
-      await File(p.join(freshHandoff.path, 'document.pdf'))
-          .writeAsString('fresh');
+      await File(
+        p.join(freshHandoff.path, 'document.pdf'),
+      ).writeAsString('fresh');
       final freshRootHandoffFile = await writeFile(
         p.join(cacheDirectory, 'open_handoff', 'fresh-root.tmp'),
         'fresh root',

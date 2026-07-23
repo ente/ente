@@ -1,6 +1,7 @@
+import { CollectionMapDialog } from "@/components/Collections/CollectionMapDialog";
+import { uploadManager } from "@/services/upload-manager";
 import { IconButton, Tooltip, styled } from "@mui/material";
 import { useColorScheme, useTheme } from "@mui/material/styles";
-import { CollectionMapDialog } from "components/Collections/CollectionMapDialog";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
 import { isSameDay } from "ente-base/date";
@@ -15,15 +16,16 @@ import { downloadAndSaveFiles } from "ente-gallery/services/save";
 import type { Collection } from "ente-media/collection";
 import type { EnteFile } from "ente-media/file";
 import { fileCreationPhotoDate, fileFileName } from "ente-media/file-metadata";
+import type { RemotePullOpts } from "ente-new/photos/components/gallery";
 import { useSettingsSnapshot } from "ente-new/photos/components/utils/use-snapshot";
 import { moveToTrash } from "ente-new/photos/services/collection";
 import type { CollectionSummary } from "ente-new/photos/services/collection-summary";
 import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
 import { updateMapEnabled } from "ente-new/photos/services/settings";
+import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { t } from "i18next";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
-import { uploadManager } from "services/upload-manager";
 import {
     FileList,
     type FileListAnnotatedFile,
@@ -35,6 +37,18 @@ export type FileListWithViewerProps = {
      * The list of files to show.
      */
     files: EnteFile[];
+    /**
+     * Additional source data for deriving Map View files. Defaults to using
+     * {@link files} directly.
+     */
+    mapFileSource?: {
+        collectionFiles: EnteFile[];
+        favoriteFileIDs: Set<number>;
+        hiddenFileIDs: Set<number>;
+        archivedFileIDs: Set<number>;
+        tempDeletedFileIDs: Set<number>;
+        tempHiddenFileIDs: Set<number>;
+    };
     enableDownload?: boolean;
     enableImageEditing?: boolean;
     /**
@@ -53,7 +67,7 @@ export type FileListWithViewerProps = {
      * Called when an action in the file viewer requires us to perform a full
      * pull from remote.
      */
-    onRemotePull: () => Promise<void>;
+    onRemotePull: (opts?: RemotePullOpts) => Promise<void>;
     activeCollectionSummary?: CollectionSummary;
     activeCollection?: Collection;
     /**
@@ -118,6 +132,8 @@ export type FileListWithViewerProps = {
         | "isInIncomingSharedCollection"
         | "isInHiddenSection"
         | "fileNormalCollectionIDs"
+        | "fileCollectionIDs"
+        | "hiddenCollectionIDs"
         | "collectionSummaries"
         | "collectionNameByID"
         | "pendingFavoriteUpdates"
@@ -164,6 +180,8 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     isInIncomingSharedCollection,
     isInHiddenSection,
     fileNormalCollectionIDs,
+    fileCollectionIDs,
+    hiddenCollectionIDs,
     collectionSummaries,
     collectionNameByID,
     pendingFavoriteUpdates,
@@ -186,6 +204,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     pendingFileSidebar,
     pendingHighlightCommentID,
     onPendingNavigationConsumed,
+    mapFileSource,
 }) => {
     const [openFileViewer, setOpenFileViewer] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -198,6 +217,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     const { show: showMapDialog, props: mapDialogVisibilityProps } =
         useModalVisibility();
     const { onGenericError } = useBaseContext();
+    const { showNotification } = usePhotosAppContext();
     const { mapEnabled } = useSettingsSnapshot();
     const { mode: colorSchemeMode, systemMode } = useColorScheme();
     const theme = useTheme();
@@ -252,7 +272,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     );
 
     const handleTriggerRemotePull = useCallback(
-        () => void onRemotePull(),
+        () => void onRemotePull({ source: "file-viewer-action" }),
         [onRemotePull],
     );
 
@@ -276,11 +296,19 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
             collection: Collection,
             enteFile: EnteFile,
         ) => {
+            if (uploadManager.isUploadInProgress()) {
+                showNotification({
+                    color: "critical",
+                    title: t("wait_for_active_upload_to_finish"),
+                });
+                return false;
+            }
             uploadManager.prepareForNewUpload();
             uploadManager.showUploadProgressDialog();
             void uploadManager.uploadFile(editedFile, collection, enteFile);
+            return true;
         };
-    }, [enableImageEditing]);
+    }, [enableImageEditing, showNotification]);
 
     const shouldShowMapButton =
         modePlus !== "search" &&
@@ -378,6 +406,8 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
                     isInIncomingSharedCollection,
                     favoriteFileIDs,
                     fileNormalCollectionIDs,
+                    fileCollectionIDs,
+                    hiddenCollectionIDs,
                     collectionSummaries,
                     collectionNameByID,
                     pendingFavoriteUpdates,
@@ -404,6 +434,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
                     collectionSummary={activeCollectionSummary}
                     activeCollection={activeCollection}
                     files={files}
+                    mapFileSource={mapFileSource}
                     onRemotePull={onRemotePull}
                     {...{
                         onAddSaveGroup,
@@ -413,6 +444,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
                         onVisualFeedback,
                         fileNormalCollectionIDs,
                         collectionNameByID,
+                        emailByUserID,
                         onSelectCollection,
                         onSelectPerson,
                     }}

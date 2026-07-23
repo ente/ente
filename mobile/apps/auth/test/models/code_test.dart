@@ -57,7 +57,7 @@ void main() {
     final secondDataToStore = restoredCode.toOTPAuthUrlFormat();
     expect(dataToStore, secondDataToStore);
   });
-//
+  //
 
   test("parseWithFunnyAccountName", () {
     final code = Code.fromOTPAuthUrl(
@@ -73,8 +73,9 @@ void main() {
         'otpauth://totp/%E6%A9%A1%E7%9A%AE%E9%B8%AD?secret=2CWDCK4EOIN5DJDRMYUMYBBO4MKSR5AX&issuer=ente.io';
     final code = Code.fromOTPAuthUrl(rubberDuckQr);
     expect(code.account, '橡皮鸭');
-    final String updatedRawCode =
-        code.copyWith(account: '伍迪', issuer: '鸭子').rawData;
+    final String updatedRawCode = code
+        .copyWith(account: '伍迪', issuer: '鸭子')
+        .rawData;
     final updateCode = Code.fromOTPAuthUrl(updatedRawCode);
     expect(updateCode.account, '伍迪', reason: 'updated accountMismatch');
     expect(updateCode.issuer, '鸭子', reason: 'updated issuerMismatch');

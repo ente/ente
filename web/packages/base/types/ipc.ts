@@ -403,7 +403,7 @@ export interface Electron {
      *
      * @returns JPEG data of the converted image.
      */
-    convertToJPEG: (imageData: Uint8Array) => Promise<Uint8Array>;
+    convertToJPEG: (imageData: Uint8Array) => Promise<Uint8Array<ArrayBuffer>>;
 
     /**
      * Generate a JPEG thumbnail for the given image.
@@ -427,7 +427,7 @@ export interface Electron {
         pathOrZipItem: string | ZipItem,
         maxDimension: number,
         maxSize: number,
-    ) => Promise<Uint8Array>;
+    ) => Promise<Uint8Array<ArrayBuffer>>;
 
     /**
      * Execute a FFmpeg {@link command} on the given {@link pathOrZipItem}.
@@ -462,7 +462,7 @@ export interface Electron {
         command: FFmpegCommand,
         pathOrZipItem: string | ZipItem,
         outputFileExtension: string,
-    ) => Promise<Uint8Array>;
+    ) => Promise<Uint8Array<ArrayBuffer>>;
 
     /**
      * Determine the duration (in seconds) of the video  present at
@@ -626,9 +626,18 @@ export interface Electron {
      * whose file name begins with a dot (i.e. "hidden" files) will also be
      * excluded.
      *
+     * Alongside `items`, the result includes `preUploadSkippedFiles`: the
+     * hidden entries excluded above, plus a single entry for the zip itself if
+     * it could not be opened.
+     *
      * To read the contents of the files themselves, see [Note: IPC streams].
      */
-    listZipItems: (zipPath: string) => Promise<ZipItem[]>;
+    listZipItems: (
+        zipPath: string,
+    ) => Promise<{
+        items: ZipItem[];
+        preUploadSkippedFiles: PreUploadSkippedFile[];
+    }>;
 
     /**
      * Return the size in bytes of the file at the given path or of a particular
@@ -879,6 +888,11 @@ export interface FolderWatchSyncedFile {
  */
 export type ZipItem = [zipPath: string, entryName: string];
 
+export interface PreUploadSkippedFile {
+    name: string;
+    type: "hiddenFile" | "failedZip";
+}
+
 /**
  * State about pending and in-progress uploads.
  *
@@ -906,6 +920,15 @@ export interface PendingUploads {
      * {@link ZipItem} (zip path and entry name) that need to be uploaded.
      */
     zipItems: ZipItem[];
+    /**
+     * Files that were skipped because either we could not open them (zip files)
+     * or they are hidden dot files.
+     */
+    preUploadSkippedFiles?: PreUploadSkippedFile[];
+    /** Whether Takeout-favorited uploads should be added to Favorites. */
+    importTakeoutFavorites?: boolean;
+    /** Whether media originating from Google Photos partner sharing is uploaded. */
+    includePartnerSharedFiles?: boolean;
 }
 
 /**

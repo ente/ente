@@ -112,7 +112,9 @@
   "passwordEmptyError": "Pole hasło nie może być puste",
   "passwordTooShort": "Hasło musi mieć co najmniej 8 znaków.",
   "importFromApp": "Importuj kody z {appName}",
-  "importGoogleAuthGuide": "Wyeksportuj Twoje konta z Google Authenticator do kodu QR używając opcji \"Przenieś konta\". Potem używając innego urządzenia, zeskanuj kod QR.\n\nWskazówka: Możesz użyć kamery Twojego laptopa, by zrobić zdjęcie kodu QR.",
+  "importGoogleAuthGuide": "Eksportuj swoje konta z Google Authenticator do kodu QR za pomocą opcji \"Przenieś konta\". Następnie zeskanuj kod QR lub zaimportuj go z obrazka.",
+  "scannerTorchOn": "Włącz latarkę",
+  "scannerTorchOff": "Wyłącz latarkę",
   "importSelectJsonFile": "Wybierz plik JSON",
   "importSelectAppExport": "Wybierz plik eksportu {appName}",
   "importEnteEncGuide": "Wybierz zaszyfrowany plik JSON wyeksportowany z Ente",
@@ -122,6 +124,7 @@
   "import2FasGuide": "Użyj opcji \"Ustawienia->Kopia Zapasowa-Eksport\" w 2FAS.\n\nJeśli twoja kopia zapasowa jest zaszyfrowana, musisz wprowadzić hasło, aby odszyfrować kopię zapasową",
   "importLastpassGuide": "Użyj opcji \"Przenieś konta\" w Ustawieniach Lastpass Authenticator i naciśnij \"Eksportuj konta do pliku\". Zaimportuj pobrany plik JSON.",
   "importProtonAuthGuide": "Użyj opcji „Eksportuj” w ustawieniach Proton Authenticator, aby wyeksportować kody.\n\nJeśli eksport jest zabezpieczony hasłem, konieczne będzie podanie hasła w celu odszyfrowania.",
+  "importOtpAuthGuide": "Wyeksportuj zaszyfrowaną kopię zapasową z OTP Auth, a następnie wybierz plik .otpauthdb lub .otpauthdp. Obsługiwane jest również eksportowanie plików .otpauth z pojedynczego konta.",
   "invalidProtonExportTitle": "Nieprawidłowy eksport Protona",
   "invalidProtonExportMessage": "Wybrany plik nie jest prawidłowym plikiem eksportowanym przez Proton Authenticator.",
   "exportCodes": "Eksportuj kody",
@@ -194,7 +197,7 @@
   "deleteAccountQuery": "Będzie nam przykro, że odchodzisz. Masz jakiś problem?",
   "yesSendFeedbackAction": "Tak, wyślij opinię",
   "noDeleteAccountAction": "Nie, usuń moje konto",
-  "initiateAccountDeleteTitle": "Prosimy uwierzytelnić się, aby zainicjować usuwanie konta",
+  "authToInitiateAccountDeletion": "Odblokuj, aby usunąć swoje konto",
   "sendEmail": "Wyślij e-mail",
   "createNewAccount": "Utwórz nowe konto",
   "weakStrength": "Słabe",
@@ -329,6 +332,16 @@
         "description": "The number of codes imported",
         "type": "int",
         "example": "1"
+      }
+    }
+  },
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{Zaimportować 1 kod z Google Authenticator?} few{Zaimportować {codeCount} kody z Google Authenticator?} many{Zaimportować {codeCount} kodów z Google Authenticator?} other{Zaimportować {codeCount} kodów z Google Authenticator?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
       }
     }
   },
@@ -486,6 +499,9 @@
   "somethingWentWrongParsingCode": "Nie udało się przetworzyć {x} kodów.",
   "updateNotAvailable": "Aktualizacja jest niedostępna",
   "viewRawCodes": "Zobacz surowe kody",
+  "parsingError": "Błąd przetworzenia",
+  "deleteUnparseableCodeTitle": "Usunąć niemożliwy do przetworzenia kod?",
+  "deleteUnparseableCodeMessage": "Spowoduje to trwałe usunięcie tego kodu z autoryzacji. Nie zostanie on przeniesiony do kosza.",
   "rawCodes": "Surowe kody",
   "rawCodeData": "Dane surowego kodu",
   "appLock": "Blokada aplikacji",

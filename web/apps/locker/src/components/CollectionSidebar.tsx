@@ -1,5 +1,7 @@
+import type { LockerCollection } from "@/types";
+import { isImportantCollection, visibleLockerCollections } from "@/types";
 import CloudQueueOutlinedIcon from "@mui/icons-material/CloudQueueOutlined";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
@@ -19,8 +21,6 @@ import {
 import { useBaseContext } from "ente-base/context";
 import { t } from "i18next";
 import React, { useMemo } from "react";
-import type { LockerCollection } from "types";
-import { isImportantCollection, visibleLockerCollections } from "types";
 
 /** Width of the sidebar on desktop. */
 export const SIDEBAR_WIDTH = 280;
@@ -210,7 +210,7 @@ export const CollectionSidebar: React.FC<CollectionSidebarProps> = ({
                     />
                     <SidebarRow
                         label={t("menuTrash")}
-                        icon={<DeleteOutlineIcon fontSize="small" />}
+                        icon={<DeleteOutlinedIcon fontSize="small" />}
                         badgeContent={trashItemCount}
                         selected={isTrashView}
                         onClick={onSelectTrash}
@@ -326,8 +326,8 @@ const SidebarRow: React.FC<{
             slotProps={{
                 primary: {
                     variant: "body",
-                    fontWeight: selected ? "bold" : "medium",
                     noWrap: true,
+                    sx: { fontWeight: selected ? "bold" : "medium" },
                 },
             }}
         />

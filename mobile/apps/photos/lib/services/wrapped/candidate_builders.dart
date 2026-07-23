@@ -71,24 +71,20 @@ class WrappedEngineContext {
     List<WrappedCity>? cities,
     Set<int>? favoriteUploadedFileIDs,
     Set<int>? archivedCollectionIDs,
-  })  : files = List<EnteFile>.unmodifiable(files),
-        fileByUploadedID = Map<int, EnteFile>.unmodifiable(
-          <int, EnteFile>{
-            for (final EnteFile file in files)
-              if (file.uploadedFileID != null) file.uploadedFileID!: file,
-          },
-        ),
-        people = people ?? WrappedPeopleContext.empty(),
-        aesthetics = aesthetics ?? WrappedAestheticsContext.empty(),
-        cities = List<WrappedCity>.unmodifiable(
-          cities ?? const <WrappedCity>[],
-        ),
-        favoriteUploadedFileIDs = Set<int>.unmodifiable(
-          favoriteUploadedFileIDs ?? const <int>{},
-        ),
-        archivedCollectionIDs = Set<int>.unmodifiable(
-          archivedCollectionIDs ?? const <int>{},
-        );
+  }) : files = List<EnteFile>.unmodifiable(files),
+       fileByUploadedID = Map<int, EnteFile>.unmodifiable(<int, EnteFile>{
+         for (final EnteFile file in files)
+           if (file.uploadedFileID != null) file.uploadedFileID!: file,
+       }),
+       people = people ?? WrappedPeopleContext.empty(),
+       aesthetics = aesthetics ?? WrappedAestheticsContext.empty(),
+       cities = List<WrappedCity>.unmodifiable(cities ?? const <WrappedCity>[]),
+       favoriteUploadedFileIDs = Set<int>.unmodifiable(
+         favoriteUploadedFileIDs ?? const <int>{},
+       ),
+       archivedCollectionIDs = Set<int>.unmodifiable(
+         archivedCollectionIDs ?? const <int>{},
+       );
 
   final int year;
   final DateTime now;
@@ -129,10 +125,10 @@ abstract class WrappedCandidateBuilder {
 /// Registry of all candidate builders invoked by the engine.
 const List<WrappedCandidateBuilder> wrappedCandidateBuilders =
     <WrappedCandidateBuilder>[
-  StatsCandidateBuilder(),
-  PeopleCandidateBuilder(),
-  PlacesCandidateBuilder(),
-  AestheticsCandidateBuilder(),
-  CurationCandidateBuilder(),
-  NarrativeCandidateBuilder(),
-];
+      StatsCandidateBuilder(),
+      PeopleCandidateBuilder(),
+      PlacesCandidateBuilder(),
+      AestheticsCandidateBuilder(),
+      CurationCandidateBuilder(),
+      NarrativeCandidateBuilder(),
+    ];

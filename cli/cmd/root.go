@@ -5,7 +5,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/ente-io/cli/pkg"
+	"github.com/ente/cli/pkg"
 	"github.com/spf13/cobra/doc"
 
 	"github.com/spf13/viper"

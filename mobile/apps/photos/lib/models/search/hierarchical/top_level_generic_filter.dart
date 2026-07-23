@@ -1,5 +1,3 @@
-import "package:flutter/material.dart";
-import "package:flutter/widgets.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 import "package:photos/models/search/search_types.dart";
@@ -11,7 +9,7 @@ import "package:photos/models/search/search_types.dart";
 class TopLevelGenericFilter extends HierarchicalSearchFilter {
   final String filterName;
   final int occurrence;
-  final IconData? filterIcon;
+  final SearchFilterIcon? filterIcon;
   final ResultType filterResultType;
 
   TopLevelGenericFilter({
@@ -46,7 +44,7 @@ class TopLevelGenericFilter extends HierarchicalSearchFilter {
   }
 
   @override
-  IconData? icon() {
+  SearchFilterIcon? icon() {
     return filterIcon;
   }
 

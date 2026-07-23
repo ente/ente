@@ -41,8 +41,10 @@ class _LockScreenConfirmPinState extends State<LockScreenConfirmPin> {
     if (widget.pin == _confirmPinController.text) {
       await _lockscreenSetting.setPin(_confirmPinController.text);
 
-      Navigator.of(context).pop(true);
-      Navigator.of(context).pop(true);
+      if (mounted) {
+        Navigator.of(context).pop(true);
+        Navigator.of(context).pop(true);
+      }
       return;
     }
     setState(() {
@@ -50,10 +52,12 @@ class _LockScreenConfirmPinState extends State<LockScreenConfirmPin> {
     });
     await HapticFeedback.vibrate();
     await Future.delayed(const Duration(milliseconds: 75));
-    _confirmPinController.clear();
-    setState(() {
-      isConfirmPinValid = false;
-    });
+    if (mounted) {
+      _confirmPinController.clear();
+      setState(() {
+        isConfirmPinValid = false;
+      });
+    }
   }
 
   @override
@@ -71,27 +75,20 @@ class _LockScreenConfirmPinState extends State<LockScreenConfirmPin> {
           onPressed: () {
             Navigator.of(context).pop(false);
           },
-          icon: Icon(
-            Icons.arrow_back,
-            color: colorTheme.textBase,
-          ),
+          icon: Icon(Icons.arrow_back, color: colorTheme.textBase),
         ),
         centerTitle: true,
         title: SvgPicture.asset(
-          'assets/svg/app-logo.svg',
-          colorFilter: ColorFilter.mode(
-            colorTheme.primary700,
-            BlendMode.srcIn,
-          ),
+          LockScreenSettings.instance.appLogoAsset,
+          height: LockScreenSettings.instance.appLogoHeight,
+          colorFilter: ColorFilter.mode(colorTheme.primary700, BlendMode.srcIn),
         ),
       ),
       floatingActionButton: isPlatformDesktop
           ? null
           : CustomPinKeypad(controller: _confirmPinController),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      body: SingleChildScrollView(
-        child: _getBody(colorTheme, textTheme),
-      ),
+      body: SingleChildScrollView(child: _getBody(colorTheme, textTheme)),
     );
   }
 
@@ -102,10 +99,7 @@ class _LockScreenConfirmPinState extends State<LockScreenConfirmPin> {
       padding: const EdgeInsets.only(top: 6.0),
       decoration: BoxDecoration(
         color: colorTheme.backgroundBase,
-        border: Border.all(
-          color: colorTheme.fillMuted,
-          width: 1,
-        ),
+        border: Border.all(color: colorTheme.fillMuted, width: 1),
         borderRadius: BorderRadius.circular(15.0),
       ),
     );
@@ -117,16 +111,9 @@ class _LockScreenConfirmPinState extends State<LockScreenConfirmPin> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 40),
-            Image.asset(
-              'assets/lock_screen_icon.png',
-              width: 129,
-              height: 95,
-            ),
+            Image.asset('assets/lock_screen_icon.png', width: 129, height: 95),
             const SizedBox(height: 24),
-            Text(
-              context.strings.reEnterPin,
-              style: textTheme.bodyBold,
-            ),
+            Text(context.strings.reEnterPin, style: textTheme.bodyBold),
             const Padding(padding: EdgeInsets.all(12)),
             Pinput(
               length: 4,
@@ -138,9 +125,7 @@ class _LockScreenConfirmPinState extends State<LockScreenConfirmPin> {
                 textStyle: textTheme.h3Bold,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15.0),
-                  border: Border.all(
-                    color: colorTheme.fillMuted,
-                  ),
+                  border: Border.all(color: colorTheme.fillMuted),
                 ),
               ),
               submittedPinTheme: pinPutDecoration.copyWith(
@@ -149,33 +134,25 @@ class _LockScreenConfirmPinState extends State<LockScreenConfirmPin> {
                 ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15.0),
-                  border: Border.all(
-                    color: colorTheme.primary700,
-                  ),
+                  border: Border.all(color: colorTheme.primary700),
                 ),
               ),
               followingPinTheme: pinPutDecoration.copyWith(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15.0),
-                  border: Border.all(
-                    color: colorTheme.fillMuted,
-                  ),
+                  border: Border.all(color: colorTheme.fillMuted),
                 ),
               ),
               focusedPinTheme: pinPutDecoration.copyWith(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15.0),
-                  border: Border.all(
-                    color: colorTheme.fillBase,
-                  ),
+                  border: Border.all(color: colorTheme.fillBase),
                 ),
               ),
               errorPinTheme: pinPutDecoration.copyWith(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15.0),
-                  border: Border.all(
-                    color: colorTheme.warning400,
-                  ),
+                  border: Border.all(color: colorTheme.warning400),
                 ),
               ),
               errorText: '',

@@ -1,14 +1,13 @@
 import "dart:convert";
 import "dart:typed_data";
 
+import "package:ente_components/ente_components.dart";
 import "package:ente_crypto/ente_crypto.dart";
 import 'package:flutter/material.dart';
 import "package:logging/logging.dart";
 import 'package:photos/core/configuration.dart';
 import "package:photos/l10n/l10n.dart";
-import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/alert_bottom_sheet.dart";
-import "package:photos/ui/components/buttons/button_widget_v2.dart";
 import "package:photos/utils/dialog_util.dart";
 
 typedef OnPasswordVerifiedFn = Future<void> Function(Uint8List bytes);
@@ -32,105 +31,98 @@ class _RequestPasswordVerificationPageState
     extends State<RequestPasswordVerificationPage> {
   final _logger = Logger((_RequestPasswordVerificationPageState).toString());
   final _passwordController = TextEditingController();
-  final FocusNode _passwordFocusNode = FocusNode();
   String? email;
-  bool _passwordInFocus = false;
-  bool _passwordVisible = false;
 
   @override
   void initState() {
     super.initState();
     email = Configuration.instance.getEmail();
-    _passwordFocusNode.addListener(() {
-      setState(() {
-        _passwordInFocus = _passwordFocusNode.hasFocus;
-      });
-    });
   }
 
   @override
   void dispose() {
     _passwordController.dispose();
-    _passwordFocusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.componentColors;
     final isFormValid = _passwordController.text.isNotEmpty;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
+      backgroundColor: colors.backgroundBase,
       appBar: AppBar(
         elevation: 0,
+        backgroundColor: colors.backgroundBase,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          color: Theme.of(context).iconTheme.color,
+          color: colors.iconColor,
           onPressed: () {
             Navigator.of(context).pop();
           },
         ),
       ),
-      body: _getBody(),
+      body: _getBody(isFormValid),
       floatingActionButton: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: ButtonWidgetV2(
+        child: ButtonComponent(
           key: const ValueKey("verifyPasswordButton"),
-          buttonType: ButtonTypeV2.primary,
-          labelText: context.l10n.verifyPassword,
+          label: context.l10n.verifyPassword,
           isDisabled: !isFormValid,
-          onTap: isFormValid
-              ? () async {
-                  FocusScope.of(context).unfocus();
-                  final dialog = createProgressDialog(
-                    context,
-                    context.l10n.pleaseWait,
-                  );
-                  await dialog.show();
-                  try {
-                    final attributes =
-                        Configuration.instance.getKeyAttributes()!;
-                    final Uint8List keyEncryptionKey =
-                        await CryptoUtil.deriveKey(
-                      utf8.encode(_passwordController.text),
-                      CryptoUtil.base642bin(attributes.kekSalt),
-                      attributes.memLimit!,
-                      attributes.opsLimit!,
-                    );
-                    CryptoUtil.decryptSync(
-                      CryptoUtil.base642bin(attributes.encryptedKey),
-                      keyEncryptionKey,
-                      CryptoUtil.base642bin(attributes.keyDecryptionNonce),
-                    );
-                    await dialog.show();
-                    // pop
-                    await widget.onPasswordVerified(keyEncryptionKey);
-                    await dialog.hide();
-                    Navigator.of(context).pop(true);
-                  } catch (e, s) {
-                    _logger.severe("Error while verifying password", e, s);
-                    await dialog.hide();
-                    if (widget.onPasswordError != null) {
-                      widget.onPasswordError!();
-                    } else {
-                      // ignore: unawaited_futures
-                      showAlertBottomSheet(
-                        context,
-                        title: context.l10n.incorrectPasswordTitle,
-                        message: context.l10n.pleaseTryAgain,
-                        assetPath: 'assets/warning-green.png',
-                      );
-                    }
-                  }
-                }
-              : null,
+          onTap: isFormValid ? _verifyPassword : null,
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
-  Widget _getBody() {
+  Future<void> _verifyPassword() async {
+    if (_passwordController.text.isEmpty) {
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    final dialog = createProgressDialog(context, context.l10n.pleaseWait);
+    await dialog.show();
+    try {
+      final attributes = Configuration.instance.getKeyAttributes()!;
+      final Uint8List keyEncryptionKey = await CryptoUtil.deriveKey(
+        utf8.encode(_passwordController.text),
+        CryptoUtil.base642bin(attributes.kekSalt),
+        attributes.memLimit!,
+        attributes.opsLimit!,
+      );
+      CryptoUtil.decryptSync(
+        CryptoUtil.base642bin(attributes.encryptedKey),
+        keyEncryptionKey,
+        CryptoUtil.base642bin(attributes.keyDecryptionNonce),
+      );
+      await dialog.show();
+      // pop
+      await widget.onPasswordVerified(keyEncryptionKey);
+      await dialog.hide();
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } catch (e, s) {
+      _logger.severe("Error while verifying password", e, s);
+      await dialog.hide();
+      if (widget.onPasswordError != null) {
+        widget.onPasswordError!();
+      } else {
+        if (!mounted) return;
+        // ignore: unawaited_futures
+        showAlertBottomSheet(
+          context,
+          title: context.l10n.incorrectPasswordTitle,
+          message: context.l10n.pleaseTryAgain,
+          assetPath: 'assets/warning-grey.png',
+        );
+      }
+    }
+  }
+
+  Widget _getBody(bool isFormValid) {
     return Column(
       children: [
         Expanded(
@@ -141,7 +133,9 @@ class _RequestPasswordVerificationPageState
                   padding: const EdgeInsets.only(top: 30, left: 20, right: 20),
                   child: Text(
                     context.l10n.enterPassword,
-                    style: Theme.of(context).textTheme.headlineMedium,
+                    style: TextStyles.display2.copyWith(
+                      color: context.componentColors.textBase,
+                    ),
                   ),
                 ),
                 Padding(
@@ -152,7 +146,9 @@ class _RequestPasswordVerificationPageState
                   ),
                   child: Text(
                     email ?? '',
-                    style: getEnteTextTheme(context).smallMuted,
+                    style: TextStyles.mini.copyWith(
+                      color: context.componentColors.textLight,
+                    ),
                   ),
                 ),
                 Visibility(
@@ -160,9 +156,7 @@ class _RequestPasswordVerificationPageState
                   // password
                   visible: false,
                   child: TextFormField(
-                    autofillHints: const [
-                      AutofillHints.email,
-                    ],
+                    autofillHints: const [AutofillHints.email],
                     autocorrect: false,
                     keyboardType: TextInputType.emailAddress,
                     initialValue: email,
@@ -170,45 +164,18 @@ class _RequestPasswordVerificationPageState
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                  child: TextFormField(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                  child: TextInputComponent(
                     key: const ValueKey("passwordInputField"),
-                    autofillHints: const [AutofillHints.password],
-                    decoration: InputDecoration(
-                      hintText: context.l10n.enterYourPassword,
-                      filled: true,
-                      fillColor: getEnteColorScheme(context).fillFaint,
-                      contentPadding: const EdgeInsets.all(20),
-                      border: UnderlineInputBorder(
-                        borderSide: BorderSide.none,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      suffixIcon: _passwordInFocus
-                          ? IconButton(
-                              icon: Icon(
-                                _passwordVisible
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
-                                color: Theme.of(context).iconTheme.color,
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _passwordVisible = !_passwordVisible;
-                                });
-                              },
-                            )
-                          : null,
-                    ),
-                    style: const TextStyle(
-                      fontSize: 14,
-                    ),
                     controller: _passwordController,
+                    hintText: context.l10n.enterYourPassword,
                     autofocus: true,
                     autocorrect: false,
-                    obscureText: !_passwordVisible,
+                    isPasswordInput: true,
                     keyboardType: TextInputType.visiblePassword,
-                    focusNode: _passwordFocusNode,
+                    autofillHints: const [AutofillHints.password],
+                    shouldUnfocusOnClearOrSubmit: true,
+                    onSubmit: isFormValid ? (_) => _verifyPassword() : null,
                     onChanged: (_) {
                       setState(() {});
                     },
@@ -218,7 +185,7 @@ class _RequestPasswordVerificationPageState
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   child: Divider(
                     thickness: 1,
-                    color: getEnteColorScheme(context).strokeFaint,
+                    color: context.componentColors.strokeFaint,
                   ),
                 ),
               ],

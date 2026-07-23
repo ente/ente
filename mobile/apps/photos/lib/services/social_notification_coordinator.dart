@@ -20,10 +20,7 @@ import 'package:photos/services/language_service.dart';
 import 'package:photos/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum SocialNotificationTrigger {
-  remoteSync,
-  feedRefresh,
-}
+enum SocialNotificationTrigger { remoteSync, feedRefresh }
 
 class SocialNotificationCoordinator {
   static const String kLastSocialActivityNotificationTime =
@@ -112,8 +109,8 @@ class SocialNotificationCoordinator {
 
   Future<void> _notifyNewSocialActivity() async {
     final prefs = await _ensurePrefs();
-    final socialNotificationsEnabled =
-        NotificationService.instance.shouldShowSocialNotifications();
+    final socialNotificationsEnabled = NotificationService.instance
+        .shouldShowSocialNotifications();
     final sharedPhotosAndAlbumsNotificationsEnabled = NotificationService
         .instance
         .shouldShowNotificationsForSharedPhotosAndAlbums();
@@ -216,8 +213,9 @@ class SocialNotificationCoordinator {
       if (comment.fileID != null) allFileIDs.add(comment.fileID!);
     }
 
-    final filesByID =
-        await _filesDb.getFileIDToFileFromIDs(allFileIDs.toList());
+    final filesByID = await _filesDb.getFileIDToFileFromIDs(
+      allFileIDs.toList(),
+    );
 
     bool isOwnedByUser(int? fileID) {
       if (fileID == null) {
@@ -290,11 +288,7 @@ class SocialNotificationCoordinator {
         );
         latestSentNotificationTime ??= candidate.createdAt;
       } catch (e, stackTrace) {
-        _logger.severe(
-          'Failed to prepare social notification',
-          e,
-          stackTrace,
-        );
+        _logger.severe('Failed to prepare social notification', e, stackTrace);
       }
     }
 
@@ -367,8 +361,10 @@ class SocialNotificationCoordinator {
         fallback: anonID,
       );
     }
-    final user =
-        _collectionsService.getFileOwner(userID, candidate.collectionID);
+    final user = _collectionsService.getFileOwner(
+      userID,
+      candidate.collectionID,
+    );
     return user.nameOrEmail;
   }
 
@@ -487,7 +483,8 @@ class SocialNotificationCoordinator {
         }
       }
 
-      final reachedEnd = pageFiles.length < _kSharedPhotoFetchPageSize ||
+      final reachedEnd =
+          pageFiles.length < _kSharedPhotoFetchPageSize ||
           retainedRows >= _kSharedPhotoFetchMaxRows;
       if (reachedEnd) {
         break;
@@ -560,12 +557,7 @@ class _SocialActivityCandidate {
   });
 }
 
-enum _SocialNotificationGroup {
-  comment,
-  like,
-  sharedPhoto,
-  sharedCollection,
-}
+enum _SocialNotificationGroup { comment, like, sharedPhoto, sharedCollection }
 
 class _SharedCollectionsContext {
   final Map<int, String> collectionNames;
@@ -634,8 +626,8 @@ class _SharedPhotoGroupBuilder {
     required this.ownerID,
     required this.createdAt,
     required int firstFileID,
-  })  : oldestAddedTime = createdAt,
-        sharedFileIDs = [firstFileID];
+  }) : oldestAddedTime = createdAt,
+       sharedFileIDs = [firstFileID];
 
   void add(int fileID, int addedTime) {
     sharedFileIDs.add(fileID);
@@ -658,9 +650,7 @@ class _SharedPhotoGroupingState {
   final Map<String, _SharedPhotoGroupBuilder> _activeGroups = {};
   final List<_SharedPhotoGroup> _closedGroups = [];
 
-  _SharedPhotoGroupingState({
-    required this.sessionGapMicros,
-  });
+  _SharedPhotoGroupingState({required this.sessionGapMicros});
 
   void addFile(EnteFile file) {
     final addedTime = file.addedTime;

@@ -1,28 +1,27 @@
 name: ente_network
 description: A Flutter package for network management and HTTP client configuration
-version: 1.0.0
-publish_to: none
 
+resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
   flutter: ">=1.17.0"
 
 dependencies:
   cronet_http: 1.6.0
-  dio: 5.9.0
+  dio: 5.9.2
   ente_configuration:
     path: ../../packages/configuration
   ente_events:
     path: ../../packages/events
   flutter:
     sdk: flutter
-  native_dio_adapter: 1.4.0
+  native_dio_adapter: 1.5.1
   package_info_plus: 8.3.1
   ua_client_hints: 1.4.1
-  uuid: 4.5.2
+  uuid: 4.5.3
 
 dev_dependencies:
-  flutter_lints: 5.0.0
+  flutter_lints: 6.0.0
   flutter_test:
     sdk: flutter
 

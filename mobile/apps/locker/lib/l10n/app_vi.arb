@@ -13,13 +13,13 @@
   "untitled": "Chua dat ten",
   "edit": "Chỉnh sửa",
   "delete": "Xóa",
-  "noFilesFound": "Khong co muc nao o day",
-  "addFiles": "Them muc",
+  "noFilesFound": "Không có mục nào ở đây",
+  "addFiles": "Thêm mục",
   "name": "Tên",
-  "date": "Ngay",
+  "date": "Ngày",
   "pleaseWait": "Vui lòng chờ...",
   "downloading": "Đang tải xuống...",
-  "downloadingProgress": "Dang tai xuong... {percentage}%",
+  "downloadingProgress": "Đang tải xuống... {percentage}%",
   "@downloadingProgress": {
     "description": "Download progress message",
     "placeholders": {
@@ -30,9 +30,9 @@
     }
   },
   "downloadFailed": "Tải xuống thất bại",
-  "failedToDownloadOrDecrypt": "Khong the tai xuong muc",
-  "errorOpeningFile": "Loi khi mo muc",
-  "errorOpeningFileMessage": "Loi khi mo muc: {error}",
+  "failedToDownloadOrDecrypt": "Không thể tải xuống mục",
+  "errorOpeningFile": "Lỗi khi mở mục",
+  "errorOpeningFileMessage": "Lỗi khi mở mục: {error}",
   "@errorOpeningFileMessage": {
     "description": "Error message when opening an item fails",
     "placeholders": {
@@ -42,7 +42,7 @@
       }
     }
   },
-  "couldNotOpenFile": "Khong the mo muc: {error}",
+  "couldNotOpenFile": "Không thể mở mục: {error}",
   "@couldNotOpenFile": {
     "description": "Error message when item cannot be opened",
     "placeholders": {
@@ -52,7 +52,7 @@
       }
     }
   },
-  "minutesAgo": "{minutes} phut truoc",
+  "minutesAgo": "{minutes} phút trước",
   "@minutesAgo": {
     "description": "Time format for minutes ago",
     "placeholders": {
@@ -62,7 +62,7 @@
       }
     }
   },
-  "hoursAgo": "{hours} gio truoc",
+  "hoursAgo": "{hours} giờ trước",
   "@hoursAgo": {
     "description": "Time format for hours ago",
     "placeholders": {
@@ -73,7 +73,7 @@
     }
   },
   "yesterday": "Hôm qua",
-  "daysAgo": "{days} ngay truoc",
+  "daysAgo": "{days} ngày trước",
   "@daysAgo": {
     "description": "Time format for days ago",
     "placeholders": {
@@ -83,8 +83,8 @@
       }
     }
   },
-  "collectionRenamedSuccessfully": "Doi ten bo suu tap thanh cong",
-  "failedToRenameCollection": "Khong the doi ten bo suu tap: {error}",
+  "collectionRenamedSuccessfully": "Đổi tên bộ sưu tập thành công",
+  "failedToRenameCollection": "Không thể đổi tên bộ sưu tập: {error}",
   "@failedToRenameCollection": {
     "description": "Error message when collection rename fails",
     "placeholders": {
@@ -94,11 +94,11 @@
       }
     }
   },
-  "collectionCannotBeDeleted": "Khong the xoa bo suu tap nay",
-  "collectionCannotBeEdited": "Khong the chinh sua bo suu tap nay",
-  "collectionCannotBeShared": "Khong the chia se bo suu tap nay",
-  "deleteCollection": "Xoa bo suu tap",
-  "deleteCollectionConfirmation": "Ban co chac chan muon xoa \"{collectionName}\" khong?",
+  "collectionCannotBeDeleted": "Không thể xóa bộ sưu tập này",
+  "collectionCannotBeEdited": "Không thể chỉnh sửa bộ sưu tập này",
+  "collectionCannotBeShared": "Không thể chia sẻ bộ sưu tập này",
+  "deleteCollection": "Xóa bộ sưu tập",
+  "deleteCollectionConfirmation": "Bạn có chắc chắn muốn xóa \"{collectionName}\" không?",
   "@deleteCollectionConfirmation": {
     "description": "Confirmation message for deleting a collection",
     "placeholders": {
@@ -109,8 +109,8 @@
     }
   },
   "cancel": "Hủy",
-  "collectionDeletedSuccessfully": "Xoa bo suu tap thanh cong",
-  "failedToDeleteCollection": "Khong the xoa bo suu tap: {error}",
+  "collectionDeletedSuccessfully": "Xóa bộ sưu tập thành công",
+  "failedToDeleteCollection": "Không thể xóa bộ sưu tập: {error}",
   "@failedToDeleteCollection": {
     "description": "Error message when collection deletion fails",
     "placeholders": {
@@ -120,7 +120,7 @@
       }
     }
   },
-  "collections": "Bo suu tap",
+  "collections": "Bộ sưu tập",
   "retry": "Thử lại",
   "failedToSyncTrash": "Khong the dong bo thung rac: {error}",
   "@failedToSyncTrash": {
@@ -132,7 +132,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "Vui long chon it nhat mot bo suu tap",
   "unknownItemType": "Loai muc khong xac dinh",
   "fileDeletedSuccessfully": "Xoa muc thanh cong",
   "failedToDeleteFile": "Khong the xoa muc: {error}",
@@ -198,6 +197,7 @@
   "create": "Tạo",
   "renameCollection": "Doi ten bo suu tap",
   "save": "Lưu",
+  "download": "Tải xuống",
   "deleteFile": "Xoa muc",
   "deleteFileConfirmation": "Ban co chac chan muon xoa \"{fileName}\" khong?",
   "@deleteFileConfirmation": {
@@ -253,7 +253,6 @@
   "optionalNote": "Ghi chu tuy chon",
   "upload": "Tai len",
   "documentsHint": "Tai lieu",
-  "searchHint": "Tìm kiếm...",
   "searchEmptyTitle": "Khong tim thay ket qua",
   "searchEmptyDescription": "Thu tim kiem noi dung khac.",
   "searchEverywhereTitle": "Tim kiem moi noi cho \"{query}\"",
@@ -278,6 +277,7 @@
     }
   },
   "uncategorized": "Chưa phân loại",
+  "syncing": "Đang đồng bộ...",
   "syncingTrash": "Dang dong bo thung rac...",
   "restoring": "Dang khoi phuc...",
   "restoredFileToCollection": "Da khoi phuc \"{fileName}\" vao \"{collectionName}\"",
@@ -337,28 +337,57 @@
   "authToChangeLockscreenSetting": "Vui lòng xác thực để thay đổi cài đặt khóa màn hình",
   "authToViewPasskey": "Vui lòng xác thực để xem mã truy cập",
   "theme": "Chủ đề",
+  "appearance": "Giao diện",
   "lightTheme": "Sáng",
   "darkTheme": "Tối",
   "systemTheme": "Giống hệ thống",
   "settings": "Cài đặt",
   "about": "Giới thiệu",
+  "aboutUs": "Giới thiệu",
   "weAreOpenSource": "Chúng tôi là mã nguồn mở!",
   "privacy": "Bảo mật",
   "terms": "Điều khoản",
   "termsOfServicesTitle": "Điều khoản",
+  "checkForUpdates": "Kiểm tra cập nhật",
+  "checkingForUpdates": "Đang kiểm tra cập nhật...",
+  "unableToCheckForUpdatesRightNow": "Không thể kiểm tra cập nhật bây giờ",
+  "youAreOnTheLatestVersion": "Bạn đang sử dụng phiên bản mới nhất",
+  "aNewVersionOfEnteLockerIsAvailable": "Ente Locker có phiên bản mới.",
+  "criticalUpdateAvailable": "Có bản cập nhật quan trọng",
+  "updateAvailable": "Có bản cập nhật mới",
+  "downloadUpdate": "Tải xuống bản cập nhật",
   "support": "Hỗ trợ",
+  "helpAndSupport": "Trợ giúp và Hỗ trợ",
+  "getInTouch": "Liên hệ",
+  "browseHelpPages": "Duyệt các trang hỗ trợ",
   "contactSupport": "Liên hệ hỗ trợ",
   "help": "Trợ giúp",
+  "askAQuestion": "Đặt câu hỏi",
   "suggestFeatures": "Đề xuất tính năng",
+  "requestAFeature": "Đề xuất tính năng",
   "reportABug": "Báo lỗi",
+  "reportAnIssue": "Báo cáo sự cố",
   "reportBug": "Báo lỗi",
+  "viewAllHelpTopics": "Xem tất cả chủ đề trợ giúp",
+  "gettingStarted": "Bắt đầu",
+  "gettingStartedDesc": "Tải Locker, tạo tài khoản và lưu mục đầu tiên của bạn",
+  "informationTypes": "Kiểu thông tin",
+  "organization": "Tổ chức",
+  "troubleshooting": "Khắc phục sự cố",
+  "troubleshootingDesc": "Những vấn đề thường gặp và giải pháp",
   "logsDialogBodyLocker": "Dieu nay se gui nhat ky de giup chung toi giai quyet van de cua ban.",
   "@logsDialogBodyLocker": {
     "description": "Dialog body text for sending logs in Locker app (without file name warning)"
   },
   "social": "Mạng xã hội",
   "rateUsOnStore": "Đánh giá chúng tôi trên {storeName}",
+  "blog": "Blog",
   "merchandise": "Vật phẩm",
+  "twitter": "Twitter",
+  "mastodon": "Mastodon",
+  "matrix": "Matrix",
+  "discord": "Discord",
+  "reddit": "Reddit",
   "information": "Thong tin",
   "saveInformation": "Luu thong tin",
   "saveToLocker": "Luu vao Locker",
@@ -429,6 +458,7 @@
   "sharedByYou": "Được chia sẻ bởi bạn",
   "sharedWithYou": "Được chia sẻ với bạn",
   "manageLink": "Quản lý liên kết",
+  "linkLabel": "Liên kết",
   "linkExpiry": "Hết hạn liên kết",
   "linkNeverExpires": "Không bao giờ",
   "linkExpired": "Hết hạn",
@@ -460,6 +490,15 @@
   "linkDeviceLimit": "Giới hạn thiết bị",
   "expiredLinkInfo": "Liên kết này đã hết hạn. Vui lòng chọn thời gian hết hạn mới hoặc tắt tính năng hết hạn liên kết.",
   "linkExpiresOn": "Liên kết sẽ hết hạn vào {expiryTime}",
+  "shareWithPeopleSectionTitle": "{numberOfPeople, plural, =0 {Chia sẻ với người cụ thể} other {Đã chia sẻ với {numberOfPeople} người}}",
+  "@shareWithPeopleSectionTitle": {
+    "placeholders": {
+      "numberOfPeople": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "linkHasExpired": "Liên kết đã hết hạn",
   "publicLinkEnabled": "Liên kết công khai đã được bật",
   "shareALink": "Chia sẻ một liên kết",
@@ -473,6 +512,28 @@
   "add": "Thêm",
   "collaboratorsCanAddFilesToTheSharedCollection": "Cong tac vien co the them muc vao bo suu tap duoc chia se.",
   "enterEmail": "Nhập email",
+  "viewersSuccessfullyAdded": "{count, plural, =0 {Chưa thêm người xem} other {Đã thêm {count} người xem}}",
+  "@viewersSuccessfullyAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    },
+    "description": "Number of viewers that were successfully added to a collection."
+  },
+  "collaboratorsSuccessfullyAdded": "{count, plural, =0 {Chưa có cộng tác viên} other {Đã thêm {count} cộng tác viên}}",
+  "@collaboratorsSuccessfullyAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    },
+    "description": "Number of collaborators that were successfully added to a collection."
+  },
+  "addViewers": "{count, plural, =0 {Thêm người xem} one {Thêm người xem này} other {Thêm những người xem này}}",
+  "addCollaborators": "{count, plural, =0 {Thêm cộng tác viên} one {Thêm cộng tác viên này} other {Thêm các cộng tác viên này}}",
   "longPressAnEmailToVerifyEndToEndEncryption": "Nhấn giữ một email để xác minh mã hóa đầu cuối.",
   "sharing": "Đang chia sẻ...",
   "invalidEmailAddress": "Địa chỉ email không hợp lệ",
@@ -483,6 +544,7 @@
   "youCannotShareWithYourself": "Bạn không thể chia sẻ với chính mình",
   "inviteToEnte": "Mời sử dụng Ente",
   "sendInvite": "Gửi lời mời",
+  "shareTextRecommendUsingEnte": "Tải Ente\n\nhttps://ente.com",
   "thisIsYourVerificationId": "Đây là ID xác minh của bạn",
   "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Ai đó chia sẻ album với bạn nên thấy cùng một ID trên thiết bị của họ.",
   "howToViewShareeVerificationID": "Hãy chỉ họ nhấn giữ địa chỉ email của họ trên màn hình cài đặt, và xác minh rằng ID trên cả hai thiết bị khớp nhau.",
@@ -498,6 +560,8 @@
   "verificationId": "ID xác minh",
   "verifyEmailID": "Xác minh {email}",
   "emailNoEnteAccount": "{email} khong co tai khoan Ente.\n\nGui loi moi de chia se muc.",
+  "shareMyVerificationID": "Đây là ID xác minh của tôi: {verificationID} cho ente.com.",
+  "shareTextConfirmOthersVerificationID": "Này, bạn có thể xác nhận rằng đây là ID xác minh ente.com của bạn không: {verificationID}",
   "passwordLock": "Khóa bằng mật khẩu",
   "manage": "Quản lý",
   "addedAs": "Đã thêm như",
@@ -549,6 +613,10 @@
   "@uploadStorageLimitErrorBody": {
     "description": "Body shown when uploads fail due to running out of storage"
   },
+  "uploadSubscriptionExpiredErrorTitle": "Gói đăng ký đã hết hạn",
+  "@uploadSubscriptionExpiredErrorTitle": {
+    "description": "Title shown when uploads fail because the Photos subscription is expired"
+  },
   "uploadFileCountLimitErrorTitle": "Da dat gioi han tap tin",
   "@uploadFileCountLimitErrorTitle": {
     "description": "Title shown when uploads fail because the locker already has the maximum file count"
@@ -583,6 +651,7 @@
   "deselectAll": "Bỏ chọn tất cả",
   "selectAll": "Chọn tất cả",
   "unnamedCollection": "Bo suu tap chua dat ten",
+  "enteLocker": "ente Locker",
   "uploadedFilesProgress": "Da tai len {completed}/{total} muc...",
   "@uploadedFilesProgress": {
     "description": "Progress message showing uploaded items",
@@ -656,6 +725,7 @@
       }
     }
   },
+  "locker": "Locker",
   "loginToEnteAccount": "Dang nhap vao tai khoan Ente cua ban",
   "unlockLockerNewUserTitle": "Tham gia Ente de su dung Locker",
   "unlockLockerNewUserBody": "Locker hien chi danh cho nguoi dung Ente hien tai. Ban co the tao tai khoan tren Ente Photos de su dung Locker.",
@@ -665,6 +735,7 @@
   "featureSaveImportant": "Luu tai lieu va thong tin dang nhap quan trong cua ban",
   "featurePassAutomatically": "Tu dong chuyen giao chung trong truong hop khan cap",
   "featureShareAnytime": "Chia se bat cu luc nao",
+  "emailIdLabel": "Email",
   "emailIdHint": "Nhập địa chỉ email của bạn",
   "loginPasswordLabel": "Mật khẩu",
   "loginPasswordHint": "Nhập mật khẩu của bạn",
@@ -733,6 +804,7 @@
   "sorry": "Xin lỗi",
   "subscribe": "Đăng ký gói",
   "sharedWith": "Chia se voi",
+  "shareCollection": "Chia sẻ bộ sưu tập",
   "shareLater": "Chia se sau",
   "enterNameOrEmailToShareWith": "Nhap ten hoac email de chia se",
   "chooseFromAnExistingContact": "Chon tu danh ba hien co",
@@ -749,5 +821,34 @@
   "clearAllFilters": "Xoa tat ca bo loc",
   "selectLanguage": "Chọn ngôn ngữ",
   "general": "Chung",
-  "language": "Ngôn ngữ"
+  "language": "Ngôn ngữ",
+  "addTo": "Thêm vào",
+  "sharingSection": "Chia sẻ",
+  "sharingEnabledToggle": "Đã bật chia sẻ",
+  "publicLinkSection": "Liên kết công khai",
+  "allowUploads": "Cho phép tải lên",
+  "collectionUpdated": "Đã cập nhật bộ sưu tập",
+  "actionNotSupportedOnFavouritesAlbum": "Hành động không được hỗ trợ trong album Đã thích",
+  "leaveCollectionSuccessfully": "Đã rời khỏi bộ sưu tập",
+  "removePublicLink": "Xóa liên kết công khai",
+  "removePublicLinkConfirmation": "Việc này sẽ xóa liên kết công khai dùng để truy cập \"{collectionName}\".",
+  "@removePublicLinkConfirmation": {
+    "description": "Confirmation message when removing public link",
+    "placeholders": {
+      "collectionName": {
+        "type": "String",
+        "example": "My Collection"
+      }
+    }
+  },
+  "failedToDeleteFiles": "Lỗi khi xóa các mục",
+  "usageYou": "Bạn",
+  "usageFamily": "Gia đình",
+  "searchSettings": "Tìm kiếm cài đặt",
+  "suggestions": "Gợi ý",
+  "noResultsFound": "Không tìm thấy kết quả",
+  "viewActiveSessions": "Xem các phiên đang hoạt động",
+  "authToViewYourActiveSessions": "Vui lòng xác thực để xem các phiên hoạt động",
+  "sendFeedback": "Gửi phản hồi",
+  "deleteAccountPermanentWarning": "Việc này sẽ xóa toàn bộ dữ liệu Ente Auth, Photos và Locker của bạn"
 }

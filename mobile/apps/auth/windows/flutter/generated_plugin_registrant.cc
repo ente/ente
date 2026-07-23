@@ -9,7 +9,6 @@
 #include <app_links/app_links_plugin_c_api.h>
 #include <connectivity_plus/connectivity_plus_windows_plugin.h>
 #include <file_saver/file_saver_plugin.h>
-#include <flutter_local_authentication/flutter_local_authentication_plugin_c_api.h>
 #include <flutter_secure_storage_windows/flutter_secure_storage_windows_plugin.h>
 #include <local_auth_windows/local_auth_plugin.h>
 #include <screen_retriever_windows/screen_retriever_windows_plugin_c_api.h>
@@ -28,8 +27,6 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("ConnectivityPlusWindowsPlugin"));
   FileSaverPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FileSaverPlugin"));
-  FlutterLocalAuthenticationPluginCApiRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("FlutterLocalAuthenticationPluginCApi"));
   FlutterSecureStorageWindowsPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FlutterSecureStorageWindowsPlugin"));
   LocalAuthPluginRegisterWithRegistrar(

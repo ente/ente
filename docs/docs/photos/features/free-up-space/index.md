@@ -3,9 +3,9 @@ title: Free Up Space
 description: Free up device storage after backing up to Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Free Up Space

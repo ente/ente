@@ -55,11 +55,7 @@ class _GradientButtonState extends State<GradientButton> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(
-            widget.iconData,
-            size: 20,
-            color: Colors.white,
-          ),
+          Icon(widget.iconData, size: 20, color: Colors.white),
           const Padding(padding: EdgeInsets.symmetric(horizontal: 6)),
           Text(
             widget.text,

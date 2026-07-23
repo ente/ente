@@ -46,15 +46,14 @@ class CollectionApiClient {
     try {
       final response = await _enteDio.get(
         "/collections/v2",
-        queryParameters: {
-          "sinceTime": sinceTime,
-        },
+        queryParameters: {"sinceTime": sinceTime},
       );
       final List<Collection> collections = [];
       final c = response.data["collections"];
       for (final collectionData in c) {
-        final Collection collection =
-            await _fromRemoteCollection(collectionData);
+        final Collection collection = await _fromRemoteCollection(
+          collectionData,
+        );
         collections.add(collection);
       }
       return collections;
@@ -68,9 +67,7 @@ class CollectionApiClient {
   }
 
   Future<Diff> getFiles(Collection collection, int sinceTime) async {
-    _logger.info(
-      "[Collection-${collection.id}] fetch diff since: $sinceTime",
-    );
+    _logger.info("[Collection-${collection.id}] fetch diff since: $sinceTime");
     bool hasMore = true;
     final List<EnteFile> updatedFiles = [];
     final List<EnteFile> deletedFiles = [];
@@ -115,10 +112,11 @@ class CollectionApiClient {
       final int uploadedFileID = file.uploadedFileID!;
 
       // Follow Photos pattern: decrypt using file's current collectionID
-      final fileCurrentCollection =
-          await CollectionService.instance.getCollection(file.collectionID!);
-      final fileCurrentCollectionKey =
-          CryptoHelper.instance.getCollectionKey(fileCurrentCollection);
+      final fileCurrentCollection = await CollectionService.instance
+          .getCollection(file.collectionID!);
+      final fileCurrentCollectionKey = CryptoHelper.instance.getCollectionKey(
+        fileCurrentCollection,
+      );
       final fileKey = CryptoHelper.instance.getFileKey(
         file.encryptedKey!,
         file.keyDecryptionNonce!,
@@ -127,20 +125,22 @@ class CollectionApiClient {
 
       // Re-encrypt the file key with the destination collection's key
       final encryptedKeyData = CryptoUtil.encryptSync(fileKey, collectionKey);
-      final String encryptedKey =
-          CryptoUtil.bin2base64(encryptedKeyData.encryptedData!);
-      final String keyDecryptionNonce =
-          CryptoUtil.bin2base64(encryptedKeyData.nonce!);
+      final String encryptedKey = CryptoUtil.bin2base64(
+        encryptedKeyData.encryptedData!,
+      );
+      final String keyDecryptionNonce = CryptoUtil.bin2base64(
+        encryptedKeyData.nonce!,
+      );
       params["files"].add(
-        CollectionFileItem(uploadedFileID, encryptedKey, keyDecryptionNonce)
-            .toMap(),
+        CollectionFileItem(
+          uploadedFileID,
+          encryptedKey,
+          keyDecryptionNonce,
+        ).toMap(),
       );
     }
     try {
-      await _enteDio.post(
-        "/collections/add-files",
-        data: params,
-      );
+      await _enteDio.post("/collections/add-files", data: params);
     } catch (e) {
       _logger.warning('failed to add files to collection', e);
       rethrow;
@@ -153,10 +153,7 @@ class CollectionApiClient {
     for (final request in requests) {
       requestData["items"].add(request.toJson());
     }
-    final response = await _enteDio.post(
-      "/files/trash",
-      data: requestData,
-    );
+    final response = await _enteDio.post("/files/trash", data: requestData);
     if (response.statusCode != 200) {
       throw Exception("Failed to remove files from collection");
     }
@@ -174,9 +171,7 @@ class CollectionApiClient {
     const batchSize = 100;
     final batchedFiles = <List<EnteFile>>[];
     for (int i = 0; i < files.length; i += batchSize) {
-      batchedFiles.add(
-        files.sublist(i, min(i + batchSize, files.length)),
-      );
+      batchedFiles.add(files.sublist(i, min(i + batchSize, files.length)));
     }
 
     for (final batch in batchedFiles) {
@@ -212,14 +207,12 @@ class CollectionApiClient {
     );
     final params = <String, dynamic>{};
     params["collectionID"] = collection.id;
-    params["encryptedName"] =
-        CryptoUtil.bin2base64(encryptedName.encryptedData!);
+    params["encryptedName"] = CryptoUtil.bin2base64(
+      encryptedName.encryptedData!,
+    );
     params["nameDecryptionNonce"] = CryptoUtil.bin2base64(encryptedName.nonce!);
     try {
-      await _enteDio.post(
-        "/collections/rename",
-        data: params,
-      );
+      await _enteDio.post("/collections/rename", data: params);
     } catch (e) {
       _logger.warning("failed to rename collection", e);
       rethrow;
@@ -256,9 +249,7 @@ class CollectionApiClient {
     const batchSize = 100;
     final batchedFiles = <List<EnteFile>>[];
     for (int i = 0; i < files.length; i += batchSize) {
-      batchedFiles.add(
-        files.sublist(i, min(i + batchSize, files.length)),
-      );
+      batchedFiles.add(files.sublist(i, min(i + batchSize, files.length)));
     }
 
     for (final batch in batchedFiles) {
@@ -268,8 +259,9 @@ class CollectionApiClient {
         final fileCollection = await CollectionService.instance.getCollection(
           file.collectionID!,
         );
-        final fileCollectionKey =
-            CryptoHelper.instance.getCollectionKey(fileCollection);
+        final fileCollectionKey = CryptoHelper.instance.getCollectionKey(
+          fileCollection,
+        );
         final fileKey = CryptoHelper.instance.getFileKey(
           file.encryptedKey!,
           file.keyDecryptionNonce!,
@@ -280,17 +272,20 @@ class CollectionApiClient {
         file.collectionID = toCollection.id;
 
         // Re-encrypt the file key with the destination collection's key
-        final destCollectionKey =
-            CryptoHelper.instance.getCollectionKey(toCollection);
+        final destCollectionKey = CryptoHelper.instance.getCollectionKey(
+          toCollection,
+        );
         final encryptedKeyData = CryptoUtil.encryptSync(
           fileKey,
           destCollectionKey,
         );
 
-        file.encryptedKey =
-            CryptoUtil.bin2base64(encryptedKeyData.encryptedData!);
-        file.keyDecryptionNonce =
-            CryptoUtil.bin2base64(encryptedKeyData.nonce!);
+        file.encryptedKey = CryptoUtil.bin2base64(
+          encryptedKeyData.encryptedData!,
+        );
+        file.keyDecryptionNonce = CryptoUtil.bin2base64(
+          encryptedKeyData.nonce!,
+        );
 
         params["files"].add(
           CollectionFileItem(
@@ -300,10 +295,7 @@ class CollectionApiClient {
           ).toMap(),
         );
       }
-      await _enteDio.post(
-        "/collections/move-files",
-        data: params,
-      );
+      await _enteDio.post("/collections/move-files", data: params);
     }
   }
 
@@ -339,10 +331,7 @@ class CollectionApiClient {
     try {
       final response = await _enteDio.get(
         "/collections/v2/diff",
-        queryParameters: {
-          "collectionID": collectionID,
-          "sinceTime": sinceTime,
-        },
+        queryParameters: {"collectionID": collectionID, "sinceTime": sinceTime},
       );
       int latestUpdatedAtTime = 0;
       final diff = response.data["diff"] as List;
@@ -380,8 +369,9 @@ class CollectionApiClient {
           fileKey,
           CryptoUtil.base642bin(file.metadataDecryptionHeader!),
         );
-        final Map<String, dynamic> metadata =
-            jsonDecode(utf8.decode(encodedMetadata));
+        final Map<String, dynamic> metadata = jsonDecode(
+          utf8.decode(encodedMetadata),
+        );
         file.applyMetadata(metadata);
         if (item['magicMetadata'] != null) {
           final utfEncodedMmd = await CryptoUtil.decryptData(
@@ -391,8 +381,9 @@ class CollectionApiClient {
           );
           file.mMdEncodedJson = utf8.decode(utfEncodedMmd);
           file.mMdVersion = item['magicMetadata']['version'];
-          file.magicMetadata =
-              MagicMetadata.fromEncodedJson(file.mMdEncodedJson!);
+          file.magicMetadata = MagicMetadata.fromEncodedJson(
+            file.mMdEncodedJson!,
+          );
         }
         if (item['pubMagicMetadata'] != null) {
           final utfEncodedMmd = await CryptoUtil.decryptData(
@@ -402,13 +393,16 @@ class CollectionApiClient {
           );
           file.pubMmdEncodedJson = utf8.decode(utfEncodedMmd);
           file.pubMmdVersion = item['pubMagicMetadata']['version'];
-          file.pubMagicMetadata =
-              PubMagicMetadata.fromEncodedJson(file.pubMmdEncodedJson!);
+          file.pubMagicMetadata = PubMagicMetadata.fromEncodedJson(
+            file.pubMmdEncodedJson!,
+          );
         }
         updatedFiles.add(file);
       }
-      _logger.info('[Collection-$collectionID] parsed ${diff.length} '
-          'diff items ( ${updatedFiles.length} updated) in ${DateTime.now().difference(startTime).inMilliseconds}ms');
+      _logger.info(
+        '[Collection-$collectionID] parsed ${diff.length} '
+        'diff items ( ${updatedFiles.length} updated) in ${DateTime.now().difference(startTime).inMilliseconds}ms',
+      );
       return Diff(updatedFiles, deletedFiles, hasMore, latestUpdatedAtTime);
     } catch (e, s) {
       _logger.severe(e, s);
@@ -417,10 +411,10 @@ class CollectionApiClient {
   }
 
   Future<Collection> _fromRemoteCollection(
-    Map<String, dynamic>? collectionData,
+    Map<String, dynamic> collectionData,
   ) async {
     final Collection collection = Collection.fromMap(collectionData);
-    if (collectionData != null && !collection.isDeleted) {
+    if (!collection.isDeleted) {
       final collectionKey = CryptoHelper.instance.getCollectionKey(collection);
       if (collectionData['magicMetadata'] != null) {
         final utfEncodedMmd = await CryptoUtil.decryptData(
@@ -439,23 +433,19 @@ class CollectionApiClient {
         final utfEncodedMmd = await CryptoUtil.decryptData(
           CryptoUtil.base642bin(collectionData['pubMagicMetadata']['data']),
           collectionKey,
-          CryptoUtil.base642bin(
-            collectionData['pubMagicMetadata']['header'],
-          ),
+          CryptoUtil.base642bin(collectionData['pubMagicMetadata']['header']),
         );
         collection.mMdPubEncodedJson = utf8.decode(utfEncodedMmd);
         collection.mMbPubVersion =
             collectionData['pubMagicMetadata']['version'];
         collection.pubMagicMetadata =
             CollectionPubMagicMetadata.fromEncodedJson(
-          collection.mMdPubEncodedJson ?? '{}',
-        );
+              collection.mMdPubEncodedJson ?? '{}',
+            );
       }
       if (collectionData['sharedMagicMetadata'] != null) {
         final utfEncodedMmd = await CryptoUtil.decryptData(
-          CryptoUtil.base642bin(
-            collectionData['sharedMagicMetadata']['data'],
-          ),
+          CryptoUtil.base642bin(collectionData['sharedMagicMetadata']['data']),
           collectionKey,
           CryptoUtil.base642bin(
             collectionData['sharedMagicMetadata']['header'],
@@ -480,8 +470,9 @@ class CollectionApiClient {
     if (collection.encryptedName != null &&
         collection.encryptedName!.isNotEmpty) {
       try {
-        final collectionKey =
-            CryptoHelper.instance.getCollectionKey(collection);
+        final collectionKey = CryptoHelper.instance.getCollectionKey(
+          collection,
+        );
         final result = CryptoUtil.decryptSync(
           CryptoUtil.base642bin(collection.encryptedName!),
           collectionKey,
@@ -501,8 +492,10 @@ class CollectionApiClient {
 
   Future<Collection> create(String name, CollectionType type) async {
     final collectionKey = CryptoUtil.generateKey();
-    final encryptedKeyData =
-        CryptoUtil.encryptSync(collectionKey, _config.getKey()!);
+    final encryptedKeyData = CryptoUtil.encryptSync(
+      collectionKey,
+      _config.getKey()!,
+    );
     final encryptedName = CryptoUtil.encryptSync(
       utf8.encode(name),
       collectionKey,
@@ -515,12 +508,9 @@ class CollectionApiClient {
       type: type,
       attributes: CollectionAttributes(),
     );
-    return _enteDio
-        .post(
-      "/collections",
-      data: request.toJson(),
-    )
-        .then((response) async {
+    return _enteDio.post("/collections", data: request.toJson()).then((
+      response,
+    ) async {
       final collectionData = response.data["collection"];
       final collection = await _fromRemoteCollection(collectionData);
       return collection;
@@ -577,8 +567,9 @@ class CollectionApiClient {
     String publicKey,
     CollectionParticipantRole role,
   ) async {
-    final collectionKey =
-        CollectionService.instance.getCollectionKey(collectionID);
+    final collectionKey = CollectionService.instance.getCollectionKey(
+      collectionID,
+    );
     final encryptedKey = CryptoUtil.sealSync(
       collectionKey,
       CryptoUtil.base642bin(publicKey),
@@ -602,8 +593,10 @@ class CollectionApiClient {
   }
 
   Future<List<User>> unshare(int collectionID, String email) async {
-    final sharees =
-        await CollectionSharingService.instance.unshare(collectionID, email);
+    final sharees = await CollectionSharingService.instance.unshare(
+      collectionID,
+      email,
+    );
     final collection = CollectionService.instance.getFromCache(collectionID);
     final updatedCollection = collection!.copyWith(sharees: sharees);
     await _updateCollectionInDB(updatedCollection);
@@ -645,16 +638,15 @@ class CreateRequest {
     CollectionType? type,
     CollectionAttributes? attributes,
     MetadataRequest? magicMetadata,
-  }) =>
-      CreateRequest(
-        encryptedKey: encryptedKey ?? this.encryptedKey,
-        keyDecryptionNonce: keyDecryptionNonce ?? this.keyDecryptionNonce,
-        encryptedName: encryptedName ?? this.encryptedName,
-        nameDecryptionNonce: nameDecryptionNonce ?? this.nameDecryptionNonce,
-        type: type ?? this.type,
-        attributes: attributes ?? this.attributes,
-        magicMetadata: magicMetadata ?? this.magicMetadata,
-      );
+  }) => CreateRequest(
+    encryptedKey: encryptedKey ?? this.encryptedKey,
+    keyDecryptionNonce: keyDecryptionNonce ?? this.keyDecryptionNonce,
+    encryptedName: encryptedName ?? this.encryptedName,
+    nameDecryptionNonce: nameDecryptionNonce ?? this.nameDecryptionNonce,
+    type: type ?? this.type,
+    attributes: attributes ?? this.attributes,
+    magicMetadata: magicMetadata ?? this.magicMetadata,
+  );
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};

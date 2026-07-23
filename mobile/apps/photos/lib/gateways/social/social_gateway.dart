@@ -80,9 +80,7 @@ class SocialGateway {
     int? limit,
     int? fileID,
   }) async {
-    final queryParams = <String, dynamic>{
-      "collectionID": collectionID,
-    };
+    final queryParams = <String, dynamic>{"collectionID": collectionID};
 
     if (sinceTime != null) {
       queryParams["sinceTime"] = sinceTime;
@@ -98,9 +96,7 @@ class SocialGateway {
       "/comments/diff",
       queryParameters: queryParams,
     );
-    return CommentsDiffResponse.fromJson(
-      response.data as Map<String, dynamic>,
-    );
+    return CommentsDiffResponse.fromJson(response.data as Map<String, dynamic>);
   }
 
   // ============ Reactions API ============
@@ -162,9 +158,7 @@ class SocialGateway {
     int? fileID,
     String? commentID,
   }) async {
-    final queryParams = <String, dynamic>{
-      "collectionID": collectionID,
-    };
+    final queryParams = <String, dynamic>{"collectionID": collectionID};
 
     if (sinceTime != null) {
       queryParams["sinceTime"] = sinceTime;
@@ -211,9 +205,7 @@ class SocialGateway {
       "/social/anon-profiles",
       queryParameters: {"collectionID": collectionID},
     );
-    return AnonProfilesResponse.fromJson(
-      response.data as Map<String, dynamic>,
-    );
+    return AnonProfilesResponse.fromJson(response.data as Map<String, dynamic>);
   }
 
   // ============ Unified/Social API ============
@@ -234,9 +226,7 @@ class SocialGateway {
     int? limit,
     int? fileID,
   }) async {
-    final queryParams = <String, dynamic>{
-      "collectionID": collectionID,
-    };
+    final queryParams = <String, dynamic>{"collectionID": collectionID};
 
     if (commentsSinceTime != null) {
       queryParams["commentsSinceTime"] = commentsSinceTime;
@@ -255,9 +245,7 @@ class SocialGateway {
       "/social/diff",
       queryParameters: queryParams,
     );
-    return SocialDiffResponse.fromJson(
-      response.data as Map<String, dynamic>,
-    );
+    return SocialDiffResponse.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Fetches comment and reaction counts for all collections.

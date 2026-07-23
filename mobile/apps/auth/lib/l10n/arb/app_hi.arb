@@ -112,7 +112,6 @@
   "passwordEmptyError": "पासवर्ड रिक्त नहीं हो सकता है",
   "passwordTooShort": "पासवर्ड कम से कम 8 अक्षरों का होना चाहिए।",
   "importFromApp": "{appName} से कोड इंपोर्ट करें",
-  "importGoogleAuthGuide": "ट्रांसफर अकाउंट्स\" विकल्प का उपयोग करके अपने खातों को Google प्रमाणक से एक क्यूआर कोड में निर्यात करें। फिर किसी अन्य डिवाइस का उपयोग करके QR कोड को स्कैन करें।\n\nटिप: क्यूआर कोड की तस्वीर लेने के लिए आप अपने लैपटॉप के वेबकैम का उपयोग कर सकते हैं।",
   "importSelectJsonFile": "JSON फाइल चुनें",
   "importSelectAppExport": "{appName} की निर्यात फ़ाइल का चयन करें",
   "importEnteEncGuide": "Ente से निर्यात की गई एन्क्रिप्टेड JSON फ़ाइल का चयन करें",
@@ -191,7 +190,6 @@
   "deleteAccountQuery": "आपको जाते हुए देखकर हमें दुख होगा\nक्या आप किसी समस्या का सामना कर रहे हैं?\n",
   "yesSendFeedbackAction": "हाँ, प्रतिक्रिया भेजें\n",
   "noDeleteAccountAction": "नहीं, खाता हटाएँ\n",
-  "initiateAccountDeleteTitle": "खाता हटाने की प्रक्रिया शुरू करने के लिए कृपया प्रमाणीकरण करें\n",
   "sendEmail": "ईमेल भेजें\n",
   "createNewAccount": "नया खाता बनाएँ\n"
 }

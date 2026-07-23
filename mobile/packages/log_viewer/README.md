@@ -21,13 +21,13 @@ import 'package:log_viewer/log_viewer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize log viewer (basic)
   await LogViewer.initialize();
-  
+
   // Or with a prefix for multi-process apps
   await LogViewer.initialize(prefix: '[MAIN]');
-  
+
   runApp(MyApp());
 }
 ```

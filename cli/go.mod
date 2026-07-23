@@ -1,13 +1,13 @@
-module github.com/ente-io/cli
+module github.com/ente/cli
 
-go 1.23
+go 1.26
 
 require (
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/google/uuid v1.3.1
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1
 	github.com/zalando/go-keyring v0.2.3
-	golang.org/x/crypto v0.14.0
+	golang.org/x/crypto v0.53.0
 )
 
 require (
@@ -37,10 +37,10 @@ require (
 	github.com/spf13/viper v1.16.0
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.etcd.io/bbolt v1.3.7
-	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/term v0.13.0
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/term v0.44.0
+	golang.org/x/text v0.38.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -46,7 +46,9 @@ Open `Settings > Machine learning` and enable **Machine learning** and/or **Loca
 
 Open `Settings > Preferences > Machine learning` and enable **Machine learning** and/or **Local indexing**.
 
-> **Note**: Machine learning is not available on photos.ente.com. You must use the mobile or desktop apps.
+> [!NOTE]
+>
+> Machine learning is not available on photos.ente.com. You must use the mobile or desktop apps.
 
 ## The Indexing Process
 

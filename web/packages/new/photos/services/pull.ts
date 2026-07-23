@@ -139,9 +139,9 @@ export const pullFiles = async (opts?: PullFilesOpts) => {
  *
  * See: [Note: Remote pull]
  */
-export const postPullFiles = async () => {
+export const postPullFiles = async (source?: string) => {
     await Promise.all([searchDataSync(), videoProcessingSyncIfNeeded()]);
     // ML sync might take a very long time for initial indexing, so don't wait
     // for it to finish.
-    void mlSync();
+    void mlSync(source ? `remote-pull:${source}` : "remote-pull");
 };

@@ -2,10 +2,7 @@ import 'package:flutter/widgets.dart';
 
 /// StatefulWidget that wraps InheritedSettingsState
 class SettingsStateContainer extends StatefulWidget {
-  const SettingsStateContainer({
-    super.key,
-    required this.child,
-  });
+  const SettingsStateContainer({super.key, required this.child});
   final Widget child;
 
   @override

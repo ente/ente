@@ -24,59 +24,60 @@ void main() {
             FlutterError.dumpErrorToConsole(errorDetails);
           };
 
-          await binding.traceAction(
-            () async {
-              app.main();
+          await binding.traceAction(() async {
+            app.main();
+
+            await tester.pumpAndSettle(const Duration(seconds: 1));
+
+            await dismissUpdateAppDialog(tester);
+
+            final signInButton = find.byKey(const ValueKey("signInButton"));
+            skipLogin = !tester.any(signInButton);
+
+            if (!skipLogin) {
+              await tester.tap(signInButton);
+              await tester.pumpAndSettle();
+              final emailInputField = find.byType(TextFormField);
+              final logInButton = find.byKey(const ValueKey("logInButton"));
+              //Fill email id here
+              await tester.enterText(emailInputField, "*enter email here*");
+              await tester.pumpAndSettle(const Duration(seconds: 1));
+              await tester.tap(logInButton);
+              await tester.pumpAndSettle(const Duration(seconds: 3));
+              final passwordInputField = find.byKey(
+                const ValueKey("passwordInputField"),
+              );
+              final verifyPasswordButton = find.byKey(
+                const ValueKey("verifyPasswordButton"),
+              );
+              //Fill password here
+              await tester.enterText(
+                passwordInputField,
+                "*enter password here*",
+              );
+              await tester.pumpAndSettle(const Duration(seconds: 1));
+              await tester.tap(verifyPasswordButton);
+              await tester.pumpAndSettle();
 
               await tester.pumpAndSettle(const Duration(seconds: 1));
-
               await dismissUpdateAppDialog(tester);
 
-              final signInButton = find.byKey(const ValueKey("signInButton"));
-              skipLogin = !tester.any(signInButton);
+              //Grant permission to access photos. Must manually click the system dialog.
+              final grantPermissionButton = find.byKey(
+                const ValueKey("grantPermissionButton"),
+              );
+              await tester.tap(grantPermissionButton);
+              await tester.pumpAndSettle(const Duration(seconds: 1));
+              await tester.pumpAndSettle(const Duration(seconds: 3));
 
-              if (!skipLogin) {
-                await tester.tap(signInButton);
-                await tester.pumpAndSettle();
-                final emailInputField = find.byType(TextFormField);
-                final logInButton = find.byKey(const ValueKey("logInButton"));
-                //Fill email id here
-                await tester.enterText(emailInputField, "*enter email here*");
-                await tester.pumpAndSettle(const Duration(seconds: 1));
-                await tester.tap(logInButton);
-                await tester.pumpAndSettle(const Duration(seconds: 3));
-                final passwordInputField =
-                    find.byKey(const ValueKey("passwordInputField"));
-                final verifyPasswordButton =
-                    find.byKey(const ValueKey("verifyPasswordButton"));
-                //Fill password here
-                await tester.enterText(
-                  passwordInputField,
-                  "*enter password here*",
-                );
-                await tester.pumpAndSettle(const Duration(seconds: 1));
-                await tester.tap(verifyPasswordButton);
-                await tester.pumpAndSettle();
-
-                await tester.pumpAndSettle(const Duration(seconds: 1));
-                await dismissUpdateAppDialog(tester);
-
-                //Grant permission to access photos. Must manually click the system dialog.
-                final grantPermissionButton =
-                    find.byKey(const ValueKey("grantPermissionButton"));
-                await tester.tap(grantPermissionButton);
-                await tester.pumpAndSettle(const Duration(seconds: 1));
-                await tester.pumpAndSettle(const Duration(seconds: 3));
-
-                //Automatically skips backup
-                final skipBackupButton =
-                    find.byKey(const ValueKey("skipBackupButton"));
-                await tester.tap(skipBackupButton);
-                await tester.pumpAndSettle(const Duration(seconds: 2));
-              }
-            },
-            reportKey: "app_init_summary",
-          );
+              //Automatically skips backup
+              final skipBackupButton = find.byKey(
+                const ValueKey("skipBackupButton"),
+              );
+              await tester.tap(skipBackupButton);
+              await tester.pumpAndSettle(const Duration(seconds: 2));
+            }
+          }, reportKey: "app_init_summary");
         },
         (error, stack) {
           Logger("app_init_test").info(error, stack);

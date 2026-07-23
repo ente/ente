@@ -9,7 +9,7 @@
  */
 
 import type { FSWatcher } from "chokidar";
-import type { BrowserWindow } from "electron";
+import type { BrowserWindow, IpcMainEvent, IpcMainInvokeEvent } from "electron";
 import { ipcMain, safeStorage } from "electron/main";
 import type {
     CollectionMapping,
@@ -20,7 +20,7 @@ import type {
     UtilityProcessType,
     ZipItem,
 } from "../types/ipc";
-import { logToDisk } from "./log";
+import log, { logToDisk } from "./log";
 import {
     appVersion,
     skipAppUpdate,
@@ -106,6 +106,57 @@ const parsePersistedAppLockConfig = (
     return { enabled, lockType, autoLockTimeMs };
 };
 
+const rendererOrigin = "ente://app";
+
+/**
+ * Guard against IPC from anything other than our own renderer.
+ *
+ * The preload script exposes the {@link Electron} object to whatever document
+ * is loaded in the main window, including any external page (e.g. the Stripe
+ * checkout) the window navigates to. Ensure that the frame invoking us is
+ * actually our renderer before running the privileged handler.
+ */
+const ensureTrustedIPCSender = (
+    channel: string,
+    event: IpcMainEvent | IpcMainInvokeEvent,
+) => {
+    const origin = event.senderFrame?.origin;
+    if (origin == rendererOrigin) return true;
+    log.warn(
+        `Ignoring IPC "${channel}" from unexpected origin ${origin ?? "?"}`,
+    );
+    return false;
+};
+
+/**
+ * A variant of {@link ipcMain.handle} that ignores requests from untrusted
+ * senders. See {@link ensureTrustedIPCSender}.
+ */
+// The type parameters preserve each handler's specific argument types.
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+const handle = <A extends unknown[], R>(
+    channel: string,
+    handler: (event: IpcMainInvokeEvent, ...args: A) => R,
+) =>
+    ipcMain.handle(channel, (event: IpcMainInvokeEvent, ...args: A) => {
+        if (!ensureTrustedIPCSender(channel, event))
+            throw new Error(`Refusing IPC "${channel}" from untrusted sender`);
+        return handler(event, ...args);
+    });
+
+/**
+ * A variant of {@link ipcMain.on} that ignores requests from untrusted senders.
+ * See {@link ensureTrustedIPCSender}.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+const on = <A extends unknown[]>(
+    channel: string,
+    handler: (event: IpcMainEvent, ...args: A) => void,
+) =>
+    ipcMain.on(channel, (event: IpcMainEvent, ...args: A) => {
+        if (ensureTrustedIPCSender(channel, event)) handler(event, ...args);
+    });
+
 /**
  * Listen for IPC events sent/invoked by the renderer process, and route them to
  * their correct handlers.
@@ -129,54 +180,48 @@ export const attachIPCHandlers = () => {
 
     // - General
 
-    ipcMain.handle("appVersion", () => appVersion());
+    handle("appVersion", () => appVersion());
 
-    ipcMain.handle("openDirectory", (_, dirPath: string) =>
-        openDirectory(dirPath),
-    );
+    handle("openDirectory", (_, dirPath: string) => openDirectory(dirPath));
 
-    ipcMain.handle("openLogDirectory", () => openLogDirectory());
+    handle("openLogDirectory", () => openLogDirectory());
 
     // See [Note: Catching exception during .send/.on]
-    ipcMain.on("logToDisk", (_, message: string) => logToDisk(message));
+    on("logToDisk", (_, message: string) => logToDisk(message));
 
-    ipcMain.handle("selectDirectory", () => selectDirectory());
+    handle("selectDirectory", () => selectDirectory());
 
-    ipcMain.handle("masterKeyFromSafeStorage", () =>
-        masterKeyFromSafeStorage(),
-    );
+    handle("masterKeyFromSafeStorage", () => masterKeyFromSafeStorage());
 
-    ipcMain.handle("saveMasterKeyInSafeStorage", (_, masterKey: string) =>
+    handle("saveMasterKeyInSafeStorage", (_, masterKey: string) =>
         saveMasterKeyInSafeStorage(masterKey),
     );
 
-    ipcMain.handle("isSafeStorageAvailable", (): boolean =>
+    handle("isSafeStorageAvailable", (): boolean =>
         safeStorage.isEncryptionAvailable(),
     );
 
-    ipcMain.handle("appLockConfigFromSafeStorage", () =>
+    handle("appLockConfigFromSafeStorage", () =>
         appLockConfigFromSafeStorage(),
     );
 
-    ipcMain.handle("saveAppLockConfigInSafeStorage", (_, config: unknown) =>
+    handle("saveAppLockConfigInSafeStorage", (_, config: unknown) =>
         saveAppLockConfigInSafeStorage(parsePersistedAppLockConfig(config)),
     );
 
-    ipcMain.handle("clearAppLockConfigFromSafeStorage", () =>
+    handle("clearAppLockConfigFromSafeStorage", () =>
         clearAppLockConfigFromSafeStorage(),
     );
 
-    ipcMain.handle("lastShownChangelogVersion", () =>
-        lastShownChangelogVersion(),
-    );
+    handle("lastShownChangelogVersion", () => lastShownChangelogVersion());
 
-    ipcMain.handle("setLastShownChangelogVersion", (_, version: number) =>
+    handle("setLastShownChangelogVersion", (_, version: number) =>
         setLastShownChangelogVersion(version),
     );
 
-    ipcMain.handle("isAutoLaunchEnabled", () => autoLauncher.isEnabled());
+    handle("isAutoLaunchEnabled", () => autoLauncher.isEnabled());
 
-    ipcMain.handle("toggleAutoLaunch", () => autoLauncher.toggleAutoLaunch());
+    handle("toggleAutoLaunch", () => autoLauncher.toggleAutoLaunch());
 
     // - Desktop app lock (native device authentication)
     //
@@ -186,69 +231,61 @@ export const attachIPCHandlers = () => {
 
     // Returns richer capability details (for example, available prompt type)
     // so the UI can decide which app-lock option to show.
-    ipcMain.handle("getNativeDeviceLockCapability", () =>
+    handle("getNativeDeviceLockCapability", () =>
         getNativeDeviceLockCapability(),
     );
 
     // Triggers the macOS-native Touch ID prompt and returns the auth result
     // back to the renderer. Other platforms currently return false.
-    ipcMain.handle("promptDeviceLock", (_, reason: string) =>
-        promptDeviceLock(reason),
-    );
+    handle("promptDeviceLock", (_, reason: string) => promptDeviceLock(reason));
 
     // - App update
 
-    ipcMain.on("updateAndRestart", () => updateAndRestart());
+    on("updateAndRestart", () => updateAndRestart());
 
-    ipcMain.on("updateOnNextRestart", (_, version: string) =>
+    on("updateOnNextRestart", (_, version: string) =>
         updateOnNextRestart(version),
     );
 
-    ipcMain.on("skipAppUpdate", (_, version: string) => skipAppUpdate(version));
+    on("skipAppUpdate", (_, version: string) => skipAppUpdate(version));
 
     // - FS
 
-    ipcMain.handle("fsExists", (_, path: string) => fsExists(path));
+    handle("fsExists", (_, path: string) => fsExists(path));
 
-    ipcMain.handle("fsRename", (_, oldPath: string, newPath: string) =>
+    handle("fsRename", (_, oldPath: string, newPath: string) =>
         fsRename(oldPath, newPath),
     );
 
-    ipcMain.handle("fsMkdirIfNeeded", (_, dirPath: string) =>
-        fsMkdirIfNeeded(dirPath),
-    );
+    handle("fsMkdirIfNeeded", (_, dirPath: string) => fsMkdirIfNeeded(dirPath));
 
-    ipcMain.handle("fsRmdir", (_, path: string) => fsRmdir(path));
+    handle("fsRmdir", (_, path: string) => fsRmdir(path));
 
-    ipcMain.handle("fsRm", (_, path: string) => fsRm(path));
+    handle("fsRm", (_, path: string) => fsRm(path));
 
-    ipcMain.handle("fsReadTextFile", (_, path: string) => fsReadTextFile(path));
+    handle("fsReadTextFile", (_, path: string) => fsReadTextFile(path));
 
-    ipcMain.handle("fsWriteFile", (_, path: string, contents: string) =>
+    handle("fsWriteFile", (_, path: string, contents: string) =>
         fsWriteFile(path, contents),
     );
 
-    ipcMain.handle(
-        "fsWriteFileViaBackup",
-        (_, path: string, contents: string) =>
-            fsWriteFileViaBackup(path, contents),
+    handle("fsWriteFileViaBackup", (_, path: string, contents: string) =>
+        fsWriteFileViaBackup(path, contents),
     );
 
-    ipcMain.handle("fsIsDir", (_, dirPath: string) => fsIsDir(dirPath));
+    handle("fsIsDir", (_, dirPath: string) => fsIsDir(dirPath));
 
-    ipcMain.handle("fsStatMtime", (_, path: string) => fsStatMtime(path));
+    handle("fsStatMtime", (_, path: string) => fsStatMtime(path));
 
-    ipcMain.handle("fsFindFiles", (_, folderPath: string) =>
-        fsFindFiles(folderPath),
-    );
+    handle("fsFindFiles", (_, folderPath: string) => fsFindFiles(folderPath));
 
     // - Conversion
 
-    ipcMain.handle("convertToJPEG", (_, imageData: Uint8Array) =>
+    handle("convertToJPEG", (_, imageData: Uint8Array) =>
         convertToJPEG(imageData),
     );
 
-    ipcMain.handle(
+    handle(
         "generateImageThumbnail",
         (
             _,
@@ -258,7 +295,7 @@ export const attachIPCHandlers = () => {
         ) => generateImageThumbnail(pathOrZipItem, maxDimension, maxSize),
     );
 
-    ipcMain.handle(
+    handle(
         "ffmpegExec",
         (
             _,
@@ -268,7 +305,7 @@ export const attachIPCHandlers = () => {
         ) => ffmpegExec(command, pathOrZipItem, outputFileExtension),
     );
 
-    ipcMain.handle(
+    handle(
         "ffmpegDetermineVideoDuration",
         (_, pathOrZipItem: string | ZipItem) =>
             ffmpegDetermineVideoDuration(pathOrZipItem),
@@ -276,33 +313,31 @@ export const attachIPCHandlers = () => {
 
     // - Upload
 
-    ipcMain.handle("listZipItems", (_, zipPath: string) =>
-        listZipItems(zipPath),
-    );
+    handle("listZipItems", (_, zipPath: string) => listZipItems(zipPath));
 
-    ipcMain.handle("pathOrZipItemSize", (_, pathOrZipItem: string | ZipItem) =>
+    handle("pathOrZipItemSize", (_, pathOrZipItem: string | ZipItem) =>
         pathOrZipItemSize(pathOrZipItem),
     );
 
-    ipcMain.handle("pendingUploads", () => pendingUploads());
+    handle("pendingUploads", () => pendingUploads());
 
-    ipcMain.handle("setPendingUploads", (_, pendingUploads: PendingUploads) =>
+    handle("setPendingUploads", (_, pendingUploads: PendingUploads) =>
         setPendingUploads(pendingUploads),
     );
 
-    ipcMain.handle(
+    handle(
         "markUploadedFile",
         (_, path: string, associatedPath: string | undefined) =>
             markUploadedFile(path, associatedPath),
     );
 
-    ipcMain.handle(
+    handle(
         "markUploadedZipItem",
         (_, item: ZipItem, associatedItem: ZipItem | undefined) =>
             markUploadedZipItem(item, associatedItem),
     );
 
-    ipcMain.handle("clearPendingUploads", () => clearPendingUploads());
+    handle("clearPendingUploads", () => clearPendingUploads());
 };
 
 /**
@@ -312,7 +347,7 @@ export const attachIPCHandlers = () => {
 export const attachMainWindowIPCHandlers = (mainWindow: BrowserWindow) => {
     // - Utility processes
 
-    ipcMain.on("triggerCreateUtilityProcess", (_, type: UtilityProcessType) =>
+    on("triggerCreateUtilityProcess", (_, type: UtilityProcessType) =>
         triggerCreateUtilityProcess(type, mainWindow),
     );
 };
@@ -327,25 +362,25 @@ export const attachMainWindowIPCHandlers = (mainWindow: BrowserWindow) => {
 export const attachFSWatchIPCHandlers = (watcher: FSWatcher) => {
     // - Watch
 
-    ipcMain.handle("watchGet", () => watchGet(watcher));
+    handle("watchGet", () => watchGet(watcher));
 
-    ipcMain.handle(
+    handle(
         "watchAdd",
         (_, folderPath: string, collectionMapping: CollectionMapping) =>
             watchAdd(watcher, folderPath, collectionMapping),
     );
 
-    ipcMain.handle("watchRemove", (_, folderPath: string) =>
+    handle("watchRemove", (_, folderPath: string) =>
         watchRemove(watcher, folderPath),
     );
 
-    ipcMain.handle(
+    handle(
         "watchUpdateSyncedFiles",
         (_, syncedFiles: FolderWatch["syncedFiles"], folderPath: string) =>
             watchUpdateSyncedFiles(syncedFiles, folderPath),
     );
 
-    ipcMain.handle(
+    handle(
         "watchUpdateIgnoredFiles",
         (_, ignoredFiles: FolderWatch["ignoredFiles"], folderPath: string) =>
             watchUpdateIgnoredFiles(ignoredFiles, folderPath),
@@ -357,5 +392,5 @@ export const attachFSWatchIPCHandlers = (watcher: FSWatcher) => {
  * event with needs access to the {@link FSWatcher} instance.
  */
 export const attachLogoutIPCHandler = (watcher: FSWatcher) => {
-    ipcMain.handle("logout", () => logout(watcher));
+    handle("logout", () => logout(watcher));
 };

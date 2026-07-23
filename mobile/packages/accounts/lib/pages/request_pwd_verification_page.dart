@@ -81,8 +81,10 @@ class _RequestPasswordVerificationPageState
         buttonText: context.strings.verifyPassword,
         onPressedFunction: () async {
           FocusScope.of(context).unfocus();
-          final dialog =
-              createProgressDialog(context, context.strings.pleaseWait);
+          final dialog = createProgressDialog(
+            context,
+            context.strings.pleaseWait,
+          );
           await dialog.show();
           try {
             final attributes = widget.config.getKeyAttributes()!;
@@ -101,13 +103,15 @@ class _RequestPasswordVerificationPageState
             // pop
             await widget.onPasswordVerified(keyEncryptionKey);
             await dialog.hide();
-            Navigator.of(context).pop(true);
+            if (context.mounted) {
+              Navigator.of(context).pop(true);
+            }
           } catch (e, s) {
             _logger.severe("Error while verifying password", e, s);
             await dialog.hide();
             if (widget.onPasswordError != null) {
               widget.onPasswordError!();
-            } else {
+            } else if (context.mounted) {
               // ignore: unawaited_futures
               showErrorDialog(
                 context,
@@ -153,9 +157,7 @@ class _RequestPasswordVerificationPageState
                   // password
                   visible: false,
                   child: TextFormField(
-                    autofillHints: const [
-                      AutofillHints.email,
-                    ],
+                    autofillHints: const [AutofillHints.email],
                     autocorrect: false,
                     keyboardType: TextInputType.emailAddress,
                     initialValue: email,
@@ -192,9 +194,7 @@ class _RequestPasswordVerificationPageState
                             )
                           : null,
                     ),
-                    style: const TextStyle(
-                      fontSize: 14,
-                    ),
+                    style: const TextStyle(fontSize: 14),
                     controller: _passwordController,
                     autofocus: true,
                     autocorrect: false,
@@ -208,9 +208,7 @@ class _RequestPasswordVerificationPageState
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 18),
-                  child: Divider(
-                    thickness: 1,
-                  ),
+                  child: Divider(thickness: 1),
                 ),
               ],
             ),

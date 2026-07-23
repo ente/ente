@@ -1,3 +1,4 @@
+import "package:ente_components/ente_components.dart";
 import "package:ente_icons/ente_icons.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
@@ -8,7 +9,7 @@ import "package:photos/models/collection/collection.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/selected_albums.dart";
 import "package:photos/services/collections_service.dart";
-import "package:photos/theme/ente_theme.dart";
+import "package:photos/ui/components/collection_share_badge.dart";
 import "package:photos/ui/components/thumbnail_list_item.dart";
 import "package:photos/ui/sharing/album_share_info_widget.dart";
 import "package:photos/ui/sharing/user_avator_widget.dart";
@@ -17,7 +18,7 @@ import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 
 class AlbumListItemWidget extends StatelessWidget {
   static final double _trailingWidth =
-      getAvatarSize(AvatarType.md) + getOverlapPadding(AvatarType.md);
+      getAvatarSize(AvatarType.medium) + getOverlapPadding(AvatarType.medium);
 
   final Collection collection;
   final void Function(Collection)? onTapCallback;
@@ -50,18 +51,14 @@ class AlbumListItemWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildItem(
-    BuildContext context, {
-    required bool isSelected,
-  }) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+  Widget _buildItem(BuildContext context, {required bool isSelected}) {
     final bool isOwner = collection.isOwner(
       Configuration.instance.getUserID() ?? -1,
     );
     final bool isOutgoing = isOwner && collection.hasSharees;
     final bool isIncoming = !isOwner;
     final bool showSharingIndicator = isOutgoing || isIncoming;
+    final bool showLinkIndicator = isOwner && collection.hasLink;
     final bool isFavoriteAlbum = collection.type == CollectionType.favorites;
     final bool showPin = isOwner
         ? collection.isPinned
@@ -69,72 +66,53 @@ class AlbumListItemWidget extends StatelessWidget {
     final bool showArchive = isOwner
         ? collection.isArchived()
         : collection.hasShareeArchived();
-    final bool hasAnyStatus = isFavoriteAlbum || showPin || showArchive;
 
+    final colors = context.componentColors;
     return ThumbnailListItem(
       backgroundColor: thumbnailListItemBackgroundColor(context),
+      selectedBorderColor: colors.strokeDark,
       isSelected: isSelected,
       onTap: onTapCallback == null ? null : () => onTapCallback!(collection),
       onLongPress: onLongPressCallback == null
           ? null
           : () => onLongPressCallback!(collection),
-      leading: _AlbumListItemCover(
-        collection: collection,
+      leading: _AlbumListItemCover(collection: collection),
+      title: _buildTitle(
+        context,
         showSharingIndicator: showSharingIndicator,
         isOutgoing: isOutgoing,
-      ),
-      title: Text(
-        collection.displayName,
-        style: textTheme.body,
-        overflow: TextOverflow.ellipsis,
+        showLinkIndicator: showLinkIndicator,
       ),
       subtitle: FutureBuilder<int>(
         future: CollectionsService.instance.getFileCount(collection),
+        initialData: CollectionsService.instance.getCachedFileCount(collection),
         builder: (context, snapshot) {
           String countText = "";
           if (snapshot.hasData) {
-            countText = AppLocalizations.of(context).itemCount(
-              count: snapshot.data!,
-            );
+            countText = AppLocalizations.of(
+              context,
+            ).itemCount(count: snapshot.data!);
           } else if (snapshot.hasError) {
             Logger("AlbumListItemWidget").severe(
               "Failed to fetch file count of collection",
               snapshot.error,
             );
+          } else {
+            final cachedCount = CollectionsService.instance.getCachedFileCount(
+              collection,
+            );
+            if (cachedCount != null) {
+              countText = AppLocalizations.of(
+                context,
+              ).itemCount(count: cachedCount);
+            }
           }
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Flexible(
-                child: Text(
-                  countText,
-                  style: textTheme.smallMuted,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (hasAnyStatus) ...[
-                Text(" \u2022 ", style: textTheme.smallMuted),
-                if (showPin)
-                  HugeIcon(
-                    icon: HugeIcons.strokeRoundedPin,
-                    size: 12,
-                    color: colorScheme.textMuted,
-                    strokeWidth: 2.0,
-                  ),
-                if (showArchive)
-                  Icon(
-                    Icons.archive_outlined,
-                    size: 12,
-                    color: colorScheme.textMuted,
-                  ),
-                if (isFavoriteAlbum)
-                  Icon(
-                    EnteIcons.favoriteFilled,
-                    size: 12,
-                    color: colorScheme.greenBase,
-                  ),
-              ],
-            ],
+          return _buildSubtitle(
+            context,
+            text: countText,
+            showPin: showPin,
+            showArchive: showArchive,
+            isFavoriteAlbum: isFavoriteAlbum,
           );
         },
       ),
@@ -142,7 +120,7 @@ class AlbumListItemWidget extends StatelessWidget {
         padding: const EdgeInsets.only(right: 8),
         child: SizedBox(
           width: _trailingWidth,
-          height: getAvatarSize(AvatarType.md),
+          height: getAvatarSize(AvatarType.medium),
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             switchInCurve: Curves.easeOut,
@@ -150,10 +128,7 @@ class AlbumListItemWidget extends StatelessWidget {
             layoutBuilder: (currentChild, previousChildren) {
               return Stack(
                 alignment: Alignment.centerRight,
-                children: [
-                  ...previousChildren,
-                  if (currentChild != null) currentChild,
-                ],
+                children: [...previousChildren, ?currentChild],
               );
             },
             child: _buildTrailingIndicator(
@@ -167,24 +142,104 @@ class AlbumListItemWidget extends StatelessWidget {
     );
   }
 
+  Widget _buildTitle(
+    BuildContext context, {
+    required bool showSharingIndicator,
+    required bool isOutgoing,
+    required bool showLinkIndicator,
+  }) {
+    final colors = context.componentColors;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Flexible(
+          child: Text(
+            collection.displayName,
+            style: TextStyles.body.copyWith(color: colors.textBase),
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (showSharingIndicator) ...[
+          const SizedBox(width: 6),
+          CollectionShareBadge(
+            isOutgoing: isOutgoing,
+            variant: CollectionShareBadgeVariant.outlined,
+          ),
+        ],
+        if (showLinkIndicator) ...[
+          const SizedBox(width: 4),
+          const CollectionLinkBadge(
+            variant: CollectionShareBadgeVariant.outlined,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSubtitle(
+    BuildContext context, {
+    required String text,
+    required bool showPin,
+    required bool showArchive,
+    required bool isFavoriteAlbum,
+  }) {
+    final colors = context.componentColors;
+    final textStyle = TextStyles.mini.copyWith(color: colors.textLight);
+    final hasStatus = showPin || showArchive || isFavoriteAlbum;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Flexible(
+          child: Text(
+            text,
+            style: textStyle,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (hasStatus) ...[
+          Text(" \u2022 ", style: textStyle),
+          if (showPin)
+            ImageIcon(
+              const AssetImage("assets/collection_pin.png"),
+              size: 12,
+              color: colors.textBase,
+            ),
+          if (showArchive)
+            HugeIcon(
+              icon: HugeIcons.strokeRoundedArchive03,
+              size: 12,
+              color: colors.textBase,
+              strokeWidth: 2.0,
+            ),
+          if (isFavoriteAlbum)
+            Icon(EnteIcons.favoriteFilled, size: 12, color: colors.textBase),
+        ],
+      ],
+    );
+  }
+
   Widget _buildTrailingIndicator(
     BuildContext context, {
     required bool isSelected,
     required bool isOwner,
   }) {
-    final double avatarSize = getAvatarSize(AvatarType.md);
-    final double slotOverlap = getOverlapPadding(AvatarType.md);
+    final double avatarSize = getAvatarSize(AvatarType.medium);
+    final double slotOverlap = getOverlapPadding(AvatarType.medium);
 
     if (isSelected) {
-      return const _CollectionSelectedBadge(
-        key: ValueKey("selected"),
-      );
+      return const CollectionSelectedBadge(key: ValueKey("selected"));
     }
     if (!isOwner) {
       return UserAvatarWidget(
         key: const ValueKey("owner"),
         collection.owner,
-        type: AvatarType.md,
+        type: AvatarType.medium,
         thumbnailView: true,
       );
     }
@@ -202,7 +257,7 @@ class AlbumListItemWidget extends StatelessWidget {
         height: avatarSize,
         child: AlbumSharesIcons(
           sharees: sharees,
-          type: AvatarType.md,
+          type: AvatarType.medium,
           limitCountTo: limit,
           padding: EdgeInsets.zero,
         ),
@@ -214,14 +269,8 @@ class AlbumListItemWidget extends StatelessWidget {
 
 class _AlbumListItemCover extends StatelessWidget {
   final Collection collection;
-  final bool showSharingIndicator;
-  final bool isOutgoing;
 
-  const _AlbumListItemCover({
-    required this.collection,
-    required this.showSharingIndicator,
-    required this.isOutgoing,
-  });
+  const _AlbumListItemCover({required this.collection});
 
   @override
   Widget build(BuildContext context) {
@@ -235,12 +284,20 @@ class _AlbumListItemCover extends StatelessWidget {
           child: SizedBox.expand(
             child: FutureBuilder<EnteFile?>(
               future: CollectionsService.instance.getCover(collection),
+              initialData: CollectionsService.instance.getCoverCache(
+                collection,
+              ),
               builder: (context, snapshot) {
-                if (snapshot.hasData) {
+                final thumbnail =
+                    snapshot.data ??
+                    CollectionsService.instance.getCoverCache(collection);
+                if (thumbnail != null) {
                   return ThumbnailWidget(
-                    snapshot.data!,
+                    thumbnail,
                     shouldShowFavoriteIcon: false,
                     shouldShowOwnerAvatar: false,
+                    shouldShowSyncStatus: false,
+                    key: Key("album_list:${collection.id}:${thumbnail.tag}"),
                   );
                 }
                 return const NoThumbnailWidget(
@@ -251,66 +308,7 @@ class _AlbumListItemCover extends StatelessWidget {
             ),
           ),
         ),
-        if (showSharingIndicator)
-          Positioned(
-            right: -4,
-            bottom: -4,
-            child: _CollectionShareBadge(isOutgoing: isOutgoing),
-          ),
       ],
-    );
-  }
-}
-
-class _CollectionShareBadge extends StatelessWidget {
-  final bool isOutgoing;
-
-  const _CollectionShareBadge({
-    required this.isOutgoing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    return Container(
-      width: 20,
-      height: 20,
-      decoration: BoxDecoration(
-        color: colorScheme.backgroundElevated,
-        shape: BoxShape.circle,
-        border: Border.all(color: colorScheme.strokeFainter),
-      ),
-      child: Center(
-        child: Icon(
-          isOutgoing
-              ? Icons.person_add_alt_1_outlined
-              : Icons.person_outline_rounded,
-          size: 12,
-          color: colorScheme.textMuted,
-        ),
-      ),
-    );
-  }
-}
-
-class _CollectionSelectedBadge extends StatelessWidget {
-  const _CollectionSelectedBadge({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    return Container(
-      width: getAvatarSize(AvatarType.md),
-      height: getAvatarSize(AvatarType.md),
-      decoration: BoxDecoration(
-        color: colorScheme.greenBase,
-        shape: BoxShape.circle,
-      ),
-      child: const Icon(
-        Icons.check_rounded,
-        size: 16,
-        color: Colors.white,
-      ),
     );
   }
 }

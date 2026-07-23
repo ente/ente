@@ -127,7 +127,7 @@ When a user removes their own files from a collection they own:
 - Table: `collection_actions(id, user_id, actor_user_id, collection_id, file_id, data JSONB, action, is_pending, created_at, updated_at)`.
 - ID uses nanoid (server/ente/base/id.go).
 - `GET /collection-actions/pending-remove?sinceTime=<int64>` returns `REMOVE` actions for the authenticated owner so clients can guide the shared-collection workflow. Response: `{ "actions": [...], "hasMore": boolean }`.
- - `GET /collection-actions/delete-suggestions?sinceTime=<int64>` returns `DELETE_SUGGESTED` actions; the server double-checks ownership and marks as resolved any entries whose files already exist as non-restored trash rows (either still in trash or already permanently deleted). Response: `{ "actions": [...], "hasMore": boolean }`.
+- `GET /collection-actions/delete-suggestions?sinceTime=<int64>` returns `DELETE_SUGGESTED` actions; the server double-checks ownership and marks as resolved any entries whose files already exist as non-restored trash rows (either still in trash or already permanently deleted). Response: `{ "actions": [...], "hasMore": boolean }`.
 - `POST /collection-actions/reject-delete-suggestions` accepts a list of file IDs and marks the matching pending delete suggestions as resolved for the caller.
 - Clients act on these locally:
   - Owner processes `REMOVE` by ensuring file remains in at least one owned collection, then can finalize server-side removal.

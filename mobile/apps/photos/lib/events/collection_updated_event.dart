@@ -10,8 +10,8 @@ class CollectionUpdatedEvent extends FilesUpdatedEvent {
     String? source, {
     EventType? type,
   }) : super(
-          updatedFiles,
-          type: type ?? EventType.addedOrUpdated,
-          source: source ?? "",
-        );
+         updatedFiles,
+         type: type ?? EventType.addedOrUpdated,
+         source: source ?? "",
+       );
 }

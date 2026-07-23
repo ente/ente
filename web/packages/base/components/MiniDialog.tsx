@@ -182,15 +182,10 @@ export const AttributedMiniDialog: React.FC<
         onClose();
     };
 
-    const handleClose: ModalProps["onClose"] = (_, reason) => {
+    const handleClose: ModalProps["onClose"] = () => {
         if (attributes.nonClosable) return;
-        // Ignore backdrop clicks when we're processing the user request.
-        if (
-            reason == "backdropClick" &&
-            (phase == "loading" || phase == "secondary-loading")
-        ) {
-            return;
-        }
+        // Ignore modal close requests while processing the user request.
+        if (phase == "loading" || phase == "secondary-loading") return;
         resetPhaseAndClose();
     };
 
@@ -259,7 +254,7 @@ export const AttributedMiniDialog: React.FC<
         <FocusVisibleButton
             fullWidth
             color="secondary"
-            disabled={phase == "loading"}
+            disabled={phase == "loading" || phase == "secondary-loading"}
             onClick={handleCancel}
         >
             {cancelTitle}

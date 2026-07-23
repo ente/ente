@@ -8,8 +8,6 @@ import "package:flutter/foundation.dart";
 import "package:logging/logging.dart";
 import "package:path_provider/path_provider.dart";
 import "package:photos/core/network/network.dart";
-import "package:photos/service_locator.dart"
-    show flagService, isLocalGalleryMode;
 import "package:synchronized/synchronized.dart";
 
 class RemoteAssetsService {
@@ -43,11 +41,7 @@ class RemoteAssetsService {
 
       final tempFile = File(_tempPath(path));
       await _downloadFile(remotePath, tempFile.path);
-      await _validateDownloadedFileSha256(
-        tempFile,
-        remotePath,
-        expectedSha256,
-      );
+      await _validateDownloadedFileSha256(tempFile, remotePath, expectedSha256);
       await _replaceFile(tempFile, file);
       await _deleteResumeMetadata(tempFile.path);
       return file;
@@ -163,9 +157,9 @@ class RemoteAssetsService {
         useResumable
             ? "Using resumable download for $url (${probe.totalBytes} bytes)"
             : "Using single-shot download for $url despite resumable "
-                "downloads being enabled (size: ${probe.totalBytes} bytes, "
-                "acceptsRanges: ${probe.acceptsRanges}, "
-                "strongEtag: ${probe.ifRangeValidator != null})",
+                  "downloads being enabled (size: ${probe.totalBytes} bytes, "
+                  "acceptsRanges: ${probe.acceptsRanges}, "
+                  "strongEtag: ${probe.ifRangeValidator != null})",
       );
     }
     if (useResumable) {
@@ -199,6 +193,12 @@ class RemoteAssetsService {
       "https://models.ente.io/mobileclip_s2_text_int32.onnx",
       "https://models.ente.io/yolov5s_face_opset18_rgba_opt.onnx",
       "https://models.ente.io/yolov5s_face_opset18_rgba_opt_nosplits.onnx",
+      "https://models.ente.io/yolov5s_face_640_640_dynamic.onnx",
+      "https://models.ente.io/mobilefacenet_opset15.onnx",
+      "https://models.ente.com/yolov5s_face_640_640_dynamic.onnx",
+      "https://models.ente.com/mobilefacenet_opset15.onnx",
+      "https://models.ente.io/mobileclip_s2_image.onnx",
+      "https://models.ente.com/mobileclip_s2_image.onnx",
     ];
 
     await cleanupSelectedModels(oldModelNames);
@@ -210,7 +210,8 @@ class RemoteAssetsService {
   Future<void> cleanupSelectedModels(List<String> modelRemotePaths) async {
     for (final remotePath in modelRemotePaths) {
       final localPath = await _getLocalPath(remotePath);
-      final hasArtifacts = await File(localPath).exists() ||
+      final hasArtifacts =
+          await File(localPath).exists() ||
           await File(_tempPath(localPath)).exists() ||
           await File(_resumeMetadataPath(_tempPath(localPath))).exists();
       if (hasArtifacts) {
@@ -222,10 +223,9 @@ class RemoteAssetsService {
     }
   }
 
-  Dio get _dio => NetworkClient.instance.getDio();
+  Dio get _dio => NetworkClient.instance.downloadDio;
 
-  bool get _resumableDownloadsEnabled =>
-      isLocalGalleryMode || flagService.internalUser;
+  bool get _resumableDownloadsEnabled => true;
 
   Lock _lockFor(String remotePath) =>
       _assetLocks.putIfAbsent(remotePath, Lock.new);
@@ -255,7 +255,7 @@ class RemoteAssetsService {
       if (_shouldLogProbeDiagnosticsFor(url)) {
         final contentLength =
             response.headers.value(HttpHeaders.contentLengthHeader) ??
-                "missing";
+            "missing";
         final acceptRanges =
             response.headers.value("accept-ranges")?.trim() ?? "missing";
         final etag = response.headers.value(HttpHeaders.etagHeader)?.trim();
@@ -294,9 +294,9 @@ class RemoteAssetsService {
         _logger.warning(
           _isConnectionFailure(e)
               ? "HEAD probe connection failed for $url without complete "
-                  "resume artifacts, falling back to single-shot download"
+                    "resume artifacts, falling back to single-shot download"
               : "HEAD probe failed for $url, falling back to single-shot "
-                  "download",
+                    "download",
           e,
           s,
         );

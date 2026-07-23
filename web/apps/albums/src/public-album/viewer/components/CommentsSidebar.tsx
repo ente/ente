@@ -10,7 +10,6 @@ import {
     getStoredAnonIdentity,
 } from "@/public-album/social/api/public-reaction";
 import { useBrowserBackClose } from "@/shared/hooks/useBrowserBackClose";
-import { getAvatarColor } from "@/shared/utils/avatar-colors";
 import CloseIcon from "@mui/icons-material/Close";
 import {
     Avatar,
@@ -25,11 +24,13 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
-import { type ModalVisibilityProps } from "ente-base/components/utils/modal";
+import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
+import { formatTimeAgo } from "ente-base/date";
 import type { PublicAlbumsCredentials } from "ente-base/http";
 import log from "ente-base/log";
+import { getAvatarColor } from "ente-gallery/utils/avatar-colors";
 import type { EnteFile } from "ente-media/file";
-import i18n, { t } from "i18next";
+import { t } from "i18next";
 import React, {
     useCallback,
     useEffect,
@@ -37,7 +38,7 @@ import React, {
     useRef,
     useState,
 } from "react";
-import { type Comment, type UnifiedReaction } from "../lib/social-types";
+import type { Comment, UnifiedReaction } from "../lib/social-types";
 import { AddNameModal } from "./AddNameModal";
 import { PublicCommentModal } from "./PublicCommentModal";
 import { PublicLikeModal } from "./PublicLikeModal";
@@ -165,36 +166,6 @@ interface CollectionInfo {
 // =============================================================================
 // Utility Functions
 // =============================================================================
-
-const formatTimeAgo = (timestampMicros: number): string => {
-    // Server timestamps are in microseconds, convert to milliseconds
-    const timestampMs = Math.floor(timestampMicros / 1000);
-    const now = Date.now();
-    const diff = now - timestampMs;
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return t("just_now");
-    if (minutes < 60) return t("minutes_ago", { count: minutes });
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return t("hours_ago", { count: hours });
-    const days = Math.floor(hours / 24);
-    if (days < 7) return t("days_ago", { count: days });
-
-    // For 7+ days, show actual date using locale-aware formatting
-    const date = new Date(timestampMs);
-    const currentYear = new Date(now).getFullYear();
-    const locale = i18n.language;
-    if (date.getFullYear() === currentYear) {
-        return date.toLocaleDateString(locale, {
-            month: "short",
-            day: "numeric",
-        });
-    }
-    return date.toLocaleDateString(locale, {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-    });
-};
 
 const getParentComment = (
     parentID: string | undefined,
@@ -1737,9 +1708,8 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
                                                           )
                                                         : undefined;
                                                 if (
-                                                    storedIdentity &&
                                                     replyingTo.anonUserID ===
-                                                        storedIdentity.anonUserID
+                                                    storedIdentity?.anonUserID
                                                 ) {
                                                     return t("yourself");
                                                 }

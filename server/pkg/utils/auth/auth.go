@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ente-io/museum/ente/cast"
+	"github.com/ente/museum/ente/cast"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/stacktrace"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -23,6 +23,7 @@ const (
 	FileLinkAccessKey    = "X-Public-FileLink-Access-ID"
 	CastContext          = "X-Cast-Context"
 	MemoryShareAccessKey = "X-Memory-Share-Access-ID"
+	AppContextKey        = "auth.app"
 
 	LinkDeviceTokenHeader         = "X-Auth-Link-Device-Token"
 	LinkDeviceTokenResponseHeader = "X-Ente-Link-Device-Token"
@@ -30,18 +31,10 @@ const (
 )
 
 // GenerateRandomBytes returns securely generated random bytes.
-// It will return an error if the system's secure random
-// number generator fails to function correctly, in which
-// case the caller should not continue.
-func GenerateRandomBytes(n int) ([]byte, error) {
+func GenerateRandomBytes(n int) []byte {
 	b := make([]byte, n)
-	_, err := rand.Read(b)
-	// Note that err == nil only if we read len(b) bytes.
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-	}
-
-	return b, nil
+	rand.Read(b)
+	return b
 }
 
 // GenerateRandomInt returns a securely generated random integer in [0, n).
@@ -58,12 +51,8 @@ func GenerateRandomInt(n int64) (int64, error) {
 
 // GenerateURLSafeRandomString returns a URL-safe, base64 encoded
 // securely generated random string.
-// It will return an error if the system's secure random
-// number generator fails to function correctly, in which
-// case the caller should not continue.
-func GenerateURLSafeRandomString(s int) (string, error) {
-	b, err := GenerateRandomBytes(s)
-	return base64.URLEncoding.EncodeToString(b), stacktrace.Propagate(err, "")
+func GenerateURLSafeRandomString(s int) string {
+	return base64.URLEncoding.EncodeToString(GenerateRandomBytes(s))
 }
 
 // GetHashedPassword returns the has of a specified password
@@ -102,6 +91,15 @@ func GetApp(c *gin.Context) ente.App {
 	}
 
 	return ente.Photos
+}
+
+func GetAuthenticatedApp(c *gin.Context) (ente.App, bool) {
+	app, ok := c.Get(AppContextKey)
+	if !ok {
+		return "", false
+	}
+	enteApp, ok := app.(ente.App)
+	return enteApp, ok
 }
 
 func GetToken(c *gin.Context) string {

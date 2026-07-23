@@ -20,7 +20,9 @@ Photos that have GPS coordinates in their metadata will automatically appear on 
 - View photos from specific albums on the map
 - Explore where your photos were taken around the world
 
-> **Note**: Only photos with GPS location data in their metadata will appear on the map. Photos without location data (like screenshots, downloaded images, or photos taken with location services disabled) won't be shown.
+> [!NOTE]
+>
+> Only photos with GPS location data in their metadata will appear on the map. Photos without location data (like screenshots, downloaded images, or photos taken with location services disabled) won't be shown.
 
 ### Enable map view
 

@@ -1,5 +1,5 @@
 import { Box, Button, CircularProgress, Typography } from "@mui/material";
-import { Notification } from "ente-new/photos/components/Notification";
+import { Notification } from "ente-base/components/Notification";
 import Head from "next/head";
 import React from "react";
 import { useFileShare } from "../../hooks/useFileShare";
@@ -147,7 +147,10 @@ export const FileShareView: React.FC = () => {
                                     p: 3,
                                 }}
                             >
-                                <Typography variant="body" color="error">
+                                <Typography
+                                    variant="body"
+                                    sx={{ color: "error.main" }}
+                                >
                                     {error}
                                 </Typography>
                             </Box>

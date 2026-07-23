@@ -38,23 +38,14 @@ class SetupSRPResponse {
   final String setupID;
   final String srpB;
 
-  SetupSRPResponse({
-    required this.setupID,
-    required this.srpB,
-  });
+  SetupSRPResponse({required this.setupID, required this.srpB});
 
   Map<String, dynamic> toMap() {
-    return {
-      'setupID': setupID.toString(),
-      'srpB': srpB,
-    };
+    return {'setupID': setupID.toString(), 'srpB': srpB};
   }
 
   factory SetupSRPResponse.fromJson(Map<String, dynamic> json) {
-    return SetupSRPResponse(
-      setupID: json['setupID'],
-      srpB: json['srpB'],
-    );
+    return SetupSRPResponse(setupID: json['setupID'], srpB: json['srpB']);
   }
 }
 
@@ -62,16 +53,10 @@ class CompleteSRPSetupRequest {
   final String setupID;
   final String srpM1;
 
-  CompleteSRPSetupRequest({
-    required this.setupID,
-    required this.srpM1,
-  });
+  CompleteSRPSetupRequest({required this.setupID, required this.srpM1});
 
   Map<String, dynamic> toMap() {
-    return {
-      'setupID': setupID.toString(),
-      'srpM1': srpM1,
-    };
+    return {'setupID': setupID.toString(), 'srpM1': srpM1};
   }
 
   factory CompleteSRPSetupRequest.fromJson(Map<String, dynamic> json) {
@@ -115,16 +100,10 @@ class CompleteSRPSetupResponse {
   final String setupID;
   final String srpM2;
 
-  CompleteSRPSetupResponse({
-    required this.setupID,
-    required this.srpM2,
-  });
+  CompleteSRPSetupResponse({required this.setupID, required this.srpM2});
 
   Map<String, dynamic> toMap() {
-    return {
-      'setupID': setupID,
-      'srpM2': srpM2,
-    };
+    return {'setupID': setupID, 'srpM2': srpM2};
   }
 
   factory CompleteSRPSetupResponse.fromJson(Map<String, dynamic> json) {

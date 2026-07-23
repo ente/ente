@@ -54,7 +54,7 @@ You can create a quick link in any of these ways:
 
 **Managing quick links:**
 
-- View all quick links in the Sharing tab under "Quick links"
+- View all quick links in the Albums tab under "Links" (tap the 'v' icon at the right)
 - Quick links can be converted to regular albums if needed
 - Removing a link doesn't delete the photos
 
@@ -137,7 +137,9 @@ Disable the option to download original quality photos. Recipients can still vie
 - Watermarked preview sharing
 - Limited distribution control
 
-**Note:** This doesn't prevent screenshots or screen recording, but does make it harder for recipients to get high-quality copies.
+> [!NOTE]
+>
+> This doesn't prevent screenshots or screen recording, but does make it harder for recipients to get high-quality copies.
 
 ### Allow joining album
 
@@ -207,13 +209,8 @@ Learn more in the [Custom domains guide](/photos/features/sharing-and-collaborat
 
 **On mobile:**
 
-- Go to the Sharing tab (bottom navigation)
-- See "Shared albums" and "Quick links" sections
-
-**On web/desktop:**
-
-- Open the sidebar
-- Click "Sharing" to see all shared links
+- To see shared albums, open the Albums tab and use the "Shared" tab (albums you've shared) or the "Received" tab (albums shared with you)
+- To see quick links, open the Albums tab, tap on 'v' icon at the right, then tap "Links"
 
 ### Edit link settings
 
@@ -238,10 +235,11 @@ Deleting a link makes it immediately inaccessible. The photos in the album remai
 
 Quick links create special albums. You can convert them to regular albums:
 
-1. Go to Sharing tab
-2. Find the quick link under "Quick links"
-3. Tap/click the three dots menu
-4. Select "Convert to album"
+1. Open the Albums tab
+2. Tap on 'v' icon at the right.
+3. Tap "Links"
+4. Find the quick link and tap the three dots menu
+5. Select "Convert to album"
 
 The album becomes a regular album in your Albums tab, and the link continues to work.
 

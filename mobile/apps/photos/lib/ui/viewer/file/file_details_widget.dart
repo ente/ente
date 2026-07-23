@@ -2,9 +2,11 @@ import "dart:async";
 import "dart:developer";
 import "dart:io";
 
+import "package:ente_components/ente_components.dart";
 import "package:exif_reader/exif_reader.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
@@ -17,16 +19,15 @@ import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import "package:photos/models/location/location.dart";
 import "package:photos/models/metadata/file_magic.dart";
+import "package:photos/module/download/file.dart";
+import "package:photos/module/metadata/exif.dart";
+import "package:photos/module/metadata/video.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/file_magic_service.dart";
-import 'package:photos/theme/ente_theme.dart';
-import 'package:photos/ui/components/buttons/icon_button_widget.dart';
 import "package:photos/ui/components/divider_widget.dart";
-import 'package:photos/ui/components/title_bar_widget.dart';
 import 'package:photos/ui/viewer/file/file_caption_widget.dart';
 import "package:photos/ui/viewer/file_details/added_by_widget.dart";
 import "package:photos/ui/viewer/file_details/albums_item_widget.dart";
-import 'package:photos/ui/viewer/file_details/backed_up_time_item_widget.dart';
 import "package:photos/ui/viewer/file_details/creation_time_item_widget.dart";
 import 'package:photos/ui/viewer/file_details/exif_item_widgets.dart';
 import "package:photos/ui/viewer/file_details/file_info_faces_item_widget.dart";
@@ -35,18 +36,12 @@ import "package:photos/ui/viewer/file_details/file_properties_item_widget.dart";
 import "package:photos/ui/viewer/file_details/location_tags_widget.dart";
 import "package:photos/ui/viewer/file_details/preview_properties_item_widget.dart";
 import "package:photos/ui/viewer/file_details/video_exif_item.dart";
-import "package:photos/utils/exif_util.dart";
-import "package:photos/utils/file_util.dart";
 
 class FileDetailsWidget extends StatefulWidget {
   final EnteFile file;
   final ScrollController? scrollController;
 
-  const FileDetailsWidget(
-    this.file, {
-    this.scrollController,
-    super.key,
-  });
+  const FileDetailsWidget(this.file, {this.scrollController, super.key});
 
   @override
   State<FileDetailsWidget> createState() => _FileDetailsWidgetState();
@@ -75,15 +70,17 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
   final ValueNotifier<Map<String, IfdTag>?> _exifNotifier = ValueNotifier(null);
   final ValueNotifier<bool> hasLocationData = ValueNotifier(false);
   final Logger _logger = Logger("_FileDetailsWidgetState");
-  final ValueNotifier<FFProbeProps?> _videoMetadataNotifier =
-      ValueNotifier(null);
+  final ValueNotifier<FFProbeProps?> _videoMetadataNotifier = ValueNotifier(
+    null,
+  );
 
   @override
   void initState() {
     debugPrint('file_details_sheet initState');
     _currentUserID = Configuration.instance.getUserIDV2();
     hasLocationData.value = widget.file.hasLocation;
-    _isImage = widget.file.fileType == FileType.image ||
+    _isImage =
+        widget.file.fileType == FileType.image ||
         widget.file.fileType == FileType.livePhoto;
 
     _peopleChangedEvent = Bus.instance.on<PeopleChangedEvent>().listen((event) {
@@ -92,15 +89,17 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
 
     _exifNotifier.addListener(() {
       if (_exifNotifier.value != null && !widget.file.hasLocation) {
-        _updateLocationFromExif(locationFromExif(_exifNotifier.value!))
-            .ignore();
+        _updateLocationFromExif(
+          locationFromExif(_exifNotifier.value!),
+        ).ignore();
       }
     });
     _videoMetadataNotifier.addListener(() {
       if (_videoMetadataNotifier.value?.location != null &&
           !widget.file.hasLocation) {
-        _updateLocationFromExif(_videoMetadataNotifier.value?.location)
-            .ignore();
+        _updateLocationFromExif(
+          _videoMetadataNotifier.value?.location,
+        ).ignore();
       }
     });
 
@@ -109,7 +108,8 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
         if (_exifNotifier.value != null) {
           _generateExifForDetails(_exifNotifier.value!);
         }
-        showExifListTile = _exifData["focalLength"] != null ||
+        showExifListTile =
+            _exifData["focalLength"] != null ||
             _exifData["fNumber"] != null ||
             _exifData["takenOnDevice"] != null ||
             _exifData["exposureTime"] != null ||
@@ -128,7 +128,8 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
   Future<void> getMediaInfo() async {
     final File? originFile = await getFile(widget.file, isOrigin: true);
     if (originFile == null) return;
-    final properties = await getVideoPropsAsync(originFile);
+    final properties = await getVideoProps(originFile);
+    if (!mounted) return;
     _videoMetadataNotifier.value = properties;
     if (kDebugMode) {
       log("videoCustomProps ${properties.toString()}");
@@ -167,64 +168,55 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
                   : FileCaptionReadyOnly(caption: widget.file.caption!),
             ),
     );
+    final hasPreview =
+        widget.file.uploadedFileID != null &&
+        fileDataService.previewIds.containsKey(widget.file.uploadedFileID);
     fileDetailsTiles.addAll([
-      CreationTimeItem(
-        file,
-        _currentUserID,
-      ),
-      const FileDetailsDivider(),
-      ValueListenableBuilder(
-        valueListenable: _exifNotifier,
-        builder: (context, _, __) => FilePropertiesItemWidget(
-          file,
-          _isImage,
-          _exifData,
-          _currentUserID,
-        ),
-      ),
-      const FileDetailsDivider(),
-      if (widget.file.uploadedFileID != null &&
-          (fileDataService.previewIds
-              .containsKey(widget.file.uploadedFileID))) ...[
-        ValueListenableBuilder(
-          valueListenable: _exifNotifier,
-          builder: (context, _, __) => PreviewPropertiesItemWidget(
-            file,
-            _isImage,
-            _exifData,
-            _currentUserID,
+      MenuGroupComponent(
+        items: [
+          CreationTimeItem(file, _currentUserID),
+          ValueListenableBuilder(
+            valueListenable: _exifNotifier,
+            builder: (context, _, _) => FilePropertiesItemWidget(
+              file,
+              _isImage,
+              _exifData,
+              _currentUserID,
+            ),
           ),
-        ),
-        const FileDetailsDivider(),
-      ],
-    ]);
-    fileDetailsTiles.add(
-      ValueListenableBuilder(
-        valueListenable: _exifNotifier,
-        builder: (context, value, _) {
-          return showExifListTile
-              ? Column(
-                  children: [
-                    BasicExifItemWidget(_exifData),
-                    const FileDetailsDivider(),
-                  ],
-                )
-              : const SizedBox.shrink();
-        },
+          ValueListenableBuilder(
+            valueListenable: _exifNotifier,
+            builder: (context, _, _) => showExifListTile
+                ? BasicExifItemWidget(_exifData)
+                : const SizedBox.shrink(),
+          ),
+        ],
       ),
-    );
+      const SizedBox(height: Spacing.xxl),
+    ]);
+
+    if (hasGrantedMLConsent) {
+      fileDetailsTiles.addAll([
+        FacesItemWidget(file),
+        const SizedBox(height: Spacing.xxl),
+      ]);
+      if (flagService.petEnabled && localSettings.petRecognitionEnabled) {
+        fileDetailsTiles.addAll([
+          PetsItemWidget(file),
+          const FileDetailsDivider(),
+        ]);
+      }
+    }
 
     fileDetailsTiles.addAll([
       ValueListenableBuilder(
         valueListenable: hasLocationData,
-        builder: (context, bool value, __) {
+        builder: (context, bool value, _) {
           return value
               ? Column(
                   children: [
-                    LocationTagsWidget(
-                      widget.file,
-                    ),
-                    const FileDetailsDivider(),
+                    LocationTagsWidget(widget.file),
+                    const SizedBox(height: Spacing.xxl),
                   ],
                 )
               : const SizedBox.shrink();
@@ -271,59 +263,55 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
         },
       ),
     ]);
+
+    if (!file.isTrash) {
+      fileDetailsTiles.addAll([
+        AlbumsItemWidget(file, _currentUserID),
+        const SizedBox(height: Spacing.xxl),
+      ]);
+    }
+
     if (_isImage) {
       fileDetailsTiles.addAll([
-        ValueListenableBuilder(
-          valueListenable: _exifNotifier,
-          builder: (context, value, _) {
-            return Column(
-              children: [
-                AllExifItemWidget(file, _exifNotifier.value),
-                const FileDetailsDivider(),
-              ],
-            );
-          },
+        MenuGroupComponent(
+          items: [
+            if (hasPreview)
+              PreviewPropertiesItemWidget(
+                file,
+                _isImage,
+                _exifData,
+                _currentUserID,
+              ),
+            ValueListenableBuilder(
+              valueListenable: _exifNotifier,
+              builder: (context, _, _) =>
+                  AllExifItemWidget(file, _exifNotifier.value),
+            ),
+          ],
         ),
+        const SizedBox(height: Spacing.xxl),
       ]);
-    } else if (widget.file.isVideo) {
-      fileDetailsTiles.addAll([
-        ValueListenableBuilder(
-          valueListenable: _videoMetadataNotifier,
-          builder: (context, value, _) {
-            return Column(
-              children: [
-                VideoExifRowItem(file, value),
-                const FileDetailsDivider(),
-              ],
-            );
-          },
-        ),
-      ]);
-    }
-
-    if (hasGrantedMLConsent) {
-      fileDetailsTiles.addAll([
-        FacesItemWidget(file),
-        const FileDetailsDivider(),
-      ]);
-      if (flagService.petEnabled && localSettings.petRecognitionEnabled) {
+    } else if (file.isVideo) {
+      final items = <Widget>[
+        if (hasPreview)
+          PreviewPropertiesItemWidget(
+            file,
+            _isImage,
+            _exifData,
+            _currentUserID,
+          ),
+        if (flagService.internalUser)
+          ValueListenableBuilder(
+            valueListenable: _videoMetadataNotifier,
+            builder: (context, value, _) => VideoExifRowItem(file, value),
+          ),
+      ];
+      if (items.isNotEmpty) {
         fileDetailsTiles.addAll([
-          PetsItemWidget(file),
-          const FileDetailsDivider(),
+          MenuGroupComponent(items: items),
+          const SizedBox(height: Spacing.xxl),
         ]);
       }
-    }
-
-    if (file.uploadedFileID != null && file.updationTime != null) {
-      fileDetailsTiles.addAll(
-        [
-          BackedUpTimeItemWidget(file),
-          const FileDetailsDivider(),
-        ],
-      );
-    }
-    if (!file.isTrash) {
-      fileDetailsTiles.add(AlbumsItemWidget(file, _currentUserID));
     }
 
     return SafeArea(
@@ -333,31 +321,46 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
         radius: const Radius.circular(2),
         thumbVisibility: true,
         child: Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.all(Spacing.xl),
           child: CustomScrollView(
             controller: widget.scrollController,
             physics: const ClampingScrollPhysics(),
             shrinkWrap: true,
             slivers: <Widget>[
-              TitleBarWidget(
-                isFlexibleSpaceDisabled: true,
-                title: AppLocalizations.of(context).details,
-                isOnTopOfScreen: false,
-                backgroundColor: getEnteColorScheme(context).backgroundElevated,
-                leading: IconButtonWidget(
-                  icon: Icons.expand_more_outlined,
-                  iconButtonType: IconButtonType.primary,
-                  onTap: () => Navigator.pop(context),
+              SliverAppBar(
+                automaticallyImplyLeading: false,
+                backgroundColor: context.componentColors.backgroundBase,
+                surfaceTintColor: Colors.transparent,
+                primary: false,
+                pinned: true,
+                centerTitle: false,
+                toolbarHeight: 38,
+                titleSpacing: 0,
+                title: Text(
+                  AppLocalizations.of(context).details,
+                  style: TextStyles.h2.copyWith(
+                    color: context.componentColors.textBase,
+                  ),
                 ),
+                actions: [
+                  IconButtonComponent(
+                    tooltip: AppLocalizations.of(context).close,
+                    variant: IconButtonComponentVariant.circular,
+                    shouldSurfaceExecutionStates: false,
+                    icon: const HugeIcon(
+                      icon: HugeIcons.strokeRoundedCancel01,
+                      size: IconSizes.small,
+                    ),
+                    onTap: () => Navigator.pop(context),
+                  ),
+                ],
               ),
+              const SliverToBoxAdapter(child: SizedBox(height: Spacing.lg)),
               SliverToBoxAdapter(child: AddedByWidget(widget.file)),
               SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    return fileDetailsTiles[index];
-                  },
-                  childCount: fileDetailsTiles.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  return fileDetailsTiles[index];
+                }, childCount: fileDetailsTiles.length),
               ),
             ],
           ),
@@ -382,12 +385,13 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
       if (locationDataFromExif?.latitude != null &&
           locationDataFromExif?.longitude != null) {
         widget.file.location = locationDataFromExif;
-        await FileMagicService.instance.updatePublicMagicMetadata([
-          widget.file,
-        ], {
-          latKey: locationDataFromExif!.latitude,
-          longKey: locationDataFromExif.longitude,
-        });
+        await FileMagicService.instance.updatePublicMagicMetadata(
+          [widget.file],
+          {
+            latKey: locationDataFromExif!.latitude,
+            longKey: locationDataFromExif.longitude,
+          },
+        );
         hasLocationData.value = true;
       }
     } catch (e, s) {
@@ -395,38 +399,31 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
     }
   }
 
-  _generateExifForDetails(Map<String, IfdTag> exif) {
+  void _generateExifForDetails(Map<String, IfdTag> exif) {
     if (exif["EXIF FocalLength"] != null) {
       _exifData["focalLength"] =
           (exif["EXIF FocalLength"]!.values.toList()[0] as Ratio).numerator /
-              (exif["EXIF FocalLength"]!.values.toList()[0] as Ratio)
-                  .denominator;
+          (exif["EXIF FocalLength"]!.values.toList()[0] as Ratio).denominator;
     }
 
     if (exif["EXIF FNumber"] != null) {
       _exifData["fNumber"] =
           (exif["EXIF FNumber"]!.values.toList()[0] as Ratio).numerator /
-              (exif["EXIF FNumber"]!.values.toList()[0] as Ratio).denominator;
+          (exif["EXIF FNumber"]!.values.toList()[0] as Ratio).denominator;
     }
-    final imageWidth = _firstPositiveDimensionTag(
-      exif,
-      const [
-        "EXIF ExifImageWidth",
-        "Image ImageWidth",
-      ],
-    );
-    final imageLength = _firstPositiveDimensionTag(
-      exif,
-      const [
-        "EXIF ExifImageLength",
-        "Image ImageLength",
-      ],
-    );
+    final imageWidth = _firstPositiveDimensionTag(exif, const [
+      "EXIF ExifImageWidth",
+      "Image ImageWidth",
+    ]);
+    final imageLength = _firstPositiveDimensionTag(exif, const [
+      "EXIF ExifImageLength",
+      "Image ImageLength",
+    ]);
     if (imageWidth != null && imageLength != null) {
       _exifData["resolution"] = '$imageWidth x $imageLength';
       final double megaPixels =
           (imageWidth.values.firstAsInt() * imageLength.values.firstAsInt()) /
-              1000000;
+          1000000;
       final double roundedMegaPixels = (megaPixels * 10).round() / 10.0;
       _exifData['megaPixels'] = roundedMegaPixels..toStringAsFixed(1);
     } else {
@@ -438,8 +435,9 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
     }
 
     if (exif["EXIF ExposureTime"] != null) {
-      _exifData["exposureTime"] =
-          _formatExposureTime(exif["EXIF ExposureTime"]!);
+      _exifData["exposureTime"] = _formatExposureTime(
+        exif["EXIF ExposureTime"]!,
+      );
     }
     if (exif["EXIF ISOSpeedRatings"] != null) {
       _exifData['ISO'] = exif["EXIF ISOSpeedRatings"].toString();

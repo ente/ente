@@ -8,15 +8,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ente-io/museum/pkg/repo/passkey"
-	storageBonusRepo "github.com/ente-io/museum/pkg/repo/storagebonus"
-	emailUtil "github.com/ente-io/museum/pkg/utils/email"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/repo/passkey"
+	storageBonusRepo "github.com/ente/museum/pkg/repo/storagebonus"
+	emailUtil "github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/crypto"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/crypto"
+	"github.com/ente/museum/pkg/utils/time"
 )
 
 const (
@@ -41,6 +41,10 @@ type UserInactivityCandidate struct {
 	LastActivity int64
 }
 
+type emailUpdateExecutor interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+}
+
 // Get returns a user indicated by the userID
 func (repo *UserRepository) Get(userID int64) (ente.User, error) {
 	var user ente.User
@@ -54,7 +58,7 @@ func (repo *UserRepository) Get(userID int64) (ente.User, error) {
 	// use case is for internal/Admin APIs, where please we should instead be
 	// using GetUserByIDInternal.
 	if strings.EqualFold(user.Hash, fmt.Sprintf(DELETED_EMAIL_HASH_FORMAT, userID)) {
-		return user, stacktrace.Propagate(ente.ErrUserDeleted, fmt.Sprintf("user account is deleted %d", userID))
+		return user, stacktrace.Propagate(ente.ErrUserDeleted, "user account is deleted %d", userID)
 	}
 	email, err := crypto.Decrypt(encryptedEmail, repo.SecretEncryptionKey, nonce)
 	if err != nil {
@@ -324,12 +328,22 @@ func (repo *UserRepository) UpdateDeleteFeedback(userID int64, feedback map[stri
 
 // UpdateEmail updates the email address of a user
 func (repo *UserRepository) UpdateEmail(userID int64, encryptedEmail ente.EncryptionResult, emailHash string) error {
-	_, err := repo.DB.Exec(`UPDATE users SET encrypted_email = $1, email_decryption_nonce = $2, email_hash = $3 WHERE user_id = $4`, encryptedEmail.Cipher, encryptedEmail.Nonce, emailHash, userID)
+	return updateEmail(context.Background(), repo.DB, userID, encryptedEmail, emailHash)
+}
+
+func (repo *UserRepository) UpdateEmailTx(ctx context.Context, tx *sql.Tx, userID int64, encryptedEmail ente.EncryptionResult, emailHash string) error {
+	return updateEmail(ctx, tx, userID, encryptedEmail, emailHash)
+}
+
+func updateEmail(ctx context.Context, executor emailUpdateExecutor, userID int64, encryptedEmail ente.EncryptionResult, emailHash string) error {
+	_, err := executor.ExecContext(ctx, `UPDATE users SET encrypted_email = $1, email_decryption_nonce = $2, email_hash = $3 WHERE user_id = $4`, encryptedEmail.Cipher, encryptedEmail.Nonce, emailHash, userID)
 	return stacktrace.Propagate(err, "")
 }
 
-// GetUserIDWithEmail returns the userID associated with a provided email
-func (repo *UserRepository) GetUserIDWithEmail(email string) (int64, error) {
+// GetUserIDWithEmailUnrestricted returns the user ID associated with an email.
+// It bypasses authenticated discovery limits and is only for trusted,
+// non-disclosing flows. User-facing discovery must use controller.UserLookup.
+func (repo *UserRepository) GetUserIDWithEmailUnrestricted(email string) (int64, error) {
 	sanitizedEmail := emailUtil.NormalizeEmail(email)
 	emailHash, err := crypto.GetHash(sanitizedEmail, repo.HashingKey)
 	if err != nil {

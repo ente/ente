@@ -40,8 +40,9 @@ class CleanupHiddenFromDeviceWidget extends StatelessWidget {
             },
           ),
           MenuSectionDescriptionWidget(
-            content: AppLocalizations.of(context)
-                .deleteHiddenFilesFromDeviceDescription,
+            content: AppLocalizations.of(
+              context,
+            ).deleteHiddenFilesFromDeviceDescription,
           ),
         ],
       ),

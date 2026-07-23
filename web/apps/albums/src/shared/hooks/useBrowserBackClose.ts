@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef } from "react";
 
 type BrowserBackCleanupAction = "back" | "replace";
 
@@ -62,8 +62,7 @@ export const useBrowserBackClose = ({
     enabled = true,
 }: UseBrowserBackCloseOptions) => {
     const markerRef = useRef<string | undefined>(undefined);
-    const onCloseRef = useRef(onClose);
-    onCloseRef.current = onClose;
+    const onBrowserBack = useEffectEvent(onClose);
 
     const clearBrowserBackState = useCallback(
         (action: BrowserBackCleanupAction = "replace") => {
@@ -116,7 +115,7 @@ export const useBrowserBackClose = ({
             }
 
             markerRef.current = undefined;
-            onCloseRef.current();
+            onBrowserBack();
         };
 
         window.addEventListener("popstate", handlePopState);

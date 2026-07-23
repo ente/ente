@@ -1,7 +1,8 @@
 import 'dart:io';
 
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_events/event_bus.dart';
-import 'package:ente_ui/components/alert_bottom_sheet.dart';
+import 'package:ente_ui/components/progress_dialog.dart';
 import 'package:ente_ui/pages/base_home_page.dart';
 import 'package:ente_ui/utils/dialog_util.dart';
 import "package:ente_utils/email_util.dart";
@@ -14,9 +15,9 @@ import 'package:locker/services/collections/collections_service.dart';
 import 'package:locker/services/collections/models/collection.dart';
 import 'package:locker/services/files/sync/metadata_updater_service.dart';
 import 'package:locker/services/files/upload/file_upload_service.dart';
-import 'package:locker/ui/components/file_upload_sheet.dart';
-import "package:locker/ui/components/gradient_button.dart";
 import 'package:locker/ui/pages/file_upload_screen.dart';
+import "package:locker/utils/bottom_sheet_illustration.dart";
+import "package:locker/utils/error_sheet.dart";
 import 'package:logging/logging.dart';
 
 /// Abstract base class that provides file upload functionality.
@@ -43,6 +44,10 @@ abstract class UploaderPageState<T extends UploaderPage> extends State<T> {
       allowMultiple: true,
     );
 
+    if (!mounted) {
+      return false;
+    }
+
     if (result != null && result.files.isNotEmpty) {
       final selectedFiles = result.files
           .where((file) => file.path != null)
@@ -60,28 +65,31 @@ abstract class UploaderPageState<T extends UploaderPage> extends State<T> {
   Future<bool> uploadFiles(List<File> files) async {
     var didUpload = false;
     var hasUploadError = false;
-    final progressDialog = createProgressDialog(
-      context,
-      context.l10n.uploadedFilesProgress(0, files.length),
-    );
+    var didShowDialog = false;
+    final l10n = context.l10n;
+    ProgressDialog? progressDialog;
 
     try {
-      final List<Future> futures = [];
+      final futures = <Future<void>>[];
 
-      final regularCollections =
-          await CollectionService.instance.getCollectionsForUI();
+      final regularCollections = await CollectionService.instance
+          .getCollectionsForUI();
+
+      if (!mounted) {
+        return false;
+      }
 
       // Navigate to upload screen to get collection selection
-      final uploadResult =
-          await Navigator.of(context).push<FileUploadSheetResult>(
-        MaterialPageRoute(
-          builder: (context) => FileUploadScreen(
-            files: files,
-            collections: regularCollections,
-            selectedCollection: selectedCollection,
-          ),
-        ),
-      );
+      final uploadResult = await Navigator.of(context)
+          .push<FileUploadScreenResult>(
+            MaterialPageRoute(
+              builder: (context) => FileUploadScreen(
+                files: files,
+                collections: regularCollections,
+                selectedCollection: selectedCollection,
+              ),
+            ),
+          );
 
       // Handle both regular collections and uncategorized (empty set)
       final isUncategorizedUpload =
@@ -98,63 +106,95 @@ abstract class UploaderPageState<T extends UploaderPage> extends State<T> {
           uploadResult.selectedCollections.add(uncategorizedCollection);
         }
 
-        await progressDialog.show();
+        if (mounted) {
+          final dialog = createProgressDialog(
+            context,
+            l10n.uploadedFilesProgress(0, files.length),
+          );
+          progressDialog = dialog;
+          didShowDialog = await dialog.show();
+        }
 
         int completedUploads = 0;
         for (final file in files) {
-          final fileUploadFuture = FileUploader.instance
-              .upload(file, uploadResult.selectedCollections.first);
+          final fileUploadFuture = FileUploader.instance.upload(
+            file,
+            uploadResult.selectedCollections.first,
+          );
           futures.add(
-            fileUploadFuture.then((enteFile) async {
-              completedUploads++;
-              if (!hasUploadError && progressDialog.isShowing()) {
-                progressDialog.update(
-                  message: context.l10n
-                      .uploadedFilesProgress(completedUploads, files.length),
-                );
-              }
-              // Add to additional collections if multiple were selected
-              for (int cIndex = 1;
-                  cIndex < uploadResult.selectedCollections.length;
-                  cIndex++) {
-                // Don't trigger a sync for each additional collection – do one
-                // sync at the end after all files are processed.
-                futures.add(
-                  CollectionService.instance.addToCollection(
-                    uploadResult.selectedCollections[cIndex],
-                    enteFile,
-                    runSync: false,
-                  ),
-                );
-              }
+            fileUploadFuture.then<void>(
+              (enteFile) async {
+                completedUploads++;
+                if (didShowDialog &&
+                    mounted &&
+                    !hasUploadError &&
+                    progressDialog?.isShowing() == true) {
+                  try {
+                    progressDialog?.update(
+                      message: l10n.uploadedFilesProgress(
+                        completedUploads,
+                        files.length,
+                      ),
+                    );
+                  } catch (e, s) {
+                    _logger.warning('Failed to update upload progress', e, s);
+                  }
+                }
 
-              if (uploadResult.note.isNotEmpty) {
-                futures.add(
-                  MetadataUpdaterService.instance
-                      .editFileCaption(enteFile, uploadResult.note),
-                );
-              }
-            }).catchError((e) async {
-              completedUploads++;
-              _logger.severe('File upload failed', e);
-              if (hasUploadError) {
-                return;
-              }
-              hasUploadError = true;
-              if (progressDialog.isShowing()) {
-                await progressDialog.hide();
-              }
-              if (mounted) {
-                await _showUploadFailureError(e);
-              }
-            }),
+                final postUploadFutures = <Future<dynamic>>[];
+                // Add to additional collections if multiple were selected
+                for (
+                  int cIndex = 1;
+                  cIndex < uploadResult.selectedCollections.length;
+                  cIndex++
+                ) {
+                  // Don't trigger a sync for each additional collection – do one
+                  // sync at the end after all files are processed.
+                  postUploadFutures.add(
+                    CollectionService.instance.addToCollection(
+                      uploadResult.selectedCollections[cIndex],
+                      enteFile,
+                      runSync: false,
+                    ),
+                  );
+                }
+
+                if (uploadResult.note.isNotEmpty) {
+                  postUploadFutures.add(
+                    MetadataUpdaterService.instance.editFileCaption(
+                      enteFile,
+                      uploadResult.note,
+                    ),
+                  );
+                }
+
+                await Future.wait(postUploadFutures);
+              },
+              onError: (Object e, StackTrace s) async {
+                completedUploads++;
+                _logger.severe('File upload failed', e, s);
+                if (hasUploadError) {
+                  return;
+                }
+                hasUploadError = true;
+                if (didShowDialog && progressDialog?.isShowing() == true) {
+                  await progressDialog?.hide();
+                  didShowDialog = false;
+                }
+                if (mounted) {
+                  await _showUploadFailureError(e);
+                }
+              },
+            ),
           );
         }
 
         if (futures.isNotEmpty) {
           await Future.wait(futures);
 
-          onFileUploadComplete();
+          if (mounted) {
+            onFileUploadComplete();
+          }
           Bus.instance.fire(UserDetailsRefreshEvent());
 
           await CollectionService.instance.sync().catchError((e) {
@@ -163,16 +203,18 @@ abstract class UploaderPageState<T extends UploaderPage> extends State<T> {
         }
       }
     } catch (e, s) {
-      _logger.severe('Failed to upload file', e, s);
-      if (progressDialog.isShowing()) {
-        await progressDialog.hide();
+      _logger.severe('Failed to complete file upload', e, s);
+      if (didShowDialog && progressDialog?.isShowing() == true) {
+        await progressDialog?.hide();
+        didShowDialog = false;
       }
       if (mounted) {
         await _showUploadFailureError(e);
       }
     } finally {
-      if (progressDialog.isShowing()) {
-        await progressDialog.hide();
+      if (didShowDialog && progressDialog?.isShowing() == true) {
+        await progressDialog?.hide();
+        didShowDialog = false;
       }
     }
 
@@ -208,31 +250,27 @@ abstract class UploaderPageState<T extends UploaderPage> extends State<T> {
       );
       return;
     }
-    await showGenericErrorBottomSheet(
-      context: context,
-      error: error,
-    );
+    await showLockerErrorSheet(context, error);
   }
 
   Future<void> _showUploadErrorSheet(String title, String message) async {
-    await showAlertBottomSheet(
-      context,
-      title: title,
-      message: message,
-      assetPath: "assets/warning-grey.png",
+    await showBottomSheetComponent(
+      context: context,
       isDismissible: true,
-      buttons: [
-        GradientButton(
-          text: context.l10n.contactSupport,
-          onTap: () async {
-            await sendEmail(
-              context,
-              to: "support@ente.com",
-              body: message,
-            );
-          },
-        ),
-      ],
+      enableDrag: true,
+      builder: (_) => BottomSheetComponent(
+        title: title,
+        message: message,
+        illustration: LockerBottomSheetIllustration.warningGrey,
+        actions: [
+          ButtonComponent(
+            label: context.l10n.contactSupport,
+            onTap: () async {
+              await sendEmail(context, to: "support@ente.com", body: message);
+            },
+          ),
+        ],
+      ),
     );
   }
 }

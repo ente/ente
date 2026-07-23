@@ -5,9 +5,7 @@ description: Complete guide to organizing family documents, sharing securely, an
 
 # Family Setup Guide
 
-This guide walks you through setting up Ente Locker for your family. You'll
-learn how to organize important documents, share them securely with family
-members, and set up Legacy for digital inheritance.
+This guide walks you through setting up Ente Locker for your family. You'll learn how to organize important documents, share them securely with family members, and set up Legacy for digital inheritance.
 
 ## Overview
 
@@ -16,18 +14,15 @@ A typical family Locker setup includes:
 1. **Individual accounts** for each family member
 2. **Shared collections** for documents everyone needs access to
 3. **Private collections** for personal items
-4. **Legacy recovery options** so family members can recover accounts when
-   needed
+4. **Legacy recovery options** so family members can recover accounts when needed
 
 ## Step 1: Set up accounts for family members
 
-Each family member needs their own Ente account to use Locker. There are two
-ways to set this up:
+Each family member needs their own Ente account to use Locker. There are two ways to set this up:
 
 ### Option A: Separate free accounts
 
-Each family member creates their own free Ente account. This is the simplest
-approach and works well for most families.
+Each family member creates their own free Ente account. This is the simplest approach and works well for most families.
 
 **For each family member:**
 
@@ -40,9 +35,7 @@ With free accounts, each person gets 100 items and 1GB storage for Locker.
 
 ### Option B: Ente Family plan (shared subscription)
 
-If you have an Ente Photos subscription, you can add family members to share
-your storage quota across Ente products. The Family plan is managed through Ente
-Photos.
+If you have an Ente Photos subscription, you can add family members to share your storage quota across Ente products. The Family plan is managed through Ente Photos.
 
 **To set up a Family plan:**
 
@@ -51,25 +44,23 @@ Photos.
 3. Open `Settings > Subscription > Manage family`
 4. Invite family members by email
 
-Family members share the Photos storage quota and get increased Locker limits
-(1000 items and 10GB storage each).
+Family members share the Photos storage quota and get increased Locker limits (1000 items and 10GB storage each).
 
-> **Note**: The Family plan requires an Ente Photos subscription and is managed
-> through Ente Photos, not Locker. Learn more about
-> [Family plans](/photos/features/account/family-plans).
+> [!NOTE]
+>
+> The Family plan requires an Ente Photos subscription and is managed through Ente Photos, not Locker. Learn more about [Family plans](/photos/features/account/family-plans).
 
-> **Tip**: For children, consider storing their recovery key in a parent's
-> Locker as a secure note.
+> [!TIP]
+>
+> For children, consider storing their recovery key in a parent's Locker as a secure note.
 
 ## Step 2: Plan your collection structure
 
-Before adding items, plan how you'll organize them. Here's a recommended
-structure for families:
+Before adding items, plan how you'll organize them. Here's a recommended structure for families:
 
 ### Shared collections (accessible to all family members)
 
-- **Family Documents**: Birth certificates, marriage certificates, family
-  records
+- **Family Documents**: Birth certificates, marriage certificates, family records
 - **Medical**: Insurance cards, vaccination records, emergency medical info
 - **Home**: Property documents, mortgage info, home insurance
 - **Vehicles**: Registration, insurance, maintenance records
@@ -131,8 +122,7 @@ Gather your family's important documents and upload them to Locker.
 
 ## Step 4: Share collections with family members
 
-Share collections so family members can access important documents. In Locker,
-you share collections (not individual items) with other Ente users.
+Share collections so family members can access important documents. In Locker, you share collections (not individual items) with other Ente users.
 
 ### Sharing a collection
 
@@ -146,8 +136,7 @@ All items in the collection will be shared with that person.
 
 ### Sharing individual items
 
-To share a single item (like a specific document), create a
-[public link](/locker/features/sharing/public-links) for that item.
+To share a single item (like a specific document), create a [public link](/locker/features/sharing/public-links) for that item.
 
 ### Recommended sharing setup
 
@@ -181,8 +170,7 @@ Trusted contacts must already have Ente accounts.
 
 ### Create Legacy Kits
 
-Legacy Kits create 3 physical recovery sheets. Any 2 sheets can start recovery,
-and the helper does not need an Ente account.
+Legacy Kits create 3 physical recovery sheets. Any 2 sheets can start recovery, and the helper does not need an Ente account.
 
 1. Open **Ente Locker**
 2. Open the Locker menu
@@ -198,16 +186,13 @@ and the helper does not need an Ente account.
 - **Spouses**: Add each other as trusted contacts
 - **Parents**: Add adult children as trusted contacts
 - **Adult children**: Add parents or siblings as trusted contacts
-- **Inheritance planning**: Create a Legacy Kit with sheets stored in separate
-  trusted locations
+- **Inheritance planning**: Create a Legacy Kit with sheets stored in separate trusted locations
 
-Learn more about [Legacy](/locker/features/legacy/) and
-[Legacy Kits](/locker/features/legacy/legacy-kits).
+Learn more about [Legacy](/locker/features/legacy/) and [Legacy Kits](/locker/features/legacy/legacy-kits).
 
 ## Step 6: Create an emergency information sheet
 
-Create a Personal Note with critical information that family members might need
-in an emergency:
+Create a Personal Note with critical information that family members might need in an emergency:
 
 **Suggested content:**
 
@@ -245,8 +230,7 @@ Share this note with all adult family members.
 ### Security
 
 - **Each person has their own account**: Don't share login credentials
-- **Store recovery keys securely**: Consider storing children's recovery keys in
-  a parent's Locker
+- **Store recovery keys securely**: Consider storing children's recovery keys in a parent's Locker
 - **Enable lock screen**: Protect the app on each device
 - **Review sharing regularly**: Check who has access to what
 
@@ -255,14 +239,12 @@ Share this note with all adult family members.
 - **Use consistent naming**: "John Passport" not just "Passport"
 - **Include expiration dates**: "Driver's License - Expires 03/2026"
 - **Update promptly**: When documents are renewed, update Locker
-- **Note physical locations**: For items like passports, note where the physical
-  copy is stored
+- **Note physical locations**: For items like passports, note where the physical copy is stored
 
 ### Communication
 
 - **Tell family members about Locker**: Make sure everyone knows it exists
-- **Explain Legacy**: Help family members understand trusted contacts and
-  Legacy Kits before an emergency
+- **Explain Legacy**: Help family members understand trusted contacts and Legacy Kits before an emergency
 - **Keep emergency info current**: Review the emergency sheet annually
 
 ## Checklist

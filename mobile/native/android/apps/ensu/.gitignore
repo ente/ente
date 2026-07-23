@@ -1,15 +1,1 @@
-# Gradle
-.gradle/
-
-# Build outputs
-**/build/
-
-# Signing keys
-*.keystore
-key.properties
-local.properties
-
-# OS
-.DS_Store
-
-crypto-auth-core/src/main/java/io/ente/ensu/crypto/core.kt
+!debug.keystore

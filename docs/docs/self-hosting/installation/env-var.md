@@ -1,21 +1,17 @@
 ---
 title: Environment variables and defaults - Self-hosting
-description:
-    "Information about all the configuration variables needed to run Ente along
-    with description on default configuration"
+description: "Information about all the configuration variables needed to run Ente along with description on default configuration"
 ---
 
 # Environment variables and defaults
 
-The environment variables needed for running Ente and the default configuration
-are documented below:
+The environment variables needed for running Ente and the default configuration are documented below:
 
 ## Environment Variables
 
 A self-hosted Ente web app only needs the Museum API endpoint. Web app origins are configured in `museum.yaml` under `apps`.
 
-This document outlines the essential environment variables and port mappings of
-the web apps.
+This document outlines the essential environment variables and port mappings of the web apps.
 
 Here's the list of environment variables that is used by the cluster:
 
@@ -30,17 +26,13 @@ Here's the list of environment variables that is used by the cluster:
 
 ## Default Configuration
 
-Self-hosted Ente clusters have certain default configuration for ease of use,
-which is documented below to understand its behavior:
+Self-hosted Ente clusters have certain default configuration for ease of use, which is documented below to understand its behavior:
 
 ### Ports
 
-The table below lists the default host/container ports used by Ente's web
-container and related services. The mapping is of the format
-`<host-port>:<container-port>` in the compose file.
+The table below lists the default host/container ports used by Ente's web container and related services. The mapping is of the format `<host-port>:<container-port>` in the compose file.
 
-If you are using `quickstart.sh`, note that only `3000` (Photos) and `3002`
-(Albums) are exposed by default.
+If you are using `quickstart.sh`, note that only `3000` (Photos) and `3002` (Albums) are exposed by default.
 
 | Service                                                  | Type     | Host Port | Container Port |
 | -------------------------------------------------------- | -------- | --------- | -------------- |
@@ -53,6 +45,7 @@ If you are using `quickstart.sh`, note that only `3000` (Photos) and `3002`
 | Ente Public Locker                                       | Web      | 3005      | 3005           |
 | Ente Embed                                               | Web      | 3006      | 3006           |
 | Ente Paste (if deployed separately)                      | Web      | 3008      | 3008           |
+| Ente Locker                                              | Web      | 3009      | 3009           |
 | Ente Memories                                            | Web      | 3010      | 3010           |
 | MinIO                                                    | S3       | 3200      | 3200           |
 | PostgreSQL                                               | Database |           | 5432           |

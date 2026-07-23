@@ -28,7 +28,8 @@ class GradientButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final bool isEnabled = onTap != null;
-    final Color effectiveBackgroundColor = backgroundColor ??
+    final Color effectiveBackgroundColor =
+        backgroundColor ??
         (isEnabled ? colorScheme.primary700 : colorScheme.fillFaint);
     final TextStyle effectiveTextStyle = _textStyle.copyWith(
       color: isEnabled ? Colors.white : colorScheme.textMuted,
@@ -60,10 +61,7 @@ class GradientButton extends StatelessWidget {
           onTap: onTap,
           splashColor: isEnabled ? null : Colors.transparent,
           highlightColor: isEnabled ? null : Colors.transparent,
-          child: SizedBox(
-            height: 56,
-            child: Center(child: content),
-          ),
+          child: SizedBox(height: 56, child: Center(child: content)),
         ),
       ),
     );

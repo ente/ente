@@ -32,6 +32,9 @@ class _RecoveryPageState extends State<RecoveryPage> {
     try {
       await widget.config.recover(_recoveryKey.text.trim());
       await dialog.hide();
+      if (!mounted) {
+        return;
+      }
       showToast(context, "Recovery successful!");
       await Navigator.of(context).pushReplacement(
         MaterialPageRoute(
@@ -53,12 +56,14 @@ class _RecoveryPageState extends State<RecoveryPage> {
       if (e is AssertionError) {
         errMessage = '$errMessage : ${e.message}';
       }
-      await showAlertBottomSheet(
-        context,
-        title: context.strings.incorrectRecoveryKey,
-        message: errMessage,
-        assetPath: 'assets/warning-grey.png',
-      );
+      if (mounted) {
+        await showAlertBottomSheet(
+          context,
+          title: context.strings.incorrectRecoveryKey,
+          message: errMessage,
+          assetPath: 'assets/warning-grey.png',
+        );
+      }
     }
   }
 

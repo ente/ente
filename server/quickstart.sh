@@ -2,8 +2,8 @@
 #
 # Ente self-host quickstart helper script.
 #
-# Usage: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ente-io/ente/main/server/quickstart.sh)"
-# Docs: https://github.com/ente-io/ente/blob/main/server/docs/quickstart.md
+# Usage: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ente/ente/main/server/quickstart.sh)"
+# Docs: https://github.com/ente/ente/blob/main/server/docs/quickstart.md
 
 set -e
 
@@ -70,7 +70,7 @@ sleep 1
 cat <<EOF >compose.yaml
 services:
   museum:
-    image: ghcr.io/ente-io/server
+    image: ghcr.io/ente/server
     ports:
       - 8080:8080 # API
     depends_on:
@@ -94,7 +94,7 @@ services:
     command: "TCP-LISTEN:3200,fork,reuseaddr TCP:minio:3200"
 
   web:
-    image: ghcr.io/ente-io/web
+    image: ghcr.io/ente/web
     # Uncomment what you need to tweak.
     ports:
       - 3000:3000 # Photos web app
@@ -105,6 +105,8 @@ services:
       # - 3005:3005 # Share
       # - 3006:3006 # Embed
       # - 3008:3008 # Paste
+      # - 3009:3009 # Locker
+      # - 3010:3010 # Memories
     # Modify these values to your custom subdomains, if using any
     environment:
       ENTE_API_ORIGIN: http://localhost:8080
@@ -201,21 +203,15 @@ s3:
          region: eu-central-2
          bucket: scw-eu-fr-v3
 
-# Specify the base endpoints for various web apps
+# Specify the base endpoints for various web apps you're running.
 apps:
-    # If you're running a self hosted instance and wish to serve public links,
-    # set this to the URL where your albums web app is running.
     public-albums: http://localhost:3002
-    cast: http://localhost:3004
-    # Public locker (share) app
-    public-locker: http://localhost:3005
-    # Public paste app
-    public-paste: http://localhost:3008
-    # Embed app for embedded album sharing
     embed-albums: http://localhost:3006
-    # Set this to the URL where your accounts web app is running, primarily used for
-    # passkey based 2FA.
+    public-locker: http://localhost:3005
+    public-paste: http://localhost:3008
+    cast: http://localhost:3004
     accounts: http://localhost:3001
+    public-memories: http://localhost:3010
 
 key:
       encryption: $museum_key

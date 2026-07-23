@@ -10,8 +10,5 @@ class LocalPhotosUpdatedEvent extends FilesUpdatedEvent {
     type,
     required source,
     this.hasRecentNewLocalDiscovery = false,
-  }) : super(
-          type: type ?? EventType.addedOrUpdated,
-          source: source ?? "",
-        );
+  }) : super(type: type ?? EventType.addedOrUpdated, source: source ?? "");
 }

@@ -3,16 +3,16 @@ import "dart:async";
 import "package:logging/logging.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/module/download/thumbnail.dart";
 import "package:photos/services/wrapped/models.dart";
-import "package:photos/utils/file_util.dart";
 
 /// Preloads the media referenced by Wrapped cards so the viewer can render
 /// without waiting on database and thumbnail fetches.
 class WrappedMediaPreloader {
   WrappedMediaPreloader._()
-      : _logger = Logger("WrappedMediaPreloader"),
-        _cache = <int, EnteFile>{},
-        _inFlight = <int, Future<EnteFile?>>{};
+    : _logger = Logger("WrappedMediaPreloader"),
+      _cache = <int, EnteFile>{},
+      _inFlight = <int, Future<EnteFile?>>{};
 
   static final WrappedMediaPreloader instance = WrappedMediaPreloader._();
 
@@ -69,8 +69,9 @@ class WrappedMediaPreloader {
 
   Future<EnteFile?> _loadAndCache(int uploadedID) async {
     try {
-      final EnteFile? file =
-          await FilesDB.instance.getAnyUploadedFile(uploadedID);
+      final EnteFile? file = await FilesDB.instance.getAnyUploadedFile(
+        uploadedID,
+      );
       if (file != null) {
         _cache[uploadedID] = file;
         _warmThumbnail(file);

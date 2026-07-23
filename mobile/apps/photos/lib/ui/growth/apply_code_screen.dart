@@ -18,11 +18,7 @@ class ApplyCodeScreen extends StatefulWidget {
   // referrerView and userDetails used to render code_success_screen
   final ReferralView referralView;
   final UserDetails userDetails;
-  const ApplyCodeScreen(
-    this.referralView,
-    this.userDetails, {
-    super.key,
-  });
+  const ApplyCodeScreen(this.referralView, this.userDetails, {super.key});
 
   @override
   State<ApplyCodeScreen> createState() => _ApplyCodeScreenState();
@@ -76,34 +72,32 @@ class _ApplyCodeScreenState extends State<ApplyCodeScreen> {
             ],
           ),
           SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (delegateBuildContext, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Column(
-                          children: [
-                            Text(
-                              AppLocalizations.of(context).enterCodeDescription,
-                              style: textStyle.small
-                                  .copyWith(color: colorScheme.textMuted),
+            delegate: SliverChildBuilderDelegate((delegateBuildContext, index) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Column(
+                        children: [
+                          Text(
+                            AppLocalizations.of(context).enterCodeDescription,
+                            style: textStyle.small.copyWith(
+                              color: colorScheme.textMuted,
                             ),
-                            const SizedBox(height: 24),
-                            _getInputField(),
-                            // Container with 8 border radius and red color
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                          const SizedBox(height: 24),
+                          _getInputField(),
+                          // Container with 8 border radius and red color
+                        ],
+                      ),
+                    ],
                   ),
-                );
-              },
-              childCount: 1,
-            ),
+                ),
+              );
+            }, childCount: 1),
           ),
           SliverFillRemaining(
             child: SafeArea(
@@ -120,6 +114,7 @@ class _ApplyCodeScreenState extends State<ApplyCodeScreen> {
                       onTap: () async {
                         try {
                           await storageBonusService.applyCode(code);
+                          if (!context.mounted) return;
                           // ignore: unawaited_futures
                           Navigator.of(context).pushReplacement(
                             MaterialPageRoute(
@@ -130,14 +125,17 @@ class _ApplyCodeScreenState extends State<ApplyCodeScreen> {
                             ),
                           );
                         } catch (e) {
-                          Logger('$runtimeType')
-                              .severe("failed to apply referral", e);
+                          Logger(
+                            '$runtimeType',
+                          ).severe("failed to apply referral", e);
+                          if (!context.mounted) return;
                           // ignore: unawaited_futures
                           showErrorDialogForException(
                             context: context,
                             exception: e as Exception,
-                            apiErrorPrefix:
-                                AppLocalizations.of(context).failedToApplyCode,
+                            apiErrorPrefix: AppLocalizations.of(
+                              context,
+                            ).failedToApplyCode,
                           );
                         }
                       },
@@ -162,8 +160,9 @@ class _ApplyCodeScreenState extends State<ApplyCodeScreen> {
       decoration: InputDecoration(
         focusedBorder: OutlineInputBorder(
           borderRadius: const BorderRadius.all(Radius.circular(4.0)),
-          borderSide:
-              BorderSide(color: getEnteColorScheme(context).strokeMuted),
+          borderSide: BorderSide(
+            color: getEnteColorScheme(context).strokeMuted,
+          ),
         ),
         fillColor: getEnteColorScheme(context).fillFaint,
         filled: true,

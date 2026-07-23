@@ -7,16 +7,16 @@ import (
 	"fmt"
 	"strings"
 
-	ctrl "github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/controller/user"
-	"github.com/ente-io/museum/pkg/repo"
-	legacykitrepo "github.com/ente-io/museum/pkg/repo/legacy_kit"
-	servercrypto "github.com/ente-io/museum/pkg/utils/crypto"
-	"github.com/ente-io/museum/pkg/utils/network"
-	timeutil "github.com/ente-io/museum/pkg/utils/time"
+	ctrl "github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/controller/user"
+	"github.com/ente/museum/pkg/repo"
+	legacykitrepo "github.com/ente/museum/pkg/repo/legacy_kit"
+	servercrypto "github.com/ente/museum/pkg/utils/crypto"
+	"github.com/ente/museum/pkg/utils/network"
+	timeutil "github.com/ente/museum/pkg/utils/time"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
@@ -176,9 +176,7 @@ func (c *Controller) CreateChallenge(ctx context.Context, req ente.LegacyKitChal
 		return nil, stacktrace.Propagate(ente.ErrNotFound, "legacy kit not found")
 	}
 	challengeBytes := make([]byte, 32)
-	if _, err := contextAwareRandom(challengeBytes); err != nil {
-		return nil, stacktrace.Propagate(err, "failed to generate legacy kit challenge")
-	}
+	rand.Read(challengeBytes)
 	challenge := base64.StdEncoding.EncodeToString(challengeBytes)
 	challenge = formatChallenge(req.KitID, challenge)
 	encryptedChallenge, err := servercrypto.GetEncryptedToken(base64.URLEncoding.EncodeToString([]byte(challenge)), kit.AuthPublicKey)
@@ -337,10 +335,7 @@ func legacyURL() string {
 }
 
 func toRecoverySession(row *legacykitrepo.RecoverySessionRow) ente.LegacyKitRecoverySession {
-	waitRemaining := row.WaitTill - timeutil.Microseconds()
-	if waitRemaining < 0 {
-		waitRemaining = 0
-	}
+	waitRemaining := max(row.WaitTill-timeutil.Microseconds(), 0)
 	status := row.Status
 	if status == ente.LegacyKitRecoveryStatusWaiting && waitRemaining == 0 {
 		status = ente.LegacyKitRecoveryStatusReady
@@ -405,8 +400,4 @@ func validateUsedPartIndexes(indexes []int, variant ente.LegacyKitVariant) error
 
 func formatChallenge(kitID uuid.UUID, challenge string) string {
 	return fmt.Sprintf("legacy-kit-open:v1\n%s\n%s\n", kitID.String(), challenge)
-}
-
-func contextAwareRandom(buf []byte) (int, error) {
-	return rand.Reader.Read(buf)
 }

@@ -38,22 +38,24 @@ class _VideoStreamChangeWidgetState extends State<VideoStreamChangeWidget> {
   void initState() {
     super.initState();
     // Initialize processing state safely in initState
-    isCurrentlyProcessing = VideoPreviewService.instance
-        .isCurrentlyProcessing(widget.file.uploadedFileID);
+    isCurrentlyProcessing = VideoPreviewService.instance.isCurrentlyProcessing(
+      widget.file.uploadedFileID,
+    );
 
-    _subscription =
-        Bus.instance.on<VideoPreviewStateChangedEvent>().listen((event) {
+    _subscription = Bus.instance.on<VideoPreviewStateChangedEvent>().listen((
+      event,
+    ) {
       final fileId = event.fileId;
       final status = event.status;
 
       // Handle different states - will be false for different files or non-processing states
-      final newProcessingState = widget.file.uploadedFileID == fileId &&
+      final newProcessingState =
+          widget.file.uploadedFileID == fileId &&
           switch (status) {
             PreviewItemStatus.inQueue ||
             PreviewItemStatus.retry ||
             PreviewItemStatus.compressing ||
-            PreviewItemStatus.uploading =>
-              true,
+            PreviewItemStatus.uploading => true,
             _ => false,
           };
 
@@ -85,13 +87,15 @@ class _VideoStreamChangeWidgetState extends State<VideoStreamChangeWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isPreviewAvailable = widget.file.uploadedFileID != null &&
+    final bool isPreviewAvailable =
+        widget.file.uploadedFileID != null &&
         (fileDataService.previewIds.containsKey(widget.file.uploadedFileID));
 
     // Get the current processing status for more specific messaging
     final processingStatus = widget.file.uploadedFileID != null
-        ? VideoPreviewService.instance
-            .getProcessingStatus(widget.file.uploadedFileID!)
+        ? VideoPreviewService.instance.getProcessingStatus(
+            widget.file.uploadedFileID!,
+          )
         : null;
 
     final colorScheme = getEnteColorScheme(context);
@@ -105,16 +109,11 @@ class _VideoStreamChangeWidgetState extends State<VideoStreamChangeWidget> {
     return Align(
       alignment: Alignment.centerRight,
       child: AnimatedOpacity(
-        duration: const Duration(
-          milliseconds: 200,
-        ),
+        duration: const Duration(milliseconds: 200),
         curve: Curves.easeInQuad,
         opacity: widget._showControls ? 1 : 0,
         child: Padding(
-          padding: const EdgeInsets.only(
-            right: 10,
-            bottom: 4,
-          ),
+          padding: const EdgeInsets.only(right: 10, bottom: 4),
           child: isCurrentlyProcessing
               ? Container(
                   padding: const EdgeInsets.symmetric(
@@ -123,13 +122,8 @@ class _VideoStreamChangeWidgetState extends State<VideoStreamChangeWidget> {
                   ),
                   decoration: BoxDecoration(
                     color: colorScheme.backdropBase,
-                    borderRadius: const BorderRadius.all(
-                      Radius.circular(200),
-                    ),
-                    border: Border.all(
-                      color: strokeFaintDark,
-                      width: 1,
-                    ),
+                    borderRadius: const BorderRadius.all(Radius.circular(200)),
+                    border: Border.all(color: strokeFaintDark, width: 1),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -169,10 +163,7 @@ class _VideoStreamChangeWidgetState extends State<VideoStreamChangeWidget> {
                       borderRadius: const BorderRadius.all(
                         Radius.circular(200),
                       ),
-                      border: Border.all(
-                        color: strokeFaintDark,
-                        width: 1,
-                      ),
+                      border: Border.all(color: strokeFaintDark, width: 1),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,

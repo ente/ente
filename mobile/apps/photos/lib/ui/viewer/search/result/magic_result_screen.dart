@@ -17,7 +17,6 @@ import 'package:photos/ui/viewer/actions/file_selection_overlay_bar.dart';
 import 'package:photos/ui/viewer/gallery/gallery.dart';
 import 'package:photos/ui/viewer/gallery/gallery_app_bar_widget.dart';
 import "package:photos/ui/viewer/gallery/hierarchical_search_gallery.dart";
-import "package:photos/ui/viewer/gallery/state/boundary_reporter_mixin.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
@@ -178,8 +177,14 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appBar = GalleryAppBarWidget.sliverConfig(
+      MagicResultScreen.appBarType,
+      widget.name,
+      _selectedFiles,
+    );
     final gallery = Gallery(
       key: ValueKey(_enableGrouping),
+      appBar: appBar,
       asyncLoader: (creationStartTime, creationEndTime, {limit, asc}) {
         final result = files
             .where(
@@ -208,22 +213,6 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
         child: InheritedSearchFilterDataWrapper(
           searchFilterDataProvider: _searchFilterDataProvider,
           child: Scaffold(
-            appBar: PreferredSize(
-              preferredSize: const Size.fromHeight(90.0),
-              child: _enableGrouping
-                  ? GalleryAppBarWidget(
-                      MagicResultScreen.appBarType,
-                      widget.name,
-                      _selectedFiles,
-                    )
-                  : _AppBarWithBoundary(
-                      child: GalleryAppBarWidget(
-                        MagicResultScreen.appBarType,
-                        widget.name,
-                        _selectedFiles,
-                      ),
-                    ),
-            ),
             body: SelectionState(
               selectedFiles: _selectedFiles,
               child: Stack(
@@ -240,6 +229,7 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
                               ? HierarchicalSearchGallery(
                                   tagPrefix: widget.heroTag,
                                   selectedFiles: _selectedFiles,
+                                  appBar: appBar,
                                 )
                               : AnimatedSwitcher(
                                   duration: const Duration(milliseconds: 250),
@@ -262,24 +252,5 @@ class _MagicResultScreenState extends State<MagicResultScreen> {
         ),
       ),
     );
-  }
-}
-
-/// Wrapper widget that reports the app bar as top boundary for auto-scroll
-/// when file grouping is disabled
-class _AppBarWithBoundary extends StatefulWidget {
-  final Widget child;
-
-  const _AppBarWithBoundary({required this.child});
-
-  @override
-  State<_AppBarWithBoundary> createState() => _AppBarWithBoundaryState();
-}
-
-class _AppBarWithBoundaryState extends State<_AppBarWithBoundary>
-    with BoundaryReporter {
-  @override
-  Widget build(BuildContext context) {
-    return boundaryWidget(position: BoundaryPosition.top, child: widget.child);
   }
 }

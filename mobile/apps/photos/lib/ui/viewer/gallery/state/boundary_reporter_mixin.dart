@@ -34,7 +34,10 @@ mixin BoundaryReporter<T extends StatefulWidget> on State<T> {
       if (renderBox != null && renderBox.hasSize) {
         final offset = renderBox.localToGlobal(Offset.zero);
         final boundary = position == BoundaryPosition.top
-            ? offset.dy + renderBox.size.height // Bottom edge of top widget
+            ? offset.dy +
+                  renderBox
+                      .size
+                      .height // Bottom edge of top widget
             : offset.dy; // Top edge of bottom widget
 
         if (position == BoundaryPosition.top) {
@@ -64,10 +67,7 @@ mixin BoundaryReporter<T extends StatefulWidget> on State<T> {
       reportBoundary(position);
     });
 
-    return Container(
-      key: _boundaryKey,
-      child: child,
-    );
+    return Container(key: _boundaryKey, child: child);
   }
 
   @override

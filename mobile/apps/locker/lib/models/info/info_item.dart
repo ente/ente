@@ -1,12 +1,7 @@
 import 'dart:convert';
 
 // Enum for different information types
-enum InfoType {
-  note,
-  physicalRecord,
-  accountCredential,
-  emergencyContact,
-}
+enum InfoType { note, physicalRecord, accountCredential, emergencyContact }
 
 // Extension to convert enum to string and vice versa.
 //
@@ -69,10 +64,7 @@ class PersonalNoteData extends InfoData {
   final String title;
   final String content;
 
-  PersonalNoteData({
-    required this.title,
-    required this.content,
-  });
+  PersonalNoteData({required this.title, required this.content});
 
   factory PersonalNoteData.fromJson(Map<String, dynamic> json) {
     return PersonalNoteData(
@@ -83,10 +75,7 @@ class PersonalNoteData extends InfoData {
 
   @override
   Map<String, dynamic> toJson() {
-    return {
-      'title': title,
-      'content': content,
-    };
+    return {'title': title, 'content': content};
   }
 }
 
@@ -96,11 +85,7 @@ class PhysicalRecordData extends InfoData {
   final String location;
   final String? notes;
 
-  PhysicalRecordData({
-    required this.name,
-    required this.location,
-    this.notes,
-  });
+  PhysicalRecordData({required this.name, required this.location, this.notes});
 
   factory PhysicalRecordData.fromJson(Map<String, dynamic> json) {
     return PhysicalRecordData(
@@ -206,8 +191,9 @@ class InfoItem {
       type: type,
       data: data,
       createdAt: DateTime.parse(json['createdAt']),
-      updatedAt:
-          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
     );
   }
 
@@ -243,9 +229,6 @@ class InfoItem {
 
   // Update with new data and timestamp
   InfoItem update(InfoData newData) {
-    return copyWith(
-      data: newData,
-      updatedAt: DateTime.now(),
-    );
+    return copyWith(data: newData, updatedAt: DateTime.now());
   }
 }

@@ -26,7 +26,7 @@ class VideoEditorAppBar extends StatelessWidget implements PreferredSizeWidget {
     final textTheme = getEnteTextTheme(context);
     return AppBar(
       elevation: 0,
-      backgroundColor: colorScheme.backgroundBase,
+      backgroundColor: colorScheme.backgroundColour,
       automaticallyImplyLeading: false,
       titleSpacing: 0,
       title: Row(

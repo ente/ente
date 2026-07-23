@@ -92,6 +92,7 @@ Future<void> sendLogs(
         shouldSurfaceExecutionStates: false,
         onTap: () async {
           final zipFilePath = await getZippedLogsFile(context);
+          if (!context.mounted) return;
           await exportLogs(context, zipFilePath);
         },
       ),
@@ -112,6 +113,7 @@ Future<void> _sendLogs(
   String? body,
 ) async {
   final String zipFilePath = await getZippedLogsFile(context);
+  if (!context.mounted) return;
   final didOpenComposer = await sendLogsWithSubjectAndBody(
     context,
     toEmail: toEmail,
@@ -120,7 +122,9 @@ Future<void> _sendLogs(
     zipFilePath: zipFilePath,
   );
   if (!didOpenComposer) {
+    if (!context.mounted) return;
     Navigator.of(context).pop();
+    if (!context.mounted) return;
     await shareLogs(context, toEmail, zipFilePath);
   }
 }
@@ -133,6 +137,7 @@ Future<bool> sendLogsWithSubjectAndBody(
   String? zipFilePath,
 }) async {
   final effectiveZipFilePath = zipFilePath ?? await getZippedLogsFile(context);
+  if (!context.mounted) return false;
   return sendComposedEmail(
     context,
     to: toEmail,
@@ -174,8 +179,11 @@ Future<String> getZippedLogsFile(BuildContext? context) async {
   final logsPath = (await getApplicationSupportDirectory()).path;
   final logsDirectory = Directory(logsPath + "/logs");
   final tempPath = (await getTemporaryDirectory()).path;
-  final zipFilePath =
-      tempPath + "/logs-${Configuration.instance.getUserID() ?? 0}.zip";
+  final timestamp = DateTime.now().toUtc().toIso8601String().replaceAll(
+    ':',
+    '-',
+  );
+  final zipFilePath = tempPath + "/logs-$timestamp.zip";
   final encoder = ZipFileEncoder();
   encoder.create(zipFilePath);
   await encoder.addDirectory(logsDirectory);
@@ -221,6 +229,7 @@ Future<void> shareLogs(
     ],
   );
   if (result?.action != null && result!.action == ButtonAction.second) {
+    if (!context.mounted) return;
     await exportLogs(context, zipFilePath);
   }
 }
@@ -236,7 +245,7 @@ Future<void> exportLogs(BuildContext context, String zipFilePath) async {
       name: logFileName,
       filePath: zipFilePath,
       mimeType: MimeType.zip,
-      ext: 'zip',
+      fileExtension: 'zip',
     );
   } else {
     await SharePlus.instance.share(
@@ -256,6 +265,7 @@ Future<void> sendEmail(
 }) async {
   try {
     final String clientDebugInfo = await _clientInfo();
+    if (!context.mounted) return;
     final didOpenComposer = await sendComposedEmail(
       context,
       to: to,
@@ -263,10 +273,12 @@ Future<void> sendEmail(
       body: (body ?? '') + clientDebugInfo,
     );
     if (!didOpenComposer) {
+      if (!context.mounted) return;
       await _showNoMailAppsSheet(context, to);
     }
   } catch (e) {
     _logger.severe("Failed to send emailContent to $to", e);
+    if (!context.mounted) return;
     await _showNoMailAppsSheet(context, to);
   }
 }
@@ -283,10 +295,12 @@ Future<void> openEmailComposer(
       body: '',
     );
     if (!didOpenComposer) {
+      if (!context.mounted) return;
       await _showNoMailAppsSheet(context, to);
     }
   } catch (e, s) {
     _logger.severe("Failed to open email composer to $to", e, s);
+    if (!context.mounted) return;
     await _showNoMailAppsSheet(context, to);
   }
 }
@@ -312,20 +326,12 @@ Future<bool> sendComposedEmail(
       return true;
     }
 
-    final emailContent = EmailContent(
-      to: [to],
-      subject: subject,
-      body: body,
-    );
+    final emailContent = EmailContent(to: [to], subject: subject, body: body);
 
     if (Platform.isAndroid) {
       // Special handling due to issue in proton mail android client
-      // https://github.com/ente-io/photos-app/pull/253
-      final params = _buildMailtoUri(
-        to,
-        subject: subject,
-        body: body,
-      );
+      // https://github.com/ente/photos-app/pull/253
+      final params = _buildMailtoUri(to, subject: subject, body: body);
       if (!await canLaunchUrl(params)) {
         return false;
       }
@@ -341,10 +347,13 @@ Future<bool> sendComposedEmail(
       return false;
     }
     if (!result.didOpen && result.canOpen) {
+      if (!context.mounted) return false;
       await showCupertinoModalPopup(
         context: context,
-        builder: (_) => CupertinoActionSheet(
-          title: Text(AppLocalizations.of(context).selectMailApp + " \n $to"),
+        builder: (sheetContext) => CupertinoActionSheet(
+          title: Text(
+            AppLocalizations.of(sheetContext).selectMailApp + " \n $to",
+          ),
           actions: [
             for (final app in result.options)
               CupertinoActionSheetAction(
@@ -354,16 +363,16 @@ Future<bool> sendComposedEmail(
                     mailApp: app,
                     emailContent: emailContent,
                   );
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
+                  if (sheetContext.mounted) {
+                    Navigator.of(sheetContext).pop();
                   }
                 },
               ),
           ],
           cancelButton: CupertinoActionSheetAction(
-            child: Text(AppLocalizations.of(context).cancel),
+            child: Text(AppLocalizations.of(sheetContext).cancel),
             onPressed: () {
-              Navigator.of(context).pop();
+              Navigator.of(sheetContext).pop();
             },
           ),
         ),
@@ -376,11 +385,7 @@ Future<bool> sendComposedEmail(
   }
 }
 
-Uri _buildMailtoUri(
-  String to, {
-  String? subject,
-  String? body,
-}) {
+Uri _buildMailtoUri(String to, {String? subject, String? body}) {
   final queryParameters = <String, String>{};
   if (subject != null && subject.isNotEmpty) {
     queryParameters["subject"] = subject;
@@ -407,10 +412,7 @@ Future<String> getSupportDeviceInfo() async {
   return buffer.toString();
 }
 
-String buildSupportEmailBody({
-  required String message,
-  String? deviceInfo,
-}) {
+String buildSupportEmailBody({required String message, String? deviceInfo}) {
   final trimmedMessage = message.trim();
   final trimmedDeviceInfo = deviceInfo?.trim();
   if (trimmedDeviceInfo == null || trimmedDeviceInfo.isEmpty) {
@@ -449,9 +451,7 @@ Future<void> _showNoMailAppsSheet(BuildContext context, String toEmail) async {
 class _NoMailAppsSheet extends StatelessWidget {
   final String toEmail;
 
-  const _NoMailAppsSheet({
-    required this.toEmail,
-  });
+  const _NoMailAppsSheet({required this.toEmail});
 
   @override
   Widget build(BuildContext context) {
@@ -487,13 +487,13 @@ Future<void> _copyEmailAddress(BuildContext context, String toEmail) async {
 }
 
 Future<({String osVersion, String deviceModel})>
-    _getPlatformDeviceInfo() async {
+_getPlatformDeviceInfo() async {
   try {
     final deviceInfoPlugin = DeviceInfoPlugin();
     if (Platform.isAndroid) {
       final androidInfo = await deviceInfoPlugin.androidInfo;
-      final deviceModel =
-          "${androidInfo.manufacturer} ${androidInfo.model}".trim();
+      final deviceModel = "${androidInfo.manufacturer} ${androidInfo.model}"
+          .trim();
       final osVersion = "Android ${androidInfo.version.release}";
       return (
         osVersion: osVersion,
@@ -511,8 +511,5 @@ Future<({String osVersion, String deviceModel})>
   } catch (e, s) {
     _logger.severe("Failed to fetch platform device info", e, s);
   }
-  return (
-    osVersion: Platform.operatingSystem,
-    deviceModel: "Unknown device",
-  );
+  return (osVersion: Platform.operatingSystem, deviceModel: "Unknown device");
 }

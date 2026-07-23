@@ -11,10 +11,7 @@ class FakePeriodicProgress {
   bool _shouldRun = true;
   int runCount = 0;
 
-  FakePeriodicProgress({
-    required this.callback,
-    required this.duration,
-  });
+  FakePeriodicProgress({required this.callback, required this.duration});
 
   void start() {
     assert(_shouldRun, "Cannot start a stopped FakePeriodicProgress");

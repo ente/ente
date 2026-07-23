@@ -100,14 +100,16 @@ FaceWithoutEmbedding _face(String faceID, int fileID) {
 
 void main() {
   group('PhotoSelector utilities', () {
-    test('memoryFileId returns uploadedFileID when not in local gallery mode',
-        () {
-      final f = _file(uploadedFileID: 42, creationTime: _baseTime);
-      expect(
-        PhotoSelector.memoryFileId(f, isLocalGalleryMode: false),
-        equals(42),
-      );
-    });
+    test(
+      'memoryFileId returns uploadedFileID when not in local gallery mode',
+      () {
+        final f = _file(uploadedFileID: 42, creationTime: _baseTime);
+        expect(
+          PhotoSelector.memoryFileId(f, isLocalGalleryMode: false),
+          equals(42),
+        );
+      },
+    );
 
     test('memoryFileId returns generatedID when in local gallery mode', () {
       final f = _file(
@@ -205,8 +207,9 @@ void main() {
           _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
         );
       });
-      final embeddings =
-          memories.map((m) => _emb(m.file.uploadedFileID!)).toList();
+      final embeddings = memories
+          .map((m) => _emb(m.file.uploadedFileID!))
+          .toList();
       final result = await PhotoSelector.bestSelection(
         memories,
         isLocalGalleryMode: false,
@@ -227,8 +230,9 @@ void main() {
           _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
         );
       });
-      final embeddings =
-          memories.map((m) => _emb(m.file.uploadedFileID!)).toList();
+      final embeddings = memories
+          .map((m) => _emb(m.file.uploadedFileID!))
+          .toList();
       final result = await PhotoSelector.bestSelection(
         memories,
         isLocalGalleryMode: false,
@@ -247,8 +251,9 @@ void main() {
           _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
         );
       });
-      final embeddings =
-          memories.map((m) => _emb(m.file.uploadedFileID!)).toList();
+      final embeddings = memories
+          .map((m) => _emb(m.file.uploadedFileID!))
+          .toList();
       final result = await PhotoSelector.bestSelection(
         memories,
         isLocalGalleryMode: false,
@@ -273,8 +278,9 @@ void main() {
         final offset = (i.isEven ? i * _hour : (i - 1) * _hour + 60000000);
         return _mem(_file(uploadedFileID: i, creationTime: _baseTime + offset));
       });
-      final embeddings =
-          memories.map((m) => _emb(m.file.uploadedFileID!)).toList();
+      final embeddings = memories
+          .map((m) => _emb(m.file.uploadedFileID!))
+          .toList();
       final result = await PhotoSelector.bestSelection(
         memories,
         isLocalGalleryMode: false,
@@ -661,8 +667,9 @@ void main() {
           _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
         );
       });
-      final embeddings =
-          memories.map((m) => _emb(m.file.uploadedFileID!)).toList();
+      final embeddings = memories
+          .map((m) => _emb(m.file.uploadedFileID!))
+          .toList();
       final result = await PhotoSelector.bestSelectionPeople(
         memories,
         isLocalGalleryMode: false,
@@ -680,10 +687,9 @@ void main() {
             _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
           );
         });
-        final embeddings = memories
-            .map((m) => _emb(m.file.uploadedFileID!))
-            .toList()
-          ..add(EmbeddingVector(fileID: 9999, embedding: const [1.0, 0.0]));
+        final embeddings =
+            memories.map((m) => _emb(m.file.uploadedFileID!)).toList()
+              ..add(EmbeddingVector(fileID: 9999, embedding: const [1.0, 0.0]));
 
         final result = await PhotoSelector.bestSelectionPeople(
           memories,
@@ -703,8 +709,9 @@ void main() {
           _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
         );
       });
-      final embeddings =
-          memories.map((m) => _emb(m.file.uploadedFileID!)).toList();
+      final embeddings = memories
+          .map((m) => _emb(m.file.uploadedFileID!))
+          .toList();
       final result = await PhotoSelector.bestSelectionPeople(
         memories,
         isLocalGalleryMode: false,
@@ -720,8 +727,9 @@ void main() {
           _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
         );
       });
-      final embeddings =
-          memories.map((m) => _emb(m.file.uploadedFileID!)).toList();
+      final embeddings = memories
+          .map((m) => _emb(m.file.uploadedFileID!))
+          .toList();
       final result = await PhotoSelector.bestSelectionPeople(
         memories,
         prefferedSize: 5,
@@ -738,8 +746,9 @@ void main() {
           _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
         );
       });
-      final embeddings =
-          memories.map((m) => _emb(m.file.uploadedFileID!)).toList();
+      final embeddings = memories
+          .map((m) => _emb(m.file.uploadedFileID!))
+          .toList();
       final result = await PhotoSelector.bestSelectionPeople(
         memories,
         isLocalGalleryMode: false,
@@ -761,8 +770,9 @@ void main() {
           _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
         );
       });
-      final embeddings =
-          memories.map((m) => _emb(m.file.uploadedFileID!)).toList();
+      final embeddings = memories
+          .map((m) => _emb(m.file.uploadedFileID!))
+          .toList();
       final result = await PhotoSelector.bestSelectionPeople(
         memories,
         isLocalGalleryMode: false,
@@ -868,8 +878,9 @@ void main() {
           );
         }),
       ];
-      final embeddings =
-          memories.map((m) => _emb(m.file.uploadedFileID!)).toList();
+      final embeddings = memories
+          .map((m) => _emb(m.file.uploadedFileID!))
+          .toList();
       final result = await PhotoSelector.bestSelectionPeople(
         memories,
         isLocalGalleryMode: false,
@@ -892,8 +903,9 @@ void main() {
           _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
         );
       });
-      final embeddings =
-          memories.map((m) => _emb(m.file.uploadedFileID!)).toList();
+      final embeddings = memories
+          .map((m) => _emb(m.file.uploadedFileID!))
+          .toList();
       final embMap = _embMap(embeddings);
 
       // Run twice with fresh copies of memories list (since sort is in-place)
@@ -981,8 +993,9 @@ void main() {
             _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
           );
         });
-        final embeddings =
-            memories.map((m) => _emb(m.file.uploadedFileID!)).toList();
+        final embeddings = memories
+            .map((m) => _emb(m.file.uploadedFileID!))
+            .toList();
         final embMap = _embMap(embeddings);
 
         Future<List<int>> run() async {
@@ -1046,8 +1059,9 @@ void main() {
             _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
           );
         });
-        final embeddings =
-            memories.map((m) => _emb(m.file.uploadedFileID!)).toList();
+        final embeddings = memories
+            .map((m) => _emb(m.file.uploadedFileID!))
+            .toList();
         final embMap = _embMap(embeddings);
         // Score = fileID (so higher IDs are preferred)
         final scores = {
@@ -1082,8 +1096,9 @@ void main() {
           _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
         );
       });
-      final embeddings =
-          memories.map((m) => _emb(m.file.uploadedFileID!)).toList();
+      final embeddings = memories
+          .map((m) => _emb(m.file.uploadedFileID!))
+          .toList();
       final embMap = _embMap(embeddings);
       final scores = {
         for (final e in embeddings) e.fileID: e.vector.dot(_positiveTextVector),
@@ -1167,8 +1182,9 @@ void main() {
           _file(uploadedFileID: i, creationTime: _baseTime + i * _hour),
         );
       });
-      final embeddings =
-          memories.map((m) => _emb(m.file.uploadedFileID!)).toList();
+      final embeddings = memories
+          .map((m) => _emb(m.file.uploadedFileID!))
+          .toList();
       final embMap = _embMap(embeddings);
       final scores = {
         for (final e in embeddings) e.fileID: e.vector.dot(_positiveTextVector),

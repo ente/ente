@@ -96,6 +96,7 @@ class ScrollbarWithUseNotifer extends StatelessWidget {
     this.interactive,
     this.scrollbarOrientation,
     this.showThumb,
+    this.scrollbarPadding,
   });
 
   /// {@macro flutter.widgets.Scrollbar.child}
@@ -157,6 +158,8 @@ class ScrollbarWithUseNotifer extends StatelessWidget {
 
   final bool? showThumb;
 
+  final EdgeInsets? scrollbarPadding;
+
   @override
   Widget build(BuildContext context) {
     return ScrollbarTheme(
@@ -183,6 +186,7 @@ class ScrollbarWithUseNotifer extends StatelessWidget {
         inUseNotifier: inUseNotifier,
         minScrollbarLength: minScrollbarLength,
         showThumb: showThumb,
+        scrollbarPadding: scrollbarPadding,
         child: child,
       ),
     );
@@ -193,11 +197,13 @@ class _MaterialScrollbar extends RawScrollbar {
   final ValueNotifier<bool> inUseNotifier;
   final double minScrollbarLength;
   final bool? showThumb;
+  final EdgeInsets? scrollbarPadding;
   const _MaterialScrollbar({
     required super.child,
     required this.inUseNotifier,
     required this.minScrollbarLength,
     required this.showThumb,
+    required this.scrollbarPadding,
     super.controller,
     super.thumbVisibility,
     super.trackVisibility,
@@ -207,12 +213,12 @@ class _MaterialScrollbar extends RawScrollbar {
     super.interactive,
     super.scrollbarOrientation,
   }) : super(
-          fadeDuration: _kScrollbarFadeDuration,
-          timeToFade: _kScrollbarTimeToFade,
-          pressDuration: Duration.zero,
-          notificationPredicate:
-              notificationPredicate ?? defaultScrollNotificationPredicate,
-        );
+         fadeDuration: _kScrollbarFadeDuration,
+         timeToFade: _kScrollbarTimeToFade,
+         pressDuration: Duration.zero,
+         notificationPredicate:
+             notificationPredicate ?? defaultScrollNotificationPredicate,
+       );
 
   @override
   _MaterialScrollbarState createState() => _MaterialScrollbarState();
@@ -247,9 +253,9 @@ class _MaterialScrollbarState extends RawScrollbarState<_MaterialScrollbar> {
       });
 
   Set<WidgetState> get _states => <WidgetState>{
-        if (_dragIsActive) WidgetState.dragged,
-        if (_hoverIsActive) WidgetState.hovered,
-      };
+    if (_dragIsActive) WidgetState.dragged,
+    if (_hoverIsActive) WidgetState.hovered,
+  };
 
   WidgetStateProperty<Color> get _thumbColor {
     if (widget.showThumb == false) {
@@ -383,14 +389,16 @@ class _MaterialScrollbarState extends RawScrollbarState<_MaterialScrollbar> {
       ..trackBorderColor = _trackBorderColor.resolve(_states)
       ..textDirection = Directionality.of(context)
       ..thickness = _thickness.resolve(_states)
-      ..radius = widget.radius ??
+      ..radius =
+          widget.radius ??
           _scrollbarTheme.radius ??
           (_useAndroidScrollbar ? null : _kScrollbarRadius)
-      ..crossAxisMargin = _scrollbarTheme.crossAxisMargin ??
+      ..crossAxisMargin =
+          _scrollbarTheme.crossAxisMargin ??
           (_useAndroidScrollbar ? 0.0 : _kScrollbarMargin)
       ..mainAxisMargin = _scrollbarTheme.mainAxisMargin ?? 0.0
       ..minLength = widget.minScrollbarLength
-      ..padding = MediaQuery.paddingOf(context)
+      ..padding = widget.scrollbarPadding ?? MediaQuery.paddingOf(context)
       ..scrollbarOrientation = widget.scrollbarOrientation
       ..ignorePointer = !enableGestures;
   }

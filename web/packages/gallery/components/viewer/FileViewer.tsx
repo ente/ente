@@ -29,7 +29,7 @@ import { DialogCloseIconButton } from "ente-base/components/mui/DialogCloseIconB
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { useInterval, useIsSmallWidth } from "ente-base/components/utils/hooks";
-import { type ModalVisibilityProps } from "ente-base/components/utils/modal";
+import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
 import { lowercaseExtension } from "ente-base/file-name";
 import { formattedListJoin, ut } from "ente-base/i18n";
@@ -40,7 +40,11 @@ import {
     type FileInfoProps,
 } from "ente-gallery/components/FileInfo";
 import type { Collection } from "ente-media/collection";
-import { fileFileName, ItemVisibility } from "ente-media/file-metadata";
+import {
+    fileFileName,
+    ItemVisibility,
+    metadataHash,
+} from "ente-media/file-metadata";
 import { FileType } from "ente-media/file-type";
 import type { EnteFile } from "ente-media/file.js";
 import { isHEICExtension, needsJPEGConversion } from "ente-media/formats";
@@ -50,7 +54,7 @@ import {
 } from "ente-new/photos/components/ImageEditorOverlay";
 import { getCollectionByID } from "ente-new/photos/services/collection";
 import type { CollectionSummaries } from "ente-new/photos/services/collection-summary";
-import { type Comment } from "ente-new/photos/services/comment";
+import type { Comment } from "ente-new/photos/services/comment";
 import { addReaction, deleteReaction } from "ente-new/photos/services/reaction";
 import {
     getAnonProfiles,
@@ -245,6 +249,14 @@ export type FileViewerProps = ModalVisibilityProps & {
      */
     fileNormalCollectionIDs?: FileInfoProps["fileCollectionIDs"];
     /**
+     * A mapping from file IDs to all collection IDs that they are a part of.
+     */
+    fileCollectionIDs?: FileInfoProps["fileCollectionIDs"];
+    /**
+     * IDs of hidden collections.
+     */
+    hiddenCollectionIDs?: FileInfoProps["hiddenCollectionIDs"];
+    /**
      * Collection summaries indexed by their IDs.
      */
     collectionSummaries?: CollectionSummaries;
@@ -389,6 +401,8 @@ export const FileViewer: React.FC<FileViewerProps> = ({
     pendingFavoriteUpdates,
     pendingVisibilityUpdates,
     fileNormalCollectionIDs,
+    fileCollectionIDs,
+    hiddenCollectionIDs,
     collectionSummaries,
     collectionNameByID,
     onTriggerRemotePull,
@@ -425,13 +439,15 @@ export const FileViewer: React.FC<FileViewerProps> = ({
     //
     // The word "dynamic" here means a prop on whose change we should not
     // recreate the photoswipe dialog.
-    const delegateRef = useRef<FileViewerPhotoSwipeDelegate | undefined>(
-        undefined,
-    );
+    const delegateRef = useRef<
+        FileViewerPhotoSwipeDelegate<FileViewerAnnotatedFile> | undefined
+    >(undefined);
 
     // We also need to maintain a ref to the currently displayed dialog since we
     // might need to ask it to refresh its contents.
-    const psRef = useRef<FileViewerPhotoSwipe | undefined>(undefined);
+    const psRef = useRef<
+        FileViewerPhotoSwipe<FileViewerAnnotatedFile> | undefined
+    >(undefined);
     const handleCloseRef = useRef<() => void>(() => undefined);
     const browserBackStateRef = useRef<string | undefined>(undefined);
 
@@ -452,8 +468,23 @@ export const FileViewer: React.FC<FileViewerProps> = ({
     const [activeFileExif, setActiveFileExif] = useState<
         FileInfoExif | undefined
     >(undefined);
+    const activeFileExifFileIDRef = useRef<number | undefined>(undefined);
+
+    const refreshActiveFileExif = useCallback((file: EnteFile) => {
+        const fileID = file.id;
+        activeFileExifFileIDRef.current = fileID;
+        setActiveFileExif(
+            fileInfoExifForFile(file, (exif) => {
+                if (activeFileExifFileIDRef.current == fileID) {
+                    setActiveFileExif(exif);
+                }
+            }),
+        );
+    }, []);
 
     const [openFileInfo, setOpenFileInfo] = useState(false);
+    const [fileInfoNavigationLocked, setFileInfoNavigationLocked] =
+        useState(false);
     const [openComments, setOpenComments] = useState(false);
     const [openLikes, setOpenLikes] = useState(false);
     const [openLikeAlbumSelector, setOpenLikeAlbumSelector] = useState(false);
@@ -594,6 +625,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
             return false;
         });
         setOpenFileInfo(false);
+        setFileInfoNavigationLocked(false);
         setOpenComments(false);
         setOpenLikes(false);
         setOpenLikeAlbumSelector(false);
@@ -613,17 +645,22 @@ export const FileViewer: React.FC<FileViewerProps> = ({
 
     const handleViewInfo = useCallback(
         (annotatedFile: FileViewerAnnotatedFile) => {
-            setActiveFileExif(
-                fileInfoExifForFile(annotatedFile.file, (exif) =>
-                    setActiveFileExif(exif),
-                ),
-            );
+            refreshActiveFileExif(annotatedFile.file);
             setOpenFileInfo(true);
         },
-        [],
+        [refreshActiveFileExif],
     );
 
-    const handleFileInfoClose = useCallback(() => setOpenFileInfo(false), []);
+    useEffect(() => {
+        if (openFileInfo && activeAnnotatedFile) {
+            refreshActiveFileExif(activeAnnotatedFile.file);
+        }
+    }, [activeAnnotatedFile, openFileInfo, refreshActiveFileExif]);
+
+    const handleFileInfoClose = useCallback(() => {
+        setOpenFileInfo(false);
+        setFileInfoNavigationLocked(false);
+    }, []);
 
     const handleViewComments = useCallback(() => setOpenComments(true), []);
 
@@ -1201,21 +1238,36 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                   collection: Collection,
                   enteFile: EnteFile,
               ) => {
-                  onSaveEditedImageCopy(editedFile, collection, enteFile);
-                  handleClose();
+                  const didStartSave = onSaveEditedImageCopy(
+                      editedFile,
+                      collection,
+                      enteFile,
+                  );
+                  if (didStartSave) handleClose();
+                  return didStartSave;
               }
             : undefined;
     }, [onSaveEditedImageCopy, handleClose]);
 
+    const userID = user?.id;
+    const haveUser = userID != undefined;
+    const canShowFavorite =
+        haveUser &&
+        !!favoriteFileIDs &&
+        !!pendingFavoriteUpdates &&
+        !!onToggleFavorite &&
+        !isInTrashSection &&
+        !isInHiddenSection;
+
     const handleAnnotate = useCallback(
         (file: EnteFile, itemData: ItemData): FileViewerAnnotatedFile => {
             const fileID = file.id;
-            const isOwnFile = file.ownerID == user?.id;
+            const isOwnFile = file.ownerID == userID;
+            const canFavoriteFile =
+                canShowFavorite && (isOwnFile || !!metadataHash(file.metadata));
 
             const canModify =
                 isOwnFile && !isInTrashSection && !isInHiddenSection;
-
-            const showFavorite = canModify;
 
             const showArchive = canModify;
 
@@ -1231,7 +1283,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
             const showDownload = (() => {
                 if (disableDownload) return undefined;
                 if (!onDownload) return undefined;
-                if (user) {
+                if (haveUser) {
                     // Logged in users see the download option in the more menu.
                     return "menu";
                 } else {
@@ -1255,7 +1307,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
             const annotation: FileViewerFileAnnotation = {
                 fileID,
                 isOwnFile,
-                showFavorite,
+                showFavorite: canFavoriteFile,
                 showDownload,
                 showDelete,
                 showArchive,
@@ -1268,11 +1320,13 @@ export const FileViewer: React.FC<FileViewerProps> = ({
             return annotatedFile;
         },
         [
-            user,
+            userID,
+            haveUser,
             disableDownload,
             isInIncomingSharedCollection,
             isInTrashSection,
             isInHiddenSection,
+            canShowFavorite,
             onDownload,
             handleEditImage,
             handleConfirmDelete,
@@ -1296,8 +1350,6 @@ export const FileViewer: React.FC<FileViewerProps> = ({
               }
             : undefined;
     }, [onSelectPerson, handleClose]);
-
-    const haveUser = !!user;
 
     // Determine if social buttons (like, comment) should be shown.
     const showSocialButtons = useMemo(() => {
@@ -1499,50 +1551,64 @@ export const FileViewer: React.FC<FileViewerProps> = ({
 
     const handleShortcutsClose = useCallback(() => setOpenShortcuts(false), []);
 
-    const shouldIgnoreKeyboardEvent = useCallback(() => {
-        // Don't handle keydowns if any of the viewer's own modals are open.
-        if (
-            openFileInfo ||
-            openComments ||
-            openLikes ||
-            openLikeAlbumSelector ||
-            !!moreMenuAnchorEl ||
-            openImageEditor ||
-            openConfirmDelete ||
-            openShortcuts
-        ) {
-            return true;
-        }
+    const shouldIgnoreKeyboardEvent = useCallback(
+        (event: KeyboardEvent) => {
+            // Allow the file info drawer itself to pass through the slide shortcut.
+            const shouldAllowFileInfoArrowNavigation =
+                openFileInfo &&
+                !fileInfoNavigationLocked &&
+                !event.shiftKey &&
+                !event.metaKey &&
+                !event.ctrlKey &&
+                event.altKey &&
+                (event.key == "ArrowLeft" || event.key == "ArrowRight");
 
-        // Also ignore keydowns if keyboard focus is inside an editable field
-        // (e.g., when the CollectionSelector dialog's search TextField is focused)
-        const activeElement = document.activeElement as HTMLElement | null;
-        if (activeElement) {
-            const tagName = activeElement.tagName;
-            const role = activeElement.getAttribute("role");
+            // Don't handle keydowns if any of the viewer's own modals are open.
             if (
-                tagName === "INPUT" ||
-                tagName === "TEXTAREA" ||
-                tagName === "SELECT" ||
-                activeElement.isContentEditable ||
-                role === "textbox" ||
-                role === "combobox"
+                (openFileInfo && !shouldAllowFileInfoArrowNavigation) ||
+                openComments ||
+                openLikes ||
+                openLikeAlbumSelector ||
+                !!moreMenuAnchorEl ||
+                openImageEditor ||
+                openConfirmDelete ||
+                openShortcuts
             ) {
                 return true;
             }
-        }
 
-        return false;
-    }, [
-        openFileInfo,
-        openComments,
-        openLikes,
-        openLikeAlbumSelector,
-        moreMenuAnchorEl,
-        openImageEditor,
-        openConfirmDelete,
-        openShortcuts,
-    ]);
+            // Also ignore keydowns if keyboard focus is inside an editable field
+            // (e.g., when the CollectionSelector dialog's search TextField is focused)
+            const activeElement = document.activeElement as HTMLElement | null;
+            if (activeElement) {
+                const tagName = activeElement.tagName;
+                const role = activeElement.getAttribute("role");
+                if (
+                    tagName === "INPUT" ||
+                    tagName === "TEXTAREA" ||
+                    tagName === "SELECT" ||
+                    activeElement.isContentEditable ||
+                    role === "textbox" ||
+                    role === "combobox"
+                ) {
+                    return true;
+                }
+            }
+
+            return false;
+        },
+        [
+            openFileInfo,
+            fileInfoNavigationLocked,
+            openComments,
+            openLikes,
+            openLikeAlbumSelector,
+            moreMenuAnchorEl,
+            openImageEditor,
+            openConfirmDelete,
+            openShortcuts,
+        ],
+    );
 
     const canCopyImage = useCallback(
         () =>
@@ -1601,7 +1667,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
         ]);
 
     const performKeyAction = useCallback<
-        FileViewerPhotoSwipeDelegate["performKeyAction"]
+        FileViewerPhotoSwipeDelegate<FileViewerAnnotatedFile>["performKeyAction"]
     >(
         (action) => {
             switch (action) {
@@ -2091,14 +2157,16 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                 onClose={handleFileInfoClose}
                 file={activeAnnotatedFile.file}
                 exif={activeFileExif}
-                allowEdits={!!activeAnnotatedFile.annotation.isOwnFile}
+                allowEdits={activeAnnotatedFile.annotation.isOwnFile}
                 allowMap={haveUser}
-                showCollections={haveUser && !isInHiddenSection}
-                fileCollectionIDs={fileNormalCollectionIDs}
+                showCollections={haveUser}
+                fileCollectionIDs={fileCollectionIDs ?? fileNormalCollectionIDs}
+                hiddenCollectionIDs={hiddenCollectionIDs}
                 onFileMetadataUpdate={handleFileMetadataUpdate}
                 onUpdateCaption={handleUpdateCaption}
                 onSelectCollection={handleSelectCollection}
                 onSelectPerson={handleSelectPerson}
+                onNavigationLockChange={setFileInfoNavigationLocked}
                 {...{ collectionNameByID }}
             />
             <CommentsSidebar
@@ -2189,7 +2257,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                     </MoreMenuItem>
                 )}
                 {handleAddFileToCollection &&
-                    activeAnnotatedFile.annotation.isOwnFile && (
+                    !(isInTrashSection || isInHiddenSection) && (
                         <MoreMenuItem onClick={handleAddFileToCollection}>
                             <MoreMenuItemTitle>
                                 {t("add_to_album")}

@@ -4,16 +4,14 @@ import "package:photos/services/wrapped/wrapped_service.dart"
 import "package:photos/ui/wrapped/wrapped_rewind_banner_button.dart";
 
 class RewindBanner extends StatelessWidget {
-  const RewindBanner({
-    required this.state,
-    super.key,
-  });
+  const RewindBanner({required this.state, super.key});
 
   final WrappedEntryState state;
 
   @override
   Widget build(BuildContext context) {
-    final bool hasProgress = state.resumeIndex > 0 &&
+    final bool hasProgress =
+        state.resumeIndex > 0 &&
         state.resumeIndex < (state.result?.cards.length ?? 0);
     final String semanticsLabel = hasProgress && !state.isComplete
         ? "Resume Ente Rewind 2025"
@@ -28,8 +26,8 @@ class RewindBanner extends StatelessWidget {
         builder: (BuildContext context, BoxConstraints constraints) {
           final double baseWidth =
               constraints.hasBoundedWidth && constraints.maxWidth.isFinite
-                  ? constraints.maxWidth
-                  : MediaQuery.sizeOf(context).width;
+              ? constraints.maxWidth
+              : MediaQuery.sizeOf(context).width;
           final double targetWidth = baseWidth + bleed * 2;
 
           return SizedBox(

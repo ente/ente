@@ -38,26 +38,32 @@ class WrappedEntryState {
 
 class WrappedService {
   WrappedService._()
-      : _logger = Logger("WrappedService"),
-        _cacheService = WrappedCacheService.instance,
-        _computeLock = Lock(),
-        _state = ValueNotifier<WrappedEntryState>(
-          WrappedEntryState(
-            result: null,
-            resumeIndex: 0,
-            isComplete: localSettings.wrapped2025Complete(),
-          ),
-        );
+    : _logger = Logger("WrappedService"),
+      _cacheService = WrappedCacheService.instance,
+      _computeLock = Lock(),
+      _state = ValueNotifier<WrappedEntryState>(
+        WrappedEntryState(
+          result: null,
+          resumeIndex: 0,
+          isComplete: localSettings.wrapped2025Complete(),
+        ),
+      );
 
   static final WrappedService instance = WrappedService._();
 
   static const Duration _kInitialDelay = Duration(seconds: 5);
   static const int _kWrappedYear = 2025;
   static final DateTime _kAvailabilityStart = DateTime(_kWrappedYear, 12, 6);
-  static final DateTime _kAvailabilityEndExclusive =
-      DateTime(_kWrappedYear + 1, 1, 16);
-  static final DateTime _kFinalComputeCutoff =
-      DateTime(_kWrappedYear + 1, 1, 1);
+  static final DateTime _kAvailabilityEndExclusive = DateTime(
+    _kWrappedYear + 1,
+    1,
+    16,
+  );
+  static final DateTime _kFinalComputeCutoff = DateTime(
+    _kWrappedYear + 1,
+    1,
+    1,
+  );
 
   final Logger _logger;
   final WrappedCacheService _cacheService;
@@ -110,23 +116,21 @@ class WrappedService {
     _logger.info("Scheduling Wrapped initial load after $_kInitialDelay");
     final int generation = _sessionGeneration;
     unawaited(
-      Future<void>.delayed(
-        _kInitialDelay,
-        () async {
-          if (generation != _sessionGeneration) {
-            return;
-          }
-          await _bootstrap();
-        },
-      ),
+      Future<void>.delayed(_kInitialDelay, () async {
+        if (generation != _sessionGeneration) {
+          return;
+        }
+        await _bootstrap();
+      }),
     );
   }
 
   Future<void> _bootstrap() async {
     final int generation = _sessionGeneration;
     try {
-      final WrappedResult? cached =
-          await _cacheService.read(year: _kWrappedYear);
+      final WrappedResult? cached = await _cacheService.read(
+        year: _kWrappedYear,
+      );
       if (generation != _sessionGeneration) {
         _logger.info("Wrapped bootstrap aborted due to session change");
         return;
@@ -144,9 +148,7 @@ class WrappedService {
         updateResult(cached);
         if (_shouldScheduleDailyRecompute(cached)) {
           _logger.info("Scheduling daily Wrapped recompute for $_kWrappedYear");
-          unawaited(
-            _runCompute(reason: "daily", bypassFlag: false),
-          );
+          unawaited(_runCompute(reason: "daily", bypassFlag: false));
         }
         return;
       }
@@ -182,10 +184,7 @@ class WrappedService {
     required bool bypassFlag,
   }) async {
     await _computeLock.synchronized(
-      () async => _computeAndPersist(
-        reason: reason,
-        bypassFlag: bypassFlag,
-      ),
+      () async => _computeAndPersist(reason: reason, bypassFlag: bypassFlag),
     );
   }
 
@@ -203,8 +202,9 @@ class WrappedService {
 
     _logger.info("Starting Wrapped compute ($reason) for $_kWrappedYear");
     try {
-      final WrappedResult result =
-          await WrappedEngine.compute(year: _kWrappedYear);
+      final WrappedResult result = await WrappedEngine.compute(
+        year: _kWrappedYear,
+      );
       if (generation != _sessionGeneration) {
         _logger.info(
           "Discarding Wrapped compute result ($reason) due to session change",
@@ -270,8 +270,9 @@ class WrappedService {
     if (!state.hasResult) {
       return;
     }
-    final int safeIndex =
-        index.clamp(0, state.result!.cards.length - 1).toInt();
+    final int safeIndex = index
+        .clamp(0, state.result!.cards.length - 1)
+        .toInt();
     if (safeIndex == state.resumeIndex) {
       return;
     }

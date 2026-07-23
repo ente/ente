@@ -1,7 +1,6 @@
+import "package:ente_components/ente_components.dart";
 import 'package:figma_squircle/figma_squircle.dart';
 import 'package:flutter/material.dart';
-import "package:photos/ente_theme_data.dart";
-import "package:photos/theme/ente_theme.dart";
 import 'package:pro_image_editor/pro_image_editor.dart';
 
 class GlacierFilterMatrix {
@@ -99,10 +98,7 @@ class GlacierFilterMatrix {
 }
 
 final filterList = [
-  const FilterModel(
-    name: "None",
-    filters: [],
-  ),
+  const FilterModel(name: "None", filters: []),
   FilterModel(
     name: 'Pop',
     filters: [
@@ -127,10 +123,7 @@ final filterList = [
   ),
   FilterModel(
     name: 'Carbon',
-    filters: [
-      ColorFilterAddons.contrast(0.2),
-      ColorFilterAddons.grayscale(),
-    ],
+    filters: [ColorFilterAddons.contrast(0.2), ColorFilterAddons.grayscale()],
   ),
   const FilterModel(
     name: 'Glacier',
@@ -150,9 +143,7 @@ final filterList = [
   ),
   FilterModel(
     name: 'Meadow',
-    filters: [
-      ColorFilterAddons.rgbScale(1.05, 1.1, 1),
-    ],
+    filters: [ColorFilterAddons.rgbScale(1.05, 1.1, 1)],
   ),
   FilterModel(
     name: 'Zest',
@@ -217,6 +208,7 @@ class _ImageEditorFilterBarState extends State<ImageEditorFilterBar> {
     VoidCallback onSelectFilter,
     Key filterKey,
   ) {
+    final colors = context.componentColors;
     return GestureDetector(
       onTap: () => onSelectFilter(),
       child: SizedBox(
@@ -235,9 +227,7 @@ class _ImageEditorFilterBarState extends State<ImageEditorFilterBar> {
                     cornerSmoothing: 0.6,
                   ),
                   side: BorderSide(
-                    color: isSelected
-                        ? Theme.of(context).colorScheme.imageEditorPrimaryColor
-                        : Colors.transparent,
+                    color: isSelected ? colors.primary : Colors.transparent,
                     width: 1.5,
                   ),
                 ),
@@ -261,8 +251,8 @@ class _ImageEditorFilterBarState extends State<ImageEditorFilterBar> {
             Text(
               filterName,
               style: isSelected
-                  ? getEnteTextTheme(context).smallBold
-                  : getEnteTextTheme(context).smallMuted,
+                  ? TextStyles.bodyBold.copyWith(color: colors.textBase)
+                  : TextStyles.body.copyWith(color: colors.textLight),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

@@ -12,22 +12,7 @@
   "validEmailAddress": "Etibarlı e-poçt ünvanı",
   "enterValidEmail": "Zəhmət olmasa doğru bir e-poçt ünvanı daxil edin.",
   "deleteAccount": "Hesabı sil",
-  "deleteAccountWarning": "Bu, sizin Ente Auth, Ente Photos və Ente Locker hesabınızı siləcək.",
-  "askDeleteReason": "Hesabınızı silməyinizin əsas səbəbi nədir?",
-  "deleteAccountFeedbackPrompt": "Getməyinizə üzülürük. Təkmilləşməyimizə kömək etmək üçün, zəhmət olmasa, fikirlərinizi bölüşün.",
-  "feedback": "Rəy",
-  "kindlyHelpUsWithThisInformation": "Zəhmət olmasa, bu məlumatla bizə kömək edin",
-  "confirmDeletePrompt": "Bəli, mən bu hesabı və bütün tətbiqlərdəki məlumatlarını birdəfəlik silmək istəyirəm.",
-  "confirmAccountDeletion": "Hesabın silinməsini təsdiqləyin",
-  "deleteAccountPermanentlyButton": "Hesabı birdəfəlik sil",
-  "yourAccountHasBeenDeleted": "Hesabınız silindi",
-  "selectReason": "Səbəbi seçin",
-  "deleteReason1": "Ehtiyacım olan əsas funksiya çatışmır",
-  "deleteReason2": "Tətbiq və ya müəyyən bir funksiya gözlədiyim kimi işləmir",
-  "deleteReason3": "Daha çox bəyəndiyim başqa bir xidmət tapdım",
-  "deleteReason4": "Səbəbim siyahıda yoxdur",
   "sendEmail": "E-poçtu göndər",
-  "deleteRequestSLAText": "Sorğunuz 72 saat ərzində icra olunacaq.",
   "entePhotosPerm": "Ente şəkillərinizi qorumaq üçün <i>icazə tələb edir</i>",
   "ok": "Bəli",
   "createAccount": "Hesab yarat",
@@ -268,7 +253,6 @@
   "after1Month": "1 aydan sonra",
   "after1Year": "1 ildən sonra",
   "manageParticipants": "İdarə et",
-  "collabLinkSectionDescription": "İnsanların Ente tətbiqi və ya hesabı olmadan paylaşılan albomunuza şəkil əlavə etməsinə və baxmasına icazə vermək üçün link yaradın. Tədbir fotolarını toplamaq üçün mükəmməldir.",
   "collectPhotos": "Fotoları topla",
   "collaborativeLink": "Birgə fəaliyyət linki",
   "shareWithNonenteUsers": "Ente istifadəçisi olmayanlarla paylaş",
@@ -389,7 +373,6 @@
   "creatingLink": "Link yaradılır...",
   "removeWithQuestionMark": "Silinsin?",
   "removeParticipantBody": "{userEmail} bu paylaşılan albomdan çıxarılacaq.\n\nOnlar tərəfindən əlavə edilmiş bütün fotoşəkillər də albomdan silinəcək",
-  "keepPhotos": "Fotoşəkilləri saxla",
   "deletePhotos": "Fotoşəkilləri sil",
   "inviteToEnte": "Ente-yə dəvət et",
   "removePublicLink": "İctimai linki sil",
@@ -397,6 +380,9 @@
   "sharing": "Paylaşılır...",
   "youCannotShareWithYourself": "Özünüzlə paylaşa bilməzsiniz",
   "archive": "Arxivlə",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
   "createAlbumActionHint": "Fotoşəkilləri seçmək üçün üzərinə uzun basın və albom yaratmaq üçün + düyməsinə klikləyin",
   "importing": "İdxal edilir....",
   "failedToLoadAlbums": "Albomları yükləmək mümkün olmadı",
@@ -408,9 +394,6 @@
   "videoSmallCase": "video",
   "photoSmallCase": "şəkil",
   "singleFileDeleteHighlight": "Bütün albomlardan silinəcək.",
-  "singleFileInBothLocalAndRemote": "Bu {fileType} həm Ente-də, həm də cihazınızdadır.",
-  "singleFileInRemoteOnly": "Bu {fileType} Ente-dən silinəcək.",
-  "singleFileDeleteFromDevice": "Bu {fileType} cihazınızdan silinəcək.",
   "deleteFromEnte": "Ente-dən sil",
   "yesDelete": "Bəli, sil",
   "movedToTrash": "Zibil qutusuna köçürüldü",
@@ -571,7 +554,6 @@
   "authToChangeEmailVerificationSetting": "E-poçt təsdiqini dəyişmək üçün kimliyinizi təsdiqləyin",
   "exportYourData": "Məlumatlarınızı ixrac edin",
   "logout": "Çıxış",
-  "authToInitiateAccountDeletion": "Hesabın silinməsini başlatmaq üçün kimliyinizi təsdiqləyin",
   "areYouSureYouWantToLogout": "Çıxış etmək istədiyinizə əminsiniz?",
   "yesLogout": "Bəli, çıxış et",
   "aNewVersionOfEnteIsAvailable": "Ente-nin yeni versiyası mövcuddur.",
@@ -640,7 +622,6 @@
   "referrals": "Tövsiyələr",
   "notifications": "Notifications",
   "socialNotifications": "Bəyənmələr və şərhlər",
-  "socialNotificationsExplanation": "Şəkillərinizə gələn bəyənmələr və üzvü olduğunuz albomlardakı şərhlər üçün bildiriş alın",
   "advanced": "Qabaqcıl",
   "general": "Ümumi",
   "security": "Təhlükəsizlik",
@@ -740,7 +721,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "PlayStore abunəliyi",
   "appstoreSubscription": "AppStore abunəliyi",
-  "subAlreadyLinkedErrMessage": "Sizin {id} artıq başqa bir Ente hesabına bağlanıb.\nƏgər {id} kimliyinizi bu hesab ilə istifadə etmək istəyirsinizsə, lütfən dəstək xidmətimizlə əlaqə saxlayın",
   "visitWebToManage": "Abunəliyinizi idarə etmək üçün lütfən {webUrl} saytına daxil olun",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
@@ -811,7 +791,6 @@
   "shareTheMoment": "Anı paylaşın",
   "letFriendsAndFamilyReact": "Dostlarınızın və ailənizin şəkillərinizə reaksiya verməsinə və şərh yazmasına icazə verin.",
   "pleaseLoginAgain": "Lütfən, yenidən daxil olun",
-  "autoLogoutMessage": "Texniki nasazlıq səbəbindən sistemdən çıxış etdiniz. Narahatlığa görə üzr istəyirik.",
   "yourSubscriptionHasExpired": "Abunəlik müddətiniz başa çatıb",
   "storageLimitExceeded": "Yaddaş limiti keçilib",
   "upgrade": "Yüksəlt",
@@ -833,11 +812,6 @@
   "collectEventPhotos": "Tədbir şəkillərini toplayın",
   "sessionExpired": "Sessiyanın vaxtı bitdi",
   "loggingOut": "Çıxış edilir...",
-  "@onDevice": {
-    "description": "The text displayed above folders/albums stored on device",
-    "type": "text"
-  },
-  "onDevice": "Cihazda",
   "@onEnte": {
     "description": "The text displayed above albums backed up to Ente",
     "type": "text"
@@ -879,6 +853,9 @@
   "moveToAlbum": "Alboma köçür",
   "unhide": "Gizlilikdən çıxar",
   "unarchive": "Unarchive",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
   "favorite": "Seçilmiş",
   "removeFromFavorite": "Seçilmişlərdən sil",
   "shareLink": "Linki paylaş",
@@ -935,10 +912,7 @@
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Sizin tərəfinizdən əlavə edilən şəkillər albomdan silinəcək",
   "youveNoFilesInThisAlbumThatCanBeDeleted": "Bu albomda silinə biləcək faylınız yoxdur",
   "youDontHaveAnyArchivedItems": "Arxivlənmiş elementiniz yoxdur.",
-  "ignoredFolderUploadReason": "Bu albomdakı bəzi fayllar daha əvvəl Ente-dən silindiyi üçün yüklənmədi.",
   "resetIgnoredFiles": "Nəzərə alınmayan faylları sıfırla",
-  "deviceFilesAutoUploading": "Bu cihaz albomuna əlavə edilən fayllar avtomatik olaraq Ente-yə yüklənəcək.",
-  "turnOnBackupForAutoUpload": "Bu cihaz qovluğuna əlavə edilən faylların avtomatik Ente-yə yüklənməsi üçün ehtiyat nüsxələməni aktiv edin.",
   "noHiddenPhotosOrVideos": "Gizli şəkil və ya video yoxdur",
   "toHideAPhotoOrVideo": "Şəkil və ya videonu gizlətmək üçün",
   "openTheItem": "• Elementi açın",
@@ -1172,10 +1146,6 @@
   "@searchResultPerson": {
     "description": "Search result subtitle label for person results"
   },
-  "searchResultShared": "Paylaşılıb",
-  "@searchResultShared": {
-    "description": "Search result subtitle label for shared-with-you results"
-  },
   "searchResultUploadedBy": "Yüklədi",
   "@searchResultUploadedBy": {
     "description": "Search result subtitle label for uploader results"
@@ -1259,10 +1229,6 @@
     "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
   },
   "setRadius": "Radiusu təyin et",
-  "androidBiometricHint": "Kimliyi təsdiqlə",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
   "androidBiometricNotRecognized": "Tanınmadı. Yenidən cəhd edin.",
   "@androidBiometricNotRecognized": {
     "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
@@ -1270,14 +1236,6 @@
   "androidBiometricSuccess": "Uğurlu",
   "@androidBiometricSuccess": {
     "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Ləğv et",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Autentifikasiya tələb olunur",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
   "androidBiometricRequiredTitle": "Biometrika tələb olunur",
   "@androidBiometricRequiredTitle": {
@@ -1291,25 +1249,13 @@
   "@androidDeviceCredentialsSetupDescription": {
     "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
   },
-  "goToSettings": "Ayarlara keçin",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
   "androidGoToSettingsDescription": "Cihazınızda biometrik autentifikasiya quraşdırılmayıb. Biometrik autentifikasiya əlavə etmək üçün 'Ayarlar > Təhlükəsizlik' bölməsinə keçin.",
   "@androidGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
   },
-  "iOSLockOut": "Biometrik autentifikasiya söndürülüb. Onu aktivləşdirmək üçün ekranı kilidləyin və yenidən açın.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
   "iOSGoToSettingsDescription": "Cihazınızda biometrik autentifikasiya quraşdırılmayıb. Zəhmət olmasa, telefonunuzda Touch ID və ya Face ID-ni aktivləşdirin.",
   "@iOSGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure Biometrics for their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "Yaxşı",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
   },
   "openstreetmapContributors": "OpenStreetMap iştirakçıları",
   "hostedAtOsmFrance": "OSM France-da yerləşdirilir",
@@ -1328,8 +1274,6 @@
   "noPhotosFoundHere": "Burada şəkil tapılmadı",
   "zoomOutToSeePhotos": "Şəkilləri görmək üçün miqyası kiçildin",
   "noImagesWithLocation": "Məkanı olan şəkil yoxdur",
-  "unpinAlbum": "Albomu sabitdən çıxar",
-  "pinAlbum": "Albomu sabitlə",
   "pin": "Sabitlə",
   "pinPerson": "Şəxsi sabitlə",
   "pinToTop": "Yuxarı sabitlə",
@@ -1344,7 +1288,6 @@
   "nothingSharedWithYouYet": "Hələlik sizinlə heç nə paylaşılmayıb",
   "noAlbumsSharedByYouYet": "Hələlik tərəfinizdən heç bir albom paylaşılmayıb",
   "sharedWithYou": "Sizinlə paylaşılanlar",
-  "sharedByYou": "Sizin paylaşdıqlarınız",
   "inviteYourFriendsToEnte": "Dostlarınızı Ente-yə dəvət edin",
   "failedToDownloadVideo": "Videonu yükləmək mümkün olmadı",
   "hiding": "Gizlədilir...",
@@ -1356,7 +1299,6 @@
   "addToHiddenAlbum": "Gizli alboma əlavə et",
   "moveToHiddenAlbum": "Gizli alboma köçür",
   "fileTypes": "Fayl növləri",
-  "deleteConfirmDialogBody": "Bu hesab digər Ente tətbiqləri ilə əlaqəlidir əgər istifadə edirsinizsə. Bütün Ente tətbiqlərindəki yüklədiyiniz məlumatlar silinmək üçün növbəyə qoyulacaq və hesabınız birdəfəlik silinəcək.",
   "hearUsWhereTitle": "Ente haqqında haradan eşitmisiniz?",
   "hearUsExplanation": "Biz tətbiq quraşdırmalarını izləmirik. Bizi haradan tapdığınızı bizə desəniz, kömək etmiş olardınız!",
   "viewAddOnButton": "Əlavələrə baxın",
@@ -1417,16 +1359,6 @@
   "playOnTv": "Albomu TV-də oxudun",
   "pair": "Cütləşdirin",
   "deviceNotFound": "Cihaz tapılmadı",
-  "castInstruction": "Qoşmaq istədiyiniz cihazda {castUrl} səhifəsinə daxil olun.\n\nAlbomu TV-nizdə oxutmaq üçün aşağıdakı kodu daxil edin.",
-  "@castInstruction": {
-    "description": "Instructions shown when pairing a device to play an album on TV.",
-    "placeholders": {
-      "castUrl": {
-        "type": "String",
-        "example": "https://cast.ente.com"
-      }
-    }
-  },
   "deviceCodeHint": "Kodu daxil edin",
   "joinDiscord": "Discord qoşul",
   "locations": "Məkanlar",
@@ -1459,8 +1391,6 @@
   "removePersonLabel": "Şəxs etiketini sil",
   "removePersonTag": "Şəxs teqini sil",
   "areYouSureRemoveThisPersonTag": "Bu şəxs teqini silmək istədiyinizə əminsiniz?",
-  "autoPairDesc": "Avtomatik qoşalaşma yalnız Chromecast-ı dəstəkləyən cihazlarla işləyir.",
-  "manualPairDesc": "PIN ilə qoşalaşma, albomunuza baxmaq istədiyiniz istənilən ekranla işləyir.",
   "connectToDevice": "Cihaza qoşul",
   "autoCastDialogBody": "Mövcud Cast cihazlarını burada görəcəksiniz.",
   "autoCastiOSPermission": "Tənzimləmələrdə Ente Photos tətbiqi üçün \"Yerli Şəbəkə\" icazələrinin aktiv olduğundan əmin olun.",
@@ -1472,7 +1402,6 @@
   "pairingComplete": "Cütləşmə tamamlandı",
   "savingEdits": "Redaktələr yadda saxlanılır...",
   "autoPair": "Avtomatik qoşma",
-  "pairWithPin": "PIN ilə qoşun",
   "faceRecognition": "Üz tanıma",
   "foundFaces": "Tapılan üzlər",
   "clusteringProgress": "Qruplaşdırma prosesi",
@@ -1501,21 +1430,14 @@
   "enableMLIndexingDesc": "Ente, üz tanıma, sehrli axtarış və digər qabaqcıl axtarış funksiyaları üçün cihaz daxili maşın öyrənməsini dəstəkləyir",
   "magicSearchHint": "Sehrli axtarış, fotoları məzmununa görə axtarmağa imkan verir, məsələn: 'çiçək', 'qırmızı maşın', 'şəxsiyyət vəsiqələri'",
   "panorama": "Panorama",
-  "reenterPassword": "Şifrəni yenidən daxil edin",
-  "reenterPin": "PIN kodu yenidən daxil edin",
   "deviceLock": "Cihaz kilidi",
   "pinLock": "PIN kilidi",
   "next": "Növbəti",
-  "setNewPassword": "Yeni şifrə təyin edin",
-  "enterPin": "PIN kodu daxil edin",
-  "setNewPin": "Yeni PIN təyin edin",
   "appLock": "Tətbiq kilidi",
   "lockScreenType": "Kilid növü",
   "noSystemLockFound": "Sistem kilidi tapılmadı",
-  "tapToUnlock": "Kilidi açmaq üçün toxunun",
   "tooManyIncorrectAttempts": "Çox sayda yanlış cəhd",
   "videoInfo": "Video Məlumatı",
-  "autoLock": "Avtomatik kilidləmə",
   "immediately": "Dərhal",
   "autoLockFeatureDescription": "Tətbiq arxa fona keçdikdən nə qədər vaxt sonra kilidlənsin",
   "hideContent": "Məzmunu gizlət",
@@ -2015,9 +1937,7 @@
   "newPhotosEmoji": " yeni 📸",
   "sorryWeHadToPauseYourBackups": "Üzr istəyirik, ehtiyat nüsxələməni dayandırmalı olduq",
   "clickToInstallOurBestVersionYet": "İndiyə qədərki ən yaxşı versiyamızı quraşdırmaq üçün klikləyin",
-  "onThisDayNotificationExplanation": "Ötən illərin bu günü ilə bağlı xatirələr haqqında xatırlatmalar alın.",
   "birthdayNotifications": "Ad günü bildirişləri",
-  "receiveRemindersOnBirthdays": "Kiminsə ad günü olduqda xatırlatmalar alın. Bildirişə toxunmaq sizi ad günü olan şəxsin fotolarına aparacaq.",
   "happyBirthday": "Ad günün mübarək! 🥳",
   "birthdays": "Ad günləri",
   "wishThemAHappyBirthday": "{name} şəxsini ad günü münasibətilə təbrik edin! 🎉",
@@ -2497,7 +2417,6 @@
   "deleteHiddenFilesFromDeviceDescription": "Gizli faylların yerli nüsxələrini cihazınızdan silin",
   "deleteOnDeviceFiles": "Cihazdakı faylları sil",
   "noHiddenFilesOnDevice": "Cihazda gizli fayl yoxdur",
-  "welcome": "Xoş gəldiniz",
   "grantPermission": "İcazə ver",
   "privateAI": "Şəxsi Süni İntellekt",
   "privateAIDescription": "Ente fotolarınızdakı üzləri, obyektləri, məkanları və mətnləri analiz etmək üçün cihaz daxili AI-dan istifadə edir. Bu məlumatlar üz tanıma və ağıllı axtarış kimi funksiyaları təmin etmək üçün istifadə olunur. Hər şey cihazınızda yerli olaraq emal edilir və saxlanılır — serverlərimizə heç nə yüklənmir.",
@@ -2515,8 +2434,6 @@
   "offlineSettingsBannerDesc": "Sıfır bilik\" Zero-knowledge şifrələməsi o deməkdir ki, xatirələriniz yalnız sizə məxsus qalır.",
   "alreadyHaveAnAccount": "Artıq hesabınız var?",
   "loginToEnte": "Ente-yə daxil ol",
-  "searchAndDiscover": "Axtar və Kəşf et",
-  "shareYourMemories": "Xatirələrinizi paylaşın",
   "mlProgressBannerTitle": "Bir az gözləyin!",
   "mlProgressBannerDescription": "Üzləri, obyektləri və daha çoxunu müəyyən etmək üçün fotolarınız cihazda emal olunur.",
   "mlProgressBannerStatus": "{total} fotodan {indexed} ədədi emal olundu",

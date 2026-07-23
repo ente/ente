@@ -4,18 +4,18 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 
-	publicCtrl "github.com/ente-io/museum/pkg/controller/public"
-	"github.com/ente-io/museum/pkg/repo/public"
-	"github.com/ente-io/museum/pkg/utils/array"
+	publicCtrl "github.com/ente/museum/pkg/controller/public"
+	"github.com/ente/museum/pkg/repo/public"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/controller/discord"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/network"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/network"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
@@ -206,7 +206,7 @@ func (m *FileLinkMiddleware) validatePassword(
 ) error {
 	accessTokenJWT := auth.GetAccessTokenJWT(c)
 	if accessTokenJWT == "" {
-		if array.StringInList(reqPath, filePasswordWhiteListedURLs) {
+		if slices.Contains(filePasswordWhiteListedURLs, reqPath) {
 			return nil
 		}
 		return &ente.ErrPassProtectedResource

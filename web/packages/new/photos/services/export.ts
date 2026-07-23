@@ -1008,7 +1008,9 @@ class ExportService {
                 throw e;
             }
             log.error("error updating Export Record", e);
-            throw Error(CustomError.UPDATE_EXPORTED_RECORD_FAILED);
+            throw new Error(CustomError.UPDATE_EXPORTED_RECORD_FAILED, {
+                cause: e,
+            });
         }
     }
 
@@ -1295,7 +1297,7 @@ const migrateExportRecordIfNeeded = async (
     // The last migration from versions prior to version 5 of the export record
     // was added in Sep 2023 (commit 1fe4d0443b29e77a91981d5800d2c4231118cb83)
     // and released as part of app version 1.6.41:
-    // https://github.com/ente-io/photos-desktop/releases/tag/v1.6.41.
+    // https://github.com/ente/photos-desktop/releases/tag/v1.6.41.
     //
     // There is no traffic from older versions anymore. Still, as an extra
     // precaution, do not proceed if the migration prior to 5 hasn't run by now.
@@ -1327,7 +1329,7 @@ const convertCollectionIDExportNameObjectToMap = (
 ): Map<number, string> => {
     return new Map<number, string>(
         Object.entries(collectionExportNames ?? {}).map((e) => {
-            return [Number(e[0]), String(e[1])];
+            return [Number(e[0]), e[1]];
         }),
     );
 };
@@ -1337,7 +1339,7 @@ const convertFileIDExportNameObjectToMap = (
 ): Map<string, string> => {
     return new Map<string, string>(
         Object.entries(fileExportNames ?? {}).map((e) => {
-            return [String(e[0]), String(e[1])];
+            return [e[0], e[1]];
         }),
     );
 };

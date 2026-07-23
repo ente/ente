@@ -1,10 +1,10 @@
 const fsp = require("fs/promises");
 
 /**
- * This hook is invoked during the initial build (e.g. when triggered by "yarn
- * build"), and importantly, on each rebuild for a different architecture during
- * the build. We use it to ensure that the vips binary is for the current
- * architecture being built. See "[Note: vips]" for more details.
+ * This hook is invoked during the initial build (e.g. when triggered by
+ * "npm run build"), and importantly, on each rebuild for a different
+ * architecture during the build. We use it to ensure the vips binary matches
+ * the current architecture. See "[Note: vips]" for more details.
  *
  * The documentation for this hook is at:
  * https://www.electron.build/app-builder-lib.interface.configuration#beforebuild
@@ -44,7 +44,7 @@ module.exports = async (context) => {
     const download = async (downloadName, outputName) => {
         const out = `${appDir}/build/${outputName}`;
         console.log(`Downloading ${downloadName}`);
-        const downloadPath = `https://github.com/ente-io/libvips-packaging/releases/download/v8.16.0/${downloadName}`;
+        const downloadPath = `https://github.com/ente/libvips-packaging/releases/download/v8.16.0/${downloadName}`;
         return fetch(downloadPath)
             .then((res) => res.blob())
             .then((blob) => fsp.writeFile(out, blob.stream()))

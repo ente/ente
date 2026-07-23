@@ -3,11 +3,11 @@ package repo
 import (
 	"database/sql"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/network"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/network"
 
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
 )
 
@@ -26,10 +26,17 @@ func (repo *UserAuthRepository) AddOTT(emailHash string, app ente.App, ott strin
 	return stacktrace.Propagate(err, "")
 }
 
-// RemoveOTT removes the specified OTT (to be used when an OTT has been consumed)
-func (repo *UserAuthRepository) RemoveOTT(emailHash string, ott string, app ente.App) error {
-	_, err := repo.DB.Exec(`DELETE FROM otts WHERE email_hash = $1 AND ott = $2 AND app = $3`, emailHash, ott, app)
-	return stacktrace.Propagate(err, "")
+// RemoveOTT removes the specified OTT and returns whether it was consumed.
+func (repo *UserAuthRepository) RemoveOTT(emailHash string, ott string, app ente.App) (bool, error) {
+	result, err := repo.DB.Exec(`DELETE FROM otts WHERE email_hash = $1 AND ott = $2 AND app = $3`, emailHash, ott, app)
+	if err != nil {
+		return false, stacktrace.Propagate(err, "")
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, stacktrace.Propagate(err, "")
+	}
+	return rowsAffected > 0, nil
 }
 
 // RemoveExpiredOTTs removes all OTTs that have expired

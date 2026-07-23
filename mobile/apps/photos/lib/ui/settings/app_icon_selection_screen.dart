@@ -17,8 +17,7 @@ enum AppIcon {
     "Ducky",
     "IconDuckyHuggingE",
     "assets/launcher_icon/icon-ducky-hugging-e.png",
-  )
-  ;
+  );
 
   final String name;
   final String id;

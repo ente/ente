@@ -1,19 +1,18 @@
-import "package:ente_crypto/ente_crypto.dart";
+import "package:ente_components/ente_components.dart";
+import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
-import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/christmas_banner_event.dart";
 import "package:photos/service_locator.dart";
-import "package:photos/services/ignored_files_service.dart";
-import "package:photos/services/sync/local_sync_service.dart";
-import "package:photos/services/sync/sync_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
 import "package:photos/ui/components/settings/settings_grouped_card.dart";
 import "package:photos/ui/components/toggle_switch_widget.dart";
+import "package:photos/ui/growth/referral_screen.dart";
 import "package:photos/ui/home/christmas/christmas_utils.dart";
 import "package:photos/ui/notification/toast.dart";
+import "package:photos/ui/notification/update/change_log_page.dart";
 import "package:photos/ui/settings/debug/social_debug_screen.dart";
 
 class DebugSettingsPage extends StatefulWidget {
@@ -28,13 +27,9 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    final pageBackgroundColor =
-        isDarkMode ? const Color(0xFF161616) : const Color(0xFFFAFAFA);
 
     return Scaffold(
-      backgroundColor: pageBackgroundColor,
+      backgroundColor: colorScheme.backgroundColour,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -51,10 +46,7 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              Text(
-                "Debug",
-                style: textTheme.h3Bold,
-              ),
+              Text("Debug", style: textTheme.h3Bold),
               const SizedBox(height: 24),
               Expanded(
                 child: SingleChildScrollView(
@@ -73,9 +65,12 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                               onChanged: () async {
                                 final newValue =
                                     !localSettings.isInternalUserDisabled;
-                                await localSettings
-                                    .setInternalUserDisabled(newValue);
+                                await localSettings.setInternalUserDisabled(
+                                  newValue,
+                                );
+                                if (!mounted) return;
                                 setState(() {});
+                                if (!context.mounted) return;
                                 showShortToast(
                                   context,
                                   newValue
@@ -99,9 +94,12 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                                 final newValue =
                                     !(localSettings.cfUploadProxyEnabled ??
                                         flagService.cloudflareUploadWorker);
-                                await localSettings
-                                    .setCFUploadProxyEnabled(newValue);
+                                await localSettings.setCFUploadProxyEnabled(
+                                  newValue,
+                                );
+                                if (!mounted) return;
                                 setState(() {});
+                                if (!context.mounted) return;
                                 showShortToast(
                                   context,
                                   newValue
@@ -125,10 +123,10 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                                   final newValue = !localSettings
                                       .isBGDebugNotificationsEnabled;
                                   await localSettings
-                                      .setBGDebugNotificationsEnabled(
-                                    newValue,
-                                  );
+                                      .setBGDebugNotificationsEnabled(newValue);
+                                  if (!mounted) return;
                                   setState(() {});
+                                  if (!context.mounted) return;
                                   showShortToast(
                                     context,
                                     newValue
@@ -149,9 +147,12 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                               onChanged: () async {
                                 final newValue =
                                     !localSettings.enableDatabaseLogging;
-                                await localSettings
-                                    .setEnableDatabaseLogging(newValue);
+                                await localSettings.setEnableDatabaseLogging(
+                                  newValue,
+                                );
+                                if (!mounted) return;
                                 setState(() {});
+                                if (!context.mounted) return;
                                 showShortToast(
                                   context,
                                   newValue
@@ -173,9 +174,11 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                               onChanged: () async {
                                 await localSettings
                                     .setShowLocalIDOverThumbnails(
-                                  !localSettings.showLocalIDOverThumbnails,
-                                );
+                                      !localSettings.showLocalIDOverThumbnails,
+                                    );
+                                if (!mounted) return;
                                 setState(() {});
+                                if (!context.mounted) return;
                                 showShortToast(
                                   context,
                                   localSettings.showLocalIDOverThumbnails
@@ -210,43 +213,29 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                       SettingsGroupedCard(
                         children: [
                           MenuItemWidgetNew(
-                            title: "Key attributes",
+                            title: "Show change log",
                             leadingIconWidget: _buildIconWidget(
                               context,
-                              HugeIcons.strokeRoundedKey01,
+                              HugeIcons.strokeRoundedInformationCircle,
                             ),
                             trailingIcon: Icons.chevron_right_outlined,
                             trailingIconIsMuted: true,
                             onTap: () async {
-                              await updateService.resetChangeLog();
-                              _showKeyAttributesDialog(context);
-                            },
-                          ),
-                          MenuItemWidgetNew(
-                            title: "Delete Local Import DB",
-                            leadingIconWidget: _buildIconWidget(
-                              context,
-                              HugeIcons.strokeRoundedDelete02,
-                            ),
-                            trailingIcon: Icons.chevron_right_outlined,
-                            trailingIconIsMuted: true,
-                            onTap: () async {
-                              await LocalSyncService.instance.resetLocalSync();
-                              showShortToast(context, "Done");
-                            },
-                          ),
-                          MenuItemWidgetNew(
-                            title: "Allow auto-upload for ignored files",
-                            leadingIconWidget: _buildIconWidget(
-                              context,
-                              HugeIcons.strokeRoundedUpload04,
-                            ),
-                            trailingIcon: Icons.chevron_right_outlined,
-                            trailingIconIsMuted: true,
-                            onTap: () async {
-                              await IgnoredFilesService.instance.reset();
-                              SyncService.instance.sync().ignore();
-                              showShortToast(context, "Done");
+                              final action =
+                                  await showBottomSheetComponent<
+                                    ChangeLogPageAction
+                                  >(
+                                    context: context,
+                                    builder: (context) => const ChangeLogPage(),
+                                  );
+                              if (!context.mounted ||
+                                  action != ChangeLogPageAction.openReferrals) {
+                                return;
+                              }
+                              await routeToPage(
+                                context,
+                                const ReferralScreen(),
+                              );
                             },
                           ),
                           MenuItemWidgetNew(
@@ -285,59 +274,6 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
       icon: icon,
       color: colorScheme.menuItemIconStroke,
       size: 20,
-    );
-  }
-
-  void _showKeyAttributesDialog(BuildContext context) {
-    final keyAttributes = Configuration.instance.getKeyAttributes()!;
-    final AlertDialog alert = AlertDialog(
-      title: const Text("key attributes"),
-      content: SingleChildScrollView(
-        child: Column(
-          children: [
-            const Text(
-              "Key",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(CryptoUtil.bin2base64(Configuration.instance.getKey()!)),
-            const Padding(padding: EdgeInsets.all(12)),
-            const Text(
-              "Encrypted Key",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(keyAttributes.encryptedKey),
-            const Padding(padding: EdgeInsets.all(12)),
-            const Text(
-              "Key Decryption Nonce",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(keyAttributes.keyDecryptionNonce),
-            const Padding(padding: EdgeInsets.all(12)),
-            const Text(
-              "KEK Salt",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(keyAttributes.kekSalt),
-            const Padding(padding: EdgeInsets.all(12)),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          child: const Text("OK"),
-          onPressed: () {
-            Navigator.of(context).pop('dialog');
-          },
-        ),
-      ],
-    );
-
-    showDialog(
-      useRootNavigator: false,
-      context: context,
-      builder: (BuildContext context) {
-        return alert;
-      },
     );
   }
 }

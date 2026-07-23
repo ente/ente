@@ -123,11 +123,6 @@
                 <data android:scheme="content" />
                 <data android:scheme="file" />
             </intent-filter>
-            <intent-filter>
-                <action android:name="android.provider.action.PICK_IMAGES" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.OPENABLE" />
-            </intent-filter>
         </activity>
 
         <activity android:name=".MediaReviewActivity"

@@ -22,9 +22,7 @@ Future<void> showInviteDialog(BuildContext context, String email) async {
         isInAlert: true,
         onTap: () async {
           unawaited(
-            shareText(
-              AppLocalizations.of(context).shareTextRecommendUsingEnte,
-            ),
+            shareText(AppLocalizations.of(context).shareTextRecommendUsingEnte),
           );
         },
       ),

@@ -65,9 +65,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
   Widget build(BuildContext context) {
     if (recoverySession != null) {
       final dateTime = DateTime.now().add(
-        Duration(
-          microseconds: recoverySession!.waitTill,
-        ),
+        Duration(microseconds: recoverySession!.waitTill),
       );
       waitTill = getFormattedTime(dateTime, context: context);
     }
@@ -82,9 +80,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
           onTap: () {
             Navigator.pop(context);
           },
-          child: const Icon(
-            Icons.arrow_back_outlined,
-          ),
+          child: const Icon(Icons.arrow_back_outlined),
         ),
       ),
       backgroundColor: colorScheme.backgroundColour,
@@ -93,13 +89,8 @@ class _OtherContactPageState extends State<OtherContactPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TitleBarTitleWidget(
-              title: context.l10n.recoverAccount,
-            ),
-            Text(
-              accountEmail,
-              style: textTheme.smallMuted,
-            ),
+            TitleBarTitleWidget(title: context.l10n.recoverAccount),
+            Text(accountEmail, style: textTheme.smallMuted),
             const SizedBox(height: 12),
             if (recoverySession == null)
               Text(
@@ -158,6 +149,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
                           );
                           if (mounted) {
                             _fetchData().ignore();
+                            if (!context.mounted) return;
                             await showAlertBottomSheet(
                               context,
                               title: context.l10n.recoveryInitiated,
@@ -169,6 +161,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
                             );
                           }
                         } catch (e) {
+                          if (!context.mounted) return;
                           showGenericErrorBottomSheet(
                             context: context,
                             error: e,
@@ -183,8 +176,10 @@ class _OtherContactPageState extends State<OtherContactPage> {
                 shouldSurfaceExecutionStates: false,
                 onTap: () async {
                   try {
-                    final (String key, KeyAttributes attributes) =
-                        await EmergencyContactService.instance.getRecoveryInfo(
+                    final (
+                      String key,
+                      KeyAttributes attributes,
+                    ) = await EmergencyContactService.instance.getRecoveryInfo(
                       recoverySession!,
                     );
                     routeToPage(
@@ -192,8 +187,10 @@ class _OtherContactPageState extends State<OtherContactPage> {
                       RecoverOthersAccount(key, attributes, recoverySession!),
                     ).ignore();
                   } catch (e) {
-                    showGenericErrorBottomSheet(context: context, error: e)
-                        .ignore();
+                    showGenericErrorBottomSheet(
+                      context: context,
+                      error: e,
+                    ).ignore();
                   }
                 },
               ),
@@ -250,9 +247,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
     final confirmed = await showAlertBottomSheet<bool>(
       context,
       title: context.l10n.cancelRecovery,
-      message: context.l10n.cancelRecoveryDesc(
-        email: accountEmail,
-      ),
+      message: context.l10n.cancelRecoveryDesc(email: accountEmail),
       assetPath: "assets/warning-grey.png",
       buttons: [
         ButtonWidgetV2(
@@ -270,6 +265,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
           _fetchData().ignore();
         }
       } catch (e) {
+        if (!mounted) return;
         showGenericErrorBottomSheet(context: context, error: e).ignore();
       }
     }
@@ -300,6 +296,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
           Navigator.of(context).pop();
         }
       } catch (e) {
+        if (!mounted) return;
         showGenericErrorBottomSheet(context: context, error: e).ignore();
       }
     }

@@ -1,67 +1,92 @@
-import "package:dotted_border/dotted_border.dart";
-import "package:ente_ui/theme/ente_theme.dart";
+import 'dart:async';
+
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import 'package:locker/l10n/l10n.dart';
+import 'package:rive/rive.dart' as rive;
 
-class HomeEmptyStateWidget extends StatelessWidget {
+class HomeEmptyStateWidget extends StatefulWidget {
   const HomeEmptyStateWidget({
-    this.isLoading = false,
     super.key,
+    this.isLoading = false,
+    this.onSetupLegacy,
+    this.onSaveToLocker,
   });
 
   final bool isLoading;
+  final FutureOr<void> Function()? onSetupLegacy;
+  final FutureOr<void> Function()? onSaveToLocker;
+
+  @override
+  State<HomeEmptyStateWidget> createState() => _HomeEmptyStateWidgetState();
+}
+
+class _HomeEmptyStateWidgetState extends State<HomeEmptyStateWidget> {
+  late final rive.FileLoader _animationLoader;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationLoader = rive.FileLoader.fromAsset(
+      'assets/legacy_setup.riv',
+      riveFactory: rive.Factory.flutter,
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationLoader.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    return isLoading
-        ? CircularProgressIndicator(
-            strokeWidth: 3,
-            color: colorScheme.primary700,
-          )
-        : DottedBorder(
-            options: RoundedRectDottedBorderOptions(
-              strokeWidth: 1,
-              color: colorScheme.textFaint,
-              dashPattern: const [5, 5],
-              radius: const Radius.circular(24),
-            ),
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: colorScheme.backdropBase,
-                borderRadius: BorderRadius.circular(24),
+    final colors = context.componentColors;
+    return widget.isLoading
+        ? CircularProgressIndicator(strokeWidth: 3, color: colors.primary)
+        : Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 234,
+                height: 140,
+                child: rive.RiveWidgetBuilder(
+                  fileLoader: _animationLoader,
+                  builder: (context, state) {
+                    if (state is rive.RiveLoaded) {
+                      return rive.RiveWidget(
+                        controller: state.controller,
+                        fit: rive.Fit.contain,
+                      );
+                    }
+                    return const SizedBox.expand();
+                  },
+                ),
               ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 42,
+              const SizedBox(height: 40),
+              Text(
+                context.l10n.homeEmptyStateLegacyDescription,
+                style: TextStyles.body.copyWith(color: colors.textLight),
+                textAlign: TextAlign.center,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
+              const SizedBox(height: 40),
+              Column(
                 children: [
-                  Image.asset(
-                    'assets/upload_file.png',
+                  ButtonComponent(
+                    label: context.l10n.setupYourLegacy,
+                    onTap: widget.onSetupLegacy,
+                    shouldSurfaceExecutionStates: false,
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    context.l10n.homeLockerEmptyTitle,
-                    style: textTheme.h3Bold.copyWith(
-                      color: colorScheme.textBase,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    context.l10n.homeLockerEmptySubtitle,
-                    style: textTheme.small.copyWith(
-                      color: colorScheme.primary700,
-                      decoration: TextDecoration.none,
-                    ),
+                  ButtonComponent(
+                    label: context.l10n.saveToLocker,
+                    variant: ButtonComponentVariant.neutral,
+                    onTap: widget.onSaveToLocker,
+                    shouldSurfaceExecutionStates: false,
                   ),
                 ],
               ),
-            ),
+            ],
           );
   }
 }

@@ -69,6 +69,10 @@ class ComponentTheme {
         labelMedium: TextStyles.mini,
         labelSmall: TextStyles.tiny,
       ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: colors.fillLight,
+        surfaceTintColor: Colors.transparent,
+      ),
       extensions: [ComponentColorTokens(colors)],
     );
   }

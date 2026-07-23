@@ -8,28 +8,13 @@
   "accountSetupIncompleteCreateAccount": "A fiókbeállítás nem teljes. Hozz létre fiókot a folytatáshoz.",
   "email": "E-mail",
   "cancel": "Mégse",
+  "cast": "Átvitel",
   "verify": "Hitelesítés",
   "invalidEmailAddress": "Érvénytelen e-mail cím",
   "validEmailAddress": "Érvényes e-mail-cím",
   "enterValidEmail": "Kérjük, adjon meg egy érvényes e-mail címet.",
   "deleteAccount": "Fiók törlése",
-  "deleteAccountWarning": "Ez törli az Ente Auth, Ente Photos és Ente Locker fiókjaidat.",
-  "askDeleteReason": "Miért törli a fiókját?",
-  "deleteAccountFeedbackPrompt": "Sajnáljuk, hogy távozik. Kérjük, ossza meg velünk visszajelzéseit, hogy segítsen nekünk a fejlődésben.",
-  "feedback": "Visszajelzés",
-  "kindlyHelpUsWithThisInformation": "Legyen kedves segítsen, ezzel az információval",
-  "confirmDeletePrompt": "Igen, szeretném véglegesen törölni ezt a felhasználót, minden adattal, az összes platformon.",
-  "confirmAccountDeletion": "Felhasználó Törlés Megerősítés",
-  "deleteAccountPermanentlyButton": "Felhasználó Végleges Törlése",
-  "yourAccountHasBeenDeleted": "A felhasználód törlődött",
-  "selectReason": "Válasszon okot",
-  "deleteReason1": "Hiányoznak olyan funkciók, amikre szükségem lenne",
-  "deleteReason2": "Az applikáció vagy egy adott funkció nem úgy működik ahogy kellene",
-  "deleteReason3": "Találtam egy jobb szolgáltatót",
-  "deleteReason4": "Nincs a listán az ok",
   "sendEmail": "Email küldése",
-  "deleteRequestSLAText": "A kérése 72 órán belül feldolgozásra kerül.",
-  "deleteEmailRequest": "Kérjük, küldj egy e-mailt a <warning>account-deletion@ente.com\n</warning> címre a regisztrált e-mail-címedről.",
   "entePhotosPerm": "Az Entének <i>engedélyre van szüksége </i>, hogy tárolhassa fotóit",
   "ok": "Rendben",
   "createAccount": "Felhasználó létrehozás",
@@ -273,7 +258,17 @@
   "after1Month": "Egy hónap múlva",
   "after1Year": "Egy év múlva",
   "manageParticipants": "Kezelés",
-  "collabLinkSectionDescription": "Hozzon létre egy hivatkozást, amely lehetővé teszi az emberek számára, hogy fotókat adhassanak hozzá és tekintsenek meg megosztott albumában anélkül, hogy Ente alkalmazásra vagy fiókra lenne szükségük. Kiválóan alkalmas rendezvényfotók gyűjtésére.",
+  "albumParticipantsCount": "{count, plural, =0 {Nincs résztvevő} one {{count} résztvevő} other {{count} résztvevő}}",
+  "@albumParticipantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    },
+    "description": "Number of participants in an album, including the album owner."
+  },
+  "collabLinkSectionDescription": "Engedélyezheti másoknak, hogy Ente-fiók nélkül adjanak hozzá fotókat",
   "collectPhotos": "Fotók gyűjtése",
   "collaborativeLink": "Együttműködési hivatkozás",
   "shareWithNonenteUsers": "Megosztás nem Ente felhasználókkal",
@@ -288,6 +283,15 @@
   "publicLinkEnabled": "Nyilvános hivatkozás engedélyezve",
   "shareALink": "Hivatkozás megosztása",
   "sharedAlbumSectionDescription": "Hozzon létre megosztott és együttműködő albumokat más Ente-felhasználókkal, beleértve az ingyenes csomagokat használó felhasználókat is.",
+  "shareWithPeopleSectionTitle": "{numberOfPeople, plural, =0 {Megosztás konkrét személyekkel} one {Megosztva {numberOfPeople} személlyel} other {Megosztva {numberOfPeople} személlyel}}",
+  "@shareWithPeopleSectionTitle": {
+    "placeholders": {
+      "numberOfPeople": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "thisIsYourVerificationId": "Ez az ellenőrző azonosítód",
   "someoneSharingAlbumsWithYouShouldSeeTheSameId": "Valaki, aki megoszt Önnel albumokat, ugyanazt az azonosítót fogja látni az eszközén.",
   "howToViewShareeVerificationID": "Kérje meg őket, hogy hosszan nyomják meg az e-mail címüket a beállítások képernyőn, és ellenőrizzék, hogy a két eszköz azonosítója megegyezik-e.",
@@ -394,13 +398,14 @@
   "cannotMoveToSharedAlbumsMessage": "Az elemeket csak hozzáadni lehet a megosztott albumokhoz, áthelyezni nem. Inkább hozzáadod?",
   "deleteSharedAlbum": "Törli a megosztott albumot?",
   "deleteAlbum": "Album törlése",
+  "deleteAlbumQuestion": "Törlöd ezt az albumot?",
   "deleteAlbumDialog": "Törli az ebben az albumban található fotókat (és videókat) az <bold>összes</bold> többi albumból is, amelynek részét képezik?",
   "deleteSharedAlbumDialogBody": "Az album mindenki számára törlődik.\n\nElveszíti a hozzáférést az albumban található, mások tulajdonában lévő megosztott fotókhoz.",
   "yesRemove": "Igen, eltávolítás",
   "creatingLink": "Link létrehozása...",
   "removeWithQuestionMark": "Eltávolítás?",
   "removeParticipantBody": "{userEmail} felhasználó el lesz távolítva ebből a megosztott albumból\n\nAz általa hozzáadott összes fotó is eltávolításra kerül az albumból.",
-  "keepPhotos": "Fotók megőrzése",
+  "keepPhotos": "Fotók megtartása",
   "deletePhotos": "Fotók törlése",
   "inviteToEnte": "Meghívás az Ente-re",
   "removePublicLink": "Nyilvános hivatkozás eltávolítása",
@@ -408,6 +413,9 @@
   "sharing": "Megosztás...",
   "youCannotShareWithYourself": "Nem oszthatod meg magaddal",
   "archive": "Archívum",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
   "createAlbumActionHint": "Hosszan nyomva tartva kiválaszthatod a fotókat, majd a + jelre kattintva albumot hozhatsz létre",
   "importing": "Importálás...",
   "failedToLoadAlbums": "Nem sikerült betölteni az albumokat",
@@ -419,16 +427,15 @@
   "videoSmallCase": "videó",
   "photoSmallCase": "fénykép",
   "singleFileDeleteHighlight": "Az összes albumból törlésre kerül.",
-  "singleFileInBothLocalAndRemote": "Ez a {fileType} fájltípus megtalálható mind az Enterben, mind az eszközödön.",
-  "singleFileInRemoteOnly": "Ez a {fileType} fájl törlődik az Ente-ből.",
-  "singleFileDeleteFromDevice": "Ez a {fileType} fájl törlődni fog az eszközéről.",
   "deleteFromEnte": "Törlés az Ente-ből",
   "yesDelete": "Igen, törlés",
   "movedToTrash": "Áthelyezve a kukába",
+  "deleteFromDeviceQuestion": "Törlöd az eszközről?",
   "deleteFromDevice": "Törlés az eszközről",
   "deleteFromBoth": "Törlés mindkettőből",
   "newAlbum": "Új album",
   "albums": "Album",
+  "ente": "Ente",
   "memoryCount": "{count, plural, =0{nincsenek emlékek} one{{formattedCount} emlék} other{{formattedCount} emlékek}}",
   "@memoryCount": {
     "description": "The text to display the number of memories",
@@ -543,6 +550,7 @@
   "updateSettings": "Beállítások módosítása",
   "updatingFolderSelection": "Mappakijelölés frissítése...",
   "itemCount": "{count, plural, one{{count} elem} other{{count} elem}}",
+  "deleteItemCount": "{count, plural, one {Törölsz {count} elemet} other {Törölsz {count} elemet}}",
   "duplicateItemsGroup": "{count} fájl, {formattedSize} mindegyik",
   "@duplicateItemsGroup": {
     "description": "Display the number of duplicate files and their size",
@@ -584,7 +592,6 @@
   "authToChangeEmailVerificationSetting": "Kérjük, hitelesítse magát az e-mail-cím ellenőrzésének módosításához",
   "exportYourData": "Adatok exportálása",
   "logout": "Kijelentkezés",
-  "authToInitiateAccountDeletion": "Kérjük, hitelesítse magát a fiók törlésének megkezdéséhez",
   "areYouSureYouWantToLogout": "Biztos benne, hogy kijelentkezik?",
   "yesLogout": "Igen, kijelentkezés",
   "aNewVersionOfEnteIsAvailable": "Megjelent az Ente új verziója.",
@@ -620,6 +627,7 @@
   "youveNoDuplicateFilesThatCanBeCleared": "Nincsenek törölhető duplikált fájljaid",
   "success": "Sikeres",
   "rateUs": "Értékeljen minket",
+  "changeLogReferralCta": "Adj 10 GB-ot, kapj 10 GB-ot",
   "remindToEmptyDeviceTrash": "A felszabadult hely igényléséhez ürítsd ki a „Nemrég törölt” részt a „Beállítások” -> „Tárhely” menüpontban.",
   "youHaveSuccessfullyFreedUp": "Sikeresen felszabadítottál {storageSaved} tárhelyet!",
   "@youHaveSuccessfullyFreedUp": {
@@ -676,6 +684,15 @@
   "inviteLimitReached": "5 meghívót már hozzáadtál. Új hozzáadásához törölj egyet.",
   "emailAddress": "Email cím",
   "sendInvites": "Meghívó küldése",
+  "sendCountInvites": "{count, plural, =0 {Meghívók küldése} one {{count} meghívó küldése} other {{count} meghívó küldése}}",
+  "@sendCountInvites": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "enterAnEmailAddress": "E-mail cím megadása",
   "enterAValidEmailAddress": "Adjon meg egy érvényes e-mail címet",
   "alreadyAdded": "Már hozzáadva",
@@ -686,6 +703,15 @@
       "email": {
         "type": "String",
         "example": "someone@example.com"
+      }
+    }
+  },
+  "invitesSentCount": "{count, plural, one {Meghívó elküldve} other {Meghívó elküldve}}",
+  "@invitesSentCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
       }
     }
   },
@@ -796,9 +822,8 @@
   "referrals": "Ajánlások",
   "notifications": "Értesítések",
   "sharedPhotoNotifications": "Új megosztott fotók és albumok",
-  "sharedPhotoNotificationsExplanation": "Értesítéseket kapsz az általad használt megosztott albumok új fotóiról, valamint a veled megosztott új albumokról.",
+  "sharedPhotoNotificationsExplanation": "Új fotók és albumok amikben benne vagy vagy meg van osztva veled",
   "socialNotifications": "Tetszések és hozzászólások",
-  "socialNotificationsExplanation": "Értesítéseket kapsz a fotóidra érkező tetszésekről, valamint azokról a hozzászólásokról, amelyek azokban az albumokban jelennek meg, amelyekben részt veszel.",
   "advanced": "Speciális",
   "general": "Általános",
   "security": "Biztonság",
@@ -874,7 +899,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "Google Play-előfizetés",
   "appstoreSubscription": "App Store-előfizetés",
-  "subAlreadyLinkedErrMessage": "Az {id} már egy másik Ente fiókhoz van kapcsolva.\nHa ezt az {id}-t ezzel a fiókkal szeretnéd használni, kérjük, vedd fel a kapcsolatot az ügyfélszolgálattal",
   "visitWebToManage": "Az előfizetésed kezeléséhez látogass el a {webUrl} oldalra",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
@@ -908,11 +932,6 @@
   "paymentFailedMessage": "Sajnos a fizetés nem sikerült. Kérjük, vedd fel a kapcsolatot az ügyfélszolgálattal, és segítünk!",
   "sessionExpired": "A munkamenet lejárt",
   "loggingOut": "Kijelentkezés...",
-  "@onDevice": {
-    "description": "The text displayed above folders/albums stored on device",
-    "type": "text"
-  },
-  "onDevice": "Eszközön",
   "name": "Név",
   "newest": "Legújabb",
   "lastUpdated": "Utoljára frissítve",
@@ -949,6 +968,9 @@
   "moveToAlbum": "Áthelyezés albumba",
   "unhide": "Felfedés",
   "unarchive": "Archiválás visszavonása",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
   "favorite": "Kedvenc",
   "removeFromFavorite": "Eltávolítás a kedvencek közül",
   "shareMemories": "Emlékek megosztása",

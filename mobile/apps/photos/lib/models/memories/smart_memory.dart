@@ -2,14 +2,9 @@ import "package:photos/generated/l10n.dart";
 import "package:photos/models/base/id.dart";
 import "package:photos/models/memories/memory.dart";
 
-enum MemoryType {
-  people,
-  trips,
-  clip,
-  time,
-  filler,
-  onThisDay,
-}
+enum MemoryType { people, trips, clip, time, filler, onThisDay }
+
+const int kMaxSmartMemoryItems = 100;
 
 MemoryType memoryTypeFromString(String type) {
   switch (type) {
@@ -42,7 +37,7 @@ class SmartMemory {
   int? lastCreationTime;
 
   SmartMemory(
-    this.memories,
+    List<Memory> memories,
     this.type,
     this.title,
     this.firstDateToShow,
@@ -50,8 +45,15 @@ class SmartMemory {
     String? id,
     this.firstCreationTime,
     this.lastCreationTime,
-  }) {
+  }) : memories = _capMemories(memories) {
     this.id = id ?? newID(type.name);
+  }
+
+  static List<Memory> _capMemories(List<Memory> memories) {
+    if (memories.length <= kMaxSmartMemoryItems) {
+      return memories;
+    }
+    return memories.take(kMaxSmartMemoryItems).toList();
   }
 
   bool get notForShow => firstDateToShow == 0 && lastDateToShow == 0;

@@ -132,7 +132,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "Παρακαλώ επιλέξτε τουλάχιστον μία συλλογή",
   "unknownItemType": "Άγνωστος τύπος στοιχείου",
   "fileDeletedSuccessfully": "Το στοιχείο διαγράφηκε επιτυχώς",
   "failedToDeleteFile": "Αποτυχία διαγραφής στοιχείου: {error}",
@@ -253,7 +252,6 @@
   "optionalNote": "Προαιρετική σημείωση",
   "upload": "Ανέβασμα",
   "documentsHint": "Έγγραφα",
-  "searchHint": "Αναζήτηση...",
   "searchEmptyTitle": "Δεν βρέθηκαν αποτελέσματα",
   "searchEmptyDescription": "Δοκιμάστε να αναζητήσετε κάτι άλλο.",
   "searchEverywhereTitle": "Αναζήτηση παντού για \"{query}\"",

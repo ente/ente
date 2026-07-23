@@ -78,10 +78,12 @@ Future<Map<String, dynamic>> _trashFileToMap(
     'created_at': trashFile.createdAt,
     'update_at': trashFile.updateAt,
     'delete_by': trashFile.deleteBy,
-    'payload_encrypted_data':
-        CryptoUtil.bin2base64(encryptedPayload.encryptedData!),
-    'payload_decryption_header':
-        CryptoUtil.bin2base64(encryptedPayload.header!),
+    'payload_encrypted_data': CryptoUtil.bin2base64(
+      encryptedPayload.encryptedData!,
+    ),
+    'payload_decryption_header': CryptoUtil.bin2base64(
+      encryptedPayload.header!,
+    ),
     'payload_version': _trashPayloadVersion,
   };
 }
@@ -140,9 +142,11 @@ Future<TrashFile> _trashFileFromRow(
   trashFile.metadataVersion = payload['metadata_version'];
   trashFile.fileDecryptionHeader =
       row['file_decryption_header'] ?? payload['file_decryption_header'];
-  trashFile.thumbnailDecryptionHeader = row['thumbnail_decryption_header'] ??
+  trashFile.thumbnailDecryptionHeader =
+      row['thumbnail_decryption_header'] ??
       payload['thumbnail_decryption_header'];
-  trashFile.metadataDecryptionHeader = row['metadata_decryption_header'] ??
+  trashFile.metadataDecryptionHeader =
+      row['metadata_decryption_header'] ??
       payload['metadata_decryption_header'];
   trashFile.fileSize = row['file_size'] ?? payload['file_size'];
   trashFile.mMdEncodedJson = payload['m_md_encoded_json'];
@@ -162,10 +166,7 @@ Future<TrashFile> _trashFileFromRow(
   return trashFile;
 }
 
-Future<Uint8List> _getTrashFileKey(
-  LockerDB db,
-  TrashFile file,
-) async {
+Future<Uint8List> _getTrashFileKey(LockerDB db, TrashFile file) async {
   if (file.collectionID == null ||
       file.encryptedKey == null ||
       file.keyDecryptionNonce == null) {

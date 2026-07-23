@@ -34,45 +34,39 @@ class NotificationBannerWidget extends StatelessWidget {
               return const SizedBox.shrink();
             } else if (differenceInDays >= 4 && differenceInDays <= 7) {
               contents.clear();
-              contents.addAll(
-                [
-                  BannerWidget(
-                    text: l10n.tellUsWhatYouThink,
-                    subText: rateSubText,
-                    type: BannerType.rateUs,
-                  ),
-                  sectionSpacing,
-                  BannerWidget(
-                    text: l10n.supportEnte,
-                    subText: l10n.giveUsAStarOnGithub,
-                    type: BannerType.starUs,
-                  ),
-                ],
-              );
+              contents.addAll([
+                BannerWidget(
+                  text: l10n.tellUsWhatYouThink,
+                  subText: rateSubText,
+                  type: BannerType.rateUs,
+                ),
+                sectionSpacing,
+                BannerWidget(
+                  text: l10n.supportEnte,
+                  subText: l10n.giveUsAStarOnGithub,
+                  type: BannerType.starUs,
+                ),
+              ]);
               return buildWidget(context, contents);
             } else if (differenceInDays >= 7 && differenceInDays <= 30) {
               if (userDetails?.usage == 0) {
                 contents.clear();
-                contents.addAll(
-                  [
-                    BannerWidget(
-                      text: l10n.free10GB,
-                      subText: l10n.loginWithAuthAccount,
-                      type: BannerType.freeStorage,
-                    ),
-                  ],
-                );
+                contents.addAll([
+                  BannerWidget(
+                    text: l10n.free10GB,
+                    subText: l10n.loginWithAuthAccount,
+                    type: BannerType.freeStorage,
+                  ),
+                ]);
               } else if (userDetails!.usage < 5 * 1024 * 1024 * 1024 ||
                   userDetails.subscription.productID == 'free') {
-                contents.addAll(
-                  [
-                    BannerWidget(
-                      text: l10n.freeStorageOffer,
-                      subText: l10n.freeStorageOfferDescription,
-                      type: BannerType.discount,
-                    ),
-                  ],
-                );
+                contents.addAll([
+                  BannerWidget(
+                    text: l10n.freeStorageOffer,
+                    subText: l10n.freeStorageOfferDescription,
+                    type: BannerType.discount,
+                  ),
+                ]);
               }
               return buildWidget(context, contents);
             }
@@ -83,32 +77,25 @@ class NotificationBannerWidget extends StatelessWidget {
     } else {
       if (differenceInDays >= 4 && differenceInDays <= 7) {
         contents.clear();
-        contents.addAll(
-          [
-            BannerWidget(
-              text: l10n.tellUsWhatYouThink,
-              subText: rateSubText,
-              type: BannerType.rateUs,
-            ),
-            sectionSpacing,
-            BannerWidget(
-              text: l10n.supportEnte,
-              subText: l10n.giveUsAStarOnGithub,
-              type: BannerType.starUs,
-            ),
-          ],
-        );
+        contents.addAll([
+          BannerWidget(
+            text: l10n.tellUsWhatYouThink,
+            subText: rateSubText,
+            type: BannerType.rateUs,
+          ),
+          sectionSpacing,
+          BannerWidget(
+            text: l10n.supportEnte,
+            subText: l10n.giveUsAStarOnGithub,
+            type: BannerType.starUs,
+          ),
+        ]);
       }
       return buildWidget(context, contents);
     }
   }
 
-  Widget buildWidget(
-    BuildContext context,
-    List<Widget> contents,
-  ) {
-    return Column(
-      children: contents,
-    );
+  Widget buildWidget(BuildContext context, List<Widget> contents) {
+    return Column(children: contents);
   }
 }

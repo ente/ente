@@ -6,11 +6,7 @@ class AuthLogoWidget extends StatelessWidget {
   final double height;
   final Color? color;
 
-  const AuthLogoWidget({
-    super.key,
-    this.height = 18,
-    this.color,
-  });
+  const AuthLogoWidget({super.key, this.height = 18, this.color});
 
   @override
   Widget build(BuildContext context) {

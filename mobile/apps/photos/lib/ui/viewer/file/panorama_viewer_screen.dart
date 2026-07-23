@@ -3,9 +3,12 @@ import "dart:io";
 
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
+import "package:logging/logging.dart";
 import "package:panorama/panorama.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/src/rust/api/motion_photo_api.dart";
+
+final _logger = Logger("PanoramaViewerScreen");
 
 class PanoramaViewerScreen extends StatefulWidget {
   const PanoramaViewerScreen({
@@ -38,12 +41,16 @@ class _PanoramaViewerScreenState extends State<PanoramaViewerScreen> {
 
   @override
   void dispose() {
+    timer?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
   void initTimer() {
     timer = Timer(const Duration(seconds: 5), () {
+      if (!mounted) {
+        return;
+      }
       setState(() {
         isVisible = false;
       });
@@ -53,14 +60,22 @@ class _PanoramaViewerScreenState extends State<PanoramaViewerScreen> {
   }
 
   Future<void> init() async {
-    final data = await extractXmp(filePath: widget.file.path);
+    final Map<String, String> data;
+    try {
+      data = await extractXmp(filePath: widget.file.path);
+    } catch (e, s) {
+      _logger.warning("Failed to extract panorama XMP", e, s);
+      return;
+    }
     if (!mounted) {
       return;
     }
-    double? cWidth =
-        double.tryParse(data["GPano:CroppedAreaImageWidthPixels"] ?? "");
-    double? cHeight =
-        double.tryParse(data["GPano:CroppedAreaImageHeightPixels"] ?? "");
+    double? cWidth = double.tryParse(
+      data["GPano:CroppedAreaImageWidthPixels"] ?? "",
+    );
+    double? cHeight = double.tryParse(
+      data["GPano:CroppedAreaImageHeightPixels"] ?? "",
+    );
     double? fWidth = double.tryParse(data["GPano:FullPanoWidthPixels"] ?? "");
     double? fHeight = double.tryParse(data["GPano:FullPanoHeightPixels"] ?? "");
     double? cLeft = double.tryParse(data["GPano:CroppedAreaLeftPixels"] ?? "");
@@ -74,10 +89,12 @@ class _PanoramaViewerScreenState extends State<PanoramaViewerScreen> {
 
     // handle inconsistent sizing (e.g. rotated image taken with OnePlus EB2103)
     if (cHeight != null && fWidth != null && fHeight != null) {
-      final croppedOrientation =
-          cWidth! > cHeight ? Orientation.landscape : Orientation.portrait;
-      final fullOrientation =
-          fWidth > fHeight ? Orientation.landscape : Orientation.portrait;
+      final croppedOrientation = cWidth! > cHeight
+          ? Orientation.landscape
+          : Orientation.portrait;
+      final fullOrientation = fWidth > fHeight
+          ? Orientation.landscape
+          : Orientation.portrait;
       var inconsistent = false;
       if (croppedOrientation != fullOrientation) {
         // inconsistent orientation
@@ -134,7 +151,7 @@ class _PanoramaViewerScreenState extends State<PanoramaViewerScreen> {
       body: Stack(
         children: [
           Panorama(
-            onTap: (_, __, ___) {
+            onTap: (_, _, _) {
               setState(() {
                 if (isVisible) {
                   timer?.cancel();
@@ -154,9 +171,7 @@ class _PanoramaViewerScreenState extends State<PanoramaViewerScreen> {
             background: widget.thumbnail != null
                 ? Image.memory(widget.thumbnail!)
                 : null,
-            child: Image.file(
-              widget.file,
-            ),
+            child: Image.file(widget.file),
           ),
           Visibility(
             visible: isVisible,

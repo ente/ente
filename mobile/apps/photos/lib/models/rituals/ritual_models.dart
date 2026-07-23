@@ -79,8 +79,8 @@ class Ritual {
     final remindersEnabled = rawRemindersEnabled is bool
         ? rawRemindersEnabled
         : rawRemindersEnabled is num
-            ? rawRemindersEnabled != 0
-            : true;
+        ? rawRemindersEnabled != 0
+        : true;
     return Ritual(
       id: json["id"] as String? ?? newID("ritual"),
       title: json["title"] as String? ?? "",
@@ -142,11 +142,11 @@ class RitualsState {
   });
 
   factory RitualsState.loading() => const RitualsState(
-        loading: true,
-        summary: null,
-        rituals: [],
-        error: null,
-      );
+    loading: true,
+    summary: null,
+    rituals: [],
+    error: null,
+  );
 
   RitualsState copyWith({
     bool? loading,

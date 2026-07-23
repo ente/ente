@@ -74,6 +74,7 @@ pub struct KeyAttributes {
 
 /// Auth response emitted by login and verification endpoints.
 #[derive(Deserialize, Serialize, Clone)]
+#[serde(try_from = "AuthResponseWire")]
 #[serde(rename_all = "camelCase")]
 pub struct AuthResponse {
     /// User ID.
@@ -97,6 +98,53 @@ pub struct AuthResponse {
     pub srp_m2: Option<String>,
     /// Optional accounts broker URL.
     pub accounts_url: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AuthResponseWire {
+    id: i64,
+    key_attributes: Option<KeyAttributes>,
+    encrypted_token: Option<String>,
+    token: Option<String>,
+    #[serde(rename = "twoFactorSessionID")]
+    two_factor_session_id: Option<String>,
+    #[serde(rename = "twoFactorSessionIDV2")]
+    two_factor_session_id_v2: Option<String>,
+    #[serde(rename = "passkeySessionID")]
+    passkey_session_id: Option<String>,
+    srp_m2: Option<String>,
+    accounts_url: Option<String>,
+}
+
+impl TryFrom<AuthResponseWire> for AuthResponse {
+    type Error = String;
+
+    fn try_from(value: AuthResponseWire) -> std::result::Result<Self, Self::Error> {
+        if value
+            .passkey_session_id
+            .as_ref()
+            .is_some_and(|session_id| !session_id.is_empty())
+            && value
+                .accounts_url
+                .as_ref()
+                .is_none_or(|accounts_url| accounts_url.is_empty())
+        {
+            return Err("accountsUrl is required when passkeySessionID is present".into());
+        }
+
+        Ok(Self {
+            id: value.id,
+            key_attributes: value.key_attributes,
+            encrypted_token: value.encrypted_token,
+            token: value.token,
+            two_factor_session_id: value.two_factor_session_id,
+            two_factor_session_id_v2: value.two_factor_session_id_v2,
+            passkey_session_id: value.passkey_session_id,
+            srp_m2: value.srp_m2,
+            accounts_url: value.accounts_url,
+        })
+    }
 }
 
 impl fmt::Debug for AuthResponse {
@@ -494,4 +542,26 @@ pub struct AccountsTokenResponse {
     pub accounts_url: String,
     /// JWT for the accounts app.
     pub accounts_token: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::AuthResponse;
+
+    #[test]
+    fn auth_response_requires_accounts_url_for_passkey() {
+        let error =
+            serde_json::from_str::<AuthResponse>(r#"{"id":1,"passkeySessionID":"session"}"#)
+                .unwrap_err();
+
+        assert!(error.to_string().contains("accountsUrl is required"));
+    }
+
+    #[test]
+    fn auth_response_allows_missing_accounts_url_without_passkey() {
+        let response = serde_json::from_str::<AuthResponse>(r#"{"id":1}"#).unwrap();
+
+        assert_eq!(response.id, 1);
+        assert!(response.accounts_url.is_none());
+    }
 }

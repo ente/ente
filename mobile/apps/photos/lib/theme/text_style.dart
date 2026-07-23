@@ -1,3 +1,4 @@
+import 'package:ente_components/theme/text_styles.dart' as component;
 import 'package:flutter/material.dart';
 import 'package:photos/theme/colors.dart';
 
@@ -5,6 +6,8 @@ const FontWeight _regularWeight = FontWeight.w500;
 const FontWeight _boldWeight = FontWeight.w600;
 const String _fontFamily = 'Inter';
 
+// h1-h3 stay on the legacy Photos scale because ente_components does not
+// define matching 48/32/24 styles yet.
 const TextStyle h1 = TextStyle(
   fontSize: 48,
   height: 48 / 28,
@@ -23,42 +26,15 @@ const TextStyle h3 = TextStyle(
   fontWeight: _regularWeight,
   fontFamily: _fontFamily,
 );
-const TextStyle h4 = TextStyle(
-  fontSize: 20,
-  height: 24 / 20.0,
-  fontWeight: _regularWeight,
-  fontFamily: _fontFamily,
-);
-const TextStyle large = TextStyle(
-  fontSize: 18,
-  height: 22 / 18.0,
-  fontWeight: _regularWeight,
-  fontFamily: _fontFamily,
-);
-const TextStyle body = TextStyle(
-  fontSize: 16,
-  height: 20 / 16.0,
-  fontWeight: _regularWeight,
-  fontFamily: _fontFamily,
-);
-const TextStyle small = TextStyle(
-  fontSize: 14,
-  height: 17 / 14.0,
-  fontWeight: _regularWeight,
-  fontFamily: _fontFamily,
-);
-const TextStyle mini = TextStyle(
-  fontSize: 12,
-  height: 15 / 12.0,
-  fontWeight: _regularWeight,
-  fontFamily: _fontFamily,
-);
-const TextStyle tiny = TextStyle(
-  fontSize: 10,
-  height: 12 / 10.0,
-  fontWeight: _regularWeight,
-  fontFamily: _fontFamily,
-);
+const TextStyle h4 = component.TextStyles.h1Bold;
+const TextStyle large = component.TextStyles.h2;
+const TextStyle body = component.TextStyles.large;
+const TextStyle small = component.TextStyles.body;
+const TextStyle mini = component.TextStyles.mini;
+const TextStyle tiny = component.TextStyles.tiny;
+
+const TextStyle _h4Bold = component.TextStyles.h1;
+const TextStyle _smallBold = component.TextStyles.bodyBold;
 
 class EnteTextTheme {
   final TextStyle h1;
@@ -160,6 +136,8 @@ EnteTextTheme _buildEnteTextStyle(
   Color textMuted,
   Color textFaint,
 ) {
+  // Text colors still come from the legacy Photos color tokens; this adapter
+  // only sources the matching typography styles from ente_components.
   return EnteTextTheme(
     h1: h1.copyWith(color: color),
     h1Bold: h1.copyWith(color: color, fontWeight: _boldWeight),
@@ -168,13 +146,13 @@ EnteTextTheme _buildEnteTextStyle(
     h3: h3.copyWith(color: color),
     h3Bold: h3.copyWith(color: color, fontWeight: _boldWeight),
     h4: h4.copyWith(color: color),
-    h4Bold: h4.copyWith(color: color, fontWeight: _boldWeight),
+    h4Bold: _h4Bold.copyWith(color: color),
     large: large.copyWith(color: color),
     largeBold: large.copyWith(color: color, fontWeight: _boldWeight),
     body: body.copyWith(color: color),
     bodyBold: body.copyWith(color: color, fontWeight: _boldWeight),
     small: small.copyWith(color: color),
-    smallBold: small.copyWith(color: color, fontWeight: _boldWeight),
+    smallBold: _smallBold.copyWith(color: color),
     mini: mini.copyWith(color: color),
     miniBold: mini.copyWith(color: color, fontWeight: _boldWeight),
     tiny: tiny.copyWith(color: color),

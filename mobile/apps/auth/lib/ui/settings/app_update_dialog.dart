@@ -25,9 +25,9 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
           padding: const EdgeInsets.fromLTRB(8, 4, 0, 4),
           child: Text(
             "- $log",
-            style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                  fontSize: 14,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall!.copyWith(fontSize: 14),
           ),
         ),
       );
@@ -38,19 +38,11 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
       children: [
         Text(
           widget.latestVersionInfo!.name!,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
         ),
         const Padding(padding: EdgeInsets.all(8)),
         if (changelog.isNotEmpty)
-          const Text(
-            "Changelog",
-            style: TextStyle(
-              fontSize: 18,
-            ),
-          ),
+          const Text("Changelog", style: TextStyle(fontSize: 18)),
         if (changelog.isNotEmpty) const Padding(padding: EdgeInsets.all(4)),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,11 +54,11 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
           height: 64,
           child: OutlinedButton(
             style: Theme.of(context).outlinedButtonTheme.style!.copyWith(
-              textStyle: WidgetStateProperty.resolveWith<TextStyle?>(
-                (Set<WidgetState> states) {
-                  return Theme.of(context).textTheme.titleMedium;
-                },
-              ),
+              textStyle: WidgetStateProperty.resolveWith<TextStyle?>((
+                Set<WidgetState> states,
+              ) {
+                return Theme.of(context).textTheme.titleMedium;
+              }),
             ),
             onPressed: () => launchUrlString(
               PlatformDetector.isDesktop()
@@ -74,15 +66,14 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                   : widget.latestVersionInfo!.url!,
               mode: LaunchMode.externalApplication,
             ),
-            child: Text(
-              context.l10n.downloadUpdate,
-            ),
+            child: Text(context.l10n.downloadUpdate),
           ),
         ),
       ],
     );
-    final shouldForceUpdate =
-        UpdateService.instance.shouldForceUpdate(widget.latestVersionInfo);
+    final shouldForceUpdate = UpdateService.instance.shouldForceUpdate(
+      widget.latestVersionInfo,
+    );
     return PopScope(
       canPop: !shouldForceUpdate,
       child: AlertDialog(
@@ -94,9 +85,7 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
               size: 24,
               color: getEnteColorScheme(context).strokeMuted,
             ),
-            const SizedBox(
-              height: 16,
-            ),
+            const SizedBox(height: 16),
             Text(
               shouldForceUpdate
                   ? context.l10n.criticalUpdateAvailable

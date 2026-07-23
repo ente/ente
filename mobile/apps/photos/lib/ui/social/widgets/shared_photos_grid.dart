@@ -317,10 +317,7 @@ class _SharedPhotosGridState extends State<SharedPhotosGrid> {
 
     return Align(
       alignment: Alignment.bottomRight,
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: tappableBadge,
-      ),
+      child: Padding(padding: const EdgeInsets.all(6), child: tappableBadge),
     );
   }
 }

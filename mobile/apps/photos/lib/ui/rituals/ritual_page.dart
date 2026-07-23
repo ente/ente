@@ -30,10 +30,7 @@ import "package:photos/utils/share_util.dart";
 import "package:share_plus/share_plus.dart";
 
 class RitualPage extends StatefulWidget {
-  const RitualPage({
-    super.key,
-    required this.ritualId,
-  });
+  const RitualPage({super.key, required this.ritualId});
 
   final String ritualId;
 
@@ -120,10 +117,7 @@ class _RitualPageState extends State<RitualPage> {
                 opacity: 0.01,
                 child: RepaintBoundary(
                   key: repaintKey,
-                  child: RitualShareCard(
-                    ritual: ritual,
-                    progress: progress,
-                  ),
+                  child: RitualShareCard(ritual: ritual, progress: progress),
                 ),
               ),
             ),
@@ -132,8 +126,9 @@ class _RitualPageState extends State<RitualPage> {
       );
       overlay.insert(entry);
       final boundary = await _waitForBoundaryReady(repaintKey: repaintKey);
-      final double pixelRatio =
-          (MediaQuery.devicePixelRatioOf(context) * 1.8).clamp(2.4, 3.5);
+      if (!mounted) return;
+      final double pixelRatio = (MediaQuery.devicePixelRatioOf(context) * 1.8)
+          .clamp(2.4, 3.5);
       final ui.Image image = await boundary.toImage(pixelRatio: pixelRatio);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final data = byteData?.buffer.asUint8List();
@@ -145,6 +140,7 @@ class _RitualPageState extends State<RitualPage> {
         "${dir.path}/ritual_share_${ritual.id}_${DateTime.now().millisecondsSinceEpoch}.png",
       );
       await file.writeAsBytes(data, flush: true);
+      if (!mounted) return;
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path)],
@@ -155,9 +151,7 @@ class _RitualPageState extends State<RitualPage> {
       _logger.warning("Failed to share ritual", e, s);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.ritualShareUnavailable),
-          ),
+          SnackBar(content: Text(context.l10n.ritualShareUnavailable)),
         );
       }
     } finally {
@@ -210,8 +204,9 @@ class _RitualPageState extends State<RitualPage> {
         final colorScheme = getEnteColorScheme(context);
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
-        final actionBackground =
-            isDark ? colorScheme.backgroundElevated2 : const Color(0xFFF3F3F3);
+        final actionBackground = isDark
+            ? colorScheme.backgroundElevated2
+            : const Color(0xFFF3F3F3);
 
         return Scaffold(
           appBar: AppBar(
@@ -232,9 +227,9 @@ class _RitualPageState extends State<RitualPage> {
                 onPressed: _sharing
                     ? null
                     : () => _shareRitual(
-                          ritual: currentRitual,
-                          progress: progress,
-                        ),
+                        ritual: currentRitual,
+                        progress: progress,
+                      ),
                 tooltip: MaterialLocalizations.of(context).shareButtonLabel,
               ),
               const SizedBox(width: 8),
@@ -265,11 +260,7 @@ class _RitualPageState extends State<RitualPage> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                Center(
-                  child: _RitualHeader(
-                    ritual: currentRitual,
-                  ),
-                ),
+                Center(child: _RitualHeader(ritual: currentRitual)),
                 const SizedBox(height: 18),
                 Row(
                   children: [
@@ -289,10 +280,7 @@ class _RitualPageState extends State<RitualPage> {
                   ],
                 ),
                 const SizedBox(height: 18),
-                _RecentDaysCard(
-                  ritual: currentRitual,
-                  progress: progress,
-                ),
+                _RecentDaysCard(ritual: currentRitual, progress: progress),
                 const SizedBox(height: 18),
                 _MonthOverviewCard(
                   ritual: currentRitual,
@@ -338,11 +326,7 @@ class _TopActionButton extends StatelessWidget {
         padding: const EdgeInsets.all(8),
         minimumSize: const Size(40, 40),
       ),
-      icon: HugeIcon(
-        icon: icon,
-        size: 22,
-        color: colorScheme.textBase,
-      ),
+      icon: HugeIcon(icon: icon, size: 22, color: colorScheme.textBase),
       onPressed: onPressed,
     );
   }
@@ -444,10 +428,7 @@ class _OverflowMenuButton extends StatelessWidget {
 }
 
 class _StreakCircle extends StatelessWidget {
-  const _StreakCircle({
-    required this.streak,
-    required this.background,
-  });
+  const _StreakCircle({required this.streak, required this.background});
 
   final int streak;
   final Color background;
@@ -494,8 +475,8 @@ class _StreakCircle extends StatelessWidget {
       lastDigitRect.right - (painter.size.width / 2),
       lastDigitRect.bottom - (painter.size.height / 2),
     );
-    final horizontalCenterShiftFactor =
-        (0.25 - ((text.length - 1) * 0.065)).clamp(0.12, 0.25);
+    final horizontalCenterShiftFactor = (0.25 - ((text.length - 1) * 0.065))
+        .clamp(0.12, 0.25);
     final iconOffset = anchor.translate(
       iconSize * horizontalCenterShiftFactor,
       -(iconSize * 1.1),
@@ -503,28 +484,19 @@ class _StreakCircle extends StatelessWidget {
 
     final streakTextGradient = _linearGradientFromCssAngle(
       degrees: 178.24,
-      colors: const [
-        Color(0xFF545454),
-        Color(0xFF000000),
-      ],
+      colors: const [Color(0xFF545454), Color(0xFF000000)],
       stops: const [0.1192, 0.8251],
     );
     final streakLightningGradient = _linearGradientFromCssAngle(
       degrees: 189.82,
-      colors: const [
-        Color(0xFFFF9501),
-        Color(0xFFFFD686),
-      ],
+      colors: const [Color(0xFFFF9501), Color(0xFFFFD686)],
       stops: const [0.2622, 0.9524],
     );
 
     return Container(
       width: 132,
       height: 132,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: background,
-      ),
+      decoration: BoxDecoration(shape: BoxShape.circle, color: background),
       child: Center(
         child: Stack(
           clipBehavior: Clip.none,
@@ -565,9 +537,7 @@ class _StreakCircle extends StatelessWidget {
 }
 
 class _RitualHeader extends StatelessWidget {
-  const _RitualHeader({
-    required this.ritual,
-  });
+  const _RitualHeader({required this.ritual});
 
   final Ritual ritual;
 
@@ -576,8 +546,9 @@ class _RitualHeader extends StatelessWidget {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final title =
-        ritual.title.isEmpty ? context.l10n.ritualUntitled : ritual.title;
+    final title = ritual.title.isEmpty
+        ? context.l10n.ritualUntitled
+        : ritual.title;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -613,10 +584,7 @@ class _RitualHeader extends StatelessWidget {
 }
 
 class _StreakStatCard extends StatelessWidget {
-  const _StreakStatCard({
-    required this.label,
-    required this.streak,
-  });
+  const _StreakStatCard({required this.label, required this.streak});
 
   final String label;
   final int streak;
@@ -629,18 +597,15 @@ class _StreakStatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       decoration: BoxDecoration(
-        color:
-            isDark ? colorScheme.backgroundElevated2 : const Color(0xFFFAFAFA),
+        color: isDark
+            ? colorScheme.backgroundElevated2
+            : const Color(0xFFFAFAFA),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: colorScheme.strokeFaint, width: 1),
       ),
       child: Column(
         children: [
-          Text(
-            label,
-            style: textTheme.tinyMuted,
-            textAlign: TextAlign.center,
-          ),
+          Text(label, style: textTheme.tinyMuted, textAlign: TextAlign.center),
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -658,10 +623,7 @@ class _StreakStatCard extends StatelessWidget {
                 textHeightBehavior: _tightTextHeightBehavior,
               ),
               const SizedBox(width: 6),
-              const _LightningIcon(
-                size: 16,
-                color: Color(0xFFFFB800),
-              ),
+              const _LightningIcon(size: 16, color: Color(0xFFFFB800)),
             ],
           ),
         ],
@@ -671,10 +633,7 @@ class _StreakStatCard extends StatelessWidget {
 }
 
 class _RecentDaysCard extends StatelessWidget {
-  const _RecentDaysCard({
-    required this.ritual,
-    required this.progress,
-  });
+  const _RecentDaysCard({required this.ritual, required this.progress});
 
   final Ritual ritual;
   final RitualProgress? progress;
@@ -700,8 +659,9 @@ class _RecentDaysCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color:
-            isDark ? colorScheme.backgroundElevated2 : const Color(0xFFFAFAFA),
+        color: isDark
+            ? colorScheme.backgroundElevated2
+            : const Color(0xFFFAFAFA),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: colorScheme.strokeFaint, width: 1),
       ),
@@ -764,8 +724,11 @@ class _RecentDaysCard extends StatelessWidget {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
-    final dayKey =
-        DateTime(day.year, day.month, day.day).millisecondsSinceEpoch;
+    final dayKey = DateTime(
+      day.year,
+      day.month,
+      day.day,
+    ).millisecondsSinceEpoch;
     final file = progress?.recentFilesByDay[dayKey];
     final count =
         progress?.recentFileCountsByDay[dayKey] ?? (completed ? 1 : 0);
@@ -783,10 +746,10 @@ class _RecentDaysCard extends StatelessWidget {
     final variant = completed
         ? RitualDayThumbnailVariant.photo
         : (isToday
-            ? RitualDayThumbnailVariant.camera
-            : (showFuturePreview && day.isAfter(today)
-                ? RitualDayThumbnailVariant.future
-                : RitualDayThumbnailVariant.empty));
+              ? RitualDayThumbnailVariant.camera
+              : (showFuturePreview && day.isAfter(today)
+                    ? RitualDayThumbnailVariant.future
+                    : RitualDayThumbnailVariant.empty));
 
     final thumbnail = RitualDayThumbnail(
       day: day,
@@ -808,11 +771,8 @@ class _RecentDaysCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _openRitualAlbumAndFile(
-          context,
-          ritual: ritual,
-          file: photoFile,
-        ),
+        onTap: () =>
+            _openRitualAlbumAndFile(context, ritual: ritual, file: photoFile),
         borderRadius: BorderRadius.circular(12),
         child: thumbnail,
       ),
@@ -821,10 +781,7 @@ class _RecentDaysCard extends StatelessWidget {
 }
 
 class _AlbumChevronThumbnail extends StatelessWidget {
-  const _AlbumChevronThumbnail({
-    required this.width,
-    required this.onTap,
-  });
+  const _AlbumChevronThumbnail({required this.width, required this.onTap});
 
   final double width;
   final VoidCallback onTap;
@@ -905,8 +862,9 @@ class _MonthOverviewCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
       decoration: BoxDecoration(
-        color:
-            isDark ? colorScheme.backgroundElevated2 : const Color(0xFFFAFAFA),
+        color: isDark
+            ? colorScheme.backgroundElevated2
+            : const Color(0xFFFAFAFA),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: colorScheme.strokeFaint, width: 1),
       ),
@@ -918,8 +876,9 @@ class _MonthOverviewCard extends StatelessWidget {
                 child: Text(
                   monthLabel,
                   style: textTheme.bodyBold.copyWith(
-                    color:
-                        isDark ? colorScheme.textBase : const Color(0xFF454545),
+                    color: isDark
+                        ? colorScheme.textBase
+                        : const Color(0xFF454545),
                   ),
                   textHeightBehavior: _tightTextHeightBehavior,
                 ),
@@ -1049,8 +1008,11 @@ class _MonthGrid extends StatelessWidget {
     final textTheme = getEnteTextTheme(context);
 
     final firstDay = DateTime(visibleMonth.year, visibleMonth.month, 1);
-    final daysInMonth =
-        DateTime(visibleMonth.year, visibleMonth.month + 1, 0).day;
+    final daysInMonth = DateTime(
+      visibleMonth.year,
+      visibleMonth.month + 1,
+      0,
+    ).day;
     final leadingEmpty = (firstDay.weekday + 6) % 7; // Monday-first
     final totalDaysCells = leadingEmpty + daysInMonth;
     final trailingEmpty = (7 - (totalDaysCells % 7)) % 7;
@@ -1081,8 +1043,11 @@ class _MonthGrid extends StatelessWidget {
         }
         final dayNumber = index - leadingEmpty + 1;
         final day = DateTime(visibleMonth.year, visibleMonth.month, dayNumber);
-        final dayKey =
-            DateTime(day.year, day.month, day.day).millisecondsSinceEpoch;
+        final dayKey = DateTime(
+          day.year,
+          day.month,
+          day.day,
+        ).millisecondsSinceEpoch;
         final enabled = _isEnabledDay(ritual, day);
         final completed = progress?.completedDayKeys.contains(dayKey) ?? false;
         final isToday = dayKey == todayKey;
@@ -1098,8 +1063,9 @@ class _MonthGrid extends StatelessWidget {
           final isDark = Theme.of(context).brightness == Brightness.dark;
           return Center(
             child: _CompletedDayPill(
-              background:
-                  isDark ? colorScheme.backgroundElevated : Colors.white,
+              background: isDark
+                  ? colorScheme.backgroundElevated
+                  : Colors.white,
               iconColor: const Color(0xFFFFB800),
             ),
           );
@@ -1136,10 +1102,7 @@ class _MonthGrid extends StatelessWidget {
 }
 
 class _CompletedDayPill extends StatelessWidget {
-  const _CompletedDayPill({
-    required this.background,
-    required this.iconColor,
-  });
+  const _CompletedDayPill({required this.background, required this.iconColor});
 
   final Color background;
   final Color iconColor;
@@ -1151,13 +1114,8 @@ class _CompletedDayPill extends StatelessWidget {
     return Container(
       width: _MonthGrid._cellSize,
       height: _MonthGrid._cellSize,
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: _radius,
-      ),
-      child: Center(
-        child: _LightningIcon(size: 16, color: iconColor),
-      ),
+      decoration: BoxDecoration(color: background, borderRadius: _radius),
+      child: Center(child: _LightningIcon(size: 16, color: iconColor)),
     );
   }
 }
@@ -1171,8 +1129,9 @@ class _CrossedOutDay extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final background =
-        isDark ? colorScheme.backgroundElevated : const Color(0xFFF3F3F3);
+    final background = isDark
+        ? colorScheme.backgroundElevated
+        : const Color(0xFFF3F3F3);
     final stroke = isDark
         ? colorScheme.backgroundElevated2
         : Colors.black.withValues(alpha: 0.08);
@@ -1217,9 +1176,11 @@ class _CrossHatchPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final diagonal = size.height;
-    for (double startX = -diagonal;
-        startX < size.width + diagonal;
-        startX += gap) {
+    for (
+      double startX = -diagonal;
+      startX < size.width + diagonal;
+      startX += gap
+    ) {
       canvas.drawLine(
         Offset(startX, 0),
         Offset(startX + diagonal, diagonal),
@@ -1237,11 +1198,8 @@ class _CrossHatchPainter extends CustomPainter {
 }
 
 class _LightningIcon extends StatelessWidget {
-  const _LightningIcon({
-    required this.size,
-    this.color,
-    this.gradient,
-  }) : assert(color != null || gradient != null);
+  const _LightningIcon({required this.size, this.color, this.gradient})
+    : assert(color != null || gradient != null);
 
   final double size;
   final Color? color;
@@ -1266,20 +1224,16 @@ class _LightningIcon extends StatelessWidget {
 Future<void> _openRitualAlbum(BuildContext context, Ritual ritual) async {
   final albumId = ritual.albumId;
   if (albumId == null || albumId <= 0) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.l10n.ritualAlbumMissing),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.l10n.ritualAlbumMissing)));
     return;
   }
   final collection = CollectionsService.instance.getCollectionByID(albumId);
   if (collection == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.l10n.ritualAlbumMissing),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.l10n.ritualAlbumMissing)));
     return;
   }
   final thumbnail = await CollectionsService.instance.getCover(collection);
@@ -1300,20 +1254,16 @@ Future<void> _openRitualAlbumAndFile(
 }) async {
   final albumId = ritual.albumId;
   if (albumId == null || albumId <= 0) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.l10n.ritualAlbumMissing),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.l10n.ritualAlbumMissing)));
     return;
   }
   final collection = CollectionsService.instance.getCollectionByID(albumId);
   if (collection == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.l10n.ritualAlbumMissing),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.l10n.ritualAlbumMissing)));
     return;
   }
 
@@ -1330,13 +1280,15 @@ Future<void> _openRitualAlbumAndFile(
   final files = await FilesDB.instance.getAllFilesCollection(collection.id);
   final asc = collection.pubMagicMetadata.asc ?? false;
   files.sort((a, b) {
-    final creationCompare =
-        (a.creationTime ?? 0).compareTo(b.creationTime ?? 0);
+    final creationCompare = (a.creationTime ?? 0).compareTo(
+      b.creationTime ?? 0,
+    );
     if (creationCompare != 0) {
       return asc ? creationCompare : -creationCompare;
     }
-    final modificationCompare =
-        (a.modificationTime ?? 0).compareTo(b.modificationTime ?? 0);
+    final modificationCompare = (a.modificationTime ?? 0).compareTo(
+      b.modificationTime ?? 0,
+    );
     return asc ? modificationCompare : -modificationCompare;
   });
   final selectedIndex = files.indexOf(file);
@@ -1346,11 +1298,7 @@ Future<void> _openRitualAlbumAndFile(
   routeToPage(
     context,
     DetailPage(
-      DetailPageConfiguration(
-        files,
-        selectedIndex,
-        "ritual_${ritual.id}",
-      ),
+      DetailPageConfiguration(files, selectedIndex, "ritual_${ritual.id}"),
     ),
     forceCustomPageRoute: true,
   ).ignore();
@@ -1475,8 +1423,11 @@ bool _isSameDay(DateTime a, DateTime b) {
   }
 
   final createdAt = ritual.createdAt.toLocal();
-  final createdDayMidnight =
-      DateTime(createdAt.year, createdAt.month, createdAt.day);
+  final createdDayMidnight = DateTime(
+    createdAt.year,
+    createdAt.month,
+    createdAt.day,
+  );
 
   final lookbackCount = count - 1;
   final daysBeforeCreation = _lastScheduledDaysInclusive(
@@ -1484,8 +1435,9 @@ bool _isSameDay(DateTime a, DateTime b) {
     todayMidnight: createdDayMidnight.subtract(const Duration(days: 1)),
     count: lookbackCount,
   );
-  final hadCompletionsBeforeCreation =
-      daysBeforeCreation.any(progress.hasCompleted);
+  final hadCompletionsBeforeCreation = daysBeforeCreation.any(
+    progress.hasCompleted,
+  );
   if (hadCompletionsBeforeCreation) {
     return (days: pastDays, showFuturePreview: false);
   }

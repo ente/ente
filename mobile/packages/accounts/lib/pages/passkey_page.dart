@@ -66,35 +66,46 @@ class _PasskeyPageState extends State<PasskeyPage> {
   Future<void> checkStatus() async {
     late dynamic response;
     try {
-      response = await UserService.instance
-          .getTokenForPasskeySession(widget.sessionID);
+      response = await UserService.instance.getTokenForPasskeySession(
+        widget.sessionID,
+      );
     } on PassKeySessionNotVerifiedError {
-      showToast(context, context.strings.passKeyPendingVerification);
+      if (mounted) {
+        showToast(context, context.strings.passKeyPendingVerification);
+      }
       return;
     } on PassKeySessionExpiredError {
+      if (!mounted) {
+        return;
+      }
       await showAlertBottomSheet(
         context,
         title: context.strings.loginSessionExpired,
         message: context.strings.loginSessionExpiredDetails,
         assetPath: 'assets/warning-grey.png',
       );
-      Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
       return;
     } catch (e, s) {
       _logger.severe("failed to check status", e, s);
-      showGenericErrorDialog(context: context, error: e).ignore();
+      if (mounted) {
+        showGenericErrorDialog(context: context, error: e).ignore();
+      }
       return;
     }
-    await UserService.instance.onPassKeyVerified(context, response);
+    await UserService.instance.onPassKeyVerified(
+      mounted ? context : null,
+      response,
+    );
   }
 
   Future<void> _handleDeeplink(String? link) async {
     if (!context.mounted ||
         widget.config.hasConfiguredAccount() ||
         link == null) {
-      _logger.warning(
-        'ignored deeplink: contextMounted ${context.mounted}',
-      );
+      _logger.warning('ignored deeplink: contextMounted ${context.mounted}');
       return;
     }
     try {
@@ -119,13 +130,18 @@ class _PasskeyPageState extends State<PasskeyPage> {
         }
         final res = utf8.decode(base64.decode(base64String));
         final json = jsonDecode(res) as Map<String, dynamic>;
-        await UserService.instance.onPassKeyVerified(context, json);
+        await UserService.instance.onPassKeyVerified(
+          mounted ? context : null,
+          json,
+        );
       } else {
         _logger.info('ignored deeplink: $link mounted $mounted');
       }
     } catch (e, s) {
       _logger.severe('passKey: failed to handle deeplink', e, s);
-      showGenericErrorDialog(context: context, error: e).ignore();
+      if (mounted) {
+        showGenericErrorDialog(context: context, error: e).ignore();
+      }
     }
   }
 
@@ -184,15 +200,11 @@ class _PasskeyPageState extends State<PasskeyPage> {
             const SizedBox(height: 12),
             Text(
               context.strings.passkeyAuthTitle,
-              style: textTheme.h3Bold.copyWith(
-                color: colorScheme.textBase,
-              ),
+              style: textTheme.h3Bold.copyWith(color: colorScheme.textBase),
             ),
             Text(
               context.strings.waitingForVerification,
-              style: textTheme.body.copyWith(
-                color: colorScheme.textMuted,
-              ),
+              style: textTheme.body.copyWith(color: colorScheme.textMuted),
             ),
             const SizedBox(height: 24),
             GradientButton(
@@ -208,7 +220,9 @@ class _PasskeyPageState extends State<PasskeyPage> {
                   await checkStatus();
                 } catch (e) {
                   debugPrint('failed to check status %e');
-                  showGenericErrorDialog(context: context, error: e).ignore();
+                  if (mounted) {
+                    showGenericErrorDialog(context: context, error: e).ignore();
+                  }
                 }
               },
             ),

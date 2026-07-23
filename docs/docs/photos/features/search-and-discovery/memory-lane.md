@@ -7,7 +7,9 @@ description: Rediscover a person's photos across the years and share that timeli
 
 Memory Lane creates a timeline for a person using photos of them from different years. It helps you rediscover how someone has changed over time, and you can share that timeline as a public link.
 
-> **Note**: Memory Lane is currently available in the mobile apps.
+> [!NOTE]
+>
+> Memory Lane is currently available in the mobile apps.
 
 ## How Memory Lane works
 

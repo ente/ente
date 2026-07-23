@@ -31,9 +31,9 @@ class ClusterCentroidVectorDB {
   );
   static final localGalleryInstance =
       ClusterCentroidVectorDB._privateConstructor(
-    "ente.ml.offline.vectordb.cluster_centroid.usearch",
-    "cluster_centroid_vectordb_migration_offline",
-  );
+        "ente.ml.offline.vectordb.cluster_centroid.usearch",
+        "cluster_centroid_vectordb_migration_offline",
+      );
 
   factory ClusterCentroidVectorDB() => instance;
 
@@ -62,10 +62,7 @@ class ClusterCentroidVectorDB {
 
     late VectorDb vectorDB;
     try {
-      vectorDB = VectorDb(
-        filePath: dbPath,
-        dimensions: _embeddingDimension,
-      );
+      vectorDB = VectorDb(filePath: dbPath, dimensions: _embeddingDimension);
     } catch (e, s) {
       _logger.severe(
         "Could not open cluster centroid vector DB at path $dbPath",
@@ -75,10 +72,7 @@ class ClusterCentroidVectorDB {
       _logger.severe("Deleting the index file and trying again");
       await deleteIndexFile();
       try {
-        vectorDB = VectorDb(
-          filePath: dbPath,
-          dimensions: _embeddingDimension,
-        );
+        vectorDB = VectorDb(filePath: dbPath, dimensions: _embeddingDimension);
       } catch (e, s) {
         _logger.severe(
           "Still can't open cluster centroid vector DB at path $dbPath",
@@ -260,7 +254,7 @@ class ClusterCentroidVectorDB {
   }
 
   Future<List<List<(int, double)>>>
-      bulkSearchApproxClosestCentroidsWithinDistance(
+  bulkSearchApproxClosestCentroidsWithinDistance(
     List<List<double>> queries,
     Set<int> allowedClusterVectorIDs, {
     required double maxDistance,
@@ -303,8 +297,9 @@ class ClusterCentroidVectorDB {
       for (var i = 0; i < alignedQueryLength; i++) {
         final keys = keysPerQuery[i];
         final distances = distancesPerQuery[i];
-        final alignedLength =
-            keys.length < distances.length ? keys.length : distances.length;
+        final alignedLength = keys.length < distances.length
+            ? keys.length
+            : distances.length;
         final matches = <(int, double)>[];
         for (var j = 0; j < alignedLength; j++) {
           matches.add((keys[j].toInt(), distances[j]));
@@ -319,7 +314,7 @@ class ClusterCentroidVectorDB {
   }
 
   Future<Map<int, List<(int, double)>>>
-      bulkSearchApproxClosestCentroidsForKeysWithinDistance(
+  bulkSearchApproxClosestCentroidsForKeysWithinDistance(
     Set<int> queryClusterVectorIDs, {
     required int count,
     double? maxDistance,
@@ -380,8 +375,9 @@ class ClusterCentroidVectorDB {
       final db = await _vectorDB;
       final stats = await getIndexStats(db);
       if (stats.size == 0) {
-        _logger
-            .info("Skipping cluster centroid vector DB warmup: index is empty");
+        _logger.info(
+          "Skipping cluster centroid vector DB warmup: index is empty",
+        );
         return;
       }
 

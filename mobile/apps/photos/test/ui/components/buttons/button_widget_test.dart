@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:photos/ente_theme_data.dart";
+import "package:photos/generated/l10n.dart";
 import "package:photos/models/button_result.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
@@ -16,6 +17,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: darkThemeData,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Builder(
             builder: (context) {
               return Scaffold(
@@ -53,6 +56,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: darkThemeData,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Builder(
             builder: (context) {
               return Scaffold(

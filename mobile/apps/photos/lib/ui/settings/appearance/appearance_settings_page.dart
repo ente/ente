@@ -58,10 +58,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
           title: context.l10n.appIcon,
           icon: HugeIcons.strokeRoundedImage02,
           onTap: () async {
-            await routeToPage(
-              context,
-              const AppIconSelectionScreen(),
-            );
+            await routeToPage(context, const AppIconSelectionScreen());
           },
         ),
         const SizedBox(height: 8),
@@ -77,9 +74,7 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
           onTap: () async {
             await routeToPage(
               context,
-              const GallerySettingsScreen(
-                fromGalleryLayoutSettingsCTA: false,
-              ),
+              const GallerySettingsScreen(fromGalleryLayoutSettingsCTA: false),
             );
           },
         ),
@@ -104,16 +99,14 @@ class _AppearanceSettingsPageState extends State<AppearanceSettingsPage> {
 
   Future<void> _onLanguageTap(BuildContext context) async {
     final locale = (await getLocale())!;
+    if (!context.mounted) return;
     await routeToPage(
       context,
-      LanguageSelectorPage(
-        appSupportedLocales,
-        (locale) async {
-          await setLocale(locale);
-          EnteApp.setLocale(context, locale);
-        },
-        locale,
-      ),
+      LanguageSelectorPage(appSupportedLocales, (locale) async {
+        await setLocale(locale);
+        if (!context.mounted) return;
+        EnteApp.setLocale(context, locale);
+      }, locale),
     );
   }
 }

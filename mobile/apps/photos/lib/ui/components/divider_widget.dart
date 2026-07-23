@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:photos/theme/ente_theme.dart';
 
-enum DividerType {
-  solid,
-  menu,
-  menuNoIcon,
-  bottomBar,
-}
+enum DividerType { solid, menu, menuNoIcon, bottomBar }
 
 class DividerWidget extends StatelessWidget {
   final DividerType dividerType;
@@ -57,8 +52,8 @@ class DividerWidget extends StatelessWidget {
             width: dividerType == DividerType.menu
                 ? 48
                 : dividerType == DividerType.menuNoIcon
-                    ? 16
-                    : 0,
+                ? 16
+                : 0,
             height: 1,
           ),
           Expanded(

@@ -25,8 +25,9 @@ class _CodeTimerProgressState extends State<CodeTimerProgress> {
   late final int _periodInMilii;
 
   // Reduce update frequency
-  final int _updateIntervalMs =
-      (Platform.isAndroid || Platform.isIOS) ? 16 : 500; // approximately 60 FPS
+  final int _updateIntervalMs = (Platform.isAndroid || Platform.isIOS)
+      ? 16
+      : 500; // approximately 60 FPS
 
   @override
   void initState() {
@@ -43,7 +44,8 @@ class _CodeTimerProgressState extends State<CodeTimerProgress> {
 
   void _updateTimeRemaining(int currentMilliSeconds) {
     // More efficient time calculation using modulo
-    final elapsed = (currentMilliSeconds + widget.timeOffsetInMilliseconds) %
+    final elapsed =
+        (currentMilliSeconds + widget.timeOffsetInMilliseconds) %
         _periodInMilii;
     final timeRemaining = _periodInMilii - elapsed;
     _progress.value = timeRemaining / _periodInMilii;
@@ -92,10 +94,7 @@ class _ProgressPainter extends CustomPainter {
   final double progress;
   final Color color;
 
-  const _ProgressPainter({
-    required this.progress,
-    required this.color,
-  });
+  const _ProgressPainter({required this.progress, required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {

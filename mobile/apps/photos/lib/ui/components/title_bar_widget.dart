@@ -45,7 +45,8 @@ class TitleBarWidget extends StatelessWidget {
         leadingWidth: 48,
         automaticallyImplyLeading: false,
         pinned: true,
-        expandedHeight: expandedHeight ??
+        expandedHeight:
+            expandedHeight ??
             (isFlexibleSpaceDisabled ? toolbarHeight : 102) -
                 reducedExpandedHeight,
         centerTitle: false,
@@ -58,21 +59,19 @@ class TitleBarWidget extends StatelessWidget {
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              children: _actionsWithPaddingInBetween(),
-            ),
+            child: Row(children: _actionsWithPaddingInBetween()),
           ),
         ],
         leading: isTitleH2WithoutLeading
             ? null
             : leading ??
-                IconButtonWidget(
-                  icon: Icons.adaptive.arrow_back_outlined,
-                  iconButtonType: IconButtonType.primary,
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                ),
+                  IconButtonWidget(
+                    icon: Icons.adaptive.arrow_back_outlined,
+                    iconButtonType: IconButtonType.primary,
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                  ),
         flexibleSpace: isFlexibleSpaceDisabled
             ? null
             : FlexibleSpaceBarWidget(
@@ -99,21 +98,19 @@ class TitleBarWidget extends StatelessWidget {
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              children: _actionsWithPaddingInBetween(),
-            ),
+            child: Row(children: _actionsWithPaddingInBetween()),
           ),
         ],
         leading: isTitleH2WithoutLeading
             ? null
             : leading ??
-                IconButtonWidget(
-                  icon: Icons.adaptive.arrow_back_outlined,
-                  iconButtonType: IconButtonType.primary,
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                ),
+                  IconButtonWidget(
+                    icon: Icons.adaptive.arrow_back_outlined,
+                    iconButtonType: IconButtonType.primary,
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                  ),
         flexibleSpace: isFlexibleSpaceDisabled
             ? null
             : FlexibleSpaceBarWidget(
@@ -126,7 +123,7 @@ class TitleBarWidget extends StatelessWidget {
     }
   }
 
-  _actionsWithPaddingInBetween() {
+  List<Widget> _actionsWithPaddingInBetween() {
     if (actionIcons == null) {
       return <Widget>[const SizedBox.shrink()];
     }
@@ -138,7 +135,7 @@ class TitleBarWidget extends StatelessWidget {
       return <Widget>[const SizedBox.shrink()];
     }
     if (length == 1) {
-      return actionIcons;
+      return actionIcons!;
     }
     while (index < length) {
       if (!addWhiteSpace) {
@@ -184,10 +181,7 @@ class TitleWidget extends StatelessWidget {
                 ),
           caption == null || isTitleH2WithoutLeading
               ? const SizedBox.shrink()
-              : Text(
-                  caption!,
-                  style: textTheme.miniMuted,
-                ),
+              : Text(caption!, style: textTheme.miniMuted),
         ],
       ),
     );
@@ -219,10 +213,7 @@ class FlexibleSpaceBarWidget extends StatelessWidget {
           children: <Widget>[
             SizedBox(height: toolbarHeight),
             Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical: 4,
-                horizontal: 16,
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

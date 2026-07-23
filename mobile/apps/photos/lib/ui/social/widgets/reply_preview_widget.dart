@@ -54,7 +54,8 @@ class ReplyPreviewWidget extends StatelessWidget {
                     replyingToUser.id == currentUserID
                         ? l10n.replyingToYou
                         : l10n.replyingTo(
-                            name: replyingToUser.displayName ??
+                            name:
+                                replyingToUser.displayName ??
                                 replyingToUser.email,
                           ),
                     style: textTheme.tiny.copyWith(
@@ -81,11 +82,7 @@ class ReplyPreviewWidget extends StatelessWidget {
             ),
             GestureDetector(
               onTap: onDismiss,
-              child: Icon(
-                Icons.close,
-                size: 18,
-                color: colorScheme.textMuted,
-              ),
+              child: Icon(Icons.close, size: 18, color: colorScheme.textMuted),
             ),
           ],
         ),

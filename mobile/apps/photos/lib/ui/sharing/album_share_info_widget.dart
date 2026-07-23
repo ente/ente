@@ -17,7 +17,7 @@ class AlbumSharesIcons extends StatelessWidget {
   const AlbumSharesIcons({
     super.key,
     required this.sharees,
-    this.type = AvatarType.sm,
+    this.type = AvatarType.xs,
     this.limitCountTo = 2,
     this.removeBorder = true,
     this.trailingWidget,
@@ -50,6 +50,7 @@ class AlbumSharesIcons extends StatelessWidget {
             sharees.length - displayCount,
             type: moreCountTypeFromAvatarType(type),
             thumbnailView: removeBorder,
+            backgroundColor: getUserAvatarColor(context, sharees[displayCount]),
           ),
         ),
       );
@@ -57,7 +58,8 @@ class AlbumSharesIcons extends StatelessWidget {
     if (trailingWidget != null) {
       widgets.add(
         Positioned(
-          left: (overlapPadding * (displayCount + (hasMore ? 1 : 0))) +
+          left:
+              (overlapPadding * (displayCount + (hasMore ? 1 : 0))) +
               (displayCount > 0 ? 12 : 0),
           child: trailingWidget!,
         ),
@@ -78,15 +80,17 @@ class AlbumSharesIcons extends StatelessWidget {
 double getOverlapPadding(AvatarType type) {
   switch (type) {
     case AvatarType.xs:
+      return 12.0;
+    case AvatarType.small:
       return 14.0;
-    case AvatarType.sm:
-      return 14.0;
-    case AvatarType.md:
-      return 20.0;
-    case AvatarType.lg:
+    case AvatarType.medium:
+      return 18.0;
+    case AvatarType.regular:
       return 24.0;
-    case AvatarType.xl:
-      return 28.0;
+    case AvatarType.large:
+      return 24.0;
+    case AvatarType.huge:
+      return 42.0;
   }
 }
 
@@ -94,13 +98,15 @@ MoreCountType moreCountTypeFromAvatarType(AvatarType type) {
   switch (type) {
     case AvatarType.xs:
       return MoreCountType.xs;
-    case AvatarType.sm:
-      return MoreCountType.sm;
-    case AvatarType.md:
-      return MoreCountType.md;
-    case AvatarType.lg:
-      return MoreCountType.lg;
-    case AvatarType.xl:
-      return MoreCountType.xl;
+    case AvatarType.small:
+      return MoreCountType.small;
+    case AvatarType.medium:
+      return MoreCountType.medium;
+    case AvatarType.regular:
+      return MoreCountType.regular;
+    case AvatarType.large:
+      return MoreCountType.large;
+    case AvatarType.huge:
+      return MoreCountType.huge;
   }
 }

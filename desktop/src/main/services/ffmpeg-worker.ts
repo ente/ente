@@ -112,7 +112,7 @@ const mainProcess = (method: string, param: unknown) =>
  *
  * So the alternative is to bundle a FFmpeg executable binary with our app. e.g.
  *
- *     yarn add fluent-ffmpeg ffmpeg-static ffprobe-static
+ *     npm install fluent-ffmpeg ffmpeg-static ffprobe-static
  *
  * (we only use ffmpeg-static, the rest are mentioned for completeness' sake).
  *
@@ -977,7 +977,12 @@ const uploadVideoSegmentsSingle = (
             // See: [Note: duplex param required for stream body]
             // @ts-expect-error ^see note above
             duplex: "half",
-            body: Readable.toWeb(fs_.createReadStream(videoFilePath)),
+            // The cast is needed because TS checks this against DOM fetch, but
+            // at runtime this utility process calls Node fetch.
+            // See: [Note: Node and web stream type mismatch].
+            body: Readable.toWeb(
+                fs_.createReadStream(videoFilePath),
+            ) as unknown as BodyInit,
         }),
     );
 
@@ -1052,11 +1057,14 @@ const uploadVideoSegmentsMultipart = async (
                 // See: [Note: duplex param required for stream body]
                 // @ts-expect-error ^see note above
                 duplex: "half",
+                // The cast is needed because TS checks this against DOM fetch,
+                // but at runtime this utility process calls Node fetch.
+                // See: [Note: Node and web stream type mismatch].
                 body: Readable.toWeb(
                     // start and end are inclusive 0-indexed range of bytes to
                     // read from the file.
                     fs_.createReadStream(videoFilePath, { start, end }),
-                ),
+                ) as unknown as BodyInit,
             }),
         );
         const eTag = res.headers.get("etag");

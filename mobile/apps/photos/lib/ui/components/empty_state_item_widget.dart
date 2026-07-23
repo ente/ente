@@ -14,18 +14,12 @@ class EmptyStateItemWidget extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          Icons.check_outlined,
-          size: 17,
-          color: colorScheme.strokeFaint,
-        ),
+        Icon(Icons.check_outlined, size: 17, color: colorScheme.strokeFaint),
         const SizedBox(width: 6),
         Flexible(
           child: Text(
             textContent,
-            style: textTheme.small.copyWith(
-              color: colorScheme.textFaint,
-            ),
+            style: textTheme.small.copyWith(color: colorScheme.textFaint),
           ),
         ),
       ],

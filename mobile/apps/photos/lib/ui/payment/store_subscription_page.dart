@@ -20,24 +20,24 @@ import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/common/loading_widget.dart';
 import 'package:photos/ui/common/progress_dialog.dart';
+import 'package:photos/ui/components/buttons/button_widget.dart';
 import 'package:photos/ui/components/buttons/button_widget_v2.dart';
+import 'package:photos/ui/components/dialog_widget.dart';
 import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
+import 'package:photos/ui/components/models/button_type.dart';
 import 'package:photos/ui/family/family_plan_page.dart';
 import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/payment/subscription_common_widgets.dart';
 import 'package:photos/ui/payment/subscription_plan_widget.dart';
 import "package:photos/ui/payment/view_add_on_widget.dart";
-import "package:photos/ui/tabs/home_widget.dart";
 import 'package:photos/utils/dialog_util.dart';
+import 'package:photos/utils/email_util.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class StoreSubscriptionPage extends StatefulWidget {
   final bool isOnboarding;
 
-  const StoreSubscriptionPage({
-    this.isOnboarding = false,
-    super.key,
-  });
+  const StoreSubscriptionPage({this.isOnboarding = false, super.key});
 
   @override
   State<StoreSubscriptionPage> createState() => _StoreSubscriptionPageState();
@@ -75,10 +75,17 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
   }
 
   void _setupPurchaseUpdateStreamListener() {
-    _purchaseUpdateSubscription =
-        InAppPurchase.instance.purchaseStream.listen((purchases) async {
+    _purchaseUpdateSubscription = InAppPurchase.instance.purchaseStream.listen((
+      purchases,
+    ) async {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       if (!_dialog.isShowing()) {
         await _dialog.show();
+      }
+      if (!mounted) {
+        await _dialog.hide();
+        return;
       }
       for (final purchase in purchases) {
         _logger.info("Purchase status " + purchase.status.toString());
@@ -89,51 +96,81 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
               purchase.verificationData.serverVerificationData,
             );
             await InAppPurchase.instance.completePurchase(purchase);
-            String text = AppLocalizations.of(context).thankYouForSubscribing;
-            if (!widget.isOnboarding) {
-              final isUpgrade = _hasActiveSubscription &&
-                  newSubscription.storage > _currentSubscription!.storage;
-              final isDowngrade = _hasActiveSubscription &&
-                  newSubscription.storage < _currentSubscription!.storage;
-              if (isUpgrade) {
-                text = AppLocalizations.of(context)
-                    .yourPlanWasSuccessfullyUpgraded;
-              } else if (isDowngrade) {
-                text = AppLocalizations.of(context)
-                    .yourPlanWasSuccessfullyDowngraded;
-              }
-            }
-            showShortToast(context, text);
+            final wasActiveSubscription = _hasActiveSubscription;
+            final previousSubscription = _currentSubscription;
             _currentSubscription = newSubscription;
             _hasActiveSubscription = _currentSubscription!.isValid();
-            setState(() {});
-            await _dialog.hide();
             Bus.instance.fire(SubscriptionPurchasedEvent());
-            if (widget.isOnboarding) {
+            if (mounted) {
+              String text = l10n.thankYouForSubscribing;
+              if (!widget.isOnboarding && previousSubscription != null) {
+                final isUpgrade =
+                    wasActiveSubscription &&
+                    newSubscription.storage > previousSubscription.storage;
+                final isDowngrade =
+                    wasActiveSubscription &&
+                    newSubscription.storage < previousSubscription.storage;
+                if (isUpgrade) {
+                  text = l10n.yourPlanWasSuccessfullyUpgraded;
+                } else if (isDowngrade) {
+                  text = l10n.yourPlanWasSuccessfullyDowngraded;
+                }
+              }
+              showShortToast(context, text);
+              setState(() {});
+              await _dialog.hide();
+            }
+            if (mounted && widget.isOnboarding) {
               Navigator.of(context).popUntil((route) => route.isFirst);
             }
           } on SubscriptionAlreadyClaimedError catch (e) {
             _logger.warning("subscription is already claimed ", e);
             await _dialog.hide();
+            if (!mounted) return;
             final String title = Platform.isAndroid
-                ? AppLocalizations.of(context).playstoreSubscription
-                : AppLocalizations.of(context).appstoreSubscription;
+                ? l10n.playstoreSubscription
+                : l10n.appstoreSubscription;
             final String id = Platform.isAndroid
-                ? AppLocalizations.of(context).googlePlayId
-                : AppLocalizations.of(context).appleId;
-            final String message =
-                AppLocalizations.of(context).subAlreadyLinkedErrMessage(id: id);
-            // ignore: unawaited_futures
-            showErrorDialog(context, title, message);
+                ? l10n.googlePlayId
+                : l10n.appleId;
+            final String message = l10n.subAlreadyLinkedErrMessage(id: id);
+            await showDialogWidget(
+              context: context,
+              title: title,
+              body: message,
+              buttons: [
+                ButtonWidget(
+                  buttonType: ButtonType.primary,
+                  labelText: l10n.contactSupport,
+                  buttonAction: ButtonAction.first,
+                  isInAlert: true,
+                  onTap: () async {
+                    await sendLogs(
+                      context,
+                      l10n.contactSupport,
+                      "support@ente.com",
+                      postShare: () {},
+                    );
+                  },
+                ),
+                ButtonWidget(
+                  buttonType: ButtonType.secondary,
+                  labelText: l10n.cancel,
+                  buttonAction: ButtonAction.cancel,
+                  isInAlert: true,
+                ),
+              ],
+            );
             return;
           } catch (e) {
             _logger.warning("Could not complete payment ", e);
             await _dialog.hide();
+            if (!mounted) return;
             // ignore: unawaited_futures
             showErrorDialog(
               context,
-              AppLocalizations.of(context).paymentFailed,
-              AppLocalizations.of(context).paymentFailedTalkToProvider(
+              l10n.paymentFailed,
+              l10n.paymentFailedTalkToProvider(
                 providerName: Platform.isAndroid ? "PlayStore" : "AppStore",
               ),
             );
@@ -191,9 +228,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: _getBody()),
-        ],
+        children: [Expanded(child: _getBody())],
       ),
       bottomNavigationBar: widget.isOnboarding && _hasLoadedData
           ? Container(
@@ -228,8 +263,9 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
 
   Future<void> _fetchSubData() async {
     try {
-      final userDetails =
-          await _userService.getUserDetailsV2(memoryCount: false);
+      final userDetails = await _userService.getUserDetailsV2(
+        memoryCount: false,
+      );
       _userDetails = userDetails;
       _currentSubscription = userDetails.subscription;
 
@@ -253,13 +289,13 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
       final billingPlans = await _billingService.getBillingPlans();
       _isActiveStripeSubscriber =
           _currentSubscription!.paymentProvider == stripe &&
-              _currentSubscription!.isValid();
+          _currentSubscription!.isValid();
       _plans = billingPlans.plans.where((plan) {
         final productID = _isActiveStripeSubscriber
             ? plan.stripeID
             : Platform.isAndroid
-                ? plan.androidID
-                : plan.iosID;
+            ? plan.androidID
+            : plan.iosID;
         return plan.id != freeProductID && productID.isNotEmpty;
       }).toList();
       hasYearlyPlans = _plans.any((plan) => plan.period == 'year');
@@ -331,12 +367,12 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
             child: Text(
-              AppLocalizations.of(context).visitWebToManage(
-                webUrl: kPhotosWebDomain,
-              ),
-              style: getEnteTextTheme(context).small.copyWith(
-                    color: colorScheme.textMuted,
-                  ),
+              AppLocalizations.of(
+                context,
+              ).visitWebToManage(webUrl: kPhotosWebDomain),
+              style: getEnteTextTheme(
+                context,
+              ).small.copyWith(color: colorScheme.textMuted),
             ),
           ),
         );
@@ -361,9 +397,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
       }
     }
 
-    widgets.add(
-      SubFaqWidget(isOnboarding: widget.isOnboarding),
-    );
+    widgets.add(SubFaqWidget(isOnboarding: widget.isOnboarding));
 
     if (!widget.isOnboarding) {
       widgets.add(
@@ -382,18 +416,21 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
             onTap: () async {
               late final UserDetails userDetails;
               try {
-                userDetails =
-                    await _userService.getUserDetailsV2(memoryCount: false);
+                userDetails = await _userService.getUserDetailsV2(
+                  memoryCount: false,
+                );
               } catch (error) {
                 if (!context.mounted) {
                   return;
                 }
+                if (!mounted) return;
                 await showGenericErrorDialog(context: context, error: error);
                 return;
               }
               if (!context.mounted) {
                 return;
               }
+              if (!mounted) return;
               await _billingService.launchFamilyPortal(
                 context,
                 userDetails,
@@ -431,9 +468,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
       showErrorDialog(
         context,
         AppLocalizations.of(context).sorry,
-        AppLocalizations.of(context).visitWebToManage(
-          webUrl: kPhotosWebDomain,
-        ),
+        AppLocalizations.of(context).visitWebToManage(webUrl: kPhotosWebDomain),
       );
     } else {
       final String capitalizedWord = paymentProvider.isNotEmpty
@@ -442,8 +477,9 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
       showErrorDialog(
         context,
         AppLocalizations.of(context).sorry,
-        AppLocalizations.of(context)
-            .contactToManageSubscription(provider: capitalizedWord),
+        AppLocalizations.of(
+          context,
+        ).contactToManageSubscription(provider: capitalizedWord),
       );
     }
   }
@@ -455,8 +491,8 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
       final productID = _isActiveStripeSubscriber
           ? plan.stripeID
           : Platform.isAndroid
-              ? plan.androidID
-              : plan.iosID;
+          ? plan.androidID
+          : plan.iosID;
       return plan.id != freeProductID && productID.isNotEmpty;
     }).toList();
     hasYearlyPlans = _plans.any((plan) => plan.period == 'year');
@@ -476,7 +512,8 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
       if (productID.isEmpty) {
         continue;
       }
-      final isActive = _hasActiveSubscription &&
+      final isActive =
+          _hasActiveSubscription &&
           _currentSubscription!.productID == productID;
       planWidgets.add(
         GestureDetector(
@@ -494,9 +531,9 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
             showErrorDialog(
               context,
               AppLocalizations.of(context).sorry,
-              AppLocalizations.of(context).visitWebToManage(
-                webUrl: kPhotosWebDomain,
-              ),
+              AppLocalizations.of(
+                context,
+              ).visitWebToManage(webUrl: kPhotosWebDomain),
             );
           },
           child: SubscriptionPlanWidget(
@@ -542,7 +579,8 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
     }
     for (final plan in _plans) {
       final productID = Platform.isAndroid ? plan.androidID : plan.iosID;
-      final isActive = _hasActiveSubscription &&
+      final isActive =
+          _hasActiveSubscription &&
           _currentSubscription!.productID == productID;
       planWidgets.add(
         GestureDetector(
@@ -575,31 +613,35 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
               return;
             }
             await _dialog.show();
-            final ProductDetailsResponse response =
-                await InAppPurchase.instance.queryProductDetails({productID});
+            final ProductDetailsResponse response = await InAppPurchase.instance
+                .queryProductDetails({productID});
             if (response.notFoundIDs.isNotEmpty) {
               final errMsg =
                   "Could not find products: " + response.notFoundIDs.toString();
               _logger.severe(errMsg);
               await _dialog.hide();
+              if (!mounted) return;
               await showGenericErrorDialog(
                 context: context,
                 error: Exception(errMsg),
               );
               return;
             }
-            final isCrossGradingOnAndroid = Platform.isAndroid &&
+            final isCrossGradingOnAndroid =
+                Platform.isAndroid &&
                 _hasActiveSubscription &&
                 _currentSubscription!.productID != freeProductID &&
                 _currentSubscription!.productID != plan.androidID;
             if (isCrossGradingOnAndroid) {
               await _dialog.hide();
+              if (!mounted) return;
               // ignore: unawaited_futures
               showErrorDialog(
                 context,
                 AppLocalizations.of(context).couldNotUpdateSubscription,
-                AppLocalizations.of(context)
-                    .pleaseContactSupportAndWeWillBeHappyToHelp,
+                AppLocalizations.of(
+                  context,
+                ).pleaseContactSupportAndWeWillBeHappyToHelp,
               );
               return;
             } else {
@@ -634,16 +676,18 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
     return _isActiveStripeSubscriber
         ? plan.stripeID
         : Platform.isAndroid
-            ? plan.androidID
-            : plan.iosID;
+        ? plan.androidID
+        : plan.iosID;
   }
 
   void _syncOnboardingSelection() {
     if (!widget.isOnboarding) {
       return;
     }
-    final visibleProductIDs =
-        _plans.map(_getPlanProductID).where((id) => id.isNotEmpty).toSet();
+    final visibleProductIDs = _plans
+        .map(_getPlanProductID)
+        .where((id) => id.isNotEmpty)
+        .toSet();
     final hasFreeOptionVisible = _shouldShowFreePlanCard();
 
     if (_selectedProductID == freeProductID && hasFreeOptionVisible) {
@@ -657,8 +701,9 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
       _selectedProductID = freeProductID;
       return;
     }
-    _selectedProductID =
-        visibleProductIDs.isNotEmpty ? visibleProductIDs.first : null;
+    _selectedProductID = visibleProductIDs.isNotEmpty
+        ? visibleProductIDs.first
+        : null;
   }
 
   Future<void> _onOnboardingContinueTap() async {
@@ -668,16 +713,8 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
     }
 
     if (selectedProductID == freeProductID) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
       Bus.instance.fire(SubscriptionPurchasedEvent());
-      // ignore: unawaited_futures
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return const HomeWidget();
-          },
-        ),
-        (route) => false,
-      );
       unawaited(
         _billingService.verifySubscription(
           freeProductID,
@@ -699,14 +736,13 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
       await showErrorDialog(
         context,
         AppLocalizations.of(context).sorry,
-        AppLocalizations.of(context).visitWebToManage(
-          webUrl: kPhotosWebDomain,
-        ),
+        AppLocalizations.of(context).visitWebToManage(webUrl: kPhotosWebDomain),
       );
       return;
     }
 
-    final isActive = _hasActiveSubscription &&
+    final isActive =
+        _hasActiveSubscription &&
         _currentSubscription!.productID == selectedProductID;
     if (isActive) {
       return;
@@ -730,25 +766,25 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
     }
 
     await _dialog.show();
-    final ProductDetailsResponse response =
-        await InAppPurchase.instance.queryProductDetails({selectedProductID});
+    final ProductDetailsResponse response = await InAppPurchase.instance
+        .queryProductDetails({selectedProductID});
     if (response.notFoundIDs.isNotEmpty) {
       final errMsg =
           "Could not find products: " + response.notFoundIDs.toString();
       _logger.severe(errMsg);
       await _dialog.hide();
-      await showGenericErrorDialog(
-        context: context,
-        error: Exception(errMsg),
-      );
+      if (!mounted) return;
+      await showGenericErrorDialog(context: context, error: Exception(errMsg));
       return;
     }
-    final isCrossGradingOnAndroid = Platform.isAndroid &&
+    final isCrossGradingOnAndroid =
+        Platform.isAndroid &&
         _hasActiveSubscription &&
         _currentSubscription!.productID != freeProductID &&
         _currentSubscription!.productID != selectedPlan.androidID;
     if (isCrossGradingOnAndroid) {
       await _dialog.hide();
+      if (!mounted) return;
       await showErrorDialog(
         context,
         AppLocalizations.of(context).couldNotUpdateSubscription,
@@ -758,9 +794,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
     }
 
     await InAppPurchase.instance.buyNonConsumable(
-      purchaseParam: PurchaseParam(
-        productDetails: response.productDetails[0],
-      ),
+      purchaseParam: PurchaseParam(productDetails: response.productDetails[0]),
     );
   }
 }

@@ -1,10 +1,14 @@
-//! Crypto error types.
+//! The error type shared by the crypto module.
 
 use thiserror::Error;
 
-/// Errors that can occur during cryptographic operations.
+/// An error from a cryptographic operation.
+///
+/// Each variant is returned by the operations documented to produce it.
+/// [`code`](Self::code) maps a variant to a stable string identifier that
+/// bindings forward to non-Rust callers.
 #[derive(Error, Debug)]
-pub enum CryptoError {
+pub enum Error {
     /// Base64 decoding failed.
     #[error("Base64 decode error: {0}")]
     Base64Decode(#[from] base64::DecodeError),
@@ -102,10 +106,6 @@ pub enum CryptoError {
     #[error("Invalid public key")]
     InvalidPublicKey,
 
-    /// Hash computation failed.
-    #[error("Hash computation failed")]
-    HashFailed,
-
     /// JSON serialization or deserialization failed.
     #[error("JSON error: {0}")]
     Json(String),
@@ -127,11 +127,43 @@ pub enum CryptoError {
     Io(#[from] std::io::Error),
 }
 
-/// Result type for crypto operations.
-pub type Result<T> = std::result::Result<T, CryptoError>;
+impl Error {
+    /// A stable, machine-readable identifier for this error, suitable for
+    /// programmatic matching (e.g. `"invalid_key_length"`).
+    pub fn code(&self) -> &'static str {
+        match self {
+            Error::Base64Decode(_) => "base64_decode",
+            Error::HexDecode(_) => "hex_decode",
+            Error::InvalidKeyLength { .. } => "invalid_key_length",
+            Error::InvalidNonceLength { .. } => "invalid_nonce_length",
+            Error::InvalidSaltLength { .. } => "invalid_salt_length",
+            Error::InvalidHeaderLength { .. } => "invalid_header_length",
+            Error::CiphertextTooShort { .. } => "ciphertext_too_short",
+            Error::InvalidKeyDerivationParams(_) => "invalid_kdf_params",
+            Error::KeyDerivationFailed => "key_derivation_failed",
+            Error::EncryptionFailed => "encryption_failed",
+            Error::DecryptionFailed => "decryption_failed",
+            Error::StreamInitFailed => "stream_init_failed",
+            Error::StreamPushFailed => "stream_push_failed",
+            Error::StreamPullFailed => "stream_pull_failed",
+            Error::StreamTruncated => "stream_truncated",
+            Error::StreamTrailingData => "stream_trailing_data",
+            Error::SealedBoxOpenFailed => "sealed_box_open_failed",
+            Error::InvalidPublicKey => "invalid_public_key",
+            Error::Json(_) => "json",
+            Error::Argon2(_) => "argon2",
+            Error::Aead => "aead",
+            Error::ArrayConversion => "array_conversion",
+            Error::Io(_) => "io",
+        }
+    }
+}
 
-impl From<std::array::TryFromSliceError> for CryptoError {
+/// Result type for crypto operations.
+pub type Result<T> = std::result::Result<T, Error>;
+
+impl From<std::array::TryFromSliceError> for Error {
     fn from(_: std::array::TryFromSliceError) -> Self {
-        CryptoError::ArrayConversion
+        Error::ArrayConversion
     }
 }

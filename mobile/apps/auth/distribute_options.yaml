@@ -19,7 +19,3 @@ releases:
         package:
           platform: windows
           target: exe
-      - name: release-dev-macos-dmg
-        package:
-          platform: macos
-          target: dmg

@@ -1,3 +1,4 @@
+import { WatchFolder } from "@/components/WatchFolder";
 import {
     Delete02Icon,
     Download05Icon,
@@ -24,7 +25,6 @@ import {
     useColorScheme,
 } from "@mui/material";
 import Typography from "@mui/material/Typography";
-import { WatchFolder } from "components/WatchFolder";
 import { RecoveryKey } from "ente-accounts/components/RecoveryKey";
 import { openAccountsManagePasskeysPage } from "ente-accounts/services/passkey";
 import { isDesktop } from "ente-base/app";
@@ -94,13 +94,9 @@ import {
 } from "ente-new/photos/services/collection-summary";
 import exportService from "ente-new/photos/services/export";
 import { isMLSupported } from "ente-new/photos/services/ml";
-import {
-    performSidebarAction as performSidebarRegistryAction,
-    type SidebarActionContext,
-} from "ente-new/photos/services/search/sidebar-search-registry";
+import { performSidebarAction as performSidebarRegistryAction } from "ente-new/photos/services/search/sidebar-search-registry";
 import type { SidebarActionID } from "ente-new/photos/services/search/types";
 import {
-    isDevBuildAndUser,
     pullSettings,
     updateCFProxyDisabledPreference,
     updateCustomDomain,
@@ -139,7 +135,6 @@ import React, {
     type MouseEventHandler,
 } from "react";
 import { Trans } from "react-i18next";
-import { testUpload } from "../../tests/upload.test";
 import { SubscriptionCard } from "./SubscriptionCard";
 
 type SidebarProps = ModalVisibilityProps & {
@@ -236,7 +231,6 @@ type HelpAction = Extract<
     | "help.requestFeature"
     | "help.support"
     | "help.viewLogs"
-    | "help.testUpload"
 >;
 
 type FreeUpSpaceAction = Extract<
@@ -353,7 +347,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     setPendingFreeUpSpaceAction(
                         a as FreeUpSpaceAction | undefined,
                     ),
-            } as SidebarActionContext),
+            }),
         [
             handleLogout,
             handleOpenWatchFolder,
@@ -1426,7 +1420,9 @@ const localeName = (locale: SupportedLocale) => {
         case "ca-ES":
             return "Català";
         case "zh-CN":
-            return "中文";
+            return "简体中文";
+        case "zh-TW":
+            return "繁體中文";
         case "nl-NL":
             return "Nederlands";
         case "es-ES":
@@ -1445,6 +1441,8 @@ const localeName = (locale: SupportedLocale) => {
             return "Lietuvių kalba";
         case "uk-UA":
             return "Українська";
+        case "ur-IN":
+            return "اردو";
         case "vi-VN":
             return "Tiếng Việt";
         case "ja-JP":
@@ -1779,7 +1777,7 @@ const Help: React.FC<HelpProps> = ({
     const handleBlog = useCallback(() => openURL("https://ente.com/blog/"), []);
 
     const handleRequestFeature = useCallback(
-        () => openURL("https://github.com/ente-io/ente/discussions"),
+        () => openURL("https://github.com/ente/ente/discussions"),
         [],
     );
 
@@ -1825,11 +1823,6 @@ const Help: React.FC<HelpProps> = ({
                 break;
             case "help.viewLogs":
                 confirmViewLogs();
-                break;
-            case "help.testUpload":
-                if (isDevBuildAndUser()) {
-                    void testUpload();
-                }
                 break;
         }
         onActionHandled?.();
@@ -1891,17 +1884,6 @@ const Help: React.FC<HelpProps> = ({
                         onClick={confirmViewLogs}
                     />
                 </RowButtonGroup>
-                {isDevBuildAndUser() && (
-                    <RowButton
-                        variant="secondary"
-                        label={
-                            <Typography variant="mini" color="text.muted">
-                                {ut("Test upload")}
-                            </Typography>
-                        }
-                        onClick={testUpload}
-                    />
-                )}
             </Stack>
         </TitledNestedSidebarDrawer>
     );

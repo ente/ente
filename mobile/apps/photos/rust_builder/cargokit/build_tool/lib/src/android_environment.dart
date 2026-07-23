@@ -119,8 +119,8 @@ class AndroidEnvironment {
     final cxxFlagsKey = 'CXXFLAGS_${target.rust}';
     final cxxFlagsValue = targetArg;
 
-    final linkerKey =
-        'cargo_target_${target.rust.replaceAll('-', '_')}_linker'.toUpperCase();
+    final linkerKey = 'cargo_target_${target.rust.replaceAll('-', '_')}_linker'
+        .toUpperCase();
 
     final ranlibKey = 'RANLIB_${target.rust}';
     final ranlibValue = path.join(toolchainPath, 'llvm-ranlib$exe');
@@ -129,13 +129,13 @@ class AndroidEnvironment {
     final rustFlagsKey = 'CARGO_ENCODED_RUSTFLAGS';
     final rustFlagsValue = _libGccWorkaround(targetTempDir, ndkVersionParsed);
 
-    final runRustTool =
-        Platform.isWindows ? 'run_build_tool.cmd' : 'run_build_tool.sh';
+    final runRustTool = Platform.isWindows
+        ? 'run_build_tool.cmd'
+        : 'run_build_tool.sh';
 
     final packagePath = (await Isolate.resolvePackageUri(
       Uri.parse('package:build_tool/buildtool.dart'),
-    ))!
-        .toFilePath();
+    ))!.toFilePath();
     final selfPath = Uri.file(
       path.join(packagePath, '..', '..', '..', runRustTool),
     ).normalizePath().toFilePath(windows: Platform.isWindows);

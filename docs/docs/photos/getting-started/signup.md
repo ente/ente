@@ -11,7 +11,9 @@ When you open the installed Ente Photos app on any of your devices, the first sc
 
 If you're creating a new account, select "New to Ente".
 
-> **Note**: If you already have an Ente Auth account and plan to use 2FA for Ente Photos (stored in Ente Auth), we recommend keeping separate accounts for Auth and Photos for security. Otherwise, you can use the same account for both.
+> [!NOTE]
+>
+> If you already have an Ente Auth account and plan to use 2FA for Ente Photos (stored in Ente Auth), we recommend keeping separate accounts for Auth and Photos for security. Otherwise, you can use the same account for both.
 
 Creating a new account on Ente takes a few steps:
 

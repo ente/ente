@@ -25,6 +25,16 @@ func TestCreatePasteRequestValidate_Valid(t *testing.T) {
 	}
 }
 
+func TestCreatePasteRequestValidate_ValidModerateKdfParams(t *testing.T) {
+	req := newValidPasteRequest()
+	req.KdfMemLimit = pasteKdfMemLimitModerate
+	req.KdfOpsLimit = pasteKdfOpsLimitModerate
+
+	if err := req.Validate(1024); err != nil {
+		t.Fatalf("expected valid request, got error: %v", err)
+	}
+}
+
 func TestCreatePasteRequestValidate_RejectsOversizedEncryptedPayload(t *testing.T) {
 	req := newValidPasteRequest()
 	req.EncryptedData = strings.Repeat("a", 1025)

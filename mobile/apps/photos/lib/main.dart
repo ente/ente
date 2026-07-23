@@ -3,12 +3,18 @@ import 'dart:io';
 
 import "package:adaptive_theme/adaptive_theme.dart";
 import "package:computer/computer.dart";
+import "package:ente_account_deletion/account_deletion.dart";
 import "package:ente_components/ente_components.dart" as components;
 import 'package:ente_crypto/ente_crypto.dart';
+import "package:ente_crypto_api/ente_crypto_api.dart" show registerCryptoApi;
+import "package:ente_lock_screen/lock_screen_settings.dart";
+import "package:ente_lock_screen/ui/app_lock.dart";
+import "package:ente_lock_screen/ui/lock_screen.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_rust/ente_rust.dart";
+import "package:ente_strings/l10n/strings_localizations.dart";
+import "package:ente_ui/theme/theme_config.dart" as ente_ui;
 import "package:ffmpeg_kit_flutter/ffmpeg_kit_config.dart";
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import "package:flutter/gestures.dart";
 import 'package:flutter/material.dart';
@@ -30,14 +36,16 @@ import 'package:photos/core/network/network.dart';
 import 'package:photos/db/files_db.dart';
 import "package:photos/db/ml/db.dart";
 import 'package:photos/ente_theme_data.dart';
+import "package:photos/generated/l10n.dart";
 import "package:photos/l10n/l10n.dart";
+import 'package:photos/module/upload/service/file_uploader.dart';
+import 'package:photos/module/upload/service/local_file_update_service.dart';
 import "package:photos/service_locator.dart";
 import "package:photos/services/account/user_service.dart";
 import 'package:photos/services/app_lifecycle_service.dart';
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/favorites_service.dart';
 import 'package:photos/services/home_widget_service.dart';
-import 'package:photos/services/local_file_update_service.dart';
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import 'package:photos/services/machine_learning/ml_service.dart';
 import 'package:photos/services/machine_learning/semantic_search/semantic_search_service.dart';
@@ -52,15 +60,11 @@ import 'package:photos/services/sync/local_sync_service.dart';
 import 'package:photos/services/sync/remote_sync_service.dart';
 import "package:photos/services/sync/sync_service.dart";
 import "package:photos/services/video_preview_service.dart";
-import "package:photos/services/wake_lock_service.dart";
 import "package:photos/src/rust/frb_generated.dart";
-import 'package:photos/ui/tools/app_lock.dart';
-import 'package:photos/ui/tools/lock_screen.dart';
 import "package:photos/utils/device_info.dart";
 import "package:photos/utils/email_util.dart";
-import 'package:photos/utils/file_uploader.dart';
 import "package:photos/utils/intent_util.dart";
-import "package:photos/utils/lock_screen_settings.dart";
+import "package:photos/utils/photos_crypto_api_adapter.dart";
 import 'package:rive/rive.dart' as rive;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -76,17 +80,16 @@ const kBGPushTimeout = Duration(seconds: 28);
 const kFGTaskDeathTimeoutInMicroseconds = 5000000;
 bool isProcessBg = true;
 bool _stopHearBeat = false;
+bool _isSyncInitialized = false;
 bool _isRustInitialized = false;
 Future<void>? _rustInitFuture;
 
-enum ForegroundStartupMode {
-  normal,
-  picker,
-}
+enum ForegroundStartupMode { normal, picker }
 
 void main() async {
   debugRepaintRainbowEnabled = false;
   WidgetsFlutterBinding.ensureInitialized();
+  ente_ui.AppThemeConfig.initialize(ente_ui.EnteApp.photos);
   await initIsIPad();
   if (isIPad) {
     // Workaround for https://github.com/flutter/flutter/issues/177992
@@ -148,10 +151,23 @@ Future<void> _runInForeground(
           savedThemeMode,
           initialMediaExtensionAction: initialMediaExtensionAction,
         ),
-        lockScreen: const LockScreen(),
-        enabled: await Configuration.instance.shouldShowLockScreen() ||
+        lockScreen: LockScreen(
+          Configuration.instance,
+          authReasonBuilder: (context) =>
+              AppLocalizations.of(context).authToViewYourMemories,
+          onLogout: (context) => UserService.instance.logout(context),
+        ),
+        enabled:
+            await LockScreenSettings.instance.shouldShowLockScreen() ||
             localSettings.isOnGuestView(),
+        onUnlock: () => unawaited(localSettings.setOnGuestView(false)),
         locale: locale,
+        supportedLocales: appSupportedLocales,
+        localizationsDelegates: const [
+          StringsLocalizations.delegate,
+          ...AppLocalizations.localizationsDelegates,
+        ],
+        localeListResolutionCallback: localResolutionCallBack,
         lightTheme: lightThemeData,
         darkTheme: darkThemeData,
         savedThemeMode: _themeMode(savedThemeMode),
@@ -192,6 +208,12 @@ Future<void> _warmForegroundDeferredServices() async {
   } catch (e, s) {
     _logger.warning("Deferred MemoryLaneService warm failed", e, s);
   }
+  unawaited(
+    Future.delayed(
+      const Duration(seconds: 5),
+      installSourceService.autoAttributePendingSource,
+    ),
+  );
 }
 
 ThemeMode _themeMode(AdaptiveThemeMode? savedThemeMode) {
@@ -254,12 +276,13 @@ Future<void> _runMinimally(String taskId, TimeLogger tlog) async {
       prefs,
       NetworkClient.instance.enteDio,
       NetworkClient.instance.getDio(),
+      NetworkClient.instance.downloadDio,
       packageInfo,
     );
     NotificationService.instance.init(prefs);
 
     _logger.info("(for debugging) Configuration init $tlog");
-    await Configuration.instance.init();
+    await Configuration.instance.init(prefs);
     _logger.info("(for debugging) Configuration done $tlog");
 
     // App LifeCycle
@@ -287,6 +310,7 @@ Future<void> _runMinimally(String taskId, TimeLogger tlog) async {
     await LocalSyncService.instance.init(prefs);
     RemoteSyncService.instance.init(prefs);
     await SyncService.instance.init(prefs);
+    _isSyncInitialized = true;
 
     // Misc Services
     await UserService.instance.init();
@@ -310,8 +334,9 @@ Future<void> _runMinimally(String taskId, TimeLogger tlog) async {
         hasGrantedMLConsent &&
         localSettings.isMLLocalIndexingEnabled) {
       PersonService.init(entityService, MLDataDB.instance, prefs);
-      _logger
-          .info("[BG TASK] person service initialized for memories recompute");
+      _logger.info(
+        "[BG TASK] person service initialized for memories recompute",
+      );
     }
     await _homeWidgetSync(true);
 
@@ -398,15 +423,28 @@ Future<void> _init(
       preferences,
       NetworkClient.instance.enteDio,
       NetworkClient.instance.getDio(),
+      NetworkClient.instance.downloadDio,
       packageInfo,
     );
-
-    _logger.info("Lockscreen init $tlog");
-    unawaited(LockScreenSettings.instance.init(preferences));
+    wakeLockService.init(isBackground: isBackground);
 
     _logger.info("Configuration init $tlog");
-    await Configuration.instance.init();
+    await Configuration.instance.init(preferences);
     _logger.info("Configuration done $tlog");
+
+    _logger.info("Lockscreen init $tlog");
+    registerCryptoApi(const PhotosCryptoApiAdapter());
+    await LockScreenSettings.instance.init(
+      Configuration.instance,
+      useLegacyHashFallback: true,
+      hasOptedForOfflineMode: isLocalGalleryMode,
+      appLogoAsset: 'assets/ente-branding.svg',
+      appLogoHeight: 18,
+    );
+    AccountDeletionSettings.instance.init(
+      host: Configuration.instance,
+      enteDio: NetworkClient.instance.enteDio,
+    );
 
     await MemoryShareService.instance.init();
 
@@ -451,6 +489,7 @@ Future<void> _init(
 
     _logger.info("SyncService init $tlog");
     await SyncService.instance.init(preferences);
+    _isSyncInitialized = true;
     _logger.info("SyncService init done $tlog");
 
     if (!isBackground && flagService.internalUser) {
@@ -468,20 +507,22 @@ Future<void> _init(
     }
 
     if (Platform.isIOS) {
-      PushService.instance.init().then((_) {
-        FirebaseMessaging.onBackgroundMessage(
-          _firebaseMessagingBackgroundHandler,
-        );
-      }).ignore();
+      PushService.instance
+          .init(onBackgroundPush: _handleBackgroundPush)
+          .ignore();
     }
     _logger.info("PushService/HomeWidget done $tlog");
     unawaited(MLService.instance.init());
     PersonService.init(entityService, MLDataDB.instance, preferences);
-    await PersonService.instance.refreshPersonCache();
-    if (!isBackground && flagService.enableContact) {
+    try {
+      await PersonService.instance.refreshPersonCache();
+    } catch (e, s) {
+      PersonService.instance.clearCache();
+      _logger.severe("Person cache warm-up failed", e, s);
+    }
+    if (!isBackground) {
       unawaited(_warmContactsCacheInBackground());
     }
-    EnteWakeLockService.instance.init(preferences);
     wrappedService.scheduleInitialLoad();
     logLocalSettings();
     initComplete = true;
@@ -533,8 +574,9 @@ void logLocalSettings() {
         VideoPreviewService.instance.isVideoStreamingEnabled,
   };
 
-  final formattedSettings =
-      settings.entries.map((e) => '${e.key}: ${e.value}').join(', ');
+  final formattedSettings = settings.entries
+      .map((e) => '${e.key}: ${e.value}')
+      .join(', ');
   _logger.info('Local settings - $formattedSettings');
 }
 
@@ -625,7 +667,7 @@ Future<bool> _isRunningInForeground() async {
       (currentTime - kFGTaskDeathTimeoutInMicroseconds);
 }
 
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+Future<void> _handleBackgroundPush(Object message) async {
   final bool isRunningInFG = await _isRunningInForeground(); // hb
   final bool isInForeground = AppLifecycleService.instance.isForeground;
   if (isRunningInFG) {
@@ -639,24 +681,25 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     }
   } else {
     // App is dead or FG is not active
-    runWithLogs(
-      () async {
-        _logger.info("Background push received, no active foreground");
+    runWithLogs(() async {
+      _logger.info("Background push received, no active foreground");
 
-        // Mark BG as active before starting
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt(
-          kLastBGTaskHeartBeatTime,
-          DateTime.now().microsecondsSinceEpoch,
-        );
+      // Mark BG as active before starting
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+        kLastBGTaskHeartBeatTime,
+        DateTime.now().microsecondsSinceEpoch,
+      );
 
+      if (!_isSyncInitialized) {
         await _init(true, via: 'firebasePush');
-        if (PushService.shouldSync(message)) {
-          await _sync('firebaseBgSyncNoActiveProcess');
-        }
-      },
-      prefix: "[fbg]",
-    ).ignore();
+      } else {
+        _logger.info("Skipping background init; sync already initialized");
+      }
+      if (PushService.shouldSync(message)) {
+        await _sync('firebaseBgSyncNoActiveProcess');
+      }
+    }, prefix: "[fbg]").ignore();
   }
 }
 

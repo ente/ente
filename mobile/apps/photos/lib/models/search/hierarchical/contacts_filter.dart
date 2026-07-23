@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
@@ -39,7 +39,7 @@ class ContactsFilter extends HierarchicalSearchFilter {
   }
 
   @override
-  IconData? icon() {
-    return Icons.person_outlined;
+  SearchFilterIcon icon() {
+    return HugeIcons.strokeRoundedUser;
   }
 }

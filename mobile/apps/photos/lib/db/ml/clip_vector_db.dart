@@ -60,19 +60,13 @@ class ClipVectorDB {
     }
     late VectorDb vectorDB;
     try {
-      vectorDB = VectorDb(
-        filePath: dbPath,
-        dimensions: _embeddingDimension,
-      );
+      vectorDB = VectorDb(filePath: dbPath, dimensions: _embeddingDimension);
     } catch (e, s) {
       _logger.severe("Could not open VectorDB at path $dbPath", e, s);
       _logger.severe("Deleting the index file and trying again");
       await deleteIndexFile();
       try {
-        vectorDB = VectorDb(
-          filePath: dbPath,
-          dimensions: _embeddingDimension,
-        );
+        vectorDB = VectorDb(filePath: dbPath, dimensions: _embeddingDimension);
       } catch (e, s) {
         _logger.severe("Still can't open VectorDB at path $dbPath", e, s);
         rethrow;
@@ -162,10 +156,8 @@ class ClipVectorDB {
       final vectors = await db.bulkGetVectors(keys: keys);
       return List.generate(
         vectors.length,
-        (index) => EmbeddingVector(
-          fileID: fileIDs[index],
-          embedding: vectors[index],
-        ),
+        (index) =>
+            EmbeddingVector(fileID: fileIDs[index], embedding: vectors[index]),
       );
     } catch (e, s) {
       _logger.severe("Error getting embeddings", e, s);
@@ -180,8 +172,9 @@ class ClipVectorDB {
     try {
       BigInt deletedCount = BigInt.zero;
       await _runWriteOperation((db) async {
-        deletedCount =
-            await db.bulkRemoveVectors(keys: Uint64List.fromList(fileIDs));
+        deletedCount = await db.bulkRemoveVectors(
+          keys: Uint64List.fromList(fileIDs),
+        );
       });
       _logger.info(
         "Deleted $deletedCount embeddings, from ${fileIDs.length} keys",
@@ -248,8 +241,11 @@ class ClipVectorDB {
   }) async {
     final db = await _vectorDB;
     try {
-      final result =
-          await db.searchVectors(query: query, count: BigInt.one, exact: exact);
+      final result = await db.searchVectors(
+        query: query,
+        count: BigInt.one,
+        exact: exact,
+      );
       return (result.$1[0], result.$2[0]);
     } catch (e, s) {
       _logger.severe("Error searching closest vector", e, s);
@@ -382,8 +378,10 @@ class ClipVectorDB {
         final query = entry.key;
         final minimumSimilarity = minimumSimilarityMap[query]!;
         final textEmbedding = entry.value;
-        final (potentialFileIDs, distances) =
-            await searchClosestVectors(textEmbedding, resolvedMaxResults);
+        final (potentialFileIDs, distances) = await searchClosestVectors(
+          textEmbedding,
+          resolvedMaxResults,
+        );
         final queryResults = <QueryResult>[];
         for (var i = 0; i < potentialFileIDs.length; i++) {
           final similarity = 1 - distances[i];

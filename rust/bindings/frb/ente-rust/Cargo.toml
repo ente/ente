@@ -1,0 +1,18 @@
+[package]
+name = "ente_rust"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+flutter_rust_bridge = "=2.12.0"
+ente-contacts.workspace = true
+ente-core.workspace = true
+
+[features]
+default = []
+flutter = []
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }

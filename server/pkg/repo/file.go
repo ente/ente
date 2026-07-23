@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/s3config"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/s3config"
+	"github.com/ente/museum/pkg/utils/time"
 	"github.com/lib/pq"
 )
 
@@ -770,9 +770,8 @@ func (repo *FileRepository) GetDuplicateFiles(userID int64) ([]ente.DuplicateFil
 		if err != nil {
 			return result, stacktrace.Propagate(err, "")
 		}
-		fileIDStrs := strings.Split(res, ",")
 		fileIDs := make([]int64, 0)
-		for _, fileIDStr := range fileIDStrs {
+		for fileIDStr := range strings.SplitSeq(res, ",") {
 			fileID, err := strconv.ParseInt(fileIDStr, 10, 64)
 			if err != nil {
 				return result, stacktrace.Propagate(err, "")
@@ -780,26 +779,6 @@ func (repo *FileRepository) GetDuplicateFiles(userID int64) ([]ente.DuplicateFil
 			fileIDs = append(fileIDs, fileID)
 		}
 		result = append(result, ente.DuplicateFiles{FileIDs: fileIDs, Size: size})
-	}
-	return result, nil
-}
-
-func (repo *FileRepository) GetLargeThumbnailFiles(userID int64, threshold int64) ([]int64, error) {
-	rows, err := repo.DB.Query(`
-			SELECT file_id FROM object_keys WHERE o_type = 'thumbnail' AND is_deleted = false AND size >= $2 AND file_id = ANY(SELECT file_id FROM files WHERE owner_id = $1)`,
-		userID, threshold)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-	}
-	defer rows.Close()
-	result := make([]int64, 0)
-	for rows.Next() {
-		var fileID int64
-		err := rows.Scan(&fileID)
-		if err != nil {
-			return result, stacktrace.Propagate(err, "")
-		}
-		result = append(result, fileID)
 	}
 	return result, nil
 }

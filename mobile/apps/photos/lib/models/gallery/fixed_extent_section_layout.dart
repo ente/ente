@@ -18,9 +18,9 @@ class FixedExtentSectionLayout {
     required this.tileHeight,
     required this.spacing,
     required this.builder,
-  })  : bodyFirstIndex = firstIndex + 1,
-        bodyMinOffset = minOffset + headerExtent,
-        mainAxisStride = tileHeight + spacing;
+  }) : bodyFirstIndex = firstIndex + 1,
+       bodyMinOffset = minOffset + headerExtent,
+       mainAxisStride = tileHeight + spacing;
 
   bool hasChild(int index) => firstIndex <= index && index <= lastIndex;
 

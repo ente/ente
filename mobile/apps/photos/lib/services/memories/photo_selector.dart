@@ -209,9 +209,9 @@ class PhotoSelector {
       final creationTime = mem.file.creationTime!;
       final bucketIndex =
           ((creationTime - minCreationTime) * numBuckets ~/ totalRange).clamp(
-        0,
-        numBuckets - 1,
-      );
+            0,
+            numBuckets - 1,
+          );
       buckets[bucketIndex].add(mem);
     }
 
@@ -296,26 +296,26 @@ class PhotoSelector {
         )
         .whereType<int>()
         .toSet();
-    final remaining = sorted.where((mem) {
-      final fileID = memoryFileIdFromMemory(
-        mem,
-        isLocalGalleryMode: config.isLocalGalleryMode,
-      );
-      return fileID == null || !selectedFileIDs.contains(fileID);
-    }).toList()
-      ..sort((a, b) {
-        final aID = memoryFileIdFromMemory(
-          a,
-          isLocalGalleryMode: config.isLocalGalleryMode,
-        );
-        final bID = memoryFileIdFromMemory(
-          b,
-          isLocalGalleryMode: config.isLocalGalleryMode,
-        );
-        return (config.scores[bID] ?? 0.0).compareTo(
-          config.scores[aID] ?? 0.0,
-        );
-      });
+    final remaining =
+        sorted.where((mem) {
+          final fileID = memoryFileIdFromMemory(
+            mem,
+            isLocalGalleryMode: config.isLocalGalleryMode,
+          );
+          return fileID == null || !selectedFileIDs.contains(fileID);
+        }).toList()..sort((a, b) {
+          final aID = memoryFileIdFromMemory(
+            a,
+            isLocalGalleryMode: config.isLocalGalleryMode,
+          );
+          final bID = memoryFileIdFromMemory(
+            b,
+            isLocalGalleryMode: config.isLocalGalleryMode,
+          );
+          return (config.scores[bID] ?? 0.0).compareTo(
+            config.scores[aID] ?? 0.0,
+          );
+        });
 
     for (final candidate in remaining) {
       if (finalSelection.length >= config.targetSize) break;
@@ -398,8 +398,9 @@ class PhotoSelector {
             candidate,
             isLocalGalleryMode: config.isLocalGalleryMode,
           );
-          final clip =
-              candID == null ? null : config.fileIDToImageEmbedding[candID];
+          final clip = candID == null
+              ? null
+              : config.fileIDToImageEmbedding[candID];
           if (clip != null) {
             bool isDuplicate = false;
             for (final sel in selected) {
@@ -407,8 +408,9 @@ class PhotoSelector {
                 sel,
                 isLocalGalleryMode: config.isLocalGalleryMode,
               );
-              final selClip =
-                  selID == null ? null : config.fileIDToImageEmbedding[selID];
+              final selClip = selID == null
+                  ? null
+                  : config.fileIDToImageEmbedding[selID];
               if (selClip == null) continue;
               if (clip.vector.dot(selClip.vector) > clipSimilarImageThreshold) {
                 isDuplicate = true;
@@ -502,16 +504,18 @@ class PhotoSelector {
       mem,
       isLocalGalleryMode: config.isLocalGalleryMode,
     );
-    final clip =
-        memFileID == null ? null : config.fileIDToImageEmbedding[memFileID];
+    final clip = memFileID == null
+        ? null
+        : config.fileIDToImageEmbedding[memFileID];
     if (clip != null && (fileCount - skipped) > config.targetSize) {
       for (final selMem in selected) {
         final selID = memoryFileIdFromMemory(
           selMem,
           isLocalGalleryMode: config.isLocalGalleryMode,
         );
-        final selClip =
-            selID == null ? null : config.fileIDToImageEmbedding[selID];
+        final selClip = selID == null
+            ? null
+            : config.fileIDToImageEmbedding[selID];
         if (selClip == null) continue;
         if (clip.vector.dot(selClip.vector) > clipSimilarImageThreshold) {
           return false;
@@ -725,8 +729,9 @@ class PhotoSelector {
     required bool isLocalGalleryMode,
     SelectionDistribution? distributionOverride,
   }) {
-    final withCreationTime =
-        memories.where((m) => m.file.creationTime != null).toList();
+    final withCreationTime = memories
+        .where((m) => m.file.creationTime != null)
+        .toList();
     if (withCreationTime.length <= targetSize) return withCreationTime;
 
     final random = Random();
@@ -827,9 +832,9 @@ class PhotoSelector {
       final creationTime = mem.file.creationTime!;
       final bucketIndex =
           ((creationTime - minCreationTime) * numBuckets ~/ totalRange).clamp(
-        0,
-        numBuckets - 1,
-      );
+            0,
+            numBuckets - 1,
+          );
       buckets[bucketIndex].add(mem);
     }
 
@@ -952,7 +957,8 @@ class PhotoSelector {
         mem,
         isLocalGalleryMode: isLocalGalleryMode,
       );
-      final bool shouldSkip = fileID != null &&
+      final bool shouldSkip =
+          fileID != null &&
           isNearDuplicate(
             fileID,
             selectedFileIDs,

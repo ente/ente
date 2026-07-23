@@ -1,4 +1,4 @@
-name: "Sync Crowdin (mobile)"
+name: "Sync Crowdin (Mobile)"
 
 on:
     schedule:
@@ -55,11 +55,11 @@ jobs:
         steps:
             - name: Checkout
               if: ${{ github.event_name != 'workflow_dispatch' || inputs.app == 'all' || inputs.app == matrix.app }}
-              uses: actions/checkout@v6
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
             - name: Crowdin's action
               if: ${{ github.event_name != 'workflow_dispatch' || inputs.app == 'all' || inputs.app == matrix.app }}
-              uses: crowdin/github-action@v2
+              uses: crowdin/github-action@52aa776766211d83d975df51f3b9c53c2f8ba35f # v2.16.3
               with:
                   base_path: ${{ matrix.base_path }}
                   config: ${{ matrix.config }}

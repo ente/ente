@@ -1,11 +1,11 @@
+import { FilledCircleCheck } from "@/components/FilledCircleCheck";
+import { readCastData } from "@/services/cast-data";
+import { isChromecast } from "@/services/chromecast-receiver";
+import { imageURLGenerator } from "@/services/render";
 import { Stack, styled, Typography } from "@mui/material";
-import { FilledCircleCheck } from "components/FilledCircleCheck";
 import log from "ente-base/log";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
-import { readCastData } from "services/cast-data";
-import { isChromecast } from "services/chromecast-receiver";
-import { imageURLGenerator } from "services/render";
 
 const Page: React.FC = () => {
     const [isEmpty, setIsEmpty] = useState(false);

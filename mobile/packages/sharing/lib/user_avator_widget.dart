@@ -77,7 +77,7 @@ class _UserAvatarWidgetState extends State<UserAvatarWidget> {
     final double size = getAvatarSize(widget.type);
     return ValueListenableBuilder<int>(
       valueListenable: ContactsDisplayService.instance.changes,
-      builder: (context, __, ___) {
+      builder: (context, _, _) {
         _preloadProfilePictureIfPossible();
         return SizedBox(
           height: size,
@@ -106,11 +106,11 @@ class _CircularAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final profilePictureBytes =
-        ContactsDisplayService.instance.getCachedProfilePictureBytes(
-      contactUserId: user.id,
-      email: user.email,
-    );
+    final profilePictureBytes = ContactsDisplayService.instance
+        .getCachedProfilePictureBytes(
+          contactUserId: user.id,
+          email: user.email,
+        );
     final avatarStyle = _getAvatarStyle(context, type);
     final double size = avatarStyle.item1;
     if (profilePictureBytes != null) {
@@ -119,16 +119,18 @@ class _CircularAvatar extends StatelessWidget {
 
     final colorScheme = getEnteColorScheme(context);
     final displayLabel = user.resolvedDisplayName;
-    final displayChar =
-        displayLabel.isEmpty ? " " : displayLabel.substring(0, 1);
+    final displayChar = displayLabel.isEmpty
+        ? " "
+        : displayLabel.substring(0, 1);
     final avatarSeed = user.resolvedEmail;
     Color decorationColor;
     if ((user.id != null && user.id! < 0) || user.email == config.getEmail()) {
       decorationColor = Colors.black;
     } else {
-      decorationColor = colorScheme.avatarColors[avatarSeed.length.remainder(
-        colorScheme.avatarColors.length,
-      )];
+      decorationColor =
+          colorScheme.avatarColors[avatarSeed.length.remainder(
+            colorScheme.avatarColors.length,
+          )];
     }
 
     return CircleAvatar(
@@ -229,13 +231,13 @@ class _FirstLetterUserAvatarState extends State<FirstLetterUserAvatar> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
       valueListenable: ContactsDisplayService.instance.changes,
-      builder: (context, __, ___) {
+      builder: (context, _, _) {
         _preloadProfilePictureIfPossible();
-        final profilePictureBytes =
-            ContactsDisplayService.instance.getCachedProfilePictureBytes(
-          contactUserId: user.id,
-          email: user.email,
-        );
+        final profilePictureBytes = ContactsDisplayService.instance
+            .getCachedProfilePictureBytes(
+              contactUserId: user.id,
+              email: user.email,
+            );
         if (profilePictureBytes != null) {
           return Image.memory(
             profilePictureBytes,
@@ -246,8 +248,9 @@ class _FirstLetterUserAvatarState extends State<FirstLetterUserAvatar> {
 
         final colorScheme = getEnteColorScheme(context);
         final displayLabel = user.resolvedDisplayName;
-        final displayChar =
-            displayLabel.isEmpty ? " " : displayLabel.substring(0, 1);
+        final displayChar = displayLabel.isEmpty
+            ? " "
+            : displayLabel.substring(0, 1);
         final avatarSeed = user.resolvedEmail;
         Color decorationColor;
         if ((user.id != null && user.id! < 0) ||
@@ -256,8 +259,8 @@ class _FirstLetterUserAvatarState extends State<FirstLetterUserAvatar> {
         } else {
           decorationColor =
               colorScheme.avatarColors[avatarSeed.length.remainder(
-            colorScheme.avatarColors.length,
-          )];
+                colorScheme.avatarColors.length,
+              )];
         }
 
         return Container(

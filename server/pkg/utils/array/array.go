@@ -28,26 +28,6 @@ func ContainsDuplicateInInt64Array(input []int64) bool {
 	return false
 }
 
-// StringInList returns true is given string is present inside list
-func StringInList(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
-// int64InList returns true is given int64 is present inside list
-func Int64InList(a int64, list []int64) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
 // FindMissingElementsInSecondList identifies elements in 'sourceList' that are not present in 'targetList'.
 // Returns:
 //   - A slice of int64 representing the elements found in 'sourceList' but not in 'targetList'.

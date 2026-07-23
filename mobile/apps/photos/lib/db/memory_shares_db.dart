@@ -113,11 +113,7 @@ class MemorySharesDB {
 
   Future<void> delete(int id) async {
     final db = await database;
-    await db.delete(
-      _table,
-      where: '$_columnID = ?',
-      whereArgs: [id],
-    );
+    await db.delete(_table, where: '$_columnID = ?', whereArgs: [id]);
   }
 
   Future<void> clearTable() async {

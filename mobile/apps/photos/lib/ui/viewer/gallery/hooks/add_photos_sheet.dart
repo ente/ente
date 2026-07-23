@@ -1,28 +1,23 @@
+import "package:ente_components/ente_components.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_animate/flutter_animate.dart";
-import "package:modal_bottom_sheet/modal_bottom_sheet.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/db/files_db.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/l10n/l10n.dart";
 import 'package:photos/models/collection/collection.dart';
 import "package:photos/models/selected_files.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/filter/db_filters.dart";
-import "package:photos/theme/colors.dart";
-import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/actions/collection/collection_file_actions.dart";
 import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
 import "package:photos/ui/common/loading_widget.dart";
-import "package:photos/ui/components/bottom_of_title_bar_widget.dart";
-import "package:photos/ui/components/buttons/button_widget.dart";
-import "package:photos/ui/components/models/button_type.dart";
-import "package:photos/ui/components/title_bar_title_widget.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/boundary_reporter_mixin.dart";
+import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/utils/dialog_util.dart";
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
@@ -31,31 +26,27 @@ Future<dynamic> showAddPhotosSheet(
   BuildContext context,
   Collection collection,
 ) async {
-  return await showBarModalBottomSheet(
+  return await showBottomSheetComponent<dynamic>(
     context: context,
     builder: (context) {
-      return AddPhotosPhotoWidget(collection);
+      return FractionallySizedBox(
+        heightFactor: _sheetHeightFactor,
+        alignment: Alignment.bottomCenter,
+        child: GalleryBoundariesProvider(
+          child: AddPhotosPhotoWidget(collection),
+        ),
+      );
     },
-    shape: const RoundedRectangleBorder(
-      side: BorderSide(width: 0),
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(5),
-      ),
-    ),
-    topControl: const SizedBox.shrink(),
-    backgroundColor: getEnteColorScheme(context).backgroundElevated,
-    barrierColor: backdropFaintDark,
     enableDrag: false,
   );
 }
 
+const double _sheetHeightFactor = 0.86;
+
 class AddPhotosPhotoWidget extends StatelessWidget {
   final Collection collection;
 
-  const AddPhotosPhotoWidget(
-    this.collection, {
-    super.key,
-  });
+  const AddPhotosPhotoWidget(this.collection, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -64,99 +55,119 @@ class AddPhotosPhotoWidget extends StatelessWidget {
     selectedFiles.addListener(() {
       isFileSelected.value = selectedFiles.files.isNotEmpty;
     });
-    final Set<int> hiddenCollectionIDs =
-        CollectionsService.instance.getHiddenCollectionIds();
+    final Set<int> hiddenCollectionIDs = CollectionsService.instance
+        .getHiddenCollectionIds();
     // Hide the current collection files from suggestions
     hiddenCollectionIDs.add(collection.id);
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 32, 0, 8),
-      child: SizedBox(
-        width: double.infinity,
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: context.componentColors.backgroundBase,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(Radii.bottomSheet),
+          topRight: Radius.circular(Radii.bottomSheet),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
         child: Column(
           mainAxisSize: MainAxisSize.max,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                children: [
-                  _AppBarWithBoundary(
-                    child: BottomOfTitleBarWidget(
-                      title: TitleBarTitleWidget(
-                        title: AppLocalizations.of(context).addMore,
+            _AppBarWithBoundary(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  Spacing.xl,
+                  Spacing.xl,
+                  Spacing.xl,
+                  0,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        context.l10n.addMore,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyles.h2.copyWith(
+                          color: context.componentColors.textBase,
+                        ),
                       ),
-                      caption: AppLocalizations.of(context).selectItemsToAdd,
-                      showCloseButton: true,
                     ),
-                  ),
-                  Expanded(
-                    child: DelayedGallery(
-                      hiddenCollectionIDs: hiddenCollectionIDs,
-                      selectedFiles: selectedFiles,
+                    const SizedBox(width: Spacing.md),
+                    IconButtonComponent(
+                      tooltip: context.l10n.close,
+                      variant: IconButtonComponentVariant.circular,
+                      shouldSurfaceExecutionStates: false,
+                      icon: const HugeIcon(
+                        icon: HugeIcons.strokeRoundedCancel01,
+                        size: IconSizes.small,
+                      ),
+                      onTap: () => Navigator.of(context).pop(),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-            SafeArea(
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(
-                      color: getEnteColorScheme(context).strokeFaint,
-                    ),
+            const SizedBox(height: Spacing.lg),
+            Expanded(
+              child: DelayedGallery(
+                hiddenCollectionIDs: hiddenCollectionIDs,
+                selectedFiles: selectedFiles,
+              ),
+            ),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 428),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    Spacing.xl,
+                    Spacing.lg,
+                    Spacing.xl,
+                    Spacing.sm,
                   ),
-                ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 428),
-                    child: Padding(
-                      //inner stroke of 1pt + 15 pts of top padding = 16 pts
-                      padding: const EdgeInsets.fromLTRB(16, 15, 16, 8),
-                      child: Column(
-                        children: [
-                          ValueListenableBuilder(
-                            valueListenable: isFileSelected,
-                            builder: (context, bool value, _) {
-                              return AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 300),
-                                switchInCurve: Curves.easeInOutExpo,
-                                switchOutCurve: Curves.easeInOutExpo,
-                                child: ButtonWidget(
-                                  key: ValueKey(value),
-                                  // isDisabled: !value,
-                                  buttonType: ButtonType.primary,
-                                  labelText:
-                                      AppLocalizations.of(context).addSelected,
-                                  onTap: () async {
-                                    final selectedFile = selectedFiles.files;
-                                    final ca = CollectionActions(
-                                      CollectionsService.instance,
-                                    );
-                                    await ca.addToCollection(
-                                      context,
-                                      collection.id,
-                                      false,
-                                      selectedFiles: selectedFile.toList(),
-                                    );
-                                    Navigator.pop(context, selectedFile);
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          ButtonWidget(
-                            buttonType: ButtonType.secondary,
-                            buttonAction: ButtonAction.second,
-                            labelText:
-                                AppLocalizations.of(context).addFromDevice,
-                            onTap: () async {
-                              await _onPickFromDeviceClicked(context);
-                            },
-                          ),
-                        ],
+                  child: Column(
+                    children: [
+                      ValueListenableBuilder(
+                        valueListenable: isFileSelected,
+                        builder: (context, bool value, _) {
+                          return AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 300),
+                            switchInCurve: Curves.easeInOutExpo,
+                            switchOutCurve: Curves.easeInOutExpo,
+                            child: ButtonComponent(
+                              key: ValueKey(value),
+                              variant: ButtonComponentVariant.primary,
+                              isDisabled: !value,
+                              label: context.l10n.addSelected,
+                              onTap: () async {
+                                final selectedFile = selectedFiles.files;
+                                final ca = CollectionActions(
+                                  CollectionsService.instance,
+                                );
+                                await ca.addToCollection(
+                                  context,
+                                  collection.id,
+                                  false,
+                                  selectedFiles: selectedFile.toList(),
+                                );
+                                if (!context.mounted) return;
+                                Navigator.pop(context, selectedFile);
+                              },
+                            ),
+                          );
+                        },
                       ),
-                    ),
+                      const SizedBox(height: Spacing.md),
+                      ButtonComponent(
+                        variant: ButtonComponentVariant.secondary,
+                        label: context.l10n.addFromDevice,
+                        onTap: () async {
+                          await _onPickFromDeviceClicked(context);
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -170,6 +181,7 @@ class AddPhotosPhotoWidget extends StatelessWidget {
   Future<void> _onPickFromDeviceClicked(BuildContext context) async {
     try {
       final assetPickerTextDelegate = await _getAssetPickerTextDelegate();
+      if (!context.mounted) return;
       final List<AssetEntity>? result = await AssetPicker.pickAssets(
         context,
         pickerConfig: AssetPickerConfig(
@@ -181,22 +193,23 @@ class AddPhotosPhotoWidget extends StatelessWidget {
         ),
       );
       if (result != null && result.isNotEmpty) {
-        final ca = CollectionActions(
-          CollectionsService.instance,
-        );
+        final ca = CollectionActions(CollectionsService.instance);
+        if (!context.mounted) return;
         await ca.addToCollection(
           context,
           collection.id,
           false,
           picketAssets: result,
         );
+        if (!context.mounted) return;
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (e is StateError) {
-        final PermissionState ps =
-            await permissionService.requestPhotoMangerPermissions();
+        final PermissionState ps = await permissionService
+            .requestPhotoMangerPermissions();
         if (ps != PermissionState.authorized && ps != PermissionState.limited) {
+          if (!context.mounted) return;
           await showChoiceDialog(
             context,
             title: context.l10n.grantPermission,
@@ -208,6 +221,7 @@ class AddPhotosPhotoWidget extends StatelessWidget {
             },
           );
         } else {
+          if (!context.mounted) return;
           await showErrorDialog(
             context,
             context.l10n.oops,
@@ -285,35 +299,31 @@ class _DelayedGalleryState extends State<DelayedGallery> {
   Widget build(BuildContext context) {
     if (_showGallery) {
       return GalleryFilesState(
-        child: Gallery(
-          inSelectionMode: true,
-          asyncLoader: (
-            creationStartTime,
-            creationEndTime, {
-            limit,
-            asc,
-          }) {
-            return FilesDB.instance.getAllPendingOrUploadedFiles(
-              creationStartTime,
-              creationEndTime,
-              Configuration.instance.getUserID()!,
-              limit: limit,
-              asc: asc,
-              filterOptions: DBFilterOptions(
-                hideIgnoredForUpload: true,
-                dedupeUploadID: true,
-                ignoredCollectionIDs: widget.hiddenCollectionIDs,
-              ),
-              applyOwnerCheck: true,
-            );
-          },
-          tagPrefix: "pick_add_photos_gallery",
-          selectedFiles: widget.selectedFiles,
-          showSelectAll: true,
-          sortAsyncFn: () => false,
-          disablePinnedGroupHeader: true,
-          disableVerticalPaddingForScrollbar: true,
-        ).animate().fadeIn(
+        child:
+            Gallery(
+              inSelectionMode: true,
+              asyncLoader: (creationStartTime, creationEndTime, {limit, asc}) {
+                return FilesDB.instance.getAllPendingOrUploadedFiles(
+                  creationStartTime,
+                  creationEndTime,
+                  Configuration.instance.getUserID()!,
+                  limit: limit,
+                  asc: asc,
+                  filterOptions: DBFilterOptions(
+                    hideIgnoredForUpload: true,
+                    dedupeUploadID: true,
+                    ignoredCollectionIDs: widget.hiddenCollectionIDs,
+                  ),
+                  applyOwnerCheck: true,
+                );
+              },
+              tagPrefix: "pick_add_photos_gallery",
+              selectedFiles: widget.selectedFiles,
+              showSelectAll: true,
+              sortAsyncFn: () => false,
+              disablePinnedGroupHeader: true,
+              disableVerticalPaddingForScrollbar: true,
+            ).animate().fadeIn(
               duration: const Duration(milliseconds: 175),
               curve: Curves.easeOutCirc,
             ),
@@ -337,9 +347,6 @@ class _AppBarWithBoundaryState extends State<_AppBarWithBoundary>
     with BoundaryReporter {
   @override
   Widget build(BuildContext context) {
-    return boundaryWidget(
-      position: BoundaryPosition.top,
-      child: widget.child,
-    );
+    return boundaryWidget(position: BoundaryPosition.top, child: widget.child);
   }
 }

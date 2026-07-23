@@ -1,4 +1,4 @@
-import { type EnteFile } from "ente-media/file";
+import type { EnteFile } from "ente-media/file";
 import { useEffect, useRef } from "react";
 
 import type { JourneyPoint } from "../types";

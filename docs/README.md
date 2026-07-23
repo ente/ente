@@ -2,56 +2,23 @@
 
 Help and documentation for Ente's products.
 
-You can find the live version of these at
-**[ente.com/help](https://ente.com/help)**.
+The live version of these is at **[ente.com/help](https://ente.com/help)**. The live site updates within a few minutes of a PR being merged.
 
 ## Quick edits
 
-You can edit these files directly on GitHub and open a pull request.
-[ente.com/help](https://ente.com/help) will automatically get updated with your
-changes in a few minutes after your pull request is merged.
+For a typo or a small fix, just edit the file directly on GitHub and open a pull request.
 
 ## Running locally
 
-The above workflow is great since it doesn't require you to setup anything on
-your local machine. But if you plan on contributing frequently, you might find
-it easier to run things locally.
-
-Clone this repository
+For anything more involved, run a local preview:
 
 ```sh
-git clone https://github.com/ente-io/ente
-```
-
-Change to this directory
-
-```sh
+git clone https://github.com/ente/ente
 cd ente/docs
+npm ci
+npm run dev
 ```
-
-Install dependencies
-
-```sh
-yarn install --frozen-lockfile
-```
-
-Use plain `yarn install` only when you are intentionally updating dependencies
-and reviewing the resulting `yarn.lock` changes.
-
-Then start a local server
-
-```sh
-yarn dev
-```
-
-For an editor, VSCode is a good choice. Also install the Prettier extension for
-VSCode, and set VSCode to format on save. This way the editor will automatically
-format and wrap the text using the project's standard, so you can just focus on
-the content. You can also format without VSCode by using the `yarn pretty`
-command.
 
 ## Have fun!
 
-If you're unsure about how to do something, just look around in the other files
-and copy paste whatever seems to match the look of what you're trying to do. And
-remember, writing docs should not be a chore, have fun!
+Writing docs should not be a chore, have fun!

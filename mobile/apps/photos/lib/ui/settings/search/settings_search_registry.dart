@@ -28,6 +28,7 @@ class SettingsSearchRegistry {
     final l10n = AppLocalizations.of(context);
     final hasLoggedIn = Configuration.instance.isLoggedIn();
     final isLocalGallery = isLocalGalleryMode;
+    final showThemeControls = Platform.isAndroid || kDebugMode;
     final items = <SettingsSearchItem>[];
 
     // Account settings
@@ -158,16 +159,15 @@ class SettingsSearchRegistry {
           isSubPage: true,
           keywords: ["videos", "movies", "backup video"],
         ),
-        if (flagService.enableOnlyBackupFuturePhotos)
-          SettingsSearchItem(
-            title: l10n.backupOnlyNewPhotos,
-            subtitle: l10n.backupSettings,
-            sectionPath: "${l10n.backup} > ${l10n.backupSettings}",
-            icon: HugeIcons.strokeRoundedSettings01,
-            routeBuilder: (_) => const BackupSettingsPage(),
-            isSubPage: true,
-            keywords: ["only new", "new photos", "since now"],
-          ),
+        SettingsSearchItem(
+          title: l10n.backupOnlyNewPhotos,
+          subtitle: l10n.backupSettings,
+          sectionPath: "${l10n.backup} > ${l10n.backupSettings}",
+          icon: HugeIcons.strokeRoundedSettings01,
+          routeBuilder: (_) => const BackupSettingsPage(),
+          isSubPage: true,
+          keywords: ["only new", "new photos", "since now"],
+        ),
         if (flagService.enableMobMultiPart)
           SettingsSearchItem(
             title: l10n.resumableUploads,
@@ -281,11 +281,13 @@ class SettingsSearchRegistry {
         sectionPath: l10n.appearance,
         icon: HugeIcons.strokeRoundedPaintBoard,
         routeBuilder: (_) => const AppearanceSettingsPage(),
-        keywords: ["theme", "dark mode", "light mode", "app icon"],
+        keywords: showThemeControls
+            ? ["theme", "dark mode", "light mode", "app icon"]
+            : ["app icon"],
       ),
     );
 
-    if (Platform.isAndroid || kDebugMode) {
+    if (showThemeControls) {
       items.add(
         SettingsSearchItem(
           title: l10n.theme,

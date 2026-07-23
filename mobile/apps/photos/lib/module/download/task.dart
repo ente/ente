@@ -4,7 +4,7 @@ enum DownloadStatus {
   paused,
   completed,
   error,
-  cancelled
+  cancelled,
 }
 
 class DownloadTask {
@@ -30,43 +30,43 @@ class DownloadTask {
     this.status = DownloadStatus.pending,
     this.error,
     this.filePath,
-  })  : createdAt = createdAt ?? DateTime.now().microsecondsSinceEpoch,
-        updatedAt = updatedAt ?? DateTime.now().microsecondsSinceEpoch;
+  }) : createdAt = createdAt ?? DateTime.now().microsecondsSinceEpoch,
+       updatedAt = updatedAt ?? DateTime.now().microsecondsSinceEpoch;
 
   double get progress => totalBytes > 0 ? bytesDownloaded / totalBytes : 0.0;
   bool get isCompleted => status == DownloadStatus.completed;
   bool get isActive => status == DownloadStatus.downloading;
   bool get isFinished => [
-        DownloadStatus.completed,
-        DownloadStatus.error,
-        DownloadStatus.cancelled,
-      ].contains(status);
+    DownloadStatus.completed,
+    DownloadStatus.error,
+    DownloadStatus.cancelled,
+  ].contains(status);
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'filename': filename,
-        'totalBytes': totalBytes,
-        'createdAt': createdAt,
-        'updatedAt': updatedAt,
-        'sourceFileJson': sourceFileJson,
-        'bytesDownloaded': bytesDownloaded,
-        'status': status.name,
-        'error': error,
-        'filePath': filePath,
-      };
+    'id': id,
+    'filename': filename,
+    'totalBytes': totalBytes,
+    'createdAt': createdAt,
+    'updatedAt': updatedAt,
+    'sourceFileJson': sourceFileJson,
+    'bytesDownloaded': bytesDownloaded,
+    'status': status.name,
+    'error': error,
+    'filePath': filePath,
+  };
 
   static DownloadTask fromMap(Map<String, dynamic> map) => DownloadTask(
-        id: map['id'],
-        filename: map['filename'],
-        totalBytes: map['totalBytes'],
-        createdAt: map['createdAt'],
-        updatedAt: map['updatedAt'],
-        sourceFileJson: map['sourceFileJson'],
-        bytesDownloaded: map['bytesDownloaded'] ?? 0,
-        status: DownloadStatus.values.byName(map['status']),
-        error: map['error'],
-        filePath: map['filePath'],
-      );
+    id: map['id'],
+    filename: map['filename'],
+    totalBytes: map['totalBytes'],
+    createdAt: map['createdAt'],
+    updatedAt: map['updatedAt'],
+    sourceFileJson: map['sourceFileJson'],
+    bytesDownloaded: map['bytesDownloaded'] ?? 0,
+    status: DownloadStatus.values.byName(map['status']),
+    error: map['error'],
+    filePath: map['filePath'],
+  );
 
   DownloadTask copyWith({
     int? createdAt,
@@ -76,19 +76,18 @@ class DownloadTask {
     DownloadStatus? status,
     String? error,
     String? filePath,
-  }) =>
-      DownloadTask(
-        id: id,
-        filename: filename,
-        totalBytes: totalBytes,
-        createdAt: createdAt ?? this.createdAt,
-        updatedAt: updatedAt ?? DateTime.now().microsecondsSinceEpoch,
-        sourceFileJson: sourceFileJson ?? this.sourceFileJson,
-        bytesDownloaded: bytesDownloaded ?? this.bytesDownloaded,
-        status: status ?? this.status,
-        error: error ?? this.error,
-        filePath: filePath ?? this.filePath,
-      );
+  }) => DownloadTask(
+    id: id,
+    filename: filename,
+    totalBytes: totalBytes,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? DateTime.now().microsecondsSinceEpoch,
+    sourceFileJson: sourceFileJson ?? this.sourceFileJson,
+    bytesDownloaded: bytesDownloaded ?? this.bytesDownloaded,
+    status: status ?? this.status,
+    error: error ?? this.error,
+    filePath: filePath ?? this.filePath,
+  );
 }
 
 class DownloadResult {

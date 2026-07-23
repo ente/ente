@@ -34,10 +34,7 @@ class InfoFileService {
 
       // Create public magic metadata with info data
       final pubMagicMetadata = PubMagicMetadata(
-        info: {
-          'type': infoItem.type.name,
-          'data': infoItem.data.toJson(),
-        },
+        info: {'type': infoItem.type.name, 'data': infoItem.data.toJson()},
         noThumb: true, // No thumbnail for info files
       );
       enteFile.pubMagicMetadata = pubMagicMetadata;
@@ -68,9 +65,7 @@ class InfoFileService {
       };
 
       // Prepare metadata updates - only update info and name/time if needed
-      final Map<String, dynamic> metadataUpdates = {
-        infoKey: infoData,
-      };
+      final Map<String, dynamic> metadataUpdates = {infoKey: infoData};
 
       // Update title if it's different from current display name
       // Use displayName (which considers editedName) instead of title (original name)

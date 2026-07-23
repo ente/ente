@@ -16,10 +16,10 @@ import 'package:photos/utils/dialog_util.dart';
 import "package:photos/utils/email_util.dart";
 
 class PaymentWebPage extends StatefulWidget {
-  final String? planId;
+  final String planId;
   final String? actionType;
 
-  const PaymentWebPage({super.key, this.planId, this.actionType});
+  const PaymentWebPage({super.key, required this.planId, this.actionType});
 
   @override
   State<StatefulWidget> createState() => _PaymentWebPageState();
@@ -57,13 +57,12 @@ class _PaymentWebPageState extends State<PaymentWebPage> {
         if (didPop) return;
         final shouldPop = await _buildPageExitWidget(context);
         if (shouldPop) {
+          if (!context.mounted) return;
           Navigator.of(context).pop();
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(AppLocalizations.of(context).subscription),
-        ),
+        appBar: AppBar(title: Text(AppLocalizations.of(context).subscription)),
         body: Column(
           children: <Widget>[
             (progress != 1.0)
@@ -74,10 +73,10 @@ class _PaymentWebPageState extends State<PaymentWebPage> {
                 initialUrlRequest: URLRequest(url: initPaymentUrl),
                 onProgressChanged:
                     (InAppWebViewController controller, int progress) {
-                  setState(() {
-                    this.progress = progress / 100;
-                  });
-                },
+                      setState(() {
+                        this.progress = progress / 100;
+                      });
+                    },
                 initialSettings: InAppWebViewSettings(
                   useShouldOverrideUrlLoading: true,
                 ),
@@ -102,8 +101,8 @@ class _PaymentWebPageState extends State<PaymentWebPage> {
                 },
                 onReceivedHttpError:
                     (controller, navigationAction, code) async {
-                  _logger.info("onHttpError with $code");
-                },
+                      _logger.info("onHttpError with $code");
+                    },
                 onLoadStop: (controller, navigationAction) async {
                   _logger.info("onLoadStop $navigationAction");
                 },
@@ -150,9 +149,7 @@ class _PaymentWebPageState extends State<PaymentWebPage> {
           TextButton(
             child: Text(
               AppLocalizations.of(context).yes,
-              style: const TextStyle(
-                color: Colors.redAccent,
-              ),
+              style: const TextStyle(color: Colors.redAccent),
             ),
             onPressed: () => Navigator.of(context).pop(true),
           ),
@@ -198,7 +195,7 @@ class _PaymentWebPageState extends State<PaymentWebPage> {
   }
 
   Future<void> _handlePaymentFailure(String reason) async {
-    await showDialog(
+    final shouldContactSupport = await showDialog<bool>(
       useRootNavigator: false,
       context: context,
       barrierDismissible: false,
@@ -208,18 +205,16 @@ class _PaymentWebPageState extends State<PaymentWebPage> {
         actions: <Widget>[
           TextButton(
             child: Text(AppLocalizations.of(context).contactSupport),
-            onPressed: () async {
-              Navigator.of(context).pop('dialog');
-              await sendEmail(
-                context,
-                to: supportEmail,
-                subject: "Billing issue",
-              );
-            },
+            onPressed: () => Navigator.of(context).pop(true),
           ),
         ],
       ),
     );
+    if (!mounted) return;
+    if (shouldContactSupport == true) {
+      await sendEmail(context, to: supportEmail, subject: "Billing issue");
+    }
+    if (!mounted) return;
     Navigator.of(context).pop(true);
   }
 
@@ -233,26 +228,31 @@ class _PaymentWebPageState extends State<PaymentWebPage> {
         checkoutSessionID,
         paymentProvider: stripe,
       );
+      if (!mounted) return;
       final content = widget.actionType == 'buy'
           ? AppLocalizations.of(context).yourPurchaseWasSuccessful
           : AppLocalizations.of(context).yourSubscriptionWasUpdatedSuccessfully;
+      if (!mounted) return;
       await _showExitPageDialog(
         title: AppLocalizations.of(context).thankYou,
         content: content,
       );
     } catch (error) {
       _logger.severe(error);
+      if (!mounted) return;
       await _showExitPageDialog(
         title: AppLocalizations.of(context).failedToVerifyPaymentStatus,
-        content:
-            AppLocalizations.of(context).pleaseWaitForSometimeBeforeRetrying,
+        content: AppLocalizations.of(
+          context,
+        ).pleaseWaitForSometimeBeforeRetrying,
       );
     }
   }
 
   // warn the user to wait for sometime before trying another payment
-  Future<dynamic> _showExitPageDialog({String? title, String? content}) {
-    return showDialog(
+  Future<dynamic> _showExitPageDialog({String? title, String? content}) async {
+    if (!mounted) return null;
+    await showDialog(
       useRootNavigator: false,
       context: context,
       barrierDismissible: false,
@@ -273,6 +273,8 @@ class _PaymentWebPageState extends State<PaymentWebPage> {
           ),
         ],
       ),
-    ).then((val) => Navigator.pop(context, true));
+    );
+    if (!mounted) return null;
+    return Navigator.pop(context, true);
   }
 }

@@ -133,8 +133,10 @@ class CustomPinKeypad extends StatelessWidget {
 
   void _onBackspace() {
     if (controller.text.isNotEmpty) {
-      controller.text =
-          controller.text.substring(0, controller.text.length - 1);
+      controller.text = controller.text.substring(
+        0,
+        controller.text.length - 1,
+      );
     }
     return;
   }
@@ -194,38 +196,32 @@ class _ButtonState extends State<_Button> {
               color: isPressed
                   ? colorScheme.backgroundElevated
                   : widget.muteButton
-                      ? colorScheme.fillFaintPressed
-                      : widget.icon == null
-                          ? colorScheme.backgroundElevated2
-                          : null,
+                  ? colorScheme.fillFaintPressed
+                  : widget.icon == null
+                  ? colorScheme.backgroundElevated2
+                  : null,
             ),
             child: Center(
               child: widget.muteButton
                   ? const SizedBox.shrink()
                   : widget.icon != null
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 10,
-                          ),
-                          child: widget.icon,
-                        )
-                      : Container(
-                          padding: const EdgeInsets.all(4),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                widget.number,
-                                style: textTheme.h3,
-                              ),
-                              Text(
-                                widget.text,
-                                style: textTheme.tinyBold,
-                              ),
-                            ],
-                          ),
-                        ),
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 10,
+                      ),
+                      child: widget.icon,
+                    )
+                  : Container(
+                      padding: const EdgeInsets.all(4),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(widget.number, style: textTheme.h3),
+                          Text(widget.text, style: textTheme.tinyBold),
+                        ],
+                      ),
+                    ),
             ),
           ),
         ),

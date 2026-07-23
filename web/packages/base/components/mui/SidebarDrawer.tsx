@@ -139,6 +139,8 @@ type SidebarDrawerTitlebarProps = Pick<
      * trailing edge of the sidebar.
      */
     actionButton?: React.ReactNode;
+    /** Whether to show the trailing close button for the root drawer. */
+    showRootCloseButton?: boolean;
 };
 
 /**
@@ -151,6 +153,7 @@ export const SidebarDrawerTitlebar: React.FC<SidebarDrawerTitlebarProps> = ({
     onClose,
     onRootClose,
     actionButton,
+    showRootCloseButton = true,
 }) => (
     <Stack sx={{ gap: "4px" }}>
         <Stack direction="row" sx={{ justifyContent: "space-between" }}>
@@ -159,9 +162,11 @@ export const SidebarDrawerTitlebar: React.FC<SidebarDrawerTitlebarProps> = ({
             </IconButton>
             <Stack direction="row" sx={{ gap: "4px" }}>
                 {actionButton && actionButton}
-                <IconButton onClick={onRootClose} color="secondary">
-                    <CloseIcon />
-                </IconButton>
+                {showRootCloseButton && (
+                    <IconButton onClick={onRootClose} color="secondary">
+                        <CloseIcon />
+                    </IconButton>
+                )}
             </Stack>
         </Stack>
         <Stack sx={{ px: "16px", gap: "4px" }}>

@@ -1,11 +1,18 @@
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import { Box, IconButton } from "@mui/material";
-import useMediaQuery from "@mui/material/useMediaQuery";
 import type {
     PasteResolvedMode,
     PasteThemeTokens,
-} from "features/paste/theme/pasteThemeTokens";
+} from "@/features/paste/theme/pasteThemeTokens";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import { Box, IconButton } from "@mui/material";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+    getPasteQrCodeOptions,
+    getQrModuleCount,
+    getQrRenderMetrics,
+    isQRCodeStylingModule,
+    type QRCodeStylingInstance,
+} from "./qrCode";
 
 interface PasteQrCodeProps {
     value: string;
@@ -13,59 +20,14 @@ interface PasteQrCodeProps {
     size?: number;
     paperBg?: string;
     borderRadius?: string;
+    showCenterLock?: boolean;
     /** When set, shows a floating close control (e.g. to dismiss the QR panel). */
     onClose?: () => void;
     /** Color mode for close button hover; pass when `onClose` is used. */
     resolvedMode?: PasteResolvedMode;
 }
 
-interface QRCodeStylingInstance {
-    append(container: HTMLElement): void;
-    update(options: Record<string, unknown>): void;
-    _qr?: { getModuleCount(): number };
-}
-
-type QRCodeStylingConstructor = new (
-    options: Record<string, unknown>,
-) => QRCodeStylingInstance;
-
-interface QRCodeStylingModule {
-    default: QRCodeStylingConstructor;
-}
-
-type QrErrorCorrectionLevel = "L" | "M" | "Q" | "H";
-
-const QR_ERROR_CORRECTION_LEVEL: QrErrorCorrectionLevel = "M";
-const QUIET_ZONE_MODULES = 4;
 const QR_LOAD_ERROR_LABEL = "QR unavailable. Refresh to try again.";
-
-const isQRCodeStylingModule = (
-    value: unknown,
-): value is QRCodeStylingModule => {
-    if (typeof value !== "object" || value === null || !("default" in value)) {
-        return false;
-    }
-
-    return typeof value.default === "function";
-};
-
-const getQrModuleCount = (qrCode: QRCodeStylingInstance) => {
-    const internalQr = qrCode._qr;
-
-    return internalQr ? internalQr.getModuleCount() : undefined;
-};
-
-const getQrRenderMetrics = (qrSize: number, moduleCount: number) => {
-    const moduleSize = Math.max(
-        1,
-        Math.ceil(qrSize / (moduleCount + QUIET_ZONE_MODULES * 2)),
-    );
-
-    return {
-        renderSize: (moduleCount + QUIET_ZONE_MODULES * 2) * moduleSize,
-        margin: QUIET_ZONE_MODULES * moduleSize,
-    };
-};
 
 export const PasteQrCode = ({
     value,
@@ -73,6 +35,7 @@ export const PasteQrCode = ({
     size,
     paperBg,
     borderRadius,
+    showCenterLock = false,
     onClose,
     resolvedMode,
 }: PasteQrCodeProps) => {
@@ -85,21 +48,15 @@ export const PasteQrCode = ({
     const qrPaperBg = paperBg ?? tokens.qr.paperBg;
 
     const qrOptions = useMemo(
-        () => ({
-            width: qrSize,
-            height: qrSize,
-            type: "svg",
-            data: value,
-            qrOptions: { errorCorrectionLevel: QR_ERROR_CORRECTION_LEVEL },
-            backgroundOptions: { color: qrPaperBg },
-            dotsOptions: { color: tokens.qr.module, type: "rounded" },
-            cornersSquareOptions: {
-                color: tokens.qr.finder,
-                type: "extra-rounded",
-            },
-            cornersDotOptions: { color: tokens.qr.finder, type: "dot" },
-        }),
-        [qrSize, tokens.qr.finder, tokens.qr.module, qrPaperBg, value],
+        () =>
+            getPasteQrCodeOptions({
+                value,
+                qrSize,
+                qrPaperBg,
+                tokens,
+                showCenterLock,
+            }),
+        [qrSize, showCenterLock, tokens, qrPaperBg, value],
     );
 
     useEffect(() => {
@@ -107,9 +64,8 @@ export const PasteQrCode = ({
 
         const renderQr = async () => {
             try {
-                const qrCodeStylingModule = (await import(
-                    "qr-code-styling"
-                )) as unknown;
+                const qrCodeStylingModule =
+                    (await import("qr-code-styling")) as unknown;
                 if (!isActive) return;
 
                 const container = qrContainerRef.current;

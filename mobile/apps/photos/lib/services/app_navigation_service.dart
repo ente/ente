@@ -47,47 +47,47 @@ class AppNavigationService {
   }) {
     final pushResult = Completer<T?>();
     final scheduledPush = _lastScheduledPush
-        .catchError((Object _, StackTrace __) {})
+        .catchError((Object _, StackTrace _) {})
         .then((_) async {
-      final navigator = await _waitForNavigator();
-      if (navigator == null) {
-        _logger.warning(
-          "Skipping navigation because app navigator is unavailable",
-        );
-        if (!pushResult.isCompleted) {
-          pushResult.complete(null);
-        }
-        return;
-      }
+          final navigator = await _waitForNavigator();
+          if (navigator == null) {
+            _logger.warning(
+              "Skipping navigation because app navigator is unavailable",
+            );
+            if (!pushResult.isCompleted) {
+              pushResult.complete(null);
+            }
+            return;
+          }
 
-      try {
-        final routeFuture = _pushWithNavigator<T>(
-          navigator,
-          page,
-          forceCustomPageRoute: forceCustomPageRoute,
-        );
-        unawaited(
-          routeFuture.then(
-            (value) {
-              if (!pushResult.isCompleted) {
-                pushResult.complete(value);
-              }
-            },
-            onError: (Object error, StackTrace stackTrace) {
-              if (!pushResult.isCompleted) {
-                pushResult.completeError(error, stackTrace);
-              }
-            },
-          ),
-        );
-      } catch (error, stackTrace) {
-        if (!pushResult.isCompleted) {
-          pushResult.completeError(error, stackTrace);
-        }
-        rethrow;
-      }
-    });
-    _lastScheduledPush = scheduledPush.catchError((Object _, StackTrace __) {});
+          try {
+            final routeFuture = _pushWithNavigator<T>(
+              navigator,
+              page,
+              forceCustomPageRoute: forceCustomPageRoute,
+            );
+            unawaited(
+              routeFuture.then(
+                (value) {
+                  if (!pushResult.isCompleted) {
+                    pushResult.complete(value);
+                  }
+                },
+                onError: (Object error, StackTrace stackTrace) {
+                  if (!pushResult.isCompleted) {
+                    pushResult.completeError(error, stackTrace);
+                  }
+                },
+              ),
+            );
+          } catch (error, stackTrace) {
+            if (!pushResult.isCompleted) {
+              pushResult.completeError(error, stackTrace);
+            }
+            rethrow;
+          }
+        });
+    _lastScheduledPush = scheduledPush.catchError((Object _, StackTrace _) {});
     return pushResult.future;
   }
 
@@ -97,9 +97,7 @@ class AppNavigationService {
     bool forceCustomPageRoute = false,
   }) {
     if (Platform.isAndroid || forceCustomPageRoute) {
-      return navigator.push(
-        _buildPageRoute(page),
-      );
+      return navigator.push(_buildPageRoute(page));
     }
 
     return navigator.push(
@@ -131,26 +129,25 @@ class AppNavigationService {
 
 PageRouteBuilder<T> _buildPageRoute<T extends Object>(Widget page) {
   return PageRouteBuilder(
-    pageBuilder: (
-      BuildContext context,
-      Animation<double> animation,
-      Animation<double> secondaryAnimation,
-    ) {
-      return page;
-    },
-    transitionsBuilder: (
-      BuildContext context,
-      Animation<double> animation,
-      Animation<double> secondaryAnimation,
-      Widget child,
-    ) {
-      return Align(
-        child: FadeTransition(
-          opacity: animation,
-          child: child,
-        ),
-      );
-    },
+    pageBuilder:
+        (
+          BuildContext context,
+          Animation<double> animation,
+          Animation<double> secondaryAnimation,
+        ) {
+          return page;
+        },
+    transitionsBuilder:
+        (
+          BuildContext context,
+          Animation<double> animation,
+          Animation<double> secondaryAnimation,
+          Widget child,
+        ) {
+          return Align(
+            child: FadeTransition(opacity: animation, child: child),
+          );
+        },
     transitionDuration: const Duration(milliseconds: 200),
     opaque: false,
   );

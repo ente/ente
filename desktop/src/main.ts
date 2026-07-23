@@ -22,7 +22,6 @@ import {
 } from "electron/main";
 import serveNextAt from "next-electron-server";
 import { existsSync } from "node:fs";
-import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import {
@@ -38,7 +37,6 @@ import autoLauncher from "./main/services/auto-launcher";
 import { shouldHideDockIcon } from "./main/services/store";
 import { createWatcher } from "./main/services/watch";
 import { userPreferences } from "./main/stores/user-preferences";
-import { migrateLegacyWatchStoreIfNeeded } from "./main/stores/watch";
 import { registerStreamProtocol } from "./main/stream";
 import { wait } from "./main/utils/common";
 import { isDev } from "./main/utils/electron";
@@ -92,7 +90,6 @@ const main = () => {
     // The order of the next two calls is important
     setupRendererServer();
     registerPrivilegedSchemes();
-    migrateLegacyWatchStoreIfNeeded();
 
     /**
      * Handle an open URL request, but ensuring that we have a mainWindow.
@@ -140,7 +137,7 @@ const main = () => {
             attachMainWindowIPCHandlers(mainWindow);
             attachFSWatchIPCHandlers(watcher);
             attachLogoutIPCHandler(watcher);
-            registerStreamProtocol();
+            registerStreamProtocol(mainWindow);
 
             // Configure the renderer's environment.
             const webContents = mainWindow.webContents;
@@ -157,15 +154,6 @@ const main = () => {
             Menu.setApplicationMenu(createApplicationMenu(mainWindow));
             setupTrayItem(mainWindow);
             setupAutoUpdater(mainWindow);
-
-            try {
-                await deleteLegacyDiskCacheDirIfExists();
-                await deleteLegacyKeysStoreIfExists();
-            } catch (e) {
-                // Log but otherwise ignore errors during non-critical startup
-                // actions.
-                log.error("Ignoring startup error", e);
-            }
         })();
     });
 
@@ -249,7 +237,10 @@ const registerPrivilegedSchemes = () => {
                 corsEnabled: true,
             },
         },
-        { scheme: "stream", privileges: { supportFetchAPI: true } },
+        {
+            scheme: "stream",
+            privileges: { supportFetchAPI: true, corsEnabled: true },
+        },
     ]);
 };
 
@@ -284,7 +275,7 @@ const attachProcessHandlers = () => {
     // Gracefully quit the app if we get a SIGINT.
     //
     // This is meant to allow graceful shutdowns during development, when the
-    // app is launched using `yarn dev`. In such cases, pressing CTRL-C sends a
+    // app is launched using `npm run dev`. In such cases, pressing CTRL-C sends a
     // SIGINT to the process. The default handling of SIGINT is not graceful
     // enough (apparently), since I can observe that sometimes recent writes to
     // local storage are lost. This has also been reported by other people:
@@ -529,7 +520,7 @@ const uniqueSavePath = (dirPath: string, fileName: string) => {
  */
 const allowExternalLinks = (webContents: WebContents) =>
     // By default, if the user were open a link, say
-    // https://github.com/ente-io/ente/discussions, then it would open a _new_
+    // https://github.com/ente/ente/discussions, then it would open a _new_
     // BrowserWindow within our app.
     //
     // This is not the behaviour we want; what we want is to ask the system to
@@ -744,68 +735,6 @@ const setupTrayItem = (mainWindow: BrowserWindow) => {
                 mainWindow.show();
             }
         });
-    }
-};
-
-/**
- * Older versions of our app used to maintain a cache dir using the main
- * process. This has been removed in favor of cache on the web layer. Delete the
- * old cache dir if it exists.
- *
- * Added May 2024, v1.7.0. This migration code can be removed after some time
- * once most people have upgraded to newer versions (tag: Migration).
- */
-const deleteLegacyDiskCacheDirIfExists = async () => {
-    const removeIfExists = async (dirPath: string) => {
-        if (existsSync(dirPath)) {
-            log.info(`Removing legacy disk cache from ${dirPath}`);
-            await fs.rm(dirPath, { recursive: true });
-        }
-    };
-
-    // [Note: Getting the cache path]
-    //
-    // The existing code was passing "cache" as a parameter to getPath.
-    //
-    // However, "cache" is not a valid parameter to getPath. It works (for
-    // example, on macOS I get `~/Library/Caches`), but it is intentionally not
-    // documented as part of the public API:
-    //
-    // - docs: remove "cache" from app.getPath
-    //   https://github.com/electron/electron/pull/33509
-    //
-    // Irrespective, we replicate the original behaviour so that we get back the
-    // same path that the old code was getting.
-    //
-    // @ts-expect-error "cache" works but is not part of the public API.
-    const cacheDir = path.join(app.getPath("cache"), "ente");
-    if (process.platform == "win32") {
-        // On Windows the cache dir is the same as the app data (!). So deleting
-        // the ente subfolder of the cache dir is equivalent to deleting the
-        // user data dir.
-        //
-        // Obviously, that's not good. So instead of Windows we explicitly
-        // delete the named cache directories.
-        await removeIfExists(path.join(cacheDir, "thumbs"));
-        await removeIfExists(path.join(cacheDir, "files"));
-        await removeIfExists(path.join(cacheDir, "face-crops"));
-    } else {
-        await removeIfExists(cacheDir);
-    }
-};
-
-/**
- * Older versions of our app used to keep a keys.json. It is not needed anymore,
- * remove it if it exists.
- *
- * This code was added March 2024, and can be removed after some time once most
- * people have upgraded to newer versions.
- */
-const deleteLegacyKeysStoreIfExists = async () => {
-    const keysStore = path.join(app.getPath("userData"), "keys.json");
-    if (existsSync(keysStore)) {
-        log.info(`Removing legacy keys store at ${keysStore}`);
-        await fs.rm(keysStore);
     }
 };
 

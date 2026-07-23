@@ -12,7 +12,7 @@ import type {
     FolderWatch,
     FolderWatchSyncedFile,
 } from "ente-base/types/ipc";
-import { type UploadResult } from "ente-gallery/services/upload";
+import type { UploadResult } from "ente-gallery/services/upload";
 import type { UploadAsset } from "ente-gallery/services/upload/upload-service";
 import { groupFilesByCollectionID } from "ente-gallery/utils/file";
 import type { EnteFile } from "ente-media/file";
@@ -445,6 +445,7 @@ class FolderWatcher {
                     }
                 }
                 break;
+            case "partnerShared":
             case "unsupported":
             case "tooLarge":
                 {
@@ -575,10 +576,7 @@ class FolderWatcher {
         const files = await computeAllCollectionFilesFromSaved();
         const filesToTrash = files.filter((file) => {
             const correspondingSyncedFile = syncedFileForID.get(file.id);
-            if (
-                correspondingSyncedFile &&
-                correspondingSyncedFile.collectionID == file.collectionID
-            ) {
+            if (correspondingSyncedFile?.collectionID == file.collectionID) {
                 return true;
             }
             return false;

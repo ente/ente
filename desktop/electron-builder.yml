@@ -11,6 +11,9 @@ protocols:
     - name: Ente
       schemes: ["ente"]
 win:
+    files:
+        - "!node_modules/onnxruntime-node/bin/napi-v6/{darwin,linux}/**/*"
+        - "!node_modules/onnxruntime-node/bin/napi-v6/win32/!(${arch})/**/*"
     target:
         - target: nsis
           arch: [x64, arm64]
@@ -19,9 +22,13 @@ win:
         endpoint: https://eus.codesigning.azure.net/
         certificateProfileName: EnteTrustCertProfile
         codeSigningAccountName: EnteTechnologiesInc
+    signExts: [".dll", ".node"]
 nsis:
     deleteAppDataOnUninstall: true
 linux:
+    files:
+        - "!node_modules/onnxruntime-node/bin/napi-v6/{darwin,win32}/**/*"
+        - "!node_modules/onnxruntime-node/bin/napi-v6/linux/!(${arch})/**/*"
     target:
         - target: AppImage
           arch: [x64, arm64]
@@ -34,9 +41,12 @@ linux:
     category: Photography
     icon: ./build/icon.icns
 mac:
+    files:
+        - "!node_modules/onnxruntime-node/bin/napi-v6/{linux,win32}/**/*"
     target:
         target: default
         arch: [universal]
     category: public.app-category.photography
     hardenedRuntime: true
     mergeASARs: false
+    x64ArchFiles: "**/node_modules/onnxruntime-node/bin/napi-v6/darwin/**"

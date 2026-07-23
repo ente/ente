@@ -3,9 +3,9 @@ title: Family Plans
 description: Share Ente Photos storage with family members
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Family Plans

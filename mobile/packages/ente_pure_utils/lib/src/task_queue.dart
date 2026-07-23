@@ -12,9 +12,9 @@ class _QueueItem<T> {
   int counter;
 
   _QueueItem(this.id, this.task)
-      : lastUpdated = DateTime.now().millisecondsSinceEpoch,
-        counter = 1,
-        completer = Completer<void>();
+    : lastUpdated = DateTime.now().millisecondsSinceEpoch,
+      counter = 1,
+      completer = Completer<void>();
 
   void updateTimestamp() {
     lastUpdated = DateTime.now().millisecondsSinceEpoch;
@@ -86,8 +86,8 @@ class TaskQueue<T> {
     this.taskTimeout = const Duration(minutes: 5),
     this.maxQueueSize = 100,
   }) : _priorityQueue = HeapPriorityQueue<_QueueItem>(
-          (a, b) => b.lastUpdated.compareTo(a.lastUpdated),
-        ); // Reversed for most recent first
+         (a, b) => b.lastUpdated.compareTo(a.lastUpdated),
+       ); // Reversed for most recent first
 
   /// Add or update a task in the queue
   Future<void> addTask(T id, Future<void> Function() task) {
@@ -147,8 +147,9 @@ class TaskQueue<T> {
 
       // Complete with overflow error
       if (!oldestItem.completer.isCompleted) {
-        oldestItem.completer
-            .completeError(TaskQueueOverflowException(oldestItem.id));
+        oldestItem.completer.completeError(
+          TaskQueueOverflowException(oldestItem.id),
+        );
       }
     }
   }
@@ -244,8 +245,9 @@ class TaskQueue<T> {
 
       // Complete the future with a timeout error
       if (!item.completer.isCompleted) {
-        item.completer
-            .completeError(TaskQueueTimeoutException(id, taskTimeout));
+        item.completer.completeError(
+          TaskQueueTimeoutException(id, taskTimeout),
+        );
       }
 
       _taskMap.remove(id);

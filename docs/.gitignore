@@ -1,10 +1,4 @@
-# Dependencies
-node_modules/
-
-# macOS
-.DS_Store
-
-# VitePress' dev server cache
-docs/.vitepress/cache
-# VitePress' production build
-docs/.vitepress/dist
+# VitePress dev server cache
+/docs/.vitepress/cache/
+# VitePress production build
+/docs/.vitepress/dist/

@@ -14,6 +14,7 @@ import "package:photos/ui/components/bottom_of_title_bar_widget.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
 import "package:photos/ui/components/title_bar_title_widget.dart";
+import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 
@@ -28,9 +29,7 @@ Future<dynamic> showPersonAvatarPhotoSheet(
     },
     shape: const RoundedRectangleBorder(
       side: BorderSide(width: 0),
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(5),
-      ),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(5)),
     ),
     topControl: const SizedBox.shrink(),
     backgroundColor: getEnteColorScheme(context).backgroundElevated,
@@ -42,10 +41,7 @@ Future<dynamic> showPersonAvatarPhotoSheet(
 class PickPersonCoverPhotoWidget extends StatelessWidget {
   final PersonEntity personEntity;
 
-  const PickPersonCoverPhotoWidget(
-    this.personEntity, {
-    super.key,
-  });
+  const PickPersonCoverPhotoWidget(this.personEntity, {super.key});
 
   Future<FileLoadResult> loadPersonFiles() async {
     final sortedFiles = await SearchService.instance.getFilesForPersonID(
@@ -84,16 +80,18 @@ class PickPersonCoverPhotoWidget extends StatelessWidget {
                   Expanded(
                     child: GalleryFilesState(
                       child: Gallery(
-                        asyncLoader: (
-                          creationStartTime,
-                          creationEndTime, {
-                          limit,
-                          asc,
-                        }) async {
-                          final FileLoadResult result = await loadPersonFiles();
+                        asyncLoader:
+                            (
+                              creationStartTime,
+                              creationEndTime, {
+                              limit,
+                              asc,
+                            }) async {
+                              final FileLoadResult result =
+                                  await loadPersonFiles();
 
-                          return result;
-                        },
+                              return result;
+                            },
                         // reloadEvent: Bus.instance
                         //     .on<CollectionUpdatedEvent>()
                         //     .where(
@@ -138,22 +136,27 @@ class PickPersonCoverPhotoWidget extends StatelessWidget {
                               key: ValueKey(value),
                               isDisabled: !value,
                               buttonType: ButtonType.neutral,
-                              labelText:
-                                  AppLocalizations.of(context).useSelectedPhoto,
+                              labelText: AppLocalizations.of(
+                                context,
+                              ).useSelectedPhoto,
                               onTap: () async {
                                 final selectedFile = selectedFiles.files.first;
-                                final result =
-                                    await PersonService.instance.updateAvatar(
-                                  personEntity,
-                                  selectedFile,
-                                );
+                                final result = await PersonService.instance
+                                    .updateAvatar(personEntity, selectedFile);
                                 Bus.instance.fire(
                                   PeopleChangedEvent(
                                     type: PeopleEventType.saveOrEditPerson,
-                                    person: result,
+                                    person: result.person,
                                   ),
                                 );
-                                Navigator.pop(context, result);
+                                if (!context.mounted) return;
+                                if (result.contactPictureUpdateFailed) {
+                                  showShortToast(
+                                    context,
+                                    "Failed to update contact picture",
+                                  );
+                                }
+                                Navigator.pop(context, result.person);
                               },
                             ),
                           );

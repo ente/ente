@@ -23,8 +23,9 @@ class PeopleMemoriesCalculator {
     final List<PeopleMemory> memoryResults = [];
     if (allFileIdsToFile.isEmpty) return [];
     final nowInMicroseconds = currentTime.microsecondsSinceEpoch;
-    final windowEnd =
-        currentTime.add(kMemoriesUpdateFrequency).microsecondsSinceEpoch;
+    final windowEnd = currentTime
+        .add(kMemoriesUpdateFrequency)
+        .microsecondsSinceEpoch;
     w?.log('allFiles setup');
 
     final personIdToPerson = <String, PersonEntity>{};
@@ -79,26 +80,26 @@ class PeopleMemoriesCalculator {
 
     final unnamedClusterCandidates =
         SmartMemoriesService._buildUnnamedClusterCandidates(
-      clusterIdToFaceCount: clusterIdToFaceCount,
-      clusterIdToFaceIDs: clusterIdToFaceIDs,
-      assignedClusterIDs: assignedClusterIDs,
-      allFileIdsToFile: allFileIdsToFile,
-      fileIdToFaces: fileIdToFaces,
-      meFileIDs: meFileIDs,
-      isMeAssigned: isMeAssigned,
-      seenTimes: seenTimes,
-      nowInMicroseconds: nowInMicroseconds,
-      windowEnd: windowEnd,
-      isLocalGalleryMode: isLocalGalleryMode,
-      selectionBuilder: selectPeopleMemories,
-    );
+          clusterIdToFaceCount: clusterIdToFaceCount,
+          clusterIdToFaceIDs: clusterIdToFaceIDs,
+          assignedClusterIDs: assignedClusterIDs,
+          allFileIdsToFile: allFileIdsToFile,
+          fileIdToFaces: fileIdToFaces,
+          meFileIDs: meFileIDs,
+          isMeAssigned: isMeAssigned,
+          seenTimes: seenTimes,
+          nowInMicroseconds: nowInMicroseconds,
+          windowEnd: windowEnd,
+          isLocalGalleryMode: isLocalGalleryMode,
+          selectionBuilder: selectPeopleMemories,
+        );
     final randomizedUnnamedClusterCandidates =
         SmartMemoriesService._orderUnnamedCandidatesByRecencyAndRandom(
-      candidates: unnamedClusterCandidates,
-      shownPeople: shownPeople,
-      currentTime: currentTime,
-      shownPersonTimeout: shownPersonTimeout,
-    );
+          candidates: unnamedClusterCandidates,
+          shownPeople: shownPeople,
+          currentTime: currentTime,
+          shownPersonTimeout: shownPersonTimeout,
+        );
     w?.log('unnamed cluster candidates setup');
 
     if (kDebugMode && SmartMemoriesService._debugForceUnnamedClustersOnly) {
@@ -112,7 +113,7 @@ class PeopleMemoriesCalculator {
     }
 
     final Map<String, Map<PeopleMemoryType, List<PeopleMemoryCandidate>>>
-        personToCandidates = {};
+    personToCandidates = {};
     for (final personID in orderedImportantPersonsID) {
       final personFileIDs = personIdToFileIDs[personID]!;
       final personName = personIdToPerson[personID]!.data.name;
@@ -132,11 +133,12 @@ class PeopleMemoriesCalculator {
         final spotlightMemories = spotlightFiles
             .map((f) => Memory.fromFile(f, seenTimes))
             .toList(growable: false);
-        final spotlightList =
-            personToCandidates.putIfAbsent(personID, () => {}).putIfAbsent(
-                  PeopleMemoryType.spotlight,
-                  () => <PeopleMemoryCandidate>[],
-                );
+        final spotlightList = personToCandidates
+            .putIfAbsent(personID, () => {})
+            .putIfAbsent(
+              PeopleMemoryType.spotlight,
+              () => <PeopleMemoryCandidate>[],
+            );
         spotlightList.add(
           PeopleMemoryCandidate(
             personID: personID,
@@ -166,11 +168,12 @@ class PeopleMemoriesCalculator {
           final youAndThemMemories = youAndThemFiles
               .map((f) => Memory.fromFile(f, seenTimes))
               .toList(growable: false);
-          final youAndThemList =
-              personToCandidates.putIfAbsent(personID, () => {}).putIfAbsent(
-                    PeopleMemoryType.youAndThem,
-                    () => <PeopleMemoryCandidate>[],
-                  );
+          final youAndThemList = personToCandidates
+              .putIfAbsent(personID, () => {})
+              .putIfAbsent(
+                PeopleMemoryType.youAndThem,
+                () => <PeopleMemoryCandidate>[],
+              );
           youAndThemList.add(
             PeopleMemoryCandidate(
               personID: personID,
@@ -223,11 +226,12 @@ class PeopleMemoriesCalculator {
             final activityMemories = activityFiles
                 .map((f) => Memory.fromFile(f, seenTimes))
                 .toList(growable: false);
-            final activityList =
-                personToCandidates.putIfAbsent(personID, () => {}).putIfAbsent(
-                      PeopleMemoryType.doingSomethingTogether,
-                      () => <PeopleMemoryCandidate>[],
-                    );
+            final activityList = personToCandidates
+                .putIfAbsent(personID, () => {})
+                .putIfAbsent(
+                  PeopleMemoryType.doingSomethingTogether,
+                  () => <PeopleMemoryCandidate>[],
+                );
             activityList.add(
               PeopleMemoryCandidate(
                 personID: personID,
@@ -283,18 +287,19 @@ class PeopleMemoriesCalculator {
         );
         final filteredLastTimeMemories =
             SmartMemoriesService._filterNearDuplicates(
-          lastTimeMemories,
-          fileIDToImageEmbedding,
-          minKeep: 2,
-          isLocalGalleryMode: isLocalGalleryMode,
-        );
+              lastTimeMemories,
+              fileIDToImageEmbedding,
+              minKeep: 2,
+              isLocalGalleryMode: isLocalGalleryMode,
+            );
         final spacedLastTimeMemories =
             SmartMemoriesService._filterByTimeSpacing(filteredLastTimeMemories);
-        final lastTimeList =
-            personToCandidates.putIfAbsent(personID, () => {}).putIfAbsent(
-                  PeopleMemoryType.lastTimeYouSawThem,
-                  () => <PeopleMemoryCandidate>[],
-                );
+        final lastTimeList = personToCandidates
+            .putIfAbsent(personID, () => {})
+            .putIfAbsent(
+              PeopleMemoryType.lastTimeYouSawThem,
+              () => <PeopleMemoryCandidate>[],
+            );
         lastTimeList.add(
           PeopleMemoryCandidate(
             personID: personID,
@@ -384,8 +389,9 @@ class PeopleMemoriesCalculator {
                   isBirthday: true,
                   newAge: newAge,
                   firstDateToShow: thisBirthday.microsecondsSinceEpoch,
-                  lastDateToShow:
-                      thisBirthday.add(kDayItself).microsecondsSinceEpoch,
+                  lastDateToShow: thisBirthday
+                      .add(kDayItself)
+                      .microsecondsSinceEpoch,
                 ),
               );
             }
@@ -410,8 +416,9 @@ class PeopleMemoriesCalculator {
                   isBirthday: true,
                   newAge: newAge,
                   firstDateToShow: thisBirthday.microsecondsSinceEpoch,
-                  lastDateToShow:
-                      thisBirthday.add(kDayItself).microsecondsSinceEpoch,
+                  lastDateToShow: thisBirthday
+                      .add(kDayItself)
+                      .microsecondsSinceEpoch,
                 ),
               );
             }
@@ -510,11 +517,11 @@ class PeopleMemoriesCalculator {
       }
       final orderedEligibleUnnamedCandidates =
           SmartMemoriesService._orderUnnamedCandidatesByRecencyAndRandom(
-        candidates: eligibleUnnamedCandidates,
-        shownPeople: shownPeople,
-        currentTime: currentTime,
-        shownPersonTimeout: shownPersonTimeout,
-      );
+            candidates: eligibleUnnamedCandidates,
+            shownPeople: shownPeople,
+            currentTime: currentTime,
+            shownPersonTimeout: shownPersonTimeout,
+          );
       for (final candidate in orderedEligibleUnnamedCandidates) {
         final potentialMemory = await candidate.realize();
         if (potentialMemory == null) {

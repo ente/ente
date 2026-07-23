@@ -61,7 +61,9 @@ class _HeaderWidgetState extends State<HeaderWidget> {
     _logger.info("Building header widget");
     final bool showWrappedBanner = wrappedService.shouldShowHomeBanner;
     final bool showGetStartedBanner =
-        isLocalGalleryMode && !Configuration.instance.hasConfiguredAccount();
+        isLocalGalleryMode &&
+        !localSettings.localGalleryModeEnabledThisSession &&
+        !Configuration.instance.hasConfiguredAccount();
     final List<Widget> children = <Widget>[
       const StatusBarWidget(),
       if (showGetStartedBanner) const GetStartedBanner(),

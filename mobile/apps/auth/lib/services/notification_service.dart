@@ -17,36 +17,34 @@ class NotificationService {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('notification_icon');
     const InitializationSettings initializationSettings =
-        InitializationSettings(
-      android: initializationSettingsAndroid,
-    );
-    await _flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
-    );
+        InitializationSettings(android: initializationSettingsAndroid);
+    await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
   Future<void> showNotification(String title, String message) async {
     if (!Platform.isAndroid) {
       return;
     }
-    final implementation =
-        _flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    final implementation = _flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (implementation != null) {
       final granted = await implementation.requestNotificationsPermission();
       if (granted != true) return;
     }
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'io.ente.auth',
-      'auth',
-      channelDescription: 'auth alerts',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: false,
+          'io.ente.auth',
+          'auth',
+          channelDescription: 'auth alerts',
+          importance: Importance.max,
+          priority: Priority.high,
+          showWhen: false,
+        );
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
     );
-    const NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
     await _flutterLocalNotificationsPlugin.show(
       0,
       title,

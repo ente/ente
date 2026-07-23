@@ -10,7 +10,7 @@ import { ensureElectron } from "ente-base/electron";
 import log from "ente-base/log";
 import { ensureMasterKeyFromSession } from "ente-base/session";
 import { ComlinkWorker } from "ente-base/worker/comlink-worker";
-import { type ProcessableUploadItem } from "ente-gallery/services/upload";
+import type { ProcessableUploadItem } from "ente-gallery/services/upload";
 import { createUtilityProcess } from "ente-gallery/utils/native-worker";
 import type { EnteFile } from "ente-media/file";
 import { FileType } from "ente-media/file-type";
@@ -26,7 +26,7 @@ import {
     type CGroup,
 } from "../user-entity";
 import { deleteUserEntity } from "../user-entity/remote";
-import type { FaceCluster } from "./cluster";
+import type { ClusterFacesReason, FaceCluster } from "./cluster";
 import { regenerateFaceCrops } from "./crop";
 import {
     clearMLDB,
@@ -144,7 +144,11 @@ const worker = () =>
 
 const createComlinkWorker = async () => {
     const electron = ensureElectron();
-    const delegate = { workerDidUpdateStatus, workerDidUnawaitedIndex };
+    const delegate = {
+        workerDidUpdateStatus,
+        workerDidUnawaitedIndex,
+        workerDidLoseElectronPort,
+    };
 
     // Obtain a message port from the Electron layer.
     const messagePort = await createUtilityProcess(electron, "ml");
@@ -232,7 +236,7 @@ export const enableML = async () => {
     setInterimScheduledStatus();
     resetPeopleStateSnapshot();
     // Trigger updates, but don't wait for them to finish.
-    void updateMLStatusSnapshot().then(mlSync);
+    void updateMLStatusSnapshot().then(() => mlSync("enable-ml"));
 };
 
 /**
@@ -349,39 +353,41 @@ export const pullMLStatus = async () => {
  * This will only have an effect if {@link pullMLStatus} has been called at
  * least once prior to calling this in the pull sequence.
  */
-export const mlSync = async () => {
+export const mlSync = async (reason: ClusterFacesReason = "ml-sync") => {
     if (!_state.isMLEnabled) return;
     if (_state.isSyncing) return;
     _state.isSyncing = true;
 
-    if (_state.needsResetFailures) {
-        // CAS. See documentation for retryIndexingFailures why swapping the
-        // flag before performing the operation is fine.
-        _state.needsResetFailures = false;
-        await resetFailedFileStatuses();
+    try {
+        if (_state.needsResetFailures) {
+            // CAS. See documentation for retryIndexingFailures why swapping
+            // the flag before performing the operation is fine.
+            _state.needsResetFailures = false;
+            await resetFailedFileStatuses();
+        }
+
+        // Dependency order for the sync
+        //
+        //     files -> faces -> cgroups -> clusters -> people
+        //
+
+        // Fetch indexes, or index locally if needed.
+        await worker().then((w) => w.index());
+
+        await updateClustersAndPeople(reason);
+    } finally {
+        _state.isSyncing = false;
     }
-
-    // Dependency order for the sync
-    //
-    //     files -> faces -> cgroups -> clusters -> people
-    //
-
-    // Fetch indexes, or index locally if needed.
-    await worker().then((w) => w.index());
-
-    await updateClustersAndPeople();
-
-    _state.isSyncing = false;
 };
 
-const updateClustersAndPeople = async () => {
+const updateClustersAndPeople = async (reason: ClusterFacesReason) => {
     const masterKey = await ensureMasterKeyFromSession();
 
     // Fetch existing cgroups from remote.
     await pullUserEntities("cgroup", masterKey);
 
     // Generate or update local clusters.
-    await (await worker()).clusterFaces(masterKey);
+    await (await worker()).clusterFaces(masterKey, reason);
 
     // Update the people shown in the UI.
     await updatePeopleState();
@@ -407,7 +413,13 @@ const debounceUpdateClustersAndPeople = pDebounce(
     30 * 1e3,
 );
 
-const workerDidUnawaitedIndex = () => void debounceUpdateClustersAndPeople();
+const workerDidLoseElectronPort = () => {
+    log.error("Discarding the ML worker since its utility process exited");
+    void terminateMLWorker();
+};
+
+const workerDidUnawaitedIndex = () =>
+    void debounceUpdateClustersAndPeople("live-upload-index");
 
 /**
  * Run indexing on a file which was uploaded from this client.
@@ -789,7 +801,7 @@ export const addCGroup = async (name: string, cluster: FaceCluster) => {
         },
         await ensureMasterKeyFromSession(),
     );
-    await mlSync();
+    await mlSync("add-cgroup");
     return id;
 };
 
@@ -820,7 +832,7 @@ export const addClusterToCGroup = async (
         [{ ...cgroup, data: { ...cgroup.data, assigned, rejectedFaceIDs } }],
         await ensureMasterKeyFromSession(),
     );
-    return mlSync();
+    return mlSync("add-cluster-to-cgroup");
 };
 
 /**
@@ -837,7 +849,7 @@ export const renameCGroup = async (cgroup: CGroup, name: string) => {
         [{ ...cgroup, data: { ...cgroup.data, name } }],
         await ensureMasterKeyFromSession(),
     );
-    return mlSync();
+    return mlSync("rename-cgroup");
 };
 
 /**
@@ -849,6 +861,7 @@ export const renameCGroup = async (cgroup: CGroup, name: string) => {
 export const deleteCGroup = async ({ id }: CGroup, skipSync = false) => {
     await deleteUserEntity(id);
     if (!skipSync) return mlSync();
+    return mlSync("delete-cgroup");
 };
 
 /**
@@ -860,7 +873,7 @@ export const setCGroupPinned = async (cgroup: CGroup, isPinned: boolean) => {
         [{ ...cgroup, data: { ...cgroup.data, isPinned } }],
         await ensureMasterKeyFromSession(),
     );
-    return mlSync();
+    return mlSync("set-cgroup-pinned");
 };
 
 export const pinCGroup = async (cgroup: CGroup) =>
@@ -979,7 +992,7 @@ export const applyPersonSuggestionUpdates = async (
         updates,
         await ensureMasterKeyFromSession(),
     );
-    return mlSync();
+    return mlSync("apply-person-suggestion-updates");
 };
 
 /**
@@ -1004,4 +1017,5 @@ export const ignoreCluster = async (cluster: FaceCluster, skipSync = false) => {
         await ensureMasterKeyFromSession(),
     );
     if (!skipSync) return mlSync();
+    return mlSync("ignore-cluster");
 };

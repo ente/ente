@@ -10,22 +10,24 @@ To know more about Ente, see [our main README](../../../../../README.md) or visi
 
 2. Generate the Kotlin bindings:
 
-    ```sh
-    cd rust
-    cargo codegen ensu-android
-    ```
+   ```sh
+   cd rust
+   cargo codegen native
+   ```
 
-3. Open the project in Android Studio and run the `app-ui` module. If the Android NDK is missing, Android Studio will prompt to install it.
+3. Open the project in Android Studio and run the `app` module. If the Android NDK is missing, Android Studio will prompt to install it.
 
-That's it. Apart from the `cargo codegen`, this is a normal Android project.
+That's it. Apart from the `cargo codegen`, this is a normal Android project. Gradle cross-compiles the Rust libraries to JNI `.so` files automatically when building the app.
 
 > [!NOTE]
 >
-> Re-run `cargo codegen ensu-android` whenever the UniFFI interface under `rust/bindings/uniffi` changes.
+> Re-run `cargo codegen native` whenever the UniFFI-exported surface under `rust/bindings/uniffi/` changes. Internal Rust changes (function bodies, private helpers) are picked up by the normal Gradle build.
 >
-> Gradle cross-compiles the Rust libraries to JNI `.so` files automatically when building the app.
-
-A custom endpoint can be baked into the build via `./gradlew :app-ui:installDebug -PENTE_API_ENDPOINT=http://localhost:8080`, or by exporting `ENTE_API_ENDPOINT` before running Gradle.
+> From anywhere in the repo:
+>
+> ```sh
+> (cd "$(git rev-parse --show-toplevel)/rust" && cargo codegen native)
+> ```
 
 ## Terminal builds
 
@@ -39,33 +41,24 @@ Build and install a debug APK on a connected device or emulator:
 
 ```sh
 cd mobile/native/android/apps/ensu
-./gradlew :app-ui:installDebug
-adb shell am start -n io.ente.ensu/.MainActivity
+./gradlew :app:installDebug
+adb shell am start -n io.ente.ensu.debug/io.ente.ensu.MainActivity
 ```
 
 Release APK:
 
 ```sh
-./gradlew :app-ui:assembleRelease
+./gradlew :app:assembleRelease
 ```
 
-Output: `app-ui/build/outputs/apk/release/app-ui-release.apk`.
+Output: `app/build/outputs/apk/release/app-release.apk`.
 
 Release AAB (Play Store bundle):
 
 ```sh
-./gradlew :app-ui:bundleRelease
+./gradlew :app:bundleRelease
 ```
 
-Output: `app-ui/build/outputs/bundle/release/app-ui-release.aab`.
+Output: `app/build/outputs/bundle/release/app-release.aab`.
 
-Release builds use a debug keystore located at `debug.keystore`. For production releases, configure your own signing keys in `app-ui/build.gradle.kts`.
-
-## Modules
-
-- `app-ui/` — Compose UI and app entry point.
-- `domain/` — Business logic and state (pure Kotlin).
-- `data/` — Repositories, network, storage.
-- `crypto-auth-core/` — Cryptographic primitives (UniFFI-wrapped Rust).
-
-The Rust glue for `db` / `sync` / `inference` lives outside this app, at [`mobile/native/android/packages/rust/`](../../packages/rust/).
+Release builds use a debug keystore located at `debug.keystore`. For production releases, configure your own signing keys in `app/build.gradle.kts`.

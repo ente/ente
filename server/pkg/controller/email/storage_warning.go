@@ -8,13 +8,13 @@ import (
 	"strings"
 	stdtime "time"
 
-	"github.com/ente-io/museum/ente"
-	bonus "github.com/ente-io/museum/ente/storagebonus"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/billing"
-	emailUtil "github.com/ente-io/museum/pkg/utils/email"
-	"github.com/ente-io/museum/pkg/utils/rollout"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	bonus "github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/billing"
+	emailUtil "github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/museum/pkg/utils/rollout"
+	"github.com/ente/museum/pkg/utils/time"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -25,11 +25,11 @@ const (
 	storageWarningFromName     = "Ente"
 	storageWarningFromEmail    = "support@ente.com"
 
-	storageWarningOverageThreshold             = 25 * (1 << 30)
+	storageWarningOverageThreshold             = int64(25 * (1 << 30))
 	storageWarningPreviousStageFreshnessWindow = 35 * 24 * time.MicroSecondsInOneHour
 	storageWarningOneDayInMicroseconds         = 24 * time.MicroSecondsInOneHour
 	storageWarningBufferedCadenceExtraGrace    = 2 * storageWarningOneDayInMicroseconds
-	storageWarningRolloutPercentage            = 80
+	storageWarningRolloutPercentage            = 100
 	storageWarningRolloutNonce                 = "storage-warning-v1"
 
 	storageWarningActiveOverageNotificationGroup = "storage_warning_active_overage"
@@ -104,6 +104,15 @@ var persistStorageWarningHistory = func(notificationHistoryRepo *repo.Notificati
 		return notificationHistoryRepo.SetLastNotificationTimeToNow(snapshot.RecipientID, templateID)
 	}
 	return notificationHistoryRepo.SetLastNotificationTimeToNowWithGroup(snapshot.RecipientID, templateID, historyGroup)
+}
+
+// The login-grace marker is not a warning stage. It is fetched alongside stage
+// history so the daily job can pause or resume terminal enforcement.
+func storageWarningTemplateIDsWithLoginGrace(templateIDs []string) []string {
+	result := make([]string, 0, len(templateIDs)+1)
+	result = append(result, templateIDs...)
+	result = append(result, repo.StorageWarningLoginGraceTemplateID)
+	return result
 }
 
 var storageWarningStageOrder = []string{
@@ -210,6 +219,12 @@ func (c *EmailNotificationController) SendStorageWarningMails() {
 		log.WithError(err).Error("Failed to fetch storage warning candidates")
 		return
 	}
+	graceCandidates, err := c.NotificationHistoryRepo.GetStorageWarningLoginGraceCandidates(ctx)
+	if err != nil {
+		log.WithError(err).Error("Failed to fetch storage warning login grace candidates")
+		return
+	}
+	candidates = mergeStorageWarningCandidates(candidates, graceCandidates)
 
 	processed := 0
 	sent := 0
@@ -316,12 +331,60 @@ func (c *EmailNotificationController) SendFamilyStorageWarningMails() {
 	c.SendStorageWarningMails()
 }
 
+func mergeStorageWarningCandidates(candidateSets ...[]repo.StorageWarningCandidate) []repo.StorageWarningCandidate {
+	result := make([]repo.StorageWarningCandidate, 0)
+	indices := make(map[int64]int)
+	for _, candidates := range candidateSets {
+		for _, candidate := range candidates {
+			if index, ok := indices[candidate.RecipientID]; ok {
+				result[index].IsFamilyPlan = result[index].IsFamilyPlan || candidate.IsFamilyPlan
+				continue
+			}
+			indices[candidate.RecipientID] = len(result)
+			result = append(result, candidate)
+		}
+	}
+	return result
+}
+
 func (c *EmailNotificationController) cleanupActiveOverageWarningHistory(preserveRecipientIDs map[int64]struct{}) error {
 	keepUserIDs := make([]int64, 0, len(preserveRecipientIDs))
 	for userID := range preserveRecipientIDs {
 		keepUserIDs = append(keepUserIDs, userID)
 	}
 	return c.NotificationHistoryRepo.DeleteNotificationHistoryByGroupExcludingUsers(storageWarningActiveOverageNotificationGroup, keepUserIDs)
+}
+
+func (c *EmailNotificationController) clearStorageWarningLoginGrace(userID int64, logger *log.Entry) error {
+	if c.NotificationHistoryRepo == nil {
+		return nil
+	}
+	if err := c.NotificationHistoryRepo.ClearStorageWarningLoginGrace(userID); err != nil {
+		if logger != nil {
+			logger.WithError(err).Error("Failed to clear storage warning login grace")
+		}
+		return err
+	}
+	if logger != nil {
+		logger.Info("Cleared storage warning login grace")
+	}
+	return nil
+}
+
+func (c *EmailNotificationController) clearRecoveredStorageWarningLoginState(userID int64, logger *log.Entry) error {
+	if c.NotificationHistoryRepo == nil {
+		return nil
+	}
+	// A cron/admin race can recreate the terminal login-block row while the grace
+	// marker is active. Once the user recovers, remove both rows so clearing grace
+	// does not expose the stale block again.
+	if err := c.NotificationHistoryRepo.ClearStorageWarningDeletionScheduled(userID); err != nil {
+		if logger != nil {
+			logger.WithError(err).Error("Failed to clear storage warning deletion state after recovery")
+		}
+		return err
+	}
+	return c.clearStorageWarningLoginGrace(userID, logger)
 }
 
 func (c *EmailNotificationController) buildStorageWarningSnapshot(ctx context.Context, candidate repo.StorageWarningCandidate, now int64) (storageWarningSnapshot, error) {
@@ -428,7 +491,7 @@ func (c *EmailNotificationController) buildIndividualStorageWarningSnapshot(ctx 
 func (c *EmailNotificationController) decorateStorageWarningSnapshot(snapshot storageWarningSnapshot, now int64) (storageWarningSnapshot, error) {
 	switch snapshot.Bucket {
 	case storageWarningBucketExpired:
-		history, err := c.NotificationHistoryRepo.GetLastNotificationTimes(snapshot.RecipientID, expiredWarningTemplateIDs())
+		history, err := c.NotificationHistoryRepo.GetLastNotificationTimes(snapshot.RecipientID, storageWarningTemplateIDsWithLoginGrace(expiredWarningTemplateIDs()))
 		if err != nil {
 			return storageWarningSnapshot{}, err
 		}
@@ -443,7 +506,7 @@ func (c *EmailNotificationController) decorateStorageWarningSnapshot(snapshot st
 			return snapshot, nil
 		}
 	case storageWarningBucketActiveOverage:
-		history, err := c.NotificationHistoryRepo.GetLastNotificationTimes(snapshot.RecipientID, activeOverageWarningTemplateIDs())
+		history, err := c.NotificationHistoryRepo.GetLastNotificationTimes(snapshot.RecipientID, storageWarningTemplateIDsWithLoginGrace(activeOverageWarningTemplateIDs()))
 		if err != nil {
 			return storageWarningSnapshot{}, err
 		}
@@ -456,6 +519,12 @@ func (c *EmailNotificationController) decorateStorageWarningSnapshot(snapshot st
 			return snapshot, nil
 		}
 		snapshot.AutoDeleteDate = activeOverageWarningAutoDeleteDate(snapshot.WarningCycleStart, snapshot.ActiveOverageStage, now)
+	case storageWarningBucketNone:
+		history, err := c.NotificationHistoryRepo.GetLastNotificationTimes(snapshot.RecipientID, []string{repo.StorageWarningLoginGraceTemplateID})
+		if err != nil {
+			return storageWarningSnapshot{}, err
+		}
+		snapshot.NotificationHistory = history
 	}
 	return snapshot, nil
 }
@@ -465,6 +534,35 @@ func (c *EmailNotificationController) processStorageWarningSnapshot(ctx context.
 		"recipient_id":   snapshot.RecipientID,
 		"is_family_plan": snapshot.IsFamilyPlan,
 	})
+	graceActive, graceExpired, graceUntil := storageWarningLoginGraceState(snapshot)
+	currentBucket := storageWarningCurrentBucket(snapshot)
+	if currentBucket == storageWarningBucketNone && snapshot.Bucket == storageWarningBucketNone {
+		if graceActive || graceExpired {
+			if err := c.clearRecoveredStorageWarningLoginState(snapshot.RecipientID, logger); err != nil {
+				return storageWarningProcessResultSkipped, err
+			}
+		}
+		return storageWarningProcessResultSkipped, nil
+	}
+
+	// A soft-unblock pauses the terminal state machine for the full grace
+	// window. This must run before cadence checks because active-overage
+	// reminder history may already have been cleaned after the original block.
+	if graceActive {
+		logger.WithFields(log.Fields{
+			"bucket":            snapshot.Bucket,
+			"active_stage":      snapshot.ActiveOverageStage,
+			"expired_stage":     snapshot.ExpiredStage,
+			"login_grace_until": graceUntil,
+		}).Info("Skipping storage warning due to active login grace")
+		return storageWarningProcessResultSkipped, nil
+	}
+	if graceExpired {
+		if snapshot.Bucket == storageWarningBucketNone {
+			snapshot.Bucket = currentBucket
+		}
+		snapshot = storageWarningForceScheduledDeletionAfterLoginGrace(snapshot)
+	}
 	if snapshot.Bucket == storageWarningBucketNone {
 		return storageWarningProcessResultSkipped, nil
 	}
@@ -476,19 +574,36 @@ func (c *EmailNotificationController) processStorageWarningSnapshot(ctx context.
 	}
 
 	if storageWarningTemplateSentInCycle(snapshot.NotificationHistory, templateID, snapshot.WarningCycleStart) {
-		return storageWarningProcessResultSkipped, nil
-	}
-	if cadenceBroken, cadenceAlert := storageWarningCadenceBroken(snapshot); cadenceBroken {
-		logger.WithFields(log.Fields{
-			"bucket":              snapshot.Bucket,
-			"active_stage":        snapshot.ActiveOverageStage,
-			"expired_stage":       snapshot.ExpiredStage,
-			"warning_cycle_start": snapshot.WarningCycleStart,
-		}).Warn("Skipping storage warning due to broken stage cadence")
-		if c.DiscordController != nil {
-			c.DiscordController.NotifyAdminAction(cadenceAlert)
+		if graceExpired {
+			if err := c.clearStorageWarningLoginGrace(snapshot.RecipientID, logger); err != nil {
+				return storageWarningProcessResultSkipped, err
+			}
 		}
 		return storageWarningProcessResultSkipped, nil
+	}
+	shouldResetUserAccess := storageWarningShouldResetUserAccess(snapshot)
+	if cadenceBroken, cadenceAlert := storageWarningCadenceBroken(snapshot); cadenceBroken {
+		if shouldResetUserAccess && graceExpired {
+			logger.WithFields(log.Fields{
+				"bucket":              snapshot.Bucket,
+				"active_stage":        snapshot.ActiveOverageStage,
+				"expired_stage":       snapshot.ExpiredStage,
+				"template_id":         templateID,
+				"login_grace_until":   graceUntil,
+				"warning_cycle_start": snapshot.WarningCycleStart,
+			}).Info("Allowing storage warning scheduled deletion after login grace expiry")
+		} else {
+			logger.WithFields(log.Fields{
+				"bucket":              snapshot.Bucket,
+				"active_stage":        snapshot.ActiveOverageStage,
+				"expired_stage":       snapshot.ExpiredStage,
+				"warning_cycle_start": snapshot.WarningCycleStart,
+			}).Warn("Skipping storage warning due to broken stage cadence")
+			if c.DiscordController != nil {
+				c.DiscordController.NotifyAdminAction(cadenceAlert)
+			}
+			return storageWarningProcessResultSkipped, nil
+		}
 	}
 
 	templateData := map[string]interface{}{
@@ -536,7 +651,6 @@ func (c *EmailNotificationController) processStorageWarningSnapshot(ctx context.
 	if !isInStorageWarningRollout(snapshot.RecipientID, snapshot.AccountEmail) {
 		return storageWarningProcessResultSkippedRollout, nil
 	}
-	shouldResetUserAccess := storageWarningShouldResetUserAccess(snapshot)
 	if shouldResetUserAccess && c.UserAccessResetter == nil {
 		err := errors.New("storage warning user access resetter is not configured")
 		logger.WithError(err).Error("Failed to restrict user access for storage scheduled deletion")
@@ -573,6 +687,11 @@ func (c *EmailNotificationController) processStorageWarningSnapshot(ctx context.
 	if err != nil {
 		logger.WithError(err).Error("Failed to persist storage warning history")
 		return storageWarningProcessResultSkipped, err
+	}
+	if graceExpired {
+		if err := c.clearStorageWarningLoginGrace(snapshot.RecipientID, logger); err != nil {
+			return storageWarningProcessResultSkipped, err
+		}
 	}
 
 	logger.Info("Sent storage warning email")
@@ -683,6 +802,8 @@ func storageWarningNotificationGroup(bucket storageWarningBucket) string {
 }
 
 func storageWarningHistoryGroup(snapshot storageWarningSnapshot) string {
+	// Terminal rows are deliberately ungrouped because they are the login-block
+	// marker. Group cleanup only applies to reminder history.
 	if storageWarningShouldResetUserAccess(snapshot) {
 		return ""
 	}
@@ -700,7 +821,48 @@ func storageWarningShouldResetUserAccess(snapshot storageWarningSnapshot) bool {
 	}
 }
 
+func storageWarningCurrentBucket(snapshot storageWarningSnapshot) storageWarningBucket {
+	if snapshot.CurrentBucket != "" {
+		return snapshot.CurrentBucket
+	}
+	return snapshot.Bucket
+}
+
+// storageWarningLoginGraceState evaluates the latest soft-unblock row. The
+// daily job clears the row after recovery or re-block, so the timestamp itself
+// defines the current window.
+func storageWarningLoginGraceState(snapshot storageWarningSnapshot) (active bool, expired bool, graceUntil int64) {
+	graceSentAt := snapshot.NotificationHistory[repo.StorageWarningLoginGraceTemplateID]
+	if graceSentAt <= 0 {
+		return false, false, 0
+	}
+	graceUntil = repo.StorageWarningLoginGraceUntil(graceSentAt)
+	if repo.StorageWarningLoginGraceActive(graceSentAt, snapshot.EvaluatedAt) {
+		return true, false, graceUntil
+	}
+	return false, true, graceUntil
+}
+
+func storageWarningForceScheduledDeletionAfterLoginGrace(snapshot storageWarningSnapshot) storageWarningSnapshot {
+	switch snapshot.Bucket {
+	case storageWarningBucketExpired:
+		snapshot.ExpiredStage = expiredWarningStageScheduledDeletion
+	case storageWarningBucketActiveOverage:
+		snapshot.ActiveOverageStage = activeOverageWarningStageScheduledDeletion
+	}
+	if snapshot.WarningCycleStart <= 0 {
+		snapshot.WarningCycleStart = snapshot.EvaluatedAt
+	}
+	if snapshot.AutoDeleteDate <= 0 {
+		snapshot.AutoDeleteDate = snapshot.EvaluatedAt
+	}
+	return snapshot
+}
+
 func storageWarningShouldPreserveActiveOverageHistory(snapshot storageWarningSnapshot) bool {
+	// Active-overage reminder rows are kept while the user is in a non-terminal
+	// cycle. Once a terminal row exists, the row itself is enough to block login
+	// and grouped reminder history may be cleaned.
 	if snapshot.CurrentBucket != storageWarningBucketActiveOverage {
 		return false
 	}

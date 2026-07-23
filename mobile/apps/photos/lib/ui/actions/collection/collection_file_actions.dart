@@ -10,6 +10,7 @@ import "package:photos/generated/l10n.dart";
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/selected_files.dart';
+import "package:photos/module/upload/service/file_uploader.dart";
 import "package:photos/services/collections_service.dart";
 import 'package:photos/services/favorites_service.dart';
 import "package:photos/services/hidden_service.dart";
@@ -22,7 +23,6 @@ import 'package:photos/ui/components/buttons/button_widget.dart';
 import 'package:photos/ui/components/models/button_type.dart';
 import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/utils/dialog_util.dart';
-import "package:photos/utils/file_uploader.dart";
 import "package:photos/utils/share_util.dart";
 import "package:receive_sharing_intent/receive_sharing_intent.dart";
 
@@ -39,8 +39,9 @@ extension CollectionFileActions on CollectionActions {
       buttons: [
         ButtonWidget(
           labelText: AppLocalizations.of(context).remove,
-          buttonType:
-              removingOthersFile ? ButtonType.critical : ButtonType.neutral,
+          buttonType: removingOthersFile
+              ? ButtonType.critical
+              : ButtonType.neutral,
           buttonSize: ButtonSize.large,
           shouldStickToDarkTheme: true,
           isInAlert: true,
@@ -67,9 +68,7 @@ extension CollectionFileActions on CollectionActions {
           isInAlert: true,
         ),
       ],
-      title: removingOthersFile
-          ? AppLocalizations.of(context).removeFromAlbumTitle
-          : null,
+      title: AppLocalizations.of(context).removeFromAlbumTitle,
       body: removingOthersFile
           ? AppLocalizations.of(context).removeShareItemsWarning
           : AppLocalizations.of(context).itemsWillBeRemovedFromAlbum,
@@ -77,6 +76,7 @@ extension CollectionFileActions on CollectionActions {
     );
     if (actionResult?.action != null &&
         actionResult!.action == ButtonAction.error) {
+      if (!context.mounted) return;
       await showGenericErrorDialog(
         context: context,
         error: actionResult.exception,
@@ -131,11 +131,12 @@ extension CollectionFileActions on CollectionActions {
         }
         if (filesPendingUpload.isNotEmpty) {
           // Newly created collection might not be cached
-          final Collection? c =
-              CollectionsService.instance.getCollectionByID(collection.id);
+          final Collection? c = CollectionsService.instance.getCollectionByID(
+            collection.id,
+          );
           if (c != null && c.owner.id != currentUserID) {
-            final Collection uncat =
-                await CollectionsService.instance.getUncategorizedCollection();
+            final Collection uncat = await CollectionsService.instance
+                .getUncategorizedCollection();
             for (EnteFile unuploadedFile in filesPendingUpload) {
               final uploadedFile = await FileUploader.instance.forceUpload(
                 unuploadedFile,
@@ -149,8 +150,9 @@ extension CollectionFileActions on CollectionActions {
             }
             // filesPendingUpload might be getting ignored during auto-upload
             // because the user deleted these files from ente in the past.
-            await IgnoredFilesService.instance
-                .removeIgnoredMappings(filesPendingUpload);
+            await IgnoredFilesService.instance.removeIgnoredMappings(
+              filesPendingUpload,
+            );
             await FilesDB.instance.insertMultiple(filesPendingUpload);
             Bus.instance.fire(
               CollectionUpdatedEvent(
@@ -162,17 +164,17 @@ extension CollectionFileActions on CollectionActions {
           }
         }
         if (files.isNotEmpty) {
-          await CollectionsService.instance
-              .addOrCopyToCollection(collection.id, files);
+          await CollectionsService.instance.addOrCopyToCollection(
+            collection.id,
+            files,
+          );
         }
         CollectionsService.instance.recordCollectionUsage(collection.id);
       } catch (e, s) {
         logger.severe("Failed to add to album", e, s);
         await dialog?.hide();
-        await showGenericErrorDialog(
-          context: context,
-          error: e,
-        );
+        if (!context.mounted) return false;
+        await showGenericErrorDialog(context: context, error: e);
         return false;
       } finally {
         // Syncing since successful addition to collection could have
@@ -207,17 +209,11 @@ extension CollectionFileActions on CollectionActions {
       final int currentUserID = Configuration.instance.getUserID()!;
       if (sharedFiles != null) {
         filesPendingUpload.addAll(
-          await convertIncomingSharedMediaToFile(
-            sharedFiles,
-            collectionID,
-          ),
+          await convertIncomingSharedMediaToFile(sharedFiles, collectionID),
         );
       } else if (picketAssets != null) {
         filesPendingUpload.addAll(
-          await convertPicketAssets(
-            picketAssets,
-            collectionID,
-          ),
+          await convertPicketAssets(picketAssets, collectionID),
         );
       } else {
         for (final file in selectedFiles!) {
@@ -246,10 +242,12 @@ extension CollectionFileActions on CollectionActions {
       }
       if (filesPendingUpload.isNotEmpty) {
         // Newly created collection might not be cached
-        final Collection? c =
-            CollectionsService.instance.getCollectionByID(collectionID);
+        final Collection? c = CollectionsService.instance.getCollectionByID(
+          collectionID,
+        );
         if (c != null && c.owner.id != currentUserID) {
           if (!showProgressDialog) {
+            if (!context.mounted) return false;
             dialog = createProgressDialog(
               context,
               AppLocalizations.of(context).uploadingFilesToAlbum,
@@ -257,8 +255,8 @@ extension CollectionFileActions on CollectionActions {
             );
             await dialog.show();
           }
-          final Collection uncat =
-              await CollectionsService.instance.getUncategorizedCollection();
+          final Collection uncat = await CollectionsService.instance
+              .getUncategorizedCollection();
           for (EnteFile unuploadedFile in filesPendingUpload) {
             final uploadedFile = await FileUploader.instance.forceUpload(
               unuploadedFile,
@@ -272,8 +270,9 @@ extension CollectionFileActions on CollectionActions {
           }
           // filesPendingUpload might be getting ignored during auto-upload
           // because the user deleted these files from ente in the past.
-          await IgnoredFilesService.instance
-              .removeIgnoredMappings(filesPendingUpload);
+          await IgnoredFilesService.instance.removeIgnoredMappings(
+            filesPendingUpload,
+          );
           await FilesDB.instance.insertMultiple(filesPendingUpload);
           Bus.instance.fire(
             CollectionUpdatedEvent(
@@ -285,8 +284,10 @@ extension CollectionFileActions on CollectionActions {
         }
       }
       if (files.isNotEmpty) {
-        await CollectionsService.instance
-            .addOrCopyToCollection(collectionID, files);
+        await CollectionsService.instance.addOrCopyToCollection(
+          collectionID,
+          files,
+        );
       }
       unawaited(RemoteSyncService.instance.sync(silently: true));
       await dialog?.hide();
@@ -294,7 +295,9 @@ extension CollectionFileActions on CollectionActions {
     } catch (e, s) {
       logger.severe("Failed to add to album", e, s);
       await dialog?.hide();
-      await showGenericErrorDialog(context: context, error: e);
+      if (context.mounted) {
+        await showGenericErrorDialog(context: context, error: e);
+      }
       rethrow;
     }
   }
@@ -313,11 +316,16 @@ extension CollectionFileActions on CollectionActions {
     await dialog.show();
 
     try {
-      await FavoritesService.instance
-          .updateFavorites(context, files, markAsFavorite);
+      if (!context.mounted) return false;
+      await FavoritesService.instance.updateFavorites(
+        context,
+        files,
+        markAsFavorite,
+      );
       return true;
     } catch (e, s) {
       logger.severe("Failed to update favorites", e, s);
+      if (!context.mounted) return false;
       showShortToast(
         context,
         markAsFavorite

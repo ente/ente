@@ -1,10 +1,12 @@
 import "dart:async";
 import "dart:ui";
 
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:flutter_animate/flutter_animate.dart";
 import "package:flutter_map/flutter_map.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:latlong2/latlong.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/location_tag_updated_event.dart";
@@ -14,8 +16,7 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/states/location_screen_state.dart";
 import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/components/buttons/chip_button_widget.dart";
-import "package:photos/ui/components/info_item_widget.dart";
+import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/map/image_marker.dart";
 import "package:photos/ui/map/map_screen.dart";
 import "package:photos/ui/map/map_view.dart";
@@ -35,10 +36,8 @@ class LocationTagsWidget extends StatefulWidget {
 
 class _LocationTagsWidgetState extends State<LocationTagsWidget> {
   String? title;
-  IconData? leadingIcon;
   late Future<List<Widget>> locationTagChips;
   late StreamSubscription<LocationTagUpdatedEvent> _locTagUpdateListener;
-  VoidCallback? onTap;
   bool _loadedLocationTags = false;
 
   @override
@@ -47,8 +46,9 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
       _loadedLocationTags = true;
       return value;
     });
-    _locTagUpdateListener =
-        Bus.instance.on<LocationTagUpdatedEvent>().listen((event) {
+    _locTagUpdateListener = Bus.instance.on<LocationTagUpdatedEvent>().listen((
+      event,
+    ) {
       locationTagChips = _getLocationTags();
     });
 
@@ -63,77 +63,76 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 500),
-      switchInCurve: Curves.easeInOutExpo,
-      switchOutCurve: Curves.easeInOutExpo,
-      child: InfoItemWidget(
-        key: ValueKey(title),
-        leadingIcon: leadingIcon ?? Icons.pin_drop_outlined,
-        title: title,
-        subtitleSection: locationTagChips,
-        onTap: onTap,
-        endSection: _loadedLocationTags
-            ? InfoMap(widget.file)
-            : const SizedBox.shrink(),
-
-        /// to be used when state issues are fixed when location is updated
-        // editOnTap: widget.file.ownerID == Configuration.instance.getUserID()!
-        //     ? () {
-        //         showBarModalBottomSheet(
-        //           shape: const RoundedRectangleBorder(
-        //             borderRadius: BorderRadius.vertical(
-        //               top: Radius.circular(5),
-        //             ),
-        //           ),
-        //           backgroundColor:
-        //               getEnteColorScheme(context).backgroundElevated,
-        //           barrierColor: backdropFaintDark,
-        //           context: context,
-        //           builder: (context) {
-        //             return UpdateLocationDataWidget([widget.file]);
-        //           },
-        //         );
-        //       }
-        //     : null,
-      ),
+    final colors = context.componentColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title ?? AppLocalizations.of(context).location,
+          style: TextStyles.h2,
+        ),
+        const SizedBox(height: Spacing.lg),
+        FutureBuilder<List<Widget>>(
+          future: locationTagChips,
+          builder: (context, snapshot) {
+            final Widget child;
+            if (snapshot.hasData) {
+              child = Wrap(
+                spacing: Spacing.sm,
+                runSpacing: Spacing.sm,
+                children: snapshot.data!,
+              );
+            } else {
+              child = EnteLoadingWidget(
+                padding: 3,
+                size: 11,
+                color: colors.strokeFaint,
+                alignment: Alignment.centerLeft,
+              );
+            }
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              switchInCurve: Curves.easeInOutExpo,
+              child: child,
+            );
+          },
+        ),
+        if (_loadedLocationTags) InfoMap(widget.file),
+      ],
     );
   }
 
   Future<List<Widget>> _getLocationTags() async {
     // await Future.delayed(const Duration(seconds: 1));
-    final locationTags =
-        await locationService.enclosingLocationTags(widget.file.location!);
+    final locationTags = await locationService.enclosingLocationTags(
+      widget.file.location!,
+    );
     if (locationTags.isEmpty) {
       if (mounted) {
         setState(() {
           title = AppLocalizations.of(context).location;
-          leadingIcon = Icons.pin_drop_outlined;
-          onTap = null;
         });
       }
+      if (!mounted) return const [];
       return [
-        ChipButtonWidget(
-          AppLocalizations.of(context).addLocation,
-          onTap: () => showAddLocationSheet(
-            context,
-            widget.file.location!,
-          ),
+        FilterChipComponent(
+          label: AppLocalizations.of(context).addLocation,
+          onChanged: (_) =>
+              showAddLocationSheet(context, widget.file.location!),
         ),
       ];
     } else {
       if (mounted) {
         setState(() {
           title = AppLocalizations.of(context).location;
-          leadingIcon = Icons.pin_drop_outlined;
-          onTap = null;
         });
       }
       final result = locationTags
-          .map(
-            (locationTagEntity) => ChipButtonWidget(
-              locationTagEntity.item.name,
-              onTap: () {
+          .map<Widget>(
+            (locationTagEntity) => FilterChipComponent(
+              label: locationTagEntity.item.name,
+              onChanged: (_) {
                 routeToPage(
                   context,
                   LocationScreenStateProvider(
@@ -146,10 +145,13 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
           )
           .toList();
       result.add(
-        ChipButtonWidget(
-          null,
-          leadingIcon: Icons.add,
-          iconSize: 15,
+        IconButtonComponent(
+          icon: const HugeIcon(
+            icon: HugeIcons.strokeRoundedPlusSign,
+            size: IconSizes.small,
+          ),
+          variant: IconButtonComponentVariant.circular,
+          shouldSurfaceExecutionStates: false,
           onTap: () => showAddLocationSheet(context, widget.file.location!),
         ),
       );
@@ -198,138 +200,140 @@ class _InfoMapState extends State<InfoMap> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: ClipRRect(
-        clipBehavior: Clip.antiAliasWithSaveLayer,
-        borderRadius: const BorderRadius.all(Radius.circular(8)),
-        child: SizedBox(
-          height: 124,
-          child: _hasEnabledMap
-              ? Stack(
-                  clipBehavior: Clip.none,
-                  key: ValueKey(_hasEnabledMap),
-                  children: [
-                    MapView(
-                      updateVisibleImages: () {},
-                      imageMarkers: [
-                        ImageMarker(
-                          imageFile: widget.file,
-                          latitude: _fileLat,
-                          longitude: _fileLng,
+          padding: const EdgeInsets.only(top: 8),
+          child: ClipRRect(
+            clipBehavior: Clip.antiAliasWithSaveLayer,
+            borderRadius: const BorderRadius.all(Radius.circular(Radii.button)),
+            child: SizedBox(
+              height: 124,
+              child: _hasEnabledMap
+                  ? Stack(
+                      clipBehavior: Clip.none,
+                      key: ValueKey(_hasEnabledMap),
+                      children: [
+                        MapView(
+                          updateVisibleImages: () {},
+                          imageMarkers: [
+                            ImageMarker(
+                              imageFile: widget.file,
+                              latitude: _fileLat,
+                              longitude: _fileLng,
+                            ),
+                          ],
+                          controller: _mapController,
+                          center: LatLng(_fileLat, _fileLng),
+                          minZoom: _enabledMapZoom,
+                          maxZoom: _enabledMapZoom,
+                          initialZoom: _enabledMapZoom,
+                          bottomSheetDraggableAreaHeight: 0,
+                          showControls: false,
+                          interactiveFlags: InteractiveFlag.none,
+                          mapAttributionOptions: MapAttributionOptions(
+                            permanentHeight: 16,
+                            popupBorderRadius: BorderRadius.circular(4),
+                            iconSize: 16,
+                          ),
+                          onTap: enabledMapOnTap,
+                          markerSize: const Size(45, 45),
                         ),
-                      ],
-                      controller: _mapController,
-                      center: LatLng(
-                        _fileLat,
-                        _fileLng,
-                      ),
-                      minZoom: _enabledMapZoom,
-                      maxZoom: _enabledMapZoom,
-                      initialZoom: _enabledMapZoom,
-                      bottomSheetDraggableAreaHeight: 0,
-                      showControls: false,
-                      interactiveFlags: InteractiveFlag.none,
-                      mapAttributionOptions: MapAttributionOptions(
-                        permanentHeight: 16,
-                        popupBorderRadius: BorderRadius.circular(4),
-                        iconSize: 16,
-                      ),
-                      onTap: enabledMapOnTap,
-                      markerSize: const Size(45, 45),
-                    ),
-                    IgnorePointer(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: getEnteColorScheme(context).strokeFaint,
+                        IgnorePointer(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(Radii.button),
+                              border: Border.all(
+                                color: getEnteColorScheme(context).strokeFaint,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
+                    )
+                  : ValueListenableBuilder(
+                      valueListenable: _past250msAfterInit,
+                      builder: (context, value, _) {
+                        return value
+                            ? Stack(
+                                key: ValueKey(_hasEnabledMap),
+                                clipBehavior: Clip.none,
+                                children: [
+                                  MapView(
+                                    updateVisibleImages: () {},
+                                    imageMarkers: const [],
+                                    controller: _mapController,
+                                    center: const LatLng(13.041599, 77.594566),
+                                    minZoom: _disabledMapZoom,
+                                    maxZoom: _disabledMapZoom,
+                                    initialZoom: _disabledMapZoom,
+                                    bottomSheetDraggableAreaHeight: 0,
+                                    showControls: false,
+                                    interactiveFlags: InteractiveFlag.none,
+                                    mapAttributionOptions:
+                                        const MapAttributionOptions(
+                                          iconSize: 0,
+                                        ),
+                                  ),
+                                  BackdropFilter(
+                                    filter: ImageFilter.blur(
+                                      sigmaX: 2.8,
+                                      sigmaY: 2.8,
+                                    ),
+                                    child: Container(
+                                      color: getEnteColorScheme(context)
+                                          .backgroundElevated
+                                          .withValues(alpha: 0.5),
+                                    ),
+                                  ),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(
+                                        Radii.button,
+                                      ),
+                                      border: Border.all(
+                                        color: getEnteColorScheme(
+                                          context,
+                                        ).strokeFaint,
+                                      ),
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () async {
+                                      try {
+                                        await setMapEnabled(true);
+                                        if (!mounted) return;
+                                        setState(() {
+                                          _hasEnabledMap = true;
+                                        });
+                                      } catch (e) {
+                                        if (!context.mounted) return;
+                                        showShortToast(
+                                          context,
+                                          AppLocalizations.of(
+                                            context,
+                                          ).somethingWentWrong,
+                                        );
+                                      }
+                                    },
+                                    child: Center(
+                                      child: Text(
+                                        AppLocalizations.of(context).enableMaps,
+                                        style: getEnteTextTheme(context).small,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ).animate().fadeIn(
+                                duration: const Duration(milliseconds: 90),
+                                curve: Curves.easeIn,
+                              )
+                            : const SizedBox.shrink();
+                      },
                     ),
-                  ],
-                )
-              : ValueListenableBuilder(
-                  valueListenable: _past250msAfterInit,
-                  builder: (context, value, _) {
-                    return value
-                        ? Stack(
-                            key: ValueKey(_hasEnabledMap),
-                            clipBehavior: Clip.none,
-                            children: [
-                              MapView(
-                                updateVisibleImages: () {},
-                                imageMarkers: const [],
-                                controller: _mapController,
-                                center: const LatLng(
-                                  13.041599,
-                                  77.594566,
-                                ),
-                                minZoom: _disabledMapZoom,
-                                maxZoom: _disabledMapZoom,
-                                initialZoom: _disabledMapZoom,
-                                bottomSheetDraggableAreaHeight: 0,
-                                showControls: false,
-                                interactiveFlags: InteractiveFlag.none,
-                                mapAttributionOptions:
-                                    const MapAttributionOptions(
-                                  iconSize: 0,
-                                ),
-                              ),
-                              BackdropFilter(
-                                filter: ImageFilter.blur(
-                                  sigmaX: 2.8,
-                                  sigmaY: 2.8,
-                                ),
-                                child: Container(
-                                  color: getEnteColorScheme(context)
-                                      .backgroundElevated
-                                      .withValues(alpha: 0.5),
-                                ),
-                              ),
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color:
-                                        getEnteColorScheme(context).strokeFaint,
-                                  ),
-                                ),
-                              ),
-                              GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () async {
-                                  try {
-                                    await setMapEnabled(true);
-                                    setState(() {
-                                      _hasEnabledMap = true;
-                                    });
-                                  } catch (e) {
-                                    showShortToast(
-                                      context,
-                                      AppLocalizations.of(context)
-                                          .somethingWentWrong,
-                                    );
-                                  }
-                                },
-                                child: Center(
-                                  child: Text(
-                                    AppLocalizations.of(context).enableMaps,
-                                    style: getEnteTextTheme(context).small,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ).animate().fadeIn(
-                              duration: const Duration(milliseconds: 90),
-                              curve: Curves.easeIn,
-                            )
-                        : const SizedBox.shrink();
-                  },
-                ),
-        ),
-      ),
-    ).animate(target: _tappedToOpenMap ? 1 : 0).scaleXY(
+            ),
+          ),
+        )
+        .animate(target: _tappedToOpenMap ? 1 : 0)
+        .scaleXY(
           end: 1.025,
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeInOut,
@@ -343,22 +347,19 @@ class _InfoMapState extends State<InfoMap> {
     unawaited(
       Navigator.of(context)
           .push(
-        MaterialPageRoute(
-          builder: (context) => MapScreen(
-            filesFutureFn: SearchService.instance.getAllFilesForSearch,
-            center: LatLng(
-              _fileLat,
-              _fileLng,
+            MaterialPageRoute(
+              builder: (context) => MapScreen(
+                filesFutureFn: SearchService.instance.getAllFilesForSearch,
+                center: LatLng(_fileLat, _fileLng),
+                initialZoom: 16,
+              ),
             ),
-            initialZoom: 16,
-          ),
-        ),
-      )
+          )
           .then((value) {
-        setState(() {
-          _tappedToOpenMap = false;
-        });
-      }),
+            setState(() {
+              _tappedToOpenMap = false;
+            });
+          }),
     );
   }
 }

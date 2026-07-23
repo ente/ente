@@ -56,19 +56,10 @@ class NoMailAppSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final copyFields = <_CopyFieldData>[
-      _CopyFieldData(
-        label: l10n.subject,
-        value: subject,
-      ),
-      _CopyFieldData(
-        label: l10n.message,
-        value: message,
-      ),
+      _CopyFieldData(label: l10n.subject, value: subject),
+      _CopyFieldData(label: l10n.message, value: message),
       if (deviceInfo != null && deviceInfo!.trim().isNotEmpty)
-        _CopyFieldData(
-          label: l10n.deviceInfo,
-          value: deviceInfo!,
-        ),
+        _CopyFieldData(label: l10n.deviceInfo, value: deviceInfo!),
       if (logsLabel != null && logsLabel!.trim().isNotEmpty)
         _CopyFieldData(
           label: l10n.logs,
@@ -146,7 +137,8 @@ class NoMailAppSheet extends StatelessWidget {
   }
 
   String _buildCopyAllPayload(AppLocalizations l10n) {
-    final shouldIncludeLogsInCopyAll = logsFilePath == null &&
+    final shouldIncludeLogsInCopyAll =
+        logsFilePath == null &&
         logsLabel != null &&
         logsLabel!.trim().isNotEmpty;
     final items = <String>[
@@ -180,11 +172,7 @@ class _CopyField extends StatelessWidget {
   final Future<void> Function() onCopy;
   final Future<void> Function()? onExport;
 
-  const _CopyField({
-    required this.data,
-    required this.onCopy,
-    this.onExport,
-  });
+  const _CopyField({required this.data, required this.onCopy, this.onExport});
 
   @override
   Widget build(BuildContext context) {
@@ -201,49 +189,55 @@ class _CopyField extends StatelessWidget {
             style: TextStyles.mini.copyWith(color: colors.textLight),
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: colors.fillBase,
-            borderRadius: BorderRadius.circular(Radii.lg),
-          ),
-          padding: const EdgeInsets.fromLTRB(
-            Spacing.md,
-            10,
-            Spacing.sm,
-            10,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Text(
-                  data.value,
-                  style: TextStyles.mini.copyWith(color: colors.textBase),
-                ),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: colors.fillLight,
+                borderRadius: BorderRadius.circular(Radii.lg),
               ),
-              const SizedBox(width: Spacing.sm),
-              Material(
-                color: colors.fillDark,
-                borderRadius: BorderRadius.circular(Radii.sm),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(Radii.sm),
-                  onTap: onTap,
-                  child: SizedBox(
-                    width: 32,
-                    height: 32,
+              padding: const EdgeInsets.fromLTRB(
+                Spacing.md,
+                10,
+                Spacing.sm,
+                10,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      data.value,
+                      style: TextStyles.mini.copyWith(color: colors.textBase),
+                    ),
+                  ),
+                  const SizedBox(width: Spacing.sm),
+                  Padding(
+                    padding: const EdgeInsets.all(7),
                     child: HugeIcon(
                       icon: isExportAction
                           ? HugeIcons.strokeRoundedDownload04
                           : HugeIcons.strokeRoundedCopy01,
                       size: 18,
-                      color: colors.textLight,
+                      color: colors.textLighter,
                       strokeWidth: 1.6,
                     ),
                   ),
+                ],
+              ),
+            ),
+            Positioned.fill(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onTap,
+                  child: const SizedBox(width: 44, height: 44),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
         if (data.note != null && data.note!.trim().isNotEmpty) ...[
           const SizedBox(height: 4),

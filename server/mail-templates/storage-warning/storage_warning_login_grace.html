@@ -1,0 +1,22 @@
+{{define "content"}}
+<p>Hi,</p>
+
+<p>
+  Access to Ente Photos and Ente Locker for
+  <strong>{{.AccountEmail}}</strong> has been temporarily restored until
+  <strong>{{.GraceUntil}}</strong>.
+</p>
+
+<p>
+  To keep access, renew your plan or reduce your storage usage to within your
+  available storage before then.
+</p>
+
+<p>
+  If the account has not been renewed or its storage usage has not been reduced
+  after this {{.GraceDays}}-day grace period, Photos and Locker access will be
+  restricted again.
+</p>
+
+<p>You may need to sign in again on your devices.</p>
+{{end}}

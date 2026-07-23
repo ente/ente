@@ -25,21 +25,18 @@ void main() {
   testWidgets('user avatar prefers saved contact photo over initials', (
     tester,
   ) async {
-    displayService.debugHydrateContacts(
-      const [
-        ContactRecord(
-          id: 'ct_1',
-          contactUserId: 7,
-          email: 'z@test.test',
-          data: ContactData(contactUserId: 7, name: 'Alice'),
-          profilePictureAttachmentId: 'att_1',
-          isDeleted: false,
-          createdAt: 1,
-          updatedAt: 2,
-        ),
-      ],
-      notify: false,
-    );
+    displayService.debugHydrateContacts(const [
+      ContactRecord(
+        id: 'ct_1',
+        contactUserId: 7,
+        email: 'z@test.test',
+        data: ContactData(contactUserId: 7, name: 'Alice'),
+        profilePictureAttachmentId: 'att_1',
+        isDeleted: false,
+        createdAt: 1,
+        updatedAt: 2,
+      ),
+    ], notify: false);
     displayService.debugSetProfilePictureBytes(
       contactUserId: 7,
       bytes: _validPngBytes(),
@@ -96,6 +93,18 @@ void main() {
 }
 
 class _TestConfiguration extends BaseConfiguration {
+  @override
+  EnteAppIdentity get appIdentity => const EnteAppIdentity(
+    app: 'test',
+    clientPackageName: 'io.ente.test',
+    passkeyRedirectUrl: 'entetest://passkey',
+    referralSourcePrefix: 'test',
+  );
+
+  @override
+  List<String> get secureStorageKeys =>
+      BaseConfiguration.accountSecureStorageKeys;
+
   @override
   String? getEmail() => 'me@test.test';
 

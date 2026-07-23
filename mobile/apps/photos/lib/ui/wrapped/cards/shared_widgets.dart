@@ -21,11 +21,7 @@ Widget buildWrappedCardSubtitle(
   TextStyle style, {
   EdgeInsetsGeometry? padding,
 }) {
-  return _buildCenteredCardText(
-    text: text,
-    style: style,
-    padding: padding,
-  );
+  return _buildCenteredCardText(text: text, style: style, padding: padding);
 }
 
 Widget _buildCenteredCardText({
@@ -35,17 +31,10 @@ Widget _buildCenteredCardText({
 }) {
   final Widget label = Align(
     alignment: Alignment.center,
-    child: Text(
-      text,
-      style: style,
-      textAlign: TextAlign.center,
-    ),
+    child: Text(text, style: style, textAlign: TextAlign.center),
   );
   if (padding != null) {
-    return Padding(
-      padding: padding,
-      child: label,
-    );
+    return Padding(padding: padding, child: label);
   }
   return label;
 }
@@ -62,10 +51,7 @@ Widget _mediaTileOrPlaceholder(
       borderRadius: borderRadius,
     );
     if (aspectRatio != null) {
-      placeholder = AspectRatio(
-        aspectRatio: aspectRatio,
-        child: placeholder,
-      );
+      placeholder = AspectRatio(aspectRatio: aspectRatio, child: placeholder);
     }
     return placeholder;
   }
@@ -102,8 +88,10 @@ class _DetailChips extends StatelessWidget {
         children: chips
             .map(
               (String chip) => Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: colorScheme.fillFaint,
                   borderRadius: BorderRadius.circular(14),
@@ -123,10 +111,7 @@ class _DetailChips extends StatelessWidget {
 }
 
 class _HeroMediaCollage extends StatelessWidget {
-  const _HeroMediaCollage({
-    required this.media,
-    required this.colorScheme,
-  });
+  const _HeroMediaCollage({required this.media, required this.colorScheme});
 
   final List<MediaRef> media;
   final EnteColorScheme colorScheme;
@@ -161,29 +146,22 @@ class _HeroMediaCollage extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Column(
-                children: List<Widget>.generate(
-                  2,
-                  (int index) {
-                    final MediaRef? ref =
-                        index < side.length ? side[index] : null;
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          bottom: index == 0 ? 12 : 0,
-                        ),
-                        child: ref != null
-                            ? _MediaTile(
-                                mediaRef: ref,
-                                borderRadius: 20,
-                              )
-                            : _MediaPlaceholder(
-                                colorScheme: colorScheme,
-                                borderRadius: 20,
-                              ),
-                      ),
-                    );
-                  },
-                ),
+                children: List<Widget>.generate(2, (int index) {
+                  final MediaRef? ref = index < side.length
+                      ? side[index]
+                      : null;
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: index == 0 ? 12 : 0),
+                      child: ref != null
+                          ? _MediaTile(mediaRef: ref, borderRadius: 20)
+                          : _MediaPlaceholder(
+                              colorScheme: colorScheme,
+                              borderRadius: 20,
+                            ),
+                    ),
+                  );
+                }),
               ),
             ),
           ],
@@ -194,10 +172,7 @@ class _HeroMediaCollage extends StatelessWidget {
 }
 
 class _MediaGrid extends StatelessWidget {
-  const _MediaGrid({
-    required this.media,
-    required this.colorScheme,
-  });
+  const _MediaGrid({required this.media, required this.colorScheme});
 
   final List<MediaRef> media;
   final EnteColorScheme colorScheme;
@@ -205,10 +180,7 @@ class _MediaGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (media.isEmpty) {
-      return _MediaPlaceholder(
-        height: 200,
-        colorScheme: colorScheme,
-      );
+      return _MediaPlaceholder(height: 200, colorScheme: colorScheme);
     }
     return AspectRatio(
       aspectRatio: 2 / 3,
@@ -218,8 +190,9 @@ class _MediaGrid extends StatelessWidget {
             child: Row(
               children: List<Widget>.generate(2, (int column) {
                 final int index = row * 2 + column;
-                final MediaRef? ref =
-                    index < media.length ? media[index] : null;
+                final MediaRef? ref = index < media.length
+                    ? media[index]
+                    : null;
                 return Expanded(
                   child: Padding(
                     padding: EdgeInsets.only(
@@ -227,10 +200,7 @@ class _MediaGrid extends StatelessWidget {
                       bottom: row == 2 ? 0 : 10,
                     ),
                     child: ref != null
-                        ? _MediaTile(
-                            mediaRef: ref,
-                            borderRadius: 16,
-                          )
+                        ? _MediaTile(mediaRef: ref, borderRadius: 16)
                         : _MediaPlaceholder(
                             colorScheme: colorScheme,
                             borderRadius: 16,
@@ -247,10 +217,7 @@ class _MediaGrid extends StatelessWidget {
 }
 
 class _SquareMediaGrid extends StatelessWidget {
-  const _SquareMediaGrid({
-    required this.media,
-    required this.colorScheme,
-  });
+  const _SquareMediaGrid({required this.media, required this.colorScheme});
 
   static const int _kCrossAxisCount = 2;
   static const double _kSpacing = 12;
@@ -269,16 +236,18 @@ class _SquareMediaGrid extends StatelessWidget {
     }
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        final double availableWidth = constraints.hasBoundedWidth &&
+        final double availableWidth =
+            constraints.hasBoundedWidth &&
                 constraints.maxWidth.isFinite &&
                 constraints.maxWidth > 0
             ? constraints.maxWidth
             : MediaQuery.of(context).size.width;
         final double rawTileSize =
             (availableWidth - _kSpacing * (_kCrossAxisCount - 1)) /
-                _kCrossAxisCount;
-        final double tileSize =
-            rawTileSize.isFinite && rawTileSize > 0 ? rawTileSize : 140;
+            _kCrossAxisCount;
+        final double tileSize = rawTileSize.isFinite && rawTileSize > 0
+            ? rawTileSize
+            : 140;
 
         return Wrap(
           spacing: _kSpacing,
@@ -339,10 +308,7 @@ class _MediaPairRow extends StatelessWidget {
       ],
     );
     if (height != null) {
-      row = SizedBox(
-        height: height,
-        child: row,
-      );
+      row = SizedBox(height: height, child: row);
     }
     return row;
   }
@@ -375,10 +341,7 @@ class _GroupSoloMediaCollage extends StatelessWidget {
     final MediaRef? bottomLeft = _at(3);
     final MediaRef? bottomRight = _at(4);
 
-    final List<MediaRef> bottomMedia = <MediaRef>[
-      if (bottomLeft != null) bottomLeft,
-      if (bottomRight != null) bottomRight,
-    ];
+    final List<MediaRef> bottomMedia = <MediaRef>[?bottomLeft, ?bottomRight];
 
     return Column(
       children: [
@@ -435,10 +398,7 @@ class _GroupSoloMediaCollage extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomRow(
-    List<MediaRef> refs,
-    EnteColorScheme colorScheme,
-  ) {
+  Widget _buildBottomRow(List<MediaRef> refs, EnteColorScheme colorScheme) {
     if (refs.length == 1) {
       return SizedBox(
         height: 120,
@@ -495,38 +455,26 @@ class _MediaTile extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget content = ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
-      child: SizedBox.expand(
-        child: _MediaThumb(
-          ref: mediaRef,
-        ),
-      ),
+      child: SizedBox.expand(child: _MediaThumb(ref: mediaRef)),
     );
     if (aspectRatio != null) {
-      content = AspectRatio(
-        aspectRatio: aspectRatio!,
-        child: content,
-      );
+      content = AspectRatio(aspectRatio: aspectRatio!, child: content);
     }
-    return _MediaPreviewGesture(
-      mediaRef: mediaRef,
-      child: content,
-    );
+    return _MediaPreviewGesture(mediaRef: mediaRef, child: content);
   }
 }
 
 class _MediaPreviewGesture extends StatelessWidget {
-  const _MediaPreviewGesture({
-    required this.mediaRef,
-    required this.child,
-  });
+  const _MediaPreviewGesture({required this.mediaRef, required this.child});
 
   final MediaRef mediaRef;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final _MediaPreviewController? controller =
-        _MediaPreviewController.maybeOf(context);
+    final _MediaPreviewController? controller = _MediaPreviewController.maybeOf(
+      context,
+    );
     if (controller == null) {
       return child;
     }
@@ -560,10 +508,7 @@ class _MediaPlaceholder extends StatelessWidget {
       ),
     );
     if (height != null) {
-      return SizedBox(
-        height: height,
-        child: child,
-      );
+      return SizedBox(height: height, child: child);
     }
     return child;
   }
@@ -596,9 +541,7 @@ class _MediaThumbState extends State<_MediaThumb> {
   }
 
   Future<EnteFile?> _ensureFile() {
-    return WrappedMediaPreloader.instance.ensureFile(
-      widget.ref.uploadedFileID,
-    );
+    return WrappedMediaPreloader.instance.ensureFile(widget.ref.uploadedFileID);
   }
 
   @override
@@ -615,14 +558,10 @@ class _MediaThumbState extends State<_MediaThumb> {
       builder: (BuildContext context, AsyncSnapshot<EnteFile?> snapshot) {
         final EnteFile? file = snapshot.data;
         if (snapshot.connectionState != ConnectionState.done && file == null) {
-          return Container(
-            color: colorScheme.fillFaint,
-          );
+          return Container(color: colorScheme.fillFaint);
         }
         if (file == null) {
-          return Container(
-            color: colorScheme.fillFaint,
-          );
+          return Container(color: colorScheme.fillFaint);
         }
         return _buildThumbnail(file);
       },
@@ -635,8 +574,6 @@ class _MediaThumbState extends State<_MediaThumb> {
       fit: BoxFit.cover,
       rawThumbnail: true,
       shouldShowSyncStatus: false,
-      shouldShowArchiveStatus: false,
-      shouldShowPinIcon: false,
       shouldShowOwnerAvatar: false,
       shouldShowFavoriteIcon: false,
       shouldShowVideoDuration: false,
@@ -645,11 +582,7 @@ class _MediaThumbState extends State<_MediaThumb> {
   }
 }
 
-Color _heatmapColorForValue(
-  int value,
-  int maxValue,
-  EnteColorScheme scheme,
-) {
+Color _heatmapColorForValue(int value, int maxValue, EnteColorScheme scheme) {
   if (value <= 0 || maxValue <= 0) {
     return scheme.fillFaint;
   }
@@ -662,10 +595,7 @@ Color _heatmapColorForValue(
       scheme.primary500;
 }
 
-List<String> _stringListFromMeta(
-  Map<String, Object?> meta,
-  String key,
-) {
+List<String> _stringListFromMeta(Map<String, Object?> meta, String key) {
   final Object? raw = meta[key];
   if (raw is List) {
     return raw.whereType<String>().toList(growable: false);
@@ -721,16 +651,10 @@ class _ProgressSegment extends StatelessWidget {
       borderRadius: BorderRadius.circular(4),
       child: Stack(
         children: [
-          Container(
-            height: 4,
-            color: trackColor,
-          ),
+          Container(height: 4, color: trackColor),
           FractionallySizedBox(
             widthFactor: progress.clamp(0.0, 1.0),
-            child: Container(
-              height: 4,
-              color: fillColor,
-            ),
+            child: Container(height: 4, color: fillColor),
           ),
         ],
       ),

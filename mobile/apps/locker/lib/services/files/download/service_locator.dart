@@ -14,7 +14,7 @@ class ServiceLocator {
 
   static final ServiceLocator instance = ServiceLocator._privateConstructor();
 
-  init(
+  void init(
     SharedPreferences prefs,
     Dio enteDio,
     Dio nonEnteDio,
@@ -29,8 +29,6 @@ class ServiceLocator {
 
 DownloadManager? _downloadManager;
 DownloadManager get downloadManager {
-  _downloadManager ??= DownloadManager(
-    ServiceLocator.instance.nonEnteDio,
-  );
+  _downloadManager ??= DownloadManager(ServiceLocator.instance.nonEnteDio);
   return _downloadManager!;
 }

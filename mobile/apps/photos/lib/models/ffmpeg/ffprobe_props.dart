@@ -50,8 +50,9 @@ class FFProbeProps {
   /// To know more, read about Sample Aspect Ratio (SAR), Display Aspect Ratio (DAR)
   /// and Pixel Aspect Ratio (PAR)
   int _calculateWidthConsideringSAR(int width) {
-    final List<String> sar =
-        propData![FFProbeKeys.sampleAspectRatio].toString().split(":");
+    final List<String> sar = propData![FFProbeKeys.sampleAspectRatio]
+        .toString()
+        .split(":");
     if (sar.length == 2) {
       final int sarWidth = int.tryParse(sar[0]) ?? 1;
       final int sarHeight = int.tryParse(sar[1]) ?? 1;
@@ -97,7 +98,7 @@ class FFProbeProps {
     return buffer.toString();
   }
 
-  static parseData(Map<dynamic, dynamic>? json) {
+  static FFProbeProps parseData(Map<dynamic, dynamic>? json) {
     final Map<String, dynamic> parsedData = {};
     final FFProbeProps result = FFProbeProps();
 
@@ -146,8 +147,9 @@ class FFProbeProps {
           }
           break;
         case FFProbeKeys.quickTimeLocation:
-          result.location =
-              _formatLocation(json[FFProbeKeys.quickTimeLocation]);
+          result.location = _formatLocation(
+            json[FFProbeKeys.quickTimeLocation],
+          );
           if (result.location != null) {
             parsedData[FFProbeKeys.location] =
                 '${result.location!.latitude}, ${result.location!.longitude}';
@@ -259,8 +261,8 @@ class FFProbeProps {
 
   static String? _formatCodecName(String? value) =>
       value == null || value == "none"
-          ? null
-          : _codecNames[value] ?? value.toUpperCase().replaceAll('_', ' ');
+      ? null
+      : _codecNames[value] ?? value.toUpperCase().replaceAll('_', ' ');
 
   // input example: '2021-04-12T09:14:37.000000Z'
   static String? _formatDate(String value) {
@@ -268,8 +270,9 @@ class FFProbeProps {
     if (dateInUtc == null) return value;
     final epoch = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
     if (dateInUtc == epoch) return null;
-    final newDate =
-        DateTime.fromMicrosecondsSinceEpoch(dateInUtc.microsecondsSinceEpoch);
+    final newDate = DateTime.fromMicrosecondsSinceEpoch(
+      dateInUtc.microsecondsSinceEpoch,
+    );
     return formatDateTime(newDate, 'en_US', false);
   }
 
@@ -308,10 +311,7 @@ class FFProbeProps {
       final s = int.tryParse(match.group(1)!);
       final millis = double.tryParse(match.group(2)!);
       if (s != null && millis != null) {
-        return Duration(
-          seconds: s,
-          milliseconds: (millis * 1000).toInt(),
-        );
+        return Duration(seconds: s, milliseconds: (millis * 1000).toInt());
       }
     }
 
@@ -355,14 +355,12 @@ class FFProbeProps {
     if (value == null) return null;
     final matches = _locationPattern.allMatches(value);
     if (matches.isNotEmpty) {
-      final coordinates =
-          matches.map((m) => double.tryParse(m.group(0)!)).toList();
+      final coordinates = matches
+          .map((m) => double.tryParse(m.group(0)!))
+          .toList();
       if (coordinates.every((c) => c == 0)) return null;
       try {
-        return Location(
-          latitude: coordinates[0],
-          longitude: coordinates[1],
-        );
+        return Location(latitude: coordinates[0], longitude: coordinates[1]);
       } catch (e) {
         log('failed to parse location: $value', error: e);
         return null;
@@ -394,33 +392,32 @@ String formatDay(DateTime date, String locale) =>
 String formatTime(DateTime date, String locale, bool use24hour) =>
     (use24hour ? DateFormat.Hm(locale) : DateFormat.jm(locale)).format(date);
 
-String formatDateTime(DateTime date, String locale, bool use24hour) => [
-      formatDay(date, locale),
-      formatTime(date, locale, use24hour),
-    ].join(" ");
+String formatDateTime(DateTime date, String locale, bool use24hour) =>
+    [formatDay(date, locale), formatTime(date, locale, use24hour)].join(" ");
 
 String formatFriendlyDuration(Duration d) {
-  final seconds = (d.inSeconds.remainder(Duration.secondsPerMinute))
-      .toString()
-      .padLeft(2, '0');
+  final seconds = (d.inSeconds.remainder(
+    Duration.secondsPerMinute,
+  )).toString().padLeft(2, '0');
   if (d.inHours == 0) return '${d.inMinutes}:$seconds';
 
-  final minutes = (d.inMinutes.remainder(Duration.minutesPerHour))
-      .toString()
-      .padLeft(2, '0');
+  final minutes = (d.inMinutes.remainder(
+    Duration.minutesPerHour,
+  )).toString().padLeft(2, '0');
   return '${d.inHours}:$minutes:$seconds';
 }
 
 String? formatPreciseDuration(Duration d) {
   if (d.inSeconds == 0) return null;
-  final millis =
-      ((d.inMicroseconds / 1000.0).round() % 1000).toString().padLeft(3, '0');
-  final seconds = (d.inSeconds.remainder(Duration.secondsPerMinute))
+  final millis = ((d.inMicroseconds / 1000.0).round() % 1000)
       .toString()
-      .padLeft(2, '0');
-  final minutes = (d.inMinutes.remainder(Duration.minutesPerHour))
-      .toString()
-      .padLeft(2, '0');
+      .padLeft(3, '0');
+  final seconds = (d.inSeconds.remainder(
+    Duration.secondsPerMinute,
+  )).toString().padLeft(2, '0');
+  final minutes = (d.inMinutes.remainder(
+    Duration.minutesPerHour,
+  )).toString().padLeft(2, '0');
   final hours = (d.inHours).toString().padLeft(2, '0');
   return '$hours:$minutes:$seconds.$millis';
 }
@@ -433,8 +430,10 @@ const tera = giga * kilo;
 String formatFileSize(String locale, int size, {int round = 2}) {
   if (size < kilo) return '$size B';
 
-  final compactFormatter =
-      NumberFormat('0${round > 0 ? '.${'0' * round}' : ''}', locale);
+  final compactFormatter = NumberFormat(
+    '0${round > 0 ? '.${'0' * round}' : ''}',
+    locale,
+  );
   if (size < mega) return '${compactFormatter.format(size / kilo)} KB';
   if (size < giga) return '${compactFormatter.format(size / mega)} MB';
   if (size < tera) return '${compactFormatter.format(size / giga)} GB';

@@ -2,10 +2,7 @@ import "package:flutter/widgets.dart";
 import "package:photos/theme/ente_theme.dart";
 
 class CollageItemIcon extends StatelessWidget {
-  const CollageItemIcon({
-    super.key,
-    this.isActive = false,
-  });
+  const CollageItemIcon({super.key, this.isActive = false});
 
   final bool isActive;
 
@@ -37,9 +34,6 @@ class CollageIconContainerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: width ?? 40,
-      child: child,
-    );
+    return SizedBox(width: width ?? 40, child: child);
   }
 }

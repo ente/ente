@@ -14,34 +14,27 @@ class Detection {
   FaceBox box;
   List<Landmark> landmarks;
 
-  Detection({
-    required this.box,
-    required this.landmarks,
-  });
+  Detection({required this.box, required this.landmarks});
 
   bool get isEmpty => box.width == 0 && box.height == 0 && landmarks.isEmpty;
 
   // empty box
   Detection.empty()
-      : box = const FaceBox(
-          x: 0,
-          y: 0,
-          width: 0,
-          height: 0,
-        ),
-        landmarks = [];
+    : box = const FaceBox(x: 0, y: 0, width: 0, height: 0),
+      landmarks = [];
 
   Map<String, dynamic> toJson() => {
-        'box': box.toJson(),
-        'landmarks': landmarks.map((x) => x.toJson()).toList(),
-      };
+    'box': box.toJson(),
+    'landmarks': landmarks.map((x) => x.toJson()).toList(),
+  };
 
   factory Detection.fromJson(Map<String, dynamic> json) {
     return Detection(
       box: FaceBox.fromJson(json['box'] as Map<String, dynamic>),
       landmarks: List<Landmark>.from(
-        json['landmarks']
-            .map((x) => Landmark.fromJson(x as Map<String, dynamic>)),
+        json['landmarks'].map(
+          (x) => Landmark.fromJson(x as Map<String, dynamic>),
+        ),
       ),
     );
   }
@@ -62,13 +55,14 @@ class Detection {
 
     final bool faceIsUpright =
         (max(leftEye[1], rightEye[1]) + 0.5 * eyeDistanceY < nose[1]) &&
-            (nose[1] + 0.5 * mouthDistanceY < min(leftMouth[1], rightMouth[1]));
+        (nose[1] + 0.5 * mouthDistanceY < min(leftMouth[1], rightMouth[1]));
 
-    final bool noseStickingOutLeft = (nose[0] < min(leftEye[0], rightEye[0])) &&
+    final bool noseStickingOutLeft =
+        (nose[0] < min(leftEye[0], rightEye[0])) &&
         (nose[0] < min(leftMouth[0], rightMouth[0]));
     final bool noseStickingOutRight =
         (nose[0] > max(leftEye[0], rightEye[0])) &&
-            (nose[0] > max(leftMouth[0], rightMouth[0]));
+        (nose[0] > max(leftMouth[0], rightMouth[0]));
 
     final bool noseCloseToLeftEye =
         (nose[0] - leftEye[0]).abs() < 0.2 * eyeDistanceX;
@@ -102,14 +96,14 @@ class Detection {
 
     final bool faceIsUpright =
         (max(leftEye[1], rightEye[1]) + 0.5 * eyeDistanceY < nose[1]) &&
-            (nose[1] + 0.5 * mouthDistanceY < min(leftMouth[1], rightMouth[1]));
+        (nose[1] + 0.5 * mouthDistanceY < min(leftMouth[1], rightMouth[1]));
 
     final bool noseStickingOutLeft =
         (nose[0] < min(leftEye[0], rightEye[0]) - 0.5 * eyeDistanceX) &&
-            (nose[0] < min(leftMouth[0], rightMouth[0]));
+        (nose[0] < min(leftMouth[0], rightMouth[0]));
     final bool noseStickingOutRight =
         (nose[0] > max(leftEye[0], rightEye[0]) + 0.5 * eyeDistanceX) &&
-            (nose[0] > max(leftMouth[0], rightMouth[0]));
+        (nose[0] > max(leftMouth[0], rightMouth[0]));
 
     return faceIsUpright && (noseStickingOutLeft || noseStickingOutRight);
   }

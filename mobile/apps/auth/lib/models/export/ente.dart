@@ -21,19 +21,19 @@ class EnteAuthExport {
 
   // Convert EnteExport object to JSON
   Map<String, dynamic> toJson() => {
-        'version': version,
-        'kdfParams': kdfParams.toJson(),
-        'encryptedData': encryptedData,
-        'encryptionNonce': encryptionNonce,
-      };
+    'version': version,
+    'kdfParams': kdfParams.toJson(),
+    'encryptedData': encryptedData,
+    'encryptionNonce': encryptionNonce,
+  };
 
   // Convert JSON to EnteExport object
   static EnteAuthExport fromJson(Map<String, dynamic> json) => EnteAuthExport(
-        version: json['version'],
-        kdfParams: KDFParams.fromJson(json['kdfParams']),
-        encryptedData: json['encryptedData'],
-        encryptionNonce: json['encryptionNonce'],
-      );
+    version: json['version'],
+    kdfParams: KDFParams.fromJson(json['kdfParams']),
+    encryptedData: json['encryptedData'],
+    encryptionNonce: json['encryptionNonce'],
+  );
 }
 
 // KDFParams is a class that holds the parameters for the KDF function.
@@ -52,15 +52,15 @@ class KDFParams {
 
   // Convert KDFParams object to JSON
   Map<String, dynamic> toJson() => {
-        'memLimit': memLimit,
-        'opsLimit': opsLimit,
-        'salt': salt,
-      };
+    'memLimit': memLimit,
+    'opsLimit': opsLimit,
+    'salt': salt,
+  };
 
   // Convert JSON to KDFParams object
   static KDFParams fromJson(Map<String, dynamic> json) => KDFParams(
-        memLimit: json['memLimit'],
-        opsLimit: json['opsLimit'],
-        salt: json['salt'],
-      );
+    memLimit: json['memLimit'],
+    opsLimit: json['opsLimit'],
+    salt: json['salt'],
+  );
 }

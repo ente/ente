@@ -11,21 +11,7 @@
   "invalidEmailAddress": "Alamat email tidak sah",
   "enterValidEmail": "Harap masukkan alamat email yang sah.",
   "deleteAccount": "Hapus akun",
-  "askDeleteReason": "Apa alasan utama kamu dalam menghapus akun?",
-  "deleteAccountFeedbackPrompt": "Kami sedih kamu pergi. Silakan bagikan masukanmu agar kami bisa jadi lebih baik.",
-  "feedback": "Masukan",
-  "kindlyHelpUsWithThisInformation": "Harap bantu kami dengan informasi ini",
-  "confirmDeletePrompt": "Ya, saya ingin menghapus akun ini dan seluruh datanya secara permanen di semua aplikasi.",
-  "confirmAccountDeletion": "Konfirmasi Penghapusan Akun",
-  "deleteAccountPermanentlyButton": "Hapus Akun Secara Permanen",
-  "yourAccountHasBeenDeleted": "Akunmu telah dihapus",
-  "selectReason": "Pilih alasan",
-  "deleteReason1": "Fitur penting yang saya perlukan tidak ada",
-  "deleteReason2": "App ini atau fitur tertentu tidak bekerja sesuai harapan saya",
-  "deleteReason3": "Saya menemukan layanan lain yang lebih baik",
-  "deleteReason4": "Alasan saya tidak ada di daftar",
   "sendEmail": "Kirim email",
-  "deleteRequestSLAText": "Permintaan kamu akan diproses dalam waktu 72 jam.",
   "entePhotosPerm": "Ente <i>memerlukan izin untuk</i> menyimpan fotomu",
   "ok": "Oke",
   "createAccount": "Buat akun",
@@ -218,7 +204,6 @@
   "after1Month": "Setelah 1 bulan",
   "after1Year": "Setelah 1 tahun",
   "manageParticipants": "Atur",
-  "collabLinkSectionDescription": "Buat link untuk memungkinkan orang lain menambahkan dan melihat foto yang ada pada album bersama kamu tanpa memerlukan app atau akun Ente. Ideal untuk mengumpulkan foto pada suatu acara.",
   "collectPhotos": "Kumpulkan foto",
   "collaborativeLink": "Link kolaborasi",
   "shareWithNonenteUsers": "Bagikan ke pengguna non-Ente",
@@ -311,7 +296,6 @@
   "creatingLink": "Membuat link...",
   "removeWithQuestionMark": "Hapus?",
   "removeParticipantBody": "{userEmail} akan dikeluarkan dari album berbagi ini\n\nSemua foto yang ia tambahkan juga akan dihapus dari album ini",
-  "keepPhotos": "Simpan foto",
   "deletePhotos": "Hapus foto",
   "inviteToEnte": "Undang ke Ente",
   "removePublicLink": "Hapus link publik",
@@ -319,6 +303,9 @@
   "sharing": "Membagikan...",
   "youCannotShareWithYourself": "Kamu tidak bisa berbagi dengan dirimu sendiri",
   "archive": "Arsip",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
   "createAlbumActionHint": "Tekan dan tahan foto lalu klik + untuk membuat album baru",
   "importing": "Mengimpor....",
   "failedToLoadAlbums": "Gagal memuat album",
@@ -330,9 +317,6 @@
   "videoSmallCase": "video",
   "photoSmallCase": "foto",
   "singleFileDeleteHighlight": "Ia akan dihapus dari semua album.",
-  "singleFileInBothLocalAndRemote": "{fileType} ini tersimpan di Ente dan juga di perangkat ini.",
-  "singleFileInRemoteOnly": "{fileType} ini akan dihapus dari Ente.",
-  "singleFileDeleteFromDevice": "{fileType} ini akan dihapus dari perangkat ini.",
   "deleteFromEnte": "Hapus dari Ente",
   "yesDelete": "Ya, hapus",
   "movedToTrash": "Pindah ke sampah",
@@ -468,7 +452,6 @@
   "authToChangeEmailVerificationSetting": "Harap autentikasi untuk mengatur verifikasi email",
   "exportYourData": "Ekspor data kamu",
   "logout": "Keluar akun",
-  "authToInitiateAccountDeletion": "Harap autentikasi untuk mulai penghapusan akun",
   "areYouSureYouWantToLogout": "Apakah kamu yakin ingin keluar akun?",
   "yesLogout": "Ya, keluar",
   "aNewVersionOfEnteIsAvailable": "Versi baru dari Ente telah tersedia.",
@@ -624,7 +607,6 @@
   "appleId": "ID Apple",
   "playstoreSubscription": "Langganan PlayStore",
   "appstoreSubscription": "Langganan AppStore",
-  "subAlreadyLinkedErrMessage": "{id} kamu telah terhubung dengan akun Ente lain.\nJika kamu ingin menggunakan {id} kamu untuk akun ini, silahkan hubungi tim bantuan kami",
   "visitWebToManage": "Silakan buka {webUrl} untuk mengatur langgananmu",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
@@ -670,7 +652,6 @@
   "existingUser": "Masuk",
   "newToEnte": "Baru di Ente",
   "pleaseLoginAgain": "Silakan masuk akun lagi",
-  "autoLogoutMessage": "Akibat kesalahan teknis, kamu telah keluar dari akunmu. Kami mohon maaf atas ketidaknyamanannya.",
   "yourSubscriptionHasExpired": "Langgananmu telah berakhir",
   "storageLimitExceeded": "Batas penyimpanan terlampaui",
   "upgrade": "Tingkatkan",
@@ -692,11 +673,6 @@
   "collectEventPhotos": "Kumpulkan foto acara",
   "sessionExpired": "Sesi berakhir",
   "loggingOut": "Mengeluarkan akun...",
-  "@onDevice": {
-    "description": "The text displayed above folders/albums stored on device",
-    "type": "text"
-  },
-  "onDevice": "Di perangkat ini",
   "@onEnte": {
     "description": "The text displayed above albums backed up to Ente",
     "type": "text"
@@ -737,6 +713,9 @@
   "moveToAlbum": "Pindahkan ke album",
   "unhide": "Tampilkan",
   "unarchive": "Keluarkan dari arsip",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
   "favorite": "Favorit",
   "removeFromFavorite": "Hapus dari favorit",
   "shareLink": "Bagikan link",
@@ -791,10 +770,7 @@
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Foto yang telah kamu tambahkan akan dihapus dari album ini",
   "youveNoFilesInThisAlbumThatCanBeDeleted": "Anda tidak memiliki file di album ini yang dapat dihapus",
   "youDontHaveAnyArchivedItems": "Kamu tidak memiliki item di arsip.",
-  "ignoredFolderUploadReason": "Sejumlah file di album ini tidak terunggah karena telah dihapus sebelumnya dari Ente.",
   "resetIgnoredFiles": "Atur ulang file yang diabaikan",
-  "deviceFilesAutoUploading": "File yang ditambahkan ke album perangkat ini akan diunggah ke Ente secara otomatis.",
-  "turnOnBackupForAutoUpload": "Aktifkan pencadangan untuk mengunggah file yang ditambahkan ke folder ini ke Ente secara otomatis.",
   "noHiddenPhotosOrVideos": "Tidak ada foto atau video tersembunyi",
   "toHideAPhotoOrVideo": "Untuk menyembunyikan foto atau video",
   "openTheItem": "• Buka item-nya",
@@ -1016,10 +992,6 @@
   "availableStorageSpace": "{freeAmount} {storageUnit} tersedia",
   "fileInfoAddDescHint": "Tambahkan keterangan...",
   "editLocationTagTitle": "Edit lokasi",
-  "androidBiometricHint": "Verifikasi identitas",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
   "androidBiometricNotRecognized": "Tidak dikenal. Coba lagi.",
   "@androidBiometricNotRecognized": {
     "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
@@ -1028,21 +1000,9 @@
   "@androidBiometricSuccess": {
     "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
   },
-  "androidCancelButton": "Batal",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Autentikasi diperlukan",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
-  },
   "androidBiometricRequiredTitle": "Biometrik diperlukan",
   "@androidBiometricRequiredTitle": {
     "description": "Message showed as a title in a dialog which indicates the user has not set up biometric authentication on their device. It is used on Android side. Maximum 60 characters."
-  },
-  "goToSettings": "Buka pengaturan",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
   },
   "androidGoToSettingsDescription": "Autentikasi biometrik belum aktif di perangkatmu. Buka 'Setelan > Keamanan' untuk mengaktifkan autentikasi biometrik.",
   "@androidGoToSettingsDescription": {
@@ -1051,10 +1011,6 @@
   "iOSGoToSettingsDescription": "Autentikasi biometrik belum aktif di perangkatmu. Silakan aktifkan Touch ID atau Face ID pada ponselmu.",
   "@iOSGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure Biometrics for their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "OK",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
   },
   "openstreetmapContributors": "Kontributor OpenStreetMap",
   "hostedAtOsmFrance": "Dihosting oleh OSM France",
@@ -1075,7 +1031,6 @@
   "nothingSharedWithYouYet": "Belum ada yang dibagikan denganmu",
   "noAlbumsSharedByYouYet": "Belum ada album yang kamu bagikan",
   "sharedWithYou": "Dibagikan dengan kamu",
-  "sharedByYou": "Dibagikan oleh kamu",
   "inviteYourFriendsToEnte": "Undang temanmu ke Ente",
   "failedToDownloadVideo": "Gagal mengunduh video",
   "hiding": "Menyembunyikan...",
@@ -1125,16 +1080,6 @@
   "playOnTv": "Putar album di TV",
   "pair": "Tautkan",
   "deviceNotFound": "Perangkat tidak ditemukan",
-  "castInstruction": "Buka {castUrl} pada perangkat yang ingin kamu tautkan.\n\nMasukkan kode yang ditampilkan untuk memutar album di TV.",
-  "@castInstruction": {
-    "description": "Instructions shown when pairing a device to play an album on TV.",
-    "placeholders": {
-      "castUrl": {
-        "type": "String",
-        "example": "https://cast.ente.com"
-      }
-    }
-  },
   "deviceCodeHint": "Masukkan kode",
   "joinDiscord": "Bergabung ke Discord",
   "addAName": "Tambahkan nama",
@@ -1151,8 +1096,6 @@
   "search": "Telusuri",
   "enterPersonName": "Masukkan nama orang",
   "removePersonLabel": "Hapus label orang",
-  "autoPairDesc": "Taut otomatis hanya tersedia di perangkat yang mendukung Chromecast.",
-  "manualPairDesc": "Tautkan dengan PIN berfungsi di layar mana pun yang kamu inginkan.",
   "connectToDevice": "Hubungkan ke perangkat",
   "autoCastDialogBody": "Perangkat Cast yang tersedia akan ditampilkan di sini.",
   "autoCastiOSPermission": "Pastikan izin Jaringan Lokal untuk app Ente Foto aktif di Pengaturan.",
@@ -1164,7 +1107,6 @@
   "pairingComplete": "Penautan berhasil",
   "savingEdits": "Menyimpan edit...",
   "autoPair": "Taut otomatis",
-  "pairWithPin": "Tautkan dengan PIN",
   "faceRecognition": "Pengenalan wajah",
   "foundFaces": "Wajah yang ditemukan",
   "trim": "Pangkas",

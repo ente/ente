@@ -18,6 +18,9 @@ import "package:photos/events/reset_zoom_of_photo_view_event.dart";
 import "package:photos/events/retry_failed_image_load_event.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
+import 'package:photos/module/download/file.dart';
+import 'package:photos/module/download/thumbnail.dart';
+import "package:photos/module/metadata/exif.dart";
 import "package:photos/service_locator.dart" show flagService;
 import "package:photos/src/rust/api/image_processing_api.dart" as rust_image;
 import "package:photos/states/detail_page_state.dart";
@@ -26,11 +29,8 @@ import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/actions/file/file_actions.dart";
 import 'package:photos/ui/common/loading_widget.dart';
 import 'package:photos/ui/viewer/file/thumbnail_widget.dart';
-import "package:photos/utils/exif_util.dart";
-import 'package:photos/utils/file_util.dart';
 import 'package:photos/utils/image_util.dart';
 import "package:photos/utils/ram_check_util.dart";
-import 'package:photos/utils/thumbnail_util.dart';
 
 class ZoomableImage extends StatefulWidget {
   final EnteFile photo;
@@ -87,10 +87,10 @@ class _ZoomableImageState extends State<ZoomableImage> {
   // is at its contained size. ZoomTransform.scale is reported relative to this.
   double? _initialScale;
   late final StreamSubscription<FileCaptionUpdatedEvent>
-      _captionUpdatedSubscription;
+  _captionUpdatedSubscription;
   late final StreamSubscription<ResetZoomOfPhotoView> _resetZoomSubscription;
   late final StreamSubscription<RetryFailedImageLoadEvent>
-      _retryFailedLoadSubscription;
+  _retryFailedLoadSubscription;
 
   // This is to prevent the app from crashing when loading 200MP images
   // https://github.com/flutter/flutter/issues/110331
@@ -112,7 +112,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
     // flash the spinner while the async load resolves.
     final cachedThumbnail =
         ThumbnailInMemoryLruCache.get(_photo, thumbnailLargeSize) ??
-            ThumbnailInMemoryLruCache.get(_photo, thumbnailSmallSize);
+        ThumbnailInMemoryLruCache.get(_photo, thumbnailSmallSize);
     if (cachedThumbnail != null) {
       _imageProvider = Image.memory(cachedThumbnail).image;
       _loadedSmallThumbnail = true;
@@ -133,17 +133,19 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
     _subscribeToZoomStream();
 
-    _captionUpdatedSubscription =
-        Bus.instance.on<FileCaptionUpdatedEvent>().listen((event) {
-      if (event.fileGeneratedID == _photo.generatedID) {
-        if (mounted) {
-          setState(() {});
-        }
-      }
-    });
+    _captionUpdatedSubscription = Bus.instance
+        .on<FileCaptionUpdatedEvent>()
+        .listen((event) {
+          if (event.fileGeneratedID == _photo.generatedID) {
+            if (mounted) {
+              setState(() {});
+            }
+          }
+        });
 
-    _resetZoomSubscription =
-        Bus.instance.on<ResetZoomOfPhotoView>().listen((event) {
+    _resetZoomSubscription = Bus.instance.on<ResetZoomOfPhotoView>().listen((
+      event,
+    ) {
       if (event.isSamePhoto(
         uploadedFileID: widget.photo.uploadedFileID,
         localID: widget.photo.localID,
@@ -152,24 +154,27 @@ class _ZoomableImageState extends State<ZoomableImage> {
       }
     });
 
-    _retryFailedLoadSubscription =
-        Bus.instance.on<RetryFailedImageLoadEvent>().listen((_) {
-      if (!mounted || _loadedFinalImage) return;
-      if (!_loadedSmallThumbnail && _photo.isRemoteFile) {
-        // Evict the stale in-flight thumbnail so the rebuild's
-        // getThumbnailFromServer doesn't dedupe against the dead completer.
-        removePendingGetThumbnailRequestIfAny(_photo);
-      }
-      if (_loadingFinalImage) {
-        _pendingFinalImageRetry = true;
-      }
-      setState(() {});
-    });
+    _retryFailedLoadSubscription = Bus.instance
+        .on<RetryFailedImageLoadEvent>()
+        .listen((_) {
+          if (!mounted || _loadedFinalImage) return;
+          if (!_loadedSmallThumbnail && _photo.isRemoteOnlyFile) {
+            // Evict the stale in-flight thumbnail so the rebuild's
+            // getThumbnailFromServer doesn't dedupe against the dead completer.
+            removePendingGetThumbnailRequestIfAny(_photo);
+          }
+          if (_loadingFinalImage) {
+            _pendingFinalImageRetry = true;
+          }
+          setState(() {});
+        });
   }
 
   void _subscribeToZoomStream() {
-    _zoomStreamSubscription =
-        _photoViewController.outputStateStream.listen((value) {
+    _zoomStreamSubscription = _photoViewController.outputStateStream.listen((
+      value,
+    ) {
+      if (!mounted) return;
       final state = InheritedDetailPageState.maybeOf(context);
       if (value.scale == null) return;
       if (!_isZooming) {
@@ -198,7 +203,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_photo.isRemoteFile) {
+    if (_photo.isRemoteOnlyFile) {
       _loadNetworkImage();
     } else {
       _loadLocalImage(context);
@@ -257,9 +262,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
                 height: screenRelativeImageHeight,
                 child: widget.isFromMemories
                     ? const _DelayedLoadingIndicator()
-                    : const EnteLoadingWidget(
-                        color: Colors.white,
-                      ),
+                    : const EnteLoadingWidget(color: Colors.white),
               ),
             );
           },
@@ -277,27 +280,23 @@ class _ZoomableImageState extends State<ZoomableImage> {
     } else {
       content = widget.isFromMemories
           ? const _DelayedLoadingIndicator()
-          : const EnteLoadingWidget(
-              color: Colors.white,
-            );
+          : const EnteLoadingWidget(color: Colors.white);
     }
 
     final GestureDragUpdateCallback? verticalDragCallback =
         _isZooming || widget.isGuestView
-            ? null
-            : (d) => {
-                  if (!_isZooming)
-                    {
-                      if (d.delta.dy > dragSensitivity)
-                        {
-                          {Navigator.of(context).pop()},
-                        }
-                      else if (d.delta.dy < (dragSensitivity * -1))
-                        {
-                          showDetailsSheet(context, widget.photo),
-                        },
-                    },
-                };
+        ? null
+        : (d) => {
+            if (!_isZooming)
+              {
+                if (d.delta.dy > dragSensitivity)
+                  {
+                    {unawaited(Navigator.maybePop(context))},
+                  }
+                else if (d.delta.dy < (dragSensitivity * -1))
+                  {showDetailsSheet(context, widget.photo)},
+              },
+          };
     return GestureDetector(
       onVerticalDragUpdate: verticalDragCallback,
       child: widget.photo.caption?.isNotEmpty ?? false
@@ -310,8 +309,10 @@ class _ZoomableImageState extends State<ZoomableImage> {
                   left: 0,
                   right: 0,
                   child: ValueListenableBuilder<bool>(
-                    valueListenable: InheritedDetailPageState.maybeOf(context)
-                            ?.enableFullScreenNotifier ??
+                    valueListenable:
+                        InheritedDetailPageState.maybeOf(
+                          context,
+                        )?.enableFullScreenNotifier ??
                         ValueNotifier(false),
                     builder: (context, doNotShowCaption, _) {
                       return AnimatedOpacity(
@@ -342,11 +343,9 @@ class _ZoomableImageState extends State<ZoomableImage> {
                                           widget.photo.caption!,
                                           maxLines: 3,
                                           overflow: TextOverflow.ellipsis,
-                                          style: getEnteTextTheme(context)
-                                              .mini
-                                              .copyWith(
-                                                color: textBaseDark,
-                                              ),
+                                          style: getEnteTextTheme(
+                                            context,
+                                          ).mini.copyWith(color: textBaseDark),
                                         ),
                                       ),
                                     ),
@@ -386,53 +385,59 @@ class _ZoomableImageState extends State<ZoomableImage> {
         _loadedSmallThumbnail = true;
         _notifyReadyOnce();
       } else {
-        getThumbnailFromServer(_photo).then((file) {
-          final imageProvider = Image.memory(file).image;
-          if (mounted) {
-            precacheImage(imageProvider, context).then((value) {
+        getThumbnailFromServer(_photo)
+            .then((file) {
+              final imageProvider = Image.memory(file).image;
               if (mounted) {
-                setState(() {
-                  _imageProvider = imageProvider;
-                  _loadedSmallThumbnail = true;
-                });
-                _notifyReadyOnce();
+                precacheImage(imageProvider, context)
+                    .then((value) {
+                      if (mounted) {
+                        setState(() {
+                          _imageProvider = imageProvider;
+                          _loadedSmallThumbnail = true;
+                        });
+                        _notifyReadyOnce();
+                      }
+                    })
+                    .catchError((e) {
+                      _logger.severe(
+                        "Could not load image " + _photo.toString(),
+                      );
+                      _loadedSmallThumbnail = true;
+                    });
               }
-            }).catchError((e) {
-              _logger.severe("Could not load image " + _photo.toString());
-              _loadedSmallThumbnail = true;
+            })
+            .catchError((e, s) {
+              _logger.warning(
+                "Failed to fetch thumbnail from server for ${_photo.tag}",
+                e,
+                s,
+              );
             });
-          }
-        }).catchError((e, s) {
-          _logger.warning(
-            "Failed to fetch thumbnail from server for ${_photo.tag}",
-            e,
-            s,
-          );
-        });
       }
     }
     if (!_loadedFinalImage && !_loadingFinalImage) {
       _loadingFinalImage = true;
-      getFileFromServer(_photo).then((file) {
-        if (file != null) {
-          _onFileLoaded(
-            file,
-          );
-        } else {
-          // getFileFromServer resolves null (not throw) on most network
-          // failures because downloadAndDecrypt is called with
-          // throwOnFailure=false here — route through the same helper as
-          // catchError below.
-          _onFinalImageFetchFailed();
-        }
-      }).catchError((e, s) {
-        _logger.warning(
-          "Failed to fetch final image from server for ${_photo.tag}",
-          e,
-          s,
-        );
-        _onFinalImageFetchFailed();
-      });
+      getFileFromServer(_photo)
+          .then((file) {
+            if (file != null) {
+              _onFileLoaded(file);
+            } else {
+              // getFileFromServer resolves null (not throw) on most network
+              // failures because downloadAndDecrypt is called with
+              // throwOnFailure=false here — route through the same helper as
+              // catchError below.
+              _onFinalImageFetchFailed();
+            }
+          })
+          .catchError((e, s) {
+            _logger.warning(
+              "Failed to fetch final image from server for ${_photo.tag}",
+              e,
+              s,
+            );
+            _onFinalImageFetchFailed();
+          });
     }
   }
 
@@ -440,8 +445,10 @@ class _ZoomableImageState extends State<ZoomableImage> {
     if (!_loadedSmallThumbnail &&
         !_loadedLargeThumbnail &&
         !_loadedFinalImage) {
-      final cachedThumbnail =
-          ThumbnailInMemoryLruCache.get(_photo, thumbnailSmallSize);
+      final cachedThumbnail = ThumbnailInMemoryLruCache.get(
+        _photo,
+        thumbnailSmallSize,
+      );
       if (cachedThumbnail != null) {
         _imageProvider = Image.memory(cachedThumbnail).image;
         _loadedSmallThumbnail = true;
@@ -453,9 +460,13 @@ class _ZoomableImageState extends State<ZoomableImage> {
         !_loadedLargeThumbnail &&
         !_loadedFinalImage) {
       _loadingLargeThumbnail = true;
-      getThumbnailFromLocal(_photo, size: thumbnailLargeSize, quality: 100)
-          .then((cachedThumbnail) {
+      getThumbnailFromLocal(
+        _photo,
+        size: thumbnailLargeSize,
+        quality: 100,
+      ).then((cachedThumbnail) {
         if (cachedThumbnail != null) {
+          if (!context.mounted) return;
           _onLargeThumbnailLoaded(Image.memory(cachedThumbnail).image, context);
         }
       });
@@ -465,13 +476,12 @@ class _ZoomableImageState extends State<ZoomableImage> {
       _loadingFinalImage = true;
       getFile(
         _photo,
-        isOrigin: Platform.isIOS &&
+        isOrigin:
+            Platform.isIOS &&
             _isGIF(), // since on iOS GIFs playback only when origin-files are loaded
       ).then((file) {
         if (file != null && file.existsSync()) {
-          _onFileLoaded(
-            file,
-          );
+          _onFileLoaded(file);
         } else {
           _logger.info("File was deleted " + _photo.toString());
           if (_photo.uploadedFileID != null) {
@@ -549,8 +559,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
   Future<bool> _heicNeedsExifRotation(File file) async {
     try {
       final exif = await readExifAsync(file);
-      final orientation =
-          exif['Image Orientation']?.values.firstAsInt() ?? 1;
+      final orientation = exif['Image Orientation']?.values.firstAsInt() ?? 1;
       return orientation > 1;
     } catch (e, s) {
       _logger.warning(
@@ -580,10 +589,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
         cacheHeight: targetHeight.round(),
       ).image;
     } else {
-      imageProvider = Image.file(
-        file,
-        gaplessPlayback: true,
-      ).image;
+      imageProvider = Image.file(file, gaplessPlayback: true).image;
     }
 
     if (mounted) {
@@ -613,9 +619,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
   }
 
   Future<void> _loadHeicWithRust(File file) async {
-    final imageProvider = await _tryDecodeHeicWithRust(
-      file,
-    );
+    final imageProvider = await _tryDecodeHeicWithRust(file);
     if (imageProvider != null) {
       await _tryDisplayRustDecodedImage(
         file,
@@ -651,7 +655,8 @@ class _ZoomableImageState extends State<ZoomableImage> {
     required ImageProvider? previewImageProvider,
     required ImageProvider finalImageProvider,
   }) async {
-    final bool shouldFixPosition = previewImageProvider != null &&
+    final bool shouldFixPosition =
+        previewImageProvider != null &&
         _isZooming &&
         _photoViewController.scale != null;
     ImageInfo? finalImageInfo;
@@ -662,7 +667,8 @@ class _ZoomableImageState extends State<ZoomableImage> {
       final previousRelativeScale = _initialScale != null && _initialScale! > 0
           ? previousScale / _initialScale!
           : null;
-      final scale = previousScale /
+      final scale =
+          previousScale /
           (finalImageInfo.image.width / prevImageInfo.image.width);
       final currentPosition = _photoViewController.value.position;
       unawaited(_zoomStreamSubscription?.cancel());
@@ -753,13 +759,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
         "Flutter failed to decode Rust JPEG bytes for ${_photo.generatedID}: $e",
       );
       if (fallbackToSupportedFormatOnFailure) {
-        unawaited(
-          _loadInSupportedFormat(
-            file,
-            e,
-            skipRustDecoder: true,
-          ),
-        );
+        unawaited(_loadInSupportedFormat(file, e, skipRustDecoder: true));
       }
       return false;
     }
@@ -791,9 +791,11 @@ class _ZoomableImageState extends State<ZoomableImage> {
         setState(() {
           _showingThumbnailFallback = true;
         });
-        InheritedDetailPageState.maybeOf(context)
-            ?.showingThumbnailFallbackNotifier
-            .value = detailPageFileIdentifier(_photo);
+        InheritedDetailPageState.maybeOf(
+          context,
+        )?.showingThumbnailFallbackNotifier.value = detailPageFileIdentifier(
+          _photo,
+        );
         _notifyReadyOnce();
       }
       return;
@@ -805,10 +807,9 @@ class _ZoomableImageState extends State<ZoomableImage> {
     _convertToSupportedFormat = true;
 
     if (!skipRustDecoder) {
-      final imageProvider = await _tryDecodeHeicWithRust(
-        file,
-      );
-      final didDisplayRustImage = imageProvider != null &&
+      final imageProvider = await _tryDecodeHeicWithRust(file);
+      final didDisplayRustImage =
+          imageProvider != null &&
           await _tryDisplayRustDecodedImage(
             file,
             imageProvider,
@@ -866,9 +867,11 @@ class _ZoomableImageState extends State<ZoomableImage> {
         setState(() {
           _showingThumbnailFallback = true;
         });
-        InheritedDetailPageState.maybeOf(context)
-            ?.showingThumbnailFallbackNotifier
-            .value = detailPageFileIdentifier(_photo);
+        InheritedDetailPageState.maybeOf(
+          context,
+        )?.showingThumbnailFallbackNotifier.value = detailPageFileIdentifier(
+          _photo,
+        );
         _notifyReadyOnce();
       }
     }

@@ -1,9 +1,28 @@
+import {
+    deleteLockerFileShareLink,
+    downloadLockerFile,
+    getOrCreateLockerFileShareLink,
+} from "@/services/remote";
+import type { LockerCollection, LockerItem } from "@/types";
+import {
+    canEditCollection,
+    canLeaveCollection,
+    canOpenCollectionSharing,
+    canShareLockerFileLink,
+    getItemTitle,
+    hasDownloadableObject,
+    isImportantCollection,
+    isLockerItemOwner,
+    restoreTargetLockerCollections,
+    sortLockerCollections,
+    visibleLockerCollections,
+} from "@/types";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import ClearRoundedIcon from "@mui/icons-material/ClearRounded";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
@@ -36,25 +55,6 @@ import React, {
     useRef,
     useState,
 } from "react";
-import {
-    deleteLockerFileShareLink,
-    downloadLockerFile,
-    getOrCreateLockerFileShareLink,
-} from "services/remote";
-import type { LockerCollection, LockerItem } from "types";
-import {
-    canEditCollection,
-    canLeaveCollection,
-    canOpenCollectionSharing,
-    canShareLockerFileLink,
-    getItemTitle,
-    hasDownloadableObject,
-    isImportantCollection,
-    isLockerItemOwner,
-    restoreTargetLockerCollections,
-    sortLockerCollections,
-    visibleLockerCollections,
-} from "types";
 import { ItemCard } from "./ItemCard";
 import { ItemDetailView } from "./ItemDetailView";
 import { ItemListDialogs } from "./itemList/ItemListDialogs";
@@ -1679,7 +1679,7 @@ const SelectionActionBar: React.FC<{
                     </Button>
                     <Button
                         color="critical"
-                        startIcon={<DeleteOutlineIcon />}
+                        startIcon={<DeleteOutlinedIcon />}
                         onClick={onDelete}
                         disabled={bulkDownloading || !canDelete}
                         sx={{
@@ -2200,7 +2200,7 @@ const CollectionContextMenu: React.FC<{
         )}
         {onDelete && (
             <OverflowMenuOption
-                startIcon={<DeleteOutlineIcon />}
+                startIcon={<DeleteOutlinedIcon />}
                 color="critical"
                 onClick={onDelete}
             >
@@ -2247,7 +2247,7 @@ const CollectionHeaderMenu: React.FC<{
         )}
         {onDelete && (
             <OverflowMenuOption
-                startIcon={<DeleteOutlineIcon />}
+                startIcon={<DeleteOutlinedIcon />}
                 color="critical"
                 onClick={onDelete}
             >

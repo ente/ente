@@ -1,16 +1,12 @@
+import "package:ente_components/ente_components.dart" as components;
 import "package:flutter/material.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/selected_albums.dart";
-import "package:photos/theme/ente_theme.dart";
 
 class AlbumActionBarWidget extends StatefulWidget {
   final SelectedAlbums? selectedAlbums;
   final VoidCallback? onCancel;
-  const AlbumActionBarWidget({
-    super.key,
-    this.selectedAlbums,
-    this.onCancel,
-  });
+  const AlbumActionBarWidget({super.key, this.selectedAlbums, this.onCancel});
 
   @override
   State<AlbumActionBarWidget> createState() => _AlbumActionBarWidgetState();
@@ -34,7 +30,10 @@ class _AlbumActionBarWidgetState extends State<AlbumActionBarWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = getEnteTextTheme(context);
+    final colors = components.ComponentTheme.colorsOf(context);
+    final miniStyle = components.TextStyles.mini.copyWith(
+      color: colors.textBase,
+    );
     return SizedBox(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
@@ -50,7 +49,7 @@ class _AlbumActionBarWidgetState extends State<AlbumActionBarWidget> {
                     AppLocalizations.of(context).selectedAlbums(
                       count: widget.selectedAlbums?.albums.length ?? 0,
                     ),
-                    style: textTheme.miniMuted,
+                    style: miniStyle,
                   );
                 },
               ),
@@ -68,7 +67,7 @@ class _AlbumActionBarWidgetState extends State<AlbumActionBarWidget> {
                     alignment: Alignment.centerRight,
                     child: Text(
                       AppLocalizations.of(context).cancel,
-                      style: textTheme.mini,
+                      style: miniStyle,
                     ),
                   ),
                 ),

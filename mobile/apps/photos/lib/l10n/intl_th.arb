@@ -12,22 +12,7 @@
   "validEmailAddress": "ที่อยู่อีเมลถูกต้อง",
   "enterValidEmail": "โปรดใส่ที่อยู่อีเมลที่ถูกต้อง",
   "deleteAccount": "ลบบัญชี",
-  "deleteAccountWarning": "การกระทำนี้จะลบบัญชี Ente Auth, Ente Photos และ Ente Locker ของคุณ",
-  "askDeleteReason": "เหตุผลหลักที่คุณลบบัญชีคืออะไร?",
-  "deleteAccountFeedbackPrompt": "เราเสียใจที่เห็นคุณไป โปรดแบ่งปันความคิดเห็นของคุณเพื่อช่วยให้เราปรับปรุง",
-  "feedback": "ความคิดเห็น",
-  "kindlyHelpUsWithThisInformation": "กรุณาช่วยเราด้วยข้อมูลนี้",
-  "confirmDeletePrompt": "ใช่, ฉันประสงค์ที่จะลบบัญชีนี้ และข้อมูลที้งหมดของมันในทุกแอพอย่างถาวร",
-  "confirmAccountDeletion": "ยืนยันการลบบัญชี",
-  "deleteAccountPermanentlyButton": "ลบบัญชีถาวร",
-  "yourAccountHasBeenDeleted": "บัญชีของคุณถูกลบแล้ว",
-  "selectReason": "เลือกเหตุผล",
-  "deleteReason1": "ขาดคุณสมบัติสำคัญที่ฉันต้องการ",
-  "deleteReason2": "ตัวแอปหรือคุณสมบัติบางอย่างไม่ทำงานเหมือนที่ฉันคิดว่าควรจะเป็น",
-  "deleteReason3": "ฉันเจอบริการอื่นที่ฉันชอบมากกว่า",
-  "deleteReason4": "เหตุผลของฉันไม่มีระบุไว้",
   "sendEmail": "ส่งอีเมล",
-  "deleteRequestSLAText": "คำขอของคุณจะได้รับการดำเนินการภายใน 72 ชั่วโมง",
   "entePhotosPerm": "Ente <i>ต้องการสิทธิ์เพื่อ</i> เก็บรักษารูปภาพของคุณ",
   "ok": "ตกลง",
   "createAccount": "สร้างบัญชี",
@@ -273,9 +258,6 @@
   "uncategorized": "ไม่มีหมวดหมู่",
   "videoSmallCase": "วิดีโอ",
   "photoSmallCase": "รูปภาพ",
-  "singleFileInBothLocalAndRemote": "{fileType} นี้จะถูกลบออกจากทั้ง Ente และ เครื่องของคุณ",
-  "singleFileInRemoteOnly": "{fileType} นี้จะถูกลบออกจาก Ente",
-  "singleFileDeleteFromDevice": "{fileType} นี้จะถูกลบจากเครื่องของคุณ",
   "deleteFromEnte": "ลบออกจาก Ente",
   "yesDelete": "ยืนยันการลบ",
   "movedToTrash": "ย้ายไปถังขยะแล้ว",
@@ -314,7 +296,6 @@
   "authToChangeYourEmail": "โปรดยืนยันตัวตนเพื่อเปลี่ยนอีเมล",
   "changePassword": "เปลี่ยนรหัสผ่าน",
   "authToChangeYourPassword": "โปรดยืนยันตัวตนเพื่อเปลี่ยนรหัสผ่าน",
-  "authToInitiateAccountDeletion": "โปรดยืนยันตัวตนเพื่อเริ่มกระบวนลบบัญชี",
   "downloading": "กำลังดาวน์โหลด...",
   "retry": "ลองอีกรอบ",
   "removeDuplicates": "ลบไฟล์ซ้ำ",
@@ -351,11 +332,6 @@
   "send": "ส่ง",
   "rateTheApp": "ให้คะแนนแอพนี้",
   "createAnEnteAccount": "สร้างบัญชี Ente",
-  "@onDevice": {
-    "description": "The text displayed above folders/albums stored on device",
-    "type": "text"
-  },
-  "onDevice": "ในเครื่อง",
   "@onEnte": {
     "description": "The text displayed above albums backed up to Ente",
     "type": "text"
@@ -395,6 +371,9 @@
   "moveToAlbum": "ย้ายไปยังอัลบั้ม",
   "unhide": "เลิกซ่อน",
   "unarchive": "เลิกเก็บถาวร",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
   "favorite": "ชื่นชอบ",
   "shareLink": "แชร์​ลิงก์",
   "addToEnte": "เพิ่มไปที่ Ente",
@@ -439,18 +418,6 @@
   "androidBiometricSuccess": "สำเร็จ",
   "@androidBiometricSuccess": {
     "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "ยกเลิก",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "goToSettings": "ไปที่การตั้งค่า",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
-  "iOSOkButton": "ตกลง",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
   },
   "openstreetmapContributors": "ผู้มีส่วนร่วม OpenStreetMap",
   "hostedAtOsmFrance": "โฮสต์ที่ OSM ฝรั่งเศส",

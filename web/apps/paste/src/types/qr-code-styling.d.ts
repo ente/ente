@@ -5,5 +5,8 @@ declare module "qr-code-styling" {
         constructor(options?: QRCodeStylingOptions);
         append(container: HTMLElement): void;
         update(options?: QRCodeStylingOptions): void;
+        download(
+            options?: { name?: string; extension?: string } | string,
+        ): Promise<void>;
     }
 }

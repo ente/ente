@@ -1,12 +1,10 @@
 package collections
 
 import (
-	"fmt"
-
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller/access"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller/access"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
@@ -24,10 +22,10 @@ func (c *CollectionController) AddFiles(ctx *gin.Context, userID int64, files []
 	}
 	app := auth.GetApp(ctx)
 	if resp.Collection.App != string(app) {
-		return stacktrace.Propagate(ente.ErrInvalidApp, fmt.Sprintf("app mismatch collection: %s  request ctx app %s", resp.Collection.App, app))
+		return stacktrace.Propagate(ente.ErrInvalidApp, "app mismatch collection: %s  request ctx app %s", resp.Collection.App, app)
 	}
 	if !resp.Role.CanAdd() {
-		return stacktrace.Propagate(ente.ErrPermissionDenied, fmt.Sprintf("user %d with role %s can not add files", userID, *resp.Role))
+		return stacktrace.Propagate(ente.ErrPermissionDenied, "user %d with role %s can not add files", userID, *resp.Role)
 	}
 
 	collectionOwnerID := resp.Collection.Owner.ID
@@ -53,8 +51,8 @@ func (c *CollectionController) AddFiles(ctx *gin.Context, userID int64, files []
 	}
 	if len(trashedOrDeletedFileIDs) > 0 {
 		log.WithFields(log.Fields{
-			"user_id":                    userID,
-			"collection_id":              cID,
+			"user_id":                     userID,
+			"collection_id":               cID,
 			"trashed_or_deleted_file_ids": trashedOrDeletedFileIDs,
 		}).Warn("attempt to add trashed or deleted files to collection")
 		return stacktrace.Propagate(&ente.ErrFileInTrash, "")
@@ -126,7 +124,7 @@ func (c *CollectionController) MoveFiles(ctx *gin.Context, req ente.MoveFilesReq
 	}
 
 	if r2.Collection.App != r1.Collection.App {
-		return stacktrace.Propagate(ente.ErrInvalidApp, fmt.Sprintf("move across app not supported %s to %s", r1.Collection.App, r2.Collection.App))
+		return stacktrace.Propagate(ente.ErrInvalidApp, "move across app not supported %s to %s", r1.Collection.App, r2.Collection.App)
 	}
 
 	// Verify that the user owns each file
@@ -226,7 +224,7 @@ func (c *CollectionController) RemoveFilesV3(ctx *gin.Context, actorUserID int64
 			}
 		} else {
 			// unless client is buggy, we should never reach here.
-			return stacktrace.NewError(fmt.Sprintf("actor %d with role %s is not allowed to remove files owned by collectionOwner %d", actorUserID, *role, collectionOwnerID))
+			return stacktrace.NewError("actor %d with role %s is not allowed to remove files owned by collectionOwner %d", actorUserID, *role, collectionOwnerID)
 		}
 	}
 	// Remove files owned by others if allowed
@@ -304,7 +302,7 @@ func (c *CollectionController) isRemoveAllowed(ctx *gin.Context,
 		if collectionOwnerID == actorUserID {
 			return stacktrace.Propagate(ente.NewBadRequestWithMessage("can not remove files owned collection owner, admins can perform remove suggestion"), "")
 		} else if role == nil || *role != ente.ADMIN {
-			return stacktrace.Propagate(ente.NewBadRequestWithMessage("can not remove files owned by album owner"), fmt.Sprintf("role %s", *role))
+			return stacktrace.Propagate(ente.NewBadRequestWithMessage("can not remove files owned by album owner"), "role %s", *role)
 		}
 	}
 	// allow collection owner to remove files added by others
@@ -346,7 +344,7 @@ func (c *CollectionController) IsCopyAllowed(ctx *gin.Context, actorUserID int64
 		return stacktrace.Propagate(err, "failed to ownership of the dstCollection access")
 	}
 	if srcCollection.Collection.App != dstCollection.Collection.App {
-		return stacktrace.Propagate(ente.ErrInvalidApp, fmt.Sprintf("copy across app not supported %s to %s", srcCollection.Collection.App, dstCollection.Collection.App))
+		return stacktrace.Propagate(ente.ErrInvalidApp, "copy across app not supported %s to %s", srcCollection.Collection.App, dstCollection.Collection.App)
 	}
 	// verify that all FileIDs exists in the srcCollection
 	fileIDs := make([]int64, len(req.CollectionFileItems))

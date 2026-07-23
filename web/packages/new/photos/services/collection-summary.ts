@@ -18,6 +18,7 @@ export type CollectionSummaryAttribute =
     | "sharedIncomingViewer"
     | "sharedIncomingCollaborator"
     | "sharedIncomingAdmin"
+    | "sharedViaLink"
     | "sharedOnlyViaLink"
     | "system"
     | "archived"

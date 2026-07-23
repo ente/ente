@@ -1,0 +1,4 @@
+**/lib/generated_plugin_registrant.dart
+**/android/gradlew
+**/android/gradlew.bat
+**/android/**/gradle-wrapper.jar

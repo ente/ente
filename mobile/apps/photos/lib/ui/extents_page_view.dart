@@ -52,8 +52,8 @@ class ExtentsPageView extends StatefulWidget {
     List<Widget> children = const <Widget>[],
     this.dragStartBehavior = DragStartBehavior.start,
     this.openDrawer,
-  })  : childrenDelegate = SliverChildListDelegate(children),
-        extents = children.length;
+  }) : childrenDelegate = SliverChildListDelegate(children),
+       extents = children.length;
 
   /// Creates a scrollable list that works page by page using widgets that are
   /// created on demand.
@@ -83,9 +83,11 @@ class ExtentsPageView extends StatefulWidget {
     int? itemCount,
     this.dragStartBehavior = DragStartBehavior.start,
     this.openDrawer,
-  })  : childrenDelegate =
-            SliverChildBuilderDelegate(itemBuilder, childCount: itemCount),
-        extents = 0;
+  }) : childrenDelegate = SliverChildBuilderDelegate(
+         itemBuilder,
+         childCount: itemCount,
+       ),
+       extents = 0;
 
   ExtentsPageView.extents({
     super.key,
@@ -101,11 +103,11 @@ class ExtentsPageView extends StatefulWidget {
     this.dragStartBehavior = DragStartBehavior.start,
     this.openDrawer,
   }) : childrenDelegate = SliverChildBuilderDelegate(
-          itemBuilder,
-          childCount: itemCount,
-          addAutomaticKeepAlives: false,
-          addRepaintBoundaries: false,
-        );
+         itemBuilder,
+         childCount: itemCount,
+         addAutomaticKeepAlives: false,
+         addRepaintBoundaries: false,
+       );
 
   /// Creates a scrollable list that works page by page with a custom child
   /// model.
@@ -297,8 +299,9 @@ class _PageViewState extends State<ExtentsPageView> {
       case Axis.horizontal:
         assert(debugCheckHasDirectionality(context));
         final TextDirection textDirection = Directionality.of(context);
-        final AxisDirection axisDirection =
-            textDirectionToAxisDirection(textDirection);
+        final AxisDirection axisDirection = textDirectionToAxisDirection(
+          textDirection,
+        );
         return widget.reverse
             ? flipAxisDirection(axisDirection)
             : axisDirection;
@@ -372,8 +375,9 @@ class _PageViewState extends State<ExtentsPageView> {
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder description) {
     super.debugFillProperties(description);
-    description
-        .add(EnumProperty<Axis>('scrollDirection', widget.scrollDirection));
+    description.add(
+      EnumProperty<Axis>('scrollDirection', widget.scrollDirection),
+    );
     description.add(
       FlagProperty('reverse', value: widget.reverse, ifTrue: 'reversed'),
     );

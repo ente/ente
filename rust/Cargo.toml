@@ -4,21 +4,49 @@ members = [
     "apps/cli",
     "apps/codegen",
     "apps/ensu/src-tauri",
-    "bindings/ffi/crypto",
-    "bindings/uniffi/core",
-    "bindings/uniffi/ensu/db",
-    "bindings/uniffi/ensu/inference",
-    "bindings/uniffi/ensu/sync",
-    "bindings/uniffi/ensu/transcription",
+    "bindings/frb/ente-rust",
+    "bindings/frb/photos",
+    "bindings/uniffi/cast",
+    "bindings/uniffi/ensu",
     "bindings/wasm/ente-wasm",
+    "bindings/wasm/core",
+    "bindings/wasm/space",
     "crates/accounts",
     "crates/contacts",
     "crates/core",
-    "crates/ensu/db",
-    "crates/ensu/inference",
-    "crates/ensu/sync",
-    "crates/ensu/transcription",
+    "crates/ensu",
+    "crates/paste",
     "crates/image",
-    "e2e",
-    "photos",
+    "crates/model-download",
+    "crates/photos",
+    "crates/test-support",
+    "space",
 ]
+
+[workspace.dependencies]
+ente-ensu = { path = "crates/ensu" }
+ente-accounts = { path = "crates/accounts" }
+ente-contacts = { path = "crates/contacts" }
+ente-core = { path = "crates/core" }
+ente-image = { path = "crates/image" }
+ente-model-download = { path = "crates/model-download" }
+ente-paste = { path = "crates/paste" }
+ente-photos = { path = "crates/photos" }
+ente-rs = { path = "apps/cli" }
+ente-space = { path = "space" }
+ente-test-support = { path = "crates/test-support" }
+ort = { git = "https://github.com/pykeio/ort.git", rev = "31c8f1443bb579bfddb82705288347697e468fb3", default-features = false }
+ort-sys = { git = "https://github.com/pykeio/ort.git", rev = "31c8f1443bb579bfddb82705288347697e468fb3", default-features = false }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+thiserror = "2.0.18"
+uniffi = { version = "0.31.0" }
+wasm-bindgen = "0.2.125"
+
+# Unoptimized Argon2 makes production-strength derivations dominate test runtime.
+[profile.dev.package.argon2]
+opt-level = 3
+
+# Keep transitive ORT users (notably transcribe-rs) on the same revision as direct ORT dependencies.
+[patch.crates-io]
+ort = { git = "https://github.com/pykeio/ort.git", rev = "31c8f1443bb579bfddb82705288347697e468fb3" }

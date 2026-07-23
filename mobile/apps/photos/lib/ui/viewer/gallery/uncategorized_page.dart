@@ -12,6 +12,7 @@ import "package:photos/models/search/hierarchical/album_filter.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 import 'package:photos/models/selected_files.dart';
 import 'package:photos/services/ignored_files_service.dart';
+import "package:photos/ui/components/empty_state_component.dart";
 import 'package:photos/ui/viewer/actions/file_selection_overlay_bar.dart';
 import 'package:photos/ui/viewer/gallery/gallery.dart';
 import 'package:photos/ui/viewer/gallery/gallery_app_bar_widget.dart';
@@ -39,16 +40,23 @@ class UnCategorizedPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appBar = GalleryAppBarWidget.sliverConfig(
+      appBarType,
+      AppLocalizations.of(context).uncategorized,
+      _selectedFiles,
+      collection: collection,
+    );
     final gallery = Gallery(
+      appBar: appBar,
       asyncLoader: (creationStartTime, creationEndTime, {limit, asc}) async {
-        final FileLoadResult result =
-            await FilesDB.instance.getFilesInCollection(
-          collection.id,
-          creationStartTime,
-          creationEndTime,
-          limit: limit,
-          asc: asc,
-        );
+        final FileLoadResult result = await FilesDB.instance
+            .getFilesInCollection(
+              collection.id,
+              creationStartTime,
+              creationEndTime,
+              limit: limit,
+              asc: asc,
+            );
         // hide ignored files from home page UI
         final ignoredIDs =
             await IgnoredFilesService.instance.idToIgnoreReasonMap;
@@ -59,9 +67,9 @@ class UnCategorizedPage extends StatelessWidget {
         );
         return result;
       },
-      reloadEvent: Bus.instance
-          .on<CollectionUpdatedEvent>()
-          .where((event) => event.collectionID == collection.id),
+      reloadEvent: Bus.instance.on<CollectionUpdatedEvent>().where(
+        (event) => event.collectionID == collection.id,
+      ),
       removalEventTypes: const {
         EventType.deletedFromRemote,
         EventType.deletedFromEverywhere,
@@ -69,16 +77,20 @@ class UnCategorizedPage extends StatelessWidget {
       },
       forceReloadEvents: [
         Bus.instance.on<CollectionMetaEvent>().where(
-              (event) =>
-                  event.id == collection.id &&
-                  event.type == CollectionMetaEventType.sortChanged,
-            ),
+          (event) =>
+              event.id == collection.id &&
+              event.type == CollectionMetaEventType.sortChanged,
+        ),
       ],
       tagPrefix: tagPrefix,
       selectedFiles: _selectedFiles,
       sortAsyncFn: () => collection.pubMagicMetadata.asc ?? false,
       initialFiles: null,
       albumName: AppLocalizations.of(context).uncategorized,
+      emptyState: EmptyStateComponent(
+        assetPath: "assets/empty-uncategorized.png",
+        title: AppLocalizations.of(context).uncategorizedItemsWillShowUpHere,
+      ),
     );
     return GalleryBoundariesProvider(
       child: GalleryFilesState(
@@ -91,15 +103,6 @@ class UnCategorizedPage extends StatelessWidget {
             ),
           ),
           child: Scaffold(
-            appBar: PreferredSize(
-              preferredSize: const Size.fromHeight(90.0),
-              child: GalleryAppBarWidget(
-                appBarType,
-                AppLocalizations.of(context).uncategorized,
-                _selectedFiles,
-                collection: collection,
-              ),
-            ),
             body: SelectionState(
               selectedFiles: _selectedFiles,
               child: Stack(
@@ -108,14 +111,15 @@ class UnCategorizedPage extends StatelessWidget {
                   Builder(
                     builder: (context) {
                       return ValueListenableBuilder(
-                        valueListenable: InheritedSearchFilterData.of(context)
-                            .searchFilterDataProvider!
-                            .isSearchingNotifier,
+                        valueListenable: InheritedSearchFilterData.of(
+                          context,
+                        ).searchFilterDataProvider!.isSearchingNotifier,
                         builder: (context, isSearching, _) {
                           return isSearching
                               ? HierarchicalSearchGallery(
                                   tagPrefix: tagPrefix,
                                   selectedFiles: _selectedFiles,
+                                  appBar: appBar,
                                 )
                               : gallery;
                         },

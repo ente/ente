@@ -2,7 +2,7 @@ package model
 
 import (
 	"fmt"
-	"github.com/ente-io/cli/pkg/model/export"
+	"github.com/ente/cli/pkg/model/export"
 	"sort"
 	"time"
 )

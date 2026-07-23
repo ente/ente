@@ -10,10 +10,7 @@ import "package:photos/services/machine_learning/ml_result.dart";
 class FileInfo {
   int? imageWidth;
   int? imageHeight;
-  FileInfo({
-    this.imageWidth,
-    this.imageHeight,
-  });
+  FileInfo({this.imageWidth, this.imageHeight});
 }
 
 class Face {
@@ -59,12 +56,7 @@ class Face {
         height: faceResult.detection.height,
       ),
       landmarks: faceResult.detection.allKeypoints
-          .map(
-            (keypoint) => Landmark(
-              x: keypoint[0],
-              y: keypoint[1],
-            ),
-          )
+          .map((keypoint) => Landmark(x: keypoint[0], y: keypoint[1]))
           .toList(),
     );
     return Face(
@@ -109,10 +101,10 @@ class Face {
   // Note: Keep the information in toJson minimum. Keep in sync with desktop.
   // Derive fields like fileID from other values whenever possible
   Map<String, dynamic> toJson() => {
-        'faceID': faceID,
-        'embedding': embedding,
-        'detection': detection.toJson(),
-        'score': score,
-        'blur': blur,
-      };
+    'faceID': faceID,
+    'embedding': embedding,
+    'detection': detection.toJson(),
+    'score': score,
+    'blur': blur,
+  };
 }

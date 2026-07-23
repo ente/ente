@@ -25,8 +25,8 @@ class PlatformUtil {
   static TextSelectionControls get selectionControls => Platform.isAndroid
       ? materialTextSelectionControls
       : Platform.isIOS
-          ? cupertinoTextSelectionControls
-          : desktopTextSelectionControls;
+      ? cupertinoTextSelectionControls
+      : desktopTextSelectionControls;
 
   static Future<void> openUrlInBrowser(String url) async {
     await launchUrlString(

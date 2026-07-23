@@ -21,11 +21,7 @@ class PasswordReentryPage extends StatefulWidget {
   final BaseConfiguration config;
   final BaseHomePage homePage;
 
-  const PasswordReentryPage(
-    this.config,
-    this.homePage, {
-    super.key,
-  });
+  const PasswordReentryPage(this.config, this.homePage, {super.key});
 
   @override
   State<PasswordReentryPage> createState() => _PasswordReentryPageState();
@@ -119,10 +115,14 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
         password,
         widget.config.getKeyAttributes()!,
       );
+      unawaited(UserService.instance.autoAttributePendingSource());
       _registerSRPForExistingUsers(kek).ignore();
     } on KeyDerivationError catch (e, s) {
       _logger.severe("Password verification failed", e, s);
       await dialog.hide();
+      if (!mounted) {
+        return;
+      }
 
       final result = await showAlertBottomSheet<bool>(
         context,
@@ -138,15 +138,12 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
           ),
         ],
       );
-      if (result == true) {
+      if (result == true && mounted) {
         // ignore: unawaited_futures
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (BuildContext context) {
-              return RecoveryPage(
-                widget.config,
-                widget.homePage,
-              );
+              return RecoveryPage(widget.config, widget.homePage);
             },
           ),
         );
@@ -155,6 +152,9 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
     } catch (e, s) {
       _logger.severe("Password verification failed", e, s);
       await dialog.hide();
+      if (!mounted) {
+        return;
+      }
 
       final result = await showAlertBottomSheet<bool>(
         context,
@@ -170,27 +170,25 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
           ),
         ],
       );
-      if (result == true) {
-        await sendLogs(
-          context,
-          "support@ente.com",
-          postShare: () {},
-        );
+      if (result == true && mounted) {
+        await sendLogs(context, "support@ente.com", postShare: () {});
       }
       return;
     }
     widget.config.resetVolatilePassword();
     await dialog.hide();
-    unawaited(
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return widget.homePage;
-          },
+    if (mounted) {
+      unawaited(
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return widget.homePage;
+            },
+          ),
+          (route) => false,
         ),
-        (route) => false,
-      ),
-    );
+      );
+    }
   }
 
   Future<void> _registerSRPForExistingUsers(Uint8List key) async {
@@ -241,9 +239,7 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
                         // password
                         visible: false,
                         child: TextFormField(
-                          autofillHints: const [
-                            AutofillHints.email,
-                          ],
+                          autofillHints: const [AutofillHints.email],
                           autocorrect: false,
                           keyboardType: TextInputType.emailAddress,
                           initialValue: email,
@@ -334,8 +330,11 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
                               await dialog.show();
                               await widget.config.logout();
                               await dialog.hide();
-                              Navigator.of(context)
-                                  .popUntil((route) => route.isFirst);
+                              if (mounted) {
+                                Navigator.of(
+                                  context,
+                                ).popUntil((route) => route.isFirst);
+                              }
                             },
                             child: Text(
                               context.strings.changeEmail,

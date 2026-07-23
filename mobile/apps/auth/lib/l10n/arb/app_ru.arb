@@ -12,7 +12,7 @@
   "featureOpenSource": "Открытый исходный код\nпроверенный экспертами по безопасности",
   "signUp": "Регистрация",
   "onBoardingGetStarted": "Начать",
-  "setupFirstAccount": "Настройте свою первую\nучетную запись",
+  "setupFirstAccount": "Настройте свой аккаунт",
   "allTabEmptyHint": "Ничего не найдено. Нажмите +, чтобы добавить код, или откройте Корзину, чтобы восстановить его.",
   "@allTabEmptyHint": {
     "description": "Shown when the All tab has no active codes but Trash contains codes"
@@ -112,7 +112,9 @@
   "passwordEmptyError": "Пароль не может быть пустым",
   "passwordTooShort": "Пароль должен состоять как минимум из 8 символов.",
   "importFromApp": "Импорт кодов из {appName}",
-  "importGoogleAuthGuide": "Экспортируйте учетные записи из Google Authenticator в QR-код, используя опцию «Перенести учетные записи». Затем с помощью другого устройства отсканируйте QR-код.\n\nСовет: Чтобы сфотографировать QR-код, можно воспользоваться веб-камерой ноутбука.",
+  "importGoogleAuthGuide": "Экспортируйте ваши аккаунты из Google Authenticator в QR-код, используя опцию «Перенос учетных записей». Затем отсканируйте QR-код или импортируйте его из изображения.",
+  "scannerTorchOn": "Включить фонарик",
+  "scannerTorchOff": "Выключить фонарик",
   "importSelectJsonFile": "Выбрать JSON-файл",
   "importSelectAppExport": "Выбрать файл экспорта {appName}",
   "importEnteEncGuide": "Выберите зашифрованный JSON файл, экспортированный из Ente",
@@ -194,7 +196,7 @@
   "deleteAccountQuery": "Нам будет жаль, если вы уйдете. Вы столкнулись с какой-то проблемой?",
   "yesSendFeedbackAction": "Да, отправить отзыв",
   "noDeleteAccountAction": "Нет, удалить аккаунт",
-  "initiateAccountDeleteTitle": "Пожалуйста, авторизуйтесь, чтобы начать удаление аккаунта",
+  "authToInitiateAccountDeletion": "Разблокируйте, чтобы удалить свой аккаунт",
   "sendEmail": "Отправить электронное письмо",
   "createNewAccount": "Создать новый аккаунт",
   "weakStrength": "Слабый",
@@ -329,6 +331,16 @@
         "description": "The number of codes imported",
         "type": "int",
         "example": "1"
+      }
+    }
+  },
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{Импортировать 1 код из Google Authenticator?} few {Импортируйте {codeCount} коды из Google Authenticator?} many {Импортируйте {codeCount} коды из Google Authenticator?} other{Импортируйте {codeCount} коды из Google Authenticator?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
       }
     }
   },
@@ -486,6 +498,9 @@
   "somethingWentWrongParsingCode": "Мы не смогли разобрать коды {x}.",
   "updateNotAvailable": "Обновление недоступно",
   "viewRawCodes": "Просмотр необработанных кодов",
+  "parsingError": "Ошибка чтения",
+  "deleteUnparseableCodeTitle": "Удалить нераспознаваемый код?",
+  "deleteUnparseableCodeMessage": "Это навсегда удалит этот код из Auth. Он не будет перемещен в корзину.",
   "rawCodes": "Необработанные коды",
   "rawCodeData": "Необработанные кодовые данные",
   "appLock": "Блокировка приложения",

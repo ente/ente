@@ -9,8 +9,8 @@ import {
     LocalTimestamp,
     transformFilesIfNeeded,
 } from "ente-gallery/services/files-db";
-import { type Collection } from "ente-media/collection";
-import { type EnteFile } from "ente-media/file";
+import type { Collection } from "ente-media/collection";
+import type { EnteFile } from "ente-media/file";
 import { z } from "zod";
 import type { TrashItem } from "./trash";
 

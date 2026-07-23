@@ -32,18 +32,20 @@ class _GalleryDownloadBannerState extends State<GalleryDownloadBanner>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     galleryDownloadQueueService.init().ignore();
-    _updatedSubscription =
-        Bus.instance.on<GalleryDownloadsUpdatedEvent>().listen((_) {
-      if (mounted) {
-        setState(() {});
-      }
-    });
-    _resumedSubscription =
-        Bus.instance.on<GalleryDownloadsResumedEvent>().listen((_) {
-      if (mounted) {
-        showToast(context, "Connection restored - resuming downloads");
-      }
-    });
+    _updatedSubscription = Bus.instance
+        .on<GalleryDownloadsUpdatedEvent>()
+        .listen((_) {
+          if (mounted) {
+            setState(() {});
+          }
+        });
+    _resumedSubscription = Bus.instance
+        .on<GalleryDownloadsResumedEvent>()
+        .listen((_) {
+          if (mounted) {
+            showToast(context, "Connection restored - resuming downloads");
+          }
+        });
   }
 
   @override
@@ -59,8 +61,8 @@ class _GalleryDownloadBannerState extends State<GalleryDownloadBanner>
     if (state != AppLifecycleState.resumed) {
       return;
     }
-    final lastBackgroundTime =
-        AppLifecycleService.instance.getLastAppOpenTime();
+    final lastBackgroundTime = AppLifecycleService.instance
+        .getLastAppOpenTime();
     if (lastBackgroundTime <= 0) {
       return;
     }
@@ -79,7 +81,8 @@ class _GalleryDownloadBannerState extends State<GalleryDownloadBanner>
 
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final isErrorState = service.hasPausedDueToNoConnection ||
+    final isErrorState =
+        service.hasPausedDueToNoConnection ||
         service.hasPausedDueToStorage ||
         service.hasNonUnavailableErrors;
 
@@ -106,15 +109,13 @@ class _GalleryDownloadBannerState extends State<GalleryDownloadBanner>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _bannerMessage(context),
-                        style: textTheme.smallBold,
-                      ),
+                      Text(_bannerMessage(context), style: textTheme.smallBold),
                       if (!service.isCompletionBannerVisible) ...[
                         const SizedBox(height: 8),
                         ClipRRect(
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(2)),
+                          borderRadius: const BorderRadius.all(
+                            Radius.circular(2),
+                          ),
                           child: LinearProgressIndicator(
                             value: service.overallProgress,
                             minHeight: 4,
@@ -178,8 +179,10 @@ class _GalleryDownloadBannerState extends State<GalleryDownloadBanner>
     }
 
     final current =
-        (service.completedCount + (service.downloadingCount > 0 ? 1 : 0))
-            .clamp(0, service.totalCount);
+        (service.completedCount + (service.downloadingCount > 0 ? 1 : 0)).clamp(
+          0,
+          service.totalCount,
+        );
     return "Downloading $current of ${service.totalCount}";
   }
 
@@ -210,12 +213,13 @@ class _DownloadsDetailSheetState extends State<_DownloadsDetailSheet> {
   @override
   void initState() {
     super.initState();
-    _updatedSubscription =
-        Bus.instance.on<GalleryDownloadsUpdatedEvent>().listen((_) {
-      if (mounted) {
-        setState(() {});
-      }
-    });
+    _updatedSubscription = Bus.instance
+        .on<GalleryDownloadsUpdatedEvent>()
+        .listen((_) {
+          if (mounted) {
+            setState(() {});
+          }
+        });
   }
 
   @override
@@ -259,10 +263,7 @@ class _DownloadsDetailSheetState extends State<_DownloadsDetailSheet> {
             const SizedBox(height: 12),
             Row(
               children: [
-                Text(
-                  "Downloads",
-                  style: textTheme.h3Bold,
-                ),
+                Text("Downloads", style: textTheme.h3Bold),
                 const Spacer(),
                 if (hasCancelableTasks)
                   TextButton(
@@ -275,10 +276,7 @@ class _DownloadsDetailSheetState extends State<_DownloadsDetailSheet> {
             if (tasks.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Text(
-                  "No downloads",
-                  style: textTheme.smallMuted,
-                ),
+                child: Text("No downloads", style: textTheme.smallMuted),
               )
             else
               Flexible(
@@ -289,10 +287,8 @@ class _DownloadsDetailSheetState extends State<_DownloadsDetailSheet> {
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: tasks.length,
-                    separatorBuilder: (_, __) => Divider(
-                      height: 1,
-                      color: colorScheme.strokeFaint,
-                    ),
+                    separatorBuilder: (_, _) =>
+                        Divider(height: 1, color: colorScheme.strokeFaint),
                     itemBuilder: (context, index) {
                       final task = tasks[index];
                       return _DownloadTaskRow(task: task);
@@ -335,7 +331,8 @@ class _DownloadTaskRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final canCancel = task.status == DownloadStatus.pending ||
+    final canCancel =
+        task.status == DownloadStatus.pending ||
         task.status == DownloadStatus.downloading ||
         task.status == DownloadStatus.paused;
 
@@ -387,11 +384,7 @@ class _TaskStatus extends StatelessWidget {
       case DownloadStatus.completed:
         return Row(
           children: [
-            Icon(
-              Icons.check_circle,
-              size: 14,
-              color: colorScheme.primary500,
-            ),
+            Icon(Icons.check_circle, size: 14, color: colorScheme.primary500),
             const SizedBox(width: 6),
             Text(
               "Saved",
@@ -429,13 +422,13 @@ class _TaskStatus extends StatelessWidget {
       case DownloadStatus.error:
       case DownloadStatus.cancelled:
         return Text(
-          _errorMessage(task.error),
+          _errorMessage(context, task.error),
           style: textTheme.mini.copyWith(color: colorScheme.warning500),
         );
     }
   }
 
-  String _errorMessage(String? error) {
+  String _errorMessage(BuildContext context, String? error) {
     if (error == DownloadManager.noConnectionError) {
       return "No connection";
     }
@@ -444,6 +437,9 @@ class _TaskStatus extends StatelessWidget {
     }
     if (error == DownloadManager.unavailableError) {
       return "Unavailable";
+    }
+    if (error == DownloadManager.applePhotosUnsupportedResourceError) {
+      return AppLocalizations.of(context).applePhotosUnsupportedResource;
     }
     if (error == null || error.isEmpty) {
       return "Download failed";

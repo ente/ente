@@ -45,10 +45,7 @@ class FileDataGateway {
   }) async {
     final response = await _enteDio.post(
       "/files/data/fetch",
-      data: {
-        "fileIDs": fileIDs,
-        "type": type,
-      },
+      data: {"fileIDs": fileIDs, "type": type},
     );
     return response.data as Map<String, dynamic>;
   }
@@ -63,9 +60,7 @@ class FileDataGateway {
   }) async {
     final response = await _enteDio.post(
       "/files/data/status-diff",
-      data: {
-        "lastUpdatedAt": lastUpdatedAt,
-      },
+      data: {"lastUpdatedAt": lastUpdatedAt},
     );
     return response.data as Map<String, dynamic>;
   }
@@ -113,10 +108,7 @@ class FileDataGateway {
   }) async {
     final response = await _enteDio.get(
       "/files/data/preview-upload-url",
-      queryParameters: {
-        "fileID": fileID,
-        "type": type,
-      },
+      queryParameters: {"fileID": fileID, "type": type},
       cancelToken: cancelToken,
     );
     return (
@@ -131,16 +123,10 @@ class FileDataGateway {
   /// [type] - The type of preview (e.g., "vid_preview", "img_preview").
   ///
   /// Returns the preview URL.
-  Future<String> getPreview({
-    required int fileID,
-    required String type,
-  }) async {
+  Future<String> getPreview({required int fileID, required String type}) async {
     final response = await _enteDio.get(
       "/files/data/preview",
-      queryParameters: {
-        "fileID": fileID,
-        "type": type,
-      },
+      queryParameters: {"fileID": fileID, "type": type},
     );
     return response.data["url"] as String;
   }
@@ -152,16 +138,10 @@ class FileDataGateway {
   ///
   /// Returns the encrypted data and decryption header.
   Future<({String encryptedData, String decryptionHeader})>
-      fetchSingleFileData({
-    required int fileID,
-    required String type,
-  }) async {
+  fetchSingleFileData({required int fileID, required String type}) async {
     final response = await _enteDio.get(
-      "/files/data/fetch/",
-      queryParameters: {
-        "fileID": fileID,
-        "type": type,
-      },
+      "/files/data/fetch",
+      queryParameters: {"fileID": fileID, "type": type},
     );
     return (
       encryptedData: response.data["data"]["encryptedData"] as String,
@@ -179,7 +159,7 @@ class FileDataGateway {
   ///
   /// Returns the encrypted data and decryption header.
   Future<({String encryptedData, String decryptionHeader})>
-      fetchPublicFileData({
+  fetchPublicFileData({
     required String baseUrl,
     required int fileID,
     required String type,
@@ -187,11 +167,8 @@ class FileDataGateway {
     required Dio nonEnteDio,
   }) async {
     final response = await nonEnteDio.get(
-      "$baseUrl/public-collection/files/data/fetch/",
-      queryParameters: {
-        "fileID": fileID,
-        "type": type,
-      },
+      "$baseUrl/public-collection/files/data/fetch",
+      queryParameters: {"fileID": fileID, "type": type},
       options: Options(headers: headers),
     );
     return (
@@ -218,10 +195,7 @@ class FileDataGateway {
   }) async {
     final response = await nonEnteDio.get(
       "$baseUrl/public-collection/files/data/preview",
-      queryParameters: {
-        "fileID": fileID,
-        "type": type,
-      },
+      queryParameters: {"fileID": fileID, "type": type},
       options: Options(headers: headers),
     );
     return response.data["url"] as String;

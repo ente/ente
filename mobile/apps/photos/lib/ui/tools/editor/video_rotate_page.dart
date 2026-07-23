@@ -8,10 +8,7 @@ import "package:photos/ui/tools/editor/video_editor/video_editor_player_control.
 import 'package:video_editor/video_editor.dart';
 
 class VideoRotatePage extends StatelessWidget {
-  const VideoRotatePage({
-    super.key,
-    required this.controller,
-  });
+  const VideoRotatePage({super.key, required this.controller});
 
   final VideoEditorController controller;
 
@@ -20,7 +17,7 @@ class VideoRotatePage extends StatelessWidget {
     final rotation = controller.rotation;
     final colorScheme = getEnteColorScheme(context);
     return Scaffold(
-      backgroundColor: colorScheme.backgroundBase,
+      backgroundColor: colorScheme.backgroundColour,
       appBar: VideoEditorAppBar(
         onCancel: () {
           while (controller.rotation != rotation) {
@@ -48,18 +45,14 @@ class VideoRotatePage extends StatelessWidget {
                     Positioned.fill(
                       child: Hero(
                         tag: "video-editor-preview",
-                        child: CropGridViewer.preview(
-                          controller: controller,
-                        ),
+                        child: CropGridViewer.preview(controller: controller),
                       ),
                     ),
                     Align(
                       alignment: Alignment.bottomCenter,
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 20),
-                        child: VideoEditorPlayerControl(
-                          controller: controller,
-                        ),
+                        child: VideoEditorPlayerControl(controller: controller),
                       ),
                     ),
                   ],

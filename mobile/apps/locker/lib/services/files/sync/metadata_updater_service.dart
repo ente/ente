@@ -29,14 +29,9 @@ class MetadataUpdaterService {
     }
   }
 
-  Future<bool> editFileName(
-    EnteFile file,
-    String name,
-  ) async {
+  Future<bool> editFileName(EnteFile file, String name) async {
     try {
-      final Map<String, dynamic> updates = {
-        editNameKey: name,
-      };
+      final Map<String, dynamic> updates = {editNameKey: name};
       await _updatePublicMetadataBulk([file], updates);
       await CollectionService.instance.sync();
       return true;
@@ -125,8 +120,9 @@ class MetadataUpdaterService {
           newUpdates != null && newUpdates.isNotEmpty,
           "can not apply empty updates",
         );
-        final Map<String, dynamic> jsonToUpdate =
-            jsonDecode(file.pubMmdEncodedJson ?? '{}');
+        final Map<String, dynamic> jsonToUpdate = jsonDecode(
+          file.pubMmdEncodedJson ?? '{}',
+        );
         newUpdates!.forEach((key, value) {
           jsonToUpdate[key] = value;
         });

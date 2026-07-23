@@ -139,8 +139,9 @@ void main() {
         EnteFile()
           ..uploadedFileID = 2
           ..fileType = FileType.video
-          ..pubMagicMetadata =
-              PubMagicMetadata(sv: 1), // Processed but with sv=1
+          ..pubMagicMetadata = PubMagicMetadata(
+            sv: 1,
+          ), // Processed but with sv=1
         EnteFile()
           ..uploadedFileID = 3
           ..fileType = FileType.video
@@ -186,8 +187,9 @@ void main() {
         EnteFile()
           ..uploadedFileID = 2
           ..fileType = FileType.video
-          ..pubMagicMetadata =
-              PubMagicMetadata(sv: 1), // Skip from total (sv=1)
+          ..pubMagicMetadata = PubMagicMetadata(
+            sv: 1,
+          ), // Skip from total (sv=1)
         EnteFile()
           ..uploadedFileID = 3
           ..fileType = FileType.video
@@ -199,8 +201,9 @@ void main() {
         EnteFile()
           ..uploadedFileID = 5
           ..fileType = FileType.video
-          ..pubMagicMetadata =
-              PubMagicMetadata(sv: 1), // Skip from total (sv=1)
+          ..pubMagicMetadata = PubMagicMetadata(
+            sv: 1,
+          ), // Skip from total (sv=1)
       ];
 
       final previewIds = <int, PreviewInfo>{
@@ -293,10 +296,7 @@ void main() {
 
       // Assert
       // All files have sv=1, so total set is empty, netProcessedItems should be 1.0
-      expect(
-        status,
-        equals(1.0),
-      ); // Empty total = 100% complete
+      expect(status, equals(1.0)); // Empty total = 100% complete
     });
 
     test('should handle percentage calculation precision', () async {

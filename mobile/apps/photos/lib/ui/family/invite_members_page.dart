@@ -10,6 +10,7 @@ import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/ui/components/base_bottom_sheet.dart';
 import 'package:photos/ui/components/buttons/button_widget_v2.dart';
 import 'package:photos/ui/family/family_ui.dart';
+import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/utils/dialog_util.dart';
 import 'package:photos/utils/share_util.dart';
 
@@ -104,10 +105,7 @@ class _InviteMembersPageState extends State<InviteMembersPage> {
                       ),
                     ),
                   ],
-                  _InviteEmailList(
-                    emails: _emails,
-                    onRemove: _removeEmail,
-                  ),
+                  _InviteEmailList(emails: _emails, onRemove: _removeEmail),
                 ],
               ),
             ),
@@ -198,11 +196,7 @@ class _InviteMembersPageState extends State<InviteMembersPage> {
                         color: colorScheme.greenBase,
                       ),
                     )
-                  : Icon(
-                      Icons.add,
-                      size: 24,
-                      color: colorScheme.content,
-                    ),
+                  : Icon(Icons.add, size: 24, color: colorScheme.content),
             ),
           ),
         ),
@@ -232,7 +226,8 @@ class _InviteMembersPageState extends State<InviteMembersPage> {
   }
 
   int _remainingSlotsFor(UserDetails details) {
-    final memberCount = details.familyData?.members
+    final memberCount =
+        details.familyData?.members
             ?.where(
               (member) =>
                   member.email.trim().toLowerCase() !=
@@ -321,17 +316,19 @@ class _InviteMembersPageState extends State<InviteMembersPage> {
       }
 
       if (!result.hasFailures) {
-        Navigator.of(context).pop(
-          InviteMembersPageResult.invitesSent(_emails.length),
-        );
+        Navigator.of(
+          context,
+        ).pop(InviteMembersPageResult.invitesSent(_emails.length));
         return;
       }
 
       final hadAnySuccess = result.failures.length < _emails.length;
-      final failedEmailSet =
-          result.failures.map((failure) => failure.email).toSet();
-      final successfulEmails =
-          _emails.where((email) => !failedEmailSet.contains(email)).toList();
+      final failedEmailSet = result.failures
+          .map((failure) => failure.email)
+          .toSet();
+      final successfulEmails = _emails
+          .where((email) => !failedEmailSet.contains(email))
+          .toList();
       UserDetails? refreshedDetails;
       if (hadAnySuccess) {
         try {
@@ -339,20 +336,19 @@ class _InviteMembersPageState extends State<InviteMembersPage> {
         } catch (_) {}
       }
 
-      final failedEmails =
-          result.failures.map((failure) => failure.email).toList();
+      final failedEmails = result.failures
+          .map((failure) => failure.email)
+          .toList();
       setState(() {
         if (refreshedDetails != null) {
           final details = refreshedDetails;
           _remainingSlots = _remainingSlotsFor(details);
           _existingEmails
             ..clear()
-            ..addAll(
-              {
-                for (final member in details.familyData?.members ?? [])
-                  member.email.trim().toLowerCase(),
-              },
-            );
+            ..addAll({
+              for (final member in details.familyData?.members ?? [])
+                member.email.trim().toLowerCase(),
+            });
         } else {
           _remainingSlots = math.max(
             0,
@@ -364,14 +360,18 @@ class _InviteMembersPageState extends State<InviteMembersPage> {
           ..clear()
           ..addAll(failedEmails);
       });
-      showFamilySnackBar(
-        context,
-        failedEmails.length == 1
-            ? AppLocalizations.of(context)
-                .failedToInvite(email: failedEmails.first)
-            : AppLocalizations.of(context)
-                .failedToInviteCount(count: failedEmails.length),
-      );
+      if (mounted) {
+        showToast(
+          context,
+          failedEmails.length == 1
+              ? AppLocalizations.of(
+                  context,
+                ).failedToInvite(email: failedEmails.first)
+              : AppLocalizations.of(
+                  context,
+                ).failedToInviteCount(count: failedEmails.length),
+        );
+      }
       throw const _HandledInviteActionException();
     } catch (error) {
       if (error is _HandledInviteActionException) {
@@ -421,10 +421,7 @@ class _InviteMembersPageState extends State<InviteMembersPage> {
 }
 
 class _InviteEmailList extends StatefulWidget {
-  const _InviteEmailList({
-    required this.emails,
-    required this.onRemove,
-  });
+  const _InviteEmailList({required this.emails, required this.onRemove});
 
   final List<String> emails;
   final ValueChanged<String> onRemove;
@@ -465,10 +462,8 @@ class _InviteEmailListState extends State<_InviteEmailList> {
       final removedEmail = _displayedEmails.removeAt(i);
       _listKey.currentState!.removeItem(
         i,
-        (context, animation) => _buildAnimatedEmailItem(
-          removedEmail,
-          animation,
-        ),
+        (context, animation) =>
+            _buildAnimatedEmailItem(removedEmail, animation),
         duration: _animationDuration,
       );
     }
@@ -530,10 +525,7 @@ class _InviteEmailListState extends State<_InviteEmailList> {
       curve: Curves.easeOutCubic,
       alignment: Alignment.topCenter,
       child: _displayedEmails.isEmpty
-          ? const SizedBox(
-              height: 0,
-              width: double.infinity,
-            )
+          ? const SizedBox(height: 0, width: double.infinity)
           : Padding(
               padding: const EdgeInsets.only(top: 16),
               child: AnimatedList(
@@ -554,10 +546,7 @@ class _InviteEmailListState extends State<_InviteEmailList> {
 }
 
 class _EmailChip extends StatelessWidget {
-  const _EmailChip({
-    required this.email,
-    required this.onRemove,
-  });
+  const _EmailChip({required this.email, required this.onRemove});
 
   final String email;
   final VoidCallback onRemove;
@@ -581,20 +570,11 @@ class _EmailChip extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              email,
-              style: rowTextStyle,
-            ),
-          ),
+          Expanded(child: Text(email, style: rowTextStyle)),
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: onRemove,
-            child: Icon(
-              Icons.close,
-              size: 18,
-              color: rowIconColor,
-            ),
+            child: Icon(Icons.close, size: 18, color: rowIconColor),
           ),
         ],
       ),

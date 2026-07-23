@@ -55,17 +55,14 @@ class StatsCandidateBuilder extends WrappedCandidateBuilder {
         "You bottled ${numberFormat.format(snapshot.totalCount)} memories";
     final String subtitle = videosText != null
         ? "That’s ${numberFormat.format(snapshot.photoCount)} photos and "
-            "${numberFormat.format(snapshot.videoCount)} videos ready to relive."
+              "${numberFormat.format(snapshot.videoCount)} videos ready to relive."
         : "That’s ${numberFormat.format(snapshot.photoCount)} photos you kept close this year.";
 
-    final List<int> heroIds = _collectUniqueIds(
-      <List<int>>[
-        snapshot.firstCaptureUploadedIDs,
-        snapshot.busiestDayMediaUploadedIDs,
-        snapshot.lastCaptureUploadedIDs,
-      ],
-      selectionTarget: 6,
-    );
+    final List<int> heroIds = _collectUniqueIds(<List<int>>[
+      snapshot.firstCaptureUploadedIDs,
+      snapshot.busiestDayMediaUploadedIDs,
+      snapshot.lastCaptureUploadedIDs,
+    ], selectionTarget: 6);
 
     final List<int> heroCandidates = limitSelectorCandidates(context, heroIds);
     const int heroMediaCount = 3;
@@ -77,8 +74,10 @@ class StatsCandidateBuilder extends WrappedCandidateBuilder {
       preferNamedPeople: true,
       minimumSpacing: const Duration(days: 45),
     );
-    final List<int> metaUploadedIDs =
-        buildMetaUploadedIDs(heroCandidates, heroMediaCount * 2);
+    final List<int> metaUploadedIDs = buildMetaUploadedIDs(
+      heroCandidates,
+      heroMediaCount * 2,
+    );
 
     final Map<String, Object?> meta = <String, Object?>{
       "year": snapshot.year,
@@ -103,11 +102,9 @@ class StatsCandidateBuilder extends WrappedCandidateBuilder {
       subtitle: subtitle,
       media: media,
       meta: meta
-        ..addAll(
-          <String, Object?>{
-            if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
-          },
-        ),
+        ..addAll(<String, Object?>{
+          if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
+        }),
     );
   }
 
@@ -128,8 +125,9 @@ class StatsCandidateBuilder extends WrappedCandidateBuilder {
         "You averaged ${averageFormat.format(roundedMonthlyAverage)} memories a month";
     String? busiestMonthName;
     if (snapshot.busiestMonth != null && snapshot.busiestMonthCount > 0) {
-      busiestMonthName = monthFormat
-          .format(DateTime(snapshot.year, snapshot.busiestMonth!, 1));
+      busiestMonthName = monthFormat.format(
+        DateTime(snapshot.year, snapshot.busiestMonth!, 1),
+      );
     }
     String? topFormatLabel;
     int topFormatCount = 0;
@@ -197,14 +195,12 @@ class StatsCandidateBuilder extends WrappedCandidateBuilder {
       subtitle: subtitle,
       media: media,
       meta: meta
-        ..addAll(
-          <String, Object?>{
-            if (media.isNotEmpty)
-              "uploadedFileIDs": media
-                  .map((MediaRef ref) => ref.uploadedFileID)
-                  .toList(growable: false),
-          },
-        ),
+        ..addAll(<String, Object?>{
+          if (media.isNotEmpty)
+            "uploadedFileIDs": media
+                .map((MediaRef ref) => ref.uploadedFileID)
+                .toList(growable: false),
+        }),
     );
   }
 
@@ -233,8 +229,10 @@ class StatsCandidateBuilder extends WrappedCandidateBuilder {
       maxCount: busiestDayMaxCount,
       preferNamedPeople: true,
     );
-    final List<int> metaUploadedIDs =
-        buildMetaUploadedIDs(candidateIds, busiestDayMaxCount * 2);
+    final List<int> metaUploadedIDs = buildMetaUploadedIDs(
+      candidateIds,
+      busiestDayMaxCount * 2,
+    );
 
     final Map<String, Object?> meta = <String, Object?>{
       "date": day.toIso8601String(),
@@ -261,8 +259,9 @@ class StatsCandidateBuilder extends WrappedCandidateBuilder {
       return const <WrappedCard>[];
     }
 
-    final _HeatmapGridData? heatmapData =
-        _HeatmapGridData.fromSnapshot(snapshot);
+    final _HeatmapGridData? heatmapData = _HeatmapGridData.fromSnapshot(
+      snapshot,
+    );
     if (heatmapData == null || heatmapData.grid.isEmpty) {
       return const <WrappedCard>[];
     }
@@ -271,13 +270,17 @@ class StatsCandidateBuilder extends WrappedCandidateBuilder {
     final DateFormat weekStartFormat = DateFormat("MMM d");
     DateTime? peakWeekStart;
     int peakWeekCount = 0;
-    for (int index = 0;
-        index < snapshot.heatmapRows.length &&
-            index < snapshot.heatmapWeekStartDates.length;
-        index += 1) {
+    for (
+      int index = 0;
+      index < snapshot.heatmapRows.length &&
+          index < snapshot.heatmapWeekStartDates.length;
+      index += 1
+    ) {
       final List<int> week = snapshot.heatmapRows[index];
-      final int weekTotal =
-          week.fold<int>(0, (int sum, int value) => sum + math.max(0, value));
+      final int weekTotal = week.fold<int>(
+        0,
+        (int sum, int value) => sum + math.max(0, value),
+      );
       final DateTime weekStart = snapshot.heatmapWeekStartDates[index];
       if (weekTotal > peakWeekCount ||
           (weekTotal == peakWeekCount &&
@@ -295,8 +298,9 @@ class StatsCandidateBuilder extends WrappedCandidateBuilder {
       if (displayWeekStart.isBefore(yearStart) ||
           displayWeekStart.isAfter(yearEnd)) {
         for (int offset = 0; offset < 7; offset += 1) {
-          final DateTime candidate =
-              _atLocalMidnight(weekBase.add(Duration(days: offset)));
+          final DateTime candidate = _atLocalMidnight(
+            weekBase.add(Duration(days: offset)),
+          );
           if (!candidate.isBefore(yearStart) && !candidate.isAfter(yearEnd)) {
             displayWeekStart = candidate;
             break;
@@ -489,8 +493,9 @@ class _StatsSnapshot {
       final int? creationTime = file.creationTime;
       if (creationTime == null) continue;
 
-      final DateTime captured =
-          DateTime.fromMicrosecondsSinceEpoch(creationTime);
+      final DateTime captured = DateTime.fromMicrosecondsSinceEpoch(
+        creationTime,
+      );
       if (captured.year != year) continue;
 
       totalCount += 1;
@@ -516,11 +521,16 @@ class _StatsSnapshot {
 
       monthCounts[captured.month] = (monthCounts[captured.month] ?? 0) + 1;
 
-      final DateTime day =
-          DateTime(captured.year, captured.month, captured.day);
+      final DateTime day = DateTime(
+        captured.year,
+        captured.month,
+        captured.day,
+      );
       final int dayKey = day.microsecondsSinceEpoch;
-      final _DayAggregate aggregate =
-          dayAggregates.putIfAbsent(dayKey, () => _DayAggregate(day));
+      final _DayAggregate aggregate = dayAggregates.putIfAbsent(
+        dayKey,
+        () => _DayAggregate(day),
+      );
       aggregate.count += 1;
       final int? uploadedId = file.uploadedFileID;
       if (uploadedId != null) {
@@ -535,9 +545,9 @@ class _StatsSnapshot {
       );
     }
 
-    final List<_DayAggregate> sortedAggregates = dayAggregates.values
-        .toList(growable: false)
-      ..sort((a, b) => a.day.compareTo(b.day));
+    final List<_DayAggregate> sortedAggregates = dayAggregates.values.toList(
+      growable: false,
+    )..sort((a, b) => a.day.compareTo(b.day));
 
     final int daysWithCaptures = sortedAggregates.length;
     final Map<String, int> dailyCounts = <String, int>{
@@ -545,13 +555,15 @@ class _StatsSnapshot {
         aggregate.day.toIso8601String(): aggregate.count,
     };
 
-    final DateTime? firstCaptureDay =
-        sortedAggregates.isEmpty ? null : sortedAggregates.first.day;
+    final DateTime? firstCaptureDay = sortedAggregates.isEmpty
+        ? null
+        : sortedAggregates.first.day;
     final List<int> firstCaptureUploadedIDs = firstCaptureDay == null
         ? const <int>[]
         : List<int>.unmodifiable(sortedAggregates.first.uploadedFileIDs);
-    final DateTime? lastCaptureDay =
-        sortedAggregates.isEmpty ? null : sortedAggregates.last.day;
+    final DateTime? lastCaptureDay = sortedAggregates.isEmpty
+        ? null
+        : sortedAggregates.last.day;
     final List<int> lastCaptureUploadedIDs = lastCaptureDay == null
         ? const <int>[]
         : List<int>.unmodifiable(sortedAggregates.last.uploadedFileIDs);
@@ -600,13 +612,19 @@ class _StatsSnapshot {
           : List<int>.unmodifiable(bestInMonth.uploadedFileIDs);
     }
 
-    final _StreakResult streakResult =
-        _calculateLongestStreak(sortedAggregates);
-    final _GapResult gapResult =
-        _calculateLongestGap(sortedAggregates, startOfYear, periodEndDay);
+    final _StreakResult streakResult = _calculateLongestStreak(
+      sortedAggregates,
+    );
+    final _GapResult gapResult = _calculateLongestGap(
+      sortedAggregates,
+      startOfYear,
+      periodEndDay,
+    );
 
-    final List<int> streakStartUploadedIDs =
-        _uploadedIDsForDay(dayAggregates, streakResult.start);
+    final List<int> streakStartUploadedIDs = _uploadedIDsForDay(
+      dayAggregates,
+      streakResult.start,
+    );
 
     List<int> breakReturnUploadedIDs = const <int>[];
     if (gapResult.length > 0 && gapResult.end != null) {
@@ -620,25 +638,31 @@ class _StatsSnapshot {
     if (rawElapsedDays < 0) rawElapsedDays = 0;
     final int elapsedDays = math.max(1, math.min(rawElapsedDays + 1, 366));
 
-    final double averagePerDay =
-        elapsedDays > 0 ? totalCount / elapsedDays : 0.0;
+    final double averagePerDay = elapsedDays > 0
+        ? totalCount / elapsedDays
+        : 0.0;
     final int elapsedMonths = math.max(1, math.min(12, periodEndDay.month));
-    final double averagePerMonth =
-        elapsedMonths > 0 ? totalCount / elapsedMonths : 0.0;
-    final double averagePerActiveDay =
-        daysWithCaptures > 0 ? totalCount / daysWithCaptures : 0.0;
+    final double averagePerMonth = elapsedMonths > 0
+        ? totalCount / elapsedMonths
+        : 0.0;
+    final double averagePerActiveDay = daysWithCaptures > 0
+        ? totalCount / daysWithCaptures
+        : 0.0;
 
     final DateTime? busiestDay = busiestDayAggregate?.day;
     final int busiestDayCount = busiestDayAggregate?.count ?? 0;
-    final List<int> busiestDayMediaUploadedIDs = busiestDayAggregate == null ||
+    final List<int> busiestDayMediaUploadedIDs =
+        busiestDayAggregate == null ||
             busiestDayAggregate.uploadedFileIDs.isEmpty
         ? const <int>[]
         : List<int>.unmodifiable(busiestDayAggregate.uploadedFileIDs);
 
-    final DateTime heatmapStart =
-        _atLocalMidnight(_alignToMonday(DateTime(year, 1, 1)));
-    final DateTime heatmapEnd =
-        _atLocalMidnight(_alignToSunday(DateTime(year, 12, 31)));
+    final DateTime heatmapStart = _atLocalMidnight(
+      _alignToMonday(DateTime(year, 1, 1)),
+    );
+    final DateTime heatmapEnd = _atLocalMidnight(
+      _alignToSunday(DateTime(year, 12, 31)),
+    );
     final int heatmapDayCount = heatmapEnd.difference(heatmapStart).inDays + 1;
     final int heatmapWeekCount = heatmapDayCount ~/ 7;
     final List<List<int>> heatmapRows = List<List<int>>.generate(
@@ -646,8 +670,11 @@ class _StatsSnapshot {
       (_) => List<int>.filled(7, 0),
       growable: false,
     );
-    final List<DateTime> heatmapWeekStartDates =
-        List<DateTime>.filled(heatmapWeekCount, heatmapStart, growable: false);
+    final List<DateTime> heatmapWeekStartDates = List<DateTime>.filled(
+      heatmapWeekCount,
+      heatmapStart,
+      growable: false,
+    );
     int heatmapMaxCount = 0;
     DateTime weekCursor = heatmapStart;
     for (int weekIndex = 0; weekIndex < heatmapWeekCount; weekIndex += 1) {
@@ -663,14 +690,15 @@ class _StatsSnapshot {
           heatmapMaxCount = count;
         }
       }
-      weekCursor = _atLocalMidnight(
-        weekCursor.add(const Duration(days: 7)),
-      );
+      weekCursor = _atLocalMidnight(weekCursor.add(const Duration(days: 7)));
     }
 
     final DateFormat monthAbbrevFormat = DateFormat("MMM");
-    final List<String> heatmapWeekLabels =
-        List<String>.filled(heatmapWeekCount, "", growable: false);
+    final List<String> heatmapWeekLabels = List<String>.filled(
+      heatmapWeekCount,
+      "",
+      growable: false,
+    );
     int? lastLabeledMonth;
     for (int row = 0; row < heatmapWeekCount; row += 1) {
       final DateTime weekStart = heatmapWeekStartDates[row];
@@ -695,12 +723,15 @@ class _StatsSnapshot {
     final List<List<int>> normalizedHeatmapRows = heatmapRows
         .map((List<int> row) => List<int>.unmodifiable(row))
         .toList(growable: false);
-    final List<String> normalizedWeekLabels =
-        List<String>.unmodifiable(heatmapWeekLabels);
-    final List<String> normalizedWeekdayLabels =
-        List<String>.unmodifiable(heatmapWeekdayLabels);
-    final List<DateTime> normalizedWeekStartDates =
-        List<DateTime>.unmodifiable(heatmapWeekStartDates);
+    final List<String> normalizedWeekLabels = List<String>.unmodifiable(
+      heatmapWeekLabels,
+    );
+    final List<String> normalizedWeekdayLabels = List<String>.unmodifiable(
+      heatmapWeekdayLabels,
+    );
+    final List<DateTime> normalizedWeekStartDates = List<DateTime>.unmodifiable(
+      heatmapWeekStartDates,
+    );
 
     return _StatsSnapshot(
       year: year,
@@ -750,12 +781,10 @@ class _StatsSnapshot {
   }
 
   static String _resolveFormatLabel(EnteFile file) {
-    final String? candidateName = _firstNonEmpty(
-      <String?>[
-        file.title,
-        file.pubMagicMetadata?.editedName,
-      ],
-    );
+    final String? candidateName = _firstNonEmpty(<String?>[
+      file.title,
+      file.pubMagicMetadata?.editedName,
+    ]);
     final String rawExtension = candidateName != null
         ? p.extension(candidateName).replaceFirst(".", "")
         : "";
@@ -808,10 +837,7 @@ class _DayAggregate {
 }
 
 class _HeatmapGridData {
-  const _HeatmapGridData({
-    required this.grid,
-    required this.weekLabels,
-  });
+  const _HeatmapGridData({required this.grid, required this.weekLabels});
 
   final List<List<int>> grid;
   final List<String> weekLabels;
@@ -834,21 +860,24 @@ class _HeatmapGridData {
     final List<List<int>> sanitizedRows = <List<int>>[];
     final List<DateTime?> rowLastValidDays = <DateTime?>[];
     for (int index = 0; index < cappedLength; index += 1) {
-      final DateTime weekStart =
-          _atLocalMidnight(snapshot.heatmapWeekStartDates[index]);
+      final DateTime weekStart = _atLocalMidnight(
+        snapshot.heatmapWeekStartDates[index],
+      );
       final List<int> counts = snapshot.heatmapRows[index];
       final List<int> sanitized = List<int>.filled(7, 0);
       DateTime? lastValidDay;
       for (int dayOffset = 0; dayOffset < 7; dayOffset += 1) {
-        final DateTime day =
-            _atLocalMidnight(weekStart.add(Duration(days: dayOffset)));
+        final DateTime day = _atLocalMidnight(
+          weekStart.add(Duration(days: dayOffset)),
+        );
         if (day.isAfter(lastVisibleDay)) {
           sanitized[dayOffset] = kWrappedHeatmapFutureValue;
         } else if (day.isBefore(yearStart)) {
           sanitized[dayOffset] = kWrappedHeatmapPaddedValue;
         } else {
-          sanitized[dayOffset] =
-              dayOffset < counts.length ? counts[dayOffset] : 0;
+          sanitized[dayOffset] = dayOffset < counts.length
+              ? counts[dayOffset]
+              : 0;
           lastValidDay = day;
         }
       }
@@ -870,27 +899,29 @@ class _HeatmapGridData {
     if (lastValidIndex < 0) {
       return null;
     }
-    final List<List<int>> trimmedRows =
-        sanitizedRows.sublist(0, lastValidIndex + 1);
-    final List<DateTime?> trimmedLastValidDays =
-        rowLastValidDays.sublist(0, lastValidIndex + 1);
-    int? lastLabeledMonth;
-    final List<String> weekLabels = List<String>.generate(
-      trimmedRows.length,
-      (int index) {
-        final DateTime? labelDay = trimmedLastValidDays[index];
-        if (labelDay == null) {
-          return "";
-        }
-        final int month = labelDay.month;
-        if (lastLabeledMonth == null || month != lastLabeledMonth) {
-          lastLabeledMonth = month;
-          return monthFormat.format(labelDay);
-        }
-        return "";
-      },
-      growable: false,
+    final List<List<int>> trimmedRows = sanitizedRows.sublist(
+      0,
+      lastValidIndex + 1,
     );
+    final List<DateTime?> trimmedLastValidDays = rowLastValidDays.sublist(
+      0,
+      lastValidIndex + 1,
+    );
+    int? lastLabeledMonth;
+    final List<String> weekLabels = List<String>.generate(trimmedRows.length, (
+      int index,
+    ) {
+      final DateTime? labelDay = trimmedLastValidDays[index];
+      if (labelDay == null) {
+        return "";
+      }
+      final int month = labelDay.month;
+      if (lastLabeledMonth == null || month != lastLabeledMonth) {
+        lastLabeledMonth = month;
+        return monthFormat.format(labelDay);
+      }
+      return "";
+    }, growable: false);
     return _HeatmapGridData(
       grid: List<List<int>>.unmodifiable(trimmedRows),
       weekLabels: List<String>.unmodifiable(weekLabels),
@@ -899,11 +930,7 @@ class _HeatmapGridData {
 }
 
 class _StreakResult {
-  const _StreakResult({
-    required this.length,
-    this.start,
-    this.end,
-  });
+  const _StreakResult({required this.length, this.start, this.end});
 
   final int length;
   final DateTime? start;
@@ -944,19 +971,11 @@ _StreakResult _calculateLongestStreak(List<_DayAggregate> aggregates) {
     previousDay = day;
   }
 
-  return _StreakResult(
-    length: longest,
-    start: bestStart,
-    end: bestEnd,
-  );
+  return _StreakResult(length: longest, start: bestStart, end: bestEnd);
 }
 
 class _GapResult {
-  const _GapResult({
-    required this.length,
-    this.start,
-    this.end,
-  });
+  const _GapResult({required this.length, this.start, this.end});
 
   final int length;
   final DateTime? start;
@@ -969,8 +988,10 @@ _GapResult _calculateLongestGap(
   DateTime periodEndDay,
 ) {
   if (aggregates.isEmpty) {
-    final int fullSpan =
-        math.max(0, periodEndDay.difference(startOfYear).inDays + 1);
+    final int fullSpan = math.max(
+      0,
+      periodEndDay.difference(startOfYear).inDays + 1,
+    );
     return _GapResult(length: fullSpan, start: startOfYear, end: periodEndDay);
   }
 

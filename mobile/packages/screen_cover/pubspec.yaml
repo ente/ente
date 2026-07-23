@@ -1,0 +1,22 @@
+name: ente_screen_cover
+description: "Hides app content from screenshots/recents (Android) and the app switcher (iOS)."
+
+resolution: workspace
+environment:
+  sdk: ">=3.10.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: 6.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: io.ente.ente_screen_cover
+        pluginClass: EnteScreenCoverPlugin
+      ios:
+        pluginClass: EnteScreenCoverPlugin

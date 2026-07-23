@@ -3,9 +3,9 @@ title: Archive
 description: Archive photos to declutter your timeline in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Archive

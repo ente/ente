@@ -1,0 +1,29 @@
+name: "Dependency review"
+
+# Fail if a dependency added or updated by a PR has a known security advisory.
+
+on:
+    pull_request:
+        paths:
+            - ".github/workflows/dependency-review.yml"
+            - "**/Cargo.lock"
+            - "**/Cargo.toml"
+            - "**/go.mod"
+            - "**/go.sum"
+            - "**/package-lock.json"
+            - "**/package.json"
+            - "**/pubspec.lock"
+            - "**/pubspec.yaml"
+            - "**/uv.lock"
+
+permissions:
+    contents: read
+
+jobs:
+    dependency-review:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Dependency review
+              uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+              with:
+                  fail-on-scopes: runtime, development, unknown

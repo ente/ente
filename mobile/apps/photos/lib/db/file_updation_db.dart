@@ -42,9 +42,7 @@ class FileUpdationDB {
   }
 
   static final initializationScript = [..._createTable()];
-  static final migrationScripts = [
-    ...addReasonColumn(),
-  ];
+  static final migrationScripts = [...addReasonColumn()];
   final dbConfig = MigrationConfig(
     initializationScript: initializationScript,
     migrationScripts: migrationScripts,
@@ -77,10 +75,7 @@ class FileUpdationDB {
     await db.delete(tableName);
   }
 
-  Future<void> insertMultiple(
-    List<String> fileLocalIDs,
-    String reason,
-  ) async {
+  Future<void> insertMultiple(List<String> fileLocalIDs, String reason) async {
     final startTime = DateTime.now();
     final db = await instance.database;
     var batch = db.batch();
@@ -116,12 +111,10 @@ class FileUpdationDB {
     }
     final inParam = localIDs.map((id) => "'$id'").join(',');
     final db = await instance.database;
-    await db.rawQuery(
-      '''
+    await db.rawQuery('''
       DELETE FROM $tableName
       WHERE $columnLocalID IN ($inParam) AND $columnReason = '$reason';
-    ''',
-    );
+    ''');
   }
 
   // check if entry existing for given localID and reason
@@ -129,10 +122,7 @@ class FileUpdationDB {
     final db = await instance.database;
     final String whereClause =
         '$columnLocalID = "$localID" AND $columnReason = "$reason"';
-    final rows = await db.query(
-      tableName,
-      where: whereClause,
-    );
+    final rows = await db.query(tableName, where: whereClause);
     return rows.isNotEmpty;
   }
 
@@ -142,11 +132,7 @@ class FileUpdationDB {
   ) async {
     final db = await instance.database;
     final String whereClause = '$columnReason = "$reason"';
-    final rows = await db.query(
-      tableName,
-      limit: limit,
-      where: whereClause,
-    );
+    final rows = await db.query(tableName, limit: limit, where: whereClause);
     final result = <String>[];
     for (final row in rows) {
       result.add(row[columnLocalID] as String);
@@ -161,12 +147,10 @@ class FileUpdationDB {
     }
     final inParam = reasons.map((reason) => "'$reason'").join(',');
     final db = await instance.database;
-    await db.rawQuery(
-      '''
+    await db.rawQuery('''
       DELETE FROM $tableName
       WHERE $columnReason IN ($inParam);
-    ''',
-    );
+    ''');
   }
 
   Map<String, dynamic> _getRowForReUploadTable(String localID, String reason) {

@@ -20,10 +20,7 @@ class MarkerImage extends StatelessWidget {
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(2),
-              border: Border.all(
-                color: bgColor,
-                width: 2,
-              ),
+              border: Border.all(color: bgColor, width: 2),
             ),
             child: ClipRRect(
               borderRadius: const BorderRadius.all(Radius.circular(2)),
@@ -34,9 +31,7 @@ class MarkerImage extends StatelessWidget {
             alignment: Alignment.bottomCenter,
             child: Container(
               margin: EdgeInsets.only(top: seperator),
-              child: CustomPaint(
-                painter: MarkerPointer(bgColor),
-              ),
+              child: CustomPaint(painter: MarkerPointer(bgColor)),
             ),
           ),
         ],

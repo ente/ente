@@ -14,6 +14,8 @@
 	<true/>
 	<key>com.apple.security.files.bookmarks.app-scope</key>
 	<true/>
+	<key>keychain-access-groups</key>
+	<array/>
 	<key>com.apple.security.files.downloads.read-write</key>
 	<true/>
 </dict>

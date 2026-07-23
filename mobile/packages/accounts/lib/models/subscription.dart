@@ -52,8 +52,7 @@ class Subscription {
     return productID == freeProductID;
   }
 
-  static fromMap(Map<String, dynamic>? map) {
-    if (map == null) return null;
+  static Subscription fromMap(Map<String, dynamic> map) {
     return Subscription(
       productID: map['productID'],
       storage: map['storage'],
@@ -91,16 +90,10 @@ class Attributes {
   bool? isCancelled;
   String? customerID;
 
-  Attributes({
-    this.isCancelled,
-    this.customerID,
-  });
+  Attributes({this.isCancelled, this.customerID});
 
   Map<String, dynamic> toMap() {
-    return {
-      'isCancelled': isCancelled,
-      'customerID': customerID,
-    };
+    return {'isCancelled': isCancelled, 'customerID': customerID};
   }
 
   factory Attributes.fromMap(Map<String, dynamic> map) {

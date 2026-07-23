@@ -1,7 +1,7 @@
 name: ente_base
 description: A base Flutter package containing shared models and types for ente apps
-version: 1.0.0
 
+resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
   flutter: ">=1.17.0"
@@ -11,7 +11,7 @@ dependencies:
     sdk: flutter
 
 dev_dependencies:
-  flutter_lints: 5.0.0
+  flutter_lints: 6.0.0
   flutter_test:
     sdk: flutter
 

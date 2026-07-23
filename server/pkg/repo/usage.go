@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
 )
 

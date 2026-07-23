@@ -86,8 +86,9 @@ class _MapPullUpGalleryState extends State<MapPullUpGallery> {
                     child: FileSelectionOverlayBar(
                       GalleryType.searchResults,
                       _selectedFiles,
-                      backgroundColor:
-                          getEnteColorScheme(context).backgroundElevated2,
+                      backgroundColor: getEnteColorScheme(
+                        context,
+                      ).backgroundElevated2,
                     ),
                   ),
                 ),
@@ -126,81 +127,87 @@ class _MapPullUpGalleryState extends State<MapPullUpGallery> {
               switchOutCurve: Curves.easeInOutExpo,
               child: StreamBuilder<List<EnteFile>>(
                 stream: widget.visibleImages.stream,
-                builder: (
-                  BuildContext context,
-                  AsyncSnapshot<List<EnteFile>> snapshot,
-                ) {
-                  if (!snapshot.hasData) {
-                    return SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.2,
-                      child: const EnteLoadingWidget(),
-                    );
-                  }
+                builder:
+                    (
+                      BuildContext context,
+                      AsyncSnapshot<List<EnteFile>> snapshot,
+                    ) {
+                      if (!snapshot.hasData) {
+                        return SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.2,
+                          child: const EnteLoadingWidget(),
+                        );
+                      }
 
-                  final images = snapshot.data!;
-                  logger.info("Visible images: ${images.length}");
-                  //To retain only selected files that are in view (visible)
-                  WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-                    _selectedFiles.retainFiles(images.toSet());
-                  });
+                      final images = snapshot.data!;
+                      logger.info("Visible images: ${images.length}");
+                      //To retain only selected files that are in view (visible)
+                      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                        _selectedFiles.retainFiles(images.toSet());
+                      });
 
-                  if (images.isEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.2,
-                        child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                AppLocalizations.of(context).noPhotosFoundHere,
-                                style: textTheme.large,
+                      if (images.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.2,
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    AppLocalizations.of(
+                                      context,
+                                    ).noPhotosFoundHere,
+                                    style: textTheme.large,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    widget.hasLocationData
+                                        ? AppLocalizations.of(
+                                            context,
+                                          ).zoomOutToSeePhotos
+                                        : AppLocalizations.of(
+                                            context,
+                                          ).noImagesWithLocation,
+                                    style: textTheme.smallFaint,
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                widget.hasLocationData
-                                    ? AppLocalizations.of(context)
-                                        .zoomOutToSeePhotos
-                                    : AppLocalizations.of(context)
-                                        .noImagesWithLocation,
-                                style: textTheme.smallFaint,
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                    );
-                  }
+                        );
+                      }
 
-                  return AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    switchInCurve: Curves.easeInOutExpo,
-                    switchOutCurve: Curves.easeInOutExpo,
-                    child: Gallery(
-                      key: ValueKey(images),
-                      asyncLoader: (
-                        creationStartTime,
-                        creationEndTime, {
-                        limit,
-                        asc,
-                      }) async {
-                        FileLoadResult result;
-                        result = FileLoadResult(images, false);
-                        return result;
-                      },
-                      reloadEvent: Bus.instance.on<LocalPhotosUpdatedEvent>(),
-                      removalEventTypes: const {
-                        EventType.deletedFromRemote,
-                        EventType.deletedFromEverywhere,
-                      },
-                      tagPrefix: "map_gallery",
-                      showSelectAll: true,
-                      selectedFiles: _selectedFiles,
-                      isScrollablePositionedList: false,
-                    ),
-                  );
-                },
+                      return AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        switchInCurve: Curves.easeInOutExpo,
+                        switchOutCurve: Curves.easeInOutExpo,
+                        child: Gallery(
+                          key: ValueKey(images),
+                          asyncLoader:
+                              (
+                                creationStartTime,
+                                creationEndTime, {
+                                limit,
+                                asc,
+                              }) async {
+                                FileLoadResult result;
+                                result = FileLoadResult(images, false);
+                                return result;
+                              },
+                          reloadEvent: Bus.instance
+                              .on<LocalPhotosUpdatedEvent>(),
+                          removalEventTypes: const {
+                            EventType.deletedFromRemote,
+                            EventType.deletedFromEverywhere,
+                          },
+                          tagPrefix: "map_gallery",
+                          showSelectAll: true,
+                          selectedFiles: _selectedFiles,
+                        ),
+                      );
+                    },
               ),
             ),
           ),

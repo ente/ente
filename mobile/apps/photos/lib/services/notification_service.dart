@@ -26,7 +26,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   final _logger = Logger("NotificationService");
   void Function(NotificationResponse notificationResponse)?
-      _onNotificationTapped;
+  _onNotificationTapped;
   bool _pluginInitialized = false;
   bool _launchDetailsHandled = false;
 
@@ -37,9 +37,8 @@ class NotificationService {
   bool timezoneInitialized = false;
 
   Future<void> initialize(
-    void Function(
-      NotificationResponse notificationResponse,
-    ) onNotificationTapped,
+    void Function(NotificationResponse notificationResponse)
+    onNotificationTapped,
   ) async {
     _onNotificationTapped = onNotificationTapped;
     await _ensurePluginInitialized();
@@ -65,10 +64,7 @@ class NotificationService {
       requestCriticalPermission: false,
     );
     const InitializationSettings initializationSettings =
-        InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
+        InitializationSettings(android: androidSettings, iOS: iosSettings);
     await _notificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: _handleNotificationResponse,
@@ -92,8 +88,8 @@ class NotificationService {
   Future<void> _handleLaunchDetailsIfNeeded() async {
     if (_launchDetailsHandled) return;
     final launchDetailsStopwatch = Stopwatch()..start();
-    final launchDetails =
-        await _notificationsPlugin.getNotificationAppLaunchDetails();
+    final launchDetails = await _notificationsPlugin
+        .getNotificationAppLaunchDetails();
     _logger.info(
       "getNotificationAppLaunchDetails took ${launchDetailsStopwatch.elapsedMilliseconds}ms",
     );
@@ -163,9 +159,7 @@ class NotificationService {
       return caseMatch;
     }
 
-    _logger.warning(
-      'Timezone "$timeZoneName" not found, falling back to UTC.',
-    );
+    _logger.warning('Timezone "$timeZoneName" not found, falling back to UTC.');
     return 'UTC';
   }
 
@@ -175,15 +169,14 @@ class NotificationService {
     if (Platform.isIOS) {
       result = await _notificationsPlugin
           .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(
-            sound: true,
-            alert: true,
-          );
+            IOSFlutterLocalNotificationsPlugin
+          >()
+          ?.requestPermissions(sound: true, alert: true);
     } else {
       result = await _notificationsPlugin
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin
+          >()
           ?.requestNotificationsPermission();
     }
     if (result != null) {
@@ -197,8 +190,9 @@ class NotificationService {
   }
 
   bool shouldShowNotificationsForSharedPhotosAndAlbums() {
-    final result =
-        _preferences.getBool(keyShouldShowNotificationsForSharedPhotos);
+    final result = _preferences.getBool(
+      keyShouldShowNotificationsForSharedPhotos,
+    );
     return result ?? true;
   }
 
@@ -215,10 +209,7 @@ class NotificationService {
   }
 
   Future<void> setShouldShowSocialNotifications(bool value) {
-    return _preferences.setBool(
-      keyShouldShowSocialNotifications,
-      value,
-    );
+    return _preferences.setBool(keyShouldShowSocialNotifications, value);
   }
 
   Future<void> showNotification(
@@ -243,8 +234,10 @@ class NotificationService {
       showWhen: false,
     );
     final iosSpecs = DarwinNotificationDetails(threadIdentifier: channelID);
-    final platformChannelSpecs =
-        NotificationDetails(android: androidSpecs, iOS: iosSpecs);
+    final platformChannelSpecs = NotificationDetails(
+      android: androidSpecs,
+      iOS: iosSpecs,
+    );
     await _notificationsPlugin.show(
       id ?? channelName.hashCode,
       title,
@@ -297,8 +290,10 @@ class NotificationService {
         timeoutAfter: timeoutDurationAndroid?.inMilliseconds,
       );
       final iosSpecs = DarwinNotificationDetails(threadIdentifier: channelID);
-      final platformChannelSpecs =
-          NotificationDetails(android: androidSpecs, iOS: iosSpecs);
+      final platformChannelSpecs = NotificationDetails(
+        android: androidSpecs,
+        iOS: iosSpecs,
+      );
       final scheduledDate = tz.TZDateTime.local(
         dateTime.year,
         dateTime.month,

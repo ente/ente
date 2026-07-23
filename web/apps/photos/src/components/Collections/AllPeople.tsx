@@ -792,7 +792,7 @@ const AllPeopleContent: React.FC<AllPeopleContentProps> = ({
         return (
             <DialogContent sx={{ height: "80svh" }}>
                 <CenteredMessage>
-                    <Typography color="text.muted">
+                    <Typography sx={{ color: "text.muted" }}>
                         {t("no_results")}
                     </Typography>
                 </CenteredMessage>

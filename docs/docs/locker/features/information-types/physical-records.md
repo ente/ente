@@ -5,9 +5,7 @@ description: Track physical document locations in Ente Locker
 
 # Thing
 
-Things help you remember where important physical documents are stored. Track
-the location of passports, birth certificates, property deeds, and other papers
-you need to find when it matters.
+Things help you remember where important physical documents are stored. Track the location of passports, birth certificates, property deeds, and other papers you need to find when it matters.
 
 ## Use cases
 
@@ -44,21 +42,17 @@ Record specific storage locations with as much detail as you need:
 
 ### Multiple locations
 
-If you have copies of a document in different places, note all locations in
-the notes field or create separate entries for each copy.
+If you have copies of a document in different places, note all locations in the notes field or create separate entries for each copy.
 
 ### Expiration reminders
 
-Add expiration dates in the notes field for documents like passports, driver's
-licenses, or insurance policies.
+Add expiration dates in the notes field for documents like passports, driver's licenses, or insurance policies.
 
 ## Organization tips
 
-- **Group by type**: Create collections like "Identity Documents", "Property",
-  "Financial"
+- **Group by type**: Create collections like "Identity Documents", "Property", "Financial"
 - **Include access info**: Note if someone else has keys or access
-- **Cross-reference**: Link to related Secrets for safe combinations or account
-  access
+- **Cross-reference**: Link to related Secrets for safe combinations or account access
 
 ## Related FAQs
 

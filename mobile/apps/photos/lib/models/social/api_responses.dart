@@ -105,10 +105,7 @@ class CommentsDiffResponse {
   final List<CommentApiResponse> comments;
   final bool hasMore;
 
-  CommentsDiffResponse({
-    required this.comments,
-    required this.hasMore,
-  });
+  CommentsDiffResponse({required this.comments, required this.hasMore});
 
   factory CommentsDiffResponse.fromJson(Map<String, dynamic> json) {
     final commentsList = json['comments'] as List<dynamic>? ?? [];
@@ -126,10 +123,7 @@ class ReactionsDiffResponse {
   final List<ReactionApiResponse> reactions;
   final bool hasMore;
 
-  ReactionsDiffResponse({
-    required this.reactions,
-    required this.hasMore,
-  });
+  ReactionsDiffResponse({required this.reactions, required this.hasMore});
 
   factory ReactionsDiffResponse.fromJson(Map<String, dynamic> json) {
     final reactionsList = json['reactions'] as List<dynamic>? ?? [];

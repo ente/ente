@@ -1,3 +1,4 @@
+import "package:ente_components/ente_components.dart";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import "package:intl/intl.dart";
@@ -31,7 +32,7 @@ class SearchResultWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final heroTagPrefix = searchResult.heroTag();
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
     final colorScheme = getEnteColorScheme(context);
 
     return SizedBox(
@@ -46,19 +47,9 @@ class SearchResultWidget extends StatelessWidget {
             onResultTap!();
           } else {
             if (searchResult.type() == ResultType.shared) {
-              routeToPage(
-                context,
-                ContactResultPage(
-                  searchResult,
-                ),
-              );
+              routeToPage(context, ContactResultPage(searchResult));
             } else {
-              routeToPage(
-                context,
-                SearchResultPage(
-                  searchResult,
-                ),
-              );
+              routeToPage(context, SearchResultPage(searchResult));
             }
           }
         },
@@ -78,7 +69,7 @@ class SearchResultWidget extends StatelessWidget {
               ),
         title: Text(
           searchResult.name(),
-          style: textTheme.body,
+          style: TextStyles.body.copyWith(color: colors.textBase),
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: FutureBuilder<int>(
@@ -95,14 +86,14 @@ class SearchResultWidget extends StatelessWidget {
                   : count.toString();
               return Text(
                 label != null ? "$label \u2022 $countText" : countText,
-                style: textTheme.smallMuted,
+                style: TextStyles.mini.copyWith(color: colors.textLight),
                 overflow: TextOverflow.ellipsis,
               );
             }
             if (label != null) {
               return Text(
                 label,
-                style: textTheme.smallMuted,
+                style: TextStyles.mini.copyWith(color: colors.textLight),
                 overflow: TextOverflow.ellipsis,
               );
             }
@@ -111,10 +102,7 @@ class SearchResultWidget extends StatelessWidget {
         ),
         trailing: Padding(
           padding: const EdgeInsets.only(right: 8),
-          child: Icon(
-            Icons.chevron_right,
-            color: colorScheme.strokeMuted,
-          ),
+          child: Icon(Icons.chevron_right, color: colorScheme.strokeMuted),
         ),
       ),
     );
@@ -134,7 +122,7 @@ class SearchResultWidget extends StatelessWidget {
       case ResultType.faces:
         return localizations.searchResultPerson;
       case ResultType.shared:
-        return localizations.searchResultShared;
+        return localizations.shared;
       case ResultType.uploader:
         return localizations.searchResultUploadedBy;
       case ResultType.cameraMake:

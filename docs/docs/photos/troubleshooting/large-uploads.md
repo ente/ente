@@ -3,9 +3,9 @@ title: Large Uploads
 description: Troubleshoot large file and multi-TB library uploads in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Large Uploads

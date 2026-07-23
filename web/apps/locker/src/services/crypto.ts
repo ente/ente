@@ -9,6 +9,7 @@
  * handled by the Rust/WASM module.
  */
 
+import { ensureArrayBufferBacked } from "ente-base/bytes";
 import type {
     EncryptedBlob,
     EncryptedBox,
@@ -53,7 +54,7 @@ const toB64String = (v: Uint8Array | string): string => {
 /**
  * Convert a base64 string to bytes.
  */
-const fromB64String = (b64: string): Uint8Array => {
+const fromB64String = (b64: string): Uint8Array<ArrayBuffer> => {
     const binary = atob(b64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {
@@ -215,7 +216,10 @@ export { fromB64String, toB64String };
 export interface StreamEncryptorHandle {
     key: string;
     decryptionHeader: string;
-    encryptChunk: (data: Uint8Array, isFinal: boolean) => Promise<Uint8Array>;
+    encryptChunk: (
+        data: Uint8Array,
+        isFinal: boolean,
+    ) => Promise<Uint8Array<ArrayBuffer>>;
     free: () => void;
 }
 
@@ -235,7 +239,11 @@ export const createStreamEncryptor =
             key: encryptor.key,
             decryptionHeader: encryptor.decryption_header,
             encryptChunk: (data: Uint8Array, isFinal: boolean) =>
-                Promise.resolve(encryptor.encrypt_chunk(data, isFinal)),
+                Promise.resolve(
+                    ensureArrayBufferBacked(
+                        encryptor.encrypt_chunk(data, isFinal),
+                    ),
+                ),
             free: () => encryptor.free(),
         };
     };
@@ -318,7 +326,8 @@ export const bytesToB64 = (bytes: Uint8Array): string => toB64String(bytes);
 /**
  * Convert a base64 string to Uint8Array.
  */
-export const b64ToBytes = (b64: string): Uint8Array => fromB64String(b64);
+export const b64ToBytes = (b64: string): Uint8Array<ArrayBuffer> =>
+    fromB64String(b64);
 
 export const decryptStreamBytes = async (
     file: EncryptedFile,

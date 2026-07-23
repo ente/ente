@@ -1,5 +1,5 @@
+import { createPaste } from "@/services/paste";
 import { useState } from "react";
-import { createPaste } from "services/paste";
 import { MAX_PASTE_CHARS } from "../constants";
 import { encryptPasteForCreate } from "../utils/pasteCrypto";
 
@@ -11,8 +11,10 @@ export const useCreatePaste = () => {
     const [creating, setCreating] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
     const [createdLink, setCreatedLink] = useState<string | null>(null);
+    const [createdLinkPasswordProtected, setCreatedLinkPasswordProtected] =
+        useState(false);
 
-    const createSecureLink = async () => {
+    const createSecureLink = async (password?: string) => {
         setCreateError(null);
 
         if (!inputText.trim()) {
@@ -27,12 +29,13 @@ export const useCreatePaste = () => {
 
         setCreating(true);
         try {
-            const { fragmentSecret, payload } =
-                await encryptPasteForCreate(inputText);
-            const response = await createPaste(payload);
-            setCreatedLink(
-                buildPasteLink(response.accessToken, fragmentSecret),
+            const { linkFragment, payload } = await encryptPasteForCreate(
+                inputText,
+                password,
             );
+            const response = await createPaste(payload);
+            setCreatedLink(buildPasteLink(response.accessToken, linkFragment));
+            setCreatedLinkPasswordProtected(!!password);
         } catch (error) {
             const message =
                 error instanceof Error
@@ -50,6 +53,7 @@ export const useCreatePaste = () => {
         creating,
         createError,
         createdLink,
+        createdLinkPasswordProtected,
         createSecureLink,
     };
 };

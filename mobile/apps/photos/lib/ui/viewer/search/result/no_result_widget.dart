@@ -28,9 +28,10 @@ class _NoResultWidgetState extends State<NoResultWidget> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    InheritedAllSectionsExamples.of(context)
-        .allSectionsExamplesFuture
-        .then((value) {
+    InheritedAllSectionsExamples.of(context).allSectionsExamplesFuture.then((
+      value,
+    ) {
+      if (!mounted) return;
       final sectionResultsByType = value.sectionResults;
       if (sectionResultsByType.isEmpty) return;
       for (int i = 0; i < searchTypes.length; i++) {
@@ -58,33 +59,30 @@ class _NoResultWidgetState extends State<NoResultWidget> {
   @override
   Widget build(BuildContext context) {
     final textTheme = getEnteTextTheme(context);
+    const bottomPadding = 124.0;
     final searchTypeAndSuggestion = <Widget>[];
-    searchTypeToQuerySuggestion.forEach(
-      (key, value) {
-        searchTypeAndSuggestion.add(
-          Row(
-            children: [
-              Text(
-                key,
-                style: textTheme.bodyMuted,
+    searchTypeToQuerySuggestion.forEach((key, value) {
+      searchTypeAndSuggestion.add(
+        Row(
+          children: [
+            Text(key, style: textTheme.bodyMuted),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                formatList(value),
+                style: textTheme.miniMuted,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  formatList(value),
-                  style: textTheme.miniMuted,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+            ),
+          ],
+        ),
+      );
+    });
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, bottomPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -98,8 +96,9 @@ class _NoResultWidgetState extends State<NoResultWidget> {
                 const SizedBox(height: 6),
                 searchTypeToQuerySuggestion.isNotEmpty
                     ? Text(
-                        AppLocalizations.of(context)
-                            .modifyYourQueryOrTrySearchingFor,
+                        AppLocalizations.of(
+                          context,
+                        ).modifyYourQueryOrTrySearchingFor,
                         style: textTheme.smallMuted,
                       )
                     : const SizedBox.shrink(),
@@ -117,6 +116,7 @@ class _NoResultWidgetState extends State<NoResultWidget> {
                 },
                 itemCount: searchTypeToQuerySuggestion.length,
                 shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
               ),
             ),
           ],

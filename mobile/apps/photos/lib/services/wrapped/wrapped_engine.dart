@@ -42,9 +42,9 @@ class WrappedEngine {
     );
     final WrappedAestheticsContext aestheticsContext =
         await _collectAestheticsContext(
-      year: year,
-      yearFiles: collected.yearFiles,
-    );
+          year: year,
+          yearFiles: collected.yearFiles,
+        );
     List<WrappedCity> cities = const <WrappedCity>[];
     try {
       final List<City> loadedCities = await locationService.getCities();
@@ -66,26 +66,29 @@ class WrappedEngine {
     }
 
     return await Computer.shared().compute(
-      _wrappedComputeIsolate,
-      param: <String, Object?>{
-        "year": year,
-        "now": now,
-        "files": collected.yearFiles,
-        "people": peopleContext.toJson(),
-        "aesthetics": aestheticsContext.toJson(),
-        "cities": cities.map((WrappedCity city) => city.toJson()).toList(),
-        "favoriteUploadedIDs":
-            collected.favoriteUploadedIds.toList(growable: false),
-        "archivedCollectionIDs":
-            collected.archivedCollectionIDs.toList(growable: false),
-      },
-      taskName: "wrapped_compute_$year",
-    ) as WrappedResult;
+          _wrappedComputeIsolate,
+          param: <String, Object?>{
+            "year": year,
+            "now": now,
+            "files": collected.yearFiles,
+            "people": peopleContext.toJson(),
+            "aesthetics": aestheticsContext.toJson(),
+            "cities": cities.map((WrappedCity city) => city.toJson()).toList(),
+            "favoriteUploadedIDs": collected.favoriteUploadedIds.toList(
+              growable: false,
+            ),
+            "archivedCollectionIDs": collected.archivedCollectionIDs.toList(
+              growable: false,
+            ),
+          },
+          taskName: "wrapped_compute_$year",
+        )
+        as WrappedResult;
   }
 
   static Future<_CollectedFiles> _collectFilesForYear(int year) async {
-    final List<EnteFile> allFiles =
-        await SearchService.instance.getAllFilesForSearch();
+    final List<EnteFile> allFiles = await SearchService.instance
+        .getAllFilesForSearch();
     final List<EnteFile> filtered = <EnteFile>[];
     final Map<int, EnteFile> fileByUploadedId = <int, EnteFile>{};
     for (final EnteFile file in allFiles) {
@@ -100,28 +103,27 @@ class WrappedEngine {
       if (creationTime == null) {
         continue;
       }
-      final DateTime captured =
-          DateTime.fromMicrosecondsSinceEpoch(creationTime);
+      final DateTime captured = DateTime.fromMicrosecondsSinceEpoch(
+        creationTime,
+      );
       if (captured.year != year) {
         continue;
       }
       filtered.add(file);
     }
 
-    filtered.sort(
-      (EnteFile a, EnteFile b) {
-        final int aTime = a.creationTime ?? 0;
-        final int bTime = b.creationTime ?? 0;
-        if (aTime != bTime) return aTime.compareTo(bTime);
-        final int aId = a.uploadedFileID ?? a.generatedID ?? 0;
-        final int bId = b.uploadedFileID ?? b.generatedID ?? 0;
-        return aId.compareTo(bId);
-      },
-    );
+    filtered.sort((EnteFile a, EnteFile b) {
+      final int aTime = a.creationTime ?? 0;
+      final int bTime = b.creationTime ?? 0;
+      if (aTime != bTime) return aTime.compareTo(bTime);
+      final int aId = a.uploadedFileID ?? a.generatedID ?? 0;
+      final int bId = b.uploadedFileID ?? b.generatedID ?? 0;
+      return aId.compareTo(bId);
+    });
 
     final Set<int> favoriteUploadedIds = _collectFavoriteUploadedIDs(filtered);
-    final Set<int> archivedCollectionIDs =
-        CollectionsService.instance.archivedOrHiddenCollectionIds();
+    final Set<int> archivedCollectionIDs = CollectionsService.instance
+        .archivedOrHiddenCollectionIds();
 
     return _CollectedFiles(
       yearFiles: filtered,
@@ -174,8 +176,9 @@ class WrappedEngine {
     final Map<int, List<FaceWithoutEmbedding>> facesByFile =
         <int, List<FaceWithoutEmbedding>>{};
     try {
-      final Map<int, List<FaceWithoutEmbedding>> allFaces =
-          await MLDataDB.instance.getFileIDsToFacesWithoutEmbedding();
+      final Map<int, List<FaceWithoutEmbedding>> allFaces = await MLDataDB
+          .instance
+          .getFileIDsToFacesWithoutEmbedding();
       if (allFaces.isNotEmpty) {
         for (final MapEntry<int, List<FaceWithoutEmbedding>> entry
             in allFaces.entries) {
@@ -198,14 +201,16 @@ class WrappedEngine {
     final Map<String, int> personFirstCaptureMicros = <String, int>{};
     final Map<String, String> faceIdToPerson = <String, String>{};
     final Map<String, String> faceIdToCluster = <String, String>{};
-    final String? normalizedUserEmail =
-        Configuration.instance.getEmail()?.trim().toLowerCase();
+    final String? normalizedUserEmail = Configuration.instance
+        .getEmail()
+        ?.trim()
+        .toLowerCase();
     String? selfPersonID;
 
     if (PersonService.isInitialized) {
       try {
-        final List<PersonEntity> persons =
-            await PersonService.instance.getPersons();
+        final List<PersonEntity> persons = await PersonService.instance
+            .getPersons();
         for (final PersonEntity person in persons) {
           final PersonData data = person.data;
           if (data.assigned.isEmpty) {
@@ -238,9 +243,11 @@ class WrappedEngine {
           if (clusterFaceCounts.isEmpty) {
             continue;
           }
-          final String? normalizedPersonEmail =
-              data.email?.trim().toLowerCase();
-          final bool isMe = normalizedUserEmail != null &&
+          final String? normalizedPersonEmail = data.email
+              ?.trim()
+              .toLowerCase();
+          final bool isMe =
+              normalizedUserEmail != null &&
               normalizedPersonEmail != null &&
               normalizedPersonEmail == normalizedUserEmail;
           if (isMe) {
@@ -330,8 +337,8 @@ class WrappedEngine {
 
     final Map<int, List<double>> clipEmbeddings = <int, List<double>>{};
     try {
-      final List<EmbeddingVector> vectors =
-          await MLDataDB.instance.getAllClipVectors();
+      final List<EmbeddingVector> vectors = await MLDataDB.instance
+          .getAllClipVectors();
       for (final EmbeddingVector vector in vectors) {
         final int fileID = vector.fileID;
         if (!yearFileIDs.contains(fileID) || vector.isEmpty) {
@@ -359,8 +366,8 @@ class WrappedEngine {
     final Map<String, List<double>> textEmbeddings = <String, List<double>>{};
     for (final String query in queries) {
       try {
-        final List<double> embedding =
-            await TextEmbeddingsCacheService.instance.getEmbedding(query);
+        final List<double> embedding = await TextEmbeddingsCacheService.instance
+            .getEmbedding(query);
         textEmbeddings[query] = List<double>.from(embedding, growable: false);
       } catch (error, stackTrace) {
         _engineLogger.warning(
@@ -378,9 +385,7 @@ class WrappedEngine {
   }
 }
 
-Future<WrappedResult> _wrappedComputeIsolate(
-  Map<String, Object?> args,
-) async {
+Future<WrappedResult> _wrappedComputeIsolate(Map<String, Object?> args) async {
   final int year = args["year"] as int;
   final DateTime now = args["now"] as DateTime;
   final List<EnteFile> files =
@@ -390,9 +395,10 @@ Future<WrappedResult> _wrappedComputeIsolate(
   final WrappedPeopleContext people = WrappedPeopleContext.fromJson(peopleRaw);
   final Map<String, Object?> aestheticsRaw =
       (args["aesthetics"] as Map?)?.cast<String, Object?>() ??
-          <String, Object?>{};
-  final WrappedAestheticsContext aesthetics =
-      WrappedAestheticsContext.fromJson(aestheticsRaw);
+      <String, Object?>{};
+  final WrappedAestheticsContext aesthetics = WrappedAestheticsContext.fromJson(
+    aestheticsRaw,
+  );
   final List<dynamic> rawCities =
       args["cities"] as List<dynamic>? ?? const <dynamic>[];
   final List<WrappedCity> cities = rawCities
@@ -455,10 +461,7 @@ Future<WrappedResult> _wrappedComputeIsolate(
     card: badgeSelection.card,
     usedMediaUploadedFileIDs: usedMediaUploadedFileIDs,
   );
-  final List<WrappedCard> finalCards = <WrappedCard>[
-    ...cards,
-    badgeCard,
-  ];
+  final List<WrappedCard> finalCards = <WrappedCard>[...cards, badgeCard];
 
   return WrappedResult(
     cards: finalCards,
@@ -474,12 +477,12 @@ class _CollectedFiles {
     required Map<int, EnteFile> fileByUploadedId,
     required Set<int> favoriteUploadedIds,
     required Set<int> archivedCollectionIDs,
-  })  : yearFiles = List<EnteFile>.unmodifiable(yearFiles),
-        fileByUploadedId = Map<int, EnteFile>.unmodifiable(fileByUploadedId),
-        favoriteUploadedIds = Set<int>.unmodifiable(favoriteUploadedIds),
-        archivedCollectionIDs = Set<int>.unmodifiable(
-          archivedCollectionIDs.where((int id) => id > 0),
-        );
+  }) : yearFiles = List<EnteFile>.unmodifiable(yearFiles),
+       fileByUploadedId = Map<int, EnteFile>.unmodifiable(fileByUploadedId),
+       favoriteUploadedIds = Set<int>.unmodifiable(favoriteUploadedIds),
+       archivedCollectionIDs = Set<int>.unmodifiable(
+         archivedCollectionIDs.where((int id) => id > 0),
+       );
 
   final List<EnteFile> yearFiles;
   final Map<int, EnteFile> fileByUploadedId;
@@ -577,7 +580,8 @@ WrappedCard _finalizeCardMedia({
     }
   }
 
-  final bool mediaChanged = updatedMedia.length != card.media.length ||
+  final bool mediaChanged =
+      updatedMedia.length != card.media.length ||
       !_mediaListsEqual(card.media, updatedMedia);
 
   final WrappedCard resultCard;

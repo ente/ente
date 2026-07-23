@@ -33,7 +33,7 @@ class EnteFile {
   MagicMetadata get magicMetadata =>
       _mmd ?? MagicMetadata.fromEncodedJson(mMdEncodedJson ?? '{}');
 
-  set magicMetadata(val) => _mmd = val;
+  set magicMetadata(MagicMetadata? val) => _mmd = val;
 
   String? pubMmdEncodedJson;
   int pubMmdVersion = 1;
@@ -42,7 +42,7 @@ class EnteFile {
   PubMagicMetadata get pubMagicMetadata =>
       _pubMmd ?? PubMagicMetadata.fromEncodedJson(pubMmdEncodedJson ?? '{}');
 
-  set pubMagicMetadata(val) => _pubMmd = val;
+  set pubMagicMetadata(PubMagicMetadata? val) => _pubMmd = val;
 
   static const kCurrentMetadataVersion = 2;
 

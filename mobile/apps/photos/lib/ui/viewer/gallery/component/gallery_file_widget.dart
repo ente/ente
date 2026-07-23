@@ -3,6 +3,7 @@ import "dart:async";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
+import "package:logging/logging.dart";
 import "package:media_extension/media_extension.dart";
 import "package:media_extension/media_extension_action_types.dart";
 import "package:photos/core/constants.dart";
@@ -11,16 +12,18 @@ import "package:photos/events/file_uploaded_event.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/selected_files.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/services/app_lifecycle_service.dart";
-import "package:photos/theme/ente_theme.dart";
+import "package:photos/services/collections_service.dart";
 import "package:photos/ui/common/touch_cross_detector.dart";
+import "package:photos/ui/sharing/user_avator_widget.dart";
+import "package:photos/ui/viewer/actions/select_all_status_icon.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/gallery/component/swipe_selectable_file_widget.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_context_state.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_swipe_helper.dart";
-import "package:photos/utils/file_util.dart";
 
 class GalleryFileWidget extends StatefulWidget {
   final EnteFile file;
@@ -45,6 +48,7 @@ class GalleryFileWidget extends StatefulWidget {
 
 class _GalleryFileWidgetState extends State<GalleryFileWidget> {
   static const borderRadius = BorderRadius.all(Radius.circular(1));
+  static final _logger = Logger("GalleryFileWidget");
   late bool _isFileSelected;
   int? _currentPointerId;
   bool _isPointerInside = false;
@@ -56,8 +60,9 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
     _isFileSelected =
         widget.selectedFiles?.isFileSelected(widget.file) ?? false;
     widget.selectedFiles?.addListener(_selectedFilesListener);
-    _fileUploadedSubscription =
-        Bus.instance.on<FileUploadedEvent>().listen((event) {
+    _fileUploadedSubscription = Bus.instance.on<FileUploadedEvent>().listen((
+      event,
+    ) {
       if (event.file.generatedID != null &&
           event.file.generatedID == widget.file.generatedID &&
           mounted) {
@@ -101,9 +106,11 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
         widget.file.isUploaded &&
         widget.file.ownerID != null &&
         widget.file.ownerID != widget.currentUserID) {
-      final avatarColors = getEnteColorScheme(context).avatarColors;
-      selectionColor =
-          avatarColors[widget.file.ownerID!.remainder(avatarColors.length)];
+      final owner = CollectionsService.instance.getFileOwner(
+        widget.file.ownerID!,
+        widget.file.collectionID,
+      );
+      selectionColor = getUserAvatarColor(context, owner);
     }
     final String heroTag = widget.tag + widget.file.tag;
     final Widget thumbnailWidget = ThumbnailWidget(
@@ -116,6 +123,9 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
           ? thumbnailLargeSize
           : thumbnailSmallSize,
       shouldShowOwnerAvatar: !_isFileSelected,
+      ownerAvatarType: widget.photoGridSize < photoGridSizeMax
+          ? AvatarType.small
+          : AvatarType.xs,
       shouldShowVideoDuration: true,
     );
     return GestureDetector(
@@ -138,16 +148,19 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
                   borderRadius: borderRadius,
                   child: Hero(
                     tag: heroTag,
-                    flightShuttleBuilder: (
-                      flightContext,
-                      animation,
-                      flightDirection,
-                      fromHeroContext,
-                      toHeroContext,
-                    ) =>
-                        thumbnailWidget,
+                    flightShuttleBuilder:
+                        (
+                          flightContext,
+                          animation,
+                          flightDirection,
+                          fromHeroContext,
+                          toHeroContext,
+                        ) => (toHeroContext.widget as Hero).child,
                     transitionOnUserGestures: true,
-                    child: thumbnailWidget,
+                    child: ClipRRect(
+                      borderRadius: borderRadius,
+                      child: thumbnailWidget,
+                    ),
                   ),
                 ),
                 Container(
@@ -159,10 +172,11 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
                 Positioned(
                   right: 4,
                   top: 4,
-                  child: Icon(
-                    Icons.check_circle_rounded,
-                    size: 20,
-                    color: selectionColor, //same for both themes
+                  child: SelectAllStatusIcon(
+                    isSelected: true,
+                    size: 16,
+                    selectedFillColor: selectionColor, //same for both themes
+                    selectedTickCutsOut: true,
                   ),
                 ),
               ],
@@ -172,16 +186,19 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
               borderRadius: borderRadius,
               child: Hero(
                 tag: heroTag,
-                flightShuttleBuilder: (
-                  flightContext,
-                  animation,
-                  flightDirection,
-                  fromHeroContext,
-                  toHeroContext,
-                ) =>
-                    thumbnailWidget,
+                flightShuttleBuilder:
+                    (
+                      flightContext,
+                      animation,
+                      flightDirection,
+                      fromHeroContext,
+                      toHeroContext,
+                    ) => (toHeroContext.widget as Hero).child,
                 transitionOnUserGestures: true,
-                child: thumbnailWidget,
+                child: ClipRRect(
+                  borderRadius: borderRadius,
+                  child: thumbnailWidget,
+                ),
               ),
             ),
     );
@@ -217,7 +234,7 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
   void _onTapNoSelectionLimit(BuildContext context, EnteFile file) async {
     final bool shouldToggleSelection =
         (widget.selectedFiles?.files.isNotEmpty ?? false) ||
-            (GalleryContextState.of(context)?.inSelectionMode ?? false);
+        (GalleryContextState.of(context)?.inSelectionMode ?? false);
     if (shouldToggleSelection) {
       if (widget.selectedFiles == null) {
         return;
@@ -273,6 +290,14 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
 
   void _routeToDetailPage(EnteFile file, BuildContext context) {
     final galleryFiles = GalleryFilesState.of(context).galleryFiles;
+    final selectedIndex = galleryFiles.indexOf(file);
+    // A refresh can make the tapped tile stale.
+    if (selectedIndex < 0) {
+      _logger.warning(
+        "Not opening viewer; tapped item is no longer in the gallery",
+      );
+      return;
+    }
     // Device folders (local-only contexts) should keep files visible
     // even after deleting from Ente (remote) since they still exist locally
     final galleryType = GalleryContextState.of(context)?.galleryType;
@@ -280,7 +305,7 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
     final page = DetailPage(
       DetailPageConfiguration(
         galleryFiles,
-        galleryFiles.indexOf(file),
+        selectedIndex,
         widget.tag,
         isLocalOnlyContext: isLocalOnlyContext,
         galleryType: galleryType,

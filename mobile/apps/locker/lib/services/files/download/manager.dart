@@ -52,12 +52,9 @@ class DownloadManager {
 
     // Get or create task
     final existingTask = _tasks[fileId];
-    var task = existingTask ??
-        DownloadTask(
-          id: fileId,
-          filename: filename,
-          totalBytes: totalBytes,
-        );
+    var task =
+        existingTask ??
+        DownloadTask(id: fileId, filename: filename, totalBytes: totalBytes);
 
     // Store task in memory
     _tasks[fileId] = task;
@@ -149,8 +146,11 @@ class DownloadManager {
 
       // Check existing chunks and calculate progress
       final totalChunks = (task.totalBytes / downloadChunkSize).ceil();
-      final existingChunks =
-          await _validateExistingChunks(basePath, task.totalBytes, totalChunks);
+      final existingChunks = await _validateExistingChunks(
+        basePath,
+        task.totalBytes,
+        totalChunks,
+      );
 
       task = task.copyWith(
         bytesDownloaded: _calculateDownloadedBytes(

@@ -20,6 +20,11 @@ const noThumbKey = "noThumb";
 const dateTimeKey = 'dateTime';
 const offsetTimeKey = 'offsetTime';
 
+String formatPubMagicDateTime(DateTime dateTime) {
+  final value = dateTime.toIso8601String();
+  return value.endsWith("Z") ? value.substring(0, value.length - 1) : value;
+}
+
 class MagicMetadata {
   // 0 -> visible
   // 1 -> archived
@@ -33,8 +38,7 @@ class MagicMetadata {
 
   factory MagicMetadata.fromJson(dynamic json) => MagicMetadata.fromMap(json);
 
-  static fromMap(Map<String, dynamic>? map) {
-    if (map == null) return null;
+  static MagicMetadata fromMap(Map<String, dynamic> map) {
     return MagicMetadata(
       visibility: map[magicKeyVisibility] ?? visibleVisibility,
     );
@@ -103,8 +107,7 @@ class PubMagicMetadata {
   factory PubMagicMetadata.fromJson(dynamic json) =>
       PubMagicMetadata.fromMap(json);
 
-  static fromMap(Map<String, dynamic>? map) {
-    if (map == null) return null;
+  static PubMagicMetadata fromMap(Map<String, dynamic> map) {
     return PubMagicMetadata(
       editedTime: map[editTimeKey],
       editedName: map[editNameKey],

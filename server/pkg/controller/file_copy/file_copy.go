@@ -3,13 +3,13 @@ package file_copy
 import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/controller/collections"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/s3config"
-	enteTime "github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/controller/collections"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/s3config"
+	enteTime "github.com/ente/museum/pkg/utils/time"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -56,6 +56,7 @@ func (fci fileCopyInternal) newFile(ownedID int64) ente.File {
 		File:               newFileAttributes,
 		Thumbnail:          newThumbAttributes,
 		Metadata:           fci.SourceFile.Metadata,
+		PubicMagicMetadata: fci.SourceFile.PubicMagicMetadata,
 		UpdationTime:       enteTime.Microseconds(),
 		IsDeleted:          false,
 	}
@@ -144,9 +145,7 @@ func (fc *FileCopyController) CopyFiles(c *gin.Context, req ente.CopyFileSyncReq
 	errChan := make(chan error, len(fileCopyList))
 
 	for _, fileCopy := range fileCopyList {
-		wg.Add(1)
-		go func(fileCopy fileCopyInternal) {
-			defer wg.Done()
+		wg.Go(func() {
 			newFile, err := fc.createCopy(c, fileCopy, userID, app)
 			if err != nil {
 				errChan <- err
@@ -155,7 +154,7 @@ func (fc *FileCopyController) CopyFiles(c *gin.Context, req ente.CopyFileSyncReq
 			mapMutex.Lock()
 			oldToNewFileIDMap[fileCopy.SourceFile.ID] = newFile.ID
 			mapMutex.Unlock()
-		}(fileCopy)
+		})
 	}
 
 	// Wait for all goroutines to finish

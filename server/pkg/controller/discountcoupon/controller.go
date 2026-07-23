@@ -3,14 +3,14 @@ package discountcoupon
 import (
 	"context"
 	"fmt"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/controller/discord"
-	"github.com/ente-io/museum/pkg/controller/email"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/repo/discountcoupon"
-	emailUtil "github.com/ente-io/museum/pkg/utils/email"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/controller/email"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo/discountcoupon"
+	emailUtil "github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/stacktrace"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -62,7 +62,7 @@ func (c *Controller) processClaimRequest(ctx *gin.Context, req ClaimCouponReques
 			WithField("email", sanitizedEmail).
 			WithField("req_id", requestid.Get(ctx))
 
-	userID, err := c.UserRepo.GetUserIDWithEmail(sanitizedEmail)
+	userID, err := c.UserRepo.GetUserIDWithEmailUnrestricted(sanitizedEmail)
 	if err != nil {
 		logger.WithError(err).Info("User not found for discount coupon claim")
 		return

@@ -112,7 +112,6 @@
   "passwordEmptyError": "Mật khẩu không thể để trống",
   "passwordTooShort": "Mật khẩu tối thiểu 8 ký tự.",
   "importFromApp": "Nhập mã từ {appName}",
-  "importGoogleAuthGuide": "Xuất dữ liệu tài khoản Google Authenticator của bạn thành mã QR bằng tùy chọn \"Chuyển tài khoản\". Sau đó, dùng thiết bị khác quét mã QR.",
   "importSelectJsonFile": "Chọn tệp JSON",
   "importSelectAppExport": "Chọn tệp xuất từ {appName}",
   "importEnteEncGuide": "Chọn tệp JSON Ente đã mã hóa",
@@ -121,6 +120,9 @@
   "importAegisGuide": "Dùng tùy chọn \"Xuất kho\" của Aegis.\n\nNếu kho của bạn có mã hóa, bạn phải có mật khẩu để giải mã.",
   "import2FasGuide": "Dùng tùy chọn \"Cài đặt->Sao lưu -Xuất dữ liệu\" của 2FAS.\n\nNếu bản sao lưu của bạn có mã hóa, bạn phải có mật khẩu để giải mã.",
   "importLastpassGuide": "Dùng tùy chọn \"Chuyển tài khoản\" của Lastpass Authenticator và nhấn \"Xuất tài khoản ra tệp\". Nhập tệp JSON đã tải xuống.",
+  "importProtonAuthGuide": "Dùng tùy chọn \"Xuất\" trong Proton Authenticator để xuất các mã của bạn.\n\nNếu tệp xuất của bạn được mã hóa, bạn sẽ cần nhập mật khẩu để giải mã nó.",
+  "invalidProtonExportTitle": "Tệp xuất dữ liệu từ Proton không hợp lệ",
+  "invalidProtonExportMessage": "Tệp đã chọn không phải tệp xuất dữ liệu từ Proton Authenticator hợp lệ.",
   "exportCodes": "Xuất mã",
   "importLabel": "Nhập",
   "importInstruction": "Vui lòng chọn tệp chứa danh sách mã của bạn có định dạng",
@@ -191,7 +193,6 @@
   "deleteAccountQuery": "Chúng tôi rất tiếc khi thấy bạn ra đi. Có phải bạn gặp vấn đề?",
   "yesSendFeedbackAction": "Có, gửi phản hồi",
   "noDeleteAccountAction": "Không, xóa tài khoản",
-  "initiateAccountDeleteTitle": "Vui lòng xác thực để bắt đầu xóa tài khoản",
   "sendEmail": "Gửi email",
   "createNewAccount": "Tạo tài khoản mới",
   "weakStrength": "Yếu",
@@ -442,7 +443,7 @@
   "@iOSGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure Biometrics for their device. It shows in a dialog on iOS side."
   },
-  "iOSOkButton": "Đồng ý",
+  "iOSOkButton": "OK",
   "@iOSOkButton": {
     "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
   },
@@ -577,7 +578,7 @@
   "addNew": "Thêm mới",
   "selected": "đã chọn",
   "moveMultipleToTrashMessage": "Bạn có chắc muốn di chuyển {count} mục vào thùng rác?",
-  "nSelected": "{count, plural, one {{count} đã chọn} other{{count} đã chọn}}",
+  "nSelected": "{count, plural, other {Đã chọn {count}}}",
   "@nSelected": {
     "description": "Text to indicate number of items selected",
     "placeholders": {
@@ -588,7 +589,7 @@
       }
     }
   },
-  "pinnedCount": "{count, plural, one{Đã ghim {count} mục} other{Đã ghim {count} mục}}",
+  "pinnedCount": "{count, plural, other {Đã ghim {count} mục}}",
   "@pinnedCount": {
     "description": "Text to show number of items pinned",
     "placeholders": {
@@ -599,7 +600,7 @@
       }
     }
   },
-  "unpinnedCount": "{count, plural, one{Đã bỏ ghim {count} mục} other{Đã bỏ ghim {count} mục}}",
+  "unpinnedCount": "{count, plural, other {Đã bỏ ghim {count} mục}}",
   "@unpinnedCount": {
     "description": "Text to show number of items unpinned",
     "placeholders": {

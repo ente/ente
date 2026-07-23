@@ -42,9 +42,7 @@ class _VideoStreamingSettingsPageState
     final hasEnabled = VideoPreviewService.instance.isVideoStreamingEnabled;
     final children = hasEnabled
         ? _enabledChildren(context)
-        : _disabledChildren(
-            context,
-          );
+        : _disabledChildren(context);
 
     return SettingsPageScaffold(
       title: l10n.videoStreaming,
@@ -106,10 +104,7 @@ class _VideoStreamingSettingsPageState
       const SizedBox(height: 24),
       MenuComponent(
         title: l10n.enabled,
-        leading: _streamingMenuIcon(
-          context,
-          HugeIcons.strokeRoundedToggleOn,
-        ),
+        leading: _streamingMenuIcon(context, HugeIcons.strokeRoundedToggleOn),
         trailing: ToggleSwitchComponent.async(
           value: () => VideoPreviewService.instance.isVideoStreamingEnabled,
           onChanged: () async {
@@ -127,10 +122,7 @@ class _VideoStreamingSettingsPageState
     final l10n = AppLocalizations.of(context);
     return [
       const SizedBox(height: 80),
-      Image.asset(
-        "assets/enable-streaming-static.png",
-        height: 160,
-      ),
+      Image.asset("assets/enable-streaming-static.png", height: 160),
       const SizedBox(height: 16),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -221,6 +213,7 @@ class VideoStreamingStatusWidgetState
 
   Future<void> init() async {
     _netProcessed = await VideoPreviewService.instance.getStatus();
+    if (!mounted) return;
     setState(() {});
   }
 
@@ -271,10 +264,7 @@ class VideoStreamingStatusWidgetState
   }
 }
 
-Widget _streamingMenuIcon(
-  BuildContext context,
-  List<List<dynamic>> icon,
-) {
+Widget _streamingMenuIcon(BuildContext context, List<List<dynamic>> icon) {
   return HugeIcon(
     icon: icon,
     color: context.componentColors.textLight,

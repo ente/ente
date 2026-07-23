@@ -1,15 +1,15 @@
 package controller
 
 import (
-    "context"
-    "fmt"
-    "strconv"
-    "strings"
+	"context"
+	"fmt"
+	"strconv"
+	"strings"
 
-    "github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -97,12 +97,12 @@ func (t *TrashController) Delete(ctx context.Context, request ente.DeleteTrashFi
 }
 
 func (t *TrashController) EmptyTrash(ctx context.Context, userID int64, req ente.EmptyTrashRequest, app ente.App) error {
-    err := t.TrashRepo.EmptyTrash(ctx, userID, req.LastUpdatedAt, app)
-    if err != nil {
-        return stacktrace.Propagate(err, "")
-    }
-    defer t.ProcessEmptyTrashRequests()
-    return nil
+	err := t.TrashRepo.EmptyTrash(ctx, userID, req.LastUpdatedAt, app)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	defer t.ProcessEmptyTrashRequests()
+	return nil
 }
 
 func (t *TrashController) CleanupTrashedCollections() {
@@ -134,33 +134,33 @@ func (t *TrashController) CleanupTrashedCollections() {
 }
 
 func (t *TrashController) ProcessEmptyTrashRequests() {
-    if t.emptyTrashRunning {
-        log.Info("Already processing empty trash requests, skipping cron")
-        return
-    }
-    t.emptyTrashRunning = true
+	if t.emptyTrashRunning {
+		log.Info("Already processing empty trash requests, skipping cron")
+		return
+	}
+	t.emptyTrashRunning = true
 	defer func() {
 		t.emptyTrashRunning = false
 	}()
-    // Process photos queue
-    items, err := t.QueueRepo.GetItemsReadyForDeletion(repo.TrashEmptyQueue, 100)
-    if err != nil {
-        log.Error("Could not fetch from emptyTrashQueue queue", err)
-    } else {
-        for _, item := range items {
-            t.emptyTrash(item, ente.Photos, repo.TrashEmptyQueue)
-        }
-    }
+	// Process photos queue
+	items, err := t.QueueRepo.GetItemsReadyForDeletion(repo.TrashEmptyQueue, 100)
+	if err != nil {
+		log.Error("Could not fetch from emptyTrashQueue queue", err)
+	} else {
+		for _, item := range items {
+			t.emptyTrash(item, ente.Photos, repo.TrashEmptyQueue)
+		}
+	}
 
-    // Process locker queue
-    itemsLocker, err2 := t.QueueRepo.GetItemsReadyForDeletion(repo.TrashEmptyLockerQueue, 100)
-    if err2 != nil {
-        log.Error("Could not fetch from emptyTrashLockerQueue queue", err2)
-        return
-    }
-    for _, item := range itemsLocker {
-        t.emptyTrash(item, ente.Locker, repo.TrashEmptyLockerQueue)
-    }
+	// Process locker queue
+	itemsLocker, err2 := t.QueueRepo.GetItemsReadyForDeletion(repo.TrashEmptyLockerQueue, 100)
+	if err2 != nil {
+		log.Error("Could not fetch from emptyTrashLockerQueue queue", err2)
+		return
+	}
+	for _, item := range itemsLocker {
+		t.emptyTrash(item, ente.Locker, repo.TrashEmptyLockerQueue)
+	}
 }
 
 // DeleteAgedTrashedFiles delete trashed files which are in trash since repo.TrashDurationInDays
@@ -265,17 +265,17 @@ func (t *TrashController) trashCollection(item repo.QueueItem, queueName string,
 }
 
 func (t *TrashController) emptyTrash(item repo.QueueItem, app ente.App, queueName string) {
-    lockName := fmt.Sprintf("EmptyTrash:%s", item.Item)
-    lockStatus, err := t.TaskLockRepo.AcquireLock(lockName, time.MicrosecondsAfterHours(1), t.HostName)
-    split := strings.Split(item.Item, repo.EmptyTrashQueueItemSeparator)
-    userID, _ := strconv.ParseInt(split[0], 10, 64)
-    lastUpdateAt, _ := strconv.ParseInt(split[1], 10, 64)
-    ctxLogger := log.WithFields(log.Fields{
-        "user_id":       userID,
-        "lastUpdatedAt": lastUpdateAt,
-        "flow":          "empty_trash",
-        "app":           app,
-    })
+	lockName := fmt.Sprintf("EmptyTrash:%s", item.Item)
+	lockStatus, err := t.TaskLockRepo.AcquireLock(lockName, time.MicrosecondsAfterHours(1), t.HostName)
+	split := strings.Split(item.Item, repo.EmptyTrashQueueItemSeparator)
+	userID, _ := strconv.ParseInt(split[0], 10, 64)
+	lastUpdateAt, _ := strconv.ParseInt(split[1], 10, 64)
+	ctxLogger := log.WithFields(log.Fields{
+		"user_id":       userID,
+		"lastUpdatedAt": lastUpdateAt,
+		"flow":          "empty_trash",
+		"app":           app,
+	})
 
 	if err != nil || !lockStatus {
 		if err == nil {
@@ -293,20 +293,17 @@ func (t *TrashController) emptyTrash(item repo.QueueItem, app ente.App, queueNam
 		}
 	}()
 
-    ctxLogger.Info("Start emptying trash")
-    fileIDs, err := t.TrashRepo.GetFilesIDsForDeletion(userID, lastUpdateAt, app)
-    if err != nil {
-        ctxLogger.WithError(err).Error("Failed to fetch fileIDs")
-        return
-    }
+	ctxLogger.Info("Start emptying trash")
+	fileIDs, err := t.TrashRepo.GetFilesIDsForDeletion(userID, lastUpdateAt, app)
+	if err != nil {
+		ctxLogger.WithError(err).Error("Failed to fetch fileIDs")
+		return
+	}
 	ctx := context.Background()
 	size := len(fileIDs)
 	limit := repo.TrashBatchSize
 	for lb := 0; lb < size; lb += limit {
-		ub := lb + limit
-		if ub > size {
-			ub = size
-		}
+		ub := min(lb+limit, size)
 		batch := fileIDs[lb:ub]
 		err = t.TrashRepo.Delete(ctx, userID, batch)
 		if err != nil {
@@ -314,10 +311,10 @@ func (t *TrashController) emptyTrash(item repo.QueueItem, app ente.App, queueNam
 			return
 		}
 	}
-    err = t.QueueRepo.DeleteItem(queueName, item.Item)
-    if err != nil {
-        log.Error("Error while removing item from queue "+item.Item, err)
-        return
-    }
-    ctxLogger.Info("Finished emptying trash")
+	err = t.QueueRepo.DeleteItem(queueName, item.Item)
+	if err != nil {
+		log.Error("Error while removing item from queue "+item.Item, err)
+		return
+	}
+	ctxLogger.Info("Finished emptying trash")
 }

@@ -195,13 +195,15 @@ class _SwipeSelectionWrapperState extends State<SwipeSelectionWrapper>
     final widgetHeight = scrollingUp
         ? boundaryPosition // Space from top boundary to screen top
         : (screenHeight -
-            boundaryPosition); // Space from bottom boundary to screen bottom
+              boundaryPosition); // Space from bottom boundary to screen bottom
 
     // Apply safety floor and cap at 150px
     // Small widgets (< 150px): Speed ramps up over their full height
     // Large widgets (>= 150px): Speed maxes out at 150px from boundary
-    final safeWidgetHeight =
-        math.max(_minAvailableSpace, math.min(150.0, widgetHeight));
+    final safeWidgetHeight = math.max(
+      _minAvailableSpace,
+      math.min(150.0, widgetHeight),
+    );
 
     // Calculate penetration percentage (0.0 to 1.0)
     // Clamped to 1.0 to handle cases where pointer goes beyond widget bounds
@@ -259,8 +261,11 @@ class _SwipeSelectionWrapperState extends State<SwipeSelectionWrapper>
     double boundaryPosition,
     bool scrollingUp,
   ) {
-    final scrollSpeed =
-        _calculateScrollSpeed(distance, boundaryPosition, scrollingUp);
+    final scrollSpeed = _calculateScrollSpeed(
+      distance,
+      boundaryPosition,
+      scrollingUp,
+    );
 
     // Check if we're already scrolling in the same direction
     // If yes, just update the speed without recreating the ticker

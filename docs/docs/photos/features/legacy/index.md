@@ -3,9 +3,9 @@ title: Legacy
 description: Set up trusted contacts for account recovery in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Legacy

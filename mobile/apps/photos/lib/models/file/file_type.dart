@@ -2,12 +2,7 @@ import "package:flutter/material.dart";
 import "package:photo_manager/photo_manager.dart";
 import "package:photos/l10n/l10n.dart";
 
-enum FileType {
-  image,
-  video,
-  livePhoto,
-  other,
-}
+enum FileType { image, video, livePhoto, other }
 
 int getInt(FileType fileType) {
   switch (fileType) {

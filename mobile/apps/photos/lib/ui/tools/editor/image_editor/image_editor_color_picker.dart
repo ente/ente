@@ -1,5 +1,5 @@
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
-import "package:photos/ente_theme_data.dart";
 
 class ImageEditorColorPicker extends StatefulWidget {
   final double value;
@@ -23,6 +23,7 @@ class ColorSliderState extends State<ImageEditorColorPicker> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.componentColors;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: SizedBox(
@@ -53,10 +54,7 @@ class ColorSliderState extends State<ImageEditorColorPicker> {
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 ),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.editorBackgroundColor,
-                  width: 6,
-                ),
+                border: Border.all(color: colors.fillLight, width: 6),
               ),
             ),
             Padding(

@@ -4,11 +4,7 @@ class Language {
   final String iso639_2, name;
   final String? native;
 
-  const Language({
-    required this.iso639_2,
-    required this.name,
-    this.native,
-  });
+  const Language({required this.iso639_2, required this.name, this.native});
 
   // subset of ISO 639-2 codes for living languages (including macrolanguages, excluding constructed and collective ones)
   // synonyms for terminology and bibliographic applications (ISO 639-2/T and ISO 639-2/B) are separate entries

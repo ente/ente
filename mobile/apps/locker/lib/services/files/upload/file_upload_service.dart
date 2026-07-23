@@ -127,16 +127,16 @@ class FileUploader {
         fileKey,
         CryptoHelper.instance.getCollectionKey(collection),
       );
-      final encryptedKey =
-          CryptoUtil.bin2base64(encryptedFileKeyData.encryptedData!);
-      final keyDecryptionNonce =
-          CryptoUtil.bin2base64(encryptedFileKeyData.nonce!);
-
-      final pubMetadataRequest = await getPubMetadataRequest(
-        infoFile,
-        {'info': infoFile.pubMagicMetadata.info},
-        fileKey,
+      final encryptedKey = CryptoUtil.bin2base64(
+        encryptedFileKeyData.encryptedData!,
       );
+      final keyDecryptionNonce = CryptoUtil.bin2base64(
+        encryptedFileKeyData.nonce!,
+      );
+
+      final pubMetadataRequest = await getPubMetadataRequest(infoFile, {
+        'info': infoFile.pubMagicMetadata.info,
+      }, fileKey);
 
       // Upload as metadata-only file (no file content or thumbnail)
       final uploadedFile = await _uploadInfoFileMetadata(
@@ -168,8 +168,8 @@ class FileUploader {
     _queue.entries
         .where((entry) => entry.value.status == UploadStatus.notStarted)
         .forEach((pendingUpload) {
-      uploadsToBeRemoved.add(pendingUpload.key);
-    });
+          uploadsToBeRemoved.add(pendingUpload.key);
+        });
     for (final id in uploadsToBeRemoved) {
       _queue.remove(id)?.completer.completeError(reason);
       _allBackups[id] = _allBackups[id]!.copyWith(
@@ -181,22 +181,21 @@ class FileUploader {
     _totalCountInUploadSession = 0;
   }
 
-  void removeFromQueueWhere(
-    final bool Function(File) fn,
-    final Error reason,
-  ) {
+  void removeFromQueueWhere(final bool Function(File) fn, final Error reason) {
     final List<String> uploadsToBeRemoved = [];
     _queue.entries
         .where((entry) => entry.value.status == UploadStatus.notStarted)
         .forEach((pendingUpload) {
-      if (fn(pendingUpload.value.file)) {
-        uploadsToBeRemoved.add(pendingUpload.key);
-      }
-    });
+          if (fn(pendingUpload.value.file)) {
+            uploadsToBeRemoved.add(pendingUpload.key);
+          }
+        });
     for (final id in uploadsToBeRemoved) {
       _queue.remove(id)?.completer.completeError(reason);
-      _allBackups[id] = _allBackups[id]!
-          .copyWith(status: BackupItemStatus.retry, error: reason);
+      _allBackups[id] = _allBackups[id]!.copyWith(
+        status: BackupItemStatus.retry,
+        error: reason,
+      );
       Bus.instance.fire(BackupUpdatedEvent(_allBackups));
     }
     _logger.info(
@@ -220,8 +219,9 @@ class FileUploader {
       if (pendingEntry != null) {
         pendingEntry.status = UploadStatus.inProgress;
         _allBackups[pendingEntry.file.path] =
-            _allBackups[pendingEntry.file.path]!
-                .copyWith(status: BackupItemStatus.uploading);
+            _allBackups[pendingEntry.file.path]!.copyWith(
+              status: BackupItemStatus.uploading,
+            );
         Bus.instance.fire(BackupUpdatedEvent(_allBackups));
         _encryptAndUploadFileToCollection(
           pendingEntry.file,
@@ -239,24 +239,27 @@ class FileUploader {
     _uploadCounter++;
     final path = file.path;
     try {
-      final uploadedFile =
-          await _tryToUpload(file, collection, forcedUpload).timeout(
-        kFileUploadTimeout,
-        onTimeout: () {
-          const message = "Upload timed out for file";
-          _logger.warning(message);
-          throw TimeoutException(message);
-        },
-      );
+      final uploadedFile = await _tryToUpload(file, collection, forcedUpload)
+          .timeout(
+            kFileUploadTimeout,
+            onTimeout: () {
+              const message = "Upload timed out for file";
+              _logger.warning(message);
+              throw TimeoutException(message);
+            },
+          );
       _queue.remove(path)!.completer.complete(uploadedFile);
-      _allBackups[path] =
-          _allBackups[path]!.copyWith(status: BackupItemStatus.uploaded);
+      _allBackups[path] = _allBackups[path]!.copyWith(
+        status: BackupItemStatus.uploaded,
+      );
       Bus.instance.fire(BackupUpdatedEvent(_allBackups));
       return uploadedFile;
     } catch (e) {
       _queue.remove(path)!.completer.completeError(e);
-      _allBackups[path] =
-          _allBackups[path]!.copyWith(status: BackupItemStatus.retry, error: e);
+      _allBackups[path] = _allBackups[path]!.copyWith(
+        status: BackupItemStatus.retry,
+        error: e,
+      );
       Bus.instance.fire(BackupUpdatedEvent(_allBackups));
       return null;
     } finally {
@@ -267,9 +270,7 @@ class FileUploader {
 
   Future<void> removeStaleFiles() async {
     if (_hasInitiatedForceUpload) {
-      _logger.info(
-        "Force upload was initiated, skipping stale file cleanup",
-      );
+      _logger.info("Force upload was initiated, skipping stale file cleanup");
       return;
     }
     try {
@@ -357,20 +358,17 @@ class FileUploader {
         await File(encryptedThumbnailPath).delete();
       }
       final encryptedThumbnailFile = File(encryptedThumbnailPath);
-      await encryptedThumbnailFile
-          .writeAsBytes(encryptedThumbnailData.encryptedData!);
+      await encryptedThumbnailFile.writeAsBytes(
+        encryptedThumbnailData.encryptedData!,
+      );
       final encThumbSize = await encryptedThumbnailFile.length();
 
       // Validate file sizes before upload
       if (encFileSize == 0) {
-        throw Exception(
-          'Encrypted file size is 0',
-        );
+        throw Exception('Encrypted file size is 0');
       }
       if (encThumbSize == 0) {
-        throw Exception(
-          'Encrypted thumbnail size is 0',
-        );
+        throw Exception('Encrypted thumbnail size is 0');
       }
 
       // Calculate MD5 hashes for checksum verification
@@ -415,21 +413,25 @@ class FileUploader {
         fileAttributes.key,
       );
       final fileDecryptionHeader = CryptoUtil.bin2base64(fileAttributes.header);
-      final thumbnailDecryptionHeader =
-          CryptoUtil.bin2base64(encryptedThumbnailData.header!);
+      final thumbnailDecryptionHeader = CryptoUtil.bin2base64(
+        encryptedThumbnailData.header!,
+      );
       final encryptedMetadata = CryptoUtil.bin2base64(
         encryptedMetadataResult.encryptedData!,
       );
-      final metadataDecryptionHeader =
-          CryptoUtil.bin2base64(encryptedMetadataResult.header!);
+      final metadataDecryptionHeader = CryptoUtil.bin2base64(
+        encryptedMetadataResult.header!,
+      );
       final encryptedFileKeyData = CryptoUtil.encryptSync(
         fileAttributes.key,
         CryptoHelper.instance.getCollectionKey(collection),
       );
-      final encryptedKey =
-          CryptoUtil.bin2base64(encryptedFileKeyData.encryptedData!);
-      final keyDecryptionNonce =
-          CryptoUtil.bin2base64(encryptedFileKeyData.nonce!);
+      final encryptedKey = CryptoUtil.bin2base64(
+        encryptedFileKeyData.encryptedData!,
+      );
+      final keyDecryptionNonce = CryptoUtil.bin2base64(
+        encryptedFileKeyData.nonce!,
+      );
       final Map<String, dynamic> pubMetadata = {};
       pubMetadata["noThumb"] = true;
       MetadataRequest? pubMetadataRequest;
@@ -495,8 +497,9 @@ class FileUploader {
     Map<String, dynamic> newData,
     Uint8List fileKey,
   ) async {
-    final Map<String, dynamic> jsonToUpdate =
-        jsonDecode(file.pubMmdEncodedJson ?? '{}');
+    final Map<String, dynamic> jsonToUpdate = jsonDecode(
+      file.pubMmdEncodedJson ?? '{}',
+    );
     newData.forEach((key, value) {
       jsonToUpdate[key] = value;
     });
@@ -548,8 +551,8 @@ class FileUploader {
       final maxFileCount = _effectiveLockerFileLimit(userDetails);
       final currentFileCount =
           userDetails.isPartOfFamily() && userDetails.lockerFamilyUsage != null
-              ? userDetails.lockerFamilyUsage!.familyFileCount
-              : userDetails.fileCount;
+          ? userDetails.lockerFamilyUsage!.familyFileCount
+          : userDetails.fileCount;
       if (currentFileCount >= maxFileCount) {
         _logger.warning(
           'File count limit reached: currentFileCount $currentFileCount, '
@@ -712,14 +715,9 @@ class FileUploader {
     try {
       final response = await _enteDio.post(
         "/files/upload-url",
-        data: {
-          "contentLength": contentLength,
-          "contentMD5": md5,
-        },
+        data: {"contentLength": contentLength, "contentMD5": md5},
       );
-      return UploadURL.fromMap(
-        (response.data as Map).cast<String, dynamic>(),
-      );
+      return UploadURL.fromMap((response.data as Map).cast<String, dynamic>());
     } on DioException catch (e, s) {
       if (_isFileLimitReachedResponse(e.response)) {
         throw FileLimitReachedError();
@@ -771,10 +769,7 @@ class FileUploader {
         uploadURL.url,
         data: file.openRead(),
         options: Options(
-          headers: {
-            Headers.contentLengthHeader: fileSize,
-            'Content-MD5': md5,
-          },
+          headers: {Headers.contentLengthHeader: fileSize, 'Content-MD5': md5},
         ),
       );
       _logger.info(
@@ -871,7 +866,4 @@ class FileUploadItem {
 
 enum UploadStatus { notStarted, inProgress, inBackground, completed }
 
-enum ProcessType {
-  background,
-  foreground,
-}
+enum ProcessType { background, foreground }

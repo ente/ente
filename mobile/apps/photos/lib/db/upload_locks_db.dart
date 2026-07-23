@@ -64,9 +64,7 @@ class UploadLocksDB {
     columnCreatedAt: "created_at",
   );
 
-  static final initializationScript = [
-    ..._createUploadLocksTable(),
-  ];
+  static final initializationScript = [..._createUploadLocksTable()];
 
   static final migrationScripts = [
     ..._createTrackUploadsTable(),
@@ -248,7 +246,7 @@ class UploadLocksDB {
   }
 
   Future<({String encryptedFileKey, String fileNonce, String keyNonce})>
-      getFileEncryptionData(
+  getFileEncryptionData(
     String localId,
     String fileHash,
     int collectionID,
@@ -258,7 +256,8 @@ class UploadLocksDB {
 
     final rows = await db.query(
       _trackUploadTable.table,
-      where: '${_trackUploadTable.columnLocalID} = ?'
+      where:
+          '${_trackUploadTable.columnLocalID} = ?'
           ' AND ${_trackUploadTable.columnFileHash} = ?'
           ' AND ${_trackUploadTable.columnCollectionID} = ?',
       whereArgs: [localId, fileHash, collectionID],
@@ -286,14 +285,11 @@ class UploadLocksDB {
         _trackUploadTable.columnLastAttemptedAt:
             DateTime.now().millisecondsSinceEpoch,
       },
-      where: '${_trackUploadTable.columnLocalID} = ?'
+      where:
+          '${_trackUploadTable.columnLocalID} = ?'
           ' AND ${_trackUploadTable.columnFileHash} = ?'
           ' AND ${_trackUploadTable.columnCollectionID} = ?',
-      whereArgs: [
-        localId,
-        fileHash,
-        collectionID,
-      ],
+      whereArgs: [localId, fileHash, collectionID],
     );
   }
 
@@ -306,7 +302,8 @@ class UploadLocksDB {
     final db = await database;
     final rows = await db.query(
       _trackUploadTable.table,
-      where: '${_trackUploadTable.columnLocalID} = ?'
+      where:
+          '${_trackUploadTable.columnLocalID} = ?'
           ' AND ${_trackUploadTable.columnFileHash} = ?'
           ' AND ${_trackUploadTable.columnCollectionID} = ?',
       whereArgs: [localId, fileHash, collectionID],
@@ -355,8 +352,9 @@ class UploadLocksDB {
 
     return MultipartInfo(
       urls: urls,
-      status: MultipartStatus.values
-          .byName(row[_trackUploadTable.columnStatus] as String),
+      status: MultipartStatus.values.byName(
+        row[_trackUploadTable.columnStatus] as String,
+      ),
       partUploadStatus: partUploadStatus,
       partETags: partETags,
       encFileSize: encFileSize,
@@ -366,7 +364,7 @@ class UploadLocksDB {
     );
   }
 
-// validateResume checks if the cached links are valid for resuming upload
+  // validateResume checks if the cached links are valid for resuming upload
   void _validateResume(
     List<Map<String, Object?>> rows,
     String localId,
@@ -376,9 +374,7 @@ class UploadLocksDB {
       throw MultiPartError("No cached links found for $localId");
     }
     if (rows.length > 1) {
-      throw MultiPartError(
-        "Multiple entries found for localID: $localId",
-      );
+      throw MultiPartError("Multiple entries found for localID: $localId");
     }
     if (encryptedFileName !=
         rows.first[_trackUploadTable.columnEncryptedFileName]) {
@@ -394,16 +390,12 @@ class UploadLocksDB {
   ) async {
     final db = await database;
 
-    await db.insert(
-      _streamUploadErrorTable.table,
-      {
-        _streamUploadErrorTable.columnUploadedFileID: uploadedFileID,
-        _streamUploadErrorTable.columnErrorMessage: errorMessage,
-        _streamUploadErrorTable.columnLastAttemptedAt:
-            DateTime.now().millisecondsSinceEpoch,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert(_streamUploadErrorTable.table, {
+      _streamUploadErrorTable.columnUploadedFileID: uploadedFileID,
+      _streamUploadErrorTable.columnErrorMessage: errorMessage,
+      _streamUploadErrorTable.columnLastAttemptedAt:
+          DateTime.now().millisecondsSinceEpoch,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> updateStreamStatus(
@@ -467,41 +459,35 @@ class UploadLocksDB {
     final db = await database;
     final objectKey = urls.objectKey;
 
-    await db.insert(
-      _trackUploadTable.table,
-      {
-        _trackUploadTable.columnLocalID: localId,
-        _trackUploadTable.columnFileHash: fileHash,
-        _trackUploadTable.columnCollectionID: collectionID,
-        _trackUploadTable.columnObjectKey: objectKey,
-        _trackUploadTable.columnCompleteUrl: urls.completeURL,
-        _trackUploadTable.columnEncryptedFileName: encryptedFileName,
-        _trackUploadTable.columnEncryptedFileSize: fileSize,
-        _trackUploadTable.columnEncryptedFileKey: fileKey,
-        _trackUploadTable.columnFileEncryptionNonce: fileNonce,
-        _trackUploadTable.columnKeyEncryptionNonce: keyNonce,
-        _trackUploadTable.columnPartSize: partSize,
-        _trackUploadTable.columnLastAttemptedAt:
-            DateTime.now().millisecondsSinceEpoch,
-        if (fileMd5 != null) _trackUploadTable.columnFileMd5: fileMd5,
-        if (partMd5s != null)
-          _trackUploadTable.columnPartMd5s: jsonEncode(partMd5s),
-      },
-    );
+    await db.insert(_trackUploadTable.table, {
+      _trackUploadTable.columnLocalID: localId,
+      _trackUploadTable.columnFileHash: fileHash,
+      _trackUploadTable.columnCollectionID: collectionID,
+      _trackUploadTable.columnObjectKey: objectKey,
+      _trackUploadTable.columnCompleteUrl: urls.completeURL,
+      _trackUploadTable.columnEncryptedFileName: encryptedFileName,
+      _trackUploadTable.columnEncryptedFileSize: fileSize,
+      _trackUploadTable.columnEncryptedFileKey: fileKey,
+      _trackUploadTable.columnFileEncryptionNonce: fileNonce,
+      _trackUploadTable.columnKeyEncryptionNonce: keyNonce,
+      _trackUploadTable.columnPartSize: partSize,
+      _trackUploadTable.columnLastAttemptedAt:
+          DateTime.now().millisecondsSinceEpoch,
+      _trackUploadTable.columnFileMd5: ?fileMd5,
+      if (partMd5s != null)
+        _trackUploadTable.columnPartMd5s: jsonEncode(partMd5s),
+    });
 
     final partsURLs = urls.partsURLs;
     final partsLength = partsURLs.length;
 
     for (int i = 0; i < partsLength; i++) {
-      await db.insert(
-        _partsTable.table,
-        {
-          _partsTable.columnObjectKey: objectKey,
-          _partsTable.columnPartNumber: i,
-          _partsTable.columnPartUrl: partsURLs[i],
-          _partsTable.columnPartStatus: PartStatus.pending.name,
-        },
-      );
+      await db.insert(_partsTable.table, {
+        _partsTable.columnObjectKey: objectKey,
+        _partsTable.columnPartNumber: i,
+        _partsTable.columnPartUrl: partsURLs[i],
+        _partsTable.columnPartStatus: PartStatus.pending.name,
+      });
     }
   }
 
@@ -530,17 +516,13 @@ class UploadLocksDB {
     final db = await database;
     await db.update(
       _trackUploadTable.table,
-      {
-        _trackUploadTable.columnStatus: status.name,
-      },
+      {_trackUploadTable.columnStatus: status.name},
       where: '${_trackUploadTable.columnObjectKey} = ?',
       whereArgs: [objectKey],
     );
   }
 
-  Future<int> deleteMultipartTrack(
-    String localId,
-  ) async {
+  Future<int> deleteMultipartTrack(String localId) async {
     final db = await database;
     return await db.delete(
       _trackUploadTable.table,
@@ -576,7 +558,8 @@ class UploadLocksDB {
     return database.then((db) async {
       final rows = await db.query(
         _trackUploadTable.table,
-        where: '${_trackUploadTable.columnLocalID} = ?'
+        where:
+            '${_trackUploadTable.columnLocalID} = ?'
             ' AND ${_trackUploadTable.columnFileHash} = ?'
             ' AND ${_trackUploadTable.columnCollectionID} = ?',
         whereArgs: [localId, fileHash, collectionID],
@@ -590,9 +573,7 @@ class UploadLocksDB {
           where: '${_trackUploadTable.columnLocalID} = ?',
           whereArgs: [localId],
         );
-        throw MultiPartError(
-          "Multiple entries found for localID: $localId",
-        );
+        throw MultiPartError("Multiple entries found for localID: $localId");
       }
       final row = rows.first;
       return row[_trackUploadTable.columnEncryptedFileName] as String;
@@ -605,14 +586,10 @@ class UploadLocksDB {
     String queueType, // 'create' or 'recreate'
   ) async {
     final db = await database;
-    await db.insert(
-      _streamQueueTable.table,
-      {
-        _streamQueueTable.columnUploadedFileID: uploadedFileID,
-        _streamQueueTable.columnQueueType: queueType,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert(_streamQueueTable.table, {
+      _streamQueueTable.columnUploadedFileID: uploadedFileID,
+      _streamQueueTable.columnQueueType: queueType,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> removeFromStreamQueue(int uploadedFileID) async {

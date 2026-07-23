@@ -12,10 +12,7 @@ import "package:photos/theme/ente_theme.dart";
 class SmartAlbumsStatusWidget extends StatefulWidget {
   final Collection? collection;
 
-  const SmartAlbumsStatusWidget({
-    this.collection,
-    super.key,
-  });
+  const SmartAlbumsStatusWidget({this.collection, super.key});
 
   @override
   State<SmartAlbumsStatusWidget> createState() =>
@@ -66,7 +63,8 @@ class _SmartAlbumsStatusWidgetState extends State<SmartAlbumsStatusWidget>
       firstCurve: Curves.easeInOutExpo,
       secondCurve: Curves.easeInOutExpo,
       sizeCurve: Curves.easeInOutExpo,
-      crossFadeState: !(_syncingCollection == null ||
+      crossFadeState:
+          !(_syncingCollection == null ||
               _syncingCollection!.$1 != widget.collection?.id)
           ? CrossFadeState.showSecond
           : CrossFadeState.showFirst,
@@ -76,8 +74,10 @@ class _SmartAlbumsStatusWidgetState extends State<SmartAlbumsStatusWidget>
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)
-                .copyWith(left: 14),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ).copyWith(left: 14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               color: Colors.black.withValues(alpha: 0.65),

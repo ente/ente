@@ -48,8 +48,9 @@ class SelectedFiles extends ChangeNotifier {
 
   void toggleGroupSelection(Set<EnteFile> filesToToggle) {
     // Filter out dummy files before processing
-    final nonDummyFiles =
-        filesToToggle.where((file) => file is! DummyFile).toSet();
+    final nonDummyFiles = filesToToggle
+        .where((file) => file is! DummyFile)
+        .toSet();
     if (nonDummyFiles.isEmpty) {
       return;
     }
@@ -62,8 +63,9 @@ class SelectedFiles extends ChangeNotifier {
 
   void selectAll(Set<EnteFile> filesToSelect) {
     // Filter out dummy files before adding to selection
-    final nonDummyFiles =
-        filesToSelect.where((file) => file is! DummyFile).toSet();
+    final nonDummyFiles = filesToSelect
+        .where((file) => file is! DummyFile)
+        .toSet();
     files.addAll(nonDummyFiles);
     lastSelectionOperationFiles.clear();
     lastSelectionOperationFiles.addAll(nonDummyFiles);
@@ -74,8 +76,9 @@ class SelectedFiles extends ChangeNotifier {
     files.removeWhere((file) => filesToUnselect.contains(file));
     lastSelectionOperationFiles.clear();
     // Filter out dummy files before adding to lastSelectionOperationFiles
-    lastSelectionOperationFiles
-        .addAll(filesToUnselect.where((file) => file is! DummyFile));
+    lastSelectionOperationFiles.addAll(
+      filesToUnselect.where((file) => file is! DummyFile),
+    );
     if (!skipNotify) {
       notifyListeners();
     }
@@ -138,8 +141,9 @@ class SelectedFiles extends ChangeNotifier {
 
   ///Replaces the current selection with [filesToSelect] in a single update.
   void replaceSelection(Set<EnteFile> filesToSelect) {
-    final nonDummyFiles =
-        filesToSelect.where((file) => file is! DummyFile).toSet();
+    final nonDummyFiles = filesToSelect
+        .where((file) => file is! DummyFile)
+        .toSet();
     lastSelectionOperationFiles.clear();
     lastSelectionOperationFiles.addAll(files);
     files

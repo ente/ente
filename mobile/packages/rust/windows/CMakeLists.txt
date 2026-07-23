@@ -9,7 +9,7 @@ set(PROJECT_NAME "ente_rust")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
 include("../cargokit/cmake/cargokit.cmake")
-apply_cargokit(${PROJECT_NAME} ../rust ente_rust "")
+apply_cargokit(${PROJECT_NAME} ../../../../rust/bindings/frb/ente-rust ente_rust "")
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an

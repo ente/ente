@@ -236,8 +236,9 @@ class SocialService {
     String text,
     int collectionID,
   ) {
-    final collectionKey =
-        CollectionsService.instance.getCollectionKey(collectionID);
+    final collectionKey = CollectionsService.instance.getCollectionKey(
+      collectionID,
+    );
     final textBytes = utf8.encode(text);
 
     final encrypted = CryptoUtil.encryptSync(
@@ -260,8 +261,9 @@ class SocialService {
     }
 
     try {
-      final collectionKey =
-          CollectionsService.instance.getCollectionKey(collectionID);
+      final collectionKey = CollectionsService.instance.getCollectionKey(
+        collectionID,
+      );
       final cipherBytes = CryptoUtil.base642bin(cipher);
       final nonceBytes = CryptoUtil.base642bin(nonce);
 
@@ -286,8 +288,9 @@ class SocialService {
     String reactionType,
     int collectionID,
   ) {
-    final collectionKey =
-        CollectionsService.instance.getCollectionKey(collectionID);
+    final collectionKey = CollectionsService.instance.getCollectionKey(
+      collectionID,
+    );
 
     // Pad reaction type to fixed length
     final padded = _padReactionType(reactionType);
@@ -314,8 +317,9 @@ class SocialService {
     }
 
     try {
-      final collectionKey =
-          CollectionsService.instance.getCollectionKey(collectionID);
+      final collectionKey = CollectionsService.instance.getCollectionKey(
+        collectionID,
+      );
       final cipherBytes = CryptoUtil.base642bin(cipher);
       final nonceBytes = CryptoUtil.base642bin(nonce);
 
@@ -361,8 +365,9 @@ class SocialService {
     }
 
     try {
-      final collectionKey =
-          CollectionsService.instance.getCollectionKey(collectionID);
+      final collectionKey = CollectionsService.instance.getCollectionKey(
+        collectionID,
+      );
       final cipherBytes = CryptoUtil.base642bin(cipher);
       final nonceBytes = CryptoUtil.base642bin(nonce);
 

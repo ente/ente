@@ -10,10 +10,11 @@ class WrappedPeopleContext {
     required Map<String, WrappedPersonEntry> persons,
     required Map<String, int> personFirstCaptureMicros,
     this.selfPersonID,
-  })  : files = List<WrappedPeopleFile>.unmodifiable(files),
-        persons = Map<String, WrappedPersonEntry>.unmodifiable(persons),
-        personFirstCaptureMicros =
-            Map<String, int>.unmodifiable(personFirstCaptureMicros);
+  }) : files = List<WrappedPeopleFile>.unmodifiable(files),
+       persons = Map<String, WrappedPersonEntry>.unmodifiable(persons),
+       personFirstCaptureMicros = Map<String, int>.unmodifiable(
+         personFirstCaptureMicros,
+       );
 
   factory WrappedPeopleContext.empty() {
     return WrappedPeopleContext(
@@ -35,10 +36,7 @@ class WrappedPeopleContext {
     return <String, Object?>{
       "files": files.map((WrappedPeopleFile file) => file.toJson()).toList(),
       "persons": persons.map(
-        (String key, WrappedPersonEntry value) => MapEntry(
-          key,
-          value.toJson(),
-        ),
+        (String key, WrappedPersonEntry value) => MapEntry(key, value.toJson()),
       ),
       "firstCaptureMicros": personFirstCaptureMicros,
       "selfPersonID": selfPersonID,
@@ -49,22 +47,20 @@ class WrappedPeopleContext {
     final List<dynamic> rawFiles = json["files"] as List<dynamic>? ?? const [];
     final Map<String, Object?> rawPersons =
         (json["persons"] as Map?)?.cast<String, Object?>() ??
-            <String, Object?>{};
+        <String, Object?>{};
     final Map<String, WrappedPersonEntry> persons =
         <String, WrappedPersonEntry>{
-      for (final MapEntry<String, Object?> entry in rawPersons.entries)
-        entry.key: WrappedPersonEntry.fromJson(
-          (entry.value as Map).cast<String, Object?>(),
-        ),
-    };
+          for (final MapEntry<String, Object?> entry in rawPersons.entries)
+            entry.key: WrappedPersonEntry.fromJson(
+              (entry.value as Map).cast<String, Object?>(),
+            ),
+        };
     final Map<String, int> firstCaptureMicros =
         (json["firstCaptureMicros"] as Map?)?.map(
-              (Object? key, Object? value) => MapEntry(
-                key?.toString() ?? "",
-                (value as num).toInt(),
-              ),
-            ) ??
-            <String, int>{};
+          (Object? key, Object? value) =>
+              MapEntry(key?.toString() ?? "", (value as num).toInt()),
+        ) ??
+        <String, int>{};
     return WrappedPeopleContext(
       files: rawFiles
           .map(
@@ -118,11 +114,12 @@ class WrappedAestheticsContext {
   WrappedAestheticsContext({
     required Map<int, List<double>> clipEmbeddings,
     required Map<String, List<double>> textEmbeddings,
-  })  : clipEmbeddings =
-            Map<int, List<double>>.unmodifiable(_dedupeLists(clipEmbeddings)),
-        textEmbeddings = Map<String, List<double>>.unmodifiable(
-          _dedupeLists(textEmbeddings),
-        );
+  }) : clipEmbeddings = Map<int, List<double>>.unmodifiable(
+         _dedupeLists(clipEmbeddings),
+       ),
+       textEmbeddings = Map<String, List<double>>.unmodifiable(
+         _dedupeLists(textEmbeddings),
+       );
 
   factory WrappedAestheticsContext.empty() {
     return WrappedAestheticsContext(
@@ -139,10 +136,7 @@ class WrappedAestheticsContext {
   Map<String, Object?> toJson() {
     return <String, Object?>{
       "clipEmbeddings": clipEmbeddings.map(
-        (int key, List<double> value) => MapEntry(
-          key.toString(),
-          value,
-        ),
+        (int key, List<double> value) => MapEntry(key.toString(), value),
       ),
       "textEmbeddings": textEmbeddings,
     };
@@ -151,7 +145,7 @@ class WrappedAestheticsContext {
   static WrappedAestheticsContext fromJson(Map<String, Object?> json) {
     final Map<String, Object?> rawClip =
         (json["clipEmbeddings"] as Map?)?.cast<String, Object?>() ??
-            <String, Object?>{};
+        <String, Object?>{};
     final Map<int, List<double>> clipEmbeddings = <int, List<double>>{
       for (final MapEntry<String, Object?> entry in rawClip.entries)
         int.tryParse(entry.key) ?? 0: _castToDoubleList(entry.value),
@@ -159,7 +153,7 @@ class WrappedAestheticsContext {
 
     final Map<String, Object?> rawText =
         (json["textEmbeddings"] as Map?)?.cast<String, Object?>() ??
-            <String, Object?>{};
+        <String, Object?>{};
     final Map<String, List<double>> textEmbeddings = <String, List<double>>{
       for (final MapEntry<String, Object?> entry in rawText.entries)
         entry.key: _castToDoubleList(entry.value),
@@ -175,9 +169,7 @@ class WrappedAestheticsContext {
     );
   }
 
-  static Map<K, List<double>> _dedupeLists<K>(
-    Map<K, List<double>> source,
-  ) {
+  static Map<K, List<double>> _dedupeLists<K>(Map<K, List<double>> source) {
     final Map<K, List<double>> result = <K, List<double>>{};
     source.forEach((K key, List<double> value) {
       result[key] = List<double>.from(value, growable: false);
@@ -229,9 +221,8 @@ class WrappedPeopleFile {
       captureMicros: json["captureMicros"] as int? ?? 0,
       faces: rawFaces
           .map(
-            (dynamic entry) => WrappedFaceRef.fromJson(
-              (entry as Map).cast<String, Object?>(),
-            ),
+            (dynamic entry) =>
+                WrappedFaceRef.fromJson((entry as Map).cast<String, Object?>()),
           )
           .toList(growable: false),
     );
@@ -315,12 +306,10 @@ class WrappedPersonEntry {
   static WrappedPersonEntry fromJson(Map<String, Object?> json) {
     final Map<String, int> clusterFaceCounts =
         (json["clusterFaceCounts"] as Map?)?.map(
-              (Object? key, Object? value) => MapEntry(
-                key?.toString() ?? "",
-                (value as num).toInt(),
-              ),
-            ) ??
-            <String, int>{};
+          (Object? key, Object? value) =>
+              MapEntry(key?.toString() ?? "", (value as num).toInt()),
+        ) ??
+        <String, int>{};
     return WrappedPersonEntry(
       personID: json["personID"] as String? ?? "",
       displayName: json["displayName"] as String? ?? "",
@@ -346,8 +335,8 @@ class WrappedResult {
     required this.year,
     required DateTime generatedAt,
     this.badgeKey,
-  })  : cards = List<WrappedCard>.unmodifiable(cards),
-        generatedAt = generatedAt.toUtc();
+  }) : cards = List<WrappedCard>.unmodifiable(cards),
+       generatedAt = generatedAt.toUtc();
 
   final List<WrappedCard> cards;
   final int year;
@@ -420,8 +409,8 @@ class WrappedCard {
     this.subtitle,
     List<MediaRef> media = const <MediaRef>[],
     Map<String, Object?> meta = const <String, Object?>{},
-  })  : media = List<MediaRef>.unmodifiable(media),
-        meta = Map<String, Object?>.unmodifiable(meta);
+  }) : media = List<MediaRef>.unmodifiable(media),
+       meta = Map<String, Object?>.unmodifiable(meta);
 
   final WrappedCardType type;
   final String title;

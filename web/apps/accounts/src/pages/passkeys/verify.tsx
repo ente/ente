@@ -1,3 +1,14 @@
+import {
+    beginPasskeyAuthentication,
+    finishPasskeyAuthentication,
+    isWebAuthnSupported,
+    parseRedirectURLParam,
+    passkeyAuthenticationSuccessRedirectURL,
+    passkeySessionAlreadyClaimedErrorMessage,
+    redirectToPasskeyRecoverPage,
+    signChallenge,
+    type BeginPasskeyAuthenticationResponse,
+} from "@/services/passkey";
 import InfoIcon from "@mui/icons-material/Info";
 import KeyIcon from "@mui/icons-material/Key";
 import { Paper, Stack, Typography, styled } from "@mui/material";
@@ -12,17 +23,6 @@ import log from "ente-base/log";
 import { nullToUndefined } from "ente-utils/transform";
 import { t } from "i18next";
 import React, { useCallback, useEffect, useState } from "react";
-import {
-    beginPasskeyAuthentication,
-    finishPasskeyAuthentication,
-    isWebAuthnSupported,
-    parseRedirectURLParam,
-    passkeyAuthenticationSuccessRedirectURL,
-    passkeySessionAlreadyClaimedErrorMessage,
-    redirectToPasskeyRecoverPage,
-    signChallenge,
-    type BeginPasskeyAuthenticationResponse,
-} from "services/passkey";
 
 const Page = () => {
     /**
@@ -546,7 +546,7 @@ const isLockerErrorPayload = (
     typeof payload == "object" &&
     payload !== null &&
     "code" in payload &&
-    typeof (payload as { code: unknown }).code === "string";
+    typeof payload.code === "string";
 
 const lockerAccessErrorCode = async (
     error: unknown,

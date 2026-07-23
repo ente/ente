@@ -121,9 +121,7 @@ const LocalUser = z.object({
 export const savedPartialLocalUser = (): PartialLocalUser | undefined => {
     const jsonString = localStorage.getItem("user");
     if (!jsonString) return undefined;
-    const result = PartialLocalUser.parse(JSON.parse(jsonString));
-    void ensureTokensMatch(result);
-    return result;
+    return PartialLocalUser.parse(JSON.parse(jsonString));
 };
 
 /**
@@ -169,20 +167,7 @@ export const savedLocalUser = (): LocalUser | undefined => {
     if (!jsonString) return undefined;
     // We might have some data, but not all of it. So do a non-throwing parse.
     const { success, data } = LocalUser.safeParse(JSON.parse(jsonString));
-    if (success) void ensureTokensMatch(data);
     return success ? data : undefined;
-};
-
-/**
- * Sanity check to ensure that KV token and local storage token are the same.
- *
- * TODO: Added July 2025, can just be removed soon, there is already a sanity
- * check `isLocalStorageAndIndexedDBMismatch` on app start (tag: Migration).
- */
-export const ensureTokensMatch = async (user: PartialLocalUser | undefined) => {
-    if (user?.token !== (await savedAuthToken())) {
-        throw new Error("Token mismatch");
-    }
 };
 
 /**
@@ -366,12 +351,6 @@ export const saveIsFirstLogin = () => {
  * without clearing it by using {@link savedIsFirstLogin}.
  */
 export const getAndClearIsFirstLogin = () => {
-    // Completely unrelated, but since this code runs on each /gallery load, use
-    // this as a chance to remove the unused "showBackButton" property saved in
-    // local storage. This code was added 1.7.15-beta (July 2025) and can be
-    // removed after a while, soonish (tag: Migration).
-    localStorage.removeItem("showBackButton");
-
     const result = savedIsFirstLogin();
     localStorage.removeItem("isFirstLogin");
     return result;
@@ -417,17 +396,6 @@ export const getAndClearJustSignedUp = () => {
 };
 
 /**
- * Zod schema for the format in which the {@link stashReferralSource} used to
- * saved the referral source in local storage.
- *
- * Starting 1.7.15-beta (July 2025), we started saving the string directly, but
- * when reading we fallback to the old format if needed. This fallback can be
- * removed, and soonish, since these is a transient value that isn't expected to
- * remain in the user's local storage for long anyway. (tag: Migration).
- */
-const LocalLegacyReferralSource = z.object({ source: z.string() });
-
-/**
  * Save the referral source entered by the user on the signup screen in local
  * storage.
  *
@@ -444,17 +412,8 @@ export const stashReferralSource = (referralSource: string) => {
  * from local storage.
  */
 export const unstashReferralSource = () => {
-    const jsonString = localStorage.getItem("referralSource");
-    if (!jsonString) return undefined;
+    const referralSource = localStorage.getItem("referralSource");
+    if (!referralSource) return undefined;
     localStorage.removeItem("referralSource");
-    try {
-        // Try the old format first. The trim is also a legacy expectation and
-        // can be removed when we remove this fallfront.
-        return LocalLegacyReferralSource.parse(
-            JSON.parse(jsonString),
-        ).source.trim();
-    } catch {
-        // Otherwise try the new format.
-        return jsonString;
-    }
+    return referralSource;
 };

@@ -3,9 +3,9 @@ title: Uncategorized
 description: Understand the Uncategorized album in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Uncategorized

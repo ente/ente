@@ -1,5 +1,6 @@
 import "dart:io";
 
+import "package:ente_components/ente_components.dart" as components;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import "package:photos/generated/l10n.dart";
@@ -10,9 +11,8 @@ import "package:photos/models/search/hierarchical/face_filter.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 import "package:photos/models/search/hierarchical/only_them_filter.dart";
 import 'package:photos/models/selected_files.dart';
-import "package:photos/theme/effects.dart";
-import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/components/bottom_action_bar/bottom_action_bar_widget.dart';
+import "package:photos/ui/viewer/actions/select_all_status_icon.dart";
 import "package:photos/ui/viewer/gallery/state/boundary_reporter_mixin.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
@@ -86,8 +86,9 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final inheritedSearchFilterData =
-        InheritedSearchFilterData.maybeOf(context);
+    final inheritedSearchFilterData = InheritedSearchFilterData.maybeOf(
+      context,
+    );
     if (inheritedSearchFilterData?.isHierarchicalSearchable ?? false) {
       _searchFilterDataProvider =
           inheritedSearchFilterData!.searchFilterDataProvider;
@@ -157,23 +158,18 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
                   ),
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    boxShadow: shadowFloatFaintLight,
-                  ),
-                  child: BottomActionBarWidget(
-                    selectedFiles: widget.selectedFiles,
-                    galleryType: _galleryType,
-                    collection: widget.collection,
-                    person: widget.person,
-                    clusterID: widget.clusterID,
-                    onCancel: () {
-                      if (widget.selectedFiles.files.isNotEmpty) {
-                        widget.selectedFiles.clearAll();
-                      }
-                    },
-                    backgroundColor: widget.backgroundColor,
-                  ),
+                BottomActionBarWidget(
+                  selectedFiles: widget.selectedFiles,
+                  galleryType: _galleryType,
+                  collection: widget.collection,
+                  person: widget.person,
+                  clusterID: widget.clusterID,
+                  onCancel: () {
+                    if (widget.selectedFiles.files.isNotEmpty) {
+                      widget.selectedFiles.clearAll();
+                    }
+                  },
+                  backgroundColor: widget.backgroundColor,
                 ),
               ],
             ),
@@ -184,7 +180,7 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
     );
   }
 
-  _selectedFilesListener() {
+  void _selectedFilesListener() {
     _hasSelectedFilesNotifier.value = widget.selectedFiles.files.isNotEmpty;
   }
 
@@ -230,8 +226,9 @@ class _FileSelectionOverlayBarState extends State<FileSelectionOverlayBar>
       if (initialFilter is FaceFilter) {
         for (HierarchicalSearchFilter filter in appliedFilters) {
           if (filter is OnlyThemFilter) {
-            if (filter.faceFilters
-                .any((faceFilter) => faceFilter.isSameFilter(initialFilter))) {
+            if (filter.faceFilters.any(
+              (faceFilter) => faceFilter.isSameFilter(initialFilter),
+            )) {
               initalFilterIsInAppliedFiters = true;
               break;
             }
@@ -272,7 +269,7 @@ class _SelectAllButtonState extends State<SelectAllButton> {
       selectionState != null,
       "SelectionState not found in context, SelectionState should be an ancestor of FileSelectionOverlayBar",
     );
-    final colorScheme = getEnteColorScheme(context);
+    final colors = components.ComponentTheme.colorsOf(context);
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
@@ -280,9 +277,7 @@ class _SelectAllButtonState extends State<SelectAllButton> {
           if (_allSelected) {
             selectionState.selectedFiles.clearAll();
           } else {
-            selectionState.selectedFiles.selectAll(
-              allGalleryFiles.toSet(),
-            );
+            selectionState.selectedFiles.selectAll(allGalleryFiles.toSet());
           }
           _allSelected = !_allSelected;
         });
@@ -292,15 +287,9 @@ class _SelectAllButtonState extends State<SelectAllButton> {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: widget.backgroundColor ?? colorScheme.backgroundElevated2,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 4,
-                offset: const Offset(0, -1),
-              ),
-            ],
+            color: widget.backgroundColor ?? colors.backgroundBase,
+            border: Border.all(color: colors.strokeDark),
+            borderRadius: BorderRadius.circular(32),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -308,7 +297,9 @@ class _SelectAllButtonState extends State<SelectAllButton> {
             children: [
               Text(
                 AppLocalizations.of(context).selectAllShort,
-                style: getEnteTextTheme(context).miniMuted,
+                style: components.TextStyles.mini.copyWith(
+                  color: colors.textBase,
+                ),
               ),
               const SizedBox(width: 4),
               ListenableBuilder(
@@ -320,12 +311,10 @@ class _SelectAllButtonState extends State<SelectAllButton> {
                   } else {
                     _allSelected = false;
                   }
-                  return Icon(
-                    _allSelected
-                        ? Icons.check_circle
-                        : Icons.check_circle_outline,
-                    color: _allSelected ? null : colorScheme.strokeMuted,
-                    size: 18,
+                  return SelectAllStatusIcon(
+                    isSelected: _allSelected,
+                    size: 16,
+                    unselectedColor: colors.textLighter,
                   );
                 },
               ),

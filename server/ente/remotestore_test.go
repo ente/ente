@@ -37,6 +37,8 @@ func TestIsValidDomainWithoutScheme(t *testing.T) {
 
 		// ❌ Wrong format
 		{"missing dot", "localhost", true},
+		{"ipv4 address", "172.17.0.2", true},
+		{"ipv6 address", "2001:db8::1", true},
 		{"single label TLD", "com", true},
 		{"ends with dot", "example.com.", true},
 		{"ends with dash", "example-.com", true},
@@ -51,6 +53,27 @@ func TestIsValidDomainWithoutScheme(t *testing.T) {
 			err := isValidDomainWithoutScheme(tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("isValidDomainWithoutScheme(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidatePublicCustomDomain(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		wantErr bool
+	}{
+		{"valid domain", "example.com", false},
+		{"family pointer", "_123:example.com", true},
+		{"ip address", "172.17.0.2", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidatePublicCustomDomain(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidatePublicCustomDomain(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
 			}
 		})
 	}

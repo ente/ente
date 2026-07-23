@@ -7,10 +7,7 @@ import (
 
 func TestEncString(t *testing.T) {
 	key := make([]byte, 32)
-	_, err := rand.Read(key)
-	if err != nil {
-		t.Fatalf("error generating key: %v", err)
-	}
+	rand.Read(key)
 	data := "dataToEncrypt"
 	encData := MakeEncString([]byte(data), key)
 	decryptedData := encData.MustDecrypt(key)

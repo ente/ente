@@ -26,7 +26,7 @@ pub(super) fn split_secret_2_of_3(secret: &[u8]) -> Result<Vec<Vec<u8>>> {
             "legacy kit secret must be 32 bytes".into(),
         ));
     }
-    let slope = crypto::keys::generate_key_secure();
+    let slope = crypto::SecretVec::new(crypto::random_bytes(32));
     let xs = [1u8, 2u8, 3u8];
     let mut shares = Vec::with_capacity(3);
     for x in xs {

@@ -35,8 +35,9 @@ class _LocationTagStateProviderState extends State<LocationTagStateProvider> {
 
   late Location? _centerPoint;
   late LocalEntity<LocationTag>? _locationTagEntity;
-  final Debouncer _selectedRadiusDebouncer =
-      Debouncer(const Duration(milliseconds: 300));
+  final Debouncer _selectedRadiusDebouncer = Debouncer(
+    const Duration(milliseconds: 300),
+  );
   late final StreamSubscription _locTagEntityListener;
   late final List<double> _radiusValues;
 
@@ -57,8 +58,9 @@ class _LocationTagStateProviderState extends State<LocationTagStateProvider> {
     _selectedRadius =
         _locationTagEntity?.item.radius ?? widget.radius ?? defaultRadiusValue;
 
-    _locTagEntityListener =
-        Bus.instance.on<LocationTagUpdatedEvent>().listen((event) {
+    _locTagEntityListener = Bus.instance.on<LocationTagUpdatedEvent>().listen((
+      event,
+    ) {
       _locationTagUpdateListener(event);
     });
     super.initState();

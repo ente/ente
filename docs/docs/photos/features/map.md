@@ -3,9 +3,9 @@ title: Map
 description: View your photos on a map in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Map

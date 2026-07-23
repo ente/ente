@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<title>Ente Space notification</title>
+<style>
+  @media screen and (max-width: 480px) {
+    .space-shell {
+      padding-left: 12px !important;
+      padding-right: 12px !important;
+    }
+
+    .space-card {
+      padding-left: 18px !important;
+      padding-right: 18px !important;
+    }
+  }
+
+  .footer-icons {
+    padding: 4px !important;
+    width: 24px !important;
+  }
+</style>
+</head>
+<body style="background-color: #f0f1f3; color: #232323; font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif; margin: 0; padding: 0; -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f0f1f3" style="background-color: #f0f1f3; border-collapse: collapse; margin: 0; width: 100%;">
+  <tr>
+    <td align="center" class="space-shell" style="padding: 48px 20px 0;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse: separate; border-spacing: 0; max-width: 364px; width: 100%;">
+        <tr>
+          <td align="center" class="space-card" bgcolor="#ffffff" style="background-color: #ffffff; border-radius: 32px; color: #232323; font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif; padding: 34px 22px 22px; text-align: center;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse: collapse; width: 100%;">
+              {{if .IllustrationURL}}
+              <tr>
+                <td align="center" style="padding: 0 0 24px;">
+                  <img src="{{ .IllustrationURL }}" width="{{ .IllustrationWidth }}" alt="" style="border: 0; display: block; height: auto; margin: 0 auto; max-width: 100%; outline: none; text-decoration: none; width: {{ .IllustrationWidth }}px;" />
+                </td>
+              </tr>
+              {{end}}
+              <tr>
+                <td align="center" style="color: #232323; font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 800; line-height: 30px; padding: 0 0 4px; text-align: center;">
+                  {{ .ActorLabel }}
+                </td>
+              </tr>
+              <tr>
+                <td align="center" style="color: #6b6b6b; font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif; font-size: 15px; line-height: 21px; padding: 0 0 28px; text-align: center;">
+                  {{ .Notification }}
+                </td>
+              </tr>
+              <tr>
+                <td align="center">
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse: separate; border-spacing: 0; width: 100%;">
+                    <tr>
+                      <td align="center" bgcolor="#08C225" style="background-color: #08C225; border-radius: 16px;">
+                        <a href="{{ .AppURL }}" target="_blank" style="background-color: #08C225; border-radius: 16px; color: #ffffff !important; display: block; font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 700; line-height: 20px; padding: 16px 28px; text-align: center; text-decoration: none !important;">Open Ente Space</a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<br />
+<div class="footer" style="text-align: center; font-size: 12px; color:
+    rgb(136, 136, 136)" >
+  <div>
+    <a href="https://ente.com" target="_blank" ><img
+            src="https://email-assets.ente.com/ente-2026-green.png" style="width: 100px;
+        padding: 24px" title="Ente" alt="Ente" /></a>
+  </div>
+  <div>
+    <a href="https://fosstodon.org/@ente" target="_blank" ><img
+            src="https://email-assets.ente.com/mastodon-icon.png"
+            class="footer-icons" style="width: 24px; padding: 4px" title="Mastodon"
+            alt="Mastodon" /></a>
+    <a href="https://twitter.com/enteio" target="_blank" ><img
+            src="https://email-assets.ente.com/twitter-icon.png" class="footer-icons"
+            style="width: 24px; padding: 4px" title="Twitter" alt="Twitter" /></a>
+    <a href="https://ente.com/discord" target="_blank" ><img
+            src="https://email-assets.ente.com/discord-icon.png" class="footer-icons"
+            style="width: 24px; padding: 4px" title="Discord" alt="Discord" /></a>
+    <a href="https://github.com/ente-io" target="_blank" ><img
+            src="https://email-assets.ente.com/github-icon.png" class="footer-icons"
+            style="width: 24px; padding: 4px" title="GitHub" alt="GitHub" /></a>
+
+    <a href="https://www.youtube.com/@entestudio" target="_blank" ><img
+            src="https://email-assets.ente.com/youtube-icon.png" class="footer-icons"
+            style="width: 24px; padding: 4px" title="YouTube" alt="YouTube" /></a>
+  </div>
+  <p>
+    Ente Technologies, Inc.
+    <br /> 1111B S Governors Ave 6032 Dover, DE 19904
+  </p>
+  <br />
+</div>
+</body>
+</html>

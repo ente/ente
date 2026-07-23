@@ -1,11 +1,11 @@
+import "package:ente_components/ente_components.dart" as components;
 import 'package:flutter/material.dart';
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/models/selected_albums.dart";
-import "package:photos/theme/effects.dart";
-import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/collections/collection_list_page.dart";
 import "package:photos/ui/components/bottom_action_bar/album_bottom_action_bar_widget.dart";
+import "package:photos/ui/viewer/actions/select_all_status_icon.dart";
 
 class AlbumSelectionOverlayBar extends StatefulWidget {
   final VoidCallback? onClose;
@@ -72,18 +72,15 @@ class _AlbumSelectionOverlayBarState extends State<AlbumSelectionOverlayBar> {
                   ),
                 ),
               const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(boxShadow: shadowFloatFaintLight),
-                child: AlbumBottomActionBarWidget(
-                  widget.selectedAlbums,
-                  widget.sectionType,
-                  onCancel: () {
-                    if (widget.selectedAlbums.albums.isNotEmpty) {
-                      widget.selectedAlbums.clearAll();
-                    }
-                  },
-                  backgroundColor: widget.backgroundColor,
-                ),
+              AlbumBottomActionBarWidget(
+                widget.selectedAlbums,
+                widget.sectionType,
+                onCancel: () {
+                  if (widget.selectedAlbums.albums.isNotEmpty) {
+                    widget.selectedAlbums.clearAll();
+                  }
+                },
+                backgroundColor: widget.backgroundColor,
               ),
             ],
           ),
@@ -93,7 +90,7 @@ class _AlbumSelectionOverlayBarState extends State<AlbumSelectionOverlayBar> {
     );
   }
 
-  _selectedAlbumsListener() {
+  void _selectedAlbumsListener() {
     _hasSelectedAlbumsNotifier.value = widget.selectedAlbums.albums.isNotEmpty;
   }
 }
@@ -119,16 +116,14 @@ class _SelectAllAlbumsButtonState extends State<SelectAllAlbumsButton> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
+    final colors = components.ComponentTheme.colorsOf(context);
     return GestureDetector(
       onTap: () {
         setState(() {
           if (_allSelected) {
             widget.selectedAlbums.clearAll();
           } else {
-            widget.selectedAlbums.select(
-              widget.collections.toSet(),
-            );
+            widget.selectedAlbums.select(widget.collections.toSet());
           }
           _allSelected = !_allSelected;
         });
@@ -138,15 +133,9 @@ class _SelectAllAlbumsButtonState extends State<SelectAllAlbumsButton> {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: widget.backgroundColor ?? colorScheme.backgroundElevated2,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 4,
-                offset: const Offset(0, -1),
-              ),
-            ],
+            color: widget.backgroundColor ?? colors.backgroundBase,
+            border: Border.all(color: colors.strokeDark),
+            borderRadius: BorderRadius.circular(32),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -154,7 +143,9 @@ class _SelectAllAlbumsButtonState extends State<SelectAllAlbumsButton> {
             children: [
               Text(
                 AppLocalizations.of(context).selectAllShort,
-                style: getEnteTextTheme(context).miniMuted,
+                style: components.TextStyles.mini.copyWith(
+                  color: colors.textBase,
+                ),
               ),
               const SizedBox(width: 4),
               ListenableBuilder(
@@ -166,12 +157,10 @@ class _SelectAllAlbumsButtonState extends State<SelectAllAlbumsButton> {
                   } else {
                     _allSelected = false;
                   }
-                  return Icon(
-                    _allSelected
-                        ? Icons.check_circle
-                        : Icons.check_circle_outline,
-                    color: _allSelected ? null : colorScheme.strokeMuted,
-                    size: 18,
+                  return SelectAllStatusIcon(
+                    isSelected: _allSelected,
+                    size: 16,
+                    unselectedColor: colors.textLighter,
                   );
                 },
               ),

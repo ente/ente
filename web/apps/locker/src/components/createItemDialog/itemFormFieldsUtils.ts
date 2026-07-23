@@ -1,5 +1,5 @@
+import type { LockerItemType } from "@/types";
 import { t } from "i18next";
-import type { LockerItemType } from "types";
 
 export const getRequiredFields = (type: LockerItemType): string[] => {
     switch (type) {

@@ -176,8 +176,7 @@ The Feed feature provides a centralized view of all social activity across your 
 
 **On mobile:**
 
-- Go to the "Sharing" tab
-- Tap "Feed" at the top
+- Open the **Feed** tab
 - Scroll through recent social activity
 
 Feed is available on public albums.

@@ -1,5 +1,6 @@
 import "package:ente_lock_screen/lock_screen_settings.dart";
 import "package:ente_strings/ente_strings.dart";
+import "package:ente_ui/components/android_text_input_autofocus.dart";
 import "package:ente_ui/components/buttons/dynamic_fab.dart";
 import "package:ente_ui/components/text_input_widget.dart";
 import "package:ente_ui/theme/ente_theme.dart";
@@ -8,10 +9,7 @@ import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 
 class LockScreenConfirmPassword extends StatefulWidget {
-  const LockScreenConfirmPassword({
-    super.key,
-    required this.password,
-  });
+  const LockScreenConfirmPassword({super.key, required this.password});
   final String password;
 
   @override
@@ -25,13 +23,6 @@ class _LockScreenConfirmPasswordState extends State<LockScreenConfirmPassword> {
   final _focusNode = FocusNode();
   final _isFormValid = ValueNotifier<bool>(false);
   final _submitNotifier = ValueNotifier(false);
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      _focusNode.requestFocus();
-    });
-  }
 
   @override
   void dispose() {
@@ -46,8 +37,10 @@ class _LockScreenConfirmPasswordState extends State<LockScreenConfirmPassword> {
     if (widget.password == _confirmPasswordController.text) {
       await _lockscreenSetting.setPassword(_confirmPasswordController.text);
 
-      Navigator.of(context).pop(true);
-      Navigator.of(context).pop(true);
+      if (mounted) {
+        Navigator.of(context).pop(true);
+        Navigator.of(context).pop(true);
+      }
       return;
     }
     await HapticFeedback.vibrate();
@@ -80,18 +73,13 @@ class _LockScreenConfirmPasswordState extends State<LockScreenConfirmPassword> {
             FocusScope.of(context).unfocus();
             Navigator.of(context).pop();
           },
-          icon: Icon(
-            Icons.arrow_back,
-            color: colorTheme.textBase,
-          ),
+          icon: Icon(Icons.arrow_back, color: colorTheme.textBase),
         ),
         centerTitle: true,
         title: SvgPicture.asset(
-          'assets/svg/app-logo.svg',
-          colorFilter: ColorFilter.mode(
-            colorTheme.primary700,
-            BlendMode.srcIn,
-          ),
+          LockScreenSettings.instance.appLogoAsset,
+          height: LockScreenSettings.instance.appLogoHeight,
+          colorFilter: ColorFilter.mode(colorTheme.primary700, BlendMode.srcIn),
         ),
       ),
       floatingActionButton: ValueListenableBuilder<bool>(
@@ -131,21 +119,25 @@ class _LockScreenConfirmPasswordState extends State<LockScreenConfirmPassword> {
                 const Padding(padding: EdgeInsets.all(12)),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: TextInputWidget(
-                    hintText: context.strings.password,
-                    autoFocus: true,
-                    textCapitalization: TextCapitalization.none,
-                    isPasswordInput: true,
-                    shouldSurfaceExecutionStates: false,
-                    onChange: (p0) {
-                      _confirmPasswordController.text = p0;
-                      _isFormValid.value =
-                          _confirmPasswordController.text.isNotEmpty;
-                    },
-                    onSubmit: (p0) {
-                      return _confirmPasswordMatch();
-                    },
-                    submitNotifier: _submitNotifier,
+                  child: AndroidTextInputAutofocus(
+                    focusNode: _focusNode,
+                    child: TextInputWidget(
+                      hintText: context.strings.password,
+                      autoFocus: true,
+                      focusNode: _focusNode,
+                      textCapitalization: TextCapitalization.none,
+                      isPasswordInput: true,
+                      shouldSurfaceExecutionStates: false,
+                      onChange: (p0) {
+                        _confirmPasswordController.text = p0;
+                        _isFormValid.value =
+                            _confirmPasswordController.text.isNotEmpty;
+                      },
+                      onSubmit: (p0) {
+                        return _confirmPasswordMatch();
+                      },
+                      submitNotifier: _submitNotifier,
+                    ),
                   ),
                 ),
                 const Padding(padding: EdgeInsets.all(12)),

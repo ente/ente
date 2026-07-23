@@ -3,9 +3,9 @@ title: Backup
 description: Automatic photo backup on mobile and desktop with Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Backup

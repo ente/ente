@@ -6,11 +6,7 @@ class LogListTile extends StatelessWidget {
   final LogEntry log;
   final VoidCallback onTap;
 
-  const LogListTile({
-    super.key,
-    required this.log,
-    required this.onTap,
-  });
+  const LogListTile({super.key, required this.log, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -74,20 +70,12 @@ class LogListTile extends StatelessWidget {
             ),
             if (log.error != null) ...[
               const SizedBox(width: 8),
-              Icon(
-                Icons.error_outline,
-                size: 14,
-                color: Colors.red[400],
-              ),
+              Icon(Icons.error_outline, size: 14, color: Colors.red[400]),
             ],
           ],
         ),
       ),
-      trailing: Icon(
-        Icons.chevron_right,
-        size: 20,
-        color: theme.disabledColor,
-      ),
+      trailing: Icon(Icons.chevron_right, size: 20, color: theme.disabledColor),
       visualDensity: VisualDensity.compact,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );

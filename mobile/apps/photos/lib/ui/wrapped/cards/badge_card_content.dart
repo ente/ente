@@ -29,8 +29,8 @@ class _BadgeCardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final _BadgeVisuals visuals = _badgeVisualsFor(card);
-    final _WrappedViewerPageState? viewerState =
-        context.findAncestorStateOfType<_WrappedViewerPageState>();
+    final _WrappedViewerPageState? viewerState = context
+        .findAncestorStateOfType<_WrappedViewerPageState>();
     final bool hideSharePill = viewerState?.hideBadgeSharePill ?? false;
 
     final _BadgeLayoutConstants layout = _BadgeLayoutConstants(
@@ -38,8 +38,9 @@ class _BadgeCardContent extends StatelessWidget {
     );
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        final _BadgeLayoutMetrics metrics =
-            _BadgeLayoutMetrics.fromConstraints(constraints);
+        final _BadgeLayoutMetrics metrics = _BadgeLayoutMetrics.fromConstraints(
+          constraints,
+        );
         final TextStyle titleStyle = layout.titleStyle(metrics.scale);
         final TextStyle subtitleStyle = layout.subtitleStyle(metrics.scale);
         final TextStyle shareStyle = layout.shareLabelStyle(metrics.scale);
@@ -54,9 +55,7 @@ class _BadgeCardContent extends StatelessWidget {
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  const Positioned.fill(
-                    child: ColoredBox(color: Colors.white),
-                  ),
+                  const Positioned.fill(child: ColoredBox(color: Colors.white)),
                   Positioned(
                     left: metrics.panelLeft,
                     top: metrics.panelTop,
@@ -180,9 +179,7 @@ class _BadgeCardContent extends StatelessWidget {
 }
 
 class _BadgeVisuals {
-  const _BadgeVisuals({
-    required this.illustrationAsset,
-  });
+  const _BadgeVisuals({required this.illustrationAsset});
 
   final String illustrationAsset;
 }
@@ -236,9 +233,7 @@ const double _kDesignLogoOffsetBottom = 20.0;
 const double _kDesignLogoPaddingAdjust = 3.0;
 
 class _BadgeLayoutConstants {
-  const _BadgeLayoutConstants({
-    required this.textTheme,
-  });
+  const _BadgeLayoutConstants({required this.textTheme});
 
   final EnteTextTheme textTheme;
 
@@ -353,8 +348,9 @@ class _BadgeLayoutMetrics {
   final double logoBoundingSize;
 
   static _BadgeLayoutMetrics fromConstraints(BoxConstraints constraints) {
-    final double availableWidth =
-        constraints.maxWidth.isFinite ? constraints.maxWidth : double.infinity;
+    final double availableWidth = constraints.maxWidth.isFinite
+        ? constraints.maxWidth
+        : double.infinity;
     final double availableHeight = constraints.maxHeight.isFinite
         ? constraints.maxHeight
         : double.infinity;
@@ -408,7 +404,8 @@ class _BadgeLayoutMetrics {
       panelRadius: _kDesignPanelRadius * scale,
       panelRaysLeft: _kDesignRaysLeftInset * scale,
       panelRaysTop: _kDesignRaysTopOffset * scale,
-      panelRaysWidth: (panelWidth -
+      panelRaysWidth:
+          (panelWidth -
           (_kDesignRaysLeftInset + _kDesignRaysRightInset) * scale),
       panelRaysHeight: _kDesignRaysHeight * scale,
       panelCloudLeft: _kDesignCloudInset * scale,
@@ -423,12 +420,14 @@ class _BadgeLayoutMetrics {
       titleTop: _kDesignTitleTop * scale,
       subtitleTop: _kDesignSubtitleTop * scale,
       textWidth: textWidth,
-      shareLeft: panelLeft +
+      shareLeft:
+          panelLeft +
           panelWidth -
           shareWidth -
           _kDesignPanelContentPadding -
           shareShadowBlur,
-      shareTop: panelTop +
+      shareTop:
+          panelTop +
           panelHeight -
           shareHeight -
           _kDesignPanelContentPadding -
@@ -436,11 +435,13 @@ class _BadgeLayoutMetrics {
           shareShadowBlur,
       shareWidth: shareWidth,
       shareHeight: shareHeight,
-      logoLeft: panelLeft +
+      logoLeft:
+          panelLeft +
           _kDesignPanelContentPadding +
           _kDesignLogoPaddingAdjust -
           logoOffsetLeft,
-      logoTop: panelTop +
+      logoTop:
+          panelTop +
           panelHeight -
           (logoBoundingSize - logoOffsetBottom) -
           _kDesignPanelContentPadding -
@@ -475,10 +476,7 @@ class _BadgeBrandLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Transform.rotate(
       angle: _kBadgeLogoRotationRadians,
-      child: Image.asset(
-        _BadgeVisualAssets.logo,
-        fit: BoxFit.contain,
-      ),
+      child: Image.asset(_BadgeVisualAssets.logo, fit: BoxFit.contain),
     );
   }
 }
@@ -518,10 +516,7 @@ class _BadgeSharePill extends StatelessWidget {
               ),
             ],
           ),
-          child: Text(
-            "Share",
-            style: labelStyle,
-          ),
+          child: Text("Share", style: labelStyle),
         ),
       ),
     );
@@ -560,8 +555,10 @@ class _BadgeDebugCardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, Object?>> candidates =
-        _mapListFromMeta(card.meta, "candidates");
+    final List<Map<String, Object?>> candidates = _mapListFromMeta(
+      card.meta,
+      "candidates",
+    );
     if (candidates.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -648,8 +645,10 @@ class _BadgeCandidateDebugRow extends StatelessWidget {
     final TextStyle subtitleStyle = textTheme.smallMuted.copyWith(
       color: colorScheme.fillMuted,
     );
-    final List<Color> gradientColors =
-        _extractGradientColors(data, colorScheme);
+    final List<Color> gradientColors = _extractGradientColors(
+      data,
+      colorScheme,
+    );
     final String? subtitle = data["subtitle"] as String?;
     final String? emoji = data["emoji"] as String?;
 
@@ -674,10 +673,7 @@ class _BadgeCandidateDebugRow extends StatelessWidget {
             Row(
               children: [
                 if (emoji != null && emoji.isNotEmpty) ...[
-                  Text(
-                    emoji,
-                    style: textTheme.h2Bold.copyWith(fontSize: 24),
-                  ),
+                  Text(emoji, style: textTheme.h2Bold.copyWith(fontSize: 24)),
                   const SizedBox(width: 10),
                 ],
                 Expanded(
@@ -736,9 +732,7 @@ List<Map<String, Object?>> _mapListFromMeta(
   if (value is List) {
     return value
         .whereType<Map>()
-        .map(
-          (Map raw) => raw.cast<String, Object?>(),
-        )
+        .map((Map raw) => raw.cast<String, Object?>())
         .toList(growable: false);
   }
   return const <Map<String, Object?>>[];

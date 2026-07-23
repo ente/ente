@@ -13,38 +13,23 @@ import {
     FeedIcon,
     ShareIcon,
 } from "@/public-album/components/ActionIcons";
-import { type FileListHeaderOrFooter } from "@/public-album/components/FileList";
+import type { FileListHeaderOrFooter } from "@/public-album/components/FileList";
 import { FileListWithViewer } from "@/public-album/components/FileListWithViewer";
 import type { TripLayoutProps } from "@/public-album/components/TripLayout";
 import { setPublicAlbumsCredentials } from "@/public-album/data/auth/public-link-credentials";
-import { quickLinkDateRangeForFiles } from "@/public-album/data/utils/quick-link";
 import { ActiveDownloadStatusNotifications } from "@/public-album/download/components/ActiveDownloadStatusNotifications";
 import { downloadManager } from "@/public-album/download/services/download-manager";
 import { thumbnailManager } from "@/public-album/media/thumbnails/thumbnail-manager";
 import { sortFiles } from "@/public-album/media/utils/sort-files";
-import type { FullScreenDropZoneProps } from "@/public-album/upload/components/CollectDropZone";
 import type { UploadProps } from "@/public-album/upload/components/Upload";
 import {
     getSelectedFiles,
     type SelectedState,
 } from "@/public-album/utils/file";
-import { type FileViewerInitialSidebar } from "@/public-album/viewer/components/FileViewer";
+import type { FileViewerInitialSidebar } from "@/public-album/viewer/components/FileViewer";
 import type { PublicAlbumSingleFileViewerProps } from "@/public-album/viewer/components/PublicAlbumSingleFileViewer";
-import { type PublicFeedItemClickInfo } from "@/public-album/viewer/components/PublicFeedSidebar";
+import type { PublicFeedItemClickInfo } from "@/public-album/viewer/components/PublicFeedSidebar";
 import { LazyPublicFeedSidebar } from "@/public-album/viewer/lib/lazy";
-import {
-    useSaveGroupsActions,
-    type AddSaveGroup,
-} from "@/shared/state/save-groups";
-import {
-    GalleryItemsHeaderAdapter,
-    GalleryItemsSummary,
-} from "@/shared/ui/gallery/GalleryItemsHeader";
-import {
-    LoadingThumbnail,
-    StaticThumbnail,
-} from "@/shared/ui/media/PlaceholderThumbnails";
-import { thumbnailGap } from "@/shared/utils/thumbnail-grid-layout";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import {
@@ -67,6 +52,7 @@ import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton"
 import { NavbarBase } from "ente-base/components/Navbar";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
+import { isDevBuild } from "ente-base/env";
 import {
     isHTTP401Error,
     isHTTPErrorWithStatus,
@@ -75,10 +61,25 @@ import {
 } from "ente-base/http";
 import log from "ente-base/log";
 import { apiOrigin, isCustomAPIOrigin } from "ente-base/origins";
+import type { FullScreenDropZoneProps } from "ente-gallery/components/FullScreenDropZone";
+import {
+    useSaveGroupsActions,
+    type AddSaveGroup,
+} from "ente-gallery/components/utils/save-groups";
+import { quickLinkDateRangeForFiles } from "ente-gallery/utils/quick-link";
 import type { Collection } from "ente-media/collection";
-import { type EnteFile } from "ente-media/file";
+import type { EnteFile } from "ente-media/file";
 import { fileFileName } from "ente-media/file-metadata";
 import { FileType } from "ente-media/file-type";
+import {
+    GalleryItemsHeaderAdapter,
+    GalleryItemsSummary,
+} from "ente-new/photos/components/gallery/ListHeader";
+import {
+    LoadingThumbnail,
+    StaticThumbnail,
+} from "ente-new/photos/components/PlaceholderThumbnails";
+import { thumbnailGap } from "ente-new/photos/components/utils/thumbnail-grid-layout";
 import { t } from "i18next";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
@@ -91,14 +92,12 @@ import {
     type ComponentType,
     type PropsWithChildren,
 } from "react";
-import { type FileWithPath } from "react-dropzone";
+import type { FileWithPath } from "react-dropzone";
 
 const LazyPublicAlbumSingleFileViewer =
     dynamic<PublicAlbumSingleFileViewerProps>(
         () =>
-            import(
-                "@/public-album/viewer/components/PublicAlbumSingleFileViewer"
-            ).then(
+            import("@/public-album/viewer/components/PublicAlbumSingleFileViewer").then(
                 ({ PublicAlbumSingleFileViewer }) =>
                     PublicAlbumSingleFileViewer,
             ),
@@ -138,6 +137,9 @@ const publicAlbumAllFilesCollectionID = 0;
 const isDeviceLimitExceededError = async (e: unknown) =>
     isHTTPErrorWithStatus(e, 429) ||
     (await isMuseumHTTPError(e, 403, "LINK_DEVICE_LIMIT_EXCEEDED"));
+
+const accessTokenFromURL = (url: URL) =>
+    url.searchParams.get("t") || url.pathname.split("/").find(Boolean);
 
 export default function PublicAlbumPage() {
     const { showMiniDialog, onGenericError } = useBaseContext();
@@ -268,6 +270,7 @@ export default function PublicAlbumPage() {
 
         isRedirectingToAlbumsAppRef.current = true;
 
+        albumsURL.pathname = currentURL.pathname;
         albumsURL.search = currentURL.search;
         albumsURL.hash = currentURL.hash;
 
@@ -284,7 +287,7 @@ export default function PublicAlbumPage() {
             let redirectingToWebsite = false;
             try {
                 const currentURL = new URL(window.location.href);
-                const t = currentURL.searchParams.get("t");
+                const accessToken = accessTokenFromURL(currentURL);
                 const [
                     { extractCollectionKeyFromShareURL },
                     {
@@ -298,19 +301,18 @@ export default function PublicAlbumPage() {
                     loadPublicAlbumsFDB(),
                 ]);
                 const ck = await extractCollectionKeyFromShareURL(currentURL);
-                if (!t && !ck) {
+                if (!accessToken && !ck) {
                     // Only redirect to ente.com if this is not a self-hosted instance.
                     if (!isCustomAPIOrigin) {
                         window.location.href = "https://ente.com";
                         redirectingToWebsite = true;
                     }
                 }
-                if (!t || !ck) {
+                if (!accessToken || !ck) {
                     return;
                 }
                 collectionKey.current = ck;
                 const collection = await savedPublicCollectionByKey(ck);
-                const accessToken = t;
                 const currentAPIOrigin = await apiOrigin();
                 let accessTokenJWT: string | undefined;
                 const linkDeviceToken =
@@ -544,9 +546,7 @@ export default function PublicAlbumPage() {
                 { verifyPublicAlbumPassword },
                 { savePublicCollectionAccessTokenJWT },
             ] = await Promise.all([
-                import(
-                    "@/public-album/access/services/verify-public-album-password"
-                ),
+                import("@/public-album/access/services/verify-public-album-password"),
                 loadPublicAlbumsFDB(),
             ]);
             const accessTokenJWT = await verifyPublicAlbumPassword(
@@ -586,9 +586,8 @@ export default function PublicAlbumPage() {
 
     const downloadFilesHelper = async () => {
         try {
-            const { downloadAndSaveFiles } = await import(
-                "@/public-album/download/services/save"
-            );
+            const { downloadAndSaveFiles } =
+                await import("@/public-album/download/services/save");
             const selectedFiles = getSelectedFiles(selected, publicFiles!);
             const singleFile =
                 selectedFiles.length === 1 ? selectedFiles[0] : undefined;
@@ -625,7 +624,7 @@ export default function PublicAlbumPage() {
     const commentsEnabled =
         publicCollection?.publicURLs[0]?.enableComment ?? false;
     const joinEnabled =
-        !isCustomAPIOrigin &&
+        (isDevBuild || !isCustomAPIOrigin) &&
         (publicCollection?.publicURLs[0]?.enableJoin ?? false);
     const handleDrop = useCallback((files: FileWithPath[]) => {
         setShouldRenderUpload(true);
@@ -776,7 +775,7 @@ export default function PublicAlbumPage() {
                                 flex: "0 0 60px",
                                 px: "24px",
                                 "@media (width < 720px)": {
-                                    px: "4px",
+                                    px: "12px",
                                     ...(showMobileMasonryCover
                                         ? { borderBottom: "none" }
                                         : {}),
@@ -801,6 +800,8 @@ export default function PublicAlbumPage() {
                                 </EnteLogoLink>
                                 <Stack direction="row" spacing={2}>
                                     <SecondaryActionButton
+                                        onAddPhotos={onAddPhotos}
+                                        addPhotosDisabled={isUploadInProgress}
                                         enableJoin={joinEnabled}
                                         onJoinAlbum={handleJoinAlbum}
                                     />
@@ -1001,7 +1002,7 @@ const LazyCollectDropZone: React.FC<LazyCollectDropZoneProps> = ({
         if (!enabled || DropZoneComponent) return;
 
         let isCancelled = false;
-        void import("@/public-album/upload/components/CollectDropZone").then(
+        void import("ente-gallery/components/FullScreenDropZone").then(
             ({ FullScreenDropZone }) => {
                 if (isCancelled) return;
                 setDropZoneComponent(() => FullScreenDropZone);
@@ -1044,20 +1045,37 @@ const PrimaryActionButton: React.FC = () => {
 
     return (
         <GreenButton color="accent" onClick={handleGetEnte}>
-            {t("get_ente_photos")}
+            {t("join_ente")}
         </GreenButton>
     );
 };
 
 interface SecondaryActionButtonProps {
+    onAddPhotos?: () => void;
+    addPhotosDisabled?: boolean;
     enableJoin?: boolean;
     onJoinAlbum?: () => void;
 }
 
 const SecondaryActionButton: React.FC<SecondaryActionButtonProps> = ({
+    onAddPhotos,
+    addPhotosDisabled,
     enableJoin,
     onJoinAlbum,
 }) => {
+    if (onAddPhotos) {
+        return (
+            <FocusVisibleButton
+                color="secondary"
+                sx={navbarActionButtonSx}
+                onClick={onAddPhotos}
+                disabled={addPhotosDisabled}
+            >
+                {t("upload")}
+            </FocusVisibleButton>
+        );
+    }
+
     if (enableJoin) {
         return (
             <FocusVisibleButton
@@ -1459,7 +1477,7 @@ const PublicAlbumCoverHero: React.FC<PublicAlbumCoverHeroProps> = ({
                 return false;
             };
 
-            let didSetThumbnail = false;
+            let didSetThumbnail: boolean;
             try {
                 const cachedURL = await thumbnailManager.renderableThumbnailURL(
                     coverFile,

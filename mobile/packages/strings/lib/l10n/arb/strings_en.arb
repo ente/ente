@@ -230,33 +230,117 @@
   "@deleteAccount": {
     "description": "Delete account button label"
   },
-  "deleteAccountQuery": "We'll be sorry to see you go. Are you facing some issue?",
-  "@deleteAccountQuery": {
-    "description": "Message asking user why they want to delete account"
+  "authenticateToContinue": "Authenticate to continue",
+  "@authenticateToContinue": {
+    "description": "Title for the bottom sheet shown before a sensitive action"
   },
-  "yesSendFeedbackAction": "Yes, send feedback",
-  "@yesSendFeedbackAction": {
-    "description": "Button to confirm sending feedback"
+  "unlockToDeleteAccount": "Unlock to delete your account",
+  "@unlockToDeleteAccount": {
+    "description": "Subtitle for authentication before deleting an account"
   },
-  "noDeleteAccountAction": "No, delete account",
-  "@noDeleteAccountAction": {
-    "description": "Button to proceed with account deletion"
+  "whyAreYouLeaving": "Why are you leaving?",
+  "@whyAreYouLeaving": {
+    "description": "Heading asking why the user is deleting their account"
   },
-  "deleteAccountWarning": "This will delete your Ente Auth, Ente Photos and Ente Locker account.",
-  "@deleteAccountWarning": {
-    "description": "Warning message shown before account deletion"
+  "thisHelpsUsImproveEnte": "This helps us improve Ente",
+  "@thisHelpsUsImproveEnte": {
+    "description": "Subtitle under account deletion reason prompt"
   },
-  "initiateAccountDeleteTitle": "Please authenticate to initiate account deletion",
-  "@initiateAccountDeleteTitle": {
-    "description": "Title for authentication dialog before account deletion"
+  "reasonForLeaving": "Reason for leaving",
+  "@reasonForLeaving": {
+    "description": "Label for account deletion reason picker"
   },
-  "confirmAccountDeleteTitle": "Confirm account deletion",
-  "@confirmAccountDeleteTitle": {
-    "description": "Title for account deletion confirmation dialog"
+  "selectReason": "Select reason",
+  "@selectReason": {
+    "description": "Placeholder for account deletion reason picker"
   },
-  "confirmAccountDeleteMessage": "This account is linked to other Ente apps, if you use any.\n\nYour uploaded data, across all Ente apps, will be scheduled for deletion, and your account will be permanently deleted.",
-  "@confirmAccountDeleteMessage": {
-    "description": "Message warning about account deletion consequences"
+  "deleteReasonMissingFeature": "It's missing a key feature I need",
+  "@deleteReasonMissingFeature": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonBehaviour": "The app or a feature does not behave as I expect",
+  "@deleteReasonBehaviour": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonFoundAnotherService": "I found another service that I like better",
+  "@deleteReasonFoundAnotherService": {
+    "description": "Account deletion reason option"
+  },
+  "deleteReasonNotListed": "My reason isn't listed",
+  "@deleteReasonNotListed": {
+    "description": "Account deletion reason option"
+  },
+  "anythingElse": "Anything else?",
+  "@anythingElse": {
+    "description": "Label for optional account deletion feedback"
+  },
+  "shareYourFeedbackHere": "Share your feedback here",
+  "@shareYourFeedbackHere": {
+    "description": "Placeholder for optional account deletion feedback"
+  },
+  "permanentlyDeleteYourEnteAccount": "Permanently delete your Ente account?",
+  "@permanentlyDeleteYourEnteAccount": {
+    "description": "Heading for final account deletion confirmation"
+  },
+  "oneAccountAcrossEnteApps": "You have one account across Ente Photos, Ente Auth, and Ente Locker.",
+  "@oneAccountAcrossEnteApps": {
+    "description": "Explains that account deletion affects all Ente apps"
+  },
+  "photosAndVideosCount": "{count, plural, one {{formattedCount} photo & video} other {{formattedCount} photos & videos}}",
+  "@photosAndVideosCount": {
+    "description": "Delete impact row for Photos data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
+  "authenticatorCodesCount": "{count, plural, one {{formattedCount} authenticator code} other {{formattedCount} authenticator codes}}",
+  "@authenticatorCodesCount": {
+    "description": "Delete impact row for Auth data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
+  "lockerRecordsCount": "{count, plural, one {{formattedCount} record} other {{formattedCount} records}}",
+  "@lockerRecordsCount": {
+    "description": "Delete impact row for Locker data",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "formattedCount": {
+        "type": "String"
+      }
+    }
+  },
+  "entePhotos": "Ente Photos",
+  "@entePhotos": {
+    "description": "Product name"
+  },
+  "enteAuth": "Ente Auth",
+  "@enteAuth": {
+    "description": "Product name"
+  },
+  "enteLocker": "Ente Locker",
+  "@enteLocker": {
+    "description": "Product name"
+  },
+  "confirmDeleteAccountAcrossApps": "I understand this deletes my data across Ente Photos, Ente Auth, and Ente Locker.",
+  "@confirmDeleteAccountAcrossApps": {
+    "description": "Checkbox label for final account deletion confirmation"
+  },
+  "deleteEnteAccount": "Delete Ente account",
+  "@deleteEnteAccount": {
+    "description": "Final destructive button label for account deletion"
   },
   "delete": "Delete",
   "@delete": {
@@ -770,10 +854,6 @@
   "@noRecoveryKey": {
     "description": "Error message when no recovery key is found"
   },
-  "yourAccountHasBeenDeleted": "Your account has been deleted",
-  "@yourAccountHasBeenDeleted": {
-    "description": "Confirmation message when account has been deleted"
-  },
   "verificationId": "Verification ID",
   "@verificationId": {
     "description": "Label for verification ID"
@@ -826,7 +906,6 @@
   "createLegacyKit": "Create legacy kit",
   "createAnotherKit": "Create another kit",
   "createKit": "Create kit",
-  "legacyKitCreateDescription": "Name the three people who will each hold a part of your account recovery.",
   "legacyKitContactNameHint": "Contact {index} - e.g. {example}",
   "@legacyKitContactNameHint": {
     "placeholders": {
@@ -850,25 +929,7 @@
     }
   },
   "legacyKitStorageGuidance": "Store each sheet separately. Printed sheets can be disabled later by deleting the kit.",
-  "legacyKitPageDescription": "Name the three people who will each hold a part of your recovery key.",
-  "legacyKitPartOf": "Part {index} of {count}",
-  "@legacyKitPartOf": {
-    "placeholders": {
-      "index": {
-        "type": "int",
-        "example": "1"
-      },
-      "count": {
-        "type": "int",
-        "example": "3"
-      }
-    }
-  },
   "recoveryWaitTime": "Recovery wait time",
-  "recoverySheets": "Recovery sheets",
-  "downloadAll": "Download all",
-  "legacyKitSheetDownloaded": "Recovery sheet downloaded",
-  "deleteLegacyKit": "Delete legacy kit",
   "deleteLegacyKitMessage": "Shared sheets can no longer be used for recovery",
   "blockLegacyKitRecoveryMessage": "Block the current recovery attempt\nNote that they can start a new recovery attempt",
   "legacyKitRecoveryInProgress": "Recovery in progress",
@@ -904,9 +965,42 @@
       }
     }
   },
-  "legacyKitDownloaded": "Legacy kit downloaded",
   "legacyKitMaxReached": "You can create up to 5 legacy kits.",
   "authToManageLegacyKit": "Authenticate to manage legacy kits",
+  "legacyEmptyStateDescription": "In your absence, Legacy helps your loved ones access your information on Locker.",
+  "legacyKitRecoveryWarning": "Someone is trying to recover your account using a legacy kit",
+  "trustedContactsEmptyDescription": "Nominate another Ente user as a trusted contact to recover your account",
+  "legacyKitEmptyDescription": "Enable people you trust to come together to recover your account",
+  "recoveryWaitTimeDescription": "How soon is account recovery possible after the legacy kit is scanned?",
+  "recoveryWaitTimeChangeWarning": "Changing this will cancel any ongoing attempts.",
+  "legacyIntroTitle": "Help loved ones access important information, in your absence.",
+  "legacyIntroCard1": "We give you 3 cards",
+  "legacyIntroCard2": "Share them with\n3 people you trust",
+  "legacyIntroCard3": "Any 2 of 3 can unlock your information on Locker",
+  "setupYourLegacy": "Setup your Legacy",
+  "setupLegacyDescription": "Choose 3 people you trust. Any 2 of them, together, can unlock your information - never just one alone.",
+  "addTrustedPerson": "Add a trusted person",
+  "accountRecovery": "Account recovery",
+  "shareYourLegacy": "Share your Legacy",
+  "shareLegacyDescription": "Send each card to the person it's for. No single card works alone.",
+  "legacyKitAllSetTitle": "Your Legacy kit is all set!",
+  "legacyKitAllSetDescription": "You can set up more Legacy kits or revoke access anytime.",
+  "share": "Share",
+  "revokeLegacyKit": "Revoke Legacy kit",
+  "getAnotherPartOfKitFrom": "Get another part of the kit from",
+  "goToUrl": "Go to {url}",
+  "@goToUrl": {
+    "placeholders": {
+      "url": {
+        "type": "String",
+        "example": "legacy.ente.com"
+      }
+    }
+  },
+  "linkCopiedToClipboard": "Link copied to clipboard",
+  "congratulations": "Congratulations!",
+  "legacyCongratulationsMessage": "You've successfully setup your Legacy.\nStart saving your important information.",
+  "saveToLocker": "Save to Locker",
   "createdOn": "Created {date}",
   "@createdOn": {
     "placeholders": {

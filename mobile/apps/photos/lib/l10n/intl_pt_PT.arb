@@ -13,23 +13,7 @@
   "validEmailAddress": "Endereço eletrónico inválido",
   "enterValidEmail": "Favor, introduz um e-mail válido.",
   "deleteAccount": "Eliminar conta",
-  "deleteAccountWarning": "Isto apagará a sua conta de Ente Auth, Ente Photos, e Ente Locker.",
-  "askDeleteReason": "Por que quer eliminar a sua conta?",
-  "deleteAccountFeedbackPrompt": "Lamentável a sua ida. Favor, partilhe o seu comentário para ajudar-nos a aprimorar.",
-  "feedback": "Comentário",
-  "kindlyHelpUsWithThisInformation": "Ajude-nos com esta informação",
-  "confirmDeletePrompt": "Sim, quero permanentemente eliminar esta conta com os dados.",
-  "confirmAccountDeletion": "Eliminar Conta",
-  "deleteAccountPermanentlyButton": "Eliminar Conta Permanentemente",
-  "yourAccountHasBeenDeleted": "A sua conta foi eliminada",
-  "selectReason": "Diz a razão",
-  "deleteReason1": "Necessita uma funcionalidade-chave que quero",
-  "deleteReason2": "A aplicação ou certa funcionalidade não comporta conforme o meu desejo",
-  "deleteReason3": "Possuo outro serviço que acho melhor",
-  "deleteReason4": "A razão não está listada",
   "sendEmail": "Enviar e-mail",
-  "deleteRequestSLAText": "O pedido será revisto dentre 72 horas.",
-  "deleteEmailRequest": "Por favor, envie um email para <warning>account-deletion@ente.com</warning> com o seu endereço registado.",
   "entePhotosPerm": "Ente <i>precisa da permissão para</i> preservar as suas fotos",
   "ok": "OK",
   "createAccount": "Criar conta",
@@ -270,7 +254,6 @@
   "after1Month": "Depois de 1 mês",
   "after1Year": "Depois de 1 ano",
   "manageParticipants": "Gerir",
-  "collabLinkSectionDescription": "Criar um link para permitir que as pessoas adicionem e visualizem fotos em seu álbum compartilhado sem precisar de um aplicativo Ente ou conta. Ótimo para coletar fotos do evento.",
   "collectPhotos": "Coletar fotos",
   "collaborativeLink": "Link colaborativo",
   "shareWithNonenteUsers": "Compartilhar com usuários que não usam Ente",
@@ -391,7 +374,6 @@
   "creatingLink": "Criar link...",
   "removeWithQuestionMark": "Remover?",
   "removeParticipantBody": "{userEmail} será removido deste álbum compartilhado\n\nQuaisquer fotos adicionadas por elas também serão removidas do álbum",
-  "keepPhotos": "Manter fotos",
   "deletePhotos": "Apagar fotos",
   "inviteToEnte": "Convidar para Ente",
   "removePublicLink": "Remover link público",
@@ -399,6 +381,9 @@
   "sharing": "Partilhar...",
   "youCannotShareWithYourself": "Não podes partilhar contigo mesmo",
   "archive": "............",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
   "createAlbumActionHint": "Pressione e segure para selecionar fotos e clique em + para criar um álbum",
   "importing": "A importar...",
   "failedToLoadAlbums": "Falha ao carregar álbuns",
@@ -410,9 +395,6 @@
   "videoSmallCase": "vídeo",
   "photoSmallCase": "foto",
   "singleFileDeleteHighlight": "Será eliminado de todos os álbuns.",
-  "singleFileInBothLocalAndRemote": "Este {fileType} encontra-se tanto no Ente como no seu dispositivo.",
-  "singleFileInRemoteOnly": "Este {fileType} será eliminado do Ente.",
-  "singleFileDeleteFromDevice": "Este {fileType} será eliminado do seu dispositivo.",
   "deleteFromEnte": "Apagar do Ente",
   "yesDelete": "Sim, apagar",
   "movedToTrash": "Mover para o lixo",
@@ -571,7 +553,6 @@
   "authToChangeEmailVerificationSetting": "Por favor, autentique-se para alterar a verificação de e-mail",
   "exportYourData": "Exportar os seus dados",
   "logout": "Terminar sessão",
-  "authToInitiateAccountDeletion": "Autentique-se para iniciar a eliminação da conta",
   "areYouSureYouWantToLogout": "Tem certeza que deseja terminar a sessão?",
   "yesLogout": "Sim, terminar sessão",
   "aNewVersionOfEnteIsAvailable": "Está disponível uma nova versão do Ente.",
@@ -765,7 +746,6 @@
   "appleId": "ID da Apple",
   "playstoreSubscription": "Subscrição da PlayStore",
   "appstoreSubscription": "Subscrição da AppStore",
-  "subAlreadyLinkedErrMessage": "Seu {id} já está vinculado a outra conta Ente.\nSe você gostaria de usar seu {id} com esta conta, por favor contate nosso suporte''",
   "visitWebToManage": "Visite {webUrl} para gerir a sua subscrição",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
@@ -811,7 +791,6 @@
   "existingUser": "Utilizador existente",
   "newToEnte": "Novo no Ente",
   "pleaseLoginAgain": "Por favor, inicie sessão novamente",
-  "autoLogoutMessage": "Devido a uma falha técnica, a sua sessão foi encerrada. Pedimos desculpas pelo incómodo.",
   "yourSubscriptionHasExpired": "A sua subscrição expirou",
   "storageLimitExceeded": "Limite de armazenamento excedido",
   "upgrade": "Atualizar",
@@ -833,11 +812,6 @@
   "collectEventPhotos": "Coletar fotos do evento",
   "sessionExpired": "Sessão expirada",
   "loggingOut": "Terminar a sessão...",
-  "@onDevice": {
-    "description": "The text displayed above folders/albums stored on device",
-    "type": "text"
-  },
-  "onDevice": "No dispositivo",
   "@onEnte": {
     "description": "The text displayed above albums backed up to Ente",
     "type": "text"
@@ -878,6 +852,9 @@
   "moveToAlbum": "Mover para álbum",
   "unhide": "Mostrar",
   "unarchive": "Desarquivar",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
   "favorite": "Favorito",
   "removeFromFavorite": "Remover dos favoritos",
   "shareLink": "Partilhar link",
@@ -932,10 +909,7 @@
   "photosAddedByYouWillBeRemovedFromTheAlbum": "As fotos adicionadas por si serão removidas do álbum",
   "youveNoFilesInThisAlbumThatCanBeDeleted": "Não existem ficheiros neste álbum que possam ser eliminados",
   "youDontHaveAnyArchivedItems": "Não tem nenhum item arquivado.",
-  "ignoredFolderUploadReason": "Alguns ficheiros deste álbum não podem ser carregados porque foram anteriormente eliminados do Ente.",
   "resetIgnoredFiles": "Repor ficheiros ignorados",
-  "deviceFilesAutoUploading": "Os ficheiros adicionados a este álbum de dispositivo serão automaticamente transferidos para o Ente.",
-  "turnOnBackupForAutoUpload": "Ative o backup para enviar automaticamente arquivos adicionados a esta pasta do dispositivo para o Ente.",
   "noHiddenPhotosOrVideos": "Sem fotos ou vídeos ocultos",
   "toHideAPhotoOrVideo": "Para ocultar uma foto ou um vídeo",
   "openTheItem": "• Abra o item",
@@ -1181,10 +1155,6 @@
     "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
   },
   "setRadius": "Definir raio",
-  "androidBiometricHint": "Verificar identidade",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
   "androidBiometricNotRecognized": "Não reconhecido. Tente novamente.",
   "@androidBiometricNotRecognized": {
     "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
@@ -1192,14 +1162,6 @@
   "androidBiometricSuccess": "Sucesso",
   "@androidBiometricSuccess": {
     "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Cancelar",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Autenticação necessária",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
   "androidBiometricRequiredTitle": "Biometria necessária",
   "@androidBiometricRequiredTitle": {
@@ -1213,25 +1175,13 @@
   "@androidDeviceCredentialsSetupDescription": {
     "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
   },
-  "goToSettings": "Ir para as definições",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
   "androidGoToSettingsDescription": "A autenticação biométrica não está configurada no seu dispositivo. Vá a “Definições > Segurança” para adicionar a autenticação biométrica.",
   "@androidGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
   },
-  "iOSLockOut": "A autenticação biométrica está desativada. Por favor, bloqueie e desbloqueie o ecrã para ativá-la.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
   "iOSGoToSettingsDescription": "A autenticação biométrica não está configurada no seu dispositivo. Active o Touch ID ou o Face ID no seu telemóvel.",
   "@iOSGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure Biometrics for their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "OK",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
   },
   "openstreetmapContributors": "Contribuidores do OpenStreetMap",
   "hostedAtOsmFrance": "Hospedado na OSM France",
@@ -1249,14 +1199,11 @@
   "noPhotosFoundHere": "Nenhuma foto encontrada aqui",
   "zoomOutToSeePhotos": "Diminuir o zoom para ver fotos",
   "noImagesWithLocation": "Nenhuma imagem com localização",
-  "unpinAlbum": "Desafixar álbum",
-  "pinAlbum": "Fixar álbum",
   "create": "Criar",
   "viewAll": "Ver tudo",
   "nothingSharedWithYouYet": "Ainda nada partilhado consigo",
   "noAlbumsSharedByYouYet": "Ainda não há álbuns partilhados por si",
   "sharedWithYou": "Partilhado consigo",
-  "sharedByYou": "Partilhado por si",
   "inviteYourFriendsToEnte": "Convide seus amigos para o Ente",
   "failedToDownloadVideo": "Falha ao fazer o download do vídeo",
   "hiding": "Ocultando...",
@@ -1268,7 +1215,6 @@
   "addToHiddenAlbum": "Adicionar a álbum oculto",
   "moveToHiddenAlbum": "Mover para álbum oculto",
   "fileTypes": "Tipos de arquivo",
-  "deleteConfirmDialogBody": "Esta conta está ligada a outras aplicações Ente, se utilizar alguma. Os seus dados carregados, em todas as aplicações Ente, serão agendados para eliminação e a sua conta será permanentemente eliminada.",
   "hearUsExplanation": "Não monitorizamos as instalações de aplicações. Ajudaria se nos dissesse onde nos encontrou!",
   "viewAddOnButton": "Ver addons",
   "addOns": "addons",
@@ -1328,16 +1274,6 @@
   "playOnTv": "Reproduzir álbum na TV",
   "pair": "Emparelhar",
   "deviceNotFound": "Dispositivo não encontrado",
-  "castInstruction": "Visite {castUrl} no dispositivo que pretende emparelhar.\n\n\nIntroduza o código abaixo para reproduzir o álbum na sua TV.",
-  "@castInstruction": {
-    "description": "Instructions shown when pairing a device to play an album on TV.",
-    "placeholders": {
-      "castUrl": {
-        "type": "String",
-        "example": "https://cast.ente.com"
-      }
-    }
-  },
   "deviceCodeHint": "Introduza o código",
   "joinDiscord": "Juntar-se ao Discord",
   "locations": "Localizações",
@@ -1368,8 +1304,6 @@
   "enterDateOfBirth": "Aniversário (opcional)",
   "birthday": "Aniversário",
   "removePersonLabel": "Remover etiqueta da pessoa",
-  "autoPairDesc": "O pareamento automático funciona apenas com dispositivos que suportam o Chromecast.",
-  "manualPairDesc": "Emparelhar com PIN funciona com qualquer ecrã onde pretenda ver o seu álbum.",
   "connectToDevice": "Ligar ao dispositivo",
   "autoCastDialogBody": "Verá os dispositivos Cast disponíveis aqui.",
   "autoCastiOSPermission": "Certifique-se de que as permissões de Rede local estão activadas para a aplicação Ente Photos, nas Definições.",
@@ -1381,7 +1315,6 @@
   "pairingComplete": "Emparelhamento concluído",
   "savingEdits": "Gravando edições...",
   "autoPair": "Emparelhamento automático",
-  "pairWithPin": "Emparelhar com PIN",
   "faceRecognition": "Reconhecimento facial",
   "foundFaces": "Rostos encontrados",
   "clusteringProgress": "Progresso de agrupamento",
@@ -1410,20 +1343,13 @@
   "enableMLIndexingDesc": "O Ente suporta a aprendizagem automática no dispositivo para reconhecimento facial, pesquisa mágica e outras funcionalidades de pesquisa avançadas",
   "magicSearchHint": "A pesquisa mágica permite pesquisar fotos por seu conteúdo, por exemplo, 'flor', 'carro vermelho', 'documentos de identidade'",
   "panorama": "Panorama",
-  "reenterPassword": "Insira novamente a palavra-passe",
-  "reenterPin": "Inserir PIN novamente",
   "deviceLock": "Bloqueio do dispositivo",
   "pinLock": "Bloqueio por PIN",
   "next": "Seguinte",
-  "setNewPassword": "Definir nova palavra-passe",
-  "enterPin": "Introduzir PIN",
-  "setNewPin": "Definir novo PIN",
   "appLock": "Bloqueio de app",
   "noSystemLockFound": "Nenhum bloqueio de sistema encontrado",
-  "tapToUnlock": "Toque para desbloquear",
   "tooManyIncorrectAttempts": "Muitas tentativas incorretas",
   "videoInfo": "Informação de Vídeo",
-  "autoLock": "Bloqueio automático",
   "immediately": "Imediatamente",
   "autoLockFeatureDescription": "Tempo após o qual a aplicação bloqueia depois de ser colocada em segundo plano",
   "hideContent": "Ocultar conteúdo",
@@ -1775,9 +1701,7 @@
   "newPhotosEmoji": " novo 📸",
   "sorryWeHadToPauseYourBackups": "Perdão, precisamos parar seus backups",
   "clickToInstallOurBestVersionYet": "Clica para transferir a melhor versão",
-  "onThisDayNotificationExplanation": "Obtém lembretes de memórias deste dia em anos passados.",
   "birthdayNotifications": "Notificações de felicidades",
-  "receiveRemindersOnBirthdays": "Obtém lembretes de quando é aniversário de alguém. Apertar na notificação o levará às fotos do aniversariante.",
   "happyBirthday": "Felicidades! 🥳",
   "birthdays": "Aniversários",
   "wishThemAHappyBirthday": "Envie um \"Felicidades\" a {name}! 🎉",

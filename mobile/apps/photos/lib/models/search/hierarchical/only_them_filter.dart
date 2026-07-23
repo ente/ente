@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/search/hierarchical/face_filter.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
@@ -29,8 +29,8 @@ class OnlyThemFilter extends HierarchicalSearchFilter {
   }
 
   @override
-  IconData? icon() {
-    return Icons.face;
+  SearchFilterIcon icon() {
+    return HugeIcons.strokeRoundedUserMultiple;
   }
 
   @override

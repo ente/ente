@@ -6,14 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ente-io/museum/ente"
-	bonus "github.com/ente-io/museum/ente/storagebonus"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/billing"
-	"github.com/ente-io/museum/pkg/utils/rollout"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	bonus "github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/museum/internal/testutil"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/billing"
+	"github.com/ente/museum/pkg/utils/rollout"
+	"github.com/ente/museum/pkg/utils/time"
 	log "github.com/sirupsen/logrus"
-	logtest "github.com/sirupsen/logrus/hooks/test"
 )
 
 type recordingUserAccessResetter struct {
@@ -858,6 +858,32 @@ func TestStorageWarningNotificationGroup(t *testing.T) {
 	}
 }
 
+func TestMergeStorageWarningCandidatesDeduplicatesAndKeepsFamilyPlan(t *testing.T) {
+	candidates := mergeStorageWarningCandidates(
+		[]repo.StorageWarningCandidate{
+			{RecipientID: 1, IsFamilyPlan: false},
+			{RecipientID: 2, IsFamilyPlan: true},
+		},
+		[]repo.StorageWarningCandidate{
+			{RecipientID: 1, IsFamilyPlan: true},
+			{RecipientID: 3, IsFamilyPlan: false},
+		},
+	)
+
+	if len(candidates) != 3 {
+		t.Fatalf("expected 3 merged candidates, got %d", len(candidates))
+	}
+	if candidates[0].RecipientID != 1 || !candidates[0].IsFamilyPlan {
+		t.Fatalf("unexpected first candidate: %+v", candidates[0])
+	}
+	if candidates[1].RecipientID != 2 || !candidates[1].IsFamilyPlan {
+		t.Fatalf("unexpected second candidate: %+v", candidates[1])
+	}
+	if candidates[2].RecipientID != 3 || candidates[2].IsFamilyPlan {
+		t.Fatalf("unexpected third candidate: %+v", candidates[2])
+	}
+}
+
 func TestStorageWarningShouldPreserveActiveOverageHistory(t *testing.T) {
 	if !storageWarningShouldPreserveActiveOverageHistory(storageWarningSnapshot{CurrentBucket: storageWarningBucketActiveOverage, Bucket: storageWarningBucketNone}) {
 		t.Fatal("expected active overage history to be preserved even when no stage is due")
@@ -928,36 +954,6 @@ func TestStorageWarningTemplateDetailsActiveOverage(t *testing.T) {
 	}
 }
 
-func TestProcessStorageWarningSnapshotSkipsDueToRolloutWithoutPerRecipientLog(t *testing.T) {
-	standardLogger := log.StandardLogger()
-	originalHooks := standardLogger.ReplaceHooks(make(log.LevelHooks))
-	hook := logtest.NewGlobal()
-	defer standardLogger.ReplaceHooks(originalHooks)
-
-	snapshot := storageWarningSnapshot{
-		RecipientID:      12345,
-		AccountEmail:     "user@example.com",
-		TotalUsage:       storageWarningOverageThreshold + 10,
-		AllottedStorage:  0,
-		AvailableStorage: -10,
-		Bucket:           storageWarningBucketExpired,
-		ExpiredStage:     expiredWarningStage0,
-		EffectiveExpiry:  1,
-	}
-
-	result, err := (&EmailNotificationController{}).processStorageWarningSnapshot(context.Background(), snapshot)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if result != storageWarningProcessResultSkippedRollout {
-		t.Fatalf("unexpected result: got %q want %q", result, storageWarningProcessResultSkippedRollout)
-	}
-
-	if entry := hook.LastEntry(); entry != nil {
-		t.Fatalf("expected no per-recipient rollout log, got %q", entry.Message)
-	}
-}
-
 func TestProcessStorageWarningSnapshotScheduledDeletionSkipsResetWhenEmailFails(t *testing.T) {
 	originalSendStorageWarningTemplatedEmail := sendStorageWarningTemplatedEmail
 	originalPersistStorageWarningHistory := persistStorageWarningHistory
@@ -989,7 +985,7 @@ func TestProcessStorageWarningSnapshotScheduledDeletionSkipsResetWhenEmailFails(
 		},
 	}
 
-	result, err := (&EmailNotificationController{UserAccessResetter: resetter}).processStorageWarningSnapshot(context.Background(), snapshot)
+	result, err := (&EmailNotificationController{UserAccessResetter: resetter}).processStorageWarningSnapshot(t.Context(), snapshot)
 	if err == nil {
 		t.Fatal("expected email failure to be returned")
 	}
@@ -1034,7 +1030,7 @@ func TestProcessStorageWarningSnapshotScheduledDeletionResetsAccessAfterEmail(t 
 		},
 	}
 
-	result, err := (&EmailNotificationController{UserAccessResetter: resetter}).processStorageWarningSnapshot(context.Background(), snapshot)
+	result, err := (&EmailNotificationController{UserAccessResetter: resetter}).processStorageWarningSnapshot(t.Context(), snapshot)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1046,6 +1042,268 @@ func TestProcessStorageWarningSnapshotScheduledDeletionResetsAccessAfterEmail(t 
 	}
 	if got, want := strings.Join(callOrder, ","), "send,reset,persist"; got != want {
 		t.Fatalf("unexpected call order: got %q want %q", got, want)
+	}
+}
+
+func TestProcessStorageWarningSnapshotScheduledDeletionSkipsDuringActiveLoginGrace(t *testing.T) {
+	originalSendStorageWarningTemplatedEmail := sendStorageWarningTemplatedEmail
+	originalPersistStorageWarningHistory := persistStorageWarningHistory
+	defer func() {
+		sendStorageWarningTemplatedEmail = originalSendStorageWarningTemplatedEmail
+		persistStorageWarningHistory = originalPersistStorageWarningHistory
+	}()
+
+	sendStorageWarningTemplatedEmail = func(_ []string, _ string, _ string, _ string, _ string, _ string, _ map[string]interface{}, _ []map[string]interface{}) error {
+		t.Fatal("did not expect email send during active login grace")
+		return nil
+	}
+	persistStorageWarningHistory = func(_ *repo.NotificationHistoryRepository, _ storageWarningSnapshot, _ string) error {
+		t.Fatal("did not expect history persistence during active login grace")
+		return nil
+	}
+
+	now := int64(10) * storageWarningOneDayInMicroseconds
+	graceSentAt := now - storageWarningOneDayInMicroseconds
+	resetter := &recordingUserAccessResetter{}
+	snapshot := storageWarningSnapshot{
+		RecipientID:       12345,
+		AccountEmail:      "user@example.com",
+		TotalUsage:        storageWarningOverageThreshold + 10,
+		AllottedStorage:   0,
+		AvailableStorage:  -10,
+		Bucket:            storageWarningBucketExpired,
+		ExpiredStage:      expiredWarningStageScheduledDeletion,
+		EffectiveExpiry:   1,
+		EvaluatedAt:       now,
+		WarningCycleStart: graceSentAt - storageWarningOneDayInMicroseconds,
+		NotificationHistory: map[string]int64{
+			storageWarningExpired119TemplateID:      graceSentAt - storageWarningOneDayInMicroseconds,
+			repo.StorageWarningLoginGraceTemplateID: graceSentAt,
+		},
+	}
+
+	result, err := (&EmailNotificationController{UserAccessResetter: resetter}).processStorageWarningSnapshot(t.Context(), snapshot)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != storageWarningProcessResultSkipped {
+		t.Fatalf("unexpected result: got %q want %q", result, storageWarningProcessResultSkipped)
+	}
+	if resetter.callCount != 0 {
+		t.Fatalf("expected no access reset during active login grace, got %d resets", resetter.callCount)
+	}
+}
+
+func TestProcessStorageWarningSnapshotSkipsActiveOverageRestartDuringActiveLoginGrace(t *testing.T) {
+	originalSendStorageWarningTemplatedEmail := sendStorageWarningTemplatedEmail
+	originalPersistStorageWarningHistory := persistStorageWarningHistory
+	defer func() {
+		sendStorageWarningTemplatedEmail = originalSendStorageWarningTemplatedEmail
+		persistStorageWarningHistory = originalPersistStorageWarningHistory
+	}()
+
+	sendStorageWarningTemplatedEmail = func(_ []string, _ string, _ string, _ string, _ string, _ string, _ map[string]interface{}, _ []map[string]interface{}) error {
+		t.Fatal("did not expect warning email during active login grace")
+		return nil
+	}
+	persistStorageWarningHistory = func(_ *repo.NotificationHistoryRepository, _ storageWarningSnapshot, _ string) error {
+		t.Fatal("did not expect history persistence during active login grace")
+		return nil
+	}
+
+	now := int64(10) * storageWarningOneDayInMicroseconds
+	graceSentAt := now - storageWarningOneDayInMicroseconds
+	resetter := &recordingUserAccessResetter{}
+	snapshot := storageWarningSnapshot{
+		RecipientID:         12345,
+		AccountEmail:        "user@ente.com",
+		TotalUsage:          storageWarningOverageThreshold + 10,
+		AllottedStorage:     0,
+		AvailableStorage:    -10,
+		Bucket:              storageWarningBucketActiveOverage,
+		ActiveOverageStage:  activeOverageWarningStage0,
+		EvaluatedAt:         now,
+		WarningCycleStart:   now,
+		NotificationHistory: map[string]int64{repo.StorageWarningLoginGraceTemplateID: graceSentAt},
+	}
+
+	result, err := (&EmailNotificationController{UserAccessResetter: resetter}).processStorageWarningSnapshot(t.Context(), snapshot)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != storageWarningProcessResultSkipped {
+		t.Fatalf("unexpected result: got %q want %q", result, storageWarningProcessResultSkipped)
+	}
+	if resetter.callCount != 0 {
+		t.Fatalf("expected no access reset during active login grace, got %d resets", resetter.callCount)
+	}
+}
+
+func TestProcessStorageWarningSnapshotScheduledDeletionAllowsExpiredLoginGraceDespiteStaleCadence(t *testing.T) {
+	originalSendStorageWarningTemplatedEmail := sendStorageWarningTemplatedEmail
+	originalPersistStorageWarningHistory := persistStorageWarningHistory
+	defer func() {
+		sendStorageWarningTemplatedEmail = originalSendStorageWarningTemplatedEmail
+		persistStorageWarningHistory = originalPersistStorageWarningHistory
+	}()
+
+	callOrder := []string{}
+	sendStorageWarningTemplatedEmail = func(_ []string, _ string, _ string, _ string, _ string, _ string, _ map[string]interface{}, _ []map[string]interface{}) error {
+		callOrder = append(callOrder, "send")
+		return nil
+	}
+	persistStorageWarningHistory = func(_ *repo.NotificationHistoryRepository, _ storageWarningSnapshot, _ string) error {
+		callOrder = append(callOrder, "persist")
+		return nil
+	}
+
+	graceSentAt := int64(40) * storageWarningOneDayInMicroseconds
+	now := graceSentAt + repo.StorageWarningLoginGraceDurationMicroseconds + 1
+	resetter := &recordingUserAccessResetter{callOrder: &callOrder}
+	snapshot := storageWarningSnapshot{
+		RecipientID:       12345,
+		AccountEmail:      "user@ente.com",
+		TotalUsage:        storageWarningOverageThreshold + 10,
+		AllottedStorage:   0,
+		AvailableStorage:  -10,
+		Bucket:            storageWarningBucketExpired,
+		ExpiredStage:      expiredWarningStageScheduledDeletion,
+		EffectiveExpiry:   1,
+		EvaluatedAt:       now,
+		WarningCycleStart: 1,
+		NotificationHistory: map[string]int64{
+			storageWarningExpired119TemplateID:      1,
+			repo.StorageWarningLoginGraceTemplateID: graceSentAt,
+		},
+	}
+
+	result, err := (&EmailNotificationController{UserAccessResetter: resetter}).processStorageWarningSnapshot(t.Context(), snapshot)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != storageWarningProcessResultSent {
+		t.Fatalf("unexpected result: got %q want %q", result, storageWarningProcessResultSent)
+	}
+	if resetter.callCount != 1 {
+		t.Fatalf("expected one access reset after login grace expiry, got %d", resetter.callCount)
+	}
+	if got, want := strings.Join(callOrder, ","), "send,reset,persist"; got != want {
+		t.Fatalf("unexpected call order: got %q want %q", got, want)
+	}
+}
+
+func TestProcessStorageWarningSnapshotExpiredLoginGraceReblocksActiveOverageRestart(t *testing.T) {
+	originalSendStorageWarningTemplatedEmail := sendStorageWarningTemplatedEmail
+	originalPersistStorageWarningHistory := persistStorageWarningHistory
+	defer func() {
+		sendStorageWarningTemplatedEmail = originalSendStorageWarningTemplatedEmail
+		persistStorageWarningHistory = originalPersistStorageWarningHistory
+	}()
+
+	callOrder := []string{}
+	sendStorageWarningTemplatedEmail = func(_ []string, _ string, _ string, _ string, _ string, templateName string, _ map[string]interface{}, _ []map[string]interface{}) error {
+		callOrder = append(callOrder, "send")
+		if templateName != storageWarningActiveOverageScheduledDeletionTemplate {
+			t.Fatalf("unexpected template: got %q want %q", templateName, storageWarningActiveOverageScheduledDeletionTemplate)
+		}
+		return nil
+	}
+	var persistedTemplateID string
+	persistStorageWarningHistory = func(_ *repo.NotificationHistoryRepository, _ storageWarningSnapshot, templateID string) error {
+		callOrder = append(callOrder, "persist")
+		persistedTemplateID = templateID
+		return nil
+	}
+
+	graceSentAt := int64(40) * storageWarningOneDayInMicroseconds
+	now := graceSentAt + repo.StorageWarningLoginGraceDurationMicroseconds + 1
+	resetter := &recordingUserAccessResetter{callOrder: &callOrder}
+	snapshot := storageWarningSnapshot{
+		RecipientID:         12345,
+		AccountEmail:        "user@ente.com",
+		TotalUsage:          storageWarningOverageThreshold + 10,
+		AllottedStorage:     0,
+		AvailableStorage:    -10,
+		Bucket:              storageWarningBucketActiveOverage,
+		ActiveOverageStage:  activeOverageWarningStage0,
+		EvaluatedAt:         now,
+		WarningCycleStart:   now,
+		NotificationHistory: map[string]int64{repo.StorageWarningLoginGraceTemplateID: graceSentAt},
+	}
+
+	result, err := (&EmailNotificationController{UserAccessResetter: resetter}).processStorageWarningSnapshot(t.Context(), snapshot)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != storageWarningProcessResultSent {
+		t.Fatalf("unexpected result: got %q want %q", result, storageWarningProcessResultSent)
+	}
+	if resetter.callCount != 1 {
+		t.Fatalf("expected one access reset after login grace expiry, got %d", resetter.callCount)
+	}
+	if persistedTemplateID != repo.StorageWarningActiveOverageScheduledDeletionTemplateID {
+		t.Fatalf("unexpected persisted template: got %q want %q", persistedTemplateID, repo.StorageWarningActiveOverageScheduledDeletionTemplateID)
+	}
+	if got, want := strings.Join(callOrder, ","), "send,reset,persist"; got != want {
+		t.Fatalf("unexpected call order: got %q want %q", got, want)
+	}
+}
+
+func TestProcessStorageWarningSnapshotClearsLoginGraceAfterRecovery(t *testing.T) {
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	t.Cleanup(func() {
+		testutil.ResetTables(t, db)
+	})
+
+	const userID int64 = 12348
+	testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       userID,
+		Email:        "user@example.com",
+		CreationTime: 1,
+	})
+	graceSentAt := int64(40) * storageWarningOneDayInMicroseconds
+	testutil.InsertNotificationHistory(t, db, testutil.NotificationHistoryFixture{
+		UserID:     userID,
+		TemplateID: repo.StorageWarningLoginGraceTemplateID,
+		SentTime:   graceSentAt,
+	})
+	testutil.InsertNotificationHistory(t, db, testutil.NotificationHistoryFixture{
+		UserID:     userID,
+		TemplateID: repo.StorageWarningExpiredScheduledDeletionTemplateID,
+		SentTime:   graceSentAt + 1,
+	})
+
+	notificationHistoryRepo := &repo.NotificationHistoryRepository{DB: db}
+	result, err := (&EmailNotificationController{
+		NotificationHistoryRepo: notificationHistoryRepo,
+	}).processStorageWarningSnapshot(t.Context(), storageWarningSnapshot{
+		RecipientID: userID,
+		Bucket:      storageWarningBucketNone,
+		EvaluatedAt: graceSentAt + storageWarningOneDayInMicroseconds,
+		NotificationHistory: map[string]int64{
+			repo.StorageWarningLoginGraceTemplateID: graceSentAt,
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != storageWarningProcessResultSkipped {
+		t.Fatalf("unexpected result: got %q want %q", result, storageWarningProcessResultSkipped)
+	}
+	graceSentAfterClear, err := notificationHistoryRepo.GetLastNotificationTime(userID, repo.StorageWarningLoginGraceTemplateID)
+	if err != nil {
+		t.Fatalf("failed to fetch login grace after recovery: %v", err)
+	}
+	if graceSentAfterClear != 0 {
+		t.Fatalf("expected login grace to be cleared after recovery, got sent_time %d", graceSentAfterClear)
+	}
+	terminalRowExists, err := notificationHistoryRepo.IsStorageWarningDeletionScheduled(userID)
+	if err != nil {
+		t.Fatalf("failed to fetch terminal row after recovery: %v", err)
+	}
+	if terminalRowExists {
+		t.Fatal("expected stale terminal row to be cleared after recovery")
 	}
 }
 
@@ -1061,7 +1319,7 @@ func TestBuildStorageWarningRunSummary(t *testing.T) {
 	stats.SkippedRolloutPct = 39
 
 	got := buildStorageWarningRunSummary(stats, 0)
-	want := "Storage warning run summary (1970-01-01T00:00:00Z): processed=42 | sent=3 | success={expired_0d=1, active_overage_0d=2} | failures={active_overage_60d=1} | skipped_rollout={expired_30d=39} | pre_stage_failures=4 | skipped_rollout_percentage=39 | rollout_percentage=80"
+	want := "Storage warning run summary (1970-01-01T00:00:00Z): processed=42 | sent=3 | success={expired_0d=1, active_overage_0d=2} | failures={active_overage_60d=1} | skipped_rollout={expired_30d=39} | pre_stage_failures=4 | skipped_rollout_percentage=39 | rollout_percentage=100"
 	if got != want {
 		t.Fatalf("unexpected summary:\n got: %s\nwant: %s", got, want)
 	}

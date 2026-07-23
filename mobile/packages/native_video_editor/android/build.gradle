@@ -3,6 +3,7 @@ version '1.0'
 
 buildscript {
     ext.kotlin_version = '1.9.25'
+    ext.media3_version = '1.9.2'
     repositories {
         google()
         mavenCentral()
@@ -24,9 +25,12 @@ rootProject.allprojects {
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
+def nativeVideoEditorCompileSdkVersion = rootProject.ext.has('compileSdkVersion') ?
+        rootProject.ext.compileSdkVersion : 35
+
 android {
     namespace 'io.ente.native_video_editor'
-    compileSdkVersion 33
+    compileSdkVersion nativeVideoEditorCompileSdkVersion
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -42,7 +46,7 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion 21
+        minSdkVersion 23
     }
 }
 
@@ -51,10 +55,10 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
 
     // Media3 Transformer for efficient video operations
-    implementation "androidx.media3:media3-transformer:1.1.1"
-    implementation "androidx.media3:media3-common:1.1.1"
-    implementation "androidx.media3:media3-effect:1.1.1"
-    implementation "androidx.media3:media3-extractor:1.1.1"
+    implementation "androidx.media3:media3-transformer:$media3_version"
+    implementation "androidx.media3:media3-common:$media3_version"
+    implementation "androidx.media3:media3-effect:$media3_version"
+    implementation "androidx.media3:media3-extractor:$media3_version"
 
     // Guava for ImmutableList
     implementation "com.google.guava:guava:31.1-android"

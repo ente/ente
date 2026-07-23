@@ -1,3 +1,5 @@
+import type { LockerCollection } from "@/types";
+import { visibleLockerCollections } from "@/types";
 import {
     Delete02Icon,
     FavouriteIcon,
@@ -20,8 +22,6 @@ import {
 import { t } from "i18next";
 import dynamic from "next/dynamic";
 import React, { useEffect, useMemo, useState } from "react";
-import type { LockerCollection } from "types";
-import { visibleLockerCollections } from "types";
 import { LockerAboutDrawer } from "./LockerAboutDrawer";
 import { LockerAccountDrawer } from "./LockerAccountDrawer";
 import { LockerAuthenticateUser } from "./LockerAuthenticateUser";

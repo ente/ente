@@ -11,21 +11,7 @@
   "invalidEmailAddress": "Ugyldig e-postadresse",
   "enterValidEmail": "Vennligst skriv inn en gyldig e-postadresse.",
   "deleteAccount": "Slett konto",
-  "askDeleteReason": "Hva er hovedårsaken til at du sletter kontoen din?",
-  "deleteAccountFeedbackPrompt": "Vi er lei oss for at du forlater oss. Gi oss gjerne en tilbakemelding så vi kan forbedre oss.",
-  "feedback": "Tilbakemelding",
-  "kindlyHelpUsWithThisInformation": "Vær vennlig og hjelp oss med denne informasjonen",
-  "confirmDeletePrompt": "Ja, jeg ønsker å slette denne kontoen og all dataen dens permanent.",
-  "confirmAccountDeletion": "Bekreft sletting av konto",
-  "deleteAccountPermanentlyButton": "Slett bruker for altid",
-  "yourAccountHasBeenDeleted": "Brukeren din har blitt slettet",
-  "selectReason": "Velg grunn",
-  "deleteReason1": "Det mangler en hovedfunksjon jeg trenger",
-  "deleteReason2": "Appen, eller en bestemt funksjon, fungerer ikke slik jeg tror den skal",
-  "deleteReason3": "Jeg fant en annen tjeneste jeg liker bedre",
-  "deleteReason4": "Årsaken min er ikke oppført",
   "sendEmail": "Send e-post",
-  "deleteRequestSLAText": "Forespørselen din vil bli behandlet innen 72 timer.",
   "entePhotosPerm": "Ente <i>trenger tillatelse</i> for å bevare bildene dine",
   "ok": "Ok",
   "createAccount": "Opprett konto",
@@ -218,7 +204,6 @@
   "after1Month": "Etter 1 måned",
   "after1Year": "Etter 1 år",
   "manageParticipants": "Administrer",
-  "collabLinkSectionDescription": "Opprett en lenke slik at folk kan legge til og se bilder i det delte albumet ditt uten å trenge Ente-appen eller en konto. Perfekt for å samle bilder fra arrangementer.",
   "collectPhotos": "Samle bilder",
   "collaborativeLink": "Samarbeidslenke",
   "shareWithNonenteUsers": "Del med brukere som ikke har Ente",
@@ -311,7 +296,6 @@
   "creatingLink": "Lager lenke...",
   "removeWithQuestionMark": "Fjern?",
   "removeParticipantBody": "{userEmail} vil bli fjernet fra dette delte albumet\n\nAlle bilder lagt til av dem vil også bli fjernet fra albumet",
-  "keepPhotos": "Behold Bilder",
   "deletePhotos": "Slett bilder",
   "inviteToEnte": "Inviter til Ente",
   "removePublicLink": "Fjern offentlig lenke",
@@ -319,6 +303,9 @@
   "sharing": "Deler...",
   "youCannotShareWithYourself": "Du kan ikke dele med deg selv",
   "archive": "Arkiv",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
   "createAlbumActionHint": "Trykk og holde inne for å velge bilder, og trykk på + for å lage et album",
   "importing": "Importerer....",
   "failedToLoadAlbums": "Kunne ikke laste inn album",
@@ -330,9 +317,6 @@
   "videoSmallCase": "video",
   "photoSmallCase": "bilde",
   "singleFileDeleteHighlight": "Den vil bli slettet fra alle album.",
-  "singleFileInBothLocalAndRemote": "Denne {fileType} er både i Ente og på enheten din.",
-  "singleFileInRemoteOnly": "Denne {fileType} vil bli slettet fra Ente.",
-  "singleFileDeleteFromDevice": "Denne {fileType} vil bli slettet fra enheten din.",
   "deleteFromEnte": "Slett fra Ente",
   "yesDelete": "Ja, slett",
   "movedToTrash": "Flyttet til papirkurven",
@@ -468,7 +452,6 @@
   "authToChangeEmailVerificationSetting": "Vennligst autentiser deg for å endre e-postbekreftelse",
   "exportYourData": "Eksporter dine data",
   "logout": "Logg ut",
-  "authToInitiateAccountDeletion": "Vennlist autentiser deg for å starte sletting av konto",
   "areYouSureYouWantToLogout": "Er du sikker på at du vil logge ut?",
   "yesLogout": "Ja, logg ut",
   "aNewVersionOfEnteIsAvailable": "En ny versjon av Ente er tilgjengelig.",
@@ -624,7 +607,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "PlayStore abonnement",
   "appstoreSubscription": "AppStore subscription",
-  "subAlreadyLinkedErrMessage": "Din {id} er allerede koblet til en annen Ente-konto.\nHvis du ønsker å bruke din {id} med denne kontoen, vennligst kontakt vår brukerstøtte''",
   "visitWebToManage": "Vennligst besøk {webUrl} for å administrere abonnementet",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
@@ -670,7 +652,6 @@
   "existingUser": "Eksisterende bruker",
   "newToEnte": "Ny til Ente",
   "pleaseLoginAgain": "Vennligst logg inn igjen",
-  "autoLogoutMessage": "Du har blitt logget ut på grunn av en teknisk feil. Vi beklager ulempen.",
   "yourSubscriptionHasExpired": "Abonnementet har utløpt",
   "storageLimitExceeded": "Lagringsplassen er full",
   "upgrade": "Oppgrader",
@@ -692,11 +673,6 @@
   "collectEventPhotos": "Samle arrangementbilder",
   "sessionExpired": "Økten har utløpt",
   "loggingOut": "Logger ut...",
-  "@onDevice": {
-    "description": "The text displayed above folders/albums stored on device",
-    "type": "text"
-  },
-  "onDevice": "På enhet",
   "@onEnte": {
     "description": "The text displayed above albums backed up to Ente",
     "type": "text"
@@ -737,6 +713,9 @@
   "moveToAlbum": "Flytt til album",
   "unhide": "Gjør synligjort",
   "unarchive": "Opphev arkivering",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
   "favorite": "Favoritt",
   "removeFromFavorite": "Fjern fra favoritter",
   "shareLink": "Del link",
@@ -791,10 +770,7 @@
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Bilder lagt til av deg vil bli fjernet fra albumet",
   "youveNoFilesInThisAlbumThatCanBeDeleted": "Du har ingen filer i dette albumet som kan bli slettet",
   "youDontHaveAnyArchivedItems": "Du har ingen arkiverte elementer.",
-  "ignoredFolderUploadReason": "Noen filer i dette albumet ble ikke lastet opp fordi de tidligere har blitt slettet fra Ente.",
   "resetIgnoredFiles": "Tilbakestill ignorerte filer",
-  "deviceFilesAutoUploading": "Filer lagt til dette enhetsalbumet vil automatisk bli lastet opp til Ente.",
-  "turnOnBackupForAutoUpload": "Slå på sikkerhetskopi for å automatisk laste opp filer lagt til denne enhetsmappen i Ente.",
   "noHiddenPhotosOrVideos": "Ingen skjulte bilder eller videoer",
   "toHideAPhotoOrVideo": "For å skjule et bilde eller video",
   "openTheItem": "• Åpne elementet",
@@ -1040,10 +1016,6 @@
     "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
   },
   "setRadius": "Angi radius",
-  "androidBiometricHint": "Verifiser identitet",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
   "androidBiometricNotRecognized": "Ikke gjenkjent. Prøv igjen.",
   "@androidBiometricNotRecognized": {
     "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
@@ -1051,14 +1023,6 @@
   "androidBiometricSuccess": "Vellykket",
   "@androidBiometricSuccess": {
     "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Avbryt",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Krever innlogging",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
   "androidBiometricRequiredTitle": "Biometri kreves",
   "@androidBiometricRequiredTitle": {
@@ -1072,25 +1036,13 @@
   "@androidDeviceCredentialsSetupDescription": {
     "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
   },
-  "goToSettings": "Gå til innstillinger",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
   "androidGoToSettingsDescription": "Biometrisk autentisering er ikke satt opp på enheten din. Gå til 'Innstillinger > Sikkerhet' for å legge til biometrisk godkjenning.",
   "@androidGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
   },
-  "iOSLockOut": "Biometrisk autentisering er deaktivert. Vennligst lås og lås opp skjermen for å aktivere den.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
   "iOSGoToSettingsDescription": "Biometrisk autentisering er ikke satt opp på enheten din. Aktiver enten Touch-ID eller Ansikts-ID på telefonen.",
   "@iOSGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure Biometrics for their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "OK",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
   },
   "openstreetmapContributors": "OpenStreetMap bidragsytere",
   "hostedAtOsmFrance": "Hostet på OSM France",
@@ -1108,14 +1060,11 @@
   "noPhotosFoundHere": "Ingen bilder funnet her",
   "zoomOutToSeePhotos": "Zoom ut for å se bilder",
   "noImagesWithLocation": "Ingen bilder med plassering",
-  "unpinAlbum": "Løsne album",
-  "pinAlbum": "Fest album",
   "create": "Opprett",
   "viewAll": "Vis alle",
   "nothingSharedWithYouYet": "Ingenting delt med deg enda",
   "noAlbumsSharedByYouYet": "Ingen album delt av deg enda",
   "sharedWithYou": "Delt med deg",
-  "sharedByYou": "Delt av deg",
   "inviteYourFriendsToEnte": "Inviter vennene dine til Ente",
   "failedToDownloadVideo": "Kan ikke laste ned video",
   "hiding": "Skjuler...",
@@ -1127,7 +1076,6 @@
   "addToHiddenAlbum": "Legg til i skjult album",
   "moveToHiddenAlbum": "Flytt til skjult album",
   "fileTypes": "Filtyper",
-  "deleteConfirmDialogBody": "Denne kontoen er knyttet til andre Ente-apper, hvis du bruker noen. De opplastede dataene, i alle Ente-apper, vil bli planlagt slettet, og kontoen din vil bli slettet permanent.",
   "hearUsExplanation": "Vi sporer ikke app-installasjoner. Det hadde vært til hjelp om du fortalte oss hvor du fant oss!",
   "viewAddOnButton": "Vis tillegg",
   "addOns": "Tillegg",
@@ -1187,16 +1135,6 @@
   "playOnTv": "Spill av album på TV",
   "pair": "Par",
   "deviceNotFound": "Enhet ikke funnet",
-  "castInstruction": "Besøk {castUrl} på enheten du vil parre.\n\nSkriv inn koden under for å spille albumet på TV-en din.",
-  "@castInstruction": {
-    "description": "Instructions shown when pairing a device to play an album on TV.",
-    "placeholders": {
-      "castUrl": {
-        "type": "String",
-        "example": "https://cast.ente.com"
-      }
-    }
-  },
   "deviceCodeHint": "Skriv inn koden",
   "joinDiscord": "Bli med i Discord",
   "locations": "Plasseringer",
@@ -1227,8 +1165,6 @@
   "enterDateOfBirth": "Bursdag (valgfritt)",
   "birthday": "Bursdag",
   "removePersonLabel": "Fjern etikett for person",
-  "autoPairDesc": "Automatisk par fungerer kun med enheter som støtter Chromecast.",
-  "manualPairDesc": "Koble til PIN fungerer med alle skjermer du vil se albumet på.",
   "connectToDevice": "Koble til enheten",
   "autoCastDialogBody": "Du vil se tilgjengelige Cast enheter her.",
   "autoCastiOSPermission": "Kontroller at lokale nettverkstillatelser er slått på for Ente Photos-appen, i innstillinger.",
@@ -1240,7 +1176,6 @@
   "pairingComplete": "Sammenkobling fullført",
   "savingEdits": "Lagrer redigeringer...",
   "autoPair": "Automatisk parring",
-  "pairWithPin": "Parr sammen med PIN",
   "faceRecognition": "Ansiktsgjenkjenning",
   "foundFaces": "Fant ansikter",
   "clusteringProgress": "Fremdrift for klynging",
@@ -1269,20 +1204,13 @@
   "enableMLIndexingDesc": "Ente støtter maskinlæring på enheten for ansiktsgjenkjenning, magisk søk og andre avanserte søkefunksjoner",
   "magicSearchHint": "Magisk søk lar deg finne bilder basert på innholdet i dem, for eksempel ‘blomst’, ‘rød bil’, ‘ID-dokumenter'",
   "panorama": "Panora",
-  "reenterPassword": "Skriv inn passord på nytt",
-  "reenterPin": "Skriv inn PIN-kode på nytt",
   "deviceLock": "Enhetslås",
   "pinLock": "PIN-kode lås",
   "next": "Neste",
-  "setNewPassword": "Angi nytt passord",
-  "enterPin": "Skriv inn PIN-koden",
-  "setNewPin": "Angi ny PIN-kode",
   "appLock": "Applås",
   "noSystemLockFound": "Ingen systemlås funnet",
-  "tapToUnlock": "Trykk for å låse opp",
   "tooManyIncorrectAttempts": "For mange gale forsøk",
   "videoInfo": "Videoinformasjon",
-  "autoLock": "Lås automatisk",
   "immediately": "Umiddelbart",
   "autoLockFeatureDescription": "Tid før appen låses etter at den er lagt i bakgrunnen",
   "hideContent": "Skjul innhold",

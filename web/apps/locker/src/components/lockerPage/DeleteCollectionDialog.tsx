@@ -1,3 +1,4 @@
+import { lockerDialogPaperSx } from "@/components/lockerDialogStyles";
 import {
     Checkbox,
     Dialog,
@@ -7,7 +8,6 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
-import { lockerDialogPaperSx } from "components/lockerDialogStyles";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { t } from "i18next";

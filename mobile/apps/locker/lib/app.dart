@@ -3,13 +3,12 @@ import 'dart:io';
 
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:ente_accounts/services/user_service.dart';
+import 'package:ente_components/ente_components.dart' as components;
 import 'package:ente_events/event_bus.dart';
 import 'package:ente_events/models/signed_in_event.dart';
 import 'package:ente_events/models/signed_out_event.dart';
 import 'package:ente_strings/l10n/strings_localizations.dart';
-import "package:ente_ui/theme/ente_theme_data.dart";
 import 'package:ente_ui/utils/window_listener_service.dart';
-import 'package:flutter/foundation.dart';
 import "package:flutter/material.dart";
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:locker/core/locale.dart';
@@ -29,11 +28,7 @@ class App extends StatefulWidget {
   final Locale? locale;
   final AdaptiveThemeMode? savedThemeMode;
 
-  const App({
-    super.key,
-    this.locale = const Locale("en"),
-    this.savedThemeMode,
-  });
+  const App({super.key, this.locale = const Locale("en"), this.savedThemeMode});
 
   static void setLocale(BuildContext context, Locale newLocale) {
     final _AppState state = context.findAncestorStateOfType<_AppState>()!;
@@ -49,7 +44,7 @@ class _AppState extends State<App>
   late StreamSubscription<SignedOutEvent> _signedOutEvent;
   late StreamSubscription<SignedInEvent> _signedInEvent;
   Locale? locale;
-  setLocale(Locale newLocale) {
+  void setLocale(Locale newLocale) {
     setState(() {
       locale = newLocale;
     });
@@ -105,8 +100,8 @@ class _AppState extends State<App>
   }
 
   Future<bool> _checkForAppUpdates() async {
-    final shouldShow =
-        await UpdateService.instance.shouldShowUpdateNotification();
+    final shouldShow = await UpdateService.instance
+        .shouldShowUpdateNotification();
     if (!shouldShow || !mounted) {
       return false;
     }
@@ -116,10 +111,7 @@ class _AppState extends State<App>
       return false;
     }
 
-    await showAppUpdateBottomSheet(
-      context,
-      latestVersionInfo: latestVersion,
-    );
+    await showAppUpdateBottomSheet(context, latestVersionInfo: latestVersion);
     await UpdateService.instance.markUpdateNotificationShown();
     return true;
   }
@@ -159,39 +151,21 @@ class _AppState extends State<App>
   @override
   Widget build(BuildContext context) {
     Widget buildApp() {
-      if (Platform.isAndroid ||
-          Platform.isWindows ||
-          Platform.isLinux ||
-          kDebugMode) {
-        return AdaptiveTheme(
-          light: lightThemeData,
-          dark: darkThemeData,
-          initial: widget.savedThemeMode ?? AdaptiveThemeMode.system,
-          builder: (lightTheme, dartTheme) => MaterialApp(
-            title: "ente",
-            themeMode: ThemeMode.system,
-            theme: lightTheme,
-            darkTheme: dartTheme,
-            debugShowCheckedModeBanner: false,
-            locale: locale,
-            supportedLocales: appSupportedLocales,
-            localeListResolutionCallback: localResolutionCallBack,
-            localizationsDelegates: const [
-              AppLocalizations.delegate,
-              StringsLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-            ],
-            routes: _getRoutes,
-          ),
-        );
-      } else {
-        return MaterialApp(
+      return AdaptiveTheme(
+        light: components.ComponentTheme.themeForApp(
+          components.ComponentApp.locker,
+          brightness: Brightness.light,
+        ),
+        dark: components.ComponentTheme.themeForApp(
+          components.ComponentApp.locker,
+          brightness: Brightness.dark,
+        ),
+        initial: widget.savedThemeMode ?? AdaptiveThemeMode.system,
+        builder: (lightTheme, dartTheme) => MaterialApp(
           title: "ente",
           themeMode: ThemeMode.system,
-          theme: lightThemeData,
-          darkTheme: darkThemeData,
+          theme: lightTheme,
+          darkTheme: dartTheme,
           debugShowCheckedModeBanner: false,
           locale: locale,
           supportedLocales: appSupportedLocales,
@@ -204,8 +178,8 @@ class _AppState extends State<App>
             GlobalWidgetsLocalizations.delegate,
           ],
           routes: _getRoutes,
-        );
-      }
+        ),
+      );
     }
 
     // Wrap the app with MediaQuery to control text scaling and ensure

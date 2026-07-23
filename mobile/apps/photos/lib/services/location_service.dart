@@ -90,10 +90,7 @@ class LocationService {
       args["kdTreeMaxLatDelta"] = _kdTreeMaxLatDelta;
       args["kdTreeMaxLngDelta"] = _kdTreeMaxLngDelta;
     }
-    final result = await _computer.compute(
-      getCityResults,
-      param: args,
-    );
+    final result = await _computer.compute(getCityResults, param: args);
     w.log(
       'end for query: $query  on ${allFiles.length} files, found '
       '${result.length} cities',
@@ -157,9 +154,7 @@ class LocationService {
             fileCoordinates.longitude! - locationTag.centerPoint.longitude!;
         if ((x * x) / (locationTag.aSquare) + (y * y) / (locationTag.bSquare) <=
             1) {
-          result.add(
-            locationTagEntity,
-          );
+          result.add(locationTagEntity);
         }
       }
       return result;
@@ -245,14 +240,8 @@ class LocationService {
 
   Future<void> deleteLocationTag(String locTagEntityId) async {
     try {
-      await entityService.deleteEntry(
-        locTagEntityId,
-      );
-      Bus.instance.fire(
-        LocationTagUpdatedEvent(
-          LocTagEventType.delete,
-        ),
-      );
+      await entityService.deleteEntry(locTagEntityId);
+      Bus.instance.fire(LocationTagUpdatedEvent(LocTagEventType.delete));
     } catch (e, s) {
       _logger.severe("Failed to delete location tag", e, s);
       rethrow;
@@ -283,8 +272,9 @@ class LocationService {
       );
       if (reloadLocationDiscoverySection) {
         reloadLocationDiscoverySection = false;
-        Bus.instance
-            .fire(LocationTagUpdatedEvent(LocTagEventType.dataSetLoaded));
+        Bus.instance.fire(
+          LocationTagUpdatedEvent(LocTagEventType.dataSetLoaded),
+        );
       }
     } catch (e, s) {
       _logger.severe("Failed to load KD-tree cities", e, s);
@@ -292,9 +282,7 @@ class LocationService {
   }
 }
 
-Map<LocationTag, int> _getLocationTagsToOccurenceForIsolate(
-  Map args,
-) {
+Map<LocationTag, int> _getLocationTagsToOccurenceForIsolate(Map args) {
   final List<EnteFile> files = args["files"];
 
   final locationTagToOccurence = <LocationTag, int>{};
@@ -334,14 +322,12 @@ Future<Map<String, dynamic>> parseCitiesFromKdTreeBin(Map args) async {
   final baseOffset = payload.offsetInBytes;
   const endian = Endian.little;
 
-  final magic = String.fromCharCodes(
-    [
-      payload.getUint8(0),
-      payload.getUint8(1),
-      payload.getUint8(2),
-      payload.getUint8(3),
-    ],
-  );
+  final magic = String.fromCharCodes([
+    payload.getUint8(0),
+    payload.getUint8(1),
+    payload.getUint8(2),
+    payload.getUint8(3),
+  ]);
   if (magic != "KDT1") {
     throw FormatException("Unsupported KD-tree magic: $magic");
   }
@@ -373,14 +359,12 @@ Future<Map<String, dynamic>> parseCitiesFromKdTreeBin(Map args) async {
   final nodesBaseOffset = nodesOffset;
   for (var i = 0; i < nodeCount; i += 1) {
     final nodeOffset = nodesBaseOffset + i * 16;
-    parsedNodes.add(
-      [
-        payload.getInt32(nodeOffset, endian),
-        payload.getInt32(nodeOffset + 4, endian),
-        payload.getInt32(nodeOffset + 8, endian),
-        payload.getInt32(nodeOffset + 12, endian),
-      ],
-    );
+    parsedNodes.add([
+      payload.getInt32(nodeOffset, endian),
+      payload.getInt32(nodeOffset + 4, endian),
+      payload.getInt32(nodeOffset + 8, endian),
+      payload.getInt32(nodeOffset + 12, endian),
+    ]);
   }
 
   final cityOffsets = List<int>.generate(
@@ -394,15 +378,11 @@ Future<Map<String, dynamic>> parseCitiesFromKdTreeBin(Map args) async {
     baseOffset + citiesBlobOffset,
     cityBlobLength,
   );
-  final cityNames = List<String>.generate(
-    cityCount,
-    (index) {
-      final start = cityOffsets[index];
-      final end = cityOffsets[index + 1];
-      return utf8.decode(cityBlob.sublist(start, end));
-    },
-    growable: false,
-  );
+  final cityNames = List<String>.generate(cityCount, (index) {
+    final start = cityOffsets[index];
+    final end = cityOffsets[index + 1];
+    return utf8.decode(cityBlob.sublist(start, end));
+  }, growable: false);
 
   final countryOffsets = List<int>.generate(
     countryCount + 1,
@@ -415,15 +395,11 @@ Future<Map<String, dynamic>> parseCitiesFromKdTreeBin(Map args) async {
     baseOffset + countriesBlobOffset,
     countryBlobLength,
   );
-  final countryNames = List<String>.generate(
-    countryCount,
-    (index) {
-      final start = countryOffsets[index];
-      final end = countryOffsets[index + 1];
-      return utf8.decode(countryBlob.sublist(start, end));
-    },
-    growable: false,
-  );
+  final countryNames = List<String>.generate(countryCount, (index) {
+    final start = countryOffsets[index];
+    final end = countryOffsets[index + 1];
+    return utf8.decode(countryBlob.sublist(start, end));
+  }, growable: false);
 
   final cities = <City>[];
   double maxA = 0;
@@ -530,23 +506,23 @@ Map<City, List<EnteFile>> getCityResults(Map args) {
   final List<City> cities = args["cities"] as List<City>;
   final List<EnteFile> files = args["files"] as List<EnteFile>;
   final kdTreeNodesRaw = args["kdTreeNodes"];
-  final List<List<int>> kdTreeNodes =
-      kdTreeNodesRaw is List ? kdTreeNodesRaw.cast<List<int>>() : const [];
+  final List<List<int>> kdTreeNodes = kdTreeNodesRaw is List
+      ? kdTreeNodesRaw.cast<List<int>>()
+      : const [];
   final int kdTreeRoot = (args["kdTreeRoot"] as int?) ?? -1;
   final double kdTreeMaxLatDelta =
       (args["kdTreeMaxLatDelta"] as num?)?.toDouble() ?? 0;
   final double kdTreeMaxLngDelta =
       (args["kdTreeMaxLngDelta"] as num?)?.toDouble() ?? 0;
-  final bool useKdTree = kdTreeNodes.isNotEmpty &&
+  final bool useKdTree =
+      kdTreeNodes.isNotEmpty &&
       kdTreeRoot >= 0 &&
       kdTreeMaxLatDelta > 0 &&
       kdTreeMaxLngDelta > 0;
 
   if (!useKdTree) {
     final matchingCities = cities
-        .where(
-          (city) => city.city.toLowerCase().contains(query),
-        )
+        .where((city) => city.city.toLowerCase().contains(query))
         .toList();
 
     final Map<City, List<EnteFile>> results = {};
@@ -638,7 +614,8 @@ double calculateDistance(Location point1, Location point2) {
   final dLong = long2 - long1;
 
   // Haversine formula
-  final a = sin(dLat / 2) * sin(dLat / 2) +
+  final a =
+      sin(dLat / 2) * sin(dLat / 2) +
       cos(lat1) * cos(lat2) * sin(dLong / 2) * sin(dLong / 2);
 
   // Angular distance in radians

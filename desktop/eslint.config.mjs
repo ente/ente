@@ -22,6 +22,7 @@ export default ts.config(
         ignores: [
             "eslint.config.mjs",
             "scripts/*.js",
+            "scripts/*.mjs",
             "scripts/*.ts",
             "app/",
             "out/",

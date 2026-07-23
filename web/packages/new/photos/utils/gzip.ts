@@ -7,7 +7,9 @@
  * can directly use a ReadableStream, then then data -> stream -> data round
  * trip is unnecessary.
  */
-export const gzip = async (string: string) => {
+export const gzip = async (
+    string: string,
+): Promise<Uint8Array<ArrayBuffer>> => {
     const compressedStream = new Blob([string])
         .stream()
         // This code only runs on the desktop app currently, so we can rely on
@@ -20,7 +22,7 @@ export const gzip = async (string: string) => {
  * Decompress the given "gzip" compressed {@link data} and return the resultant
  * string. See {@link gzip} for the reverse operation.
  */
-export const gunzip = async (data: Uint8Array) => {
+export const gunzip = async (data: Uint8Array<ArrayBuffer>) => {
     const decompressedStream = new Blob([data])
         .stream()
         // This code only runs on the desktop app currently, so we can rely on

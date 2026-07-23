@@ -3,9 +3,9 @@ title: Hidden Photos
 description: Hide sensitive photos with biometric protection in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Hidden Photos

@@ -27,8 +27,9 @@ class _LocationScreenStateProviderState
   @override
   void initState() {
     _locationTagEntity = widget.locationTagEntity;
-    _locTagUpdateListener =
-        Bus.instance.on<LocationTagUpdatedEvent>().listen((event) {
+    _locTagUpdateListener = Bus.instance.on<LocationTagUpdatedEvent>().listen((
+      event,
+    ) {
       if (event.type == LocTagEventType.update) {
         setState(() {
           _locationTagEntity = event.updatedLocTagEntities!.first;

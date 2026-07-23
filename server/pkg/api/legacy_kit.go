@@ -3,11 +3,11 @@ package api
 import (
 	"net/http"
 
-	"github.com/ente-io/museum/ente"
-	legacykit "github.com/ente-io/museum/pkg/controller/legacy_kit"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/handler"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	legacykit "github.com/ente/museum/pkg/controller/legacy_kit"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/handler"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -18,7 +18,7 @@ type LegacyKitHandler struct {
 
 func (h *LegacyKitHandler) Create(c *gin.Context) {
 	var request ente.CreateLegacyKitRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "could not bind request params"))
 		return
 	}
@@ -42,7 +42,7 @@ func (h *LegacyKitHandler) List(c *gin.Context) {
 func (h *LegacyKitHandler) DownloadContent(c *gin.Context) {
 	kitID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.NewBadRequestWithMessage("invalid legacy kit id"), err.Error()))
+		handler.Error(c, stacktrace.Propagate(ente.NewBadRequestWithMessage("invalid legacy kit id"), "%v", err))
 		return
 	}
 	resp, err := h.Controller.DownloadKitContent(c, auth.GetUserID(c.Request.Header), kitID)
@@ -56,7 +56,7 @@ func (h *LegacyKitHandler) DownloadContent(c *gin.Context) {
 func (h *LegacyKitHandler) OwnerRecoverySession(c *gin.Context) {
 	kitID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.NewBadRequestWithMessage("invalid legacy kit id"), err.Error()))
+		handler.Error(c, stacktrace.Propagate(ente.NewBadRequestWithMessage("invalid legacy kit id"), "%v", err))
 		return
 	}
 	resp, err := h.Controller.GetOwnerRecoverySession(c, auth.GetUserID(c.Request.Header), kitID)
@@ -69,7 +69,7 @@ func (h *LegacyKitHandler) OwnerRecoverySession(c *gin.Context) {
 
 func (h *LegacyKitHandler) UpdateRecoveryNotice(c *gin.Context) {
 	var request ente.UpdateLegacyKitRecoveryNoticeRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "could not bind request params"))
 		return
 	}
@@ -83,7 +83,7 @@ func (h *LegacyKitHandler) UpdateRecoveryNotice(c *gin.Context) {
 func (h *LegacyKitHandler) Delete(c *gin.Context) {
 	kitID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.NewBadRequestWithMessage("invalid legacy kit id"), err.Error()))
+		handler.Error(c, stacktrace.Propagate(ente.NewBadRequestWithMessage("invalid legacy kit id"), "%v", err))
 		return
 	}
 	if err := h.Controller.DeleteKit(c, auth.GetUserID(c.Request.Header), kitID); err != nil {
@@ -95,7 +95,7 @@ func (h *LegacyKitHandler) Delete(c *gin.Context) {
 
 func (h *LegacyKitHandler) BlockRecovery(c *gin.Context) {
 	var request ente.LegacyKitOwnerActionRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "could not bind request params"))
 		return
 	}
@@ -108,7 +108,7 @@ func (h *LegacyKitHandler) BlockRecovery(c *gin.Context) {
 
 func (h *LegacyKitHandler) CreateChallenge(c *gin.Context) {
 	var request ente.LegacyKitChallengeRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "could not bind request params"))
 		return
 	}
@@ -122,7 +122,7 @@ func (h *LegacyKitHandler) CreateChallenge(c *gin.Context) {
 
 func (h *LegacyKitHandler) OpenRecovery(c *gin.Context) {
 	var request ente.LegacyKitOpenRecoveryRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "could not bind request params"))
 		return
 	}
@@ -136,7 +136,7 @@ func (h *LegacyKitHandler) OpenRecovery(c *gin.Context) {
 
 func (h *LegacyKitHandler) Session(c *gin.Context) {
 	var request ente.LegacyKitSessionRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "could not bind request params"))
 		return
 	}
@@ -150,7 +150,7 @@ func (h *LegacyKitHandler) Session(c *gin.Context) {
 
 func (h *LegacyKitHandler) RecoveryInfo(c *gin.Context) {
 	var request ente.LegacyKitSessionRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "could not bind request params"))
 		return
 	}
@@ -164,7 +164,7 @@ func (h *LegacyKitHandler) RecoveryInfo(c *gin.Context) {
 
 func (h *LegacyKitHandler) InitChangePassword(c *gin.Context) {
 	var request ente.LegacyKitRecoverySrpSetupRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "could not bind request params"))
 		return
 	}
@@ -178,7 +178,7 @@ func (h *LegacyKitHandler) InitChangePassword(c *gin.Context) {
 
 func (h *LegacyKitHandler) ChangePassword(c *gin.Context) {
 	var request ente.LegacyKitRecoveryUpdateSRPRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "could not bind request params"))
 		return
 	}

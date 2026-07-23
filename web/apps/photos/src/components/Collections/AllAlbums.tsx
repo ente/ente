@@ -58,6 +58,7 @@ interface AllAlbums {
     collectionsSortBy: CollectionsSortBy;
     onChangeCollectionsSortBy: (by: CollectionsSortBy) => void;
     isInHiddenSection: boolean;
+    canCreateAlbum: boolean;
     onRemotePull: () => Promise<void>;
 }
 
@@ -72,6 +73,7 @@ export const AllAlbums: React.FC<AllAlbums> = ({
     collectionsSortBy,
     onChangeCollectionsSortBy,
     isInHiddenSection,
+    canCreateAlbum,
     onRemotePull,
 }) => {
     const fullScreen = useMediaQuery("(max-width: 428px)");
@@ -130,13 +132,14 @@ export const AllAlbums: React.FC<AllAlbums> = ({
     }, [collectionSummaries, searchTerm]);
 
     const showCreateButton = useMemo(() => {
+        if (!canCreateAlbum) return false;
         if (!searchTerm.trim()) {
             return true;
         }
         const searchLower = searchTerm.toLowerCase();
         const createText = t("new_album").toLowerCase();
         return createText.includes(searchLower);
-    }, [searchTerm]);
+    }, [canCreateAlbum, searchTerm]);
 
     return (
         <>
@@ -551,7 +554,7 @@ const AllAlbumsContent: React.FC<AllAlbumsContentProps> = ({
                         height: "100%",
                     }}
                 >
-                    <Typography color="text.muted">
+                    <Typography sx={{ color: "text.muted" }}>
                         {t("no_results")}
                     </Typography>
                 </Box>

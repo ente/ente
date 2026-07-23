@@ -5,22 +5,20 @@ import "package:photos/theme/ente_theme.dart";
 class EmptySharedSection extends StatelessWidget {
   final SharedCollections collections;
 
-  const EmptySharedSection({
-    super.key,
-    required this.collections,
-  });
+  const EmptySharedSection({super.key, required this.collections});
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final total = collections.incoming.length +
+    final total =
+        collections.incoming.length +
         collections.outgoing.length +
         collections.quickLinks.length;
     final countText = total == 0
         ? "No shared albums available offline."
         : "You have $total shared album"
-            "${total == 1 ? "" : "s"} on Ente.";
+              "${total == 1 ? "" : "s"} on Ente.";
 
     return Container(
       width: double.infinity,

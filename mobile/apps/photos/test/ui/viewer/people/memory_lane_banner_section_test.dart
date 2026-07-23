@@ -9,10 +9,7 @@ void main() {
     late PersonEntity person;
 
     setUp(() {
-      person = PersonEntity(
-        "person-1",
-        PersonData(name: "Alex"),
-      );
+      person = PersonEntity("person-1", PersonData(name: "Alex"));
     });
 
     testWidgets("renders banner when timeline is ready", (tester) async {

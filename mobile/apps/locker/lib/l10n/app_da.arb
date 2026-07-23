@@ -131,7 +131,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "Vælg venligst mindst én samling",
   "unknownItemType": "Ukendt elementtype",
   "fileDeletedSuccessfully": "Element slettet",
   "failedToDeleteFile": "Kunne ikke slette element: {error}",
@@ -250,7 +249,6 @@
   "fileTitle": "Elementtitel",
   "optionalNote": "Valgfri note",
   "documentsHint": "Dokumenter",
-  "searchHint": "Søg...",
   "searchEmptyTitle": "Ingen resultater fundet",
   "searchEmptyDescription": "Prøv at søge efter noget andet.",
   "searchEverywhereTitle": "Søg overalt efter \"{query}\"",

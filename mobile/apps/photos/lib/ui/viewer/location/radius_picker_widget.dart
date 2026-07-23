@@ -26,10 +26,7 @@ class RadiusPickerWidget extends StatefulWidget {
   ///This notifier can be listened from a parent widget to get the selected radius
   final ValueNotifier<double> selectedRadiusNotifier;
 
-  const RadiusPickerWidget(
-    this.selectedRadiusNotifier, {
-    super.key,
-  });
+  const RadiusPickerWidget(this.selectedRadiusNotifier, {super.key});
 
   @override
   State<RadiusPickerWidget> createState() => _RadiusPickerWidgetState();
@@ -44,8 +41,9 @@ class _RadiusPickerWidgetState extends State<RadiusPickerWidget> {
 
   @override
   void didChangeDependencies() {
-    widget.selectedRadiusNotifier.value =
-        InheritedLocationTagData.of(context).selectedRadius;
+    widget.selectedRadiusNotifier.value = InheritedLocationTagData.of(
+      context,
+    ).selectedRadius;
     super.didChangeDependencies();
   }
 
@@ -203,11 +201,9 @@ class _RadiusPickerWidgetState extends State<RadiusPickerWidget> {
       alignMessage: Alignment.centerRight,
     );
     if (result is Exception) {
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: result);
-      _logger.severe(
-        "Failed to create custom radius",
-        result,
-      );
+      _logger.severe("Failed to create custom radius", result);
     }
   }
 }

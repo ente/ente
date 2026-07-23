@@ -57,7 +57,7 @@ export interface UserEntityChange {
      *
      * This will not be present for entities that have been deleted on remote.
      */
-    data: Uint8Array | undefined;
+    data: Uint8Array<ArrayBuffer> | undefined;
     /**
      * Epoch microseconds denoting when this entity was last changed (created or
      * updated or deleted).

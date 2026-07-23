@@ -135,7 +135,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "Vyberte alespoň jednu kolekci",
   "unknownItemType": "Neznámý typ položky",
   "fileDeletedSuccessfully": "Položka byla úspěšně smazána",
   "failedToDeleteFile": "Smazání položky se nezdařilo: {error}",
@@ -257,7 +256,6 @@
   "optionalNote": "Volitelná poznámka",
   "upload": "Nahrát",
   "documentsHint": "Dokumenty",
-  "searchHint": "Hledat...",
   "searchEmptyTitle": "Nebyly nalezeny žádné výsledky",
   "searchEmptyDescription": "Zkuste vyhledat něco jiného.",
   "searchEverywhereTitle": "Hledat \"{query}\" všude",

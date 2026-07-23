@@ -51,8 +51,7 @@ class AuthenticatorDB extends EnteBaseDatabase {
   }
 
   Future _onCreate(Database db, int version) async {
-    await db.execute(
-      '''
+    await db.execute('''
                 CREATE TABLE $entityTable (
                   _generatedID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                   id TEXT,
@@ -63,23 +62,19 @@ class AuthenticatorDB extends EnteBaseDatabase {
                   shouldSync INTEGER DEFAULT 0,
                   UNIQUE(id)
                 );
-      ''',
-    );
+      ''');
   }
 
   Future<int> insert(String encData, String header) async {
     final db = await instance.database;
     final int timeInMicroSeconds = DateTime.now().microsecondsSinceEpoch;
-    final insertedID = await db.insert(
-      entityTable,
-      {
-        "encryptedData": encData,
-        "header": header,
-        "shouldSync": 1,
-        "createdAt": timeInMicroSeconds,
-        "updatedAt": timeInMicroSeconds,
-      },
-    );
+    final insertedID = await db.insert(entityTable, {
+      "encryptedData": encData,
+      "header": header,
+      "shouldSync": 1,
+      "createdAt": timeInMicroSeconds,
+      "updatedAt": timeInMicroSeconds,
+    });
     return insertedID;
   }
 
@@ -133,8 +128,11 @@ class AuthenticatorDB extends EnteBaseDatabase {
 
   Future<LocalAuthEntity?> getEntryByID(int genID) async {
     final db = await instance.database;
-    final rows = await db
-        .query(entityTable, where: '_generatedID = ?', whereArgs: [genID]);
+    final rows = await db.query(
+      entityTable,
+      where: '_generatedID = ?',
+      whereArgs: [genID],
+    );
     final listOfAuthEntities = _convertRows(rows);
     if (listOfAuthEntities.isEmpty) {
       return null;
@@ -152,19 +150,23 @@ class AuthenticatorDB extends EnteBaseDatabase {
   // removeSyncedData will remove all the data which is synced with the server
   Future<int> removeSyncedData() async {
     final db = await instance.database;
-    return await db
-        .delete(entityTable, where: 'shouldSync = ?', whereArgs: [0]);
+    return await db.delete(
+      entityTable,
+      where: 'shouldSync = ?',
+      whereArgs: [0],
+    );
   }
 
   // getCount of entries which are not synced with the server
   Future<int> getNeedSyncCount() async {
     final db = await instance.database;
-    final rows = await db
-        .rawQuery("SELECT COUNT(*) from $entityTable WHERE shouldSync = 1");
+    final rows = await db.rawQuery(
+      "SELECT COUNT(*) from $entityTable WHERE shouldSync = 1",
+    );
     return Sqflite.firstIntValue(rows)!;
   }
 
-// deleteByID will prefer generated id if both ids are passed during deletion
+  // deleteByID will prefer generated id if both ids are passed during deletion
   Future<void> deleteByIDs({List<int>? generatedIDs, List<String>? ids}) async {
     final db = await instance.database;
     final batch = db.batch();

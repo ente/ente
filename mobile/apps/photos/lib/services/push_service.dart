@@ -11,6 +11,8 @@ import 'package:photos/service_locator.dart';
 import 'package:photos/services/sync/sync_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+typedef BackgroundPushHandler = Future<void> Function(Object message);
+
 class PushService {
   static const kFCMPushToken = "fcm_push_token";
   static const kLastFCMTokenUpdationTime = "fcm_push_token_updation_time";
@@ -27,14 +29,18 @@ class PushService {
 
   PushService._privateConstructor();
 
-  Future<void> init() async {
+  Future<void> init({BackgroundPushHandler? onBackgroundPush}) async {
     _prefs = await SharedPreferences.getInstance();
     await Firebase.initializeApp();
+    if (onBackgroundPush != null) {
+      FirebaseMessaging.onBackgroundMessage(onBackgroundPush);
+    }
     if (_foregroundMessageSubscription != null) {
       await _foregroundMessageSubscription!.cancel();
     }
-    _foregroundMessageSubscription =
-        FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    _foregroundMessageSubscription = FirebaseMessaging.onMessage.listen((
+      RemoteMessage message,
+    ) {
       _logger.info("Got a message whilst in the foreground!");
       _handleForegroundPushMessage(message);
     });
@@ -45,8 +51,9 @@ class PushService {
       if (Configuration.instance.hasConfiguredAccount()) {
         await _configurePushToken();
       } else {
-        _signedInSubscription =
-            Bus.instance.on<SignedInEvent>().listen((_) async {
+        _signedInSubscription = Bus.instance.on<SignedInEvent>().listen((
+          _,
+        ) async {
           // ignore: unawaited_futures
           _configurePushToken();
         });
@@ -60,8 +67,8 @@ class PushService {
     final String? fcmToken = await FirebaseMessaging.instance.getToken();
     final shouldForceRefreshServerToken =
         DateTime.now().microsecondsSinceEpoch -
-                (_prefs.getInt(kLastFCMTokenUpdationTime) ?? 0) >
-            kFCMTokenUpdationIntervalInMicroSeconds;
+            (_prefs.getInt(kLastFCMTokenUpdationTime) ?? 0) >
+        kFCMTokenUpdationIntervalInMicroSeconds;
     if (fcmToken != null &&
         (_prefs.getString(kFCMPushToken) != fcmToken ||
             shouldForceRefreshServerToken)) {
@@ -83,14 +90,8 @@ class PushService {
     }
   }
 
-  Future<void> _setPushTokenOnServer(
-    String fcmToken,
-    String? apnsToken,
-  ) async {
-    await pushGateway.registerToken(
-      fcmToken: fcmToken,
-      apnsToken: apnsToken,
-    );
+  Future<void> _setPushTokenOnServer(String fcmToken, String? apnsToken) async {
+    await pushGateway.registerToken(fcmToken: fcmToken, apnsToken: apnsToken);
   }
 
   void _handleForegroundPushMessage(RemoteMessage message) {
@@ -105,7 +106,10 @@ class PushService {
     }
   }
 
-  static bool shouldSync(RemoteMessage message) {
+  static bool shouldSync(Object message) {
+    if (message is! RemoteMessage) {
+      return false;
+    }
     return message.data.containsKey(kPushAction) &&
         message.data[kPushAction] == kSync;
   }

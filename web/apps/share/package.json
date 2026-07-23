@@ -6,8 +6,9 @@
         "build:post": "rm -f out/404.html"
     },
     "dependencies": {
-        "ente-base": "*",
-        "hugeicons-react": "^0.3.0"
+        "@hugeicons/core-free-icons": "1.2.1",
+        "@hugeicons/react": "1.1.6",
+        "ente-base": "*"
     },
     "devDependencies": {
         "ente-build-config": "*"

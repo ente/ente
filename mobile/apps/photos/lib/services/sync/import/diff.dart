@@ -2,6 +2,7 @@ import "package:computer/computer.dart";
 import "package:logging/logging.dart";
 import "package:photo_manager/photo_manager.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/module/metadata/local_file.dart";
 import "package:photos/services/sync/import/model.dart";
 
 class LocalDiffResult {
@@ -41,8 +42,9 @@ Future<LocalDiffResult> getDiffFromExistingImport(
     taskName: "getLocalAssetsDiff",
   );
   if (diffResult.localPathAssets != null) {
-    diffResult.uniqueLocalFiles =
-        await _convertLocalAssetsToUniqueFiles(diffResult.localPathAssets!);
+    diffResult.uniqueLocalFiles = await _convertLocalAssetsToUniqueFiles(
+      diffResult.localPathAssets!,
+    );
   }
   return diffResult;
 }
@@ -58,13 +60,12 @@ Future<List<EnteFile>> _convertLocalAssetsToUniqueFiles(
       if (!alreadySeenLocalIDs.contains(localID)) {
         final assetEntity = await AssetEntity.fromId(localID);
         if (assetEntity == null) {
-          Logger("_convertLocalAssetsToUniqueFiles")
-              .warning('Failed to fetch asset with id $localID');
+          Logger(
+            "_convertLocalAssetsToUniqueFiles",
+          ).warning('Failed to fetch asset with id $localID');
           continue;
         }
-        files.add(
-          await EnteFile.fromAsset(localPathName, assetEntity),
-        );
+        files.add(fileFromAsset(localPathName, assetEntity));
         alreadySeenLocalIDs.add(localID);
       }
     }

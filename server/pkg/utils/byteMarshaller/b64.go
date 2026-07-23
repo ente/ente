@@ -17,9 +17,8 @@ func EncodeSlices(slices [][]byte) string {
 
 // Decode a string back into a [][]byte.
 func DecodeString(encoded string) ([][]byte, error) {
-	strSlices := strings.Split(encoded, ",")
 	var byteSlices [][]byte
-	for _, str := range strSlices {
+	for str := range strings.SplitSeq(encoded, ",") {
 		slice, err := base64.StdEncoding.DecodeString(str)
 		if err != nil {
 			return nil, err

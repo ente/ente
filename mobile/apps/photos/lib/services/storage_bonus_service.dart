@@ -12,7 +12,7 @@ class StorageBonusService {
   final String _showStorageBonusTapCount = "showStorageBonus.tap_count";
 
   StorageBonusService(this.prefs, Dio enteDio)
-      : gateway = StorageBonusGateway(enteDio) {
+    : gateway = StorageBonusGateway(enteDio) {
     debugPrint("StorageBonusService constructor");
   }
 

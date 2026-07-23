@@ -1,16 +1,10 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/models/code_display.dart';
-import 'package:ente_auth/services/authenticator_service.dart';
-import 'package:ente_auth/store/code_store.dart';
-import 'package:ente_auth/ui/components/buttons/button_widget.dart';
-import 'package:ente_auth/ui/components/dialog_widget.dart';
-import 'package:ente_auth/ui/components/models/button_type.dart';
 import 'package:ente_auth/ui/settings/data/import/import_file_cleanup.dart';
-import 'package:ente_auth/ui/settings/data/import/import_success.dart';
+import 'package:ente_auth/ui/settings/data/import/import_flow.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_ui/components/progress_dialog.dart';
 import 'package:file_picker/file_picker.dart';
@@ -23,64 +17,28 @@ final _logger = Logger('AndOTPImport');
 
 Future<void> showAndOTPImportInstruction(BuildContext context) async {
   final l10n = context.l10n;
-  final result = await showDialogWidget(
+  await showFileImportInstruction(
     context: context,
-    title: l10n.importFromApp("andOTP"),
+    title: "andOTP",
     body: l10n.importAndOTPGuide,
-    buttons: [
-      ButtonWidget(
-        buttonType: ButtonType.primary,
-        labelText: l10n.importSelectAppExport("andOTP"),
-        isInAlert: true,
-        buttonSize: ButtonSize.large,
-        buttonAction: ButtonAction.first,
-      ),
-      ButtonWidget(
-        buttonType: ButtonType.secondary,
-        labelText: l10n.cancel,
-        buttonSize: ButtonSize.large,
-        isInAlert: true,
-        buttonAction: ButtonAction.second,
-      ),
-    ],
+    actionLabel: l10n.importSelectAppExport("andOTP"),
+    semanticsIdentifier: 'auth_import_instruction_andotp',
+    onImport: () => _pickAndOTPFile(context),
   );
-  if (result?.action != null && result!.action != ButtonAction.cancel) {
-    if (result.action == ButtonAction.first) {
-      await _pickAndOTPFile(context);
-    }
-  }
 }
 
 Future<void> _pickAndOTPFile(BuildContext context) async {
-  final l10n = context.l10n;
-  FilePickerResult? result = await FilePicker.platform.pickFiles(
-    dialogTitle: l10n.importSelectAppExport("andOTP"),
-    allowMultiple: false,
+  await pickAndProcessImportFile(
+    context: context,
+    dialogTitle: context.l10n.importSelectAppExport("andOTP"),
     type: FileType.custom,
     allowedExtensions: ['json', 'aes'],
+    showProgressBeforeProcessing: false,
+    logger: _logger,
+    logMessage: 'Exception while processing andOTP import',
+    process: (path, progressDialog) =>
+        _processAndOTPFile(context, path, progressDialog),
   );
-  if (result == null) {
-    return;
-  }
-  final ProgressDialog progressDialog =
-      createProgressDialog(context, l10n.pleaseWait);
-
-  try {
-    String path = result.files.single.path!;
-    final count = await _processAndOTPFile(context, path, progressDialog);
-    await progressDialog.hide();
-    if (count != null) {
-      await importSuccessDialog(context, count);
-    }
-  } catch (e, s) {
-    _logger.severe('Exception while processing andOTP import', e, s);
-    await progressDialog.hide();
-    await showErrorDialog(
-      context,
-      l10n.sorry,
-      "${l10n.importFailureDesc}\n Error: ${e.toString()}",
-    );
-  }
 }
 
 class _DecryptParams {
@@ -107,17 +65,13 @@ Future<int?> _processAndOTPFile(
     entries = jsonDecode(jsonString) as List<dynamic>;
     await dialog.show();
   } catch (e) {
+    if (!context.mounted) return null;
     // If JSON parsing fails, assume it's encrypted
     String? password;
     try {
-      await showTextInputDialog(
+      password = await promptForImportPassword(
         context,
         title: context.l10n.enterPasswordToDecryptAndOTP,
-        submitButtonLabel: context.l10n.submit,
-        isPasswordInput: true,
-        onSubmit: (value) async {
-          password = value;
-        },
       );
       if (password == null) {
         return null;
@@ -125,13 +79,14 @@ Future<int?> _processAndOTPFile(
       await dialog.show();
       final decryptedContent = await compute(
         _decryptAndOTPBackup,
-        _DecryptParams(fileBytes: fileBytes, password: password!),
+        _DecryptParams(fileBytes: fileBytes, password: password),
       );
       entries = jsonDecode(decryptedContent) as List<dynamic>;
     } catch (e, s) {
       _logger.warning("Exception while decrypting andOTP backup", e, s);
       await dialog.hide();
       if (password != null) {
+        if (!context.mounted) return null;
         await showErrorDialog(
           context,
           context.l10n.failedToDecryptAndOTPBackup,
@@ -171,18 +126,18 @@ Future<int?> _processAndOTPFile(
       final String encodedIssuer = Uri.encodeComponent(issuer);
       final String encodedLabel = Uri.encodeComponent(label);
 
-      String otpUrl;
-      if (type == 'TOTP' || type == 'STEAM') {
-        final String otpType = type.toLowerCase();
-        otpUrl =
-            'otpauth://$otpType/$encodedIssuer:$encodedLabel?secret=$secret&issuer=$encodedIssuer&algorithm=$algorithm&digits=$digits&period=$period';
-      } else {
-        // HOTP
-        otpUrl =
-            'otpauth://hotp/$encodedIssuer:$encodedLabel?secret=$secret&issuer=$encodedIssuer&algorithm=$algorithm&digits=$digits&counter=$counter';
-      }
-
-      Code code = Code.fromOTPAuthUrl(otpUrl);
+      Code code = Code.fromOTPAuthUrl(
+        buildImportOtpUri(
+          kind: type,
+          issuer: encodedIssuer,
+          account: encodedLabel,
+          secret: secret,
+          algorithm: algorithm,
+          digits: digits,
+          period: period,
+          counter: counter,
+        ),
+      );
       if (tags.isNotEmpty) {
         code = code.copyWith(display: CodeDisplay(tags: tags));
       }
@@ -192,12 +147,7 @@ Future<int?> _processAndOTPFile(
     }
   }
 
-  for (final code in parsedCodes) {
-    await CodeStore.instance.addCode(code, shouldSync: false);
-  }
-  unawaited(AuthenticatorService.instance.onlineSync());
-
-  return parsedCodes.length;
+  return saveImportedCodes(parsedCodes);
 }
 
 /// Top-level function for decrypting andOTP backup in a separate isolate.
@@ -221,19 +171,26 @@ String _decryptAndOTPBackup(_DecryptParams params) {
   final int iterations = byteData.getInt32(0, Endian.big);
 
   // Extract salt (12 bytes)
-  final Uint8List salt =
-      Uint8List.sublistView(fileBytes, intLength, intLength + saltLength);
+  final Uint8List salt = Uint8List.sublistView(
+    fileBytes,
+    intLength,
+    intLength + saltLength,
+  );
 
   // Extract encrypted payload (IV + ciphertext + auth tag)
-  final Uint8List encryptedPayload =
-      Uint8List.sublistView(fileBytes, intLength + saltLength);
+  final Uint8List encryptedPayload = Uint8List.sublistView(
+    fileBytes,
+    intLength + saltLength,
+  );
 
   // Extract IV from encrypted payload (first 12 bytes)
   final Uint8List iv = Uint8List.sublistView(encryptedPayload, 0, ivLength);
 
   // Extract ciphertext + auth tag (remaining bytes)
-  final Uint8List ciphertextWithTag =
-      Uint8List.sublistView(encryptedPayload, ivLength);
+  final Uint8List ciphertextWithTag = Uint8List.sublistView(
+    encryptedPayload,
+    ivLength,
+  );
 
   // Derive key using PBKDF2 with HMAC-SHA1
   const int keyLength = 32; // 256 bits
@@ -241,12 +198,7 @@ String _decryptAndOTPBackup(_DecryptParams params) {
   pbkdf2.init(Pbkdf2Parameters(salt, iterations, keyLength));
 
   final Uint8List derivedKey = Uint8List(keyLength);
-  pbkdf2.deriveKey(
-    Uint8List.fromList(utf8.encode(password)),
-    0,
-    derivedKey,
-    0,
-  );
+  pbkdf2.deriveKey(Uint8List.fromList(utf8.encode(password)), 0, derivedKey, 0);
 
   // Decrypt using AES-GCM
   final cipher = GCMBlockCipher(AESEngine())

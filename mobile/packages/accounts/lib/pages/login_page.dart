@@ -41,25 +41,26 @@ class _LoginPageState extends State<LoginPage> {
       }
     }
     if (attr != null && !isEmailVerificationEnabled) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return LoginPasswordVerificationPage(
-              widget.config,
-              attr!,
-            );
-          },
-        ),
-      );
+      if (mounted) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return LoginPasswordVerificationPage(widget.config, attr!);
+            },
+          ),
+        );
+      }
     } else {
       await UserService.instance.sendOtt(
-        context,
+        mounted ? context : null,
         _email!,
         isCreateAccountScreen: false,
         purpose: 'login',
       );
     }
-    FocusScope.of(context).unfocus();
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+    }
   }
 
   @override
@@ -141,8 +142,9 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 8),
                       TextFormField(
                         autofillHints: const [AutofillHints.email],
-                        onFieldSubmitted:
-                            _emailIsValid ? (value) => onPressed() : null,
+                        onFieldSubmitted: _emailIsValid
+                            ? (value) => onPressed()
+                            : null,
                         decoration: InputDecoration(
                           fillColor:
                               _emailInputFieldColor ?? colorScheme.backdropBase,
@@ -177,10 +179,9 @@ class _LoginPageState extends State<LoginPage> {
                             _email = value.trim();
                             _emailIsValid = EmailValidator.validate(_email!);
                             if (_emailIsValid) {
-                              _emailInputFieldColor =
-                                  getEnteColorScheme(context)
-                                      .primary700
-                                      .withValues(alpha: 0.2);
+                              _emailInputFieldColor = getEnteColorScheme(
+                                context,
+                              ).primary700.withValues(alpha: 0.2);
                             } else {
                               _emailInputFieldColor = null;
                             }
@@ -201,10 +202,10 @@ class _LoginPageState extends State<LoginPage> {
                           'u-terms': StyledTextActionTag(
                             (String? text, Map<String?, String?> attrs) =>
                                 PlatformUtil.openWebView(
-                              context,
-                              context.strings.termsOfServicesTitle,
-                              "https://ente.com/terms",
-                            ),
+                                  context,
+                                  context.strings.termsOfServicesTitle,
+                                  "https://ente.com/terms",
+                                ),
                             style: TextStyle(
                               decoration: TextDecoration.underline,
                               color: colorScheme.textMuted,
@@ -213,10 +214,10 @@ class _LoginPageState extends State<LoginPage> {
                           'u-policy': StyledTextActionTag(
                             (String? text, Map<String?, String?> attrs) =>
                                 PlatformUtil.openWebView(
-                              context,
-                              context.strings.privacyPolicyTitle,
-                              "https://ente.com/privacy",
-                            ),
+                                  context,
+                                  context.strings.privacyPolicyTitle,
+                                  "https://ente.com/privacy",
+                                ),
                             style: TextStyle(
                               decoration: TextDecoration.underline,
                               color: colorScheme.textMuted,

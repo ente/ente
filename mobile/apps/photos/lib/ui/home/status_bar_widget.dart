@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import "package:ente_components/ente_components.dart";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import "package:hugeicons/hugeicons.dart";
 import "package:intl/intl.dart";
 import "package:logging/logging.dart";
 import 'package:photos/core/event_bus.dart';
@@ -14,10 +16,8 @@ import "package:photos/generated/l10n.dart";
 import "package:photos/service_locator.dart";
 import 'package:photos/services/sync/sync_service.dart';
 import "package:photos/theme/ente_theme.dart";
-import 'package:photos/theme/text_style.dart';
 import 'package:photos/ui/account/verify_recovery_page.dart';
 import 'package:photos/ui/components/home_header_widget.dart';
-import 'package:photos/ui/components/notification_widget.dart';
 import 'package:photos/ui/home/christmas/christmas_lights_banner.dart';
 import 'package:photos/ui/home/christmas/christmas_utils.dart';
 import 'package:photos/ui/home/header_error_widget.dart';
@@ -43,7 +43,8 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
   bool _isPausedDueToNetwork = false;
   bool _showStatus = false;
   bool _showErrorBanner = false;
-  bool _showMlBanner = !hasGrantedMLConsent &&
+  bool _showMlBanner =
+      !hasGrantedMLConsent &&
       (isLocalGalleryMode || flagService.hasSyncedAccountFlags()) &&
       !localSettings.hasSeenMLEnablingBanner;
   Error? _syncError;
@@ -88,12 +89,13 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
         setState(() {});
       }
     });
-    _christmasBannerSubscription =
-        Bus.instance.on<ChristmasBannerEvent>().listen((_) {
-      if (mounted) {
-        setState(() {});
-      }
-    });
+    _christmasBannerSubscription = Bus.instance
+        .on<ChristmasBannerEvent>()
+        .listen((_) {
+          if (mounted) {
+            setState(() {});
+          }
+        });
 
     super.initState();
   }
@@ -139,55 +141,53 @@ class _StatusBarWidgetState extends State<StatusBarWidget> {
         _showErrorBanner
             ? Divider(height: 8, color: getEnteColorScheme(context).strokeFaint)
             : const SizedBox.shrink(),
-        _showErrorBanner
-            ? HeaderErrorWidget(error: _syncError)
-            : const SizedBox.shrink(),
-        _showMlBanner && !_showErrorBanner
-            ? Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 2.0,
-                  vertical: 12,
-                ),
-                child: NotificationWidget(
-                  startIcon: Icons.offline_bolt,
-                  actionIcon: Icons.arrow_forward,
-                  text: AppLocalizations.of(
-                    context,
-                  ).enableMachineLearningBanner,
-                  type: NotificationType.greenBanner,
-                  mainTextStyle: darkTextTheme.smallMuted,
-                  onTap: () async => {
-                    await routeToPage(
-                      context,
-                      const MachineLearningSettingsPage(),
-                      forceCustomPageRoute: true,
-                    ),
-                  },
-                ),
-              )
-            : const SizedBox.shrink(),
-        _showVerificationBanner()
-            ? Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 12,
-                ),
-                child: NotificationWidget(
-                  startIcon: Icons.error_outline,
-                  actionIcon: Icons.arrow_forward,
-                  text: AppLocalizations.of(context).confirmYourRecoveryKey,
-                  type: NotificationType.banner,
-                  onTap: () async => {
-                    await routeToPage(
-                      context,
-                      const VerifyRecoveryPage(),
-                      forceCustomPageRoute: true,
-                    ),
-                  },
-                ),
-              )
-            : const SizedBox.shrink(),
+        if (_showErrorBanner) HeaderErrorWidget(error: _syncError),
+        if (_showMlBanner && !_showErrorBanner) _mlBanner(context),
+        if (_showVerificationBanner()) _recoveryKeyBanner(context),
       ],
+    );
+  }
+
+  Widget _mlBanner(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return _bannerPadding(
+      BannerComponent(
+        leadingIcon: HugeIcons.strokeRoundedAiBrain01,
+        title: l10n.machineLearning,
+        subtitle: l10n.machineLearningBannerSubtitle,
+        state: BannerComponentState.success,
+        onTap: () async {
+          await routeToPage(
+            context,
+            const MachineLearningSettingsPage(),
+            forceCustomPageRoute: true,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _recoveryKeyBanner(BuildContext context) {
+    return _bannerPadding(
+      BannerComponent(
+        leadingIcon: HugeIcons.strokeRoundedAlertCircle,
+        title: AppLocalizations.of(context).confirmYourRecoveryKey,
+        state: BannerComponentState.warning,
+        onTap: () async {
+          await routeToPage(
+            context,
+            const VerifyRecoveryPage(),
+            forceCustomPageRoute: true,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _bannerPadding(Widget child) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: child,
     );
   }
 
@@ -235,7 +235,8 @@ class _SyncStatusWidgetState extends State<SyncStatusWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isNotOutdatedEvent = _event != null &&
+    final bool isNotOutdatedEvent =
+        _event != null &&
         (_event!.status == SyncStatus.completedBackup ||
             _event!.status == SyncStatus.completedFirstGalleryImport) &&
         (DateTime.now().microsecondsSinceEpoch - _event!.timestamp >

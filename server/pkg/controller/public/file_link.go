@@ -4,12 +4,12 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/repo/public"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo/public"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/lithammer/shortuuid/v3"
 )
@@ -35,7 +35,7 @@ func (c *FileLinkController) CreateLink(ctx *gin.Context, req ente.CreateFileUrl
 	if actorUserID != file.OwnerID {
 		return nil, stacktrace.Propagate(ente.NewPermissionDeniedError("not file owner"), "")
 	}
-	for attempt := 0; attempt < 5; attempt++ {
+	for range 5 {
 		accessToken := strings.ToUpper(shortuuid.New()[0:AccessTokenLength])
 		_, err = c.FileLinkRepo.Insert(ctx, req, actorUserID, accessToken)
 		if errors.Is(err, ente.ErrAccessTokenInUse) {

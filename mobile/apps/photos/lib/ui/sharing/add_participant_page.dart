@@ -1,44 +1,28 @@
 import 'package:email_validator/email_validator.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/api/collection/user.dart";
 import 'package:photos/models/collection/collection.dart';
 import "package:photos/services/account/user_service.dart";
 import 'package:photos/services/collections_service.dart';
 import "package:photos/services/contacts/contact_identity_resolver.dart";
-import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/ui/actions/collection/collection_sharing_actions.dart';
-import 'package:photos/ui/components/buttons/button_widget.dart';
-import 'package:photos/ui/components/captioned_text_widget.dart';
-import 'package:photos/ui/components/divider_widget.dart';
-import 'package:photos/ui/components/menu_item_widget/menu_item_widget.dart';
-import 'package:photos/ui/components/menu_section_description_widget.dart';
-import 'package:photos/ui/components/menu_section_title.dart';
-import 'package:photos/ui/components/models/button_type.dart';
 import "package:photos/ui/notification/toast.dart";
+import 'package:photos/ui/sharing/share_components.dart';
 import 'package:photos/ui/sharing/user_avator_widget.dart';
 import "package:photos/ui/sharing/verify_identity_dialog.dart";
-import "package:photos/utils/separators_util.dart";
 
-enum ActionTypesToShow {
-  addViewer,
-  addCollaborator,
-  addAdmin,
-}
+enum ActionTypesToShow { addViewer, addCollaborator, addAdmin }
 
 class AddParticipantPage extends StatefulWidget {
   /// Cannot be empty
   final List<ActionTypesToShow> actionTypesToShow;
   final List<Collection> collections;
 
-  AddParticipantPage(
-    this.collections,
-    this.actionTypesToShow, {
-    super.key,
-  }) : assert(
-          actionTypesToShow.isNotEmpty,
-          'actionTypesToShow cannot be empty',
-        );
+  AddParticipantPage(this.collections, this.actionTypesToShow, {super.key})
+    : assert(actionTypesToShow.isNotEmpty, 'actionTypesToShow cannot be empty');
 
   @override
   State<StatefulWidget> createState() => _AddParticipantPage();
@@ -81,194 +65,199 @@ class _AddParticipantPage extends State<AddParticipantPage> {
         )
         .toList();
     isKeypadOpen = MediaQuery.viewInsetsOf(context).bottom > 100;
-    final enteTextTheme = getEnteTextTheme(context);
-    final enteColorScheme = getEnteColorScheme(context);
-    return Scaffold(
+
+    return ShareScaffold(
+      title: _getTitle(),
+      subtitle: _getSubtitle(),
       resizeToAvoidBottomInset: isKeypadOpen,
-      appBar: AppBar(
-        title: Text(
-          _getTitle(),
+      footer: _bottomActionBar(),
+      slivers: _slivers(filterSuggestedUsers),
+    );
+  }
+
+  List<Widget> _slivers(List<User> filterSuggestedUsers) {
+    final footerDescriptions = [
+      if (filterSuggestedUsers.isNotEmpty)
+        ShareSectionDescription(
+          AppLocalizations.of(
+            context,
+          ).longPressAnEmailToVerifyEndToEndEncryption,
+        ),
+      ..._roleDescriptionWidgets(),
+    ];
+
+    return [
+      SliverSafeArea(
+        top: false,
+        bottom: false,
+        sliver: SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+          sliver: SliverList.list(
+            children: [
+              ShareSectionTitle(AppLocalizations.of(context).addANewEmail),
+              _enterEmailField(),
+              if (filterSuggestedUsers.isNotEmpty) ...[
+                const SizedBox(height: Spacing.xxl),
+                ShareSectionTitle(
+                  AppLocalizations.of(context).orPickAnExistingOne,
+                ),
+              ],
+            ],
+          ),
         ),
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              AppLocalizations.of(context).addANewEmail,
-              style: enteTextTheme.small
-                  .copyWith(color: enteColorScheme.textMuted),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: _enterEmailField(),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
+      if (filterSuggestedUsers.isNotEmpty)
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+          sliver: SliverList.builder(
+            itemCount: filterSuggestedUsers.length,
+            itemBuilder: (context, index) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  filterSuggestedUsers.isNotEmpty
-                      ? MenuSectionTitle(
-                          title:
-                              AppLocalizations.of(context).orPickAnExistingOne,
-                        )
-                      : const SizedBox.shrink(),
-                  Expanded(
-                    child: ListView.builder(
-                      physics: const BouncingScrollPhysics(),
-                      itemBuilder: (context, index) {
-                        if (index >= filterSuggestedUsers.length) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8.0,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                filterSuggestedUsers.isNotEmpty
-                                    ? MenuSectionDescriptionWidget(
-                                        content: AppLocalizations.of(context)
-                                            .longPressAnEmailToVerifyEndToEndEncryption,
-                                      )
-                                    : const SizedBox.shrink(),
-                                widget.actionTypesToShow.contains(
-                                  ActionTypesToShow.addCollaborator,
-                                )
-                                    ? MenuSectionDescriptionWidget(
-                                        content: AppLocalizations.of(context)
-                                            .collaboratorsCanAddPhotosAndVideosToTheSharedAlbum,
-                                      )
-                                    : const SizedBox.shrink(),
-                                widget.actionTypesToShow.contains(
-                                  ActionTypesToShow.addAdmin,
-                                )
-                                    ? MenuSectionDescriptionWidget(
-                                        content: AppLocalizations.of(context)
-                                            .adminsCanManagePhotosAndParticipants,
-                                      )
-                                    : const SizedBox.shrink(),
-                              ],
-                            ),
-                          );
-                        }
-                        final currentUser = filterSuggestedUsers[index];
-                        final resolvedName = resolveDisplayName(currentUser);
-                        return Column(
-                          children: [
-                            MenuItemWidget(
-                              key: ValueKey(
-                                '${currentUser.email}-$resolvedName',
-                              ),
-                              captionedTextWidget: CaptionedTextWidget(
-                                title: resolvedName,
-                              ),
-                              leadingIconSize: 24.0,
-                              leadingIconWidget: UserAvatarWidget(
-                                currentUser,
-                                type: AvatarType.md,
-                              ),
-                              menuItemColor:
-                                  getEnteColorScheme(context).fillFaint,
-                              pressedColor:
-                                  getEnteColorScheme(context).fillFaint,
-                              trailingIcon:
-                                  (_selectedEmails.contains(currentUser.email))
-                                      ? Icons.check
-                                      : null,
-                              onTap: () async {
-                                textFieldFocusNode.unfocus();
-                                if (_selectedEmails
-                                    .contains(currentUser.email)) {
-                                  _selectedEmails.remove(currentUser.email);
-                                } else {
-                                  _selectedEmails.add(currentUser.email);
-                                }
+                  _suggestedUserItem(filterSuggestedUsers, index),
+                  if (index < filterSuggestedUsers.length - 1)
+                    _suggestedUserSeparator(),
+                ],
+              );
+            },
+          ),
+        ),
+      if (footerDescriptions.isNotEmpty)
+        SliverSafeArea(
+          top: false,
+          bottom: false,
+          sliver: SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.lg,
+              0,
+              Spacing.lg,
+              Spacing.sm,
+            ),
+            sliver: SliverList.list(children: footerDescriptions),
+          ),
+        ),
+    ];
+  }
 
-                                setState(() => {});
-                                // showShortToast(context, "yet to implement");
-                              },
-                              onLongPress: () {
-                                showDialog(
-                                  useRootNavigator: false,
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return VerifyIdentifyDialog(
-                                      self: false,
-                                      email: currentUser.email,
-                                    );
-                                  },
-                                );
-                              },
-                              isTopBorderRadiusRemoved: index > 0,
-                              isBottomBorderRadiusRemoved:
-                                  index < (filterSuggestedUsers.length - 1),
-                            ),
-                            (index == (filterSuggestedUsers.length - 1))
-                                ? const SizedBox.shrink()
-                                : DividerWidget(
-                                    dividerType: DividerType.menu,
-                                    bgColor:
-                                        getEnteColorScheme(context).fillFaint,
-                                  ),
-                          ],
-                        );
-                      },
-                      itemCount: filterSuggestedUsers.length + 1,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.only(
-                top: 8,
-                bottom: 8,
-                left: 16,
-                right: 16,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 8),
-                  ..._actionButtons(),
-                  const SizedBox(height: 12),
-                ],
-              ),
-            ),
-          ),
-        ],
+  Widget _bottomActionBar() {
+    final actionButtons = _actionButtons();
+    final bottomPadding = isKeypadOpen ? Spacing.sm : Spacing.xl;
+    return SafeArea(
+      top: false,
+      bottom: !isKeypadOpen,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          Spacing.lg,
+          Spacing.sm,
+          Spacing.lg,
+          bottomPadding,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var index = 0; index < actionButtons.length; index++) ...[
+              actionButtons[index],
+              if (index < actionButtons.length - 1)
+                const SizedBox(height: Spacing.sm),
+            ],
+          ],
+        ),
       ),
+    );
+  }
+
+  List<Widget> _roleDescriptionWidgets() {
+    if (widget.actionTypesToShow.length == 1) {
+      return const [];
+    }
+
+    return [
+      if (widget.actionTypesToShow.contains(ActionTypesToShow.addCollaborator))
+        ShareSectionDescription(
+          AppLocalizations.of(
+            context,
+          ).collaboratorsCanAddPhotosAndVideosToTheSharedAlbum,
+        ),
+      if (widget.actionTypesToShow.contains(ActionTypesToShow.addAdmin))
+        ShareSectionDescription(
+          AppLocalizations.of(context).adminsCanManagePhotosAndParticipants,
+        ),
+    ];
+  }
+
+  Widget _suggestedUserItem(List<User> users, int index) {
+    final currentUser = users[index];
+    final borderRadius = MenuGroupComponent.itemBorderRadius(
+      index: index,
+      itemCount: users.length,
+      borderRadius: BorderRadius.circular(Radii.button),
+    );
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: context.componentColors.fillLight,
+          borderRadius: borderRadius,
+        ),
+        child: ShareMenuItem(
+          key: ValueKey(
+            '${currentUser.email}-${resolveDisplayName(currentUser)}',
+          ),
+          title: resolveDisplayName(currentUser),
+          titleColor: context.componentColors.textLight,
+          leading: UserAvatarWidget(currentUser, type: AvatarType.medium),
+          trailing: _selectedEmails.contains(currentUser.email)
+              ? shareCheck(context)
+              : null,
+          onTap: () async {
+            textFieldFocusNode.unfocus();
+            if (_selectedEmails.contains(currentUser.email)) {
+              _selectedEmails.remove(currentUser.email);
+            } else {
+              _selectedEmails.add(currentUser.email);
+            }
+            setState(() => {});
+          },
+          onLongPress: () {
+            showDialog(
+              useRootNavigator: false,
+              context: context,
+              builder: (BuildContext context) {
+                return VerifyIdentifyDialog(
+                  self: false,
+                  email: currentUser.email,
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _suggestedUserSeparator() {
+    return ColoredBox(
+      color: context.componentColors.fillLight,
+      child: const DividerComponent(),
     );
   }
 
   List<Widget> _actionButtons() {
     final widgets = <Widget>[];
-    if (widget.actionTypesToShow.contains(
-      ActionTypesToShow.addCollaborator,
-    )) {
+    if (widget.actionTypesToShow.contains(ActionTypesToShow.addCollaborator)) {
       widgets.add(
-        ButtonWidget(
-          buttonType:
+        ButtonComponent(
+          variant:
               widget.actionTypesToShow.contains(ActionTypesToShow.addViewer)
-                  ? ButtonType.neutral
-                  : ButtonType.primary,
-          buttonSize: ButtonSize.large,
-          labelText: AppLocalizations.of(context)
-              .addCollaborators(count: _selectedEmails.length),
+              ? ButtonComponentVariant.neutral
+              : ButtonComponentVariant.primary,
+          size: ButtonComponentSize.large,
+          label: AppLocalizations.of(
+            context,
+          ).addCollaborators(count: _selectedEmails.length),
           isDisabled: _selectedEmails.isEmpty,
           onTap: () async {
-            // TODO: This is not currently designed for best UX for action on
-            // multiple collections and emails, especially if some operations
-            // fail. Can be improved by using a different 'addEmailToCollection'
-            // that accepts list of emails and list of collections.
             final results = <bool>[];
             final collections = widget.collections;
 
@@ -286,10 +275,12 @@ class _AddParticipantPage extends State<AddParticipantPage> {
             }
 
             final noOfSuccessfullAdds = results.where((e) => e).length;
+            if (!mounted) return;
             showToast(
               context,
-              AppLocalizations.of(context)
-                  .collaboratorsSuccessfullyAdded(count: noOfSuccessfullAdds),
+              AppLocalizations.of(
+                context,
+              ).collaboratorsSuccessfullyAdded(count: noOfSuccessfullAdds),
             );
 
             if (!results.any((e) => e == false) && mounted) {
@@ -301,11 +292,12 @@ class _AddParticipantPage extends State<AddParticipantPage> {
     }
     if (widget.actionTypesToShow.contains(ActionTypesToShow.addViewer)) {
       widgets.add(
-        ButtonWidget(
-          buttonType: ButtonType.primary,
-          buttonSize: ButtonSize.large,
-          labelText: AppLocalizations.of(context)
-              .addViewers(count: _selectedEmails.length),
+        ButtonComponent(
+          variant: ButtonComponentVariant.primary,
+          size: ButtonComponentSize.large,
+          label: AppLocalizations.of(
+            context,
+          ).addViewers(count: _selectedEmails.length),
           isDisabled: _selectedEmails.isEmpty,
           onTap: () async {
             final results = <bool>[];
@@ -325,10 +317,12 @@ class _AddParticipantPage extends State<AddParticipantPage> {
             }
 
             final noOfSuccessfullAdds = results.where((e) => e).length;
+            if (!mounted) return;
             showToast(
               context,
-              AppLocalizations.of(context)
-                  .viewersSuccessfullyAdded(count: noOfSuccessfullAdds),
+              AppLocalizations.of(
+                context,
+              ).viewersSuccessfullyAdded(count: noOfSuccessfullAdds),
             );
 
             if (!results.any((e) => e == false) && mounted) {
@@ -340,13 +334,14 @@ class _AddParticipantPage extends State<AddParticipantPage> {
     }
     if (widget.actionTypesToShow.contains(ActionTypesToShow.addAdmin)) {
       widgets.add(
-        ButtonWidget(
-          buttonType: widget.actionTypesToShow.length == 1
-              ? ButtonType.primary
-              : ButtonType.neutral,
-          buttonSize: ButtonSize.large,
-          labelText: AppLocalizations.of(context)
-              .addAdmins(count: _selectedEmails.length),
+        ButtonComponent(
+          variant: widget.actionTypesToShow.length == 1
+              ? ButtonComponentVariant.primary
+              : ButtonComponentVariant.neutral,
+          size: ButtonComponentSize.large,
+          label: AppLocalizations.of(
+            context,
+          ).addAdmins(count: _selectedEmails.length),
           isDisabled: _selectedEmails.isEmpty,
           onTap: () async {
             final results = <bool>[];
@@ -366,10 +361,12 @@ class _AddParticipantPage extends State<AddParticipantPage> {
             }
 
             final successful = results.where((e) => e).length;
+            if (!mounted) return;
             showToast(
               context,
-              AppLocalizations.of(context)
-                  .adminsSuccessfullyAdded(count: successful),
+              AppLocalizations.of(
+                context,
+              ).adminsSuccessfullyAdded(count: successful),
             );
 
             if (!results.any((e) => e == false) && mounted) {
@@ -379,106 +376,77 @@ class _AddParticipantPage extends State<AddParticipantPage> {
         ),
       );
     }
-    final widgetsWithSpaceBetween = addSeparators(
-      widgets,
-      const SizedBox(
-        height: 8,
-      ),
-    );
-    return widgetsWithSpaceBetween;
+    return widgets;
   }
 
   void clearFocus() {
+    _clearEmailField();
+    textFieldFocusNode.unfocus();
+    setState(() => {});
+  }
+
+  void _clearEmailField() {
     _textController.clear();
     _newEmail = _textController.text;
     _emailIsValid = false;
-    textFieldFocusNode.unfocus();
-    setState(() => {});
   }
 
   Widget _enterEmailField() {
     return Row(
       children: [
         Expanded(
-          child: TextFormField(
+          child: TextInputComponent(
             controller: _textController,
             focusNode: textFieldFocusNode,
-            style: getEnteTextTheme(context).body,
+            hintText: AppLocalizations.of(context).enterAnEmailAddress,
+            isClearable: true,
+            shouldUnfocusOnClearOrSubmit: true,
             autofillHints: const [AutofillHints.email],
-            decoration: InputDecoration(
-              focusedBorder: OutlineInputBorder(
-                borderRadius: const BorderRadius.all(Radius.circular(4.0)),
-                borderSide:
-                    BorderSide(color: getEnteColorScheme(context).strokeMuted),
-              ),
-              fillColor: getEnteColorScheme(context).fillFaint,
-              filled: true,
-              hintText: AppLocalizations.of(context).enterEmail,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-              border: UnderlineInputBorder(
-                borderSide: BorderSide.none,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              prefixIcon: Icon(
-                Icons.email_outlined,
-                color: getEnteColorScheme(context).strokeMuted,
-              ),
-              suffixIcon: _newEmail == ''
-                  ? null
-                  : IconButton(
-                      onPressed: clearFocus,
-                      icon: Icon(
-                        Icons.cancel,
-                        color: getEnteColorScheme(context).strokeMuted,
-                      ),
-                    ),
-            ),
+            autocorrect: false,
+            keyboardType: TextInputType.emailAddress,
             onChanged: (value) {
               _newEmail = value.trim();
               _emailIsValid = EmailValidator.validate(_newEmail);
               setState(() {});
             },
-            autocorrect: false,
-            keyboardType: TextInputType.emailAddress,
-            //initialValue: _email,
-            textInputAction: TextInputAction.next,
           ),
         ),
-        const SizedBox(width: 8),
-        ButtonWidget(
-          buttonType: ButtonType.secondary,
-          buttonSize: ButtonSize.small,
-          labelText: AppLocalizations.of(context).add,
-          isDisabled: !_emailIsValid,
-          onTap: () async {
-            if (_emailIsValid) {
-              final result = await collectionActions.doesEmailHaveAccount(
-                context,
-                _newEmail,
-              );
-              if (result && mounted) {
-                setState(() {
-                  for (var suggestedUser in _suggestedUsers) {
-                    if (suggestedUser.email == _newEmail) {
-                      _selectedEmails.add(suggestedUser.email);
-                      clearFocus();
-
-                      return;
-                    }
-                  }
-                  _suggestedUsers.insert(0, User(email: _newEmail));
-                  _selectedEmails.add(_newEmail);
-                  clearFocus();
-                });
-              }
-            }
-          },
+        const SizedBox(width: Spacing.sm),
+        IconButtonComponent(
+          variant: IconButtonComponentVariant.green,
+          tooltip: AppLocalizations.of(context).add,
+          icon: const HugeIcon(icon: HugeIcons.strokeRoundedMailAdd01),
+          onTap: _emailIsValid ? _addNewEmail : null,
         ),
       ],
     );
+  }
+
+  Future<void> _addNewEmail() async {
+    if (!_emailIsValid) {
+      return;
+    }
+    final result = await collectionActions.doesEmailHaveAccount(
+      context,
+      _newEmail,
+    );
+    if (result && mounted) {
+      setState(() {
+        for (var suggestedUser in _suggestedUsers) {
+          if (suggestedUser.email == _newEmail) {
+            _selectedEmails.add(suggestedUser.email);
+            _clearEmailField();
+            textFieldFocusNode.unfocus();
+
+            return;
+          }
+        }
+        _suggestedUsers.insert(0, User(email: _newEmail));
+        _selectedEmails.add(_newEmail);
+        _clearEmailField();
+        textFieldFocusNode.unfocus();
+      });
+    }
   }
 
   List<User> _getSuggestedUser() {
@@ -503,9 +471,7 @@ class _AddParticipantPage extends State<AddParticipantPage> {
     }
 
     final List<User> suggestedUsers = UserService.instance.getRelevantContacts()
-      ..removeWhere(
-        (element) => existingEmails.contains(element.email),
-      );
+      ..removeWhere((element) => existingEmails.contains(element.email));
 
     if (_textController.text.trim().isNotEmpty) {
       suggestedUsers.removeWhere(
@@ -534,6 +500,24 @@ class _AddParticipantPage extends State<AddParticipantPage> {
         return AppLocalizations.of(context).addCollaborator;
       case ActionTypesToShow.addAdmin:
         return AppLocalizations.of(context).addAdmin;
+    }
+  }
+
+  String? _getSubtitle() {
+    if (widget.actionTypesToShow.length != 1) {
+      return null;
+    }
+    switch (widget.actionTypesToShow.first) {
+      case ActionTypesToShow.addCollaborator:
+        return AppLocalizations.of(
+          context,
+        ).collaboratorsCanAddPhotosAndVideosToTheSharedAlbum;
+      case ActionTypesToShow.addAdmin:
+        return AppLocalizations.of(
+          context,
+        ).adminsCanManagePhotosAndParticipants;
+      case ActionTypesToShow.addViewer:
+        return null;
     }
   }
 

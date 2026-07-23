@@ -29,8 +29,9 @@ User _anonymousUserForComment(
   Map<String, String> anonDisplayNames,
 ) {
   final anonID = _normalizedAnonID(comment);
-  final displayName =
-      anonID != null ? (anonDisplayNames[anonID] ?? anonID) : "Anonymous";
+  final displayName = anonID != null
+      ? (anonDisplayNames[anonID] ?? anonID)
+      : "Anonymous";
   return User(
     id: comment.userID,
     email: "${anonID ?? "anonymous"}@unknown.com",

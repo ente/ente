@@ -75,10 +75,10 @@ class EmergencyContact {
 
   // fromJson
   EmergencyContact.fromJson(Map<String, dynamic> json)
-      : user = User.fromMap(json['user']),
-        emergencyContact = User.fromMap(json['emergencyContact']),
-        state = ContactStateExtension.fromString(json['state'] as String),
-        recoveryNoticeInDays = json['recoveryNoticeInDays'];
+    : user = User.fromMap(json['user']),
+      emergencyContact = User.fromMap(json['emergencyContact']),
+      state = ContactStateExtension.fromString(json['state'] as String),
+      recoveryNoticeInDays = json['recoveryNoticeInDays'];
 
   bool isCurrentUserContact(int userID) {
     return user.id == userID;
@@ -111,18 +111,18 @@ class EmergencyInfo {
 
   // from json
   EmergencyInfo.fromJson(Map<String, dynamic> json)
-      : contacts = (json['contacts'] as List)
-            .map((contact) => EmergencyContact.fromJson(contact))
-            .toList(),
-        recoverSessions = (json['recoverSessions'] as List)
-            .map((session) => RecoverySessions.fromJson(session))
-            .toList(),
-        othersEmergencyContact = (json['othersEmergencyContact'] as List)
-            .map((grantor) => EmergencyContact.fromJson(grantor))
-            .toList(),
-        othersRecoverySession = (json['othersRecoverySession'] as List)
-            .map((session) => RecoverySessions.fromJson(session))
-            .toList();
+    : contacts = (json['contacts'] as List)
+          .map((contact) => EmergencyContact.fromJson(contact))
+          .toList(),
+      recoverSessions = (json['recoverSessions'] as List)
+          .map((session) => RecoverySessions.fromJson(session))
+          .toList(),
+      othersEmergencyContact = (json['othersEmergencyContact'] as List)
+          .map((grantor) => EmergencyContact.fromJson(grantor))
+          .toList(),
+      othersRecoverySession = (json['othersRecoverySession'] as List)
+          .map((session) => RecoverySessions.fromJson(session))
+          .toList();
 }
 
 class RecoverySessions {
@@ -144,10 +144,10 @@ class RecoverySessions {
 
   // fromJson
   RecoverySessions.fromJson(Map<String, dynamic> json)
-      : id = json['id'],
-        user = User.fromMap(json['user']),
-        emergencyContact = User.fromMap(json['emergencyContact']),
-        status = json['status'],
-        waitTill = json['waitTill'],
-        createdAt = json['createdAt'];
+    : id = json['id'],
+      user = User.fromMap(json['user']),
+      emergencyContact = User.fromMap(json['emergencyContact']),
+      status = json['status'],
+      waitTill = json['waitTill'],
+      createdAt = json['createdAt'];
 }

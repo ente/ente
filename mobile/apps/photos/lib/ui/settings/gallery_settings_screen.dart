@@ -125,9 +125,7 @@ class _GallerySettingsScreenState extends State<GallerySettingsScreen> {
         _photoGridSize = gridSize;
       });
     }
-    Bus.instance.fire(
-      ForceReloadHomeGalleryEvent("grid size changed"),
-    );
+    Bus.instance.fire(ForceReloadHomeGalleryEvent("grid size changed"));
   }
 
   Future<void> _showGroupTypeSheet(BuildContext context) async {
@@ -175,8 +173,6 @@ class _GallerySettingsScreenState extends State<GallerySettingsScreen> {
         _groupType = groupType.name;
       });
     }
-    Bus.instance.fire(
-      ForceReloadHomeGalleryEvent("group type changed"),
-    );
+    Bus.instance.fire(ForceReloadHomeGalleryEvent("group type changed"));
   }
 }

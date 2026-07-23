@@ -22,17 +22,21 @@ class GalleryLayoutSettings extends StatefulWidget {
 }
 
 class _GalleryLayoutSettingsState extends State<GalleryLayoutSettings> {
-  bool isDayLayout = localSettings.getGalleryGroupType() == GroupType.day &&
+  bool isDayLayout =
+      localSettings.getGalleryGroupType() == GroupType.day &&
       localSettings.getPhotoGridSize() == 3;
-  bool isMonthLayout = localSettings.getGalleryGroupType() == GroupType.month &&
+  bool isMonthLayout =
+      localSettings.getGalleryGroupType() == GroupType.month &&
       localSettings.getPhotoGridSize() == 5;
 
-  _reloadWithLatestSetting() {
+  void _reloadWithLatestSetting() {
     if (!mounted) return;
     setState(() {
-      isDayLayout = localSettings.getGalleryGroupType() == GroupType.day &&
+      isDayLayout =
+          localSettings.getGalleryGroupType() == GroupType.day &&
           localSettings.getPhotoGridSize() == 3;
-      isMonthLayout = localSettings.getGalleryGroupType() == GroupType.month &&
+      isMonthLayout =
+          localSettings.getGalleryGroupType() == GroupType.month &&
           localSettings.getPhotoGridSize() == 5;
     });
   }
@@ -43,18 +47,17 @@ class _GalleryLayoutSettingsState extends State<GalleryLayoutSettings> {
     final colorScheme = getEnteColorScheme(context);
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 20,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Column(
               children: [
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Align(
                     child: Text(
                       context.l10n.layout,
@@ -77,19 +80,16 @@ class _GalleryLayoutSettingsState extends State<GalleryLayoutSettings> {
                       trailingIcon: isDayLayout ? Icons.check : null,
                       onTap: () async {
                         final futures = <Future>[
-                          localSettings.setGalleryGroupType(
-                            GroupType.day,
-                          ),
+                          localSettings.setGalleryGroupType(GroupType.day),
                           localSettings.setPhotoGridSize(3),
                         ];
 
                         await Future.wait(futures);
                         Bus.instance.fire(
-                          ForceReloadHomeGalleryEvent(
-                            "Gallery layout changed",
-                          ),
+                          ForceReloadHomeGalleryEvent("Gallery layout changed"),
                         );
 
+                        if (!context.mounted) return;
                         Navigator.pop(context);
                       },
                     ),
@@ -110,19 +110,16 @@ class _GalleryLayoutSettingsState extends State<GalleryLayoutSettings> {
                       trailingIcon: isMonthLayout ? Icons.check : null,
                       onTap: () async {
                         final futures = <Future>[
-                          localSettings.setGalleryGroupType(
-                            GroupType.month,
-                          ),
+                          localSettings.setGalleryGroupType(GroupType.month),
                           localSettings.setPhotoGridSize(5),
                         ];
 
                         await Future.wait(futures);
                         Bus.instance.fire(
-                          ForceReloadHomeGalleryEvent(
-                            "Gallery layout changed",
-                          ),
+                          ForceReloadHomeGalleryEvent("Gallery layout changed"),
                         );
 
+                        if (!context.mounted) return;
                         Navigator.pop(context);
                       },
                     ),
@@ -138,22 +135,22 @@ class _GalleryLayoutSettingsState extends State<GalleryLayoutSettings> {
                       alignCaptionedTextToLeft: true,
                       showOnlyLoadingState: true,
                       isTopBorderRadiusRemoved: true,
-                      leadingIcon:
-                          isDayLayout || isMonthLayout ? null : Icons.check,
+                      leadingIcon: isDayLayout || isMonthLayout
+                          ? null
+                          : Icons.check,
                       trailingWidget: Icon(
                         Icons.chevron_right_outlined,
                         color: colorScheme.strokeBase,
                       ),
-                      onTap: () => routeToPage(
-                        context,
-                        const GallerySettingsScreen(
-                          fromGalleryLayoutSettingsCTA: true,
-                        ),
-                      ).then(
-                        (_) {
-                          _reloadWithLatestSetting();
-                        },
-                      ),
+                      onTap: () =>
+                          routeToPage(
+                            context,
+                            const GallerySettingsScreen(
+                              fromGalleryLayoutSettingsCTA: true,
+                            ),
+                          ).then((_) {
+                            _reloadWithLatestSetting();
+                          }),
                     ),
                   ],
                 ),

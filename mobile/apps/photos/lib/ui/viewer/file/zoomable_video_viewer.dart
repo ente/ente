@@ -45,8 +45,9 @@ class _ZoomableVideoViewerState extends State<ZoomableVideoViewer> {
   void didUpdateWidget(covariant ZoomableVideoViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.transformationController != widget.transformationController) {
-      oldWidget.transformationController
-          .removeListener(_onTransformationChanged);
+      oldWidget.transformationController.removeListener(
+        _onTransformationChanged,
+      );
       widget.transformationController.addListener(_onTransformationChanged);
       _updateInteractionLockState();
     }

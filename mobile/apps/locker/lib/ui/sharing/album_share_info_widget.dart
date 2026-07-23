@@ -59,7 +59,8 @@ class AlbumSharesIcons extends StatelessWidget {
     if (trailingWidget != null) {
       widgets.add(
         Positioned(
-          left: (overlapPadding * (displayCount + (hasMore ? 1 : 0))) +
+          left:
+              (overlapPadding * (displayCount + (hasMore ? 1 : 0))) +
               (displayCount > 0 ? 12 : 0),
           child: trailingWidget!,
         ),

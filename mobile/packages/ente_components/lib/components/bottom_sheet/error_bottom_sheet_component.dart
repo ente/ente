@@ -1,16 +1,18 @@
 import 'dart:async';
 
 import 'package:ente_components/components/bottom_sheet/bottom_sheet_component.dart';
+import 'package:ente_components/components/buttons/button_component.dart';
 import 'package:flutter/material.dart';
 
-/// Shows the standard error sheet while leaving app-specific
-/// localization, parsing, logging, and support actions to the caller.
+/// Shows the standard error sheet while leaving app-specific localization,
+/// parsing, and logging to the caller.
 Future<T?> showErrorBottomSheetComponent<T>({
   required BuildContext context,
   required String message,
   String title = 'Error',
   Widget? illustration,
-  List<Widget> actions = const [],
+  String? actionLabel,
+  FutureOr<void> Function()? onActionTap,
 
   /// Called when the close button is pressed, before the sheet is dismissed.
   ///
@@ -32,7 +34,14 @@ Future<T?> showErrorBottomSheetComponent<T>({
       title: title,
       message: message,
       illustration: illustration,
-      actions: actions,
+      actions: [
+        if (actionLabel != null)
+          ButtonComponent(
+            label: actionLabel,
+            variant: ButtonComponentVariant.secondary,
+            onTap: onActionTap,
+          ),
+      ],
       onClose: onClose,
       showCloseButton: showCloseButton,
     ),

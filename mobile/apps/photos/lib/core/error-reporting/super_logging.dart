@@ -167,6 +167,10 @@ class SuperLogging {
   /// The logger for SuperLogging
   static final $ = Logger('ente_logging');
 
+  static final String _loggerPrefixDefine = const String.fromEnvironment(
+    'ENTE_LOGGER_PREFIX',
+  ).trim().toLowerCase();
+
   /// The current super logging configuration
   static late LogConfig config;
 
@@ -189,7 +193,8 @@ class SuperLogging {
     }
 
     final enable = appConfig.enableInDebugMode || kReleaseMode;
-    sentryIsEnabled = enable &&
+    sentryIsEnabled =
+        enable &&
         appConfig.sentryDsn != null &&
         !isFDroidClient &&
         shouldReportCrashes();
@@ -202,7 +207,8 @@ class SuperLogging {
       setupSentry().ignore();
     }
 
-    Logger.root.level = kDebugMode ? Level.ALL : Level.INFO;
+    Logger.root.level = rootLoggerLevel;
+    EnteWatch.setLogLevel(_terminalLoggerLevel);
     Logger.root.onRecord.listen(onLogRecord);
 
     if (_preferences.getBool("enable_db_logging") ?? kDebugMode) {
@@ -250,10 +256,14 @@ class SuperLogging {
       await SentryFlutter.init(
         (options) {
           options.dsn = appConfig!.sentryDsn;
+          options.anrEnabled = true;
+          options.anrTimeoutInterval = const Duration(seconds: 5);
           options.httpClient = http.Client();
           if (appConfig.tunnel != null) {
-            options.transport =
-                TunneledTransport(Uri.parse(appConfig.tunnel!), options);
+            options.transport = TunneledTransport(
+              Uri.parse(appConfig.tunnel!),
+              options,
+            );
           }
           // Filter out errors that should not be sent to Sentry
           options.beforeSend = (SentryEvent event, Hint hint) async {
@@ -285,44 +295,38 @@ class SuperLogging {
     final previousFlutterError = FlutterError.onError;
     FlutterError.onError = (details) {
       previousFlutterError?.call(details);
-      $.severe(
-        "Unhandled Flutter error",
-        details.exception,
-        details.stack,
-      );
+      $.severe("Unhandled Flutter error", details.exception, details.stack);
     };
-    WidgetsBinding.instance.platformDispatcher.onError = (
-      Object error,
-      StackTrace stack,
-    ) {
-      $.severe("Unhandled platform error", error, stack);
-      return false;
-    };
+    WidgetsBinding.instance.platformDispatcher.onError =
+        (Object error, StackTrace stack) {
+          $.severe("Unhandled platform error", error, stack);
+          return false;
+        };
 
-    await runZonedGuarded(
-      () async => body(),
-      (Object error, StackTrace stack) {
-        $.severe("Unhandled zone error", error, stack);
-      },
-    );
+    await runZonedGuarded(() async => body(), (Object error, StackTrace stack) {
+      $.severe("Unhandled zone error", error, stack);
+    });
   }
 
   static Future<void> setUserID(String userID) async {
     if (config.sentryDsn != null) {
       $.finest("setting sentry user ID to: $userID");
       Sentry.configureScope(
-        (scope) => scope.setUser(SentryUser(id: userID)).onError(
+        (scope) => scope
+            .setUser(SentryUser(id: userID))
+            .onError(
               (e, s) => $.warning("failed to configure scope user", e, s),
             ),
       );
     }
   }
 
-  static _shouldSkipSentry(Object error) {
+  static bool _shouldSkipSentry(Object error) {
     if (error is DioException) {
       return true;
     }
-    final bool result = error is LocallyHandledError ||
+    final bool result =
+        error is LocallyHandledError ||
         error is TaskQueueTimeoutException ||
         error is TaskQueueOverflowException ||
         error is TaskQueueCancelledException;
@@ -356,9 +360,7 @@ class SuperLogging {
           error,
           stackTrace: stack,
           withScope: (scope) {
-            scope.setContexts('log_details', {
-              'message': rec.message,
-            });
+            scope.setContexts('log_details', {'message': rec.message});
             scope.setTag('logger', rec.loggerName);
             scope.setTag('level', rec.level.name);
             scope.setTag('execution_context', executionContext);
@@ -411,6 +413,30 @@ class SuperLogging {
 
   static String _lastExtraLines = '';
 
+  static const Level rootLoggerLevel = kDebugMode ? Level.ALL : Level.INFO;
+
+  static const _logLevelDefine = String.fromEnvironment('ENTE_LOG_LEVEL');
+
+  static final Level _terminalLoggerLevel = _levelFromEnv(
+    _logLevelDefine,
+    rootLoggerLevel,
+  );
+
+  static Level _levelFromEnv(String value, Level fallback) {
+    final levelName = value.trim().toLowerCase();
+    return Level.LEVELS.firstWhere(
+      (level) => level.name.toLowerCase() == levelName,
+      orElse: () => fallback,
+    );
+  }
+
+  static bool shouldPrintLogRecord(LogRecord rec) {
+    final matchesPrefix =
+        _loggerPrefixDefine.isEmpty ||
+        rec.loggerName.toLowerCase().startsWith(_loggerPrefixDefine);
+    return matchesPrefix && rec.level.value >= _terminalLoggerLevel.value;
+  }
+
   static Future onLogRecord(LogRecord rec) async {
     // log misc info if it changed
     String? extraLines = "app version: '$appVersion'\n";
@@ -423,7 +449,9 @@ class SuperLogging {
     final str = (config.prefix) + " " + rec.toPrettyString(extraLines);
 
     // write to stdout
-    printLog(str);
+    if (shouldPrintLogRecord(rec)) {
+      printLog(str);
+    }
 
     saveLogString(str, rec.error, rec: rec);
   }
@@ -444,8 +472,11 @@ class SuperLogging {
 
     // add error to sentry queue
     if (sentryIsEnabled && error != null) {
-      _sendErrorToSentry(error, rec?.stackTrace ?? stackTrace, rec: rec)
-          .ignore();
+      _sendErrorToSentry(
+        error,
+        rec?.stackTrace ?? stackTrace,
+        rec: rec,
+      ).ignore();
     }
   }
 
@@ -488,9 +519,7 @@ class SuperLogging {
         if (_shouldSkipSentry(error)) {
           continue;
         }
-        await Sentry.captureException(
-          error,
-        );
+        await Sentry.captureException(error);
       } catch (e) {
         $.fine(
           "sentry upload failed; will retry after ${config.sentryRetryDelay}",
@@ -561,9 +590,7 @@ class SuperLogging {
 
       for (final file in toDelete) {
         try {
-          $.fine(
-            "deleting log file ${file.path}",
-          );
+          $.fine("deleting log file ${file.path}");
           await file.delete();
         } catch (_) {}
       }
@@ -596,9 +623,7 @@ class SuperLogging {
   static void showLogViewer(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const LogViewerPage(),
-      ),
+      MaterialPageRoute(builder: (context) => const LogViewerPage()),
     );
   }
 }

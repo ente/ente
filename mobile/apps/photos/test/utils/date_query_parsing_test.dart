@@ -10,8 +10,11 @@ void main() {
     // Relative dates: today, tomorrow, yesterday
     test('should parse "today" correctly', () {
       final DateTime now = DateTime.now();
-      final PartialDate expectedDate =
-          PartialDate(day: now.day, month: now.month, year: now.year);
+      final PartialDate expectedDate = PartialDate(
+        day: now.day,
+        month: now.month,
+        year: now.year,
+      );
       final PartialDate parsedDate = dateParseService.parse('today');
 
       expect(
@@ -58,8 +61,9 @@ void main() {
     });
 
     test('should parse "yesterday" correctly', () {
-      final DateTime yesterday =
-          DateTime.now().subtract(const Duration(days: 1));
+      final DateTime yesterday = DateTime.now().subtract(
+        const Duration(days: 1),
+      );
       final PartialDate expectedDate = PartialDate(
         day: yesterday.day,
         month: yesterday.month,
@@ -172,8 +176,9 @@ void main() {
     });
 
     test('should parse "25th of February 2025"', () {
-      final PartialDate parsedDate =
-          dateParseService.parse('25th of February 2025');
+      final PartialDate parsedDate = dateParseService.parse(
+        '25th of February 2025',
+      );
       expect(parsedDate.day, 25);
       expect(parsedDate.month, 2);
       expect(parsedDate.year, 2025);
@@ -252,23 +257,25 @@ void main() {
     // and _parseTokenizedDate, "02/25" would be processed by _parseTokenizedDate.
     // Let's test how your current parser handles these.
     test(
-        'should parse short MM/DD format "02/25" (no year, handled by tokenized)',
-        () {
-      final PartialDate parsedDate = dateParseService.parse('02/25');
-      expect(parsedDate.day, 25); // value 25 is assigned to day first
-      expect(parsedDate.month, 2); // value 02 is assigned to month
-      expect(parsedDate.year, isNull);
-    });
+      'should parse short MM/DD format "02/25" (no year, handled by tokenized)',
+      () {
+        final PartialDate parsedDate = dateParseService.parse('02/25');
+        expect(parsedDate.day, 25); // value 25 is assigned to day first
+        expect(parsedDate.month, 2); // value 02 is assigned to month
+        expect(parsedDate.year, isNull);
+      },
+    );
 
     test(
-        'should parse short DD/MM format "25/02" (no year, handled by tokenized)',
-        () {
-      // This will be parsed by _parseTokenizedDate
-      final PartialDate parsedDate = dateParseService.parse('25/02');
-      expect(parsedDate.day, 25);
-      expect(parsedDate.month, 2);
-      expect(parsedDate.year, isNull);
-    });
+      'should parse short DD/MM format "25/02" (no year, handled by tokenized)',
+      () {
+        // This will be parsed by _parseTokenizedDate
+        final PartialDate parsedDate = dateParseService.parse('25/02');
+        expect(parsedDate.day, 25);
+        expect(parsedDate.month, 2);
+        expect(parsedDate.year, isNull);
+      },
+    );
 
     // Two-digit years: 25/02/25 (with century detection)
     test('should parse two-digit year "25/02/25"', () {
@@ -326,27 +333,26 @@ void main() {
 
   // --- Invalid Date Queries ---
   group('Invalid Date Queries', () {
-    test('should parse "February 30000" as month-only (invalid year ignored)',
-        () {
-      final PartialDate parsedDate = dateParseService.parse('February 30000');
-      expect(parsedDate.day, isNull);
-      expect(parsedDate.month, 2);
-      expect(
-        parsedDate.year,
-        isNull,
-        reason: 'Year 30000 is out of range and should be ignored',
-      );
-    });
+    test(
+      'should parse "February 30000" as month-only (invalid year ignored)',
+      () {
+        final PartialDate parsedDate = dateParseService.parse('February 30000');
+        expect(parsedDate.day, isNull);
+        expect(parsedDate.month, 2);
+        expect(
+          parsedDate.year,
+          isNull,
+          reason: 'Year 30000 is out of range and should be ignored',
+        );
+      },
+    );
 
     // Specific case to test if invalid day/month values are set to null
     test('should return null for invalid day/month in tokenized parsing', () {
       final PartialDate parsedDate = dateParseService.parse('32 Jan 2024');
       expect(parsedDate.day, isNull, reason: 'Day should be null for 32');
       expect(parsedDate.month, 1);
-      expect(
-        parsedDate.year,
-        2024,
-      );
+      expect(parsedDate.year, 2024);
 
       // "Jan 13 2024" - This is a valid date (Jan 13, 2024), should parse completely.
       final PartialDate parsedDate2 = dateParseService.parse('Jan 13 2024');
@@ -365,10 +371,7 @@ void main() {
       final PartialDate parsedDate = dateParseService.parse('32 Jan 2024');
       expect(parsedDate.day, isNull, reason: 'Day should be null for 32');
       expect(parsedDate.month, 1);
-      expect(
-        parsedDate.year,
-        2024,
-      );
+      expect(parsedDate.year, 2024);
     });
   });
 }

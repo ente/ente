@@ -1,22 +1,22 @@
+import { CreateItemDialog } from "@/components/CreateItemDialog";
+import { ItemList } from "@/components/ItemList";
+import { LockerCollectionShareDrawer } from "@/components/LockerCollectionShareDrawer";
+import { LockerNavbar } from "@/components/LockerNavbar";
+import { LockerSidebar } from "@/components/LockerSidebar";
+import { DeleteCollectionDialog } from "@/components/lockerPage/DeleteCollectionDialog";
+import { LockerDragOverlay } from "@/components/lockerPage/LockerDragOverlay";
+import { useLockerActions } from "@/components/lockerPage/useLockerActions";
+import { useLockerData } from "@/components/lockerPage/useLockerData";
+import { useLockerNavigation } from "@/components/lockerPage/useLockerNavigation";
+import { useSetupLockerI18n } from "@/i18n/locker";
+import { fetchCollectionSharees } from "@/services/remote";
 import AddIcon from "@mui/icons-material/Add";
 import { Box, Button, Fab, Snackbar, Stack, Typography } from "@mui/material";
-import { CreateItemDialog } from "components/CreateItemDialog";
-import { ItemList } from "components/ItemList";
-import { LockerCollectionShareDrawer } from "components/LockerCollectionShareDrawer";
-import { LockerNavbar } from "components/LockerNavbar";
-import { LockerSidebar } from "components/LockerSidebar";
-import { DeleteCollectionDialog } from "components/lockerPage/DeleteCollectionDialog";
-import { LockerDragOverlay } from "components/lockerPage/LockerDragOverlay";
-import { useLockerActions } from "components/lockerPage/useLockerActions";
-import { useLockerData } from "components/lockerPage/useLockerData";
-import { useLockerNavigation } from "components/lockerPage/useLockerNavigation";
 import { LoadingIndicator } from "ente-base/components/loaders";
 import { useBaseContext } from "ente-base/context";
-import { useSetupLockerI18n } from "i18n/locker";
 import { t } from "i18next";
 import { useRouter } from "next/router";
 import React, { useCallback, useState } from "react";
-import { fetchCollectionSharees } from "services/remote";
 
 export const LockerPage: React.FC = () => {
     const { logout, showMiniDialog } = useBaseContext();

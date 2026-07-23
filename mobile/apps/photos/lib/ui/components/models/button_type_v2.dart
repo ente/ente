@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:photos/theme/colors.dart';
 
-enum ButtonSizeV2 {
-  small,
-  large;
-}
+enum ButtonSizeV2 { small, large }
 
 enum ButtonTypeV2 {
   primary,
@@ -33,70 +30,70 @@ enum ButtonTypeV2 {
 }
 
 ButtonTheme _primaryPalette(EnteColorScheme c) => ButtonTheme(
-      defaultBg: c.greenBase,
-      hoverBg: c.greenDark,
-      pressedBg: c.greenDarker,
-      disabledBg: c.fillDark,
-      foreground: Colors.white,
-      disabledForeground: c.contentLighter,
-    );
+  defaultBg: c.greenBase,
+  hoverBg: c.greenDark,
+  pressedBg: c.greenDarker,
+  disabledBg: c.fillDark,
+  foreground: Colors.white,
+  disabledForeground: c.contentLighter,
+);
 
 ButtonTheme _criticalPalette(EnteColorScheme c) => ButtonTheme(
-      defaultBg: c.redBase,
-      hoverBg: c.redDark,
-      pressedBg: c.redDarker,
-      disabledBg: c.fillDark,
-      foreground: Colors.white,
-      disabledForeground: c.contentLighter,
-    );
+  defaultBg: c.redBase,
+  hoverBg: c.redDark,
+  pressedBg: c.redDarker,
+  disabledBg: c.fillDark,
+  foreground: Colors.white,
+  disabledForeground: c.contentLighter,
+);
 
 ButtonTheme _secondaryPalette(EnteColorScheme c) => ButtonTheme(
-      defaultBg: c.fillDark,
-      hoverBg: c.fillDarker,
-      pressedBg: c.fillDarkest,
-      disabledBg: c.fillDark,
-      foreground: c.content,
-      disabledForeground: c.contentLighter,
-      iconColor: c.content,
-      disabledIconColor: c.contentLighter,
-      checkmarkColor: c.content,
-    );
+  defaultBg: c.greenLight,
+  hoverBg: c.fillDarker,
+  pressedBg: c.fillDarkest,
+  disabledBg: c.fillDark,
+  foreground: c.greenBase,
+  disabledForeground: c.contentLighter,
+  iconColor: c.content,
+  disabledIconColor: c.contentLighter,
+  checkmarkColor: c.content,
+);
 
 ButtonTheme _neutralPalette(EnteColorScheme c) => ButtonTheme(
-      defaultBg: c.fillReverse,
-      hoverBg: c.fillReverse,
-      pressedBg: c.fillReverse,
-      disabledBg: c.fillDark,
-      foreground: c.contentReverse,
-      disabledForeground: c.contentLighter,
-      iconColor: c.contentReverse,
-      disabledIconColor: c.contentLighter,
-      checkmarkColor: c.contentReverse,
-    );
+  defaultBg: c.fillReverse,
+  hoverBg: c.fillReverse,
+  pressedBg: c.fillReverse,
+  disabledBg: c.fillDark,
+  foreground: c.contentReverse,
+  disabledForeground: c.contentLighter,
+  iconColor: c.contentReverse,
+  disabledIconColor: c.contentLighter,
+  checkmarkColor: c.contentReverse,
+);
 
 ButtonTheme _tertiaryCriticalPalette(EnteColorScheme c) => ButtonTheme(
-      defaultBg: Colors.transparent,
-      hoverBg: Colors.transparent,
-      pressedBg: Colors.transparent,
-      disabledBg: Colors.transparent,
-      foreground: c.redBase,
-      hoverForeground: c.redDark,
-      pressedForeground: c.redDarker,
-      disabledForeground: c.contentLighter,
-      disabledIconColor: c.contentLighter,
-    );
+  defaultBg: Colors.transparent,
+  hoverBg: Colors.transparent,
+  pressedBg: Colors.transparent,
+  disabledBg: Colors.transparent,
+  foreground: c.redBase,
+  hoverForeground: c.redDark,
+  pressedForeground: c.redDarker,
+  disabledForeground: c.contentLighter,
+  disabledIconColor: c.contentLighter,
+);
 
 ButtonTheme _linkPalette(EnteColorScheme c) => ButtonTheme(
-      defaultBg: Colors.transparent,
-      hoverBg: Colors.transparent,
-      pressedBg: Colors.transparent,
-      disabledBg: Colors.transparent,
-      foreground: c.greenBase,
-      hoverForeground: c.greenDark,
-      pressedForeground: c.greenDarker,
-      disabledForeground: c.contentLighter,
-      disabledIconColor: c.contentLighter,
-    );
+  defaultBg: Colors.transparent,
+  hoverBg: Colors.transparent,
+  pressedBg: Colors.transparent,
+  disabledBg: Colors.transparent,
+  foreground: c.greenBase,
+  hoverForeground: c.greenDark,
+  pressedForeground: c.greenDarker,
+  disabledForeground: c.contentLighter,
+  disabledIconColor: c.contentLighter,
+);
 
 class ButtonTheme {
   final Color defaultBg;

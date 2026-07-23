@@ -1,10 +1,10 @@
+import "package:ente_components/ente_components.dart" as components;
 import 'package:flutter/material.dart';
 import 'package:photos/core/constants.dart';
 import 'package:photos/models/collection/collection.dart';
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/ml/face/person.dart";
 import 'package:photos/models/selected_files.dart';
-import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/ui/components/bottom_action_bar/action_bar_widget.dart';
 import "package:photos/ui/components/divider_widget.dart";
 import "package:photos/ui/viewer/actions/file_selection_actions_widget.dart";
@@ -33,16 +33,17 @@ class BottomActionBarWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
     final widthOfScreen = MediaQuery.of(context).size.width;
-    final colorScheme = getEnteColorScheme(context);
+    final colors = components.ComponentTheme.colorsOf(context);
     final double leftRightPadding = widthOfScreen > restrictedMaxWidth
         ? (widthOfScreen - restrictedMaxWidth) / 2
         : 0;
     return Container(
       decoration: BoxDecoration(
-        color: backgroundColor ?? colorScheme.backgroundElevated2,
+        color: backgroundColor ?? colors.backgroundBase,
+        border: Border(top: BorderSide(color: colors.strokeDark)),
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(8),
-          topRight: Radius.circular(8),
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
         ),
       ),
       padding: EdgeInsets.only(
@@ -63,10 +64,7 @@ class BottomActionBarWidget extends StatelessWidget {
             clusterID: clusterID,
           ),
           const DividerWidget(dividerType: DividerType.bottomBar),
-          ActionBarWidget(
-            selectedFiles: selectedFiles,
-            onCancel: onCancel,
-          ),
+          ActionBarWidget(selectedFiles: selectedFiles, onCancel: onCancel),
           // const SizedBox(height: 2)
         ],
       ),

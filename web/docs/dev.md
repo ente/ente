@@ -7,84 +7,64 @@ We recommend VS Code, with the following extensions:
 - Prettier - reformats your code automatically (enable format on save),
 - ESLint - warns you about issues
 
-Optionally, if you're going to make many changes to the CSS in JS, you might
-also find it useful to install the _vscode-styled-components_ extension.
+Optionally, if you're going to make many changes to the CSS in JS, you might also find it useful to install the _vscode-styled-components_ extension.
 
-## Yarn commands
+## npm commands
 
-Make sure you're on yarn 1.x series (aka yarn "classic").
+Use the npm version from `package.json`.
 
-### yarn install --frozen-lockfile
+### npm ci, npm install
 
-Installs dependencies using the committed lockfile. This should be the default
-for local setup, and whenever there is a change in `yarn.lock` (e.g. when
-pulling the latest upstream).
+Use `npm ci` to install dependencies using the committed lockfile. You need this for initial setup, and whenever `package-lock.json` changes (e.g. after pulling the latest upstream).
 
-Use plain `yarn install` only when intentionally updating dependencies and
-reviewing the resulting `package.json` and `yarn.lock` changes.
+`npm ci` is the safe default. However, it deletes and recreates `node_modules` each time. For a faster incremental install, you can use `npm install` if you have already run `npm ci` and `package-lock.json` has not changed since then.
 
-### yarn dev:\*
+> We pin exact versions in `package.json` and commit the lockfile so both `npm install` and `npm ci` should give the same outcome; however, this is not guaranteed, so if `npm install` changes `package-lock.json`, review the diff instead of treating it as incidental churn.
 
-Launch the app in development mode. There is one `yarn dev:foo` for each app,
-e.g. `yarn dev:auth`. `yarn dev` is a shortcut for `yarn dev:photos`.
+Use `npm install <package> --workspace <workspace>` only when intentionally adding or updating dependencies, and review the resulting `package.json` and `package-lock.json` changes.
 
-Common ports are `3000` for photos, `3002` for albums, `3003` for auth,
-`3005` for share, and `3006` for embed. See `package.json` for the full list.
+Installs skip dependency lifecycle scripts (`ignore-scripts` in `.npmrc`) so that installing cannot run arbitrary code from packages. The packages we use work fine without their lifecycle scripts: they either ship prebuilt binaries (e.g. `esbuild`, `sharp`) or fetch them on first use (`wasm-pack`). `save-exact` in `.npmrc` keeps newly added dependencies pinned to exact versions.
 
-### yarn build:\*
+### npm run dev:\*
 
-Build a production export for the app. This is a bunch of static HTML/JS/CSS
-that can be then deployed to any web server.
+Launch the app in development mode. There is one `npm run dev:foo` for each app, e.g. `npm run dev:auth`. `npm run dev` is a shortcut for `npm run dev:photos`.
 
-There is one `yarn build:foo` for each app, e.g. `yarn build:auth`. The output
-will be placed in `apps/<foo>/out`, e.g. `apps/auth/out`.
+Common ports are `3000` for photos, `3002` for albums, `3003` for auth, `3005` for share, and `3006` for embed. See `package.json` for the full list.
 
-### lint, lint-fix
+### npm run build:\*
 
-Use `yarn lint` to check that your code formatting is as expected, and that
-there are no linter errors. Use `yarn lint-fix` to try and automatically fix the
-issues.
+Build a production export for the app. This is a bunch of static HTML/JS/CSS that can be then deployed to any web server.
+
+There is one `npm run build:foo` for each app, e.g. `npm run build:auth`. The output will be placed in `apps/<foo>/out`, e.g. `apps/auth/out`.
+
+### lint, lint:fix
+
+Use `npm run lint` to check that your code formatting is as expected, and that there are no linter errors. Use `npm run lint:fix` to try and automatically fix the issues.
 
 ## Monorepo
 
-The monorepo uses Yarn (classic) workspaces.
+The monorepo uses npm workspaces.
 
-To run a command for a workspace `<ws>`, invoke `yarn workspace <ws> <cmd>` from
-the root folder instead the `yarn <cmd>` you’d have done otherwise. For example,
-to start a development server for the `photos` app, we can do
+To run a command for a workspace `<ws>`, invoke `npm exec --workspace <ws> -- <cmd>` from the root folder. For example, to start a development server for the `photos` app, we can do
 
 ```sh
-yarn workspace photos next dev
+npm exec --workspace photos -- next dev --webpack
 ```
 
-There is also a convenience alias, `yarn dev:photos`. See `package.json` for the
-full list of such aliases. The two common patterns are `dev:<app-name>` for
-running a local development server, and `build:<app-name>` for creating a
-production build.
+There is also a convenience alias, `npm run dev:photos`. See `package.json` for the full list of such aliases. The two common patterns are `dev:<app-name>` for running a local development server, and `build:<app-name>` for creating a production build.
 
-> Tip: `yarn dev` is a shortcut for `yarn dev:photos`
+> Tip: `npm run dev` is a shortcut for `npm run dev:photos`
 
-Note that yarn does not automatically update `node_modules` if you switch to a
-branch that has added or modified dependencies. So if you encounter unexpected
-errors on switching branches, make sure that your `node_modules` is up to date
-by running `yarn install --frozen-lockfile` first.
+Note that npm does not automatically update `node_modules` if you switch to a branch that has added or modified dependencies. So if you encounter unexpected errors on switching branches, make sure that your `node_modules` is up to date first: use `npm install` if `package-lock.json` has not changed since your last `npm ci`, otherwise use `npm ci`.
 
-> `yarn` is a shortcut for `yarn install`, but normal development should prefer
-> `yarn install --frozen-lockfile`.
-
-To add a local package as a dependency, use `<package-name>@*`. The "\*" here
-denotes any version.
+To add a local package as a dependency, use `<package-name>@*`. The "\*" here denotes any version.
 
 ```sh
-yarn workspace photos add 'ente-utils@*'
+npm install 'ente-utils@*' --workspace photos
 ```
 
-> Note: The yarn (classic) command above causes harmless but noisy diffs in
-> `yarn.lock` when adding or removing dependencies to the workspaces. To fix
-> them, run `yarn` again once to reset these unnecessary changes.
-
-To see what packages depend on each other locally, use
+To see the workspace package metadata, use
 
 ```sh
-yarn workspaces info
+npm query .workspace
 ```

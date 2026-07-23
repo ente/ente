@@ -6,10 +6,7 @@ import "package:photos/ui/tools/editor/video_editor/video_editor_player_control.
 import 'package:video_editor/video_editor.dart';
 
 class VideoTrimPage extends StatefulWidget {
-  const VideoTrimPage({
-    super.key,
-    required this.controller,
-  });
+  const VideoTrimPage({super.key, required this.controller});
 
   final VideoEditorController controller;
 
@@ -27,7 +24,7 @@ class _VideoTrimPageState extends State<VideoTrimPage> {
     final colorScheme = getEnteColorScheme(context);
 
     return Scaffold(
-      backgroundColor: colorScheme.backgroundBase,
+      backgroundColor: colorScheme.backgroundColour,
       appBar: VideoEditorAppBar(
         onCancel: () {
           widget.controller.updateTrim(minTrim, maxTrim);
@@ -90,7 +87,7 @@ class _VideoTrimPageState extends State<VideoTrimPage> {
   }
 
   String formatter(Duration duration) => [
-        duration.inMinutes.remainder(60).toString().padLeft(2, '0'),
-        duration.inSeconds.remainder(60).toString().padLeft(2, '0'),
-      ].join(":");
+    duration.inMinutes.remainder(60).toString().padLeft(2, '0'),
+    duration.inSeconds.remainder(60).toString().padLeft(2, '0'),
+  ].join(":");
 }

@@ -1,58 +1,11 @@
-# Let folks use their custom editor settings
-.vscode
-.idea
-
-# macOS
-.DS_Store
-
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.buildlog/
-.history
-.svn/
-
-# Editors
-.vscode/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-.pub-cache/
-.pub/
-/build/
-lib/l10n/untranslated_messages.json
-
-# Web related
-lib/generated_plugin_registrant.dart
-
-# Exceptions to above rules.
-!/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
-
-android/key.properties
-android/app/.settings/*
-android/.settings/
 .env
 
 fastlane/report.xml
 
-# Android related
-android/app/build/
-
 devtools_options.yaml
+
+# Generated l10n audit output
+lib/l10n/untranslated_messages.json
 
 # Generated localization files
 lib/l10n/app_localizations*.dart

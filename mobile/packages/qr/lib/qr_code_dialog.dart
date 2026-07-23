@@ -23,10 +23,7 @@ class QrTextBranding extends QrBranding {
 
   const QrTextBranding({
     required this.text,
-    this.style = const TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w800,
-    ),
+    this.style = const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
   });
 }
 
@@ -34,10 +31,7 @@ class QrSvgBranding extends QrBranding {
   final String assetPath;
   final double height;
 
-  const QrSvgBranding({
-    required this.assetPath,
-    this.height = 12,
-  });
+  const QrSvgBranding({required this.assetPath, this.height = 12});
 }
 
 class QrCodeDialog extends StatefulWidget {
@@ -118,18 +112,23 @@ class _QrCodeDialogState extends State<QrCodeDialog> {
       if (boundary == null) return;
 
       final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-      final ByteData? byteData =
-          await image.toByteData(format: ui.ImageByteFormat.png);
+      final ByteData? byteData = await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
       if (byteData == null) return;
 
       final Uint8List pngBytes = byteData.buffer.asUint8List();
       final directory = await getTemporaryDirectory();
       final file = File('${directory.path}/${widget.shareFileName}');
       await file.writeAsBytes(pngBytes);
+      if (!mounted) {
+        return;
+      }
 
       final box = context.findRenderObject() as RenderBox?;
-      final shareOrigin =
-          box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+      final shareOrigin = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null;
 
       await SharePlus.instance.share(
         ShareParams(
@@ -181,14 +180,14 @@ class _QrCodeDialogState extends State<QrCodeDialog> {
   Widget _buildBranding(QrBranding branding, Color color) {
     return switch (branding) {
       QrTextBranding(:final text, :final style) => Text(
-          text,
-          style: style.copyWith(color: style.color ?? color),
-        ),
+        text,
+        style: style.copyWith(color: style.color ?? color),
+      ),
       QrSvgBranding(:final assetPath, :final height) => SvgPicture.asset(
-          assetPath,
-          height: height,
-          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-        ),
+        assetPath,
+        height: height,
+        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+      ),
     };
   }
 
@@ -206,38 +205,45 @@ class _QrCodeDialogState extends State<QrCodeDialog> {
     // Round to nearest even number for crisp rendering
     final double qrCodeSizeEven = (qrCodeSize / 2).round() * 2.0;
 
-    final dialogBackgroundColor = widget.backgroundColor ??
+    final dialogBackgroundColor =
+        widget.backgroundColor ??
         (isDark ? const Color(0xFF212121) : theme.colorScheme.surface);
     final cardColor = widget.qrCardColor ?? _kDefaultQrBoxColor;
-    final closeBgColor = widget.closeButtonBackgroundColor ??
+    final closeBgColor =
+        widget.closeButtonBackgroundColor ??
         (isDark ? const Color(0xFF292929) : const Color(0xFFF5F5F7));
-    final closeIconColor = widget.closeButtonIconColor ??
+    final closeIconColor =
+        widget.closeButtonIconColor ??
         (isDark ? theme.colorScheme.onSurface : _kDefaultQrTextColor);
     final shareButtonColor =
         widget.shareButtonBackgroundColor ?? widget.accentColor;
 
     // Use theme text styles with copyWith for customization
-    final titleStyle = widget.titleTextStyle ??
+    final titleStyle =
+        widget.titleTextStyle ??
         textTheme.titleMedium?.copyWith(
           fontSize: 18,
           fontWeight: FontWeight.w600,
           letterSpacing: -0.5,
           color: _kDefaultQrTextColor,
         );
-    final subtitleStyle = widget.subtitleTextStyle ??
+    final subtitleStyle =
+        widget.subtitleTextStyle ??
         textTheme.bodySmall?.copyWith(
           fontSize: 12,
           fontWeight: FontWeight.w600,
           letterSpacing: -0.5,
           color: _kDefaultQrTextColor.withValues(alpha: 0.6),
         );
-    final dialogTitleStyle = widget.dialogTitleTextStyle ??
+    final dialogTitleStyle =
+        widget.dialogTitleTextStyle ??
         textTheme.titleLarge?.copyWith(
           fontSize: 20,
           fontWeight: FontWeight.w700,
           color: theme.colorScheme.onSurface,
         );
-    final shareButtonStyle = widget.shareButtonTextStyle ??
+    final shareButtonStyle =
+        widget.shareButtonTextStyle ??
         textTheme.labelLarge?.copyWith(
           fontSize: 16,
           fontWeight: FontWeight.w600,
@@ -305,8 +311,9 @@ class _QrCodeDialogState extends State<QrCodeDialog> {
                     padding: widget.qrCardPadding,
                     decoration: BoxDecoration(
                       color: cardColor,
-                      borderRadius:
-                          BorderRadius.circular(widget.cardBorderRadius),
+                      borderRadius: BorderRadius.circular(
+                        widget.cardBorderRadius,
+                      ),
                     ),
                     child: Stack(
                       alignment: Alignment.center,

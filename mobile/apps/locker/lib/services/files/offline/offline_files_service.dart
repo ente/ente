@@ -28,9 +28,7 @@ class OfflineFilesService {
 
   Future<void> init() async {
     _logger.fine('Cleaning up stale offline file copies');
-    await cleanupStaleOfflineFileCopies(
-      olderThan: _cachedFileCleanupAge,
-    );
+    await cleanupStaleOfflineFileCopies(olderThan: _cachedFileCleanupAge);
   }
 
   /// Shared files and info records are intentionally excluded from offline save.
@@ -66,24 +64,25 @@ class OfflineFilesService {
       'Mark offline requested for ${eligibleFiles.length} eligible files',
     );
 
-    if (eligibleFiles.isEmpty || !context.mounted) {
+    if (eligibleFiles.isEmpty) {
       _logger.fine('No eligible files to mark offline');
       return false;
     }
 
     final total = eligibleFiles.length;
-    final dialog = createProgressDialog(
-      context,
-      total == 1
-          ? context.l10n.savingOffline
-          : '${context.l10n.savingOffline} 0/$total',
-      isDismissible: false,
-    );
+    final savingOffline = context.mounted ? context.l10n.savingOffline : null;
+    final dialog = savingOffline == null
+        ? null
+        : createProgressDialog(
+            context,
+            total == 1 ? savingOffline : '$savingOffline 0/$total',
+            isDismissible: false,
+          );
 
     var successCount = 0;
     var failureCount = 0;
 
-    await dialog.show();
+    await dialog?.show();
 
     try {
       for (var index = 0; index < eligibleFiles.length; index++) {
@@ -91,15 +90,17 @@ class OfflineFilesService {
         final fileID = file.uploadedFileID!;
         final currentStep = index + 1;
 
-        dialog.update(
-          message: total == 1
-              ? context.l10n.savingOffline
-              : '${context.l10n.savingOffline} $currentStep/$total',
-        );
+        if (context.mounted && dialog != null) {
+          dialog.update(
+            message: total == 1
+                ? savingOffline
+                : '$savingOffline $currentStep/$total',
+          );
+        }
 
         final alreadyHasOfflineCopy =
             LockerDB.instance.isFileMarkedOffline(file) &&
-                await getCurrentOfflineEncryptedCopy(file) != null;
+            await getCurrentOfflineEncryptedCopy(file) != null;
         if (alreadyHasOfflineCopy) {
           _logger.fine('File $fileID already available offline');
           successCount += 1;
@@ -122,15 +123,12 @@ class OfflineFilesService {
             e,
             s,
           );
-          await _clearOfflineState(
-            [fileID],
-            removeWorkingCopies: false,
-          );
+          await _clearOfflineState([fileID], removeWorkingCopies: false);
         }
       }
     } finally {
       try {
-        await dialog.hide();
+        await dialog?.hide();
       } catch (_) {}
     }
 
@@ -139,8 +137,9 @@ class OfflineFilesService {
     );
 
     if (successCount > 0) {
-      Bus.instance
-          .fire(CollectionsUpdatedEvent('offline_availability_changed'));
+      Bus.instance.fire(
+        CollectionsUpdatedEvent('offline_availability_changed'),
+      );
     }
 
     if (!context.mounted) {
@@ -148,20 +147,14 @@ class OfflineFilesService {
     }
 
     if (failureCount == 0) {
-      showToast(
-        context,
-        context.l10n.filesAvailableOffline(successCount),
-      );
+      showToast(context, context.l10n.filesAvailableOffline(successCount));
     } else if (successCount > 0) {
       showToast(
         context,
         context.l10n.filesAvailableOfflinePartial(successCount, failureCount),
       );
     } else {
-      showToast(
-        context,
-        context.l10n.failedToSaveFilesOffline(failureCount),
-      );
+      showToast(context, context.l10n.failedToSaveFilesOffline(failureCount));
     }
 
     return successCount > 0;
@@ -197,18 +190,16 @@ class OfflineFilesService {
     await _clearOfflineState(fileIDsToUnmark);
 
     if (changedCount > 0) {
-      Bus.instance
-          .fire(CollectionsUpdatedEvent('offline_availability_changed'));
+      Bus.instance.fire(
+        CollectionsUpdatedEvent('offline_availability_changed'),
+      );
     }
 
     if (changedCount == 0 || !context.mounted) {
       return changedCount > 0;
     }
 
-    showToast(
-      context,
-      context.l10n.filesRemovedFromOffline(changedCount),
-    );
+    showToast(context, context.l10n.filesRemovedFromOffline(changedCount));
     return true;
   }
 
@@ -255,10 +246,7 @@ class OfflineFilesService {
       _logger.warning(
         'Skipping offline mark for file $fileID because it is no longer active',
       );
-      await _clearOfflineState(
-        [fileID],
-        removeWorkingCopies: false,
-      );
+      await _clearOfflineState([fileID], removeWorkingCopies: false);
       return false;
     }
 

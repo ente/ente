@@ -1,7 +1,7 @@
-name: "Release (server)"
+name: "Release (Server)"
 
 on:
-    workflow_dispatch: # Run manually
+    workflow_dispatch:
 
 permissions:
     contents: read
@@ -9,19 +9,22 @@ permissions:
 jobs:
     build:
         runs-on: ubuntu-latest
+        environment: production
         steps:
-            - name: Checkout code
-              uses: actions/checkout@v6
+            - name: Checkout
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-            - name: Build and push
-              uses: mr-smithers-excellent/docker-build-push@v6
-              with:
-                  dockerfile: server/Dockerfile
-                  directory: server
-                  image: ente/museum-prod
-                  registry: rg.fr-par.scw.cloud
-                  enableBuildKit: true
-                  buildArgs: GIT_COMMIT=${GITHUB_SHA}
-                  tags: ${GITHUB_SHA}, latest
-                  username: ${{ secrets.DOCKER_USERNAME }}
-                  password: ${{ secrets.DOCKER_PASSWORD }}
+            - name: Log in to Docker registry
+              env:
+                  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+                  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+              run: printf '%s' "${DOCKER_PASSWORD}" | docker login rg.fr-par.scw.cloud --username "${DOCKER_USERNAME}" --password-stdin
+
+            - name: Build and push image
+              run: |
+                  docker buildx build --push \
+                      --file server/Dockerfile \
+                      --build-arg GIT_COMMIT="${GITHUB_SHA}" \
+                      --tag rg.fr-par.scw.cloud/ente/museum-prod:${GITHUB_SHA} \
+                      --tag rg.fr-par.scw.cloud/ente/museum-prod:latest \
+                      server

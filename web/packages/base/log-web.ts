@@ -1,4 +1,4 @@
-import { isDevBuild } from "ente-base/env";
+import { buildEnvGitSHA, isDevBuild } from "ente-base/env";
 import log from "ente-base/log";
 import { appName, appNames } from "./app";
 
@@ -18,7 +18,7 @@ export const logStartupBanner = (userID?: number) => {
         );
     }
 
-    const sha = process.env.gitSHA;
+    const sha = buildEnvGitSHA;
     const buildID = isDevBuild ? "dev " : sha ? `git ${sha} ` : "";
     log.info(`Starting ente-${appName}-web ${buildID}uid ${userID ?? 0}`);
 };
@@ -107,9 +107,9 @@ export const logToDisk = (message: string) => {
     const maxCount = 1000;
     const log: LogEntry = { logLine: message, timestamp: Date.now() };
     try {
-        const logs = logEntries();
+        let logs = logEntries();
         if (logs.length > maxCount) {
-            logs.slice(logs.length - maxCount);
+            logs = logs.slice(logs.length - maxCount / 4);
         }
         logs.push(log);
         localStorage.setItem(lsKey, JSON.stringify({ logs }));

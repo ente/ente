@@ -532,7 +532,7 @@ const Color textDarkerDark = Color.fromRGBO(204, 204, 204, 1);
 const Color textLighterLight = Color.fromRGBO(150, 150, 150, 1);
 const Color textLighterDark = Color.fromRGBO(150, 150, 150, 1);
 
-const Color textLightestLight = Color.fromRGBO(222, 222, 222, 1);
+const Color textLightestLight = Color.fromRGBO(214, 214, 214, 1);
 const Color textLightestDark = Color.fromRGBO(65, 65, 65, 1);
 
 const Color textReverseLight = Color.fromRGBO(255, 255, 255, 1);
@@ -556,7 +556,7 @@ const Color fillBaseDark = Color.fromRGBO(255, 255, 255, 1);
 const Color fillDarkLight = Color.fromRGBO(234, 234, 234, 1);
 const Color fillDarkDark = Color.fromRGBO(10, 10, 10, 1);
 
-const Color fillDarkerLight = Color.fromRGBO(233, 233, 233, 1);
+const Color fillDarkerLight = Color.fromRGBO(222, 222, 222, 1);
 const Color fillDarkerDark = Color.fromRGBO(20, 20, 20, 1);
 
 const Color fillDarkestLight = Color.fromRGBO(210, 210, 210, 1);
@@ -567,7 +567,7 @@ const Color strokeDarkLight = Color.fromRGBO(224, 224, 224, 1);
 const Color strokeDarkDark = Color.fromRGBO(62, 62, 62, 1);
 
 const Color strokeFaintLight = Color.fromRGBO(235, 235, 235, 1);
-const Color strokeFaintDark = Color.fromRGBO(33, 33, 33, 1);
+const Color strokeFaintDark = Color.fromRGBO(42, 42, 42, 1);
 
 // Accent Colors
 const Color accentOrangeLightLight = Color.fromRGBO(255, 247, 244, 1);
@@ -600,6 +600,8 @@ const Color specialWhiteDark = Color.fromRGBO(255, 255, 255, 1);
 
 const Color specialWhiteOverlayLight = Color.fromRGBO(255, 255, 255, 0.14);
 const Color specialWhiteOverlayDark = Color.fromRGBO(255, 255, 255, 0.14);
+
+const Color avatarCyan = Color.fromRGBO(0, 184, 212, 1);
 
 const List<Color> avatarLight = [
   Color.fromRGBO(118, 84, 154, 1),

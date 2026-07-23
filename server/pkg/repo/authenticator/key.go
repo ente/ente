@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/ente-io/museum/ente"
-	model "github.com/ente-io/museum/ente/authenticator"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	model "github.com/ente/museum/ente/authenticator"
+	"github.com/ente/stacktrace"
 )
 
 // CreateTotpEntry inserts a new &{totp.CreateTotpEntry} entry

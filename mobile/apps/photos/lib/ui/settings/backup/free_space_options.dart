@@ -5,7 +5,6 @@ import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart" show kDebugMode;
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/duplicate_files.dart";
 import "package:photos/models/freeable_space_info.dart";
@@ -124,11 +123,10 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
     final colors = context.componentColors;
     return MenuComponent(
       title: title,
-      trailing: HugeIcon(
-        icon: HugeIcons.strokeRoundedArrowRight02,
+      trailing: Icon(
+        Icons.chevron_right_outlined,
         color: colors.textLight,
-        size: 18,
-        strokeWidth: 1.6,
+        size: IconSizes.medium,
       ),
       showOnlyLoadingState: true,
       onTap: onTap,
@@ -140,14 +138,13 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
     try {
       status = await FilesService.instance.getFreeableSpaceInfo();
     } catch (e) {
-      await showGenericErrorDialog(
-        context: context,
-        error: e,
-      );
+      if (!mounted) return;
+      await showGenericErrorDialog(context: context, error: e);
       return;
     }
 
     if (status.localIDs.isEmpty) {
+      if (!mounted) return;
       unawaited(
         showErrorDialog(
           context,
@@ -156,10 +153,8 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
         ),
       );
     } else {
-      final bool? result = await routeToPage(
-        context,
-        FreeSpacePage(status),
-      );
+      if (!mounted) return;
+      final bool? result = await routeToPage(context, FreeSpacePage(status));
       if (result == true) {
         _showSpaceFreedDialog(status);
       }
@@ -171,14 +166,13 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
     try {
       duplicates = await DeduplicationService.instance.getDuplicateFiles();
     } catch (e) {
-      await showGenericErrorDialog(
-        context: context,
-        error: e,
-      );
+      if (!mounted) return;
+      await showGenericErrorDialog(context: context, error: e);
       return;
     }
 
     if (duplicates.isEmpty) {
+      if (!mounted) return;
       unawaited(
         showErrorDialog(
           context,
@@ -187,6 +181,7 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
         ),
       );
     } else {
+      if (!mounted) return;
       final DeduplicationResult? result = await routeToPage(
         context,
         DeduplicatePage(duplicates),
@@ -203,14 +198,13 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
       suggestionFileIDs = await CollectionsService.instance
           .fetchDeleteSuggestionFileIDs();
     } catch (e) {
-      await showGenericErrorDialog(
-        context: context,
-        error: e,
-      );
+      if (!mounted) return;
+      await showGenericErrorDialog(context: context, error: e);
       return;
     }
 
     if (suggestionFileIDs.isEmpty) {
+      if (!mounted) return;
       unawaited(
         showErrorDialog(
           context,
@@ -219,10 +213,8 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
         ),
       );
     } else {
-      await routeToPage(
-        context,
-        DeleteSuggestionsPage(),
-      );
+      if (!mounted) return;
+      await routeToPage(context, DeleteSuggestionsPage());
     }
   }
 
@@ -258,9 +250,9 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
         isDismissible: true,
         builder: (_) => BottomSheetComponent(
           title: AppLocalizations.of(context).success,
-          message: AppLocalizations.of(context).youHaveSuccessfullyFreedUp(
-            storageSaved: formatBytes(status.size),
-          ),
+          message: AppLocalizations.of(
+            context,
+          ).youHaveSuccessfullyFreedUp(storageSaved: formatBytes(status.size)),
           illustration: Icon(
             Icons.download_done_rounded,
             size: 64,

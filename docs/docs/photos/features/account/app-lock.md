@@ -5,16 +5,13 @@ description: Add an extra privacy layer to Ente Photos with app lock
 
 # App lock
 
-App lock adds a local protection layer to Ente Photos, so the app requires
-authentication when opened.
+App lock adds a local protection layer to Ente Photos, so the app requires authentication when opened.
 
 ## Enable app lock
 
-**On mobile:**
-Open `Settings > Security > App lock`, then turn on **App lock**.
+**On mobile:** Open `Settings > Security > App lock`, then turn on **App lock**.
 
-**On desktop:**
-Open `Settings > Preferences > App lock`, then turn on **App lock**.
+**On desktop:** Open `Settings > Preferences > App lock`, then turn on **App lock**.
 
 ## Lock methods
 
@@ -34,8 +31,7 @@ Configure **Auto lock** to choose when Ente Photos locks after being put in the 
 
 ## Hide content
 
-Enable **Hide content** to hide Ente Photos content in the app switcher (and
-disable screenshots on Android).
+Enable **Hide content** to hide Ente Photos content in the app switcher (and disable screenshots on Android).
 
 `Hide content` is currently available only in the app (mobile).
 

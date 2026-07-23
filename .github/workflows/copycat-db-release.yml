@@ -1,7 +1,7 @@
 name: "Release (copycat-db)"
 
 on:
-    workflow_dispatch: # Run manually
+    workflow_dispatch:
 
 permissions:
     contents: read
@@ -9,19 +9,22 @@ permissions:
 jobs:
     build:
         runs-on: ubuntu-latest
+        environment: production
         steps:
-            - uses: actions/checkout@v6
-              name: Check out code
+            - name: Checkout
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-            - uses: mr-smithers-excellent/docker-build-push@v6
-              name: Build & Push
-              with:
-                  dockerfile: infra/copycat-db/Dockerfile
-                  directory: infra/copycat-db
-                  image: ente/copycat-db
-                  registry: rg.fr-par.scw.cloud
-                  enableBuildKit: true
-                  buildArgs: GIT_COMMIT=${GITHUB_SHA}
-                  tags: ${GITHUB_SHA}, latest
-                  username: ${{ secrets.DOCKER_USERNAME }}
-                  password: ${{ secrets.DOCKER_PASSWORD }}
+            - name: Log in to Docker registry
+              env:
+                  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+                  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+              run: printf '%s' "${DOCKER_PASSWORD}" | docker login rg.fr-par.scw.cloud --username "${DOCKER_USERNAME}" --password-stdin
+
+            - name: Build and push image
+              run: |
+                  docker buildx build --push \
+                      --file infra/copycat-db/Dockerfile \
+                      --build-arg GIT_COMMIT="${GITHUB_SHA}" \
+                      --tag rg.fr-par.scw.cloud/ente/copycat-db:${GITHUB_SHA} \
+                      --tag rg.fr-par.scw.cloud/ente/copycat-db:latest \
+                      infra/copycat-db

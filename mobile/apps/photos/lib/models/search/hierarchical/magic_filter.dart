@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 
@@ -14,8 +14,8 @@ class MagicFilter extends HierarchicalSearchFilter {
   });
 
   @override
-  IconData? icon() {
-    return Icons.auto_awesome;
+  SearchFilterIcon icon() {
+    return HugeIcons.strokeRoundedSparkles;
   }
 
   @override

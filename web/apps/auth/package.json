@@ -3,10 +3,10 @@
     "version": "0.0.0",
     "private": true,
     "dependencies": {
+        "@noble/hashes": "2.2.0",
         "ente-accounts": "*",
         "ente-base": "*",
-        "jssha": "~3.3.1",
-        "otpauth": "9.2.4"
+        "otpauth": "9.5.1"
     },
     "devDependencies": {
         "ente-build-config": "*"

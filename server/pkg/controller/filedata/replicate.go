@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/ente/filedata"
-	fileDataRepo "github.com/ente-io/museum/pkg/repo/filedata"
-	"github.com/ente-io/museum/pkg/utils/file"
-	enteTime "github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/filedata"
+	fileDataRepo "github.com/ente/museum/pkg/repo/filedata"
+	"github.com/ente/museum/pkg/utils/file"
+	enteTime "github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"time"
@@ -127,7 +127,7 @@ func (c *Controller) replicateRowData(ctx context.Context, row filedata.Row) err
 	if len(wantInBucketIDs) > 0 {
 		s3FileMetadata, err := c.downloadObject(ctx, row.S3FileMetadataObjectKey(), row.LatestBucket)
 		if err != nil {
-			return stacktrace.Propagate(err, "error fetching metadata object "+row.S3FileMetadataObjectKey())
+			return stacktrace.Propagate(err, "error fetching metadata object %s", row.S3FileMetadataObjectKey())
 		}
 		for key := range wantInBucketIDs {
 			bucketID := key

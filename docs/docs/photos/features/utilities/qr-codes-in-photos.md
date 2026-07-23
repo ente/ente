@@ -20,10 +20,10 @@ Ente Photos can detect QR codes inside photos and screenshots, so you do not nee
 2. Touch and hold on the QR code in the photo.
 3. Ente detects the QR code and shows its contents.
 4. Choose what you want to do next:
-   - **Open link** for web links
-   - **Copy** to copy the detected contents
-   - **Share link** or share the detected text with another app
-   - **Pay** for supported UPI payment QR codes
+    - **Open link** for web links
+    - **Copy** to copy the detected contents
+    - **Share link** or share the detected text with another app
+    - **Pay** for supported UPI payment QR codes
 
 If a photo contains more than one QR code, Ente can show each detected result separately.
 

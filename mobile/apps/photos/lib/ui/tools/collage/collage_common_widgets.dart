@@ -3,9 +3,7 @@ import "package:photos/generated/l10n.dart";
 import "package:photos/theme/ente_theme.dart";
 
 class CollageLayoutHeading extends StatelessWidget {
-  const CollageLayoutHeading({
-    super.key,
-  });
+  const CollageLayoutHeading({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -15,9 +13,7 @@ class CollageLayoutHeading extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(8, 20, 0, 4),
         child: Text(
           AppLocalizations.of(context).collageLayout,
-          style: TextStyle(
-            color: getEnteColorScheme(context).textBase,
-          ),
+          style: TextStyle(color: getEnteColorScheme(context).textBase),
         ),
       ),
     );
@@ -39,10 +35,7 @@ class CollageLayoutIconButton extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: child,
-      ),
+      child: Padding(padding: const EdgeInsets.all(4), child: child),
     );
   }
 }

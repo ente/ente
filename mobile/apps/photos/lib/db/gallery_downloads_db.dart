@@ -100,8 +100,7 @@ class GalleryDownloadsDB with SqlDbBase {
 
   Future<List<DownloadTask>> getAllTasks() async {
     final db = await sqliteAsyncDB;
-    final rows = await db.getAll(
-      '''
+    final rows = await db.getAll('''
       SELECT
         $columnID as id,
         $columnFilename as filename,
@@ -115,17 +114,13 @@ class GalleryDownloadsDB with SqlDbBase {
         $columnUpdatedAt as updatedAt
       FROM $tableName
       ORDER BY $columnCreatedAt ASC
-      ''',
-    );
+      ''');
     return rows.map((row) => DownloadTask.fromMap(row)).toList();
   }
 
   Future<void> deleteTask(int id) async {
     final db = await sqliteAsyncDB;
-    await db.execute(
-      "DELETE FROM $tableName WHERE $columnID = ?",
-      [id],
-    );
+    await db.execute("DELETE FROM $tableName WHERE $columnID = ?", [id]);
   }
 
   Future<void> deleteTasks(List<int> ids) async {

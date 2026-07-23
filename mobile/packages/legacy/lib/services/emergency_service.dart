@@ -36,46 +36,51 @@ class EmergencyContactService {
   static final EmergencyContactService instance =
       EmergencyContactService._privateConstructor();
 
-  Future<void> init(
-    UserService userService,
-    BaseConfiguration config,
-  ) async {
+  Future<void> init(UserService userService, BaseConfiguration config) async {
     _userService = userService;
     _config = config;
   }
 
   Future<bool> addContact(
-    BuildContext context,
+    BuildContext? context,
     String email,
     int recoveryNoticeInDays,
   ) async {
     if (!isValidEmail(email)) {
-      await showAlertBottomSheet(
-        context,
-        title: context.strings.letsTryThatAgain,
-        message: context.strings.enterValidEmail,
-        assetPath: "assets/warning-blue.png",
-      );
+      if (context != null && context.mounted) {
+        await showAlertBottomSheet(
+          context,
+          title: context.strings.letsTryThatAgain,
+          message: context.strings.enterValidEmail,
+          assetPath: "assets/warning-blue.png",
+        );
+      }
       return false;
     }
     if (email.trim() == _config.getEmail()) {
-      await showAlertBottomSheet(
-        context,
-        title: context.strings.oops,
-        message: context.strings.youCannotShareWithYourself,
-        assetPath: "assets/warning-blue.png",
-      );
+      if (context != null && context.mounted) {
+        await showAlertBottomSheet(
+          context,
+          title: context.strings.oops,
+          message: context.strings.youCannotShareWithYourself,
+          assetPath: "assets/warning-blue.png",
+        );
+      }
       return false;
     }
 
-    final dialog = createProgressDialog(context, context.strings.pleaseWait);
-    await dialog.show();
+    final dialog = context != null && context.mounted
+        ? createProgressDialog(context, context.strings.pleaseWait)
+        : null;
+    await dialog?.show();
 
     try {
       final String? publicKey = await _userService.getPublicKey(email);
       if (publicKey == null) {
-        await dialog.hide();
-        await showInviteSheet(context, email: email);
+        await dialog?.hide();
+        if (context != null && context.mounted) {
+          await showInviteSheet(context, email: email);
+        }
         return false;
       }
 
@@ -92,10 +97,10 @@ class EmergencyContactService {
           "recoveryNoticeInDays": recoveryNoticeInDays,
         },
       );
-      await dialog.hide();
+      await dialog?.hide();
       return true;
     } catch (e) {
-      await dialog.hide();
+      await dialog?.hide();
       rethrow;
     }
   }
@@ -234,8 +239,9 @@ class EmergencyContactService {
         _config.getSecretKey()!,
       );
       final String hexRecoveryKey = CryptoUtil.bin2hex(decryptedKey);
-      final KeyAttributes keyAttributes =
-          KeyAttributes.fromMap(resp.data['userKeyAttr']);
+      final KeyAttributes keyAttributes = KeyAttributes.fromMap(
+        resp.data['userKeyAttr'],
+      );
       return (hexRecoveryKey, keyAttributes);
     } catch (e, s) {
       Logger("EmergencyContact").severe('failed to stop recovery', e, s);
@@ -284,10 +290,12 @@ class EmergencyContactService {
         },
       );
       if (response.statusCode == 200) {
-        final SetupSRPResponse setupSRPResponse =
-            SetupSRPResponse.fromJson(response.data);
-        final serverB =
-            SRP6Util.decodeBigInt(base64Decode(setupSRPResponse.srpB));
+        final SetupSRPResponse setupSRPResponse = SetupSRPResponse.fromJson(
+          response.data,
+        );
+        final serverB = SRP6Util.decodeBigInt(
+          base64Decode(setupSRPResponse.srpB),
+        );
 
         // ignore: unused_local_variable
         final clientS = client.calculateSecret(serverB);

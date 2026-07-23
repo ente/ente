@@ -3,9 +3,9 @@ title: Installing Ente Photos
 description: Installation guides for Ente Photos on all platforms
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Installing Ente Photos

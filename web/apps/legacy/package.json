@@ -3,13 +3,13 @@
     "version": "0.0.0",
     "private": true,
     "dependencies": {
-        "@mui/icons-material": "^7.3.4",
+        "@mui/icons-material": "9.2.0",
         "ente-accounts-rs": "*",
         "ente-base": "*",
         "ente-wasm": "*",
-        "pdfjs-dist": "^5.4.394",
-        "qr": "^0.5.5",
-        "zod": "^4.1.12"
+        "pdfjs-dist": "5.7.284",
+        "qr": "0.6.0",
+        "zod": "4.4.3"
     },
     "devDependencies": {
         "ente-build-config": "*"

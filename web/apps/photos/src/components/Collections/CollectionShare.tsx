@@ -1,5 +1,6 @@
 // TODO: Audit this file
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+import Avatar from "@/components/Avatar";
 import AddIcon from "@mui/icons-material/Add";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import BlockIcon from "@mui/icons-material/Block";
@@ -8,18 +9,17 @@ import CodeIcon from "@mui/icons-material/Code";
 import ContentCopyIcon from "@mui/icons-material/ContentCopyOutlined";
 import DoneIcon from "@mui/icons-material/Done";
 import DownloadSharpIcon from "@mui/icons-material/DownloadSharp";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
 import LinkIcon from "@mui/icons-material/Link";
 import ModeEditIcon from "@mui/icons-material/ModeEdit";
 import Photo, { default as PhotoIcon } from "@mui/icons-material/Photo";
 import PublicIcon from "@mui/icons-material/Public";
-import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
+import RemoveCircleOutlinedIcon from "@mui/icons-material/RemoveCircleOutlined";
 import WorkspacesIcon from "@mui/icons-material/Workspaces";
 import { Dialog, Stack, styled, Typography } from "@mui/material";
 import NumberAvatar from "@mui/material/Avatar";
 import TextField from "@mui/material/TextField";
-import Avatar from "components/Avatar";
-import { type LocalUser } from "ente-accounts/services/user";
+import type { LocalUser } from "ente-accounts/services/user";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import {
     SidebarDrawer,
@@ -1694,7 +1694,7 @@ const ManagePublicShare: React.FC<ManagePublicShareProps> = ({
                     {isLinkExpired(publicURL.validTill) ? (
                         <RowButton
                             disabled
-                            startIcon={<ErrorOutlineIcon />}
+                            startIcon={<ErrorOutlinedIcon />}
                             color="critical"
                             onClick={showManagePublicShare}
                             label={t("link_expired")}
@@ -1934,7 +1934,7 @@ const ManagePublicShareOptions: React.FC<ManagePublicShareOptionsProps> = ({
                 <RowButtonGroup>
                     <RowButton
                         color="critical"
-                        startIcon={<RemoveCircleOutlineIcon />}
+                        startIcon={<RemoveCircleOutlinedIcon />}
                         onClick={handleRemovePublicLink}
                         label={t("remove_link")}
                     />

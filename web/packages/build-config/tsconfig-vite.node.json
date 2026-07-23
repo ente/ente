@@ -1,7 +1,7 @@
 {
     /* TSConfig file used for typechecking vite's config file itself.
      *
-     * These are vite defaults, generated using `yarn create vite`.
+     * These are vite defaults, generated using `npm create vite`.
      */
     "compilerOptions": {
         "composite": true,

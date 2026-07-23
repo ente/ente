@@ -29,20 +29,25 @@ class AlbumHorizontalList extends StatefulWidget {
 
 class _AlbumHorizontalListState extends State<AlbumHorizontalList> {
   late StreamSubscription<CollectionUpdatedEvent>
-      _collectionUpdatesSubscription;
+  _collectionUpdatesSubscription;
   late Logger _logger;
 
   static const maxThumbnailWidth = 224.0;
   static const crossAxisSpacing = 8.0;
   static const horizontalPadding = 16.0;
+  static const sectionBottomPadding = 16.0;
+  static const titleVerticalPadding = 8.0;
+  static const listTopPadding = 8.0;
+  static const gridItemTextHeight = 52.0;
 
   @override
   void initState() {
     super.initState();
-    _collectionUpdatesSubscription =
-        Bus.instance.on<CollectionUpdatedEvent>().listen((event) {
-      setState(() {});
-    });
+    _collectionUpdatesSubscription = Bus.instance
+        .on<CollectionUpdatedEvent>()
+        .listen((event) {
+          setState(() {});
+        });
     _logger = Logger((_AlbumHorizontalListState).toString());
   }
 
@@ -59,7 +64,7 @@ class _AlbumHorizontalListState extends State<AlbumHorizontalList> {
     final totalHorizontalPadding = (albumsCountInRow - 1) * crossAxisSpacing;
     final sideOfThumbnail =
         (screenWidth - totalHorizontalPadding - horizontalPadding) /
-            albumsCountInRow;
+        albumsCountInRow;
     debugPrint('$runtimeType widget build');
     return FutureBuilder<List<Collection>>(
       future: widget.collectionsFuture(),
@@ -74,7 +79,7 @@ class _AlbumHorizontalListState extends State<AlbumHorizontalList> {
           final allCollections = snapshot.data as List<Collection>;
 
           return Padding(
-            padding: const EdgeInsets.only(bottom: 24, top: 8),
+            padding: const EdgeInsets.only(bottom: sectionBottomPadding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -83,7 +88,7 @@ class _AlbumHorizontalListState extends State<AlbumHorizontalList> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: 12,
+                      vertical: titleVerticalPadding,
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -99,8 +104,9 @@ class _AlbumHorizontalListState extends State<AlbumHorizontalList> {
                               padding: const EdgeInsets.fromLTRB(24, 0, 0, 0),
                               child: Icon(
                                 Icons.chevron_right_outlined,
-                                color: getEnteColorScheme(context)
-                                    .blurStrokePressed,
+                                color: getEnteColorScheme(
+                                  context,
+                                ).blurStrokePressed,
                               ),
                             ),
                           ),
@@ -111,12 +117,15 @@ class _AlbumHorizontalListState extends State<AlbumHorizontalList> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: SizedBox(
-                    height: sideOfThumbnail + 46,
+                    height:
+                        sideOfThumbnail + gridItemTextHeight + listTopPadding,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       itemCount: allCollections.length,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: horizontalPadding / 2,
+                      padding: const EdgeInsets.only(
+                        left: horizontalPadding / 2,
+                        right: horizontalPadding / 2,
+                        top: listTopPadding,
                       ),
                       itemBuilder: (context, index) {
                         final item = allCollections[index];

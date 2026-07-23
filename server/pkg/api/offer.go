@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/ente-io/museum/pkg/controller/offer"
+	"github.com/ente/museum/pkg/controller/offer"
 	"github.com/gin-gonic/gin"
 )
 

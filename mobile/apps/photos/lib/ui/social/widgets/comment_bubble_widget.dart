@@ -98,7 +98,7 @@ class _CommentBubbleWidgetState extends State<CommentBubbleWidget>
   late final AnimationController _overlayAnimationController;
   late final Animation<double> _overlayAnimation;
   late final StreamSubscription<CommentDeletedEvent>
-      _commentDeletedSubscription;
+  _commentDeletedSubscription;
 
   bool get _isOverlayDismissed =>
       _overlayAnimationController.status == AnimationStatus.dismissed;
@@ -115,12 +115,13 @@ class _CommentBubbleWidgetState extends State<CommentBubbleWidget>
       curve: Curves.fastOutSlowIn,
     );
     _overlayAnimationController.addStatusListener(_onOverlayStatusChange);
-    _commentDeletedSubscription =
-        Bus.instance.on<CommentDeletedEvent>().listen((event) {
-      if (mounted && _parentComment?.id == event.commentId) {
-        _fetchParentComment();
-      }
-    });
+    _commentDeletedSubscription = Bus.instance.on<CommentDeletedEvent>().listen(
+      (event) {
+        if (mounted && _parentComment?.id == event.commentId) {
+          _fetchParentComment();
+        }
+      },
+    );
     _loadData();
     _measureContent();
 
@@ -379,8 +380,10 @@ class _CommentBubbleWidgetState extends State<CommentBubbleWidget>
                       bottom: 0,
                       child: Center(
                         child: Opacity(
-                          opacity:
-                              (_dragOffset / _replyThreshold).clamp(0.0, 1.0),
+                          opacity: (_dragOffset / _replyThreshold).clamp(
+                            0.0,
+                            1.0,
+                          ),
                           child: Icon(
                             EnteIcons.reply,
                             color: colorScheme.textMuted,
@@ -438,12 +441,14 @@ class _CommentBubbleWidgetState extends State<CommentBubbleWidget>
             CompositedTransformFollower(
               link: _layerLink,
               showWhenUnlinked: false,
-              targetAnchor:
-                  widget.isOwnComment ? Alignment.topRight : Alignment.topLeft,
-              followerAnchor:
-                  widget.isOwnComment ? Alignment.topRight : Alignment.topLeft,
-              child: _contentSize != null &&
-                      _contentSize!.width >= _minPopupWidth
+              targetAnchor: widget.isOwnComment
+                  ? Alignment.topRight
+                  : Alignment.topLeft,
+              followerAnchor: widget.isOwnComment
+                  ? Alignment.topRight
+                  : Alignment.topLeft,
+              child:
+                  _contentSize != null && _contentSize!.width >= _minPopupWidth
                   ? SizedBox(
                       width: _contentSize!.width,
                       child: Opacity(
@@ -490,7 +495,8 @@ class _CommentBubbleWidgetState extends State<CommentBubbleWidget>
       _lastNonZeroLikeCount = likeCount;
     }
     final displayCount = likeCount > 0 ? likeCount : _lastNonZeroLikeCount;
-    final showCapsule = !_isLoadingReactions &&
+    final showCapsule =
+        !_isLoadingReactions &&
         showActionsCapsule &&
         likeCount > 0 &&
         _isOverlayDismissed;
@@ -509,9 +515,7 @@ class _CommentBubbleWidgetState extends State<CommentBubbleWidget>
           Opacity(
             opacity: showHeader ? 1 : 0,
             child: Padding(
-              padding: EdgeInsets.only(
-                right: widget.isOwnComment ? 18 : 0,
-              ),
+              padding: EdgeInsets.only(right: widget.isOwnComment ? 18 : 0),
               child: _Header(
                 isOwnComment: widget.isOwnComment,
                 user: widget.user,
@@ -526,8 +530,9 @@ class _CommentBubbleWidgetState extends State<CommentBubbleWidget>
             padding: EdgeInsets.only(left: widget.isOwnComment ? 0 : 24),
             child: Transform.scale(
               scale: bubbleScale,
-              alignment:
-                  widget.isOwnComment ? Alignment.topRight : Alignment.topLeft,
+              alignment: widget.isOwnComment
+                  ? Alignment.topRight
+                  : Alignment.topLeft,
               child: Column(
                 crossAxisAlignment: widget.isOwnComment
                     ? CrossAxisAlignment.end
@@ -636,10 +641,12 @@ class _InlineParentQuote extends StatelessWidget {
     }
 
     final isParentDeleted = parentComment == null;
-    final parentText =
-        isParentDeleted ? l10n.deletedComment : parentComment!.data;
-    final parentUser =
-        parentComment != null ? userResolver(parentComment!) : null;
+    final parentText = isParentDeleted
+        ? l10n.deletedComment
+        : parentComment!.data;
+    final parentUser = parentComment != null
+        ? userResolver(parentComment!)
+        : null;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     final lineColor = isOwnComment
@@ -649,14 +656,14 @@ class _InlineParentQuote extends StatelessWidget {
     final parentAuthorTextColor = isOwnComment
         ? textBaseDark
         : isDarkMode
-            ? const Color(0xCCFFFFFF)
-            : const Color(0xCC000000);
+        ? const Color(0xCCFFFFFF)
+        : const Color(0xCC000000);
 
     final parentTextColor = isOwnComment
         ? const Color(0xCCFFFFFF)
         : isDarkMode
-            ? const Color(0xB3FFFFFF)
-            : const Color(0xB3000000);
+        ? const Color(0xB3FFFFFF)
+        : const Color(0xB3000000);
 
     final content = Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -709,8 +716,9 @@ class _InlineParentQuote extends StatelessWidget {
                       height: 17 / 10,
                       letterSpacing: -0.3,
                       color: parentTextColor,
-                      fontStyle:
-                          isParentDeleted ? FontStyle.italic : FontStyle.normal,
+                      fontStyle: isParentDeleted
+                          ? FontStyle.italic
+                          : FontStyle.normal,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -763,8 +771,8 @@ class _CommentBubble extends StatelessWidget {
     final bubbleColor = isOwnComment
         ? (isDarkMode ? const Color(0xFF056C1F) : const Color(0xFF0DAF35))
         : isDarkMode
-            ? const Color(0xFF212121)
-            : const Color(0xFFF0F0F0);
+        ? const Color(0xFF212121)
+        : const Color(0xFFF0F0F0);
 
     final bubbleBorderRadius = BorderRadius.only(
       topLeft: Radius.circular(isOwnComment ? 20 : 6),
@@ -889,15 +897,16 @@ class _Header extends StatelessWidget {
     );
 
     final row = Row(
-      mainAxisAlignment:
-          isOwnComment ? MainAxisAlignment.end : MainAxisAlignment.start,
+      mainAxisAlignment: isOwnComment
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
       mainAxisSize: MainAxisSize.max,
       children: [
         if (!isOwnComment) ...[
           UserAvatarWidget(
             user,
             currentUserID: currentUserID,
-            type: AvatarType.lg,
+            type: AvatarType.regular,
             thumbnailView: true,
             addStroke: false,
           ),
@@ -909,7 +918,7 @@ class _Header extends StatelessWidget {
           UserAvatarWidget(
             user,
             currentUserID: currentUserID,
-            type: AvatarType.lg,
+            type: AvatarType.regular,
             thumbnailView: true,
             addStroke: false,
           ),

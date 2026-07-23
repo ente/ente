@@ -1,3 +1,10 @@
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
+import GeneratingRiveIndicator from "@/components/chat/GeneratingRiveIndicator";
+import {
+    STREAMING_SELECTION_KEY,
+    type BranchSwitcher,
+} from "@/services/chat/branching";
+import type { ChatAttachment, ChatMessage } from "@/services/chat/store";
 import {
     ArrowLeft01Icon,
     ArrowRight01Icon,
@@ -9,14 +16,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box, IconButton, Stack, Typography } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
-import { MarkdownRenderer } from "components/MarkdownRenderer";
-import GeneratingRiveIndicator from "components/chat/GeneratingRiveIndicator";
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
-import {
-    STREAMING_SELECTION_KEY,
-    type BranchSwitcher,
-} from "services/chat/branching";
-import type { ChatAttachment, ChatMessage } from "services/chat/store";
 
 type DocumentAttachment = {
     id: string;

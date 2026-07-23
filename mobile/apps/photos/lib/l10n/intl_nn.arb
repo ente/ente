@@ -11,12 +11,6 @@
   "invalidEmailAddress": "Ugyldig e-postadresse",
   "enterValidEmail": "Skriv inn ei gyldig e-postadresse.",
   "deleteAccount": "Slett konto",
-  "askDeleteReason": "Kva er hovudgrunnen til at du vil sletta kontoen din?",
-  "feedback": "Tilbakemelding",
-  "confirmDeletePrompt": "Ja, eg vil sletta denne kontoen og alle tilhøyrande data frå alle appar permanent.",
-  "confirmAccountDeletion": "Stadfest sletting av konto",
-  "deleteAccountPermanentlyButton": "Slett konto permanent",
-  "yourAccountHasBeenDeleted": "Kontoen er sletta",
   "sendEmail": "Send e-post",
   "entePhotosPerm": "Ente <i>treng løyve til</i> å kunna ta vare på fotoa dine",
   "ok": "OK",
@@ -156,6 +150,9 @@
   "sorryCouldNotAddToFavorites": "Klarte ikkje leggja til i favorittar.",
   "sorryCouldNotRemoveFromFavorites": "Klarte ikkje fjerna frå favorittar.",
   "archive": "Arkiv",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
   "createAlbumActionHint": "Trykk lenge for å velja foto, og trykk på pluss-ikonet for å oppretta eit album",
   "importing": "Importerer …",
   "failedToLoadAlbums": "Feil ved lasting av album",
@@ -292,10 +289,6 @@
   "rotateRight": "Roter til høgre",
   "saveCopy": "Lagra kopi",
   "fileInfoAddDescHint": "Legg til skildring …",
-  "androidCancelButton": "Avbryt",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
   "crop": "Skjer av",
   "rotate": "Roter",
   "next": "Neste",

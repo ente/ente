@@ -20,7 +20,7 @@ func TestGenerateUniqueFileName(t *testing.T) {
 	extension := filepath.Ext(testFilename)
 	baseFileName := strings.TrimSuffix(filepath.Clean(filepath.Base(testFilename)), extension)
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		newFilename := a.GenerateUniqueFileName(baseFileName, extension)
 		if strings.Contains(newFilename, "_1_2") {
 			t.Fatalf("Filename contained _1_2")

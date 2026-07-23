@@ -4,28 +4,26 @@ import 'dart:typed_data' show Float32List, Uint8List;
 import "package:flutter_rust_bridge/flutter_rust_bridge.dart" show Uint64List;
 import "package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart"
     show Int64List;
+import "package:logging/logging.dart";
 import "package:ml_linalg/linalg.dart";
 import "package:photos/db/ml/clip_vector_db.dart";
 import "package:photos/models/ml/face/box.dart";
 import "package:photos/models/ml/vector.dart";
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_clustering_service.dart";
 import "package:photos/services/machine_learning/ml_constants.dart";
-import "package:photos/services/machine_learning/ml_model.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
-import "package:photos/services/machine_learning/semantic_search/clip/clip_text_encoder.dart";
-import "package:photos/services/machine_learning/semantic_search/clip/clip_text_tokenizer.dart";
 import "package:photos/services/machine_learning/semantic_search/query_result.dart";
 import "package:photos/src/rust/api/image_processing_api.dart"
     as rust_image_processing;
 import "package:photos/src/rust/api/ml_indexing_api.dart" as rust_ml;
 import "package:photos/src/rust/api/usearch_api.dart" as rust_usearch;
 import "package:photos/src/rust/frb_generated.dart" show EntePhotosRust;
-import "package:photos/utils/image_ml_util.dart";
 import "package:photos/utils/ml_util.dart";
 
 final Map<String, dynamic> _isolateCache = {};
 const _rustLibLoadedCacheKey = "rustLibLoaded";
-const _rustMlRuntimeConfigCacheKey = "rustMlRuntimeConfig";
+const _rustMlModelPathsCacheKey = "rustMlModelPaths";
+final _rustMlRuntimeLogger = Logger("RustMLRuntime");
 
 class RustCorruptModelCacheDeletedException implements Exception {
   const RustCorruptModelCacheDeletedException(this.modelPath);
@@ -46,20 +44,8 @@ enum IsolateOperation {
   /// [MLIndexingIsolate]
   releaseRustMlRuntime,
 
-  /// [MLIndexingIsolate]
-  loadIndexingModels,
-
-  /// [MLIndexingIsolate]
-  releaseIndexingModels,
-
   /// [MLComputer]
   generateFaceThumbnails,
-
-  /// [MLComputer]
-  loadModel,
-
-  /// [MLComputer]
-  initializeClipTokenizer,
 
   /// [MLComputer]
   runClipText,
@@ -87,9 +73,7 @@ enum IsolateOperation {
 }
 
 class _CachedImageEmbeddings {
-  _CachedImageEmbeddings({
-    required this.embeddingVectors,
-  });
+  _CachedImageEmbeddings({required this.embeddingVectors});
 
   final List<EmbeddingVector> embeddingVectors;
   rust_usearch.SemanticSearchExactCache? rustExactCache;
@@ -129,15 +113,10 @@ Future<dynamic> isolateFunction(
 
     /// MLIndexingIsolate
     case IsolateOperation.analyzeImage:
-      final bool useRustMl = args["useRustMl"] as bool? ?? false;
-      if (useRustMl) {
-        await _ensureRustLoaded();
-      }
+      await _ensureRustLoaded();
       final MLResult result;
       try {
-        result = useRustMl
-            ? await analyzeImageRust(args)
-            : await analyzeImageStatic(args);
+        result = await analyzeImageRust(args);
       } on rust_ml.RustMlError_CorruptModel catch (e) {
         final file = File(e.field0);
         if (await file.exists()) {
@@ -155,32 +134,10 @@ Future<dynamic> isolateFunction(
 
     /// MLIndexingIsolate
     case IsolateOperation.releaseRustMlRuntime:
-      await _releaseRustRuntime();
-      return true;
-
-    /// MLIndexingIsolate
-    case IsolateOperation.loadIndexingModels:
-      final modelNames = args['modelNames'] as List<String>;
-      final modelPaths = args['modelPaths'] as List<String>;
-      final addresses = <int>[];
-      for (int i = 0; i < modelNames.length; i++) {
-        final int address = await MlModel.loadModel(
-          modelNames[i],
-          modelPaths[i],
-        );
-        addresses.add(address);
-      }
-      return List<int>.from(addresses, growable: false);
-
-    /// MLIndexingIsolate
-    case IsolateOperation.releaseIndexingModels:
-      final modelNames = args['modelNames'] as List<String>;
-      final modelAddresses = args['modelAddresses'] as List<int>;
-      for (int i = 0; i < modelNames.length; i++) {
-        await MlModel.releaseModel(
-          modelNames[i],
-          modelAddresses[i],
-        );
+      try {
+        await _releaseRustRuntime();
+      } finally {
+        await _logRustMlRuntimeEvents();
       }
       return true;
 
@@ -191,60 +148,30 @@ Future<dynamic> isolateFunction(
     /// MLComputer
     case IsolateOperation.generateFaceThumbnails:
       final imagePath = args['imagePath'] as String;
-      final useRustForFaceThumbnails =
-          args['useRustForFaceThumbnails'] as bool? ?? false;
       final faceBoxesJson = args['faceBoxesList'] as List<Map<String, dynamic>>;
-      final List<FaceBox> faceBoxes =
-          faceBoxesJson.map((json) => FaceBox.fromJson(json)).toList();
-      if (useRustForFaceThumbnails) {
-        await _ensureRustLoaded();
-        final rustFaceBoxes = faceBoxes
-            .map(
-              (box) => rust_image_processing.RustFaceBox(
-                x: box.x,
-                y: box.y,
-                width: box.width,
-                height: box.height,
-              ),
-            )
-            .toList(growable: false);
-        final List<Uint8List> results =
-            await rust_image_processing.generateFaceThumbnails(
-          imagePath: imagePath,
-          faceBoxes: rustFaceBoxes,
-        );
-        return List.from(results);
-      }
-      final List<Uint8List> results = await generateFaceThumbnailsUsingCanvas(
-        imagePath,
-        faceBoxes,
-      );
+      final List<FaceBox> faceBoxes = faceBoxesJson
+          .map((json) => FaceBox.fromJson(json))
+          .toList();
+      await _ensureRustLoaded();
+      final rustFaceBoxes = faceBoxes
+          .map(
+            (box) => rust_image_processing.RustFaceBox(
+              x: box.x,
+              y: box.y,
+              width: box.width,
+              height: box.height,
+            ),
+          )
+          .toList(growable: false);
+      final List<Uint8List> results = await rust_image_processing
+          .generateFaceThumbnails(
+            imagePath: imagePath,
+            faceBoxes: rustFaceBoxes,
+          );
       return List.from(results);
 
     /// MLComputer
-    case IsolateOperation.loadModel:
-      final modelName = args['modelName'] as String;
-      final modelPath = args['modelPath'] as String;
-      final int address = await MlModel.loadModel(
-        modelName,
-        modelPath,
-      );
-      return address;
-
-    /// MLComputer
-    case IsolateOperation.initializeClipTokenizer:
-      final vocabPath = args["vocabPath"] as String;
-      await ClipTextTokenizer.instance.init(vocabPath);
-      return true;
-
-    /// MLComputer
     case IsolateOperation.runClipText:
-      final useRustMl = args["useRustMl"] as bool? ?? false;
-      if (!useRustMl) {
-        final textEmbedding = await ClipTextEncoder.predict(args);
-        return List<double>.from(textEmbedding, growable: false);
-      }
-
       await _ensureRustLoaded();
       final text = args["text"] as String;
       final clipTextModelPath = args["clipTextModelPath"] as String?;
@@ -261,29 +188,34 @@ Future<dynamic> isolateFunction(
         );
       }
 
-      final rust_ml.RunClipTextResult result;
       try {
-        result = await rust_ml.runClipTextRust(
-          req: rust_ml.RunClipTextRequest(
-            text: text,
-            modelPath: clipTextModelPath,
-            vocabPath: clipTextVocabPath,
-            providerPolicy: rust_ml.RustExecutionProviderPolicy(
-              preferCoreml: args["preferCoreml"] as bool? ?? true,
-              preferNnapi: args["preferNnapi"] as bool? ?? true,
-              preferXnnpack: args["preferXnnpack"] as bool? ?? false,
-              allowCpuFallback: args["allowCpuFallback"] as bool? ?? true,
-            ),
-          ),
+        // Configure execution behavior before the CLIP text session is
+        // created; the session is process-global and cannot be reconfigured
+        // once built.
+        await rust_ml.setMlExecutionConfig(
+          enableWebgpu: (args["enableWebGpu"] as bool?) ?? false,
         );
-      } on rust_ml.RustMlError_CorruptModel catch (e) {
-        final file = File(e.field0);
-        if (await file.exists()) {
-          await file.delete();
+
+        final rust_ml.RunClipTextResult result;
+        try {
+          result = await rust_ml.runClipTextRust(
+            req: rust_ml.RunClipTextRequest(
+              text: text,
+              modelPath: clipTextModelPath,
+              vocabPath: clipTextVocabPath,
+            ),
+          );
+        } on rust_ml.RustMlError_CorruptModel catch (e) {
+          final file = File(e.field0);
+          if (await file.exists()) {
+            await file.delete();
+          }
+          return RustCorruptModelCacheDeletedException(e.field0);
         }
-        return RustCorruptModelCacheDeletedException(e.field0);
+        return List<double>.from(result.embedding, growable: false);
+      } finally {
+        await _logRustMlRuntimeEvents();
       }
-      return List<double>.from(result.embedding, growable: false);
 
     /// MLComputer
     case IsolateOperation.computeBulkSimilarities:
@@ -305,8 +237,9 @@ Future<dynamic> isolateFunction(
             queryResults.add(QueryResult(imageEmbedding.fileID, similarity));
           }
         }
-        queryResults
-            .sort((first, second) => second.score.compareTo(first.score));
+        queryResults.sort(
+          (first, second) => second.score.compareTo(first.score),
+        );
         result[query] = queryResults;
       }
       return result;
@@ -335,12 +268,7 @@ Future<dynamic> isolateFunction(
       for (int i = 0; i < queryKeys.length; i++) {
         final matches = response.matchesPerQuery[i];
         result[queryKeys[i]] = matches
-            .map(
-              (match) => QueryResult(
-                match.fileId,
-                match.score,
-              ),
-            )
+            .map((match) => QueryResult(match.fileId, match.score))
             .toList(growable: false);
       }
       return result;
@@ -366,8 +294,9 @@ Future<dynamic> isolateFunction(
         embeddingVectors: embeddings,
       );
       if (cacheRustExact) {
-        cachedEmbeddings.rustExactCache =
-            await _createRustExactCache(cachedEmbeddings);
+        cachedEmbeddings.rustExactCache = await _createRustExactCache(
+          cachedEmbeddings,
+        );
       }
       _disposeIsolateCacheValue(_isolateCache[imageEmbeddingsKey]);
       _isolateCache[imageEmbeddingsKey] = cachedEmbeddings;
@@ -432,11 +361,7 @@ Future<rust_usearch.SemanticSearchExactCache> _createRustExactCache(
         .toList(growable: false),
   );
   final imageEmbeddings = cachedEmbeddings.embeddingVectors
-      .map(
-        (embedding) => Float32List.fromList(
-          embedding.vector.toList(),
-        ),
-      )
+      .map((embedding) => Float32List.fromList(embedding.vector.toList()))
       .toList(growable: false);
   return rust_usearch.SemanticSearchExactCache(
     imageFileIds: imageFileIds,
@@ -471,6 +396,10 @@ Future<void> _ensureRustDisposed() async {
 }
 
 Future<void> _ensureRustRuntimePrepared(Map<String, dynamic> args) async {
+  // Configure execution behavior before any ONNX session is created.
+  await rust_ml.setMlExecutionConfig(
+    enableWebgpu: (args["enableWebGpu"] as bool?) ?? false,
+  );
   final modelPaths = rust_ml.RustModelPaths(
     faceDetection: (args["faceDetectionModelPath"] as String?) ?? "",
     faceEmbedding: (args["faceEmbeddingModelPath"] as String?) ?? "",
@@ -487,16 +416,10 @@ Future<void> _ensureRustRuntimePrepared(Map<String, dynamic> args) async {
     petBodyEmbeddingCat:
         (args["petBodyEmbeddingCatModelPath"] as String?) ?? "",
   );
-  final providerPolicy = rust_ml.RustExecutionProviderPolicy(
-    preferCoreml: args["preferCoreml"] as bool? ?? true,
-    preferNnapi: args["preferNnapi"] as bool? ?? true,
-    preferXnnpack: args["preferXnnpack"] as bool? ?? false,
-    allowCpuFallback: args["allowCpuFallback"] as bool? ?? true,
-  );
-  final runtimeConfigKey = _runtimeConfigCacheKey(modelPaths, providerPolicy);
-  final currentConfigKey =
-      _isolateCache[_rustMlRuntimeConfigCacheKey] as String?;
-  if (currentConfigKey == runtimeConfigKey) {
+  final modelPathsKey = _modelPathsCacheKey(modelPaths);
+  final currentModelPathsKey =
+      _isolateCache[_rustMlModelPathsCacheKey] as String?;
+  if (currentModelPathsKey == modelPathsKey) {
     return;
   }
 
@@ -516,13 +439,8 @@ Future<void> _ensureRustRuntimePrepared(Map<String, dynamic> args) async {
     );
   }
 
-  await rust_ml.initMlRuntime(
-    config: rust_ml.RustMlRuntimeConfig(
-      modelPaths: modelPaths,
-      providerPolicy: providerPolicy,
-    ),
-  );
-  _isolateCache[_rustMlRuntimeConfigCacheKey] = runtimeConfigKey;
+  await rust_ml.initMlRuntime(modelPaths: modelPaths);
+  _isolateCache[_rustMlModelPathsCacheKey] = modelPathsKey;
 }
 
 Future<void> _releaseRustRuntime() async {
@@ -535,13 +453,29 @@ Future<void> _releaseRustRuntime() async {
   } catch (_) {
     // no-op: indexing-model release is best-effort.
   }
-  _isolateCache.remove(_rustMlRuntimeConfigCacheKey);
+  _isolateCache.remove(_rustMlModelPathsCacheKey);
 }
 
-String _runtimeConfigCacheKey(
-  rust_ml.RustModelPaths modelPaths,
-  rust_ml.RustExecutionProviderPolicy providerPolicy,
-) {
+Future<void> _logRustMlRuntimeEvents() async {
+  try {
+    final events = await rust_ml.takeMlRuntimeEvents();
+    for (final event in events) {
+      final message = "Rust ML runtime: ${event.message}";
+      switch (event.severity) {
+        case "severe":
+          _rustMlRuntimeLogger.severe(message);
+        case "warning":
+          _rustMlRuntimeLogger.warning(message);
+        default:
+          _rustMlRuntimeLogger.info(message);
+      }
+    }
+  } catch (e, s) {
+    _rustMlRuntimeLogger.warning("Failed to take Rust ML runtime events", e, s);
+  }
+}
+
+String _modelPathsCacheKey(rust_ml.RustModelPaths modelPaths) {
   return [
     modelPaths.faceDetection,
     modelPaths.faceEmbedding,
@@ -553,9 +487,5 @@ String _runtimeConfigCacheKey(
     modelPaths.petBodyDetection,
     modelPaths.petBodyEmbeddingDog,
     modelPaths.petBodyEmbeddingCat,
-    providerPolicy.preferCoreml,
-    providerPolicy.preferNnapi,
-    providerPolicy.preferXnnpack,
-    providerPolicy.allowCpuFallback,
   ].join("|");
 }

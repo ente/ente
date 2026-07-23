@@ -1,8 +1,8 @@
 package email
 
 import (
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/time"
 )
 
 const (
@@ -132,6 +132,9 @@ func resolveActiveOverageWarning(now int64, history map[string]int64) activeOver
 				CycleStart: cycleStart,
 			}
 		}
+		// Without an active login-grace marker, stale cadence restarts the warning
+		// ladder instead of deleting from an old final reminder. The grace handler
+		// in processStorageWarningSnapshot can still force terminal re-block.
 		return activeOverageWarningResolution{
 			Stage:      activeOverageWarningStage0,
 			CycleStart: now,

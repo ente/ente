@@ -161,8 +161,9 @@ class ProgressDialog {
                 insetAnimationDuration: const Duration(milliseconds: 100),
                 elevation: _dialogElevation,
                 shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.all(Radius.circular(_borderRadius)),
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(_borderRadius),
+                  ),
                 ),
                 child: _dialog,
               ),
@@ -192,7 +193,7 @@ class ProgressDialog {
 class _Body extends StatefulWidget {
   final _BodyState _dialog = _BodyState();
 
-  update() {
+  void update() {
     _dialog.update();
   }
 
@@ -204,7 +205,7 @@ class _Body extends StatefulWidget {
 }
 
 class _BodyState extends State<_Body> {
-  update() {
+  void update() {
     setState(() {});
   }
 
@@ -219,11 +220,7 @@ class _BodyState extends State<_Body> {
   Widget build(BuildContext context) {
     final loader = Align(
       alignment: _progressWidgetAlignment,
-      child: SizedBox(
-        width: 60.0,
-        height: 60.0,
-        child: _progressWidget,
-      ),
+      child: SizedBox(width: 60.0, height: 60.0, child: _progressWidget),
     );
 
     final text = Expanded(

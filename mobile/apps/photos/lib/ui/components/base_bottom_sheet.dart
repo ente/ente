@@ -91,8 +91,9 @@ class BaseBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final bottomInset =
-        isKeyboardAware ? MediaQuery.of(context).viewInsets.bottom : 0.0;
+    final bottomInset = isKeyboardAware
+        ? MediaQuery.of(context).viewInsets.bottom
+        : 0.0;
 
     return Container(
       decoration: BoxDecoration(

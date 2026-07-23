@@ -2,7 +2,7 @@
 
 > android.permission.READ_EXTERNAL_STORAGE
 
-  **Used to read photos and videos from the device.**
+**Used to read photos and videos from the device.**
 
 > android.permission.ACCESS_MEDIA_LOCATION
 

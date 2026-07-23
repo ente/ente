@@ -62,8 +62,9 @@ class _CodeSelectionActionsWidgetState
             labelText: widget.code.isPinned
                 ? context.l10n.unpinText
                 : context.l10n.pinText,
-            icon:
-                widget.code.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+            icon: widget.code.isPinned
+                ? Icons.push_pin
+                : Icons.push_pin_outlined,
             onTap: widget.onPin,
           ),
         );
@@ -98,8 +99,9 @@ class _CodeSelectionActionsWidgetState
 
     items.add(
       SelectionActionButton(
-        labelText:
-            widget.code.isTrashed ? context.l10n.delete : context.l10n.trash,
+        labelText: widget.code.isTrashed
+            ? context.l10n.delete
+            : context.l10n.trash,
         icon: widget.code.isTrashed ? Icons.delete_forever : Icons.delete,
         onTap: widget.code.isTrashed ? widget.onDelete : widget.onTrashed,
       ),

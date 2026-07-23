@@ -62,15 +62,12 @@ class _MemoriesDebugPageState extends State<MemoriesDebugPage> {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
     return Scaffold(
-      backgroundColor: colorScheme.backgroundBase,
+      backgroundColor: colorScheme.backgroundColour,
       appBar: AppBar(
-        backgroundColor: colorScheme.backgroundBase,
+        backgroundColor: colorScheme.backgroundColour,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        title: Text(
-          "Memories Debug",
-          style: textTheme.largeBold,
-        ),
+        title: Text("Memories Debug", style: textTheme.largeBold),
         actions: [
           IconButton(
             tooltip: "Change calculation date",
@@ -167,15 +164,15 @@ class _MemoriesDebugPageState extends State<MemoriesDebugPage> {
                         title: _memoryTypeLabel(entry.key),
                         count: entry.key == MemoryType.trips
                             ? entry.value
-                                .whereType<TripMemory>()
-                                .where(
-                                  (m) =>
-                                      m.locationName == null ||
-                                      !m.locationName!
-                                          .toLowerCase()
-                                          .contains("base"),
-                                )
-                                .length
+                                  .whereType<TripMemory>()
+                                  .where(
+                                    (m) =>
+                                        m.locationName == null ||
+                                        !m.locationName!.toLowerCase().contains(
+                                          "base",
+                                        ),
+                                  )
+                                  .length
                             : entry.value.length,
                         icon: _memoryTypeIcon(entry.key),
                         isExpanded: isExpanded,
@@ -432,10 +429,7 @@ class _SummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "$totalMemories memories",
-            style: textTheme.largeBold,
-          ),
+          Text("$totalMemories memories", style: textTheme.largeBold),
           const SizedBox(height: 4),
           Text(
             "Calculated for $formattedDate in ${duration.inMilliseconds} ms",
@@ -515,26 +509,16 @@ class _MemoryDebugSectionHeader extends StatelessWidget {
                     color: colorScheme.fillFaint,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    icon,
-                    size: 20,
-                    color: colorScheme.strokeBase,
-                  ),
+                  child: Icon(icon, size: 20, color: colorScheme.strokeBase),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    "$title ($count)",
-                    style: textTheme.smallBold,
-                  ),
+                  child: Text("$title ($count)", style: textTheme.smallBold),
                 ),
                 AnimatedRotation(
                   turns: isExpanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 180),
-                  child: Icon(
-                    Icons.expand_more,
-                    color: colorScheme.textMuted,
-                  ),
+                  child: Icon(Icons.expand_more, color: colorScheme.textMuted),
                 ),
               ],
             ),
@@ -562,8 +546,9 @@ class _MemoryDebugTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final firstFile =
-        memory.memories.isNotEmpty ? memory.memories.first.file : null;
+    final firstFile = memory.memories.isNotEmpty
+        ? memory.memories.first.file
+        : null;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -604,15 +589,9 @@ class _MemoryDebugTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        memory.title,
-                        style: textTheme.smallBold,
-                      ),
+                      Text(memory.title, style: textTheme.smallBold),
                       const SizedBox(height: 6),
-                      Text(
-                        subtitle,
-                        style: textTheme.miniMuted,
-                      ),
+                      Text(subtitle, style: textTheme.miniMuted),
                     ],
                   ),
                 ),
@@ -679,9 +658,9 @@ class _MemoryGalleryPageState extends State<_MemoryGalleryPage> {
     final textTheme = getEnteTextTheme(context);
     return GalleryFilesState(
       child: Scaffold(
-        backgroundColor: colorScheme.backgroundBase,
+        backgroundColor: colorScheme.backgroundColour,
         appBar: AppBar(
-          backgroundColor: colorScheme.backgroundBase,
+          backgroundColor: colorScheme.backgroundColour,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           title: Text(widget.title, style: textTheme.largeBold),

@@ -99,14 +99,10 @@ class _LogFilterDialogState extends State<LogFilterDialog> {
     final theme = Theme.of(context);
 
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 380, maxHeight: 500),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -139,8 +135,10 @@ class _LogFilterDialogState extends State<LogFilterDialog> {
             // Content
             Flexible(
               child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -195,8 +193,9 @@ class _LogFilterDialogState extends State<LogFilterDialog> {
                             ),
                             itemBuilder: (context, index) {
                               final process = widget.availableProcesses[index];
-                              final isSelected =
-                                  _selectedProcesses.contains(process);
+                              final isSelected = _selectedProcesses.contains(
+                                process,
+                              );
                               final displayName = LogEntry(
                                 message: '',
                                 level: 'INFO',
@@ -230,7 +229,9 @@ class _LogFilterDialogState extends State<LogFilterDialog> {
                                             color: isSelected
                                                 ? theme.primaryColor
                                                 : theme
-                                                    .textTheme.bodyLarge?.color,
+                                                      .textTheme
+                                                      .bodyLarge
+                                                      ?.color,
                                             fontWeight: isSelected
                                                 ? FontWeight.w500
                                                 : FontWeight.normal,
@@ -248,8 +249,9 @@ class _LogFilterDialogState extends State<LogFilterDialog> {
                                               if (selected == true) {
                                                 _selectedProcesses.add(process);
                                               } else {
-                                                _selectedProcesses
-                                                    .remove(process);
+                                                _selectedProcesses.remove(
+                                                  process,
+                                                );
                                               }
                                             });
                                           },
@@ -300,8 +302,9 @@ class _LogFilterDialogState extends State<LogFilterDialog> {
                             ),
                             itemBuilder: (context, index) {
                               final logger = widget.availableLoggers[index];
-                              final isSelected =
-                                  _selectedLoggers.contains(logger);
+                              final isSelected = _selectedLoggers.contains(
+                                logger,
+                              );
                               return InkWell(
                                 onTap: () {
                                   setState(() {
@@ -327,7 +330,9 @@ class _LogFilterDialogState extends State<LogFilterDialog> {
                                             color: isSelected
                                                 ? theme.primaryColor
                                                 : theme
-                                                    .textTheme.bodyLarge?.color,
+                                                      .textTheme
+                                                      .bodyLarge
+                                                      ?.color,
                                             fontWeight: isSelected
                                                 ? FontWeight.w500
                                                 : FontWeight.normal,
@@ -378,8 +383,9 @@ class _LogFilterDialogState extends State<LogFilterDialog> {
                     width: 1,
                   ),
                 ),
-                borderRadius:
-                    const BorderRadius.vertical(bottom: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(16),
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

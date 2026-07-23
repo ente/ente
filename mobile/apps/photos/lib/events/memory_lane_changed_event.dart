@@ -5,10 +5,7 @@ class MemoryLaneChangedEvent extends Event {
   final String personId;
   final MemoryLaneStatus status;
 
-  MemoryLaneChangedEvent({
-    required this.personId,
-    required this.status,
-  });
+  MemoryLaneChangedEvent({required this.personId, required this.status});
 
   bool get isReady => status == MemoryLaneStatus.ready;
 

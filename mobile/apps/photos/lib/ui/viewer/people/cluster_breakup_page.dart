@@ -10,11 +10,7 @@ class ClusterBreakupPage extends StatefulWidget {
   final Map<String, List<EnteFile>> newClusterIDsToFiles;
   final String title;
 
-  const ClusterBreakupPage(
-    this.newClusterIDsToFiles,
-    this.title, {
-    super.key,
-  });
+  const ClusterBreakupPage(this.newClusterIDsToFiles, this.title, {super.key});
 
   @override
   State<ClusterBreakupPage> createState() => _ClusterBreakupPageState();
@@ -27,9 +23,7 @@ class _ClusterBreakupPageState extends State<ClusterBreakupPage> {
     final clusterIDsToFiles = widget.newClusterIDsToFiles;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
+      appBar: AppBar(title: Text(widget.title)),
       body: ListView.builder(
         itemCount: widget.newClusterIDsToFiles.keys.length,
         itemBuilder: (context, index) {
@@ -56,14 +50,10 @@ class _ClusterBreakupPageState extends State<ClusterBreakupPage> {
                     height: 64,
                     child: files.isNotEmpty
                         ? FaceThumbnailSquircleClip(
-                            child: PersonFaceWidget(
-                              clusterID: clusterID,
-                            ),
+                            child: PersonFaceWidget(clusterID: clusterID),
                           )
                         : const FaceThumbnailSquircleClip(
-                            child: NoThumbnailWidget(
-                              addBorder: false,
-                            ),
+                            child: NoThumbnailWidget(addBorder: false),
                           ),
                   ),
                   const SizedBox(

@@ -22,12 +22,7 @@ class MultiPartUploader {
   late final Logger _logger = Logger("MultiPartUploader");
   FileUploadGateway get _gateway => fileUploadGateway;
 
-  MultiPartUploader(
-    Dio _, // unused, kept for backwards compatibility
-    this._s3Dio,
-    this._db,
-    this._featureFlagService,
-  );
+  MultiPartUploader(this._s3Dio, this._db, this._featureFlagService);
 
   Future<FileEncryptResult> getEncryptionResult(
     String localId,
@@ -35,8 +30,9 @@ class MultiPartUploader {
     int collectionID,
     String encFileName,
   ) async {
-    final collectionKey =
-        CollectionsService.instance.getCollectionKey(collectionID);
+    final collectionKey = CollectionsService.instance.getCollectionKey(
+      collectionID,
+    );
     final result = await _db.getFileEncryptionData(
       localId,
       fileHash,
@@ -135,13 +131,11 @@ class MultiPartUploader {
     String? fileMd5,
     List<String>? partMd5s,
   }) async {
-    final collectionKey =
-        CollectionsService.instance.getCollectionKey(collectionID);
-
-    final encryptedResult = CryptoUtil.encryptSync(
-      fileKey,
-      collectionKey,
+    final collectionKey = CollectionsService.instance.getCollectionKey(
+      collectionID,
     );
+
+    final encryptedResult = CryptoUtil.encryptSync(fileKey, collectionKey);
 
     await _db.createTrackUploadsEntry(
       localId,
@@ -291,7 +285,7 @@ class MultiPartUploader {
       count++;
       final partURL = partsURLs[i];
       final isLastPart = i == partsLength - 1;
-      final fileSize = isLastPart ? encFileLength % partSize : partSize;
+      final fileSize = isLastPart ? encFileLength - (i * partSize) : partSize;
       _logger.info(
         "Uploading part ${i + 1} / $partsLength of size $fileSize bytes (total size $encFileLength). ObjectKey=${partInfo.urls.objectKey}",
       );
@@ -323,9 +317,7 @@ class MultiPartUploader {
             i * partSize,
             isLastPart ? null : (i + 1) * partSize,
           ),
-          options: Options(
-            headers: headers,
-          ),
+          options: Options(headers: headers),
         );
 
         final eTag = useUploadProxy
@@ -373,12 +365,7 @@ class MultiPartUploader {
     final useUploadProxy = _shouldUseCFUploadProxy;
     final body = convertJs2Xml({
       'CompleteMultipartUpload': partEtags.entries
-          .map(
-            (e) => PartETag(
-              e.key + 1,
-              e.value,
-            ),
-          )
+          .map((e) => PartETag(e.key + 1, e.value))
           .toList(),
     }).replaceAll('"', '').replaceAll('&quot;', '');
 
@@ -393,10 +380,7 @@ class MultiPartUploader {
           headers: useUploadProxy ? {"UPLOAD-URL": completeURL} : null,
         ),
       );
-      await _db.updateTrackUploadStatus(
-        objectKey,
-        MultipartStatus.completed,
-      );
+      await _db.updateTrackUploadStatus(objectKey, MultipartStatus.completed);
     } catch (e) {
       Logger("MultipartUpload").severe("upload failed for key $objectKey}", e);
       rethrow;

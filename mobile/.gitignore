@@ -3,26 +3,16 @@
 *.log
 *.pyc
 *.swp
-.DS_Store
-.atom/
-.buildlog/
 .history
-.svn/
-migrate_working_dir/
+.build/
+.swiftpm/
 
-# IntelliJ related
+# IntelliJ
 *.iml
 *.ipr
 *.iws
-.idea/
-melos_*.iml
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
+# Flutter/Dart/Pub
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
@@ -31,15 +21,65 @@ melos_*.iml
 .packages
 .pub-cache/
 .pub/
-/build/
+build/
+coverage/
 
-# Symbolication related
+# Xcode
+DerivedData/
+xcuserdata/
+
+# Flutter iOS
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/ServiceDefinitions.json
+
+# Flutter macOS
+**/macos/Pods/
+**/macos/Flutter/ephemeral/
+
+# Flutter Linux/Windows
+**/linux/flutter/ephemeral/
+**/windows/flutter/ephemeral/
+
+# Windows
+**/windows/*.suo
+**/windows/*.user
+**/windows/*.userosscache
+**/windows/*.sln.docstates
+**/windows/x64/
+**/windows/x86/
+**/windows/*.[Cc]ache
+!**/windows/*.[Cc]ache/
+
+# Symbolication
 app.*.symbols
 
-# Obfuscation related
+# Obfuscation
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Android
+**/android/**/.cxx/
+**/android/**/.gradle/
+**/android/**/.kotlin/
+**/android/**/.settings/
+**/android/**/GeneratedPluginRegistrant.java
+**/android/captures/
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
+local.properties
+
+# Remember to never publicly share your keystore.
+# See https://flutter.dev/to/reference-keystore
+key.properties
+**/*.keystore
+**/*.jks
+devtools_options.yaml

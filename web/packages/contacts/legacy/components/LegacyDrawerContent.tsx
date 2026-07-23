@@ -265,8 +265,8 @@ export const LegacyDrawerContent: React.FC<LegacyDrawerContentProps> = ({
 
     const hasOverviewEntries = Boolean(
         info?.recoverSessions.length ||
-            info?.contacts.length ||
-            info?.othersEmergencyContact.length,
+        info?.contacts.length ||
+        info?.othersEmergencyContact.length,
     );
 
     const refreshAfterMutation = useCallback(async () => {

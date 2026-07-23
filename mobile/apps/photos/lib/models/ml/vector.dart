@@ -7,10 +7,8 @@ class EmbeddingVector {
 
   bool get isEmpty => vector.isEmpty;
 
-  EmbeddingVector({
-    required this.fileID,
-    required List<double> embedding,
-  }) : vector = Vector.fromList(embedding);
+  EmbeddingVector({required this.fileID, required List<double> embedding})
+    : vector = Vector.fromList(embedding);
 
   static EmbeddingVector fromJsonString(String jsonString) {
     return _fromJson(jsonDecode(jsonString) as Map<String, dynamic>);
@@ -21,10 +19,7 @@ class EmbeddingVector {
   }
 
   Map<String, dynamic> _toJson() {
-    return {
-      "fileID": fileID,
-      "embedding": vector.toList(),
-    };
+    return {"fileID": fileID, "embedding": vector.toList()};
   }
 
   static EmbeddingVector _fromJson(Map<String, dynamic> json) {

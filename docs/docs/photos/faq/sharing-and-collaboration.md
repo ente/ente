@@ -42,7 +42,7 @@ Multiple Ente users can add photos to the same album:
 - All collaborators can contribute photos
 - Each person's uploads count towards their own storage
 - Owner controls permissions and membership
-- Currently full support on mobile, view-only on web/desktop
+- Supported on mobile, web, and desktop
 
 Learn more: [Collaboration guide](/photos/features/sharing-and-collaboration/collaboration)
 
@@ -197,8 +197,8 @@ When a collaborator is removed from a shared album (or when they leave the album
 
 **Collaborative albums** (sharing with other Ente users):
 
-- Fully supported on mobile apps (iOS and Android)
-- View-only mode on web and desktop (we're actively working on adding full support)
+- Fully supported on mobile apps (iOS and Android), web, and desktop
+- Can view, add, and manage photos
 
 **Collaborative links** (collect links):
 
@@ -273,7 +273,9 @@ Suggest deletion allows album owners and admins to suggest that other participan
 
 This is useful for curating shared albums after group trips or events by suggesting removal of blurry, duplicate, or unwanted shots.
 
-> **Note**: Suggest deletion is currently available on mobile apps only.
+> [!NOTE]
+>
+> Suggest deletion is currently available on mobile apps only.
 
 Learn more: [Collaboration guide](/photos/features/sharing-and-collaboration/collaboration#suggest-deletion)
 
@@ -288,7 +290,9 @@ Learn more: [Collaboration guide](/photos/features/sharing-and-collaboration/col
 
 The photos will be removed from the album immediately, and the photo owners will receive delete suggestions to review.
 
-> **Note**: Suggest deletion is currently available on mobile apps only.
+> [!NOTE]
+>
+> Suggest deletion is currently available on mobile apps only.
 
 ### How do I review delete suggestions? {#review-delete-suggestions}
 
@@ -305,7 +309,9 @@ For each suggestion, you can:
 
 The photo was already removed from the shared album when the suggestion was made. Accepting deletes the photo from your account. Rejecting keeps it in your account (but not in the album).
 
-> **Note**: Delete suggestions is currently available on mobile apps only.
+> [!NOTE]
+>
+> Delete suggestions is currently available on mobile apps only.
 
 Learn more: [Storage optimization guide](/photos/features/albums-and-organization/storage-optimization#delete-suggestions)
 
@@ -349,8 +355,7 @@ Notifications work more reliably on Android, but can still be affected by:
 2. Disable battery optimization for Ente in system settings
 3. Don't force-close the app from recents
 
-**Alternative:**
-If you need real-time updates, keep the app open or check the shared album manually by opening it in the app.
+**Alternative:** If you need real-time updates, keep the app open or check the shared album manually by opening it in the app.
 
 - No platform restrictions for link recipients
 
@@ -398,6 +403,14 @@ When someone adds a photo via a collect link:
 
 Make sure you have sufficient storage available if you're expecting many people to add photos.
 
+### Can I let others view a shared album without allowing download of the photos? {#disable-downloads-public-link}
+
+Yes. When creating or managing a public link, you can turn off downloads.
+
+Open the album, create or manage the public link, and disable **Allow downloads**.
+
+This lets people view the album through the link without showing them a download option.
+
 ### Can I set limits on public links? {#link-limits}
 
 Yes! Public links (including collect links) support several protective features:
@@ -418,7 +431,7 @@ Yes, you have several options:
 3. **Disable uploads**: Edit the link settings and turn off "Allow adding photos"
 4. **Change to view-only**: Convert the collect link to a regular public link (view only)
 
-You can manage these settings by going to your Sharing section and selecting the link you want to modify.
+You can manage these settings by opening the shared album (under the "Shared" tab in the Albums section) and selecting the link you want to modify.
 
 ### Can I see who added photos to my collect link? {#collect-link-attribution}
 
@@ -446,9 +459,10 @@ Anonymous viewers (people without an Ente account) can also show a name if they'
 
 Yes! Quick links automatically create a special album behind the scenes. You can convert this to a regular album at any time:
 
-1. Open the Sharing tab in the Ente app
-2. Find the quick link under "Quick links" section
-3. Select the option to convert it to a regular album
+1. Open the Albums tab in the Ente app
+2. Tap on 'v' icon at the right.
+3. Tap "Links"
+4. Find the quick link and select the option to convert it to a regular album
 
 This gives you more control over the album, including the ability to rename it and organize it like any other album.
 
@@ -476,11 +490,17 @@ Ente creates a special album behind the scenes with the selected photos. Quick l
 
 ### Can I add photos from a shared album to my own albums? {#add-shared-photos}
 
-Yes, on Ente's mobile apps, you can add photos from an album that's shared with you into one of your own albums.
+Yes, on Ente's mobile, web, and desktop apps, you can add photos from an album that's shared with you into one of your own albums.
 
-**Important**: This creates a copy of the photo that you fully own, and it will count against your storage quota. This is different from just viewing shared photos, which doesn't use your storage.
+> [!IMPORTANT]
+>
+> This creates a copy of the photo that you fully own, and it will count against your storage quota. This is different from just viewing shared photos, which doesn't use your storage.
 
 The reason for creating copies is to avoid complications around ownership - if the original owner deletes the photo from their library, your copy remains safe in your account.
+
+### Can I upload, add, or move files in shared albums on web/desktop? {#manage-shared-album-files}
+
+Yes. On web and desktop, collaborators, admins, and owners can upload files from their device to shared albums, and can add files already in their Ente library to shared albums.
 
 ### Why does adding shared photos to my albums count against my storage? {#shared-storage-count}
 
@@ -490,11 +510,17 @@ When you add a shared photo to your own album, Ente creates a hard copy that you
 2. **Ownership is clear**: There's no ambiguity about who owns which version of the photo
 3. **No dependency**: Your organized albums don't break if someone stops sharing with you
 
-We understand this uses extra storage in some use cases (like family photo sharing). We're exploring reference-based solutions in the future where storage would only count if the original is deleted. See [this discussion](https://github.com/ente-io/ente/discussions/790) for more details.
+We understand this uses extra storage in some use cases (like family photo sharing). We're exploring reference-based solutions in the future where storage would only count if the original is deleted. See [this discussion](https://github.com/ente/ente/discussions/790) for more details.
 
 ### Why don't photos added via a shared link appear in my feed? {#shared-link-photos-not-in-feed}
 
 Only photos added by Ente users who joined the album directly will appear in your feed. Photos added through a public link by someone without an Ente account are not shown in the feed.
+
+### Why do photos shared by others appear in my main gallery? {#shared-photos-in-gallery}
+
+By default, shared items can appear in your home gallery.
+
+To hide them, open `Settings > Appearance > Gallery` and enable **Hide shared items from home gallery**.
 
 ### Can I remove myself from a shared album? {#leave-shared-album}
 
@@ -506,20 +532,40 @@ Yes, if someone has shared an album with you, you can leave it at any time:
 
 After leaving, you'll no longer have access to the album. If you were a collaborator and uploaded photos, those photos will be removed from the album but remain in your own account.
 
+### What happens to the photos in a shared album if it's deleted or sharing stops? {#shared-album-deleted-content}
+
+It depends on who uploaded each photo:
+
+- **Photos you uploaded**: These always stay in your personal library, no matter what happens to the shared album. You don't lose anything you added yourself.
+- **Photos uploaded by others**: You lose access to these if the album is deleted, or if you leave or are removed from it. There is no automatic saving and no advance warning when this happens.
+
+When the album owner deletes a shared album, they see a dialog warning that the album will be deleted for everyone and that they will lose access to photos uploaded by others.
+
+**To save others' photos before that happens:**
+
+1. Open the shared album.
+2. Long-press to select photos, then tap **Select all**.
+3. Tap **Add to album** and choose one of your own albums.
+
+This creates copies that you fully own, so they remain in your library even if the shared album later goes away. Note that copies count towards your own storage. See [Why does adding shared photos to my albums count against my storage?](#shared-storage-count).
+
+### Why are there duplicate photos in a shared album we both add to? {#shared-album-duplicates}
+
+When two people add photos to a shared album, Ente does not detect or warn about duplicates across the different owners. If you and another member each add the same video or photo (for example, one received it through another sharing method and already had it), both copies appear in the album.
+
+Deduplication and the similar-images tool only work within albums you own, not across photos owned by different people in a shared album.
+
 ### How do I see all my shared albums? {#view-shared-albums}
 
 **On mobile:**
 
 - Open the Albums tab
-- Shared albums appear alongside your own albums
-- Look for the "Shared by" indicator under the album name
+- Tap the "Shared" tab to see albums you've shared, or the "Received" tab to see albums shared with you
 
 **On web/desktop:**
 
 - Shared albums appear in your album list
 - They're marked with a sharing icon
-
-You can also view all sharing activity in the Sharing tab/section.
 
 ## Permissions and Access
 
@@ -665,3 +711,44 @@ Embedded albums include:
 You can customize the embed size using iframe width/height attributes, including responsive sizing with percentages.
 
 See the [Embed feature guide](/photos/features/sharing-and-collaboration/embed) for customization examples.
+
+## Partner Sharing and Family Plans
+
+### Can I share my entire library with my partner like Google Photos Partner Sharing? {#partner-sharing}
+
+Not in a single click, but two steps give you the same outcome.
+
+**Step 1: Auto-share every new photo**
+
+Each of you shares your phone's camera folder with the other as admin or collaborator:
+
+1. Open Ente → Recents (or Camera on Android).
+2. Tap share → add your partner's Ente email as admin or collaborator.
+3. Have your partner do the same in reverse.
+
+From then on, every new photo either of you takes appears in both libraries automatically.
+
+**Step 2: Share past photos**
+
+1. Open Ente → Albums.
+2. Long-press an album to enter selection mode.
+3. Tap **All** at the bottom right to select every album.
+4. Tap share → add your partner's email as admin or collaborator.
+
+If you've both done a Google Takeout, only one of you should upload it to avoid duplicates.
+
+You can also use a single shared account if you prefer, where both phones upload to the same login. This means sharing one password and one recovery key.
+
+### Does a family plan share photos automatically between members? {#family-plan-photo-sharing}
+
+No. Family plans share storage only. Each member gets their own private space and cannot see other members' photos unless they explicitly share albums using Ente's sharing features. Tags, face labels, and ML learnings are not shared between members, and you cannot deduplicate across family accounts.
+
+### Can I change the initial shown on shared photos? {#shared-photo-initial}
+
+The initial comes from the saved contact name. If the contact isn't saved, Ente uses the first letter of their email address. Save the contact under the name you want and the initial will update.
+
+### A shared album contains Android Motion Photos that won't download on my iPhone. What can I do? {#android-motion-photos-iphone}
+
+Android Motion Photos and Apple Live Photos use different pairing formats, so saving an Android-origin motion photo into Apple Photos as a native Live Photo may fail.
+
+As a workaround, open the shared album link in a web browser and use the download option there. For motion photos, the web app downloads a ZIP containing the still image and the motion video as separate files. This preserves both parts, though importing them into Apple Photos as a native Live Photo may still not work automatically.

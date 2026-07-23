@@ -24,10 +24,7 @@ class MapButton extends StatelessWidget {
       mini: true,
       onPressed: onPressed,
       splashColor: Colors.transparent,
-      child: Icon(
-        icon,
-        color: colorScheme.textBase,
-      ),
+      child: Icon(icon, color: colorScheme.textBase),
     );
   }
 }

@@ -3,9 +3,9 @@ title: Desktop FAQ
 description: FAQ about the Ente Photos desktop app
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Desktop FAQ

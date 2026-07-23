@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/ente-io/museum/pkg/repo/public"
+	"github.com/ente/museum/pkg/repo/public"
 	"strings"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 )
@@ -33,11 +33,11 @@ type FileWithUpdatedAt struct {
 }
 
 type TrashRepository struct {
-    DB           *sql.DB
-    ObjectRepo   *ObjectRepository
-    FileRepo     *FileRepository
-    QueueRepo    *QueueRepository
-    FileLinkRepo *public.FileLinkRepository
+	DB           *sql.DB
+	ObjectRepo   *ObjectRepository
+	FileRepo     *FileRepository
+	QueueRepo    *QueueRepository
+	FileLinkRepo *public.FileLinkRepository
 }
 
 func (t *TrashRepository) InsertItems(ctx context.Context, tx *sql.Tx, userID int64, items []ente.TrashItemRequest) error {
@@ -48,10 +48,7 @@ func (t *TrashRepository) InsertItems(ctx context.Context, tx *sql.Tx, userID in
 	size := len(items)
 	deletedBy := time.NDaysFromNow(TrashDurationInDays)
 	for lb < size {
-		ub := lb + TrashBatchSize
-		if ub > size {
-			ub = size
-		}
+		ub := min(lb+TrashBatchSize, size)
 		slicedList := items[lb:ub]
 
 		var inserts []string
@@ -342,17 +339,17 @@ func (t *TrashRepository) verifyFilesAreDeleted(ctx context.Context, userID int6
 // GetFilesIDsForDeletion for given userID and lastUpdateAt timestamp, returns the fileIDs which are in trash and
 // where last updated_at before lastUpdateAt timestamp.
 func (t *TrashRepository) GetFilesIDsForDeletion(userID int64, lastUpdatedAt int64, app ente.App) ([]int64, error) {
-    rows, err := t.DB.Query(`SELECT t.file_id FROM trash t
+	rows, err := t.DB.Query(`SELECT t.file_id FROM trash t
                 JOIN collections c ON c.collection_id = t.collection_id
                 WHERE t.user_id = $1 AND t.updated_at <= $2 AND t.is_deleted = FALSE AND t.is_restored = FALSE AND c.app = $3`, userID, lastUpdatedAt, app)
-    if err != nil {
-        return nil, stacktrace.Propagate(err, "")
-    }
-    fileIDs, err := convertRowsToFileId(rows)
-    if err != nil {
-        return nil, stacktrace.Propagate(err, "")
-    }
-    return fileIDs, nil
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	fileIDs, err := convertRowsToFileId(rows)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	return fileIDs, nil
 }
 
 // GetTimeStampForLatestNonDeletedEntry returns the updated at timestamp for the latest,non-deleted entry in the trash
@@ -464,12 +461,12 @@ order by updated_at ASC limit $2
 }
 
 func (t *TrashRepository) EmptyTrash(ctx context.Context, userID int64, lastUpdatedAt int64, app ente.App) error {
-    itemID := fmt.Sprintf("%d%s%d", userID, EmptyTrashQueueItemSeparator, lastUpdatedAt)
-    queueName := TrashEmptyQueue
-    if app == ente.Locker {
-        queueName = TrashEmptyLockerQueue
-    }
-    return t.QueueRepo.InsertItem(ctx, queueName, itemID)
+	itemID := fmt.Sprintf("%d%s%d", userID, EmptyTrashQueueItemSeparator, lastUpdatedAt)
+	queueName := TrashEmptyQueue
+	if app == ente.Locker {
+		queueName = TrashEmptyLockerQueue
+	}
+	return t.QueueRepo.InsertItem(ctx, queueName, itemID)
 }
 
 func (t *TrashRepository) GetTrashUpdatedAt(userID int64) (int64, error) {

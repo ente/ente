@@ -3,29 +3,19 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"log"
+	"github.com/ente/museum/pkg/utils/auth"
 )
 
 func main() {
 	keyLen := 32
 	hashByteLen := 64
-	keyBytes, err := auth.GenerateRandomBytes(keyLen)
-	if err != nil {
-		log.Fatal(err)
-	}
+	keyBytes := auth.GenerateRandomBytes(keyLen)
 	key := base64.StdEncoding.EncodeToString(keyBytes)
 
-	hashBytes, err := auth.GenerateRandomBytes(hashByteLen)
-	if err != nil {
-		log.Fatal(err)
-	}
+	hashBytes := auth.GenerateRandomBytes(hashByteLen)
 	hash := base64.StdEncoding.EncodeToString(hashBytes)
 
-	jwtBytes, err := auth.GenerateRandomBytes(keyLen)
-	if err != nil {
-		log.Fatal(err)
-	}
+	jwtBytes := auth.GenerateRandomBytes(keyLen)
 	jwt := base64.URLEncoding.EncodeToString(jwtBytes)
 
 	fmt.Printf("key.encryption: %s\n", key)

@@ -38,33 +38,28 @@ class _WebPageState extends State<WebPage> {
         actions: [
           _hasLoadedPage
               ? (widget.canOpenInBrowser
-                  ? IconButton(
-                      icon: const Icon(Icons.open_in_browser_outlined),
-                      color: Colors.white,
-                      onPressed: () {
-                        try {
-                          launchUrlString(
-                            widget.url,
-                            mode: LaunchMode.externalApplication,
-                          );
-                        } catch (e) {
-                          _logger.severe("Failed to pop web page", e);
-                        }
-                      },
-                    )
-                  : const SizedBox.shrink())
-              : const EnteLoadingWidget(
-                  color: Colors.white,
-                  padding: 12,
-                ),
+                    ? IconButton(
+                        icon: const Icon(Icons.open_in_browser_outlined),
+                        color: Colors.white,
+                        onPressed: () {
+                          try {
+                            launchUrlString(
+                              widget.url,
+                              mode: LaunchMode.externalApplication,
+                            );
+                          } catch (e) {
+                            _logger.severe("Failed to pop web page", e);
+                          }
+                        },
+                      )
+                    : const SizedBox.shrink())
+              : const EnteLoadingWidget(color: Colors.white, padding: 12),
         ],
       ),
       backgroundColor: Colors.black,
       body: InAppWebView(
         initialUrlRequest: URLRequest(url: WebUri(widget.url)),
-        initialSettings: InAppWebViewSettings(
-          transparentBackground: true,
-        ),
+        initialSettings: InAppWebViewSettings(transparentBackground: true),
         onLoadStop: (c, url) {
           setState(() {
             _hasLoadedPage = true;

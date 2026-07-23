@@ -9,16 +9,10 @@ List<double> parseAsDoubleList(List<dynamic> inputList) {
   if (inputList.isEmpty) return const [];
 
   if (inputList is List<double>) return inputList;
-  return List<double>.generate(
-    inputList.length,
-    (index) {
-      final value = inputList[index];
-      if (value is int) return value.toDouble();
-      if (value is double) return value;
-      throw FormatException(
-        'Invalid type at index $index: ${value.runtimeType}',
-      );
-    },
-    growable: false,
-  );
+  return List<double>.generate(inputList.length, (index) {
+    final value = inputList[index];
+    if (value is int) return value.toDouble();
+    if (value is double) return value;
+    throw FormatException('Invalid type at index $index: ${value.runtimeType}');
+  }, growable: false);
 }

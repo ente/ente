@@ -1,6 +1,5 @@
 import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/models/code.dart';
-import 'package:ente_auth/onboarding/view/common/edit_tag.dart';
 import 'package:ente_auth/services/authenticator_service.dart';
 import 'package:ente_auth/store/code_store.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
@@ -112,7 +111,8 @@ class CodeDisplayStore {
     AccountMode? accountMode,
     List<Code>? allCodes,
   }) async {
-    final codes = allCodes ??
+    final codes =
+        allCodes ??
         await _codeStore.getAllCodes(
           accountMode: accountMode,
           sortCodes: false,
@@ -147,9 +147,7 @@ class CodeDisplayStore {
           tags.remove(tag);
           tasks.add(
             _codeStore.addCode(
-              code.copyWith(
-                display: code.display.copyWith(tags: tags),
-              ),
+              code.copyWith(display: code.display.copyWith(tags: tags)),
               shouldSync: false,
             ),
           );
@@ -166,13 +164,18 @@ class CodeDisplayStore {
   }
 
   Future<void> showEditDialog(BuildContext context, String tag) async {
-    await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return EditTagDialog(tag: tag);
+    await showTextInputDialog(
+      context,
+      title: context.l10n.editTag,
+      label: context.l10n.tag,
+      initialValue: tag,
+      submitButtonLabel: context.l10n.saveAction,
+      maxLength: 100,
+      onSubmit: (value) async {
+        final updatedTag = value.trim();
+        if (updatedTag.isEmpty || updatedTag == tag) return;
+        await editTag(tag, updatedTag);
       },
-      barrierColor: Colors.black.withValues(alpha: 0.85),
-      barrierDismissible: false,
     );
   }
 
@@ -197,9 +200,7 @@ class CodeDisplayStore {
       tags.add(updatedTag);
       tasks.add(
         CodeStore.instance.addCode(
-          code.copyWith(
-            display: code.display.copyWith(tags: tags),
-          ),
+          code.copyWith(display: code.display.copyWith(tags: tags)),
           shouldSync: false,
         ),
       );

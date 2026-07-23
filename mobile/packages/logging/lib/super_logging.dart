@@ -200,17 +200,18 @@ class SuperLogging {
     if (appConfig.body == null) return;
 
     if (enable && sentryIsEnabled) {
-      await SentryFlutter.init(
-        (options) {
-          options.dsn = appConfig!.sentryDsn;
-          options.httpClient = http.Client();
-          if (appConfig.tunnel != null) {
-            options.transport =
-                TunneledTransport(Uri.parse(appConfig.tunnel!), options);
-          }
-        },
-        appRunner: () => appConfig!.body!(),
-      );
+      await SentryFlutter.init((options) {
+        options.anrEnabled = true;
+        options.anrTimeoutInterval = const Duration(seconds: 5);
+        options.dsn = appConfig!.sentryDsn;
+        options.httpClient = http.Client();
+        if (appConfig.tunnel != null) {
+          options.transport = TunneledTransport(
+            Uri.parse(appConfig.tunnel!),
+            options,
+          );
+        }
+      }, appRunner: () => appConfig!.body!());
     } else {
       await appConfig.body!();
     }
@@ -228,10 +229,7 @@ class SuperLogging {
     StackTrace? stack,
   ) async {
     try {
-      await Sentry.captureException(
-        error,
-        stackTrace: stack,
-      );
+      await Sentry.captureException(error, stackTrace: stack);
     } catch (e) {
       $.info('Sending report to sentry.io failed: $e');
       $.info('Original error: $error');
@@ -303,9 +301,7 @@ class SuperLogging {
     SuperLogging.setUserID(await _getOrCreateAnonymousUserID());
     await for (final error in sentryQueueControl.stream.asBroadcastStream()) {
       try {
-        await Sentry.captureException(
-          error,
-        );
+        await Sentry.captureException(error);
       } catch (e) {
         $.fine(
           "sentry upload failed; will retry after ${config.sentryRetryDelay}",
@@ -384,16 +380,15 @@ class SuperLogging {
 
       for (final file in toDelete) {
         try {
-          $.fine(
-            "deleting log file ${file.path}",
-          );
+          $.fine("deleting log file ${file.path}");
           await file.delete();
         } on Exception catch (_) {}
       }
     }
 
-    logFile =
-        File(join(dirPath, "${config.dateFmt!.format(DateTime.now())}.txt"));
+    logFile = File(
+      join(dirPath, "${config.dateFmt!.format(DateTime.now())}.txt"),
+    );
   }
 
   /// Current app version, obtained from package_info plugin.

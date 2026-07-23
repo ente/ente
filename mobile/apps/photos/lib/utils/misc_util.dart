@@ -40,10 +40,7 @@ class MiscUtil {
             "Retrying to get non-zero double value for $id after ${retryInterval.inMilliseconds} ms",
           );
         }
-        return getNonNullValueWithRetry(
-          getValue,
-          retryInterval: retryInterval,
-        );
+        return getNonNullValueWithRetry(getValue, retryInterval: retryInterval);
       });
     }
   }

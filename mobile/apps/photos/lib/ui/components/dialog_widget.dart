@@ -1,20 +1,19 @@
-import 'dart:math';
+import 'dart:async';
 
+import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
 import "package:flutter/services.dart";
-import 'package:photos/core/constants.dart';
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/button_result.dart';
 import 'package:photos/models/typedefs.dart';
-import 'package:photos/theme/colors.dart';
-import 'package:photos/theme/effects.dart';
-import 'package:photos/theme/ente_theme.dart';
+import "package:photos/ui/components/buttons/button_component_adapter.dart";
 import 'package:photos/ui/components/buttons/button_widget.dart';
-import 'package:photos/ui/components/models/button_type.dart';
-import 'package:photos/ui/components/text_input_widget.dart';
-import 'package:photos/utils/separators_util.dart';
 
-///Will return null if dismissed by tapping outside
+/// Compatibility adapter for legacy Photos dialogs.
+///
+/// Preserves existing [ButtonWidget]/[ButtonResult] behavior while rendering
+/// through [BottomSheetComponent]. Prefer [BottomSheetComponent] directly for
+/// new sheets.
 Future<ButtonResult?> showDialogWidget({
   required BuildContext context,
   required String title,
@@ -24,36 +23,28 @@ Future<ButtonResult?> showDialogWidget({
   bool isDismissible = true,
   bool useRootNavigator = false,
 }) {
-  return showDialog(
-    barrierDismissible: isDismissible,
-    barrierColor: backdropFaintDark,
+  return showBottomSheetComponent<ButtonResult>(
     context: context,
+    isDismissible: isDismissible,
+    enableDrag: isDismissible,
     useRootNavigator: useRootNavigator,
-    builder: (context) {
-      final widthOfScreen = MediaQuery.of(context).size.width;
-      final isMobileSmall = widthOfScreen <= mobileSmallThreshold;
-      return Padding(
-        padding: EdgeInsets.symmetric(horizontal: isMobileSmall ? 8 : 0),
-        child: Dialog(
-          insetPadding: EdgeInsets.zero,
-          child: DialogWidget(
-            title: title,
-            body: body,
-            buttons: buttons,
-            icon: icon,
-          ),
-        ),
+    builder: (_) {
+      return LegacyDialogWidget(
+        title: title,
+        body: body,
+        buttons: buttons,
+        icon: icon,
       );
     },
   );
 }
 
-class DialogWidget extends StatelessWidget {
+class LegacyDialogWidget extends StatelessWidget {
   final String title;
   final String? body;
   final List<ButtonWidget> buttons;
   final IconData? icon;
-  const DialogWidget({
+  const LegacyDialogWidget({
     required this.title,
     this.body,
     required this.buttons,
@@ -63,106 +54,62 @@ class DialogWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final widthOfScreen = MediaQuery.of(context).size.width;
-    final isMobileSmall = widthOfScreen <= mobileSmallThreshold;
-    final colorScheme = getEnteColorScheme(context);
-    return Container(
-      width: min(widthOfScreen, 320),
-      padding: isMobileSmall
-          ? const EdgeInsets.all(0)
-          : const EdgeInsets.fromLTRB(6, 8, 6, 6),
-      decoration: BoxDecoration(
-        color: colorScheme.backgroundElevated,
-        boxShadow: shadowFloatLight,
-        borderRadius: const BorderRadius.all(Radius.circular(8)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ContentContainer(
-                title: title,
-                body: body,
-                icon: icon,
-              ),
-              const SizedBox(height: 36),
-              Actions(buttons),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+    final colors = context.componentColors;
+    final hasTitle = title.isNotEmpty;
+    final hasBody = body?.isNotEmpty == true;
+    final hasContent = hasTitle || hasBody || icon != null;
+    final cancelButtonIndex = sheetCancelButtonIndex(context, buttons);
+    final cancelButton = cancelButtonIndex == -1
+        ? null
+        : buttons[cancelButtonIndex];
+    final visibleButtons = [
+      for (var index = 0; index < buttons.length; index++)
+        if (index != cancelButtonIndex) buttons[index],
+    ];
 
-class ContentContainer extends StatelessWidget {
-  final String title;
-  final String? body;
-  final IconData? icon;
-  const ContentContainer({
-    required this.title,
-    this.body,
-    this.icon,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = getEnteTextTheme(context);
-    final colorScheme = getEnteColorScheme(context);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        icon == null
-            ? const SizedBox.shrink()
-            : Row(
-                children: [
-                  Icon(
-                    icon,
-                    size: 32,
-                  ),
-                ],
-              ),
-        icon == null ? const SizedBox.shrink() : const SizedBox(height: 19),
-        Text(title, style: textTheme.largeBold),
-        body != null ? const SizedBox(height: 19) : const SizedBox.shrink(),
-        body != null
-            ? Text(
-                body!,
-                style: textTheme.body.copyWith(color: colorScheme.textMuted),
-              )
-            : const SizedBox.shrink(),
+    return BottomSheetComponent(
+      title: hasTitle ? title : null,
+      illustration: icon == null
+          ? null
+          : Icon(icon, size: 48, color: colors.iconColor),
+      content: hasBody ? _LegacyDialogBody(body!) : null,
+      actions: [
+        for (final button in visibleButtons)
+          ButtonComponentAdapter(button: button),
       ],
+      showCloseButton: cancelButton != null,
+      closeTooltip: AppLocalizations.of(context).close,
+      closeResult: cancelButton == null ? null : sheetCloseResult(cancelButton),
+      onClose: cancelButton == null
+          ? null
+          : () => sheetCloseAction(context, cancelButton),
+      actionsTopSpacing: hasContent ? Spacing.xl : 0,
     );
   }
 }
 
-class Actions extends StatelessWidget {
-  final List<ButtonWidget> buttons;
-  const Actions(this.buttons, {super.key});
+class _LegacyDialogBody extends StatelessWidget {
+  const _LegacyDialogBody(this.body);
+
+  final String body;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: addSeparators(
-        buttons,
-        const SizedBox(
-          // In figma this white space is of height 8pts. But the Button
-          // component has 1pts of invisible border by default in code. So two
-          // 1pts borders will visually make the whitespace 8pts.
-          // Height of button component in figma = 48, in code = 50 (2pts for
-          // top + bottom border)
-          height: 6,
+    final colors = context.componentColors;
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.45;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: SingleChildScrollView(
+        child: Text(
+          body,
+          style: TextStyles.body.copyWith(color: colors.textLight),
         ),
       ),
     );
   }
 }
 
-class TextInputDialog extends StatefulWidget {
+class LegacyTextInputDialog extends StatefulWidget {
   final String title;
   final String? body;
   final String submitButtonLabel;
@@ -183,7 +130,7 @@ class TextInputDialog extends StatefulWidget {
   final List<TextInputFormatter>? textInputFormatter;
   final TextInputType? textInputType;
   final bool popnavAfterSubmission;
-  const TextInputDialog({
+  const LegacyTextInputDialog({
     required this.title,
     this.body,
     required this.submitButtonLabel,
@@ -208,16 +155,20 @@ class TextInputDialog extends StatefulWidget {
   });
 
   @override
-  State<TextInputDialog> createState() => _TextInputDialogState();
+  State<LegacyTextInputDialog> createState() => _LegacyTextInputDialogState();
 }
 
-class _TextInputDialogState extends State<TextInputDialog> {
-  //the value of this ValueNotifier has no significance
-  final _submitNotifier = ValueNotifier(false);
-  late final ValueNotifier<bool> _inputIsEmptyNotifier;
+class _LegacyTextInputDialogState extends State<LegacyTextInputDialog> {
+  static const _loadingSurfaceDelay = Duration(milliseconds: 300);
+  static const _successDisplayDuration = Duration(seconds: 1);
+
   late final TextEditingController _textEditingController;
   late final bool _ownsTextEditingController;
   late final VoidCallback _textEditingControllerListener;
+  Timer? _inputErrorResetTimer;
+  var _hasInput = false;
+  var _hasInputError = false;
+  var _isSubmitting = false;
 
   @override
   void initState() {
@@ -225,12 +176,21 @@ class _TextInputDialogState extends State<TextInputDialog> {
     _ownsTextEditingController = widget.textEditingController == null;
     _textEditingController =
         widget.textEditingController ?? TextEditingController();
-    _inputIsEmptyNotifier = widget.initialValue?.isEmpty ?? true
-        ? ValueNotifier(true)
-        : ValueNotifier(false);
+    if (widget.initialValue != null) {
+      final initialText = _formatInitialValue(widget.initialValue!);
+      _textEditingController.value = TextEditingValue(
+        text: initialText,
+        selection: TextSelection.collapsed(offset: initialText.length),
+      );
+    }
+    _hasInput = _textEditingController.text.isNotEmpty;
     _textEditingControllerListener = () {
-      if (_textEditingController.text.isEmpty != _inputIsEmptyNotifier.value) {
-        _inputIsEmptyNotifier.value = _textEditingController.text.isEmpty;
+      final hasInput = _textEditingController.text.isNotEmpty;
+      if (hasInput != _hasInput || _hasInputError) {
+        setState(() {
+          _hasInput = hasInput;
+          _hasInputError = false;
+        });
       }
     };
     _textEditingController.addListener(_textEditingControllerListener);
@@ -238,97 +198,186 @@ class _TextInputDialogState extends State<TextInputDialog> {
 
   @override
   void dispose() {
+    _inputErrorResetTimer?.cancel();
     _textEditingController.removeListener(_textEditingControllerListener);
     if (_ownsTextEditingController) {
       _textEditingController.dispose();
     }
-    _submitNotifier.dispose();
-    _inputIsEmptyNotifier.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final widthOfScreen = MediaQuery.sizeOf(context).width;
-    final isMobileSmall = widthOfScreen <= mobileSmallThreshold;
-    final colorScheme = getEnteColorScheme(context);
-    return Container(
-      width: min(widthOfScreen, 320),
-      padding: isMobileSmall
-          ? const EdgeInsets.all(0)
-          : const EdgeInsets.fromLTRB(6, 8, 6, 6),
-      decoration: BoxDecoration(
-        color: colorScheme.backgroundElevated,
-        boxShadow: shadowFloatLight,
-        borderRadius: const BorderRadius.all(Radius.circular(8)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ContentContainer(
-              title: widget.title,
-              body: widget.body,
-              icon: widget.icon,
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 19),
-              child: TextInputWidget(
-                label: widget.label,
-                message: widget.message,
-                hintText: widget.hintText,
-                prefixIcon: widget.prefixIcon,
-                initialValue: widget.initialValue,
-                alignMessage: widget.alignMessage,
-                autoFocus: true,
-                maxLength: widget.maxLength,
-                submitNotifier: _submitNotifier,
-                onSubmit: widget.onSubmit,
-                popNavAfterSubmission: widget.popnavAfterSubmission,
-                showOnlyLoadingState: widget.showOnlyLoadingState,
-                textCapitalization: widget.textCapitalization,
-                alwaysShowSuccessState: widget.alwaysShowSuccessState,
-                isPasswordInput: widget.isPasswordInput,
-                textEditingController: _textEditingController,
-                textInputFormatter: widget.textInputFormatter,
-                keyboardType: widget.textInputType,
-              ),
-            ),
-            const SizedBox(height: 36),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Expanded(
-                  child: ButtonWidget(
-                    buttonType: ButtonType.secondary,
-                    buttonSize: ButtonSize.small,
-                    labelText: AppLocalizations.of(context).cancel,
-                    isInAlert: true,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ValueListenableBuilder(
-                    valueListenable: _inputIsEmptyNotifier,
-                    builder: (context, bool value, _) {
-                      return ButtonWidget(
-                        buttonSize: ButtonSize.small,
-                        buttonType: ButtonType.neutral,
-                        labelText: widget.submitButtonLabel,
-                        isDisabled: value,
-                        onTap: () async {
-                          _submitNotifier.value = !_submitNotifier.value;
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ],
+    final colors = context.componentColors;
+    return BottomSheetComponent(
+      title: widget.title,
+      illustration: widget.icon == null
+          ? null
+          : Icon(widget.icon, size: 48, color: colors.iconColor),
+      content: _LegacyTextInputDialogContent(
+        body: widget.body,
+        input: TextInputComponent(
+          controller: _textEditingController,
+          label: widget.label,
+          message: widget.alignMessage == null ? widget.message : null,
+          messageType: _hasInputError
+              ? TextInputComponentMessageType.error
+              : TextInputComponentMessageType.helper,
+          hintText: widget.hintText,
+          autofocus: true,
+          maxLength: widget.maxLength,
+          onSubmit: (_) => _submit(),
+          textCapitalization:
+              widget.textCapitalization ?? TextCapitalization.none,
+          isPasswordInput: widget.isPasswordInput,
+          isClearable: !widget.isPasswordInput,
+          inputFormatters: widget.textInputFormatter,
+          keyboardType: widget.textInputType,
+          prefix: widget.prefixIcon == null
+              ? null
+              : Icon(widget.prefixIcon, size: IconSizes.small),
         ),
+        alignedMessage: widget.alignMessage == null ? null : widget.message,
+        alignedMessageAlignment: widget.alignMessage,
       ),
+      actions: [
+        ButtonComponent(
+          label: widget.submitButtonLabel,
+          isDisabled: !_hasInput,
+          shouldShowSuccessState: !widget.showOnlyLoadingState,
+          shouldShowSuccessConfirmation:
+              !widget.showOnlyLoadingState && widget.alwaysShowSuccessState,
+          onTap: _hasInput ? () => _submit(throwOnError: true) : null,
+        ),
+      ],
+      isKeyboardAware: true,
+      showCloseButton: true,
+      closeTooltip: AppLocalizations.of(context).close,
+      closeResult: ButtonResult(),
+    );
+  }
+
+  Future<void> _submit({bool throwOnError = false}) async {
+    if (_isSubmitting || !_hasInput) {
+      return;
+    }
+
+    _isSubmitting = true;
+    final stopwatch = Stopwatch()..start();
+    try {
+      await widget.onSubmit(_textEditingController.text);
+    } catch (error) {
+      final exception = error is Exception
+          ? error
+          : Exception(error.toString());
+      _isSubmitting = false;
+      if (error.toString().contains("Incorrect password") && mounted) {
+        _surfaceInputError();
+      }
+      if (widget.popnavAfterSubmission && mounted) {
+        Navigator.of(context).pop(exception);
+      }
+      if (throwOnError) {
+        throw exception;
+      }
+      return;
+    } finally {
+      stopwatch.stop();
+    }
+
+    if (!mounted) {
+      _isSubmitting = false;
+      return;
+    }
+    if (!widget.popnavAfterSubmission) {
+      _isSubmitting = false;
+      return;
+    }
+
+    unawaited(
+      Future<void>.delayed(_popDelay(stopwatch.elapsed), () {
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      }),
+    );
+  }
+
+  Duration _popDelay(Duration elapsed) {
+    if (widget.showOnlyLoadingState) {
+      return Duration.zero;
+    }
+    if (widget.alwaysShowSuccessState || elapsed >= _loadingSurfaceDelay) {
+      return _successDisplayDuration;
+    }
+    return Duration.zero;
+  }
+
+  void _surfaceInputError() {
+    HapticFeedback.vibrate();
+    setState(() => _hasInputError = true);
+    _inputErrorResetTimer?.cancel();
+    _inputErrorResetTimer = Timer(const Duration(seconds: 1), () {
+      if (mounted) {
+        setState(() => _hasInputError = false);
+      }
+    });
+  }
+
+  String _formatInitialValue(String initialValue) {
+    var formattedValue = initialValue;
+    final formatters = widget.textInputFormatter;
+    if (formatters == null) {
+      return formattedValue;
+    }
+    for (final formatter in formatters) {
+      formattedValue = formatter
+          .formatEditUpdate(
+            TextEditingValue.empty,
+            TextEditingValue(text: formattedValue),
+          )
+          .text;
+    }
+    return formattedValue;
+  }
+}
+
+class _LegacyTextInputDialogContent extends StatelessWidget {
+  const _LegacyTextInputDialogContent({
+    required this.input,
+    this.body,
+    this.alignedMessage,
+    this.alignedMessageAlignment,
+  });
+
+  final Widget input;
+  final String? body;
+  final String? alignedMessage;
+  final Alignment? alignedMessageAlignment;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (body != null) ...[
+          Text(body!, style: TextStyles.body.copyWith(color: colors.textLight)),
+          const SizedBox(height: Spacing.lg),
+        ],
+        input,
+        if (alignedMessage != null) ...[
+          const SizedBox(height: Spacing.sm),
+          Align(
+            alignment: alignedMessageAlignment ?? Alignment.centerLeft,
+            child: Text(
+              alignedMessage!,
+              style: TextStyles.mini.copyWith(color: colors.textLight),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

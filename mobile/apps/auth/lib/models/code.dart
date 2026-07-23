@@ -161,19 +161,21 @@ class Code {
         _getType(uri),
         _getCounter(uri),
         rawData,
-        display: CodeDisplay.fromUri(uri) ?? CodeDisplay(),
+        display: display ?? CodeDisplay.fromUri(uri) ?? CodeDisplay(),
       );
       return code;
     } catch (e) {
       // if account name contains # without encoding,
       // rest of the url are treated as url fragment
       if (rawData.contains("#")) {
-        return Code.fromOTPAuthUrl(rawData.replaceAll("#", '%23'));
-      } else {
-        Logger("Code").warning(
-          'Error while parsing code for issuer $issuer, $account',
-          e,
+        return Code.fromOTPAuthUrl(
+          rawData.replaceAll("#", '%23'),
+          display: display,
         );
+      } else {
+        Logger(
+          "Code",
+        ).warning('Error while parsing code for issuer $issuer, $account', e);
         rethrow;
       }
     }
@@ -194,8 +196,9 @@ class Code {
       if (path.startsWith('$issuer:')) {
         return path.substring(issuer.length + 1);
       }
-      return path
-          .substring(path.indexOf(':') + 1); // return data after first colon
+      return path.substring(
+        path.indexOf(':') + 1,
+      ); // return data after first colon
     } catch (e, s) {
       Logger('_getAccount').severe('Error while parsing account', e, s);
       return "";
@@ -224,7 +227,7 @@ class Code {
       if (uri.queryParameters.containsKey("issuer")) {
         String issuerName = uri.queryParameters['issuer']!;
         // Handle issuer name with period
-        // See https://github.com/ente-io/ente/pull/77
+        // See https://github.com/ente/ente/pull/77
         if (issuerName.contains("period=")) {
           return issuerName.substring(0, issuerName.indexOf("period="));
         }
@@ -270,8 +273,9 @@ class Code {
 
   static Algorithm _getAlgorithm(Uri uri) {
     try {
-      final algorithm =
-          uri.queryParameters['algorithm'].toString().toLowerCase();
+      final algorithm = uri.queryParameters['algorithm']
+          .toString()
+          .toLowerCase();
       if (algorithm == "sha256" || "algorithm.sha256" == algorithm) {
         return Algorithm.sha256;
       } else if (algorithm == "sha512" || "algorithm.sha512" == algorithm) {
@@ -332,8 +336,4 @@ enum Type {
   bool get canShareCodes => this == totp || this == steam;
 }
 
-enum Algorithm {
-  sha1,
-  sha256,
-  sha512,
-}
+enum Algorithm { sha1, sha256, sha512 }

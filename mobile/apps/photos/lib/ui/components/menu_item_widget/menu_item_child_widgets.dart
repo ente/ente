@@ -55,8 +55,9 @@ class _TrailingWidgetState extends State<TrailingWidget> {
     if (oldWidget.showExecutionStates && !widget.showExecutionStates) {
       // Was true, now false: remove listener and reset to icon
       if (_listenerAdded) {
-        oldWidget.executionStateNotifier
-            .removeListener(_executionStateListener);
+        oldWidget.executionStateNotifier.removeListener(
+          _executionStateListener,
+        );
         _listenerAdded = false;
       }
       _setTrailingIcon();
@@ -118,9 +119,7 @@ class _TrailingWidgetState extends State<TrailingWidget> {
     if (widget.trailingIcon != null) {
       trailingWidget = Padding(
         key: const ValueKey('icon'),
-        padding: EdgeInsets.only(
-          right: widget.trailingExtraMargin,
-        ),
+        padding: EdgeInsets.only(right: widget.trailingExtraMargin),
         child: Icon(
           widget.trailingIcon,
           color: widget.trailingIconIsMuted
@@ -129,7 +128,8 @@ class _TrailingWidgetState extends State<TrailingWidget> {
         ),
       );
     } else {
-      trailingWidget = widget.trailingWidget ??
+      trailingWidget =
+          widget.trailingWidget ??
           const SizedBox.shrink(key: ValueKey('empty'));
     }
   }
@@ -160,10 +160,7 @@ class ExpansionTrailingIcon extends StatelessWidget {
         switchInCurve: Curves.easeOut,
         child: isExpanded
             ? const SizedBox.shrink()
-            : Icon(
-                trailingIcon,
-                color: trailingIconColor,
-              ),
+            : Icon(trailingIcon, color: trailingIconColor),
       ),
     );
   }
@@ -193,16 +190,14 @@ class LeadingWidget extends StatelessWidget {
         width: leadingIconSize,
         child: leadingIcon == null
             ? (leadingIconWidget != null
-                ? FittedBox(
-                    fit: BoxFit.contain,
-                    child: leadingIconWidget,
-                  )
-                : const SizedBox.shrink())
+                  ? FittedBox(fit: BoxFit.contain, child: leadingIconWidget)
+                  : const SizedBox.shrink())
             : FittedBox(
                 fit: BoxFit.contain,
                 child: Icon(
                   leadingIcon,
-                  color: leadingIconColor ??
+                  color:
+                      leadingIconColor ??
                       getEnteColorScheme(context).strokeBase,
                 ),
               ),

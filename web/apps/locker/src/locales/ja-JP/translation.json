@@ -89,7 +89,7 @@
     "close": "閉じる",
     "logout": "ログアウト",
     "failedToLoadCollections": "コレクションの読み込みに失敗しました: {{error}}",
-    "deleteFileConfirmation": "<strong>{{fileName}}</strong> を削除してもよろしいですか？",
+    "deleteFileConfirmation": "<fileName/> を削除してもよろしいですか？",
     "document": "ドキュメント",
     "results": "結果",
     "thing": "物品",

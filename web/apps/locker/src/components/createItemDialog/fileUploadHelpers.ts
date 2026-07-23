@@ -1,5 +1,5 @@
-import type { LockerUploadProgress } from "services/remote";
-import type { LockerUploadCandidate } from "types";
+import type { LockerUploadProgress } from "@/services/remote";
+import type { LockerUploadCandidate } from "@/types";
 
 export const normalizeCollectionName = (name: string) =>
     name.trim().toLocaleLowerCase();

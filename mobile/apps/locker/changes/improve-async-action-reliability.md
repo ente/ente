@@ -1,0 +1,1 @@
+- Improved the reliability of file and collection actions when navigating between screens.

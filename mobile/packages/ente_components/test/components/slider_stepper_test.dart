@@ -6,14 +6,7 @@ import "package:flutter_test/flutter_test.dart";
 void main() {
   testWidgets("SliderComponent clamps its rendered value", (tester) async {
     await tester.pumpWidget(
-      _wrap(
-        SliderComponent(
-          value: 12,
-          min: 0,
-          max: 10,
-          onChanged: (_) {},
-        ),
-      ),
+      _wrap(SliderComponent(value: 12, min: 0, max: 10, onChanged: (_) {})),
     );
 
     expect(
@@ -60,12 +53,7 @@ void main() {
     final changedValues = <int>[];
 
     await tester.pumpWidget(
-      _wrap(
-        StepperComponent(
-          value: 5,
-          onChanged: changedValues.add,
-        ),
-      ),
+      _wrap(StepperComponent(value: 5, onChanged: changedValues.add)),
     );
 
     expect(find.text("5"), findsOneWidget);
@@ -78,37 +66,26 @@ void main() {
     expect(changedValues, [6, 4]);
   });
 
-  testWidgets("StepperComponent disables controls at min and max",
-      (tester) async {
+  testWidgets("StepperComponent disables controls at min and max", (
+    tester,
+  ) async {
     await tester.pumpWidget(
-      _wrap(
-        StepperComponent(
-          value: 0,
-          min: 0,
-          max: 1,
-          onChanged: (_) {},
-        ),
-      ),
+      _wrap(StepperComponent(value: 0, min: 0, max: 1, onChanged: (_) {})),
     );
 
-    final minButtons = tester
-        .widgetList<material.IconButton>(find.byType(material.IconButton));
+    final minButtons = tester.widgetList<material.IconButton>(
+      find.byType(material.IconButton),
+    );
     expect(minButtons.first.onPressed, isNull);
     expect(minButtons.last.onPressed, isNotNull);
 
     await tester.pumpWidget(
-      _wrap(
-        StepperComponent(
-          value: 1,
-          min: 0,
-          max: 1,
-          onChanged: (_) {},
-        ),
-      ),
+      _wrap(StepperComponent(value: 1, min: 0, max: 1, onChanged: (_) {})),
     );
 
-    final maxButtons = tester
-        .widgetList<material.IconButton>(find.byType(material.IconButton));
+    final maxButtons = tester.widgetList<material.IconButton>(
+      find.byType(material.IconButton),
+    );
     expect(maxButtons.first.onPressed, isNotNull);
     expect(maxButtons.last.onPressed, isNull);
   });
@@ -117,8 +94,6 @@ void main() {
 Widget _wrap(Widget child) {
   return MaterialApp(
     theme: ComponentTheme.lightTheme(),
-    home: Scaffold(
-      body: Center(child: child),
-    ),
+    home: Scaffold(body: Center(child: child)),
   );
 }

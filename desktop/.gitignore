@@ -1,12 +1,3 @@
-# Node
-node_modules/
-
-# macOS
-.DS_Store
-
-# Editors
-.vscode/
-
 # Local env files
 .env
 .env.*.local
@@ -20,10 +11,6 @@ out
 
 # electron-builder
 dist/
-
-# Legacy, people who checked out main for a brief while in Jan 2025 may have
-# this. Can be removed in the future.
-build/magick*
 
 # We download it on demand, if needed for the particular OS/arch.
 build/vips*

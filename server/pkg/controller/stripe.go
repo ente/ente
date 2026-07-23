@@ -9,19 +9,19 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ente-io/museum/pkg/controller/commonbilling"
+	"github.com/ente/museum/pkg/controller/commonbilling"
 
-	"github.com/ente-io/museum/pkg/controller/discord"
-	"github.com/ente-io/museum/pkg/controller/offer"
-	"github.com/ente-io/museum/pkg/repo/storagebonus"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/controller/offer"
+	"github.com/ente/museum/pkg/repo/storagebonus"
 
-	"github.com/ente-io/museum/ente"
-	emailCtrl "github.com/ente-io/museum/pkg/controller/email"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/billing"
-	"github.com/ente-io/museum/pkg/utils/email"
-	timeUtil "github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	emailCtrl "github.com/ente/museum/pkg/controller/email"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/billing"
+	"github.com/ente/museum/pkg/utils/email"
+	timeUtil "github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/stripe/stripe-go/v72"
@@ -402,6 +402,11 @@ func (c *StripeController) handlePaymentIntentFailed(event stripe.Event, country
 		return ente.StripeEventLog{}, stacktrace.Propagate(err, "")
 	}
 
+	if isPaidStripeInvoice(invoice) {
+		log.Info("Ignoring stale payment intent failed event for paid invoice:", invoiceID)
+		return ente.StripeEventLog{UserID: userID, StripeSubscription: *stripeSubscription, Event: event}, nil
+	}
+
 	productID := stripeSubscription.Items.Data[0].Price.ID
 	// If the current subscription is not the same as the one in the webhook,
 	// then ignore
@@ -768,9 +773,9 @@ func (c *StripeController) CancelSubAndDeleteCustomer(subscription ente.Subscrip
 			if stripe.ErrorCodeResourceMissing == stripeError.Code {
 				return nil
 			}
-			return stacktrace.Propagate(err, fmt.Sprintf("failed to delete customer %s", subscription.Attributes.CustomerID))
+			return stacktrace.Propagate(err, "failed to delete customer %s", subscription.Attributes.CustomerID)
 		default:
-			return stacktrace.Propagate(err, fmt.Sprintf("failed to delete customer %s", subscription.Attributes.CustomerID))
+			return stacktrace.Propagate(err, "failed to delete customer %s", subscription.Attributes.CustomerID)
 		}
 	}
 	return nil
@@ -800,6 +805,10 @@ func getSubscriptionPaymentMethodType(stripeSubscription stripe.Subscription) st
 
 func usesAllowIncompleteSubscriptionUpdate(paymentMethodType stripe.PaymentMethodType) bool {
 	return paymentMethodType == stripe.PaymentMethodTypeSepaDebit || paymentMethodType == stripe.PaymentMethodType("upi")
+}
+
+func isPaidStripeInvoice(invoice *stripe.Invoice) bool {
+	return invoice.Paid || invoice.Status == stripe.InvoiceStatusPaid
 }
 
 func getPaymentIntentErrorPaymentMethodType(paymentIntent stripe.PaymentIntent) stripe.PaymentMethodType {

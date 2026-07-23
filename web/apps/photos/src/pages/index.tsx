@@ -44,17 +44,6 @@ const Page: React.FC = () => {
             refreshHost();
             const currentURL = new URL(window.location.href);
 
-            if (process.env.NEXT_PUBLIC_ENTE_WIP_WASM) {
-                // TODO(MR): WASM. Test code. remove.
-                // import { file_download_url, HttpClient } from "ente-wasm";
-                const { file_download_url, HttpClient } = await import(
-                    "ente-wasm"
-                );
-                console.log(file_download_url("https://example.org", 88n));
-                const client = new HttpClient("https://api.ente.com");
-                console.log(await client.get("/ping"));
-            }
-
             // Store join album context immediately if present in URL
             // This ensures it survives the authentication flow
             const joinAlbumParam = currentURL.searchParams.get("joinAlbum");

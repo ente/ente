@@ -1,26 +1,21 @@
 import 'dart:io' as io;
 
 import 'package:bip39/bip39.dart' as bip39;
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import 'package:ente_configuration/constants.dart';
 import 'package:ente_strings/ente_strings.dart';
-import "package:ente_ui/components/base_bottom_sheet.dart";
-import 'package:ente_ui/theme/ente_theme.dart';
-import 'package:ente_ui/utils/dialog_util.dart';
 import 'package:ente_ui/utils/toast_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:locker/services/configuration.dart';
-import "package:locker/ui/components/gradient_button.dart";
 import "package:share_plus/share_plus.dart";
 
 class RecoveryKeySheet extends StatefulWidget {
   final String recoveryKey;
 
-  const RecoveryKeySheet({
-    super.key,
-    required this.recoveryKey,
-  });
+  const RecoveryKeySheet({super.key, required this.recoveryKey});
 
   @override
   State<RecoveryKeySheet> createState() => _RecoveryKeySheetState();
@@ -50,12 +45,12 @@ class _RecoveryKeySheetState extends State<RecoveryKeySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
 
     // Convert recovery key to mnemonic words
-    final String recoveryKeyMnemonic =
-        bip39.entropyToMnemonic(widget.recoveryKey);
+    final String recoveryKeyMnemonic = bip39.entropyToMnemonic(
+      widget.recoveryKey,
+    );
 
     if (recoveryKeyMnemonic.split(' ').length != mnemonicKeyWordCount) {
       throw AssertionError(
@@ -69,14 +64,12 @@ class _RecoveryKeySheetState extends State<RecoveryKeySheet> {
       children: [
         Text(
           context.strings.recoveryKeyOnForgotPassword,
-          style: textTheme.body.copyWith(
-            color: colorScheme.textMuted,
-          ),
+          style: TextStyles.body.copyWith(color: colors.textLight),
         ),
         const SizedBox(height: 24),
         Container(
           decoration: BoxDecoration(
-            color: colorScheme.primary700,
+            color: colors.primary,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Stack(
@@ -88,10 +81,9 @@ class _RecoveryKeySheetState extends State<RecoveryKeySheet> {
                 ),
                 child: SelectableText(
                   recoveryKeyMnemonic,
-                  style: textTheme.body.copyWith(
-                    color: Colors.white,
+                  style: TextStyles.body.copyWith(
+                    color: colors.specialWhite,
                     fontFamily: 'monospace',
-                    letterSpacing: 0.5,
                     height: 1.5,
                   ),
                   textAlign: TextAlign.justify,
@@ -100,15 +92,16 @@ class _RecoveryKeySheetState extends State<RecoveryKeySheet> {
               Positioned(
                 right: 0,
                 top: 0,
-                child: IconButton(
-                  onPressed: () => _copyToClipboard(recoveryKeyMnemonic),
-                  visualDensity: VisualDensity.compact,
-                  icon: Icon(
-                    Icons.copy_rounded,
-                    size: 20,
-                    color: colorScheme.primary500,
-                  ),
+                child: IconButtonComponent(
+                  variant: IconButtonComponentVariant.secondary,
                   tooltip: 'Copy to clipboard',
+                  shouldSurfaceExecutionStates: false,
+                  icon: HugeIcon(
+                    icon: HugeIcons.strokeRoundedCopy01,
+                    size: IconSizes.small,
+                    color: colors.specialWhite,
+                  ),
+                  onTap: () => _copyToClipboard(recoveryKeyMnemonic),
                 ),
               ),
             ],
@@ -117,17 +110,12 @@ class _RecoveryKeySheetState extends State<RecoveryKeySheet> {
         const SizedBox(height: 16),
         Text(
           context.strings.recoveryKeySaveDescription,
-          style: textTheme.small.copyWith(
-            color: colorScheme.textMuted,
-          ),
+          style: TextStyles.body.copyWith(color: colors.textLight),
         ),
         const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          child: GradientButton(
-            onTap: () => _shareRecoveryKey(recoveryKeyMnemonic),
-            text: 'Share recovery key',
-          ),
+        ButtonComponent(
+          label: 'Share recovery key',
+          onTap: () => _shareRecoveryKey(recoveryKeyMnemonic),
         ),
       ],
     );
@@ -136,10 +124,7 @@ class _RecoveryKeySheetState extends State<RecoveryKeySheet> {
   Future<void> _copyToClipboard(String recoveryKey) async {
     await Clipboard.setData(ClipboardData(text: recoveryKey));
     if (mounted) {
-      showShortToast(
-        context,
-        context.strings.recoveryKeyCopiedToClipboard,
-      );
+      showShortToast(context, context.strings.recoveryKeyCopiedToClipboard);
     }
   }
 
@@ -151,15 +136,14 @@ class _RecoveryKeySheetState extends State<RecoveryKeySheet> {
       _recoveryKeyFile.writeAsStringSync(recoveryKey);
 
       await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(_recoveryKeyFile.path)],
-        ),
+        ShareParams(files: [XFile(_recoveryKeyFile.path)]),
       );
     } catch (e) {
       if (mounted) {
-        await showGenericErrorBottomSheet(
+        await showErrorBottomSheetComponent<void>(
           context: context,
-          error: e,
+          message: e.toString(),
+          title: context.strings.somethingWentWrong,
         );
       }
     }
@@ -170,12 +154,14 @@ Future<void> showRecoveryKeySheet(
   BuildContext context, {
   required String recoveryKey,
 }) {
-  return showBaseBottomSheet<void>(
-    context,
-    title: context.strings.recoveryKey,
-    headerSpacing: 20,
+  return showBottomSheetComponent<void>(
+    context: context,
     isDismissible: false,
     enableDrag: false,
-    child: RecoveryKeySheet(recoveryKey: recoveryKey),
+    builder: (_) => BottomSheetComponent(
+      title: context.strings.recoveryKey,
+      showCloseButton: true,
+      content: RecoveryKeySheet(recoveryKey: recoveryKey),
+    ),
   );
 }

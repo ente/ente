@@ -20,28 +20,19 @@ Future<TrustedContactResult?> showTrustedContactSheet(
   );
 }
 
-enum TrustedContactAction {
-  revoke,
-  updateTime,
-}
+enum TrustedContactAction { revoke, updateTime }
 
 class TrustedContactResult {
   final TrustedContactAction action;
   final int? selectedDays;
 
-  const TrustedContactResult({
-    required this.action,
-    this.selectedDays,
-  });
+  const TrustedContactResult({required this.action, this.selectedDays});
 }
 
 class TrustedContactSheet extends StatefulWidget {
   final EmergencyContact contact;
 
-  const TrustedContactSheet({
-    required this.contact,
-    super.key,
-  });
+  const TrustedContactSheet({required this.contact, super.key});
 
   @override
   State<TrustedContactSheet> createState() => _TrustedContactSheetState();
@@ -113,9 +104,7 @@ class _TrustedContactSheetState extends State<TrustedContactSheet> {
             labelText: removeLabel,
             onTap: () async {
               Navigator.of(context).pop(
-                const TrustedContactResult(
-                  action: TrustedContactAction.revoke,
-                ),
+                const TrustedContactResult(action: TrustedContactAction.revoke),
               );
             },
             shouldSurfaceExecutionStates: false,

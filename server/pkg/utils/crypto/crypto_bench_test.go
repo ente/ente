@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"github.com/ente-io/museum/ente"
+	"github.com/ente/museum/ente"
 )
 
 // Benchmark encryption operations
@@ -35,9 +35,8 @@ func benchmarkEncrypt(b *testing.B, encryptFunc func(string, []byte) (ente.Encry
 			key := generateTestKey()
 
 			b.SetBytes(int64(size.size))
-			b.ResetTimer()
 
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				_, err := encryptFunc(data, key)
 				if err != nil {
 					b.Fatal(err)
@@ -87,9 +86,8 @@ func benchmarkDecrypt(b *testing.B,
 			nonce := encResult.Nonce
 
 			b.SetBytes(int64(size.size))
-			b.ResetTimer()
 
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				_, err := decryptFunc(cipher, key, nonce)
 				if err != nil {
 					b.Fatal(err)
@@ -126,9 +124,8 @@ func benchmarkHash(b *testing.B, hashFunc func(string, []byte) (string, error)) 
 			data := generateLargeText(size.size)
 
 			b.SetBytes(int64(size.size))
-			b.ResetTimer()
 
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				_, err := hashFunc(data, nil)
 				if err != nil {
 					b.Fatal(err)
@@ -171,9 +168,8 @@ func benchmarkGetEncryptedToken(b *testing.B, tokenFunc func(string, string) (st
 			token := base64.URLEncoding.EncodeToString([]byte(tokenData))
 
 			b.SetBytes(int64(size.size))
-			b.ResetTimer()
 
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				_, err := tokenFunc(token, publicKeyB64)
 				if err != nil {
 					b.Fatal(err)
@@ -213,9 +209,8 @@ func benchmarkFullCycle(b *testing.B,
 			key := generateTestKey()
 
 			b.SetBytes(int64(size.size * 2)) // Count both encrypt and decrypt
-			b.ResetTimer()
 
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				encResult, err := encryptFunc(data, key)
 				if err != nil {
 					b.Fatal(err)
@@ -240,7 +235,7 @@ func BenchmarkMemoryAllocLibsodium(b *testing.B) {
 	data := generateLargeText(1024)
 	key := generateTestKey()
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, _ = Encrypt(data, key)
 	}
 }
@@ -250,7 +245,7 @@ func BenchmarkMemoryAllocNative(b *testing.B) {
 	data := generateLargeText(1024)
 	key := generateTestKey()
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, _ = EncryptNative(data, key)
 	}
 }

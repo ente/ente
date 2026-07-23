@@ -3,9 +3,9 @@ title: Albums
 description: Create and manage albums in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Albums

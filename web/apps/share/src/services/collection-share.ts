@@ -360,7 +360,7 @@ export const downloadPublicCollectionFile = async (
     const totalHeader = response.headers.get("content-length");
     const total = totalHeader ? Number.parseInt(totalHeader, 10) : null;
 
-    let encryptedData: Uint8Array;
+    let encryptedData: Uint8Array<ArrayBuffer>;
     if (response.body) {
         const reader = response.body.getReader();
         const chunks: Uint8Array[] = [];
@@ -393,7 +393,7 @@ export const downloadPublicCollectionFile = async (
         fileKey,
     );
 
-    const blob = new Blob([new Uint8Array(decryptedData)]);
+    const blob = new Blob([decryptedData]);
     const blobUrl = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = blobUrl;

@@ -7,19 +7,14 @@ import 'package:photos/service_locator.dart';
 import 'package:photos/services/account/user_service.dart';
 
 class FamilyInviteFailure {
-  const FamilyInviteFailure({
-    required this.email,
-    required this.error,
-  });
+  const FamilyInviteFailure({required this.email, required this.error});
 
   final String email;
   final Object error;
 }
 
 class FamilyInviteResult {
-  const FamilyInviteResult({
-    required this.failures,
-  });
+  const FamilyInviteResult({required this.failures});
 
   final List<FamilyInviteFailure> failures;
 
@@ -45,18 +40,14 @@ class FamilyService {
     required UserDetails userDetails,
     required List<String> emails,
   }) async {
-    final familyAuthToken = await usersGateway.getFamiliesAuthToken();
     if (userDetails.familyData == null) {
-      await usersGateway.createFamily(authToken: familyAuthToken);
+      await usersGateway.createFamily();
     }
 
     final failures = <FamilyInviteFailure>[];
     for (final email in emails) {
       try {
-        await usersGateway.inviteFamilyMember(
-          email: email,
-          authToken: familyAuthToken,
-        );
+        await usersGateway.inviteFamilyMember(email: email);
       } catch (error, stackTrace) {
         _logger.warning("Failed to invite $email", error, stackTrace);
         failures.add(FamilyInviteFailure(email: email, error: error));

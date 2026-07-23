@@ -2,8 +2,8 @@ package random
 
 import (
 	"fmt"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/stacktrace"
 	"unicode"
 )
 

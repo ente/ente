@@ -42,29 +42,31 @@ void main() {
       }
     });
 
-    test('returns ID-keyed cached decrypted copy and ignores localPath',
-        () async {
-      final staleLocalPath = await writeFile(
-        p.join(root.path, 'old-local-copy.pdf'),
-        'stale local bytes',
-      );
-      final file = lockerFile(
-        uploadedFileID: 901,
-        title: 'statement.pdf',
-        localPath: staleLocalPath.path,
-      );
-      final cachedDecrypted = await writeFile(
-        getCachedDecryptedFilePath(file),
-        'current cached bytes',
-      );
+    test(
+      'returns ID-keyed cached decrypted copy and ignores localPath',
+      () async {
+        final staleLocalPath = await writeFile(
+          p.join(root.path, 'old-local-copy.pdf'),
+          'stale local bytes',
+        );
+        final file = lockerFile(
+          uploadedFileID: 901,
+          title: 'statement.pdf',
+          localPath: staleLocalPath.path,
+        );
+        final cachedDecrypted = await writeFile(
+          getCachedDecryptedFilePath(file),
+          'current cached bytes',
+        );
 
-      final opened = await file_downloader.openFile(file, Uint8List(32));
+        final opened = await file_downloader.openFile(file, Uint8List(32));
 
-      expect(opened, isNotNull);
-      expect(opened!.path, cachedDecrypted.path);
-      expect(await opened.readAsString(), 'current cached bytes');
-      expect(await staleLocalPath.readAsString(), 'stale local bytes');
-    });
+        expect(opened, isNotNull);
+        expect(opened!.path, cachedDecrypted.path);
+        expect(await opened.readAsString(), 'current cached bytes');
+        expect(await staleLocalPath.readAsString(), 'stale local bytes');
+      },
+    );
 
     test('isolates cached decrypted files by uploaded file ID', () async {
       final sharedLocalPath = await writeFile(

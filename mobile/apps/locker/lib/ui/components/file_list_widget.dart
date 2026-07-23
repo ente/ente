@@ -1,6 +1,6 @@
+import "package:ente_components/ente_components.dart";
 import "package:ente_sharing/models/user.dart";
 import "package:ente_sharing/user_avator_widget.dart";
-import "package:ente_ui/theme/ente_theme.dart";
 import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:hugeicons/hugeicons.dart";
@@ -17,7 +17,6 @@ import "package:locker/utils/info_item_utils.dart";
 
 class FileListWidget extends StatelessWidget {
   final EnteFile file;
-  final bool isLastItem;
   final SelectedFiles? selectedFiles;
   final void Function(EnteFile)? onTapCallback;
   final void Function(EnteFile)? onLongPressCallback;
@@ -25,7 +24,6 @@ class FileListWidget extends StatelessWidget {
   const FileListWidget({
     super.key,
     required this.file,
-    this.isLastItem = false,
     this.selectedFiles,
     this.onTapCallback,
     this.onLongPressCallback,
@@ -33,14 +31,15 @@ class FileListWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
 
     final collection = file.collectionID != null
         ? CollectionService.instance.getFromCache(file.collectionID!)
         : null;
 
     final int? currentUserID = Configuration.instance.getUserID();
-    final bool isOwner = collection != null &&
+    final bool isOwner =
+        collection != null &&
         currentUserID != null &&
         collection.isOwner(currentUserID);
     final List<User> sharees =
@@ -63,7 +62,7 @@ class FileListWidget extends StatelessWidget {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                _buildFileIcon(),
+                _buildFileIcon(context, backgroundColor: colors.backgroundBase),
                 if (showSharingIndicator)
                   Positioned(
                     right: -4,
@@ -71,7 +70,7 @@ class FileListWidget extends StatelessWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: colorScheme.backdropBase,
+                        color: colors.fillLight,
                       ),
                       padding: const EdgeInsets.all(1.0),
                       child: HugeIcon(
@@ -79,7 +78,7 @@ class FileListWidget extends StatelessWidget {
                             ? HugeIcons.strokeRoundedCircleArrowUpRight
                             : HugeIcons.strokeRoundedCircleArrowDownLeft,
                         strokeWidth: 2.0,
-                        color: colorScheme.primary700,
+                        color: colors.primary,
                         size: 16.0,
                       ),
                     ),
@@ -95,6 +94,7 @@ class FileListWidget extends StatelessWidget {
               children: [
                 Text(
                   file.displayName,
+                  style: TextStyles.body,
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
@@ -129,12 +129,10 @@ class FileListWidget extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               border: Border.all(
-                color: isSelected
-                    ? colorScheme.primary700
-                    : colorScheme.backdropBase,
+                color: isSelected ? colors.strokeDark : colors.fillLight,
                 width: 1.5,
               ),
-              color: colorScheme.backdropBase,
+              color: colors.fillLight,
               borderRadius: const BorderRadius.all(Radius.circular(20)),
             ),
             child: Row(
@@ -151,16 +149,11 @@ class FileListWidget extends StatelessWidget {
                     layoutBuilder: (currentChild, previousChildren) {
                       return Stack(
                         alignment: Alignment.centerRight,
-                        children: [
-                          ...previousChildren,
-                          if (currentChild != null) currentChild,
-                        ],
+                        children: [...previousChildren, ?currentChild],
                       );
                     },
                     child: _buildTrailingIndicator(
-                      color: isSelected
-                          ? colorScheme.primary700
-                          : colorScheme.textMuted,
+                      color: colors.textLight,
                       isSelected: isSelected,
                       isIncoming: isIncoming,
                       isMarkedOffline: !isTrashFile && isMarkedOffline,
@@ -176,19 +169,30 @@ class FileListWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildFileIcon() {
+  Widget _buildFileIcon(
+    BuildContext context, {
+    required Color backgroundColor,
+  }) {
     if (InfoFileService.instance.isInfoFile(file)) {
       try {
         final infoItem = InfoFileService.instance.extractInfoFromFile(file);
         if (infoItem != null) {
-          return InfoItemUtils.getInfoIcon(infoItem.type);
+          return InfoItemUtils.getInfoIcon(
+            context,
+            infoItem.type,
+            backgroundColor: backgroundColor,
+          );
         }
       } catch (e) {
         // Fallback to default icon if extraction fails
       }
     }
 
-    return FileIconUtils.getFileIcon(file.displayName, showBackground: true);
+    return FileIconUtils.getFileIcon(
+      context,
+      file.displayName,
+      backgroundColor: backgroundColor,
+    );
   }
 
   Widget _buildOwnerAvatar(User owner) {
@@ -214,12 +218,7 @@ class FileListWidget extends StatelessWidget {
     required User? owner,
   }) {
     if (isSelected) {
-      return Icon(
-        key: const ValueKey("selected"),
-        Icons.check_circle_rounded,
-        color: color,
-        size: 24,
-      );
+      return const SelectionCheckBadge(key: ValueKey("selected"));
     }
 
     if (isMarkedOffline) {

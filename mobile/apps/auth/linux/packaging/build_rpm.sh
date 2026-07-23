@@ -44,6 +44,7 @@ mkdir -p "$STAGING_DIR/usr/share/enteauth"
 mkdir -p "$STAGING_DIR/usr/share/metainfo"
 mkdir -p "$STAGING_DIR/usr/share/pixmaps"
 mkdir -p "$STAGING_DIR/usr/share/applications"
+mkdir -p "$STAGING_DIR/usr/share/polkit-1/actions"
 mkdir -p "$STAGING_DIR/usr/bin"
 
 # Create output directory
@@ -72,6 +73,10 @@ cp "assets/generation-icons/icon-windows-linux.png" "$STAGING_DIR/usr/share/pixm
 echo -e "${YELLOW}Copying desktop file...${NC}"
 cp linux/packaging/enteauth.desktop "$STAGING_DIR/usr/share/applications/"
 
+# Copy Polkit policy.
+echo -e "${YELLOW}Copying Polkit policy...${NC}"
+install -D -m 0644 assets/polkit/com.ente.auth.policy "$STAGING_DIR/usr/share/polkit-1/actions/com.ente.auth.policy"
+
 # Create symlink
 echo -e "${YELLOW}Creating symlink...${NC}"
 ln -s /usr/share/enteauth/enteauth "$STAGING_DIR/usr/bin/enteauth"
@@ -91,12 +96,13 @@ fpm -s dir -t rpm \
   --vendor "Ente" \
   --maintainer "Ente Developers <auth@ente.com>" \
   --license "AGPLv3" \
-  --url "https://github.com/ente-io/ente" \
+  --url "https://github.com/ente/ente" \
   --description "2FA app with free end-to-end encrypted backup and sync" \
   --category "Application/Utility" \
   --depends sqlite-libs \
   --depends libsecret \
   --depends libappindicator \
+  --depends polkit \
   -C "$STAGING_DIR" \
   -p "$OUTPUT_DIR/enteauth-VERSION.ARCH.rpm" \
   .

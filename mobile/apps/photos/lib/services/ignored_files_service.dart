@@ -125,11 +125,7 @@ class IgnoredFilesService {
   }
 
   String? getIgnoredIDForFile(EnteFile file) {
-    return _getIgnoreID(
-      file.localID,
-      file.deviceFolder,
-      file.title,
-    );
+    return _getIgnoreID(file.localID, file.deviceFolder, file.title);
   }
 
   // _getIgnoreID will return null if don't have sufficient information

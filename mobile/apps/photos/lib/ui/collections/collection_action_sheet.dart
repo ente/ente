@@ -2,9 +2,10 @@ import "dart:async";
 import 'dart:math';
 
 import 'package:collection/collection.dart';
+import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
+import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/create_new_album_event.dart";
@@ -13,18 +14,11 @@ import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/selected_files.dart';
 import "package:photos/service_locator.dart";
 import 'package:photos/services/collections_service.dart';
-import 'package:photos/theme/colors.dart';
-import 'package:photos/theme/ente_theme.dart';
 import "package:photos/ui/actions/collection/collection_file_actions.dart";
 import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
 import 'package:photos/ui/collections/album/vertical_list.dart';
 import 'package:photos/ui/common/loading_widget.dart';
 import "package:photos/ui/common/progress_dialog.dart";
-import 'package:photos/ui/components/bottom_of_title_bar_widget.dart';
-import 'package:photos/ui/components/buttons/button_widget.dart';
-import 'package:photos/ui/components/models/button_type.dart';
-import "package:photos/ui/components/text_input_widget.dart";
-import 'package:photos/ui/components/title_bar_title_widget.dart';
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/separators_util.dart";
@@ -38,7 +32,7 @@ enum CollectionActionType {
   shareCollection,
   addToHiddenAlbum,
   moveToHiddenCollection,
-  autoAddPeople;
+  autoAddPeople,
 }
 
 extension CollectionActionTypeExtension on CollectionActionType {
@@ -82,7 +76,7 @@ String _actionName(
   return text;
 }
 
-void showCollectionActionSheet(
+Future<void> showCollectionActionSheet(
   BuildContext context, {
   SelectedFiles? selectedFiles,
   List<SharedMediaFile>? sharedFiles,
@@ -90,27 +84,37 @@ void showCollectionActionSheet(
   bool showOptionToCreateNewAlbum = true,
   List<String>? selectedPeople,
 }) {
-  showBarModalBottomSheet(
+  final topPadding = MediaQuery.paddingOf(context).top;
+  final bottomPadding = MediaQuery.paddingOf(context).bottom;
+  final screenHeight = MediaQuery.sizeOf(context).height;
+  const sheetHeaderHeight = 76.0;
+  final sheetTopGap = screenHeight * 0.20;
+  final height = max(
+    0.0,
+    screenHeight - topPadding - bottomPadding - sheetTopGap - sheetHeaderHeight,
+  );
+  final filesCount = sharedFiles != null
+      ? sharedFiles.length
+      : selectedPeople != null
+      ? selectedPeople.length
+      : selectedFiles?.files.length ?? 0;
+
+  return showBottomSheetComponent<void>(
     context: context,
-    builder: (context) {
-      return CollectionActionSheet(
-        selectedFiles: selectedFiles,
-        sharedFiles: sharedFiles,
-        actionType: actionType,
-        showOptionToCreateNewAlbum: showOptionToCreateNewAlbum,
-        selectedPeople: selectedPeople,
-      );
-    },
-    shape: const RoundedRectangleBorder(
-      side: BorderSide(width: 0),
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(5),
+    builder: (_) => BottomSheetComponent(
+      title: _actionName(context, actionType, filesCount),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      content: SizedBox(
+        height: height,
+        child: CollectionActionSheet(
+          selectedFiles: selectedFiles,
+          sharedFiles: sharedFiles,
+          actionType: actionType,
+          showOptionToCreateNewAlbum: showOptionToCreateNewAlbum,
+          selectedPeople: selectedPeople,
+        ),
       ),
     ),
-    topControl: const SizedBox.shrink(),
-    backgroundColor: getEnteColorScheme(context).backgroundElevated,
-    barrierColor: backdropFaintDark,
-    enableDrag: true,
   );
 }
 
@@ -140,6 +144,7 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
   String _searchQuery = "";
   final _selectedCollections = <Collection>[];
   final _recentlyCreatedCollections = <Collection>[];
+  final _scrollController = ScrollController();
   late StreamSubscription<CreateNewAlbumEvent> _createNewAlbumSubscription;
   final _logger = Logger("CollectionActionSheet");
 
@@ -147,118 +152,76 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
   void initState() {
     super.initState();
     _showOnlyHiddenCollections = widget.actionType.isHiddenAction;
-    _enableSelection = (widget.actionType ==
-                CollectionActionType.autoAddPeople &&
+    _enableSelection =
+        (widget.actionType == CollectionActionType.autoAddPeople &&
             widget.selectedPeople != null) ||
         ((widget.actionType == CollectionActionType.addFiles ||
                 widget.actionType == CollectionActionType.addToHiddenAlbum) &&
             (widget.sharedFiles == null || widget.sharedFiles!.isEmpty));
-    _createNewAlbumSubscription =
-        Bus.instance.on<CreateNewAlbumEvent>().listen((event) {
-      setState(() {
-        _recentlyCreatedCollections.insert(0, event.collection);
-        _selectedCollections.add(event.collection);
-      });
-    });
+    _createNewAlbumSubscription = Bus.instance.on<CreateNewAlbumEvent>().listen(
+      (event) {
+        setState(() {
+          _recentlyCreatedCollections.insert(0, event.collection);
+          _selectedCollections.add(event.collection);
+        });
+      },
+    );
   }
 
   @override
   void dispose() {
     _createNewAlbumSubscription.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final filesCount = widget.sharedFiles != null
-        ? widget.sharedFiles!.length
-        : widget.selectedPeople != null
-            ? widget.selectedPeople!.length
-            : widget.selectedFiles?.files.length ?? 0;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final isKeyboardUp = bottomInset > 100;
-    final double bottomPadding =
-        max(0, bottomInset - (_enableSelection ? okButtonSize : 0));
+    final double bottomPadding = max(
+      0,
+      bottomInset - (_enableSelection ? okButtonSize : 0),
+    );
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: isKeyboardUp ? bottomPadding : 0,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: min(428, MediaQuery.of(context).size.width),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(0, 32, 0, 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  Expanded(
-                    child: Column(
-                      children: [
-                        BottomOfTitleBarWidget(
-                          title: TitleBarTitleWidget(
-                            title: _actionName(
-                              context,
-                              widget.actionType,
-                              filesCount,
-                            ),
-                          ),
-                          caption: widget.showOptionToCreateNewAlbum
-                              ? AppLocalizations.of(context).createOrSelectAlbum
-                              : AppLocalizations.of(context).selectAlbum,
-                          showCloseButton: true,
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            top: 16,
-                            left: 16,
-                            right: 16,
-                          ),
-                          child: TextInputWidget(
-                            hintText: AppLocalizations.of(context)
-                                .searchByAlbumNameHint,
-                            prefixIcon: Icons.search_rounded,
-                            onChange: (value) {
-                              setState(() {
-                                _searchQuery = value.trim();
-                              });
-                            },
-                            isClearable: true,
-                            shouldUnfocusOnClearOrSubmit: true,
-                          ),
-                        ),
-                        _getCollectionItems(),
-                      ],
-                    ),
-                  ),
-                  SafeArea(
-                    child: Container(
-                      //inner stroke of 1pt + 15 pts of top padding = 16 pts
-                      padding: const EdgeInsets.fromLTRB(16, 15, 16, 8),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          top: BorderSide(
-                            color: _enableSelection
-                                ? getEnteColorScheme(context).strokeFaint
-                                : Colors.transparent,
-                          ),
-                        ),
+      padding: EdgeInsets.only(bottom: isKeyboardUp ? bottomPadding : 0),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 428),
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    TextInputComponent(
+                      hintText: AppLocalizations.of(
+                        context,
+                      ).searchByAlbumNameHint,
+                      prefix: HugeIcon(
+                        icon: HugeIcons.strokeRoundedSearch01,
+                        size: 18,
+                        color: context.componentColors.textLight,
                       ),
-                      child: Column(
-                        children: [
-                          ..._actionButtons(),
-                        ],
-                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value.trim();
+                        });
+                      },
+                      isClearable: true,
+                      shouldUnfocusOnClearOrSubmit: true,
                     ),
-                  ),
-                ],
+                    _getCollectionItems(),
+                  ],
+                ),
               ),
-            ),
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Column(children: [..._actionButtons()]),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -267,12 +230,11 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
     final List<Widget> widgets = [];
     if (_enableSelection) {
       widgets.add(
-        ButtonWidget(
+        ButtonComponent(
           key: const ValueKey('add_button'),
-          buttonType: ButtonType.primary,
-          isInAlert: true,
-          labelText: AppLocalizations.of(context).add,
+          label: AppLocalizations.of(context).add,
           shouldSurfaceExecutionStates: false,
+          dismissModalOnSuccess: true,
           isDisabled: _selectedCollections.isEmpty,
           onTap: () async {
             if (widget.selectedPeople != null) {
@@ -300,8 +262,9 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
               await dialog.hide();
               return;
             }
-            final CollectionActions collectionActions =
-                CollectionActions(CollectionsService.instance);
+            final CollectionActions collectionActions = CollectionActions(
+              CollectionsService.instance,
+            );
             final result = await collectionActions.addToMultipleCollections(
               context,
               _selectedCollections,
@@ -309,10 +272,12 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
               selectedFiles: widget.selectedFiles?.files.toList(),
             );
             if (result) {
+              if (!mounted) return;
               showShortToast(
                 context,
-                AppLocalizations.of(context)
-                    .addedToAlbums(count: _selectedCollections.length),
+                AppLocalizations.of(
+                  context,
+                ).addedToAlbums(count: _selectedCollections.length),
               );
               widget.selectedFiles?.clearAll();
             }
@@ -330,7 +295,7 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
   Flexible _getCollectionItems() {
     return Flexible(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 24, 4, 0),
+        padding: const EdgeInsets.only(top: 24),
         child: FutureBuilder<List<Collection>>(
           future: _getCollections(),
           builder: (context, snapshot) {
@@ -363,9 +328,9 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
                 if (_searchQuery.isNotEmpty) {
                   sharedCollections = sharedCollections
                       .where(
-                        (c) => c.displayName
-                            .toLowerCase()
-                            .contains(_searchQuery.toLowerCase()),
+                        (c) => c.displayName.toLowerCase().contains(
+                          _searchQuery.toLowerCase(),
+                        ),
                       )
                       .toList();
                 }
@@ -373,36 +338,47 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
 
               final searchResults = _searchQuery.isNotEmpty
                   ? collections
-                      .where(
-                        (element) => element.displayName
-                            .toLowerCase()
-                            .contains(_searchQuery.toLowerCase()),
-                      )
-                      .toList()
+                        .where(
+                          (element) => element.displayName
+                              .toLowerCase()
+                              .contains(_searchQuery.toLowerCase()),
+                        )
+                        .toList()
                   : collections;
-              return Scrollbar(
-                thumbVisibility: true,
-                interactive: true,
-                radius: const Radius.circular(2),
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: AlbumVerticalListWidget(
-                    searchResults,
-                    widget.actionType,
-                    widget.selectedFiles,
-                    widget.sharedFiles,
-                    widget.selectedPeople,
-                    _searchQuery,
-                    shouldShowCreateAlbum,
-                    recentCollections: recentCollections,
-                    sharedCollections: sharedCollections,
-                    enableSelection: _enableSelection,
-                    selectedCollections: _selectedCollections,
-                    onSelectionChanged: () {
-                      setState(() {});
-                    },
-                  ),
-                ),
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  return OverflowBox(
+                    alignment: Alignment.centerLeft,
+                    maxWidth: constraints.maxWidth + 20,
+                    child: SizedBox(
+                      width: constraints.maxWidth + 20,
+                      child: Scrollbar(
+                        controller: _scrollController,
+                        radius: const Radius.circular(2),
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 20),
+                          child: AlbumVerticalListWidget(
+                            searchResults,
+                            widget.actionType,
+                            widget.selectedFiles,
+                            widget.sharedFiles,
+                            widget.selectedPeople,
+                            _searchQuery,
+                            shouldShowCreateAlbum,
+                            recentCollections: recentCollections,
+                            sharedCollections: sharedCollections,
+                            enableSelection: _enableSelection,
+                            selectedCollections: _selectedCollections,
+                            scrollController: _scrollController,
+                            onSelectionChanged: () {
+                              setState(() {});
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               );
             } else {
               return const EnteLoadingWidget();
@@ -460,8 +436,8 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
       });
       return recentlyCreated + hidden;
     } else {
-      final List<Collection> collections =
-          CollectionsService.instance.getCollectionsForUI(
+      final List<Collection>
+      collections = CollectionsService.instance.getCollectionsForUI(
         // in collections where user is a collaborator, only addTo and remove
         // action can to be performed
         includeCollab: widget.actionType == CollectionActionType.addFiles,
@@ -509,9 +485,7 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
   void _removeIncomingCollections(List<Collection> items) {
     if (widget.actionType == CollectionActionType.shareCollection) {
       final ownerID = Configuration.instance.getUserID();
-      items.removeWhere(
-        (e) => !e.isOwner(ownerID!),
-      );
+      items.removeWhere((e) => !e.isOwner(ownerID!));
     }
   }
 }

@@ -1,9 +1,10 @@
 import "package:adaptive_theme/adaptive_theme.dart";
-import "package:ente_ui/components/title_bar_title_widget.dart";
-import "package:ente_ui/theme/ente_theme.dart";
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:locker/l10n/l10n.dart";
-import "package:locker/ui/settings/widgets/settings_widget.dart";
+import "package:locker/ui/settings/components/settings_item.dart";
+import "package:locker/ui/settings/components/settings_page_scaffold.dart";
 
 class ThemeSettingsPage extends StatefulWidget {
   const ThemeSettingsPage({super.key});
@@ -29,58 +30,43 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final colorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
 
-    return Scaffold(
-      backgroundColor: colorScheme.backgroundBase,
-      appBar: AppBar(
-        backgroundColor: colorScheme.backgroundBase,
-        surfaceTintColor: Colors.transparent,
-        toolbarHeight: 48,
-        leadingWidth: 48,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back_outlined),
+    return SettingsPageScaffold(
+      title: l10n.theme,
+      children: [
+        MenuGroupComponent(
+          items: [
+            SettingsItem(
+              title: l10n.systemTheme,
+              icon: HugeIcons.strokeRoundedSmartPhone01,
+              showChevron: false,
+              trailing: currentThemeMode == AdaptiveThemeMode.system
+                  ? Icon(Icons.check, color: colors.primary)
+                  : null,
+              onTap: () => _setTheme(AdaptiveThemeMode.system),
+            ),
+            SettingsItem(
+              title: l10n.lightTheme,
+              icon: HugeIcons.strokeRoundedSun03,
+              showChevron: false,
+              trailing: currentThemeMode == AdaptiveThemeMode.light
+                  ? Icon(Icons.check, color: colors.primary)
+                  : null,
+              onTap: () => _setTheme(AdaptiveThemeMode.light),
+            ),
+            SettingsItem(
+              title: l10n.darkTheme,
+              icon: HugeIcons.strokeRoundedMoon02,
+              showChevron: false,
+              trailing: currentThemeMode == AdaptiveThemeMode.dark
+                  ? Icon(Icons.check, color: colors.primary)
+                  : null,
+              onTap: () => _setTheme(AdaptiveThemeMode.dark),
+            ),
+          ],
         ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TitleBarTitleWidget(title: l10n.theme),
-              const SizedBox(height: 24),
-              SettingsItem(
-                title: l10n.systemTheme,
-                showChevron: false,
-                trailing: currentThemeMode == AdaptiveThemeMode.system
-                    ? Icon(Icons.check, color: colorScheme.primary700)
-                    : null,
-                onTap: () => _setTheme(AdaptiveThemeMode.system),
-              ),
-              const SizedBox(height: 8),
-              SettingsItem(
-                title: l10n.lightTheme,
-                showChevron: false,
-                trailing: currentThemeMode == AdaptiveThemeMode.light
-                    ? Icon(Icons.check, color: colorScheme.primary700)
-                    : null,
-                onTap: () => _setTheme(AdaptiveThemeMode.light),
-              ),
-              const SizedBox(height: 8),
-              SettingsItem(
-                title: l10n.darkTheme,
-                showChevron: false,
-                trailing: currentThemeMode == AdaptiveThemeMode.dark
-                    ? Icon(Icons.check, color: colorScheme.primary700)
-                    : null,
-                onTap: () => _setTheme(AdaptiveThemeMode.dark),
-              ),
-            ],
-          ),
-        ),
-      ),
+      ],
     );
   }
 

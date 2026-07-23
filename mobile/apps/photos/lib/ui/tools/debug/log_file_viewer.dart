@@ -1,8 +1,8 @@
-import 'dart:io';
+import "dart:io";
 
-import 'package:flutter/material.dart';
+import "package:flutter/material.dart";
 import "package:photos/generated/l10n.dart";
-import 'package:photos/ui/common/loading_widget.dart';
+import "package:photos/ui/common/loading_widget.dart";
 
 class LogFileViewer extends StatefulWidget {
   final File file;
@@ -13,15 +13,22 @@ class LogFileViewer extends StatefulWidget {
 }
 
 class _LogFileViewerState extends State<LogFileViewer> {
-  String? _logs;
+  static const _maxLinesToShow = 2000;
+
+  late final Future<List<String>> _logsFuture;
+
   @override
   void initState() {
-    widget.file.readAsString().then((logs) {
-      setState(() {
-        _logs = logs;
-      });
-    });
     super.initState();
+    _logsFuture = _readLogs();
+  }
+
+  Future<List<String>> _readLogs() async {
+    final logs = await widget.file.readAsLines();
+    if (logs.length <= _maxLinesToShow) {
+      return logs;
+    }
+    return logs.sublist(logs.length - _maxLinesToShow);
   }
 
   @override
@@ -31,31 +38,35 @@ class _LogFileViewerState extends State<LogFileViewer> {
         elevation: 0,
         title: Text(AppLocalizations.of(context).todaysLogs),
       ),
-      body: _getBody(),
-    );
-  }
-
-  Widget _getBody() {
-    if (_logs == null) {
-      return const EnteLoadingWidget();
-    }
-    return Container(
-      padding: const EdgeInsets.only(left: 12, top: 8, right: 12),
-      child: Scrollbar(
-        interactive: true,
-        thickness: 4,
-        radius: const Radius.circular(2),
-        child: SingleChildScrollView(
-          child: Text(
-            _logs!,
-            style: const TextStyle(
-              fontFeatures: [
-                FontFeature.tabularFigures(),
-              ],
-              height: 1.2,
+      body: FutureBuilder<List<String>>(
+        future: _logsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text(snapshot.error.toString()));
+          }
+          if (!snapshot.hasData) {
+            return const EnteLoadingWidget();
+          }
+          final logs = snapshot.data!;
+          return Scrollbar(
+            interactive: true,
+            thickness: 4,
+            radius: const Radius.circular(2),
+            child: ListView.builder(
+              padding: const EdgeInsets.only(left: 12, top: 8, right: 12),
+              itemCount: logs.length,
+              itemBuilder: (context, index) {
+                return Text(
+                  logs[index],
+                  style: const TextStyle(
+                    fontFeatures: [FontFeature.tabularFigures()],
+                    height: 1.2,
+                  ),
+                );
+              },
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

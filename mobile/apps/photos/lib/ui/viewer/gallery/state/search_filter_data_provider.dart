@@ -87,8 +87,9 @@ class SearchFilterDataProvider {
   }
 
   void _safelyAddToRecommended(List<HierarchicalSearchFilter> filters) {
-    if (_appliedFiltersNotifier.appliedFilters
-        .any((e) => e is OnlyThemFilter)) {
+    if (_appliedFiltersNotifier.appliedFilters.any(
+      (e) => e is OnlyThemFilter,
+    )) {
       filters.removeWhere((e) => e is FaceFilter);
     }
 
@@ -148,6 +149,7 @@ class _RecommendedFiltersNotifier extends ChangeNotifier {
 
   void addFilters(
     List<HierarchicalSearchFilter> filters, {
+
     ///This is to ensure that the filters that are being added are not already
     ///already in recommendations or applied filters
     required List<HierarchicalSearchFilter> filtersToAvoid,

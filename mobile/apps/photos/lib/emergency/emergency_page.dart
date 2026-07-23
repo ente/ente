@@ -52,6 +52,7 @@ class _EmergencyPageState extends State<EmergencyPage> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
     }
   }
@@ -81,18 +82,13 @@ class _EmergencyPageState extends State<EmergencyPage> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TitleBarTitleWidget(
-                title: l10n.legacy,
-              ),
+              child: TitleBarTitleWidget(title: l10n.legacy),
             ),
           ),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                l10n.legacyPageDesc,
-                style: textTheme.smallMuted,
-              ),
+              child: Text(l10n.legacyPageDesc, style: textTheme.smallMuted),
             ),
           ),
           if (info == null)
@@ -104,44 +100,40 @@ class _EmergencyPageState extends State<EmergencyPage> {
             SliverPadding(
               padding: const EdgeInsets.only(top: 20, left: 16, right: 16),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    if (index == 0) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: _WarningBanner(text: l10n.recoveryWarning),
-                      );
-                    }
-
-                    final listIndex = index - 1;
-                    final recoverSession = info!.recoverSessions[listIndex];
-                    final isLastItem =
-                        listIndex == info!.recoverSessions.length - 1;
-                    final emergencyUser = recoverSession.emergencyContact;
-                    return _buildGroupedMenuItem(
-                      listIndex: listIndex,
-                      isLastItem: isLastItem,
-                      child: MenuItemWidgetNew(
-                        title: resolveDisplayName(emergencyUser),
-                        titleColor: colorScheme.warning500,
-                        leadingIconSize: 24,
-                        leadingIconWidget: UserAvatarWidget(
-                          emergencyUser,
-                          type: AvatarType.md,
-                          currentUserID: currentUserID,
-                        ),
-                        menuItemColor: colorScheme.fillFaint,
-                        trailingWidget:
-                            _buildTrailingWidget(showWarning: false),
-                        borderRadius: 0,
-                        onTap: () async {
-                          await showRejectRecoveryDialog(recoverSession);
-                        },
-                      ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  if (index == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _WarningBanner(text: l10n.recoveryWarning),
                     );
-                  },
-                  childCount: 1 + info!.recoverSessions.length,
-                ),
+                  }
+
+                  final listIndex = index - 1;
+                  final recoverSession = info!.recoverSessions[listIndex];
+                  final isLastItem =
+                      listIndex == info!.recoverSessions.length - 1;
+                  final emergencyUser = recoverSession.emergencyContact;
+                  return _buildGroupedMenuItem(
+                    listIndex: listIndex,
+                    isLastItem: isLastItem,
+                    child: MenuItemWidgetNew(
+                      title: resolveDisplayName(emergencyUser),
+                      titleColor: colorScheme.warning500,
+                      leadingIconSize: 24,
+                      leadingIconWidget: UserAvatarWidget(
+                        emergencyUser,
+                        type: AvatarType.medium,
+                        currentUserID: currentUserID,
+                      ),
+                      menuItemColor: colorScheme.fillFaint,
+                      trailingWidget: _buildTrailingWidget(showWarning: false),
+                      borderRadius: 0,
+                      onTap: () async {
+                        await showRejectRecoveryDialog(recoverSession);
+                      },
+                    ),
+                  );
+                }, childCount: 1 + info!.recoverSessions.length),
               ),
             ),
           if (info != null)
@@ -153,178 +145,168 @@ class _EmergencyPageState extends State<EmergencyPage> {
                 bottom: 8,
               ),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    if (index == 0 && trustedContacts.isNotEmpty) {
-                      return MenuSectionTitle(
-                        title: l10n.trustedContacts,
-                      );
-                    }
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  if (index == 0 && trustedContacts.isNotEmpty) {
+                    return MenuSectionTitle(title: l10n.trustedContacts);
+                  }
 
-                    if (index > 0 && index <= trustedContacts.length) {
-                      final listIndex = index - 1;
-                      final contact = trustedContacts[listIndex];
-                      final isLastItem =
-                          listIndex == trustedContacts.length - 1;
-                      final emergencyUser = contact.emergencyContact;
-                      return _buildGroupedMenuItem(
-                        listIndex: listIndex,
-                        isLastItem: isLastItem,
-                        child: MenuItemWidgetNew(
-                          title: resolveDisplayName(emergencyUser),
-                          titleColor: contact.isPendingInvite()
-                              ? colorScheme.warning500
-                              : textTheme.small.color,
-                          leadingIconSize: 24,
-                          leadingIconWidget: UserAvatarWidget(
-                            emergencyUser,
-                            type: AvatarType.md,
-                            currentUserID: currentUserID,
-                          ),
-                          menuItemColor: colorScheme.fillFaint,
-                          trailingWidget: _buildTrailingWidget(
-                            showWarning: contact.isPendingInvite(),
-                          ),
-                          borderRadius: 0,
-                          onTap: () async {
-                            await showRevokeOrRemoveDialog(context, contact);
-                          },
+                  if (index > 0 && index <= trustedContacts.length) {
+                    final listIndex = index - 1;
+                    final contact = trustedContacts[listIndex];
+                    final isLastItem = listIndex == trustedContacts.length - 1;
+                    final emergencyUser = contact.emergencyContact;
+                    return _buildGroupedMenuItem(
+                      listIndex: listIndex,
+                      isLastItem: isLastItem,
+                      child: MenuItemWidgetNew(
+                        title: resolveDisplayName(emergencyUser),
+                        titleColor: contact.isPendingInvite()
+                            ? colorScheme.warning500
+                            : textTheme.small.color,
+                        leadingIconSize: 24,
+                        leadingIconWidget: UserAvatarWidget(
+                          emergencyUser,
+                          type: AvatarType.medium,
+                          currentUserID: currentUserID,
                         ),
-                      );
-                    }
+                        menuItemColor: colorScheme.fillFaint,
+                        trailingWidget: _buildTrailingWidget(
+                          showWarning: contact.isPendingInvite(),
+                        ),
+                        borderRadius: 0,
+                        onTap: () async {
+                          await showRevokeOrRemoveDialog(context, contact);
+                        },
+                      ),
+                    );
+                  }
 
-                    if (index == (1 + trustedContacts.length)) {
-                      if (trustedContacts.isEmpty) {
-                        return Column(
-                          children: [
-                            SizedBox(
-                              height: 200,
+                  if (index == (1 + trustedContacts.length)) {
+                    if (trustedContacts.isEmpty) {
+                      return Column(
+                        children: [
+                          SizedBox(
+                            height: 200,
+                            width: 200,
+                            child: Image.asset(
+                              "assets/legacy.png",
                               width: 200,
-                              child: Image.asset(
-                                "assets/legacy.png",
-                                width: 200,
-                                height: 200,
-                              ),
+                              height: 200,
                             ),
-                            Text(
-                              l10n.legacyPageDesc2,
-                              style: textTheme.smallMuted,
-                            ),
-                            const SizedBox(height: 16),
-                            ButtonWidgetV2(
-                              buttonType: ButtonTypeV2.primary,
-                              labelText: l10n.addTrustedContact,
-                              shouldSurfaceExecutionStates: false,
-                              onTap: () async {
-                                final result = await showAddContactSheet(
-                                  context,
-                                  emergencyInfo: info!,
-                                );
-                                if (result == true) {
-                                  unawaited(_fetchData());
-                                }
-                              },
-                            ),
-                          ],
-                        );
-                      }
-
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 20),
-                        child: ButtonWidgetV2(
-                          buttonType: ButtonTypeV2.primary,
-                          labelText: l10n.addTrustedContact,
-                          shouldSurfaceExecutionStates: false,
-                          onTap: () async {
-                            final result = await showAddContactSheet(
-                              context,
-                              emergencyInfo: info!,
-                            );
-                            if (result == true) {
-                              unawaited(_fetchData());
-                            }
-                          },
-                        ),
+                          ),
+                          Text(
+                            l10n.legacyPageDesc2,
+                            style: textTheme.smallMuted,
+                          ),
+                          const SizedBox(height: 16),
+                          ButtonWidgetV2(
+                            buttonType: ButtonTypeV2.primary,
+                            labelText: l10n.addTrustedContact,
+                            shouldSurfaceExecutionStates: false,
+                            onTap: () async {
+                              final result = await showAddContactSheet(
+                                context,
+                                emergencyInfo: info!,
+                              );
+                              if (result == true) {
+                                unawaited(_fetchData());
+                              }
+                            },
+                          ),
+                        ],
                       );
                     }
-                    return const SizedBox.shrink();
-                  },
-                  childCount: 1 + trustedContacts.length + 1,
-                ),
+
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 20),
+                      child: ButtonWidgetV2(
+                        buttonType: ButtonTypeV2.primary,
+                        labelText: l10n.addTrustedContact,
+                        shouldSurfaceExecutionStates: false,
+                        onTap: () async {
+                          final result = await showAddContactSheet(
+                            context,
+                            emergencyInfo: info!,
+                          );
+                          if (result == true) {
+                            unawaited(_fetchData());
+                          }
+                        },
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }, childCount: 1 + trustedContacts.length + 1),
               ),
             ),
           if (info != null && info!.othersEmergencyContact.isNotEmpty)
             SliverPadding(
               padding: const EdgeInsets.only(top: 0, left: 16, right: 16),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    if (index == 0 && othersTrustedContacts.isNotEmpty) {
-                      return Column(
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8),
-                            child:
-                                DividerWidget(dividerType: DividerType.solid),
-                          ),
-                          MenuSectionTitle(title: l10n.legacyAccounts),
-                        ],
-                      );
-                    }
-
-                    if (index > 0 && index <= othersTrustedContacts.length) {
-                      final listIndex = index - 1;
-                      final currentUser = othersTrustedContacts[listIndex];
-                      final isLastItem = index == othersTrustedContacts.length;
-                      final emergencyUser = currentUser.user;
-                      return _buildGroupedMenuItem(
-                        listIndex: listIndex,
-                        isLastItem: isLastItem,
-                        child: MenuItemWidgetNew(
-                          title: resolveDisplayName(emergencyUser),
-                          titleColor: currentUser.isPendingInvite()
-                              ? colorScheme.warning500
-                              : textTheme.small.color,
-                          leadingIconSize: 24,
-                          leadingIconWidget: UserAvatarWidget(
-                            emergencyUser,
-                            type: AvatarType.md,
-                            currentUserID: currentUserID,
-                          ),
-                          menuItemColor: colorScheme.fillFaint,
-                          trailingWidget: _buildTrailingWidget(
-                            showWarning: currentUser.isPendingInvite(),
-                          ),
-                          borderRadius: 0,
-                          onTap: () async {
-                            if (currentUser.isPendingInvite()) {
-                              await showAcceptOrDeclineDialog(
-                                context,
-                                currentUser,
-                              );
-                            } else {
-                              await Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (BuildContext context) {
-                                    return OtherContactPage(
-                                      contact: currentUser,
-                                      emergencyInfo: info!,
-                                    );
-                                  },
-                                ),
-                              );
-                              if (mounted) {
-                                unawaited(_fetchData());
-                              }
-                            }
-                          },
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  if (index == 0 && othersTrustedContacts.isNotEmpty) {
+                    return Column(
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: DividerWidget(dividerType: DividerType.solid),
                         ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                  childCount: 1 + othersTrustedContacts.length + 1,
-                ),
+                        MenuSectionTitle(title: l10n.legacyAccounts),
+                      ],
+                    );
+                  }
+
+                  if (index > 0 && index <= othersTrustedContacts.length) {
+                    final listIndex = index - 1;
+                    final currentUser = othersTrustedContacts[listIndex];
+                    final isLastItem = index == othersTrustedContacts.length;
+                    final emergencyUser = currentUser.user;
+                    return _buildGroupedMenuItem(
+                      listIndex: listIndex,
+                      isLastItem: isLastItem,
+                      child: MenuItemWidgetNew(
+                        title: resolveDisplayName(emergencyUser),
+                        titleColor: currentUser.isPendingInvite()
+                            ? colorScheme.warning500
+                            : textTheme.small.color,
+                        leadingIconSize: 24,
+                        leadingIconWidget: UserAvatarWidget(
+                          emergencyUser,
+                          type: AvatarType.medium,
+                          currentUserID: currentUserID,
+                        ),
+                        menuItemColor: colorScheme.fillFaint,
+                        trailingWidget: _buildTrailingWidget(
+                          showWarning: currentUser.isPendingInvite(),
+                        ),
+                        borderRadius: 0,
+                        onTap: () async {
+                          if (currentUser.isPendingInvite()) {
+                            await showAcceptOrDeclineDialog(
+                              context,
+                              currentUser,
+                            );
+                          } else {
+                            await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (BuildContext context) {
+                                  return OtherContactPage(
+                                    contact: currentUser,
+                                    emergencyInfo: info!,
+                                  );
+                                },
+                              ),
+                            );
+                            if (mounted) {
+                              unawaited(_fetchData());
+                            }
+                          }
+                        },
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }, childCount: 1 + othersTrustedContacts.length + 1),
               ),
             ),
         ],
@@ -363,17 +345,10 @@ class _EmergencyPageState extends State<EmergencyPage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showWarning) ...[
-          Image.asset(
-            "assets/warning-yellow.png",
-            width: 20,
-            height: 20,
-          ),
+          Image.asset("assets/warning-yellow.png", width: 20, height: 20),
           const SizedBox(width: 6),
         ],
-        Icon(
-          Icons.chevron_right,
-          color: colorScheme.strokeMuted,
-        ),
+        Icon(Icons.chevron_right, color: colorScheme.strokeMuted),
       ],
     );
   }
@@ -392,10 +367,12 @@ class _EmergencyPageState extends State<EmergencyPage> {
 
     if (actionResult.action == TrustedContactAction.revoke) {
       final isPending = contact.isPendingInvite();
+      if (!context.mounted) return;
       final confirmed = await showAlertBottomSheet<bool>(
         context,
-        title:
-            isPending ? context.l10n.cancelInvite : context.l10n.removeContact,
+        title: isPending
+            ? context.l10n.cancelInvite
+            : context.l10n.removeContact,
         assetPath: "assets/warning-grey.png",
         message: isPending
             ? context.l10n.cancelInviteDesc
@@ -433,11 +410,8 @@ class _EmergencyPageState extends State<EmergencyPage> {
     }
 
     try {
-      final success =
-          await EmergencyContactService.instance.updateRecoveryNotice(
-        contact,
-        selectedDays,
-      );
+      final success = await EmergencyContactService.instance
+          .updateRecoveryNotice(contact, selectedDays);
       if (success) {
         final updatedContact = contact.copyWith(
           recoveryNoticeInDays: selectedDays,
@@ -455,16 +429,18 @@ class _EmergencyPageState extends State<EmergencyPage> {
         }
       } else {
         if (mounted) {
+          if (!context.mounted) return;
           await showAlertBottomSheet(
             context,
             title: context.l10n.cannotUpdateRecoveryTime,
             message: context.l10n.cannotUpdateRecoveryTimeMessage,
-            assetPath: "assets/warning-green.png",
+            assetPath: "assets/warning-grey.png",
           );
         }
       }
     } catch (e) {
       if (mounted) {
+        if (!context.mounted) return;
         showShortToast(
           context,
           AppLocalizations.of(context).somethingWentWrong,
@@ -587,14 +563,12 @@ class _WarningBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Image.asset("assets/warning-red.png", width: 32, height: 32),
+          Image.asset("assets/emergency-warning.png", width: 32, height: 32),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
-              style: textTheme.bodyBold.copyWith(
-                color: colorScheme.warning400,
-              ),
+              style: textTheme.bodyBold.copyWith(color: colorScheme.warning400),
             ),
           ),
         ],

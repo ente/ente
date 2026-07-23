@@ -64,15 +64,19 @@ class LocalSyncService {
       if (_permissionGrantedSubscription != null) {
         await _permissionGrantedSubscription!.cancel();
       }
-      _permissionGrantedSubscription =
-          Bus.instance.on<PermissionGrantedEvent>().listen((event) async {
-        _registerChangeCallback();
-        if (isLocalGalleryMode) {
-          // Local gallery onboarding grants permission without explicitly
-          // invoking SyncService, so trigger local import right away.
-          unawaited(checkAndSync());
-        }
-      });
+      _permissionGrantedSubscription = Bus.instance
+          .on<PermissionGrantedEvent>()
+          .listen((event) async {
+            if (!permissionService.hasGrantedPermissions()) {
+              return;
+            }
+            _registerChangeCallback();
+            if (isLocalGalleryMode) {
+              // Local gallery onboarding grants permission without explicitly
+              // invoking SyncService, so trigger local import right away.
+              unawaited(checkAndSync());
+            }
+          });
     }
   }
 
@@ -82,8 +86,8 @@ class LocalSyncService {
       return;
     }
     if (Platform.isAndroid && AppLifecycleService.instance.isForeground) {
-      final permissionState =
-          await permissionService.requestPhotoMangerPermissions();
+      final permissionState = await permissionService
+          .requestPhotoMangerPermissions();
       if (permissionState != PermissionState.authorized) {
         _logger.warning(
           "Skipping local sync because Android gallery permission is "
@@ -92,6 +96,7 @@ class LocalSyncService {
         return;
       }
     }
+    _registerChangeCallback();
     if (_existingSync != null) {
       _logger.warning("Sync already in progress, skipping.");
       return _existingSync!.future;
@@ -101,7 +106,7 @@ class LocalSyncService {
 
     // We use a lock to prevent synchronisation to occur while it is downloading
     // as this introduces wrong entry in FilesDB due to race condition
-    // This is a fix for https://github.com/ente-io/ente/issues/4296
+    // This is a fix for https://github.com/ente/ente/issues/4296
     await _lock.synchronized(() async {
       final existingLocalFileIDs = await _db.getExistingLocalFileIDs(ownerID);
       _logger.info("${existingLocalFileIDs.length} localIDs were discovered");
@@ -139,8 +144,16 @@ class LocalSyncService {
           toTime: syncStartTime,
         );
       }
-      if (!hasCompletedFirstImport()) {
+      final hasCompletedInitialImport = hasCompletedFirstImport();
+      final shouldCompleteLocalGalleryHandoff =
+          !isLocalGalleryMode && localSettings.isFromLocalGalleryToEnte;
+      if (!hasCompletedInitialImport || shouldCompleteLocalGalleryHandoff) {
         await _prefs.setBool(kHasCompletedFirstImportKey, true);
+        if (isLocalGalleryMode) {
+          await localSettings.setIsFromLocalGalleryToEnte(true);
+        } else if (shouldCompleteLocalGalleryHandoff) {
+          await localSettings.setIsFromLocalGalleryToEnte(false);
+        }
         if (backupPreferenceService.hasSkippedOnboardingPermission) {
           await backupPreferenceService.setOnboardingPermissionSkipped(false);
         }
@@ -197,8 +210,8 @@ class LocalSyncService {
     );
     final int ownerID = Configuration.instance.getUserIDV2();
     final existingLocalFileIDs = await _db.getExistingLocalFileIDs(ownerID);
-    final Map<String, Set<String>> pathToLocalIDs =
-        await _db.getDevicePathIDToLocalIDMap();
+    final Map<String, Set<String>> pathToLocalIDs = await _db
+        .getDevicePathIDToLocalIDMap();
 
     final localDiffResult = await getDiffFromExistingImport(
       localAssets,
@@ -245,16 +258,16 @@ class LocalSyncService {
     if (flagService.syncRecoveryDiagnostics) {
       final int newMappingCount =
           localDiffResult.newPathToLocalIDs?.values.fold<int>(
-                0,
-                (sum, ids) => sum + ids.length,
-              ) ??
-              0;
+            0,
+            (sum, ids) => sum + ids.length,
+          ) ??
+          0;
       final int deletedMappingCount =
           localDiffResult.deletePathToLocalIDs?.values.fold<int>(
-                0,
-                (sum, ids) => sum + ids.length,
-              ) ??
-              0;
+            0,
+            (sum, ids) => sum + ids.length,
+          ) ??
+          0;
       if (newMappingCount > 0 || deletedMappingCount > 0 || hasUnsyncedFiles) {
         final sampleRecovered = (localDiffResult.uniqueLocalFiles ?? [])
             .take(3)
@@ -288,11 +301,14 @@ class LocalSyncService {
       // but the file might be available later
       return;
     }
+    final reason = error.reason == InvalidReason.photosResourceUnavailable
+        ? (error.message?.toString() ?? error.reason.name)
+        : error.reason.name;
     final ignored = IgnoredFile(
       file.localID,
       file.title,
       file.deviceFolder,
-      error.reason.name,
+      reason,
     );
     await IgnoredFilesService.instance.cacheAndInsert([ignored]);
   }
@@ -309,26 +325,16 @@ class LocalSyncService {
   /// bypass it (e.g., onboarding skipped or only-new backup). Falls back to the
   /// stored completion value otherwise.
   bool hasCompletedFirstImportOrBypassed() {
+    if (!isLocalGalleryMode &&
+        Configuration.instance.hasConfiguredAccount() &&
+        localSettings.isFromLocalGalleryToEnte) {
+      return false;
+    }
     if (hasCompletedFirstImport()) {
       return true;
     }
     return backupPreferenceService.hasSkippedOnboardingPermission ||
         backupPreferenceService.isOnlyNewBackupEnabled;
-  }
-
-  // Warning: resetLocalSync should only be used for testing imported related
-  // changes
-  Future<void> resetLocalSync() async {
-    assert(kDebugMode, "only available in debug mode");
-    await FilesDB.instance.deleteDB();
-    for (var element in [
-      kHasCompletedFirstImportKey,
-      kDbUpdationTimeKey,
-      "has_synced_edit_time",
-      "has_selected_all_folders_for_backup",
-    ]) {
-      await _prefs.remove(element);
-    }
   }
 
   Future<void> _loadAndStoreDiff(
@@ -368,8 +374,10 @@ class LocalSyncService {
       _logger.info('Inserted ${files.length} out of ${allFiles.length} files');
       if (flagService.syncRecoveryDiagnostics &&
           allFiles.length != files.length) {
-        final sampleLocalIDs =
-            allFiles.take(3).map((file) => file.localID).toList();
+        final sampleLocalIDs = allFiles
+            .take(3)
+            .map((file) => file.localID)
+            .toList();
         _logger.info(
           "localSync partial materialization: "
           "from=$fromTime to=$toTime "

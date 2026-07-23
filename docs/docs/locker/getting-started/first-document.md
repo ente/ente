@@ -5,8 +5,7 @@ description: Add your first document, note, or password to your secure encrypted
 
 # Create Your First Item
 
-This guide walks you through creating your first item in Ente Locker. You'll
-learn how to add information and organize it into collections.
+This guide walks you through creating your first item in Ente Locker. You'll learn how to add information and organize it into collections.
 
 ## Adding an item
 
@@ -41,9 +40,7 @@ learn how to add information and organize it into collections.
 
 ## Organizing with collections
 
-Collections help you group related items together and control who can access
-them. Items can belong to multiple collections, so you can organize the same
-item in different ways.
+Collections help you group related items together and control who can access them. Items can belong to multiple collections, so you can organize the same item in different ways.
 
 When creating an item:
 
@@ -62,9 +59,7 @@ From the home screen:
 
 ## Next steps
 
-Now that you've created your first item,
-[set up Locker for your family](/locker/getting-started/family-setup) with
-shared collections, trusted contacts, and Legacy Kits.
+Now that you've created your first item, [set up Locker for your family](/locker/getting-started/family-setup) with shared collections, trusted contacts, and Legacy Kits.
 
 ## Related FAQs
 

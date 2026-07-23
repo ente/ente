@@ -13,22 +13,7 @@
   "validEmailAddress": "Dirección de correo electrónico válida",
   "enterValidEmail": "Por favor, introduce una dirección de correo electrónico válida.",
   "deleteAccount": "Eliminar cuenta",
-  "deleteAccountWarning": "Esto eliminará su cuenta de Ente Auth, Ente Photos y Ente Locker.",
-  "askDeleteReason": "¿Cuál es la razón principal por la que eliminas tu cuenta?",
-  "deleteAccountFeedbackPrompt": "Lamentamos que te vayas. Por favor, explícanos el motivo para ayudarnos a mejorar.",
-  "feedback": "Sugerencias",
-  "kindlyHelpUsWithThisInformation": "Por favor ayúdanos con esta información",
-  "confirmDeletePrompt": "Sí, quiero eliminar permanentemente esta cuenta y todos sus datos en todas las aplicaciones.",
-  "confirmAccountDeletion": "Confirmar eliminación de cuenta",
-  "deleteAccountPermanentlyButton": "Eliminar cuenta permanentemente",
-  "yourAccountHasBeenDeleted": "Tu cuenta ha sido eliminada",
-  "selectReason": "Seleccionar motivo",
-  "deleteReason1": "Falta una función clave que necesito",
-  "deleteReason2": "La aplicación o una característica determinada no se comporta como creo que debería",
-  "deleteReason3": "He encontrado otro servicio que me gusta más",
-  "deleteReason4": "Mi motivo no se encuentra en la lista",
   "sendEmail": "Enviar correo electrónico",
-  "deleteRequestSLAText": "Tu solicitud será procesada dentro de las siguientes 72 horas.",
   "entePhotosPerm": "Ente <i>necesita permiso para</i> preservar tus fotos",
   "ok": "Aceptar",
   "createAccount": "Crear cuenta",
@@ -272,7 +257,6 @@
   "after1Month": "Después de un mes",
   "after1Year": "Después de un año",
   "manageParticipants": "Administrar",
-  "collabLinkSectionDescription": "Crea un enlace para permitir que otros pueda añadir y ver fotos en tu álbum compartido sin necesitar la aplicación Ente o una cuenta. Genial para recolectar fotos de eventos.",
   "collectPhotos": "Recolectar fotos",
   "collaborativeLink": "Enlace colaborativo",
   "shareWithNonenteUsers": "Compartir con usuarios fuera de Ente",
@@ -394,7 +378,6 @@
   "creatingLink": "Creando enlace...",
   "removeWithQuestionMark": "Quitar?",
   "removeParticipantBody": "{userEmail} será eliminado de este álbum compartido\n\nCualquier foto añadida por ellos también será eliminada del álbum",
-  "keepPhotos": "Conservar las fotos",
   "deletePhotos": "Borrar las fotos",
   "inviteToEnte": "Invitar a Ente",
   "removePublicLink": "Quitar enlace público",
@@ -402,6 +385,9 @@
   "sharing": "Compartiendo...",
   "youCannotShareWithYourself": "No puedes compartir contigo mismo",
   "archive": "Archivo",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
   "createAlbumActionHint": "Manten presionado para seleccionar fotos y haz clic en + para crear un álbum",
   "importing": "Importando....",
   "failedToLoadAlbums": "Error al cargar álbumes",
@@ -413,9 +399,6 @@
   "videoSmallCase": "vídeo",
   "photoSmallCase": "foto",
   "singleFileDeleteHighlight": "Se borrará de todos los álbumes.",
-  "singleFileInBothLocalAndRemote": "Este {fileType} está tanto en Ente como en tu dispositivo.",
-  "singleFileInRemoteOnly": "Este {fileType} será eliminado de Ente.",
-  "singleFileDeleteFromDevice": "Este {fileType} se eliminará de tu dispositivo.",
   "deleteFromEnte": "Eliminar de Ente",
   "yesDelete": "Sí, eliminar",
   "movedToTrash": "Movido a la papelera",
@@ -576,7 +559,6 @@
   "authToChangeEmailVerificationSetting": "Por favor, autentícate para cambiar la verificación por correo electrónico",
   "exportYourData": "Exportar tus datos",
   "logout": "Cerrar sesión",
-  "authToInitiateAccountDeletion": "Por favor, autentícate para iniciar la eliminación de la cuenta",
   "areYouSureYouWantToLogout": "¿Estás seguro de que quieres cerrar la sesión?",
   "yesLogout": "Sí, cerrar sesión",
   "aNewVersionOfEnteIsAvailable": "Hay una nueva versión de Ente disponible.",
@@ -737,7 +719,6 @@
   "notifications": "Notificaciones",
   "sharedPhotoNotifications": "Nuevas fotos y álbumes compartidos",
   "socialNotifications": "Me gusta y comentarios",
-  "socialNotificationsExplanation": "Recibe notificaciones de likes en tus fotos y comentarios en álbumes de los que formas parte",
   "advanced": "Avanzado",
   "general": "General",
   "security": "Seguridad",
@@ -856,7 +837,6 @@
   "appleId": "ID de Apple",
   "playstoreSubscription": "Suscripción en la PlayStore",
   "appstoreSubscription": "Suscripción en la AppStore",
-  "subAlreadyLinkedErrMessage": "Tu {id} ya está vinculada a otra cuenta de Ente.\nSi deseas utilizar tu {id} con esta cuenta, ponte en contacto con nuestro servicio de asistencia''",
   "visitWebToManage": "Por favor, visita {webUrl} para administrar tu suscripción",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
@@ -928,7 +908,6 @@
   "shareTheMoment": "Compartir este momento",
   "letFriendsAndFamilyReact": "Permitir que amigos y familiares reaccionen y comenten tus fotos.",
   "pleaseLoginAgain": "Por favor, vuelve a iniciar sesión",
-  "autoLogoutMessage": "Debido a un fallo técnico, has sido desconectado. Nuestras disculpas por las molestias.",
   "yourSubscriptionHasExpired": "Tu suscripción ha caducado",
   "storageLimitExceeded": "Límite de datos excedido",
   "upgrade": "Mejorar",
@@ -950,11 +929,6 @@
   "collectEventPhotos": "Recopilar fotos del evento",
   "sessionExpired": "La sesión ha expirado",
   "loggingOut": "Cerrando sesión...",
-  "@onDevice": {
-    "description": "The text displayed above folders/albums stored on device",
-    "type": "text"
-  },
-  "onDevice": "En el dispositivo",
   "@onEnte": {
     "description": "The text displayed above albums backed up to Ente",
     "type": "text"
@@ -996,6 +970,9 @@
   "moveToAlbum": "Mover al álbum",
   "unhide": "Dejar de ocultar",
   "unarchive": "Desarchivar",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
   "favorite": "Favorito",
   "removeFromFavorite": "Remover desde favoritos",
   "shareLink": "Compartir enlace",
@@ -1055,10 +1032,7 @@
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Las fotos añadidas por ti serán removidas del álbum",
   "youveNoFilesInThisAlbumThatCanBeDeleted": "No tienes archivos en este álbum que puedan ser borrados",
   "youDontHaveAnyArchivedItems": "No tienes ningún elemento archivado.",
-  "ignoredFolderUploadReason": "Algunos archivos de este álbum son ignorados de la carga porque previamente habían sido borrados de Ente.",
   "resetIgnoredFiles": "Restablecer archivos ignorados",
-  "deviceFilesAutoUploading": "Los archivos añadidos a este álbum de dispositivo se subirán automáticamente a Ente.",
-  "turnOnBackupForAutoUpload": "Activar la copia de seguridad para subir automáticamente archivos añadidos a la carpeta de este dispositivo a Ente.",
   "noHiddenPhotosOrVideos": "No hay fotos ni vídeos ocultos",
   "toHideAPhotoOrVideo": "Para ocultar una foto o vídeo",
   "openTheItem": "• Abrir el elemento",
@@ -1300,10 +1274,6 @@
   "@searchResultPerson": {
     "description": "Search result subtitle label for person results"
   },
-  "searchResultShared": "Compartido",
-  "@searchResultShared": {
-    "description": "Search result subtitle label for shared-with-you results"
-  },
   "searchResultUploadedBy": "Subido por",
   "@searchResultUploadedBy": {
     "description": "Search result subtitle label for uploader results"
@@ -1396,10 +1366,6 @@
     "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
   },
   "setRadius": "Establecer radio",
-  "androidBiometricHint": "Verificar identidad",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
   "androidBiometricNotRecognized": "No reconocido. Inténtelo nuevamente.",
   "@androidBiometricNotRecognized": {
     "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
@@ -1407,14 +1373,6 @@
   "androidBiometricSuccess": "Listo",
   "@androidBiometricSuccess": {
     "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Cancelar",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Se necesita autenticación biométrica",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
   "androidBiometricRequiredTitle": "Autenticación biométrica necesaria",
   "@androidBiometricRequiredTitle": {
@@ -1428,25 +1386,13 @@
   "@androidDeviceCredentialsSetupDescription": {
     "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
   },
-  "goToSettings": "Ir a Ajustes",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
   "androidGoToSettingsDescription": "La autenticación biométrica no está configurada en su dispositivo. 'Ve a Ajustes > Seguridad' para añadir autenticación biométrica.",
   "@androidGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
   },
-  "iOSLockOut": "La autenticación biométrica está deshabilitada. Por favor, bloquea y desbloquea la pantalla para habilitarla.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
   "iOSGoToSettingsDescription": "La autenticación biométrica no está configurada en tu dispositivo. Por favor, activa Touch ID o Face ID en tu teléfono.",
   "@iOSGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure Biometrics for their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "Aceptar",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
   },
   "openstreetmapContributors": "Contribuidores de OpenStreetMap",
   "hostedAtOsmFrance": "Alojado en OSM France",
@@ -1465,8 +1411,6 @@
   "noPhotosFoundHere": "No se encontró ninguna foto aquí",
   "zoomOutToSeePhotos": "Alejar para ver las fotos",
   "noImagesWithLocation": "No hay imágenes con ubicación",
-  "unpinAlbum": "Dejar de fijar álbum",
-  "pinAlbum": "Fijar álbum",
   "pin": "Anclar",
   "pinPerson": "Anclar persona",
   "pinToTop": "Anclar al principio",
@@ -1481,7 +1425,6 @@
   "nothingSharedWithYouYet": "Aún no hay nada compartido contigo",
   "noAlbumsSharedByYouYet": "Aún no has compartido ningún álbum",
   "sharedWithYou": "Compartido contigo",
-  "sharedByYou": "Compartido por ti",
   "inviteYourFriendsToEnte": "Invita a tus amigos a Ente",
   "failedToDownloadVideo": "Error al descargar el vídeo",
   "hiding": "Ocultando...",
@@ -1493,7 +1436,6 @@
   "addToHiddenAlbum": "Añadir al álbum oculto",
   "moveToHiddenAlbum": "Mover al álbum oculto",
   "fileTypes": "Tipos de archivos",
-  "deleteConfirmDialogBody": "Esta cuenta está vinculada a otras aplicaciones de Ente, si utilizas alguna. Se programará la eliminación de los datos cargados en todas las aplicaciones de Ente, y tu cuenta se eliminará permanentemente.",
   "hearUsWhereTitle": "¿Cómo escuchaste sobre Ente?",
   "hearUsExplanation": "No rastreamos las aplicaciones instaladas. ¡Nos ayudarías si nos dijeras dónde nos encontraste!",
   "viewAddOnButton": "Ver complementos",
@@ -1554,16 +1496,6 @@
   "playOnTv": "Reproducir álbum en TV",
   "pair": "Emparejar",
   "deviceNotFound": "Dispositivo no encontrado",
-  "castInstruction": "Visita {castUrl} en el dispositivo que quieres emparejar.\n\nIntroduce el código de abajo para reproducir el álbum en tu TV.",
-  "@castInstruction": {
-    "description": "Instructions shown when pairing a device to play an album on TV.",
-    "placeholders": {
-      "castUrl": {
-        "type": "String",
-        "example": "https://cast.ente.com"
-      }
-    }
-  },
   "deviceCodeHint": "Introduce el código",
   "joinDiscord": "Únete al Discord",
   "locations": "Ubicaciones",
@@ -1596,8 +1528,6 @@
   "removePersonLabel": "Eliminar etiqueta de persona",
   "removePersonTag": "Eliminar etiqueta de persona",
   "areYouSureRemoveThisPersonTag": "¿Estás seguro de que quieres eliminar esta etiqueta de persona?",
-  "autoPairDesc": "El emparejamiento automático funciona sólo con dispositivos compatibles con Chromecast.",
-  "manualPairDesc": "El emparejamiento con PIN funciona con cualquier pantalla en la que desees ver tu álbum.",
   "connectToDevice": "Conectar a dispositivo",
   "autoCastDialogBody": "Aquí verás los dispositivos de transmisión disponibles.",
   "autoCastiOSPermission": "Asegúrate de que los permisos de la red local están activados para la aplicación Ente Fotos, en Configuración.",
@@ -1609,7 +1539,6 @@
   "pairingComplete": "Emparejamiento completado",
   "savingEdits": "Guardando las ediciones...",
   "autoPair": "Emparejamiento automático",
-  "pairWithPin": "Emparejar con PIN",
   "faceRecognition": "Reconocimiento facial",
   "foundFaces": "Caras encontradas",
   "clusteringProgress": "Proceso de agrupación",
@@ -1638,21 +1567,14 @@
   "enableMLIndexingDesc": "Ente soporta aprendizaje automático en el dispositivo para la detección de caras, búsqueda mágica y otras características de búsqueda avanzada",
   "magicSearchHint": "La búsqueda mágica permite buscar fotos por su contenido. Por ejemplo, \"flor\", \"coche rojo\", \"documentos de identidad\"",
   "panorama": "Panorama",
-  "reenterPassword": "Rescribe tu contraseña",
-  "reenterPin": "Rescribe tu PIN",
   "deviceLock": "Bloqueo del dispositivo",
   "pinLock": "Bloqueo con Pin",
   "next": "Siguiente",
-  "setNewPassword": "Ingresa tu nueva contraseña",
-  "enterPin": "Ingresa tu contraseña",
-  "setNewPin": "Ingresa tu nuevo PIN",
   "appLock": "Bloqueo de aplicación",
   "lockScreenType": "Tipo de bloqueo",
   "noSystemLockFound": "Bloqueo de sistema no encontrado",
-  "tapToUnlock": "Toca para desbloquear",
   "tooManyIncorrectAttempts": "Demasiados intentos incorrectos",
   "videoInfo": "Información de vídeo",
-  "autoLock": "Bloqueo automático",
   "immediately": "Inmediatamente",
   "autoLockFeatureDescription": "Tiempo después de que la aplicación esté en segundo plano",
   "hideContent": "Ocultar contenido",
@@ -2158,9 +2080,7 @@
   "newPhotosEmoji": " nuevo 📸",
   "sorryWeHadToPauseYourBackups": "Lo sentimos, tuvimos que pausar tus copias de seguridad",
   "clickToInstallOurBestVersionYet": "Haz clic para instalar nuestra mejor versión hasta la fecha",
-  "onThisDayNotificationExplanation": "Recibe recordatorios sobre recuerdos de este día en años anteriores.",
   "birthdayNotifications": "Notificaciones de cumpleaños",
-  "receiveRemindersOnBirthdays": "Recibe recordatorios cuando es el cumpleaños de alguien. Pulsar en la notificación te llevará a las fotos de la persona que cumple años.",
   "happyBirthday": "¡Feliz cumpleaños! 🥳",
   "birthdays": "Cumpleaños",
   "wishThemAHappyBirthday": "¡Desea a {name} un cumpleaños feliz! 🎉",
@@ -2668,7 +2588,6 @@
   "deleteHiddenFilesFromDeviceDescription": "Eliminar copias locales de archivos ocultos de tu dispositivo",
   "deleteOnDeviceFiles": "Eliminar en archivos de dispositivo",
   "noHiddenFilesOnDevice": "No hay archivos ocultos en el dispositivo",
-  "welcome": "Te damos la bienvenida",
   "grantPermission": "Conceder permiso",
   "privateAI": "IA privada",
   "privateAIDescription": "Ente usa IA para analizar las fotos en busca de caras, objetos, localizaciones y texto. Estos datos se utilizan para mejorar las características de reconocimiento facial y búsqueda inteligente. Todo se procesa y almacena de manera local, sin salir del dispositivo — nunca se subiran datos a nuestros servidores.",
@@ -2689,11 +2608,6 @@
   "alreadyHaveAnAccount": "¿Ya tiene una cuenta?",
   "dontHaveAnAccount": "¿No tienes una cuenta?",
   "loginToEnte": "Iniciar sesión en Ente",
-  "searchAndDiscover": "Busca y descubre",
-  "searchAndDiscoverDesc": "Busca fotos y descubre recuerdos con el aprendizaje automático en el dispositivo",
-  "shareYourMemories": "Comparte tus recuerdos",
-  "shareYourMemoriesDesc": "Comparte álbumes, recopila fotos y comentarios con enlaces públicos",
-  "privateAndSecureBackups": "Copia de seguridad con privacidad",
   "mlProgressBannerTitle": "¡Espera un momento!",
   "mlProgressBannerDescription": "Tus fotos están siendo procesadas en el dispositivo para detectar caras, objetos y más.",
   "mlProgressBannerStatus": "{indexed} de {total} fotos procesadas",

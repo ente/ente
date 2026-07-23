@@ -19,7 +19,8 @@ const personOrClusterIdColumn = 'person_or_cluster_id';
 const textQueryColumn = 'text_query';
 const createdAtColumn = 'created_at';
 
-const createFacesTable = '''CREATE TABLE IF NOT EXISTS $facesTable (
+const createFacesTable =
+    '''CREATE TABLE IF NOT EXISTS $facesTable (
   $fileIDColumn	INTEGER NOT NULL,
   $faceIDColumn  TEXT NOT NULL UNIQUE,
 	$faceDetectionColumn	TEXT NOT NULL,
@@ -41,7 +42,8 @@ const deleteFacesTable = 'DELETE FROM $facesTable';
 const faceClustersTable = 'face_clusters';
 
 // fcClusterId & fcFaceId are the primary keys and fcClusterId is a foreign key to faces table
-const createFaceClustersTable = '''
+const createFaceClustersTable =
+    '''
 CREATE TABLE IF NOT EXISTS $faceClustersTable (
   $faceIDColumn	TEXT NOT NULL,
   $clusterIDColumn TEXT NOT NULL,
@@ -57,7 +59,8 @@ const deleteFaceClustersTable = 'DELETE FROM $faceClustersTable';
 // Clusters Table Fields & Schema Queries
 const clusterPersonTable = 'cluster_person';
 
-const createClusterPersonTable = '''
+const createClusterPersonTable =
+    '''
 CREATE TABLE IF NOT EXISTS $clusterPersonTable (
   $personIdColumn	TEXT NOT NULL,
   $clusterIDColumn	TEXT NOT NULL,
@@ -71,7 +74,8 @@ const deleteClusterPersonTable = 'DELETE FROM $clusterPersonTable';
 const clusterSummaryTable = 'cluster_summary';
 const avgColumn = 'avg';
 const countColumn = 'count';
-const createClusterSummaryTable = '''
+const createClusterSummaryTable =
+    '''
 CREATE TABLE IF NOT EXISTS $clusterSummaryTable (
   $clusterIDColumn	TEXT NOT NULL,
   $avgColumn BLOB NOT NULL,
@@ -88,7 +92,8 @@ const deleteClusterSummaryTable = 'DELETE FROM $clusterSummaryTable';
 const clusterCentroidVectorIdMappingTable = 'cluster_centroid_vector_id_map';
 const clusterCentroidVectorIdColumn = 'cluster_vector_id';
 
-const createClusterCentroidVectorIdMappingTable = '''
+const createClusterCentroidVectorIdMappingTable =
+    '''
 CREATE TABLE IF NOT EXISTS $clusterCentroidVectorIdMappingTable (
   $clusterCentroidVectorIdColumn INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
   $clusterIDColumn TEXT NOT NULL UNIQUE
@@ -103,7 +108,8 @@ const deleteClusterCentroidVectorIdMappingTable =
 /// notPersonFeedback Table Fields & Schema Queries
 const notPersonFeedback = 'not_person_feedback';
 
-const createNotPersonFeedbackTable = '''
+const createNotPersonFeedbackTable =
+    '''
 CREATE TABLE IF NOT EXISTS $notPersonFeedback (
   $personIdColumn	TEXT NOT NULL,
   $clusterIDColumn TEXT NOT NULL,
@@ -116,7 +122,8 @@ const deleteNotPersonFeedbackTable = 'DELETE FROM $notPersonFeedback';
 // ## CLIP EMBEDDINGS TABLE
 const clipTable = 'clip';
 
-const createClipEmbeddingsTable = '''
+const createClipEmbeddingsTable =
+    '''
 CREATE TABLE IF NOT EXISTS $clipTable ( 
   $fileIDColumn INTEGER NOT NULL,
   $embeddingColumn BLOB NOT NULL,
@@ -128,7 +135,8 @@ CREATE TABLE IF NOT EXISTS $clipTable (
 const deleteClipEmbeddingsTable = 'DELETE FROM $clipTable';
 
 const fileDataTable = 'filedata';
-const createFileDataTable = '''
+const createFileDataTable =
+    '''
 CREATE TABLE IF NOT EXISTS $fileDataTable ( 
   $fileIDColumn INTEGER NOT NULL,
   user_id INTEGER NOT NULL,
@@ -146,7 +154,8 @@ const deleteFileDataTable = 'DELETE FROM $fileDataTable';
 // ## FACE CACHE TABLE
 const faceCacheTable = 'face_cache';
 
-const createFaceCacheTable = '''
+const createFaceCacheTable =
+    '''
 CREATE TABLE IF NOT EXISTS $faceCacheTable (
   $personOrClusterIdColumn TEXT NOT NULL UNIQUE,
   $faceIDColumn TEXT NOT NULL UNIQUE,
@@ -159,7 +168,8 @@ const deleteFaceCacheTable = 'DELETE FROM $faceCacheTable';
 // ## TEXT EMBEDDINGS CACHE TABLE
 const textEmbeddingsCacheTable = 'text_embeddings_cache';
 
-const createTextEmbeddingsCacheTable = '''
+const createTextEmbeddingsCacheTable =
+    '''
 CREATE TABLE IF NOT EXISTS $textEmbeddingsCacheTable (
   $textQueryColumn TEXT NOT NULL,
   $embeddingColumn BLOB NOT NULL,
@@ -176,7 +186,8 @@ const offlineFileKeyMapTable = 'offline_file_key_map';
 const offlineFileKeyLocalIdColumn = 'local_id';
 const offlineFileKeyIntIdColumn = 'local_int_id';
 
-const createOfflineFileKeyMapTable = '''
+const createOfflineFileKeyMapTable =
+    '''
 CREATE TABLE IF NOT EXISTS $offlineFileKeyMapTable (
   $offlineFileKeyIntIdColumn INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
   $offlineFileKeyLocalIdColumn TEXT NOT NULL UNIQUE
@@ -197,7 +208,8 @@ const bodyVectorIdColumn = 'body_vector_id';
 
 const petFacesTable = 'pet_faces';
 
-const createPetFacesTable = '''CREATE TABLE IF NOT EXISTS $petFacesTable (
+const createPetFacesTable =
+    '''CREATE TABLE IF NOT EXISTS $petFacesTable (
   $fileIDColumn INTEGER NOT NULL,
   $petFaceIDColumn TEXT NOT NULL UNIQUE,
   $faceDetectionColumn TEXT NOT NULL,
@@ -220,7 +232,8 @@ const petBodiesTable = 'pet_bodies';
 // The underlying SQL column is the same ('score').
 const bodyScore = faceScore;
 
-const createPetBodiesTable = '''CREATE TABLE IF NOT EXISTS $petBodiesTable (
+const createPetBodiesTable =
+    '''CREATE TABLE IF NOT EXISTS $petBodiesTable (
   $fileIDColumn INTEGER NOT NULL,
   $petBodyIDColumn TEXT NOT NULL UNIQUE,
   $detectionColumn TEXT NOT NULL,
@@ -242,7 +255,8 @@ const deletePetBodiesTable = 'DELETE FROM $petBodiesTable';
 const petFaceVectorIdMappingTable = 'pet_face_vector_id_map';
 const petFaceVectorIdColumn = 'pet_face_vector_id';
 
-const createPetFaceVectorIdMappingTable = '''
+const createPetFaceVectorIdMappingTable =
+    '''
 CREATE TABLE IF NOT EXISTS $petFaceVectorIdMappingTable (
   $petFaceVectorIdColumn INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
   $petFaceIDColumn TEXT NOT NULL UNIQUE
@@ -256,7 +270,8 @@ const deletePetFaceVectorIdMappingTable =
 const petBodyVectorIdMappingTable = 'pet_body_vector_id_map';
 const petBodyVectorIdColumn = 'pet_body_vector_id';
 
-const createPetBodyVectorIdMappingTable = '''
+const createPetBodyVectorIdMappingTable =
+    '''
 CREATE TABLE IF NOT EXISTS $petBodyVectorIdMappingTable (
   $petBodyVectorIdColumn INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
   $petBodyIDColumn TEXT NOT NULL UNIQUE

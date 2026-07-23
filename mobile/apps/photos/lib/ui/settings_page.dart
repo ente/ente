@@ -1,4 +1,5 @@
 import "package:ente_components/ente_components.dart";
+import "package:ente_lock_screen/local_authentication_service.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
@@ -10,7 +11,6 @@ import "package:photos/generated/l10n.dart";
 import "package:photos/models/user_details.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/account/user_service.dart";
-import "package:photos/services/local_authentication_service.dart";
 import "package:photos/ui/account/email_entry_page.dart";
 import "package:photos/ui/account/login_page.dart";
 import "package:photos/ui/components/banners/offline_settings_banner.dart";
@@ -23,6 +23,7 @@ import "package:photos/ui/settings/app_version_widget.dart";
 import "package:photos/ui/settings/appearance/appearance_settings_page.dart";
 import "package:photos/ui/settings/backup/backup_settings_page.dart";
 import "package:photos/ui/settings/backup/free_space_options.dart";
+import "package:photos/ui/settings/cast/cast_settings_page.dart";
 import "package:photos/ui/settings/components/settings_item.dart";
 import "package:photos/ui/settings/components/settings_page_scaffold.dart";
 import "package:photos/ui/settings/debug/debug_settings_page.dart";
@@ -70,9 +71,12 @@ class _SettingsBody extends StatelessWidget {
       animation: emailNotifier,
       builder: (context, _) {
         final email = hasLoggedIn ? emailNotifier.value ?? "" : "";
+        final title = email.isEmpty
+            ? AppLocalizations.of(context).settings
+            : email;
 
         return SettingsPageScaffold(
-          title: email,
+          title: title,
           actions: _buildHeaderActions(context),
           onTitleDoubleTap: email.isEmpty
               ? null
@@ -213,9 +217,7 @@ class _SettingsBody extends StatelessWidget {
         icon: const HugeIcon(icon: HugeIcons.strokeRoundedSearch01),
         onTap: () {
           Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const SettingsSearchPage(),
-            ),
+            MaterialPageRoute(builder: (context) => const SettingsSearchPage()),
           );
         },
       ),
@@ -226,9 +228,7 @@ class _SettingsBody extends StatelessWidget {
           icon: const HugeIcon(icon: HugeIcons.strokeRoundedBug02),
           onTap: () {
             Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const LogViewerPage(),
-              ),
+              MaterialPageRoute(builder: (context) => const LogViewerPage()),
             );
           },
         ),
@@ -258,10 +258,7 @@ class _SettingsBody extends StatelessWidget {
     );
   }
 
-  Widget _buildOfflineLoginCard(
-    BuildContext context,
-    ColorTokens colors,
-  ) {
+  Widget _buildOfflineLoginCard(BuildContext context, ColorTokens colors) {
     return _buildMenuItem(
       title: AppLocalizations.of(context).alreadyHaveAnAccount,
       icon: HugeIcons.strokeRoundedLogin01,
@@ -285,9 +282,7 @@ class _SettingsBody extends StatelessWidget {
     );
   }
 
-  Widget _buildOfflineFeaturesCard(
-    BuildContext context,
-  ) {
+  Widget _buildOfflineFeaturesCard(BuildContext context) {
     return MenuGroupComponent(
       items: [
         _buildMenuItem(
@@ -323,9 +318,7 @@ class _SettingsBody extends StatelessWidget {
     );
   }
 
-  Widget _buildPersonalFeaturesCard(
-    BuildContext context,
-  ) {
+  Widget _buildPersonalFeaturesCard(BuildContext context) {
     return MenuGroupComponent(
       items: [
         _buildMenuItem(
@@ -341,6 +334,7 @@ class _SettingsBody extends StatelessWidget {
                       AppLocalizations.of(context).authToManageLegacy,
                     );
             if (hasAuthenticated) {
+              if (!context.mounted) return;
               await Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (BuildContext context) {
@@ -390,9 +384,7 @@ class _SettingsBody extends StatelessWidget {
     );
   }
 
-  Widget _buildFeaturesAndPlansCard(
-    BuildContext context,
-  ) {
+  Widget _buildFeaturesAndPlansCard(BuildContext context) {
     return MenuGroupComponent(
       items: [
         _buildMenuItem(
@@ -438,14 +430,20 @@ class _SettingsBody extends StatelessWidget {
             await routeToPage(context, const VideoStreamingSettingsPage());
           },
         ),
+        if (flagService.enableMultiCast)
+          _buildMenuItem(
+            title: AppLocalizations.of(context).castSessions,
+            icon: HugeIcons.strokeRoundedTvSmart,
+            onTap: () async {
+              await routeToPage(context, const CastSettingsPage());
+            },
+          ),
         _buildMapsMenuItem(context),
       ],
     );
   }
 
-  SettingsItem _buildMapsMenuItem(
-    BuildContext context,
-  ) {
+  SettingsItem _buildMapsMenuItem(BuildContext context) {
     return _buildMenuItem(
       title: AppLocalizations.of(context).maps,
       icon: HugeIcons.strokeRoundedMaping,
@@ -456,10 +454,12 @@ class _SettingsBody extends StatelessWidget {
           try {
             await setMapEnabled(!isEnabled);
           } catch (e) {
-            showShortToast(
-              context,
-              AppLocalizations.of(context).somethingWentWrong,
-            );
+            if (context.mounted) {
+              showShortToast(
+                context,
+                AppLocalizations.of(context).somethingWentWrong,
+              );
+            }
             rethrow;
           }
         },
@@ -467,9 +467,7 @@ class _SettingsBody extends StatelessWidget {
     );
   }
 
-  Widget _buildEngagementCard(
-    BuildContext context,
-  ) {
+  Widget _buildEngagementCard(BuildContext context) {
     return MenuGroupComponent(
       items: [
         _buildMenuItem(
@@ -508,8 +506,10 @@ class _SettingsBody extends StatelessWidget {
   void _onLogoutTapped(BuildContext context) {
     showChoiceActionSheet(
       context,
-      title: AppLocalizations.of(context).areYouSureYouWantToLogout,
-      firstButtonLabel: AppLocalizations.of(context).yesLogout,
+      title: AppLocalizations.of(context).warning,
+      body: AppLocalizations.of(context).areYouSureYouWantToLogout,
+      illustration: Image.asset("assets/warning-grey.png"),
+      firstButtonLabel: AppLocalizations.of(context).yes,
       isCritical: true,
       firstButtonOnTap: () async {
         await UserService.instance.logout(context);

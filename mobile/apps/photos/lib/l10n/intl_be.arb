@@ -11,25 +11,11 @@
   "invalidEmailAddress": "Памылковы адрас электроннай пошты",
   "enterValidEmail": "Увядзіце сапраўдны адрас электроннай пошты.",
   "deleteAccount": "Выдаліць уліковы запіс",
-  "deleteAccountWarning": "Гэта выдаліць ваш уліковы запіс Ente Auth, Ente Photos і Ente Locker.",
-  "askDeleteReason": "Якая асноўная прычына выдалення ўліковага запісу?",
-  "deleteAccountFeedbackPrompt": "Нам шкада, што вы выдаляеце свой уліковы запіс. Абагуліце з намі водгук, каб дапамагчы нам палепшыць сэрвіс.",
-  "feedback": "Водгук",
-  "kindlyHelpUsWithThisInformation": "Дапамажыце нам з гэтай інфармацыяй",
-  "confirmDeletePrompt": "Так. Я хачу незваротна выдаліць гэты ўліковы запіс і яго даныя ва ўсіх праграмах.",
-  "confirmAccountDeletion": "Пацвердзіць выдаленне ўліковага запісу",
-  "deleteAccountPermanentlyButton": "Незваротна выдаліць уліковы запіс",
-  "yourAccountHasBeenDeleted": "Ваш уліковы запіс быў выдалены",
-  "selectReason": "Выберыце прычыну",
-  "deleteReason1": "У вас адсутнічае важная функцыя, якая мне неабходна",
-  "deleteReason2": "Праграма або пэўная функцыя не паводзіць сябе так, як павінна",
-  "deleteReason3": "Я знайшоў больш прывабны сэрвіс",
-  "deleteReason4": "Прычына адсутнічае ў спісе",
   "sendEmail": "Адправіць ліст",
-  "deleteRequestSLAText": "Ваш запыт будзе апрацаваны цягам 72 гадзін.",
   "entePhotosPerm": "Праграме <i>неабходны доступ</i> для захавання вашых фатаграфій",
   "ok": "OK",
   "createAccount": "Стварыць уліковы запіс",
+  "createAccountTitle": "Стварыць уліковы запіс",
   "createNewAccount": "Стварыць новы ўліковы запіс",
   "password": "Пароль",
   "confirmPassword": "Пацвердзіць пароль",
@@ -239,7 +225,6 @@
   "after1Month": "Праз 1 месяц",
   "after1Year": "Праз 1 год",
   "manageParticipants": "Кіраванне",
-  "collabLinkSectionDescription": "Стварыце спасылку, каб людзі маглі дадаваць і праглядаць фатаграфіі ў вашым абагуленым альбоме без неабходнасці ўсталёўваць праграму або ствараць уліковы запіс Ente. Гэта выдатна пасуе для збору фатаграфій з падзей.",
   "collectPhotos": "Збор фатаграфій",
   "collaborativeLink": "Сумесная спасылка",
   "shareWithNonenteUsers": "Абагуліць з карыстальнікамі, якія не карыстаюцца Ente",
@@ -337,7 +322,6 @@
   "creatingLink": "Стварэнне спасылкі...",
   "removeWithQuestionMark": "Выдаліць?",
   "removeParticipantBody": "{userEmail} будзе выдалены з гэтага абагуленага альбома\n\nЛюбыя фатаграфіі, якія дададзены гэтым карыстальнікам, таксама будуць выдалены з альбома",
-  "keepPhotos": "Пакінуць фатаграфіі",
   "deletePhotos": "Выдаліць фатаграфіі",
   "inviteToEnte": "Запрасіць у Ente",
   "removePublicLink": "Выдаліць публічную спасылку",
@@ -345,6 +329,9 @@
   "sharing": "Абагульванне...",
   "youCannotShareWithYourself": "Нельга абагуліць файлы з самім сабою",
   "archive": "Архіў",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
   "createAlbumActionHint": "Доўга ўтрымлівайце, каб выбраць фатаграфію, і націсніце «+», каб стварыць альбом",
   "importing": "Імпартаванне....",
   "failedToLoadAlbums": "Не ўдалося загрузіць альбомы",
@@ -356,9 +343,6 @@
   "videoSmallCase": "відэа",
   "photoSmallCase": "фатаграфіі",
   "singleFileDeleteHighlight": "Гэта дзеянне прывядзе да выдалення з усіх альбомаў.",
-  "singleFileInBothLocalAndRemote": "Гэта {fileType} ёсць і ў Ente, і на вашай прыладзе.",
-  "singleFileInRemoteOnly": "Гэта {fileType} будзе выдалена з Ente.",
-  "singleFileDeleteFromDevice": "Гэта {fileType} будзе выдалена з вашай прылады.",
   "deleteFromEnte": "Выдаліць з Ente",
   "yesDelete": "Так, выдаліць",
   "movedToTrash": "Перамешчана ў сметніцу",
@@ -494,7 +478,6 @@
   "authToChangeEmailVerificationSetting": "Прайдзіце аўтэнтыфікацыю, каб змяніць спраўджанне праз электронную пошту",
   "exportYourData": "Экспартаваць даныя",
   "logout": "Выйсці",
-  "authToInitiateAccountDeletion": "Прайдзіце аўтэнтыфікацыю, каб пачаць выдаленне ўліковага запісу",
   "areYouSureYouWantToLogout": "Вы сапраўды хочаце выйсці?",
   "yesLogout": "Так, выйсці",
   "aNewVersionOfEnteIsAvailable": "Даступна новая версія Ente.",
@@ -650,7 +633,6 @@
   "appleId": "Ідэнтыфікатар Apple",
   "playstoreSubscription": "Падпіска PlayStore",
   "appstoreSubscription": "Падпіска AppStore",
-  "subAlreadyLinkedErrMessage": "Ваш {id} ужо звязаны з іншым уліковым запісам Ente.\nКалі вы хочаце выкарыстоўваць ваш {id} з гэтым уліковым запісам, звярніцеся ў нашу службу падтрымкі",
   "visitWebToManage": "Наведайце {webUrl}, каб кіраваць сваёй падпіскай",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
@@ -696,7 +678,6 @@
   "existingUser": "Бягучы карыстальнік",
   "newToEnte": "Упершыню ў Ente",
   "pleaseLoginAgain": "Аўтарызуйцеся яшчэ раз",
-  "autoLogoutMessage": "З прычыны тэхнічнага збою ваш сеанс у сістэме быў завершаны. Прыносім прабачэнні за нязручнасці.",
   "yourSubscriptionHasExpired": "Тэрмін дзеяння вашай падпіскі завяршыўся",
   "storageLimitExceeded": "Перавышана абмежаванне аб'ёму сховішча",
   "upgrade": "Палепшыць",
@@ -718,11 +699,6 @@
   "collectEventPhotos": "Сабраць фатаграфіі падзеі",
   "sessionExpired": "Сеанс завяршыўся",
   "loggingOut": "Выхад...",
-  "@onDevice": {
-    "description": "The text displayed above folders/albums stored on device",
-    "type": "text"
-  },
-  "onDevice": "На прыладзе",
   "@onEnte": {
     "description": "The text displayed above albums backed up to Ente",
     "type": "text"
@@ -763,6 +739,9 @@
   "moveToAlbum": "Перамясціць у альбом",
   "unhide": "Паказаць",
   "unarchive": "Вывесці з архіва",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
   "favorite": "Абраныя",
   "removeFromFavorite": "Выдаліць з абранага",
   "shareLink": "Абагуліць спасылку",
@@ -817,10 +796,7 @@
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Дададзеныя вамі фатаграфіі будуць выдалены з альбома",
   "youveNoFilesInThisAlbumThatCanBeDeleted": "У гэтым альбоме адсутнічаюць файлы, якія можна выдаліць",
   "youDontHaveAnyArchivedItems": "У вас адсутнічаюць архіўныя элементы.",
-  "ignoredFolderUploadReason": "Некаторыя файлы ў гэтым альбоме ігнаруюцца, бо яны раней былі выдалены з Ente.",
   "resetIgnoredFiles": "Скінуць ігнараваныя файлы",
-  "deviceFilesAutoUploading": "Файлы, дададзеныя ў гэты альбом на прыладзе, будуць аўтаматычна запампаваны ў Ente.",
-  "turnOnBackupForAutoUpload": "Уключыце рэзервовае капіяванне, каб аўтаматычна запампоўваць дададзеныя файлы да папкі прылады ў Ente.",
   "noHiddenPhotosOrVideos": "Адсутнічаюць схаваныя фатаграфіі або відэа",
   "toHideAPhotoOrVideo": "Схаваць фатаграфіі або відэа",
   "openTheItem": "• Адкрыць элемент",
@@ -1066,10 +1042,6 @@
     "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
   },
   "setRadius": "Задаць радыус",
-  "androidBiometricHint": "Спраўдзіць ідэнтычнасць",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
   "androidBiometricNotRecognized": "Не распазнана. Паспрабуйце яшчэ раз.",
   "@androidBiometricNotRecognized": {
     "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
@@ -1077,14 +1049,6 @@
   "androidBiometricSuccess": "Паспяхова",
   "@androidBiometricSuccess": {
     "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Скасаваць",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Патрабуецца аўтэнтыфікацыя",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
   "androidBiometricRequiredTitle": "Патрабуецца біяметрыя",
   "@androidBiometricRequiredTitle": {
@@ -1098,25 +1062,13 @@
   "@androidDeviceCredentialsSetupDescription": {
     "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
   },
-  "goToSettings": "Перайсці ў налады",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
   "androidGoToSettingsDescription": "Біяметрычная аўтэнтыфікацыя не наладжана на вашай прыладзе. Перайдзіце ў раздзел «Налады > Бяспека», каб дадаць біяметрычную аўтэнтыфікацыю.",
   "@androidGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
   },
-  "iOSLockOut": "Біяметрычная аўтэнтыфікацыя адключана. Заблакіруйце, а потым разблакіруйце экран для яе ўключэння.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
   "iOSGoToSettingsDescription": "Біяметрычная аўтэнтыфікацыя не наладжана на вашай прыладзе. Уключыце Touch ID або Face ID на вашай прыладзе.",
   "@iOSGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure Biometrics for their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "OK",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
   },
   "openstreetmapContributors": "Удзельнікі OpenStreetMap",
   "hostedAtOsmFrance": "Размешчана на OSM France",
@@ -1135,8 +1087,6 @@
   "noPhotosFoundHere": "Тут фатаграфій не знойдзена",
   "zoomOutToSeePhotos": "Паменшыць маштаб, каб убачыць фатаграфіі",
   "noImagesWithLocation": "Відарысы з месцазнаходжаннем адсутнічаюць",
-  "unpinAlbum": "Адмацаваць альбом",
-  "pinAlbum": "Замацаваць альбом",
   "pin": "Замацаваць",
   "pinPerson": "Замацаваць асобу",
   "pinToTop": "Замацаваць уверсе",
@@ -1150,7 +1100,6 @@
   "nothingSharedWithYouYet": "Пакуль з вамі нічога не абагулена",
   "noAlbumsSharedByYouYet": "Ніякія альбомы пакуль не абагулены вамі",
   "sharedWithYou": "Абагулена з вамі",
-  "sharedByYou": "Абагулена вамі",
   "inviteYourFriendsToEnte": "Запрасіце сваіх сяброў у Ente",
   "failedToDownloadVideo": "Не ўдалося спампаваць відэа",
   "hiding": "Хаванне...",
@@ -1162,7 +1111,6 @@
   "addToHiddenAlbum": "Дадаць у схаваны альбом",
   "moveToHiddenAlbum": "Перамясціць у схаваны альбом",
   "fileTypes": "Тыпы файлаў",
-  "deleteConfirmDialogBody": "Гэты ўліковы запіс звязаны з іншымі праграмамі Ente, калі вы імі карыстаецеся. Запампаваныя вамі даныя будуць запланаваны да выдалення ва ўсіх праграмах Ente, а ваш уліковы запіс будзе незваротна выдалены.",
   "hearUsExplanation": "Наша каманда не збірае статыстыку ўсталяванняў. Нам вельмі дапаможа, калі вы абагуліце інфармацыю, дзе вы знайшлі нашу праграму!",
   "viewAddOnButton": "Паглядзець дадаткі",
   "addOns": "Дадаткі",
@@ -1222,16 +1170,6 @@
   "playOnTv": "Узнавіць альбом на тэлевізары",
   "pair": "Спалучыць",
   "deviceNotFound": "Прылада не знойдзена",
-  "castInstruction": "Наведайце {castUrl} на прыладзе, якую хочаце спалучыць.\n\nУвядзіце кода ніжэй, каб прайграць альбом на тэлевізары.",
-  "@castInstruction": {
-    "description": "Instructions shown when pairing a device to play an album on TV.",
-    "placeholders": {
-      "castUrl": {
-        "type": "String",
-        "example": "https://cast.ente.com"
-      }
-    }
-  },
   "deviceCodeHint": "Увядзіце код",
   "joinDiscord": "Далучыцца да Discord",
   "locations": "Месцазнаходжанні",
@@ -1264,8 +1202,6 @@
   "removePersonLabel": "Выдаліць метку асобы",
   "removePersonTag": "Выдаліць тэг асобы",
   "areYouSureRemoveThisPersonTag": "Вы ўпэўненыя, што хочаце выдаліць гэты тэг чалавека?",
-  "autoPairDesc": "Аўтаспалучэнне працуе толькі з прыладамі, якія падтрымліваюць Chromecast.",
-  "manualPairDesc": "Спалучэнне з PIN працуе з любым экранам, на якім вы хочаце паглядзець альбом.",
   "connectToDevice": "Падключыцца да прылады",
   "autoCastDialogBody": "Паглядзець даступныя прылады Cast можна тут.",
   "autoCastiOSPermission": "Пераканайцеся, што для праграмы Ente Photos уключаны дазволы лакальнай сеткі ў наладах.",
@@ -1277,7 +1213,6 @@
   "pairingComplete": "Спалучэнне завершана",
   "savingEdits": "Захаванне рэдагаванняў...",
   "autoPair": "Аўтаспалучэнне",
-  "pairWithPin": "Спалучэнне з PIN",
   "faceRecognition": "Распазнаванне твару",
   "foundFaces": "Знойдзеныя твары",
   "clusteringProgress": "Выкананне кластэрызацыі",
@@ -1306,20 +1241,13 @@
   "enableMLIndexingDesc": "Ente падтрымлівае машыннае навучанне для распазнавання твару, магічны пошук і іншыя пошукавыя функцыі",
   "magicSearchHint": "Магічны пошук дазваляе шукаць фатаграфіі па іх змесціву. Напрыклад, «кветка», «чырвоная машына» «дакументы»",
   "panorama": "Панарама",
-  "reenterPassword": "Увядзіце пароль яшчэ раз",
-  "reenterPin": "Увядзіце PIN-код яшчэ раз",
   "deviceLock": "Блакіроўка прылады",
   "pinLock": "Блакіроўка PIN'ам",
   "next": "Далей",
-  "setNewPassword": "Задаць новы пароль",
-  "enterPin": "Увядзіце PIN",
-  "setNewPin": "Задаць новы PIN",
   "appLock": "Блакіроўка праграмы",
   "noSystemLockFound": "Сістэмная блакіроўка не знойдзена",
-  "tapToUnlock": "Націсніце, каб разблакіраваць",
   "tooManyIncorrectAttempts": "Занадта шмат няўдалых спроб",
   "videoInfo": "Інфармацыя аб відэа",
-  "autoLock": "Аўтаблакіроўка",
   "immediately": "Неадкладна",
   "autoLockFeatureDescription": "Час, праз які праграма будзе заблакіравана пасля пераходу ў фонавы рэжым",
   "hideContent": "Схаваць змесціва",
@@ -1673,9 +1601,7 @@
   "newPhotosEmoji": " новая 📸",
   "sorryWeHadToPauseYourBackups": "Прабачце, але давялося прыпыніць ваша рэзервовае капіяванне",
   "clickToInstallOurBestVersionYet": "Націсніце, каб усталяваць нашу лепшую версію",
-  "onThisDayNotificationExplanation": "Атрымлівайце напаміны аб успамінах з гэтага дня ў мінулыя гады.",
   "birthdayNotifications": "Апавяшчэнні аб днях нараджэння",
-  "receiveRemindersOnBirthdays": "Атрымлівайце напаміны, калі ў некага дзень нараджэння. Націск на апавяшчэнне перанясе вас да фатаграфій імянінніка.",
   "happyBirthday": "З днём нараджэння! 🥳",
   "birthdays": "Дні нараджэння",
   "wishThemAHappyBirthday": "Віншуем з днём нараджэння, {name}! 🎉",

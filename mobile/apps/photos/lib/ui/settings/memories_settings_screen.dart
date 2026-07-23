@@ -10,9 +10,7 @@ import "package:photos/services/memory_home_widget_service.dart";
 import "package:photos/ui/settings/components/settings_page_scaffold.dart";
 
 class MemoriesSettingsScreen extends StatefulWidget {
-  const MemoriesSettingsScreen({
-    super.key,
-  });
+  const MemoriesSettingsScreen({super.key});
 
   @override
   State<MemoriesSettingsScreen> createState() => _MemoriesSettingsScreenState();
@@ -58,12 +56,8 @@ class _MemoriesSettingsScreenState extends State<MemoriesSettingsScreen> {
   }
 
   Future<void> _toggleUpdateMemories() async {
-    await localSettings.setSmartMemories(
-      !localSettings.isSmartMemoriesEnabled,
-    );
-    await memoriesCacheService.clearMemoriesCache(
-      fromDisk: false,
-    );
+    await localSettings.setSmartMemories(!localSettings.isSmartMemoriesEnabled);
+    await memoriesCacheService.clearMemoriesCache(fromDisk: false);
     await memoriesCacheService.getMemories();
     Bus.instance.fire(MemoriesChangedEvent());
   }

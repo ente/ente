@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
-	"github.com/ente-io/cli/internal/api/models"
+	"github.com/ente/cli/internal/api/models"
 	"time"
 )
 

@@ -27,10 +27,7 @@ When you export your data using Google Takeout, Google provides both your photos
 
 For example, `flower.jpeg` might be in one zip and `flower.json` in another. This prevents Ente from correctly mapping them.
 
-**Best practice**: We [recommend](/photos/migration/from-google-photos/)
-unzipping all of your Google Takeout zips into a single parent folder, keeping
-subfolders as-is (do not flatten files), then importing that parent folder into
-Ente. This way, we can always correctly map photos and their metadata.
+**Best practice**: We [recommend](/photos/migration/from-google-photos/) unzipping all of your Google Takeout zips into a single parent folder, keeping subfolders as-is (do not flatten files), then importing that parent folder into Ente. This way, we can always correctly map photos and their metadata.
 
 ### Why are my Google Photos dates wrong after import? {#google-photos-dates-wrong}
 
@@ -41,8 +38,7 @@ If the dates appear incorrect after importing from Google Takeout, it's usually 
 
 To fix this:
 
-1. Make sure you unzipped all Google Takeout zips into one parent folder (with
-   subfolders kept as-is)
+1. Make sure you unzipped all Google Takeout zips into one parent folder (with subfolders kept as-is)
 2. Import that parent folder (not individual zips)
 3. This ensures Ente can match JSON files with their photos
 
@@ -68,14 +64,11 @@ Ente detects duplicates by identical hash and file name.
 
 Duplicates can occur:
 
-1. **If editing is done in Google Photos.**
-   The original photo as well as edited copies are saved and exported separately in Google Takeout. They have different hash values and are thus not detected as duplicates by Ente.
+1. **If editing is done in Google Photos.** The original photo as well as edited copies are saved and exported separately in Google Takeout. They have different hash values and are thus not detected as duplicates by Ente.
 
-2. **If storage saver mode is enabled or compressed photos are stored in Google Photos.**
-   If the same photos are present locally in phone in original quality and are also backed up to Ente along with Google Takeout, Ente does not recognize these as duplicates due to different hash values.
+2. **If storage saver mode is enabled or compressed photos are stored in Google Photos.** If the same photos are present locally in phone in original quality and are also backed up to Ente along with Google Takeout, Ente does not recognize these as duplicates due to different hash values.
 
-3. **If upload from Google Takeout on desktop and backup from mobile folders run simultaneously.**
-   When the same photos come in from two different sources at the same time, Ente may not detect they are duplicates and both copies may be uploaded.
+3. **If upload from Google Takeout on desktop and backup from mobile folders run simultaneously.** When the same photos come in from two different sources at the same time, Ente may not detect they are duplicates and both copies may be uploaded.
 
 **Steps to prevent duplication due to the above reasons:**
 
@@ -168,7 +161,9 @@ Google Photos Partner Sharing automatically shares one person's entire library (
 
 Each partner should export their own library via [Google Takeout](/photos/migration/from-google-photos/) and import it into their own Ente account.
 
-> **Note**: Photos only visible to you through Partner Sharing (not saved to your library) are **not** included in your Takeout. Only the partner who originally took those photos will have them in their export. There is also no built-in filter to remove partner-shared photos from a Takeout import - so duplicates may occur if both partners import and then share entire libraries on Ente.
+> [!NOTE]
+>
+> Photos only visible to you through Partner Sharing (not saved to your library) are **not** included in your Takeout. Only the partner who originally took those photos will have them in their export. There is also no built-in filter to remove partner-shared photos from a Takeout import - so duplicates may occur if both partners import and then share entire libraries on Ente.
 
 #### 2. Set up sharing on Ente
 
@@ -194,7 +189,9 @@ Use [Smart albums](/photos/features/albums-and-organization/auto-add-people) to 
 
 A [Family plan](/photos/features/account/family-plans) lets both partners share a single subscription's storage at no extra cost, while keeping libraries private.
 
-> **Note**: Shared albums on Ente have the extra advantage of [Admin roles](/photos/features/sharing-and-collaboration/collaboration#permissions-explained), E2EE [comments and likes](/photos/features/sharing-and-collaboration/comments-and-likes), [collect links](/photos/features/sharing-and-collaboration/collaboration#collecting-photos-from-anyone), bulk ZIP download, [custom domains](/photos/features/sharing-and-collaboration/custom-domains/), trip layout, and download restrictions.
+> [!NOTE]
+>
+> Shared albums on Ente have the extra advantage of [Admin roles](/photos/features/sharing-and-collaboration/collaboration#permissions-explained), E2EE [comments and likes](/photos/features/sharing-and-collaboration/comments-and-likes), [collect links](/photos/features/sharing-and-collaboration/collaboration#collecting-photos-from-anyone), bulk ZIP download, [custom domains](/photos/features/sharing-and-collaboration/custom-domains/), trip layout, and download restrictions.
 
 ### Can I reupload the Google Takeout in case I did not upload it correctly the first time?
 
@@ -230,49 +227,31 @@ However, for any reason, if desktop is the only way to import, you can follow th
 
 #### 1. Export your data from the Apple Photos app.
 
-Select the files you want to export (`Command + A` to select them all), and
-click on `File` > `Export` > `Export Unmodified Originals`.
+Select the files you want to export (`Command + A` to select them all), and click on `File` > `Export` > `Export Unmodified Originals`.
 
-In the dialog that pops up, select File Name as `Sequential` and provide any
-prefix you'd like. This is to make sure that we combine the photo and video
-portions of your Live Photos correctly.
+In the dialog that pops up, select File Name as `Sequential` and provide any prefix you'd like. This is to make sure that we combine the photo and video portions of your Live Photos correctly.
 
-Finally, choose an export directory and confirm by clicking `Export Originals`.
-You will receive a notification from the app once your export is complete.
+Finally, choose an export directory and confirm by clicking `Export Originals`. You will receive a notification from the app once your export is complete.
 
 #### 2. Import into Ente
 
-Now simply drag and drop the downloaded folders into
-[our desktop app](https://ente.com/download/desktop) and grab a cup of coffee (or
-a good night's sleep, depending on the size of your library) while we handle the
-rest.
+Now simply drag and drop the downloaded folders into [our desktop app](https://ente.com/download/desktop) and grab a cup of coffee (or a good night's sleep, depending on the size of your library) while we handle the rest.
 
-> Note: In case your uploads get interrupted, just drag and drop the folders
-> into the same albums again, and we will ignore already backed up files and
-> upload just the rest.
+> Note: In case your uploads get interrupted, just drag and drop the folders into the same albums again, and we will ignore already backed up files and upload just the rest.
 
 ## Importing from other cloud services
 
 ### I have photos on my phone and also photos autosynced from my phone to a cloud storage. How do I upload all these photos to Ente without duplicates? {#prevent-duplicates-cloud-sync}
 
-Ente detects duplicates by identical hash and file name. If your
-previous cloud service modified your photos in any way (re-compressed them,
-stripped or altered EXIF metadata, converted formats, etc.), the hashes won't
-match and duplicates may occur.
+Ente detects duplicates by identical hash and file name. If your previous cloud service modified your photos in any way (re-compressed them, stripped or altered EXIF metadata, converted formats, etc.), the hashes won't match and duplicates may occur.
 
 **Recommended workflow:**
 
 1. Turn off auto-upload in your current cloud app.
-2. Download all your photos and videos from your current cloud service to your
-   computer.
-3. Upload them to Ente via the desktop app or web. The desktop app handles large
-   uploads more reliably.
+2. Download all your photos and videos from your current cloud service to your computer.
+3. Upload them to Ente via the desktop app or web. The desktop app handles large uploads more reliably.
 4. Sign into Ente on your phone and let the app fully sync.
-5. Enable
-   [automatic backups](/photos/getting-started/daily-use#select-albums-folders-to-back-up).
-   If duplicates are a concern, enable the "Back up only new photos" toggle
-   (`Settings > Back up > Back up settings > Back up only new photos`), which
-   skips existing photos on your phone and backs up only new ones.
+5. Enable [automatic backups](/photos/getting-started/daily-use#select-albums-folders-to-back-up). If duplicates are a concern, enable the "Back up only new photos" toggle (`Settings > Back up > Back up settings > Back up only new photos`), which skips existing photos on your phone and backs up only new ones.
 
 **If duplicates still arise after migration and upload:**
 

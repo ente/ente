@@ -122,12 +122,12 @@ class _MultiAppThemeDemoState extends State<MultiAppThemeDemo> {
     (
       name: "E-commerce",
       light: ECommerceApp.lightTheme,
-      dark: ECommerceApp.darkTheme
+      dark: ECommerceApp.darkTheme,
     ),
     (
       name: "Social Media",
       light: SocialMediaApp.lightTheme,
-      dark: SocialMediaApp.darkTheme
+      dark: SocialMediaApp.darkTheme,
     ),
     (name: "Finance", light: FinanceApp.lightTheme, dark: FinanceApp.darkTheme),
     (name: "Gaming", light: GamingApp.lightTheme, dark: GamingApp.darkTheme),
@@ -185,7 +185,7 @@ class DemoHomePage extends StatelessWidget {
           Switch(
             value: isDarkMode,
             onChanged: onThemeChanged,
-            activeColor: colorScheme.primary500,
+            activeThumbColor: colorScheme.primary500,
           ),
         ],
       ),
@@ -328,17 +328,13 @@ class DemoHomePage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: colorScheme.warning500.withOpacity(0.1),
+                color: colorScheme.warning500.withValues(alpha: 0.1),
                 border: Border.all(color: colorScheme.warning500),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.warning,
-                    color: colorScheme.warning500,
-                    size: 20,
-                  ),
+                  Icon(Icons.warning, color: colorScheme.warning500, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -409,10 +405,7 @@ class DemoHomePage extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               color.$1,
-              style: TextStyle(
-                fontSize: 10,
-                color: colorScheme.textMuted,
-              ),
+              style: TextStyle(fontSize: 10, color: colorScheme.textMuted),
               textAlign: TextAlign.center,
             ),
           ],

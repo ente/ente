@@ -1,15 +1,15 @@
-import { Stack } from "@mui/material";
-import { PasteCreatePanel } from "features/paste/components/PasteCreatePanel";
-import { PasteFooter } from "features/paste/components/PasteFooter";
-import { PasteFrame } from "features/paste/components/PasteFrame";
-import { PasteViewPanel } from "features/paste/components/PasteViewPanel";
-import { useConsumePaste } from "features/paste/hooks/useConsumePaste";
-import { useCreatePaste } from "features/paste/hooks/useCreatePaste";
-import { usePasteRoute } from "features/paste/hooks/usePasteRoute";
+import { PasteCreatePanel } from "@/features/paste/components/PasteCreatePanel";
+import { PasteFooter } from "@/features/paste/components/PasteFooter";
+import { PasteFrame } from "@/features/paste/components/PasteFrame";
+import { PasteViewPanel } from "@/features/paste/components/PasteViewPanel";
+import { useConsumePaste } from "@/features/paste/hooks/useConsumePaste";
+import { useCreatePaste } from "@/features/paste/hooks/useCreatePaste";
+import { usePasteRoute } from "@/features/paste/hooks/usePasteRoute";
 import {
     copyTextToClipboard,
     shareUrlOrCopy,
-} from "features/paste/utils/browser";
+} from "@/features/paste/utils/browser";
+import { Stack } from "@mui/material";
 import Head from "next/head";
 
 const Page = () => {
@@ -21,13 +21,18 @@ const Page = () => {
         creating,
         createError,
         createdLink,
+        createdLinkPasswordProtected,
         createSecureLink,
     } = useCreatePaste();
 
-    const { consuming, consumeError, resolvedText } = useConsumePaste(
-        mode,
-        accessToken,
-    );
+    const {
+        consuming,
+        consumeError,
+        resolvedText,
+        passwordRequired,
+        passwordError,
+        submitPassword,
+    } = useConsumePaste(mode, accessToken);
 
     return (
         <>
@@ -43,16 +48,6 @@ const Page = () => {
                 <meta
                     name="twitter:image"
                     content="https://paste.ente.com/images/metaimage.png"
-                />
-                <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link
-                    rel="preconnect"
-                    href="https://fonts.gstatic.com"
-                    crossOrigin="anonymous"
-                />
-                <link
-                    href="https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap"
-                    rel="stylesheet"
                 />
             </Head>
 
@@ -72,6 +67,9 @@ const Page = () => {
                             creating={creating}
                             createError={createError}
                             createdLink={createdLink}
+                            createdLinkPasswordProtected={
+                                createdLinkPasswordProtected
+                            }
                             onInputChange={setInputText}
                             onCreate={createSecureLink}
                             onCopyLink={copyTextToClipboard}
@@ -84,6 +82,9 @@ const Page = () => {
                             consuming={consuming}
                             consumeError={consumeError}
                             resolvedText={resolvedText}
+                            passwordRequired={passwordRequired}
+                            passwordError={passwordError}
+                            onSubmitPassword={submitPassword}
                             onCopyText={copyTextToClipboard}
                         />
                     )}

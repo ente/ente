@@ -79,11 +79,13 @@ const ChangelogContent: React.FC = () => {
     return (
         <Stack sx={{ gap: 2, mb: 1 }}>
             <Typography variant="h6">
-                {ut("Public Albums, People Section and Memories Improvements")}
+                {ut(
+                    "Improved Google Takeout imports, Archived view, File navigation experience and more",
+                )}
             </Typography>
             <Typography sx={{ color: "text.muted" }}>
                 {ut(
-                    "Memories and Memory Lane links. Faster public albums. View less prominent faces in All People dialog. Lots of Improvements (Public albums, file viewer, metadata preservation on editing, and more)",
+                    "Google Takeout imports now preserve favorites, Archive section shows only archived albums, upload progress lists skipped files, File Info stays open on navigation, shared links are easier to spot, and new translations are available.",
                 )}
             </Typography>
         </Stack>

@@ -22,24 +22,15 @@ class WidgetSettingsScreen extends StatelessWidget {
       );
       return;
     }
-    routeToPage(
-      context,
-      const PeopleWidgetSettings(),
-    );
+    routeToPage(context, const PeopleWidgetSettings());
   }
 
   void onAlbumsTapped(BuildContext context) {
-    routeToPage(
-      context,
-      const AlbumsWidgetSettings(),
-    );
+    routeToPage(context, const AlbumsWidgetSettings());
   }
 
   void onMemoriesTapped(BuildContext context) {
-    routeToPage(
-      context,
-      const MemoriesWidgetSettings(),
-    );
+    routeToPage(context, const MemoriesWidgetSettings());
   }
 
   @override

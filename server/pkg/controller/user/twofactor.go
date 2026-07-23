@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"image/png"
 
-	"github.com/ente-io/museum/pkg/utils/network"
+	"github.com/ente/museum/pkg/utils/network"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/crypto"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/crypto"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/pquerna/otp/totp"
 	log "github.com/sirupsen/logrus"
@@ -220,10 +220,7 @@ func (c *UserController) GetKeyAttributeAndToken(context *gin.Context, userID in
 	if err != nil {
 		return ente.TwoFactorAuthorizationResponse{}, stacktrace.Propagate(err, "")
 	}
-	token, err := auth.GenerateURLSafeRandomString(TokenLength)
-	if err != nil {
-		return ente.TwoFactorAuthorizationResponse{}, stacktrace.Propagate(err, "")
-	}
+	token := auth.GenerateURLSafeRandomString(TokenLength)
 	encryptedToken, err := crypto.GetEncryptedTokenNative(token, keyAttributes.PublicKey)
 	if err != nil {
 		return ente.TwoFactorAuthorizationResponse{}, stacktrace.Propagate(err, "")

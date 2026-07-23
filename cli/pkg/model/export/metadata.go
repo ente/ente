@@ -1,6 +1,9 @@
 package export
 
-import "time"
+import (
+	"slices"
+	"time"
+)
 
 type AlbumMetadata struct {
 	ID        int64  `json:"id"`
@@ -20,10 +23,8 @@ type AlbumMetadata struct {
 // if it is not already present. Returns true if the account id was added
 // and false otherwise
 func (a *AlbumMetadata) AddAccountOwner(id int64) bool {
-	for _, ownerID := range a.AccountOwnerIDs {
-		if ownerID == id {
-			return false
-		}
+	if slices.Contains(a.AccountOwnerIDs, id) {
+		return false
 	}
 	a.AccountOwnerIDs = append(a.AccountOwnerIDs, id)
 	return true
@@ -47,10 +48,8 @@ func (d *DiskFileMetadata) AddFileName(fileName string) {
 	if d.Info.FileNames == nil {
 		d.Info.FileNames = make([]string, 0)
 	}
-	for _, ownerID := range d.Info.FileNames {
-		if ownerID == fileName {
-			return
-		}
+	if slices.Contains(d.Info.FileNames, fileName) {
+		return
 	}
 	d.Info.FileNames = append(d.Info.FileNames, fileName)
 }

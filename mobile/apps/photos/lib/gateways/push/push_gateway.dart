@@ -16,10 +16,7 @@ class PushGateway {
   }) async {
     await _enteDio.post(
       "/push/token",
-      data: {
-        "fcmToken": fcmToken,
-        "apnsToken": apnsToken,
-      },
+      data: {"fcmToken": fcmToken, "apnsToken": apnsToken},
     );
   }
 }

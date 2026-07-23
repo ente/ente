@@ -3,19 +3,22 @@
 import { ensureLocalUser } from "ente-accounts/services/user";
 import { isDesktop } from "ente-base/app";
 import { createComlinkCryptoWorker } from "ente-base/crypto";
-import { type CryptoWorker } from "ente-base/crypto/worker";
+import type { CryptoWorker } from "ente-base/crypto/worker";
 import { lowercaseExtension, nameAndExtension } from "ente-base/file-name";
 import log from "ente-base/log";
 import { ComlinkWorker } from "ente-base/worker/comlink-worker";
 import {
     markUploadedAndObtainProcessableItem,
     shouldDisableCFUploadProxy,
+    uploadPathPrefix,
     type ClusteredUploadItem,
+    type UploadItemAndPath,
     type UploadPhase,
     type UploadResult,
     type UploadableUploadItem,
 } from "ente-gallery/services/upload";
 import {
+    matchJSONMetadata,
     metadataJSONMapKeyForJSON,
     tryParseTakeoutMetadataJSON,
     type ParsedMetadataJSON,
@@ -23,6 +26,7 @@ import {
 import UploadService, {
     areLivePhotoAssets,
     isUploadCancelledError,
+    storageLimitExceededErrorMessage,
     upload,
     uploadCancelledErrorMessage,
     uploadItemFileName,
@@ -31,7 +35,7 @@ import UploadService, {
 } from "ente-gallery/services/upload/upload-service";
 import { processVideoNewUpload } from "ente-gallery/services/video";
 import type { Collection } from "ente-media/collection";
-import { type EnteFile } from "ente-media/file";
+import type { EnteFile } from "ente-media/file";
 import {
     fileCreationTime,
     fileLocation,
@@ -42,7 +46,7 @@ import { potentialFileTypeFromExtension } from "ente-media/live-photo";
 import { computeNormalCollectionFilesFromSaved } from "ente-new/photos/services/file";
 import { indexNewUpload } from "ente-new/photos/services/ml";
 import { wait } from "ente-utils/promise";
-import watcher from "services/watch";
+import watcher from "./watch";
 
 export type FileID = number;
 
@@ -73,16 +77,11 @@ export type FinishedUploads = Map<FileID, FinishedUploadType>;
 
 export type SegregatedFinishedUploads = Map<FinishedUploadType, FileID[]>;
 
-/**
- * Earlier we just returned a boolean if the uploads
- * were completed, we are make it a more verbose one,
- * and the below two types UploadBatchItemResult and UploadBatchResult
- * are for facilitating the same.
- */
 export interface UploadBatchItemResult {
     localID: number;
     requestedCollectionID: number;
     result: UploadResult;
+    takeoutFavorited?: true;
 }
 
 export interface UploadBatchResult {
@@ -92,30 +91,59 @@ export interface UploadBatchResult {
 
 interface UploadItemsOptions {
     skipDuplicateAddToUploadCollection?: boolean;
+    includePartnerSharedFiles?: boolean;
 }
 
-/**
- *
- * @param batchResult
- * @returns an array of the files which completed the uploads.
- *
- * This is an utility function which actaully takes in the batchResult
- * and tranforms it to an array of files
- */
 export const successfulFilesFromUploadBatchResult = (
     batchResult: UploadBatchResult,
-) =>
+): EnteFile[] =>
     batchResult.itemResults.flatMap(({ result }) => {
-        switch (result.type) {
-            case "alreadyUploaded":
-            case "addedSymlink":
-            case "uploaded":
-            case "uploadedWithStaticThumbnail":
-                return [result.file];
-            default:
-                return [];
-        }
+        const file = successfulFileFromUploadResult(result);
+        return file ? [file] : [];
     });
+
+export const favoritedFilesFromUploadBatchResult = (
+    batchResult: UploadBatchResult,
+    hiddenCollectionIDs: Set<number>,
+    postUploadTargetCollectionID?: number,
+): EnteFile[] => {
+    const filesByID = new Map<number, EnteFile>();
+
+    /**
+     * Filters items with takeoutFavorited set to true, checks if their final upload
+     * target collection is not hidden, and collects successfully uploaded files
+     * and returns them to be added to the Favorites collection of the user after
+     * de-dupe check by fileID.
+     */
+    for (const itemResult of batchResult.itemResults) {
+        if (!itemResult.takeoutFavorited) continue;
+
+        const finalCollectionID =
+            postUploadTargetCollectionID ?? itemResult.requestedCollectionID;
+        if (hiddenCollectionIDs.has(finalCollectionID)) continue;
+
+        const file = successfulFileFromUploadResult(itemResult.result);
+        if (!file || filesByID.has(file.id)) continue;
+
+        filesByID.set(file.id, file);
+    }
+
+    return [...filesByID.values()];
+};
+
+const successfulFileFromUploadResult = (
+    result: UploadResult,
+): EnteFile | undefined => {
+    switch (result.type) {
+        case "alreadyUploaded":
+        case "addedSymlink":
+        case "uploaded":
+        case "uploadedWithStaticThumbnail":
+            return result.file;
+        default:
+            return undefined;
+    }
+};
 
 export interface ProgressUpdater {
     setPercentComplete: React.Dispatch<React.SetStateAction<number>>;
@@ -279,10 +307,10 @@ class UIService {
 }
 
 function convertInProgressUploadsToList(inProgressUploads: InProgressUploads) {
-    return [...inProgressUploads.entries()].map(
-        ([localFileID, progress]) =>
-            ({ localFileID, progress }) as InProgressUpload,
-    );
+    return [...inProgressUploads.entries()].map(([localFileID, progress]) => ({
+        localFileID,
+        progress,
+    }));
 }
 
 const groupByResult = (finishedUploads: FinishedUploads) => {
@@ -306,6 +334,7 @@ class UploadManager {
     private onUploadFile: ((file: EnteFile) => void) | undefined;
     private collections = new Map<number, Collection>();
     private uploadInProgress = false;
+    private fatalUploadError: Error | undefined;
     /**
      * When `true`, then the next call to {@link abortIfCancelled} will throw.
      *
@@ -342,6 +371,7 @@ class UploadManager {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         this.parsedMetadataJSONMap = parsedMetadataJSONMap ?? new Map();
         this.shouldUploadBeCancelled = false;
+        this.fatalUploadError = undefined;
 
         this.uiService.reset();
         this.uiService.setUploadPhase("preparing");
@@ -438,6 +468,13 @@ class UploadManager {
             clearInterval(logInterval);
         }
 
+        const partnerSharedCount = this.itemResults.filter(
+            ({ result }) => result.type == "partnerShared",
+        ).length;
+        if (partnerSharedCount) {
+            log.info(`Skipped ${partnerSharedCount} partner shared files`);
+        }
+
         return {
             processedAny: this.uiService.hasFilesInResultList(),
             itemResults: [...this.itemResults],
@@ -494,6 +531,9 @@ class UploadManager {
     }
 
     private abortIfCancelled = () => {
+        if (this.fatalUploadError) {
+            throw this.fatalUploadError;
+        }
         if (this.shouldUploadBeCancelled) {
             throw new Error(uploadCancelledErrorMessage);
         }
@@ -562,6 +602,7 @@ class UploadManager {
             isCFUploadProxyDisabled: shouldDisableCFUploadProxy(),
             skipDuplicateAddToUploadCollection:
                 options?.skipDuplicateAddToUploadCollection,
+            includePartnerSharedFiles: options?.includePartnerSharedFiles,
             abortIfCancelled: this.abortIfCancelled.bind(this),
             updateUploadProgress:
                 uiService.updateUploadProgress.bind(uiService),
@@ -579,18 +620,37 @@ class UploadManager {
             uiService.setFileProgress(localID, 0);
             await wait(0);
 
-            const uploadResult = await upload(
-                uploadableItem,
-                undefined,
-                this.existingFiles,
+            let uploadResult: UploadResult;
+            try {
+                uploadResult = await upload(
+                    uploadableItem,
+                    undefined,
+                    this.existingFiles,
+                    this.parsedMetadataJSONMap,
+                    worker,
+                    uploadContext,
+                );
+            } catch (e) {
+                if (
+                    e instanceof Error &&
+                    e.message == storageLimitExceededErrorMessage
+                ) {
+                    this.fatalUploadError = e;
+                    this.itemsToBeUploaded = [];
+                }
+                throw e;
+            }
+            const takeoutFavorited = matchJSONMetadata(
+                uploadableItem.pathPrefix,
+                collectionID,
+                uploadableItem.fileName,
                 this.parsedMetadataJSONMap,
-                worker,
-                uploadContext,
-            );
+            )?.favorited;
             this.itemResults.push({
                 localID,
                 requestedCollectionID: collectionID,
                 result: uploadResult,
+                ...(takeoutFavorited ? { takeoutFavorited } : {}),
             });
 
             const finishedUploadType = await this.postUploadTask(
@@ -823,6 +883,47 @@ const clusterLivePhotos = async (
         result.push({ ...f, isLivePhoto: f.isLivePhoto ?? false });
     }
     return result;
+};
+
+export const uploadableMediaCount = async (
+    itemGroups: UploadItemAndPath[][],
+): Promise<{ count: number; isTakeout: boolean }> => {
+    let localID = 0;
+    const namedItems = itemGroups.flatMap((items, collectionID) =>
+        items.map(([uploadItem, path]) =>
+            makeUploadItemWithCollectionIDAndName({
+                localID: localID++,
+                collectionID,
+                uploadItem,
+                pathPrefix: uploadPathPrefix(path),
+            }),
+        ),
+    );
+    const [metadataItems, mediaItems] = splitMetadataAndMediaItems(namedItems);
+    const parsedMetadataJSONMap = new Map<string, ParsedMetadataJSON>();
+
+    for (const {
+        uploadItem,
+        pathPrefix,
+        collectionID,
+        fileName,
+    } of metadataItems) {
+        const metadataJSON = await tryParseTakeoutMetadataJSON(uploadItem!);
+        if (metadataJSON) {
+            parsedMetadataJSONMap.set(
+                metadataJSONMapKeyForJSON(pathPrefix, collectionID, fileName),
+                metadataJSON,
+            );
+        }
+    }
+
+    return {
+        count: (await clusterLivePhotos(mediaItems, parsedMetadataJSONMap))
+            .length,
+        // The presence of Takeout metadata JSONs amongst the uploaded items
+        // indicates that this is a Google Takeout import.
+        isTakeout: parsedMetadataJSONMap.size > 0,
+    };
 };
 
 /**

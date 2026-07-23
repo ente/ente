@@ -1,10 +1,10 @@
+import { isTauriRuntime as detectTauriAppRuntime } from "@/services/tauri-runtime";
 import {
     ArrowRight01Icon,
     Bug01Icon,
     Cancel01Icon,
     File01Icon,
     InformationCircleIcon,
-    Key01Icon,
     Settings01Icon,
     SlidersHorizontalIcon,
     Upload01Icon,
@@ -29,7 +29,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import {
     Notification,
     type NotificationAttributes,
-} from "ente-new/photos/components/Notification";
+} from "ente-base/components/Notification";
 import React, { memo } from "react";
 
 interface IconProps {
@@ -38,9 +38,8 @@ interface IconProps {
 }
 
 interface SuggestedModel {
+    id: string;
     name: string;
-    url: string;
-    mmproj?: string;
 }
 
 type ModelGateStatus =
@@ -54,9 +53,7 @@ type ModelGateStatus =
 type SxEntry = Exclude<SxProps<Theme>, readonly unknown[]>;
 
 export interface ModelSettingsDraft {
-    useCustomModel: boolean;
-    modelUrl: string;
-    mmprojUrl: string;
+    modelId: string;
     contextLength: string;
     maxTokens: string;
 }
@@ -70,15 +67,10 @@ export interface ChatDialogsProps {
     settingsItemSx: SxEntry;
     smallIconProps: IconProps;
     compactIconProps: IconProps;
-    isLoggedIn: boolean;
-    signedInEmail?: string | null;
     saveLogs: () => void | Promise<void>;
     handleCheckForUpdates: () => void | Promise<void>;
-    handleLogout: () => void;
-    openLoginFromChat: () => void;
-    openPasskeysFromChat: () => void;
     advancedUnlocked: boolean;
-    buildVersion: string;
+    buildVersion?: string;
     handleBuildVersionTap: () => void;
     openModelSettings: () => void;
     openSystemPromptSettings: () => void;
@@ -89,15 +81,10 @@ export interface ChatDialogsProps {
     handleConfirmDeleteSession: () => void | Promise<void>;
     showModelSettings: boolean;
     closeModelSettings: () => void;
-    useCustomModel: boolean;
+    selectedModelId: string;
     defaultModelName: string;
-    defaultModelUrl: string;
-    defaultModelMmproj?: string;
     loadedModelName: string | null;
-    allowMmproj: boolean;
     isTauriRuntime: boolean;
-    modelUrl: string;
-    mmprojUrl: string;
     suggestedModels: SuggestedModel[];
     contextLength: string;
     maxTokens: string;
@@ -109,9 +96,9 @@ export interface ChatDialogsProps {
     systemPrompt: string;
     handleSaveSystemPrompt: (promptText: string) => void;
     handleUseDefaultSystemPrompt: () => void;
-    syncNotificationOpen: boolean;
-    setSyncNotificationOpen: React.Dispatch<React.SetStateAction<boolean>>;
-    syncNotification?: NotificationAttributes;
+    chatNotificationOpen: boolean;
+    setChatNotificationOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    chatNotification?: NotificationAttributes;
     modelGateStatus: ModelGateStatus;
     imagePreview: { url: string; name: string } | null;
     closeImagePreview: () => void;
@@ -127,13 +114,8 @@ export const ChatDialogs = memo(
         settingsItemSx,
         smallIconProps,
         compactIconProps,
-        isLoggedIn,
-        signedInEmail,
         saveLogs,
         handleCheckForUpdates,
-        handleLogout,
-        openLoginFromChat,
-        openPasskeysFromChat,
         advancedUnlocked,
         buildVersion,
         handleBuildVersionTap,
@@ -146,15 +128,10 @@ export const ChatDialogs = memo(
         handleConfirmDeleteSession,
         showModelSettings,
         closeModelSettings,
-        useCustomModel,
+        selectedModelId,
         defaultModelName,
-        defaultModelUrl,
-        defaultModelMmproj,
         loadedModelName,
-        allowMmproj,
         isTauriRuntime,
-        modelUrl,
-        mmprojUrl,
         suggestedModels,
         contextLength,
         maxTokens,
@@ -166,25 +143,19 @@ export const ChatDialogs = memo(
         systemPrompt,
         handleSaveSystemPrompt,
         handleUseDefaultSystemPrompt,
-        syncNotificationOpen,
-        setSyncNotificationOpen,
-        syncNotification,
+        chatNotificationOpen,
+        setChatNotificationOpen,
+        chatNotification,
         modelGateStatus,
         imagePreview,
         closeImagePreview,
     }: ChatDialogsProps) => {
         const openExternalUrl = async (url: string) => {
-            const hasTauriBridge =
-                typeof window !== "undefined" &&
-                ("__TAURI__" in window ||
-                    "__TAURI_IPC__" in window ||
-                    "__TAURI_INTERNALS__" in window ||
-                    "__TAURI_METADATA__" in window);
-
-            if (isTauriRuntime || hasTauriBridge) {
+            if (isTauriRuntime || detectTauriAppRuntime()) {
                 try {
-                    const { open } = await import("@tauri-apps/api/shell");
-                    await open(url);
+                    const { openUrl } =
+                        await import("@tauri-apps/plugin-opener");
+                    await openUrl(url);
                     return;
                 } catch {
                     // fall through to browser open fallback
@@ -200,18 +171,8 @@ export const ChatDialogs = memo(
         };
 
         // --- Model settings draft state ---
-        const [draftUseCustomModel, setDraftUseCustomModel] =
-            React.useState(false);
-        const [draftModelUrl, setDraftModelUrl] = React.useState("");
-        const [draftMmprojUrl, setDraftMmprojUrl] = React.useState("");
         const [draftContextLength, setDraftContextLength] = React.useState("");
         const [draftMaxTokens, setDraftMaxTokens] = React.useState("");
-        const [draftModelUrlError, setDraftModelUrlError] = React.useState<
-            string | null
-        >(null);
-        const [draftMmprojError, setDraftMmprojError] = React.useState<
-            string | null
-        >(null);
         const [draftContextError, setDraftContextError] = React.useState<
             string | null
         >(null);
@@ -220,70 +181,40 @@ export const ChatDialogs = memo(
         >(null);
         const [showAdvancedLimits, setShowAdvancedLimits] =
             React.useState(false);
-        const [selectedModelId, setSelectedModelId] = React.useState("default");
+        const [draftModelId, setDraftModelId] = React.useState("default");
+        const [showBackupComingSoon, setShowBackupComingSoon] =
+            React.useState(false);
 
         // --- System prompt draft state ---
         const [draftSystemPrompt, setDraftSystemPrompt] = React.useState("");
 
         const modelOptions = React.useMemo(
             () => [
-                {
-                    id: "default",
-                    name: `${defaultModelName} (Default)`,
-                    url: defaultModelUrl,
-                    mmproj: allowMmproj
-                        ? (defaultModelMmproj ?? undefined)
-                        : "",
-                },
-                ...suggestedModels
-                    .filter((model) => model.url !== defaultModelUrl)
-                    .map((model) => ({
-                        id: model.url,
-                        name: model.name,
-                        url: model.url,
-                        mmproj: model.mmproj,
-                    })),
-                { id: "custom", name: "Custom", url: "", mmproj: "" },
+                { id: "default", name: `${defaultModelName} (Default)` },
+                ...suggestedModels,
             ],
-            [
-                allowMmproj,
-                defaultModelMmproj,
-                defaultModelName,
-                defaultModelUrl,
-                suggestedModels,
-            ],
+            [defaultModelName, suggestedModels],
         );
-        const isCustomSelected = selectedModelId === "custom";
-        const canSaveModelSettings =
-            !isCustomSelected || draftModelUrl.trim().length > 0;
 
         // Initialize model settings draft from parent state when dialog opens
         React.useEffect(() => {
             if (!showModelSettings) return;
-            setDraftUseCustomModel(useCustomModel);
-            setDraftModelUrl(modelUrl);
-            setDraftMmprojUrl(mmprojUrl);
+            setDraftModelId(
+                modelOptions.some((model) => model.id === selectedModelId)
+                    ? selectedModelId
+                    : "default",
+            );
             setDraftContextLength(contextLength);
             setDraftMaxTokens(maxTokens);
-            setDraftModelUrlError(null);
-            setDraftMmprojError(null);
             setDraftContextError(null);
             setDraftMaxTokensError(null);
-            const matchedOption = useCustomModel
-                ? modelOptions.find((model) => model.url === modelUrl)
-                : undefined;
-            setSelectedModelId(
-                !useCustomModel ? "default" : (matchedOption?.id ?? "custom"),
-            );
             setShowAdvancedLimits(!!contextLength || !!maxTokens);
         }, [
             contextLength,
             maxTokens,
-            mmprojUrl,
             modelOptions,
-            modelUrl,
+            selectedModelId,
             showModelSettings,
-            useCustomModel,
         ]);
 
         // Initialize system prompt draft from parent state when dialog opens
@@ -293,38 +224,6 @@ export const ChatDialogs = memo(
         }, [showSystemPromptSettings]); // eslint-disable-line react-hooks/exhaustive-deps
 
         const validateModelSettings = React.useCallback(() => {
-            const validateUrl = (value: string) => {
-                if (!value) return undefined;
-                try {
-                    const url = new URL(value);
-                    if (
-                        url.hostname !== "huggingface.co" &&
-                        !url.hostname.endsWith(".huggingface.co")
-                    ) {
-                        return "URL must be a huggingface.co link";
-                    }
-                    if (url.pathname.includes("/blob/")) {
-                        return "Use a direct file URL, not a /blob/ page";
-                    }
-                    if (!url.pathname.endsWith(".gguf")) {
-                        return "URL must end with .gguf";
-                    }
-                    return undefined;
-                } catch {
-                    return "Enter a valid URL";
-                }
-            };
-
-            const modelError = draftUseCustomModel
-                ? draftModelUrl
-                    ? validateUrl(draftModelUrl)
-                    : "Required"
-                : undefined;
-            const mmprojErr =
-                draftUseCustomModel && isTauriRuntime
-                    ? validateUrl(draftMmprojUrl)
-                    : undefined;
-
             const contextErrorValue =
                 draftContextLength && !/^\d+$/.test(draftContextLength)
                     ? "Enter a number"
@@ -346,28 +245,17 @@ export const ChatDialogs = memo(
                     ? "Must be <= context length"
                     : undefined;
 
-            setDraftModelUrlError(modelError ?? null);
-            setDraftMmprojError(mmprojErr ?? null);
             setDraftContextError(contextErrorValue ?? null);
             setDraftMaxTokensError(
                 maxTokensErrorValue ?? maxTokensLimitError ?? null,
             );
 
             return !(
-                modelError ||
-                mmprojErr ||
                 contextErrorValue ||
                 maxTokensErrorValue ||
                 maxTokensLimitError
             );
-        }, [
-            draftContextLength,
-            draftMaxTokens,
-            draftMmprojUrl,
-            draftModelUrl,
-            draftUseCustomModel,
-            isTauriRuntime,
-        ]);
+        }, [draftContextLength, draftMaxTokens]);
 
         return (
             <>
@@ -486,29 +374,6 @@ export const ChatDialogs = memo(
                     </DialogTitle>
                     <DialogContent sx={{ flex: 1, overflowY: "auto" }}>
                         <Stack sx={{ gap: 2 }}>
-                            {isLoggedIn && (
-                                <Box
-                                    sx={{
-                                        px: 2,
-                                        py: 1.5,
-                                        borderRadius: 2,
-                                        border: "1px solid",
-                                        borderColor: "divider",
-                                        bgcolor: "background.default",
-                                    }}
-                                >
-                                    <Typography
-                                        variant="mini"
-                                        sx={{ color: "text.muted" }}
-                                    >
-                                        Signed in as
-                                    </Typography>
-                                    <Typography variant="small">
-                                        {signedInEmail ?? ""}
-                                    </Typography>
-                                </Box>
-                            )}
-
                             <Stack sx={{ gap: 1 }}>
                                 <ListItemButton
                                     onClick={() => {
@@ -583,83 +448,28 @@ export const ChatDialogs = memo(
                                     />
                                 </ListItemButton>
 
-                                {isLoggedIn && (
-                                    <ListItemButton
-                                        onClick={() => {
-                                            closeSettingsModal();
-                                            openPasskeysFromChat();
-                                        }}
-                                        sx={settingsItemSx}
+                                <ListItemButton
+                                    onClick={() => {
+                                        closeSettingsModal();
+                                        setShowBackupComingSoon(true);
+                                    }}
+                                    sx={settingsItemSx}
+                                >
+                                    <HugeiconsIcon
+                                        icon={Upload01Icon}
+                                        {...compactIconProps}
+                                    />
+                                    <Typography
+                                        variant="small"
+                                        sx={{ flex: 1 }}
                                     >
-                                        <HugeiconsIcon
-                                            icon={Key01Icon}
-                                            {...compactIconProps}
-                                        />
-                                        <Typography
-                                            variant="small"
-                                            sx={{ flex: 1 }}
-                                        >
-                                            Passkeys
-                                        </Typography>
-                                        <HugeiconsIcon
-                                            icon={ArrowRight01Icon}
-                                            {...smallIconProps}
-                                        />
-                                    </ListItemButton>
-                                )}
-
-                                {!isLoggedIn && (
-                                    <ListItemButton
-                                        onClick={() => {
-                                            closeSettingsModal();
-                                            openLoginFromChat();
-                                        }}
-                                        sx={settingsItemSx}
-                                    >
-                                        <HugeiconsIcon
-                                            icon={Upload01Icon}
-                                            {...compactIconProps}
-                                        />
-                                        <Typography
-                                            variant="small"
-                                            sx={{ flex: 1 }}
-                                        >
-                                            Sign In to Backup
-                                        </Typography>
-                                        <HugeiconsIcon
-                                            icon={ArrowRight01Icon}
-                                            {...smallIconProps}
-                                        />
-                                    </ListItemButton>
-                                )}
-
-                                {isLoggedIn && (
-                                    <ListItemButton
-                                        onClick={() => {
-                                            closeSettingsModal();
-                                            handleLogout();
-                                        }}
-                                        sx={[
-                                            settingsItemSx,
-                                            { color: "critical.main" },
-                                        ]}
-                                    >
-                                        <HugeiconsIcon
-                                            icon={Cancel01Icon}
-                                            {...compactIconProps}
-                                        />
-                                        <Typography
-                                            variant="small"
-                                            sx={{ flex: 1, fontWeight: 600 }}
-                                        >
-                                            Sign Out
-                                        </Typography>
-                                        <HugeiconsIcon
-                                            icon={ArrowRight01Icon}
-                                            {...smallIconProps}
-                                        />
-                                    </ListItemButton>
-                                )}
+                                        Sign In to Backup
+                                    </Typography>
+                                    <HugeiconsIcon
+                                        icon={ArrowRight01Icon}
+                                        {...smallIconProps}
+                                    />
+                                </ListItemButton>
 
                                 <ListItemButton
                                     onClick={() => {
@@ -774,21 +584,49 @@ export const ChatDialogs = memo(
                                 </Stack>
                             )}
 
-                            <Typography
-                                variant="mini"
-                                onClick={handleBuildVersionTap}
-                                sx={{
-                                    color: "text.muted",
-                                    textAlign: "center",
-                                    cursor: "pointer",
-                                    userSelect: "none",
-                                    py: 1,
-                                }}
-                            >
-                                Build {buildVersion}
-                            </Typography>
+                            {buildVersion && (
+                                <Typography
+                                    variant="mini"
+                                    onClick={handleBuildVersionTap}
+                                    sx={{
+                                        color: "text.muted",
+                                        textAlign: "center",
+                                        cursor: "pointer",
+                                        userSelect: "none",
+                                        py: 1,
+                                    }}
+                                >
+                                    Build {buildVersion}
+                                </Typography>
+                            )}
                         </Stack>
                     </DialogContent>
+                </Dialog>
+
+                <Dialog
+                    open={showBackupComingSoon}
+                    onClose={() => setShowBackupComingSoon(false)}
+                    fullScreen={isSmall}
+                    maxWidth="xs"
+                    fullWidth
+                    slotProps={{ paper: { sx: dialogPaperSx } }}
+                >
+                    <DialogTitle sx={dialogTitleSx}>Coming soon</DialogTitle>
+                    <DialogContent>
+                        <Typography variant="body" sx={{ color: "text.muted" }}>
+                            Sign in and cloud backup will be available in a
+                            future update.
+                        </Typography>
+                    </DialogContent>
+                    <DialogActions sx={{ px: 3, pb: 3 }}>
+                        <Button
+                            variant="contained"
+                            color="accent"
+                            onClick={() => setShowBackupComingSoon(false)}
+                        >
+                            Got it
+                        </Button>
+                    </DialogActions>
                 </Dialog>
 
                 <Dialog
@@ -847,37 +685,14 @@ export const ChatDialogs = memo(
                                         select
                                         fullWidth
                                         label="Model"
-                                        value={selectedModelId}
-                                        onChange={(event) => {
-                                            const nextId = event.target.value;
-                                            const nextModel = modelOptions.find(
-                                                (model) => model.id === nextId,
-                                            );
-                                            setSelectedModelId(nextId);
-                                            if (!nextModel) return;
-                                            if (nextId === "default") {
-                                                setDraftUseCustomModel(false);
-                                                setDraftModelUrl("");
-                                                setDraftMmprojUrl("");
-                                                return;
-                                            }
-                                            setDraftUseCustomModel(true);
-                                            if (nextId === "custom") {
-                                                setDraftModelUrl("");
-                                                setDraftMmprojUrl("");
-                                                return;
-                                            }
-                                            setDraftModelUrl(nextModel.url);
-                                            setDraftMmprojUrl(
-                                                allowMmproj
-                                                    ? (nextModel.mmproj ?? "")
-                                                    : "",
-                                            );
-                                        }}
+                                        value={draftModelId}
+                                        onChange={(event) =>
+                                            setDraftModelId(event.target.value)
+                                        }
                                         helperText={
                                             loadedModelName
                                                 ? `Loaded: ${loadedModelName}`
-                                                : "Custom reveals direct Hugging Face URLs."
+                                                : " "
                                         }
                                     >
                                         {modelOptions.map((model) => (
@@ -890,43 +705,6 @@ export const ChatDialogs = memo(
                                         ))}
                                     </TextField>
                                 </Stack>
-
-                                {isCustomSelected && (
-                                    <Stack sx={{ gap: 1.5 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="Model .gguf URL"
-                                            placeholder="https://huggingface.co/..."
-                                            value={draftModelUrl}
-                                            onChange={(event) =>
-                                                setDraftModelUrl(
-                                                    event.target.value,
-                                                )
-                                            }
-                                            error={!!draftModelUrlError}
-                                            helperText={
-                                                draftModelUrlError ?? " "
-                                            }
-                                        />
-                                        {allowMmproj && (
-                                            <TextField
-                                                fullWidth
-                                                label="mmproj .gguf URL"
-                                                placeholder="(optional for multimodal)"
-                                                value={draftMmprojUrl}
-                                                onChange={(event) =>
-                                                    setDraftMmprojUrl(
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                error={!!draftMmprojError}
-                                                helperText={
-                                                    draftMmprojError ?? " "
-                                                }
-                                            />
-                                        )}
-                                    </Stack>
-                                )}
 
                                 <Stack sx={{ gap: 1.5 }}>
                                     <Button
@@ -1001,16 +779,16 @@ export const ChatDialogs = memo(
                                     variant="contained"
                                     color="accent"
                                     disabled={
-                                        !canSaveModelSettings ||
                                         isSavingModel ||
                                         modelGateStatus === "downloading"
                                     }
                                     onClick={() => {
                                         if (!validateModelSettings()) return;
                                         handleSaveModel({
-                                            useCustomModel: draftUseCustomModel,
-                                            modelUrl: draftModelUrl,
-                                            mmprojUrl: draftMmprojUrl,
+                                            modelId:
+                                                draftModelId === "default"
+                                                    ? ""
+                                                    : draftModelId,
                                             contextLength: draftContextLength,
                                             maxTokens: draftMaxTokens,
                                         });
@@ -1054,8 +832,8 @@ export const ChatDialogs = memo(
                                 sx={{ color: "text.muted" }}
                             >
                                 This prompt is used as-is. Use $date anywhere to
-                                insert the current date and time. Leave blank to
-                                use the default prompt.
+                                insert the current date. Leave blank to use the
+                                default prompt.
                             </Typography>
                             <TextField
                                 fullWidth
@@ -1063,7 +841,7 @@ export const ChatDialogs = memo(
                                 minRows={10}
                                 maxRows={18}
                                 label="Prompt text"
-                                placeholder="You are a concise assistant. Current date and time: $date"
+                                placeholder="You are a concise assistant. Current date: $date"
                                 value={draftSystemPrompt}
                                 onChange={(event) =>
                                     setDraftSystemPrompt(event.target.value)
@@ -1093,9 +871,9 @@ export const ChatDialogs = memo(
                 </Dialog>
 
                 <Notification
-                    open={syncNotificationOpen}
-                    onClose={() => setSyncNotificationOpen(false)}
-                    attributes={syncNotification}
+                    open={chatNotificationOpen}
+                    onClose={() => setChatNotificationOpen(false)}
+                    attributes={chatNotification}
                     horizontal={isSmall ? "left" : "right"}
                     vertical="bottom"
                     sx={{

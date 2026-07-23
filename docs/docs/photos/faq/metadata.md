@@ -3,9 +3,9 @@ title: Metadata FAQ
 description: FAQ about photo metadata, EXIF data, and editing in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Metadata FAQ

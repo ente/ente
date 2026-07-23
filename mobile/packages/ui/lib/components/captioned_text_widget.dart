@@ -31,14 +31,13 @@ class CaptionedTextWidget extends StatelessWidget {
             Flexible(
               child: RichText(
                 text: TextSpan(
-                  style: textStyle ??
+                  style:
+                      textStyle ??
                       (makeTextBold
                           ? enteTextTheme.bodyBold.copyWith(color: textColor)
                           : enteTextTheme.body.copyWith(color: textColor)),
                   children: [
-                    TextSpan(
-                      text: title,
-                    ),
+                    TextSpan(text: title),
                     subTitle != null
                         ? TextSpan(
                             text: ' \u2022 $subTitle',

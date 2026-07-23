@@ -1,3 +1,5 @@
+import { CollectionChipRow } from "@/components/createItemDialog/CollectionChipRow";
+import type { LockerCollection, LockerItemType } from "@/types";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
@@ -9,11 +11,9 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
-import { CollectionChipRow } from "components/createItemDialog/CollectionChipRow";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { t } from "i18next";
 import React, { useCallback, useMemo, useState } from "react";
-import type { LockerCollection, LockerItemType } from "types";
 
 export const ItemFormFields: React.FC<{
     type: LockerItemType;

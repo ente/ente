@@ -1,7 +1,7 @@
 use crate::{
-    api::{ApiClient, models::KeyAttributes},
+    api::{AppClient, client::USER_AGENT, models::KeyAttributes},
     models::{
-        account::{AccountSecrets, App},
+        account::AccountSecrets,
         error::{Error, Result},
     },
 };
@@ -20,15 +20,11 @@ where
     serde_json::from_value(serde_json::to_value(value)?).map_err(Error::from)
 }
 
-fn shared_client(
-    api_client: &ApiClient,
-    app: App,
-    account_id: Option<&str>,
-) -> Result<shared::AccountsClient> {
-    let mut config = shared::AccountsClientConfig::new(app.client_package())
-        .with_base_url(api_client.base_url().to_string())
-        .with_user_agent(format!("ente-cli-rust/{}", env!("CARGO_PKG_VERSION")));
-    if let Some(token) = account_id.and_then(|id| api_client.get_token(id)) {
+fn shared_client(app_client: &AppClient, authenticated: bool) -> Result<shared::AccountsClient> {
+    let mut config = shared::AccountsClientConfig::new(app_client.app().client_package())
+        .with_origin(app_client.origin().to_string())
+        .with_user_agent(USER_AGENT);
+    if let Some(token) = authenticated.then(|| app_client.token()).flatten() {
         config = config.with_auth_token(token);
     }
     shared::AccountsClient::new(config).map_err(Error::from)
@@ -37,7 +33,6 @@ fn shared_client(
 fn to_shared_error(error: Error) -> shared::Error {
     match error {
         Error::Io(source) => shared::Error::Generic(source.to_string()),
-        Error::Network(source) => shared::Error::Generic(source.to_string()),
         Error::Serialization(source) => shared::Error::Serialization(source),
         Error::Database(source) => shared::Error::Generic(source.to_string()),
         Error::Crypto(message) => shared::Error::Crypto(message),
@@ -48,15 +43,7 @@ fn to_shared_error(error: Error) -> shared::Error {
         Error::Srp(message) => shared::Error::Srp(message),
         Error::Base64Decode(source) => shared::Error::Base64Decode(source),
         Error::Zip(source) => shared::Error::Generic(source.to_string()),
-        Error::ApiError {
-            status,
-            code,
-            message,
-        } => shared::Error::from(ente_core::http::Error::Http {
-            status,
-            code,
-            message,
-        }),
+        Error::Http(source) => shared::Error::Http(source),
         Error::Generic(message) => shared::Error::Generic(message),
     }
 }
@@ -225,8 +212,7 @@ fn from_shared_account(account: shared::AuthenticatedAccount) -> Result<Authenti
 }
 
 pub struct AuthFlow<'a, U> {
-    api_client: &'a ApiClient,
-    app: App,
+    app_client: &'a AppClient,
     ui: &'a mut U,
 }
 
@@ -234,20 +220,15 @@ impl<'a, U> AuthFlow<'a, U>
 where
     U: AuthFlowUi,
 {
-    pub fn new(api_client: &'a ApiClient, app: App, ui: &'a mut U) -> Self {
-        Self {
-            api_client,
-            app,
-            ui,
-        }
+    pub fn new(app_client: &'a AppClient, ui: &'a mut U) -> Self {
+        Self { app_client, ui }
     }
 
     pub async fn create_account(
         &mut self,
         params: CreateAccountParams,
     ) -> Result<AuthenticatedAccount> {
-        let email = params.email.clone();
-        let client = shared_client(self.api_client, self.app, None)?;
+        let client = shared_client(self.app_client, false)?;
         let mut ui = UiAdapter { inner: self.ui };
         let mut flow = shared::AuthFlow::new(&client, &mut ui);
         let account = from_shared_account(
@@ -259,13 +240,13 @@ where
             .await
             .map_err(Error::from)?,
         )?;
-        self.api_client
-            .add_token(&email, &URL_SAFE.encode(&account.secrets.token));
+        self.app_client
+            .set_token(&URL_SAFE.encode(&account.secrets.token));
         Ok(account)
     }
 
     pub async fn login(&mut self, params: LoginParams) -> Result<AuthenticatedAccount> {
-        let client = shared_client(self.api_client, self.app, None)?;
+        let client = shared_client(self.app_client, false)?;
         let mut ui = UiAdapter { inner: self.ui };
         let mut flow = shared::AuthFlow::new(&client, &mut ui);
         from_shared_account(
@@ -282,7 +263,7 @@ where
         &mut self,
         params: SetupTwoFactorParams,
     ) -> Result<SetupTwoFactorResult> {
-        let client = shared_client(self.api_client, self.app, Some(&params.account_id))?;
+        let client = shared_client(self.app_client, true)?;
         let mut ui = UiAdapter { inner: self.ui };
         let mut flow = shared::AuthFlow::new(&client, &mut ui);
         let result = flow
@@ -303,7 +284,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ente_core::crypto;
+    use crate::models::account::App;
     use mockito::{Matcher, Server};
     use serde::{Deserialize, de::DeserializeOwned};
     use sha2::{Digest, Sha256};
@@ -429,8 +410,6 @@ mod tests {
 
     #[tokio::test]
     async fn create_account_persists_token_for_setup_two_factor() {
-        crypto::init().unwrap();
-
         let email = "fresh-user@example.org";
         let encoded_email = urlencoding::encode(email).into_owned();
         let signup_token_bytes = b"signup-session-token";
@@ -643,8 +622,8 @@ mod tests {
             .create_async()
             .await;
 
-        let api_client = ApiClient::new(Some(server.url())).unwrap();
-        let mut flow = AuthFlow::new(&api_client, App::Photos, &mut ui);
+        let app_client = AppClient::new(Some(server.url()), App::Photos).unwrap();
+        let mut flow = AuthFlow::new(&app_client, &mut ui);
 
         let created = flow
             .create_account(CreateAccountParams {
@@ -655,10 +634,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(
-            api_client.get_token(email).as_deref(),
-            Some(signup_token.as_str())
-        );
+        assert_eq!(app_client.token().as_deref(), Some(signup_token.as_str()));
 
         let (uploaded_key_attributes, remote_srp_attributes) = {
             let state = signup_state.lock().unwrap();

@@ -42,29 +42,32 @@ class EmergencyContactService {
       EmergencyContactService._privateConstructor();
 
   Future<bool> addContact(
-    BuildContext context,
+    BuildContext? context,
     String email, {
     int recoveryNoticeInDays = 30,
   }) async {
     if (!isValidEmail(email)) {
+      if (context == null || !context.mounted) return false;
       await showAlertBottomSheet(
         context,
         title: AppLocalizations.of(context).letsTryThatAgain,
         message: AppLocalizations.of(context).enterValidEmail,
-        assetPath: "assets/warning-green.png",
+        assetPath: "assets/warning-grey.png",
       );
       return false;
     } else if (email.trim() == Configuration.instance.getEmail()) {
+      if (context == null || !context.mounted) return false;
       await showAlertBottomSheet(
         context,
         title: AppLocalizations.of(context).oops,
         message: AppLocalizations.of(context).youCannotShareWithYourself,
-        assetPath: "assets/warning-green.png",
+        assetPath: "assets/warning-grey.png",
       );
       return false;
     }
     final String? publicKey = await _userService.getPublicKey(email);
     if (publicKey == null) {
+      if (context == null || !context.mounted) return false;
       await showInviteDialog(context, email);
       return false;
     }
@@ -186,8 +189,9 @@ class EmergencyContactService {
     RecoverySessions sessions,
   ) async {
     try {
-      final (encryptedKey, keyAttributes) =
-          await _gateway.getRecoveryInfo(sessions.id);
+      final (encryptedKey, keyAttributes) = await _gateway.getRecoveryInfo(
+        sessions.id,
+      );
       final decryptedKey = CryptoUtil.openSealSync(
         CryptoUtil.base642bin(encryptedKey),
         CryptoUtil.base642bin(_config.getKeyAttributes()!.publicKey),
@@ -238,8 +242,9 @@ class EmergencyContactService {
         recoveryID: recoverySessions.id,
         setupSRPRequest: request,
       );
-      final serverB =
-          SRP6Util.decodeBigInt(base64Decode(setupSRPResponse.srpB));
+      final serverB = SRP6Util.decodeBigInt(
+        base64Decode(setupSRPResponse.srpB),
+      );
 
       // ignore: unused_local_variable
       final clientS = client.calculateSecret(serverB);

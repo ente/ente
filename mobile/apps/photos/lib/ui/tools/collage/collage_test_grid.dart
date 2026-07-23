@@ -15,9 +15,7 @@ class Tile extends StatelessWidget {
 }
 
 class TestGrid extends StatelessWidget {
-  const TestGrid({
-    super.key,
-  });
+  const TestGrid({super.key});
 
   @override
   Widget build(BuildContext context) {

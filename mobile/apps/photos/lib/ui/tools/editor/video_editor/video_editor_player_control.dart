@@ -3,10 +3,7 @@ import "package:photos/ente_theme_data.dart";
 import "package:video_editor/video_editor.dart";
 
 class VideoEditorPlayerControl extends StatelessWidget {
-  const VideoEditorPlayerControl({
-    super.key,
-    required this.controller,
-  });
+  const VideoEditorPlayerControl({super.key, required this.controller});
 
   final VideoEditorController controller;
 
@@ -15,11 +12,8 @@ class VideoEditorPlayerControl extends StatelessWidget {
     return Hero(
       tag: "video_editor_player_control",
       child: AnimatedBuilder(
-        animation: Listenable.merge([
-          controller,
-          controller.video,
-        ]),
-        builder: (_, __) {
+        animation: Listenable.merge([controller, controller.video]),
+        builder: (_, _) {
           final duration = controller.trimmedDuration;
           Duration pos = controller.videoPosition - controller.startTrim;
           if (pos.isNegative) {
@@ -39,10 +33,7 @@ class VideoEditorPlayerControl extends StatelessWidget {
             },
             child: Container(
               margin: const EdgeInsets.only(top: 24, bottom: 28),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               constraints: const BoxConstraints(minHeight: 36),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.editorBackgroundColor,
@@ -52,10 +43,7 @@ class VideoEditorPlayerControl extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Icon(
-                    !isPlaying ? Icons.play_arrow : Icons.pause,
-                    size: 20,
-                  ),
+                  Icon(!isPlaying ? Icons.play_arrow : Icons.pause, size: 20),
                   const SizedBox(width: 6),
                   Text(
                     "${formatter(pos)} / ${formatter(duration)}",
@@ -74,7 +62,7 @@ class VideoEditorPlayerControl extends StatelessWidget {
   }
 
   String formatter(Duration duration) => [
-        duration.inMinutes.remainder(60).toString().padLeft(2, '0'),
-        duration.inSeconds.remainder(60).toString().padLeft(2, '0'),
-      ].join(":");
+    duration.inMinutes.remainder(60).toString().padLeft(2, '0'),
+    duration.inSeconds.remainder(60).toString().padLeft(2, '0'),
+  ].join(":");
 }

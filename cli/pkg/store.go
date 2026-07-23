@@ -3,7 +3,7 @@ package pkg
 import (
 	"context"
 	"fmt"
-	"github.com/ente-io/cli/pkg/model"
+	"github.com/ente/cli/pkg/model"
 	"log"
 	"strconv"
 	"time"

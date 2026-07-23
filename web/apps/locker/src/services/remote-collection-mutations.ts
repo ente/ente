@@ -1,4 +1,4 @@
-import type { LockerCollection } from "types";
+import type { LockerCollection } from "@/types";
 
 interface CollectionRecordLike {
     id: number;

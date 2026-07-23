@@ -7,7 +7,9 @@ description: Use Ente as a system gallery on Android — pick photos from Ente i
 
 On Android, Ente integrates with the rest of the system so it can act like a regular gallery app. Other apps can pick photos and videos from your Ente library, and tapping a thumbnail in your camera app can open the photo directly in Ente's viewer.
 
-> **Note**: These integrations are available on Android only.
+> [!NOTE]
+>
+> These integrations are available on Android only.
 
 ## Pick photos and videos from Ente in other apps
 
@@ -42,7 +44,9 @@ After taking a photo or video, many camera apps show a small thumbnail you can t
 
 The first time you tap a camera thumbnail, Android may ask which app should handle it. Choose Ente, and optionally set it as the default to skip the prompt next time.
 
-> **Note**: Whether the thumbnail uses this integration depends entirely on your camera app, and not all camera apps support it. Notably, the default Pixel Camera and Samsung Camera apps do not send the review intent that Ente listens for, so tapping the thumbnail in those apps will not open the photo in Ente.
+> [!NOTE]
+>
+> Whether the thumbnail uses this integration depends entirely on your camera app, and not all camera apps support it. Notably, the default Pixel Camera and Samsung Camera apps do not send the review intent that Ente listens for, so tapping the thumbnail in those apps will not open the photo in Ente.
 
 ## Set Ente as your default gallery
 

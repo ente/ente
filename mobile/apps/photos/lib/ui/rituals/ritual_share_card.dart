@@ -29,8 +29,9 @@ class RitualShareCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title =
-        ritual.title.isEmpty ? context.l10n.ritualUntitled : ritual.title;
+    final title = ritual.title.isEmpty
+        ? context.l10n.ritualUntitled
+        : ritual.title;
     final streak = progress?.currentStreak ?? 0;
 
     return SizedBox(
@@ -42,27 +43,19 @@ class RitualShareCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
           child: Column(
             children: [
-              _RitualShareHeader(
-                icon: ritual.icon,
-                title: title,
-              ),
+              _RitualShareHeader(icon: ritual.icon, title: title),
               const SizedBox(height: 16),
               Expanded(
                 child: Align(
                   alignment: Alignment.topCenter,
                   child: AspectRatio(
                     aspectRatio: _duckyShareAspectRatio,
-                    child: _RitualDuckyShareArt(
-                      streak: streak,
-                    ),
+                    child: _RitualDuckyShareArt(streak: streak),
                   ),
                 ),
               ),
               const SizedBox(height: 18),
-              SvgPicture.asset(
-                _enteLogoAsset,
-                height: 20,
-              ),
+              SvgPicture.asset(_enteLogoAsset, height: 20),
             ],
           ),
         ),
@@ -72,10 +65,7 @@ class RitualShareCard extends StatelessWidget {
 }
 
 class _RitualShareHeader extends StatelessWidget {
-  const _RitualShareHeader({
-    required this.icon,
-    required this.title,
-  });
+  const _RitualShareHeader({required this.icon, required this.title});
 
   final String icon;
   final String title;
@@ -124,9 +114,7 @@ class _RitualShareHeader extends StatelessWidget {
 }
 
 class _RitualDuckyShareArt extends StatelessWidget {
-  const _RitualDuckyShareArt({
-    required this.streak,
-  });
+  const _RitualDuckyShareArt({required this.streak});
 
   final int streak;
 
@@ -155,10 +143,7 @@ class _RitualDuckyShareArt extends StatelessWidget {
         return Stack(
           fit: StackFit.expand,
           children: [
-            SvgPicture.asset(
-              _duckyShareArtAsset,
-              fit: BoxFit.cover,
-            ),
+            SvgPicture.asset(_duckyShareArtAsset, fit: BoxFit.cover),
             Positioned(
               top: top,
               left: 0,

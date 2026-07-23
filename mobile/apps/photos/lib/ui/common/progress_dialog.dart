@@ -44,6 +44,8 @@ Widget _progressWidget = Image.asset(
 class ProgressDialog {
   _Body? _dialog;
 
+  bool get _isThisDialogShowing => _isShowing && _dialog != null;
+
   ProgressDialog(
     BuildContext context, {
     ProgressDialogType? type,
@@ -117,7 +119,9 @@ class ProgressDialog {
     _messageStyle = messageTextStyle ?? _messageStyle;
     _progressTextStyle = progressTextStyle ?? _progressTextStyle;
 
-    if (_isShowing) _dialog!.update();
+    if (_isThisDialogShowing) {
+      _dialog!.update();
+    }
   }
 
   bool isShowing() {
@@ -126,11 +130,12 @@ class ProgressDialog {
 
   Future<bool> hide() async {
     try {
-      if (_isShowing) {
+      if (_isThisDialogShowing) {
         _isShowing = false;
         if (_dismissingContext != null) {
           Navigator.of(_dismissingContext!).pop();
         }
+        _dialog = null;
         if (_showLogs) debugPrint('ProgressDialog dismissed');
         return Future.value(true);
       } else {
@@ -147,6 +152,7 @@ class ProgressDialog {
   Future<bool> show() async {
     try {
       if (!_isShowing) {
+        _isShowing = true;
         _dialog = _Body();
         unawaited(
           showDialog<dynamic>(
@@ -164,8 +170,9 @@ class ProgressDialog {
                   insetAnimationDuration: const Duration(milliseconds: 100),
                   elevation: _dialogElevation,
                   shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.all(Radius.circular(_borderRadius)),
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(_borderRadius),
+                    ),
                   ),
                   child: _dialog,
                 ),
@@ -177,7 +184,6 @@ class ProgressDialog {
         // [Default transitionDuration of DialogRoute]
         await Future.delayed(const Duration(milliseconds: 200));
         if (_showLogs) debugPrint('ProgressDialog shown');
-        _isShowing = true;
         return true;
       } else {
         if (_showLogs) debugPrint("ProgressDialog already shown/showing");
@@ -185,6 +191,7 @@ class ProgressDialog {
       }
     } catch (err) {
       _isShowing = false;
+      _dialog = null;
       debugPrint('Exception while showing the dialog');
       debugPrint(err.toString());
       return false;
@@ -196,7 +203,7 @@ class ProgressDialog {
 class _Body extends StatefulWidget {
   final _BodyState _dialog = _BodyState();
 
-  update() {
+  void update() {
     _dialog.update();
   }
 
@@ -208,7 +215,8 @@ class _Body extends StatefulWidget {
 }
 
 class _BodyState extends State<_Body> {
-  update() {
+  void update() {
+    if (!mounted) return;
     setState(() {});
   }
 
@@ -223,11 +231,7 @@ class _BodyState extends State<_Body> {
   Widget build(BuildContext context) {
     final loader = Align(
       alignment: _progressWidgetAlignment,
-      child: SizedBox(
-        width: 60.0,
-        height: 60.0,
-        child: _progressWidget,
-      ),
+      child: SizedBox(width: 60.0, height: 60.0, child: _progressWidget),
     );
 
     final text = Expanded(

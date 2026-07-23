@@ -14,67 +14,45 @@ extension EntitiesDB on FilesDB {
     final parameterSets = <List<Object?>>[];
     int batchCounter = 0;
     for (LocalEntityData e in data) {
-      parameterSets.add([
-        e.id,
-        e.type.name,
-        e.ownerID,
-        e.data,
-        e.updatedAt,
-      ]);
+      parameterSets.add([e.id, e.type.name, e.ownerID, e.data, e.updatedAt]);
       batchCounter++;
 
       if (batchCounter == 400) {
-        await db.executeBatch(
-          '''
+        await db.executeBatch('''
           INSERT OR ${conflictAlgorithm.name.toUpperCase()} 
           INTO entities (id, type, ownerID, data, updatedAt)
           VALUES (?, ?, ?, ?, ?)
-''',
-          parameterSets,
-        );
+''', parameterSets);
         parameterSets.clear();
         batchCounter = 0;
       }
     }
-    await db.executeBatch(
-      '''
+    await db.executeBatch('''
           INSERT OR ${conflictAlgorithm.name.toUpperCase()} 
           INTO entities (id, type, ownerID, data, updatedAt)
           VALUES (?, ?, ?, ?, ?)
-''',
-      parameterSets,
-    );
+''', parameterSets);
   }
 
-  Future<void> deleteEntities(
-    List<String> ids,
-  ) async {
+  Future<void> deleteEntities(List<String> ids) async {
     final db = await sqliteAsyncDB;
     final parameterSets = <List<Object?>>[];
     int batchCounter = 0;
     for (String id in ids) {
-      parameterSets.add(
-        [id],
-      );
+      parameterSets.add([id]);
       batchCounter++;
 
       if (batchCounter == 400) {
-        await db.executeBatch(
-          '''
+        await db.executeBatch('''
             DELETE FROM entities WHERE id = ?
-          ''',
-          parameterSets,
-        );
+          ''', parameterSets);
         parameterSets.clear();
         batchCounter = 0;
       }
     }
-    await db.executeBatch(
-      '''
+    await db.executeBatch('''
             DELETE FROM entities WHERE id = ?
-          ''',
-      parameterSets,
-    );
+          ''', parameterSets);
   }
 
   Future<List<LocalEntityData>> getCertainEntities(

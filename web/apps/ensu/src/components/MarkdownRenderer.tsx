@@ -1,3 +1,4 @@
+import { isTauriRuntime } from "@/services/tauri-runtime";
 import { Copy01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box, IconButton } from "@mui/material";
@@ -96,17 +97,10 @@ const CodeBlock = ({ children, node: _node, ...rest }: PreProps) => {
 };
 
 const openExternalUrl = async (url: string) => {
-    const hasTauriBridge =
-        typeof window !== "undefined" &&
-        ("__TAURI__" in window ||
-            "__TAURI_IPC__" in window ||
-            "__TAURI_INTERNALS__" in window ||
-            "__TAURI_METADATA__" in window);
-
-    if (hasTauriBridge) {
+    if (isTauriRuntime()) {
         try {
-            const { open } = await import("@tauri-apps/api/shell");
-            await open(url);
+            const { openUrl } = await import("@tauri-apps/plugin-opener");
+            await openUrl(url);
             return;
         } catch {
             // Fall back to the browser open path below.
@@ -121,6 +115,18 @@ const openExternalUrl = async (url: string) => {
     }
 };
 
+const safeExternalUrl = (href: string | undefined) => {
+    if (!href) return undefined;
+    try {
+        const url = new URL(href);
+        return ["http:", "https:", "mailto:"].includes(url.protocol)
+            ? url.toString()
+            : undefined;
+    } catch {
+        return undefined;
+    }
+};
+
 type AnchorProps = React.ComponentPropsWithoutRef<"a"> & { node?: unknown };
 
 const ExternalLink = ({
@@ -128,36 +134,39 @@ const ExternalLink = ({
     href,
     children,
     ...rest
-}: AnchorProps) => (
-    <a
-        {...rest}
-        href={href}
-        onClick={(e) => {
-            e.preventDefault();
-            if (href) void openExternalUrl(href);
-        }}
-    >
-        {children}
-    </a>
-);
+}: AnchorProps) => {
+    const safeHref = safeExternalUrl(href);
+    if (!safeHref) return <>{children}</>;
+
+    return (
+        <a
+            {...rest}
+            href={safeHref}
+            onClick={(e) => {
+                e.preventDefault();
+                if (safeHref) void openExternalUrl(safeHref);
+            }}
+        >
+            {children}
+        </a>
+    );
+};
 
 export const MarkdownRenderer = ({
     content,
     className,
 }: MarkdownRendererProps) => {
     return (
-        <ReactMarkdown
-            className={className}
-            remarkPlugins={[remarkGfm, remarkMath]}
-            rehypePlugins={[
-                [
-                    rehypeKatex,
-                    { strict: false, throwOnError: false, trust: true },
-                ],
-            ]}
-            components={{ pre: CodeBlock, a: ExternalLink }}
-        >
-            {content}
-        </ReactMarkdown>
+        <div className={className}>
+            <ReactMarkdown
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[
+                    [rehypeKatex, { strict: false, throwOnError: false }],
+                ]}
+                components={{ pre: CodeBlock, a: ExternalLink }}
+            >
+                {content}
+            </ReactMarkdown>
+        </div>
     );
 };

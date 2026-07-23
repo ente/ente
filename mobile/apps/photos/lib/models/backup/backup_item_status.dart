@@ -1,7 +1,1 @@
-enum BackupItemStatus {
-  uploading,
-  inQueue,
-  retry,
-  inBackground,
-  uploaded,
-}
+enum BackupItemStatus { uploading, inQueue, retry, inBackground, uploaded }

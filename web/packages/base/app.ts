@@ -1,3 +1,9 @@
+import {
+    buildEnvAppName,
+    buildEnvDesktopAppVersion,
+    buildEnvIsDesktop,
+} from "./env";
+
 export const appNames = [
     "accounts",
     "albums",
@@ -9,6 +15,7 @@ export const appNames = [
     "ensu",
     "locker",
     "legacy",
+    "space",
 ] as const;
 
 /**
@@ -34,7 +41,7 @@ export type AppName = (typeof appNames)[number];
  * such may be incorrect (e.g. when a new app gets added). So apps should
  * dynamically validate and log it once somewhere during init.
  */
-export const appName: AppName = process.env.appName as AppName;
+export const appName: AppName = buildEnvAppName as AppName;
 
 /**
  * True if we're running in our desktop app.
@@ -49,14 +56,14 @@ export const appName: AppName = process.env.appName as AppName;
  * positives, it'd need a runtime check of the form
  * `navigator.userAgent.includes("Electron")`.
  */
-export const isDesktop = process.env.isDesktop == "1";
+export const isDesktop = buildEnvIsDesktop;
 
 /**
  * Version of the desktop app.
  *
  * This is only defined when {@link isDesktop} is true.
  */
-export const desktopAppVersion = process.env.desktopAppVersion;
+export const desktopAppVersion = buildEnvDesktopAppVersion;
 
 /**
  * Static (English) title for the app.
@@ -75,6 +82,7 @@ export const staticAppTitle = {
     ensu: "Ensu",
     locker: "Ente Locker",
     legacy: "Ente Legacy Kit",
+    space: "Ente Space",
 }[appName];
 
 /**
@@ -103,6 +111,7 @@ export const clientPackageName = (() => {
         ensu: "io.ente.ensu",
         locker: "io.ente.locker.web",
         legacy: "io.ente.legacy.web",
+        space: "io.ente.space.web",
     }[appName];
 })();
 

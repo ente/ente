@@ -15,8 +15,9 @@ class ClipMemoriesCalculator {
     final List<ClipMemory> clipResults = [];
     if (allFiles.isEmpty) return [];
     final nowInMicroseconds = currentTime.microsecondsSinceEpoch;
-    final windowEnd =
-        currentTime.add(kMemoriesUpdateFrequency).microsecondsSinceEpoch;
+    final windowEnd = currentTime
+        .add(kMemoriesUpdateFrequency)
+        .microsecondsSinceEpoch;
     w?.log('allFiles setup');
 
     ClipMemory? buildClipMemory(ClipMemoryType clipMemoryType) {

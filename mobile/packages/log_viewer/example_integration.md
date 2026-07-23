@@ -13,15 +13,15 @@ import 'package:logging/logging.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize the log viewer
   await LogViewer.initialize();
-  
+
   // Set up logging
   Logger.root.level = Level.ALL;
-  
+
   // Log viewer automatically captures all logs - no manual setup needed!
-  
+
   runApp(MyApp());
 }
 
@@ -42,7 +42,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final Logger _logger = Logger('MyHomePage');
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,7 +110,7 @@ class LogConfig {
   final bool enableInDebugMode;
   final FutureOrVoidCallback? body;
   final String prefix;
-  
+
   LogConfig({
     this.logDirPath,
     this.maxLogFiles = 10,
@@ -123,13 +123,13 @@ class LogConfig {
 class SuperLogging {
   static final Logger _logger = Logger('SuperLogging');
   static late LogConfig config;
-  
+
   static Future<void> main([LogConfig? appConfig]) async {
     appConfig ??= LogConfig();
     SuperLogging.config = appConfig;
-    
+
     WidgetsFlutterBinding.ensureInitialized();
-    
+
     // Initialize log viewer in debug mode with prefix
     if (kDebugMode) {
       try {
@@ -139,23 +139,23 @@ class SuperLogging {
         _logger.warning("Failed to initialize log viewer: $e");
       }
     }
-    
+
     Logger.root.level = kDebugMode ? Level.ALL : Level.INFO;
     Logger.root.onRecord.listen(onLogRecord);
-    
+
     if (appConfig.body != null) {
       await appConfig.body!();
     }
   }
-  
+
   static Future<void> onLogRecord(LogRecord rec) async {
     final str = "${config.prefix} ${rec.toString()}";
-    
+
     // Print to console
     if (kDebugMode) {
       print(str);
     }
-    
+
     // Log viewer automatically captures all logs - no manual integration needed!
   }
 }
@@ -278,6 +278,7 @@ Once integrated, users will have access to:
 ## Troubleshooting
 
 If logs aren't appearing:
+
 1. Ensure `LogViewer.initialize()` is called early in app initialization
 2. Check that the app has write permissions for the database
 3. Verify that `Logger.root.level` is set appropriately (not OFF)

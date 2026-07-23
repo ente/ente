@@ -1,6 +1,6 @@
 package social
 
-import "github.com/ente-io/museum/ente"
+import "github.com/ente/museum/ente"
 
 // Actor represents a user identity (authenticated or anonymous) performing an action.
 type Actor struct {

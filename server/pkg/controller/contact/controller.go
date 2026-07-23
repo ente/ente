@@ -10,15 +10,15 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/ente-io/museum/ente"
-	contactmodel "github.com/ente-io/museum/ente/contact"
-	basecontroller "github.com/ente-io/museum/pkg/controller"
-	contactrepo "github.com/ente-io/museum/pkg/repo/contact"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	fileutil "github.com/ente-io/museum/pkg/utils/file"
-	"github.com/ente-io/museum/pkg/utils/s3config"
-	enteTime "github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	contactmodel "github.com/ente/museum/ente/contact"
+	basecontroller "github.com/ente/museum/pkg/controller"
+	contactrepo "github.com/ente/museum/pkg/repo/contact"
+	"github.com/ente/museum/pkg/utils/auth"
+	fileutil "github.com/ente/museum/pkg/utils/file"
+	"github.com/ente/museum/pkg/utils/s3config"
+	enteTime "github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -122,6 +122,7 @@ func (c *Controller) Update(ctx *gin.Context, contactID string, req contactmodel
 	if err := req.Validate(); err != nil {
 		return nil, stacktrace.Propagate(err, "invalid update contact request")
 	}
+	userID := auth.GetUserID(ctx.Request.Header)
 	exists, err := c.Repo.ContactUserExists(ctx, req.ContactUserID)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to validate contact user")
@@ -132,7 +133,22 @@ func (c *Controller) Update(ctx *gin.Context, contactID string, req contactmodel
 			"",
 		)
 	}
-	userID := auth.GetUserID(ctx.Request.Header)
+	updateState, err := c.Repo.GetContactUpdateState(ctx, userID, contactID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to fetch contact")
+	}
+	if updateState.IsDeleted || updateState.ContactUserID != req.ContactUserID {
+		canUpdate, err := c.Repo.CanCreateContact(ctx, userID, req.ContactUserID)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "failed to validate contact eligibility")
+		}
+		if !canUpdate {
+			return nil, stacktrace.Propagate(
+				ente.NewBadRequestWithMessage("contactUserID is not eligible to be added as a contact"),
+				"",
+			)
+		}
+	}
 	if err := c.Repo.Update(ctx, userID, contactID, req); err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
@@ -454,19 +470,19 @@ func getAttachmentBucketColumnMap(row contactmodel.Attachment) (map[string]strin
 	bucketColumnMap := make(map[string]string)
 	for _, bucketID := range row.DeleteFromBuckets {
 		if existingColumn, exists := bucketColumnMap[bucketID]; exists {
-			return nil, stacktrace.NewError("duplicate delete bucket " + bucketID + " in " + existingColumn)
+			return nil, stacktrace.NewError("duplicate delete bucket %s in %s", bucketID, existingColumn)
 		}
 		bucketColumnMap[bucketID] = contactrepo.DeletionColumn
 	}
 	for _, bucketID := range row.ReplicatedBuckets {
 		if existingColumn, exists := bucketColumnMap[bucketID]; exists {
-			return nil, stacktrace.NewError("duplicate replicated bucket " + bucketID + " in " + existingColumn)
+			return nil, stacktrace.NewError("duplicate replicated bucket %s in %s", bucketID, existingColumn)
 		}
 		bucketColumnMap[bucketID] = contactrepo.ReplicationColumn
 	}
 	for _, bucketID := range row.InflightRepBuckets {
 		if existingColumn, exists := bucketColumnMap[bucketID]; exists {
-			return nil, stacktrace.NewError("duplicate inflight bucket " + bucketID + " in " + existingColumn)
+			return nil, stacktrace.NewError("duplicate inflight bucket %s in %s", bucketID, existingColumn)
 		}
 		bucketColumnMap[bucketID] = contactrepo.InflightRepColumn
 	}
@@ -488,7 +504,6 @@ func (c *Controller) replicateAttachmentObject(ctx context.Context, row contactm
 	if downloader == nil {
 		s3Client := c.S3Config.GetS3Client(row.LatestBucket)
 		downloader = s3manager.NewDownloaderWithClient(&s3Client)
-		c.downloadManagerCache[row.LatestBucket] = downloader
 	}
 	_, err = downloader.DownloadWithContext(ctx, file, &s3.GetObjectInput{
 		Bucket: c.S3Config.GetBucket(row.LatestBucket),

@@ -15,9 +15,10 @@ import "package:photo_view/photo_view.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/metadata/file_magic.dart";
+import "package:photos/module/metadata/local_file.dart";
+import "package:photos/module/metadata/video.dart";
 import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
-import "package:photos/utils/exif_util.dart";
 import "package:receive_sharing_intent/receive_sharing_intent.dart";
 import "package:video_player/video_player.dart";
 
@@ -107,13 +108,14 @@ class FileViewerState extends State<FileViewer> {
 
       final videoFile = File(videoPath);
       if (!await videoFile.exists()) {
-        _logger
-            .warning("Video file does not exist, using default aspect ratio");
+        _logger.warning(
+          "Video file does not exist, using default aspect ratio",
+        );
         aspectRatio = 16 / 9;
         return;
       }
 
-      final videoProps = await getVideoPropsAsync(videoFile);
+      final videoProps = await getVideoProps(videoFile);
       if (videoProps != null &&
           videoProps.width != null &&
           videoProps.height != null &&
@@ -160,9 +162,7 @@ class FileViewerState extends State<FileViewer> {
     );
     controller!.addListener(() {
       if (!controller!.isFullScreen) {
-        SystemChrome.setPreferredOrientations(
-          [DeviceOrientation.portraitUp],
-        );
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
       }
     });
     if (mounted) {
@@ -224,8 +224,9 @@ class FileViewerState extends State<FileViewer> {
         return null;
       }
       final assets = await _reviewGalleryWindow(source);
-      var selectedIndex =
-          assets.indexWhere((asset) => asset.id == targetAsset.id);
+      var selectedIndex = assets.indexWhere(
+        (asset) => asset.id == targetAsset.id,
+      );
       if (selectedIndex < 0) {
         assets.insert(0, targetAsset);
         selectedIndex = 0;
@@ -253,7 +254,6 @@ class FileViewerState extends State<FileViewer> {
         fileSelectedIndex,
         "external_review_gallery",
         isLocalOnlyContext: true,
-        showEditAction: false,
         galleryType: GalleryType.localFolder,
         onBackPressed: (_) => _closeViewer(),
       );
@@ -279,9 +279,7 @@ class FileViewerState extends State<FileViewer> {
     );
   }
 
-  Future<List<AssetPathEntity>> _reviewGalleryPaths({
-    required bool hasAll,
-  }) {
+  Future<List<AssetPathEntity>> _reviewGalleryPaths({required bool hasAll}) {
     return PhotoManager.getAssetPathList(
       hasAll: hasAll,
       type: RequestType.common,
@@ -369,8 +367,10 @@ class FileViewerState extends State<FileViewer> {
     _ReviewGallerySource source,
   ) async {
     const halfWindow = _reviewGalleryWindowSize ~/ 2;
-    final initialEnd =
-        math.min(source.count, source.targetIndex + halfWindow + 1);
+    final initialEnd = math.min(
+      source.count,
+      source.targetIndex + halfWindow + 1,
+    );
     final start = math.max(
       0,
       math.min(
@@ -383,7 +383,7 @@ class FileViewerState extends State<FileViewer> {
   }
 
   Future<EnteFile> _fileFromAsset(String pathName, AssetEntity asset) async {
-    final file = await EnteFile.fromAsset(pathName, asset);
+    final file = fileFromAsset(pathName, asset);
     file.pubMagicMetadata = PubMagicMetadata(
       w: asset.orientatedWidth,
       h: asset.orientatedHeight,

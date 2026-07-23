@@ -54,10 +54,7 @@ func TestDecryptChaCha20poly1305(t *testing.T) {
 
 func TestEncryptAndDecryptChaCha20Ploy1305(t *testing.T) {
 	key := make([]byte, 32)
-	_, err := rand.Read(key)
-	if err != nil {
-		t.Fatalf("Failed to generate random key: %v", err)
-	}
+	rand.Read(key)
 	cipher, nonce, err := EncryptChaCha20poly1305([]byte("plain_text"), key)
 	if err != nil {
 		return

@@ -49,5 +49,4 @@ Instead of a one-time upload, you can use [watch folders](/photos/features/backu
 
 **Files being skipped**: Check [files not uploading](/photos/faq/troubleshooting) for common solutions
 
-If you run into any issues during uploads, please reach out to
-[support@ente.com](mailto:support@ente.com) and we will be happy to help you!
+If you run into any issues during uploads, please reach out to [support@ente.com](mailto:support@ente.com) and we will be happy to help you!

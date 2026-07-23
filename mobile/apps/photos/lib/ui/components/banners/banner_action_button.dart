@@ -3,10 +3,7 @@ import "package:photos/l10n/l10n.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 
-enum BannerActionButtonVariant {
-  neutral,
-  primary,
-}
+enum BannerActionButtonVariant { neutral, primary }
 
 class BannerActionButton extends StatelessWidget {
   final String label;
@@ -44,10 +41,12 @@ class BannerActionButton extends StatelessWidget {
       fontWeight: FontWeight.w700,
     );
 
-    final resolvedTagBackgroundColor =
-        stickTagToLightTheme ? fillLight : colorScheme.fillReverse;
-    final resolvedTagForegroundColor =
-        stickTagToLightTheme ? contentLight : colorScheme.contentReverse;
+    final resolvedTagBackgroundColor = stickTagToLightTheme
+        ? fillLight
+        : colorScheme.fillReverse;
+    final resolvedTagForegroundColor = stickTagToLightTheme
+        ? contentLight
+        : colorScheme.contentReverse;
     final tagTextStyle = textTheme.miniBold.copyWith(
       color: resolvedTagForegroundColor,
       fontWeight: FontWeight.w900,
@@ -65,11 +64,7 @@ class BannerActionButton extends StatelessWidget {
           color: resolvedBackgroundColor,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Text(
-          label,
-          style: buttonTextStyle,
-          textAlign: TextAlign.center,
-        ),
+        child: Text(label, style: buttonTextStyle, textAlign: TextAlign.center),
       ),
     );
 
@@ -79,6 +74,7 @@ class BannerActionButton extends StatelessWidget {
 
     return Stack(
       clipBehavior: Clip.none,
+      fit: StackFit.passthrough,
       children: [
         Positioned(
           top: -17,
@@ -91,10 +87,7 @@ class BannerActionButton extends StatelessWidget {
                 color: resolvedTagBackgroundColor,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Text(
-                tagLabel,
-                style: tagTextStyle,
-              ),
+              child: Text(tagLabel, style: tagTextStyle),
             ),
           ),
         ),

@@ -4,13 +4,13 @@ import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 // import 'package:flutter/foundation.dart';
 // import 'package:flutter_inapp_purchase/flutter_inapp_purchase.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:logging/logging.dart';
 import "package:photos/gateways/billing/billing_gateway.dart";
 import 'package:photos/gateways/billing/models/billing_plan.dart';
 import 'package:photos/gateways/billing/models/subscription.dart';
 import 'package:photos/models/user_details.dart';
 import "package:photos/service_locator.dart";
+import "package:photos/services/account/purchase_update_listener.dart";
 import 'package:photos/ui/family/family_plan_page.dart';
 import 'package:photos/utils/dialog_util.dart';
 
@@ -43,23 +43,10 @@ class BillingService {
     //   await FlutterInappPurchase.instance.initConnection;
     //   FlutterInappPurchase.instance.clearTransactionIOS();
     // }
-    InAppPurchase.instance.purchaseStream.listen((purchases) {
-      if (_isOnSubscriptionPage) {
-        return;
-      }
-      for (final purchase in purchases) {
-        if (purchase.status == PurchaseStatus.purchased) {
-          verifySubscription(
-            purchase.productID,
-            purchase.verificationData.serverVerificationData,
-          ).then((response) {
-            InAppPurchase.instance.completePurchase(purchase);
-          });
-        } else if (Platform.isIOS && purchase.pendingCompletePurchase) {
-          InAppPurchase.instance.completePurchase(purchase);
-        }
-      }
-    });
+    listenForPurchaseUpdates(
+      isOnSubscriptionPage: () => _isOnSubscriptionPage,
+      verifySubscription: verifySubscription,
+    );
   }
 
   void clearCache() {
@@ -72,9 +59,9 @@ class BillingService {
   }
 
   Future<Subscription> verifySubscription(
-    final productID,
-    final verificationData, {
-    final paymentProvider,
+    final String productID,
+    final String verificationData, {
+    final String? paymentProvider,
   }) async {
     try {
       return await _gateway.verifySubscription(
@@ -149,6 +136,7 @@ class BillingService {
         ),
       );
     } catch (e) {
+      if (!context.mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }

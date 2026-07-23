@@ -1,11 +1,7 @@
 import "dart:async";
 
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_events/event_bus.dart';
-import "package:ente_ui/components/title_bar_title_widget.dart";
-import "package:ente_ui/theme/colors.dart";
-import 'package:ente_ui/theme/ente_theme.dart';
-import "package:ente_ui/theme/text_style.dart";
-import "package:ente_ui/utils/dialog_util.dart";
 import 'package:flutter/material.dart';
 import "package:hugeicons/hugeicons.dart";
 import 'package:locker/events/collections_updated_event.dart';
@@ -26,6 +22,7 @@ import 'package:locker/ui/pages/home_page.dart';
 import 'package:locker/ui/pages/uploader_page.dart';
 import "package:locker/ui/sharing/share_collection_bottom_sheet.dart";
 import "package:locker/ui/viewer/actions/file_selection_overlay_bar.dart";
+import "package:locker/utils/error_sheet.dart";
 import "package:logging/logging.dart";
 
 class CollectionPage extends UploaderPage {
@@ -46,7 +43,7 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
     with SearchMixin {
   final _logger = Logger("CollectionPage");
   late StreamSubscription<CollectionsUpdatedEvent>
-      _collectionUpdateSubscription;
+  _collectionUpdateSubscription;
 
   late Collection _collection;
   List<EnteFile> _files = [];
@@ -57,6 +54,7 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
 
   final _selectedFiles = SelectedFiles();
   final _scrollController = ScrollController();
+  final _keyboardFocusNode = FocusNode();
 
   @override
   void onFileUploadComplete() {
@@ -101,7 +99,9 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
   @override
   void dispose() {
     _collectionUpdateSubscription.cancel();
+    _keyboardFocusNode.dispose();
     _scrollController.dispose();
+    _selectedFiles.dispose();
     super.dispose();
   }
 
@@ -115,8 +115,9 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
   void initState() {
     super.initState();
     _initializeData(widget.collection);
-    _collectionUpdateSubscription =
-        Bus.instance.on<CollectionsUpdatedEvent>().listen((event) async {
+    _collectionUpdateSubscription = Bus.instance.on<CollectionsUpdatedEvent>().listen((
+      event,
+    ) async {
       _logger.info(
         "CollectionsUpdatedEvent received on CollectionPage (${widget.collection.id}): ${event.source}",
       );
@@ -149,6 +150,7 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
       Configuration.instance.getUserID()!,
     );
     isFavorite = collectionViewType == CollectionViewType.favorite;
+    isQuickLink = collectionViewType == CollectionViewType.quickLink;
   }
 
   Future<void> _initializeData(Collection collection) async {
@@ -167,9 +169,7 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
           collectionViewType != CollectionViewType.hiddenOwnedCollection &&
           collectionViewType != CollectionViewType.favorite &&
           !isQuickLink)) {
-        throw Exception(
-          "Cannot share collection of type $collectionViewType",
-        );
+        throw Exception("Cannot share collection of type $collectionViewType");
       }
 
       await showShareCollectionSheet(context, collection: _collection);
@@ -178,38 +178,30 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
       }
     } catch (e, s) {
       _logger.severe(e, s);
-      await showGenericErrorBottomSheet(context: context, error: e);
+      if (!mounted) return;
+      await showLockerErrorSheet(context, e);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
 
     return KeyboardListener(
-      focusNode: FocusNode(),
+      focusNode: _keyboardFocusNode,
       onKeyEvent: handleKeyEvent,
       child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: colorScheme.backgroundBase,
-          surfaceTintColor: Colors.transparent,
-          toolbarHeight: 48,
-          leadingWidth: 48,
-          leading: GestureDetector(
-            onTap: () {
-              Navigator.pop(context);
-            },
-            child: const Icon(
-              Icons.arrow_back_outlined,
-            ),
-          ),
-        ),
-        backgroundColor: colorScheme.backgroundBase,
+        backgroundColor: colors.backgroundBase,
         body: Stack(
           alignment: Alignment.bottomCenter,
           children: [
-            _buildBody(colorScheme, textTheme),
+            AppBarComponent(
+              title: _collection.displayName ?? context.l10n.untitled,
+              subtitle: context.l10n.items(_displayedFiles.length),
+              actions: _buildActions(),
+              controller: _scrollController,
+              slivers: _buildSlivers(context),
+            ),
             FileSelectionOverlayBar(
               files: _displayedFiles,
               selectedFiles: _selectedFiles,
@@ -222,128 +214,85 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
     );
   }
 
-  Widget _buildShareButton(EnteColorScheme colorScheme) {
-    if (isFavorite) {
-      return const SizedBox.shrink();
+  List<Widget> _buildActions() {
+    if (widget.isUncategorized || isFavorite) {
+      return const [];
     }
-    final canShare = collectionViewType == CollectionViewType.ownedCollection ||
+
+    final actions = <Widget>[];
+
+    final canShare =
+        collectionViewType == CollectionViewType.ownedCollection ||
         collectionViewType == CollectionViewType.hiddenOwnedCollection ||
         collectionViewType == CollectionViewType.sharedCollectionViewer ||
         collectionViewType == CollectionViewType.sharedCollectionCollaborator ||
         isQuickLink;
-    if (!canShare) {
-      return const SizedBox.shrink();
-    }
-    return GestureDetector(
-      onTap: _shareCollection,
-      child: Container(
-        height: 44,
-        width: 44,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: colorScheme.backdropBase,
+    if (canShare) {
+      actions.add(
+        IconButtonComponent(
+          icon: const HugeIcon(icon: HugeIcons.strokeRoundedShare08),
+          variant: IconButtonComponentVariant.primary,
+          shouldSurfaceExecutionStates: false,
+          onTap: _shareCollection,
         ),
-        padding: const EdgeInsets.all(12),
-        child: HugeIcon(
-          icon: HugeIcons.strokeRoundedShare08,
-          color: colorScheme.textBase,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMenuButton(EnteColorScheme colorScheme) {
-    if (isFavorite) {
-      return SizedBox.fromSize();
-    }
-    final canManageCollection = collectionViewType ==
-            CollectionViewType.ownedCollection ||
-        collectionViewType == CollectionViewType.hiddenOwnedCollection ||
-        collectionViewType == CollectionViewType.sharedCollectionViewer ||
-        collectionViewType == CollectionViewType.sharedCollectionCollaborator ||
-        collectionViewType == CollectionViewType.quickLink;
-    if (!canManageCollection) {
-      return SizedBox.fromSize();
-    }
-
-    return CollectionPopupMenuWidget(
-      collection: _collection,
-      child: Container(
-        height: 44,
-        width: 44,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: colorScheme.backdropBase,
-        ),
-        padding: const EdgeInsets.all(12),
-        child: HugeIcon(
-          icon: HugeIcons.strokeRoundedMoreVertical,
-          color: colorScheme.textBase,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBody(EnteColorScheme colorScheme, EnteTextTheme textTheme) {
-    if (isSearchActive) {
-      return SearchResultView(
-        collections: const [], // CollectionPage primarily shows files
-        files: _filteredFiles,
-        searchQuery: searchQuery,
-        isHomePage: false,
-        onSearchEverywhere: _searchEverywhere,
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TitleBarTitleWidget(
-                title: _collection.displayName ?? context.l10n.untitled,
-                trailingWidgets: widget.isUncategorized
-                    ? const []
-                    : [
-                        _buildShareButton(colorScheme),
-                        const SizedBox(width: 12),
-                        _buildMenuButton(colorScheme),
-                      ],
-              ),
-              Text(
-                _displayedFiles.length.toString(),
-                style: textTheme.smallMuted,
-              ),
-            ],
+    final canManageCollection = canShare;
+    if (canManageCollection) {
+      actions.add(CollectionPopupMenuWidget(collection: _collection));
+    }
+
+    return actions;
+  }
+
+  List<Widget> _buildSlivers(BuildContext context) {
+    if (isSearchActive) {
+      return [
+        SliverToBoxAdapter(
+          child: SearchResultView(
+            collections: const [],
+            files: _filteredFiles,
+            searchQuery: searchQuery,
+            isHomePage: false,
+            onSearchEverywhere: _searchEverywhere,
           ),
         ),
-        Expanded(
+      ];
+    }
+
+    if (_displayedFiles.isEmpty) {
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
           child: Padding(
             padding: const EdgeInsets.all(16.0),
-            child: _displayedFiles.isEmpty
-                ? Center(
-                    child: EmptyStateWidget(
-                      assetPath: 'assets/empty_state.png',
-                      title: context.l10n.collectionEmptyStateTitle,
-                      subtitle: context.l10n.collectionEmptyStateSubtitle,
-                      showBorder: false,
-                    ),
-                  )
-                : ItemListView(
-                    key: ValueKey(_displayedFiles.length),
-                    files: _displayedFiles,
-                    selectedFiles: _selectedFiles,
-                    scrollController: _scrollController,
-                    physics: const BouncingScrollPhysics(),
-                    selectionEnabled: _isSelectionEnabled,
-                  ),
+            child: Center(
+              child: EmptyStateWidget(
+                assetPath: 'assets/empty_state.png',
+                title: context.l10n.collectionEmptyStateTitle,
+                subtitle: context.l10n.collectionEmptyStateSubtitle,
+                showBorder: false,
+              ),
+            ),
           ),
         ),
-      ],
-    );
+      ];
+    }
+
+    return [
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        sliver: SliverToBoxAdapter(
+          child: ItemListView(
+            key: ValueKey(_displayedFiles.length),
+            files: _displayedFiles,
+            selectedFiles: _selectedFiles,
+            selectionEnabled: _isSelectionEnabled,
+          ),
+        ),
+      ),
+    ];
   }
 
   void _searchEverywhere() {

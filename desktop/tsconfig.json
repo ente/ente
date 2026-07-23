@@ -7,18 +7,17 @@
      * Recommended target, lib and other settings for code running in the
      * version of Node.js bundled with Electron.
      *
-     * Currently, with Electron 41, this is Node.js 24.14.0.
-     * https://releases.electronjs.org/release/v41.0.0
+     * Currently, with Electron 42, this is Node.js 24.15.0.
+     * https://releases.electronjs.org/release/v42.0.0
      */
     /* TSConfig docs: https://aka.ms/tsconfig.json */
     "compilerOptions": {
-        /* Mirror the runtime baseline of Electron 41. We inline the
-           Node 24 preset here because our pinned TypeScript 5.8.3 does not
-           yet accept one of @tsconfig/node24's lib entries (ESNext.Error). */
+        /* Mirror the runtime baseline of Electron 42. */
         "lib": [
             "ES2024",
             "ESNext.Array",
             "ESNext.Collection",
+            "ESNext.Error",
             "ESNext.Iterator",
             "ESNext.Promise"
         ],
@@ -27,8 +26,10 @@
         "esModuleInterop": true,
         "skipLibCheck": true,
         "moduleResolution": "node16",
+        "types": ["node"],
 
         /* Emit the generated JS into `app/` */
+        "rootDir": "src",
         "outDir": "app",
 
         /* Require the `type` modifier when importing types */

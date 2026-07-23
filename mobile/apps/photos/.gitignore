@@ -1,58 +1,16 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.buildlog/
-.history
-.svn/
-
-# Editors
-.vscode/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-.pub-cache/
-.pub/
-/build/
-**/.gradle/
-lib/l10n/untranslated_messages.json
-
-# Web related
-lib/generated_plugin_registrant.dart
-
-# Exceptions to above rules.
-!/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
-
-android/key.properties
-android/app/.settings/*
-android/.settings/
-android/.kotlin/
 .env
 
 fastlane/report.xml
 
-# Android related
-android/app/build/
-
 # FVM Version Cache
 .fvm/
 
+# Generated l10n audit output
+lib/l10n/untranslated_messages.json
+
 lib/generated/intl/app_localizations*.dart
 
-# Generated rust bindings
+# Generated FRB dart bindings
 lib/src/rust/*
-rust/src/frb_generated*
+
 test/**/*.mocks.dart

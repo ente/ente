@@ -23,9 +23,9 @@ class AlignmentResult {
   }
 
   Map<String, dynamic> toJson() => {
-        'affineMatrix': affineMatrix,
-        'center': center,
-        'size': size,
-        'rotation': rotation,
-      };
+    'affineMatrix': affineMatrix,
+    'center': center,
+    'size': size,
+    'rotation': rotation,
+  };
 }

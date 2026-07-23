@@ -68,21 +68,19 @@ class TitleBarWidget extends StatelessWidget {
       actions: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            children: _actionsWithPaddingInBetween(),
-          ),
+          child: Row(children: _actionsWithPaddingInBetween()),
         ),
       ],
       leading: isTitleH2WithoutLeading
           ? null
           : leading ??
-              IconButtonWidget(
-                icon: Icons.arrow_back_outlined,
-                iconButtonType: IconButtonType.primary,
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
+                IconButtonWidget(
+                  icon: Icons.arrow_back_outlined,
+                  iconButtonType: IconButtonType.primary,
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
       flexibleSpace: isFlexibleSpaceDisabled
           ? null
           : FlexibleSpaceBar(
@@ -123,7 +121,7 @@ class TitleBarWidget extends StatelessWidget {
     );
   }
 
-  _actionsWithPaddingInBetween() {
+  List<Widget> _actionsWithPaddingInBetween() {
     if (actionIcons == null) {
       return <Widget>[const SizedBox.shrink()];
     }
@@ -135,7 +133,7 @@ class TitleBarWidget extends StatelessWidget {
       return <Widget>[const SizedBox.shrink()];
     }
     if (length == 1) {
-      return actionIcons;
+      return actionIcons!;
     }
     while (index < length) {
       if (!addWhiteSpace) {

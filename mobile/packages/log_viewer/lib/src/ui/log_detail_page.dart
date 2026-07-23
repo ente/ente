@@ -6,10 +6,7 @@ import 'package:log_viewer/src/core/log_models.dart';
 class LogDetailPage extends StatelessWidget {
   final LogEntry log;
 
-  const LogDetailPage({
-    super.key,
-    required this.log,
-  });
+  const LogDetailPage({super.key, required this.log});
 
   void _copyToClipboard(BuildContext context, String text, String label) {
     Clipboard.setData(ClipboardData(text: text));
@@ -58,10 +55,7 @@ class LogDetailPage extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.cardColor,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: theme.dividerColor,
-                width: 1,
-              ),
+              border: Border.all(color: theme.dividerColor, width: 1),
             ),
             child: SelectableText(
               content,
@@ -122,11 +116,8 @@ class LogDetailPage extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.copy),
-            onPressed: () => _copyToClipboard(
-              context,
-              log.toString(),
-              'Complete log',
-            ),
+            onPressed: () =>
+                _copyToClipboard(context, log.toString(), 'Complete log'),
             tooltip: 'Copy all',
           ),
         ],

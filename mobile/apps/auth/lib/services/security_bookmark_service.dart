@@ -63,10 +63,7 @@ class SecurityBookmarkService {
 }
 
 class DirectoryPickResult {
-  const DirectoryPickResult({
-    required this.path,
-    required this.bookmark,
-  });
+  const DirectoryPickResult({required this.path, required this.bookmark});
 
   final String path;
   final String bookmark;

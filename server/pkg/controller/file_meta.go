@@ -1,10 +1,9 @@
 package controller
 
 import (
-    "fmt"
-    "github.com/ente-io/museum/ente"
-    "github.com/ente-io/stacktrace"
-    "github.com/gin-gonic/gin"
+	"github.com/ente/museum/ente"
+	"github.com/ente/stacktrace"
+	"github.com/gin-gonic/gin"
 )
 
 // CreateMetaFile adds an entry for a file in the respective tables
@@ -22,9 +21,9 @@ func (c *FileController) CreateMetaFile(ctx *gin.Context, userID int64, file ent
 		return nil, stacktrace.Propagate(ente.ErrCollectionDeleted, "collection has been deleted")
 	}
 	// Restrict meta-file creation to locker app and locker collections.
-    if app != ente.Locker || ente.App(collection.App) != ente.Locker {
-        return nil, stacktrace.Propagate(ente.ErrInvalidApp, fmt.Sprintf("meta file creation restricted to locker; app=%s collectionApp=%s", app, collection.App))
-    }
+	if app != ente.Locker || ente.App(collection.App) != ente.Locker {
+		return nil, stacktrace.Propagate(ente.ErrInvalidApp, "meta file creation restricted to locker; app=%s collectionApp=%s", app, collection.App)
+	}
 	if file.OwnerID != userID {
 		return nil, stacktrace.Propagate(ente.ErrPermissionDenied, "file ownerID doesn't match with userID")
 	}

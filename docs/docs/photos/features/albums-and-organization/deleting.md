@@ -16,7 +16,9 @@ When you delete a photo in Ente:
 3. **Automatic permanent deletion** - After 30 days, the file is permanently deleted and cannot be recovered
 4. **Manual permanent deletion** - You can also manually empty trash or delete specific items at any time
 
-**Important**: Items in Trash count toward your storage quota until permanently deleted.
+> [!IMPORTANT]
+>
+> Items in Trash count toward your storage quota until permanently deleted.
 
 ## Deleting Photos
 
@@ -75,7 +77,7 @@ Trash is a special folder where deleted photos are held temporarily before perma
 **On mobile:**
 
 1. Open the Albums tab
-2. Scroll to the bottom
+2. Tap on 'v' icon at the right.
 3. Tap "Trash"
 
 **On web/desktop:**
@@ -101,9 +103,10 @@ If you accidentally deleted photos, you can restore them from Trash within 30 da
 ### On mobile
 
 1. Open the Albums tab
-2. Scroll to the bottom and tap "Trash"
-3. Select the photos you want to restore
-4. Tap the "Restore" button
+2. Tap on 'v' icon at the right.
+3. Tap "Trash"
+4. Select the photos you want to restore
+5. Tap the "Restore" button
 
 ### On web/desktop
 
@@ -116,7 +119,9 @@ Restored photos will be moved to an album of choice.
 
 ### Recovery time limit
 
-**Important**: You can only recover files within 30 days of deletion. After 30 days, files are permanently deleted and cannot be recovered. This is an irreversible operation.
+> [!IMPORTANT]
+>
+> You can only recover files within 30 days of deletion. After 30 days, files are permanently deleted and cannot be recovered. This is an irreversible operation.
 
 If you're unsure about deleting certain items, we recommend:
 
@@ -128,7 +133,9 @@ If you're unsure about deleting certain items, we recommend:
 
 To free up storage space immediately, you can permanently delete items from Trash.
 
-> **Warning**: Permanently deleted items cannot be recovered. This action is irreversible.
+> [!WARNING]
+>
+> Permanently deleted items cannot be recovered. This action is irreversible.
 
 ### Emptying all trash
 
@@ -198,8 +205,7 @@ In collaborative albums, deletion permissions vary by role:
 - You can manage link settings
 - You can delete the entire album
 
-**When someone leaves:**
-When a participant leaves or is removed from a shared album, any photos they uploaded are also removed from that album (but remain in their personal library).
+**When someone leaves:** When a participant leaves or is removed from a shared album, any photos they uploaded are also removed from that album (but remain in their personal library).
 
 ### Suggest deletion
 
@@ -225,7 +231,9 @@ This is useful for:
 - Curating event albums by suggesting removal of low-quality shots
 - Helping participants identify photos they might want to delete
 
-> **Note**: Suggest deletion is currently available on mobile apps only.
+> [!NOTE]
+>
+> Suggest deletion is currently available on mobile apps only.
 
 Learn more in the [collaboration guide](/photos/features/sharing-and-collaboration/collaboration#suggest-deletion).
 
@@ -242,7 +250,9 @@ Learn more about [Sharing and collaboration](/photos/features/sharing-and-collab
 
 ### Device deletion does not sync
 
-**Important**: If you delete a photo from your device's native photos app (iOS Photos, Google Photos, etc.), it will **not** be automatically deleted from Ente.
+> [!IMPORTANT]
+>
+> If you delete a photo from your device's native photos app (iOS Photos, Google Photos, etc.), it will **not** be automatically deleted from Ente.
 
 This is by design for two reasons:
 

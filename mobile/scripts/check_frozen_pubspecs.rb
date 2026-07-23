@@ -6,26 +6,6 @@ SECTIONS = %w[dependencies dev_dependencies dependency_overrides].freeze
 FULL_SHA = /\A[0-9a-f]{40}\z/.freeze
 SPECIAL_VERSION_TOKENS = %w[any].freeze
 
-def lockfiles_for(paths)
-  return Dir["mobile/apps/**/pubspec.lock"].sort if paths.empty?
-
-  paths.flat_map do |path|
-    if File.file?(path)
-      if File.basename(path) == "pubspec.lock"
-        path
-      elsif File.basename(path) == "pubspec.yaml" && File.exist?(path.sub(/\.yaml\z/, ".lock"))
-        path.sub(/\.yaml\z/, ".lock")
-      else
-        []
-      end
-    elsif File.directory?(path)
-      Dir[File.join(path, "**", "pubspec.lock")]
-    else
-      []
-    end
-  end.uniq.sort
-end
-
 def lock_package(lock_data, name)
   (lock_data["packages"] || {})[name]
 end
@@ -115,22 +95,7 @@ def validate_spec(errors, pubspec, section, name, spec, locked)
   end
 end
 
-lockfiles = lockfiles_for(ARGV)
-if lockfiles.empty?
-  warn "No pubspec.lock files found to validate."
-  exit 1
-end
-
-errors = []
-
-lockfiles.each do |lockfile|
-  pubspec = lockfile.sub(/\.lock\z/, ".yaml")
-  unless File.exist?(pubspec)
-    errors << "#{lockfile}: matching pubspec.yaml not found"
-    next
-  end
-
-  lock_data = YAML.load_file(lockfile)
+def validate_pubspec(errors, pubspec, lock_data)
   pubspec_data = YAML.load_file(pubspec)
 
   SECTIONS.each do |section|
@@ -143,8 +108,32 @@ lockfiles.each do |lockfile|
   end
 end
 
+workspace_root = ARGV[0] || "mobile"
+root_pubspec = File.join(workspace_root, "pubspec.yaml")
+root_lock = File.join(workspace_root, "pubspec.lock")
+
+unless File.exist?(root_pubspec) && File.exist?(root_lock)
+  warn "Workspace root pubspec.yaml/pubspec.lock not found under #{workspace_root.inspect}."
+  exit 1
+end
+
+root_lock_data = YAML.load_file(root_lock)
+members = YAML.load_file(root_pubspec)["workspace"] || []
+
+targets = [root_pubspec]
+targets += members.map { |m| File.join(workspace_root, m, "pubspec.yaml") }
+targets += Dir[File.join(workspace_root, "**", "pubspec.lock")].map { |l| l.sub(/\.lock\z/, ".yaml") }
+targets.uniq!
+
+errors = []
+targets.each do |pubspec|
+  sibling_lock = pubspec.sub(/\.yaml\z/, ".lock")
+  lock_data = File.exist?(sibling_lock) ? YAML.load_file(sibling_lock) : root_lock_data
+  validate_pubspec(errors, pubspec, lock_data)
+end
+
 if errors.empty?
-  puts "Verified frozen pubspecs for #{lockfiles.length} package(s)."
+  puts "Verified frozen pubspecs for #{targets.size} package(s)."
   exit 0
 end
 

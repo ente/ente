@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/ui/tools/editor/image_editor/circular_icon_button.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_configs_mixin.dart";
@@ -36,9 +37,7 @@ class ImageEditorMainBottomBarState extends State<ImageEditorMainBottomBar>
       builder: (context, constraints) {
         return Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildFunctions(constraints),
-          ],
+          children: [_buildFunctions(constraints)],
         );
       },
     );
@@ -53,10 +52,7 @@ class ImageEditorMainBottomBarState extends State<ImageEditorMainBottomBar>
         layoutBuilder: (currentChild, previousChildren) => Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.bottomCenter,
-          children: <Widget>[
-            ...previousChildren,
-            if (currentChild != null) currentChild,
-          ],
+          children: <Widget>[...previousChildren, ?currentChild],
         ),
         duration: const Duration(milliseconds: 400),
         reverseDuration: const Duration(milliseconds: 0),
@@ -72,8 +68,8 @@ class ImageEditorMainBottomBarState extends State<ImageEditorMainBottomBar>
           );
         },
         switchInCurve: Curves.ease,
-        child: widget.editor.isSubEditorOpen &&
-                !widget.editor.isSubEditorClosing
+        child:
+            widget.editor.isSubEditorOpen && !widget.editor.isSubEditorClosing
             ? const SizedBox.shrink()
             : Align(
                 alignment: Alignment.center,
@@ -90,37 +86,35 @@ class ImageEditorMainBottomBarState extends State<ImageEditorMainBottomBar>
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
                         CircularIconButton(
-                          svgPath: "assets/image-editor/image-editor-crop.svg",
+                          hugeIcon: HugeIcons.strokeRoundedCrop,
                           label: AppLocalizations.of(context).crop,
                           onTap: () {
                             widget.editor.openCropRotateEditor();
                           },
                         ),
                         CircularIconButton(
-                          svgPath:
-                              "assets/image-editor/image-editor-filter.svg",
+                          hugeIcon: HugeIcons.strokeRoundedFilter,
                           label: AppLocalizations.of(context).filter,
                           onTap: () {
                             widget.editor.openFilterEditor();
                           },
                         ),
                         CircularIconButton(
-                          svgPath: "assets/image-editor/image-editor-tune.svg",
+                          hugeIcon: HugeIcons.strokeRoundedSlidersHorizontal,
                           label: AppLocalizations.of(context).adjust,
                           onTap: () {
                             widget.editor.openTuneEditor();
                           },
                         ),
                         CircularIconButton(
-                          svgPath: "assets/image-editor/image-editor-paint.svg",
+                          hugeIcon: HugeIcons.strokeRoundedPaintBrush01,
                           label: AppLocalizations.of(context).draw,
                           onTap: () {
                             widget.editor.openPaintEditor();
                           },
                         ),
                         CircularIconButton(
-                          svgPath:
-                              "assets/image-editor/image-editor-sticker.svg",
+                          hugeIcon: HugeIcons.strokeRoundedSticker,
                           label: AppLocalizations.of(context).sticker,
                           onTap: () {
                             widget.editor.openEmojiEditor();

@@ -3,9 +3,9 @@ title: Collect Photos
 description: Collect photos from others into your Ente Photos albums
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Collect Photos

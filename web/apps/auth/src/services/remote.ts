@@ -1,3 +1,4 @@
+import { codeFromURIString, type Code } from "@/services/code";
 import { decryptBox, decryptMetadataJSON } from "ente-base/crypto";
 import {
     authenticatedRequestHeaders,
@@ -8,7 +9,6 @@ import log from "ente-base/log";
 import { apiURL } from "ente-base/origins";
 import { ensureString } from "ente-utils/ensure";
 import { nullToUndefined } from "ente-utils/transform";
-import { codeFromURIString, type Code } from "services/code";
 import { z } from "zod";
 
 export interface AuthCodesAndTimeOffset {

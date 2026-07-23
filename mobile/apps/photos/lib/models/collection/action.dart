@@ -16,13 +16,15 @@ class CollectionAction {
   final String action;
 
   factory CollectionAction.fromJson(Map<String, dynamic> json) {
-    final userID = _parseInt(json["userID"] ?? json["userId"]) ??
+    final userID =
+        _parseInt(json["userID"] ?? json["userId"]) ??
         (throw ArgumentError("CollectionAction.userID is missing"));
-    final actorID = _parseInt(json["actorUserID"] ?? json["actorUserId"]) ??
+    final actorID =
+        _parseInt(json["actorUserID"] ?? json["actorUserId"]) ??
         (throw ArgumentError("CollectionAction.actorID is missing"));
     final collectionID =
         _parseInt(json["collectionID"] ?? json["collectionId"]) ??
-            (throw ArgumentError("CollectionAction.collectionID is missing"));
+        (throw ArgumentError("CollectionAction.collectionID is missing"));
 
     return CollectionAction(
       id: (json["id"] ?? "").toString(),

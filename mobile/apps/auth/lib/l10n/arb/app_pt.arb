@@ -6,21 +6,21 @@
   "@counterAppBarTitle": {
     "description": "Text shown in the AppBar of the Counter Page"
   },
-  "onBoardingBody": "Salve com segurança seus códigos 2FA",
+  "onBoardingBody": "Faça backup dos códigos 2FA",
   "featureBackupCodes": "Criptografado de ponta a ponta\nBackup e sincronização",
-  "featureSearchEtc": "Busque, etiquete, compartilhe,\nPróximo código e muito mais",
+  "featureSearchEtc": "Busque, etiquetas, compartilhe,\nPróximo código e muito mais",
   "featureOpenSource": "Código aberto e\nauditado por especialistas de segurança",
   "signUp": "Registrar",
   "onBoardingGetStarted": "Introdução",
   "setupFirstAccount": "Configure sua primeira\nconta",
-  "allTabEmptyHint": "Não há nada ainda. Clique em + para adicionar um código ou abrir a Lixeira para recuperar algum.",
+  "allTabEmptyHint": "Não há nada aqui. Clique em + para adicionar um código ou abra a Lixeira e recupere um.",
   "@allTabEmptyHint": {
     "description": "Shown when the All tab has no active codes but Trash contains codes"
   },
   "importScanQrCode": "Escanear QR code",
   "qrCode": "QR code",
   "qr": "QR",
-  "importEnterSetupKey": "Inserir chave de config.",
+  "importEnterSetupKey": "Insira a chave de configuração",
   "importAccountPageTitle": "Inserir detalhes da conta",
   "secretCanNotBeEmpty": "A chave secreta não pode estar vazia",
   "bothIssuerAndAccountCanNotBeEmpty": "O emissor e a conta não podem estar vazios",
@@ -110,9 +110,11 @@
   "importTypeEnteEncrypted": "Exportação criptografada do Ente",
   "passwordForDecryptingExport": "Senha para descriptografar a exportação",
   "passwordEmptyError": "A senha não pode estar vazia",
-  "passwordTooShort": "A senha deve conter 8 caracteres.",
+  "passwordTooShort": "A senha deve conter pelo menos 8 caracteres.",
   "importFromApp": "Importar códigos do {appName}",
-  "importGoogleAuthGuide": "Exporte suas contas do Google Authenticator para um QR code usando a opção \"Transferir Contas\". Então, usando outro dispositivo, escaneie o código.\n\nDica: Você pode usar a câmera do seu notebook para fotografar o QR code.",
+  "importGoogleAuthGuide": "Exporte suas contas do Google Authenticator para um QR Code usando a opção 'Transferir Contas'. Em seguida, escaneie o QR Code ou importe-o de uma imagem.",
+  "scannerTorchOn": "Ativar lanterna",
+  "scannerTorchOff": "Desativar lanterna",
   "importSelectJsonFile": "Selecionar arquivo JSON",
   "importSelectAppExport": "Selecione o arquivo de exportação do aplicativo {appName}",
   "importEnteEncGuide": "Selecione o arquivo JSON criptografado exportado do Ente",
@@ -122,8 +124,9 @@
   "import2FasGuide": "Use a opção \"Opções-> Exportar cópia de segurança\" em 2FAS.\n\nSe a cópia de segurança estiver criptografada, você precisará inserir a senha para descriptografá-la",
   "importLastpassGuide": "Use a opção \"Transferir contas\" nas opções do LastPass Authenticator e pressione \"Exportar contas para arquivo\". Importe o arquivo JSON baixado.",
   "importProtonAuthGuide": "Use a opção \"Exportar\" nas opções do autenticador Proton para exportar seus códigos.\n\nSe sua exportação for protegida por senha, você precisará inserir a senha primeiro para descriptografá-la.",
+  "importOtpAuthGuide": "Exporte um backup criptografado do OTP Auth, então selecione o arquivo .otpauthdb ou .otpauthdp. Exportações .otpauth de conta única também são suportadas.",
   "invalidProtonExportTitle": "Exportação do Proton inválida",
-  "invalidProtonExportMessage": "O arquivo selecionado não é uma exportação válida do autenticador Proton.",
+  "invalidProtonExportMessage": "O arquivo selecionado não é uma exportação válida do Proton.",
   "exportCodes": "Exportar códigos",
   "importLabel": "Importar",
   "importInstruction": "Selecione um arquivo que contenha uma lista de códigos no formato a seguir",
@@ -194,7 +197,7 @@
   "deleteAccountQuery": "Estamos tristes por vê-lo sair. Você enfrentou algum problema?",
   "yesSendFeedbackAction": "Sim, enviar feedback",
   "noDeleteAccountAction": "Não, excluir conta",
-  "initiateAccountDeleteTitle": "Autentique-se para iniciar a exclusão de conta",
+  "authToInitiateAccountDeletion": "Desbloquear para excluir conta",
   "sendEmail": "Enviar e-mail",
   "createNewAccount": "Criar nova conta",
   "weakStrength": "Fraca",
@@ -332,6 +335,16 @@
       }
     }
   },
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{Importar 1 código do Google Authenticator?} other{Importar {codeCount} códigos do Google Authenticator?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "sorry": "Desculpe",
   "pendingSyncs": "Atenção",
   "pendingSyncsWarningBody": "Alguns de seus códigos não foram salvos.\n\nCertifique-se que você possui uma cópia desses códigos antes de sair.",
@@ -389,7 +402,7 @@
   "shouldHideCode": "Ocultar códigos",
   "doubleTapToViewHiddenCode": "Você pode tocar duas vezes em uma entrada para ver o código",
   "focusOnSearchBar": "Foco na busca ao iniciar o app",
-  "minimizeToTrayOnClose": "Minimizar para a Área de Notificação quando Fechar",
+  "minimizeToTrayOnClose": "Minimizar ao fechar",
   "confirmUpdatingkey": "Deseja mesmo atualizar a sua chave secreta?",
   "minimizeAppOnCopy": "Minimizar app ao copiar",
   "editCodeAuthMessage": "Autenticar para editar o código",
@@ -486,6 +499,9 @@
   "somethingWentWrongParsingCode": "Não foi possível analisar os códigos {x}.",
   "updateNotAvailable": "Atualização indisponível",
   "viewRawCodes": "Ver códigos brutos",
+  "parsingError": "Erro de análise",
+  "deleteUnparseableCodeTitle": "Excluir código não analisável?",
+  "deleteUnparseableCodeMessage": "Isso excluirá permanentemente este código do Auth. E não será movido para a lixeira.",
   "rawCodes": "Códigos brutos",
   "rawCodeData": "Dados de códigos brutos",
   "appLock": "Bloqueio do aplicativo",
@@ -545,7 +561,7 @@
   "localBackupSettingsTitle": "Backup local",
   "localBackupSidebarTitle": "Backup local",
   "enableAutomaticBackups": "Backups automáticos",
-  "backupDescription": "Isso fará um backup automático de seus dados para um dispositivo. Backups são atualizados assim que forem adicionadas, editadas ou excluídas",
+  "backupDescription": "Isso fará um backup automático de seus dados no dispositivo. Os backups são atualizados assim que entradas são adicionadas, editadas ou excluídas",
   "localBackupDailyManualCopy": "Cria um backup local por dia assim que você abrir o aplicativo. Clique em \"Fazer backup agora\" para salvar manualmente. Backups são retidos até 5 arquivos.",
   "currentLocation": "Local de backup atual:",
   "securityNotice": "Aviso de segurança",
@@ -624,7 +640,7 @@
   "selectAnOption": "Selecione uma opção",
   "todaysLogs": "Registros do dia",
   "appIcon": "Ícone do aplicativo",
-  "importAndOTPGuide": "Exporte seu backup através do andOTP usando a opção \"Backup\" nas Opções.\n\nCaso seu backup estiver criptografado, você precisará inserir a senha de segurança para descriptografá-lo.",
+  "importAndOTPGuide": "Exporte seu backup do andOTP usando a função \"Fazer backup\" nas Configurações.\n\nCaso ela esteja criptografada, você precisará inserir a senha de backup para descriptografar.",
   "enterPasswordToDecryptAndOTP": "Insira a senha para descriptografar o backup andOTP",
   "failedToDecryptAndOTPBackup": "Falhou ao descriptografar backup andOTP",
   "notSupportedForHOTP": "Incompatível com HOTP"

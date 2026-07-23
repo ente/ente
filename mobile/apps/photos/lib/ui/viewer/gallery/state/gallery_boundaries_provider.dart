@@ -4,10 +4,7 @@ import 'package:flutter/material.dart';
 class GalleryBoundariesProvider extends StatefulWidget {
   final Widget child;
 
-  const GalleryBoundariesProvider({
-    super.key,
-    required this.child,
-  });
+  const GalleryBoundariesProvider({super.key, required this.child});
 
   @override
   State<GalleryBoundariesProvider> createState() =>
@@ -64,10 +61,7 @@ class GalleryBoundariesProviderState extends State<GalleryBoundariesProvider> {
 
   @override
   Widget build(BuildContext context) {
-    return InheritedGalleryBoundaries(
-      state: this,
-      child: widget.child,
-    );
+    return InheritedGalleryBoundaries(state: this, child: widget.child);
   }
 }
 

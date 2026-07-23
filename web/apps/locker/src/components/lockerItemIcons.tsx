@@ -1,3 +1,4 @@
+import type { LockerItemType } from "@/types";
 import {
     Briefcase01Icon,
     ContactBookIcon,
@@ -12,7 +13,6 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { ComponentProps } from "react";
-import type { LockerItemType } from "types";
 
 interface LockerIconConfig {
     icon: ComponentProps<typeof HugeiconsIcon>["icon"];

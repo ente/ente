@@ -24,14 +24,16 @@ class CaptionedTextWidget extends StatelessWidget {
     final enteColorScheme = Theme.of(context).colorScheme.enteTheme.colorScheme;
     final enteTextTheme = Theme.of(context).colorScheme.enteTheme.textTheme;
 
-    final titleForDisplay =
-        title.contains("@") ? title : title.capitalizeFirst();
+    final titleForDisplay = title.contains("@")
+        ? title
+        : title.capitalizeFirst();
 
     final List<Widget> children = [
       Flexible(
         child: Text(
           titleForDisplay,
-          style: textStyle ??
+          style:
+              textStyle ??
               (makeTextBold
                   ? enteTextTheme.bodyBold.copyWith(color: textColor)
                   : enteTextTheme.body.copyWith(color: textColor)),
@@ -61,9 +63,7 @@ class CaptionedTextWidget extends StatelessWidget {
     return Flexible(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 2),
-        child: Row(
-          children: children,
-        ),
+        child: Row(children: children),
       ),
     );
   }

@@ -97,8 +97,9 @@ class MenuItemWidget extends StatefulWidget {
 
 class _MenuItemWidgetState extends State<MenuItemWidget> {
   final _debouncer = Debouncer(const Duration(milliseconds: 300));
-  ValueNotifier<ExecutionState> executionStateNotifier =
-      ValueNotifier(ExecutionState.idle);
+  ValueNotifier<ExecutionState> executionStateNotifier = ValueNotifier(
+    ExecutionState.idle,
+  );
 
   Color? menuItemColor;
   late double borderRadius;
@@ -108,8 +109,8 @@ class _MenuItemWidgetState extends State<MenuItemWidget> {
     menuItemColor = widget.menuItemColor;
     borderRadius =
         (widget.isBottomBorderRadiusRemoved || widget.isTopBorderRadiusRemoved)
-            ? widget.multipleBorderRadius
-            : widget.singleBorderRadius;
+        ? widget.multipleBorderRadius
+        : widget.singleBorderRadius;
     if (widget.expandableController != null) {
       widget.expandableController!.addListener(() {
         setState(() {});
@@ -159,8 +160,8 @@ class _MenuItemWidgetState extends State<MenuItemWidget> {
     final isExpanded = widget.expandableController?.value;
     final bottomBorderRadius =
         (isExpanded != null && isExpanded) || widget.isBottomBorderRadiusRemoved
-            ? const Radius.circular(0)
-            : circularRadius;
+        ? const Radius.circular(0)
+        : circularRadius;
     final topBorderRadius = widget.isTopBorderRadiusRemoved
         ? const Radius.circular(0)
         : circularRadius;
@@ -217,20 +218,15 @@ class _MenuItemWidgetState extends State<MenuItemWidget> {
       return;
     }
     _debouncer.run(
-      () => Future(
-        () {
-          executionStateNotifier.value = ExecutionState.inProgress;
-        },
-      ),
+      () => Future(() {
+        executionStateNotifier.value = ExecutionState.inProgress;
+      }),
     );
-    await widget.onTap?.call().then(
-      (value) {
-        widget.alwaysShowSuccessState
-            ? executionStateNotifier.value = ExecutionState.successful
-            : null;
-      },
-      onError: (error, stackTrace) => _debouncer.cancelDebounce(),
-    );
+    await widget.onTap?.call().then((value) {
+      widget.alwaysShowSuccessState
+          ? executionStateNotifier.value = ExecutionState.successful
+          : null;
+    }, onError: (error, stackTrace) => _debouncer.cancelDebounce());
     _debouncer.cancelDebounce();
     if (widget.alwaysShowSuccessState) {
       Future.delayed(const Duration(seconds: 2), () {
@@ -250,7 +246,7 @@ class _MenuItemWidgetState extends State<MenuItemWidget> {
     }
   }
 
-  void _onTapDown(details) {
+  void _onTapDown(TapDownDetails details) {
     if (executionStateNotifier.value == ExecutionState.inProgress ||
         executionStateNotifier.value == ExecutionState.successful) {
       return;
@@ -272,7 +268,7 @@ class _MenuItemWidgetState extends State<MenuItemWidget> {
         widget.onLongPress != null;
   }
 
-  void _onTapUp(details) {
+  void _onTapUp(TapUpDetails details) {
     if (executionStateNotifier.value == ExecutionState.inProgress ||
         executionStateNotifier.value == ExecutionState.successful) {
       return;

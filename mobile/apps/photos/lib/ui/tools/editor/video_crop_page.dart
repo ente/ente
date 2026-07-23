@@ -9,10 +9,7 @@ import "package:photos/ui/tools/editor/video_editor/video_editor_player_control.
 import 'package:video_editor/video_editor.dart';
 
 class VideoCropPage extends StatefulWidget {
-  const VideoCropPage({
-    super.key,
-    required this.controller,
-  });
+  const VideoCropPage({super.key, required this.controller});
 
   final VideoEditorController controller;
 
@@ -65,7 +62,7 @@ class _VideoCropPageState extends State<VideoCropPage> {
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     return Scaffold(
-      backgroundColor: colorScheme.backgroundBase,
+      backgroundColor: colorScheme.backgroundColour,
       appBar: VideoEditorAppBar(
         onCancel: () => Navigator.pop(context),
         primaryActionLabel: AppLocalizations.of(context).done,
@@ -92,9 +89,7 @@ class _VideoCropPageState extends State<VideoCropPage> {
                         child: CropGridViewer.edit(
                           controller: widget.controller,
                           rotateCropArea: true,
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                          ),
+                          margin: const EdgeInsets.symmetric(horizontal: 12),
                         ),
                       ),
                     ),
@@ -112,7 +107,7 @@ class _VideoCropPageState extends State<VideoCropPage> {
               ),
               AnimatedBuilder(
                 animation: widget.controller,
-                builder: (_, __) => VideoEditorMainActions(
+                builder: (_, _) => VideoEditorMainActions(
                   children: [
                     _buildCropButton(context, CropValue.free),
                     const SizedBox(width: 24),

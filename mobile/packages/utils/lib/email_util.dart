@@ -87,7 +87,7 @@ Future<void> sendLogs(
         buttonAction: ButtonAction.third,
         onTap: () async {
           final zipFilePath = await getZippedLogsFile();
-          await exportLogs(context, zipFilePath);
+          await exportLogs(null, zipFilePath);
         },
       ),
       ButtonWidget(
@@ -118,6 +118,9 @@ Future<void> _sendLogs(
     await FlutterEmailSender.send(email);
   } catch (e, s) {
     _logger.severe('email sender failed', e, s);
+    if (!context.mounted) {
+      return;
+    }
     Navigator.of(context).pop();
     await shareLogs(context, toEmail, zipFilePath);
   }
@@ -158,29 +161,20 @@ Future<void> shareLogs(
     ],
   );
   if (result?.action != null && result!.action == ButtonAction.second) {
-    await exportLogs(context, zipFilePath);
+    await exportLogs(null, zipFilePath);
   }
 }
 
-Future<void> openSupportPage(
-  String? subject,
-  String? body,
-) async {
-  const url = "https://github.com/ente-io/ente/discussions/new?category=q-a";
+Future<void> openSupportPage(String? subject, String? body) async {
+  const url = "https://github.com/ente/ente/discussions/new?category=q-a";
   if (subject != null && body != null) {
-    await launchUrl(
-      Uri.parse(
-        "$url&title=$subject&body=$body",
-      ),
-    );
+    await launchUrl(Uri.parse("$url&title=$subject&body=$body"));
   } else {
     await launchUrl(Uri.parse(url));
   }
 }
 
-Future<String> getZippedLogsFile({
-  String logsSubPath = "logs",
-}) async {
+Future<String> getZippedLogsFile({String logsSubPath = "logs"}) async {
   final logsPath = (await getApplicationSupportDirectory()).path;
   final logsDirectory = Directory("$logsPath/$logsSubPath");
   final tempPath = (await pure_utils.DirectoryUtils.getTempsDir()).path;
@@ -193,7 +187,7 @@ Future<String> getZippedLogsFile({
 }
 
 Future<void> exportLogs(
-  BuildContext context,
+  BuildContext? context,
   String zipFilePath, [
   bool isSharing = false,
 ]) async {
@@ -204,17 +198,11 @@ Future<void> exportLogs(
         'ente-logs-${now.year}-$shortMonthName-${now.day}-${now.hour}-${now.minute}';
 
     final bytes = await File(zipFilePath).readAsBytes();
-    await FileSaverUtil.saveFile(
-      logFileName,
-      'zip',
-      bytes,
-      MimeType.zip,
-    );
+    await FileSaverUtil.saveFile(logFileName, 'zip', bytes, MimeType.zip);
   } else {
-    await shareFiles(
-      [XFile(zipFilePath, mimeType: 'application/zip')],
-      context: context,
-    );
+    await shareFiles([
+      XFile(zipFilePath, mimeType: 'application/zip'),
+    ], context: context);
   }
 }
 
@@ -253,7 +241,7 @@ Future<void> sendEmail(
 
     if (Platform.isAndroid) {
       // Special handling due to issue in proton mail android client
-      // https://github.com/ente-io/frame/pull/253
+      // https://github.com/ente/photos-app/pull/253
       final Uri params = Uri(
         scheme: 'mailto',
         path: to,
@@ -266,11 +254,16 @@ Future<void> sendEmail(
         throw Exception('Could not launch ${params.toString()}');
       }
     } else {
+      if (!context.mounted) {
+        return;
+      }
       _showNoMailAppsDialog(context, to);
     }
   } catch (e) {
     _logger.severe("Failed to send email to $to", e);
-    _showNoMailAppsDialog(context, to);
+    if (context.mounted) {
+      _showNoMailAppsDialog(context, to);
+    }
   }
 }
 
@@ -307,8 +300,12 @@ void _showNoMailAppsDialog(BuildContext context, String toEmail) {
               text: 'Copy Email Address',
               onTap: () async {
                 await Clipboard.setData(ClipboardData(text: toEmail));
-                Navigator.of(bottomSheetContext).pop();
-                showShortToast(context, 'Email address copied');
+                if (bottomSheetContext.mounted) {
+                  Navigator.of(bottomSheetContext).pop();
+                }
+                if (context.mounted) {
+                  showShortToast(context, 'Email address copied');
+                }
               },
             ),
           ],

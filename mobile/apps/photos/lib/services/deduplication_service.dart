@@ -38,11 +38,11 @@ class DeduplicationService {
       final DuplicateFilesResponse dupes = await _fetchDuplicateFileIDs();
       uploadIDToSize = dupes.toUploadIDToSize();
     }
-    final Set<int> allowedCollectionIDs =
-        CollectionsService.instance.nonHiddenOwnedCollections();
+    final Set<int> allowedCollectionIDs = CollectionsService.instance
+        .nonHiddenOwnedCollections();
 
-    final List<EnteFile> allFiles =
-        await SearchService.instance.getAllFilesForSearch();
+    final List<EnteFile> allFiles = await SearchService.instance
+        .getAllFilesForSearch();
     final List<EnteFile> filteredFiles = [];
     for (final file in allFiles) {
       if (!file.isUploaded ||
@@ -106,8 +106,9 @@ class DeduplicationService {
       final List<EnteFile> files = livePhotoHashToFilesMap[key]!;
       final Set<int> collectionIds = livePhotoHashToCollectionsSet[key]!;
       if (files.length > 1 && (files.first.fileSize ?? 0) > 0) {
-        dupesByHash
-            .add(DuplicateFiles(files, files.first.fileSize!, collectionIds));
+        dupesByHash.add(
+          DuplicateFiles(files, files.first.fileSize!, collectionIds),
+        );
       }
     }
     return dupesByHash;

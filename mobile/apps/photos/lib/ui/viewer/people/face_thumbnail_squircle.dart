@@ -14,13 +14,12 @@ const double _kFaceThumbnailSquircleMinStraightEdge = 8.0;
 BorderRadius faceThumbnailSquircleBorderRadius(double side) {
   final normalizedSide = side.isFinite ? side : 0.0;
   final clampedSide = normalizedSide > 0 ? normalizedSide : 0.0;
-  final maxRadius =
-      math.max(0.0, (clampedSide - _kFaceThumbnailSquircleMinStraightEdge) / 2);
+  final maxRadius = math.max(
+    0.0,
+    (clampedSide - _kFaceThumbnailSquircleMinStraightEdge) / 2,
+  );
   return BorderRadius.circular(
-    math.min(
-      clampedSide * _kFaceThumbnailSquircleRadiusFactor,
-      maxRadius,
-    ),
+    math.min(clampedSide * _kFaceThumbnailSquircleRadiusFactor, maxRadius),
   );
 }
 
@@ -53,10 +52,7 @@ class FaceThumbnailSquircleClip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (borderRadius != null) {
-      return ClipRSuperellipse(
-        borderRadius: borderRadius!,
-        child: child,
-      );
+      return ClipRSuperellipse(borderRadius: borderRadius!, child: child);
     }
 
     return ClipRSuperellipse(

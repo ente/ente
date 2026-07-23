@@ -5,8 +5,7 @@ description: Share document collections securely with family members using end-t
 
 # Share Collections with Users
 
-Share collections directly with other Ente users. They'll have access through
-their Locker app with full end-to-end encryption.
+Share collections directly with other Ente users. They'll have access through their Locker app with full end-to-end encryption.
 
 ## How it works
 
@@ -29,9 +28,7 @@ All items in the collection will be shared.
 
 ## Sharing individual items
 
-To share an individual item with an Ente user, add it to a collection and share
-the collection. Alternatively, you can create a
-[public link](/locker/features/sharing/public-links) for the item.
+To share an individual item with an Ente user, add it to a collection and share the collection. Alternatively, you can create a [public link](/locker/features/sharing/public-links) for the item.
 
 ## Managing shared collections
 

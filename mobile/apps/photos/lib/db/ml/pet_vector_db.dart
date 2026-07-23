@@ -33,10 +33,7 @@ class PetVectorDB {
   static Logger get logger => _logger;
 
   // Private constructor for named instances
-  PetVectorDB._named(
-    this._databaseName,
-    this._embeddingDimension,
-  );
+  PetVectorDB._named(this._databaseName, this._embeddingDimension);
 
   // ── Online vector spaces ──
 
@@ -138,19 +135,13 @@ class PetVectorDB {
     _logger.info("Opening pet vectorDB: DB path $dbPath");
     late VectorDb vectorDB;
     try {
-      vectorDB = VectorDb(
-        filePath: dbPath,
-        dimensions: _embeddingDimension,
-      );
+      vectorDB = VectorDb(filePath: dbPath, dimensions: _embeddingDimension);
     } catch (e, s) {
       _logger.severe("Could not open Pet VectorDB at $dbPath", e, s);
       _logger.severe("Deleting the index file and trying again");
       await deleteIndexFile();
       try {
-        vectorDB = VectorDb(
-          filePath: dbPath,
-          dimensions: _embeddingDimension,
-        );
+        vectorDB = VectorDb(filePath: dbPath, dimensions: _embeddingDimension);
       } catch (e, s) {
         _logger.severe("Still can't open Pet VectorDB at $dbPath", e, s);
         rethrow;
@@ -174,7 +165,8 @@ class PetVectorDB {
     if (uniqueIds.isEmpty) return {};
 
     if (createIfMissing) {
-      const insertSql = '''
+      const insertSql =
+          '''
         INSERT OR IGNORE INTO $petFaceVectorIdMappingTable ($petFaceIDColumn)
         VALUES (?)
       ''';
@@ -189,14 +181,11 @@ class PetVectorDB {
     const chunkSize = 800;
     for (int i = 0; i < uniqueIds.length; i += chunkSize) {
       final chunk = uniqueIds.sublist(i, min(i + chunkSize, uniqueIds.length));
-      final rows = await db.getAll(
-        '''
+      final rows = await db.getAll('''
           SELECT $petFaceIDColumn, $petFaceVectorIdColumn
           FROM $petFaceVectorIdMappingTable
           WHERE $petFaceIDColumn IN (${List.filled(chunk.length, '?').join(',')})
-        ''',
-        chunk,
-      );
+        ''', chunk);
       for (final row in rows) {
         result[row[petFaceIDColumn] as String] =
             row[petFaceVectorIdColumn] as int;
@@ -216,7 +205,8 @@ class PetVectorDB {
     if (uniqueIds.isEmpty) return {};
 
     if (createIfMissing) {
-      const insertSql = '''
+      const insertSql =
+          '''
         INSERT OR IGNORE INTO $petBodyVectorIdMappingTable ($petBodyIDColumn)
         VALUES (?)
       ''';
@@ -231,14 +221,11 @@ class PetVectorDB {
     const chunkSize = 800;
     for (int i = 0; i < uniqueIds.length; i += chunkSize) {
       final chunk = uniqueIds.sublist(i, min(i + chunkSize, uniqueIds.length));
-      final rows = await db.getAll(
-        '''
+      final rows = await db.getAll('''
           SELECT $petBodyIDColumn, $petBodyVectorIdColumn
           FROM $petBodyVectorIdMappingTable
           WHERE $petBodyIDColumn IN (${List.filled(chunk.length, '?').join(',')})
-        ''',
-        chunk,
-      );
+        ''', chunk);
       for (final row in rows) {
         result[row[petBodyIDColumn] as String] =
             row[petBodyVectorIdColumn] as int;
@@ -312,8 +299,9 @@ class PetVectorDB {
     try {
       BigInt deletedCount = BigInt.zero;
       await _runWriteOperation((db) async {
-        deletedCount =
-            await db.bulkRemoveVectors(keys: Uint64List.fromList(vectorIds));
+        deletedCount = await db.bulkRemoveVectors(
+          keys: Uint64List.fromList(vectorIds),
+        );
       });
       _logger.info(
         "Deleted $deletedCount pet embeddings, from ${vectorIds.length} keys",

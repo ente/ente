@@ -50,8 +50,8 @@ The second step is to add a CNAME entry in your DNS provider that forwards reque
 
 Specifically, you need to add a `CNAME record` from the domain (or subdomain) of your choice to `my.ente.com`. You can leave the `TTL` at its default.
 
-| Record Type |            Name            |        Value | TTL            |
-| ----------- | :------------------------: | -----------: | -------------- |
+| Record Type |            Name            |         Value | TTL            |
+| ----------- | :------------------------: | ------------: | -------------- |
 | CNAME       | Your subdomain, e.g `pics` | `my.ente.com` | Auto (default) |
 
 > [!NOTE]

@@ -5,18 +5,18 @@ import (
 	"errors"
 	"os"
 
-	"github.com/ente-io/museum/pkg/controller/commonbilling"
-	"github.com/ente-io/museum/pkg/repo/storagebonus"
+	"github.com/ente/museum/pkg/controller/commonbilling"
+	"github.com/ente/museum/pkg/repo/storagebonus"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/awa/go-iap/playstore"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/config"
-	"github.com/ente-io/museum/pkg/utils/email"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/config"
+	"github.com/ente/museum/pkg/utils/email"
 	"google.golang.org/api/androidpublisher/v3"
 )
 

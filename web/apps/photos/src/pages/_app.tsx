@@ -1,13 +1,14 @@
+import { AppLockSetupError } from "@/components/app-lock/LockScreenContents";
+import { useDesktopAppLockRoute } from "@/components/utils/use-app-lock-route";
+import { photosLogout } from "@/services/logout";
 import "@fontsource-variable/inter";
+import "@fontsource-variable/outfit";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { CssBaseline, Typography } from "@mui/material";
 import { styled, ThemeProvider } from "@mui/material/styles";
-import { useNotification } from "components/utils/hooks-app";
-import { useDesktopAppLockRoute } from "components/utils/use-app-lock-route";
 import {
     isLocalStorageAndIndexedDBMismatch,
     savedLocalUser,
-    savedPartialLocalUser,
 } from "ente-accounts/services/accounts-db";
 import { isDesktop, staticAppTitle } from "ente-base/app";
 import { CenteredRow } from "ente-base/components/containers";
@@ -17,13 +18,17 @@ import {
     TranslucentLoadingOverlay,
 } from "ente-base/components/loaders";
 import { AttributedMiniDialog } from "ente-base/components/MiniDialog";
+import { Notification } from "ente-base/components/Notification";
+import { ThemedLoadingBar } from "ente-base/components/ThemedLoadingBar";
 import { useAttributedMiniDialog } from "ente-base/components/utils/dialog";
 import {
     useIsRouteChangeInProgress,
+    useNotification,
     useSetupI18n,
     useSetupLogs,
 } from "ente-base/components/utils/hooks-app";
 import { photosTheme } from "ente-base/components/utils/theme";
+import { useLoadingBar } from "ente-base/components/utils/use-loading-bar";
 import { BaseContext, deriveBaseContext } from "ente-base/context";
 import log from "ente-base/log";
 import { logStartupBanner } from "ente-base/log-web";
@@ -33,8 +38,6 @@ import {
     isHLSGenerationSupported,
 } from "ente-gallery/services/video";
 import { AppLockReauthenticationDialog } from "ente-new/photos/components/app-lock/AppLockReauthenticationDialog";
-import { Notification } from "ente-new/photos/components/Notification";
-import { ThemedLoadingBar } from "ente-new/photos/components/ThemedLoadingBar";
 import {
     updateAvailableForDownloadDialogAttributes,
     updateReadyToInstallDialogAttributes,
@@ -43,22 +46,18 @@ import {
     useAutoLockWhenBackgrounded,
     useSetupAppLock,
 } from "ente-new/photos/components/utils/use-app-lock";
-import { useLoadingBar } from "ente-new/photos/components/utils/use-loading-bar";
 import { useAppLockSnapshot } from "ente-new/photos/components/utils/use-snapshot";
 import { resumeExportsIfNeeded } from "ente-new/photos/services/export";
 import { runMigrations } from "ente-new/photos/services/migration";
 import { initML, isMLSupported } from "ente-new/photos/services/ml";
-import { getFamilyPortalRedirectURL } from "ente-new/photos/services/user-details";
 import { PhotosAppContext } from "ente-new/photos/types/context";
 import { t } from "i18next";
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { photosLogout } from "services/logout";
 
-import "photoswipe/dist/photoswipe.css";
-import "styles/global.css";
-import "styles/photoswipe.css";
+import "ente-gallery/styles/photoswipe.css";
+import "../styles/global.css";
 
 type PhotosAppProps = AppProps<Record<string, unknown>>;
 
@@ -139,34 +138,6 @@ const App: React.FC<PhotosAppProps> = ({ Component, pageProps }) => {
 
     useEffect(() => {
         if (isDesktop) void resumeExportsIfNeeded();
-    }, []);
-
-    useEffect(() => {
-        const query = new URLSearchParams(window.location.search);
-        const needsFamilyRedirect = query.get("redirect") == "families";
-        if (needsFamilyRedirect && savedPartialLocalUser()?.token)
-            redirectToFamilyPortal();
-
-        // Creating this inline, we need this on debug only and temporarily. Can
-        // remove the debug print itself after a while.
-        interface NROptions {
-            shallow: boolean;
-        }
-        router.events.on("routeChangeStart", (url: string, o: NROptions) => {
-            if (process.env.NEXT_PUBLIC_ENTE_TRACE_RT) {
-                log.debug(() => [o.shallow ? "route-shallow" : "route", url]);
-            }
-
-            if (needsFamilyRedirect && savedPartialLocalUser()?.token) {
-                redirectToFamilyPortal();
-
-                // https://github.com/vercel/next.js/issues/2476#issuecomment-573460710
-                // eslint-disable-next-line @typescript-eslint/only-throw-error
-                throw "Aborting route change, redirection in process....";
-            }
-        });
-        // TODO:
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const baseContext = useMemo(
@@ -250,7 +221,8 @@ const DesktopMainContent: React.FC<MainContentProps> = ({
     pageProps,
     isChangingRoute,
 }) => {
-    const isAppLockReady = useSetupAppLock();
+    const { isAppLockReady, appLockSetupFailed, retryAppLockSetup } =
+        useSetupAppLock();
     const appLock = useAppLockSnapshot();
     const { shouldBlockAppLockRouteTransition } = useDesktopAppLockRoute(
         isAppLockReady,
@@ -264,6 +236,9 @@ const DesktopMainContent: React.FC<MainContentProps> = ({
         appLock.autoLockTimeMs,
     );
 
+    if (appLockSetupFailed) {
+        return <AppLockSetupError onRetry={retryAppLockSetup} />;
+    }
     if (!isAppLockReady) return <LoadingIndicator />;
     if (shouldBlockAppLockRouteTransition) return <LoadingIndicator />;
 
@@ -275,11 +250,6 @@ const DesktopMainContent: React.FC<MainContentProps> = ({
         </>
     );
 };
-
-const redirectToFamilyPortal = () =>
-    void getFamilyPortalRedirectURL().then((url) => {
-        window.location.href = url;
-    });
 
 const WindowTitlebar: React.FC<React.PropsWithChildren> = ({ children }) => (
     <WindowTitlebarArea>

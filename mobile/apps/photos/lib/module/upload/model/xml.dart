@@ -12,10 +12,7 @@ abstract class XmlParsableObject {
 String convertJs2Xml(Map<String, dynamic> json) {
   final builder = XmlBuilder();
   buildXml(builder, json);
-  return builder.buildDocument().toXmlString(
-        pretty: true,
-        indent: '    ',
-      );
+  return builder.buildDocument().toXmlString(pretty: true, indent: '    ');
 }
 
 // for building the xml node tree recursively

@@ -38,8 +38,9 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
                 child: Text(
                   log,
                   softWrap: true,
-                  style:
-                      enteTextTheme.small.copyWith(color: enteColor.textMuted),
+                  style: enteTextTheme.small.copyWith(
+                    color: enteColor.textMuted,
+                  ),
                 ),
               ),
             ],
@@ -82,8 +83,9 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
         ),
       ],
     );
-    final shouldForceUpdate =
-        updateService.shouldForceUpdate(widget.latestVersionInfo!);
+    final shouldForceUpdate = updateService.shouldForceUpdate(
+      widget.latestVersionInfo!,
+    );
     return PopScope(
       canPop: !shouldForceUpdate,
       child: AlertDialog(
@@ -96,9 +98,7 @@ class _AppUpdateDialogState extends State<AppUpdateDialog> {
               size: 48,
               color: enteColor.strokeMuted,
             ),
-            const SizedBox(
-              height: 16,
-            ),
+            const SizedBox(height: 16),
             Text(
               shouldForceUpdate
                   ? AppLocalizations.of(context).criticalUpdateAvailable

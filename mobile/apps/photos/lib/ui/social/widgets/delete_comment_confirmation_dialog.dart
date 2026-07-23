@@ -15,18 +15,15 @@ Future<bool?> showDeleteCommentConfirmationDialog(
     isScrollControlled: true,
     isDismissible: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => _DeleteCommentConfirmationSheet(
-      commentText: commentText,
-    ),
+    builder: (context) =>
+        _DeleteCommentConfirmationSheet(commentText: commentText),
   );
 }
 
 class _DeleteCommentConfirmationSheet extends StatelessWidget {
   final String commentText;
 
-  const _DeleteCommentConfirmationSheet({
-    required this.commentText,
-  });
+  const _DeleteCommentConfirmationSheet({required this.commentText});
 
   String _truncateComment(String text, int maxLength) {
     if (text.length <= maxLength) return text;

@@ -1,7 +1,7 @@
 import { blobCache } from "ente-base/blob-cache";
 import type { EnteFile } from "ente-media/file";
 import { fetchRenderableEnteFileBlob } from "./blob";
-import { type Box, type FaceIndex } from "./face";
+import type { Box, FaceIndex } from "./face";
 import { clamp } from "./math";
 
 /**

@@ -1,0 +1,11 @@
+[package]
+name = "ente-test-support"
+edition = "2024"
+description = "Runs a local Museum backed by a temporary Postgres for integration tests"
+publish = false
+
+[dependencies]
+dirs = "5.0.1"
+postgresql_embedded = { version = "0.20.4", default-features = false, features = ["blocking", "rustls", "theseus"] }
+tokio = { version = "1", features = ["rt-multi-thread"] }
+uuid = { version = "1.23.1", features = ["v4"] }

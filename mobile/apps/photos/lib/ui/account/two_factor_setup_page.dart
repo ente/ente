@@ -79,9 +79,7 @@ class _TwoFactorSetupPageState extends State<TwoFactorSetupPage>
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
-        title: Text(
-          AppLocalizations.of(context).twofactorSetup,
-        ),
+        title: Text(AppLocalizations.of(context).twofactorSetup),
       ),
       body: _getBody(),
     );
@@ -102,12 +100,8 @@ class _TwoFactorSetupPageState extends State<TwoFactorSetupPage>
                     labelColor: Theme.of(context).colorScheme.greenAlternative,
                     unselectedLabelColor: Colors.grey,
                     tabs: [
-                      Tab(
-                        text: AppLocalizations.of(context).enterCode,
-                      ),
-                      Tab(
-                        text: AppLocalizations.of(context).scanCode,
-                      ),
+                      Tab(text: AppLocalizations.of(context).enterCode),
+                      Tab(text: AppLocalizations.of(context).scanCode),
                     ],
                     controller: _tabController,
                     indicatorSize: TabBarIndicatorSize.tab,
@@ -115,10 +109,7 @@ class _TwoFactorSetupPageState extends State<TwoFactorSetupPage>
                   Expanded(
                     child: TabBarView(
                       controller: _tabController,
-                      children: [
-                        _getSecretCode(),
-                        _getBarCode(),
-                      ],
+                      children: [_getSecretCode(), _getBarCode()],
                     ),
                   ),
                 ],
@@ -141,6 +132,7 @@ class _TwoFactorSetupPageState extends State<TwoFactorSetupPage>
     return GestureDetector(
       onTap: () async {
         await Clipboard.setData(ClipboardData(text: widget.secretCode));
+        if (!mounted) return;
         showShortToast(
           context,
           AppLocalizations.of(context).codeCopiedToClipboard,
@@ -151,12 +143,10 @@ class _TwoFactorSetupPageState extends State<TwoFactorSetupPage>
         children: [
           const Padding(padding: EdgeInsets.all(12)),
           Text(
-            AppLocalizations.of(context)
-                .copypasteThisCodentoYourAuthenticatorApp,
-            style: const TextStyle(
-              height: 1.4,
-              fontSize: 16,
-            ),
+            AppLocalizations.of(
+              context,
+            ).copypasteThisCodentoYourAuthenticatorApp,
+            style: const TextStyle(height: 1.4, fontSize: 16),
             textAlign: TextAlign.center,
           ),
           const Padding(padding: EdgeInsets.all(16)),
@@ -193,20 +183,14 @@ class _TwoFactorSetupPageState extends State<TwoFactorSetupPage>
         children: [
           const Padding(padding: EdgeInsets.all(12)),
           Text(
-            AppLocalizations.of(context)
-                .scanThisBarcodeWithnyourAuthenticatorApp,
-            style: const TextStyle(
-              height: 1.4,
-              fontSize: 16,
-            ),
+            AppLocalizations.of(
+              context,
+            ).scanThisBarcodeWithnyourAuthenticatorApp,
+            style: const TextStyle(height: 1.4, fontSize: 16),
             textAlign: TextAlign.center,
           ),
           const Padding(padding: EdgeInsets.all(12)),
-          Image(
-            image: _imageProvider,
-            height: 180,
-            width: 180,
-          ),
+          Image(image: _imageProvider, height: 180, width: 180),
         ],
       ),
     );
@@ -217,12 +201,10 @@ class _TwoFactorSetupPageState extends State<TwoFactorSetupPage>
       children: [
         const Padding(padding: EdgeInsets.all(12)),
         Text(
-          AppLocalizations.of(context)
-              .enterThe6digitCodeFromnyourAuthenticatorApp,
-          style: const TextStyle(
-            height: 1.4,
-            fontSize: 16,
-          ),
+          AppLocalizations.of(
+            context,
+          ).enterThe6digitCodeFromnyourAuthenticatorApp,
+          style: const TextStyle(height: 1.4, fontSize: 16),
           textAlign: TextAlign.center,
         ),
         const Padding(padding: EdgeInsets.all(16)),
@@ -273,16 +255,20 @@ class _TwoFactorSetupPageState extends State<TwoFactorSetupPage>
   }
 
   Future<void> _enableTwoFactor(String code) async {
-    final success = await UserService.instance
-        .enableTwoFactor(context, widget.secretCode, code);
+    final success = await UserService.instance.enableTwoFactor(
+      context,
+      widget.secretCode,
+      code,
+    );
     if (success) {
       _showSuccessPage();
     }
   }
 
   void _showSuccessPage() {
-    final recoveryKey =
-        CryptoUtil.bin2hex(Configuration.instance.getRecoveryKey());
+    final recoveryKey = CryptoUtil.bin2hex(
+      Configuration.instance.getRecoveryKey(),
+    );
     routeToPage(
       context,
       RecoveryKeyPage(
@@ -291,10 +277,12 @@ class _TwoFactorSetupPageState extends State<TwoFactorSetupPage>
         isOnboarding: false,
         onDone: () {},
         title: AppLocalizations.of(context).setupComplete,
-        text:
-            AppLocalizations.of(context).saveYourRecoveryKeyIfYouHaventAlready,
-        subText:
-            AppLocalizations.of(context).thisCanBeUsedToRecoverYourAccountIfYou,
+        text: AppLocalizations.of(
+          context,
+        ).saveYourRecoveryKeyIfYouHaventAlready,
+        subText: AppLocalizations.of(
+          context,
+        ).thisCanBeUsedToRecoverYourAccountIfYou,
       ),
     );
   }

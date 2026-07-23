@@ -11,15 +11,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ente-io/museum/ente"
-	contactmodel "github.com/ente-io/museum/ente/contact"
-	"github.com/ente-io/museum/internal/testutil"
-	basecontroller "github.com/ente-io/museum/pkg/controller"
-	repo "github.com/ente-io/museum/pkg/repo"
-	contactrepo "github.com/ente-io/museum/pkg/repo/contact"
-	"github.com/ente-io/museum/pkg/utils/config"
-	"github.com/ente-io/museum/pkg/utils/crypto"
-	"github.com/ente-io/museum/pkg/utils/s3config"
+	"github.com/ente/museum/ente"
+	contactmodel "github.com/ente/museum/ente/contact"
+	"github.com/ente/museum/internal/testutil"
+	basecontroller "github.com/ente/museum/pkg/controller"
+	repo "github.com/ente/museum/pkg/repo"
+	contactrepo "github.com/ente/museum/pkg/repo/contact"
+	"github.com/ente/museum/pkg/utils/config"
+	"github.com/ente/museum/pkg/utils/crypto"
+	"github.com/ente/museum/pkg/utils/s3config"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"github.com/spf13/viper"
@@ -393,6 +393,117 @@ func TestCreateContactRequiresEligibleRelationship(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "not eligible to be added as a contact") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestUpdateContactRequiresEligibleRelationshipWhenContactUserIDChanges(t *testing.T) {
+	ctrl, db, ctx, _ := setupContactControllerTest(t)
+	created := createContactForTest(t, db, ctrl, ctx, 21, "wrapped-key-1", "payload-1")
+	mustInsertTestUser(t, db, 22)
+
+	_, err := ctrl.Update(ctx, created.ID, contactmodel.UpdateRequest{
+		ContactUserID: 22,
+		EncryptedData: []byte("payload-2"),
+	})
+	if err == nil {
+		t.Fatal("expected ineligible contact update to fail")
+	}
+	if !strings.Contains(err.Error(), "not eligible to be added as a contact") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got, err := ctrl.Get(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+	if got.ContactUserID != 21 {
+		t.Fatalf("contactUserID = %d, want 21", got.ContactUserID)
+	}
+	if got.Email == nil || *got.Email != "contacts-21@ente.com" {
+		t.Fatalf("email = %v, want contacts-21@ente.com", got.Email)
+	}
+	if got.EncryptedData == nil || string(*got.EncryptedData) != "payload-1" {
+		t.Fatalf("encryptedData = %v, want payload-1", got.EncryptedData)
+	}
+}
+
+func TestUpdateContactAllowsSameContactUserIDAfterRelationshipEnds(t *testing.T) {
+	ctrl, db, ctx, _ := setupContactControllerTest(t)
+	created := createContactForTest(t, db, ctrl, ctx, 31, "wrapped-key-1", "payload-1")
+	if _, err := db.Exec(
+		`UPDATE emergency_contact
+		    SET state = $1,
+		        encrypted_key = NULL
+		  WHERE user_id = $2 AND emergency_contact_id = $3`,
+		ente.ContactLeft,
+		int64(1),
+		int64(31),
+	); err != nil {
+		t.Fatalf("failed to end emergency contact relationship: %v", err)
+	}
+
+	updated, err := ctrl.Update(ctx, created.ID, contactmodel.UpdateRequest{
+		ContactUserID: 31,
+		EncryptedData: []byte("payload-2"),
+	})
+	if err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+	if updated.ContactUserID != 31 {
+		t.Fatalf("contactUserID = %d, want 31", updated.ContactUserID)
+	}
+	if updated.Email == nil || *updated.Email != "contacts-31@ente.com" {
+		t.Fatalf("email = %v, want contacts-31@ente.com", updated.Email)
+	}
+	if updated.EncryptedData == nil || string(*updated.EncryptedData) != "payload-2" {
+		t.Fatalf("encryptedData = %v, want payload-2", updated.EncryptedData)
+	}
+}
+
+func TestUpdateContactRequiresEligibleRelationshipToReviveDeletedContact(t *testing.T) {
+	ctrl, db, ctx, _ := setupContactControllerTest(t)
+	created := createContactForTest(t, db, ctrl, ctx, 41, "wrapped-key-1", "payload-1")
+	if err := ctrl.Delete(ctx, created.ID); err != nil {
+		t.Fatalf("Delete() error = %v", err)
+	}
+	if _, err := db.Exec(
+		`UPDATE emergency_contact
+		    SET state = $1,
+		        encrypted_key = NULL
+		  WHERE user_id = $2 AND emergency_contact_id = $3`,
+		ente.ContactLeft,
+		int64(1),
+		int64(41),
+	); err != nil {
+		t.Fatalf("failed to end emergency contact relationship: %v", err)
+	}
+
+	_, err := ctrl.Update(ctx, created.ID, contactmodel.UpdateRequest{
+		ContactUserID: 41,
+		EncryptedData: []byte("payload-2"),
+	})
+	if err == nil {
+		t.Fatal("expected ineligible deleted contact update to fail")
+	}
+	if !strings.Contains(err.Error(), "not eligible to be added as a contact") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got, err := ctrl.Get(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+	if !got.IsDeleted {
+		t.Fatalf("contact should remain deleted: %+v", got)
+	}
+	if got.ContactUserID != 41 {
+		t.Fatalf("contactUserID = %d, want 41", got.ContactUserID)
+	}
+	if got.Email != nil {
+		t.Fatalf("deleted contact leaked email: %v", got.Email)
+	}
+	if got.EncryptedData != nil {
+		t.Fatalf("deleted contact restored encryptedData: %v", got.EncryptedData)
 	}
 }
 
@@ -891,7 +1002,7 @@ func TestAttachmentReplicationLifecycle(t *testing.T) {
 		t.Fatalf("replicated buckets = %v, want [scw-eu-fr]", replicatedTo)
 	}
 
-	attachment, err := ctrl.Repo.GetAttachment(context.Background(), 1, "ua_replication")
+	attachment, err := ctrl.Repo.GetAttachment(t.Context(), 1, "ua_replication")
 	if err != nil {
 		t.Fatalf("GetAttachment() error = %v", err)
 	}
@@ -922,7 +1033,7 @@ func TestAttachmentDeletionLifecycle(t *testing.T) {
 		t.Fatalf("tryDelete() error = %v", err)
 	}
 
-	if _, err := ctrl.Repo.GetAttachment(context.Background(), 1, "ua_delete"); err == nil {
+	if _, err := ctrl.Repo.GetAttachment(t.Context(), 1, "ua_delete"); err == nil {
 		t.Fatal("attachment row should be removed after deletion")
 	} else if !errors.Is(err, &ente.ErrNotFoundError) {
 		t.Fatalf("unexpected GetAttachment error = %v", err)

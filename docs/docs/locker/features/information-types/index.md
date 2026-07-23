@@ -5,37 +5,31 @@ description: Store documents, notes, passwords, and track physical records secur
 
 # Item Types
 
-Ente Locker supports multiple item types, each designed for specific use cases.
-All types are end-to-end encrypted.
+Ente Locker supports multiple item types, each designed for specific use cases. All types are end-to-end encrypted.
 
 ## Available types
 
 ### Document
 
-Upload and store files securely including PDFs, images, and scans. Keep
-important documents like passports, contracts, receipts, and certificates
-encrypted and accessible.
+Upload and store files securely including PDFs, images, and scans. Keep important documents like passports, contracts, receipts, and certificates encrypted and accessible.
 
 Learn more about [Document](/locker/features/information-types/documents).
 
 ### Note
 
-Store free-form text securely. Use for sensitive notes, private thoughts,
-secure reminders, or any text you want to keep encrypted.
+Store free-form text securely. Use for sensitive notes, private thoughts, secure reminders, or any text you want to keep encrypted.
 
 Learn more about [Note](/locker/features/information-types/personal-notes).
 
 ### Secret
 
-Store login information including usernames and passwords. Keep your account
-details in one secure location.
+Store login information including usernames and passwords. Keep your account details in one secure location.
 
 Learn more about [Secret](/locker/features/information-types/account-credentials).
 
 ### Thing
 
-Track where your physical documents are stored. Record locations for passports,
-birth certificates, property deeds, and other important papers.
+Track where your physical documents are stored. Record locations for passports, birth certificates, property deeds, and other important papers.
 
 Learn more about [Thing](/locker/features/information-types/physical-records).
 

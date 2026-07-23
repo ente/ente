@@ -69,7 +69,8 @@ class NativeVideoExportService {
     // Use the combined native path only when needed; otherwise do a fast copy.
     // Note: despite legacy comments, Android cropping is supported via Media3
     // Transformer, so we keep native for crop/trim/rotate combinations.
-    final needsCrop = controller.minCrop != Offset.zero ||
+    final needsCrop =
+        controller.minCrop != Offset.zero ||
         controller.maxCrop != const Offset(1.0, 1.0);
     final needsRotate = controller.rotation != 0;
     final needsTrim = controller.isTrimmed;

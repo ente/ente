@@ -1,8 +1,8 @@
 package collections
 
 import (
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/stacktrace"
 )
 
 // GetOwnedV2 returns the list of collections owned by a user using optimized query

@@ -1,6 +1,6 @@
 package filedata
 
-import "github.com/ente-io/museum/ente"
+import "github.com/ente/museum/ente"
 
 type VidPreviewRequest struct {
 	FileID         int64  `json:"fileID" binding:"required"`

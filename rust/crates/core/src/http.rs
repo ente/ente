@@ -1,1167 +1,1059 @@
-//! HTTP client for communicating with the Ente API.
+//! HTTP client for the Ente API.
+//!
+//! These are thin wrappers over [`reqwest`] with Ente-specific ergonomics.
+//! [`Http`] is a transparent wrapper that adds nothing of its own to a request;
+//! beyond its convenience methods it exists so that a single connection pool can
+//! be shared across clients (an `Http` is cheap to clone, and clones share the
+//! pool). [`Api`] is tailored to one Ente API origin, with pluggable
+//! authentication and built-in Ente headers.
+//!
+//! The interface mirrors reqwest, so if you know reqwest you will feel at home.
 
-use std::error::Error as StdError;
-use std::fmt::Write as _;
-use std::sync::RwLock;
-#[cfg(not(target_arch = "wasm32"))]
+use std::future::Future;
+use std::sync::{PoisonError, RwLock};
 use std::time::Duration;
 
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue, LOCATION};
+#[cfg(target_arch = "wasm32")]
+use gloo_timers::future::sleep;
 #[cfg(not(target_arch = "wasm32"))]
-use reqwest::redirect::Policy;
-use reqwest::{Response, Url};
+use tokio::time::sleep;
+
+use reqwest::Method;
+use reqwest::header::{HeaderName, HeaderValue};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use zeroize::Zeroizing;
+use zeroize::ZeroizeOnDrop;
 
-const TOKEN_HEADER: &str = "X-Auth-Token";
-const CLIENT_PKG_HEADER: &str = "X-Client-Package";
-const CLIENT_VERSION_HEADER: &str = "X-Client-Version";
+use crate::urls::api_url;
 
-/// HTTP client errors.
+const CLIENT_PACKAGE: HeaderName = HeaderName::from_static("x-client-package");
+const CLIENT_VERSION: HeaderName = HeaderName::from_static("x-client-version");
+const AUTH_TOKEN: HeaderName = HeaderName::from_static("x-auth-token");
+const ACCESS_TOKEN: HeaderName = HeaderName::from_static("x-auth-access-token");
+const ACCESS_TOKEN_JWT: HeaderName = HeaderName::from_static("x-auth-access-token-jwt");
+const LINK_DEVICE_TOKEN: HeaderName = HeaderName::from_static("x-auth-link-device-token");
+const CAST_ACCESS_TOKEN: HeaderName = HeaderName::from_static("x-cast-access-token");
+const SPACE_SESSION_TOKEN: HeaderName = HeaderName::from_static("x-space-session-token");
+
+/// An error from an HTTP request.
 #[derive(Error, Debug)]
 pub enum Error {
-    /// Network error - connection failed, timeout, etc.
-    #[error("Network error: {0}")]
-    Network(String),
+    /// The request could not be sent, or the response could not be read.
+    #[error(transparent)]
+    Network(NetworkError),
 
-    /// Server returned an HTTP error status.
-    #[error("HTTP {status}: {message}")]
+    /// The server responded with a non-2xx status.
+    #[error("HTTP {status} at {path}")]
     Http {
-        /// Optional structured server error code.
-        code: Option<String>,
-        /// Error message or response body.
-        message: String,
-        /// HTTP status code.
+        /// The HTTP status code.
         status: u16,
+        /// The request path that failed, with its query stripped.
+        path: String,
     },
 
-    /// Failed to parse JSON response.
-    #[error("JSON parse error: {0}")]
-    Parse(String),
+    /// The server responded with a non-2xx status, and its body carried an
+    /// Ente API error code.
+    #[error("HTTP {status} {code} at {path}")]
+    Api {
+        /// The HTTP status code.
+        status: u16,
+        /// The request path that failed, with its query stripped.
+        path: String,
+        /// The server's error code, e.g. `USER_NOT_REGISTERED`.
+        code: String,
+    },
 
-    /// Invalid base URL or request path.
-    #[error("Invalid URL: {0}")]
-    InvalidUrl(String),
+    /// The response arrived, but its body was not the expected JSON.
+    #[error(transparent)]
+    Parse(ParseError),
 }
 
+/// The underlying failure of a [`Network`](Error::Network) error.
+#[derive(Error, Debug)]
+#[error(transparent)]
+pub struct NetworkError(reqwest::Error);
+
+/// The underlying failure of a [`Parse`](Error::Parse) error.
+#[derive(Error, Debug)]
+#[error(transparent)]
+pub struct ParseError(serde_json::Error);
+
 impl Error {
-    /// Return the HTTP status code if this is an HTTP error.
+    /// A connection could not be established.
+    pub fn is_connect(&self) -> bool {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            matches!(self, Error::Network(e) if e.0.is_connect())
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            false
+        }
+    }
+
+    /// The request timed out.
+    pub fn is_timeout(&self) -> bool {
+        matches!(self, Error::Network(e) if e.0.is_timeout())
+    }
+
+    /// The HTTP status code, if the server responded with a non-2xx status.
     pub fn status_code(&self) -> Option<u16> {
         match self {
-            Error::Http { status, .. } => Some(*status),
+            Error::Http { status, .. } | Error::Api { status, .. } => Some(*status),
             _ => None,
         }
     }
 
-    /// Return the structured server error code when available.
-    pub fn api_code(&self) -> Option<&str> {
+    /// Returns `true` if the request failed in transit, or if the server
+    /// answered with a 429 or a 5xx status.
+    pub fn is_retryable(&self) -> bool {
         match self {
-            Error::Http { code, .. } => code.as_deref(),
-            _ => None,
-        }
-    }
-
-    /// Return the server message when available.
-    pub fn api_message(&self) -> Option<&str> {
-        match self {
-            Error::Http { message, .. } => Some(message.as_str()),
-            _ => None,
-        }
-    }
-
-    fn with_request_context(self, request_context: &str) -> Self {
-        fn append_context(message: String, request_context: &str) -> String {
-            if message.contains("[request:") {
-                message
-            } else {
-                format!("{message} {request_context}")
+            Error::Network(e) => e.0.is_request() || e.0.is_body(),
+            Error::Http { status, .. } | Error::Api { status, .. } => {
+                *status == 429 || *status >= 500
             }
-        }
-
-        match self {
-            Error::Network(message) => Error::Network(append_context(message, request_context)),
-            Error::Http {
-                status,
-                code,
-                message,
-            } => Error::Http {
-                status,
-                code,
-                message: append_context(message, request_context),
-            },
-            Error::Parse(message) => Error::Parse(append_context(message, request_context)),
-            Error::InvalidUrl(message) => {
-                Error::InvalidUrl(append_context(message, request_context))
-            }
+            Error::Parse(_) => false,
         }
     }
 }
 
 impl From<reqwest::Error> for Error {
-    fn from(e: reqwest::Error) -> Self {
-        let message = format_reqwest_error(&e);
-        if let Some(status) = e.status() {
-            Error::Http {
-                status: status.as_u16(),
-                code: None,
-                message,
+    fn from(mut e: reqwest::Error) -> Self {
+        if let Some(url) = e.url_mut() {
+            url.set_query(None);
+        }
+        Error::Network(NetworkError(e))
+    }
+}
+
+/// A bare HTTP client for requests to arbitrary URLs.
+///
+/// Cloning is cheap and shares one connection pool.
+#[derive(Clone)]
+pub struct Http {
+    client: reqwest::Client,
+}
+
+impl Http {
+    /// Create a transport with default connect and read timeouts.
+    pub fn new() -> Result<Self, Error> {
+        let builder = reqwest::Client::builder();
+        #[cfg(not(target_arch = "wasm32"))]
+        let builder = builder
+            .connect_timeout(Duration::from_secs(15))
+            .read_timeout(Duration::from_secs(30));
+        Ok(Http {
+            client: builder.build()?,
+        })
+    }
+
+    /// Start a GET request to `url`.
+    pub fn get(&self, url: &str) -> RequestBuilder {
+        self.request(Method::GET, url)
+    }
+
+    /// Start a POST request to `url`.
+    pub fn post(&self, url: &str) -> RequestBuilder {
+        self.request(Method::POST, url)
+    }
+
+    /// Start a PUT request to `url`.
+    pub fn put(&self, url: &str) -> RequestBuilder {
+        self.request(Method::PUT, url)
+    }
+
+    /// Start a DELETE request to `url`.
+    pub fn delete(&self, url: &str) -> RequestBuilder {
+        self.request(Method::DELETE, url)
+    }
+
+    /// Start a HEAD request to `url`.
+    pub fn head(&self, url: &str) -> RequestBuilder {
+        self.request(Method::HEAD, url)
+    }
+
+    fn request(&self, method: Method, url: &str) -> RequestBuilder {
+        RequestBuilder(self.client.request(method, url))
+    }
+}
+
+/// How an [`Api`] authenticates its requests.
+///
+/// An `Api` uses a single scheme for its lifetime. To act as more than one
+/// identity at once, hold several `Api`s over the same [`Http`].
+#[derive(ZeroizeOnDrop)]
+pub enum Auth {
+    /// A logged-in user, sent as the `X-Auth-Token` header.
+    User(String),
+    /// A viewer of a public album, sent as `X-Auth-Access-Token` with an optional
+    /// password JWT and link-device token.
+    PublicAlbum {
+        /// The album access token.
+        access_token: String,
+        /// The password-protected album's JWT, if the album has a password.
+        jwt: Option<String>,
+        /// The link-device token, if one has been issued.
+        link_device: Option<String>,
+    },
+    /// A cast session, sent as the `X-Cast-Access-Token` header.
+    Cast(String),
+    /// A Space browser session, sent as the `X-Space-Session-Token` header.
+    SpaceSession(String),
+}
+
+impl Auth {
+    fn apply(&self, builder: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
+        match self {
+            Auth::User(token) => sensitive_header(builder, AUTH_TOKEN, token),
+            Auth::PublicAlbum {
+                access_token,
+                jwt,
+                link_device,
+            } => {
+                let mut builder = sensitive_header(builder, ACCESS_TOKEN, access_token);
+                if let Some(jwt) = jwt {
+                    builder = sensitive_header(builder, ACCESS_TOKEN_JWT, jwt);
+                }
+                if let Some(link_device) = link_device {
+                    builder = sensitive_header(builder, LINK_DEVICE_TOKEN, link_device);
+                }
+                builder
             }
-        } else {
-            Error::Network(message)
+            Auth::Cast(token) => sensitive_header(builder, CAST_ACCESS_TOKEN, token),
+            Auth::SpaceSession(token) => sensitive_header(builder, SPACE_SESSION_TOKEN, token),
         }
     }
 }
 
-#[derive(Deserialize)]
-struct ApiErrorBody {
-    code: Option<String>,
-    message: Option<String>,
-}
-
-fn parse_api_error_body(body: &str) -> (Option<String>, String) {
-    if let Ok(error_body) = serde_json::from_str::<ApiErrorBody>(body) {
-        let message = error_body
-            .message
-            .clone()
-            .or_else(|| error_body.code.clone())
-            .unwrap_or_else(|| body.to_string());
-        return (error_body.code, message);
-    }
-
-    (None, body.to_string())
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(e: serde_json::Error) -> Self {
-        Error::Parse(e.to_string())
+fn sensitive_header(
+    builder: reqwest::RequestBuilder,
+    name: HeaderName,
+    value: &str,
+) -> reqwest::RequestBuilder {
+    match HeaderValue::from_str(value) {
+        Ok(mut value) => {
+            value.set_sensitive(true);
+            builder.header(name, value)
+        }
+        // reqwest hits the same parse failure, and reports it at send time.
+        Err(_) => builder.header(name, value),
     }
 }
 
-fn format_reqwest_error(error: &reqwest::Error) -> String {
-    let mut message = error.to_string();
+/// Settings for building an [`Api`].
+pub struct ApiConfig {
+    /// The Ente API origin: scheme, host, and port, e.g. `https://api.ente.com`.
+    pub origin: String,
+    /// The client package, sent as `X-Client-Package` (e.g. `io.ente.photos`).
+    pub client_package: Option<String>,
+    /// The client version, sent as `X-Client-Version`.
+    pub client_version: Option<String>,
+    /// The user agent to send. Ignored on wasm.
+    pub user_agent: Option<String>,
+    /// The authentication to start with, or `None` to start unauthenticated.
+    pub auth: Option<Auth>,
+}
 
-    let mut kinds = Vec::new();
-    if error.is_timeout() {
-        kinds.push("timeout");
+impl ApiConfig {
+    /// Config with only the origin set.
+    pub fn new(origin: String) -> Self {
+        Self {
+            origin,
+            client_package: None,
+            client_version: None,
+            user_agent: None,
+            auth: None,
+        }
     }
+}
+
+/// An Ente API client, bound to a single origin.
+///
+/// Requests take a path relative to that origin and automatically carry the Ente
+/// client headers and the credentials of the [`Auth`] scheme.
+pub struct Api {
+    http: Http,
+    origin: String,
+    client_package: Option<String>,
+    client_version: Option<String>,
     #[cfg(not(target_arch = "wasm32"))]
-    if error.is_connect() {
-        kinds.push("connect");
-    }
-    if error.is_request() {
-        kinds.push("request");
-    }
-    if error.is_body() {
-        kinds.push("body");
-    }
-    if error.is_decode() {
-        kinds.push("decode");
-    }
-    if error.is_redirect() {
-        kinds.push("redirect");
-    }
-    if !kinds.is_empty() {
-        let _ = write!(message, " [kind: {}]", kinds.join(","));
-    }
-
-    let mut source_chain = Vec::new();
-    let mut source = StdError::source(error);
-    while let Some(cause) = source {
-        source_chain.push(cause.to_string());
-        source = cause.source();
-    }
-    if !source_chain.is_empty() {
-        let _ = write!(message, " [caused by: {}]", source_chain.join(" -> "));
-    }
-
-    message
+    user_agent: Option<String>,
+    auth: RwLock<Option<Auth>>,
 }
 
-fn request_context(method: &str, url: &str) -> String {
-    format!("[request: {method} {}]", request_target(url))
-}
-
-fn request_context_with_query(method: &str, url: &str, query: &[(&str, String)]) -> String {
-    if query.is_empty() {
-        return request_context(method, url);
-    }
-
-    let Ok(mut parsed_url) = Url::parse(url) else {
-        return request_context(method, url);
-    };
-
-    {
-        let mut query_pairs = parsed_url.query_pairs_mut();
-        for (key, value) in query {
-            query_pairs.append_pair(key, value);
+impl Api {
+    /// Build a client over `http`, sharing its connection pool.
+    pub fn new(http: Http, config: ApiConfig) -> Self {
+        Self {
+            http,
+            origin: config.origin,
+            client_package: config.client_package,
+            client_version: config.client_version,
+            #[cfg(not(target_arch = "wasm32"))]
+            user_agent: config.user_agent,
+            auth: RwLock::new(config.auth),
         }
     }
 
-    format!(
-        "[request: {method} {}]",
-        request_target(parsed_url.as_ref())
-    )
-}
+    /// The bare transport underneath, for requests to other hosts.
+    pub fn http(&self) -> &Http {
+        &self.http
+    }
 
-fn request_target(url: &str) -> String {
-    let Ok(parsed_url) = Url::parse(url) else {
-        return url.to_string();
-    };
+    /// Change the authentication used for subsequent requests, e.g. after login.
+    pub fn set_auth(&self, auth: Option<Auth>) {
+        *self.auth.write().unwrap_or_else(PoisonError::into_inner) = auth;
+    }
 
-    match parsed_url.query() {
-        Some(query) => format!("{}?{query}", parsed_url.path()),
-        None => parsed_url.path().to_string(),
+    /// Start a GET request to `path`, relative to the origin.
+    pub fn get(&self, path: &str) -> RequestBuilder {
+        self.request(Method::GET, path)
+    }
+
+    /// Start a POST request to `path`, relative to the origin.
+    pub fn post(&self, path: &str) -> RequestBuilder {
+        self.request(Method::POST, path)
+    }
+
+    /// Start a PUT request to `path`, relative to the origin.
+    pub fn put(&self, path: &str) -> RequestBuilder {
+        self.request(Method::PUT, path)
+    }
+
+    /// Start a DELETE request to `path`, relative to the origin.
+    pub fn delete(&self, path: &str) -> RequestBuilder {
+        self.request(Method::DELETE, path)
+    }
+
+    /// Start a HEAD request to `path`, relative to the origin.
+    pub fn head(&self, path: &str) -> RequestBuilder {
+        self.request(Method::HEAD, path)
+    }
+
+    /// Check that the server is reachable.
+    pub async fn ping(&self) -> Result<PingResponse, Error> {
+        self.get("/ping")
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await
+    }
+
+    fn request(&self, method: Method, path: &str) -> RequestBuilder {
+        let mut builder = self
+            .http
+            .client
+            .request(method, api_url(&self.origin, path));
+        if let Some(client_package) = &self.client_package {
+            builder = builder.header(CLIENT_PACKAGE, client_package);
+        }
+        if let Some(version) = &self.client_version {
+            builder = builder.header(CLIENT_VERSION, version);
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(user_agent) = &self.user_agent {
+            builder = builder.header(reqwest::header::USER_AGENT, user_agent);
+        }
+        if let Some(auth) = &*self.auth.read().unwrap_or_else(PoisonError::into_inner) {
+            builder = auth.apply(builder);
+        }
+        RequestBuilder(builder)
     }
 }
 
-/// Response from the /ping endpoint.
+/// A request under construction.
+///
+/// Configure it by chaining methods, then [`send`](Self::send) it.
+#[must_use = "a request is only sent when you call send()"]
+pub struct RequestBuilder(reqwest::RequestBuilder);
+
+impl RequestBuilder {
+    /// Add URL query parameters, serialized from any [`Serialize`] value with
+    /// `serde_urlencoded`.
+    pub fn query<Q: Serialize + ?Sized>(self, query: &Q) -> Self {
+        Self(self.0.query(query))
+    }
+
+    /// Add a header.
+    pub fn header(self, name: &str, value: &str) -> Self {
+        Self(self.0.header(name, value))
+    }
+
+    /// Set the body to `body` serialized as JSON, with a JSON `Content-Type`.
+    pub fn json<B: Serialize + ?Sized>(self, body: &B) -> Self {
+        Self(self.0.json(body))
+    }
+
+    /// Set the body to raw bytes.
+    pub fn body(self, body: Vec<u8>) -> Self {
+        Self(self.0.body(body))
+    }
+
+    /// Send the request, returning the [`Response`] for any status.
+    pub async fn send(self) -> Result<Response, Error> {
+        Ok(Response(self.0.send().await?))
+    }
+}
+
+/// The response to a sent request.
+///
+/// The usual flow is to call [`error_for_status`](Self::error_for_status) to
+/// turn a non-2xx status into an error, then read the body with
+/// [`json`](Self::json), [`text`](Self::text), [`bytes`](Self::bytes), or
+/// [`bytes_stream`](Self::bytes_stream).
+///
+/// The [`status`](Self::status) and [`header`](Self::header)s are also available
+/// directly.
+#[derive(Debug)]
+pub struct Response(reqwest::Response);
+
+impl Response {
+    /// The HTTP status code.
+    pub fn status(&self) -> u16 {
+        self.0.status().as_u16()
+    }
+
+    /// The value of a response header, if present and valid UTF-8.
+    pub fn header(&self, name: &str) -> Option<&str> {
+        self.0.headers().get(name).and_then(|v| v.to_str().ok())
+    }
+
+    /// All the response headers.
+    pub fn headers(&self) -> &reqwest::header::HeaderMap {
+        self.0.headers()
+    }
+
+    /// Return an [`Error::Http`] if the status is not 2xx, otherwise the response.
+    pub fn error_for_status(self) -> Result<Self, Error> {
+        if self.0.status().is_success() {
+            Ok(self)
+        } else {
+            Err(Error::Http {
+                status: self.0.status().as_u16(),
+                path: self.0.url().path().to_owned(),
+            })
+        }
+    }
+
+    /// Return an [`Error::Api`] carrying the server's error code if the
+    /// status is not 2xx, otherwise the response.
+    ///
+    /// A variant of [`error_for_status`](Self::error_for_status) for call
+    /// sites that need to act on the error code that the Ente API includes
+    /// in its error responses. When the body does not carry a code, this
+    /// returns the same [`Error::Http`] that `error_for_status` would.
+    pub async fn error_for_code(self) -> Result<Self, Error> {
+        if self.0.status().is_success() {
+            return Ok(self);
+        }
+        let status = self.status();
+        let path = self.0.url().path().to_owned();
+        match serde_json::from_slice::<ApiErrorEnvelope>(&self.bytes().await?) {
+            Ok(envelope) => Err(Error::Api {
+                status,
+                path,
+                code: envelope.code,
+            }),
+            Err(_) => Err(Error::Http { status, path }),
+        }
+    }
+
+    /// Read the whole body and deserialize it as JSON.
+    pub async fn json<T: DeserializeOwned>(self) -> Result<T, Error> {
+        serde_json::from_slice(&self.0.bytes().await?).map_err(|e| Error::Parse(ParseError(e)))
+    }
+
+    /// Read the whole body as text.
+    pub async fn text(self) -> Result<String, Error> {
+        Ok(self.0.text().await?)
+    }
+
+    /// Read the whole body as bytes.
+    pub async fn bytes(self) -> Result<Vec<u8>, Error> {
+        Ok(self.0.bytes().await?.into())
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+mod body_stream {
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+
+    use bytes::Bytes;
+    use futures_core::Stream;
+
+    use super::{Error, Response};
+
+    impl Response {
+        /// Stream the body in chunks instead of buffering it, for large downloads.
+        pub fn bytes_stream(self) -> impl Stream<Item = Result<Bytes, Error>> + Send {
+            BytesStream(Box::pin(self.0.bytes_stream()))
+        }
+    }
+
+    struct BytesStream(Pin<Box<dyn Stream<Item = reqwest::Result<Bytes>> + Send>>);
+
+    impl Stream for BytesStream {
+        type Item = Result<Bytes, Error>;
+
+        fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+            self.0
+                .as_mut()
+                .poll_next(cx)
+                .map(|chunk| chunk.map(|chunk| chunk.map_err(Error::from)))
+        }
+    }
+}
+
+/// The Ente API's error body, e.g. `{"code": "USER_NOT_REGISTERED", ...}`.
+#[derive(Deserialize)]
+struct ApiErrorEnvelope {
+    code: String,
+}
+
+/// The reply from the `/ping` endpoint.
 #[derive(Deserialize, Debug)]
 pub struct PingResponse {
-    /// "pong"
+    /// Always `"pong"`.
     pub message: String,
-    /// Git commit hash of the server.
+    /// The server's git commit hash.
     pub id: String,
 }
 
-/// Authenticated HTTP client configuration.
-#[derive(Clone, Default)]
-pub struct HttpConfig {
-    /// Base API URL.
-    pub base_url: String,
-    /// Optional auth token sent via `X-Auth-Token`.
-    pub auth_token: Option<String>,
-    /// Optional user agent.
-    pub user_agent: Option<String>,
-    /// Optional client package header.
-    pub client_package: Option<String>,
-    /// Optional client version header.
-    pub client_version: Option<String>,
-    /// Optional request timeout.
-    pub timeout_secs: Option<u64>,
+/// How persistently to retry a failed request.
+///
+/// Both profiles make one original attempt and up to three retries. The
+/// delays match the web client's retry schedules.
+#[derive(Clone, Copy, Debug)]
+pub enum RetryProfile {
+    /// For requests a user is waiting on. Retries after 2, 5, and 10 seconds.
+    Interactive,
+    /// For unattended work, where waiting longer handles remote hiccups
+    /// better. Retries after 10, 30, and 120 seconds.
+    Background,
 }
 
-impl std::fmt::Debug for HttpConfig {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("HttpConfig")
-            .field("base_url", &self.base_url)
-            .field(
-                "auth_token",
-                &self.auth_token.as_ref().map(|_| "<redacted>"),
-            )
-            .field("user_agent", &self.user_agent)
-            .field("client_package", &self.client_package)
-            .field("client_version", &self.client_version)
-            .field("timeout_secs", &self.timeout_secs)
-            .finish()
+impl RetryProfile {
+    fn delays(self) -> [Duration; 3] {
+        match self {
+            RetryProfile::Interactive => [2, 5, 10].map(Duration::from_secs),
+            RetryProfile::Background => [10, 30, 120].map(Duration::from_secs),
+        }
     }
 }
 
-/// HTTP client for making requests to the Ente API.
-pub struct HttpClient {
-    client: reqwest::Client,
-    no_redirect_client: reqwest::Client,
-    base_url: String,
-    base_origin: Option<Url>,
-    auth_token: RwLock<Option<Zeroizing<String>>>,
-    #[cfg(not(target_arch = "wasm32"))]
-    user_agent: Option<String>,
-    client_package: Option<String>,
-    client_version: Option<String>,
-}
-
-/// Bare HTTP client for presigned object-store transfers.
-#[derive(Clone)]
-pub struct ObjectStoreHttpClient {
-    client: reqwest::Client,
-}
-
-impl HttpClient {
-    /// Create a client with the given base URL.
-    pub fn new(base_url: &str) -> Result<Self, Error> {
-        Self::new_with_config(HttpConfig {
-            base_url: base_url.to_string(),
-            ..HttpConfig::default()
-        })
-    }
-
-    /// Create a client with auth/header configuration.
-    pub fn new_with_config(config: HttpConfig) -> Result<Self, Error> {
-        let base_url = config.base_url.trim_end_matches('/').to_string();
-        let base_origin = Url::parse(&base_url).ok().and_then(|base| {
-            if base.query().is_none() && base.fragment().is_none() {
-                Some(base)
-            } else {
-                None
-            }
-        });
-
-        #[cfg(not(target_arch = "wasm32"))]
-        let mut builder = reqwest::Client::builder();
-        #[cfg(target_arch = "wasm32")]
-        let builder = reqwest::Client::builder();
-        #[cfg(not(target_arch = "wasm32"))]
-        if let Some(timeout) = config.timeout_secs {
-            builder = builder.timeout(Duration::from_secs(timeout));
-        }
-
-        let client = builder.build().map_err(Error::from)?;
-        #[cfg(not(target_arch = "wasm32"))]
-        let mut no_redirect_builder = reqwest::Client::builder().redirect(Policy::none());
-        #[cfg(target_arch = "wasm32")]
-        let no_redirect_builder = reqwest::Client::builder();
-        #[cfg(not(target_arch = "wasm32"))]
-        if let Some(timeout) = config.timeout_secs {
-            no_redirect_builder = no_redirect_builder.timeout(Duration::from_secs(timeout));
-        }
-        let no_redirect_client = no_redirect_builder.build().map_err(Error::from)?;
-
-        Ok(Self {
-            client,
-            no_redirect_client,
-            base_url,
-            base_origin,
-            auth_token: RwLock::new(config.auth_token.map(Zeroizing::new)),
-            #[cfg(not(target_arch = "wasm32"))]
-            user_agent: config.user_agent,
-            client_package: config.client_package,
-            client_version: config.client_version,
-        })
-    }
-
-    /// Replace the auth token used for authenticated requests.
-    pub fn set_auth_token(&self, auth_token: Option<String>) {
-        *self.auth_token.write().expect("auth token lock poisoned") =
-            auth_token.map(Zeroizing::new);
-    }
-
-    /// Create a bare client for presigned object-store requests.
-    pub fn object_store(&self) -> ObjectStoreHttpClient {
-        ObjectStoreHttpClient {
-            client: self.no_redirect_client.clone(),
-        }
-    }
-
-    /// GET request, returns response body as text.
-    ///
-    /// `path` is expected to be a trusted API endpoint path chosen by the
-    /// caller. This helper intentionally preserves the request path verbatim
-    /// after basic validation, so attacker-controlled paths must not be passed.
-    pub async fn get(&self, path: &str) -> Result<String, Error> {
-        let url = self.request_url(path)?;
-        let request_context = request_context("GET", &url);
-        let response = self
-            .client
-            .get(&url)
-            .headers(self.build_headers()?)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        parse_text_response(response)
-            .await
-            .map_err(|error| error.with_request_context(&request_context))
-    }
-
-    /// GET request returning JSON.
-    pub async fn get_json<T: DeserializeOwned>(
-        &self,
-        path: &str,
-        query: &[(&str, String)],
-    ) -> Result<T, Error> {
-        let url = self.request_url(path)?;
-        let request_context = request_context_with_query("GET", &url, query);
-        let response = self
-            .client
-            .get(&url)
-            .headers(self.build_headers()?)
-            .query(query)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        parse_json_response(response)
-            .await
-            .map_err(|error| error.with_request_context(&request_context))
-    }
-
-    /// GET request returning `None` for 404.
-    pub async fn get_json_optional<T: DeserializeOwned>(
-        &self,
-        path: &str,
-        query: &[(&str, String)],
-    ) -> Result<Option<T>, Error> {
-        let url = self.request_url(path)?;
-        let request_context = request_context_with_query("GET", &url, query);
-        let response = self
-            .client
-            .get(&url)
-            .headers(self.build_headers()?)
-            .query(query)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        if response.status().as_u16() == 404 {
-            return Ok(None);
-        }
-        parse_json_response(response)
-            .await
-            .map(Some)
-            .map_err(|error| error.with_request_context(&request_context))
-    }
-
-    /// POST JSON request.
-    pub async fn post_json<T: DeserializeOwned, B: Serialize + ?Sized>(
-        &self,
-        path: &str,
-        body: &B,
-    ) -> Result<T, Error> {
-        let url = self.request_url(path)?;
-        let request_context = request_context("POST", &url);
-        let response = self
-            .client
-            .post(&url)
-            .headers(self.build_headers()?)
-            .json(body)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        parse_json_response(response)
-            .await
-            .map_err(|error| error.with_request_context(&request_context))
-    }
-
-    /// POST JSON request expecting an empty response body.
-    pub async fn post_empty<B: Serialize + ?Sized>(
-        &self,
-        path: &str,
-        body: &B,
-    ) -> Result<(), Error> {
-        let url = self.request_url(path)?;
-        let request_context = request_context("POST", &url);
-        let response = self
-            .client
-            .post(&url)
-            .headers(self.build_headers()?)
-            .json(body)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        parse_empty_response(response)
-            .await
-            .map_err(|error| error.with_request_context(&request_context))
-    }
-
-    /// PUT JSON request.
-    pub async fn put_json<T: DeserializeOwned, B: Serialize + ?Sized>(
-        &self,
-        path: &str,
-        body: &B,
-    ) -> Result<T, Error> {
-        let url = self.request_url(path)?;
-        let request_context = request_context("PUT", &url);
-        let response = self
-            .client
-            .put(&url)
-            .headers(self.build_headers()?)
-            .json(body)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        parse_json_response(response)
-            .await
-            .map_err(|error| error.with_request_context(&request_context))
-    }
-
-    /// PUT JSON request expecting an empty response body.
-    pub async fn put_empty<B: Serialize + ?Sized>(
-        &self,
-        path: &str,
-        body: &B,
-    ) -> Result<(), Error> {
-        let url = self.request_url(path)?;
-        let request_context = request_context("PUT", &url);
-        let response = self
-            .client
-            .put(&url)
-            .headers(self.build_headers()?)
-            .json(body)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        parse_empty_response(response)
-            .await
-            .map_err(|error| error.with_request_context(&request_context))
-    }
-
-    /// DELETE request expecting an empty response body.
-    pub async fn delete_empty(&self, path: &str, query: &[(&str, String)]) -> Result<(), Error> {
-        let url = self.request_url(path)?;
-        let request_context = request_context_with_query("DELETE", &url, query);
-        let response = self
-            .client
-            .delete(&url)
-            .headers(self.build_headers()?)
-            .query(query)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        parse_empty_response(response)
-            .await
-            .map_err(|error| error.with_request_context(&request_context))
-    }
-
-    /// DELETE request returning JSON.
-    pub async fn delete_json<T: DeserializeOwned>(
-        &self,
-        path: &str,
-        query: &[(&str, String)],
-    ) -> Result<T, Error> {
-        let url = self.request_url(path)?;
-        let request_context = request_context_with_query("DELETE", &url, query);
-        let response = self
-            .client
-            .delete(&url)
-            .headers(self.build_headers()?)
-            .query(query)
-            .send()
-            .await
-            .map_err(Error::from)
-            .map_err(|error| error.with_request_context(&request_context))?;
-        parse_json_response(response)
-            .await
-            .map_err(|error| error.with_request_context(&request_context))
-    }
-
-    /// Download bytes from a URL, following redirects safely.
-    pub async fn get_bytes(&self, url: &str) -> Result<Vec<u8>, Error> {
-        self.get_bytes_with_headers(url, |current_url| self.build_headers_for_url(current_url))
-            .await
-    }
-
-    async fn get_bytes_with_headers<F>(
-        &self,
-        url: &str,
-        headers_for_url: F,
-    ) -> Result<Vec<u8>, Error>
-    where
-        F: Fn(&Url) -> Result<HeaderMap, Error>,
-    {
-        let mut current_url = self.parse_url(url)?;
-        for _ in 0..5 {
-            let headers = headers_for_url(&current_url)?;
-            let response = self
-                .no_redirect_client
-                .get(current_url.clone())
-                .headers(headers)
-                .send()
-                .await?;
-            if response.status().is_redirection()
-                && let Some(location) = response.headers().get(LOCATION)
-            {
-                current_url = self.resolve_redirect(&current_url, location)?;
-                continue;
-            }
-            return parse_bytes_response(response).await;
-        }
-
-        Err(Error::InvalidUrl("too many redirects".to_string()))
-    }
-
-    /// Upload raw bytes to a presigned URL, following redirects safely.
-    pub async fn put_bytes(
-        &self,
-        url: &str,
-        body: &[u8],
-        headers: &[(&str, String)],
-    ) -> Result<(), Error> {
-        let mut header_map = HeaderMap::new();
-        for (name, value) in headers {
-            let header_name =
-                HeaderName::from_bytes(name.as_bytes()).map_err(|e| Error::Parse(e.to_string()))?;
-            let header_value =
-                HeaderValue::from_str(value).map_err(|e| Error::Parse(e.to_string()))?;
-            header_map.insert(header_name, header_value);
-        }
-
-        let mut current_url = self.parse_url(url)?;
-        for _ in 0..5 {
-            let response = self
-                .no_redirect_client
-                .put(current_url.clone())
-                .headers(header_map.clone())
-                .body(body.to_vec())
-                .send()
-                .await?;
-            if response.status().is_redirection()
-                && let Some(location) = response.headers().get(LOCATION)
-            {
-                current_url = self.resolve_redirect(&current_url, location)?;
-                continue;
-            }
-            return parse_empty_response(response).await;
-        }
-
-        Err(Error::InvalidUrl("too many redirects".to_string()))
-    }
-
-    fn request_url(&self, path: &str) -> Result<String, Error> {
-        if !path.starts_with('/') {
-            return Err(Error::InvalidUrl(
-                "request paths must start with '/'".to_string(),
-            ));
-        }
-        debug_assert!(
-            !path_contains_dot_segments(path),
-            "request paths must be trusted endpoint paths without dot segments"
-        );
-
-        let base = Url::parse(&self.base_url)
-            .map_err(|e| Error::InvalidUrl(format!("invalid base URL: {e}")))?;
-        if base.query().is_some() || base.fragment().is_some() {
-            return Err(Error::InvalidUrl(
-                "base URL must not contain a query or fragment".to_string(),
-            ));
-        }
-
-        Ok(format!("{}{}", self.base_url, path))
-    }
-    /// Ping the API, returns [PingResponse].
-    pub async fn ping(&self) -> Result<PingResponse, Error> {
-        self.get_json("/ping", &[]).await
-    }
-
-    fn parse_url(&self, url: &str) -> Result<Url, Error> {
-        Url::parse(url).map_err(|e| Error::InvalidUrl(format!("invalid url: {e}")))
-    }
-
-    fn resolve_redirect(&self, current_url: &Url, location: &HeaderValue) -> Result<Url, Error> {
-        let next = location
-            .to_str()
-            .map_err(|e| Error::InvalidUrl(format!("invalid redirect location: {e}")))?;
-        Url::parse(next)
-            .or_else(|_| current_url.join(next))
-            .map_err(|e| Error::InvalidUrl(format!("invalid redirect location: {e}")))
-    }
-
-    fn is_same_origin(&self, url: &Url) -> bool {
-        self.base_origin.as_ref().is_some_and(|base| {
-            base.scheme() == url.scheme()
-                && base.host_str() == url.host_str()
-                && base.port_or_known_default() == url.port_or_known_default()
-        })
-    }
-
-    fn build_headers_for_url(&self, url: &Url) -> Result<HeaderMap, Error> {
-        if self.is_same_origin(url) {
-            self.build_headers()
-        } else {
-            self.build_public_headers()
-        }
-    }
-
-    fn build_headers(&self) -> Result<HeaderMap, Error> {
-        let mut headers = self.build_public_headers()?;
-        if let Some(auth_token) = self
-            .auth_token
-            .read()
-            .expect("auth token lock poisoned")
-            .as_ref()
-        {
-            let token =
-                HeaderValue::from_str(auth_token).map_err(|e| Error::Parse(e.to_string()))?;
-            headers.insert(TOKEN_HEADER, token);
-        }
-        Ok(headers)
-    }
-
-    fn build_public_headers(&self) -> Result<HeaderMap, Error> {
-        let mut headers = HeaderMap::new();
-        #[cfg(not(target_arch = "wasm32"))]
-        if let Some(user_agent) = &self.user_agent {
-            let value =
-                HeaderValue::from_str(user_agent).map_err(|e| Error::Parse(e.to_string()))?;
-            headers.insert(reqwest::header::USER_AGENT, value);
-        }
-        if let Some(client_package) = &self.client_package {
-            let value =
-                HeaderValue::from_str(client_package).map_err(|e| Error::Parse(e.to_string()))?;
-            headers.insert(CLIENT_PKG_HEADER, value);
-        }
-        if let Some(client_version) = &self.client_version {
-            let value =
-                HeaderValue::from_str(client_version).map_err(|e| Error::Parse(e.to_string()))?;
-            headers.insert(CLIENT_VERSION_HEADER, value);
-        }
-        Ok(headers)
-    }
-}
-
-impl ObjectStoreHttpClient {
-    /// Download bytes from a presigned URL without Ente headers.
-    pub async fn get_bytes(&self, url: &str) -> Result<Vec<u8>, Error> {
-        get_bytes_with_client(&self.client, url, |_| Ok(HeaderMap::new())).await
-    }
-
-    /// Upload raw bytes to a presigned URL without Ente headers.
-    pub async fn put_bytes(
-        &self,
-        url: &str,
-        body: &[u8],
-        headers: &[(&str, String)],
-    ) -> Result<(), Error> {
-        put_bytes_with_client(&self.client, url, body, headers).await
-    }
-}
-
-async fn get_bytes_with_client<F>(
-    client: &reqwest::Client,
-    url: &str,
-    headers_for_url: F,
-) -> Result<Vec<u8>, Error>
+/// Run `operation`, retrying failures per [`RetryProfile::Interactive`].
+///
+/// A failure is retried when [`Error::is_retryable`] says so: the request
+/// failed in transit, or the server answered with a 429 or a 5xx status.
+/// Any other error returns immediately.
+///
+/// Each retry runs the whole closure again, so wrap only operations that
+/// are safe to repeat.
+pub async fn retry<T, F, Fut>(operation: F) -> Result<T, Error>
 where
-    F: Fn(&Url) -> Result<HeaderMap, Error>,
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T, Error>>,
 {
-    let mut current_url = parse_url(url)?;
-    for _ in 0..5 {
-        let headers = headers_for_url(&current_url)?;
-        let response = client
-            .get(current_url.clone())
-            .headers(headers)
-            .send()
-            .await?;
-        if response.status().is_redirection()
-            && let Some(location) = response.headers().get(LOCATION)
-        {
-            current_url = resolve_redirect(&current_url, location)?;
-            continue;
+    retry_with_profile(RetryProfile::Interactive, operation).await
+}
+
+/// Like [`retry`](retry()), but with an explicitly chosen profile.
+pub async fn retry_with_profile<T, F, Fut>(profile: RetryProfile, operation: F) -> Result<T, Error>
+where
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T, Error>>,
+{
+    retry_with_delays(&profile.delays(), operation).await
+}
+
+async fn retry_with_delays<T, F, Fut>(delays: &[Duration], mut operation: F) -> Result<T, Error>
+where
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T, Error>>,
+{
+    let mut delays = delays.iter();
+    loop {
+        match operation().await {
+            Ok(value) => return Ok(value),
+            Err(error) if error.is_retryable() => match delays.next() {
+                Some(delay) => {
+                    log::warn!("retrying in {delay:?}: {error}");
+                    sleep(*delay).await;
+                }
+                None => return Err(error),
+            },
+            Err(error) => return Err(error),
         }
-        return parse_bytes_response(response).await;
     }
-
-    Err(Error::InvalidUrl("too many redirects".to_string()))
-}
-
-async fn put_bytes_with_client(
-    client: &reqwest::Client,
-    url: &str,
-    body: &[u8],
-    headers: &[(&str, String)],
-) -> Result<(), Error> {
-    let header_map = build_header_map(headers)?;
-    let mut current_url = parse_url(url)?;
-    for _ in 0..5 {
-        let response = client
-            .put(current_url.clone())
-            .headers(header_map.clone())
-            .body(body.to_vec())
-            .send()
-            .await?;
-        if response.status().is_redirection()
-            && let Some(location) = response.headers().get(LOCATION)
-        {
-            current_url = resolve_redirect(&current_url, location)?;
-            continue;
-        }
-        return parse_empty_response(response).await;
-    }
-
-    Err(Error::InvalidUrl("too many redirects".to_string()))
-}
-
-fn build_header_map(headers: &[(&str, String)]) -> Result<HeaderMap, Error> {
-    let mut header_map = HeaderMap::new();
-    for (name, value) in headers {
-        let header_name =
-            HeaderName::from_bytes(name.as_bytes()).map_err(|e| Error::Parse(e.to_string()))?;
-        let header_value = HeaderValue::from_str(value).map_err(|e| Error::Parse(e.to_string()))?;
-        header_map.insert(header_name, header_value);
-    }
-    Ok(header_map)
-}
-
-fn parse_url(url: &str) -> Result<Url, Error> {
-    Url::parse(url).map_err(|e| Error::InvalidUrl(format!("invalid url: {e}")))
-}
-
-fn resolve_redirect(current_url: &Url, location: &HeaderValue) -> Result<Url, Error> {
-    let next = location
-        .to_str()
-        .map_err(|e| Error::InvalidUrl(format!("invalid redirect location: {e}")))?;
-    Url::parse(next)
-        .or_else(|_| current_url.join(next))
-        .map_err(|e| Error::InvalidUrl(format!("invalid redirect location: {e}")))
-}
-
-async fn parse_text_response(response: Response) -> Result<String, Error> {
-    if !response.status().is_success() {
-        let status = response.status().as_u16();
-        let body = response
-            .text()
-            .await
-            .unwrap_or_else(|_| "failed to read error body".to_string());
-        let (code, message) = parse_api_error_body(&body);
-        return Err(Error::Http {
-            status,
-            code,
-            message,
-        });
-    }
-    response.text().await.map_err(Into::into)
-}
-
-async fn parse_json_response<T: DeserializeOwned>(response: Response) -> Result<T, Error> {
-    let text = parse_text_response(response).await?;
-    serde_json::from_str(&text).map_err(Into::into)
-}
-
-async fn parse_empty_response(response: Response) -> Result<(), Error> {
-    if !response.status().is_success() {
-        let status = response.status().as_u16();
-        let body = response
-            .text()
-            .await
-            .unwrap_or_else(|_| "failed to read error body".to_string());
-        let (code, message) = parse_api_error_body(&body);
-        return Err(Error::Http {
-            status,
-            code,
-            message,
-        });
-    }
-    Ok(())
-}
-
-async fn parse_bytes_response(response: Response) -> Result<Vec<u8>, Error> {
-    if !response.status().is_success() {
-        let status = response.status().as_u16();
-        let body = response
-            .text()
-            .await
-            .unwrap_or_else(|_| "failed to read error body".to_string());
-        let (code, message) = parse_api_error_body(&body);
-        return Err(Error::Http {
-            status,
-            code,
-            message,
-        });
-    }
-    response
-        .bytes()
-        .await
-        .map(|bytes| bytes.to_vec())
-        .map_err(Into::into)
-}
-
-fn path_contains_dot_segments(path: &str) -> bool {
-    path.split(['?', '#'])
-        .next()
-        .unwrap_or(path)
-        .split('/')
-        .any(|segment| {
-            matches!(segment, "." | "..")
-                || segment.eq_ignore_ascii_case("%2e")
-                || segment.eq_ignore_ascii_case("%2e%2e")
-        })
 }
 
 #[cfg(test)]
 mod tests {
+    use futures_core::Stream;
+    use mockito::{Matcher, Server, ServerGuard};
+
     use super::*;
-    use mockito::{Matcher, Server};
 
-    fn test_client(base_url: &str) -> HttpClient {
-        HttpClient::new_with_config(HttpConfig {
-            base_url: base_url.to_string(),
-            ..HttpConfig::default()
-        })
-        .expect("test client creation should succeed")
-    }
-
-    #[test]
-    fn test_client_creation() {
-        let client = test_client("https://api.ente.com/");
-        assert_eq!(client.base_url, "https://api.ente.com");
-    }
-
-    #[test]
-    fn test_parse_error_conversion() {
-        let bad_json = "not json";
-        let err: Result<PingResponse, Error> = serde_json::from_str(bad_json).map_err(|e| e.into());
-        assert!(matches!(err, Err(Error::Parse(_))))
-    }
-
-    #[test]
-    fn test_parse_api_error_body_prefers_message_and_preserves_code() {
-        let (code, message) =
-            parse_api_error_body(r#"{"code":"TOO_MANY_WRONG_ATTEMPTS","message":"wait"}"#);
-        assert_eq!(code.as_deref(), Some("TOO_MANY_WRONG_ATTEMPTS"));
-        assert_eq!(message, "wait");
-    }
-
-    #[test]
-    fn test_parse_api_error_body_falls_back_to_code_when_message_missing() {
-        let (code, message) = parse_api_error_body(r#"{"code":"SESSION_EXPIRED"}"#);
-        assert_eq!(code.as_deref(), Some("SESSION_EXPIRED"));
-        assert_eq!(message, "SESSION_EXPIRED");
-    }
-
-    #[test]
-    fn test_request_url_uses_string_join() {
-        let client = test_client("https://api.ente.com/v1");
-        let url = client.request_url("/ping").unwrap();
-        assert_eq!(url, "https://api.ente.com/v1/ping");
-    }
-
-    #[test]
-    fn test_request_url_preserves_query_and_special_bytes() {
-        let client = test_client("https://api.ente.com/v1");
-        let url = client.request_url("/%2e%2e%5cadmin?fresh=true").unwrap();
-        assert_eq!(url, "https://api.ente.com/v1/%2e%2e%5cadmin?fresh=true");
-    }
-
-    #[test]
-    fn test_path_contains_dot_segments() {
-        assert!(!path_contains_dot_segments("/ping?fresh=true"));
-        assert!(path_contains_dot_segments("/../admin"));
-        assert!(path_contains_dot_segments("/safe/%2e%2e/admin"));
-        assert!(path_contains_dot_segments("/safe/%2E/admin"));
-    }
-
-    #[test]
-    fn test_request_url_rejects_missing_leading_slash() {
-        let client = test_client("https://api.ente.com");
-        let err = client.request_url("ping").unwrap_err();
-        assert!(matches!(err, Error::InvalidUrl(_)));
-    }
-
-    #[test]
-    fn test_request_url_rejects_invalid_base_url() {
-        let client = test_client("not a url");
-        let err = client.request_url("/ping").unwrap_err();
-        assert!(matches!(err, Error::InvalidUrl(_)));
-    }
-
-    #[test]
-    fn test_request_url_rejects_base_url_with_query() {
-        let client = test_client("https://api.ente.com/v1?stale=true");
-        let err = client.request_url("/ping").unwrap_err();
-        assert!(matches!(err, Error::InvalidUrl(_)));
-    }
-
-    #[test]
-    fn test_request_url_rejects_base_url_with_fragment() {
-        let client = test_client("https://api.ente.com/v1#old");
-        let err = client.request_url("/ping").unwrap_err();
-        assert!(matches!(err, Error::InvalidUrl(_)));
-    }
-
-    #[test]
-    fn test_set_auth_token_replaces_token() {
-        let client = test_client("https://api.ente.com");
-        client.set_auth_token(Some("token-1".to_string()));
-        assert_eq!(
-            client
-                .auth_token
-                .read()
-                .unwrap()
-                .as_ref()
-                .map(|token| token.as_str()),
-            Some("token-1")
-        );
-        client.set_auth_token(None);
-        assert_eq!(
-            client
-                .auth_token
-                .read()
-                .unwrap()
-                .as_ref()
-                .map(|token| token.as_str()),
-            None
-        );
+    fn api(server: &ServerGuard, auth: Option<Auth>) -> Api {
+        Api::new(
+            Http::new().unwrap(),
+            ApiConfig {
+                origin: server.url(),
+                client_package: Some("io.ente.test".into()),
+                client_version: Some("1.0".into()),
+                user_agent: None,
+                auth,
+            },
+        )
     }
 
     #[tokio::test]
-    async fn api_download_includes_auth_and_public_headers_for_same_origin_urls() {
+    async fn api_sends_client_and_auth_headers() {
         let mut server = Server::new_async().await;
         let mock = server
-            .mock("GET", "/download")
-            .match_header("x-auth-token", "auth-token")
-            .match_header("x-client-package", "io.ente.photos")
-            .match_header("x-client-version", "1.0.0")
-            .match_header("user-agent", "ente-core-test")
-            .with_status(200)
-            .with_body("ok")
+            .mock("GET", "/ping")
+            .match_header("x-client-package", "io.ente.test")
+            .match_header("x-client-version", "1.0")
+            .match_header("x-auth-token", "tok")
+            .with_body(r#"{"message":"pong","id":"abc"}"#)
             .create_async()
             .await;
 
-        let client = HttpClient::new_with_config(HttpConfig {
-            base_url: server.url(),
-            auth_token: Some("auth-token".to_string()),
-            user_agent: Some("ente-core-test".to_string()),
-            client_package: Some("io.ente.photos".to_string()),
-            client_version: Some("1.0.0".to_string()),
-            timeout_secs: None,
-        })
+        let api = api(&server, Some(Auth::User("tok".into())));
+        let response = api.ping().await.unwrap();
+
+        mock.assert_async().await;
+        assert_eq!(response.message, "pong");
+        assert_eq!(response.id, "abc");
+    }
+
+    #[tokio::test]
+    async fn api_sends_space_session_token_header() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("GET", "/ping")
+            .match_header("x-space-session-token", "space-session-token")
+            .with_body(r#"{"message":"pong","id":"abc"}"#)
+            .create_async()
+            .await;
+
+        let response = api(
+            &server,
+            Some(Auth::SpaceSession("space-session-token".into())),
+        )
+        .ping()
+        .await
         .unwrap();
 
-        let bytes = client
-            .get_bytes(&format!("{}/download", server.url()))
+        mock.assert_async().await;
+        assert_eq!(response.message, "pong");
+    }
+
+    #[tokio::test]
+    async fn api_sends_public_album_auth_headers() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("GET", "/public-collection/info")
+            .match_header("x-auth-access-token", "at")
+            .match_header("x-auth-access-token-jwt", "jwt")
+            .match_header("x-auth-link-device-token", "ld")
+            .match_header("x-auth-token", Matcher::Missing)
+            .create_async()
+            .await;
+
+        let api = api(
+            &server,
+            Some(Auth::PublicAlbum {
+                access_token: "at".into(),
+                jwt: Some("jwt".into()),
+                link_device: Some("ld".into()),
+            }),
+        );
+        let response = api.get("/public-collection/info").send().await.unwrap();
+
+        mock.assert_async().await;
+        assert_eq!(response.status(), 200);
+    }
+
+    #[tokio::test]
+    async fn set_auth_changes_subsequent_requests() {
+        let mut server = Server::new_async().await;
+        let unauthed = server
+            .mock("GET", "/a")
+            .match_header("x-auth-token", Matcher::Missing)
+            .create_async()
+            .await;
+        let authed = server
+            .mock("GET", "/b")
+            .match_header("x-auth-token", "tok")
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        api.get("/a").send().await.unwrap();
+        api.set_auth(Some(Auth::User("tok".into())));
+        api.get("/b").send().await.unwrap();
+
+        unauthed.assert_async().await;
+        authed.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn http_sends_only_explicit_headers() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("PUT", "/upload")
+            .match_header("x-client-package", Matcher::Missing)
+            .match_header("x-client-version", Matcher::Missing)
+            .match_header("x-auth-token", Matcher::Missing)
+            .match_header("content-type", Matcher::Missing)
+            .match_header("content-md5", "digest")
+            .match_body("payload")
+            .create_async()
+            .await;
+
+        let http = Http::new().unwrap();
+        http.put(&format!("{}/upload", server.url()))
+            .header("Content-MD5", "digest")
+            .body(b"payload".to_vec())
+            .send()
+            .await
+            .unwrap()
+            .error_for_status()
+            .unwrap();
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn json_body_sets_content_type() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("POST", "/echo")
+            .match_header("content-type", "application/json")
+            .match_body(Matcher::JsonString(r#"{"a":1}"#.into()))
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        api.post("/echo")
+            .json(&serde_json::json!({"a": 1}))
+            .send()
             .await
             .unwrap();
 
         mock.assert_async().await;
-        assert_eq!(bytes, b"ok");
     }
 
     #[tokio::test]
-    async fn object_store_client_only_sends_explicit_headers() {
+    async fn error_for_status_strips_the_query() {
         let mut server = Server::new_async().await;
-        let get_mock = server
+        server
             .mock("GET", "/download")
-            .match_header("x-auth-token", Matcher::Missing)
-            .match_header("x-client-package", Matcher::Missing)
-            .match_header("x-client-version", Matcher::Missing)
-            .match_header("user-agent", Matcher::Missing)
-            .with_status(200)
+            .match_query(Matcher::Any)
+            .with_status(403)
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let err = api
+            .get("/download")
+            .query(&[("X-Amz-Signature", "secret")])
+            .send()
+            .await
+            .unwrap()
+            .error_for_status()
+            .unwrap_err();
+
+        let Error::Http { status, path } = &err else {
+            panic!("expected Error::Http, got {err:?}");
+        };
+        assert_eq!(*status, 403);
+        assert_eq!(path, "/download");
+        assert!(!err.to_string().contains("secret"));
+    }
+
+    #[tokio::test]
+    async fn error_for_code_reads_the_code() {
+        let mut server = Server::new_async().await;
+        server
+            .mock("GET", "/x")
+            .with_status(401)
+            .with_body(r#"{"code":"SESSION_EXPIRED","message":"session expired"}"#)
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let err = api
+            .get("/x")
+            .send()
+            .await
+            .unwrap()
+            .error_for_code()
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            &err,
+            Error::Api { status: 401, path, code }
+                if path == "/x" && code == "SESSION_EXPIRED"
+        ));
+        assert_eq!(err.to_string(), "HTTP 401 SESSION_EXPIRED at /x");
+        assert_eq!(err.status_code(), Some(401));
+    }
+
+    #[tokio::test]
+    async fn error_for_code_without_a_code_is_a_plain_http_error() {
+        let mut server = Server::new_async().await;
+        server
+            .mock("GET", "/x")
+            .with_status(502)
+            .with_body("<html>bad gateway</html>")
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let err = api
+            .get("/x")
+            .send()
+            .await
+            .unwrap()
+            .error_for_code()
+            .await
+            .unwrap_err();
+
+        assert!(matches!(
+            &err,
+            Error::Http { status: 502, path } if path == "/x"
+        ));
+    }
+
+    #[tokio::test]
+    async fn error_for_code_passes_a_2xx_through() {
+        let mut server = Server::new_async().await;
+        server
+            .mock("GET", "/x")
             .with_body("ok")
             .create_async()
             .await;
-        let put_mock = server
-            .mock("PUT", "/upload")
-            .match_header("content-md5", "digest")
-            .match_header("x-auth-token", Matcher::Missing)
-            .match_header("x-client-package", Matcher::Missing)
-            .match_header("x-client-version", Matcher::Missing)
-            .match_header("user-agent", Matcher::Missing)
-            .with_status(200)
-            .create_async()
-            .await;
 
-        let client = HttpClient::new_with_config(HttpConfig {
-            base_url: server.url(),
-            auth_token: Some("auth-token".to_string()),
-            user_agent: Some("ente-core-test".to_string()),
-            client_package: Some("io.ente.photos".to_string()),
-            client_version: Some("1.0.0".to_string()),
-            timeout_secs: None,
-        })
-        .unwrap();
-        let object_store = client.object_store();
-
-        let bytes = object_store
-            .get_bytes(&format!("{}/download", server.url()))
+        let api = api(&server, None);
+        let response = api.get("/x").send().await.unwrap();
+        let body = response
+            .error_for_code()
+            .await
+            .unwrap()
+            .text()
             .await
             .unwrap();
-        object_store
-            .put_bytes(
-                &format!("{}/upload", server.url()),
-                b"payload",
-                &[("Content-MD5", "digest".to_string())],
-            )
-            .await
-            .unwrap();
-
-        get_mock.assert_async().await;
-        put_mock.assert_async().await;
-        assert_eq!(bytes, b"ok");
+        assert_eq!(body, "ok");
     }
 
     #[tokio::test]
-    async fn api_json_calls_still_follow_redirects() {
+    async fn invalid_json_is_a_parse_error() {
         let mut server = Server::new_async().await;
-
-        let redirect_mock = server
+        server
             .mock("GET", "/ping")
-            .match_header("x-auth-token", "auth-token")
-            .with_status(302)
-            .with_header("location", "/pong")
+            .with_body("not json")
             .create_async()
             .await;
 
-        let target_mock = server
-            .mock("GET", "/pong")
-            .match_header("x-auth-token", "auth-token")
-            .with_status(200)
-            .with_body(
-                serde_json::json!({
-                    "message": "pong",
-                    "id": "redirected"
-                })
-                .to_string(),
-            )
-            .create_async()
-            .await;
-
-        let client = HttpClient::new_with_config(HttpConfig {
-            base_url: server.url(),
-            auth_token: Some("auth-token".to_string()),
-            user_agent: None,
-            client_package: None,
-            client_version: None,
-            timeout_secs: None,
-        })
-        .unwrap();
-
-        let response: PingResponse = client.get_json("/ping", &[]).await.unwrap();
-
-        redirect_mock.assert_async().await;
-        target_mock.assert_async().await;
-        assert_eq!(response.message, "pong");
-        assert_eq!(response.id, "redirected");
+        let api = api(&server, None);
+        let err = api.ping().await.unwrap_err();
+        assert!(matches!(err, Error::Parse(_)));
     }
 
     #[tokio::test]
-    async fn api_download_drops_auth_header_on_cross_origin_redirect() {
-        let mut origin_server = Server::new_async().await;
-        let mut redirect_server = Server::new_async().await;
-
-        let redirect_mock = origin_server
-            .mock("GET", "/download")
-            .match_header("x-auth-token", "auth-token")
-            .match_header("x-client-package", "io.ente.photos")
-            .match_header("x-client-version", "1.0.0")
-            .match_header("user-agent", "ente-core-test")
-            .with_status(302)
-            .with_header("location", &format!("{}/redirected", redirect_server.url()))
+    async fn query_parameters_are_encoded() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("GET", "/search")
+            .match_query(Matcher::UrlEncoded("q".into(), "a b&c".into()))
             .create_async()
             .await;
 
-        let target_mock = redirect_server
-            .mock("GET", "/redirected")
-            .match_header("x-auth-token", Matcher::Missing)
-            .match_header("x-client-package", "io.ente.photos")
-            .match_header("x-client-version", "1.0.0")
-            .match_header("user-agent", "ente-core-test")
-            .with_status(200)
-            .with_body("ok")
-            .create_async()
-            .await;
-
-        let client = HttpClient::new_with_config(HttpConfig {
-            base_url: origin_server.url(),
-            auth_token: Some("auth-token".to_string()),
-            user_agent: Some("ente-core-test".to_string()),
-            client_package: Some("io.ente.photos".to_string()),
-            client_version: Some("1.0.0".to_string()),
-            timeout_secs: None,
-        })
-        .unwrap();
-
-        let bytes = client
-            .get_bytes(&format!("{}/download", origin_server.url()))
+        let api = api(&server, None);
+        api.get("/search")
+            .query(&[("q", "a b&c")])
+            .send()
             .await
             .unwrap();
 
-        redirect_mock.assert_async().await;
-        target_mock.assert_async().await;
-        assert_eq!(bytes, b"ok");
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn status_and_header_read_directly() {
+        let mut server = Server::new_async().await;
+        server
+            .mock("GET", "/maybe")
+            .with_status(404)
+            .with_header("x-request-id", "rid")
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let response = api.get("/maybe").send().await.unwrap();
+        assert_eq!(response.status(), 404);
+        assert_eq!(response.header("x-request-id"), Some("rid"));
+        assert_eq!(response.header("x-absent"), None);
+    }
+
+    #[tokio::test]
+    async fn bytes_stream_yields_the_body() {
+        let body: Vec<u8> = (0..100_000).map(|i| (i % 251) as u8).collect();
+        let mut server = Server::new_async().await;
+        server
+            .mock("GET", "/file")
+            .with_body(&body)
+            .create_async()
+            .await;
+
+        let http = Http::new().unwrap();
+        let response = http
+            .get(&format!("{}/file", server.url()))
+            .send()
+            .await
+            .unwrap()
+            .error_for_status()
+            .unwrap();
+
+        let mut stream = std::pin::pin!(response.bytes_stream());
+        let mut out = Vec::new();
+        while let Some(chunk) = std::future::poll_fn(|cx| stream.as_mut().poll_next(cx)).await {
+            out.extend_from_slice(&chunk.unwrap());
+        }
+        assert_eq!(out, body);
+    }
+
+    #[tokio::test]
+    async fn path_cannot_change_the_host() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("GET", "/@evil.example/ping")
+            .match_header("x-auth-token", "tok")
+            .create_async()
+            .await;
+
+        let api = api(&server, Some(Auth::User("tok".into())));
+        api.get("@evil.example/ping").send().await.unwrap();
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn malformed_origin_fails_at_send() {
+        let api = Api::new(Http::new().unwrap(), ApiConfig::new("not a url".into()));
+        let err = api.get("/ping").send().await.unwrap_err();
+        assert!(matches!(err, Error::Network(_)));
+    }
+
+    #[tokio::test]
+    async fn origin_trailing_slash_is_tolerated() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("GET", "/ping")
+            .with_body(r#"{"message":"pong","id":"abc"}"#)
+            .create_async()
+            .await;
+
+        let api = Api::new(
+            Http::new().unwrap(),
+            ApiConfig::new(format!("{}/", server.url())),
+        );
+        api.ping().await.unwrap();
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn origin_path_prefix_is_preserved() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("GET", "/ente/ping")
+            .with_body(r#"{"message":"pong","id":"abc"}"#)
+            .create_async()
+            .await;
+
+        let api = Api::new(
+            Http::new().unwrap(),
+            ApiConfig::new(format!("{}/ente", server.url())),
+        );
+        api.ping().await.unwrap();
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn retry_retries_retryable_failures() {
+        let mut server = Server::new_async().await;
+        let failure = server
+            .mock("GET", "/x")
+            .with_status(500)
+            .expect(1)
+            .create_async()
+            .await;
+        let success = server
+            .mock("GET", "/x")
+            .with_body("ok")
+            .expect(1)
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let body = retry_with_delays(&[Duration::ZERO; 3], || async {
+            api.get("/x").send().await?.error_for_status()?.text().await
+        })
+        .await
+        .unwrap();
+
+        assert_eq!(body, "ok");
+        failure.assert_async().await;
+        success.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn retry_returns_non_retryable_failures_immediately() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("GET", "/x")
+            .with_status(404)
+            .expect(1)
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let err = retry_with_delays(&[Duration::ZERO; 3], || async {
+            api.get("/x").send().await?.error_for_status()?.text().await
+        })
+        .await
+        .unwrap_err();
+
+        assert_eq!(err.status_code(), Some(404));
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn retry_gives_up_once_the_delays_are_exhausted() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("GET", "/x")
+            .with_status(500)
+            .expect(4)
+            .create_async()
+            .await;
+
+        let api = api(&server, None);
+        let err = retry_with_delays(&[Duration::ZERO; 3], || async {
+            api.get("/x").send().await?.error_for_status()?.text().await
+        })
+        .await
+        .unwrap_err();
+
+        assert_eq!(err.status_code(), Some(500));
+        mock.assert_async().await;
     }
 }

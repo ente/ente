@@ -103,8 +103,9 @@ class MenuItemWidgetV2 extends StatefulWidget {
 
 class _MenuItemWidgetV2State extends State<MenuItemWidgetV2> {
   final _debouncer = Debouncer(const Duration(milliseconds: 300));
-  ValueNotifier<ExecutionState> executionStateNotifier =
-      ValueNotifier(ExecutionState.idle);
+  ValueNotifier<ExecutionState> executionStateNotifier = ValueNotifier(
+    ExecutionState.idle,
+  );
 
   Color? menuItemColor;
   late double borderRadius;
@@ -114,8 +115,8 @@ class _MenuItemWidgetV2State extends State<MenuItemWidgetV2> {
     menuItemColor = widget.menuItemColor;
     borderRadius =
         (widget.isBottomBorderRadiusRemoved || widget.isTopBorderRadiusRemoved)
-            ? widget.multipleBorderRadius
-            : widget.singleBorderRadius;
+        ? widget.multipleBorderRadius
+        : widget.singleBorderRadius;
     if (widget.expandableController != null) {
       widget.expandableController!.addListener(() {
         setState(() {});
@@ -165,8 +166,8 @@ class _MenuItemWidgetV2State extends State<MenuItemWidgetV2> {
     final isExpanded = widget.expandableController?.value;
     final bottomBorderRadius =
         (isExpanded != null && isExpanded) || widget.isBottomBorderRadiusRemoved
-            ? const Radius.circular(0)
-            : circularRadius;
+        ? const Radius.circular(0)
+        : circularRadius;
     final topBorderRadius = widget.isTopBorderRadiusRemoved
         ? const Radius.circular(0)
         : circularRadius;
@@ -236,20 +237,15 @@ class _MenuItemWidgetV2State extends State<MenuItemWidgetV2> {
       return;
     }
     _debouncer.run(
-      () => Future(
-        () {
-          executionStateNotifier.value = ExecutionState.inProgress;
-        },
-      ),
+      () => Future(() {
+        executionStateNotifier.value = ExecutionState.inProgress;
+      }),
     );
-    await widget.onTap?.call().then(
-      (value) {
-        widget.alwaysShowSuccessState
-            ? executionStateNotifier.value = ExecutionState.successful
-            : null;
-      },
-      onError: (error, stackTrace) => _debouncer.cancelDebounce(),
-    );
+    await widget.onTap?.call().then((value) {
+      widget.alwaysShowSuccessState
+          ? executionStateNotifier.value = ExecutionState.successful
+          : null;
+    }, onError: (error, stackTrace) => _debouncer.cancelDebounce());
     _debouncer.cancelDebounce();
     if (widget.alwaysShowSuccessState) {
       Future.delayed(const Duration(seconds: 2), () {
@@ -273,7 +269,7 @@ class _MenuItemWidgetV2State extends State<MenuItemWidgetV2> {
     }
   }
 
-  void _onTapDown(details) {
+  void _onTapDown(TapDownDetails details) {
     if (executionStateNotifier.value == ExecutionState.inProgress ||
         executionStateNotifier.value == ExecutionState.successful) {
       return;
@@ -295,21 +291,18 @@ class _MenuItemWidgetV2State extends State<MenuItemWidgetV2> {
         widget.onLongPress != null;
   }
 
-  void _onTapUp(details) {
+  void _onTapUp(TapUpDetails details) {
     if (executionStateNotifier.value == ExecutionState.inProgress ||
         executionStateNotifier.value == ExecutionState.successful) {
       return;
     }
-    Future.delayed(
-      const Duration(milliseconds: 100),
-      () {
-        if (mounted) {
-          setState(() {
-            menuItemColor = widget.menuItemColor;
-          });
-        }
-      },
-    );
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() {
+          menuItemColor = widget.menuItemColor;
+        });
+      }
+    });
   }
 
   void _onCancel() {
@@ -347,16 +340,14 @@ class LeadingWidgetV2 extends StatelessWidget {
         width: leadingIconSize,
         child: leadingIcon == null
             ? (leadingIconWidget != null
-                ? FittedBox(
-                    fit: BoxFit.contain,
-                    child: leadingIconWidget,
-                  )
-                : const SizedBox.shrink())
+                  ? FittedBox(fit: BoxFit.contain, child: leadingIconWidget)
+                  : const SizedBox.shrink())
             : FittedBox(
                 fit: BoxFit.contain,
                 child: Icon(
                   leadingIcon,
-                  color: leadingIconColor ??
+                  color:
+                      leadingIconColor ??
                       getEnteColorScheme(context).strokeBase,
                 ),
               ),

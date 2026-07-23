@@ -104,18 +104,9 @@ class _ActionItem extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 16,
-              color: iconColor ?? defaultIconColor,
-            ),
+            Icon(icon, size: 16, color: iconColor ?? defaultIconColor),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: textStyle.copyWith(
-                color: defaultIconColor,
-              ),
-            ),
+            Text(label, style: textStyle.copyWith(color: defaultIconColor)),
           ],
         ),
       ),

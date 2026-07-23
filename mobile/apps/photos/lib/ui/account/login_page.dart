@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:email_validator/email_validator.dart';
+import "package:ente_components/ente_components.dart";
 import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import "package:logging/logging.dart";
@@ -9,14 +10,8 @@ import "package:photos/core/errors.dart";
 import "package:photos/gateways/users/models/srp.dart";
 import "package:photos/generated/l10n.dart";
 import 'package:photos/services/account/user_service.dart';
-import "package:photos/theme/colors.dart";
-import "package:photos/theme/ente_theme.dart";
-import "package:photos/theme/text_style.dart";
 import "package:photos/ui/account/email_entry_page.dart";
 import "package:photos/ui/account/login_pwd_verification_page.dart";
-import "package:photos/ui/components/buttons/button_widget_v2.dart";
-import "package:photos/ui/components/models/text_input_type_v2.dart";
-import "package:photos/ui/components/text_input_widget_v2.dart";
 import "package:photos/ui/settings/developer_settings_tap_area.dart";
 
 class LoginPage extends StatefulWidget {
@@ -36,8 +31,8 @@ class _LoginPageState extends State<LoginPage> {
   final Logger _logger = Logger('_LoginPageState');
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  void initState() {
+    super.initState();
     if ((_config.getEmail() ?? '').isNotEmpty) {
       _updateEmail(_config.getEmail()!);
     } else if (kDebugMode) {
@@ -61,19 +56,18 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
     final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: colorScheme.backgroundColour,
+      backgroundColor: colors.backgroundBase,
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: colorScheme.backgroundColour,
+        backgroundColor: colors.backgroundBase,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          color: colorScheme.content,
+          color: colors.iconColor,
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -82,29 +76,27 @@ class _LoginPageState extends State<LoginPage> {
           behavior: HitTestBehavior.translucent,
           child: Text(
             AppLocalizations.of(context).loginToEnte,
-            style: textTheme.largeBold,
+            style: TextStyles.large.copyWith(color: colors.textBase),
           ),
         ),
         centerTitle: true,
       ),
-      body: _getBody(colorScheme, textTheme),
+      body: _getBody(),
       floatingActionButton: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: ButtonWidgetV2(
+        child: ButtonComponent(
           key: const ValueKey("logInButton"),
-          buttonType: ButtonTypeV2.primary,
-          labelText: AppLocalizations.of(context).continueLabel,
+          label: AppLocalizations.of(context).continueLabel,
           isDisabled: !_emailIsValid,
-          onTap: _emailIsValid ? _onLoginPressed : null,
+          onTap: _emailIsValid ? _submitLoginEmail : null,
         ),
       ),
-      bottomNavigationBar:
-          isKeyboardOpen ? null : _getSignUpPrompt(colorScheme, textTheme),
+      bottomNavigationBar: isKeyboardOpen ? null : _getSignUpPrompt(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
-  Widget _getBody(EnteColorScheme colorScheme, EnteTextTheme textTheme) {
+  Widget _getBody() {
     return AutofillGroup(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -112,37 +104,36 @@ class _LoginPageState extends State<LoginPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-            TextInputWidgetV2(
+            TextInputComponent(
               key: const ValueKey("emailInputField"),
               label: AppLocalizations.of(context).email,
               hintText: AppLocalizations.of(context).enterYourEmailAddress,
-              textEditingController: _emailController,
+              controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              autoCorrect: false,
-              autoFocus: true,
+              autofillHints: const [AutofillHints.email],
+              autocorrect: false,
+              autofocus: true,
               isRequired: true,
-              onChange: _onEmailChanged,
+              shouldUnfocusOnClearOrSubmit: true,
+              onSubmit: (_) => _submitLoginEmail(),
+              onChanged: _onEmailChanged,
               message: _showValidationMessage && !_emailIsValid
                   ? AppLocalizations.of(context).invalidEmailAddress
                   : null,
               messageType: _showValidationMessage && !_emailIsValid
-                  ? TextInputMessageType.alert
-                  : TextInputMessageType.guide,
+                  ? TextInputComponentMessageType.alert
+                  : TextInputComponentMessageType.helper,
             ),
             const SizedBox(height: 24),
-            const Expanded(
-              child: DeveloperSettingsTapArea(),
-            ),
+            const Expanded(child: DeveloperSettingsTapArea()),
           ],
         ),
       ),
     );
   }
 
-  Widget _getSignUpPrompt(
-    EnteColorScheme colorScheme,
-    EnteTextTheme textTheme,
-  ) {
+  Widget _getSignUpPrompt() {
+    final colors = context.componentColors;
     return SafeArea(
       top: false,
       child: Padding(
@@ -151,13 +142,15 @@ class _LoginPageState extends State<LoginPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              "Don't have an account?",
-              style: textTheme.bodyMuted,
+              AppLocalizations.of(context).dontHaveAnAccount,
+              style: TextStyles.body.copyWith(color: colors.textLight),
             ),
-            ButtonWidgetV2(
-              buttonType: ButtonTypeV2.link,
-              labelText: AppLocalizations.of(context).signUp,
-              buttonSize: ButtonSizeV2.small,
+            const SizedBox(width: 4),
+
+            ButtonComponent(
+              label: AppLocalizations.of(context).signUp,
+              variant: ButtonComponentVariant.link,
+              size: ButtonComponentSize.small,
               shouldSurfaceExecutionStates: false,
               onTap: _goToSignUpPage,
             ),
@@ -190,6 +183,21 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Future<void> _submitLoginEmail() async {
+    final trimmed = _emailController.text.trim();
+    final isValid = EmailValidator.validate(trimmed);
+    if (!isValid) {
+      setState(() {
+        _email = trimmed;
+        _emailIsValid = false;
+        _showValidationMessage = true;
+      });
+      return;
+    }
+    _email = trimmed;
+    await _onLoginPressed();
+  }
+
   Future<void> _onLoginPressed() async {
     await UserService.instance.setEmail(_email!);
     Configuration.instance.resetVolatilePassword();
@@ -204,17 +212,17 @@ class _LoginPageState extends State<LoginPage> {
       }
     }
     if (attr != null && !isEmailVerificationEnabled) {
+      if (!mounted) return;
       // ignore: unawaited_futures
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (BuildContext context) {
-            return LoginPasswordVerificationPage(
-              srpAttributes: attr!,
-            );
+            return LoginPasswordVerificationPage(srpAttributes: attr!);
           },
         ),
       );
     } else {
+      if (!mounted) return;
       await UserService.instance.sendOtt(
         context,
         _email!,
@@ -222,15 +230,14 @@ class _LoginPageState extends State<LoginPage> {
         purpose: "login",
       );
     }
+    if (!mounted) return;
     FocusScope.of(context).unfocus();
   }
 
   Future<void> _goToSignUpPage() async {
     FocusScope.of(context).unfocus();
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const EmailEntryPage(),
-      ),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const EmailEntryPage()));
   }
 }

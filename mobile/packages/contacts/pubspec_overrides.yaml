@@ -1,4 +1,0 @@
-# melos_managed_dependency_overrides: ente_rust
-dependency_overrides:
-  ente_rust:
-    path: ../rust

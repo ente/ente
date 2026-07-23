@@ -69,6 +69,13 @@
 # It must be specified if running in a non-local environment.
 log-file: ""
 
+# The minimum level of logs to emit: "panic", "fatal", "error", "warn", "info",
+# "debug" or "trace".
+#
+# Anything below the configured level is dropped, e.g. "warn" suppresses info
+# and debug logs. If not specified or invalid defaults to "info".
+#log-level: info
+
 # HTTP connection parameters
 http:
     # The port to bind to.
@@ -88,6 +95,7 @@ apps:
     # set this to the URL where your albums web app is running.
     public-albums:
     # Default is https://embed.ente.com
+    #
     # For self-hosted instances, set this to the URL where your embed app is running.
     embed-albums:
     # Default is https://share.ente.com
@@ -102,8 +110,9 @@ apps:
     public-paste:
     # Default is https://cast.ente.com
     cast:
-    # Set this to the URL where your accounts web app is running, primarily used for
-    # passkey based 2FA.
+    # Set this to the URL where your accounts web app is running. It is used
+    # for passkey based 2FA and other cross-app flows like accepting family
+    # invites.
     #
     # Default is https://accounts.ente.com
     accounts:
@@ -115,6 +124,10 @@ apps:
     accounts-legacy:
     # Default is https://family.ente.io
     family:
+    # Default is https://ente.space
+    #
+    # Set this to the URL where your space web app is running.
+    space:
     # Default is https://memories.ente.com
     #
     # If you're running a self-hosted instance and wish to serve public memory shares,
@@ -128,6 +141,12 @@ apps:
     custom-domain:
         # Default is my.ente.com
         cname:
+
+space:
+    assets:
+        # Bucket ID used for Space post, avatar, and cover uploads.
+        # If omitted, Space asset uploads return SPACE_ASSETS_UNAVAILABLE.
+        primaryBucket:
 
 # Database connection parameters
 db:
@@ -272,10 +291,6 @@ jwt:
 #
 # Configure credentials here for sending mails from museum (e.g. OTP emails).
 #
-# The smtp credentials will be used if the host is specified. Otherwise it will
-# try to use the transmail credentials. Ideally, one of smtp or transmail should
-# be configured for a production instance.
-#
 # username and password are optional (e.g. if you're using a local relay server
 # and don't need authentication).
 smtp:
@@ -291,16 +306,6 @@ smtp:
     sender-name:
     # Optional encryption method. If tls or ssl is chosen, encryption is enabled.
     encryption:
-
-# Zoho Zeptomail config (optional)
-#
-# This is an alternative to the `smtp` configuration for sending emails. If this
-# is set (and SMTP credentials are not set), then museum will use the transmail
-# SDK for sending emails using Zoho Zeptomail.
-transmail:
-    # Transmail token
-    # Mail agent: dev
-    key:
 
 # Apple config (optional)
 # Use case: In-app purchases
@@ -436,8 +441,3 @@ jobs:
         # Number of go routines to spawn for object cleanup
         # Optional, default value is indicated here.
         worker-count: 1
-    clear-orphan-objects:
-        # By default, this job is disabled.
-        enabled: false
-        # If provided, only objects that begin with this prefix are pruned.
-        prefix: ""

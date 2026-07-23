@@ -19,22 +19,19 @@ class BaseLocation {
     this.lastCreationTime,
   });
 
-  static List<BaseLocation> decodeJsonToList(
-    String jsonString,
-  ) {
+  static List<BaseLocation> decodeJsonToList(String jsonString) {
     final jsonList = jsonDecode(jsonString) as List;
     return jsonList.map((json) => BaseLocation.fromJson(json)).toList();
   }
 
   static String encodeListToJson(List<BaseLocation> baseLocations) {
-    final jsonList =
-        baseLocations.map((location) => location.toJson()).toList();
+    final jsonList = baseLocations
+        .map((location) => location.toJson())
+        .toList();
     return jsonEncode(jsonList);
   }
 
-  static BaseLocation fromJson(
-    Map<String, dynamic> json,
-  ) {
+  static BaseLocation fromJson(Map<String, dynamic> json) {
     return BaseLocation(
       (json['fileIDs'] as List).cast<int>(),
       Location(

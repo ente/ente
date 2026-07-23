@@ -1,12 +1,7 @@
 import 'package:ente_ui/theme/ente_theme.dart';
 import 'package:flutter/material.dart';
 
-enum DividerType {
-  solid,
-  menu,
-  menuNoIcon,
-  bottomBar,
-}
+enum DividerType { solid, menu, menuNoIcon, bottomBar }
 
 class DividerWidget extends StatelessWidget {
   final DividerType dividerType;
@@ -35,11 +30,7 @@ class DividerWidget extends StatelessWidget {
       );
     }
     if (dividerType == DividerType.bottomBar) {
-      return Container(
-        color: dividerColor,
-        width: double.infinity,
-        height: 1,
-      );
+      return Container(color: dividerColor, width: double.infinity, height: 1);
     }
 
     return Container(
@@ -51,8 +42,8 @@ class DividerWidget extends StatelessWidget {
             width: dividerType == DividerType.menu
                 ? 48
                 : dividerType == DividerType.menuNoIcon
-                    ? 16
-                    : 0,
+                ? 16
+                : 0,
             height: 1,
           ),
           Expanded(

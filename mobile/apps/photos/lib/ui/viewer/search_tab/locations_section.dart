@@ -1,33 +1,34 @@
 import "dart:async";
-import "dart:math";
-import "dart:ui";
 
-import "package:dotted_border/dotted_border.dart";
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:figma_squircle/figma_squircle.dart";
 import "package:flutter/material.dart";
-import "package:photos/core/constants.dart";
 import "package:photos/events/event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/recent_searches.dart";
 import "package:photos/models/search/search_types.dart";
-import "package:photos/service_locator.dart";
-import "package:photos/services/search_service.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/map/map_screen.dart";
-import 'package:photos/ui/notification/toast.dart';
 import "package:photos/ui/viewer/file/no_thumbnail_widget.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/search/result/go_to_map_widget.dart";
 import "package:photos/ui/viewer/search/result/search_result_page.dart";
+import "package:photos/ui/viewer/search/search_map_navigation.dart";
 import "package:photos/ui/viewer/search/search_section_cta.dart";
+import "package:photos/ui/viewer/search_tab/search_tab_horizontal_scroll.dart";
 import "package:photos/ui/viewer/search_tab/section_header.dart";
 
 class LocationsSection extends StatefulWidget {
   final List<GenericSearchResult> locationsSearchResults;
-  const LocationsSection(this.locationsSearchResults, {super.key});
+  final int resultLimit;
+
+  const LocationsSection(
+    this.locationsSearchResults, {
+    super.key,
+    required this.resultLimit,
+  });
 
   @override
   State<LocationsSection> createState() => _LocationsSectionState();
@@ -46,10 +47,13 @@ class _LocationsSectionState extends State<LocationsSection> {
     for (Stream<Event> stream in streamsToListenTo) {
       streamSubscriptions.add(
         stream.listen((event) async {
-          _locationsSearchResults = (await SectionType.location.getData(
+          if (!mounted) return;
+          final results = await SectionType.location.getData(
             context,
-            limit: kSearchSectionLimit,
-          )) as List<GenericSearchResult>;
+            limit: widget.resultLimit + 1,
+          );
+          if (!mounted) return;
+          _locationsSearchResults = results as List<GenericSearchResult>;
           setState(() {});
         }),
       );
@@ -73,9 +77,13 @@ class _LocationsSectionState extends State<LocationsSection> {
   @override
   Widget build(BuildContext context) {
     if (_locationsSearchResults.isEmpty) {
-      final textTheme = getEnteTextTheme(context);
+      final colors = context.componentColors;
       return Padding(
-        padding: const EdgeInsets.only(left: 12, right: 8),
+        padding: const EdgeInsets.only(
+          left: searchTabSectionHorizontalPadding,
+          right: searchTabSectionHorizontalPadding,
+          bottom: 20,
+        ),
         child: Row(
           children: [
             Expanded(
@@ -84,15 +92,12 @@ class _LocationsSectionState extends State<LocationsSection> {
                 children: [
                   Text(
                     SectionType.location.sectionTitle(context),
-                    style: textTheme.largeBold,
+                    style: TextStyles.display3.copyWith(color: colors.textBase),
                   ),
-                  const SizedBox(height: 24),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4),
-                    child: Text(
-                      SectionType.location.getEmptyStateText(context),
-                      style: textTheme.smallMuted,
-                    ),
+                  const SizedBox(height: 16),
+                  Text(
+                    SectionType.location.getEmptyStateText(context),
+                    style: TextStyles.body.copyWith(color: colors.textLight),
                   ),
                 ],
               ),
@@ -104,36 +109,26 @@ class _LocationsSectionState extends State<LocationsSection> {
         ),
       );
     } else {
-      final recommendations = <Widget>[
-        const RepaintBoundary(child: GoToMapWithBG()),
-        ..._locationsSearchResults.map(
-          (locationSearchResult) =>
-              LocationRecommendation(locationSearchResult),
-        ),
-        const RepaintBoundary(child: LocationCTA()),
-      ];
+      final visibleResults = _locationsSearchResults
+          .take(widget.resultLimit)
+          .toList(growable: false);
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.only(bottom: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SectionHeader(
               SectionType.location,
-              hasMore:
-                  (_locationsSearchResults.length >= kSearchSectionLimit - 1),
+              hasMore: _locationsSearchResults.length > widget.resultLimit,
             ),
-            const SizedBox(height: 2),
-            SizedBox(
-              child: SingleChildScrollView(
-                clipBehavior: Clip.none,
-                padding: const EdgeInsets.symmetric(horizontal: 4.5),
-                physics: const BouncingScrollPhysics(),
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: recommendations,
-                ),
-              ),
+            const SizedBox(height: 4),
+            SearchTabHorizontalRow(
+              spacing: 10,
+              children: [
+                const GoToMapTile(),
+                for (final locationSearchResult in visibleResults)
+                  LocationRecommendation(locationSearchResult),
+              ],
             ),
           ],
         ),
@@ -143,221 +138,98 @@ class _LocationsSectionState extends State<LocationsSection> {
 }
 
 class LocationRecommendation extends StatelessWidget {
-  static const width = 100.0;
-  static const height = 123.0;
-  static const thumbnailBorderWidth = 1.0;
-  static const outerCornerRadius = 12.0;
+  static const width = 108.0;
+  static const outerCornerRadius = 20.0;
   static const cornerSmoothing = 1.0;
-  static const sideOfThumbnail = 90.0;
-  static const outerStrokeWidth = 1.0;
-  //This is the space between this widget's boundary and the border stroke of
-  //thumbnail.
-  static const outerPadding = 4.0;
+  static const sideOfThumbnail = 108.0;
   final GenericSearchResult locationSearchResult;
   const LocationRecommendation(this.locationSearchResult, {super.key});
 
   @override
   Widget build(BuildContext context) {
-    final heroTag = locationSearchResult.heroTag() +
+    final heroTag =
+        locationSearchResult.heroTag() +
         (locationSearchResult.previewThumbnail()?.tag ?? "");
-    final enteTextTheme = getEnteTextTheme(context);
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: max(0, 2.5 - outerStrokeWidth)),
-      child: GestureDetector(
-        onTap: () {
-          RecentSearches().add(locationSearchResult.name());
-          if (locationSearchResult.onResultTap != null) {
-            locationSearchResult.onResultTap!(context);
-          } else {
-            routeToPage(
-              context,
-              SearchResultPage(locationSearchResult),
-            );
-          }
-        },
-        child: RepaintBoundary(
-          child: Stack(
-            alignment: Alignment.center,
-            clipBehavior: Clip.none,
+    final textTheme = getEnteTextTheme(context);
+    return GestureDetector(
+      onTap: () {
+        RecentSearches().add(locationSearchResult.name());
+        if (locationSearchResult.onResultTap != null) {
+          locationSearchResult.onResultTap!(context);
+        } else {
+          routeToPage(context, SearchResultPage(locationSearchResult));
+        }
+      },
+      child: RepaintBoundary(
+        child: SizedBox(
+          width: width,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipSmoothRect(
-                radius: SmoothBorderRadius(
-                  cornerRadius: outerCornerRadius + outerStrokeWidth,
-                  cornerSmoothing: cornerSmoothing,
-                ),
-                child: Container(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  width: width + outerStrokeWidth * 2,
-                  height: height + outerStrokeWidth * 2,
-                ),
-              ),
-              SizedBox(
-                width: width,
-                height: height,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                    boxShadow: [
-                      BoxShadow(
-                        blurRadius: 1,
-                        offset: Offset(0, 0),
-                        color: Color.fromRGBO(0, 0, 0, 0.09),
-                      ),
-                      BoxShadow(
-                        blurRadius: 1,
-                        offset: Offset(1, 2),
-                        color: Color.fromRGBO(0, 0, 0, 0.05),
-                      ),
-                    ],
-                  ),
-                  child: ClipSmoothRect(
+              Stack(
+                children: [
+                  ClipSmoothRect(
                     radius: SmoothBorderRadius(
                       cornerRadius: outerCornerRadius,
                       cornerSmoothing: cornerSmoothing,
                     ),
+                    child: SizedBox(
+                      width: sideOfThumbnail,
+                      height: sideOfThumbnail,
+                      child: locationSearchResult.previewThumbnail() != null
+                          ? Hero(
+                              tag: heroTag,
+                              child: ThumbnailWidget(
+                                locationSearchResult.previewThumbnail()!,
+                                shouldShowSyncStatus: false,
+                                shouldShowFavoriteIcon: false,
+                              ),
+                            )
+                          : const NoThumbnailWidget(),
+                    ),
+                  ),
+                  Positioned(
+                    left: 8,
+                    bottom: 8,
                     child: Stack(
                       clipBehavior: Clip.none,
+                      alignment: Alignment.center,
                       children: [
-                        Stack(
-                          children: [
-                            ImageFiltered(
-                              imageFilter:
-                                  ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                              child: locationSearchResult.previewThumbnail() !=
-                                      null
-                                  ? ThumbnailWidget(
-                                      locationSearchResult.previewThumbnail()!,
-                                      shouldShowArchiveStatus: false,
-                                      shouldShowSyncStatus: false,
-                                      shouldShowFavoriteIcon: false,
-                                    )
-                                  : const NoThumbnailWidget(),
-                            ),
-                            Container(
-                              color: Colors.black.withValues(alpha: 0.2),
-                            ),
-                          ],
+                        ClipOval(
+                          child: Container(
+                            color: const Color.fromRGBO(0, 0, 0, 0.6),
+                            width: 15,
+                            height: 15,
+                          ),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            outerPadding,
-                            outerPadding,
-                            outerPadding,
-                            outerPadding,
+                        Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              width: 0.5,
+                              color: strokeSolidMutedLight,
+                            ),
                           ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  ClipSmoothRect(
-                                    radius: SmoothBorderRadius(
-                                      cornerRadius:
-                                          outerCornerRadius - outerPadding,
-                                      cornerSmoothing: cornerSmoothing,
-                                    ),
-                                    child: Container(
-                                      color:
-                                          Colors.black.withValues(alpha: 0.1),
-                                      width: sideOfThumbnail +
-                                          thumbnailBorderWidth * 2,
-                                      height: sideOfThumbnail +
-                                          thumbnailBorderWidth * 2,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: sideOfThumbnail,
-                                    height: sideOfThumbnail,
-                                    child: locationSearchResult
-                                                .previewThumbnail() !=
-                                            null
-                                        ? Hero(
-                                            tag: heroTag,
-                                            child: ClipSmoothRect(
-                                              radius: SmoothBorderRadius(
-                                                cornerRadius:
-                                                    outerCornerRadius -
-                                                        outerPadding -
-                                                        thumbnailBorderWidth,
-                                                cornerSmoothing:
-                                                    cornerSmoothing,
-                                              ),
-                                              clipBehavior:
-                                                  Clip.antiAliasWithSaveLayer,
-                                              child: ThumbnailWidget(
-                                                locationSearchResult
-                                                    .previewThumbnail()!,
-                                                shouldShowArchiveStatus: false,
-                                                shouldShowSyncStatus: false,
-                                                shouldShowFavoriteIcon: false,
-                                              ),
-                                            ),
-                                          )
-                                        : const NoThumbnailWidget(),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Expanded(
-                                child: SizedBox(
-                                  width: 90,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        locationSearchResult.name(),
-                                        style: enteTextTheme.mini.copyWith(
-                                          color: Colors.white,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                        ),
+                        const Icon(
+                          Icons.location_on_sharp,
+                          color: Colors.white,
+                          size: 11,
                         ),
                       ],
                     ),
                   ),
-                ),
+                ],
               ),
-              Positioned(
-                left: 8,
-                top: 8,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.center,
-                  children: [
-                    ClipOval(
-                      child: Container(
-                        color: const Color.fromRGBO(0, 0, 0, 0.6),
-                        width: 15,
-                        height: 15,
-                      ),
-                    ),
-                    Container(
-                      width: 16,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          width: 0.5,
-                          color: strokeSolidMutedLight,
-                        ),
-                      ),
-                    ),
-                    const Icon(
-                      Icons.location_on_sharp,
-                      color: Colors.white,
-                      size: 11,
-                    ),
-                  ],
-                ),
+              const SizedBox(height: 8),
+              Text(
+                locationSearchResult.name(),
+                style: TextStyles.body.copyWith(color: textTheme.body.color),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -367,244 +239,41 @@ class LocationRecommendation extends StatelessWidget {
   }
 }
 
-//Used for non-empty state of location section.
-class GoToMapWithBG extends StatelessWidget {
-  const GoToMapWithBG({super.key});
+class GoToMapTile extends StatelessWidget {
+  const GoToMapTile({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final enteTextTheme = getEnteTextTheme(context);
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: max(0, 2.5 - LocationRecommendation.outerStrokeWidth),
-      ),
-      child: GestureDetector(
-        onTap: () async {
-          if (!mapEnabled) {
-            try {
-              await setMapEnabled(true);
-            } catch (e) {
-              showShortToast(
-                context,
-                AppLocalizations.of(context).somethingWentWrong,
-              );
-              return;
-            }
-          }
-          // ignore: unawaited_futures
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => MapScreen(
-                filesFutureFn: SearchService.instance.getAllFilesForSearch,
-              ),
-            ),
-          );
-        },
-        child: Stack(
-          alignment: Alignment.center,
+    final textTheme = getEnteTextTheme(context);
+    final mapTileAsset = EnteTheme.isDark(context)
+        ? "assets/search_map_tile_dark.png"
+        : "assets/search_map_tile_light.png";
+    return GestureDetector(
+      onTap: () => openSearchMap(context),
+      child: SizedBox(
+        width: LocationRecommendation.width,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipSmoothRect(
               radius: SmoothBorderRadius(
-                cornerRadius: LocationRecommendation.outerCornerRadius +
-                    LocationRecommendation.outerStrokeWidth,
+                cornerRadius: LocationRecommendation.outerCornerRadius,
                 cornerSmoothing: LocationRecommendation.cornerSmoothing,
               ),
-              child: Container(
-                color: Colors.white.withValues(alpha: 0.1),
-                width: LocationRecommendation.width +
-                    LocationRecommendation.outerStrokeWidth * 2,
-                height: LocationRecommendation.height +
-                    LocationRecommendation.outerStrokeWidth * 2,
+              child: Image.asset(
+                mapTileAsset,
+                width: LocationRecommendation.sideOfThumbnail,
+                height: LocationRecommendation.sideOfThumbnail,
+                fit: BoxFit.cover,
               ),
             ),
-            SizedBox(
-              width: LocationRecommendation.width,
-              height: LocationRecommendation.height,
-              child: Container(
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                  boxShadow: [
-                    BoxShadow(
-                      blurRadius: 1,
-                      offset: Offset(0, 0),
-                      color: Color.fromRGBO(0, 0, 0, 0.09),
-                      blurStyle: BlurStyle.outer,
-                    ),
-                    BoxShadow(
-                      blurRadius: 1,
-                      offset: Offset(1, 2),
-                      color: Color.fromRGBO(0, 0, 0, 0.05),
-                      blurStyle: BlurStyle.outer,
-                    ),
-                  ],
-                ),
-                child: ClipSmoothRect(
-                  radius: SmoothBorderRadius(
-                    cornerRadius: LocationRecommendation.outerCornerRadius,
-                    cornerSmoothing: LocationRecommendation.cornerSmoothing,
-                  ),
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Image.asset("assets/earth_blurred.png"),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          LocationRecommendation.outerPadding,
-                          LocationRecommendation.outerPadding,
-                          LocationRecommendation.outerPadding,
-                          LocationRecommendation.outerPadding,
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              width: LocationRecommendation.sideOfThumbnail,
-                              height: LocationRecommendation.sideOfThumbnail,
-                              child: Image.asset("assets/map_world.png"),
-                            ),
-                            const SizedBox(height: 4),
-                            Expanded(
-                              child: SizedBox(
-                                width: 90,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      AppLocalizations.of(context).yourMap,
-                                      style: enteTextTheme.mini.copyWith(
-                                        color: Colors.white,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class LocationCTA extends StatelessWidget {
-  const LocationCTA({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final enteTextTheme = getEnteTextTheme(context);
-    final enteColorScheme = getEnteColorScheme(context);
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: max(0, 2.5 - LocationRecommendation.outerStrokeWidth),
-      ),
-      child: GestureDetector(
-        onTap: SectionType.location.ctaOnTap(context),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            ClipSmoothRect(
-              radius: SmoothBorderRadius(
-                cornerRadius: LocationRecommendation.outerCornerRadius +
-                    LocationRecommendation.outerStrokeWidth,
-                cornerSmoothing: LocationRecommendation.cornerSmoothing,
-              ),
-              child: Container(
-                color: Colors.white.withValues(alpha: 0.1),
-                width: LocationRecommendation.width +
-                    LocationRecommendation.outerStrokeWidth * 2,
-                height: LocationRecommendation.height +
-                    LocationRecommendation.outerStrokeWidth * 2,
-              ),
-            ),
-            SizedBox(
-              width: LocationRecommendation.width,
-              height: LocationRecommendation.height,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.all(Radius.circular(12)),
-                  boxShadow: const [
-                    BoxShadow(
-                      blurRadius: 1,
-                      offset: Offset(0, 0),
-                      color: Color.fromRGBO(0, 0, 0, 0.09),
-                      blurStyle: BlurStyle.outer,
-                    ),
-                    BoxShadow(
-                      blurRadius: 1,
-                      offset: Offset(1, 2),
-                      color: Color.fromRGBO(0, 0, 0, 0.05),
-                      blurStyle: BlurStyle.outer,
-                    ),
-                  ],
-                  color: enteColorScheme.backgroundElevated,
-                ),
-                child: ClipSmoothRect(
-                  radius: SmoothBorderRadius(
-                    cornerRadius: LocationRecommendation.outerCornerRadius,
-                    cornerSmoothing: LocationRecommendation.cornerSmoothing,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      LocationRecommendation.outerPadding + 2,
-                      LocationRecommendation.outerPadding + 3,
-                      LocationRecommendation.outerPadding + 2,
-                      LocationRecommendation.outerPadding,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        DottedBorder(
-                          dashPattern: const [2, 2],
-                          color: enteColorScheme.strokeFaint,
-                          strokeWidth: 1,
-                          padding: const EdgeInsets.all(0),
-                          borderType: BorderType.RRect,
-                          radius: const Radius.circular(4.5),
-                          child: SizedBox(
-                            width: 90,
-                            height: 84,
-                            child: Icon(
-                              Icons.add_location_alt_outlined,
-                              color: enteColorScheme.strokeFaint,
-                              size: 28,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: SizedBox(
-                            width: 90,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  AppLocalizations.of(context).addNew,
-                                  style: enteTextTheme.miniFaint,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            const SizedBox(height: 8),
+            Text(
+              AppLocalizations.of(context).yourMap,
+              style: TextStyles.body.copyWith(color: textTheme.body.color),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

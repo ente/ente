@@ -4,8 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/rollout"
+	"github.com/ente/museum/pkg/repo"
 )
 
 func TestNextInactivityEmailStage(t *testing.T) {
@@ -128,6 +127,24 @@ func TestHasAnyStageSuccess(t *testing.T) {
 	}
 }
 
+func TestHasInactiveUserRunSummaryActivity(t *testing.T) {
+	stats := newInactiveUserRunStats()
+	if hasInactiveUserRunSummaryActivity(stats) {
+		t.Fatal("expected no summary activity")
+	}
+
+	stats.PausedLegacyContact = 1
+	if !hasInactiveUserRunSummaryActivity(stats) {
+		t.Fatal("expected paused legacy contact to count as summary activity")
+	}
+
+	stats.PausedLegacyContact = 0
+	stats.SuccessByStage[inactivityEmailStageWarn2m] = 1
+	if !hasInactiveUserRunSummaryActivity(stats) {
+		t.Fatal("expected stage success to count as summary activity")
+	}
+}
+
 func TestBuildInactiveUserRunSummary(t *testing.T) {
 	stats := newInactiveUserRunStats()
 	stats.ProcessedUsers = 12
@@ -136,8 +153,7 @@ func TestBuildInactiveUserRunSummary(t *testing.T) {
 	stats.SuccessByStage[inactivityEmailStageWarn1m] = 1
 	stats.FailureByStage[inactivityEmailStageWarn7d] = 4
 	stats.PreStageFailures = 2
-	stats.SkippedRolloutDomain = 1
-	stats.SkippedRolloutPct = 5
+	stats.PausedLegacyContact = 6
 
 	summary := buildInactiveUserRunSummary(stats, 0)
 
@@ -145,11 +161,10 @@ func TestBuildInactiveUserRunSummary(t *testing.T) {
 		"Inactive user run summary (1970-01-01T00:00:00Z)",
 		"processed=12",
 		"sent=3",
-		"success={warn_2m=2, warn_1m=1, warn_7d=0, warn_1d=0, confirm_13m=0}",
-		"failures={warn_2m=0, warn_1m=0, warn_7d=4, warn_1d=0, confirm_13m=0}",
+		"success={warn_2m=2, warn_1m=1}",
+		"failures={warn_7d=4}",
 		"pre_stage_failures=2",
-		"skipped_rollout_domain=1",
-		"skipped_rollout_percentage=5",
+		"paused_legacy_contact=6",
 	}
 
 	for _, fragment := range mustContain {
@@ -157,27 +172,32 @@ func TestBuildInactiveUserRunSummary(t *testing.T) {
 			t.Fatalf("summary missing fragment %q: %s", fragment, summary)
 		}
 	}
+
+	mustNotContain := []string{
+		"warn_7d=0",
+		"warn_1d=0",
+		"confirm_13m=0",
+		"warn_2m=0",
+		"warn_1m=0",
+		"sent=0",
+		"pre_stage_failures=0",
+	}
+	for _, fragment := range mustNotContain {
+		if strings.Contains(summary, fragment) {
+			t.Fatalf("summary contains zero-value fragment %q: %s", fragment, summary)
+		}
+	}
 }
 
-func TestIsInInactiveUserRollout(t *testing.T) {
-	if !isInInactiveUserRollout(12345, "internal@ente.io") {
-		t.Fatal("expected @ente.io users to always be in rollout")
-	}
-	if !isInInactiveUserRollout(12345, " INTERNAL@ENTE.IO ") {
-		t.Fatal("expected normalized @ente.io users to always be in rollout")
-	}
+func TestBuildInactiveUserRunSummaryForPausedOnlyRun(t *testing.T) {
+	stats := newInactiveUserRunStats()
+	stats.ProcessedUsers = 12
+	stats.PausedLegacyContact = 2
 
-	userID := int64(987654321)
-	email := "user@example.com"
-	got1 := isInInactiveUserRollout(userID, email)
-	got2 := isInInactiveUserRollout(userID, email)
-	if got1 != got2 {
-		t.Fatal("expected deterministic rollout result for same user and nonce")
-	}
-
-	want := rollout.IsInPercentageRollout(userID, inactiveUserRolloutNonce, inactiveUserRolloutPercentage)
-	if got1 != want {
-		t.Fatalf("unexpected rollout decision: got %v want %v", got1, want)
+	summary := buildInactiveUserRunSummary(stats, 0)
+	want := "Inactive user run summary (1970-01-01T00:00:00Z): processed=12 | paused_legacy_contact=2"
+	if summary != want {
+		t.Fatalf("unexpected summary: got %q want %q", summary, want)
 	}
 }
 

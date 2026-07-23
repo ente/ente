@@ -36,9 +36,7 @@ class SelectionActionButton extends StatelessWidget {
                 onTap: onTap,
                 svgAssetPath: svgAssetPath,
               )
-            : const SizedBox(
-                height: 60,
-              ),
+            : const SizedBox(height: 60),
       ),
     );
   }
@@ -159,10 +157,8 @@ class __BodyState extends State<_Body> {
     );
   }
 
-  getWidthOfButton() {
-    final widthOfWidestWord = getWidthOfWidestWord(
-      widget.labelText,
-    );
+  double getWidthOfButton() {
+    final widthOfWidestWord = getWidthOfWidestWord(widget.labelText);
     if (widthOfWidestWord > minWidth) return widthOfWidestWord;
     return minWidth;
   }
@@ -173,8 +169,10 @@ class __BodyState extends State<_Body> {
 
     double maxWidth = 0.0;
     for (String word in words) {
-      final width =
-          computeWidthOfWord(word, getEnteTextTheme(context).miniMuted);
+      final width = computeWidthOfWord(
+        word,
+        getEnteTextTheme(context).miniMuted,
+      );
       if (width > maxWidth) {
         maxWidth = width;
       }
@@ -182,7 +180,7 @@ class __BodyState extends State<_Body> {
     return maxWidth;
   }
 
-//Todo: this doesn't give the correct width of the word, make it right
+  //Todo: this doesn't give the correct width of the word, make it right
   double computeWidthOfWord(String text, TextStyle style) {
     final textPainter = TextPainter(
       text: TextSpan(text: text, style: style),
@@ -190,7 +188,7 @@ class __BodyState extends State<_Body> {
       textDirection: TextDirection.ltr,
       textScaler: MediaQuery.textScalerOf(context),
     )..layout();
-//buffer of 8 added as width is shorter than actual text width
+    //buffer of 8 added as width is shorter than actual text width
     return textPainter.size.width + 8;
   }
 }

@@ -49,21 +49,17 @@ class _BlurryFacesCardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<String> chips = _stringListFromMeta(card.meta, "detailChips");
-    final List<MediaRef> supportingMedia =
-        card.media.skip(3).take(2).toList(growable: false);
+    final List<MediaRef> supportingMedia = card.media
+        .skip(3)
+        .take(2)
+        .toList(growable: false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _HeroMediaCollage(
-          media: card.media,
-          colorScheme: colorScheme,
-        ),
+        _HeroMediaCollage(media: card.media, colorScheme: colorScheme),
         const SizedBox(height: 24),
-        buildWrappedCardTitle(
-          card.title,
-          textTheme.h2Bold,
-        ),
+        buildWrappedCardTitle(card.title, textTheme.h2Bold),
         if (card.subtitle != null && card.subtitle!.isNotEmpty)
           buildWrappedCardSubtitle(
             card.subtitle!,
@@ -119,10 +115,7 @@ class _YearInColorCardContent extends StatelessWidget {
           colorScheme: colorScheme,
         ),
         const SizedBox(height: 24),
-        buildWrappedCardTitle(
-          card.title,
-          textTheme.h2Bold,
-        ),
+        buildWrappedCardTitle(card.title, textTheme.h2Bold),
         if (card.subtitle != null && card.subtitle!.isNotEmpty)
           buildWrappedCardSubtitle(
             card.subtitle!,
@@ -169,10 +162,7 @@ class _MonochromeCardContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        buildWrappedCardTitle(
-          card.title,
-          textTheme.h2Bold,
-        ),
+        buildWrappedCardTitle(card.title, textTheme.h2Bold),
         if (card.subtitle != null && card.subtitle!.isNotEmpty)
           buildWrappedCardSubtitle(
             card.subtitle!,
@@ -216,10 +206,7 @@ class _TopWowCardContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        buildWrappedCardTitle(
-          card.title,
-          textTheme.h2Bold,
-        ),
+        buildWrappedCardTitle(card.title, textTheme.h2Bold),
         if (card.subtitle != null && card.subtitle!.isNotEmpty)
           buildWrappedCardSubtitle(
             card.subtitle!,
@@ -246,11 +233,7 @@ class _TopWowCardContent extends StatelessWidget {
 }
 
 class _PaletteEntry {
-  _PaletteEntry({
-    required this.name,
-    required this.hex,
-    required this.count,
-  });
+  _PaletteEntry({required this.name, required this.hex, required this.count});
 
   final String name;
   final String hex;
@@ -296,8 +279,9 @@ class _PaletteSwatches extends StatelessWidget {
     return Wrap(
       spacing: 12,
       runSpacing: 12,
-      children:
-          entries.map((entry) => _buildSwatch(entry)).toList(growable: false),
+      children: entries
+          .map((entry) => _buildSwatch(entry))
+          .toList(growable: false),
     );
   }
 
@@ -316,10 +300,7 @@ class _PaletteSwatches extends StatelessWidget {
           Container(
             width: 18,
             height: 18,
-            decoration: BoxDecoration(
-              color: resolved,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: resolved, shape: BoxShape.circle),
           ),
           const SizedBox(width: 10),
           Text(

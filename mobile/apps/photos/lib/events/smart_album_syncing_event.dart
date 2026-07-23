@@ -4,8 +4,5 @@ class SmartAlbumSyncingEvent extends Event {
   int? collectionId;
   bool isSyncing;
 
-  SmartAlbumSyncingEvent({
-    this.collectionId,
-    this.isSyncing = false,
-  });
+  SmartAlbumSyncingEvent({this.collectionId, this.isSyncing = false});
 }

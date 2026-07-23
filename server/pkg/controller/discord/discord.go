@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/ente-io/museum/pkg/repo"
-	t "github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/pkg/repo"
+	t "github.com/ente/museum/pkg/utils/time"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )

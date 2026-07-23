@@ -21,10 +21,7 @@ class SelectedPeople extends ChangeNotifier {
     notifyListeners();
   }
 
-  void unSelect(
-    Set<String> peopleToUnselect, {
-    bool skipNotify = false,
-  }) {
+  void unSelect(Set<String> peopleToUnselect, {bool skipNotify = false}) {
     personIds.removeWhere((personID) => peopleToUnselect.contains(personID));
     if (!skipNotify) {
       notifyListeners();

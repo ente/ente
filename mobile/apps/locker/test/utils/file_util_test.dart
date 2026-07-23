@@ -82,38 +82,40 @@ void main() {
       );
     });
 
-    test('creates distinct handoff paths for repeated same-file opens',
-        () async {
-      final source = File(p.join(root.path, 'source.bin'));
-      await source.writeAsString('first version');
-      final file = lockerFile(uploadedFileID: 234, title: 'invoice.pdf');
+    test(
+      'creates distinct handoff paths for repeated same-file opens',
+      () async {
+        final source = File(p.join(root.path, 'source.bin'));
+        await source.writeAsString('first version');
+        final file = lockerFile(uploadedFileID: 234, title: 'invoice.pdf');
 
-      final firstHandoff = await FileUtil.prepareOpenFileForTest(
-        source,
-        displayName: 'Invoice',
-        lockerFile: file,
-      );
+        final firstHandoff = await FileUtil.prepareOpenFileForTest(
+          source,
+          displayName: 'Invoice',
+          lockerFile: file,
+        );
 
-      await source.writeAsString('second version');
-      await Future<void>.delayed(const Duration(milliseconds: 1));
+        await source.writeAsString('second version');
+        await Future<void>.delayed(const Duration(milliseconds: 1));
 
-      final secondHandoff = await FileUtil.prepareOpenFileForTest(
-        source,
-        displayName: 'Invoice',
-        lockerFile: file,
-      );
+        final secondHandoff = await FileUtil.prepareOpenFileForTest(
+          source,
+          displayName: 'Invoice',
+          lockerFile: file,
+        );
 
-      expect(secondHandoff.path, isNot(firstHandoff.path));
-      expect(
-        p.dirname(secondHandoff.path),
-        isNot(p.dirname(firstHandoff.path)),
-      );
-      expect(p.basename(firstHandoff.path), 'Invoice.pdf');
-      expect(p.basename(secondHandoff.path), 'Invoice.pdf');
-      expect(await firstHandoff.readAsString(), 'first version');
-      expect(await secondHandoff.readAsString(), 'second version');
-      expect(await source.readAsString(), 'second version');
-    });
+        expect(secondHandoff.path, isNot(firstHandoff.path));
+        expect(
+          p.dirname(secondHandoff.path),
+          isNot(p.dirname(firstHandoff.path)),
+        );
+        expect(p.basename(firstHandoff.path), 'Invoice.pdf');
+        expect(p.basename(secondHandoff.path), 'Invoice.pdf');
+        expect(await firstHandoff.readAsString(), 'first version');
+        expect(await secondHandoff.readAsString(), 'second version');
+        expect(await source.readAsString(), 'second version');
+      },
+    );
 
     test('ignores stale localPath when preparing the open handoff', () async {
       final source = File(p.join(root.path, 'current-cache.bin'));
@@ -143,127 +145,139 @@ void main() {
       expect(handoffFile.path, isNot(staleLocalPath.path));
     });
 
-    test('partitions handoff copies by uploaded file ID, not source path',
-        () async {
-      final source = File(p.join(root.path, 'shared-source.bin'));
-      final staleLocalPath = File(p.join(root.path, 'same-stale-local.txt'));
-      await source.writeAsString('shared source bytes');
-      await staleLocalPath.writeAsString('shared stale bytes');
-      final firstFile = lockerFile(
-        uploadedFileID: 111,
-        title: 'first.pdf',
-        localPath: staleLocalPath.path,
-      );
-      final secondFile = lockerFile(
-        uploadedFileID: 222,
-        title: 'second.pdf',
-        localPath: staleLocalPath.path,
-      );
+    test(
+      'partitions handoff copies by uploaded file ID, not source path',
+      () async {
+        final source = File(p.join(root.path, 'shared-source.bin'));
+        final staleLocalPath = File(p.join(root.path, 'same-stale-local.txt'));
+        await source.writeAsString('shared source bytes');
+        await staleLocalPath.writeAsString('shared stale bytes');
+        final firstFile = lockerFile(
+          uploadedFileID: 111,
+          title: 'first.pdf',
+          localPath: staleLocalPath.path,
+        );
+        final secondFile = lockerFile(
+          uploadedFileID: 222,
+          title: 'second.pdf',
+          localPath: staleLocalPath.path,
+        );
 
-      final firstHandoff = await FileUtil.prepareOpenFileForTest(
-        source,
-        displayName: 'Document',
-        lockerFile: firstFile,
-      );
-      final secondHandoff = await FileUtil.prepareOpenFileForTest(
-        source,
-        displayName: 'Document',
-        lockerFile: secondFile,
-      );
+        final firstHandoff = await FileUtil.prepareOpenFileForTest(
+          source,
+          displayName: 'Document',
+          lockerFile: firstFile,
+        );
+        final secondHandoff = await FileUtil.prepareOpenFileForTest(
+          source,
+          displayName: 'Document',
+          lockerFile: secondFile,
+        );
 
-      expect(
-        cacheRelativePath(firstHandoff),
-        startsWith(p.join('open_handoff', '111')),
-      );
-      expect(
-        cacheRelativePath(secondHandoff),
-        startsWith(p.join('open_handoff', '222')),
-      );
-      expect(await firstHandoff.readAsString(), 'shared source bytes');
-      expect(await secondHandoff.readAsString(), 'shared source bytes');
-      expect(await staleLocalPath.readAsString(), 'shared stale bytes');
-    });
+        expect(
+          cacheRelativePath(firstHandoff),
+          startsWith(p.join('open_handoff', '111')),
+        );
+        expect(
+          cacheRelativePath(secondHandoff),
+          startsWith(p.join('open_handoff', '222')),
+        );
+        expect(await firstHandoff.readAsString(), 'shared source bytes');
+        expect(await secondHandoff.readAsString(), 'shared source bytes');
+        expect(await staleLocalPath.readAsString(), 'shared stale bytes');
+      },
+    );
 
-    test('replaces stale display extension with Locker metadata extension',
-        () async {
-      final source = File(p.join(root.path, 'front.tmp'));
-      await source.writeAsString('front bytes');
-      final file = lockerFile(uploadedFileID: 654, title: 'passport.png');
+    test(
+      'replaces stale display extension with Locker metadata extension',
+      () async {
+        final source = File(p.join(root.path, 'front.tmp'));
+        await source.writeAsString('front bytes');
+        final file = lockerFile(uploadedFileID: 654, title: 'passport.png');
 
-      final handoffFile = await FileUtil.prepareOpenFileForTest(
-        source,
-        displayName: 'Front side.jpg',
-        lockerFile: file,
-      );
+        final handoffFile = await FileUtil.prepareOpenFileForTest(
+          source,
+          displayName: 'Front side.jpg',
+          lockerFile: file,
+        );
 
-      expect(p.basename(handoffFile.path), 'Front side.png');
-      expect(await handoffFile.readAsString(), 'front bytes');
-    });
+        expect(p.basename(handoffFile.path), 'Front side.png');
+        expect(await handoffFile.readAsString(), 'front bytes');
+      },
+    );
 
-    test('keeps display extension when it already matches metadata extension',
-        () async {
-      final source = File(p.join(root.path, 'invoice.tmp'));
-      await source.writeAsString('invoice bytes');
-      final file = lockerFile(uploadedFileID: 655, title: 'invoice.pdf');
+    test(
+      'keeps display extension when it already matches metadata extension',
+      () async {
+        final source = File(p.join(root.path, 'invoice.tmp'));
+        await source.writeAsString('invoice bytes');
+        final file = lockerFile(uploadedFileID: 655, title: 'invoice.pdf');
 
-      final handoffFile = await FileUtil.prepareOpenFileForTest(
-        source,
-        displayName: 'Invoice.PDF',
-        lockerFile: file,
-      );
+        final handoffFile = await FileUtil.prepareOpenFileForTest(
+          source,
+          displayName: 'Invoice.PDF',
+          lockerFile: file,
+        );
 
-      expect(p.basename(handoffFile.path), 'Invoice.PDF');
-      expect(await handoffFile.readAsString(), 'invoice bytes');
-    });
+        expect(p.basename(handoffFile.path), 'Invoice.PDF');
+        expect(await handoffFile.readAsString(), 'invoice bytes');
+      },
+    );
 
-    test('falls back to source extension when metadata has no extension',
-        () async {
-      final source = File(p.join(root.path, 'current-cache.bin'));
-      await source.writeAsString('source extension bytes');
-      final file = lockerFile(uploadedFileID: 656, title: 'untitled');
+    test(
+      'falls back to source extension when metadata has no extension',
+      () async {
+        final source = File(p.join(root.path, 'current-cache.bin'));
+        await source.writeAsString('source extension bytes');
+        final file = lockerFile(uploadedFileID: 656, title: 'untitled');
 
-      final handoffFile = await FileUtil.prepareOpenFileForTest(
-        source,
-        displayName: 'Visible name',
-        lockerFile: file,
-      );
+        final handoffFile = await FileUtil.prepareOpenFileForTest(
+          source,
+          displayName: 'Visible name',
+          lockerFile: file,
+        );
 
-      expect(p.basename(handoffFile.path), 'Visible name.bin');
-      expect(await handoffFile.readAsString(), 'source extension bytes');
-    });
+        expect(p.basename(handoffFile.path), 'Visible name.bin');
+        expect(await handoffFile.readAsString(), 'source extension bytes');
+      },
+    );
 
-    test('falls back to display extension when metadata and source lack one',
-        () async {
-      final source = File(p.join(root.path, 'current-cache'));
-      await source.writeAsString('display extension bytes');
-      final file = lockerFile(uploadedFileID: 657, title: 'untitled');
+    test(
+      'falls back to display extension when metadata and source lack one',
+      () async {
+        final source = File(p.join(root.path, 'current-cache'));
+        await source.writeAsString('display extension bytes');
+        final file = lockerFile(uploadedFileID: 657, title: 'untitled');
 
-      final handoffFile = await FileUtil.prepareOpenFileForTest(
-        source,
-        displayName: 'Visible name.pdf',
-        lockerFile: file,
-      );
+        final handoffFile = await FileUtil.prepareOpenFileForTest(
+          source,
+          displayName: 'Visible name.pdf',
+          lockerFile: file,
+        );
 
-      expect(p.basename(handoffFile.path), 'Visible name.pdf');
-      expect(await handoffFile.readAsString(), 'display extension bytes');
-    });
+        expect(p.basename(handoffFile.path), 'Visible name.pdf');
+        expect(await handoffFile.readAsString(), 'display extension bytes');
+      },
+    );
 
-    test('does not use internal decrypted cache suffix as handoff extension',
-        () async {
-      final file = lockerFile(uploadedFileID: 658, title: 'untitled');
-      final source = File(getCachedDecryptedFilePath(file));
-      await source.writeAsString('cached decrypted bytes');
+    test(
+      'does not use internal decrypted cache suffix as handoff extension',
+      () async {
+        final file = lockerFile(uploadedFileID: 658, title: 'untitled');
+        final source = File(getCachedDecryptedFilePath(file));
+        await source.writeAsString('cached decrypted bytes');
 
-      final handoffFile = await FileUtil.prepareOpenFileForTest(
-        source,
-        displayName: 'Visible name.pdf',
-        lockerFile: file,
-      );
+        final handoffFile = await FileUtil.prepareOpenFileForTest(
+          source,
+          displayName: 'Visible name.pdf',
+          lockerFile: file,
+        );
 
-      expect(p.basename(source.path), '658.decrypted');
-      expect(p.basename(handoffFile.path), 'Visible name.pdf');
-      expect(await handoffFile.readAsString(), 'cached decrypted bytes');
-    });
+        expect(p.basename(source.path), '658.decrypted');
+        expect(p.basename(handoffFile.path), 'Visible name.pdf');
+        expect(await handoffFile.readAsString(), 'cached decrypted bytes');
+      },
+    );
 
     test('sanitizes display names before creating the handoff copy', () async {
       final source = File(p.join(root.path, 'source.bin'));

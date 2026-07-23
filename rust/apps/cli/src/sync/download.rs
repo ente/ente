@@ -1,12 +1,12 @@
 use crate::Result;
-use crate::api::client::ApiClient;
+use crate::api::client::AppClient;
 use crate::api::methods::ApiMethods;
+use crate::live_photo::extract_live_photo;
 use crate::models::file::RemoteFile;
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use ente_core::crypto;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::collections::HashMap;
-use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::fs;
@@ -14,7 +14,7 @@ use tokio::io::AsyncWriteExt;
 
 /// Manages file downloads with parallel processing and error recovery
 pub struct DownloadManager {
-    api_client: ApiClient,
+    api_client: AppClient,
     temp_dir: PathBuf,
     pub collection_keys: HashMap<i64, Vec<u8>>,
     concurrent_downloads: usize,
@@ -23,7 +23,7 @@ pub struct DownloadManager {
 
 impl DownloadManager {
     /// Create a new download manager
-    pub fn new(api_client: ApiClient) -> Result<Self> {
+    pub fn new(api_client: AppClient) -> Result<Self> {
         let temp_dir = std::env::temp_dir().join("ente-downloads");
         std::fs::create_dir_all(&temp_dir)?;
 
@@ -52,20 +52,14 @@ impl DownloadManager {
     }
 
     /// Download a single file
-    pub async fn download_file(
-        &self,
-        account_id: &str,
-        file: &RemoteFile,
-        destination: &Path,
-    ) -> Result<()> {
-        self.download_file_with_progress(account_id, file, destination, None)
+    pub async fn download_file(&self, file: &RemoteFile, destination: &Path) -> Result<()> {
+        self.download_file_with_progress(file, destination, None)
             .await
     }
 
     /// Download a single file with optional progress bar
     async fn download_file_with_progress(
         &self,
-        account_id: &str,
         file: &RemoteFile,
         destination: &Path,
         progress: Option<Arc<ProgressBar>>,
@@ -92,7 +86,7 @@ impl DownloadManager {
 
         // Get file data
         let api = ApiMethods::new(&self.api_client);
-        let encrypted_data = api.download_file(account_id, file.id).await?;
+        let encrypted_data = api.download_file(file.id).await?;
 
         // Decrypt file
         let decrypted_data = self.decrypt_file_data(file, &encrypted_data)?;
@@ -106,7 +100,7 @@ impl DownloadManager {
 
         if is_live_photo {
             // Extract live photo components
-            if let Err(e) = self.extract_live_photo(&decrypted_data, destination).await {
+            if let Err(e) = extract_live_photo(&decrypted_data, destination).await {
                 log::warn!(
                     "Failed to extract live photo components for file {}, saving as ZIP: {}",
                     file.id,
@@ -145,11 +139,7 @@ impl DownloadManager {
     }
 
     /// Download multiple files with concurrency control
-    pub async fn download_files(
-        &self,
-        account_id: &str,
-        files: Vec<(RemoteFile, PathBuf)>,
-    ) -> Result<DownloadStats> {
+    pub async fn download_files(&self, files: Vec<(RemoteFile, PathBuf)>) -> Result<DownloadStats> {
         use futures::stream::{self, StreamExt};
 
         let total = files.len();
@@ -180,14 +170,11 @@ impl DownloadManager {
         let pb_clone = progress_bar.clone();
         let results: Vec<_> = stream::iter(files)
             .map(|(file, path)| {
-                let account_id = account_id.to_string();
                 let file_clone = file.clone();
                 let path_clone = path.clone();
                 let pb = pb_clone.clone();
                 async move {
-                    let result = self
-                        .download_file_with_progress(&account_id, &file, &path, pb)
-                        .await;
+                    let result = self.download_file_with_progress(&file, &path, pb).await;
                     (file_clone, path_clone, result)
                 }
             })
@@ -223,12 +210,7 @@ impl DownloadManager {
     }
 
     /// Download thumbnail for a file
-    pub async fn download_thumbnail(
-        &self,
-        account_id: &str,
-        file: &RemoteFile,
-        destination: &Path,
-    ) -> Result<()> {
+    pub async fn download_thumbnail(&self, file: &RemoteFile, destination: &Path) -> Result<()> {
         log::debug!(
             "Downloading thumbnail for file {} to {:?}",
             file.id,
@@ -242,7 +224,7 @@ impl DownloadManager {
 
         // Get thumbnail data
         let api = ApiMethods::new(&self.api_client);
-        let encrypted_data = api.download_thumbnail(account_id, file.id).await?;
+        let encrypted_data = api.download_thumbnail(file.id).await?;
 
         // Decrypt thumbnail
         let decrypted_data = self.decrypt_file_data(file, &encrypted_data)?;
@@ -270,12 +252,20 @@ impl DownloadManager {
         let file_key = {
             let key_bytes = BASE64.decode(&file.encrypted_key)?;
             let nonce = BASE64.decode(&file.key_decryption_nonce)?;
-            crypto::secretbox::decrypt(&key_bytes, &nonce, collection_key)?
+            crypto::secretbox::decrypt(
+                &key_bytes,
+                &crypto::Nonce::try_from_slice(&nonce)?,
+                &crypto::Key::try_from_slice(collection_key)?,
+            )?
         };
 
         // Decrypt file data using file key (Streaming XChaCha20-Poly1305)
         let file_nonce = BASE64.decode(&file.file.decryption_header)?;
-        let decrypted = crypto::stream::decrypt_file_data(encrypted_data, &file_nonce, &file_key)?;
+        let decrypted = crypto::stream::decrypt_file_data(
+            encrypted_data,
+            &crypto::Header::try_from_slice(&file_nonce)?,
+            &crypto::Key::try_from_slice(&file_key)?,
+        )?;
 
         Ok(decrypted)
     }
@@ -283,7 +273,6 @@ impl DownloadManager {
     /// Resume a partial download (for future implementation)
     pub async fn resume_download(
         &self,
-        _account_id: &str,
         _file: &RemoteFile,
         _destination: &Path,
         _offset: u64,
@@ -337,80 +326,5 @@ impl DownloadStats {
         } else {
             (self.successful as f64 / self.total as f64) * 100.0
         }
-    }
-}
-
-impl DownloadManager {
-    /// Extract live photo components from a ZIP file
-    async fn extract_live_photo(&self, zip_data: &[u8], output_path: &Path) -> Result<()> {
-        use std::io::Read;
-        use zip::ZipArchive;
-
-        // Parse the ZIP archive
-        let cursor = Cursor::new(zip_data);
-        let mut archive = ZipArchive::new(cursor)?;
-
-        // Get the parent directory and base name
-        let parent_dir = output_path
-            .parent()
-            .ok_or_else(|| crate::Error::Generic("Invalid output path".into()))?;
-
-        let base_name = output_path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .ok_or_else(|| crate::Error::Generic("Invalid filename".into()))?;
-
-        // Extract each file from the ZIP
-        for i in 0..archive.len() {
-            let mut file = archive.by_index(i)?;
-            let file_name = file.name().to_string();
-
-            // Determine the output filename based on the content
-            // Match Go CLI behavior: check for "image" or "video" in filename
-            let output_file_path = if file_name.to_lowercase().contains("image") {
-                // Image component - preserve original extension
-                let ext = std::path::Path::new(&file_name)
-                    .extension()
-                    .and_then(|e| e.to_str())
-                    .ok_or_else(|| {
-                        crate::Error::Generic(format!(
-                            "Live photo image component has no extension: {}",
-                            file_name
-                        ))
-                    })?;
-                parent_dir.join(format!("{}.{}", base_name, ext))
-            } else if file_name.to_lowercase().contains("video") {
-                // Video component - preserve original extension
-                let ext = std::path::Path::new(&file_name)
-                    .extension()
-                    .and_then(|e| e.to_str())
-                    .ok_or_else(|| {
-                        crate::Error::Generic(format!(
-                            "Live photo video component has no extension: {}",
-                            file_name
-                        ))
-                    })?;
-                parent_dir.join(format!("{}.{}", base_name, ext))
-            } else {
-                // Go CLI returns error for unexpected files in live photo ZIP
-                return Err(crate::Error::Generic(format!(
-                    "Unexpected file in live photo ZIP: {}",
-                    file_name
-                )));
-            };
-
-            // Read the file contents
-            let mut contents = Vec::new();
-            file.read_to_end(&mut contents)?;
-
-            // Write to disk
-            let mut output_file = fs::File::create(&output_file_path).await?;
-            output_file.write_all(&contents).await?;
-            output_file.sync_all().await?;
-
-            log::info!("Extracted live photo component: {:?}", output_file_path);
-        }
-
-        Ok(())
     }
 }

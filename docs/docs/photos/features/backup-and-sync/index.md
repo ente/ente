@@ -32,12 +32,15 @@ You can choose which albums should be backed up when you first sign up for Ente.
 
 Open `Settings > Backup > Backed up folders` and select or deselect albums as needed.
 
-**On desktop:**
-Use the [watch folders](/photos/features/backup-and-sync/watch-folders) feature to select directories to sync.
+**On desktop:** Use the [watch folders](/photos/features/backup-and-sync/watch-folders) feature to select directories to sync.
 
 ## Background sync {#background-sync}
 
 Ente Photos supports seamless background sync so that you don't need to open the app to backup your photos. It will sync in the background and automatically backup the albums that you have selected for syncing.
+
+> [!NOTE]
+>
+> Background sync isn't currently consistent on iOS and on certain Android devices. We're actively working on a fix.
 
 Day to day sync will work automatically. However, there are some platform specific considerations that apply:
 

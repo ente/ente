@@ -27,7 +27,7 @@ CARACTÉRISTIQUES
 - et beaucoup de choses encore !
 
 PERMISSIONS
-ente sollicite diverses autorisations dans le but de fonctionner en tant que service de stockage de photos, et ces autorisations sont détaillées ici : https://github.com/ente-io/ente/blob/f-droid/mobile/android/permissions.md
+ente sollicite diverses autorisations dans le but de fonctionner en tant que service de stockage de photos, et ces autorisations sont détaillées ici : https://github.com/ente/ente/blob/f-droid/mobile/android/permissions.md
 
 PRIX
 Nous ne proposons pas d'abonnement gratuits pour toujours, car il est important pour nous de rester durables et de résister à l'épreuve du temps. Au lieu de cela, nous vous proposons des abonnements abordables que vous pouvez partager librement avec votre famille. Vous pouvez trouver plus d'informations sur ente.com.

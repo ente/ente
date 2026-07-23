@@ -1,3 +1,4 @@
+import { lockerDialogPaperSx } from "@/components/lockerDialogStyles";
 import CloseIcon from "@mui/icons-material/Close";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import {
@@ -11,7 +12,6 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
-import { lockerDialogPaperSx } from "components/lockerDialogStyles";
 import { t } from "i18next";
 import React from "react";
 

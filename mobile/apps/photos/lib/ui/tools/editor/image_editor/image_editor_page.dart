@@ -1,25 +1,27 @@
 import "dart:async";
 import "dart:io";
 import "dart:math";
-import 'dart:ui' as ui show Image;
+import 'dart:ui' as ui show Image, ImageByteFormat;
 
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import 'package:flutter/material.dart';
 import "package:flutter/services.dart";
 import "package:flutter_image_compress/flutter_image_compress.dart";
-import "package:flutter_svg/svg.dart";
+import "package:hugeicons/hugeicons.dart";
+import 'package:image/image.dart' as img;
 import "package:logging/logging.dart";
 import 'package:path/path.dart' as path;
 import "package:photo_manager/photo_manager.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
-import "package:photos/ente_theme_data.dart";
 import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/file/file.dart' as ente;
 import "package:photos/models/location/location.dart";
+import "package:photos/module/metadata/local_file.dart";
+import "package:photos/service_locator.dart";
 import "package:photos/services/sync/sync_service.dart";
-import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/action_sheet_widget.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
@@ -34,6 +36,8 @@ import "package:photos/ui/tools/editor/image_editor/image_editor_text_bar.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_tune_bar.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/utils/dialog_util.dart";
+import "package:photos/utils/image_util.dart";
+import "package:photos/utils/lossless_edits.dart";
 import 'package:pro_image_editor/pro_image_editor.dart';
 
 class ImageEditorPage extends StatefulWidget {
@@ -57,38 +61,68 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   final editorKey = GlobalKey<ProImageEditorState>();
   final _logger = Logger("ImageEditor");
 
-  Future<void> saveImage(Uint8List? bytes) async {
-    if (bytes == null) return;
-
-    final dialog =
-        createProgressDialog(context, AppLocalizations.of(context).saving);
-    await dialog.show();
-
-    debugPrint("Image saved with size: ${bytes.length} bytes");
-    final DateTime start = DateTime.now();
-
+  Future<Uint8List> compressImage(Uint8List bytes) async {
     final ui.Image decodedResult = await decodeImageFromList(bytes);
-    final result = await FlutterImageCompress.compressWithList(
+    var result = await FlutterImageCompress.compressWithList(
       bytes,
       minWidth: decodedResult.width,
       minHeight: decodedResult.height,
+      quality: 95,
+      format: CompressFormat.jpeg,
     );
-    _logger.info('Size after compression = ${result.length}');
-    final Duration diff = DateTime.now().difference(start);
-    _logger.info('image_editor time : $diff');
+    if (flagService.internalUser) {
+      try {
+        final image = img.decodePng(bytes);
+        if (image != null) {
+          await copyEXIF(
+            widget.originalFile,
+            image,
+            copyRenderingFields: false,
+          );
+          result = img.encodeJpg(image, quality: 95);
+        }
+      } catch (e, s) {
+        _logger.warning("Image Editor: copyEXIF failed", e, s);
+      }
+    }
+    return result;
+  }
+
+  Future<void> saveImage(ProImageEditorState editorState) async {
+    final l10n = AppLocalizations.of(context);
+    final dialog = createProgressDialog(context, l10n.saving);
+    await dialog.show();
+
+    bool hasStoppedChangeNotify = false;
 
     try {
+      final losslessTransform = flagService.internalUser
+          ? getLosslessTransform(editorState)
+          : null;
+      final losslessBytes = losslessTransform == null
+          ? null
+          : await tryTransformFileLossless(
+              widget.originalFile,
+              losslessTransform,
+            );
+      final bytes =
+          losslessBytes ??
+          await compressImage(await editorState.captureEditorImage());
+
       final fileName =
           path.basenameWithoutExtension(widget.originalFile.title!) +
-              "_edited_" +
-              DateTime.now().microsecondsSinceEpoch.toString() +
-              ".JPEG";
+          "_edited_" +
+          DateTime.now().microsecondsSinceEpoch.toString() +
+          ".JPEG";
       //Disabling notifications for assets changing to insert the file into
       //files db before triggering a sync.
       await PhotoManager.stopChangeNotify();
-      final AssetEntity newAsset =
-          await (PhotoManager.editor.saveImage(result, filename: fileName));
-      final newFile = await ente.EnteFile.fromAsset(
+      hasStoppedChangeNotify = true;
+      final AssetEntity newAsset = await (PhotoManager.editor.saveImage(
+        bytes,
+        filename: fileName,
+      ));
+      final newFile = fileFromAsset(
         widget.originalFile.deviceFolder ?? '',
         newAsset,
       );
@@ -109,20 +143,26 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       newFile.generatedID = await FilesDB.instance.insertAndGetId(newFile);
       Bus.instance.fire(LocalPhotosUpdatedEvent([newFile], source: "editSave"));
       unawaited(SyncService.instance.sync());
-      showShortToast(context, AppLocalizations.of(context).editsSaved);
+      if (!mounted) {
+        await dialog.hide();
+        return;
+      }
+      showShortToast(context, l10n.editsSaved);
       _logger.info("Original file " + widget.originalFile.toString());
       _logger.info("Saved edits to file " + newFile.toString());
       final files = widget.detailPageConfig.files;
 
       // the index could be -1 if the files fetched doesn't contain the newly
       // edited files
-      int selectionIndex =
-          files.indexWhere((file) => file.generatedID == newFile.generatedID);
+      int selectionIndex = files.indexWhere(
+        (file) => file.generatedID == newFile.generatedID,
+      );
       if (selectionIndex == -1) {
         files.add(newFile);
         selectionIndex = files.length - 1;
       }
       await dialog.hide();
+      if (!mounted) return;
       replacePage(
         context,
         DetailPage(
@@ -134,19 +174,25 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       );
     } catch (e, s) {
       await dialog.hide();
-      showToast(context, AppLocalizations.of(context).oopsCouldNotSaveEdits);
+      if (mounted) {
+        showToast(context, l10n.oopsCouldNotSaveEdits);
+      }
       _logger.severe("Failed to save image edits", e, s);
     } finally {
-      await PhotoManager.startChangeNotify();
+      if (hasStoppedChangeNotify) {
+        await PhotoManager.startChangeNotify();
+      }
     }
   }
 
   Future<void> _showExitConfirmationDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final actionResult = await showActionSheet(
       context: context,
+      title: l10n.discardEditsQuestion,
       buttons: [
         ButtonWidget(
-          labelText: AppLocalizations.of(context).yesDiscardChanges,
+          labelText: l10n.yesDiscardChanges,
           buttonType: ButtonType.critical,
           buttonSize: ButtonSize.large,
           shouldStickToDarkTheme: true,
@@ -154,7 +200,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           isInAlert: true,
         ),
         ButtonWidget(
-          labelText: AppLocalizations.of(context).no,
+          labelText: l10n.no,
           buttonType: ButtonType.secondary,
           buttonSize: ButtonSize.large,
           buttonAction: ButtonAction.second,
@@ -162,9 +208,10 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           isInAlert: true,
         ),
       ],
-      body: AppLocalizations.of(context).doYouWantToDiscardTheEditsYouHaveMade,
+      body: l10n.doYouWantToDiscardTheEditsYouHaveMade,
       actionSheetType: ActionSheetType.defaultActionSheet,
     );
+    if (!context.mounted) return;
     if (actionResult?.action != null &&
         actionResult!.action == ButtonAction.first) {
       replacePage(context, DetailPage(widget.detailPageConfig));
@@ -174,8 +221,8 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   @override
   Widget build(BuildContext context) {
     final isLightMode = Theme.of(context).brightness == Brightness.light;
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
+    final actionTextStyle = TextStyles.large.copyWith(color: colors.textBase);
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -186,7 +233,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       child: Scaffold(
         extendBodyBehindAppBar: true,
         resizeToAvoidBottomInset: false,
-        backgroundColor: colorScheme.backgroundBase,
+        backgroundColor: colors.backgroundBase,
         body: ProImageEditor.file(
           key: editorKey,
           widget.file,
@@ -208,91 +255,99 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
             imageGeneration: const ImageGenerationConfigs(
               jpegQuality: 100,
               enableIsolateGeneration: true,
+              captureImageByteFormat: ui.ImageByteFormat.rawStraightRgba,
+              outputFormat: OutputFormat.png,
               pngLevel: 0,
             ),
             layerInteraction: const LayerInteractionConfigs(
               hideToolbarOnInteraction: false,
             ),
             theme: ThemeData(
-              scaffoldBackgroundColor: colorScheme.backgroundBase,
+              scaffoldBackgroundColor: colors.backgroundBase,
               appBarTheme: AppBarTheme(
-                titleTextStyle: textTheme.body,
-                backgroundColor: colorScheme.backgroundBase,
+                titleTextStyle: actionTextStyle,
+                backgroundColor: colors.backgroundBase,
               ),
               bottomAppBarTheme: BottomAppBarThemeData(
-                color: colorScheme.backgroundBase,
+                color: colors.backgroundBase,
               ),
               brightness: isLightMode ? Brightness.light : Brightness.dark,
             ),
             mainEditor: MainEditorConfigs(
               enableZoom: true,
+              tools: const [
+                SubEditorMode.cropRotate,
+                SubEditorMode.filter,
+                SubEditorMode.tune,
+                SubEditorMode.paint,
+                SubEditorMode.emoji,
+              ],
               style: MainEditorStyle(
                 uiOverlayStyle: SystemUiOverlayStyle(
                   systemNavigationBarContrastEnforced: true,
                   systemNavigationBarColor: Colors.transparent,
-                  statusBarBrightness:
-                      isLightMode ? Brightness.dark : Brightness.light,
-                  statusBarIconBrightness:
-                      isLightMode ? Brightness.dark : Brightness.light,
+                  statusBarBrightness: isLightMode
+                      ? Brightness.dark
+                      : Brightness.light,
+                  statusBarIconBrightness: isLightMode
+                      ? Brightness.dark
+                      : Brightness.light,
                 ),
-                appBarBackground: colorScheme.backgroundBase,
-                background: colorScheme.backgroundBase,
-                bottomBarBackground: colorScheme.backgroundBase,
+                appBarBackground: colors.backgroundBase,
+                background: colors.backgroundBase,
+                bottomBarBackground: colors.backgroundBase,
               ),
               widgets: MainEditorWidgets(
-                removeLayerArea: (
-                  removeAreaKey,
-                  __,
-                  rebuildStream,
-                  isLayerBeingTransformed,
-                ) {
-                  return Align(
-                    alignment: Alignment.bottomCenter,
-                    child: StreamBuilder(
-                      stream: rebuildStream,
-                      builder: (context, snapshot) {
-                        final isHovered = editorKey.currentState!
-                            .layerInteractionManager.hoverRemoveBtn;
+                removeLayerArea:
+                    (removeAreaKey, _, rebuildStream, isLayerBeingTransformed) {
+                      return Align(
+                        alignment: Alignment.bottomCenter,
+                        child: StreamBuilder(
+                          stream: rebuildStream,
+                          builder: (context, snapshot) {
+                            final isHovered = editorKey
+                                .currentState!
+                                .layerInteractionManager
+                                .hoverRemoveBtn;
 
-                        return AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 150),
-                          child: isLayerBeingTransformed
-                              ? Container(
-                                  key: removeAreaKey,
-                                  height: 56,
-                                  width: 56,
-                                  margin: const EdgeInsets.only(bottom: 24),
-                                  decoration: BoxDecoration(
-                                    color: isHovered
-                                        ? colorScheme.warning400
-                                            .withValues(alpha: 0.8)
-                                        : Colors.white,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  padding: const EdgeInsets.all(12),
-                                  child: Center(
-                                    child: SvgPicture.asset(
-                                      "assets/image-editor/image-editor-delete.svg",
-                                      colorFilter: ColorFilter.mode(
-                                        isHovered
-                                            ? Colors.white
-                                            : colorScheme.warning400
-                                                .withValues(alpha: 0.8),
-                                        BlendMode.srcIn,
+                            return AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 150),
+                              child: isLayerBeingTransformed
+                                  ? Container(
+                                      key: removeAreaKey,
+                                      height: 56,
+                                      width: 56,
+                                      margin: const EdgeInsets.only(bottom: 24),
+                                      decoration: BoxDecoration(
+                                        color: isHovered
+                                            ? colors.warning.withValues(
+                                                alpha: 0.8,
+                                              )
+                                            : Colors.white,
+                                        shape: BoxShape.circle,
                                       ),
+                                      padding: const EdgeInsets.all(12),
+                                      child: Center(
+                                        child: HugeIcon(
+                                          icon: HugeIcons.strokeRoundedDelete02,
+                                          color: isHovered
+                                              ? Colors.white
+                                              : colors.warning.withValues(
+                                                  alpha: 0.8,
+                                                ),
+                                        ),
+                                      ),
+                                    )
+                                  : SizedBox.shrink(
+                                      // When hidden, key still needed for hit
+                                      // detection to work (returns empty bounds)
+                                      key: removeAreaKey,
                                     ),
-                                  ),
-                                )
-                              : SizedBox.shrink(
-                                  // When hidden, key still needed for hit
-                                  // detection to work (returns empty bounds)
-                                  key: removeAreaKey,
-                                ),
-                        );
-                      },
-                    ),
-                  );
-                },
+                            );
+                          },
+                        ),
+                      );
+                    },
                 appBar: (editor, rebuildStream) {
                   return ReactiveAppbar(
                     builder: (context) {
@@ -304,9 +359,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                         undo: () => editor.undoAction(),
                         configs: editor.configs,
                         done: () async {
-                          final Uint8List bytes = await editorKey.currentState!
-                              .captureEditorImage();
-                          await saveImage(bytes);
+                          await saveImage(editorKey.currentState!);
                         },
                         close: () {
                           _showExitConfirmationDialog(context);
@@ -332,10 +385,9 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
               ),
             ),
             paintEditor: PaintEditorConfigs(
-              enabled: true,
               style: PaintEditorStyle(
                 initialColor: const Color(0xFF00FFFF),
-                background: colorScheme.backgroundBase,
+                background: colors.backgroundBase,
               ),
               widgets: PaintEditorWidgets(
                 appBar: (editor, rebuildStream) {
@@ -374,7 +426,6 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
               ),
             ),
             textEditor: TextEditorConfigs(
-              enabled: false,
               showBackgroundModeButton: true,
               showTextAlignButton: true,
               style: const TextEditorStyle(
@@ -400,9 +451,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                         return Positioned.fill(
                           child: GestureDetector(
                             onTap: () {},
-                            child: Container(
-                              color: Colors.transparent,
-                            ),
+                            child: Container(color: Colors.transparent),
                           ),
                         );
                       },
@@ -427,14 +476,9 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
               ),
             ),
             cropRotateEditor: CropRotateEditorConfigs(
-              showAspectRatioButton: true,
-              showFlipButton: true,
-              showRotateButton: true,
-              enabled: true,
               style: CropRotateEditorStyle(
-                background: colorScheme.backgroundBase,
-                cropCornerColor:
-                    Theme.of(context).colorScheme.imageEditorPrimaryColor,
+                background: colors.backgroundBase,
+                cropCornerColor: colors.primary,
               ),
               widgets: CropRotateEditorWidgets(
                 appBar: (editor, rebuildStream) {
@@ -465,46 +509,44 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
               ),
             ),
             filterEditor: FilterEditorConfigs(
-              enabled: true,
               fadeInUpDuration: fadeInDuration,
               fadeInUpStaggerDelayDuration: fadeInDelay,
               filterList: filterList,
-              style: FilterEditorStyle(
-                background: colorScheme.backgroundBase,
-              ),
+              style: FilterEditorStyle(background: colors.backgroundBase),
               widgets: FilterEditorWidgets(
-                slider: (
-                  editorState,
-                  rebuildStream,
-                  value,
-                  onChanged,
-                  onChangeEnd,
-                ) =>
-                    ReactiveWidget(
-                  builder: (context) {
-                    return const SizedBox.shrink();
-                  },
-                  stream: rebuildStream,
-                ),
-                filterButton: (
-                  filter,
-                  isSelected,
-                  scaleFactor,
-                  onSelectFilter,
-                  editorImage,
-                  filterKey,
-                ) {
-                  return ImageEditorFilterBar(
-                    filterModel: filter,
-                    isSelected: isSelected,
-                    onSelectFilter: () {
-                      onSelectFilter.call();
-                      editorKey.currentState?.setState(() {});
+                slider:
+                    (
+                      editorState,
+                      rebuildStream,
+                      value,
+                      onChanged,
+                      onChangeEnd,
+                    ) => ReactiveWidget(
+                      builder: (context) {
+                        return const SizedBox.shrink();
+                      },
+                      stream: rebuildStream,
+                    ),
+                filterButton:
+                    (
+                      filter,
+                      isSelected,
+                      scaleFactor,
+                      onSelectFilter,
+                      editorImage,
+                      filterKey,
+                    ) {
+                      return ImageEditorFilterBar(
+                        filterModel: filter,
+                        isSelected: isSelected,
+                        onSelectFilter: () {
+                          onSelectFilter.call();
+                          editorKey.currentState?.setState(() {});
+                        },
+                        editorImage: editorImage,
+                        filterKey: filterKey,
+                      );
                     },
-                    editorImage: editorImage,
-                    filterKey: filterKey,
-                  );
-                },
                 appBar: (editor, rebuildStream) {
                   return ReactiveAppbar(
                     builder: (context) {
@@ -521,10 +563,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
               ),
             ),
             tuneEditor: TuneEditorConfigs(
-              enabled: true,
-              style: TuneEditorStyle(
-                background: colorScheme.backgroundBase,
-              ),
+              style: TuneEditorStyle(background: colors.backgroundBase),
               widgets: TuneEditorWidgets(
                 appBar: (editor, rebuildStream) {
                   return ReactiveAppbar(
@@ -557,24 +596,20 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                 },
               ),
             ),
-            blurEditor: const BlurEditorConfigs(
-              enabled: false,
-            ),
+            blurEditor: const BlurEditorConfigs(),
             emojiEditor: EmojiEditorConfigs(
-              enabled: true,
               checkPlatformCompatibility: true,
               style: EmojiEditorStyle(
                 bottomActionBarConfig: BottomActionBarConfig(
                   showSearchViewButton: true,
-                  buttonColor: colorScheme.backgroundBase,
-                  buttonIconColor: colorScheme.tabIcon,
-                  backgroundColor: colorScheme.backgroundBase,
+                  buttonColor: colors.backgroundBase,
+                  buttonIconColor: colors.iconColor,
+                  backgroundColor: colors.backgroundBase,
                 ),
-                backgroundColor: colorScheme.backgroundBase,
+                backgroundColor: colors.backgroundBase,
               ),
             ),
             stickerEditor: StickerEditorConfigs(
-              enabled: false,
               builder: (setLayer, scrollController) {
                 return const SizedBox.shrink();
               },

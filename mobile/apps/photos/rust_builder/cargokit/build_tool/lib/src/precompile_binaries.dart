@@ -82,9 +82,7 @@ class PrecompileBinaries {
 
     tempDir.createSync(recursive: true);
 
-    final crateOptions = CargokitCrateOptions.load(
-      manifestDir: manifestDir,
-    );
+    final crateOptions = CargokitCrateOptions.load(manifestDir: manifestDir);
 
     final buildEnvironment = BuildEnvironment(
       configuration: BuildConfiguration.release,
@@ -117,8 +115,10 @@ class PrecompileBinaries {
 
       _log.info('Building for $target');
 
-      final builder =
-          RustBuilder(target: target, environment: buildEnvironment);
+      final builder = RustBuilder(
+        target: target,
+        environment: buildEnvironment,
+      );
       builder.prepare(rustup);
       final res = await builder.build();
 
@@ -162,7 +162,8 @@ class PrecompileBinaries {
             }
             ++retryCount;
             _log.shout(
-                'Upload failed (attempt $retryCount, will retry): ${e.toString()}');
+              'Upload failed (attempt $retryCount, will retry): ${e.toString()}',
+            );
             await Future.delayed(Duration(seconds: 2));
           }
         }
@@ -186,16 +187,18 @@ class PrecompileBinaries {
     } on ReleaseNotFound {
       _log.info('Release not found - creating release $tagName');
       release = await repo.createRelease(
-          repositorySlug,
-          CreateRelease.from(
-            tagName: tagName,
-            name: 'Precompiled binaries ${hash.substring(0, 8)}',
-            targetCommitish: null,
-            isDraft: false,
-            isPrerelease: false,
-            body: 'Precompiled binaries for crate $packageName, '
-                'crate hash $hash.',
-          ));
+        repositorySlug,
+        CreateRelease.from(
+          tagName: tagName,
+          name: 'Precompiled binaries ${hash.substring(0, 8)}',
+          targetCommitish: null,
+          isDraft: false,
+          isPrerelease: false,
+          body:
+              'Precompiled binaries for crate $packageName, '
+              'crate hash $hash.',
+        ),
+      );
     }
     return release;
   }

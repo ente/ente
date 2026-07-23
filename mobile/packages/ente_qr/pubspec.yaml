@@ -1,0 +1,32 @@
+name: ente_qr
+description: A QR code reader plugin for Ente.
+
+resolution: workspace
+environment:
+  sdk: ">=3.10.0 <4.0.0"
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  image: 4.7.0
+  plugin_platform_interface: 2.1.8
+  zxing2: 0.2.4
+
+dev_dependencies:
+  flutter_lints: 6.0.0
+  flutter_test:
+    sdk: flutter
+
+# The following section is specific to Flutter packages.
+flutter:
+  # This section identifies this Flutter project as a plugin project.
+  plugin:
+    platforms:
+      android:
+        package: io.ente.ente_qr
+        pluginClass: EnteQrPlugin
+      ios:
+        pluginClass: EnteQrPlugin
+      macos:
+        pluginClass: EnteQrPlugin

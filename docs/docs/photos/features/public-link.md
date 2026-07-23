@@ -3,9 +3,9 @@ title: Public Links
 description: Share photos via public links with passwords and expiry in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Public Links

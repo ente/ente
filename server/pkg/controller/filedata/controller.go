@@ -4,20 +4,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/ente-io/museum/ente"
-	fileData "github.com/ente-io/museum/ente/filedata"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/controller/access"
-	"github.com/ente-io/museum/pkg/repo"
-	fileDataRepo "github.com/ente-io/museum/pkg/repo/filedata"
-	"github.com/ente-io/museum/pkg/utils/array"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/network"
-	"github.com/ente-io/museum/pkg/utils/s3config"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	fileData "github.com/ente/museum/ente/filedata"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/controller/access"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/repo"
+	fileDataRepo "github.com/ente/museum/pkg/repo/filedata"
+	"github.com/ente/museum/pkg/utils/array"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/network"
+	"github.com/ente/museum/pkg/utils/s3config"
+	"github.com/ente/stacktrace"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -50,6 +53,7 @@ type Controller struct {
 	S3Config                *s3config.S3Config
 	FileRepo                *repo.FileRepository
 	CollectionRepo          *repo.CollectionRepository
+	DiscordController       *discord.DiscordController
 	downloadManagerCache    map[string]*s3manager.Downloader
 	// for downloading objects from s3 for replication
 	workerURL   string
@@ -62,6 +66,7 @@ func New(repo *fileDataRepo.Repository,
 	s3Config *s3config.S3Config,
 	fileRepo *repo.FileRepository,
 	collectionRepo *repo.CollectionRepository,
+	discordController *discord.DiscordController,
 ) *Controller {
 	embeddingDcs := []string{s3Config.GetHotBackblazeDC(), s3Config.GetHotWasabiDC(), s3Config.GetWasabiDerivedDC(), s3Config.GetDerivedStorageDataCenter(), "b5", "b6"}
 	cache := make(map[string]*s3manager.Downloader, len(embeddingDcs))
@@ -76,6 +81,7 @@ func New(repo *fileDataRepo.Repository,
 		S3Config:                s3Config,
 		FileRepo:                fileRepo,
 		CollectionRepo:          collectionRepo,
+		DiscordController:       discordController,
 		downloadManagerCache:    cache,
 	}
 }
@@ -129,7 +135,7 @@ func (c *Controller) InsertOrUpdateMetadata(ctx *gin.Context, req *fileData.PutF
 	dbInsertErr := c.Repo.InsertOrUpdate(context.Background(), row)
 	if dbInsertErr != nil {
 		logger.WithError(dbInsertErr).Error("insert or update failed")
-		return uploadErr
+		return stacktrace.Propagate(dbInsertErr, "failed to insert or update file data row")
 	}
 	//}()
 	return nil
@@ -228,36 +234,35 @@ func (c *Controller) getS3FileMetadataParallel(ctx *gin.Context, dbRows []fileDa
 	var wg sync.WaitGroup
 	embeddingObjects := make([]bulkS3MetaFetchResult, len(dbRows))
 	for i := range dbRows {
+		index := i
 		dbRow := dbRows[i]
-		wg.Add(1)
 		globalFileFetchSemaphore <- struct{}{} // Acquire from global semaphore
-		go func(i int, row fileData.Row) {
-			defer wg.Done()
+		wg.Go(func() {
 			defer func() { <-globalFileFetchSemaphore }() // Release back to global semaphore
 
 			ctxLogger := log.WithFields(log.Fields{
-				"objectKey":     row.S3FileMetadataObjectKey(),
+				"objectKey":     dbRow.S3FileMetadataObjectKey(),
 				"req_id":        requestid.Get(ctx),
-				"latest_bucket": row.LatestBucket,
-				"file_id":       row.FileID,
+				"latest_bucket": dbRow.LatestBucket,
+				"file_id":       dbRow.FileID,
 			})
 
-			s3FileMetadata, err := c.fetchS3FileMetadata(context.Background(), row, ctxLogger)
+			s3FileMetadata, err := c.fetchS3FileMetadata(context.Background(), dbRow, ctxLogger)
 			if err != nil {
 				ctxLogger.
-					Error("error fetching  object: "+row.S3FileMetadataObjectKey(), err)
-				embeddingObjects[i] = bulkS3MetaFetchResult{
+					Error("error fetching  object: "+dbRow.S3FileMetadataObjectKey(), err)
+				embeddingObjects[index] = bulkS3MetaFetchResult{
 					err:     err,
-					dbEntry: row,
+					dbEntry: dbRow,
 				}
 
 			} else {
-				embeddingObjects[i] = bulkS3MetaFetchResult{
+				embeddingObjects[index] = bulkS3MetaFetchResult{
 					s3MetaObject: *s3FileMetadata,
 					dbEntry:      dbRow,
 				}
 			}
-		}(i, dbRow)
+		})
 	}
 	wg.Wait()
 	return embeddingObjects, nil
@@ -269,7 +274,7 @@ func (c *Controller) fetchS3FileMetadata(ctx context.Context, row fileData.Row, 
 	// If the current primary bucket is different from the latest bucket where data was written,
 	// check and use the preferred bucket if the data is replicated there.
 	if !strings.EqualFold(preferredBucket, dc) {
-		if array.StringInList(preferredBucket, row.ReplicatedBuckets) {
+		if slices.Contains(row.ReplicatedBuckets, preferredBucket) {
 			dc = preferredBucket
 		}
 	}
@@ -279,10 +284,7 @@ func (c *Controller) fetchS3FileMetadata(ctx context.Context, row fileData.Row, 
 	timeout := opt.InitialTimeout
 	for i := 0; i < totalAttempts; i++ {
 		if i > 0 {
-			timeout = timeout * 2
-			if timeout > opt.MaxTimeout {
-				timeout = opt.MaxTimeout
-			}
+			timeout = min(timeout*2, opt.MaxTimeout)
 		}
 		fetchCtx, cancel := context.WithTimeout(ctx, timeout)
 		select {

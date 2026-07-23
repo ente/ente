@@ -42,8 +42,7 @@ class TrashDB {
   static const columnPubMMdVersion = 'pub_mmd_ver';
 
   Future _onCreate(Database db, int version) async {
-    await db.execute(
-      '''
+    await db.execute('''
         CREATE TABLE $tableName (
           $columnUploadedFileID INTEGER PRIMARY KEY NOT NULL,
           $columnCollectionID INTEGER NOT NULL,
@@ -66,8 +65,7 @@ class TrashDB {
       CREATE INDEX IF NOT EXISTS creation_time_index ON $tableName($columnCreationTime); 
       CREATE INDEX IF NOT EXISTS delete_by_time_index ON $tableName($columnTrashDeleteBy);
       CREATE INDEX IF NOT EXISTS updated_at_time_index ON $tableName($columnTrashUpdatedAt);
-      ''',
-    );
+      ''');
   }
 
   TrashDB._privateConstructor();
@@ -195,8 +193,9 @@ class TrashDB {
     // dirty hack to ensure that the file_downloads & cache mechanism works
     trashFile.generatedID = -1 * trashFile.uploadedFileID!;
     trashFile.ownerID = row[columnOwnerID];
-    trashFile.collectionID =
-        row[columnCollectionID] == -1 ? null : row[columnCollectionID];
+    trashFile.collectionID = row[columnCollectionID] == -1
+        ? null
+        : row[columnCollectionID];
     trashFile.encryptedKey = row[columnEncryptedKey];
     trashFile.keyDecryptionNonce = row[columnKeyDecryptionNonce];
     trashFile.fileDecryptionHeader = row[columnFileDecryptionHeader];

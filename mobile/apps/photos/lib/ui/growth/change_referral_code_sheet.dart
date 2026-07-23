@@ -89,8 +89,9 @@ class _ChangeReferralCodeContentState
       if (e is DioException) {
         if (e.response?.statusCode == 400) {
           setState(() {
-            _errorMessage =
-                AppLocalizations.of(context).unavailableReferralCode;
+            _errorMessage = AppLocalizations.of(
+              context,
+            ).unavailableReferralCode;
           });
         } else if (e.response?.statusCode == 429) {
           setState(() {
@@ -121,13 +122,15 @@ class _ChangeReferralCodeContentState
     final textTheme = getEnteTextTheme(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    final inputBackgroundColor =
-        isDarkMode ? const Color(0xFF1C1C1C) : const Color(0xFFFAFAFA);
+    final inputBackgroundColor = isDarkMode
+        ? const Color(0xFF1C1C1C)
+        : const Color(0xFFFAFAFA);
 
     const greenColor = Color(0xFF08C225);
     const warningRedColor = Color(0xFFF63A3A);
-    final helperTextColor =
-        _errorMessage != null ? warningRedColor : colorScheme.textMuted;
+    final helperTextColor = _errorMessage != null
+        ? warningRedColor
+        : colorScheme.textMuted;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -158,9 +161,7 @@ class _ChangeReferralCodeContentState
         // Warning/helper text
         Text(
           _errorMessage ?? AppLocalizations.of(context).referralCodeHint,
-          style: textTheme.mini.copyWith(
-            color: helperTextColor,
-          ),
+          style: textTheme.mini.copyWith(color: helperTextColor),
         ),
         const SizedBox(height: 20),
         // Save button

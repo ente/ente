@@ -50,8 +50,7 @@ class OfflineAuthenticatorDB {
   }
 
   Future _onCreate(Database db, int version) async {
-    await db.execute(
-      '''
+    await db.execute('''
                 CREATE TABLE $entityTable (
                   _generatedID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                   id TEXT,
@@ -62,23 +61,19 @@ class OfflineAuthenticatorDB {
                   shouldSync INTEGER DEFAULT 0,
                   UNIQUE(id)
                 );
-      ''',
-    );
+      ''');
   }
 
   Future<int> insert(String encData, String header) async {
     final db = await instance.database;
     final int timeInMicroSeconds = DateTime.now().microsecondsSinceEpoch;
-    final insertedID = await db.insert(
-      entityTable,
-      {
-        "encryptedData": encData,
-        "header": header,
-        "shouldSync": 1,
-        "createdAt": timeInMicroSeconds,
-        "updatedAt": timeInMicroSeconds,
-      },
-    );
+    final insertedID = await db.insert(entityTable, {
+      "encryptedData": encData,
+      "header": header,
+      "shouldSync": 1,
+      "createdAt": timeInMicroSeconds,
+      "updatedAt": timeInMicroSeconds,
+    });
     return insertedID;
   }
 
@@ -132,8 +127,11 @@ class OfflineAuthenticatorDB {
 
   Future<LocalAuthEntity?> getEntryByID(int genID) async {
     final db = await instance.database;
-    final rows = await db
-        .query(entityTable, where: '_generatedID = ?', whereArgs: [genID]);
+    final rows = await db.query(
+      entityTable,
+      where: '_generatedID = ?',
+      whereArgs: [genID],
+    );
     final listOfAuthEntities = _convertRows(rows);
     if (listOfAuthEntities.isEmpty) {
       return null;
@@ -148,7 +146,7 @@ class OfflineAuthenticatorDB {
     return _convertRows(rows);
   }
 
-// deleteByID will prefer generated id if both ids are passed during deletion
+  // deleteByID will prefer generated id if both ids are passed during deletion
   Future<void> deleteByIDs({List<int>? generatedIDs, List<String>? ids}) async {
     final db = await instance.database;
     final batch = db.batch();

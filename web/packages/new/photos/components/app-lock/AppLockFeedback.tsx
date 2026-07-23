@@ -112,8 +112,7 @@ export const AppLockLogoutConfirmation = ({
         <Stack
             spacing={0}
             useFlexGap
-            alignItems="center"
-            sx={logoutModalContentSx}
+            sx={[{ alignItems: "center" }, logoutModalContentSx]}
         >
             <Box
                 sx={{
@@ -186,9 +185,10 @@ export const CooldownScreen = ({
         <Stack
             spacing={0}
             useFlexGap
-            alignItems="center"
-            justifyContent="center"
-            sx={logoutModalContentSx}
+            sx={[
+                { alignItems: "center", justifyContent: "center" },
+                logoutModalContentSx,
+            ]}
         >
             <Box
                 sx={{

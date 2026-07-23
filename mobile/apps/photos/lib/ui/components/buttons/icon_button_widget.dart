@@ -1,16 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:photos/theme/colors.dart';
 import 'package:photos/theme/ente_theme.dart';
 
-enum IconButtonType {
-  primary,
-  secondary,
-  rounded,
-}
+enum IconButtonType { primary, secondary, rounded }
 
 class IconButtonWidget extends StatefulWidget {
   final IconButtonType iconButtonType;
-  final IconData icon;
+  final IconData? icon;
+  final Widget? iconWidget;
   final bool disableGestureDetector;
   final VoidCallback? onTap;
   final Color? defaultColor;
@@ -19,7 +18,8 @@ class IconButtonWidget extends StatefulWidget {
   final double size;
   final bool roundedIcon;
   const IconButtonWidget({
-    required this.icon,
+    this.icon,
+    this.iconWidget,
     required this.iconButtonType,
     this.disableGestureDetector = false,
     this.onTap,
@@ -29,7 +29,7 @@ class IconButtonWidget extends StatefulWidget {
     this.size = 24,
     this.roundedIcon = true,
     super.key,
-  });
+  }) : assert(icon != null || iconWidget != null);
 
   @override
   State<IconButtonWidget> createState() => _IconButtonWidgetState();
@@ -37,9 +37,19 @@ class IconButtonWidget extends StatefulWidget {
 
 class _IconButtonWidgetState extends State<IconButtonWidget> {
   Color? iconStateColor;
+  Timer? _tapResetTimer;
+
+  @override
+  void dispose() {
+    _tapResetTimer?.cancel();
+    super.dispose();
+  }
+
   @override
   void didUpdateWidget(IconButtonWidget oldWidget) {
-    if (oldWidget.icon != widget.icon && mounted) {
+    if ((oldWidget.icon != widget.icon ||
+            oldWidget.iconWidget != widget.iconWidget) &&
+        mounted) {
       setState(() {
         iconStateColor = null;
       });
@@ -52,7 +62,8 @@ class _IconButtonWidgetState extends State<IconButtonWidget> {
     final bool hasPressedState = widget.onTap != null;
     final colorTheme = getEnteColorScheme(context);
     iconStateColor ??
-        (iconStateColor = widget.defaultColor ??
+        (iconStateColor =
+            widget.defaultColor ??
             (widget.iconButtonType == IconButtonType.rounded
                 ? colorTheme.fillFaint
                 : null));
@@ -68,6 +79,13 @@ class _IconButtonWidgetState extends State<IconButtonWidget> {
   }
 
   Widget _iconButton(EnteColorScheme colorTheme) {
+    final iconColor =
+        widget.iconColor ??
+        (widget.iconButtonType == IconButtonType.secondary
+            ? colorTheme.strokeMuted
+            : colorTheme.strokeBase);
+    final icon = widget.iconWidget ?? Icon(widget.icon, size: widget.size);
+
     return Padding(
       padding: const EdgeInsets.all(4.0),
       child: widget.roundedIcon
@@ -78,47 +96,42 @@ class _IconButtonWidgetState extends State<IconButtonWidget> {
                 borderRadius: BorderRadius.circular(widget.size),
                 color: iconStateColor,
               ),
-              child: Icon(
-                widget.icon,
-                color: widget.iconColor ??
-                    (widget.iconButtonType == IconButtonType.secondary
-                        ? colorTheme.strokeMuted
-                        : colorTheme.strokeBase),
-                size: widget.size,
+              child: IconTheme(
+                data: IconThemeData(color: iconColor, size: widget.size),
+                child: icon,
               ),
             )
-          : Icon(
-              widget.icon,
-              color: widget.iconColor ??
-                  (widget.iconButtonType == IconButtonType.secondary
-                      ? colorTheme.strokeMuted
-                      : colorTheme.strokeBase),
-              size: widget.size,
+          : IconTheme(
+              data: IconThemeData(color: iconColor, size: widget.size),
+              child: icon,
             ),
     );
   }
 
-  _onTapDown(details) {
+  void _onTapDown(TapDownDetails details) {
     final colorTheme = getEnteColorScheme(context);
     setState(() {
-      iconStateColor = widget.pressedColor ??
+      iconStateColor =
+          widget.pressedColor ??
           (widget.iconButtonType == IconButtonType.rounded
               ? colorTheme.fillMuted
               : colorTheme.fillFaint);
     });
   }
 
-  _onTapUp(details) {
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) {
-        setState(() {
-          iconStateColor = null;
-        });
-      }
+  void _onTapUp(TapUpDetails details) {
+    _tapResetTimer?.cancel();
+    _tapResetTimer = Timer(const Duration(milliseconds: 100), () {
+      _tapResetTimer = null;
+      if (!mounted) return;
+      setState(() {
+        iconStateColor = null;
+      });
     });
   }
 
-  _onTapCancel() {
+  void _onTapCancel() {
+    _tapResetTimer?.cancel();
     setState(() {
       iconStateColor = null;
     });

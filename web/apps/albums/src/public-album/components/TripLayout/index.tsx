@@ -1,18 +1,18 @@
 import { useJoinAlbum } from "@/public-album/access/hooks/useJoinAlbum";
 import { ActiveDownloadStatusNotifications } from "@/public-album/download/components/ActiveDownloadStatusNotifications";
-import { type FileViewerInitialSidebar } from "@/public-album/viewer/components/FileViewer";
-import { type PublicFeedItemClickInfo } from "@/public-album/viewer/components/PublicFeedSidebar";
+import type { FileViewerInitialSidebar } from "@/public-album/viewer/components/FileViewer";
+import type { PublicFeedItemClickInfo } from "@/public-album/viewer/components/PublicFeedSidebar";
 import {
     LazyFileViewer,
     LazyPublicFeedSidebar,
     scheduleFileViewerPreload,
 } from "@/public-album/viewer/lib/lazy";
-import { useSaveGroupsActions } from "@/shared/state/save-groups";
 import { Box, styled, useMediaQuery, useTheme } from "@mui/material";
 import { useModalVisibility } from "ente-base/components/utils/modal";
 import type { PublicAlbumsCredentials } from "ente-base/http";
-import { type Collection } from "ente-media/collection";
-import { type EnteFile } from "ente-media/file";
+import { useSaveGroupsActions } from "ente-gallery/components/utils/save-groups";
+import type { Collection } from "ente-media/collection";
+import type { EnteFile } from "ente-media/file";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 // Import extracted components

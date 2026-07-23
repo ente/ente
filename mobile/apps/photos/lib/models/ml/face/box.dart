@@ -21,9 +21,11 @@ class FaceBox {
 
   factory FaceBox.fromJson(Map<String, dynamic> json) {
     return FaceBox(
-      x: parseIntOrDoubleAsDouble(json['x']) ??
+      x:
+          parseIntOrDoubleAsDouble(json['x']) ??
           parseIntOrDoubleAsDouble(json['xMin'])!,
-      y: parseIntOrDoubleAsDouble(json['y']) ??
+      y:
+          parseIntOrDoubleAsDouble(json['y']) ??
           parseIntOrDoubleAsDouble(json['yMin'])!,
       width: parseIntOrDoubleAsDouble(json['width'])!,
       height: parseIntOrDoubleAsDouble(json['height'])!,
@@ -31,9 +33,9 @@ class FaceBox {
   }
 
   Map<String, dynamic> toJson() => {
-        'x': x,
-        'y': y,
-        'width': width,
-        'height': height,
-      };
+    'x': x,
+    'y': y,
+    'width': width,
+    'height': height,
+  };
 }

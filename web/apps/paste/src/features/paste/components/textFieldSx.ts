@@ -36,11 +36,11 @@ export const pasteTextFieldSx = (
         fontSize: "1.02rem",
         lineHeight: 1.55,
     },
-    "& .MuiInputBase-inputMultiline": {
+    "& .MuiInputBase-multiline > .MuiInputBase-input": {
         padding: "0 !important",
         margin: "0 !important",
     },
-    "& .MuiFilledInput-inputMultiline": {
+    "& .MuiFilledInput-multiline > .MuiFilledInput-input": {
         padding: "0 !important",
         margin: "0 !important",
     },

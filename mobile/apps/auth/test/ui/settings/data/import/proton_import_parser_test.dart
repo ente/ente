@@ -86,8 +86,9 @@ void main() {
         encryptedJson,
         password: '1231246',
       );
-      final decryptedCodes =
-          parseProtonExport(decodeProtonExportJson(decryptedJson));
+      final decryptedCodes = parseProtonExport(
+        decodeProtonExportJson(decryptedJson),
+      );
       final plaintextCodes = await _loadPlaintextFixtureCodes();
 
       expect(decryptedCodes, hasLength(4));
@@ -97,19 +98,21 @@ void main() {
       }
     });
 
-    test('fails to decrypt password protected Proton exports with bad password',
-        () async {
-      final encryptedJson = decodeProtonExportJson(
-        await _fixture(
-          'proton_authenticator_backup_encrypted_1231246.json',
-        ).readAsString(),
-      );
+    test(
+      'fails to decrypt password protected Proton exports with bad password',
+      () async {
+        final encryptedJson = decodeProtonExportJson(
+          await _fixture(
+            'proton_authenticator_backup_encrypted_1231246.json',
+          ).readAsString(),
+        );
 
-      expect(
-        () => decryptProtonExport(encryptedJson, password: 'wrong-password'),
-        throwsA(isA<IncorrectProtonExportPasswordException>()),
-      );
-    });
+        expect(
+          () => decryptProtonExport(encryptedJson, password: 'wrong-password'),
+          throwsA(isA<IncorrectProtonExportPasswordException>()),
+        );
+      },
+    );
   });
 }
 
@@ -141,9 +144,8 @@ void _assertCode(
   expect(code.rawData, rawData);
 }
 
-File _fixture(String name) => File(
-      'test/ui/settings/data/import/fixtures/$name',
-    );
+File _fixture(String name) =>
+    File('test/ui/settings/data/import/fixtures/$name');
 
 String _expectedStoredTotpRawData({
   required String issuer,
@@ -152,7 +154,8 @@ String _expectedStoredTotpRawData({
 }) {
   final encodedIssuer = Uri.encodeComponent(issuer);
   final encodedAccount = Uri.encodeComponent(account);
-  final otpUrl = 'otpauth://totp/$encodedIssuer:$encodedAccount?secret=$secret'
+  final otpUrl =
+      'otpauth://totp/$encodedIssuer:$encodedAccount?secret=$secret'
       '&issuer=$encodedIssuer'
       '&algorithm=SHA1'
       '&digits=6'

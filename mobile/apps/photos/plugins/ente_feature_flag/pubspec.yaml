@@ -1,7 +1,6 @@
 name: ente_feature_flag
-version: 0.0.1
-publish_to: none
 
+resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
 
@@ -11,9 +10,8 @@ dependencies:
   flutter:
     sdk: flutter
   shared_preferences: 2.5.3
-  stack_trace: 1.12.1
 
 dev_dependencies:
-  flutter_lints: 3.0.2
+  flutter_lints: 6.0.0
 
 flutter:

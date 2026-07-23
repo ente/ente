@@ -60,9 +60,7 @@ class MemoryLaneCacheService {
     return cache[personId];
   }
 
-  Future<MemoryLaneComputeLogEntry?> getComputeLogEntry(
-    String personId,
-  ) async {
+  Future<MemoryLaneComputeLogEntry?> getComputeLogEntry(String personId) async {
     final cache = await getCache();
     return cache.computeLog[personId];
   }
@@ -82,9 +80,7 @@ class MemoryLaneCacheService {
     });
   }
 
-  Future<void> upsertComputeLogEntry(
-    MemoryLaneComputeLogEntry entry,
-  ) async {
+  Future<void> upsertComputeLogEntry(MemoryLaneComputeLogEntry entry) async {
     await _ensureInitialized();
     await _lock.synchronized(() async {
       final currentCache = await _loadCacheUnsafe();

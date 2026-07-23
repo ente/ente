@@ -1,12 +1,10 @@
 import "dart:async";
+import "dart:math";
 
-import 'package:dots_indicator/dots_indicator.dart';
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import "package:photos/app.dart";
 import 'package:photos/core/configuration.dart';
 import "package:photos/generated/l10n.dart";
@@ -18,179 +16,181 @@ import 'package:photos/ui/account/login_page.dart';
 import 'package:photos/ui/account/password_entry_page.dart';
 import 'package:photos/ui/account/password_reentry_page.dart';
 import 'package:photos/ui/components/buttons/button_widget.dart';
-import 'package:photos/ui/components/buttons/button_widget_v2.dart';
 import 'package:photos/ui/components/dialog_widget.dart';
 import 'package:photos/ui/components/models/button_type.dart';
 import 'package:photos/ui/payment/subscription.dart';
 import "package:photos/ui/settings/developer_settings_tap_area.dart";
 import "package:photos/ui/settings/developer_settings_widget.dart";
 import "package:photos/ui/settings/language_picker.dart";
-import 'package:photos/ui/tabs/home_widget.dart';
+import "package:rive/rive.dart" as rive;
 
 class LandingPageWidget extends StatefulWidget {
-  const LandingPageWidget({super.key});
+  const LandingPageWidget({required this.onStartWithoutAccount, super.key});
+  final VoidCallback onStartWithoutAccount;
 
   @override
   State<LandingPageWidget> createState() => _LandingPageWidgetState();
 }
 
 class _LandingPageWidgetState extends State<LandingPageWidget> {
-  static const _featureCount = 3;
-  static const _autoScrollInterval = Duration(seconds: 4);
-
-  int _currentPage = 0;
-  int _activeDotIndex = 0;
-  bool _autoScrollDisabled = false;
-  Timer? _autoScrollTimer;
-  late final PageController _pageController;
+  late final rive.FileLoader _onboardingAnimationLoader;
 
   @override
   void initState() {
     super.initState();
-    const initialPage = _featureCount * 1000;
-    _pageController = PageController(initialPage: initialPage);
-    _pageController.addListener(_handlePageControllerScroll);
-    _currentPage = initialPage;
-    _activeDotIndex = _currentPage % _featureCount;
-    _startAutoScroll();
+    _onboardingAnimationLoader = rive.FileLoader.fromAsset(
+      "assets/onboarding.riv",
+      riveFactory: rive.Factory.flutter,
+    );
     Future(_showAutoLogoutDialogIfRequired);
   }
 
   @override
   void dispose() {
-    _stopAutoScroll();
-    _pageController.removeListener(_handlePageControllerScroll);
-    _pageController.dispose();
+    _onboardingAnimationLoader.dispose();
     super.dispose();
-  }
-
-  void _startAutoScroll() {
-    if (_autoScrollDisabled) return;
-    _autoScrollTimer?.cancel();
-    _autoScrollTimer = Timer.periodic(_autoScrollInterval, (_) {
-      if (!_pageController.hasClients) return;
-      final nextPage = _currentPage + 1;
-      _pageController.animateToPage(
-        nextPage,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
-    });
-  }
-
-  void _stopAutoScroll() {
-    _autoScrollTimer?.cancel();
-    _autoScrollTimer = null;
-  }
-
-  void _handlePageControllerScroll() {
-    if (!_pageController.hasClients) return;
-    if (_pageController.position.userScrollDirection != ScrollDirection.idle) {
-      _autoScrollDisabled = true;
-      _stopAutoScroll();
-    }
-  }
-
-  void _animateToFeature(int index) {
-    if (!_pageController.hasClients) return;
-    final base = _currentPage - (_currentPage % _featureCount);
-    final targetPage = base + index;
-    if (targetPage == _currentPage) return;
-    _pageController.animateToPage(
-      targetPage,
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = getEnteTextTheme(context);
-    final colorScheme = getEnteColorScheme(context);
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: colorScheme.greenBase,
-        systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor: colorScheme.greenBase,
-          statusBarIconBrightness: Brightness.light,
-          statusBarBrightness: Brightness.dark,
-        ),
-        leading: const SizedBox(),
-        title: SvgPicture.asset(
-          "assets/ente-branding.svg",
-          height: 18,
-          colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-        ),
-        centerTitle: true,
-      ),
-      backgroundColor: colorScheme.greenBase,
-      body: SafeArea(
-        child: DeveloperSettingsTapArea(
-          onSettingsChanged: () {
-            setState(() {});
-          },
-          child: Column(
-            children: [
-              if (kDebugMode) _buildDebugLanguageButton(),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildFeatureCarousel(),
-                    const SizedBox(height: 20),
-                    _buildPageIndicator(),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  children: [
-                    ButtonWidgetV2(
-                      buttonType: ButtonTypeV2.neutral,
-                      labelText: AppLocalizations.of(
-                        context,
-                      ).createAnEnteAccount,
-                      onTap: _navigateToSignUpPage,
-                      shouldSurfaceExecutionStates: false,
-                      shouldStickToLightTheme: true,
-                    ),
-                    if (localSettings.showLocalGalleryModeOption) ...[
-                      const SizedBox(height: 12),
-                      ButtonWidgetV2(
-                        buttonType: ButtonTypeV2.secondary,
-                        labelText: AppLocalizations.of(
-                          context,
-                        ).continueWithoutAccount,
-                        onTap: _navigateWithoutAccount,
-                        shouldSurfaceExecutionStates: false,
-                        shouldStickToLightTheme: true,
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: () {
-                        _navigateToSignInPage();
-                      },
-                      child: Text(
-                        AppLocalizations.of(context).loginToExistingAccount,
-                        style: textTheme.body.copyWith(
-                          decoration: TextDecoration.underline,
-                          decorationColor: Colors.white,
-                          color: Colors.white,
+    final lightComponentTheme = ComponentTheme.lightTheme(
+      app: ComponentApp.photos,
+    );
+    return Theme(
+      data: lightComponentTheme,
+      child: Builder(
+        builder: (context) {
+          final textTheme = getEnteTextTheme(context);
+          final colorScheme = getEnteColorScheme(context);
+          return Scaffold(
+            backgroundColor: colorScheme.greenBase,
+            body: SafeArea(
+              child: DeveloperSettingsTapArea(
+                onSettingsChanged: () {
+                  setState(() {});
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return SingleChildScrollView(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minHeight: constraints.maxHeight,
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    if (kDebugMode) _buildDebugLanguageButton(),
+
+                                    _buildOnboardingAnimation(),
+
+                                    Text(
+                                      AppLocalizations.of(
+                                        context,
+                                      ).onboardingTitle,
+                                      textAlign: TextAlign.center,
+                                      textScaler: TextScaler.noScaling,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontFamily: TextStyles.outfitFontFamily,
+                                        package: TextStyles.fontPackage,
+                                        fontSize: min(
+                                          MediaQuery.of(context).size.width *
+                                              0.09,
+                                          48,
+                                        ),
+                                        height: 1,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 16),
+
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 32,
+                                      ),
+                                      child: Text(
+                                        AppLocalizations.of(
+                                          context,
+                                        ).onboardingDesc,
+                                        textAlign: TextAlign.center,
+                                        style: textTheme.body.copyWith(
+                                          color: colorScheme.greenLight,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 32),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
-                    ),
-                  ],
+                      ButtonComponent(
+                        variant: ButtonComponentVariant.neutral,
+                        label: AppLocalizations.of(context).createAnEnteAccount,
+                        onTap: _navigateToSignUpPage,
+                        shouldSurfaceExecutionStates: false,
+                      ),
+                      if (localSettings.showLocalGalleryModeOption) ...[
+                        const SizedBox(height: 12),
+                        ButtonComponent(
+                          variant: ButtonComponentVariant.secondary,
+                          label: AppLocalizations.of(
+                            context,
+                          ).continueWithoutAccount,
+                          onTap: _navigateWithoutAccount,
+                          shouldSurfaceExecutionStates: false,
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      TextButton(
+                        onPressed: _navigateToSignInPage,
+                        child: Text(
+                          AppLocalizations.of(context).loginToExistingAccount,
+                          style: textTheme.body.copyWith(
+                            decoration: TextDecoration.underline,
+                            decorationColor: Colors.white,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const DeveloperSettingsWidget(),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              const DeveloperSettingsWidget(),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildOnboardingAnimation() {
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.325,
+      ),
+      child: rive.RiveWidgetBuilder(
+        fileLoader: _onboardingAnimationLoader,
+        builder: (BuildContext context, rive.RiveState state) {
+          if (state is rive.RiveLoaded) {
+            return rive.RiveWidget(
+              controller: state.controller,
+              fit: rive.Fit.contain,
+            );
+          }
+          return const SizedBox.shrink();
+        },
       ),
     );
   }
@@ -206,19 +206,18 @@ class _LandingPageWidgetState extends State<LandingPageWidget> {
       ),
       onTap: () async {
         final locale = (await getLocale())!;
+        if (!mounted) return;
         unawaited(
           routeToPage(
             context,
-            LanguageSelectorPage(
-              appSupportedLocales,
-              (locale) async {
-                await setLocale(locale);
-                EnteApp.setLocale(context, locale);
-                unawaited(AppLocalizations.delegate.load(locale));
-              },
-              locale,
-            ),
+            LanguageSelectorPage(appSupportedLocales, (locale) async {
+              await setLocale(locale);
+              if (!mounted) return;
+              EnteApp.setLocale(context, locale);
+              unawaited(AppLocalizations.delegate.load(locale));
+            }, locale),
           ).then((value) {
+            if (!mounted) return;
             setState(() {});
           }),
         );
@@ -226,82 +225,8 @@ class _LandingPageWidgetState extends State<LandingPageWidget> {
     );
   }
 
-  Widget _buildFeatureCarousel() {
-    final l10n = AppLocalizations.of(context);
-    final features = [
-      (
-        "assets/onboarding_1.png",
-        l10n.searchAndDiscover,
-        "",
-        l10n.searchAndDiscoverDesc,
-      ),
-      (
-        "assets/onboarding_2.png",
-        l10n.shareYourMemories,
-        "",
-        l10n.shareYourMemoriesDesc,
-      ),
-      (
-        "assets/onboarding_3.png",
-        l10n.privateAndSecureBackups,
-        "",
-        l10n.privateAndSecureBackupsDesc,
-      ),
-    ];
-
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 320),
-      child: PageView.builder(
-        controller: _pageController,
-        itemBuilder: (context, index) {
-          final feature = features[index % features.length];
-          return FeatureItemWidget(
-            feature.$1,
-            feature.$2,
-            feature.$3,
-            feature.$4,
-          );
-        },
-        onPageChanged: (index) {
-          setState(() {
-            _currentPage = index;
-            _activeDotIndex = index % _featureCount;
-          });
-          _startAutoScroll();
-        },
-      ),
-    );
-  }
-
-  Widget _buildPageIndicator() {
-    const activeColor = Color.fromRGBO(33, 144, 50, 1);
-    final inactiveColor = Colors.white.withValues(alpha: 0.32);
-    return DotsIndicator(
-      dotsCount: _featureCount,
-      position: _activeDotIndex.toDouble(),
-      animate: true,
-      animationDuration: const Duration(milliseconds: 300),
-      decorator: DotsDecorator(
-        activeColor: activeColor,
-        color: inactiveColor,
-        activeShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        size: const Size(10, 10),
-        activeSize: const Size(20, 10),
-        spacing: const EdgeInsets.all(6),
-      ),
-      onTap: _animateToFeature,
-    );
-  }
-
-  Future<void> _navigateWithoutAccount() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const HomeWidget(startWithoutAccount: true),
-      ),
-    );
+  void _navigateWithoutAccount() {
+    widget.onStartWithoutAccount();
   }
 
   Future<void> _navigateToSignUpPage() async {
@@ -381,73 +306,5 @@ class _LandingPageWidgetState extends State<LandingPageWidget> {
         _navigateToSignInPage();
       }
     }
-  }
-}
-
-class FeatureItemWidget extends StatelessWidget {
-  final String assetPath,
-      featureTitleFirstLine,
-      featureTitleSecondLine,
-      subText;
-
-  const FeatureItemWidget(
-    this.assetPath,
-    this.featureTitleFirstLine,
-    this.featureTitleSecondLine,
-    this.subText, {
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    const titleStyle = TextStyle(
-      fontFamily: "Nunito",
-      fontWeight: FontWeight.w800,
-      fontSize: 24,
-      letterSpacing: -1,
-      color: Colors.white,
-    );
-
-    const subTextStyle = TextStyle(
-      fontFamily: "Inter",
-      fontWeight: FontWeight.w500,
-      fontSize: 14,
-      height: 20 / 14,
-      color: Color(0xFFAAFFB8),
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Image.asset(assetPath, height: 200),
-        const Padding(padding: EdgeInsets.all(16)),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              featureTitleFirstLine,
-              style: titleStyle,
-              textAlign: TextAlign.center,
-            ),
-            if (featureTitleSecondLine.isNotEmpty)
-              Text(
-                featureTitleSecondLine,
-                style: titleStyle,
-                textAlign: TextAlign.center,
-              ),
-            const Padding(padding: EdgeInsets.all(2)),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 320),
-              child: Text(
-                subText,
-                textAlign: TextAlign.center,
-                style: subTextStyle,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
   }
 }

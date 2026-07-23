@@ -69,16 +69,10 @@ class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
                 borderRadius: BorderRadius.circular(8),
               ),
               suffixIcon: _emailIsValid
-                  ? Icon(
-                      Icons.check,
-                      size: 20,
-                      color: colorScheme.primary700,
-                    )
+                  ? Icon(Icons.check, size: 20, color: colorScheme.primary700)
                   : null,
             ),
-            style: textTheme.body.copyWith(
-              color: colorScheme.textBase,
-            ),
+            style: textTheme.body.copyWith(color: colorScheme.textBase),
             autocorrect: false,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.done,
@@ -106,11 +100,7 @@ class _ChangeEmailDialogState extends State<ChangeEmailDialog> {
       return;
     }
 
-    await UserService.instance.sendOtt(
-      context,
-      _email,
-      isChangeEmail: true,
-    );
+    await UserService.instance.sendOtt(context, _email, isChangeEmail: true);
   }
 }
 

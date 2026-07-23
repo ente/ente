@@ -15,9 +15,9 @@ class FileDataResponse {
 
   // empty response
   FileDataResponse.empty()
-      : data = {},
-        fetchErrorFileIDs = {},
-        pendingIndexFileIDs = {};
+    : data = {},
+      fetchErrorFileIDs = {},
+      pendingIndexFileIDs = {};
 
   String debugLog() {
     final nonZeroFetchErrorFileIDs = fetchErrorFileIDs.isNotEmpty

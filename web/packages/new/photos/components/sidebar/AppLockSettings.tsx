@@ -149,7 +149,7 @@ export const AppLockSettings: React.FC<NestedSidebarDrawerVisibilityProps> = ({
                 continue: {
                     text: t("disable"),
                     color: "critical",
-                    action: () => void disableAppLock(),
+                    action: disableAppLock,
                 },
             });
             return;
@@ -530,7 +530,7 @@ const PinSetupDialog: React.FC<SetupDialogProps> = ({
     }, [pin, confirmPin, onComplete, queueFocus, resetState]);
 
     const handleSubmit = useCallback(
-        (e: React.FormEvent) => {
+        (e: React.SubmitEvent) => {
             e.preventDefault();
             if (step === "enter") {
                 handleNext();
@@ -596,7 +596,7 @@ const PinSetupDialog: React.FC<SetupDialogProps> = ({
         >
             <Stack
                 component="form"
-                onSubmit={(e: React.FormEvent) => handleSubmit(e)}
+                onSubmit={(e: React.SubmitEvent) => handleSubmit(e)}
                 sx={{ gap: 1.5, py: 0 }}
             >
                 {step === "enter" ? (
@@ -757,7 +757,7 @@ const PasswordSetupDialog: React.FC<SetupDialogProps> = ({
     }, [password, confirmPassword, onComplete, queueFocus, resetState]);
 
     const handleSubmit = useCallback(
-        (e: React.FormEvent) => {
+        (e: React.SubmitEvent) => {
             e.preventDefault();
             if (step === "enter") {
                 handleNext();
@@ -780,7 +780,7 @@ const PasswordSetupDialog: React.FC<SetupDialogProps> = ({
         >
             <Stack
                 component="form"
-                onSubmit={(e: React.FormEvent) => handleSubmit(e)}
+                onSubmit={(e: React.SubmitEvent) => handleSubmit(e)}
                 sx={{ gap: 2, py: 1 }}
             >
                 {step === "enter" ? (
@@ -873,8 +873,7 @@ const PasswordSetupDialog: React.FC<SetupDialogProps> = ({
 
 // -- Auto-lock nested drawer --
 
-interface AutoLockOptionsDrawerProps
-    extends NestedSidebarDrawerVisibilityProps {
+interface AutoLockOptionsDrawerProps extends NestedSidebarDrawerVisibilityProps {
     currentValue: number;
 }
 

@@ -1,12 +1,10 @@
-const isTauriRuntime = () =>
-    typeof window !== "undefined" &&
-    ("__TAURI__" in window || "__TAURI_IPC__" in window);
+import { isTauriRuntime } from "@/services/tauri-runtime";
 
 const tauriInvoke = async <T>(
     command: string,
     args?: Record<string, unknown>,
 ): Promise<T> => {
-    const { invoke } = await import("@tauri-apps/api/tauri");
+    const { invoke } = await import("@tauri-apps/api/core");
     return invoke<T>(command, args);
 };
 
@@ -26,5 +24,3 @@ export const secureStorageDelete = async (key: string) => {
     if (!isTauriRuntime()) return;
     await tauriInvoke("secure_storage_delete", { key });
 };
-
-export const isTauriAppRuntime = isTauriRuntime;

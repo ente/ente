@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 class KeyboardOverlay {
   static OverlayEntry? _overlayEntry;
 
-  static showOverlay(BuildContext context, Widget child) {
+  static void showOverlay(BuildContext context, Widget child) {
     if (_overlayEntry != null) {
       return;
     }
@@ -23,7 +23,7 @@ class KeyboardOverlay {
     overlayState.insert(_overlayEntry!);
   }
 
-  static removeOverlay() {
+  static void removeOverlay() {
     if (_overlayEntry != null) {
       _overlayEntry!.remove();
       _overlayEntry = null;

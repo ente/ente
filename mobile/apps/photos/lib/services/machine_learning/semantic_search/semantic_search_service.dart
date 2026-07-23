@@ -11,13 +11,11 @@ import "package:photos/db/offline_files_db.dart";
 import 'package:photos/events/embedding_updated_event.dart';
 import "package:photos/models/file/file.dart";
 import "package:photos/models/ml/clip.dart";
-import "package:photos/models/ml/face/dimension.dart";
 import "package:photos/models/ml/ml_versions.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/machine_learning/ml_computer.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
-import "package:photos/services/machine_learning/semantic_search/clip/clip_image_encoder.dart";
 import "package:photos/services/machine_learning/semantic_search/query_result.dart";
 import "package:photos/services/search_service.dart";
 import "package:shared_preferences/shared_preferences.dart";
@@ -249,8 +247,8 @@ class SemanticSearchService {
       queryResults.map((e) => e.id).toList(),
     );
 
-    final ignoredCollections =
-        CollectionsService.instance.getHiddenCollectionIds();
+    final ignoredCollections = CollectionsService.instance
+        .getHiddenCollectionIds();
 
     final deletedEntries = <int>[];
     final results = <EnteFile>[];
@@ -288,8 +286,8 @@ class SemanticSearchService {
       queryResults.map((e) => e.id),
     );
     final allFiles = await SearchService.instance.getAllFilesForSearch();
-    final ignoredCollections =
-        CollectionsService.instance.getHiddenCollectionIds();
+    final ignoredCollections = CollectionsService.instance
+        .getHiddenCollectionIds();
     final localIdToFile = <String, EnteFile>{};
     for (final file in allFiles) {
       final localId = file.localID;
@@ -440,11 +438,11 @@ class SemanticSearchService {
     if (_shouldUseRustExactSearch) {
       final startTime = DateTime.now();
       try {
-        final queryResults =
-            await MLComputer.instance.computeBulkSimilaritiesWithRust(
-          textQueryToEmbeddingMap,
-          minimumSimilarityMap,
-        );
+        final queryResults = await MLComputer.instance
+            .computeBulkSimilaritiesWithRust(
+              textQueryToEmbeddingMap,
+              minimumSimilarityMap,
+            );
         final endTime = DateTime.now();
         _logger.info(
           "computingSimilarities (rust simsimd exact) took for ${textQueryToEmbeddingMap.length} queries " +
@@ -522,23 +520,5 @@ class SemanticSearchService {
         _imageEmbeddingsAreCached = false;
       }
     });
-  }
-
-  static Future<ClipResult> runClipImage(
-    int enteFileID,
-    Dimensions dimensions,
-    Uint8List rawRgbaBytes,
-    int clipImageAddress,
-  ) async {
-    final embedding = await ClipImageEncoder.predict(
-      dimensions,
-      rawRgbaBytes,
-      clipImageAddress,
-      enteFileID,
-    );
-
-    final clipResult = ClipResult(fileID: enteFileID, embedding: embedding);
-
-    return clipResult;
   }
 }

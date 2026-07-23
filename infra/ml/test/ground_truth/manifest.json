@@ -211,13 +211,5 @@
       ],
       "bootstrap_face_count": 1
     }
-  ],
-  "threshold_defaults": {
-    "clip_cosine_distance": 0.015,
-    "cross_platform_clip_cosine_distance": 0.015,
-    "face_embedding_cosine_distance": 0.015,
-    "box_iou_threshold": 0.8,
-    "landmark_error_threshold": 0.03,
-    "score_delta_threshold": 0.1
-  }
+  ]
 }

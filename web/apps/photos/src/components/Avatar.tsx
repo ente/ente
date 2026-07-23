@@ -2,7 +2,7 @@
 import { styled } from "@mui/material";
 import type { LocalUser } from "ente-accounts/services/user";
 import { useResolvedContactAvatar } from "ente-contacts-web";
-import { type EnteFile } from "ente-media/file";
+import type { EnteFile } from "ente-media/file";
 import {
     avatarBackgroundColor,
     avatarBackgroundColorPublicCollectedFile,

@@ -8,20 +8,7 @@
   "invalidEmailAddress": "כתובת דוא״ל לא תקינה",
   "enterValidEmail": "אנא הכנס כתובת דוא\"ל חוקית.",
   "deleteAccount": "מחק חשבון",
-  "askDeleteReason": "מה הסיבה העיקרית שבגללה אתה מוחק את החשבון שלך?",
-  "deleteAccountFeedbackPrompt": "אנחנו מצטערים לראות שאתה עוזב. אנא תחלוק את המשוב שלך כדי לעזור לנו להשתפר.",
-  "feedback": "משוב",
-  "kindlyHelpUsWithThisInformation": "אנא עזור לנו עם המידע הזה",
-  "confirmAccountDeletion": "אשר את מחיקת החשבון",
-  "deleteAccountPermanentlyButton": "מחק את החשבון לצמיתות",
-  "yourAccountHasBeenDeleted": "החשבון שלך נמחק",
-  "selectReason": "בחר סיבה",
-  "deleteReason1": "חסר מאפיין מרכזי שאני צריך",
-  "deleteReason2": "היישומון או מאפיין מסוים לא מתנהג כמו שאני חושב שהוא צריך",
-  "deleteReason3": "מצאתי שירות אחר שאני יותר מחבב",
-  "deleteReason4": "הסיבה שלי לא כלולה",
   "sendEmail": "שלח דוא\"ל",
-  "deleteRequestSLAText": "הבקשה שלך תועבד תוך 72 שעות.",
   "entePhotosPerm": "Ente <i>צריך הרשאות על מנת </i> לשמור את התמונות שלך",
   "ok": "אוקיי",
   "createAccount": "צור חשבון",
@@ -211,7 +198,6 @@
   "after1Month": "אחרי חודש 1",
   "after1Year": "אחרי שנה 1",
   "manageParticipants": "נהל",
-  "collabLinkSectionDescription": "צור קישור על מנת לאפשר לאנשים להוסיף ולצפות בתמונות באלבום ששיתפת בלי צורך באפליקציית ente או חשבון. נהדר לאיסוף תמונות של אירועים.",
   "collectPhotos": "אסוף תמונות",
   "collaborativeLink": "קישור לשיתוף פעולה",
   "shareWithNonenteUsers": "שתף עם משתמשים שהם לא של ente",
@@ -298,13 +284,15 @@
   "creatingLink": "יוצר קישור...",
   "removeWithQuestionMark": "הסר?",
   "removeParticipantBody": "{userEmail} יוסר מהאלבום המשותף הזה\n\nגם תמונות שנוספו על ידיהם יוסרו מהאלבום",
-  "keepPhotos": "השאר תמונות",
   "deletePhotos": "מחק תמונות",
   "removePublicLink": "הסר לינק ציבורי",
   "disableLinkMessage": "זה יסיר את הלינק הפומבי שדרכו ניתן לגשת ל\"{albumName}\".",
   "sharing": "משתף...",
   "youCannotShareWithYourself": "אתה לא יכול לשתף עם עצמך",
   "archive": "שמירה בארכיון",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
   "createAlbumActionHint": "לחץ לחיצה ארוכה על מנת לבחור תמונות ולחץ על + על מנת ליצור אלבום",
   "importing": "מייבא....",
   "failedToLoadAlbums": "נכשל בטעינת האלבומים",
@@ -315,7 +303,6 @@
   "videoSmallCase": "וידאו",
   "photoSmallCase": "תמונה",
   "singleFileDeleteHighlight": "זה יימחק מכל האלבומים.",
-  "singleFileDeleteFromDevice": "{fileType} יימחק מהמכשיר שלך.",
   "yesDelete": "כן, מחק",
   "movedToTrash": "הועבר לאשפה",
   "deleteFromDevice": "מחק מהמכשיר",
@@ -397,7 +384,6 @@
   "authToChangeEmailVerificationSetting": "אנא התאמת על מנת לשנות את הדוא\"ל שלך",
   "exportYourData": "ייצוא הנתונים שלך",
   "logout": "התנתק",
-  "authToInitiateAccountDeletion": "אנא התאמת על מנת להתחיל את מחיקת החשבון שלך",
   "areYouSureYouWantToLogout": "אתה בטוח שאתה רוצה להתנתק?",
   "yesLogout": "כן, התנתק",
   "update": "עדכן",
@@ -587,11 +573,6 @@
   "collectEventPhotos": "אסף תמונות מאירוע",
   "sessionExpired": "פג תוקף החיבור",
   "loggingOut": "מתנתק...",
-  "@onDevice": {
-    "description": "The text displayed above folders/albums stored on device",
-    "type": "text"
-  },
-  "onDevice": "על המכשיר",
   "@onEnte": {
     "description": "The text displayed above albums backed up to Ente",
     "type": "text"
@@ -617,6 +598,9 @@
   "moveToAlbum": "הזז לאלבום",
   "unhide": "בטל הסתרה",
   "unarchive": "הוצאה מארכיון",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
   "favorite": "מועדף",
   "shareLink": "שתף קישור",
   "createCollage": "צור קולז",
@@ -734,14 +718,6 @@
   "androidBiometricSuccess": "הצלחה",
   "@androidBiometricSuccess": {
     "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "בטל",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "iOSOkButton": "אישור",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
   },
   "map": "מפה",
   "@map": {

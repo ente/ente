@@ -17,9 +17,9 @@ class ContactsService {
     required SharedPreferences preferences,
     ContactsDatabase? database,
     ContactsRustApi? rustApi,
-  })  : _preferences = preferences,
-        _database = database ?? ContactsDatabase(),
-        _rustApi = rustApi ?? const FrbContactsRustApi();
+  }) : _preferences = preferences,
+       _database = database ?? ContactsDatabase(),
+       _rustApi = rustApi ?? const FrbContactsRustApi();
 
   final SharedPreferences _preferences;
   final ContactsDatabase _database;
@@ -31,30 +31,31 @@ class ContactsService {
 
   Future<void> open(ContactsSession session) async {
     final accountKey = await session.resolveAccountKey();
-    final cachedWrappedRootContactKey =
-        _cachedWrappedRootContactKey(session.userId);
+    final cachedWrappedRootContactKey = _cachedWrappedRootContactKey(
+      session.userId,
+    );
     final opened = await _rustApi
         .open(
-      OpenContactsContextInput(
-        baseUrl: session.baseUrl,
-        authToken: session.authToken,
-        userId: session.userId,
-        accountKey: accountKey,
-        cachedWrappedRootContactKey: cachedWrappedRootContactKey,
-        userAgent: session.userAgent,
-        clientPackage: session.clientPackage,
-        clientVersion: session.clientVersion,
-      ),
-    )
+          OpenContactsContextInput(
+            baseUrl: session.baseUrl,
+            authToken: session.authToken,
+            userId: session.userId,
+            accountKey: accountKey,
+            cachedWrappedRootContactKey: cachedWrappedRootContactKey,
+            userAgent: session.userAgent,
+            clientPackage: session.clientPackage,
+            clientVersion: session.clientVersion,
+          ),
+        )
         .catchError((Object error, StackTrace stackTrace) {
-      _logger.warning(
-        "Failed to open contacts context for account user ${session.userId} "
-        "at ${session.baseUrl} (hasCachedRootKey: ${cachedWrappedRootContactKey != null})",
-        error,
-        stackTrace,
-      );
-      throw error;
-    });
+          _logger.warning(
+            "Failed to open contacts context for account user ${session.userId} "
+            "at ${session.baseUrl} (hasCachedRootKey: ${cachedWrappedRootContactKey != null})",
+            error,
+            stackTrace,
+          );
+          throw error;
+        });
 
     _ctx = opened.ctx;
     _session = session;
@@ -171,8 +172,9 @@ class ContactsService {
     await ctx.deleteContact(contactId);
     await _persistConfirmedWrappedRootKey();
     final deleted = await ctx.getDiff(0, _syncLimit);
-    final matching =
-        deleted.where((element) => element.id == contactId).toList();
+    final matching = deleted
+        .where((element) => element.id == contactId)
+        .toList();
     if (matching.isNotEmpty) {
       await _database.upsertContacts([matching.first]);
     } else {
@@ -180,10 +182,7 @@ class ContactsService {
     }
   }
 
-  Future<ContactRecord> setProfilePicture(
-    String contactId,
-    Uint8List bytes,
-  ) {
+  Future<ContactRecord> setProfilePicture(String contactId, Uint8List bytes) {
     return _setAttachment(
       contactId,
       ContactAttachmentType.profilePicture,
@@ -206,8 +205,7 @@ class ContactsService {
   ) async {
     final previousAttachmentId = (await _database.getContact(
       contactId,
-    ))
-        ?.profilePictureAttachmentId;
+    ))?.profilePictureAttachmentId;
     final updated = await _requireCtx().setAttachment(
       contactId,
       attachmentType,
@@ -247,10 +245,11 @@ class ContactsService {
   ) async {
     final previousAttachmentId = (await _database.getContact(
       contactId,
-    ))
-        ?.profilePictureAttachmentId;
-    final updated =
-        await _requireCtx().deleteAttachment(contactId, attachmentType);
+    ))?.profilePictureAttachmentId;
+    final updated = await _requireCtx().deleteAttachment(
+      contactId,
+      attachmentType,
+    );
     await _persistConfirmedWrappedRootKey();
     await _database.upsertContacts([updated]);
     if (previousAttachmentId != null) {

@@ -10,14 +10,10 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/compute_control_event.dart";
 import "package:photos/events/device_health_changed_event.dart";
 import "package:photos/main.dart";
-import "package:photos/utils/local_settings.dart";
+import "package:photos/settings/local_settings.dart";
 import "package:thermal/thermal.dart";
 
-enum ComputeRunState {
-  idle,
-  runningML,
-  generatingStream,
-}
+enum ComputeRunState { idle, runningML, generatingStream }
 
 class ComputeController {
   final _logger = Logger("ComputeController");
@@ -108,9 +104,9 @@ class ComputeController {
       } else {
         // Update Battery state for iOS
         _oniOSBatteryStateUpdate(await BatteryInfoPlugin().iosBatteryInfo);
-        BatteryInfoPlugin()
-            .iosBatteryInfoStream
-            .listen((IosBatteryInfo? batteryInfo) {
+        BatteryInfoPlugin().iosBatteryInfoStream.listen((
+          IosBatteryInfo? batteryInfo,
+        ) {
           _oniOSBatteryStateUpdate(batteryInfo);
         });
       }
@@ -119,9 +115,9 @@ class ComputeController {
       _onAndroidBatteryStateUpdate(
         await BatteryInfoPlugin().androidBatteryInfo,
       );
-      BatteryInfoPlugin()
-          .androidBatteryInfoStream
-          .listen((AndroidBatteryInfo? batteryInfo) {
+      BatteryInfoPlugin().androidBatteryInfoStream.listen((
+        AndroidBatteryInfo? batteryInfo,
+      ) {
         _onAndroidBatteryStateUpdate(batteryInfo);
       });
     }

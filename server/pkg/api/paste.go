@@ -3,10 +3,10 @@ package api
 import (
 	"net/http"
 
-	"github.com/ente-io/museum/ente"
-	public "github.com/ente-io/museum/pkg/controller/public"
-	"github.com/ente-io/museum/pkg/utils/handler"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	public "github.com/ente/museum/pkg/controller/public"
+	"github.com/ente/museum/pkg/utils/handler"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,7 +16,7 @@ type PasteHandler struct {
 
 func (h *PasteHandler) Create(c *gin.Context) {
 	var req ente.CreatePasteRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(c, &req); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "invalid request"))
 		return
 	}
@@ -31,7 +31,7 @@ func (h *PasteHandler) Create(c *gin.Context) {
 
 func (h *PasteHandler) Guard(c *gin.Context) {
 	var req ente.PasteTokenRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(c, &req); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "invalid request"))
 		return
 	}
@@ -44,7 +44,7 @@ func (h *PasteHandler) Guard(c *gin.Context) {
 
 func (h *PasteHandler) Consume(c *gin.Context) {
 	var req ente.PasteTokenRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(c, &req); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "invalid request"))
 		return
 	}
@@ -55,4 +55,3 @@ func (h *PasteHandler) Consume(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, resp)
 }
-

@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/ente-io/museum/ente"
-	socialcontroller "github.com/ente-io/museum/pkg/controller/social"
-	socialrepo "github.com/ente-io/museum/pkg/repo/social"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	socialcontroller "github.com/ente/museum/pkg/controller/social"
+	socialrepo "github.com/ente/museum/pkg/repo/social"
+	"github.com/ente/stacktrace"
 )
 
 func ensureAnonUserForCollection(ctx context.Context, repo *socialrepo.AnonUsersRepository, collectionID int64, actor socialcontroller.Actor) error {

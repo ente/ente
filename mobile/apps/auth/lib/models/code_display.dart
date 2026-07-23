@@ -86,8 +86,10 @@ class CodeDisplay {
   /// If we fail to parse the json, we will return an empty [CodeDisplay].
   static CodeDisplay? fromUri(Uri uri, {bool safeParsing = false}) {
     if (!uri.queryParameters.containsKey("codeDisplay")) return null;
-    final String codeDisplay =
-        uri.queryParameters['codeDisplay']!.replaceAll('%2C', ',');
+    final String codeDisplay = uri.queryParameters['codeDisplay']!.replaceAll(
+      '%2C',
+      ',',
+    );
     return _parseCodeDisplayJson(codeDisplay, safeParsing);
   }
 
@@ -96,8 +98,9 @@ class CodeDisplay {
       final decodedDisplay = jsonDecode(json);
       return CodeDisplay.fromJson(decodedDisplay);
     } catch (e, s) {
-      Logger("CodeDisplay")
-          .severe("Could not parse code display from json", e, s);
+      Logger(
+        "CodeDisplay",
+      ).severe("Could not parse code display from json", e, s);
       // (ng/prateek) Handle the case where we have fragment in the rawDataUrl
       if (!json.endsWith("}") && json.contains("}#")) {
         Logger("CodeDisplay").warning("ignoring code display as it's invalid");

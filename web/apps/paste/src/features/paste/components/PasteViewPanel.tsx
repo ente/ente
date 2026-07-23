@@ -1,3 +1,5 @@
+import { usePasteColorMode } from "@/features/paste/hooks/usePasteColorMode";
+import { getPasteThemeTokens } from "@/features/paste/theme/pasteThemeTokens";
 import { Alert02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
@@ -9,8 +11,7 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
-import { usePasteColorMode } from "features/paste/hooks/usePasteColorMode";
-import { getPasteThemeTokens } from "features/paste/theme/pasteThemeTokens";
+import type { SubmitEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { pasteTextFieldSx } from "./textFieldSx";
 
@@ -18,6 +19,9 @@ interface PasteViewPanelProps {
     consuming: boolean;
     consumeError: string | null;
     resolvedText: string | null;
+    passwordRequired: boolean;
+    passwordError: string | null;
+    onSubmitPassword: (password: string) => Promise<void>;
     onCopyText: (value: string) => Promise<void>;
 }
 
@@ -25,12 +29,17 @@ export const PasteViewPanel = ({
     consuming,
     consumeError,
     resolvedText,
+    passwordRequired,
+    passwordError,
+    onSubmitPassword,
     onCopyText,
 }: PasteViewPanelProps) => {
     const { resolvedMode } = usePasteColorMode();
     const tokens = getPasteThemeTokens(resolvedMode);
     const [copied, setCopied] = useState(false);
+    const [password, setPassword] = useState("");
     const copiedTimerRef = useRef<number | null>(null);
+    const passwordInputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
         return () => {
@@ -40,13 +49,133 @@ export const PasteViewPanel = ({
         };
     }, []);
 
+    useEffect(() => {
+        if (!passwordError) return;
+
+        setPassword("");
+        passwordInputRef.current?.focus();
+    }, [passwordError]);
+
+    const handlePasswordSubmit = (event: SubmitEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!password) {
+            return;
+        }
+        void onSubmitPassword(password);
+    };
+
     return (
         <>
+            {passwordRequired &&
+                !consuming &&
+                !consumeError &&
+                !resolvedText && (
+                    <Stack
+                        component="form"
+                        onSubmit={handlePasswordSubmit}
+                        spacing={1.4}
+                        sx={{
+                            alignItems: "center",
+                            width: "100%",
+                            pt: { xs: 1.5, md: 2 },
+                            pb: { xs: 0.5, md: 1 },
+                        }}
+                    >
+                        <Typography
+                            sx={{
+                                color: tokens.status.loadingTitle,
+                                fontWeight: 600,
+                                fontSize: { xs: "1rem", md: "1.1rem" },
+                                lineHeight: 1.2,
+                                textAlign: "center",
+                            }}
+                        >
+                            Enter paste password
+                        </Typography>
+                        <TextField
+                            variant="filled"
+                            hiddenLabel
+                            fullWidth
+                            type="password"
+                            value={password}
+                            error={!!passwordError}
+                            helperText={passwordError}
+                            inputRef={passwordInputRef}
+                            autoFocus
+                            autoComplete="off"
+                            placeholder="Password"
+                            slotProps={{
+                                htmlInput: { "aria-label": "Paste password" },
+                                input: { disableUnderline: true },
+                            }}
+                            onChange={(event) =>
+                                setPassword(event.target.value)
+                            }
+                            sx={[
+                                pasteTextFieldSx(tokens, "16px"),
+                                {
+                                    maxWidth: 420,
+                                    "& .MuiFilledInput-root": {
+                                        pr: "58px",
+                                        minHeight: 56,
+                                        backdropFilter:
+                                            "blur(9px) saturate(112%)",
+                                        WebkitBackdropFilter:
+                                            "blur(9px) saturate(112%)",
+                                        background:
+                                            tokens.surface.inputGradient,
+                                        boxShadow: tokens.surface.inputShadow,
+                                    },
+                                    "& .MuiFilledInput-root.Mui-error": {
+                                        borderColor: tokens.status.errorIcon,
+                                    },
+                                    "& .MuiFormHelperText-root": {
+                                        mx: 0,
+                                        mt: 0.75,
+                                        color: tokens.status.errorBody,
+                                        fontSize: "0.8rem",
+                                        lineHeight: 1.25,
+                                        textAlign: "center",
+                                    },
+                                },
+                            ]}
+                        />
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            disableElevation
+                            disabled={!password}
+                            sx={{
+                                px: "30px",
+                                py: "13px",
+                                minHeight: 50,
+                                borderRadius: "10px",
+                                textTransform: "none",
+                                fontWeight: 600,
+                                fontSize: "0.96rem",
+                                lineHeight: 1,
+                                bgcolor: tokens.button.primaryBg,
+                                color: tokens.button.primaryText,
+                                "&:hover": {
+                                    bgcolor: tokens.button.primaryHoverBg,
+                                    boxShadow: "none",
+                                },
+                                "&.Mui-disabled": {
+                                    bgcolor: tokens.button.primaryDisabledBg,
+                                    color: tokens.button.primaryDisabledText,
+                                },
+                            }}
+                        >
+                            Open paste
+                        </Button>
+                    </Stack>
+                )}
+
             {consuming && (
                 <Stack
                     spacing={1.1}
-                    alignItems="center"
                     sx={{
+                        alignItems: "center",
                         width: "100%",
                         pt: { xs: 1.5, md: 2 },
                         pb: { xs: 0.5, md: 1 },
@@ -88,8 +217,8 @@ export const PasteViewPanel = ({
             {consumeError && (
                 <Stack
                     spacing={1.25}
-                    alignItems="center"
                     sx={{
+                        alignItems: "center",
                         width: "100%",
                         pt: { xs: 1.5, md: 2 },
                         pb: { xs: 0.5, md: 1 },
@@ -101,7 +230,10 @@ export const PasteViewPanel = ({
                         strokeWidth={2}
                         style={{ color: tokens.status.errorIcon }}
                     />
-                    <Stack spacing={{ xs: 2.2, md: 2.6 }} alignItems="center">
+                    <Stack
+                        spacing={{ xs: 2.2, md: 2.6 }}
+                        sx={{ alignItems: "center" }}
+                    >
                         <Typography
                             sx={{
                                 maxWidth: 560,

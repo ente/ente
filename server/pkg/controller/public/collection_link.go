@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller"
-	emailCtrl "github.com/ente-io/museum/pkg/controller/email"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/repo/public"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller"
+	emailCtrl "github.com/ente/museum/pkg/controller/email"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo/public"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/lithammer/shortuuid/v3"
 	"github.com/sirupsen/logrus"
@@ -47,7 +47,7 @@ type CollectionLinkController struct {
 
 func (c *CollectionLinkController) CreateLink(ctx *gin.Context, req ente.CreatePublicAccessTokenRequest) (ente.PublicURL, error) {
 	app := auth.GetApp(ctx)
-	for attempt := 0; attempt < 5; attempt++ {
+	for range 5 {
 		accessToken := strings.ToUpper(shortuuid.New()[0:AccessTokenLength])
 		err := c.CollectionLinkRepo.
 			Insert(ctx, req.CollectionID, accessToken, req.ValidTill, req.DeviceLimit, req.EnableCollect, req.EnableComment, req.EnableJoin)

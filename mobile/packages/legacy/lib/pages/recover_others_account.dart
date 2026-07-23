@@ -124,8 +124,10 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
             child: ListView(
               children: [
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 30,
+                    horizontal: 20,
+                  ),
                   child: Text(
                     buttonTextAndHeading,
                     style: Theme.of(context).textTheme.headlineMedium,
@@ -137,10 +139,9 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
                     "Enter new password for $email account. You will be able "
                     "to use this password to login into $email account.",
                     textAlign: TextAlign.start,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium!
-                        .copyWith(fontSize: 14.0),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium!.copyWith(fontSize: 14.0),
                   ),
                 ),
                 const Padding(padding: EdgeInsets.all(12)),
@@ -149,9 +150,7 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
                   // password
                   visible: false,
                   child: TextFormField(
-                    autofillHints: const [
-                      AutofillHints.email,
-                    ],
+                    autofillHints: const [AutofillHints.email],
                     autocorrect: false,
                     keyboardType: TextInputType.emailAddress,
                     initialValue: email,
@@ -163,8 +162,9 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
                   child: TextFormField(
                     autofillHints: const [AutofillHints.newPassword],
                     decoration: InputDecoration(
-                      fillColor:
-                          _isPasswordValid ? _validFieldValueColor : null,
+                      fillColor: _isPasswordValid
+                          ? _validFieldValueColor
+                          : null,
                       filled: true,
                       hintText: context.strings.password,
                       contentPadding: const EdgeInsets.all(20),
@@ -200,7 +200,8 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
                         _passwordStrength = estimatePasswordStrength(password);
                         _isPasswordValid =
                             _passwordStrength >= kMildPasswordStrengthThreshold;
-                        _passwordsMatch = _passwordInInputBox ==
+                        _passwordsMatch =
+                            _passwordInInputBox ==
                             _passwordInInputConfirmationBox;
                       });
                     },
@@ -251,7 +252,8 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
                       setState(() {
                         _passwordInInputConfirmationBox = cnfPassword;
                         if (_passwordInInputBox != '') {
-                          _passwordsMatch = _passwordInInputBox ==
+                          _passwordsMatch =
+                              _passwordInInputBox ==
                               _passwordInInputConfirmationBox;
                         }
                       });
@@ -259,16 +261,17 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
                   ),
                 ),
                 Opacity(
-                  opacity:
-                      (_passwordInInputBox != '') && _password1InFocus ? 1 : 0,
+                  opacity: (_passwordInInputBox != '') && _password1InFocus
+                      ? 1
+                      : 0,
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
                     child: Text(
                       "Password strength: $passwordStrengthText",
-                      style: TextStyle(
-                        color: passwordStrengthColor,
-                      ),
+                      style: TextStyle(color: passwordStrengthColor),
                     ),
                   ),
                 ),
@@ -313,8 +316,10 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
       );
       final loginKey = await CryptoUtil.deriveLoginKey(derivedKeyResult.key);
       // Encrypt the key with this derived key
-      final encryptedKeyData =
-          CryptoUtil.encryptSync(masterKey, derivedKeyResult.key);
+      final encryptedKeyData = CryptoUtil.encryptSync(
+        masterKey,
+        derivedKeyResult.key,
+      );
 
       final updatedAttributes = attributes.copyWith(
         kekSalt: CryptoUtil.bin2base64(kekSalt),
@@ -336,17 +341,21 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
         widget.sessions,
       );
       await dialog.hide();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.strings.passwordChangedSuccessfully),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.of(context).pop();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.strings.passwordChangedSuccessfully),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pop();
+      }
     } catch (e, s) {
       _logger.severe("Failed to recover account", e, s);
       await dialog.hide();
-      await showGenericErrorDialog(context: context, error: e);
+      if (mounted) {
+        await showGenericErrorDialog(context: context, error: e);
+      }
     }
   }
 

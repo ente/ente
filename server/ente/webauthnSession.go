@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/ente-io/museum/pkg/utils/byteMarshaller"
+	"github.com/ente/museum/pkg/utils/byteMarshaller"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"

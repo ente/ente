@@ -1,8 +1,9 @@
+import type { NotificationAttributes } from "ente-base/components/Notification";
 import { setupI18n } from "ente-base/i18n";
 import { disableDiskLogs } from "ente-base/log";
 import { logUnhandledErrorsAndRejections } from "ente-base/log-web";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 /**
  * A hook that initializes the localization library that we use.
@@ -76,4 +77,32 @@ export const useIsRouteChangeInProgress = () => {
     }, [router]);
 
     return loading;
+};
+
+/**
+ * A React hook for simplifying the provisioning of a {@link showNotification}
+ * function to inject in app contexts, and of the other props that are needed to
+ * be passed to the {@link Notification}.
+ */
+export const useNotification = () => {
+    const [attributes, setAttributes] = useState<
+        NotificationAttributes | undefined
+    >(undefined);
+
+    const [open, setOpen] = useState(false);
+
+    const showNotification = useCallback(
+        (attributes: NotificationAttributes) => {
+            setAttributes(attributes);
+            setOpen(true);
+        },
+        [],
+    );
+
+    const handleClose = useCallback(() => setOpen(false), []);
+
+    return {
+        showNotification,
+        notificationProps: { open, onClose: handleClose, attributes },
+    };
 };

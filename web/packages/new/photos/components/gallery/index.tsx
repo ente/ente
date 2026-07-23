@@ -25,7 +25,7 @@ import { EnteLogo } from "ente-base/components/EnteLogo";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { OverflowMenuOption } from "ente-base/components/OverflowMenu";
 import { useModalVisibility } from "ente-base/components/utils/modal";
-import { type UploadTypeSelectorIntent } from "ente-gallery/components/Upload";
+import type { UploadTypeSelectorIntent } from "ente-gallery/components/Upload";
 import type { SearchSuggestion } from "ente-new/photos/services/search/types";
 import { t } from "i18next";
 import React, { useRef, useState } from "react";
@@ -35,6 +35,8 @@ import { EnableML, FaceConsent } from "../sidebar/MLSettings";
 import { useMLStatusSnapshot } from "../utils/use-snapshot";
 import { useWrapAsyncOperation } from "../utils/use-wrap-async";
 import { GalleryItemsHeaderAdapter, GalleryItemsSummary } from "./ListHeader";
+
+export { GalleryEmptyStateV2 } from "./GalleryEmptyStateV2";
 
 /**
  * Options to customize the behaviour of the remote pull that gets triggered on
@@ -47,6 +49,10 @@ export interface RemotePullOpts {
      * Default: `false`.
      */
     silent?: boolean;
+    /**
+     * The action that triggered this pull. Used to annotate downstream logs.
+     */
+    source?: string;
 }
 /**
  * The context in which a selection was made.
@@ -55,7 +61,10 @@ export interface RemotePullOpts {
  * and starts a new selection.
  * */
 export type SelectionContext =
-    | { mode: "albums" | "hidden-albums"; collectionID: number }
+    | {
+          mode: "albums" | "hidden-albums" | "archive-albums";
+          collectionID: number;
+      }
     | { mode: "people"; personID: string };
 
 interface SearchResultsHeaderProps {

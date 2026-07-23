@@ -26,7 +26,8 @@ class IconButtonComponent extends StatefulWidget {
   const IconButtonComponent({
     super.key,
     required this.icon,
-    required this.onTap,
+    this.onTap,
+    this.onTapDown,
     this.variant = IconButtonComponentVariant.secondary,
     this.shouldSurfaceExecutionStates = true,
     this.shouldShowSuccessConfirmation = false,
@@ -35,6 +36,7 @@ class IconButtonComponent extends StatefulWidget {
 
   final Widget icon;
   final FutureOr<void> Function()? onTap;
+  final void Function(TapDownDetails details)? onTapDown;
   final IconButtonComponentVariant variant;
   final bool shouldSurfaceExecutionStates;
   final bool shouldShowSuccessConfirmation;
@@ -98,8 +100,8 @@ class _IconButtonComponentState extends State<IconButtonComponent>
         onExit: (_) => _setHovered(false),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: enabled ? _handleTap : null,
-          onTapDown: enabled ? (_) => _setPressed(true) : null,
+          onTap: enabled && widget.onTap != null ? _handleTap : null,
+          onTapDown: enabled ? _handleTapDown : null,
           onTapUp: enabled ? (_) => _setPressed(false) : null,
           onTapCancel: enabled ? () => _setPressed(false) : null,
           child: AnimatedScale(
@@ -181,8 +183,11 @@ class _IconButtonComponentState extends State<IconButtonComponent>
   }
 
   bool get _canHandleGestures {
-    return widget.onTap != null && !_isExecuting && !_isSuccessful;
+    return _hasGestureCallback && !_isExecuting && !_isSuccessful;
   }
+
+  bool get _hasGestureCallback =>
+      widget.onTap != null || widget.onTapDown != null;
 
   bool get _isExecuting =>
       _executionState == ComponentExecutionState.inProgress;
@@ -262,6 +267,11 @@ class _IconButtonComponentState extends State<IconButtonComponent>
     }
   }
 
+  void _handleTapDown(TapDownDetails details) {
+    widget.onTapDown?.call(details);
+    _setPressed(true);
+  }
+
   void _cancelLoadingTimer() {
     _loadingTimer?.cancel();
     _loadingTimer = null;
@@ -307,7 +317,7 @@ class _IconButtonComponentState extends State<IconButtonComponent>
         foreground: _foreground(context, isSuccess: true),
       );
     }
-    if (widget.onTap == null) {
+    if (!_hasGestureCallback) {
       return _ResolvedIconButtonColors(
         background: _disabledBackground(context),
         foreground: _foreground(context, isDisabled: true),

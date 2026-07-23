@@ -23,15 +23,12 @@ void main() {
     await initializeDateFormatting("en");
   });
 
-  EnteFile buildFile(
-    int generatedId, {
-    int? uploadedId,
-    int? creationTime,
-  }) {
+  EnteFile buildFile(int generatedId, {int? uploadedId, int? creationTime}) {
     final file = EnteFile();
     file.generatedID = generatedId;
     file.uploadedFileID = uploadedId ?? generatedId;
-    file.creationTime = creationTime ??
+    file.creationTime =
+        creationTime ??
         DateTime.utc(2020, 1, generatedId.clamp(1, 28)).microsecondsSinceEpoch;
     file.fileType = FileType.image;
     return file;
@@ -83,10 +80,7 @@ void main() {
         "lastTimeToShow": 20,
         "id": "trip-legacy",
         "calculationTime": 0,
-        "location": {
-          "latitude": 12.34,
-          "longitude": 56.78,
-        },
+        "location": {"latitude": 12.34, "longitude": 56.78},
       });
 
       final hydrated = cached.toSmartMemory(buildMemories([201, 202]));
@@ -213,10 +207,7 @@ void main() {
         "lastTimeToShow": 20,
         "id": "trip-legacy-cache",
         "calculationTime": 0,
-        "location": {
-          "latitude": 1.23,
-          "longitude": 4.56,
-        },
+        "location": {"latitude": 1.23, "longitude": 4.56},
       });
 
       final cache = MemoriesCache(

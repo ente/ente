@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 )
 
 // QueueRepository defines methods to insert, delete items from queue
@@ -23,22 +23,25 @@ var itemDeletionDelayInMinMap = map[string]int64{
 	DropFileEncMedataQueue:    -1 * 24 * 60, // -ve value to ensure attributes are immediately removed
 	DeleteObjectQueue:         45 * 24 * 60, // 45 days in minutes
 	DeleteEmbeddingsQueue:     -1 * 24 * 60, // -ve value to ensure embeddings are immediately removed
+	OutdatedObjectsQueue:      -1 * 24 * 60, // -ve value to process replaced objects without delay
+	DeleteOutdatedObjectQueue: 24 * 24 * 60, // old replaced objects may exist in compliance-protected replicas
 	TrashCollectionQueueV3:    -1 * 24 * 60, // -ve value to ensure collections are immediately marked as trashed
-    TrashEmptyQueue:           -1 * 24 * 60, // -ve value to ensure empty trash request are processed in next cron run
-    TrashEmptyLockerQueue:     -1 * 24 * 60, // -ve value to ensure empty trash request for locker are processed in next cron run
+	TrashEmptyQueue:           -1 * 24 * 60, // -ve value to ensure empty trash request are processed in next cron run
+	TrashEmptyLockerQueue:     -1 * 24 * 60, // -ve value to ensure empty trash request for locker are processed in next cron run
 	RemoveComplianceHoldQueue: -1 * 24 * 60, // -ve value to ensure compliance hold is removed in next cron run
 }
 
 const (
-	DropFileEncMedataQueue string = "dropFileEncMetata"
-	DeleteObjectQueue      string = "deleteObject"
-	DeleteEmbeddingsQueue  string = "deleteEmbedding"
-	OutdatedObjectsQueue   string = "outdatedObject"
+	DropFileEncMedataQueue    string = "dropFileEncMetata"
+	DeleteObjectQueue         string = "deleteObject"
+	DeleteEmbeddingsQueue     string = "deleteEmbedding"
+	OutdatedObjectsQueue      string = "outdatedObject"
+	DeleteOutdatedObjectQueue string = "deleteOutdatedObject"
 	// Deprecated: Keeping it till we clean up items from the queue DB.
 	TrashCollectionQueue      string = "trashCollection"
 	TrashCollectionQueueV3    string = "trashCollectionV3"
-    TrashEmptyQueue           string = "trashEmpty"
-    TrashEmptyLockerQueue     string = "trashEmptyLocker"
+	TrashEmptyQueue           string = "trashEmpty"
+	TrashEmptyLockerQueue     string = "trashEmptyLocker"
 	RemoveComplianceHoldQueue string = "removeComplianceHold"
 	BatchSize                 int    = 30000
 )
@@ -97,10 +100,7 @@ func (repo *QueueRepository) AddItems(ctx context.Context, tx *sql.Tx, queueName
 	lb := 0
 	size := len(items)
 	for lb < size {
-		ub := lb + BatchSize
-		if ub > size {
-			ub = size
-		}
+		ub := min(lb+BatchSize, size)
 		slicedList := items[lb:ub]
 		query := "INSERT INTO queue(queue_name, item) VALUES "
 		var inserts []string

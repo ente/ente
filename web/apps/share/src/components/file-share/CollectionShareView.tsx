@@ -6,12 +6,12 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
+import { Notification } from "ente-base/components/Notification";
 import { SingleInputForm } from "ente-base/components/SingleInputForm";
-import { Notification } from "ente-new/photos/components/Notification";
 import { t } from "i18next";
 import React from "react";
 import { useCollectionShare } from "../../hooks/useCollectionShare";
-import { type SharedCollectionItemInfo } from "../../services/collection-share";
+import type { SharedCollectionItemInfo } from "../../services/collection-share";
 import { formatFileSize } from "../../services/file-share";
 import { getLockerFileIcon } from "../../utils/file-type";
 import { PublicShareScaffold } from "./PublicShareScaffold";

@@ -29,19 +29,19 @@ class CurationCandidateBuilder extends WrappedCandidateBuilder {
       return const <WrappedCard>[];
     }
 
-    final List<EnteFile> displayableFavorites = favoriteFiles.where(
-      (EnteFile file) {
-        if (file.magicMetadata.visibility == archiveVisibility) {
-          return false;
-        }
-        final int? collectionID = file.collectionID;
-        if (collectionID != null &&
-            context.archivedCollectionIDs.contains(collectionID)) {
-          return false;
-        }
-        return true;
-      },
-    ).toList(growable: false);
+    final List<EnteFile> displayableFavorites = favoriteFiles
+        .where((EnteFile file) {
+          if (file.magicMetadata.visibility == archiveVisibility) {
+            return false;
+          }
+          final int? collectionID = file.collectionID;
+          if (collectionID != null &&
+              context.archivedCollectionIDs.contains(collectionID)) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
     if (displayableFavorites.length < _kMinFavoritesForCard) {
       return const <WrappedCard>[];
     }
@@ -49,8 +49,10 @@ class CurationCandidateBuilder extends WrappedCandidateBuilder {
     final math.Random randomizer = math.Random(
       context.year * 53 + displayableFavorites.length,
     );
-    final List<List<int>> galleryGroups =
-        _buildGalleryGroups(displayableFavorites, randomizer);
+    final List<List<int>> galleryGroups = _buildGalleryGroups(
+      displayableFavorites,
+      randomizer,
+    );
     if (galleryGroups.isEmpty) {
       return const <WrappedCard>[];
     }
@@ -116,8 +118,9 @@ class CurationCandidateBuilder extends WrappedCandidateBuilder {
     final NumberFormat numberFormat = NumberFormat.decimalPattern();
     final int favoritesCount = favoriteFiles.length;
     final int totalCount = context.files.length;
-    final int sharePercent =
-        totalCount <= 0 ? 0 : _percentOf(favoritesCount / totalCount);
+    final int sharePercent = totalCount <= 0
+        ? 0
+        : _percentOf(favoritesCount / totalCount);
 
     final List<String> chips = _cleanChips(<String>[
       "Favorites: ${numberFormat.format(favoritesCount)}",
@@ -163,8 +166,10 @@ class CurationCandidateBuilder extends WrappedCandidateBuilder {
       return const <List<int>>[];
     }
 
-    final List<int> indices =
-        List<int>.generate(uploadedIds.length, (int index) => index);
+    final List<int> indices = List<int>.generate(
+      uploadedIds.length,
+      (int index) => index,
+    );
     _shuffle(indices, randomizer);
 
     final int maxUsable = math.min(

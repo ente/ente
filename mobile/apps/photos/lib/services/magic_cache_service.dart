@@ -12,6 +12,7 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/db/offline_files_db.dart";
 import "package:photos/events/file_uploaded_event.dart";
 import "package:photos/events/magic_cache_updated_event.dart";
+import "package:photos/events/tab_changed_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/l10n/l10n.dart";
 import "package:photos/models/file/extensions/file_props.dart";
@@ -21,12 +22,12 @@ import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 import "package:photos/models/search/hierarchical/magic_filter.dart";
 import "package:photos/models/search/search_types.dart";
+import "package:photos/module/upload/service/file_uploader.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/ui/viewer/search/result/magic_result_screen.dart";
 import "package:photos/utils/cache_util.dart";
-import "package:photos/utils/file_util.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 class MagicCache {
@@ -171,10 +172,12 @@ GenericSearchResult? toGenericSearchResult(
   }
   if (!prompt.recentFirst) {
     enteFilesInMagicCache.sort((a, b) {
-      final idA =
-          localIdToIntId != null ? localIdToIntId[a.localID] : _magicFileId(a);
-      final idB =
-          localIdToIntId != null ? localIdToIntId[b.localID] : _magicFileId(b);
+      final idA = localIdToIntId != null
+          ? localIdToIntId[a.localID]
+          : _magicFileId(a);
+      final idB = localIdToIntId != null
+          ? localIdToIntId[b.localID]
+          : _magicFileId(b);
       final posA = idA != null ? fileIdToPositionMap[idA] : null;
       final posB = idB != null ? fileIdToPositionMap[idB] : null;
       if (posA == null && posB == null) return 0;
@@ -229,6 +232,8 @@ GenericSearchResult? toGenericSearchResult(
 class MagicCacheService {
   static const _lastMagicCacheUpdateTime = "last_magic_cache_update_time";
   static const _kPromptsAssetPath = "assets/discover.json";
+  static const _kSearchTabIndex = 3;
+  static const _kBackgroundUpdateDebounce = Duration(minutes: 5);
 
   /// Delay is for cache update to be done not during app init, during which a
   /// lot of other things are happening.
@@ -241,11 +246,21 @@ class MagicCacheService {
   Future<List<Prompt>>? _promptFuture;
   final Set<String> _pendingUpdateReason = {};
   bool _isUpdateInProgress = false;
+  int _cacheGeneration = 0;
+  Timer? _backgroundUpdateTimer;
+  bool _refreshWhenCurrentUpdateCompletes = false;
 
   MagicCacheService(this._prefs) {
     _logger.info("MagicCacheService constructor");
     Bus.instance.on<FileUploadedEvent>().listen((event) {
       queueUpdate("File uploaded");
+      _scheduleBackgroundUpdate();
+    });
+    Bus.instance.on<TabChangedEvent>().listen((event) {
+      if (event.source == TabChangedEventSource.pageView &&
+          event.selectedIndex == _kSearchTabIndex) {
+        _runPendingUpdateForSearch();
+      }
     });
     Future.delayed(_kCacheUpdateDelay, () {
       _updateCacheIfTheTimeHasCome();
@@ -277,6 +292,24 @@ class MagicCacheService {
     _pendingUpdateReason.add(reason);
   }
 
+  void _scheduleBackgroundUpdate() {
+    _backgroundUpdateTimer?.cancel();
+    _backgroundUpdateTimer = Timer(_kBackgroundUpdateDebounce, () {
+      _backgroundUpdateTimer = null;
+      _updateCache().ignore();
+    });
+  }
+
+  void _runPendingUpdateForSearch() {
+    _backgroundUpdateTimer?.cancel();
+    _backgroundUpdateTimer = null;
+    if (_isUpdateInProgress) {
+      _refreshWhenCurrentUpdateCompletes = true;
+      return;
+    }
+    _updateCache(interactive: true).ignore();
+  }
+
   Future<void> _updateCacheIfTheTimeHasCome() async {
     if (!enableDiscover) {
       return;
@@ -295,22 +328,45 @@ class MagicCacheService {
         "/cache/magic_cache$suffix";
   }
 
-  Future<void> updateCache({bool forced = false}) async {
+  Future<void> updateCache({bool forced = false}) =>
+      _updateCache(forced: forced);
+
+  Future<void> _updateCache({
+    bool forced = false,
+    bool interactive = false,
+  }) async {
     if (!enableDiscover) {
       return;
     }
     if (forced) {
       _pendingUpdateReason.add("Forced update");
     }
-    try {
-      if (_pendingUpdateReason.isEmpty || _isUpdateInProgress) {
-        _logger.info(
-          "No update needed as ${_pendingUpdateReason.toList()} and isUpdateInProgress $_isUpdateInProgress",
-        );
-        return;
+    await _updateCacheIfTheTimeHasCome();
+    if (FileUploader.instance.hasPendingUploads && !forced && !interactive) {
+      _scheduleBackgroundUpdate();
+      return;
+    }
+    if (_pendingUpdateReason.isEmpty) {
+      _logger.info(
+        "No update needed as ${_pendingUpdateReason.toList()} and isUpdateInProgress $_isUpdateInProgress",
+      );
+      return;
+    }
+    if (_isUpdateInProgress) {
+      if (!forced && !interactive) {
+        _scheduleBackgroundUpdate();
       }
-      _logger.info("updating magic cache ${_pendingUpdateReason.toList()}");
-      _isUpdateInProgress = true;
+      _logger.info("Magic cache update is already in progress");
+      return;
+    }
+    _logger.info("updating magic cache ${_pendingUpdateReason.toList()}");
+    _backgroundUpdateTimer?.cancel();
+    _backgroundUpdateTimer = null;
+    final updateReasons = Set<String>.of(_pendingUpdateReason);
+    _pendingUpdateReason.removeAll(updateReasons);
+    final updateGeneration = _cacheGeneration;
+    _isUpdateInProgress = true;
+    try {
       final EnteWatch? w = kDebugMode ? EnteWatch("magicCacheWatch") : null;
       w?.start();
       final magicPromptsData = await getPrompts();
@@ -319,22 +375,41 @@ class MagicCacheService {
         magicPromptsData,
       );
       w?.log("resultComputed");
+      if (updateGeneration != _cacheGeneration) {
+        return;
+      }
       _magicCacheFuture = Future.value(magicCaches);
       await writeToJsonFile<List<MagicCache>>(
         await _getCachePath(),
         magicCaches,
         MagicCache.encodeListToJson,
       );
+      if (updateGeneration != _cacheGeneration) {
+        await _deleteCacheFile();
+        return;
+      }
       w?.log("cacheWritten");
       await _resetLastMagicCacheUpdateTime();
+      if (updateGeneration != _cacheGeneration) {
+        await _prefs.remove(_lastMagicCacheUpdateKey);
+        return;
+      }
       w?.logAndReset('done');
-      _pendingUpdateReason.clear();
       Bus.instance.fire(MagicCacheUpdatedEvent());
     } catch (e, s) {
+      if (updateGeneration == _cacheGeneration) {
+        _pendingUpdateReason.addAll(updateReasons);
+        if (!forced) {
+          _scheduleBackgroundUpdate();
+        }
+      }
       _logger.info("Error updating magic cache", e, s);
     } finally {
       _isUpdateInProgress = false;
-      Bus.instance.fire(MagicCacheUpdatedEvent());
+      if (_refreshWhenCurrentUpdateCompletes) {
+        _refreshWhenCurrentUpdateCompletes = false;
+        _updateCache(interactive: true).ignore();
+      }
     }
   }
 
@@ -388,6 +463,17 @@ class MagicCacheService {
   }
 
   Future<void> clearMagicCache() async {
+    _cacheGeneration++;
+    _magicCacheFuture = null;
+    _pendingUpdateReason.clear();
+    _backgroundUpdateTimer?.cancel();
+    _backgroundUpdateTimer = null;
+    _refreshWhenCurrentUpdateCompletes = false;
+    await _prefs.remove(_lastMagicCacheUpdateKey);
+    await _deleteCacheFile();
+  }
+
+  Future<void> _deleteCacheFile() async {
     final file = File(await _getCachePath());
     if (file.existsSync()) {
       await file.delete();
@@ -398,8 +484,9 @@ class MagicCacheService {
     BuildContext context,
   ) async {
     try {
-      final EnteWatch? w =
-          kDebugMode ? EnteWatch("magicGenericSearchResult") : null;
+      final EnteWatch? w = kDebugMode
+          ? EnteWatch("magicGenericSearchResult")
+          : null;
       w?.start();
       final magicCaches = await getMagicCache();
       final List<Prompt> prompts = await getPrompts();
@@ -414,32 +501,42 @@ class MagicCacheService {
       for (final prompt in prompts) {
         promptByTitle[prompt.title] = prompt;
       }
-      final List<EnteFile> files =
-          await SearchService.instance.getAllFilesForSearch();
+      final List<EnteFile> files = await SearchService.instance
+          .getAllFilesForSearch();
 
       if (!isLocalGalleryMode) {
         final Map<String, List<EnteFile>> magicIdToFiles = {};
         final Map<String, Map<int, int>> promptFileOrder = {};
+        final Map<int, List<String>> uploadedIdToMagicTitles = {};
         for (final cache in magicCaches) {
           magicIdToFiles[cache.title] = [];
           promptFileOrder[cache.title] = cache.fileIdToPositionMap;
+          for (final uploadedId in cache.fileIdToPositionMap.keys) {
+            uploadedIdToMagicTitles
+                .putIfAbsent(uploadedId, () => <String>[])
+                .add(cache.title);
+          }
         }
         for (EnteFile file in files) {
           if (!file.isUploaded) continue;
-          for (MagicCache magicCache in magicCaches) {
-            final uploadedId = file.uploadedFileID;
-            if (uploadedId == null) continue;
-            if (magicCache.fileIdToPositionMap.containsKey(uploadedId)) {
-              if (file.isVideo &&
-                  (promptByTitle[magicCache.title]?.showVideo ?? true) ==
-                      false) {
-                continue;
-              }
-              magicIdToFiles[magicCache.title]!.add(file);
+          final uploadedId = file.uploadedFileID;
+          if (uploadedId == null) {
+            continue;
+          }
+          final magicTitles = uploadedIdToMagicTitles[uploadedId];
+          if (magicTitles == null) {
+            continue;
+          }
+          for (final magicTitle in magicTitles) {
+            if (file.isVideo &&
+                (promptByTitle[magicTitle]?.showVideo ?? true) == false) {
+              continue;
             }
+            magicIdToFiles[magicTitle]!.add(file);
           }
         }
         for (final p in prompts) {
+          if (!context.mounted) return const [];
           final genericSearchResult = toGenericSearchResult(
             context,
             p,
@@ -504,6 +601,7 @@ class MagicCacheService {
                 localIdToIntId,
               );
             }
+            if (!context.mounted) return const [];
             final genericSearchResult = toGenericSearchResult(
               context,
               p,

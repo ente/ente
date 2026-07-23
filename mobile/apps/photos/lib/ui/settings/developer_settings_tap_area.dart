@@ -55,9 +55,7 @@ class _DeveloperSettingsTapAreaState extends State<DeveloperSettingsTapArea> {
           onTap: () async {
             Navigator.of(context).pop();
             await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const DeveloperSettingsPage(),
-              ),
+              MaterialPageRoute(builder: (_) => const DeveloperSettingsPage()),
             );
             widget.onSettingsChanged?.call();
           },

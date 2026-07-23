@@ -71,10 +71,7 @@ class CollectionFilesGateway {
   Future<void> removeFiles(int collectionID, List<int> fileIDs) async {
     final response = await _enteDio.post(
       "/collections/v3/remove-files",
-      data: {
-        "collectionID": collectionID,
-        "fileIDs": fileIDs,
-      },
+      data: {"collectionID": collectionID, "fileIDs": fileIDs},
     );
     if (response.statusCode != 200) {
       throw Exception("Failed to remove files from collection");
@@ -91,10 +88,7 @@ class CollectionFilesGateway {
   Future<void> suggestDelete(int collectionID, List<int> fileIDs) async {
     final response = await _enteDio.post(
       "/collections/suggest-delete",
-      data: {
-        "collectionID": collectionID,
-        "fileIDs": fileIDs,
-      },
+      data: {"collectionID": collectionID, "fileIDs": fileIDs},
     );
     if (response.statusCode != 200) {
       throw Exception("Failed to send delete suggestion");

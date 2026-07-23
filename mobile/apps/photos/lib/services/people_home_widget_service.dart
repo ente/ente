@@ -216,8 +216,8 @@ class PeopleHomeWidgetService {
     }
 
     // Check if first import is completed
-    final hasCompletedFirstImport =
-        LocalSyncService.instance.hasCompletedFirstImportOrBypassed();
+    final hasCompletedFirstImport = LocalSyncService.instance
+        .hasCompletedFirstImportOrBypassed();
     if (!hasCompletedFirstImport) {
       return true;
     }
@@ -349,15 +349,15 @@ class PeopleHomeWidgetService {
 
       final renderResult = await HomeWidgetService.instance
           .renderFile(
-        randomPersonFile,
-        "people_widget_$renderedCount",
-        personName,
-        personId,
-      )
+            randomPersonFile,
+            "people_widget_$renderedCount",
+            personName,
+            personId,
+          )
           .catchError((e, stackTrace) {
-        _logger.severe("Error rendering widget", e, stackTrace);
-        return null;
-      });
+            _logger.severe("Error rendering widget", e, stackTrace);
+            return null;
+          });
 
       if (renderResult != null) {
         // Check for blockers again before continuing

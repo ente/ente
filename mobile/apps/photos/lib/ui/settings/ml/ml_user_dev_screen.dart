@@ -9,8 +9,6 @@ import "package:photos/events/people_changed_event.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_clustering_service.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
-import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
-import "package:photos/services/machine_learning/ml_models_overview.dart";
 import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
@@ -88,9 +86,7 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
         primary: false,
         slivers: <Widget>[
           const TitleBarWidget(
-            flexibleSpaceTitle: TitleBarTitleWidget(
-              title: "ML debug options",
-            ),
+            flexibleSpaceTitle: TitleBarTitleWidget(title: "ML debug options"),
           ),
           SliverList(
             delegate: SliverChildBuilderDelegate(
@@ -102,8 +98,8 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
                       "Only use if you know what you're doing",
                       textAlign: TextAlign.left,
                       style: getEnteTextTheme(context).body.copyWith(
-                            color: getEnteColorScheme(context).textMuted,
-                          ),
+                        color: getEnteColorScheme(context).textMuted,
+                      ),
                     ),
                     const SizedBox(height: 48),
                     widget.mlIsEnabled
@@ -153,6 +149,7 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
                                     e,
                                     s,
                                   );
+                                  if (!context.mounted) return;
                                   await showGenericErrorDialog(
                                     context: context,
                                     error: e,
@@ -184,8 +181,8 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
                                       .runMLDuringInteractionOverride;
                                   await computeController
                                       .setMLInteractionOverride(
-                                    turnOn: enabled,
-                                  );
+                                        turnOn: enabled,
+                                      );
                                   _logger.info(
                                     'run ML during interaction is turned ${enabled ? 'on' : 'off'}',
                                   );
@@ -198,6 +195,7 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
                                     e,
                                     s,
                                   );
+                                  if (!context.mounted) return;
                                   await showGenericErrorDialog(
                                     context: context,
                                     error: e,
@@ -217,97 +215,7 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
                     widget.mlIsEnabled
                         ? _buildThresholdsCard(context)
                         : const SizedBox.shrink(),
-                    widget.mlIsEnabled
-                        ? const SizedBox(height: 24)
-                        : const SizedBox.shrink(),
-                    ButtonWidget(
-                      buttonType: ButtonType.neutral,
-                      labelText: "Load face detection model",
-                      onTap: () async {
-                        try {
-                          await MLIndexingIsolate.instance
-                              .debugLoadSingleModel(MLModels.faceDetection);
-                        } catch (e, s) {
-                          _logger.severe(
-                            "Could not load face detection model",
-                            e,
-                            s,
-                          );
-                          await showGenericErrorDialog(
-                            context: context,
-                            error: e,
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    ButtonWidget(
-                      buttonType: ButtonType.neutral,
-                      labelText: "Load face recognition model",
-                      onTap: () async {
-                        try {
-                          await MLIndexingIsolate.instance
-                              .debugLoadSingleModel(MLModels.faceEmbedding);
-                        } catch (e, s) {
-                          _logger.severe(
-                            "Could not load face detection model",
-                            e,
-                            s,
-                          );
-                          await showGenericErrorDialog(
-                            context: context,
-                            error: e,
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    ButtonWidget(
-                      buttonType: ButtonType.neutral,
-                      labelText: "Load clip image model",
-                      onTap: () async {
-                        try {
-                          await MLIndexingIsolate.instance
-                              .debugLoadSingleModel(MLModels.clipImageEncoder);
-                        } catch (e, s) {
-                          _logger.severe(
-                            "Could not load face detection model",
-                            e,
-                            s,
-                          );
-                          await showGenericErrorDialog(
-                            context: context,
-                            error: e,
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    ButtonWidget(
-                      buttonType: ButtonType.neutral,
-                      labelText: "Load clip text model",
-                      onTap: () async {
-                        try {
-                          await MLIndexingIsolate.instance
-                              .debugLoadSingleModel(MLModels.clipTextEncoder);
-                        } catch (e, s) {
-                          _logger.severe(
-                            "Could not load face detection model",
-                            e,
-                            s,
-                          );
-                          await showGenericErrorDialog(
-                            context: context,
-                            error: e,
-                          );
-                        }
-                      },
-                    ),
-                    const SafeArea(
-                      child: SizedBox(
-                        height: 12,
-                      ),
-                    ),
+                    const SafeArea(child: SizedBox(height: 12)),
                   ],
                 ),
               ),
@@ -325,13 +233,12 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
       await mlDataDB.deleteFaceIndexForFiles(emptyFileIDs.toList());
       await mlDataDB.deleteClipEmbeddings(emptyFileIDs.toList());
       await mlDataDB.deletePetDataForFiles(emptyFileIDs.toList());
+      if (!context.mounted) return;
       showShortToast(context, "Deleted ${emptyFileIDs.length} entries");
     } catch (e) {
+      if (!context.mounted) return;
       // ignore: unawaited_futures
-      showGenericErrorDialog(
-        context: context,
-        error: e,
-      );
+      showGenericErrorDialog(context: context, error: e);
     }
   }
 
@@ -340,13 +247,12 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
       await mlDataDB.dropClustersAndPersonTable(faces: true);
       await SemanticSearchService.instance.clearIndexes();
       Bus.instance.fire(PeopleChangedEvent());
+      if (!context.mounted) return;
       showShortToast(context, "All local ML cleared");
     } catch (e) {
+      if (!context.mounted) return;
       // ignore: unawaited_futures
-      showGenericErrorDialog(
-        context: context,
-        error: e,
-      );
+      showGenericErrorDialog(context: context, error: e);
     }
   }
 
@@ -402,22 +308,13 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: textTheme.smallBold,
-          ),
+          Text(title, style: textTheme.smallBold),
           const SizedBox(height: 4),
-          Text(
-            description,
-            style: textTheme.miniMuted,
-          ),
+          Text(description, style: textTheme.miniMuted),
           const SizedBox(height: 12),
           Row(
             children: [
-              Text(
-                min.toStringAsFixed(2),
-                style: textTheme.mini,
-              ),
+              Text(min.toStringAsFixed(2), style: textTheme.mini),
               Expanded(
                 child: Slider(
                   value: clampedValue,
@@ -429,10 +326,7 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
                   },
                 ),
               ),
-              Text(
-                max.toStringAsFixed(2),
-                style: textTheme.mini,
-              ),
+              Text(max.toStringAsFixed(2), style: textTheme.mini),
             ],
           ),
           Text(
@@ -448,10 +342,7 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "Save on device",
-                style: textTheme.mini,
-              ),
+              Text("Save on device", style: textTheme.mini),
               ToggleSwitchWidget(
                 value: () => persistValue,
                 onChanged: () async {
@@ -481,9 +372,7 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
     final rounded = _roundToStep(value);
     PersonService.autoMergeThreshold = rounded;
     if (_persistAutoMergeThreshold) {
-      unawaited(
-        localSettings.setAutoMergeThresholdOverride(rounded),
-      );
+      unawaited(localSettings.setAutoMergeThresholdOverride(rounded));
     }
     setState(() {
       _autoMergeThreshold = rounded;
@@ -503,9 +392,7 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
     final rounded = _roundToStep(value);
     FaceClusteringService.defaultDistanceThreshold = rounded;
     if (_persistDefaultClusteringDistance) {
-      unawaited(
-        localSettings.setDefaultClusteringDistanceOverride(rounded),
-      );
+      unawaited(localSettings.setDefaultClusteringDistanceOverride(rounded));
     }
     setState(() {
       _defaultClusteringDistance = rounded;

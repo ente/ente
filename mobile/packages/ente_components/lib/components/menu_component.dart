@@ -109,7 +109,7 @@ class _MenuComponentState extends State<MenuComponent> {
                 ),
                 border: Border.all(
                   color: widget.selected
-                      ? colors.primaryStroke
+                      ? colors.strokeDark
                       : Colors.transparent,
                 ),
                 borderRadius: borderRadius,

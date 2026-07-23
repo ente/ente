@@ -37,11 +37,7 @@ class WrappedMediaSelector {
       Expando<_MediaSelectorCache>("wrappedMediaSelectorCache");
 
   static Set<String> get requiredTextQueries {
-    return <String>{
-      _kScreenshotQuery,
-      _kDocumentQuery,
-      _kPeopleDelightQuery,
-    };
+    return <String>{_kScreenshotQuery, _kDocumentQuery, _kPeopleDelightQuery};
   }
 
   static List<MediaRef> selectMediaRefs({
@@ -84,8 +80,8 @@ class WrappedMediaSelector {
       return const <int>[];
     }
 
-    final _MediaSelectorCache cache =
-        _cache[context] ??= _MediaSelectorCache.fromEngineContext(context);
+    final _MediaSelectorCache cache = _cache[context] ??=
+        _MediaSelectorCache.fromEngineContext(context);
 
     final Set<int> seen = <int>{};
     final List<_ScoredCandidate> candidates = <_ScoredCandidate>[];
@@ -160,8 +156,8 @@ class WrappedMediaSelector {
     required WrappedEngineContext context,
     required Iterable<int> uploadedFileIDs,
   }) {
-    final _MediaSelectorCache cache =
-        _cache[context] ??= _MediaSelectorCache.fromEngineContext(context);
+    final _MediaSelectorCache cache = _cache[context] ??=
+        _MediaSelectorCache.fromEngineContext(context);
     cache.markUsed(uploadedFileIDs);
   }
 }
@@ -172,10 +168,10 @@ class _ScoredCandidate {
     required double initialScore,
     required bool preferNamedPeople,
   }) : baseScore = _computeBaseScore(
-          asset: asset,
-          initialScore: initialScore,
-          preferNamedPeople: preferNamedPeople,
-        );
+         asset: asset,
+         initialScore: initialScore,
+         preferNamedPeople: preferNamedPeople,
+       );
 
   final _MediaAsset asset;
   final double baseScore;
@@ -211,8 +207,8 @@ class _ScoredCandidate {
           spacingMicros > 0 &&
           asset.captureMicros > 0 &&
           other.asset.captureMicros > 0) {
-        final int delta =
-            (asset.captureMicros - other.asset.captureMicros).abs();
+        final int delta = (asset.captureMicros - other.asset.captureMicros)
+            .abs();
         if (delta < spacingMicros) {
           final double ratio =
               1 - (delta.toDouble() / math.max(spacingMicros.toDouble(), 1.0));
@@ -243,18 +239,21 @@ class _ScoredCandidate {
         score += WrappedMediaSelector._kNamedPersonBaseBoost;
         final int extras = asset.namedPersonCount - 1;
         if (extras > 0) {
-          score += math.min(extras, 4) *
+          score +=
+              math.min(extras, 4) *
               WrappedMediaSelector._kNamedPersonExtraBoost;
         }
         if (asset.peopleDelightScore > 0) {
-          score += asset.peopleDelightScore *
+          score +=
+              asset.peopleDelightScore *
               WrappedMediaSelector._kPeopleDelightWeight;
         }
       } else if (asset.totalFaceCount > 0) {
         score += WrappedMediaSelector._kFacePresenceBoost;
       }
     } else if (asset.totalFaceCount > 1) {
-      score += math.min(asset.totalFaceCount, 4) *
+      score +=
+          math.min(asset.totalFaceCount, 4) *
           WrappedMediaSelector._kFaceCountWeight;
     }
 
@@ -295,10 +294,9 @@ class _ScoredCandidate {
 }
 
 class _MediaSelectorCache {
-  _MediaSelectorCache._({
-    required Map<int, _MediaAsset> assets,
-  })  : _assets = assets,
-        _usedUploadedFileIDs = <int>{};
+  _MediaSelectorCache._({required Map<int, _MediaAsset> assets})
+    : _assets = assets,
+      _usedUploadedFileIDs = <int>{};
 
   final Map<int, _MediaAsset> _assets;
   final Set<int> _usedUploadedFileIDs;
@@ -319,9 +317,7 @@ class _MediaSelectorCache {
     }
   }
 
-  factory _MediaSelectorCache.fromEngineContext(
-    WrappedEngineContext context,
-  ) {
+  factory _MediaSelectorCache.fromEngineContext(WrappedEngineContext context) {
     final Map<int, EnteFile> fileById = <int, EnteFile>{
       for (final EnteFile file in context.files)
         if (file.uploadedFileID != null) file.uploadedFileID!: file,
@@ -329,23 +325,25 @@ class _MediaSelectorCache {
     final Set<int> archivedCollectionIDs = context.archivedCollectionIDs;
 
     final Map<int, _EmbeddingVector> imageVectors = <int, _EmbeddingVector>{};
-    context.aesthetics.clipEmbeddings.forEach(
-      (int fileID, List<double> values) {
-        if (values.isEmpty) {
-          return;
-        }
-        final _EmbeddingVector? vector = _EmbeddingVector.tryFromList(values);
-        if (vector == null) {
-          return;
-        }
-        imageVectors[fileID] = vector;
-      },
-    );
+    context.aesthetics.clipEmbeddings.forEach((
+      int fileID,
+      List<double> values,
+    ) {
+      if (values.isEmpty) {
+        return;
+      }
+      final _EmbeddingVector? vector = _EmbeddingVector.tryFromList(values);
+      if (vector == null) {
+        return;
+      }
+      imageVectors[fileID] = vector;
+    });
 
     final Set<int> favorites = Set<int>.from(context.favoriteUploadedFileIDs);
 
-    final Map<int, _PeopleCounts> peopleCounts =
-        _buildPeopleCounts(context.people);
+    final Map<int, _PeopleCounts> peopleCounts = _buildPeopleCounts(
+      context.people,
+    );
 
     final _EmbeddingVector? screenshotQuery = _vectorForTextQuery(
       context,
@@ -380,8 +378,8 @@ class _MediaSelectorCache {
           : _cosineSimilarity(embedding, documentQuery);
       final double peopleDelight =
           embedding == null || peopleDelightQuery == null
-              ? 0.0
-              : _cosineSimilarity(embedding, peopleDelightQuery);
+          ? 0.0
+          : _cosineSimilarity(embedding, peopleDelightQuery);
 
       assets[id] = _MediaAsset(
         uploadedFileID: id,
@@ -486,10 +484,7 @@ class _MediaAsset {
 }
 
 class _EmbeddingVector {
-  _EmbeddingVector._({
-    required this.vector,
-    required this.norm,
-  });
+  _EmbeddingVector._({required this.vector, required this.norm});
 
   static _EmbeddingVector? tryFromList(List<double> values) {
     final Vector vector = Vector.fromList(values, dtype: DType.float32);
@@ -507,10 +502,7 @@ class _EmbeddingVector {
 }
 
 class _PeopleCounts {
-  const _PeopleCounts({
-    this.namedCount = 0,
-    this.totalFaces = 0,
-  });
+  const _PeopleCounts({this.namedCount = 0, this.totalFaces = 0});
 
   final int namedCount;
   final int totalFaces;

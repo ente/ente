@@ -8,17 +8,17 @@
         "test": "vitest --run"
     },
     "dependencies": {
-        "@mui/icons-material": "^7.3.4",
-        "@mui/material": "^7.3.4",
+        "@mui/icons-material": "9.2.0",
+        "@mui/material": "9.2.0",
         "ente-accounts-rs": "*",
         "ente-base": "*",
         "ente-wasm": "*",
-        "react": "^19.2.0",
-        "zod": "^4.1.12"
+        "react": "19.2.7",
+        "zod": "4.4.3"
     },
     "devDependencies": {
-        "@types/react": "^19.2.2",
+        "@types/react": "19.2.17",
         "ente-build-config": "*",
-        "vitest": "^3.2.4"
+        "vitest": "4.1.8"
     }
 }

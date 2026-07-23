@@ -1,5 +1,4 @@
-import "package:ente_ui/theme/ente_theme.dart";
-import "package:ente_ui/utils/dialog_util.dart";
+import 'package:ente_components/ente_components.dart';
 import "package:ente_ui/utils/toast_util.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
@@ -10,6 +9,7 @@ import "package:locker/services/configuration.dart";
 import "package:locker/ui/components/selection_action_button_widget.dart";
 import "package:locker/ui/sharing/share_collection_bottom_sheet.dart";
 import "package:locker/utils/collection_actions.dart";
+import "package:locker/utils/error_sheet.dart";
 import "package:logging/logging.dart";
 
 class CollectionSelectionOverlayBar extends StatefulWidget {
@@ -34,8 +34,9 @@ class _CollectionSelectionOverlayBarState
   int get _currentUserID => Configuration.instance.getUserID()!;
 
   List<Collection> _getOwnedCollections(List<Collection> collections) {
-    final ownedCollections =
-        collections.where((c) => c.isOwner(_currentUserID)).toList();
+    final ownedCollections = collections
+        .where((c) => c.isOwner(_currentUserID))
+        .toList();
 
     final sharedCount = collections.length - ownedCollections.length;
     if (sharedCount > 0 && mounted) {
@@ -72,8 +73,7 @@ class _CollectionSelectionOverlayBarState
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
     final hasSelection = widget.selectedCollections.collections.isNotEmpty;
 
     return IgnorePointer(
@@ -91,14 +91,12 @@ class _CollectionSelectionOverlayBarState
             child: hasSelection
                 ? Container(
                     decoration: BoxDecoration(
-                      color: colorScheme.backdropBase.withValues(alpha: 1.0),
+                      color: colors.backgroundBase,
                       borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(20),
                         topRight: Radius.circular(20),
                       ),
-                      border: Border(
-                        top: BorderSide(color: colorScheme.strokeFaint),
-                      ),
+                      border: Border(top: BorderSide(color: colors.strokeDark)),
                     ),
                     child: Padding(
                       padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding),
@@ -112,7 +110,7 @@ class _CollectionSelectionOverlayBarState
                                 builder: (context, child) {
                                   final isAllSelected =
                                       widget.selectedCollections.count ==
-                                          widget.collections.length;
+                                      widget.collections.length;
                                   final buttonText = isAllSelected
                                       ? context.l10n.deselectAll
                                       : context.l10n.selectAll;
@@ -132,7 +130,7 @@ class _CollectionSelectionOverlayBarState
                                     },
                                     child: Container(
                                       decoration: BoxDecoration(
-                                        color: colorScheme.backgroundElevated2,
+                                        color: colors.fillLight,
                                         borderRadius: BorderRadius.circular(50),
                                       ),
                                       padding: const EdgeInsets.symmetric(
@@ -144,12 +142,12 @@ class _CollectionSelectionOverlayBarState
                                         children: [
                                           Text(
                                             buttonText,
-                                            style: textTheme.small,
+                                            style: TextStyles.body,
                                           ),
                                           const SizedBox(width: 6),
                                           Icon(
                                             iconData,
-                                            color: colorScheme.textBase,
+                                            color: colors.textBase,
                                             size: 20,
                                           ),
                                         ],
@@ -174,7 +172,7 @@ class _CollectionSelectionOverlayBarState
                                     },
                                     child: Container(
                                       decoration: BoxDecoration(
-                                        color: colorScheme.backgroundElevated2,
+                                        color: colors.fillLight,
                                         borderRadius: BorderRadius.circular(50),
                                       ),
                                       padding: const EdgeInsets.symmetric(
@@ -186,12 +184,12 @@ class _CollectionSelectionOverlayBarState
                                         children: [
                                           Text(
                                             countText,
-                                            style: textTheme.small,
+                                            style: TextStyles.body,
                                           ),
                                           const SizedBox(width: 6),
                                           Icon(
                                             Icons.close,
-                                            color: colorScheme.textBase,
+                                            color: colors.textBase,
                                             size: 20,
                                           ),
                                         ],
@@ -216,7 +214,7 @@ class _CollectionSelectionOverlayBarState
   }
 
   Widget _buildPrimaryActionButtons() {
-    final colorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
     final selectedCollections = widget.selectedCollections.collections;
     if (selectedCollections.isEmpty) {
       return const SizedBox.shrink();
@@ -225,8 +223,9 @@ class _CollectionSelectionOverlayBarState
     final isSingleSelection = selectedCollections.length == 1;
     final collection = isSingleSelection ? selectedCollections.first : null;
 
-    final ownedCollections =
-        selectedCollections.where((c) => c.isOwner(_currentUserID)).toList();
+    final ownedCollections = selectedCollections
+        .where((c) => c.isOwner(_currentUserID))
+        .toList();
     final sharedIncomingCollections = _getSharedIncomingCollections(
       selectedCollections.toList(),
     );
@@ -237,17 +236,13 @@ class _CollectionSelectionOverlayBarState
     final primaryActions = <Widget>[
       if (isSingleSelection && hasOwnedCollections)
         SelectionActionButton(
-          hugeIcon: const HugeIcon(
-            icon: HugeIcons.strokeRoundedNavigation06,
-          ),
+          hugeIcon: const HugeIcon(icon: HugeIcons.strokeRoundedNavigation06),
           label: context.l10n.share,
           onTap: () => _shareCollection(collection!),
         ),
       if (isSingleSelection && hasOwnedCollections)
         SelectionActionButton(
-          hugeIcon: const HugeIcon(
-            icon: HugeIcons.strokeRoundedPencilEdit02,
-          ),
+          hugeIcon: const HugeIcon(icon: HugeIcons.strokeRoundedPencilEdit02),
           label: context.l10n.edit,
           onTap: () => _editCollection(collection!),
         ),
@@ -255,7 +250,7 @@ class _CollectionSelectionOverlayBarState
         SelectionActionButton(
           hugeIcon: HugeIcon(
             icon: HugeIcons.strokeRoundedLogout02,
-            color: colorScheme.warning500,
+            color: colors.warning,
           ),
           label: context.l10n.leaveCollection,
           onTap: () => _leaveCollections(sharedIncomingCollections),
@@ -265,7 +260,7 @@ class _CollectionSelectionOverlayBarState
         SelectionActionButton(
           hugeIcon: HugeIcon(
             icon: HugeIcons.strokeRoundedDelete02,
-            color: colorScheme.warning500,
+            color: colors.warning,
           ),
           label: context.l10n.delete,
           onTap: () {
@@ -281,12 +276,10 @@ class _CollectionSelectionOverlayBarState
 
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.backgroundElevated2,
+        color: colors.fillLight,
         borderRadius: BorderRadius.circular(24),
       ),
-      child: Row(
-        children: _buildActionRow(primaryActions),
-      ),
+      child: Row(children: _buildActionRow(primaryActions)),
     );
   }
 
@@ -312,9 +305,13 @@ class _CollectionSelectionOverlayBarState
       await CollectionActions.editCollection(context, collection);
     } catch (e, s) {
       _logger.severe(e, s);
-      await showGenericErrorBottomSheet(context: context, error: e);
+      if (mounted) {
+        await showLockerErrorSheet(context, e);
+      }
     }
-    widget.selectedCollections.clearAll();
+    if (mounted) {
+      widget.selectedCollections.clearAll();
+    }
   }
 
   Future<void> _deleteCollection(Collection collection) async {
@@ -328,9 +325,13 @@ class _CollectionSelectionOverlayBarState
       await CollectionActions.deleteCollection(context, collection);
     } catch (e, s) {
       _logger.severe(e, s);
-      await showGenericErrorBottomSheet(context: context, error: e);
+      if (mounted) {
+        await showLockerErrorSheet(context, e);
+      }
     }
-    widget.selectedCollections.clearAll();
+    if (mounted) {
+      widget.selectedCollections.clearAll();
+    }
   }
 
   Future<void> _deleteMultipleCollections(Set<Collection> collections) async {
@@ -347,9 +348,13 @@ class _CollectionSelectionOverlayBarState
       );
     } catch (e, s) {
       _logger.severe(e, s);
-      await showGenericErrorBottomSheet(context: context, error: e);
+      if (mounted) {
+        await showLockerErrorSheet(context, e);
+      }
     }
-    widget.selectedCollections.clearAll();
+    if (mounted) {
+      widget.selectedCollections.clearAll();
+    }
   }
 
   Future<void> _shareCollection(Collection collection) async {
@@ -369,9 +374,13 @@ class _CollectionSelectionOverlayBarState
       await showShareCollectionSheet(context, collection: collection);
     } catch (e, s) {
       _logger.severe(e, s);
-      await showGenericErrorBottomSheet(context: context, error: e);
+      if (mounted) {
+        await showLockerErrorSheet(context, e);
+      }
     }
-    widget.selectedCollections.clearAll();
+    if (mounted) {
+      widget.selectedCollections.clearAll();
+    }
   }
 
   Future<void> _leaveCollections(List<Collection> collections) async {
@@ -382,20 +391,18 @@ class _CollectionSelectionOverlayBarState
 
     try {
       if (collections.length == 1) {
-        await CollectionActions.leaveCollection(
-          context,
-          collections.first,
-        );
+        await CollectionActions.leaveCollection(context, collections.first);
       } else {
-        await CollectionActions.leaveMultipleCollection(
-          context,
-          collections,
-        );
+        await CollectionActions.leaveMultipleCollection(context, collections);
       }
     } catch (e, s) {
       _logger.severe(e, s);
-      await showGenericErrorBottomSheet(context: context, error: e);
+      if (mounted) {
+        await showLockerErrorSheet(context, e);
+      }
     }
-    widget.selectedCollections.clearAll();
+    if (mounted) {
+      widget.selectedCollections.clearAll();
+    }
   }
 }

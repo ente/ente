@@ -6,7 +6,7 @@ import "package:flutter/foundation.dart";
 import "package:logging/logging.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
-import "package:photos/utils/file_util.dart";
+import "package:photos/module/download/file.dart";
 
 class QrCodeDetectionHelper {
   static const _debounceDuration = Duration(milliseconds: 500);
@@ -38,10 +38,7 @@ class QrCodeDetectionHelper {
     });
   }
 
-  Future<void> _scanFile(
-    EnteFile file,
-    int requestId,
-  ) async {
+  Future<void> _scanFile(EnteFile file, int requestId) async {
     if (_disposed || requestId != _requestId) return;
 
     try {

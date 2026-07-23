@@ -1,6 +1,6 @@
+import "package:ente_components/ente_components.dart";
 import "package:ente_sharing/models/user.dart";
 import "package:ente_sharing/user_avator_widget.dart";
-import "package:ente_ui/theme/ente_theme.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:locker/extensions/collection_extension.dart";
@@ -11,10 +11,10 @@ import "package:locker/services/collections/models/collection.dart";
 import "package:locker/services/configuration.dart";
 import "package:locker/ui/pages/collection_page.dart";
 import "package:locker/ui/sharing/album_share_info_widget.dart";
+import "package:locker/utils/file_icon_utils.dart";
 
 class CollectionListWidget extends StatelessWidget {
   final Collection collection;
-  final bool isLastItem;
   final SelectedCollections? selectedCollections;
   final void Function(Collection)? onTapCallback;
   final void Function(Collection)? onLongPressCallback;
@@ -22,7 +22,6 @@ class CollectionListWidget extends StatelessWidget {
   const CollectionListWidget({
     super.key,
     required this.collection,
-    this.isLastItem = false,
     this.selectedCollections,
     this.onTapCallback,
     this.onLongPressCallback,
@@ -30,8 +29,7 @@ class CollectionListWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = getEnteTextTheme(context);
-    final colorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
     final bool isFavourite = collection.type == CollectionType.favorites;
     final bool hasSharees = collection.sharees.isNotEmpty;
 
@@ -47,39 +45,31 @@ class CollectionListWidget extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            height: 60,
-            width: 60,
+            height: 40,
+            width: 40,
             child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: colorScheme.backgroundElevated,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: collection.type == CollectionType.favorites
-                          ? HugeIcon(
-                              icon: HugeIcons.strokeRoundedStar,
-                              color: colorScheme.primary700,
-                            )
-                          : HugeIcon(
-                              icon: HugeIcons.strokeRoundedWallet05,
-                              color: colorScheme.textBase,
-                            ),
-                    ),
-                  ),
+                IconTile(
+                  backgroundColor: colors.backgroundBase,
+                  icon: collection.type == CollectionType.favorites
+                      ? HugeIcon(
+                          icon: HugeIcons.strokeRoundedStar,
+                          color: colors.primary,
+                        )
+                      : HugeIcon(
+                          icon: HugeIcons.strokeRoundedWallet05,
+                          color: colors.textBase,
+                        ),
                 ),
                 if (showSharingIndicator)
                   Positioned(
-                    right: 1,
-                    bottom: 10,
+                    right: -4,
+                    bottom: -4,
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: colorScheme.backdropBase,
+                        color: colors.fillLight,
                       ),
                       padding: const EdgeInsets.all(1.0),
                       child: HugeIcon(
@@ -87,7 +77,7 @@ class CollectionListWidget extends StatelessWidget {
                             ? HugeIcons.strokeRoundedCircleArrowUpRight
                             : HugeIcons.strokeRoundedCircleArrowDownLeft,
                         strokeWidth: 2.0,
-                        color: colorScheme.primary700,
+                        color: colors.primary,
                         size: 16.0,
                       ),
                     ),
@@ -103,6 +93,7 @@ class CollectionListWidget extends StatelessWidget {
               children: [
                 Text(
                   collection.displayName ?? 'Unnamed Collection',
+                  style: TextStyles.body,
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
@@ -112,9 +103,7 @@ class CollectionListWidget extends StatelessWidget {
                     final fileCount = snapshot.data ?? 0;
                     return Text(
                       context.l10n.items(fileCount),
-                      style: textTheme.small.copyWith(
-                        color: colorScheme.textMuted,
-                      ),
+                      style: TextStyles.mini.copyWith(color: colors.textLight),
                     );
                   },
                 ),
@@ -147,14 +136,13 @@ class CollectionListWidget extends StatelessWidget {
           return AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOut,
+            padding: const EdgeInsets.only(left: 12, top: 12, bottom: 12),
             decoration: BoxDecoration(
               border: Border.all(
-                color: isSelected
-                    ? colorScheme.primary700
-                    : colorScheme.backdropBase,
+                color: isSelected ? colors.strokeDark : colors.fillLight,
                 width: 1.5,
               ),
-              color: colorScheme.backdropBase,
+              color: colors.fillLight,
               borderRadius: const BorderRadius.all(Radius.circular(20)),
             ),
             child: Row(
@@ -174,23 +162,17 @@ class CollectionListWidget extends StatelessWidget {
                         layoutBuilder: (currentChild, previousChildren) {
                           return Stack(
                             alignment: Alignment.centerRight,
-                            children: [
-                              ...previousChildren,
-                              if (currentChild != null) currentChild,
-                            ],
+                            children: [...previousChildren, ?currentChild],
                           );
                         },
                         child: isSelected
-                            ? Icon(
-                                key: const ValueKey("selected"),
-                                Icons.check_circle_rounded,
-                                color: colorScheme.primary700,
-                                size: 24,
+                            ? const SelectionCheckBadge(
+                                key: ValueKey("selected"),
                               )
                             : showSharingIndicator
-                                ? (isIncoming
-                                    ? _buildOwnerAvatar(collection.owner)
-                                    : (hasSharees
+                            ? (isIncoming
+                                  ? _buildOwnerAvatar(collection.owner)
+                                  : (hasSharees
                                         ? _buildShareesAvatars(
                                             collection.sharees
                                                 .whereType<User>()
@@ -199,9 +181,7 @@ class CollectionListWidget extends StatelessWidget {
                                         : const SizedBox(
                                             key: ValueKey("unselected"),
                                           )))
-                                : const SizedBox(
-                                    key: ValueKey("unselected"),
-                                  ),
+                            : const SizedBox(key: ValueKey("unselected")),
                       ),
                     ),
                   ),
@@ -247,8 +227,9 @@ class CollectionListWidget extends StatelessWidget {
 
     final hasMore = sharees.length > limitCountTo;
 
-    final double totalWidth =
-        hasMore ? avatarSize + overlapPadding : avatarSize;
+    final double totalWidth = hasMore
+        ? avatarSize + overlapPadding
+        : avatarSize;
 
     return SizedBox(
       height: avatarSize,

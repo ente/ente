@@ -47,11 +47,7 @@ void main() {
           id: 'ct_1',
           contactUserId: 2,
           email: 'b@test.test',
-          data: ContactData(
-            contactUserId: 2,
-            name: 'B',
-            birthDate: '2001-04-02',
-          ),
+          data: ContactData(contactUserId: 2, name: 'B'),
           profilePictureAttachmentId: 'att_1',
           isDeleted: false,
           createdAt: 10,
@@ -71,10 +67,7 @@ void main() {
     );
 
     expect(preferences.getString('entity_key_contact_1'), 'enc-key');
-    expect(
-      preferences.getString('entity_key_header_contact_1'),
-      'enc-header',
-    );
+    expect(preferences.getString('entity_key_header_contact_1'), 'enc-header');
 
     final synced = await service.sync();
     expect(synced, hasLength(1));
@@ -83,63 +76,66 @@ void main() {
     expect(cached.single.profilePictureAttachmentId, 'att_1');
   });
 
-  test('open does not persist an unresolved wrapped root contact key',
-      () async {
-    rustApi.rootKeySource = RootKeySource.unresolved;
-    rustApi.openWrappedRootContactKey = null;
+  test(
+    'open does not persist an unresolved wrapped root contact key',
+    () async {
+      rustApi.rootKeySource = RootKeySource.unresolved;
+      rustApi.openWrappedRootContactKey = null;
 
-    await service.open(
-      ContactsSession(
-        baseUrl: 'http://localhost:8080',
-        authToken: 'token',
-        userId: 1,
-        accountKey: Uint8List.fromList([1, 2, 3]),
-      ),
-    );
+      await service.open(
+        ContactsSession(
+          baseUrl: 'http://localhost:8080',
+          authToken: 'token',
+          userId: 1,
+          accountKey: Uint8List.fromList([1, 2, 3]),
+        ),
+      );
 
-    expect(preferences.getString('entity_key_contact_1'), isNull);
-    expect(preferences.getString('entity_key_header_contact_1'), isNull);
-  });
+      expect(preferences.getString('entity_key_contact_1'), isNull);
+      expect(preferences.getString('entity_key_header_contact_1'), isNull);
+    },
+  );
 
   test(
-      'sync persists a resolved wrapped root contact key after unresolved open',
-      () async {
-    rustApi.rootKeySource = RootKeySource.unresolved;
-    rustApi.openWrappedRootContactKey = null;
-    rustApi.diffPages = [
-      [
-        const ContactRecord(
-          id: 'ct_1',
-          contactUserId: 2,
-          email: 'b@test.test',
-          data: ContactData(contactUserId: 2, name: 'B'),
-          profilePictureAttachmentId: null,
-          isDeleted: false,
-          createdAt: 10,
-          updatedAt: 20,
+    'sync persists a resolved wrapped root contact key after unresolved open',
+    () async {
+      rustApi.rootKeySource = RootKeySource.unresolved;
+      rustApi.openWrappedRootContactKey = null;
+      rustApi.diffPages = [
+        [
+          const ContactRecord(
+            id: 'ct_1',
+            contactUserId: 2,
+            email: 'b@test.test',
+            data: ContactData(contactUserId: 2, name: 'B'),
+            profilePictureAttachmentId: null,
+            isDeleted: false,
+            createdAt: 10,
+            updatedAt: 20,
+          ),
+        ],
+        const [],
+      ];
+
+      await service.open(
+        ContactsSession(
+          baseUrl: 'http://localhost:8080',
+          authToken: 'token',
+          userId: 1,
+          accountKey: Uint8List.fromList([1, 2, 3]),
         ),
-      ],
-      const [],
-    ];
+      );
+      expect(preferences.getString('entity_key_contact_1'), isNull);
 
-    await service.open(
-      ContactsSession(
-        baseUrl: 'http://localhost:8080',
-        authToken: 'token',
-        userId: 1,
-        accountKey: Uint8List.fromList([1, 2, 3]),
-      ),
-    );
-    expect(preferences.getString('entity_key_contact_1'), isNull);
+      await service.sync();
 
-    await service.sync();
-
-    expect(preferences.getString('entity_key_contact_1'), 'enc-key');
-    expect(
-      preferences.getString('entity_key_header_contact_1'),
-      'enc-header',
-    );
-  });
+      expect(preferences.getString('entity_key_contact_1'), 'enc-key');
+      expect(
+        preferences.getString('entity_key_header_contact_1'),
+        'enc-header',
+      );
+    },
+  );
 
   test('create and profile-picture changes update local cache', () async {
     rustApi.rootKeySource = RootKeySource.unresolved;
@@ -159,10 +155,7 @@ void main() {
       const ContactData(contactUserId: 2, name: 'B'),
     );
     expect(preferences.getString('entity_key_contact_1'), 'enc-key');
-    expect(
-      preferences.getString('entity_key_header_contact_1'),
-      'enc-header',
-    );
+    expect(preferences.getString('entity_key_header_contact_1'), 'enc-header');
     expect((await service.getContact(created.id))!.data!.name, 'B');
     expect((await service.getContactByUserId(2))!.id, created.id);
 
@@ -190,25 +183,27 @@ void main() {
     expect(await database.getCachedAttachment('att_profile'), isNull);
   });
 
-  test('getContactByUserId resolves cached contact without scanning all rows',
-      () async {
-    await service.open(
-      ContactsSession(
-        baseUrl: 'http://localhost:8080',
-        authToken: 'token',
-        userId: 1,
-        accountKey: Uint8List.fromList([1, 2, 3]),
-      ),
-    );
+  test(
+    'getContactByUserId resolves cached contact without scanning all rows',
+    () async {
+      await service.open(
+        ContactsSession(
+          baseUrl: 'http://localhost:8080',
+          authToken: 'token',
+          userId: 1,
+          accountKey: Uint8List.fromList([1, 2, 3]),
+        ),
+      );
 
-    final created = await service.createContact(
-      const ContactData(contactUserId: 42, name: 'Douglas'),
-    );
+      final created = await service.createContact(
+        const ContactData(contactUserId: 42, name: 'Douglas'),
+      );
 
-    final cached = await service.getContactByUserId(42);
-    expect(cached?.id, created.id);
-    expect(cached?.data?.name, 'Douglas');
-  });
+      final cached = await service.getContactByUserId(42);
+      expect(cached?.id, created.id);
+      expect(cached?.data?.name, 'Douglas');
+    },
+  );
 
   test('open can resolve account key from provider', () async {
     await service.open(
@@ -311,10 +306,7 @@ void main() {
             id: 'ct_1',
             contactUserId: 2,
             email: 'b@test.test',
-            data: ContactData(
-              contactUserId: 2,
-              name: 'B',
-            ),
+            data: ContactData(contactUserId: 2, name: 'B'),
             profilePictureAttachmentId: 'att_keep',
             isDeleted: false,
             createdAt: 10,
@@ -402,9 +394,9 @@ class FakeContactsRustApi implements ContactsRustApi {
   RootKeySource rootKeySource = RootKeySource.cache;
   WrappedRootContactKey? openWrappedRootContactKey =
       const WrappedRootContactKey(
-    encryptedKey: 'enc-key',
-    header: 'enc-header',
-  );
+        encryptedKey: 'enc-key',
+        header: 'enc-header',
+      );
 
   @override
   Future<OpenContactsContextResult> open(OpenContactsContextInput input) async {

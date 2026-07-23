@@ -1,28 +1,25 @@
 [package]
 name = "ente-accounts"
-version = "0.0.1"
 edition = "2024"
 
+[features]
+museum = []
+
 [dependencies]
-ente-core = { path = "../core", features = ["srp"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-thiserror = "2"
+ente-core = { workspace = true, features = ["srp"] }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
 base64 = "0.22"
-futures-timer = "3"
 uuid = { version = "1.11", features = ["js", "serde", "v4"] }
 zeroize = { version = "1.8", features = ["derive"] }
-log = "0.4"
 urlencoding = "2.1"
 
 [dev-dependencies]
+ente-test-support.workspace = true
+hmac = "0.13"
 mockito = "1.6"
 sha2 = "0.11"
-# Pinned to upstream commit that includes the padded-u interop fix for
-# leading-zero A/B wire values (matches our Go SRP server behavior):
-# https://github.com/RustCrypto/PAKEs/pull/285
-srp = { git = "https://github.com/RustCrypto/PAKEs", package = "srp", rev = "5b3bd1f3a9d51121a698ffe5d6ecc33cafcd6413", default-features = false }
+sha1 = "0.11"
+srp = { version = "0.7.0-rc.3", default-features = false }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
-
-[lints.rust]
-missing_docs = "warn"

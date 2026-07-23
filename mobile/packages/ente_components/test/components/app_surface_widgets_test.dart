@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:ente_components/components/app_bar_component.dart';
 import 'package:ente_components/components/menu_component.dart';
 import 'package:ente_components/components/menu_group_component.dart';
+import 'package:ente_components/components/tooltip_component.dart';
 import 'package:ente_components/theme/colors.dart';
 import 'package:ente_components/theme/icon_sizes.dart';
+import 'package:ente_components/theme/text_styles.dart';
 import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,12 +17,13 @@ Future<void> pumpComponent(
   double width = 420,
   double? height,
   TextScaler textScaler = TextScaler.noScaling,
+  bool boldText = false,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: ComponentTheme.lightTheme(),
       home: MediaQuery(
-        data: MediaQueryData(textScaler: textScaler),
+        data: MediaQueryData(textScaler: textScaler, boldText: boldText),
         child: Scaffold(
           body: Align(
             alignment: Alignment.topLeft,
@@ -533,9 +536,9 @@ void main() {
     );
     expect(
       tester.getCenter(find.byKey(const ValueKey('header-leading'))).dy,
-      closeTo(71, 1),
+      closeTo(89, 1),
     );
-    expect(tester.getCenter(find.byIcon(Icons.add)).dy, closeTo(67, 1));
+    expect(tester.getCenter(find.byIcon(Icons.add)).dy, closeTo(89, 1));
 
     await tester.tap(find.byKey(const ValueKey('header-leading')));
     await tester.pump();
@@ -568,6 +571,206 @@ void main() {
       closeTo(tester.getCenter(find.byIcon(Icons.arrow_back)).dy, 1),
     );
     expect(find.text('Menu items'), findsWidgets);
+  });
+
+  testWidgets('SliverAppBarComponent supports tap tooltip title reveal', (
+    tester,
+  ) async {
+    const title = 'Aman';
+
+    await pumpComponent(
+      tester,
+      CustomScrollView(
+        slivers: [
+          const SliverAppBarComponent(
+            title: title,
+            actions: [Icon(Icons.search), Icon(Icons.more_vert)],
+          ),
+          SliverList.builder(
+            itemCount: 8,
+            itemBuilder: (context, index) {
+              return SizedBox(height: 60, child: Text('Item $index'));
+            },
+          ),
+        ],
+      ),
+      width: 320,
+      height: 360,
+    );
+
+    expect(find.byType(TooltipComponent), findsOneWidget);
+    expect(tester.getSize(find.byType(TooltipComponent)).width, lessThan(160));
+    expect(find.byType(TooltipBubbleComponent), findsNothing);
+
+    await tester.tap(find.byType(TooltipComponent));
+    await tester.pump();
+
+    expect(find.byType(TooltipBubbleComponent), findsOneWidget);
+    expect(
+      tester.getSize(find.byType(TooltipBubbleComponent)).width,
+      lessThan(160),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('SliverAppBarComponent measures titles with bold text style', (
+    tester,
+  ) async {
+    const title = 'Summer Vacation';
+
+    await pumpComponent(
+      tester,
+      CustomScrollView(
+        slivers: [
+          const SliverAppBarComponent(
+            title: title,
+            actions: [Icon(Icons.more_vert)],
+          ),
+          SliverList.builder(
+            itemCount: 8,
+            itemBuilder: (context, index) {
+              return SizedBox(height: 60, child: Text('Item $index'));
+            },
+          ),
+        ],
+      ),
+      width: 320,
+      height: 360,
+      boldText: true,
+    );
+
+    expect(
+      tester.widget<Text>(find.text(title)).style?.fontWeight,
+      FontWeight.bold,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('SliverAppBarComponent keeps tap tooltip with title gestures', (
+    tester,
+  ) async {
+    var longPressed = false;
+
+    await pumpComponent(
+      tester,
+      CustomScrollView(
+        slivers: [
+          SliverAppBarComponent(
+            title: 'aman@example.com',
+            onTitleLongPress: () => longPressed = true,
+            actions: const [Icon(Icons.search), Icon(Icons.more_vert)],
+          ),
+          SliverList.builder(
+            itemCount: 8,
+            itemBuilder: (context, index) {
+              return SizedBox(height: 60, child: Text('Item $index'));
+            },
+          ),
+        ],
+      ),
+      width: 320,
+      height: 360,
+    );
+
+    expect(find.byType(TooltipComponent), findsOneWidget);
+    expect(find.byType(TooltipBubbleComponent), findsNothing);
+
+    await tester.tap(find.byType(TooltipComponent));
+    await tester.pump();
+
+    expect(find.byType(TooltipBubbleComponent), findsOneWidget);
+    expect(longPressed, isFalse);
+
+    await tester.tapAt(Offset.zero);
+    await tester.pump();
+
+    await tester.longPress(find.byType(TooltipComponent));
+    await tester.pump();
+
+    expect(longPressed, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('SliverAppBarComponent can disable tap tooltip title reveal', (
+    tester,
+  ) async {
+    await pumpComponent(
+      tester,
+      CustomScrollView(
+        slivers: [
+          const SliverAppBarComponent(
+            title: 'Aman',
+            disableTitleTapReveal: true,
+            actions: [Icon(Icons.search)],
+          ),
+          SliverList.builder(
+            itemCount: 8,
+            itemBuilder: (context, index) {
+              return SizedBox(height: 60, child: Text('Item $index'));
+            },
+          ),
+        ],
+      ),
+      width: 320,
+      height: 360,
+    );
+
+    expect(find.byType(TooltipComponent), findsNothing);
+    expect(find.byType(TooltipBubbleComponent), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('SliverAppBarComponent preserves tap-only title callbacks', (
+    tester,
+  ) async {
+    var tapped = false;
+
+    await pumpComponent(
+      tester,
+      CustomScrollView(
+        slivers: [
+          SliverAppBarComponent(
+            title: 'Tap me',
+            onTitleTap: () => tapped = true,
+            actions: const [Icon(Icons.search)],
+          ),
+          SliverList.builder(
+            itemCount: 8,
+            itemBuilder: (context, index) {
+              return SizedBox(height: 60, child: Text('Item $index'));
+            },
+          ),
+        ],
+      ),
+      width: 320,
+      height: 360,
+    );
+
+    expect(find.byType(TooltipComponent), findsNothing);
+
+    await tester.tap(find.text('Tap me'));
+    await tester.pump();
+
+    expect(tapped, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('TooltipBubbleComponent renders top pointer bubble', (
+    tester,
+  ) async {
+    await pumpComponent(
+      tester,
+      const TooltipBubbleComponent(message: 'Tooltip text'),
+      width: 390,
+      height: 200,
+    );
+
+    expect(find.byType(TooltipBubbleComponent), findsOneWidget);
+    final tooltipText = tester.widget<Text>(find.text('Tooltip text'));
+    expect(tooltipText.style?.fontSize, 12);
+    expect(tooltipText.style?.fontWeight, FontWeight.w500);
+    expect(tooltipText.style?.height, 16 / 12);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(
@@ -603,13 +806,15 @@ void main() {
       await tester.pump();
 
       final title = tester.widget<Text>(find.text('Menu items'));
-      expect(title.style?.fontSize, greaterThan(18));
+      expect(title.style?.fontSize, greaterThan(16));
+      expect(title.style?.fontFamily, TextStyles.display2.fontFamily);
 
-      scrollController.jumpTo(54);
+      scrollController.jumpTo(74);
       await tester.pump();
 
       final collapsedTitle = tester.widget<Text>(find.text('Menu items'));
-      expect(collapsedTitle.style?.fontSize, closeTo(18, 0.01));
+      expect(collapsedTitle.style?.fontSize, closeTo(20, 0.01));
+      expect(collapsedTitle.style?.fontFamily, TextStyles.display3.fontFamily);
       expect(tester.getTopLeft(find.text('Item 0')).dy, closeTo(56, 1));
     },
   );
@@ -640,14 +845,15 @@ void main() {
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -40));
     await tester.pumpAndSettle();
 
-    expect(scrollController.offset, closeTo(54, 1));
+    expect(scrollController.offset, closeTo(74, 1));
     final collapsedTitle = tester.widget<Text>(find.text('Appearance'));
-    expect(collapsedTitle.style?.fontSize, closeTo(18, 0.01));
+    expect(collapsedTitle.style?.fontSize, closeTo(20, 0.01));
+    expect(collapsedTitle.style?.fontFamily, TextStyles.display3.fontFamily);
     expect(tester.getTopLeft(find.text('System theme')).dy, closeTo(56, 1));
 
     await tester.drag(find.byType(CustomScrollView), const Offset(0, 32));
     await tester.pumpAndSettle();
-    expect(scrollController.offset, closeTo(54, 1));
+    expect(scrollController.offset, closeTo(74, 1));
 
     await tester.drag(find.byType(CustomScrollView), const Offset(0, 120));
     await tester.pumpAndSettle();
@@ -725,7 +931,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text(title), findsOneWidget);
-    expect(tester.getBottomLeft(find.text(title)).dy, lessThanOrEqualTo(118));
+    expect(tester.getBottomLeft(find.text(title)).dy, lessThanOrEqualTo(128));
 
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -240));
     await tester.pump();

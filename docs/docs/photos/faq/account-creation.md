@@ -12,8 +12,8 @@ description: Frequently asked questions about installing, setting up, and creati
 The easiest way to install Ente Photos for Android is through [PlayStore](https://play.google.com/store/apps/details?id=io.ente.photos). However, you can also download it through other channels, based on your preferences:
 
 - [F-Droid](https://f-droid.org/packages/io.ente.photos.fdroid/)
-- [GitHub](https://github.com/ente-io/ente/releases?q=photos-v1)
-- [Obtanium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22io.ente.photos.independent%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fente-io%2Fente%22%2C%22author%22%3A%22ente-io%22%2C%22name%22%3A%22Ente%20Photos%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22filterReleaseNotesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22verifyLatestTag%5C%22%3Afalse%2C%5C%22dontSortReleasesList%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Afalse%2C%5C%22releaseTitleAsVersion%5C%22%3Afalse%2C%5C%22trackOnly%5C%22%3Afalse%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%5C%22%2C%5C%22versionDetection%5C%22%3Atrue%2C%5C%22releaseDateAsVersion%5C%22%3Afalse%2C%5C%22useVersionCodeAsOSVersion%5C%22%3Afalse%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22ente-photos*%5C%22%2C%5C%22invertAPKFilter%5C%22%3Afalse%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22%5C%22%2C%5C%22shizukuPretendToBeGooglePlay%5C%22%3Afalse%2C%5C%22allowInsecure%5C%22%3Afalse%2C%5C%22exemptFromBackgroundUpdates%5C%22%3Afalse%2C%5C%22skipUpdateNotifications%5C%22%3Afalse%2C%5C%22about%5C%22%3A%5C%22%5C%22%7D%22%2C%22overrideSource%22%3Anull%7D)
+- [GitHub](https://github.com/ente/ente/releases?q=photos-v1)
+- [Obtanium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22io.ente.photos.independent%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fente%2Fente%22%2C%22author%22%3A%22ente%22%2C%22name%22%3A%22Ente%20Photos%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22filterReleaseNotesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22verifyLatestTag%5C%22%3Afalse%2C%5C%22dontSortReleasesList%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Afalse%2C%5C%22releaseTitleAsVersion%5C%22%3Afalse%2C%5C%22trackOnly%5C%22%3Afalse%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%5C%22%2C%5C%22versionDetection%5C%22%3Atrue%2C%5C%22releaseDateAsVersion%5C%22%3Afalse%2C%5C%22useVersionCodeAsOSVersion%5C%22%3Afalse%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22ente-photos*%5C%22%2C%5C%22invertAPKFilter%5C%22%3Afalse%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22%5C%22%2C%5C%22shizukuPretendToBeGooglePlay%5C%22%3Afalse%2C%5C%22allowInsecure%5C%22%3Afalse%2C%5C%22exemptFromBackgroundUpdates%5C%22%3Afalse%2C%5C%22skipUpdateNotifications%5C%22%3Afalse%2C%5C%22about%5C%22%3A%5C%22%5C%22%7D%22%2C%22overrideSource%22%3Anull%7D)
 
 ### How do I install Ente Photos on my iPhone or iPad? {#install-ios}
 
@@ -31,7 +31,7 @@ You can install Ente Photos on your desktop by downloading the installer from [o
 
 ### How do I install CLI for Ente Photos? {#install-cli}
 
-Ente's CLI is distributed directly over [GitHub](https://github.com/ente-io/ente/releases?q=tag%3Acli-v0). The CLI is useful for:
+Ente's CLI is distributed directly over [GitHub](https://github.com/ente/ente/releases?q=tag%3Acli-v0). The CLI is useful for:
 
 - Automated exports to NAS or local storage
 - Bulk operations
@@ -49,12 +49,12 @@ Releases over F-Droid are generally slower than other stores since they run thei
 
 ### How can I manually setup Ente Photos installation with Obtanium? {#manual-obtanium}
 
-You can setup [Obtainium](https://github.com/ImranR98/Obtainium) to track our GitHub releases by [clicking this link](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22io.ente.photos.independent%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fente-io%2Fente%22%2C%22author%22%3A%22ente-io%22%2C%22name%22%3A%22Ente%20Photos%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22filterReleaseNotesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22verifyLatestTag%5C%22%3Afalse%2C%5C%22dontSortReleasesList%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Afalse%2C%5C%22releaseTitleAsVersion%5C%22%3Afalse%2C%5C%22trackOnly%5C%22%3Afalse%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%5C%22%2C%5C%22versionDetection%5C%22%3Atrue%2C%5C%22releaseDateAsVersion%5C%22%3Afalse%2C%5C%22useVersionCodeAsOSVersion%5C%22%3Afalse%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22ente-photos*%5C%22%2C%5C%22invertAPKFilter%5C%22%3Afalse%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22%5C%22%2C%5C%22shizukuPretendToBeGooglePlay%5C%22%3Afalse%2C%5C%22allowInsecure%5C%22%3Afalse%2C%5C%22exemptFromBackgroundUpdates%5C%22%3Afalse%2C%5C%22skipUpdateNotifications%5C%22%3Afalse%2C%5C%22about%5C%22%3A%5C%22%5C%22%7D%22%2C%22overrideSource%22%3Anull%7D) to add it instantly.
+You can setup [Obtainium](https://github.com/ImranR98/Obtainium) to track our GitHub releases by [clicking this link](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22io.ente.photos.independent%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fente%2Fente%22%2C%22author%22%3A%22ente%22%2C%22name%22%3A%22Ente%20Photos%22%2C%22preferredApkIndex%22%3A0%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Afalse%2C%5C%22fallbackToOlderReleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22filterReleaseNotesByRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22verifyLatestTag%5C%22%3Afalse%2C%5C%22dontSortReleasesList%5C%22%3Atrue%2C%5C%22useLatestAssetDateAsReleaseDate%5C%22%3Afalse%2C%5C%22releaseTitleAsVersion%5C%22%3Afalse%2C%5C%22trackOnly%5C%22%3Afalse%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%5C%22%2C%5C%22versionDetection%5C%22%3Atrue%2C%5C%22releaseDateAsVersion%5C%22%3Afalse%2C%5C%22useVersionCodeAsOSVersion%5C%22%3Afalse%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22ente-photos*%5C%22%2C%5C%22invertAPKFilter%5C%22%3Afalse%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22%5C%22%2C%5C%22shizukuPretendToBeGooglePlay%5C%22%3Afalse%2C%5C%22allowInsecure%5C%22%3Afalse%2C%5C%22exemptFromBackgroundUpdates%5C%22%3Afalse%2C%5C%22skipUpdateNotifications%5C%22%3Afalse%2C%5C%22about%5C%22%3A%5C%22%5C%22%7D%22%2C%22overrideSource%22%3Anull%7D) to add it instantly.
 
 Alternatively, you can follow these manual steps:
 
 1. Click **Add App** to open a new app config screen
-2. Enter `https://github.com/ente-io/ente` in the **App Source URL** field
+2. Enter `https://github.com/ente/ente` in the **App Source URL** field
 3. Enable the **Retain release order** from API toggle
 4. Scroll down to the **Filter APKs by Regular Expression** field and enter `ente-photos*`
 5. Enable the **Attempt to filter APKs by CPU architecture** if possible toggle
@@ -69,8 +69,7 @@ Alternatively, you can follow these manual steps:
 - **PlayStore, AppStore, F-Droid**: The stores handle updates based on your auto-update settings
 - **GitHub/Obtanium**: You'll get a notification to update and can download the latest APK
 
-**Desktop app:**
-You'll get an in-app notification to update. Ente desktop includes auto-update functionality - whenever updates are deployed, the app will automatically download and install them.
+**Desktop app:** You'll get an in-app notification to update. Ente desktop includes auto-update functionality - whenever updates are deployed, the app will automatically download and install them.
 
 ## Multi-Device Setup
 
@@ -229,3 +228,15 @@ If you're not receiving verification codes:
 The recovery key does not bypass email verification. For security reasons, Ente does not disable or bypass email verification unless the account owner reaches out and successfully verifies their identity by providing account details.
 
 If you lose access to your email, contact [support@ente.com](mailto:support@ente.com).
+
+### Why does Ente say my email address is not registered? {#email-not-registered}
+
+This usually means the account was created with a different email address.
+
+Check whether you may have signed up using:
+
+- An email alias or hide-my-email service
+- A different personal email address
+- Apple Sign-In or another provider-linked email
+
+If you have a paid account, also check how the payment was made. App Store and Stripe payments can help identify which account was used.

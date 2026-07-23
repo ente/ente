@@ -1,21 +1,26 @@
 [package]
 name = "ente-contacts"
-version = "0.0.1"
 edition = "2024"
 
+[features]
+museum = []
+
 [dependencies]
-ente-core = { path = "../core", features = ["srp"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-thiserror = "2"
+ente-core = { workspace = true, features = ["srp"] }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
 md-5 = "0.11"
 sha2 = "0.11"
 uuid = { version = "1", features = ["v4", "js"] }
 
 [dev-dependencies]
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-mockito = "1.6"
-ente-rs = { path = "../../apps/cli" }
-zeroize = { version = "1.8", features = ["derive"] }
-reqwest = { version = "0.12", features = ["json", "rustls-tls-native-roots"] }
 base64 = "0.22"
+ente-accounts.workspace = true
+ente-test-support.workspace = true
+hmac = "0.13"
+mockito = "1.6"
+reqwest = { version = "0.12", features = ["json", "rustls-tls-native-roots"] }
+sha1 = "0.11"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
+zeroize = { version = "1.8", features = ["derive"] }

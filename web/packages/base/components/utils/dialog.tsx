@@ -1,4 +1,4 @@
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
 import { t } from "i18next";
 import { useCallback, useState } from "react";
 import type { MiniDialogAttributes } from "../MiniDialog";
@@ -53,7 +53,7 @@ export const errorDialogAttributes = (
 
     return {
         title,
-        icon: <ErrorOutlineIcon />,
+        icon: <ErrorOutlinedIcon />,
         message,
         continue: { color: "critical" },
         cancel: false,

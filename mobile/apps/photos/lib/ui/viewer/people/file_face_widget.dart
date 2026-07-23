@@ -135,7 +135,8 @@ class _FileFaceWidgetState extends State<FileFaceWidget> {
         _logger.severe("Missing file ID for face crop generation");
         return null;
       }
-      final Face? faceToUse = widget.face ??
+      final Face? faceToUse =
+          widget.face ??
           await mlDataDB.getCoverFaceForPerson(
             recentFileID: recentFileID,
             clusterID: widget.clusterID,

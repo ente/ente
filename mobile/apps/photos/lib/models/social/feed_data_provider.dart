@@ -168,16 +168,17 @@ class FeedDataProvider {
 
     // Aggregate shared photos (files added by others to user's collections)
     if (includeSharedPhotos) {
-      final sharedFeedCutoffTime =
-          kDebugMode ? 0 : localSettings.getOrCreateSharedPhotoFeedCutoffTime();
+      final sharedFeedCutoffTime = kDebugMode
+          ? 0
+          : localSettings.getOrCreateSharedPhotoFeedCutoffTime();
       final sharedCollectionsContext =
           _SharedCollectionsContext.fromCollections(
-        CollectionsService.instance.getCollectionsForUI(
-          includedShared: true,
-          includeCollab: true,
-        ),
-        userID: userID,
-      );
+            CollectionsService.instance.getCollectionsForUI(
+              includedShared: true,
+              includeCollab: true,
+            ),
+            userID: userID,
+          );
 
       final sharedPhotoFeedResult = await _getSharedPhotoFeedResult(
         userID: userID,
@@ -218,18 +219,15 @@ class FeedDataProvider {
 
   /// Gets a single feed item for preview display.
   Future<FeedItem?> getLatestFeedItem() async {
-    final items = await getFeedItems(
-      limit: 1,
-      verifyFileExistence: false,
-    );
+    final items = await getFeedItems(limit: 1, verifyFileExistence: false);
     return items.isNotEmpty ? items.first : null;
   }
 
   /// Triggers background sync for all shared collections.
   Future<bool> syncAllSharedCollections() async {
     try {
-      final hasNewData =
-          await SocialSyncService.instance.syncAllSharedCollections();
+      final hasNewData = await SocialSyncService.instance
+          .syncAllSharedCollections();
       await SocialNotificationCoordinator.instance.notifyAfterSocialSync(
         trigger: SocialNotificationTrigger.feedRefresh,
       );
@@ -240,14 +238,12 @@ class FeedDataProvider {
     }
   }
 
-  List<FeedItem> _filterHiddenCollectionsOnly(
-    List<FeedItem> items,
-  ) {
+  List<FeedItem> _filterHiddenCollectionsOnly(List<FeedItem> items) {
     if (items.isEmpty) {
       return items;
     }
-    final hiddenCollectionIds =
-        CollectionsService.instance.getHiddenCollectionIds();
+    final hiddenCollectionIds = CollectionsService.instance
+        .getHiddenCollectionIds();
     return items
         .where((item) => !hiddenCollectionIds.contains(item.collectionID))
         .toList();
@@ -295,8 +291,8 @@ class FeedDataProvider {
         createdAt: reactions.first.createdAt,
         isOwnedByCurrentUser:
             fileID != null && filesByID[fileID]?.ownerID == userID,
-        isVideo: fileID != null &&
-            filesByID[fileID]?.fileType == FileType.video,
+        isVideo:
+            fileID != null && filesByID[fileID]?.fileType == FileType.video,
       );
     }).toList();
   }
@@ -343,8 +339,8 @@ class FeedDataProvider {
         createdAt: comments.first.createdAt,
         isOwnedByCurrentUser:
             fileID != null && filesByID[fileID]?.ownerID == userID,
-        isVideo: fileID != null &&
-            filesByID[fileID]?.fileType == FileType.video,
+        isVideo:
+            fileID != null && filesByID[fileID]?.fileType == FileType.video,
       );
     }).toList();
   }
@@ -465,8 +461,8 @@ class FeedDataProvider {
     required Map<int, int> incomingCollectionSharedAtByID,
     required int sharedFeedCutoffTime,
   }) async {
-    final hiddenCollectionIds =
-        CollectionsService.instance.getHiddenCollectionIds();
+    final hiddenCollectionIds = CollectionsService.instance
+        .getHiddenCollectionIds();
 
     final groupingState = _SharedPhotoGroupingState(
       sessionGapMicros: _kSharedPhotoSessionGapMicros,
@@ -517,7 +513,8 @@ class FeedDataProvider {
         }
       }
 
-      final reachedEnd = pageFiles.length < _kSharedPhotoFetchPageSize ||
+      final reachedEnd =
+          pageFiles.length < _kSharedPhotoFetchPageSize ||
           retainedRows >= _kSharedPhotoFetchMaxRows;
       if (retainedRows == 0) {
         if (reachedEnd) {
@@ -548,7 +545,8 @@ class FeedDataProvider {
 
         // Once we've scanned older than this threshold, unseen rows cannot
         // extend any of the top groups.
-        final topGroupsAreClosed = oldestFetchedAddedTime <
+        final topGroupsAreClosed =
+            oldestFetchedAddedTime <
             (minOldestAddedTime - _kSharedPhotoSessionGapMicros);
         if (topGroupsAreClosed || reachedEnd) {
           return _toSharedPhotoFeedResult(
@@ -635,8 +633,9 @@ class FeedDataProvider {
           return FeedItem(
             type: FeedItemType.sharedCollection,
             collectionID: collection.id,
-            fileID:
-                sharedFileIDs?.isNotEmpty == true ? sharedFileIDs!.first : null,
+            fileID: sharedFileIDs?.isNotEmpty == true
+                ? sharedFileIDs!.first
+                : null,
             actorUserIDs: [ownerID],
             actorAnonIDs: [null],
             createdAt: collection.sharedAt!,
@@ -657,14 +656,12 @@ class FeedDataProvider {
   ///
   /// For sharedPhoto items, validates only the representative fileID.
   /// The underlying shared list comes from live files-table rows.
-  Future<List<FeedItem>> _filterFeedItems(
-    List<FeedItem> items,
-  ) async {
+  Future<List<FeedItem>> _filterFeedItems(List<FeedItem> items) async {
     if (items.isEmpty) return items;
 
     // Get hidden collection IDs to filter out
-    final hiddenCollectionIds =
-        CollectionsService.instance.getHiddenCollectionIds();
+    final hiddenCollectionIds = CollectionsService.instance
+        .getHiddenCollectionIds();
 
     // Collect unique (fileID, collectionID) pairs
     final filesToCheck = <(int, int)>{};
@@ -682,8 +679,8 @@ class FeedDataProvider {
     }
 
     // Check which files exist using batch query (single DB call)
-    final existingFilesByCollection =
-        await FilesDB.instance.getExistingFileIDsByCollection(filesToCheck);
+    final existingFilesByCollection = await FilesDB.instance
+        .getExistingFileIDsByCollection(filesToCheck);
 
     // Filter and transform items
     final result = <FeedItem>[];
@@ -787,8 +784,8 @@ class _SharedPhotoGroupBuilder {
     required this.ownerID,
     required this.createdAt,
     required int firstFileID,
-  })  : oldestAddedTime = createdAt,
-        sharedFileIDs = [firstFileID];
+  }) : oldestAddedTime = createdAt,
+       sharedFileIDs = [firstFileID];
 
   void add(int fileID, int addedTime) {
     sharedFileIDs.add(fileID);
@@ -811,9 +808,7 @@ class _SharedPhotoGroupingState {
   final Map<String, _SharedPhotoGroupBuilder> _activeGroups = {};
   final List<_SharedPhotoGroup> _closedGroups = [];
 
-  _SharedPhotoGroupingState({
-    required this.sessionGapMicros,
-  });
+  _SharedPhotoGroupingState({required this.sessionGapMicros});
 
   int get roughGroupCount => _closedGroups.length + _activeGroups.length;
 

@@ -1,4 +1,4 @@
-import type { LockerItemType } from "types";
+import type { LockerItemType } from "@/types";
 
 type LockerInfoInternalType = Exclude<LockerItemType, "file">;
 

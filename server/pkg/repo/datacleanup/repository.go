@@ -4,9 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	entity "github.com/ente-io/museum/ente/data_cleanup"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	entity "github.com/ente/museum/ente/data_cleanup"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 )
 
 // Repository wraps out interaction related to data_cleanup database table
@@ -19,14 +19,40 @@ func (r *Repository) Insert(ctx context.Context, userID int64) error {
 	return stacktrace.Propagate(err, "failed to insert")
 }
 
+func (r *Repository) HasScheduledDelete(ctx context.Context, userID int64) (bool, error) {
+	var exists bool
+	err := r.DB.QueryRowContext(ctx, `SELECT EXISTS(
+		SELECT 1 FROM data_cleanup WHERE user_id = $1 AND stage = $2
+	)`, userID, entity.Scheduled).Scan(&exists)
+	return exists, stacktrace.Propagate(err, "failed to check scheduled delete")
+}
+
+func (r *Repository) LockScheduledDelete(ctx context.Context, tx *sql.Tx, userID int64) error {
+	var lockedUserID int64
+	return tx.QueryRowContext(ctx, `SELECT user_id FROM data_cleanup
+		WHERE user_id = $1 AND stage = $2 FOR UPDATE`, userID, entity.Scheduled).Scan(&lockedUserID)
+}
+
 func (r *Repository) RemoveScheduledDelete(ctx context.Context, userID int64) error {
-	res, execErr := r.DB.ExecContext(ctx, `DELETE from data_cleanup where user_id= $1 and stage = $2`, userID, entity.Scheduled)
-	if execErr != nil {
-		return execErr
+	return removeScheduledDelete(ctx, r.DB, userID)
+}
+
+func (r *Repository) RemoveScheduledDeleteTx(ctx context.Context, tx *sql.Tx, userID int64) error {
+	return removeScheduledDelete(ctx, tx, userID)
+}
+
+type scheduledDeleteExecutor interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+}
+
+func removeScheduledDelete(ctx context.Context, executor scheduledDeleteExecutor, userID int64) error {
+	result, err := executor.ExecContext(ctx, `DELETE FROM data_cleanup WHERE user_id = $1 AND stage = $2`, userID, entity.Scheduled)
+	if err != nil {
+		return err
 	}
-	affected, affErr := res.RowsAffected()
-	if affErr != nil {
-		return affErr
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
 	}
 	if affected != 1 {
 		return fmt.Errorf("only one row should have been affected, got %d", affected)

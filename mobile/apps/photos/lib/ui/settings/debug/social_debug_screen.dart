@@ -13,13 +13,9 @@ class SocialDebugScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    final pageBackgroundColor =
-        isDarkMode ? const Color(0xFF161616) : const Color(0xFFFAFAFA);
 
     return Scaffold(
-      backgroundColor: pageBackgroundColor,
+      backgroundColor: colorScheme.backgroundColour,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -36,10 +32,7 @@ class SocialDebugScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              Text(
-                "Social debug",
-                style: textTheme.h3Bold,
-              ),
+              Text("Social debug", style: textTheme.h3Bold),
               const SizedBox(height: 24),
               Expanded(
                 child: SingleChildScrollView(
@@ -52,6 +45,7 @@ class SocialDebugScreen extends StatelessWidget {
                         onTap: () async {
                           await SocialSyncService.instance
                               .syncAllSharedCollections();
+                          if (!context.mounted) return;
                           showShortToast(context, "Social sync completed");
                         },
                       ),
@@ -62,6 +56,7 @@ class SocialDebugScreen extends StatelessWidget {
                         trailingIconIsMuted: true,
                         onTap: () async {
                           await CollectionsService.instance.sync();
+                          if (!context.mounted) return;
                           showShortToast(context, "Collection sync completed");
                         },
                       ),
@@ -72,6 +67,7 @@ class SocialDebugScreen extends StatelessWidget {
                         trailingIconIsMuted: true,
                         onTap: () async {
                           await SocialDB.instance.seedExampleData();
+                          if (!context.mounted) return;
                           showShortToast(context, "Example data seeded");
                         },
                       ),
@@ -81,8 +77,9 @@ class SocialDebugScreen extends StatelessWidget {
                         trailingIcon: Icons.chevron_right_outlined,
                         trailingIconIsMuted: true,
                         onTap: () async {
-                          final count =
-                              await SocialDB.instance.deleteAllComments();
+                          final count = await SocialDB.instance
+                              .deleteAllComments();
+                          if (!context.mounted) return;
                           showShortToast(context, "Deleted $count comments");
                         },
                       ),
@@ -92,8 +89,9 @@ class SocialDebugScreen extends StatelessWidget {
                         trailingIcon: Icons.chevron_right_outlined,
                         trailingIconIsMuted: true,
                         onTap: () async {
-                          final count =
-                              await SocialDB.instance.deleteAllReactions();
+                          final count = await SocialDB.instance
+                              .deleteAllReactions();
+                          if (!context.mounted) return;
                           showShortToast(context, "Deleted $count reactions");
                         },
                       ),

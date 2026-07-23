@@ -1,68 +1,42 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Documentation for Ente's products published at [ente.com/help](https://ente.com/help). Built with VitePress.
 
-## Commit Message Guidelines
+## Development commands
 
-When making commits, follow these rules:
-
-- Keep messages CONCISE (no walls of text)
-- Subject line under 72 chars as a single sentence (no body text, no bullets, no lists)
-- NO emojis
-- NO promotional text or links
-- NO Co-Authored-By lines
-
-Example:
-
-```
-Format markdown files with Prettier for consistent styling
+```sh
+npm ci          # Install dependencies
+npm run dev     # Start local dev server
+npm run build   # Build for production
 ```
 
-## Repository Overview
+Use `npm install` only when intentionally adding or updating dependencies, or if `package-lock.json` has not changed since the last `npm ci`.
 
-Documentation for Ente's products (Photos, Auth, self-hosting), published at [ente.com/help](https://ente.com/help). Built with VitePress.
+## Commit messages
 
-## Development Commands
+Keep commit messages brief — one-liners unless asked otherwise. No emojis, no promotional text or links, no Co-Authored-By lines.
 
-```bash
-yarn install --frozen-lockfile  # Install dependencies from the committed lockfile
-yarn dev           # Start local dev server
-yarn build         # Build for production
-yarn pretty        # Format all files with Prettier
-```
+## Sidebar
 
-Use plain `yarn install` only when intentionally updating dependencies and
-reviewing the resulting `yarn.lock` changes.
+New pages must be added by hand to `docs/.vitepress/sidebar.ts` — VitePress does not auto-generate the sidebar.
 
-## Critical Architecture Notes
+## Style guide
 
-**Adding new pages**: New pages MUST be manually added to `docs/.vitepress/sidebar.ts` - VitePress does not auto-generate the sidebar.
+Full guide: `docs/photos/STYLE_GUIDE.md`. Key conventions:
 
-## Style Guide
+Voice and terminology:
 
-Full style guide: `docs/photos/STYLE_GUIDE.md`. Key requirements:
+- Imperative voice: "Open Settings", not "You can open Settings".
+- "Open" for navigation, not "Go to" or "Navigate to".
+- "Tap" on mobile, "Click" on desktop and web.
+- Settings paths are code-formatted with `>`, e.g. `` `Settings > Backup > Folders` ``.
 
-**Voice and terminology:**
+Platform instructions use bold headers: `**On mobile:**`, `**On desktop:**`, `**On web:**`, `**On iOS:**`, and so on.
 
-- Use imperative voice: "Open Settings" not "You can open Settings"
-- Use **Open** for navigation (NOT "Go to" or "Navigate to")
-- **Tap** for mobile, **Click** for desktop/web
-- Settings paths: `` `Settings > Backup > Folders` `` (code-formatted with `>`)
+FAQ questions need unique anchor IDs: `### Question? {#descriptive-anchor-id}`. Use descriptive IDs (`{#enable-face-recognition-ml}`, not `{#faq1}`), and keep them unique across all FAQ files. Check for duplicates with:
 
-**Platform instructions** - always use bold headers:
-
-- `**On mobile:**`, `**On desktop:**`, `**On web:**`, `**On iOS:**`, etc.
-
-**FAQ requirements** - ALL questions MUST have unique anchor IDs:
-
-- Format: `### Question? {#unique-anchor-id}`
-- Descriptive IDs: `{#enable-face-recognition-ml}` NOT `{#faq1}`
-- Must be unique across ALL FAQ files
-
-Check for duplicates:
-
-```bash
+```sh
 grep -rh "{#[a-z0-9-]*}" docs/photos/faq/*.md | sed 's/.*{#\([^}]*\)}.*/\1/' | sort | uniq -d
 ```
 
-**Links:** Use "Learn more" (NOT "See more", "For more details", "Read more")
+Links: use "Learn more", not "See more", "For more details", or "Read more".

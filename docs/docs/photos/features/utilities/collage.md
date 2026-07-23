@@ -7,7 +7,9 @@ description: Create and customize photo collages directly in the Ente Photos mob
 
 Create quick collages on iOS or Android by selecting a handful of photos and arranging them into a layout you can save or share.
 
-> **Note**: Collage is available only in the mobile apps (iOS and Android). Web and desktop do not support collage creation.
+> [!NOTE]
+>
+> Collage is available only in the mobile apps (iOS and Android). Web and desktop do not support collage creation.
 
 ## Create a collage
 

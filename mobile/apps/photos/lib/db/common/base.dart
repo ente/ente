@@ -8,10 +8,7 @@ mixin SqlDbBase {
     if (count <= 0) {
       throw ArgumentError.value(count, "count", "must be greater than 0");
     }
-    return _params.putIfAbsent(
-      count,
-      () => List.filled(count, "?").join(", "),
-    );
+    return _params.putIfAbsent(count, () => List.filled(count, "?").join(", "));
   }
 
   Future<void> migrate(

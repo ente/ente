@@ -3,9 +3,9 @@ package repo
 import (
 	"database/sql"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
 )
 
@@ -50,6 +50,11 @@ func (repo *PushTokenRepository) SetLastNotificationTimeToNow(pushTokens []ente.
 
 func (repo *PushTokenRepository) RemoveTokensOlderThan(creationTime int64) error {
 	_, err := repo.DB.Exec(`DELETE FROM push_tokens WHERE updated_at <= $1`, creationTime)
+	return stacktrace.Propagate(err, "")
+}
+
+func (repo *PushTokenRepository) RemoveTokensByFCM(fcmTokens []string) error {
+	_, err := repo.DB.Exec(`DELETE FROM push_tokens WHERE fcm_token = ANY($1)`, pq.Array(fcmTokens))
 	return stacktrace.Propagate(err, "")
 }
 

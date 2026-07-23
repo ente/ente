@@ -3,12 +3,12 @@ package pkg
 import (
 	"context"
 	"fmt"
-	"github.com/ente-io/cli/pkg/model"
-	"github.com/ente-io/cli/utils/encoding"
+	"github.com/ente/cli/pkg/model"
+	"github.com/ente/cli/utils/encoding"
 )
 
 func boltAEKey(entry *model.AlbumFileEntry) []byte {
-	return []byte(fmt.Sprintf("%d:%d", entry.AlbumID, entry.FileID))
+	return fmt.Appendf(nil, "%d:%d", entry.AlbumID, entry.FileID)
 }
 
 func (c *ClICtrl) DeleteAlbumEntry(ctx context.Context, entry *model.AlbumFileEntry) error {

@@ -3,9 +3,9 @@ title: Miscellaneous FAQ
 description: Additional frequently asked questions about Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Miscellaneous FAQ

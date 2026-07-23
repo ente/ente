@@ -6,14 +6,16 @@ import "package:photos/models/file/file.dart";
 import "package:photos/services/collections_service.dart";
 
 Uint8List getFileKey(EnteFile file) {
-  final collectionKey =
-      CollectionsService.instance.getCollectionKey(file.collectionID!);
+  final collectionKey = CollectionsService.instance.getCollectionKey(
+    file.collectionID!,
+  );
   return getFileKeyWithCollectionKey(file, collectionKey);
 }
 
 Uint8List getPublicFileKey(EnteFile file) {
-  final collectionKey =
-      CollectionsService.instance.getPublicCollectionKey(file.collectionID!);
+  final collectionKey = CollectionsService.instance.getPublicCollectionKey(
+    file.collectionID!,
+  );
   return getFileKeyWithCollectionKey(file, collectionKey);
 }
 
@@ -24,14 +26,16 @@ Uint8List getFileKeyWithCollectionKey(EnteFile file, Uint8List collectionKey) {
 }
 
 Future<Uint8List> getFileKeyUsingBgWorker(EnteFile file) async {
-  final collectionKey =
-      CollectionsService.instance.getCollectionKey(file.collectionID!);
+  final collectionKey = CollectionsService.instance.getCollectionKey(
+    file.collectionID!,
+  );
   return getFileKeyWithCollectionKeyUsingBgWorker(file, collectionKey);
 }
 
 Future<Uint8List> getPublicFileKeyUsingBgWorker(EnteFile file) async {
-  final collectionKey =
-      CollectionsService.instance.getPublicCollectionKey(file.collectionID!);
+  final collectionKey = CollectionsService.instance.getPublicCollectionKey(
+    file.collectionID!,
+  );
   return getFileKeyWithCollectionKeyUsingBgWorker(file, collectionKey);
 }
 
@@ -52,9 +56,5 @@ Future<Uint8List> getFileKeyWithCollectionKeyUsingBgWorker(
 Uint8List _decryptFileKey(Map<String, dynamic> args) {
   final encryptedKey = CryptoUtil.base642bin(args["encryptedKey"]);
   final nonce = CryptoUtil.base642bin(args["keyDecryptionNonce"]);
-  return CryptoUtil.decryptSync(
-    encryptedKey,
-    args["collectionKey"],
-    nonce,
-  );
+  return CryptoUtil.decryptSync(encryptedKey, args["collectionKey"], nonce);
 }

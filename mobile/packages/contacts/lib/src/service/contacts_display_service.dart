@@ -45,7 +45,8 @@ class ContactsDisplayService {
     ContactsService Function()? contactsServiceFactory,
   }) {
     _preferences = preferences;
-    _contactsServiceFactory = contactsServiceFactory ??
+    _contactsServiceFactory =
+        contactsServiceFactory ??
         (contactsService != null ? () => contactsService : null);
     _contacts ??= contactsService;
   }
@@ -76,21 +77,19 @@ class ContactsDisplayService {
 
     late final Future<void> readyFuture;
     final generation = _sessionGeneration;
-    readyFuture =
-        _openAndSync(currentContacts, session, generation).catchError((
-      Object error,
-      StackTrace stackTrace,
-    ) {
-      if (identical(_readyFuture, readyFuture)) {
-        _readyFuture = null;
-      }
-      _logger.warning(
-        'Failed to hydrate shared contacts display cache',
-        error,
-        stackTrace,
-      );
-      throw error;
-    });
+    readyFuture = _openAndSync(currentContacts, session, generation).catchError(
+      (Object error, StackTrace stackTrace) {
+        if (identical(_readyFuture, readyFuture)) {
+          _readyFuture = null;
+        }
+        _logger.warning(
+          'Failed to hydrate shared contacts display cache',
+          error,
+          stackTrace,
+        );
+        throw error;
+      },
+    );
     _readyFuture = readyFuture;
     await readyFuture;
   }
@@ -125,10 +124,7 @@ class ContactsDisplayService {
     await contacts?.resetLocalState();
   }
 
-  ContactRecord? getCachedContact({
-    int? contactUserId,
-    String? email,
-  }) {
+  ContactRecord? getCachedContact({int? contactUserId, String? email}) {
     final cachedByUserId = _contactByUserIdOrNull(contactUserId);
     if (cachedByUserId != null) {
       return cachedByUserId;
@@ -136,10 +132,7 @@ class ContactsDisplayService {
     return _contactByEmailOrNull(email);
   }
 
-  String? getCachedSavedName({
-    int? contactUserId,
-    String? email,
-  }) {
+  String? getCachedSavedName({int? contactUserId, String? email}) {
     final savedName = getCachedContact(
       contactUserId: contactUserId,
       email: email,
@@ -151,10 +144,7 @@ class ContactsDisplayService {
     return trimmed.isEmpty ? null : trimmed;
   }
 
-  String? getCachedResolvedEmail({
-    int? contactUserId,
-    String? email,
-  }) {
+  String? getCachedResolvedEmail({int? contactUserId, String? email}) {
     final resolved = getCachedContact(
       contactUserId: contactUserId,
       email: email,
@@ -166,10 +156,7 @@ class ContactsDisplayService {
     return trimmed.isEmpty ? null : trimmed;
   }
 
-  Uint8List? getCachedProfilePictureBytes({
-    int? contactUserId,
-    String? email,
-  }) {
+  Uint8List? getCachedProfilePictureBytes({int? contactUserId, String? email}) {
     final resolvedUserId = _resolvedContactUserId(
       contactUserId: contactUserId,
       email: email,
@@ -181,10 +168,7 @@ class ContactsDisplayService {
     return _profilePictureBytesByUserId[resolvedUserId];
   }
 
-  bool hasResolvedProfilePicture({
-    int? contactUserId,
-    String? email,
-  }) {
+  bool hasResolvedProfilePicture({int? contactUserId, String? email}) {
     final resolvedUserId = _resolvedContactUserId(
       contactUserId: contactUserId,
       email: email,
@@ -426,12 +410,11 @@ class ContactsDisplayService {
     return contact;
   }
 
-  int? _resolvedContactUserId({
-    int? contactUserId,
-    String? email,
-  }) {
-    return getCachedContact(contactUserId: contactUserId, email: email)
-        ?.contactUserId;
+  int? _resolvedContactUserId({int? contactUserId, String? email}) {
+    return getCachedContact(
+      contactUserId: contactUserId,
+      email: email,
+    )?.contactUserId;
   }
 
   String _buildSessionKey(ContactsSession session) {
@@ -476,7 +459,8 @@ class ContactsDisplayService {
   }
 
   void _clearCachedState({required bool notify}) {
-    final hadCachedState = _contactsByUserId.isNotEmpty ||
+    final hadCachedState =
+        _contactsByUserId.isNotEmpty ||
         _contactsByNormalizedEmail.isNotEmpty ||
         _profilePictureBytesByUserId.isNotEmpty ||
         _resolvedProfilePictureUserIds.isNotEmpty;

@@ -1,3 +1,4 @@
+import watcher from "@/services/watch";
 import AddIcon from "@mui/icons-material/Add";
 import CheckIcon from "@mui/icons-material/Check";
 import DoNotDisturbOutlinedIcon from "@mui/icons-material/DoNotDisturbOutlined";
@@ -36,7 +37,6 @@ import type { CollectionMapping, FolderWatch } from "ente-base/types/ipc";
 import { CollectionMappingChoice } from "ente-new/photos/components/CollectionMappingChoice";
 import { t } from "i18next";
 import React, { useEffect, useRef, useState } from "react";
-import watcher from "services/watch";
 
 /**
  * View the state of and manage folder watches.

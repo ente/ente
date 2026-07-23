@@ -1,0 +1,14 @@
+[package]
+name = "ente-paste"
+edition = "2024"
+
+[dependencies]
+ente-core.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+url = "2.5.8"
+
+[dev-dependencies]
+mockito = "1.6"
+serde_json.workspace = true
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

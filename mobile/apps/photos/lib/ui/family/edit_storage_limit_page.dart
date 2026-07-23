@@ -8,19 +8,22 @@ import 'package:photos/services/family_service.dart';
 import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/ui/components/buttons/button_widget_v2.dart';
 import 'package:photos/ui/family/family_ui.dart';
+import 'package:photos/ui/viewer/search/contact_avatar_widget.dart';
 import 'package:photos/utils/dialog_util.dart';
 
 class EditStorageLimitPage extends StatefulWidget {
   const EditStorageLimitPage({
     required this.member,
+    required this.displayName,
     required this.totalStorageInBytes,
-    required this.avatarColor,
+    required this.linkedPersonId,
     super.key,
   });
 
   final FamilyMember member;
+  final String displayName;
   final int totalStorageInBytes;
-  final Color avatarColor;
+  final String? linkedPersonId;
 
   @override
   State<EditStorageLimitPage> createState() => _EditStorageLimitPageState();
@@ -93,25 +96,19 @@ class _EditStorageLimitPageState extends State<EditStorageLimitPage> {
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: widget.avatarColor,
-                        child: Text(
-                          widget.member.email.substring(0, 1).toUpperCase(),
-                          style: textTheme.bodyBold.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
+                      ContactAvatarWidget(
+                        contactUserId: widget.member.userID,
+                        email: widget.member.email,
+                        personId: widget.linkedPersonId,
+                        size: 40,
+                        borderRadius: 20,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              widget.member.email,
-                              style: textTheme.body,
-                            ),
+                            Text(widget.displayName, style: textTheme.body),
                             const SizedBox(height: 2),
                             Text(
                               l10n.usingStorage(
@@ -145,10 +142,7 @@ class _EditStorageLimitPageState extends State<EditStorageLimitPage> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              l10n.limit,
-                              style: textTheme.bodyBold,
-                            ),
+                            Text(l10n.limit, style: textTheme.bodyBold),
                             Text(
                               _selectedStorageLimit == null
                                   ? l10n.noLimit
@@ -167,8 +161,9 @@ class _EditStorageLimitPageState extends State<EditStorageLimitPage> {
                             activeTrackColor: colorScheme.greenBase,
                             inactiveTrackColor: colorScheme.fillMuted,
                             thumbColor: colorScheme.greenBase,
-                            overlayColor:
-                                colorScheme.greenBase.withValues(alpha: 0.14),
+                            overlayColor: colorScheme.greenBase.withValues(
+                              alpha: 0.14,
+                            ),
                           ),
                           child: Slider(
                             value: _sliderIndex.clamp(
@@ -183,7 +178,8 @@ class _EditStorageLimitPageState extends State<EditStorageLimitPage> {
                               final roundedIndex = value.round();
                               final roundedValue =
                                   _sliderOptionsInGigabytes[roundedIndex];
-                              final effectiveIndex = roundedValue > 0 &&
+                              final effectiveIndex =
+                                  roundedValue > 0 &&
                                       roundedValue <
                                           _minimumLimitedSliderValueInGigabytes
                                   ? _minimumSelectableIndex().toDouble()
@@ -197,10 +193,7 @@ class _EditStorageLimitPageState extends State<EditStorageLimitPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              l10n.noLimit,
-                              style: textTheme.miniMuted,
-                            ),
+                            Text(l10n.noLimit, style: textTheme.miniMuted),
                             Text(
                               convertBytesToReadableFormat(
                                 widget.totalStorageInBytes,
@@ -217,8 +210,9 @@ class _EditStorageLimitPageState extends State<EditStorageLimitPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Text(
                       l10n.currentUsageNote(
-                        amount:
-                            convertBytesToReadableFormat(widget.member.usage),
+                        amount: convertBytesToReadableFormat(
+                          widget.member.usage,
+                        ),
                       ),
                       style: textTheme.smallFaint.copyWith(height: 1.5),
                     ),
@@ -244,11 +238,11 @@ class _EditStorageLimitPageState extends State<EditStorageLimitPage> {
       return;
     }
     try {
-      final updatedUserDetails =
-          await FamilyService.instance.updateMemberStorageLimit(
-        member: widget.member,
-        storageLimit: _selectedStorageLimit,
-      );
+      final updatedUserDetails = await FamilyService.instance
+          .updateMemberStorageLimit(
+            member: widget.member,
+            storageLimit: _selectedStorageLimit,
+          );
       if (mounted) {
         Navigator.of(context).pop(updatedUserDetails);
       }
@@ -263,9 +257,11 @@ class _EditStorageLimitPageState extends State<EditStorageLimitPage> {
 
   List<int> _buildSliderOptionsInGigabytes() {
     final options = <int>[0];
-    for (var value = _sliderStepInGigabytes;
-        value < _maxSliderValueInGigabytes;
-        value += _sliderStepInGigabytes) {
+    for (
+      var value = _sliderStepInGigabytes;
+      value < _maxSliderValueInGigabytes;
+      value += _sliderStepInGigabytes
+    ) {
       options.add(value);
     }
     if (options.last != _maxSliderValueInGigabytes) {

@@ -1,5 +1,0 @@
-# Local Apple release artifacts.
-build/
-
-# Generated Swift bindings and build endpoint config.
-Ensu/Generated/

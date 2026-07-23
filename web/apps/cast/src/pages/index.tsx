@@ -1,12 +1,12 @@
+import { PairingCode } from "@/components/PairingCode";
+import { readCastData, storeCastData } from "@/services/cast-data";
+import { getCastPayload, register } from "@/services/pair";
 import { Box, Stack, styled, Typography } from "@mui/material";
-import { PairingCode } from "components/PairingCode";
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
 import log from "ente-base/log";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
-import { readCastData, storeCastData } from "services/cast-data";
-import { getCastPayload, register } from "services/pair";
 import { advertiseOnChromecast } from "../services/chromecast-receiver";
 
 const Page: React.FC = () => {

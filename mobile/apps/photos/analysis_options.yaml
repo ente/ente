@@ -1,77 +1,9 @@
-# For more linters, we can check https://dart-lang.github.io/linter/lints/index.html
-# or https://pub.dev/packages/lint (Effective dart)
-# use "flutter analyze ." or "dart  analyze ." for running lint checks
-
-include: package:flutter_lints/flutter.yaml
-formatter:
-  trailing_commas: preserve
-linter:
-  rules:
-    # Ref https://github.com/flutter/packages/blob/master/packages/flutter_lints/lib/flutter.yaml
-    # Ref https://dart-lang.github.io/linter/lints/
-    - avoid_print
-    - avoid_unnecessary_containers
-    - avoid_web_libraries_in_flutter
-    - no_logic_in_create_state
-    - prefer_const_constructors
-    - prefer_const_constructors_in_immutables
-    - prefer_const_declarations
-    - prefer_const_literals_to_create_immutables
-    - prefer_final_locals
-    - require_trailing_commas
-    - sized_box_for_whitespace
-    - use_full_hex_values_for_flutter_colors
-    - use_key_in_widget_constructors
-    - cancel_subscriptions
-
-    - avoid_empty_else
-    - exhaustive_cases
-
-    # just style suggestions
-    - sort_pub_dependencies
-    - use_rethrow_when_possible
-    - prefer_double_quotes
-    - directives_ordering
-    - always_use_package_imports
-    - sort_child_properties_last
-    - unawaited_futures
+include: ../../analysis_options.yaml
 
 analyzer:
   errors:
     deprecated_member_use: warning
-    avoid_empty_else: error
-    exhaustive_cases: error
-    curly_braces_in_flow_control_structures: error
-    directives_ordering: error
-    require_trailing_commas: error
-    always_use_package_imports: warning
-    prefer_final_fields: error
-    unused_import: error
-    camel_case_types: error
-    prefer_is_empty: warning
-    use_rethrow_when_possible: info
-    unused_field: warning
-    use_key_in_widget_constructors: warning
-    sort_child_properties_last: warning
-    sort_pub_dependencies: warning
-    library_private_types_in_public_api: warning
-    constant_identifier_names: ignore
-    prefer_const_constructors: warning
-    prefer_const_declarations: warning
-    prefer_const_constructors_in_immutables: warning
-    prefer_final_locals: warning
-    unnecessary_const: error
-    cancel_subscriptions: error
-    unrelated_type_equality_checks: error
-    unnecessary_cast: info
-
-    unawaited_futures: warning # convert to warning after fixing existing issues
-    invalid_dependency: info
-    use_build_context_synchronously: ignore # experimental lint, requires many changes
-    prefer_interpolation_to_compose_strings: ignore # later too many warnings
-    prefer_double_quotes: ignore # too many warnings
-    avoid_renaming_method_parameters: ignore # incorrect warnings for `equals` overrides
-
+    use_build_context_synchronously: error
   exclude:
     - thirdparty/**
     - lib/generated/**

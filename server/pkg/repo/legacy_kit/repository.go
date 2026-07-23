@@ -8,9 +8,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	"github.com/ente-io/museum/ente"
-	timeutil "github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	timeutil "github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/google/uuid"
 )
 
@@ -762,8 +762,6 @@ func scanRecoverySessionRow(row *sql.Row) (*RecoverySessionRow, error) {
 
 func randomToken() string {
 	buf := make([]byte, 32)
-	if _, err := rand.Read(buf); err != nil {
-		return uuid.NewString()
-	}
+	rand.Read(buf)
 	return base64.RawURLEncoding.EncodeToString(buf)
 }

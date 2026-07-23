@@ -1,14 +1,13 @@
 package legacy_kit
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"testing"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/internal/testutil"
-	timeutil "github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/internal/testutil"
+	timeutil "github.com/ente/museum/pkg/utils/time"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -34,9 +33,9 @@ func TestGetSessionByIDAndTokenForUseReturnsBlockedSessionAfterConcurrentBlock(t
 	rawToken := "session-token"
 	insertLegacyKitSessionTokenForTest(t, db, sessionID, rawToken)
 
-	tx, err := db.BeginTx(context.Background(), nil)
+	tx, err := db.BeginTx(t.Context(), nil)
 	require.NoError(t, err)
-	_, err = tx.ExecContext(context.Background(),
+	_, err = tx.ExecContext(t.Context(),
 		`SELECT id FROM legacy_kit_recovery_session WHERE id = $1 FOR UPDATE`, sessionID)
 	require.NoError(t, err)
 
@@ -48,7 +47,7 @@ func TestGetSessionByIDAndTokenForUseReturnsBlockedSessionAfterConcurrentBlock(t
 	resultCh := make(chan sessionResult, 1)
 	go func() {
 		session, err := repo.GetSessionByIDAndTokenForUse(
-			context.Background(),
+			t.Context(),
 			sessionID,
 			rawToken,
 			timeutil.Microseconds(),
@@ -56,7 +55,7 @@ func TestGetSessionByIDAndTokenForUseReturnsBlockedSessionAfterConcurrentBlock(t
 		resultCh <- sessionResult{session: session, err: err}
 	}()
 
-	_, err = tx.ExecContext(context.Background(),
+	_, err = tx.ExecContext(t.Context(),
 		`UPDATE legacy_kit_recovery_session SET status = $1 WHERE id = $2`,
 		ente.LegacyKitRecoveryStatusBlocked,
 		sessionID,
@@ -88,11 +87,11 @@ func TestOpenOrResumeRecoveryFailsIfKitWasDeletedBeforeLockReleases(t *testing.T
 	repo := &Repository{DB: db}
 
 	challenge := "legacy-kit-open:v1\n" + kitID.String() + "\nchallenge\n"
-	require.NoError(t, repo.CreateChallenge(context.Background(), kitID, challenge, timeutil.MicrosecondsAfterHours(1)))
+	require.NoError(t, repo.CreateChallenge(t.Context(), kitID, challenge, timeutil.MicrosecondsAfterHours(1)))
 
-	tx, err := db.BeginTx(context.Background(), nil)
+	tx, err := db.BeginTx(t.Context(), nil)
 	require.NoError(t, err)
-	_, err = tx.ExecContext(context.Background(),
+	_, err = tx.ExecContext(t.Context(),
 		`SELECT id FROM legacy_kit WHERE id = $1 FOR UPDATE`, kitID)
 	require.NoError(t, err)
 
@@ -106,7 +105,7 @@ func TestOpenOrResumeRecoveryFailsIfKitWasDeletedBeforeLockReleases(t *testing.T
 	resultCh := make(chan openResult, 1)
 	go func() {
 		kit, session, token, created, err := repo.OpenOrResumeRecovery(
-			context.Background(),
+			t.Context(),
 			kitID,
 			challenge,
 			timeutil.Microseconds(),
@@ -115,7 +114,7 @@ func TestOpenOrResumeRecoveryFailsIfKitWasDeletedBeforeLockReleases(t *testing.T
 		resultCh <- openResult{kit: kit, session: session, token: token, created: created, err: err}
 	}()
 
-	_, err = tx.ExecContext(context.Background(),
+	_, err = tx.ExecContext(t.Context(),
 		`UPDATE legacy_kit SET is_deleted = TRUE, deleted_at = $1 WHERE id = $2`,
 		timeutil.Microseconds(),
 		kitID,
@@ -150,13 +149,13 @@ func TestCreateKitWithLimitRejectsWhenConcurrentChangeConsumesFinalSlot(t *testi
 		Email:        "legacy-kit-owner@ente.io",
 		CreationTime: 1,
 	})
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		insertLegacyKitForTest(t, db, userID, false)
 	}
 
-	tx, err := db.BeginTx(context.Background(), nil)
+	tx, err := db.BeginTx(t.Context(), nil)
 	require.NoError(t, err)
-	_, err = tx.ExecContext(context.Background(),
+	_, err = tx.ExecContext(t.Context(),
 		`SELECT user_id FROM users WHERE user_id = $1 FOR UPDATE`, userID)
 	require.NoError(t, err)
 
@@ -172,11 +171,11 @@ func TestCreateKitWithLimitRejectsWhenConcurrentChangeConsumesFinalSlot(t *testi
 	}
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- repo.CreateKitWithLimit(context.Background(), userID, createReq, 5)
+		errCh <- repo.CreateKitWithLimit(t.Context(), userID, createReq, 5)
 	}()
 
 	secondNoticePeriod := 24
-	require.NoError(t, insertKit(context.Background(), tx, userID, ente.CreateLegacyKitRequest{
+	require.NoError(t, insertKit(t.Context(), tx, userID, ente.CreateLegacyKitRequest{
 		ID:                    uuid.New(),
 		Variant:               ente.LegacyKitVariantTwoOfThree,
 		NoticePeriodInHours:   &secondNoticePeriod,
@@ -218,7 +217,7 @@ func TestUpdateRecoveryNoticeRejectsActiveSession(t *testing.T) {
 	insertLegacyKitSessionForTest(t, db, uuid.New(), kitID, userID, ente.LegacyKitRecoveryStatusWaiting, 1)
 
 	repo := &Repository{DB: db}
-	updated, err := repo.UpdateRecoveryNotice(context.Background(), userID, kitID, 168)
+	updated, err := repo.UpdateRecoveryNotice(t.Context(), userID, kitID, 168)
 	require.Error(t, err)
 	require.False(t, updated)
 
@@ -251,15 +250,15 @@ func TestOpenRecoveryUsesUpdatedNoticePeriod(t *testing.T) {
 	kitID := insertLegacyKitForTest(t, db, userID, false)
 	repo := &Repository{DB: db}
 
-	updated, err := repo.UpdateRecoveryNotice(context.Background(), userID, kitID, 360)
+	updated, err := repo.UpdateRecoveryNotice(t.Context(), userID, kitID, 360)
 	require.NoError(t, err)
 	require.True(t, updated)
 
 	challenge := "legacy-kit-open:v1\n" + kitID.String() + "\nchallenge\n"
-	require.NoError(t, repo.CreateChallenge(context.Background(), kitID, challenge, timeutil.MicrosecondsAfterHours(1)))
+	require.NoError(t, repo.CreateChallenge(t.Context(), kitID, challenge, timeutil.MicrosecondsAfterHours(1)))
 
 	_, session, _, created, err := repo.OpenOrResumeRecovery(
-		context.Background(),
+		t.Context(),
 		kitID,
 		challenge,
 		timeutil.Microseconds(),

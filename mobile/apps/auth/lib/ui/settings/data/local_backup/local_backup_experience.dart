@@ -15,10 +15,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:scoped_dir_access/scoped_dir_access.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-typedef LocalBackupVariantBuilder = Widget Function(
-  BuildContext context,
-  LocalBackupExperienceController controller,
-);
+typedef LocalBackupVariantBuilder =
+    Widget Function(
+      BuildContext context,
+      LocalBackupExperienceController controller,
+    );
 
 class LocalBackupExperience extends StatefulWidget {
   const LocalBackupExperience({super.key, required this.builder});
@@ -111,30 +112,25 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
   }
 
   Future<void> _handleToggle(bool shouldEnable) async {
-    await _withBusyGuard(
-      () async {
-        if (shouldEnable) {
-          final success = await _startEnableFlow();
-          if (!success) {
-            return;
-          }
-        } else {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setBool('isAutoBackupEnabled', false);
-          if (!mounted) return;
-          setState(() {
-            _isBackupEnabled = false;
-          });
+    await _withBusyGuard(() async {
+      if (shouldEnable) {
+        final success = await _startEnableFlow();
+        if (!success) {
+          return;
         }
-      },
-      showOverlay: false,
-    );
+      } else {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isAutoBackupEnabled', false);
+        if (!mounted) return;
+        setState(() {
+          _isBackupEnabled = false;
+        });
+      }
+    }, showOverlay: false);
   }
 
   Future<bool> _startEnableFlow() async {
-    final hasPassword = await _ensurePasswordConfigured(
-      disableOnCancel: true,
-    );
+    final hasPassword = await _ensurePasswordConfigured(disableOnCancel: true);
     // We only require a password to exist; re-enabling skips re-entry if already set.
     if (!hasPassword) {
       return false;
@@ -147,6 +143,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
     if (Platform.isAndroid &&
         (_backupTreeUri == null || _backupTreeUri!.isEmpty) &&
         (_backupPath == null || _backupPath!.isEmpty)) {
+      if (!mounted) return false;
       _showSnackBar(context.l10n.noDefaultBackupFolder);
       return false;
     }
@@ -169,8 +166,9 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
     });
 
     try {
-      final hasPassword =
-          await _ensurePasswordConfigured(disableOnCancel: false);
+      final hasPassword = await _ensurePasswordConfigured(
+        disableOnCancel: false,
+      );
       if (!hasPassword) {
         _logger.info('Manual backup cancelled: no password configured');
         return;
@@ -191,6 +189,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
             '${Platform.operatingSystem}: No bookmark found, need to re-select backup location',
           );
           if (showSnackBar) {
+            if (!mounted) return;
             _showSnackBar(context.l10n.selectFolderToContinue);
           }
           // Clear the path and prompt user to re-select
@@ -215,6 +214,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
         final success = await LocalBackupService.instance
             .triggerAutomaticBackup(isManual: true);
         if (showSnackBar) {
+          if (!mounted) return;
           _showSnackBar(
             success
                 ? context.l10n.backupCreated
@@ -224,6 +224,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
       } catch (e) {
         _logger.severe('Manual backup failed with error: $e');
         if (showSnackBar) {
+          if (!mounted) return;
           _showSnackBar(context.l10n.somethingWentWrongPleaseTryAgain);
         }
       }
@@ -323,10 +324,10 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
   }
 
   Future<bool> _updatePassword(BuildContext context) async => _promptPassword(
-        forcePrompt: true,
-        disableOnCancel: false,
-        isUpdateFlow: true,
-      );
+    forcePrompt: true,
+    disableOnCancel: false,
+    isUpdateFlow: true,
+  );
 
   Future<bool> _promptPassword({
     required bool forcePrompt,
@@ -381,6 +382,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
       return false;
     }
     await Configuration.instance.clearBackupPassword();
+    if (!mounted) return false;
     _showSnackBar(context.l10n.backupPasswordCleared);
     return true;
   }
@@ -479,9 +481,9 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
                               errorText!,
-                              style: getEnteTextTheme(context)
-                                  .mini
-                                  .copyWith(color: Colors.redAccent),
+                              style: getEnteTextTheme(
+                                context,
+                              ).mini.copyWith(color: Colors.redAccent),
                             ),
                           ),
                   ),
@@ -534,16 +536,11 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
       final dialogBody = StringBuffer()
         ..writeln(l10n.backupLocationChoiceDescription)
         ..writeln()
-        ..writeln(
-          l10n.enableBackupsIosInstruction,
-        )
+        ..writeln(l10n.enableBackupsIosInstruction)
         ..writeln()
         ..writeAll(
           _backupPath != null && _backupPath!.isNotEmpty
-              ? [
-                  l10n.currentBackupFolder,
-                  _simplifyPath(_backupPath!),
-                ]
+              ? [l10n.currentBackupFolder, _simplifyPath(_backupPath!)]
               : const [],
           '\n',
         );
@@ -574,6 +571,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
         // Use our native picker that creates bookmark immediately
         final pickResult = await SecurityBookmarkService.instance
             .pickDirectoryAndCreateBookmark();
+        if (!mounted) return false;
         if (pickResult != null) {
           if (_isInvalidIosPath(pickResult.path)) {
             _showSnackBar(context.l10n.iosOnMyDeviceNotSupported);
@@ -593,6 +591,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
       // On macOS, use DirUtils which creates a security-scoped bookmark
       final picked = await DirUtils.instance.pickDirectory();
       if (picked != null && picked.path.isNotEmpty && picked.bookmark != null) {
+        if (!mounted) return false;
         return _persistLocationWithBookmark(
           picked.path,
           picked.bookmark!,
@@ -605,6 +604,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
     // Other platforms (Windows, Linux, etc.)
     final picked = await DirUtils.instance.pickDirectory();
     if (picked != null && picked.path.isNotEmpty) {
+      if (!mounted) return false;
       return _persistLocation(
         picked.path,
         successMessage: context.l10n.initialBackupCreated,
@@ -681,8 +681,10 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
           if (afterMarker.isNotEmpty) {
             return afterMarker;
           }
-          final fallbackSegments =
-              marker.split('/').where((segment) => segment.isNotEmpty).toList();
+          final fallbackSegments = marker
+              .split('/')
+              .where((segment) => segment.isNotEmpty)
+              .toList();
           if (fallbackSegments.isNotEmpty) {
             return fallbackSegments.last;
           }
@@ -690,8 +692,10 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
         }
       }
 
-      final segments =
-          simplified.split('/').where((segment) => segment.isNotEmpty).toList();
+      final segments = simplified
+          .split('/')
+          .where((segment) => segment.isNotEmpty)
+          .toList();
       if (segments.length >= 2) {
         return segments.sublist(segments.length - 2).join('/');
       }
@@ -716,6 +720,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
       );
       if (saved) {
       } else if (requireSelection) {
+        if (!mounted) return false;
         _showSnackBar(context.l10n.selectFolderToContinue);
       }
       return saved;
@@ -725,9 +730,11 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
           .pickDirectoryAndCreateBookmark();
       if (result != null) {
         if (_isInvalidIosPath(result.path)) {
+          if (!mounted) return false;
           _showSnackBar(context.l10n.iosOnMyDeviceNotSupported);
           return false;
         }
+        if (!mounted) return false;
         final saved = await _persistLocationWithBookmark(
           result.path,
           result.bookmark,
@@ -737,6 +744,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
         return saved;
       }
       if (requireSelection) {
+        if (!mounted) return false;
         _showSnackBar(context.l10n.selectFolderToContinue);
       }
       return false;
@@ -744,6 +752,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
       // On macOS, use DirUtils which creates a security-scoped bookmark
       final picked = await DirUtils.instance.pickDirectory();
       if (picked != null && picked.path.isNotEmpty && picked.bookmark != null) {
+        if (!mounted) return false;
         final saved = await _persistLocationWithBookmark(
           picked.path,
           picked.bookmark!,
@@ -753,6 +762,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
         return saved;
       }
       if (requireSelection) {
+        if (!mounted) return false;
         _showSnackBar(context.l10n.selectFolderToContinue);
       }
       return false;
@@ -761,6 +771,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
       final picked = await DirUtils.instance.pickDirectory();
 
       if (picked != null && picked.path.isNotEmpty) {
+        if (!mounted) return false;
         final saved = await _persistLocation(
           picked.path,
           successMessage:
@@ -776,6 +787,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
         return saved;
       }
       if (requireSelection) {
+        if (!mounted) return false;
         _showSnackBar(context.l10n.selectFolderToContinue);
       }
       return false;
@@ -833,10 +845,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
     }
   }
 
-  Future<bool> _persistLocation(
-    String path, {
-    String? successMessage,
-  }) async {
+  Future<bool> _persistLocation(String path, {String? successMessage}) async {
     final prefs = await SharedPreferences.getInstance();
     Future<bool> savePath(String target) async {
       try {
@@ -887,6 +896,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
     }
 
     _logger.warning('All backup path options failed for: $path');
+    if (!mounted) return false;
     _showSnackBar(context.l10n.noDefaultBackupFolder);
     return false;
   }
@@ -929,6 +939,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
       if (shouldTriggerBackup) {
         final backupSuccess = await LocalBackupService.instance
             .triggerAutomaticBackup(isManual: true);
+        if (!mounted) return false;
         _showSnackBar(
           backupSuccess
               ? (successMessage ?? context.l10n.locationUpdatedAndBackupCreated)
@@ -941,6 +952,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
       }
       return true;
     } catch (_) {
+      if (!mounted) return false;
       _showSnackBar(context.l10n.noDefaultBackupFolder);
       return false;
     }

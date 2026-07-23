@@ -6,10 +6,7 @@ import 'package:flutter/material.dart';
 class DeveloperSettingsWidget extends StatelessWidget {
   final BaseConfiguration configuration;
 
-  const DeveloperSettingsWidget(
-    this.configuration, {
-    super.key,
-  });
+  const DeveloperSettingsWidget(this.configuration, {super.key});
 
   @override
   Widget build(BuildContext context) {

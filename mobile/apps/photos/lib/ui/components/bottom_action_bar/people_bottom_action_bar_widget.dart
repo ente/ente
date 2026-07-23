@@ -1,7 +1,7 @@
+import "package:ente_components/ente_components.dart" as components;
 import "package:flutter/material.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/models/selected_people.dart";
-import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/bottom_action_bar/people_action_bar_widget.dart";
 import "package:photos/ui/components/divider_widget.dart";
 import "package:photos/ui/viewer/actions/people_selection_action_widget.dart";
@@ -22,16 +22,17 @@ class PeopleBottomActionBarWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
     final widthOfScreen = MediaQuery.sizeOf(context).width;
-    final colorScheme = getEnteColorScheme(context);
+    final colors = components.ComponentTheme.colorsOf(context);
     final double leftRightPadding = widthOfScreen > restrictedMaxWidth
         ? (widthOfScreen - restrictedMaxWidth) / 2
         : 0;
     return Container(
       decoration: BoxDecoration(
-        color: backgroundColor ?? colorScheme.backgroundElevated2,
+        color: backgroundColor ?? colors.backgroundBase,
+        border: Border(top: BorderSide(color: colors.strokeDark)),
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(8),
-          topRight: Radius.circular(8),
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
         ),
       ),
       padding: EdgeInsets.only(

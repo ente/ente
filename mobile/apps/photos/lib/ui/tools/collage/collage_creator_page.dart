@@ -5,6 +5,7 @@ import "package:logging/logging.dart";
 import "package:photo_manager/photo_manager.dart";
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/file/file.dart';
+import "package:photos/module/metadata/local_file.dart";
 import "package:photos/services/sync/sync_service.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/tools/collage/collage_app_bar.dart";
@@ -49,6 +50,7 @@ class _CollageCreatorPageState extends State<CollageCreatorPage> {
 
     _clearSwapSelection?.call();
     await Future<void>.delayed(const Duration(milliseconds: 16));
+    if (!mounted) return;
 
     setState(() {
       _isSaving = true;
@@ -62,37 +64,35 @@ class _CollageCreatorPageState extends State<CollageCreatorPage> {
         quality: 80,
       );
       _logger.info('Size after compression = ${compressedBytes.length}');
-      final fileName = "ente_collage_" +
+      final fileName =
+          "ente_collage_" +
           DateTime.now().microsecondsSinceEpoch.toString() +
           ".jpeg";
       final newAsset = await (PhotoManager.editor
           .saveImage(
-        compressedBytes,
-        filename: fileName,
-        relativePath: "ente Collages",
-      )
+            compressedBytes,
+            filename: fileName,
+            relativePath: "ente Collages",
+          )
           .onError((err, st) async {
-        return await (PhotoManager.editor.saveImage(
-          compressedBytes,
-          filename: fileName,
-        ));
-      }));
-      final newFile = await EnteFile.fromAsset("ente Collages", newAsset);
+            return await (PhotoManager.editor.saveImage(
+              compressedBytes,
+              filename: fileName,
+            ));
+          }));
+      final newFile = fileFromAsset("ente Collages", newAsset);
       SyncService.instance.sync().ignore();
+      if (!mounted) return;
       showShortToast(context, AppLocalizations.of(context).collageSaved);
       replacePage(
         context,
-        DetailPage(
-          DetailPageConfiguration([newFile], 0, "collage"),
-        ),
+        DetailPage(DetailPageConfiguration([newFile], 0, "collage")),
         result: true,
       );
     } catch (e, s) {
       _logger.severe("Failed to create collage", e, s);
-      showShortToast(
-        context,
-        AppLocalizations.of(context).somethingWentWrong,
-      );
+      if (!mounted) return;
+      showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
     } finally {
       if (mounted) {
         setState(() {

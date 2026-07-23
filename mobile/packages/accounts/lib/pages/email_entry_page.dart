@@ -40,12 +40,19 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
   bool _password1Visible = false;
   bool _password2Visible = false;
   bool _passwordsMatch = false;
+  bool _hasInstallSource = false;
 
   final _password1FocusNode = FocusNode();
   final _password2FocusNode = FocusNode();
   bool _password1InFocus = false;
   bool _password2InFocus = false;
   bool _passwordIsValid = false;
+
+  bool get _hasValidMatchingPasswords =>
+      _passwordIsValid &&
+      (_password?.isNotEmpty ?? false) &&
+      _cnfPassword.isNotEmpty &&
+      _password == _cnfPassword;
 
   @override
   void initState() {
@@ -61,6 +68,7 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
       });
     });
     super.initState();
+    _updateReferralSourceFieldVisibility();
   }
 
   @override
@@ -129,17 +137,21 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
             isKeypadOpen: isKeypadOpen,
             isFormValid: _isFormValid(),
             buttonText: context.strings.createAccount,
-            onPressedFunction: () {
-              UserService.instance.setEmail(_email!);
+            onPressedFunction: () async {
+              await UserService.instance.setEmail(_email!);
               widget.config.setVolatilePassword(_passwordController1.text);
-              UserService.instance.setRefSource(_referralSource);
-              UserService.instance.sendOtt(
-                context,
+              await UserService.instance.setRefSource(
+                await _referralSourceForSubmission(),
+              );
+              await UserService.instance.sendOtt(
+                context.mounted ? context : null,
                 _email!,
                 isCreateAccountScreen: true,
                 purpose: "signup",
               );
-              FocusScope.of(context).unfocus();
+              if (context.mounted) {
+                FocusScope.of(context).unfocus();
+              }
             },
           ),
         ],
@@ -219,8 +231,9 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                             if (_emailIsValid !=
                                 EmailValidator.validate(_email!)) {
                               setState(() {
-                                _emailIsValid =
-                                    EmailValidator.validate(_email!);
+                                _emailIsValid = EmailValidator.validate(
+                                  _email!,
+                                );
                               });
                             }
                           },
@@ -281,22 +294,24 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                                     },
                                   )
                                 : _passwordIsValid
-                                    ? Icon(
-                                        Icons.check,
-                                        color: colorScheme.primary700,
-                                      )
-                                    : null,
+                                ? Icon(
+                                    Icons.check,
+                                    color: colorScheme.primary700,
+                                  )
+                                : null,
                           ),
                           focusNode: _password1FocusNode,
                           onChanged: (password) {
                             if (password != _password) {
                               setState(() {
                                 _password = password;
-                                _passwordStrength =
-                                    estimatePasswordStrength(password);
-                                _passwordIsValid = _passwordStrength >=
+                                _passwordStrength = estimatePasswordStrength(
+                                  password,
+                                );
+                                _passwordIsValid =
+                                    _passwordStrength >=
                                     kMildPasswordStrengthThreshold;
-                                _passwordsMatch = _password == _cnfPassword;
+                                _passwordsMatch = _hasValidMatchingPasswords;
                               });
                             }
                           },
@@ -359,30 +374,30 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                                     },
                                   )
                                 : _passwordsMatch
-                                    ? Icon(
-                                        Icons.check,
-                                        color: colorScheme.primary700,
-                                      )
-                                    : null,
+                                ? Icon(
+                                    Icons.check,
+                                    color: colorScheme.primary700,
+                                  )
+                                : null,
                           ),
                           focusNode: _password2FocusNode,
                           onChanged: (cnfPassword) {
                             setState(() {
                               _cnfPassword = cnfPassword;
-                              if (_password != null || _password != '') {
-                                _passwordsMatch = _password == _cnfPassword;
-                              }
+                              _passwordsMatch = _hasValidMatchingPasswords;
                             });
                           },
                         ),
                         Opacity(
-                          opacity:
-                              (_password != '') && _password1InFocus ? 1 : 0,
+                          opacity: (_password != '') && _password1InFocus
+                              ? 1
+                              : 0,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Text(
-                              context.strings
-                                  .passwordStrength(passwordStrengthText),
+                              context.strings.passwordStrength(
+                                passwordStrengthText,
+                              ),
                               style: TextStyle(
                                 color: passwordStrengthColor,
                                 fontWeight: FontWeight.w500,
@@ -391,51 +406,52 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          context.strings.hearUsWhereTitle,
-                          style: textTheme.bodyBold.copyWith(
-                            color: colorScheme.textBase,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          style: textTheme.body.copyWith(
-                            color: colorScheme.textBase,
-                          ),
-                          decoration: InputDecoration(
-                            fillColor: colorScheme.backdropBase,
-                            filled: true,
-                            hintStyle: TextStyle(color: colorScheme.textMuted),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            border: OutlineInputBorder(
-                              borderSide: BorderSide.none,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide.none,
-                              borderRadius: BorderRadius.circular(8),
+                        if (_showReferralSourceField) const SizedBox(height: 8),
+                        if (_showReferralSourceField)
+                          Text(
+                            context.strings.hearUsWhereTitle,
+                            style: textTheme.bodyBold.copyWith(
+                              color: colorScheme.textBase,
                             ),
                           ),
-                          onChanged: (value) {
-                            _referralSource = value.trim();
-                          },
-                          autocorrect: false,
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.next,
-                        ),
+                        if (_showReferralSourceField) const SizedBox(height: 8),
+                        if (_showReferralSourceField)
+                          TextFormField(
+                            style: textTheme.body.copyWith(
+                              color: colorScheme.textBase,
+                            ),
+                            decoration: InputDecoration(
+                              fillColor: colorScheme.backdropBase,
+                              filled: true,
+                              hintStyle: TextStyle(
+                                color: colorScheme.textMuted,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide.none,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide.none,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onChanged: (value) {
+                              _referralSource = value.trim();
+                            },
+                            autocorrect: false,
+                            keyboardType: TextInputType.text,
+                            textInputAction: TextInputAction.next,
+                          ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
                   Column(
-                    children: [
-                      _getTOSAgreement(),
-                      _getPasswordAgreement(),
-                    ],
+                    children: [_getTOSAgreement(), _getPasswordAgreement()],
                   ),
                 ],
               ),
@@ -444,6 +460,30 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
         ],
       ),
     );
+  }
+
+  bool get _showReferralSourceField => !_hasInstallSource;
+
+  Future<void> _updateReferralSourceFieldVisibility() async {
+    final hasInstallSource = await UserService.instance.hasInstallSource();
+    _setHasInstallSource(hasInstallSource);
+  }
+
+  Future<String> _referralSourceForSubmission() async {
+    if (_hasInstallSource) {
+      return '';
+    }
+    final hasInstallSource = await UserService.instance.hasInstallSource();
+    _setHasInstallSource(hasInstallSource);
+    return hasInstallSource ? '' : _referralSource;
+  }
+
+  void _setHasInstallSource(bool hasInstallSource) {
+    if (mounted && hasInstallSource != _hasInstallSource) {
+      setState(() {
+        _hasInstallSource = hasInstallSource;
+      });
+    }
   }
 
   Widget _getTOSAgreement() {
@@ -485,24 +525,20 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                 'u-terms': StyledTextActionTag(
                   (String? text, Map<String?, String?> attrs) =>
                       PlatformUtil.openWebView(
-                    context,
-                    context.strings.termsOfServicesTitle,
-                    "https://ente.com/terms",
-                  ),
-                  style: const TextStyle(
-                    decoration: TextDecoration.underline,
-                  ),
+                        context,
+                        context.strings.termsOfServicesTitle,
+                        "https://ente.com/terms",
+                      ),
+                  style: const TextStyle(decoration: TextDecoration.underline),
                 ),
                 'u-policy': StyledTextActionTag(
                   (String? text, Map<String?, String?> attrs) =>
                       PlatformUtil.openWebView(
-                    context,
-                    context.strings.privacyPolicyTitle,
-                    "https://ente.com/privacy",
-                  ),
-                  style: const TextStyle(
-                    decoration: TextDecoration.underline,
-                  ),
+                        context,
+                        context.strings.privacyPolicyTitle,
+                        "https://ente.com/privacy",
+                      ),
+                  style: const TextStyle(decoration: TextDecoration.underline),
                 ),
               },
             ),
@@ -551,13 +587,11 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                 'underline': StyledTextActionTag(
                   (String? text, Map<String?, String?> attrs) =>
                       PlatformUtil.openWebView(
-                    context,
-                    context.strings.encryption,
-                    "https://ente.com/architecture",
-                  ),
-                  style: const TextStyle(
-                    decoration: TextDecoration.underline,
-                  ),
+                        context,
+                        context.strings.encryption,
+                        "https://ente.com/architecture",
+                      ),
+                  style: const TextStyle(decoration: TextDecoration.underline),
                 ),
               },
             ),

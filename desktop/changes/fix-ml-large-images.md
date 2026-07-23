@@ -1,0 +1,1 @@
+- Fix ML indexing and search getting stuck when the library contains very large images.

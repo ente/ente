@@ -14,6 +14,7 @@ export default tseslint.config(
     { ignores: ["eslint.config.mjs"] },
     {
         rules: {
+            "@typescript-eslint/no-import-type-side-effects": "error",
             // Allow numbers to be used in template literals.
             "@typescript-eslint/restrict-template-expressions": [
                 "error",

@@ -25,7 +25,7 @@ class AboutUsPage extends StatelessWidget {
           icon: HugeIcons.strokeRoundedGithub,
           showOnlyLoadingState: true,
           onTap: () async {
-            await launchUrl(Uri.parse("https://github.com/ente-io/ente"));
+            await launchUrl(Uri.parse("https://github.com/ente/ente"));
           },
         ),
         const SizedBox(height: 8),
@@ -98,17 +98,17 @@ class AboutUsPage extends StatelessWidget {
     final shouldUpdate = await updateService.shouldUpdate();
     await dialog.hide();
     if (shouldUpdate) {
+      if (!context.mounted) return;
       await showDialog(
         useRootNavigator: false,
         context: context,
         builder: (BuildContext context) {
-          return AppUpdateDialog(
-            updateService.getLatestVersionInfo(),
-          );
+          return AppUpdateDialog(updateService.getLatestVersionInfo());
         },
         barrierColor: Colors.black.withValues(alpha: 0.85),
       );
     } else {
+      if (!context.mounted) return;
       showShortToast(
         context,
         AppLocalizations.of(context).youAreOnTheLatestVersion,

@@ -3,9 +3,9 @@ title: Sharing
 description: Share albums with other users and via public links in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Sharing

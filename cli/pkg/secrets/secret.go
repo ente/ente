@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/ente-io/cli/utils/constants"
+	"github.com/ente/cli/utils/constants"
 	"log"
 	"os"
 
@@ -43,10 +43,7 @@ func GetOrCreateClISecret() []byte {
 			}
 		}
 		key := make([]byte, keyLength)
-		_, err = rand.Read(key)
-		if err != nil {
-			log.Fatal(fmt.Errorf("error generating key: %w", err))
-		}
+		rand.Read(key)
 		// Store the key as a base64 encoded string
 		secret = base64.StdEncoding.EncodeToString(key)
 		keySetErr := keyring.Set(secretService, secretUser, secret)
@@ -63,7 +60,7 @@ func GetOrCreateClISecret() []byte {
 	// If decoding fails or the length is incorrect, treat it as a legacy key
 	legacySecret := []byte(secret)
 	if len(legacySecret) != keyLength {
-		// See https://github.com/ente-io/ente/issues/1510#issuecomment-2331676096 for more information
+		// See https://github.com/ente/ente/issues/1510#issuecomment-2331676096 for more information
 		log.Println("Warning: Existing key is not 32 bytes. Deleting it")
 		delErr := keyring.Delete(secretService, secretUser)
 		if delErr != nil {
@@ -89,10 +86,7 @@ func GetSecretFromSecretText(secretFilePath string) []byte {
 		}
 		// File does not exist; create and write a random 32-byte secret
 		key := make([]byte, keyLength)
-		_, err := rand.Read(key)
-		if err != nil {
-			log.Fatal(fmt.Errorf("error generating key: %w", err))
-		}
+		rand.Read(key)
 		err = os.WriteFile(secretFilePath, key, 0644)
 		if err != nil {
 			log.Fatal(fmt.Errorf("error writing to secret file: %w", err))

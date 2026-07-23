@@ -6,12 +6,7 @@ class EncryptionResult {
   final Uint8List? header;
   final Uint8List? nonce;
 
-  EncryptionResult({
-    this.encryptedData,
-    this.key,
-    this.header,
-    this.nonce,
-  });
+  EncryptionResult({this.encryptedData, this.key, this.header, this.nonce});
 }
 
 class FileEncryptResult {

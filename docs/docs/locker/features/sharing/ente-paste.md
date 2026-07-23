@@ -1,35 +1,17 @@
 ---
 title: Ente Paste
-description: Share sensitive text with one-time, end-to-end encrypted links
+description: Share short sensitive text from Locker using a one-time, end-to-end encrypted link
 ---
 
 # Ente Paste
 
-Ente Paste lets you share short sensitive text (keys, snippets, notes) using a
-one-time, end-to-end encrypted link.
+[Ente Paste](https://paste.ente.com) lets you share short sensitive text over a one-time, end-to-end encrypted link. The text is encrypted in your browser, the link self-destructs after a single read (or after 24 hours), and Ente only ever sees the ciphertext.
 
-Open [paste.ente.com](https://paste.ente.com), paste your text, and share the
-generated link.
+Reach for it from Locker when you need to hand a piece of text to someone without leaving a durable copy anywhere. Locker is for storage; Paste is for transit.
 
-## How it works
+## Full documentation
 
-1. Your text is encrypted on your device.
-2. Ente stores only ciphertext.
-3. The decryption key stays in the URL fragment (`#...`) and is not sent to
-   Ente's servers.
-4. The link can be opened once.
-
-After a successful open, the paste is deleted. If it is never opened, it
-expires after 24 hours.
-
-## Limits
-
-- Maximum text length: 4000 characters.
-- Anonymous usage: no Ente account required to create or open a paste.
-- One-time access: opening the link consumes it.
-
-## Notes
-
-- Link preview crawlers are ignored so they do not consume your paste.
-- If someone opens an already-consumed or expired link, they will see that the
-  paste is unavailable.
+- [Ente Paste introduction](/paste/): what Paste is and how it works.
+- [Send your first paste](/paste/getting-started): create, share, and open flows, including password protection.
+- [How encryption works](/paste/features/security): the cryptographic guarantees behind a Paste link.
+- [Ente Paste FAQ](/paste/faq): common questions and what to do when something goes wrong.

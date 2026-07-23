@@ -4,13 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/ente/filedata"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/array"
-	"github.com/ente-io/stacktrace"
-	"github.com/lib/pq"
+	"slices"
 	"time"
+
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/filedata"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/stacktrace"
+	"github.com/lib/pq"
 )
 
 // Repository defines the methods for inserting, updating, and retrieving file data.
@@ -133,14 +134,14 @@ func (r *Repository) AddBucket(row filedata.Row, bucketID string, columnName str
         WHERE file_id = $2 AND data_type = $3 and user_id = $4`, columnName, columnName)
 	result, err := r.DB.Exec(query, bucketID, row.FileID, string(row.Type), row.UserID)
 	if err != nil {
-		return stacktrace.Propagate(err, "failed to add bucket to "+columnName)
+		return stacktrace.Propagate(err, "failed to add bucket to %s", columnName)
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	if rowsAffected == 0 {
-		return stacktrace.NewError("bucket not added to " + columnName)
+		return stacktrace.NewError("bucket not added to %s", columnName)
 	}
 	return nil
 }
@@ -160,14 +161,14 @@ func (r *Repository) RemoveBucket(row filedata.Row, bucketID string, columnName 
         WHERE file_id = $2 AND data_type = $3 and user_id = $4`, columnName, columnName)
 	result, err := r.DB.Exec(query, bucketID, row.FileID, string(row.Type), row.UserID)
 	if err != nil {
-		return stacktrace.Propagate(err, "failed to remove bucket from "+columnName)
+		return stacktrace.Propagate(err, "failed to remove bucket from %s", columnName)
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	if rowsAffected == 0 {
-		return stacktrace.NewError("bucket not removed from " + columnName)
+		return stacktrace.NewError("bucket not removed from %s", columnName)
 	}
 	return nil
 }
@@ -216,14 +217,14 @@ func (r *Repository) MoveBetweenBuckets(row filedata.Row, bucketID string, sourc
   WHERE file_id = $2 AND data_type = $3 and user_id = $4`, destColumn, destColumn, sourceColumn, sourceColumn)
 	result, err := r.DB.Exec(query, bucketID, row.FileID, string(row.Type), row.UserID)
 	if err != nil {
-		return stacktrace.Propagate(err, "failed to move bucket from "+sourceColumn+" to "+destColumn)
+		return stacktrace.Propagate(err, "failed to move bucket from %s to %s", sourceColumn, destColumn)
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	if rowsAffected == 0 {
-		return stacktrace.NewError("bucket not moved from " + sourceColumn + " to " + destColumn)
+		return stacktrace.NewError("bucket not moved from %s to %s", sourceColumn, destColumn)
 	}
 	return nil
 }
@@ -251,7 +252,7 @@ func (r *Repository) GetPendingSyncDataAndExtendLock(ctx context.Context, newSyn
 		return nil, stacktrace.Propagate(err, "")
 	}
 	if fileData.SyncLockedTill > newSyncLockTime {
-		return nil, stacktrace.NewError(fmt.Sprintf("newSyncLockTime (%d) is less than existing SyncLockedTill(%d), newSync", newSyncLockTime, fileData.SyncLockedTill))
+		return nil, stacktrace.NewError("newSyncLockTime (%d) is less than existing SyncLockedTill(%d), newSync", newSyncLockTime, fileData.SyncLockedTill)
 	}
 	_, err = tx.Exec(`UPDATE file_data SET sync_locked_till = $1 WHERE file_id = $2 AND data_type = $3 AND user_id = $4`, newSyncLockTime, fileData.FileID, string(fileData.Type), fileData.UserID)
 	if err != nil {
@@ -276,10 +277,10 @@ func (r *Repository) MarkReplicationAsDone(ctx context.Context, row filedata.Row
 }
 
 func (r *Repository) RegisterReplicationAttempt(ctx context.Context, row filedata.Row, dstBucketID string) error {
-	if array.StringInList(dstBucketID, row.DeleteFromBuckets) {
+	if slices.Contains(row.DeleteFromBuckets, dstBucketID) {
 		return r.MoveBetweenBuckets(row, dstBucketID, DeletionColumn, InflightRepColumn)
 	}
-	if !array.StringInList(dstBucketID, row.InflightReplicas) {
+	if !slices.Contains(row.InflightReplicas, dstBucketID) {
 		return r.AddBucket(row, dstBucketID, InflightRepColumn)
 	}
 	return nil
@@ -310,7 +311,19 @@ func (r *Repository) DeleteFileData(ctx context.Context, row filedata.Row) error
 		return stacktrace.Propagate(err, "")
 	}
 	if rowsAffected == 0 {
-		return stacktrace.NewError("file data not deleted")
+		// A concurrent cleanup may already have removed the row. Only accept a
+		// no-op when the primary key is absent; a surviving row means one of the
+		// deletion invariants did not match.
+		var exists bool
+		err = r.DB.QueryRowContext(ctx, `SELECT EXISTS (
+			SELECT 1 FROM file_data WHERE file_id = $1 AND data_type = $2
+		)`, row.FileID, string(row.Type)).Scan(&exists)
+		if err != nil {
+			return stacktrace.Propagate(err, "failed to check file data after delete")
+		}
+		if exists {
+			return stacktrace.NewError("file data row exists but does not satisfy deletion conditions")
+		}
 	}
 	return nil
 }

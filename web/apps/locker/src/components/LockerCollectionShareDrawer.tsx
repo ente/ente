@@ -1,3 +1,9 @@
+import {
+    canLeaveCollection,
+    canManageCollectionSharing,
+    type LockerCollection,
+    type LockerCollectionParticipant,
+} from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -31,12 +37,6 @@ import {
 } from "ente-contacts-web";
 import { t } from "i18next";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-    canLeaveCollection,
-    canManageCollectionSharing,
-    type LockerCollection,
-    type LockerCollectionParticipant,
-} from "types";
 
 interface LockerCollectionShareDrawerProps {
     open: boolean;

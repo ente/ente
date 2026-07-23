@@ -18,23 +18,14 @@ import 'package:logging/logging.dart';
 import 'package:password_strength/password_strength.dart';
 import 'package:styled_text/styled_text.dart';
 
-enum PasswordEntryMode {
-  set,
-  update,
-  reset,
-}
+enum PasswordEntryMode { set, update, reset }
 
 class PasswordEntryPage extends StatefulWidget {
   final BaseConfiguration config;
   final PasswordEntryMode mode;
   final BaseHomePage homePage;
 
-  const PasswordEntryPage(
-    this.config,
-    this.mode,
-    this.homePage, {
-    super.key,
-  });
+  const PasswordEntryPage(this.config, this.mode, this.homePage, {super.key});
 
   @override
   State<PasswordEntryPage> createState() => _PasswordEntryPageState();
@@ -61,6 +52,12 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
 
   bool _passwordsMatch = false;
   bool _isPasswordValid = false;
+
+  bool get _hasValidMatchingPasswords =>
+      _isPasswordValid &&
+      _passwordInInputBox.isNotEmpty &&
+      _passwordInInputConfirmationBox.isNotEmpty &&
+      _passwordInInputBox == _passwordInInputConfirmationBox;
 
   @override
   void initState() {
@@ -230,9 +227,7 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
                           // password
                           visible: false,
                           child: TextFormField(
-                            autofillHints: const [
-                              AutofillHints.email,
-                            ],
+                            autofillHints: const [AutofillHints.email],
                             autocorrect: false,
                             keyboardType: TextInputType.emailAddress,
                             initialValue: email,
@@ -244,9 +239,10 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
                           onFieldSubmitted: (_) {
                             do {
                               FocusScope.of(context).nextFocus();
-                            } while (
-                                FocusScope.of(context).focusedChild!.context ==
-                                    null);
+                            } while (FocusScope.of(
+                                  context,
+                                ).focusedChild!.context ==
+                                null);
                           },
                           decoration: InputDecoration(
                             fillColor: _isPasswordValid
@@ -283,11 +279,11 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
                                     },
                                   )
                                 : _isPasswordValid
-                                    ? Icon(
-                                        Icons.check,
-                                        color: colorScheme.primary700,
-                                      )
-                                    : null,
+                                ? Icon(
+                                    Icons.check,
+                                    color: colorScheme.primary700,
+                                  )
+                                : null,
                           ),
                           style: textTheme.body.copyWith(
                             color: colorScheme.textBase,
@@ -300,12 +296,13 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
                           onChanged: (password) {
                             setState(() {
                               _passwordInInputBox = password;
-                              _passwordStrength =
-                                  estimatePasswordStrength(password);
-                              _isPasswordValid = _passwordStrength >=
+                              _passwordStrength = estimatePasswordStrength(
+                                password,
+                              );
+                              _isPasswordValid =
+                                  _passwordStrength >=
                                   kMildPasswordStrengthThreshold;
-                              _passwordsMatch = _passwordInInputBox ==
-                                  _passwordInInputConfirmationBox;
+                              _passwordsMatch = _hasValidMatchingPasswords;
                             });
                           },
                           textInputAction: TextInputAction.next,
@@ -314,16 +311,15 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
                         Opacity(
                           opacity:
                               (_passwordInInputBox != '') && _password1InFocus
-                                  ? 1
-                                  : 0,
+                              ? 1
+                              : 0,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Text(
-                              context.strings
-                                  .passwordStrength(passwordStrengthText),
-                              style: TextStyle(
-                                color: passwordStrengthColor,
+                              context.strings.passwordStrength(
+                                passwordStrengthText,
                               ),
+                              style: TextStyle(color: passwordStrengthColor),
                             ),
                           ),
                         ),
@@ -369,11 +365,11 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
                                     },
                                   )
                                 : _passwordsMatch
-                                    ? Icon(
-                                        Icons.check,
-                                        color: colorScheme.primary700,
-                                      )
-                                    : null,
+                                ? Icon(
+                                    Icons.check,
+                                    color: colorScheme.primary700,
+                                  )
+                                : null,
                             border: OutlineInputBorder(
                               borderSide: BorderSide.none,
                               borderRadius: BorderRadius.circular(8),
@@ -390,10 +386,7 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
                           onChanged: (cnfPassword) {
                             setState(() {
                               _passwordInInputConfirmationBox = cnfPassword;
-                              if (_passwordInInputBox != '') {
-                                _passwordsMatch = _passwordInInputBox ==
-                                    _passwordInInputConfirmationBox;
-                              }
+                              _passwordsMatch = _hasValidMatchingPasswords;
                             });
                           },
                         ),
@@ -437,31 +430,37 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
     if (logOutFromOthers == null) {
       return;
     }
-    final dialog =
-        createProgressDialog(context, context.strings.generatingEncryptionKeys);
-    await dialog.show();
+    final dialog = mounted
+        ? createProgressDialog(
+            context,
+            context.strings.generatingEncryptionKeys,
+          )
+        : null;
+    await dialog?.show();
     try {
-      final result = await widget.config
-          .getAttributesForNewPassword(_passwordController1.text);
+      final result = await widget.config.getAttributesForNewPassword(
+        _passwordController1.text,
+      );
       await UserService.instance.updateKeyAttributes(
         result.item1,
         result.item2,
         logoutOtherDevices: logOutFromOthers,
       );
-      await dialog.hide();
-      showShortToast(context, context.strings.passwordChangedSuccessfully);
-      Navigator.of(context).pop();
-      if (widget.mode == PasswordEntryMode.reset) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
+      await dialog?.hide();
+      if (mounted) {
+        showShortToast(context, context.strings.passwordChangedSuccessfully);
+        Navigator.of(context).pop();
+        if (widget.mode == PasswordEntryMode.reset) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
       }
     } catch (e, s) {
       _logger.severe("Failed to change password", e, s);
-      await dialog.hide();
-      // ignore: unawaited_futures
-      showGenericErrorDialog(
-        context: context,
-        error: e,
-      );
+      await dialog?.hide();
+      if (mounted) {
+        // ignore: unawaited_futures
+        showGenericErrorDialog(context: context, error: e);
+      }
     }
   }
 
@@ -533,31 +532,36 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
       final result = await widget.config.generateKey(password);
       widget.config.resetVolatilePassword();
       await dialog.hide();
+      if (!mounted) {
+        return;
+      }
       onDone() async {
-        final dialog =
-            createProgressDialog(context, context.strings.pleaseWait);
-        await dialog.show();
+        final dialog = mounted
+            ? createProgressDialog(context, context.strings.pleaseWait)
+            : null;
+        await dialog?.show();
         try {
           await UserService.instance.setAttributes(result);
-          await dialog.hide();
+          await dialog?.hide();
           widget.config.resetVolatilePassword();
-          // ignore: unawaited_futures
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (BuildContext context) {
-                return widget.homePage;
-              },
-            ),
-            (route) => false,
-          );
+          if (mounted) {
+            // ignore: unawaited_futures
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (BuildContext context) {
+                  return widget.homePage;
+                },
+              ),
+              (route) => false,
+            );
+          }
         } catch (e, s) {
           _logger.severe("Failed to configure account", e, s);
-          await dialog.hide();
-          // ignore: unawaited_futures
-          showGenericErrorDialog(
-            context: context,
-            error: e,
-          );
+          await dialog?.hide();
+          if (mounted) {
+            // ignore: unawaited_futures
+            showGenericErrorDialog(context: context, error: e);
+          }
         }
       }
 
@@ -577,21 +581,22 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
     } catch (e) {
       _logger.severe(e);
       await dialog.hide();
+      if (!mounted) {
+        return;
+      }
       if (e is UnsupportedError) {
         // ignore: unawaited_futures
         showAlertBottomSheet(
           context,
           title: context.strings.insecureDevice,
           message: context
-              .strings.sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease,
+              .strings
+              .sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease,
           assetPath: 'assets/warning-grey.png',
         );
       } else {
         // ignore: unawaited_futures
-        showGenericErrorDialog(
-          context: context,
-          error: e,
-        );
+        showGenericErrorDialog(context: context, error: e);
       }
     }
   }

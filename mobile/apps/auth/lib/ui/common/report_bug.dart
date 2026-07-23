@@ -8,22 +8,14 @@ PopupMenuButton<dynamic> reportBugPopupMenu(BuildContext context) {
       items.add(
         const PopupMenuItem(
           value: 1,
-          child: Row(
-            children: [
-              Text("Contact support"),
-            ],
-          ),
+          child: Row(children: [Text("Contact support")]),
         ),
       );
       return items;
     },
     onSelected: (value) async {
       if (value == 1) {
-        await sendLogs(
-          context,
-          "Contact support",
-          postShare: () {},
-        );
+        await sendLogs(context, "Contact support", postShare: () {});
       }
     },
   );

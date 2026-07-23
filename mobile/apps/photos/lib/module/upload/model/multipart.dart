@@ -11,23 +11,13 @@ class PartETag extends XmlParsableObject {
 
   @override
   Map<String, dynamic> toMap() {
-    return {
-      "PartNumber": partNumber,
-      "ETag": eTag,
-    };
+    return {"PartNumber": partNumber, "ETag": eTag};
   }
 }
 
-enum MultipartStatus {
-  pending,
-  uploaded,
-  completed,
-}
+enum MultipartStatus { pending, uploaded, completed }
 
-enum PartStatus {
-  pending,
-  uploaded,
-}
+enum PartStatus { pending, uploaded }
 
 class MultipartInfo {
   final List<bool>? partUploadStatus;

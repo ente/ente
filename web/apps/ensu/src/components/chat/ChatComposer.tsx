@@ -1,3 +1,5 @@
+import type { ChatMessage } from "@/services/chat/store";
+import type { DownloadProgress } from "@/services/llm/types";
 import {
     Attachment01Icon,
     Cancel01Icon,
@@ -19,8 +21,6 @@ import {
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
 import React, { memo } from "react";
-import type { ChatMessage } from "services/chat/store";
-import type { DownloadProgress } from "services/llm/types";
 
 type IconProps = { size: number; strokeWidth: number };
 
@@ -71,6 +71,7 @@ export interface ChatComposerProps {
     closeAttachmentMenu: () => void;
     handleAttachmentChoice: (choice: "image" | "document") => void;
     showImageAttachment: boolean;
+    isImageAttachmentLimitReached: boolean;
     getDocumentInputProps: () => React.InputHTMLAttributes<HTMLInputElement>;
     getImageInputProps: () => React.InputHTMLAttributes<HTMLInputElement>;
     actionButtonSx: SxProps<Theme>;
@@ -112,6 +113,7 @@ export const ChatComposer = memo(
         closeAttachmentMenu,
         handleAttachmentChoice,
         showImageAttachment,
+        isImageAttachmentLimitReached,
         getDocumentInputProps,
         getImageInputProps,
         actionButtonSx,
@@ -127,6 +129,10 @@ export const ChatComposer = memo(
                 !input.trim() &&
                 pendingDocuments.length === 0 &&
                 pendingImages.length === 0);
+        const disableAttachmentButton =
+            isGenerating ||
+            isDownloading ||
+            (showImageAttachment && isImageAttachmentLimitReached);
 
         const pendingImagePreviewRow =
             pendingImages.length > 0 ? (
@@ -554,8 +560,7 @@ export const ChatComposer = memo(
                                                 aria-label="Add attachment"
                                                 sx={drawerIconButtonSx}
                                                 disabled={
-                                                    isGenerating ||
-                                                    isDownloading
+                                                    disableAttachmentButton
                                                 }
                                                 onClick={openAttachmentMenu}
                                             >
@@ -666,6 +671,7 @@ export const ChatComposer = memo(
                         >
                             {showImageAttachment && (
                                 <MenuItem
+                                    disabled={isImageAttachmentLimitReached}
                                     onClick={() =>
                                         handleAttachmentChoice("image")
                                     }

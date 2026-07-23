@@ -1,7 +1,8 @@
+import { usePasteColorMode } from "@/features/paste/hooks/usePasteColorMode";
+import { getPasteThemeTokens } from "@/features/paste/theme/pasteThemeTokens";
 import { Link01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import QrCode2RoundedIcon from "@mui/icons-material/QrCode2Rounded";
 import {
     Box,
     Button,
@@ -11,9 +12,7 @@ import {
     Typography,
 } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import { usePasteColorMode } from "features/paste/hooks/usePasteColorMode";
-import { getPasteThemeTokens } from "features/paste/theme/pasteThemeTokens";
-import { useEffect, useRef, useState } from "react";
+import { type MouseEvent, useEffect, useRef, useState } from "react";
 import {
     parseArrowLottie,
     type ParsedArrow,
@@ -25,6 +24,7 @@ interface PasteLinkCardProps {
     link: string;
     onCopy: (value: string) => Promise<void>;
     onShare: (url: string) => Promise<void>;
+    passwordProtected?: boolean;
 }
 
 interface MeasuredPath {
@@ -37,6 +37,7 @@ export const PasteLinkCard = ({
     link,
     onCopy,
     onShare,
+    passwordProtected = false,
 }: PasteLinkCardProps) => {
     const { resolvedMode } = usePasteColorMode();
     const tokens = getPasteThemeTokens(resolvedMode);
@@ -48,11 +49,11 @@ export const PasteLinkCard = ({
     const arrowSvgRef = useRef<SVGSVGElement | null>(null);
     const [arrow, setArrow] = useState<ParsedArrow | null>(null);
     const [showCopied, setShowCopied] = useState(false);
-    const [showQr, setShowQr] = useState(false);
     const [showViewConfirm, setShowViewConfirm] = useState(false);
-    const isCompactQrModal = useMediaQuery("(max-width:767px)", {
+    const isStackedLayout = useMediaQuery("(max-width:599.95px)", {
         noSsr: true,
     });
+    const previewQrSize = isStackedLayout ? 136 : 150;
 
     useEffect(() => {
         const linkCard = linkCardRef.current;
@@ -72,10 +73,6 @@ export const PasteLinkCard = ({
             behavior: reduceMotion ? "auto" : "smooth",
             block: "start",
         });
-    }, [link]);
-
-    useEffect(() => {
-        setShowQr(false);
     }, [link]);
 
     useEffect(() => {
@@ -196,6 +193,15 @@ export const PasteLinkCard = ({
             });
     };
 
+    const handleLinkClick = (event: MouseEvent<HTMLAnchorElement>) => {
+        event.preventDefault();
+        setShowViewConfirm(true);
+    };
+
+    const handleShareClick = () => {
+        void onShare(link);
+    };
+
     const handleCloseViewConfirm = () => {
         setShowViewConfirm(false);
     };
@@ -209,12 +215,11 @@ export const PasteLinkCard = ({
         handleCloseViewConfirm();
         window.open(link, "_blank", "noopener");
     };
-    const arrowStrokeColor = resolvedMode === "dark" ? "#ffffff" : null;
 
+    const arrowStrokeColor = resolvedMode === "dark" ? "#ffffff" : null;
     return (
         <Stack
             ref={linkCardRef}
-            spacing={1}
             sx={{
                 width: "100%",
                 maxWidth: "100%",
@@ -222,282 +227,212 @@ export const PasteLinkCard = ({
                 scrollMarginTop: { xs: "16px", md: "24px" },
             }}
         >
-            <Typography
+            <Box
                 sx={{
-                    fontSize: "0.88rem",
-                    fontWeight: 600,
-                    letterSpacing: "0.01em",
-                    color: tokens.text.secondary,
+                    width: "100%",
                     maxWidth: "100%",
-                }}
-            >
-                One-Time Link
-            </Typography>
-            <Stack
-                direction={{ xs: "column", sm: "row" }}
-                spacing={1}
-                alignItems={{ xs: "stretch", sm: "center" }}
-                sx={{
-                    width: { xs: "calc(100vw - 4rem)", sm: "100%" },
-                    maxWidth: { xs: "100%" },
                     minWidth: 0,
+                    boxSizing: "border-box",
+                    display: "grid",
+                    gridTemplateColumns: {
+                        xs: `${previewQrSize}px minmax(0, 1fr)`,
+                        sm: "150px minmax(0, 1fr)",
+                    },
+                    gridTemplateAreas: {
+                        xs: '"qr actions" "details details"',
+                        sm: '"qr details" "qr actions"',
+                    },
+                    alignItems: "center",
+                    rowGap: { xs: 1.3, sm: 1 },
+                    columnGap: { xs: 1.4, sm: 1.8 },
+                    px: { xs: 1.45, sm: 1.8 },
+                    py: { xs: 1.6, sm: 1.95 },
                     mx: "auto",
                     position: "relative",
                     zIndex: 1,
+                    borderRadius: "16px",
+                    border: `1px solid ${tokens.surface.dialogBorder}`,
+                    bgcolor: inputGlassBg,
+                    background: inputGlassSurface,
+                    boxShadow: inputGlassShadow,
+                    backdropFilter: "blur(9px) saturate(112%)",
+                    WebkitBackdropFilter: "blur(9px) saturate(112%)",
+                    overflow: "visible",
                 }}
             >
                 <Box
                     sx={{
-                        width: "100%",
-                        maxWidth: "100%",
-                        flex: 1,
-                        minWidth: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        boxSizing: "border-box",
-                        px: { xs: 1.9, sm: 2.2 },
-                        py: { xs: 1.05, sm: 1.2 },
-                        borderRadius: "14px",
-                        border: `1px solid ${tokens.surface.linkRowBorder}`,
-                        bgcolor: tokens.surface.linkRowBg,
-                        backdropFilter: "blur(8px) saturate(108%)",
-                        WebkitBackdropFilter: "blur(8px) saturate(108%)",
-                        boxShadow: tokens.surface.linkRowInsetShadow,
+                        gridArea: "qr",
+                        justifySelf: "start",
+                        position: "relative",
+                        width: { xs: previewQrSize, sm: 150 },
+                        height: { xs: previewQrSize, sm: 150 },
+                        borderRadius: "10px",
                         overflow: "hidden",
+                        boxShadow:
+                            resolvedMode === "dark"
+                                ? "0 10px 24px rgba(0, 0, 0, 0.22)"
+                                : "0 10px 22px rgba(17, 51, 121, 0.12)",
+                    }}
+                >
+                    <PasteQrCode
+                        value={link}
+                        tokens={tokens}
+                        size={previewQrSize}
+                        paperBg={tokens.qr.paperBg}
+                        borderRadius="10px"
+                        showCenterLock={passwordProtected}
+                    />
+                </Box>
+
+                <Stack
+                    spacing={1.35}
+                    sx={{
+                        gridArea: "details",
+                        minWidth: 0,
+                        width: "100%",
+                        height: "100%",
+                        alignSelf: "stretch",
+                        justifyContent: "center",
+                        pr: { xs: 0, sm: 0.55 },
+                        transform: { xs: "none", sm: "translateY(8px)" },
                     }}
                 >
                     <Typography
-                        component="a"
-                        href={link}
-                        target="_blank"
-                        rel="noopener"
-                        title={link}
-                        onClick={(event) => {
-                            event.preventDefault();
-                            setShowViewConfirm(true);
-                        }}
+                        style={{ marginBottom: "0.5rem" }}
                         sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: { xs: "flex-start", md: "center" },
-                            height: "100%",
+                            fontSize: "0.88rem",
+                            fontWeight: 700,
+                            letterSpacing: "0.01em",
+                            color: tokens.text.secondary,
+                            maxWidth: "100%",
+                        }}
+                    >
+                        One-Time Link
+                    </Typography>
+                    <Box
+                        sx={{
                             width: "100%",
                             maxWidth: "100%",
-                            gap: 0.9,
-                            color: tokens.text.primary,
-                            textDecoration: "none",
-                            fontSize: { xs: "0.9rem", sm: "0.93rem" },
-                            lineHeight: 1.4,
-                            textAlign: "left",
+                            minWidth: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            boxSizing: "border-box",
+                            px: { xs: 1.65, sm: 1.75 },
+                            py: { xs: 0.95, sm: 1 },
+                            borderRadius: "12px",
+                            border: `1px solid ${tokens.surface.linkRowBorder}`,
+                            bgcolor: tokens.surface.linkRowBg,
+                            backdropFilter: "blur(8px) saturate(108%)",
+                            WebkitBackdropFilter: "blur(8px) saturate(108%)",
+                            boxShadow: tokens.surface.linkRowInsetShadow,
                             overflow: "hidden",
-                            "&:hover": {
-                                textDecoration: "underline",
+                        }}
+                    >
+                        <Typography
+                            component="a"
+                            href={link}
+                            target="_blank"
+                            rel="noopener"
+                            title={link}
+                            onClick={handleLinkClick}
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                height: "100%",
+                                width: "100%",
+                                maxWidth: "100%",
+                                gap: 0.9,
                                 color: tokens.text.primary,
-                            },
-                        }}
-                    >
-                        <Box
-                            sx={{
-                                width: 20,
-                                height: 20,
-                                display: "grid",
-                                placeItems: "center",
-                                flexShrink: 0,
-                                alignSelf: "center",
-                            }}
-                        >
-                            <HugeiconsIcon
-                                icon={Link01Icon}
-                                size={17}
-                                strokeWidth={1.9}
-                            />
-                        </Box>
-                        <Box
-                            component="span"
-                            sx={{
-                                flex: { xs: 1, md: "0 1 auto" },
-                                minWidth: 0,
-                                maxWidth: { md: "calc(100% - 28px)" },
+                                textDecoration: "none",
+                                fontSize: { xs: "0.86rem", sm: "0.9rem" },
+                                lineHeight: 1.35,
+                                textAlign: "left",
                                 overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                                display: "block",
+                                "&:hover": {
+                                    textDecoration: "underline",
+                                    color: tokens.text.primary,
+                                },
+                                "&:focus-visible": {
+                                    outline: `2px solid ${tokens.button.primaryBg}`,
+                                    outlineOffset: 4,
+                                    borderRadius: "8px",
+                                },
                             }}
                         >
-                            {link}
-                        </Box>
-                    </Typography>
-                </Box>
-                {arrow && (
-                    <Box
-                        sx={{
-                            display: { xs: "block", sm: "none" },
-                            position: "absolute",
-                            left: { xs: 18 },
-                            "@media (max-width:449.95px)": { left: 6 },
-                            top: "100%",
-                            mt: "-22px",
-                            width: 132,
-                            height: "auto",
-                            zIndex: 3,
-                            pointerEvents: "none",
-                            transform: "rotate(24deg)",
-                            transformOrigin: "50% 50%",
-                        }}
-                    >
-                        <svg
-                            viewBox={`0 0 ${arrow.width} ${arrow.height}`}
-                            width="100%"
-                            height="100%"
-                            fill="none"
-                            aria-hidden="true"
-                            focusable="false"
-                        >
-                            <g transform={arrow.transform}>
-                                {arrow.paths.map((path, idx) => (
-                                    <path
-                                        key={`${path.d}-mobile-${idx}`}
-                                        d={path.d}
-                                        fill="none"
-                                        stroke={arrowStrokeColor ?? path.color}
-                                        strokeWidth={
-                                            path.width * path.strokeScale
-                                        }
-                                        strokeLinecap={path.lineCap}
-                                        strokeLinejoin={path.lineJoin}
-                                    />
-                                ))}
-                            </g>
-                        </svg>
+                            <Box
+                                sx={{
+                                    width: 20,
+                                    height: 20,
+                                    display: "grid",
+                                    placeItems: "center",
+                                    flexShrink: 0,
+                                    alignSelf: "center",
+                                }}
+                            >
+                                <HugeiconsIcon
+                                    icon={Link01Icon}
+                                    size={16}
+                                    strokeWidth={1.9}
+                                />
+                            </Box>
+                            <Box
+                                component="span"
+                                sx={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                    display: "block",
+                                    opacity: 0.78,
+                                }}
+                            >
+                                {link}
+                            </Box>
+                        </Typography>
                     </Box>
-                )}
-            </Stack>
-            <Box
-                sx={{
-                    display: "flex",
-                    alignItems: { xs: "center", sm: "center" },
-                    justifyContent: {
-                        xs: "flex-start",
-                        sm: "flex-start",
-                        md: "center",
-                    },
-                    flexDirection: { xs: "column", sm: "row" },
-                    gap: { xs: 0.45, sm: 1.1 },
-                    pl: { xs: 0, sm: 0.5, md: 0 },
-                    mt: { xs: 2.5, sm: 1.1 },
-                    opacity: 0.9,
-                    width: "100%",
-                    maxWidth: "100%",
-                    minWidth: 0,
-                    overflow: "visible",
-                }}
-            >
-                {arrow && (
-                    <Box
-                        sx={{
-                            display: { xs: "none", sm: "block" },
-                            width: { sm: 178, md: 212 },
-                            height: "auto",
-                            alignSelf: "auto",
-                            ml: 0,
-                            mt: { sm: 0.35, md: 0.25 },
-                            mb: { sm: 0, md: 0 },
-                            position: "relative",
-                            zIndex: 4,
-                            transform: "translateY(8px) rotate(28deg)",
-                            transformOrigin: "50% 50%",
-                            pointerEvents: "none",
-                        }}
-                    >
-                        <svg
-                            ref={arrowSvgRef}
-                            viewBox={`0 0 ${arrow.width} ${arrow.height}`}
-                            width="100%"
-                            height="100%"
-                            fill="none"
-                            aria-hidden="true"
-                            focusable="false"
-                        >
-                            <g transform={arrow.transform}>
-                                {arrow.paths.map((path, idx) => (
-                                    <path
-                                        key={`${path.d}-${idx}`}
-                                        data-arrow-path="true"
-                                        data-arrow-index={idx}
-                                        d={path.d}
-                                        fill="none"
-                                        stroke={arrowStrokeColor ?? path.color}
-                                        strokeWidth={
-                                            path.width * path.strokeScale
-                                        }
-                                        strokeLinecap={path.lineCap}
-                                        strokeLinejoin={path.lineJoin}
-                                    />
-                                ))}
-                            </g>
-                        </svg>
-                    </Box>
-                )}
-                <Stack
-                    spacing={{ xs: 0.18, sm: 0.32 }}
+                </Stack>
+
+                <Box
                     sx={{
-                        width: { xs: "100%", sm: "auto" },
-                        maxWidth: { xs: 280, sm: "none" },
-                        pl: { xs: 0, sm: 0 },
-                        mx: { xs: "auto", sm: 0 },
-                        transform: { xs: "translate(86px, 50px)", sm: "none" },
-                        "@media (max-width:449.95px)": {
-                            transform: "translate(96px, 50px)",
-                        },
+                        gridArea: "actions",
+                        position: "relative",
+                        minHeight: { xs: previewQrSize, sm: 64 },
+                        mt: { xs: 0, sm: 0.65 },
+                        width: "100%",
+                        maxWidth: "100%",
+                        display: { xs: "flex", sm: "block" },
+                        alignItems: { xs: "center", sm: "stretch" },
+                        justifyContent: { xs: "center", sm: "flex-start" },
+                        overflow: "visible",
+                        transform: { xs: "none", sm: "translateY(8px)" },
                     }}
                 >
                     <Stack
-                        direction="row"
-                        spacing={{ xs: 1.2, sm: 2.8 }}
-                        alignItems="flex-end"
-                        justifyContent={{ xs: "flex-start", sm: "flex-start" }}
+                        direction={{ xs: "column", sm: "row" }}
+                        spacing={{ xs: 1.45, sm: 3.6 }}
+                        sx={{
+                            alignItems: "center",
+                            justifyContent: "center",
+                            position: "relative",
+                            zIndex: 2,
+                            width: "fit-content",
+                            maxWidth: "100%",
+                            mx: 0,
+                            transform: { xs: "none", sm: "translateY(16px)" },
+                        }}
                     >
-                        <IconButton
-                            aria-label={
-                                showQr ? "Hide QR code" : "Show QR code"
-                            }
-                            aria-pressed={showQr}
-                            onClick={() => {
-                                setShowQr((value) => !value);
-                            }}
-                            sx={{
-                                width: { xs: 36, sm: 40 },
-                                height: { xs: 36, sm: 40 },
-                                borderRadius: "11px",
-                                border: `1px solid ${tokens.button.qrToggleBorder}`,
-                                bgcolor: showQr
-                                    ? tokens.button.qrToggleActiveBg
-                                    : tokens.button.qrToggleBg,
-                                color: tokens.button.qrToggleText,
-                                transform: {
-                                    xs: "translateY(4px) rotate(-4deg)",
-                                    sm: "translateY(74px) rotate(-4deg)",
-                                },
-                                "&:hover": {
-                                    bgcolor: showQr
-                                        ? tokens.button.qrToggleActiveHoverBg
-                                        : tokens.button.qrToggleHoverBg,
-                                },
-                            }}
-                        >
-                            <QrCode2RoundedIcon
-                                sx={{ fontSize: { xs: 21, sm: 23 } }}
-                            />
-                        </IconButton>
                         <Typography
                             component="button"
-                            onClick={() => {
-                                void onShare(link);
-                            }}
+                            onClick={handleShareClick}
                             sx={{
                                 fontFamily:
                                     '"Gochi Hand", "Comic Sans MS", "Bradley Hand", cursive',
-                                fontSize: { xs: "2rem", sm: "2.5rem" },
+                                fontSize: { xs: "2.22rem", sm: "2rem" },
+                                "@media (max-width:424.95px)": {
+                                    fontSize: "2rem",
+                                },
                                 color: tokens.button.scriptLink,
                                 background: "none",
                                 border: "none",
@@ -508,13 +443,18 @@ export const PasteLinkCard = ({
                                 textDecoration: "underline",
                                 textUnderlineOffset: "3px",
                                 transform: {
-                                    xs: "rotate(-3deg)",
-                                    sm: "translateY(68px) rotate(-4deg)",
+                                    xs: "translateX(-28px) rotate(-3deg)",
+                                    sm: "rotate(-3deg)",
                                 },
                                 "&:hover": {
                                     color: tokens.button.scriptLinkHover,
                                     textDecoration: "underline",
                                     textUnderlineOffset: "3px",
+                                },
+                                "&:focus-visible": {
+                                    outline: `2px solid ${tokens.button.primaryBg}`,
+                                    outlineOffset: 3,
+                                    borderRadius: "6px",
                                 },
                             }}
                         >
@@ -522,15 +462,15 @@ export const PasteLinkCard = ({
                         </Typography>
                         <Box
                             sx={{
-                                transform: {
-                                    xs: "rotate(3deg)",
-                                    sm: "translateY(94px) rotate(4deg)",
-                                },
                                 display: "flex",
                                 flexDirection: "column",
                                 alignItems: "center",
                                 minWidth: 0,
                                 position: "relative",
+                                transform: {
+                                    xs: "translateX(34px) rotate(3deg)",
+                                    sm: "rotate(3deg)",
+                                },
                             }}
                         >
                             <Typography
@@ -539,7 +479,10 @@ export const PasteLinkCard = ({
                                 sx={{
                                     fontFamily:
                                         '"Gochi Hand", "Comic Sans MS", "Bradley Hand", cursive',
-                                    fontSize: { xs: "2rem", sm: "2.5rem" },
+                                    fontSize: { xs: "2.22rem", sm: "2rem" },
+                                    "@media (max-width:424.95px)": {
+                                        fontSize: "2rem",
+                                    },
                                     color: tokens.button.scriptLink,
                                     background: "none",
                                     border: "none",
@@ -553,6 +496,11 @@ export const PasteLinkCard = ({
                                         color: tokens.button.scriptLinkHover,
                                         textDecoration: "underline",
                                         textUnderlineOffset: "3px",
+                                    },
+                                    "&:focus-visible": {
+                                        outline: `2px solid ${tokens.button.primaryBg}`,
+                                        outlineOffset: 3,
+                                        borderRadius: "6px",
                                     },
                                 }}
                             >
@@ -583,214 +531,193 @@ export const PasteLinkCard = ({
                             </Typography>
                         </Box>
                     </Stack>
-                    {showQr && !isCompactQrModal && (
+
+                    {arrow && (
                         <Box
                             sx={{
-                                position: "fixed",
-                                right: { xs: 22, sm: 32, md: 42 },
-                                bottom: { xs: 28, sm: 38, md: 50 },
-                                zIndex: 1300,
-                                p: 0.95,
-                                borderRadius: "14px",
-                                border: `1px solid ${tokens.surface.floatingCardBorder}`,
-                                bgcolor: tokens.accent.soft,
-                                boxShadow: tokens.surface.floatingCardShadow,
-                                backdropFilter: "blur(8px) saturate(106%)",
-                                WebkitBackdropFilter:
-                                    "blur(8px) saturate(106%)",
-                                minWidth: 0,
-                                overflow: "visible",
+                                display: "block",
+                                position: "absolute",
+                                left: { xs: -11, sm: 184, md: 208 },
+                                top: { xs: 82, sm: -5, md: -7 },
+                                width: { xs: 118, sm: 114, md: 133 },
+                                height: "auto",
+                                zIndex: 1,
+                                opacity: 0.9,
+                                pointerEvents: "none",
+                                transform: {
+                                    xs: "translateY(16px) scaleY(-1) rotate(-57deg)",
+                                    sm: "translateY(-2px) scaleX(-1) rotate(0deg)",
+                                },
+                                transformOrigin: "50% 50%",
                             }}
                         >
-                            <PasteQrCode
-                                value={link}
-                                tokens={tokens}
-                                onClose={() => {
-                                    setShowQr(false);
-                                }}
-                                resolvedMode={resolvedMode}
-                            />
+                            <svg
+                                ref={arrowSvgRef}
+                                viewBox={`0 0 ${arrow.width} ${arrow.height}`}
+                                width="100%"
+                                height="100%"
+                                fill="none"
+                                aria-hidden="true"
+                                focusable="false"
+                            >
+                                <g transform={arrow.transform}>
+                                    {arrow.paths.map((path, idx) => (
+                                        <path
+                                            key={`${path.d}-${idx}`}
+                                            data-arrow-path="true"
+                                            data-arrow-index={idx}
+                                            d={path.d}
+                                            fill="none"
+                                            stroke={
+                                                arrowStrokeColor ?? path.color
+                                            }
+                                            strokeWidth={
+                                                path.width * path.strokeScale
+                                            }
+                                            strokeLinecap={path.lineCap}
+                                            strokeLinejoin={path.lineJoin}
+                                        />
+                                    ))}
+                                </g>
+                            </svg>
                         </Box>
                     )}
-                </Stack>
-                <Dialog
-                    open={showViewConfirm}
-                    onClose={handleCloseViewConfirm}
-                    maxWidth="xs"
-                    fullWidth
-                    slotProps={{
-                        backdrop: {
-                            sx: {
-                                bgcolor: tokens.surface.dialogBackdrop,
-                                backdropFilter: "blur(2px)",
-                            },
-                        },
-                        paper: {
-                            sx: {
-                                mx: 2,
-                                borderRadius: "20px",
-                                border: "1px solid",
-                                borderColor: inputGlassBorder,
-                                bgcolor: inputGlassBg,
-                                background: inputGlassSurface,
-                                boxShadow: inputGlassShadow,
-                                backdropFilter: "blur(9px) saturate(112%)",
-                                WebkitBackdropFilter:
-                                    "blur(9px) saturate(112%)",
-                            },
-                        },
-                    }}
-                >
-                    <Box
-                        sx={{ p: { xs: 2.1, sm: 2.35 }, position: "relative" }}
-                    >
-                        <IconButton
-                            aria-label="Close confirmation dialog"
-                            onClick={handleCloseViewConfirm}
-                            size="small"
-                            sx={{
-                                position: "absolute",
-                                top: 10,
-                                right: 10,
-                                color: tokens.text.secondary,
-                            }}
-                        >
-                            <CloseRoundedIcon fontSize="small" />
-                        </IconButton>
-                        <Typography
-                            aria-hidden="true"
-                            sx={{
-                                fontSize: "1.85rem",
-                                lineHeight: 1,
-                                textAlign: "center",
-                                mb: 0.6,
-                            }}
-                        >
-                            👀
-                        </Typography>
-                        <Typography
-                            sx={{
-                                color: tokens.text.primary,
-                                fontWeight: 700,
-                                fontSize: { xs: "1rem", sm: "1.06rem" },
-                                lineHeight: 1.3,
-                                textAlign: "center",
-                            }}
-                        >
-                            Open One-Time Link?
-                        </Typography>
-                        <Typography
-                            sx={{
-                                mt: 1,
-                                color: tokens.text.dialogBody,
-                                fontSize: { xs: "0.88rem", sm: "0.91rem" },
-                                lineHeight: 1.5,
-                                textAlign: "center",
-                            }}
-                        >
-                            This link can be opened only once. Are you sure you
-                            want to open it? You could copy it instead.
-                        </Typography>
-                        <Stack
-                            direction="row"
-                            spacing={1.1}
-                            justifyContent="center"
-                            sx={{ mt: 2.2, width: "100%" }}
-                        >
-                            <Button
-                                onClick={handleCopyFromConfirm}
-                                sx={{
-                                    textTransform: "none",
-                                    fontSize: { xs: "0.88rem", sm: "0.9rem" },
-                                    fontWeight: 600,
-                                    letterSpacing: "0.01em",
-                                    minWidth: { xs: 122, sm: 132 },
-                                    py: 0.58,
-                                    px: 1.5,
-                                    borderRadius: "10px",
-                                    borderColor: tokens.button.ghostBorder,
-                                    color: tokens.button.ghostText,
-                                    "&:hover": {
-                                        borderColor:
-                                            tokens.button.ghostHoverBorder,
-                                        bgcolor: tokens.button.ghostHoverBg,
-                                    },
-                                }}
-                                variant="outlined"
-                            >
-                                Copy link
-                            </Button>
-                            <Button
-                                onClick={handleConfirmOpenLink}
-                                sx={{
-                                    textTransform: "none",
-                                    fontSize: { xs: "0.88rem", sm: "0.9rem" },
-                                    fontWeight: 600,
-                                    letterSpacing: "0.01em",
-                                    minWidth: { xs: 122, sm: 132 },
-                                    py: 0.58,
-                                    px: 1.5,
-                                    borderRadius: "10px",
-                                    bgcolor: tokens.button.primaryBg,
-                                    color: tokens.button.primaryText,
-                                    boxShadow:
-                                        "0 2px 8px rgba(47, 109, 247, 0.2)",
-                                    "&:hover": {
-                                        bgcolor: tokens.button.primaryHoverBg,
-                                        boxShadow:
-                                            "0 3px 10px rgba(47, 109, 247, 0.24)",
-                                    },
-                                }}
-                                variant="contained"
-                            >
-                                Open Link
-                            </Button>
-                        </Stack>
-                    </Box>
-                </Dialog>
-                {showQr && isCompactQrModal && (
-                    <Dialog
-                        open
-                        onClose={() => {
-                            setShowQr(false);
-                        }}
-                        maxWidth={false}
-                        slotProps={{
-                            backdrop: {
-                                sx: {
-                                    bgcolor: tokens.surface.qrBackdropMobile,
-                                    backdropFilter: "blur(2px)",
-                                },
-                            },
-                            paper: {
-                                sx: {
-                                    m: 2,
-                                    borderRadius: "18px",
-                                    border: `1px solid ${tokens.surface.floatingCardBorder}`,
-                                    bgcolor: tokens.surface.floatingCardBg,
-                                    boxShadow:
-                                        tokens.surface.floatingCardShadow,
-                                    overflow: "visible",
-                                },
-                            },
-                        }}
-                    >
-                        <Box sx={{ p: 1.15, overflow: "visible" }}>
-                            <PasteQrCode
-                                value={link}
-                                tokens={tokens}
-                                size={226}
-                                paperBg={tokens.qr.mobilePaperBg}
-                                borderRadius="12px"
-                                onClose={() => {
-                                    setShowQr(false);
-                                }}
-                                resolvedMode={resolvedMode}
-                            />
-                        </Box>
-                    </Dialog>
-                )}
+                </Box>
             </Box>
+
+            <Dialog
+                open={showViewConfirm}
+                onClose={handleCloseViewConfirm}
+                maxWidth="xs"
+                fullWidth
+                slotProps={{
+                    backdrop: {
+                        sx: {
+                            bgcolor: tokens.surface.dialogBackdrop,
+                            backdropFilter: "blur(2px)",
+                        },
+                    },
+                    paper: {
+                        sx: {
+                            mx: 2,
+                            borderRadius: "20px",
+                            border: "1px solid",
+                            borderColor: inputGlassBorder,
+                            bgcolor: inputGlassBg,
+                            background: inputGlassSurface,
+                            boxShadow: inputGlassShadow,
+                            backdropFilter: "blur(9px) saturate(112%)",
+                            WebkitBackdropFilter: "blur(9px) saturate(112%)",
+                        },
+                    },
+                }}
+            >
+                <Box sx={{ p: { xs: 2.1, sm: 2.35 }, position: "relative" }}>
+                    <IconButton
+                        aria-label="Close confirmation dialog"
+                        onClick={handleCloseViewConfirm}
+                        size="small"
+                        sx={{
+                            position: "absolute",
+                            top: 10,
+                            right: 10,
+                            color: tokens.text.secondary,
+                        }}
+                    >
+                        <CloseRoundedIcon fontSize="small" />
+                    </IconButton>
+                    <Typography
+                        aria-hidden="true"
+                        sx={{
+                            fontSize: "1.85rem",
+                            lineHeight: 1,
+                            textAlign: "center",
+                            mb: 0.6,
+                        }}
+                    >
+                        👀
+                    </Typography>
+                    <Typography
+                        sx={{
+                            color: tokens.text.primary,
+                            fontWeight: 700,
+                            fontSize: { xs: "1rem", sm: "1.06rem" },
+                            lineHeight: 1.3,
+                            textAlign: "center",
+                        }}
+                    >
+                        Open One-Time Link?
+                    </Typography>
+                    <Typography
+                        sx={{
+                            mt: 1,
+                            color: tokens.text.dialogBody,
+                            fontSize: { xs: "0.88rem", sm: "0.91rem" },
+                            lineHeight: 1.5,
+                            textAlign: "center",
+                        }}
+                    >
+                        This link can be opened only once. Are you sure you want
+                        to open it? You could copy it instead.
+                    </Typography>
+                    <Stack
+                        direction="row"
+                        spacing={1.1}
+                        sx={{
+                            justifyContent: "center",
+                            mt: 2.2,
+                            width: "100%",
+                        }}
+                    >
+                        <Button
+                            onClick={handleCopyFromConfirm}
+                            sx={{
+                                textTransform: "none",
+                                fontSize: { xs: "0.88rem", sm: "0.9rem" },
+                                fontWeight: 600,
+                                letterSpacing: "0.01em",
+                                minWidth: { xs: 122, sm: 132 },
+                                py: 0.58,
+                                px: 1.5,
+                                borderRadius: "10px",
+                                borderColor: tokens.button.ghostBorder,
+                                color: tokens.button.ghostText,
+                                "&:hover": {
+                                    borderColor: tokens.button.ghostHoverBorder,
+                                    bgcolor: tokens.button.ghostHoverBg,
+                                },
+                            }}
+                            variant="outlined"
+                        >
+                            Copy link
+                        </Button>
+                        <Button
+                            onClick={handleConfirmOpenLink}
+                            sx={{
+                                textTransform: "none",
+                                fontSize: { xs: "0.88rem", sm: "0.9rem" },
+                                fontWeight: 600,
+                                letterSpacing: "0.01em",
+                                minWidth: { xs: 122, sm: 132 },
+                                py: 0.58,
+                                px: 1.5,
+                                borderRadius: "10px",
+                                bgcolor: tokens.button.primaryBg,
+                                color: tokens.button.primaryText,
+                                boxShadow: "0 2px 8px rgba(47, 109, 247, 0.2)",
+                                "&:hover": {
+                                    bgcolor: tokens.button.primaryHoverBg,
+                                    boxShadow:
+                                        "0 3px 10px rgba(47, 109, 247, 0.24)",
+                                },
+                            }}
+                            variant="contained"
+                        >
+                            Open Link
+                        </Button>
+                    </Stack>
+                </Box>
+            </Dialog>
         </Stack>
     );
 };

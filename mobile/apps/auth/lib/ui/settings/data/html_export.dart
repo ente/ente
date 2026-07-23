@@ -47,7 +47,7 @@ Future<String> generateQRImageBase64(String data) async {
   return base64Encode(pngBytes);
 }
 
-Future<String> generateOTPEntryHtml(Code code, BuildContext context) async {
+Future<String> generateOTPEntryHtml(Code code) async {
   // Capitalize algorithm for Google Authenticator compatibility in QR codes
   final qrData = code.rawData
       .replaceAll('algorithm=Algorithm.', 'algorithm=')
@@ -90,7 +90,7 @@ Future<String> generateHtml(BuildContext context) async {
 
   for (final code in allCodes) {
     if (code.hasError) continue;
-    final entry = await generateOTPEntryHtml(code, context);
+    final entry = await generateOTPEntryHtml(code);
     enteries.add(entry);
   }
 
@@ -258,7 +258,7 @@ Future<String> generateHtml(BuildContext context) async {
   <div class="footer" style="text-align: center; font-size: 12px; color:
     rgb(136, 136, 136)">
     <div>
-      <a href="https://ente.com" target="_blank"><img src="https://email-assets.ente.com/ente-green.png" style="width: 100px;
+      <a href="https://ente.com" target="_blank"><img src="https://email-assets.ente.com/ente-2026-green.png" style="width: 100px;
         padding: 24px" title="Ente" alt="Ente" /></a>
     </div>
     <div>
@@ -268,7 +268,7 @@ Future<String> generateHtml(BuildContext context) async {
           class="footer-icons" style="width: 24px; padding: 4px" title="Twitter" alt="Twitter" /></a>
       <a href="https://ente.com/discord" target="_blank"><img src="https://email-assets.ente.com/discord-icon.png"
           class="footer-icons" style="width: 24px; padding: 4px" title="Discord" alt="Discord" /></a>
-      <a href="https://github.com/ente-io" target="_blank"><img src="https://email-assets.ente.com/github-icon.png"
+      <a href="https://github.com/ente" target="_blank"><img src="https://email-assets.ente.com/github-icon.png"
           class="footer-icons" style="width: 24px; padding: 4px" title="GitHub" alt="GitHub" /></a>
     </div>
     <p>

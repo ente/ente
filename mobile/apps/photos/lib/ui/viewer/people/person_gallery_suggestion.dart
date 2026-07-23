@@ -73,24 +73,16 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
       vsync: this,
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, -1.0),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _slideController!,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, -1.0), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _slideController!,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(
-      CurvedAnimation(
-        parent: _fadeController!,
-        curve: Curves.easeInOut,
-      ),
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController!, curve: Curves.easeInOut),
     );
   }
 
@@ -153,8 +145,10 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
     try {
       // Precompute face crops for next two suggestions
       const maxPrecompute = 2;
-      final endIndex = (currentSuggestionIndex + maxPrecompute)
-          .clamp(0, allSuggestions.length);
+      final endIndex = (currentSuggestionIndex + maxPrecompute).clamp(
+        0,
+        allSuggestions.length,
+      );
 
       for (int i = currentSuggestionIndex + 1; i < endIndex; i++) {
         if (!mounted) break;
@@ -181,11 +175,7 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
     final futures = <Future<Uint8List?>>[];
     for (final file in files) {
       futures.add(
-        precomputeClusterFaceCrop(
-          file,
-          clusterID,
-          useFullFile: true,
-        ),
+        precomputeClusterFaceCrop(file, clusterID, useFullFile: true),
       );
     }
     final faceCropsList = await Future.wait(futures);
@@ -206,9 +196,7 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
     final List<EnteFile> sortedFiles = List<EnteFile>.from(
       currentSuggestion.filesInCluster,
     );
-    sortedFiles.sort(
-      (a, b) => b.creationTime!.compareTo(a.creationTime!),
-    );
+    sortedFiles.sort((a, b) => b.creationTime!.compareTo(a.creationTime!));
     final result = await Navigator.of(context).push<ClusterPageResult>(
       MaterialPageRoute(
         builder: (context) => ClusterPage(
@@ -248,11 +236,7 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
       });
       await _prepareNextSuggestion();
     } catch (e, s) {
-      _logger.severe(
-        "Error consuming suggestion after external action",
-        e,
-        s,
-      );
+      _logger.severe("Error consuming suggestion after external action", e, s);
       if (mounted) {
         setState(() {
           isProcessing = false;
@@ -281,10 +265,7 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
             )
           : _captureNotPersonFeedback(currentSuggestion);
 
-      await Future.wait([
-        _animateOut(),
-        feedbackFuture,
-      ]);
+      await Future.wait([_animateOut(), feedbackFuture]);
       if (mounted) {
         setState(() {
           hasCurrentSuggestion = false;
@@ -301,9 +282,7 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
     }
   }
 
-  Future<void> _captureNotPersonFeedback(
-    ClusterSuggestion suggestion,
-  ) async {
+  Future<void> _captureNotPersonFeedback(ClusterSuggestion suggestion) async {
     await MLDataDB.instance.captureNotPersonFeedback(
       personID: relevantPerson.remoteID,
       clusterID: suggestion.clusterIDToMerge,
@@ -334,11 +313,8 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
 
       final result = await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => SaveOrEditPerson(
-            clusterID,
-            file: someFile,
-            isEditing: false,
-          ),
+          builder: (context) =>
+              SaveOrEditPerson(clusterID, file: someFile, isEditing: false),
         ),
       );
       if (result == null || result == false) {
@@ -502,8 +478,9 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
                                   style: textTheme.bodyBold,
                                 ),
                                 TextSpan(
-                                  text:
-                                      AppLocalizations.of(context).questionmark,
+                                  text: AppLocalizations.of(
+                                    context,
+                                  ).questionmark,
                                 ),
                               ],
                             ),
@@ -549,12 +526,13 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
                                   const SizedBox(width: 8),
                                   Text(
                                     AppLocalizations.of(context).no,
-                                    style: (personPage
-                                            ? textTheme.bodyBold
-                                            : textTheme.body)
-                                        .copyWith(
-                                      color: colorScheme.textBase,
-                                    ),
+                                    style:
+                                        (personPage
+                                                ? textTheme.bodyBold
+                                                : textTheme.body)
+                                            .copyWith(
+                                              color: colorScheme.textBase,
+                                            ),
                                   ),
                                 ],
                               ),
@@ -587,12 +565,11 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
                                   const SizedBox(width: 8),
                                   Text(
                                     AppLocalizations.of(context).yes,
-                                    style: (personPage
-                                            ? textTheme.bodyBold
-                                            : textTheme.body)
-                                        .copyWith(
-                                      color: Colors.white,
-                                    ),
+                                    style:
+                                        (personPage
+                                                ? textTheme.bodyBold
+                                                : textTheme.body)
+                                            .copyWith(color: Colors.white),
                                   ),
                                 ],
                               ),
@@ -605,8 +582,9 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
                     if (personPage)
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
-                        onTap:
-                            isProcessing ? null : () => _saveAsAnotherPerson(),
+                        onTap: isProcessing
+                            ? null
+                            : () => _saveAsAnotherPerson(),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             vertical: 12,
@@ -658,8 +636,9 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
   List<Widget> _buildFaceThumbnails() {
     final currentSuggestion = allSuggestions[currentSuggestionIndex];
     final suggestPerson = currentSuggestion.person;
-    final files =
-        currentSuggestion.filesInCluster.take(personPage ? 4 : 3).toList();
+    final files = currentSuggestion.filesInCluster
+        .take(personPage ? 4 : 3)
+        .toList();
     final thumbnails = <Widget>[];
     final textTheme = getEnteTextTheme(context);
 
@@ -683,9 +662,7 @@ class _PersonGallerySuggestionState extends State<PersonGallerySuggestion>
               width: 72,
               height: 72,
               decoration: ShapeDecoration(
-                shape: faceThumbnailSquircleBorder(
-                  side: 72,
-                ),
+                shape: faceThumbnailSquircleBorder(side: 72),
                 color: getEnteColorScheme(context).fillFaint,
               ),
               child: FaceThumbnailSquircleClip(

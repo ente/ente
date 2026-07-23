@@ -29,10 +29,7 @@ class _ActionBarWidgetState extends State<ActionBarWidget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (widget.code.note.isNotEmpty)
-              SelectableText(
-                widget.code.note,
-                style: textTheme.miniMuted,
-              ),
+              SelectableText(widget.code.note, style: textTheme.miniMuted),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -58,10 +55,7 @@ class _ActionBarWidgetState extends State<ActionBarWidget> {
                       },
                       child: Align(
                         alignment: Alignment.centerRight,
-                        child: Text(
-                          context.l10n.cancel,
-                          style: textTheme.mini,
-                        ),
+                        child: Text(context.l10n.cancel, style: textTheme.mini),
                       ),
                     ),
                   ),

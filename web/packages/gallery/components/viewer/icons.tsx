@@ -18,7 +18,7 @@
 // The transforms are not part of the originals, they have been applied
 // separately to get these icons to align with the ones built into PhotoSwipe.
 const paths = {
-    // "@mui/icons-material/ErrorOutline"
+    // "@mui/icons-material/ErrorOutlined"
     error: '<path d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2M12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8" transform="translate(7, 5.7) scale(0.85)"',
     // Custom heart outline icon (30x26 viewBox)
     heart: '<path d="M12.4926 23.4794C8.64537 20.6025 1.02344 14.0254 1.02344 8.10676C1.02344 4.19475 3.89425 1.02344 7.84162 1.02344C9.88707 1.02344 11.9325 1.70526 14.6598 4.43253C17.3871 1.70526 19.4325 1.02344 21.478 1.02344C25.4253 1.02344 28.2962 4.19475 28.2962 8.10676C28.2962 14.0254 20.6743 20.6025 16.827 23.4794C15.5324 24.4474 13.7872 24.4474 12.4926 23.4794Z" stroke="white" stroke-width="2.04545" stroke-linecap="round" stroke-linejoin="round" fill="none"',

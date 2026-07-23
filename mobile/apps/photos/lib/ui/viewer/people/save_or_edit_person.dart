@@ -1,9 +1,8 @@
-import 'dart:async';
 import "dart:math" as math;
 
-import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
-import "package:flutter_animate/flutter_animate.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
@@ -11,29 +10,24 @@ import "package:photos/ente_theme_data.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/l10n/l10n.dart";
-import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/ml/face/person.dart";
-import "package:photos/services/account/user_service.dart";
+import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/services/machine_learning/face_ml/feedback/cluster_feedback.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/common/date_input.dart";
-import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/components/action_sheet_widget.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
 import "package:photos/ui/notification/toast.dart";
-import "package:photos/ui/sharing/album_share_info_widget.dart";
-import "package:photos/ui/sharing/user_avator_widget.dart";
 import "package:photos/ui/viewer/file/no_thumbnail_widget.dart";
 import "package:photos/ui/viewer/gallery/hooks/pick_person_avatar.dart";
 import "package:photos/ui/viewer/people/face_thumbnail_squircle.dart";
-import "package:photos/ui/viewer/people/link_email_screen.dart";
 import "package:photos/ui/viewer/people/merge_clusters_to_person_sheet.dart";
-import "package:photos/ui/viewer/people/people_util.dart";
 import "package:photos/ui/viewer/people/person_clusters_page.dart";
 import "package:photos/ui/viewer/people/person_face_widget.dart";
+import "package:photos/utils/contact_string_util.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/person_contact_linking_util.dart";
 
@@ -50,9 +44,9 @@ class SaveOrEditPerson extends StatefulWidget {
     this.person,
     this.isEditing = false,
   }) : assert(
-          !isEditing || person != null,
-          'Person cannot be null when editing',
-        );
+         !isEditing || person != null,
+         'Person cannot be null when editing',
+       );
 
   @override
   State<SaveOrEditPerson> createState() => _SaveOrEditPersonState();
@@ -60,18 +54,49 @@ class SaveOrEditPerson extends StatefulWidget {
 
 class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
   static const int _maxSuggestedPersons = 3;
-  bool isKeypadOpen = false;
   String _inputName = "";
   String? _selectedDate;
+  bool _isBirthdayValid = true;
   String? _email;
+  bool _isMe = false;
+  bool _isMeAssignedToAnotherPerson = true;
   bool _isPinned = false;
   bool _hideFromMemories = false;
   bool userAlreadyAssigned = false;
   late final Logger _logger = Logger("_SavePersonState");
-  Timer? _debounce;
   PersonEntity? person;
+  String? _mergeSuggestionPersonId;
   final _nameFocsNode = FocusNode();
   List<PersonEntity> _allPersons = [];
+  List<GenericSearchResult> _mergeablePersons = [];
+
+  String? get _emailToSave => trimToNull(_email);
+
+  int? get _currentUserIDToSave =>
+      currentUserIDForContactLinkEmail(_emailToSave);
+
+  bool get _initiallyIsMe => isCurrentUserContactLink(
+    email: widget.person?.data.email,
+    userID: widget.person?.data.userID,
+  );
+
+  bool get _isMeChanged => widget.isEditing && _isMe != _initiallyIsMe;
+
+  bool get _contactLinkEmailChanged =>
+      widget.isEditing && _emailToSave != trimToNull(person?.data.email);
+
+  bool get _shouldClearContactUserID =>
+      person?.data.userID != null &&
+      ((_isMeChanged && !_isMe) ||
+          (_contactLinkEmailChanged && _currentUserIDToSave == null));
+
+  bool get _shouldSetCurrentUserID =>
+      widget.isEditing &&
+      _currentUserIDToSave != null &&
+      person?.data.userID != _currentUserIDToSave;
+
+  bool get _shouldUpdateContactUserID =>
+      _shouldClearContactUserID || _shouldSetCurrentUserID;
 
   @override
   void initState() {
@@ -80,6 +105,7 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
     _selectedDate = widget.person?.data.birthDate;
     _email = widget.person?.data.email;
     person = widget.person;
+    _isMe = _initiallyIsMe;
     _isPinned = widget.person?.data.isPinned ?? false;
     _hideFromMemories = widget.person?.data.hideFromMemories ?? false;
     _nameFocsNode.addListener(_handleNameFocusChange);
@@ -88,7 +114,6 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _nameFocsNode.removeListener(_handleNameFocusChange);
     _nameFocsNode.dispose();
     super.dispose();
@@ -96,8 +121,7 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = getEnteTextTheme(context);
-    final colorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
     final suggestions = _shouldShowSuggestions
         ? _getPersonSuggestions()
         : const <PersonEntity>[];
@@ -131,264 +155,212 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
         }
       },
       child: Scaffold(
-        resizeToAvoidBottomInset: isKeypadOpen,
-        appBar: AppBar(
-          title: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              widget.isEditing
-                  ? context.l10n.editPerson
-                  : context.l10n.savePerson,
-            ),
-          ),
-        ),
+        backgroundColor: colors.backgroundBase,
         body: GestureDetector(
-          onTap: () {
-            FocusScope.of(context).unfocus();
-          },
-          child: SafeArea(
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.only(
-                      bottom: 32.0,
-                      left: 16.0,
-                      right: 16.0,
-                    ),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 48),
-                        if (person != null)
-                          Stack(
-                            children: [
-                              SizedBox(
-                                height: 110,
-                                width: 110,
-                                child: FaceThumbnailSquircleClip(
-                                  child: PersonFaceWidget(
-                                    key: ValueKey(
-                                      person?.data.avatarFaceID ?? "",
-                                    ),
-                                    personId: person!.remoteID,
-                                  ),
-                                ),
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: Column(
+            children: [
+              Expanded(
+                child: AppBarComponent(
+                  title: widget.isEditing
+                      ? context.l10n.editPerson
+                      : context.l10n.savePerson,
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+                      sliver: SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Center(child: _buildAvatar()),
+                            const SizedBox(height: Spacing.xxl),
+                            if (_mergeablePersons.isNotEmpty) ...[
+                              _MergeWithExistingSection(
+                                clusterId: widget.clusterID!,
+                                suggestedPersonId: _mergeSuggestionPersonId,
+                                onTap: _onMergeWithExisting,
                               ),
-                              if (person != null)
-                                Positioned(
-                                  right: 0,
-                                  bottom: 0,
-                                  child: Container(
-                                    width: 28,
-                                    height: 28,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8.0),
-                                      boxShadow: Theme.of(context)
-                                          .colorScheme
-                                          .enteTheme
-                                          .shadowMenu,
-                                      color: getEnteColorScheme(context)
-                                          .backgroundElevated2,
-                                    ),
-                                    child: IconButton(
-                                      icon: const Icon(Icons.edit),
-                                      iconSize:
-                                          16, // specify the size of the icon
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(),
-                                      onPressed: () async {
-                                        final result =
-                                            await showPersonAvatarPhotoSheet(
-                                          context,
-                                          person!,
-                                        );
-                                        if (result != null) {
-                                          _logger.info(
-                                            'Person avatar updated',
-                                          );
-                                          setState(() {
-                                            person = result;
-                                          });
-                                          Bus.instance.fire(
-                                            PeopleChangedEvent(
-                                              type: PeopleEventType
-                                                  .saveOrEditPerson,
-                                              source: "_SaveOrEditPersonState",
-                                              person: result,
-                                            ),
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                ),
+                              const SizedBox(height: Spacing.xxl),
                             ],
-                          ),
-                        if (person == null)
-                          SizedBox(
-                            height: 110,
-                            width: 110,
-                            child: FaceThumbnailSquircleClip(
-                              child: widget.clusterID != null
-                                  ? PersonFaceWidget(
-                                      clusterID: widget.clusterID,
-                                    )
-                                  : const NoThumbnailWidget(
-                                      addBorder: false,
+                            TextInputComponent(
+                              label: context.l10n.name,
+                              hintText: context.l10n.enterName,
+                              initialValue: widget.person?.data.name,
+                              focusNode: _nameFocsNode,
+                              keyboardType: TextInputType.name,
+                              textCapitalization: TextCapitalization.words,
+                              autocorrect: false,
+                              isRequired: true,
+                              onChanged: (value) =>
+                                  setState(() => _inputName = value),
+                            ),
+                            AnimatedSize(
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeInOutQuad,
+                              child: suggestions.isEmpty
+                                  ? const SizedBox.shrink()
+                                  : Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: Spacing.sm,
+                                      ),
+                                      child: _PersonSuggestionsDropdown(
+                                        persons: suggestions,
+                                        onPersonTap: _onSuggestionSelected,
+                                      ),
                                     ),
                             ),
-                          ),
-                        const SizedBox(height: 36),
-                        TextFormField(
-                          keyboardType: TextInputType.name,
-                          textCapitalization: TextCapitalization.words,
-                          autocorrect: false,
-                          focusNode: _nameFocsNode,
-                          onChanged: (value) {
-                            if (_debounce?.isActive ?? false) {
-                              _debounce?.cancel();
-                            }
-                            _debounce =
-                                Timer(const Duration(milliseconds: 300), () {
-                              setState(() {
-                                _inputName = value;
-                              });
-                            });
-                          },
-                          initialValue: _inputName,
-                          decoration: InputDecoration(
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(8.0)),
-                              borderSide: BorderSide(
-                                color: getEnteColorScheme(context).strokeMuted,
-                              ),
-                            ),
-                            fillColor: getEnteColorScheme(context).fillFaint,
-                            filled: true,
-                            hintText: context.l10n.enterName,
-                            hintStyle: getEnteTextTheme(context).bodyFaint,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            border: UnderlineInputBorder(
-                              borderSide: BorderSide.none,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                        AnimatedSize(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeInOutQuad,
-                          child: suggestions.isEmpty
-                              ? const SizedBox.shrink()
-                              : Padding(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  child: _PersonSuggestionsDropdown(
-                                    persons: suggestions,
-                                    onPersonTap: _onSuggestionSelected,
-                                  ),
+                            if (_showThisIsMe) ...[
+                              const SizedBox(height: Spacing.sm),
+                              LabeledControlComponent(
+                                control: CheckboxComponent(
+                                  selected: _isMe,
+                                  onChanged: _setIsMe,
                                 ),
-                        ),
-                        const SizedBox(height: 16),
-                        DatePickerField(
-                          hintText: context.l10n.enterDateOfBirth,
-                          firstDate: DateTime(100),
-                          lastDate: DateTime.now(),
-                          initialValue: _selectedDate,
-                          isRequired: false,
-                          onChanged: (date) {
-                            setState(() {
-                              // format date to yyyy-MM-dd
-                              _selectedDate =
-                                  date?.toIso8601String().split("T").first;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        AnimatedSize(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeInOutQuad,
-                          child: _EmailSection(_email, person?.remoteID),
-                        ),
-                        const SizedBox(height: 24),
-                        ButtonWidget(
-                          buttonType: ButtonType.primary,
-                          labelText: context.l10n.save,
-                          isDisabled: !changed || _inputName.isEmpty,
-                          onTap: () async {
-                            if (widget.isEditing) {
-                              final updatedPersonEntity =
-                                  await updatePerson(context);
-                              if (updatedPersonEntity != null) {
-                                Navigator.pop(context, updatedPersonEntity);
-                              }
-                            } else {
-                              final newPersonEntity = await addNewPerson(
-                                context,
-                                text: _inputName,
-                                clusterID: widget.clusterID!,
-                                birthdate: _selectedDate,
-                                email: _email,
-                              ).catchError((e) {
-                                _logger.severe("Error adding new person", e);
-                                return null;
-                              });
-                              if (newPersonEntity != null) {
-                                Navigator.pop(context, newPersonEntity);
-                              }
-                            }
-                          },
-                        ),
-                        if (!widget.isEditing) ...[
-                          const SizedBox(height: 24),
-                          Align(
-                            alignment: Alignment.center,
-                            child: TextButton(
-                              onPressed: _onMergeWithExisting,
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                label: context.l10n.thisIsMeExclamation,
+                                foreground: colors.textLighter,
+                                onTap: () => _setIsMe(!_isMe),
                               ),
-                              child: Text(
-                                context.l10n.mergeWithExisting,
-                                style: textTheme.small.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                  color: colorScheme.primary500,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: colorScheme.primary500,
+                            ],
+                            const SizedBox(height: Spacing.xxl),
+                            _buildBirthdayInput(),
+                            if (widget.isEditing) ...[
+                              const SizedBox(height: 28),
+                              Text(
+                                context.l10n.mergedPhotos,
+                                style: TextStyles.h2.copyWith(
+                                  color: colors.textBase,
                                 ),
                               ),
-                            ),
-                          ),
-                        ],
-                        if (widget.isEditing) ...[
-                          const SizedBox(height: 32),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              context.l10n.mergedPhotos,
-                              style: textTheme.body,
-                            ),
-                          ),
-                          Padding(
-                            padding:
-                                const EdgeInsets.only(bottom: 12.0, top: 24.0),
-                            child: PersonClustersWidget(person!),
-                          ),
-                        ],
-                      ],
+                              const SizedBox(height: Spacing.md),
+                              PersonClustersWidget(person!),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              SafeArea(
+                top: false,
+                minimum: const EdgeInsets.all(Spacing.xxl),
+                child: Column(
+                  children: [
+                    ButtonComponent(
+                      label: context.l10n.savePerson,
+                      isDisabled: !_canSave,
+                      shouldShowSuccessState: false,
+                      onTap: _canSave ? _savePerson : null,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
+  }
+
+  bool get _showThisIsMe =>
+      Configuration.instance.getEmail() != null &&
+      (_isMe || !_isMeAssignedToAnotherPerson);
+
+  Widget _buildAvatar() {
+    const size = 108.0;
+    final avatar = SizedBox(
+      width: size,
+      height: size,
+      child: FaceThumbnailSquircleClip(
+        borderRadius: faceThumbnailSquircleBorderRadius(size),
+        child: person != null
+            ? PersonFaceWidget(
+                key: ValueKey(person!.data.avatarFaceID ?? ""),
+                personId: person!.remoteID,
+              )
+            : widget.clusterID != null
+            ? PersonFaceWidget(clusterID: widget.clusterID)
+            : const NoThumbnailWidget(addBorder: false),
+      ),
+    );
+    if (person == null) {
+      return avatar;
+    }
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        avatar,
+        Positioned(
+          right: 0,
+          bottom: 0,
+          child: _AvatarEditButton(onTap: _editAvatar),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBirthdayInput() {
+    return DatePickerField(
+      label: context.l10n.birthday,
+      hintText: context.l10n.enterDateOfBirthHint,
+      firstDate: DateTime(100),
+      lastDate: DateTime.now(),
+      initialValue: _selectedDate,
+      isRequired: false,
+      onValidityChanged: (isValid) =>
+          setState(() => _isBirthdayValid = isValid),
+      onChanged: (date) => setState(
+        () => _selectedDate = date?.toIso8601String().split("T").first,
+      ),
+    );
+  }
+
+  Future<void> _editAvatar() async {
+    final result = await showPersonAvatarPhotoSheet(context, person!);
+    if (!mounted || result == null) {
+      return;
+    }
+    _logger.info('Person avatar updated');
+    setState(() => person = result);
+    Bus.instance.fire(
+      PeopleChangedEvent(
+        type: PeopleEventType.saveOrEditPerson,
+        source: "_SaveOrEditPersonState",
+        person: result,
+      ),
+    );
+  }
+
+  void _setIsMe(bool selected) {
+    setState(() {
+      _isMe = selected;
+      _email = selected
+          ? Configuration.instance.getEmail()
+          : _initiallyIsMe
+          ? null
+          : widget.person?.data.email;
+    });
+  }
+
+  Future<void> _savePerson() async {
+    if (widget.isEditing) {
+      final updatedPersonEntity = await updatePerson(context);
+      if (updatedPersonEntity != null && mounted) {
+        Navigator.pop(context, updatedPersonEntity);
+      }
+      return;
+    }
+    final newPersonEntity = await addNewPerson(
+      context,
+      text: _inputName,
+      clusterID: widget.clusterID!,
+      birthdate: _selectedDate,
+      email: _email,
+    );
+    if (newPersonEntity != null && mounted) {
+      Navigator.pop(context, newPersonEntity);
+    }
   }
 
   Future<void> _onMergeWithExisting() async {
@@ -398,6 +370,7 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
     }
     final selection = await showMergeClustersToPersonPage(
       context,
+      initialPersons: _mergeablePersons,
       seedClusterId: clusterId,
     );
     if (!mounted || selection == null || selection.personId.isEmpty) {
@@ -439,7 +412,48 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
     }
     setState(() {
       _allPersons = persons;
+      _isMeAssignedToAnotherPerson = persons.any(
+        (candidate) =>
+            candidate.remoteID != person?.remoteID &&
+            isCurrentUserContactLink(
+              email: candidate.data.email,
+              userID: candidate.data.userID,
+            ),
+      );
     });
+    if (!widget.isEditing) {
+      final mergeablePersons = await loadMergeablePersons();
+      if (!mounted) {
+        return;
+      }
+      setState(() => _mergeablePersons = mergeablePersons);
+      if (mergeablePersons.isNotEmpty) {
+        await _loadMergeSuggestion();
+      }
+    }
+  }
+
+  Future<void> _loadMergeSuggestion() async {
+    final clusterId = widget.clusterID;
+    if (clusterId == null) {
+      return;
+    }
+    try {
+      final suggestions = await ClusterFeedbackService.instance
+          .getAllLargePersonSuggestions();
+      for (final suggestion in suggestions) {
+        if (suggestion.clusterIDToMerge == clusterId) {
+          if (mounted) {
+            setState(
+              () => _mergeSuggestionPersonId = suggestion.person.remoteID,
+            );
+          }
+          return;
+        }
+      }
+    } catch (error, stackTrace) {
+      _logger.warning("Failed to load merge suggestion", error, stackTrace);
+    }
   }
 
   bool get _shouldShowSuggestions =>
@@ -454,21 +468,20 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
     if (query.isEmpty || _allPersons.isEmpty) {
       return [];
     }
-    final suggestions = _allPersons.where((personEntity) {
-      final name = personEntity.data.name.trim();
-      if (name.isEmpty) {
-        return false;
-      }
-      if (widget.isEditing && personEntity.remoteID == person?.remoteID) {
-        return false;
-      }
-      return name.toLowerCase().contains(query);
-    }).toList()
-      ..sort(
-        (a, b) => a.data.name.toLowerCase().compareTo(
-              b.data.name.toLowerCase(),
-            ),
-      );
+    final suggestions =
+        _allPersons.where((personEntity) {
+          final name = personEntity.data.name.trim();
+          if (name.isEmpty) {
+            return false;
+          }
+          if (widget.isEditing && personEntity.remoteID == person?.remoteID) {
+            return false;
+          }
+          return name.toLowerCase().contains(query);
+        }).toList()..sort(
+          (a, b) =>
+              a.data.name.toLowerCase().compareTo(b.data.name.toLowerCase()),
+        );
 
     if (suggestions.length > _maxSuggestedPersons) {
       return suggestions.sublist(0, _maxSuggestedPersons);
@@ -509,14 +522,10 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
     required PersonEntity person,
     required String clusterId,
   }) {
-    return showModalBottomSheet<bool>(
+    return showBottomSheetComponent<bool>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _MergePersonConfirmationSheet(
-        person: person,
-        clusterId: clusterId,
-      ),
+      builder: (context) =>
+          _MergePersonConfirmationSheet(person: person, clusterId: clusterId),
     );
   }
 
@@ -585,14 +594,20 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
     String? birthdate,
     String? email,
   }) async {
-    if (email != null &&
-        email.isNotEmpty &&
-        await checkIfEmailAlreadyAssignedToAPerson(email)) {
-      _logger.severe(
-        "Failed to addNewPerson, email is already assigned to a person",
-      );
-      await showAlreadyLinkedEmailDialog(context, email);
-      return null;
+    if (email != null && email.isNotEmpty) {
+      final linkedPerson = await findPersonLinkedToEmail(email);
+      if (linkedPerson != null) {
+        _logger.severe(
+          "Failed to addNewPerson, email is already assigned to a person",
+        );
+        if (!context.mounted) return null;
+        await showAlreadyLinkedEmailDialog(
+          context,
+          email,
+          linkedPerson: linkedPerson,
+        );
+        return null;
+      }
     }
 
     try {
@@ -610,13 +625,11 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
         hideFromMemories: _hideFromMemories,
         birthdate: birthdate,
         email: email,
+        userID: currentUserIDForContactLinkEmail(email),
       );
-      final bool extraPhotosFound =
-          await ClusterFeedbackService.instance.checkAndDoAutomaticMerges(
-        personEntity,
-        personClusterID: clusterID,
-      );
-      if (extraPhotosFound) {
+      final bool extraPhotosFound = await ClusterFeedbackService.instance
+          .checkAndDoAutomaticMerges(personEntity, personClusterID: clusterID);
+      if (extraPhotosFound && context.mounted) {
         showShortToast(context, AppLocalizations.of(context).extraPhotosFound);
       }
       Bus.instance.fire(
@@ -630,6 +643,7 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
     } catch (e) {
       _logger.severe("Error adding new person", e);
       userAlreadyAssigned = false;
+      if (!context.mounted) return null;
       await showGenericErrorDialog(context: context, error: e);
       return null;
     }
@@ -637,31 +651,58 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
 
   bool get changed => widget.isEditing
       ? (_inputName.trim() != person!.data.name ||
-          _selectedDate != person!.data.birthDate ||
-          _email != person!.data.email ||
-          _isPinned != person!.data.isPinned ||
-          _hideFromMemories != person!.data.hideFromMemories)
+            _selectedDate != person!.data.birthDate ||
+            _emailToSave != trimToNull(person!.data.email) ||
+            _isMeChanged ||
+            _isPinned != person!.data.isPinned ||
+            _hideFromMemories != person!.data.hideFromMemories)
       : _inputName.trim().isNotEmpty;
+
+  bool get _canSave =>
+      changed && _inputName.trim().isNotEmpty && _isBirthdayValid;
 
   Future<PersonEntity?> updatePerson(BuildContext context) async {
     try {
-      if (_email != null &&
-          _email!.isNotEmpty &&
-          _email != person!.data.email &&
-          await checkIfEmailAlreadyAssignedToAPerson(_email!)) {
-        await showAlreadyLinkedEmailDialog(context, _email!);
-        return null;
+      final emailToSave = _emailToSave;
+      if (emailToSave != null &&
+          emailToSave != trimToNull(person!.data.email)) {
+        final linkedPerson = await findPersonLinkedToEmail(
+          emailToSave,
+          excludedPersonId: person!.remoteID,
+        );
+        if (linkedPerson != null) {
+          if (!context.mounted) return null;
+          await showAlreadyLinkedEmailDialog(
+            context,
+            emailToSave,
+            linkedPerson: linkedPerson,
+          );
+          return null;
+        }
       }
       final String name = _inputName.trim();
       final String? birthDate = _selectedDate;
-      final personEntity = await PersonService.instance.updateAttributes(
-        person!.remoteID,
-        name: name,
-        birthDate: birthDate,
-        isPinned: _isPinned,
-        hideFromMemories: _hideFromMemories,
-        email: _email,
-      );
+      final userIDToSave = _shouldClearContactUserID
+          ? null
+          : _currentUserIDToSave;
+      final personEntity = _shouldUpdateContactUserID
+          ? await PersonService.instance.updateAttributes(
+              person!.remoteID,
+              name: name,
+              birthDate: birthDate,
+              isPinned: _isPinned,
+              hideFromMemories: _hideFromMemories,
+              email: emailToSave,
+              userID: userIDToSave,
+            )
+          : await PersonService.instance.updateAttributes(
+              person!.remoteID,
+              name: name,
+              birthDate: birthDate,
+              isPinned: _isPinned,
+              hideFromMemories: _hideFromMemories,
+              email: emailToSave,
+            );
 
       Bus.instance.fire(
         PeopleChangedEvent(
@@ -673,9 +714,179 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
       return personEntity;
     } catch (e) {
       _logger.severe("Error adding updating person", e);
+      if (!context.mounted) return null;
       await showGenericErrorDialog(context: context, error: e);
       return null;
     }
+  }
+}
+
+class _AvatarEditButton extends StatelessWidget {
+  const _AvatarEditButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: context.componentColors.fillLight,
+          borderRadius: BorderRadius.circular(Radii.md),
+          boxShadow: Theme.of(context).colorScheme.enteTheme.shadowMenu,
+        ),
+        alignment: Alignment.center,
+        child: HugeIcon(
+          icon: HugeIcons.strokeRoundedEdit03,
+          color: context.componentColors.iconColor,
+          size: IconSizes.small,
+          strokeWidth: 2,
+        ),
+      ),
+    );
+  }
+}
+
+class _MergeWithExistingSection extends StatelessWidget {
+  const _MergeWithExistingSection({
+    required this.clusterId,
+    required this.suggestedPersonId,
+    required this.onTap,
+  });
+
+  final String clusterId;
+  final String? suggestedPersonId;
+  final Future<void> Function() onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.lg,
+        Spacing.md,
+        Spacing.md,
+        Spacing.md,
+      ),
+      decoration: BoxDecoration(
+        color: colors.fillLight,
+        borderRadius: BorderRadius.circular(Radii.button),
+      ),
+      child: Column(
+        children: [
+          _MergeWithExistingGraphic(
+            clusterId: clusterId,
+            suggestedPersonId: suggestedPersonId,
+          ),
+          const SizedBox(height: Spacing.sm),
+          Text(
+            context.l10n.mergeWithExisting,
+            style: TextStyles.body.copyWith(color: colors.textBase),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: Spacing.lg),
+          ButtonComponent(
+            label: context.l10n.selectPerson,
+            variant: ButtonComponentVariant.secondary,
+            shouldSurfaceExecutionStates: false,
+            shouldShowSuccessState: false,
+            onTap: onTap,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MergeWithExistingGraphic extends StatelessWidget {
+  const _MergeWithExistingGraphic({
+    required this.clusterId,
+    required this.suggestedPersonId,
+  });
+
+  final String clusterId;
+  final String? suggestedPersonId;
+
+  @override
+  Widget build(BuildContext context) {
+    const thumbnailSize = 48.0;
+    final colors = context.componentColors;
+    final cachedPixelWidth =
+        (thumbnailSize * MediaQuery.devicePixelRatioOf(context)).round();
+
+    return SizedBox(
+      width: 110,
+      height: 54,
+      child: Stack(
+        children: [
+          Positioned(
+            left: 3,
+            top: 3,
+            child: Transform.rotate(
+              angle: -7 * math.pi / 180,
+              child: _MergeFaceThumbnail(
+                size: thumbnailSize,
+                clusterId: clusterId,
+                cachedPixelWidth: cachedPixelWidth,
+              ),
+            ),
+          ),
+          Positioned(
+            right: 3,
+            top: 3,
+            child: Transform.rotate(
+              angle: 7 * math.pi / 180,
+              child: suggestedPersonId != null
+                  ? _MergeFaceThumbnail(
+                      size: thumbnailSize,
+                      personId: suggestedPersonId,
+                      cachedPixelWidth: cachedPixelWidth,
+                    )
+                  : Container(
+                      width: thumbnailSize,
+                      height: thumbnailSize,
+                      decoration: BoxDecoration(
+                        color: colors.backgroundBase,
+                        borderRadius: faceThumbnailSquircleBorderRadius(
+                          thumbnailSize,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: HugeIcon(
+                        icon: HugeIcons.strokeRoundedUser,
+                        color: colors.textLight,
+                        size: IconSizes.small,
+                        strokeWidth: 1.5,
+                      ),
+                    ),
+            ),
+          ),
+          Positioned(
+            left: 44,
+            top: 15,
+            child: Container(
+              padding: const EdgeInsets.all(Spacing.xs),
+              decoration: BoxDecoration(
+                color: colors.green,
+                shape: BoxShape.circle,
+                border: Border.all(color: colors.fillLight),
+              ),
+              child: HugeIcon(
+                icon: HugeIcons.strokeRoundedArrowLeftRight,
+                color: colors.specialWhite,
+                size: 12,
+                strokeWidth: 2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -799,68 +1010,47 @@ class _MergePersonConfirmationSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final textTheme = getEnteTextTheme(context);
-    final colorScheme = getEnteColorScheme(context);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.backgroundElevated2,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-        border: Border.all(
-          color: colorScheme.strokeMuted.withValues(alpha: 0.2),
-        ),
+    return BottomSheetComponent(
+      closeResult: false,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _MergeFacePair(clusterId: clusterId, personId: person.remoteID),
+          const SizedBox(height: Spacing.xl),
+          Text(
+            l10n.mergeWithPersonTitle(name: person.data.name),
+            style: textTheme.largeBold.copyWith(
+              fontSize: 20,
+              height: 20 / 20,
+              letterSpacing: -0.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 11),
+          Text(
+            l10n.mergeWithPersonDescription(name: person.data.name),
+            style: textTheme.smallMuted.copyWith(
+              height: 20 / 14,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
-      child: SafeArea(
-        top: false,
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 56, 24, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _MergeFacePair(
-                    clusterId: clusterId,
-                    personId: person.remoteID,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    l10n.mergeWithPersonTitle(name: person.data.name),
-                    style: textTheme.largeBold.copyWith(
-                      fontSize: 20,
-                      height: 20 / 20,
-                      letterSpacing: -0.4,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 11),
-                  Text(
-                    l10n.mergeWithPersonDescription(name: person.data.name),
-                    style: textTheme.smallMuted.copyWith(
-                      height: 20 / 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
-                  _MergeSheetActionButton(
-                    label: l10n.merge,
-                    onTap: () => Navigator.of(context).pop(true),
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              top: 16,
-              right: 16,
-              child: _MergeSheetCloseButton(
-                onTap: () => Navigator.of(context).pop(false),
-              ),
-            ),
-          ],
+      actions: [
+        ButtonComponent(
+          label: l10n.merge,
+          shouldSurfaceExecutionStates: false,
+          onTap: () => Navigator.of(context).pop(true),
         ),
+      ],
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.xl,
+        Spacing.lg,
+        Spacing.xl,
+        Spacing.xl,
       ),
     );
   }
@@ -870,10 +1060,7 @@ class _MergeFacePair extends StatelessWidget {
   final String clusterId;
   final String personId;
 
-  const _MergeFacePair({
-    required this.clusterId,
-    required this.personId,
-  });
+  const _MergeFacePair({required this.clusterId, required this.personId});
 
   @override
   Widget build(BuildContext context) {
@@ -929,9 +1116,9 @@ class _MergeFaceThumbnail extends StatelessWidget {
     this.personId,
     this.clusterId,
   }) : assert(
-          personId != null || clusterId != null,
-          "Merge face thumbnail requires personId or clusterId",
-        );
+         personId != null || clusterId != null,
+         "Merge face thumbnail requires personId or clusterId",
+       );
 
   @override
   Widget build(BuildContext context) {
@@ -947,290 +1134,5 @@ class _MergeFaceThumbnail extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _MergeSheetActionButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-
-  const _MergeSheetActionButton({
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final borderRadius = BorderRadius.circular(14);
-
-    return SizedBox(
-      height: 52,
-      width: double.infinity,
-      child: Material(
-        color: colorScheme.primary500,
-        borderRadius: borderRadius,
-        child: InkWell(
-          borderRadius: borderRadius,
-          onTap: onTap,
-          child: Center(
-            child: Text(
-              label,
-              style: textTheme.smallBold.copyWith(
-                color: Colors.white,
-                height: 20 / 14,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MergeSheetCloseButton extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _MergeSheetCloseButton({
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    const double size = 40;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: colorScheme.fillFaint,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          Icons.close,
-          size: 20,
-          color: colorScheme.textBase,
-        ),
-      ),
-    );
-  }
-}
-
-class _EmailSection extends StatefulWidget {
-  final String? personID;
-  final String? email;
-  const _EmailSection(this.email, this.personID);
-
-  @override
-  State<_EmailSection> createState() => _EmailSectionState();
-}
-
-class _EmailSectionState extends State<_EmailSection> {
-  String? _email;
-  final _logger = Logger("_EmailSectionState");
-  bool _initialEmailIsUserEmail = false;
-  late final List<User> _contacts;
-
-  @override
-  void initState() {
-    super.initState();
-    _email = widget.email;
-    _initialEmailIsUserEmail = Configuration.instance.getEmail() == _email;
-    _contacts = _getContacts();
-  }
-
-  @override
-  void didUpdateWidget(covariant _EmailSection oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.email != widget.email) {
-      setState(() {
-        _email = widget.email;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    const limitCountTo = 5;
-    final avatarSize = getAvatarSize(AvatarType.xl);
-    final overlapPadding = getOverlapPadding(AvatarType.xl);
-    if (_email == null || _email!.isEmpty) {
-      return AnimatedSize(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOutQuad,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 20),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16),
-            decoration: BoxDecoration(
-              color: getEnteColorScheme(context).fillFaint,
-              borderRadius: BorderRadius.circular(12.0),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                if (_contacts.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 20),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 1.0),
-                      height: 32 + 2 * UserAvatarWidget.strokeWidth,
-                      width: ((avatarSize) * (limitCountTo + 1)) -
-                          (((avatarSize) - overlapPadding) * limitCountTo) +
-                          (2 * UserAvatarWidget.strokeWidth),
-                      child: AlbumSharesIcons(
-                        sharees: _contacts,
-                        limitCountTo: limitCountTo,
-                        type: AvatarType.xl,
-                        padding: EdgeInsets.zero,
-                        stackAlignment: Alignment.center,
-                      ),
-                    ),
-                  ),
-                if (_contacts.isNotEmpty) const SizedBox(height: 38),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: FutureBuilder<bool>(
-                    future: isMeAssigned(),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData) {
-                        final isMeAssigned = snapshot.data!;
-                        if (!isMeAssigned || _initialEmailIsUserEmail) {
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: ButtonWidget(
-                                  buttonType: ButtonType.secondary,
-                                  labelText: context.l10n.thisIsMeExclamation,
-                                  onTap: () async {
-                                    _updateEmailField(
-                                      Configuration.instance.getEmail(),
-                                    );
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: ButtonWidget(
-                                  buttonType: ButtonType.primary,
-                                  labelText: context.l10n.linkEmail,
-                                  shouldSurfaceExecutionStates: false,
-                                  onTap: () async {
-                                    final newEmail = await routeToPage(
-                                      context,
-                                      LinkEmailScreen(
-                                        widget.personID,
-                                        isFromSaveOrEditPerson: true,
-                                      ),
-                                    );
-                                    if (newEmail != null) {
-                                      _updateEmailField(newEmail as String);
-                                    }
-                                  },
-                                ),
-                              ),
-                            ],
-                          );
-                        } else {
-                          return ButtonWidget(
-                            buttonType: ButtonType.primary,
-                            labelText: context.l10n.linkEmail,
-                            shouldSurfaceExecutionStates: false,
-                            onTap: () async {
-                              final newEmail = await routeToPage(
-                                context,
-                                LinkEmailScreen(
-                                  widget.personID,
-                                  isFromSaveOrEditPerson: true,
-                                ),
-                              );
-                              if (newEmail != null) {
-                                _updateEmailField(newEmail as String);
-                              }
-                            },
-                          );
-                        }
-                      } else if (snapshot.hasError) {
-                        _logger.severe(
-                          "Error getting isMeAssigned",
-                          snapshot.error,
-                        );
-                        return const EnteLoadingWidget();
-                      } else {
-                        return const EnteLoadingWidget();
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ).animate().fadeIn(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOutQuad,
-              ),
-        ),
-      );
-    } else {
-      return TextFormField(
-        canRequestFocus: false,
-        autocorrect: false,
-        decoration: InputDecoration(
-          suffixIcon: GestureDetector(
-            onTap: () {
-              _updateEmailField("");
-            },
-            child: Icon(
-              Icons.close_outlined,
-              color: getEnteColorScheme(context).strokeMuted,
-            ),
-          ),
-          fillColor: getEnteColorScheme(context).fillFaint,
-          filled: true,
-          hintText: _email,
-          hintStyle: getEnteTextTheme(context).bodyFaint,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
-          border: UnderlineInputBorder(
-            borderSide: BorderSide.none,
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-      ).animate().fadeIn(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOutQuad,
-          );
-    }
-  }
-
-  void _updateEmailField(String? newEmail) {
-    final saveOrEditPersonState =
-        context.findAncestorStateOfType<_SaveOrEditPersonState>()!;
-    saveOrEditPersonState.setState(() {
-      saveOrEditPersonState._email = newEmail;
-    });
-  }
-
-  List<User> _getContacts() {
-    final userEmailsToAviod =
-        PersonService.instance.emailToPartialPersonDataMapCache.keys;
-    final ownerEmail = Configuration.instance.getEmail();
-    final relevantUsers = UserService.instance.getRelevantContacts()
-      ..add(User(email: ownerEmail!))
-      ..removeWhere(
-        (user) => userEmailsToAviod.contains(user.email),
-      );
-
-    relevantUsers.sort(
-      (a, b) => (a.email).compareTo(b.email),
-    );
-
-    return relevantUsers;
   }
 }

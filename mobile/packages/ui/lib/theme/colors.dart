@@ -31,27 +31,35 @@ class EnteColorScheme extends ThemeExtension<EnteColorScheme> {
   }) {
     final appColors = switch (app) {
       EnteApp.auth => (
-          primary700: const Color(0xFF722ED1),
-          primary500: const Color(0xFF8F33D6),
-          primary400: const Color(0xFF7A29C1),
-          primary300: const Color(0xFF984DF4),
-          gradientButtonBgColor: const Color(0xFF722ED1),
-          gradientButtonBgColors: const [
-            Color(0xFF722ED1),
-            Color(0xFF8F33D6),
-          ],
-        ),
+        primary700: const Color(0xFF722ED1),
+        primary500: const Color(0xFF8F33D6),
+        primary400: const Color(0xFF7A29C1),
+        primary300: const Color(0xFF984DF4),
+        gradientButtonBgColor: const Color(0xFF722ED1),
+        gradientButtonBgColors: const [Color(0xFF722ED1), Color(0xFF8F33D6)],
+      ),
       EnteApp.locker => (
-          primary700: const Color.fromRGBO(16, 113, 255, 1),
-          primary500: const Color.fromARGB(255, 102, 178, 255),
-          primary400: const Color.fromARGB(255, 52, 152, 255),
-          primary300: const Color.fromARGB(255, 236, 242, 250),
-          gradientButtonBgColor: const Color.fromRGBO(0, 122, 255, 1),
-          gradientButtonBgColors: const [
-            Color.fromRGBO(0, 122, 255, 1),
-            Color.fromRGBO(52, 152, 255, 1),
-          ],
-        ),
+        primary700: const Color.fromRGBO(16, 113, 255, 1),
+        primary500: const Color.fromARGB(255, 102, 178, 255),
+        primary400: const Color.fromARGB(255, 52, 152, 255),
+        primary300: const Color.fromARGB(255, 236, 242, 250),
+        gradientButtonBgColor: const Color.fromRGBO(0, 122, 255, 1),
+        gradientButtonBgColors: const [
+          Color.fromRGBO(0, 122, 255, 1),
+          Color.fromRGBO(52, 152, 255, 1),
+        ],
+      ),
+      EnteApp.photos => (
+        primary700: const Color.fromRGBO(8, 194, 37, 1),
+        primary500: const Color.fromRGBO(8, 194, 37, 1),
+        primary400: const Color.fromRGBO(6, 157, 30, 1),
+        primary300: const Color.fromRGBO(5, 124, 24, 1),
+        gradientButtonBgColor: const Color.fromRGBO(8, 194, 37, 1),
+        gradientButtonBgColors: const [
+          Color.fromRGBO(8, 194, 37, 1),
+          Color.fromRGBO(6, 157, 30, 1),
+        ],
+      ),
     };
 
     return brightness == Brightness.light
@@ -347,7 +355,7 @@ class EnteColorScheme extends ThemeExtension<EnteColorScheme> {
     );
   }
 
-  get inverseEnteTheme => null;
+  Null get inverseEnteTheme => null;
 
   @override
   EnteColorScheme copyWith({
@@ -725,8 +733,12 @@ const Color _defaultDynamicFABTextColor = Color.fromRGBO(255, 255, 255, 1);
 const Color _defaultRecoveryKeyBoxColor = Color.fromARGB(51, 150, 0, 220);
 
 // Frosty blur backdrop filter color
-const Color _defaultFrostyBlurBackdropFilterColor =
-    Color.fromRGBO(238, 238, 238, 0.5);
+const Color _defaultFrostyBlurBackdropFilterColor = Color.fromRGBO(
+  238,
+  238,
+  238,
+  0.5,
+);
 
 // Default Icon Color
 const Color _defaultIconColor = Color.fromRGBO(0, 0, 0, 0.75);
@@ -738,12 +750,20 @@ const Color _defaultBgColorForQuestions = Color.fromRGBO(255, 255, 255, 1);
 const Color _defaultGreenText = Color.fromARGB(255, 40, 190, 113);
 
 // Default Cupertino Picker Top Color
-const Color _defaultCupertinoPickerTopColor =
-    Color.fromARGB(255, 238, 238, 238);
+const Color _defaultCupertinoPickerTopColor = Color.fromARGB(
+  255,
+  238,
+  238,
+  238,
+);
 
 // Default Step Progress Unselected Color
-const Color _defaultStepProgressUnselectedColor =
-    Color.fromRGBO(196, 196, 196, 0.6);
+const Color _defaultStepProgressUnselectedColor = Color.fromRGBO(
+  196,
+  196,
+  196,
+  0.6,
+);
 
 // Default Navigation Colors
 const Color _defaultGNavBackgroundColor = Color.fromRGBO(196, 196, 196, 0.6);
@@ -752,8 +772,12 @@ const Color _defaultGNavIconColor = Color.fromRGBO(0, 0, 0, 0.8);
 const Color _defaultGNavActiveIconColor = Color.fromRGBO(0, 0, 0, 0.8);
 
 // Default Gallery Thumb Colors
-const Color _defaultGalleryThumbBackgroundColor =
-    Color.fromRGBO(240, 240, 240, 1);
+const Color _defaultGalleryThumbBackgroundColor = Color.fromRGBO(
+  240,
+  240,
+  240,
+  1,
+);
 const Color _defaultGalleryThumbDrawColor = Color.fromRGBO(0, 0, 0, 0.8);
 
 // Default Backup Enabled Background Color
@@ -776,8 +800,12 @@ const Color _defaultThemeSwitchInactiveIconColor = Color.fromRGBO(0, 0, 0, 0.5);
 // Default Search Results Colors
 const Color _defaultSearchResultsColor = Color.fromRGBO(245, 245, 245, 1.0);
 const Color _defaultMutedTextColor = Color.fromRGBO(80, 80, 80, 1);
-const Color _defaultSearchResultsBackgroundColor =
-    Color.fromRGBO(0, 0, 0, 0.32);
+const Color _defaultSearchResultsBackgroundColor = Color.fromRGBO(
+  0,
+  0,
+  0,
+  0.32,
+);
 
 // Default Code Card Background Color
 const Color _defaultCodeCardBackgroundColor = Color.fromRGBO(246, 246, 246, 1);
@@ -813,13 +841,16 @@ class ColorSchemeBuilder {
     // Calculate different shades of the primary color
     final HSLColor hsl = HSLColor.fromColor(primaryColor);
 
-    final primary700 =
-        hsl.withLightness((hsl.lightness - 0.1).clamp(0.0, 1.0)).toColor();
+    final primary700 = hsl
+        .withLightness((hsl.lightness - 0.1).clamp(0.0, 1.0))
+        .toColor();
     final primary500 = primaryColor;
-    final primary400 =
-        hsl.withLightness((hsl.lightness + 0.1).clamp(0.0, 1.0)).toColor();
-    final primary300 =
-        hsl.withLightness((hsl.lightness + 0.2).clamp(0.0, 1.0)).toColor();
+    final primary400 = hsl
+        .withLightness((hsl.lightness + 0.1).clamp(0.0, 1.0))
+        .toColor();
+    final primary300 = hsl
+        .withLightness((hsl.lightness + 0.2).clamp(0.0, 1.0))
+        .toColor();
 
     // Create gradient colors from the primary color
     final gradientColors = [primary700, primary500];

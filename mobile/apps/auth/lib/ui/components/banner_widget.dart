@@ -6,12 +6,7 @@ import 'package:styled_text/tags/styled_text_tag.dart';
 import 'package:styled_text/widgets/styled_text.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-enum BannerType {
-  rateUs,
-  starUs,
-  freeStorage,
-  discount,
-}
+enum BannerType { rateUs, starUs, freeStorage, discount }
 
 class BannerWidget extends StatelessWidget {
   final String text;
@@ -59,7 +54,7 @@ class BannerWidget extends StatelessWidget {
         break;
 
       case BannerType.starUs:
-        url = Uri.parse("https://github.com/ente-io/ente");
+        url = Uri.parse("https://github.com/ente/ente");
         imagePath = "assets/star_us.png";
         dashColor = const Color.fromRGBO(233, 233, 233, 1);
         boxShadow = [
@@ -69,8 +64,12 @@ class BannerWidget extends StatelessWidget {
             spreadRadius: 100,
           ),
           BoxShadow(
-            color:
-                const Color.fromRGBO(23, 22, 22, 0.30).withValues(alpha: 0.1),
+            color: const Color.fromRGBO(
+              23,
+              22,
+              22,
+              0.30,
+            ).withValues(alpha: 0.1),
             blurRadius: 25,
           ),
         ];
@@ -179,9 +178,7 @@ class BannerWidget extends StatelessWidget {
                         Text(
                           subText ?? "",
                           textAlign: TextAlign.left,
-                          style: const TextStyle(
-                            color: Colors.grey,
-                          ),
+                          style: const TextStyle(color: Colors.grey),
                         ),
                       ],
                     ),

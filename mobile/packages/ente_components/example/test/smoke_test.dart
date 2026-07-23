@@ -21,6 +21,21 @@ void main() {
     expect(find.byTooltip('Theme: Dark. Tap for Light'), findsOneWidget);
   });
 
+  testWidgets('banner catalog shows all Figma states', (tester) async {
+    await tester.pumpWidget(const ComponentsCatalogApp());
+
+    await tester.tap(find.byKey(const ValueKey('catalog-section-Banner')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.text('Failure!'), findsOneWidget);
+    expect(find.text('Informative!'), findsOneWidget);
+    expect(find.text('Success!'), findsOneWidget);
+    expect(find.text('Warning!'), findsOneWidget);
+    expect(find.text('Neutral!'), findsOneWidget);
+    expect(find.text('Syncing backup'), findsOneWidget);
+  });
+
   testWidgets('button transition preview surfaces loading and success', (
     tester,
   ) async {
@@ -50,7 +65,7 @@ void main() {
     expect(find.byKey(const ValueKey('success')), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 2));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('Continue'), findsOneWidget);
   });

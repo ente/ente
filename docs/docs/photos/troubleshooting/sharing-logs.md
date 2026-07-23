@@ -3,9 +3,9 @@ title: Sharing Debug Logs
 description: Share debug logs with Ente support for troubleshooting
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Sharing Debug Logs

@@ -36,10 +36,7 @@ class IsolatedFfmpegService {
 
     port.listen((msg) {
       if (msg is int) {
-        FFmpegKit.registerSessionCompletionPort(
-          msg,
-          completionPort.sendPort,
-        );
+        FFmpegKit.registerSessionCompletionPort(msg, completionPort.sendPort);
         onSessionStarted(msg);
       }
     });
@@ -56,10 +53,11 @@ class IsolatedFfmpegService {
       port.close();
     });
 
-    await Isolate.spawn(
-      _ffmpegRunCancellable,
-      (command, port.sendPort, rootIsolateToken),
-    );
+    await Isolate.spawn(_ffmpegRunCancellable, (
+      command,
+      port.sendPort,
+      rootIsolateToken,
+    ));
 
     return completer.future;
   }
@@ -111,10 +109,7 @@ Future<Map> _ffmpegRun(String value, RootIsolateToken rootIsolateToken) async {
   final returnCode = await session.getReturnCode();
   final output = await session.getOutput();
 
-  return {
-    "returnCode": returnCode?.getValue(),
-    "output": output,
-  };
+  return {"returnCode": returnCode?.getValue(), "output": output};
 }
 
 @pragma('vm:entry-point')

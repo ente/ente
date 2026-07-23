@@ -3,10 +3,7 @@ import "package:photos/models/file/file.dart";
 
 // ignore: must_be_immutable
 class GalleryFilesState extends InheritedWidget {
-  GalleryFilesState({
-    super.key,
-    required super.child,
-  });
+  GalleryFilesState({super.key, required super.child});
 
   ///Should be assigned later in gallery when files are loaded.
   ///Note: EnteFiles in this list should be references of the same EnteFiles

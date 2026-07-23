@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/ente-io/cli/pkg/authenticator"
+	"github.com/ente/cli/pkg/authenticator"
 	"github.com/spf13/cobra"
 )
 

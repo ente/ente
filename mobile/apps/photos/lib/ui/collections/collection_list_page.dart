@@ -1,8 +1,9 @@
 import "dart:async";
 
 import "package:collection/collection.dart";
+import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
-import "package:flutter_svg/flutter_svg.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/album_sort_order_change_event.dart";
@@ -13,12 +14,11 @@ import 'package:photos/models/collection/collection_items.dart';
 import "package:photos/models/selected_albums.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
+import "package:photos/settings/local_settings.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/collections/flex_grid_view.dart";
-import "package:photos/ui/components/buttons/icon_button_widget.dart";
 import "package:photos/ui/components/searchable_appbar.dart";
 import "package:photos/ui/viewer/actions/album_selection_overlay_bar.dart";
-import "package:photos/utils/local_settings.dart";
 
 enum UISectionType {
   incomingCollections,
@@ -27,6 +27,8 @@ enum UISectionType {
   archivedCollections,
   hiddenCollections,
 }
+
+enum _CollectionListMenuAction { toggleView, name, newest, updated }
 
 class CollectionListPage extends StatefulWidget {
   final List<Collection>? collections;
@@ -52,11 +54,11 @@ class CollectionListPage extends StatefulWidget {
 
 class _CollectionListPageState extends State<CollectionListPage> {
   late StreamSubscription<CollectionUpdatedEvent>
-      _collectionUpdatesSubscription;
+  _collectionUpdatesSubscription;
   List<Collection>? collections;
-  AlbumSortKey? sortKey;
+  late AlbumSortKey sortKey;
   AlbumViewType? albumViewType;
-  AlbumSortDirection? albumSortDirection;
+  late AlbumSortDirection albumSortDirection;
   String _searchQuery = "";
   final _selectedAlbum = SelectedAlbums();
   late final ScrollController _scrollController;
@@ -65,10 +67,11 @@ class _CollectionListPageState extends State<CollectionListPage> {
   void initState() {
     super.initState();
     collections = widget.collections;
-    _collectionUpdatesSubscription =
-        Bus.instance.on<CollectionUpdatedEvent>().listen((event) async {
-      unawaited(refreshCollections());
-    });
+    _collectionUpdatesSubscription = Bus.instance
+        .on<CollectionUpdatedEvent>()
+        .listen((event) async {
+          unawaited(refreshCollections());
+        });
     sortKey = localSettings.albumSortKey();
     albumViewType = localSettings.albumViewType();
     albumSortDirection = localSettings.albumSortDirection();
@@ -87,14 +90,12 @@ class _CollectionListPageState extends State<CollectionListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final displayLimitCount = (collections?.length ?? 0) +
-        (widget.tag.isEmpty && _searchQuery.isEmpty ? 1 : 0);
     final bool enableSelectionMode =
         widget.sectionType == UISectionType.homeCollections ||
-            widget.sectionType == UISectionType.outgoingCollections ||
-            widget.sectionType == UISectionType.incomingCollections ||
-            widget.sectionType == UISectionType.archivedCollections ||
-            widget.sectionType == UISectionType.hiddenCollections;
+        widget.sectionType == UISectionType.outgoingCollections ||
+        widget.sectionType == UISectionType.incomingCollections ||
+        widget.sectionType == UISectionType.archivedCollections ||
+        widget.sectionType == UISectionType.hiddenCollections;
     return Scaffold(
       body: SafeArea(
         child: Stack(
@@ -108,9 +109,11 @@ class _CollectionListPageState extends State<CollectionListPage> {
                 controller: _scrollController,
                 slivers: [
                   SearchableAppBar(
+                    searchIconPadding: const EdgeInsets.only(right: 8),
                     title: widget.appTitle ?? const SizedBox.shrink(),
                     heroTag: widget.tag,
                     autoActivateSearch: widget.startInSearchMode,
+                    pinned: true,
                     onSearch: (value) {
                       _searchQuery = value;
                       unawaited(refreshCollections());
@@ -119,13 +122,11 @@ class _CollectionListPageState extends State<CollectionListPage> {
                       _searchQuery = '';
                       unawaited(refreshCollections());
                     },
-                    actions: [
-                      _sortMenu(),
-                    ],
+                    actions: [_sortMenu()],
                   ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
                   CollectionsFlexiGridViewWidget(
                     collections,
-                    displayLimitCount: displayLimitCount,
                     tag: widget.tag,
                     enableSelectionMode: enableSelectionMode,
                     albumViewType: albumViewType ?? AlbumViewType.grid,
@@ -148,143 +149,152 @@ class _CollectionListPageState extends State<CollectionListPage> {
   }
 
   Widget _sortMenu() {
-    final colorTheme = getEnteColorScheme(context);
-    final isLightMode = Theme.of(context).brightness == Brightness.light;
-    Widget sortOptionText(AlbumSortKey key) {
-      String text = key.toString();
-      switch (key) {
-        case AlbumSortKey.albumName:
-          text = AppLocalizations.of(context).name;
-          break;
-        case AlbumSortKey.newestPhoto:
-          text = AppLocalizations.of(context).newest;
-          break;
-        case AlbumSortKey.lastUpdated:
-          text = AppLocalizations.of(context).lastUpdated;
-      }
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            text,
-          ),
-          Icon(
-            sortKey == key
-                ? (albumSortDirection == AlbumSortDirection.ascending
-                    ? Icons.arrow_upward
-                    : Icons.arrow_downward)
-                : null,
-            size: 18,
-          ),
-        ],
-      );
-    }
-
-    return Theme(
-      data: Theme.of(context).copyWith(
-        highlightColor: Colors.transparent,
-        splashColor: Colors.transparent,
-      ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () async {
-              setState(() {
-                albumViewType = albumViewType == AlbumViewType.grid
-                    ? AlbumViewType.list
-                    : AlbumViewType.grid;
-              });
-              await localSettings.setAlbumViewType(albumViewType!);
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: SizedBox(
-                height: 24,
-                width: 24,
-                child: albumViewType == AlbumViewType.grid
-                    ? SvgPicture.asset(
-                        isLightMode
-                            ? "assets/icons/list_view_icon_light.svg"
-                            : "assets/icons/list_view_icon_dark.svg",
-                      )
-                    : Icon(
-                        Icons.grid_view,
-                        color: colorTheme.textMuted,
-                        size: 22,
-                      ),
-              ),
-            ),
-          ),
-          GestureDetector(
-            onTapDown: (TapDownDetails details) async {
-              final int? selectedValue = await showMenu<int>(
-                color: colorTheme.backgroundElevated,
-                context: context,
-                position: RelativeRect.fromLTRB(
-                  details.globalPosition.dx,
-                  details.globalPosition.dy,
-                  details.globalPosition.dx,
-                  details.globalPosition.dy + 50,
-                ),
-                items: List.generate(AlbumSortKey.values.length, (index) {
-                  return PopupMenuItem(
-                    value: index,
-                    child: sortOptionText(AlbumSortKey.values[index]),
-                  );
-                }),
-              );
-              if (selectedValue != null) {
-                sortKey = AlbumSortKey.values[selectedValue];
-                await localSettings.setAlbumSortKey(sortKey!);
-                albumSortDirection =
-                    albumSortDirection == AlbumSortDirection.ascending
-                        ? AlbumSortDirection.descending
-                        : AlbumSortDirection.ascending;
-                await localSettings.setAlbumSortDirection(albumSortDirection!);
-                await refreshCollections();
-                Bus.instance.fire(AlbumSortOrderChangeEvent());
-              }
-            },
-            child: IconButtonWidget(
-              icon: Icons.sort_rounded,
-              iconButtonType: IconButtonType.secondary,
-              iconColor: colorTheme.textMuted,
-            ),
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: EntePopupMenuButton<_CollectionListMenuAction>(
+        optionsBuilder: _buildMenuOptions,
+        onSelected: _handleMenuSelection,
       ),
     );
+  }
+
+  List<EntePopupMenuOption<_CollectionListMenuAction>> _buildMenuOptions() {
+    final colorScheme = getEnteColorScheme(context);
+    final strings = AppLocalizations.of(context);
+    final currentViewType = albumViewType ?? localSettings.albumViewType();
+    final isListView = currentViewType == AlbumViewType.list;
+    final currentSortKey = sortKey;
+    final currentSortDirection = albumSortDirection;
+    final nameSortDirection = currentSortKey == AlbumSortKey.albumName
+        ? currentSortDirection
+        : null;
+    final activeTrailingWidget = HugeIcon(
+      icon: currentSortDirection == AlbumSortDirection.ascending
+          ? HugeIcons.strokeRoundedArrowUp02
+          : HugeIcons.strokeRoundedArrowDown02,
+      size: 12,
+      strokeWidth: 3,
+      color: colorScheme.textMuted,
+    );
+
+    return [
+      EntePopupMenuOption(
+        value: _CollectionListMenuAction.toggleView,
+        label: isListView ? strings.grid : strings.list,
+        trailingWidget: HugeIcon(
+          icon: isListView
+              ? HugeIcons.strokeRoundedGridView
+              : HugeIcons.strokeRoundedMenu01,
+          size: 12,
+          strokeWidth: 3,
+          color: colorScheme.contentLight,
+        ),
+      ),
+      EntePopupMenuOption(
+        value: _CollectionListMenuAction.name,
+        label: strings.name,
+        secondaryLabel: nameSortDirection != AlbumSortDirection.descending
+            ? strings.sortAToZ
+            : strings.sortZToA,
+        isActive: currentSortKey == AlbumSortKey.albumName,
+        activeTrailingWidget: activeTrailingWidget,
+      ),
+      EntePopupMenuOption(
+        value: _CollectionListMenuAction.newest,
+        label: strings.newest,
+        isActive: currentSortKey == AlbumSortKey.newestPhoto,
+        activeTrailingWidget: activeTrailingWidget,
+      ),
+      EntePopupMenuOption(
+        value: _CollectionListMenuAction.updated,
+        label: strings.updated,
+        isActive: currentSortKey == AlbumSortKey.lastUpdated,
+        activeTrailingWidget: activeTrailingWidget,
+        showDivider: false,
+      ),
+    ];
+  }
+
+  Future<void> _handleMenuSelection(_CollectionListMenuAction selected) async {
+    switch (selected) {
+      case _CollectionListMenuAction.toggleView:
+        await _toggleViewMode();
+        break;
+      case _CollectionListMenuAction.name:
+        await _setSortMode(AlbumSortKey.albumName);
+        break;
+      case _CollectionListMenuAction.newest:
+        await _setSortMode(AlbumSortKey.newestPhoto);
+        break;
+      case _CollectionListMenuAction.updated:
+        await _setSortMode(AlbumSortKey.lastUpdated);
+        break;
+    }
+  }
+
+  Future<void> _toggleViewMode() async {
+    final next =
+        (albumViewType ?? localSettings.albumViewType()) == AlbumViewType.grid
+        ? AlbumViewType.list
+        : AlbumViewType.grid;
+    setState(() {
+      albumViewType = next;
+    });
+    await localSettings.setAlbumViewType(next);
+  }
+
+  Future<void> _setSortMode(AlbumSortKey key) async {
+    final currentSortKey = sortKey;
+    final currentSortDirection = albumSortDirection;
+    final AlbumSortDirection nextDirection;
+    if (currentSortKey == key) {
+      nextDirection = currentSortDirection == AlbumSortDirection.ascending
+          ? AlbumSortDirection.descending
+          : AlbumSortDirection.ascending;
+    } else {
+      nextDirection = AlbumSortDirection.ascending;
+    }
+
+    sortKey = key;
+    albumSortDirection = nextDirection;
+    await localSettings.setAlbumSortKey(key);
+    await localSettings.setAlbumSortDirection(nextDirection);
+    await refreshCollections();
+    Bus.instance.fire(AlbumSortOrderChangeEvent());
   }
 
   Future<void> refreshCollections() async {
     if (widget.sectionType == UISectionType.incomingCollections ||
         widget.sectionType == UISectionType.outgoingCollections) {
-      final SharedCollections sharedCollections =
-          await CollectionsService.instance.getSharedCollections();
+      final SharedCollections sharedCollections = await CollectionsService
+          .instance
+          .getSharedCollections();
       if (widget.sectionType == UISectionType.incomingCollections) {
         collections = sharedCollections.incoming;
       } else {
         collections = sharedCollections.outgoing;
       }
     } else if (widget.sectionType == UISectionType.homeCollections) {
-      collections =
-          await CollectionsService.instance.getCollectionForOnEnteSection();
+      collections = await CollectionsService.instance
+          .getCollectionForOnEnteSection();
     } else if (widget.sectionType == UISectionType.archivedCollections) {
       collections = await CollectionsService.instance.getArchivedCollection();
     } else if (widget.sectionType == UISectionType.hiddenCollections) {
-      collections = CollectionsService.instance
-          .getHiddenCollections(includeDefaultHidden: false);
+      collections = CollectionsService.instance.getHiddenCollections(
+        includeDefaultHidden: false,
+      );
     }
     if (_searchQuery.isNotEmpty) {
       collections = collections
           ?.where(
-            (c) => c.displayName
-                .toLowerCase()
-                .contains(_searchQuery.toLowerCase()),
+            (c) => c.displayName.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            ),
           )
           .toList();
     }
-    if (widget.sectionType == UISectionType.hiddenCollections) {
+    if (widget.sectionType == UISectionType.archivedCollections ||
+        widget.sectionType == UISectionType.hiddenCollections) {
       await _sortCollectionsByCurrentPreferences(collections!);
     }
     if (mounted) {
@@ -299,13 +309,13 @@ class _CollectionListPageState extends State<CollectionListPage> {
       return;
     }
 
-    final currentSortKey = localSettings.albumSortKey();
-    final currentSortDirection = localSettings.albumSortDirection();
+    final currentSortKey = sortKey;
+    final currentSortDirection = albumSortDirection;
 
     Map<int, int>? collectionIDToNewestPhotoTime;
     if (currentSortKey == AlbumSortKey.newestPhoto) {
-      collectionIDToNewestPhotoTime =
-          await CollectionsService.instance.getCollectionIDToNewestFileTime();
+      collectionIDToNewestPhotoTime = await CollectionsService.instance
+          .getCollectionIDToNewestFileTime();
     }
 
     collectionsToSort.sort((first, second) {
@@ -319,8 +329,8 @@ class _CollectionListPageState extends State<CollectionListPage> {
         comparison =
             (collectionIDToNewestPhotoTime?[second.id] ?? -1 * intMaxValue)
                 .compareTo(
-          collectionIDToNewestPhotoTime?[first.id] ?? -1 * intMaxValue,
-        );
+                  collectionIDToNewestPhotoTime?[first.id] ?? -1 * intMaxValue,
+                );
       } else {
         comparison = second.updationTime.compareTo(first.updationTime);
       }

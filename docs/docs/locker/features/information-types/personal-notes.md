@@ -5,8 +5,7 @@ description: Store private notes and sensitive information with end-to-end encry
 
 # Note
 
-Notes let you store any text securely with end-to-end encryption.
-Use them for sensitive information that doesn't fit into other categories.
+Notes let you store any text securely with end-to-end encryption. Use them for sensitive information that doesn't fit into other categories.
 
 ## Use cases
 
@@ -31,18 +30,15 @@ Use them for sensitive information that doesn't fit into other categories.
 
 ### Rich text content
 
-Notes support plain text content. Write as much as you need - there's no
-character limit.
+Notes support plain text content. Write as much as you need - there's no character limit.
 
 ### Organization
 
-Add notes to collections to group related content together. For example, create
-a "Work" collection for work-related notes or "Personal" for private entries.
+Add notes to collections to group related content together. For example, create a "Work" collection for work-related notes or "Personal" for private entries.
 
 ### Search
 
-Find notes quickly using the search function. Search matches against the title
-of your notes.
+Find notes quickly using the search function. Search matches against the title of your notes.
 
 ## Editing notes
 
@@ -59,8 +55,7 @@ Share individual notes via public links:
 2. Tap the share button
 3. Tap **Share link**
 
-To share notes with another Ente user, add them to a collection and share the
-collection.
+To share notes with another Ente user, add them to a collection and share the collection.
 
 Learn more about [Sharing](/locker/features/sharing/).
 

@@ -1,0 +1,71 @@
+[package]
+name = "ente-photos"
+edition = "2024"
+
+[features]
+default = []
+ml-assets = []
+
+[dependencies]
+ente-image.workspace = true
+quick-xml = "0.41"
+# The FRB photos bridge calls the SimSIMD symbol exported by usearch 2.21.x.
+# Newer usearch releases switched that implementation to numkong symbols.
+usearch = "=2.21.4"
+fast_image_resize = { version = "5.5.0", features = ["image", "rayon"] }
+image = { version = "0.25.5", default-features = true }
+imageproc = "0.25.0"
+nalgebra = "0.33.2"
+half = "2.1"
+once_cell = "1.20.2"
+regex = "1.11.1"
+html-escape = "0.2.13"
+plsfix = "0.1.8"
+thiserror.workspace = true
+
+# ORT source and revision are pinned once in the workspace manifest; only the
+# per-target feature sets are declared here.
+# The iOS Cargokit build sets ORT_LIB_PATH to the directory containing the
+# verified custom static archive; see mobile/native/onnxruntime/README.md for
+# building outside Xcode.
+[target.'cfg(target_os = "ios")'.dependencies]
+ort = { workspace = true, features = [
+    "std",
+    "ndarray",
+    "half",
+    # CoreML is the preferred iOS execution provider for Rust ML sessions.
+    "coreml",
+    "api-27",
+] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+ash = { version = "0.38", default-features = false, features = ["loaded"] }
+ort = { workspace = true, features = [
+    "ndarray",
+    "half",
+    "api-27",
+    "load-dynamic",
+    "copy-dylibs",
+    "webgpu",
+    "xnnpack",
+] }
+
+[target.'cfg(not(any(target_os = "ios", target_os = "android")))'.dependencies]
+ort = { workspace = true, features = [
+    "ndarray",
+    "half",
+    "api-27",
+    "load-dynamic",
+    "copy-dylibs",
+] }
+
+[dev-dependencies]
+anyhow = "1"
+ente-model-download.workspace = true
+flate2 = "1.1"
+serde = { version = "1", features = ["derive"] }
+serde_json.workspace = true
+tar = "0.4"
+tempfile = "3.12"
+tokio = { version = "1", features = ["rt"] }
+url = "2.5.8"

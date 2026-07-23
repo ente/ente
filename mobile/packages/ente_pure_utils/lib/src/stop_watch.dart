@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 
 class EnteWatch extends Stopwatch {
   final String context;
@@ -6,18 +7,24 @@ class EnteWatch extends Stopwatch {
 
   EnteWatch(this.context) : super();
 
+  static bool _shouldLog = kDebugMode && Logger.root.isLoggable(Level.INFO);
+
+  static void setLogLevel(Level level) {
+    _shouldLog = kDebugMode && Level.INFO.value >= level.value;
+  }
+
   void log(String msg) {
-    if (kDebugMode) {
-      debugPrint("[$context]: $msg took ${Duration(
-        microseconds: elapsedMicroseconds - previousElapsed,
-      ).inMilliseconds} ms  total: "
-          "${elapsed.inMilliseconds} ms");
+    if (_shouldLog) {
+      debugPrint(
+        "[$context]: $msg took ${Duration(microseconds: elapsedMicroseconds - previousElapsed).inMilliseconds} ms  total: "
+        "${elapsed.inMilliseconds} ms",
+      );
     }
     previousElapsed = elapsedMicroseconds;
   }
 
   void logAndReset(String msg) {
-    if (kDebugMode) {
+    if (_shouldLog) {
       debugPrint("[$context]: $msg took ${elapsed.inMilliseconds} ms");
     }
     reset();
@@ -33,7 +40,7 @@ class EnteWatch extends Stopwatch {
 // TimerLogger helps in quickly including the timeTaken for various operation.
 // The timeTaken is logged only if it exceeds the logThreshold. With each call to toString, the timer is reset.
 // Usage:
-// final TimeLogger tlog = TimeLogger(context: "FaceRecognitionService");
+// final TimeLogger tlog = TimeLogger(context: "PhotoProcessingService");
 // _logger.info("some operation $tlog");
 // _logger.info("another operation $tlog");
 class TimeLogger {
@@ -41,7 +48,7 @@ class TimeLogger {
   final int logThreshold;
   DateTime _start;
   TimeLogger({this.context = "TLog", this.logThreshold = 5})
-      : _start = DateTime.now();
+    : _start = DateTime.now();
 
   @override
   String toString() {

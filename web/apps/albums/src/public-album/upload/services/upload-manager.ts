@@ -23,13 +23,13 @@ import UploadService, {
     type UploadAsset,
 } from "@/public-album/upload/pipeline/upload-service";
 import { createComlinkCryptoWorker } from "ente-base/crypto";
-import { type CryptoWorker } from "ente-base/crypto/worker";
+import type { CryptoWorker } from "ente-base/crypto/worker";
 import { lowercaseExtension, nameAndExtension } from "ente-base/file-name";
 import type { PublicAlbumsCredentials } from "ente-base/http";
 import log from "ente-base/log";
 import { ComlinkWorker } from "ente-base/worker/comlink-worker";
 import type { Collection } from "ente-media/collection";
-import { type EnteFile } from "ente-media/file";
+import type { EnteFile } from "ente-media/file";
 import { FileType } from "ente-media/file-type";
 import { potentialFileTypeFromExtension } from "ente-media/live-photo";
 import { wait } from "ente-utils/promise";
@@ -216,10 +216,10 @@ class UIService {
 }
 
 function convertInProgressUploadsToList(inProgressUploads: InProgressUploads) {
-    return [...inProgressUploads.entries()].map(
-        ([localFileID, progress]) =>
-            ({ localFileID, progress }) as InProgressUpload,
-    );
+    return [...inProgressUploads.entries()].map(([localFileID, progress]) => ({
+        localFileID,
+        progress,
+    }));
 }
 
 const groupByResult = (finishedUploads: FinishedUploads) => {

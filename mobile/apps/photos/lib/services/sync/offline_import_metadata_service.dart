@@ -7,13 +7,13 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/local_photos_updated_event.dart";
-import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/location/location.dart";
+import "package:photos/module/download/file.dart";
+import "package:photos/module/metadata/exif.dart";
+import "package:photos/module/metadata/local_file.dart";
+import 'package:photos/module/metadata/location.dart';
 import "package:photos/service_locator.dart";
-import "package:photos/utils/exif_util.dart";
-import "package:photos/utils/file_uploader_util.dart";
-import "package:photos/utils/file_util.dart";
 
 class OfflineImportMetadataService {
   static const kProcessingVersion = 1;
@@ -105,19 +105,13 @@ class OfflineImportMetadataService {
       final exifData = shouldReadExif(file)
           ? await tryExifFromFile(originFile)
           : null;
-      final exifTime =
-          exifData != null ? await tryParseExifDateTime(null, exifData) : null;
+      final exifTime = exifData != null
+          ? await tryParseExifDateTime(null, exifData)
+          : null;
 
       await _updateLocationForOfflineFile(file, originFile, exifData);
 
-      final mediaUploadData = MediaUploadData(
-        originFile,
-        null,
-        false,
-        null,
-        exifData: exifData,
-      );
-      await file.getMetadataForUpload(mediaUploadData, exifTime);
+      applyCreationTimeMetadata(file, exifTime);
 
       await _db.updateOfflineImportMetadataForLocalID(
         file.localID!,
@@ -149,7 +143,8 @@ class OfflineImportMetadataService {
     File originFile,
     Map<String, IfdTag>? exifData,
   ) async {
-    final shouldFetchAssetLocation = file.location == null ||
+    final shouldFetchAssetLocation =
+        file.location == null ||
         ((file.location?.latitude ?? 0) == 0 &&
             (file.location?.longitude ?? 0) == 0);
     if (shouldFetchAssetLocation) {
@@ -163,18 +158,6 @@ class OfflineImportMetadataService {
       }
     }
 
-    if (!file.hasLocation && file.isVideo && Platform.isAndroid) {
-      final props = await getVideoPropsAsync(originFile);
-      if (props?.location != null) {
-        file.location = props!.location;
-      }
-    }
-
-    if (Platform.isAndroid && exifData != null) {
-      final exifLocation = locationFromExif(exifData);
-      if (Location.isValidLocation(exifLocation)) {
-        file.location = exifLocation;
-      }
-    }
+    await updateLocationFromEmbeddedMetadata(file, originFile, exifData);
   }
 }

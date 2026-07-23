@@ -191,8 +191,10 @@ class AestheticsCandidateBuilder extends WrappedCandidateBuilder {
       "averageFaceScore": averageScore,
     };
 
-    final List<int> metaUploadedIDs =
-        buildMetaUploadedIDs(candidateIds, maxMediaCount * 2);
+    final List<int> metaUploadedIDs = buildMetaUploadedIDs(
+      candidateIds,
+      maxMediaCount * 2,
+    );
 
     return WrappedCard(
       type: WrappedCardType.blurryFaces,
@@ -200,11 +202,9 @@ class AestheticsCandidateBuilder extends WrappedCandidateBuilder {
       subtitle: _buildBlurrySubtitle(nameSet),
       media: mediaRefs,
       meta: meta
-        ..addAll(
-          <String, Object?>{
-            if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
-          },
-        ),
+        ..addAll(<String, Object?>{
+          if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
+        }),
     );
   }
 
@@ -212,13 +212,11 @@ class AestheticsCandidateBuilder extends WrappedCandidateBuilder {
     WrappedEngineContext context,
     _AestheticsSnapshot snapshot,
   ) {
-    final List<_ColorBucket> eligibleBuckets =
-        snapshot.colorBuckets.where((bucket) {
+    final List<_ColorBucket> eligibleBuckets = snapshot.colorBuckets.where((
+      bucket,
+    ) {
       return bucket.matches.length >= _kMinColorMatchesPerBucket;
-    }).toList()
-          ..sort(
-            (a, b) => b.matches.length.compareTo(a.matches.length),
-          );
+    }).toList()..sort((a, b) => b.matches.length.compareTo(a.matches.length));
 
     if (eligibleBuckets.length < _kMinColorBuckets) {
       return null;
@@ -226,22 +224,19 @@ class AestheticsCandidateBuilder extends WrappedCandidateBuilder {
 
     final int highestCount = eligibleBuckets.first.matches.length;
     final List<_ColorBucket> tiedBuckets = eligibleBuckets
-        .where(
-          (_ColorBucket bucket) => bucket.matches.length == highestCount,
-        )
+        .where((_ColorBucket bucket) => bucket.matches.length == highestCount)
         .toList(growable: false);
     final math.Random randomizer = math.Random(snapshot.year);
     final _ColorBucket chosenBucket = tiedBuckets.length <= 1
         ? tiedBuckets.first
         : tiedBuckets[randomizer.nextInt(tiedBuckets.length)];
 
-    final List<_ClipMatch> prioritizedMatches = _limitMatches(
-      <_ClipMatch>[
-        ...chosenBucket.matches
-            .where((match) => match.score >= _kDisplayThreshold),
-        ...chosenBucket.matches,
-      ],
-    );
+    final List<_ClipMatch> prioritizedMatches = _limitMatches(<_ClipMatch>[
+      ...chosenBucket.matches.where(
+        (match) => match.score >= _kDisplayThreshold,
+      ),
+      ...chosenBucket.matches,
+    ]);
     if (prioritizedMatches.length < _kMaxMediaPerCard) {
       return null;
     }
@@ -275,8 +270,10 @@ class AestheticsCandidateBuilder extends WrappedCandidateBuilder {
 
     if (media.length < _kMaxMediaPerCard) {
       final Set<int> seen = media.map((ref) => ref.uploadedFileID).toSet();
-      final List<MediaRef> expanded =
-          List<MediaRef>.from(media, growable: true);
+      final List<MediaRef> expanded = List<MediaRef>.from(
+        media,
+        growable: true,
+      );
       for (final int id in candidateIds) {
         if (seen.add(id)) {
           expanded.add(MediaRef(id));
@@ -291,8 +288,10 @@ class AestheticsCandidateBuilder extends WrappedCandidateBuilder {
       media = expanded;
     }
 
-    final List<int> metaUploadedIDs =
-        buildMetaUploadedIDs(candidateIds, _kMaxMediaPerCard * 2);
+    final List<int> metaUploadedIDs = buildMetaUploadedIDs(
+      candidateIds,
+      _kMaxMediaPerCard * 2,
+    );
     final Map<String, Object?> meta = <String, Object?>{
       "dominantColor": chosenBucket.spec.displayName,
       if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
@@ -319,13 +318,10 @@ class AestheticsCandidateBuilder extends WrappedCandidateBuilder {
       return null;
     }
 
-    final List<_ClipMatch> prioritizedMatches = _limitMatches(
-      <_ClipMatch>[
-        ...matches
-            .where((match) => match.score >= _kMonochromeDisplayThreshold),
-        ...matches,
-      ],
-    );
+    final List<_ClipMatch> prioritizedMatches = _limitMatches(<_ClipMatch>[
+      ...matches.where((match) => match.score >= _kMonochromeDisplayThreshold),
+      ...matches,
+    ]);
 
     if (prioritizedMatches.length < _kMaxMediaPerCard) {
       return null;
@@ -348,19 +344,22 @@ class AestheticsCandidateBuilder extends WrappedCandidateBuilder {
 
     final List<MediaRef> primarySelection =
         WrappedMediaSelector.selectMediaRefs(
-      context: context,
-      candidateUploadedFileIDs: candidateIds,
-      maxCount: _kMaxMediaPerCard,
-      scoreHints: scoreHints,
-      minimumSpacing: const Duration(days: 21),
-      enforceDistinctness: false,
+          context: context,
+          candidateUploadedFileIDs: candidateIds,
+          maxCount: _kMaxMediaPerCard,
+          scoreHints: scoreHints,
+          minimumSpacing: const Duration(days: 21),
+          enforceDistinctness: false,
+        );
+    final List<MediaRef> media = List<MediaRef>.from(
+      primarySelection,
+      growable: true,
     );
-    final List<MediaRef> media =
-        List<MediaRef>.from(primarySelection, growable: true);
 
     if (media.length < _kMaxMediaPerCard) {
-      final Set<int> seen =
-          media.map((MediaRef ref) => ref.uploadedFileID).toSet();
+      final Set<int> seen = media
+          .map((MediaRef ref) => ref.uploadedFileID)
+          .toSet();
 
       for (final int id in candidateIds) {
         if (seen.add(id)) {
@@ -376,8 +375,10 @@ class AestheticsCandidateBuilder extends WrappedCandidateBuilder {
       return null;
     }
 
-    final List<int> metaUploadedIDs =
-        buildMetaUploadedIDs(candidateIds, _kMaxMediaPerCard * 2);
+    final List<int> metaUploadedIDs = buildMetaUploadedIDs(
+      candidateIds,
+      _kMaxMediaPerCard * 2,
+    );
     final Map<String, Object?> meta = <String, Object?>{
       "matchCount": matches.length,
       "detailChips": const <String>[],
@@ -409,8 +410,9 @@ class AestheticsCandidateBuilder extends WrappedCandidateBuilder {
 
     if (candidateMap.length < desiredCount) {
       for (final String query in AestheticsCandidateBuilder._kWowQueries) {
-        final List<_ClipMatch> queryMatches =
-            snapshot.matchesForQuery(query).toList(growable: false);
+        final List<_ClipMatch> queryMatches = snapshot
+            .matchesForQuery(query)
+            .toList(growable: false);
         for (final _ClipMatch match in queryMatches) {
           candidateMap.putIfAbsent(match.uploadedFileID, () => match);
           if (candidateMap.length >=
@@ -424,18 +426,17 @@ class AestheticsCandidateBuilder extends WrappedCandidateBuilder {
       }
     }
 
-    final List<_ClipMatch> candidates =
-        candidateMap.values.toList(growable: false)
-          ..sort(
-            (_ClipMatch a, _ClipMatch b) => b.score.compareTo(a.score),
-          );
+    final List<_ClipMatch> candidates = candidateMap.values.toList(
+      growable: false,
+    )..sort((_ClipMatch a, _ClipMatch b) => b.score.compareTo(a.score));
 
     if (candidates.length < desiredCount) {
       return null;
     }
 
-    final Set<int> intersectionIds =
-        intersection.map((match) => match.uploadedFileID).toSet();
+    final Set<int> intersectionIds = intersection
+        .map((match) => match.uploadedFileID)
+        .toSet();
 
     final List<_ClipMatch> limitedCandidates = _limitMatches(candidates);
     if (limitedCandidates.length < desiredCount) {
@@ -454,7 +455,8 @@ class AestheticsCandidateBuilder extends WrappedCandidateBuilder {
     final Map<int, double> scoreHints = <int, double>{
       for (final _ClipMatch match in limitedCandidates)
         if (candidateSet.contains(match.uploadedFileID))
-          match.uploadedFileID: match.score *
+          match.uploadedFileID:
+              match.score *
               (intersectionIds.contains(match.uploadedFileID) ? 1.5 : 1.0),
     };
 
@@ -470,8 +472,10 @@ class AestheticsCandidateBuilder extends WrappedCandidateBuilder {
 
     if (media.length < desiredCount) {
       final Set<int> seen = media.map((ref) => ref.uploadedFileID).toSet();
-      final List<MediaRef> expanded =
-          List<MediaRef>.from(media, growable: true);
+      final List<MediaRef> expanded = List<MediaRef>.from(
+        media,
+        growable: true,
+      );
       for (final int id in candidateIds) {
         if (seen.add(id)) {
           expanded.add(MediaRef(id));
@@ -486,8 +490,10 @@ class AestheticsCandidateBuilder extends WrappedCandidateBuilder {
       media = expanded;
     }
 
-    final List<int> metaUploadedIDs =
-        buildMetaUploadedIDs(candidateIds, desiredCount * 2);
+    final List<int> metaUploadedIDs = buildMetaUploadedIDs(
+      candidateIds,
+      desiredCount * 2,
+    );
     final Map<String, Object?> meta = <String, Object?>{
       "queries": AestheticsCandidateBuilder._kWowQueries,
       "detailChips": const <String>[],
@@ -553,11 +559,11 @@ class _AestheticsSnapshot {
     required Map<String, _TextEmbedding> textEmbeddings,
     required Map<int, EnteFile> fileByUploadedId,
     required this.peopleContext,
-  })  : imageEmbeddings = List<_ImageEmbedding>.unmodifiable(imageEmbeddings),
-        textEmbeddings = Map<String, _TextEmbedding>.unmodifiable(
-          textEmbeddings,
-        ),
-        fileByUploadedId = Map<int, EnteFile>.unmodifiable(fileByUploadedId);
+  }) : imageEmbeddings = List<_ImageEmbedding>.unmodifiable(imageEmbeddings),
+       textEmbeddings = Map<String, _TextEmbedding>.unmodifiable(
+         textEmbeddings,
+       ),
+       fileByUploadedId = Map<int, EnteFile>.unmodifiable(fileByUploadedId);
 
   final int year;
   final List<_ColorSpec> colorSpecs;
@@ -584,8 +590,9 @@ class _AestheticsSnapshot {
   }
 
   List<_ClipMatch> get monochromeMatches {
-    return _cachedMonochromeMatches ??=
-        _matchesForQuery(AestheticsCandidateBuilder._kMonochromeQuery);
+    return _cachedMonochromeMatches ??= _matchesForQuery(
+      AestheticsCandidateBuilder._kMonochromeQuery,
+    );
   }
 
   List<_ClipMatch> get topWowMatches {
@@ -607,26 +614,27 @@ class _AestheticsSnapshot {
     };
 
     final List<_ImageEmbedding> imageEmbeddings = <_ImageEmbedding>[];
-    context.aesthetics.clipEmbeddings.forEach(
-      (int fileID, List<double> values) {
-        if (values.isEmpty) {
-          return;
-        }
-        final EnteFile? file = fileByUploadedId[fileID];
-        if (file == null) {
-          return;
-        }
-        final _ImageEmbedding embedding = _ImageEmbedding(
-          uploadedFileID: fileID,
-          values: values,
-          captureMicros: file.creationTime ?? 0,
-        );
-        if (embedding.norm <= 0) {
-          return;
-        }
-        imageEmbeddings.add(embedding);
-      },
-    );
+    context.aesthetics.clipEmbeddings.forEach((
+      int fileID,
+      List<double> values,
+    ) {
+      if (values.isEmpty) {
+        return;
+      }
+      final EnteFile? file = fileByUploadedId[fileID];
+      if (file == null) {
+        return;
+      }
+      final _ImageEmbedding embedding = _ImageEmbedding(
+        uploadedFileID: fileID,
+        values: values,
+        captureMicros: file.creationTime ?? 0,
+      );
+      if (embedding.norm <= 0) {
+        return;
+      }
+      imageEmbeddings.add(embedding);
+    });
 
     final Map<String, _TextEmbedding> textEmbeddings = <String, _TextEmbedding>{
       for (final MapEntry<String, List<double>> entry
@@ -723,12 +731,7 @@ class _AestheticsSnapshot {
       if (matches.isEmpty) {
         continue;
       }
-      buckets.add(
-        _ColorBucket(
-          spec: spec,
-          matches: matches,
-        ),
-      );
+      buckets.add(_ColorBucket(spec: spec, matches: matches));
     }
     return buckets;
   }
@@ -870,10 +873,8 @@ class _ColorSpec {
 }
 
 class _ColorBucket {
-  _ColorBucket({
-    required this.spec,
-    required List<_ClipMatch> matches,
-  }) : matches = List<_ClipMatch>.unmodifiable(matches);
+  _ColorBucket({required this.spec, required List<_ClipMatch> matches})
+    : matches = List<_ClipMatch>.unmodifiable(matches);
 
   final _ColorSpec spec;
   final List<_ClipMatch> matches;
@@ -896,8 +897,8 @@ class _ImageEmbedding {
     required this.uploadedFileID,
     required List<double> values,
     required this.captureMicros,
-  })  : vector = Float32List.fromList(values),
-        norm = _computeNorm(values);
+  }) : vector = Float32List.fromList(values),
+       norm = _computeNorm(values);
 
   final int uploadedFileID;
   final Float32List vector;
@@ -917,10 +918,9 @@ class _ImageEmbedding {
 }
 
 class _TextEmbedding {
-  _TextEmbedding({
-    required List<double> values,
-  })  : vector = Float32List.fromList(values),
-        norm = _ImageEmbedding._computeNorm(values);
+  _TextEmbedding({required List<double> values})
+    : vector = Float32List.fromList(values),
+      norm = _ImageEmbedding._computeNorm(values);
 
   final Float32List vector;
   final double norm;

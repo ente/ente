@@ -20,7 +20,7 @@ class ContactsDatabase {
   static const _stateTable = 'contact_state';
 
   ContactsDatabase({ContactsDatabaseDirectoryResolver? directoryResolver})
-      : _directoryResolver = directoryResolver;
+    : _directoryResolver = directoryResolver;
 
   final ContactsDatabaseDirectoryResolver? _directoryResolver;
 
@@ -59,21 +59,18 @@ class ContactsDatabase {
     final db = await database;
     final batch = db.batch();
     for (final contact in contacts) {
-      batch.insert(
-        _contactsTable,
-        {
-          'id': contact.id,
-          'contact_user_id': contact.contactUserId,
-          'email': contact.email,
-          'data_json':
-              contact.data == null ? null : jsonEncode(contact.data!.toJson()),
-          'profile_picture_attachment_id': contact.profilePictureAttachmentId,
-          'is_deleted': contact.isDeleted ? 1 : 0,
-          'created_at': contact.createdAt,
-          'updated_at': contact.updatedAt,
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      batch.insert(_contactsTable, {
+        'id': contact.id,
+        'contact_user_id': contact.contactUserId,
+        'email': contact.email,
+        'data_json': contact.data == null
+            ? null
+            : jsonEncode(contact.data!.toJson()),
+        'profile_picture_attachment_id': contact.profilePictureAttachmentId,
+        'is_deleted': contact.isDeleted ? 1 : 0,
+        'created_at': contact.createdAt,
+        'updated_at': contact.updatedAt,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
     }
     await batch.commit(noResult: true);
   }
@@ -132,14 +129,10 @@ class ContactsDatabase {
 
   Future<void> setLastSyncedUpdatedAt(int value) async {
     final db = await database;
-    await db.update(
-      _stateTable,
-      {
-        'id': 1,
-        'last_synced_updated_at': value,
-      },
-      where: 'id = 1',
-    );
+    await db.update(_stateTable, {
+      'id': 1,
+      'last_synced_updated_at': value,
+    }, where: 'id = 1');
   }
 
   Future<void> resetState() async {
@@ -169,15 +162,11 @@ class ContactsDatabase {
     Uint8List bytes,
   ) async {
     final db = await database;
-    await db.insert(
-      _attachmentsTable,
-      {
-        'attachment_id': attachmentId,
-        'bytes': bytes,
-        'cached_at': DateTime.now().millisecondsSinceEpoch,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert(_attachmentsTable, {
+      'attachment_id': attachmentId,
+      'bytes': bytes,
+      'cached_at': DateTime.now().millisecondsSinceEpoch,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> deleteCachedAttachment(String attachmentId) async {
@@ -193,7 +182,8 @@ class ContactsDatabase {
     final db = await database;
     await db.delete(
       _attachmentsTable,
-      where: '''
+      where:
+          '''
         attachment_id NOT IN (
           SELECT profile_picture_attachment_id
           FROM $_contactsTable

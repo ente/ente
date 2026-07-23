@@ -8,6 +8,7 @@ import 'package:photos/core/errors.dart';
 import 'package:photos/core/event_bus.dart';
 import 'package:photos/events/local_import_progress.dart';
 import 'package:photos/models/file/file.dart';
+import "package:photos/module/metadata/local_file.dart";
 import "package:photos/services/sync/import/model.dart";
 import 'package:tuple/tuple.dart';
 
@@ -50,9 +51,7 @@ Future<Tuple2<List<LocalPathAsset>, List<EnteFile>>> getLocalPathAssetsAndFiles(
         );
       } catch (e) {
         _logger.severe("_getLocalIDsAndFilesFromAssets failed", e);
-        _logger.info(
-          "Failed for pathEntity: ${pathEntity.name}",
-        );
+        _logger.info("Failed for pathEntity: ${pathEntity.name}");
         rethrow;
       }
 
@@ -76,21 +75,21 @@ Future<Tuple2<List<LocalPathAsset>, List<EnteFile>>> getLocalPathAssetsAndFiles(
 // We use this result to update the latest thumbnail for deviceFolder and
 // identify (in future) which AssetPath needs to be re-synced again.
 Future<List<Tuple2<AssetPathEntity, String>>>
-    getDeviceFolderWithCountAndCoverID() async {
+getDeviceFolderWithCountAndCoverID() async {
   final List<Tuple2<AssetPathEntity, String>> result = [];
   final pathEntities = await _getGalleryList(
     needsTitle: false,
     containsModifiedPath: true,
-    orderOption:
-        const OrderOption(type: OrderOptionType.createDate, asc: false),
+    orderOption: const OrderOption(
+      type: OrderOptionType.createDate,
+      asc: false,
+    ),
   );
   for (AssetPathEntity pathEntity in pathEntities) {
-    final latestEntity = await pathEntity.getAssetListPaged(
-      page: 0,
-      size: 1,
-    );
-    final String localCoverID =
-        latestEntity.isEmpty ? '' : latestEntity.first.id;
+    final latestEntity = await pathEntity.getAssetListPaged(page: 0, size: 1);
+    final String localCoverID = latestEntity.isEmpty
+        ? ''
+        : latestEntity.first.id;
     result.add(Tuple2(pathEntity, localCoverID));
   }
   return result;
@@ -110,14 +109,8 @@ Future<List<LocalPathAsset>> getAllLocalAssets({bool? needsTitle}) async {
           needTitle: needsTitle,
           sizeConstraint: ignoreSizeConstraint,
         );
-  filterOptionGroup.setOption(
-    AssetType.image,
-    imageFilterOption,
-  );
-  filterOptionGroup.setOption(
-    AssetType.video,
-    videoFilterOption,
-  );
+  filterOptionGroup.setOption(AssetType.image, imageFilterOption);
+  filterOptionGroup.setOption(AssetType.video, videoFilterOption);
   filterOptionGroup.createTimeCond = DateTimeCond.def().copyWith(ignore: true);
   final assetPaths = await PhotoManager.getAssetPathList(
     hasAll: !Platform.isAndroid,
@@ -228,11 +221,12 @@ int _safeGetMilliseconds(
   }
 }
 
-// review: do we need to run this inside compute, after making File.FromAsset
-// sync. If yes, update the method documentation with reason.
-Future<Tuple2<Set<String>, List<EnteFile>>> _getLocalIDsAndFilesFromAssets(
+// Runs in a worker isolate because a device folder can contain thousands of
+// assets and this loop constructs metadata for the full folder. Re-benchmark
+// large imports before moving this work onto the UI isolate.
+Tuple2<Set<String>, List<EnteFile>> _getLocalIDsAndFilesFromAssets(
   Map<String, dynamic> args,
-) async {
+) {
   final pathEntity = args["pathEntity"] as AssetPathEntity;
   final assetList = args["assetList"];
   final fromTime = args["fromTime"];
@@ -257,7 +251,7 @@ Future<Tuple2<Set<String>, List<EnteFile>>> _getLocalIDsAndFilesFromAssets(
         max(createMs, modifiedMs) >= (fromTime ~/ 1000);
     if (!alreadySeenLocalIDs.contains(entity.id) &&
         assetCreatedOrUpdatedAfterGivenTime) {
-      final file = await EnteFile.fromAsset(pathEntity.name, entity);
+      final file = fileFromAsset(pathEntity.name, entity);
       files.add(file);
     }
   }

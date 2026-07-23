@@ -15,10 +15,7 @@ class PinnedPersonBadge extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: colorScheme.backgroundElevated2,
-        border: Border.all(
-          color: colorScheme.backgroundElevated,
-          width: 2,
-        ),
+        border: Border.all(color: colorScheme.backgroundElevated, width: 2),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.12),
@@ -29,11 +26,7 @@ class PinnedPersonBadge extends StatelessWidget {
       ),
       child: Transform.rotate(
         angle: -math.pi / 4,
-        child: Icon(
-          Icons.push_pin,
-          size: 14,
-          color: colorScheme.primary500,
-        ),
+        child: Icon(Icons.push_pin, size: 14, color: colorScheme.primary500),
       ),
     );
   }

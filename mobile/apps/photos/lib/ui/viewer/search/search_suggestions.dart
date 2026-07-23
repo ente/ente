@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import 'package:flutter/material.dart';
 import "package:flutter_animate/flutter_animate.dart";
@@ -16,7 +17,7 @@ import "package:photos/services/collections_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/thumbnail_list_item.dart";
 import "package:photos/ui/viewer/gallery/collection_page.dart";
-import "package:photos/ui/viewer/gallery/device_folder_page.dart";
+import "package:photos/ui/viewer/gallery/device/device_folder_page.dart";
 import "package:photos/ui/viewer/search/result/search_result_widget.dart";
 import "package:photos/ui/viewer/search/search_widget.dart";
 
@@ -25,9 +26,7 @@ import "package:photos/ui/viewer/search/search_widget.dart";
 ///fast. Instead, we usi a queue to store the events and then generate the
 ///widgets from the queue at regular intervals.
 class SearchSuggestionsWidget extends StatefulWidget {
-  const SearchSuggestionsWidget({
-    super.key,
-  });
+  const SearchSuggestionsWidget({super.key});
 
   @override
   State<SearchSuggestionsWidget> createState() =>
@@ -128,18 +127,19 @@ class _SearchSuggestionsWidgetState extends State<SearchSuggestionsWidget> {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
     final resultsBackground = EnteTheme.isDark(context)
-        ? const Color.fromRGBO(22, 22, 22, 1)
+        ? colorScheme.backgroundColour
         : colorScheme.backgroundElevated2;
     final sectionWidgets = _buildSectionWidgets(context);
+    const bottomPadding = 124.0;
     if (_resultsCount > 0) {
       sectionWidgets.insert(
         0,
         Padding(
-          padding: const EdgeInsets.fromLTRB(4, 4, 4, 12),
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
           child: Text(
-            AppLocalizations.of(context).searchResultCount(
-              count: _resultsCount,
-            ),
+            AppLocalizations.of(
+              context,
+            ).searchResultCount(count: _resultsCount),
             style: textTheme.smallBold.copyWith(color: colorScheme.textMuted),
           ),
         ),
@@ -148,16 +148,14 @@ class _SearchSuggestionsWidgetState extends State<SearchSuggestionsWidget> {
     return Scaffold(
       backgroundColor: resultsBackground,
       body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: ListView(
                 physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.only(
-                  bottom: (MediaQuery.sizeOf(context).height / 2) + 50,
-                ),
+                padding: const EdgeInsets.only(bottom: bottomPadding),
                 children: sectionWidgets,
               ),
             ),
@@ -312,7 +310,7 @@ String _sectionTitle(BuildContext context, _SearchResultsSection section) {
     case _SearchResultsSection.people:
       return AppLocalizations.of(context).people;
     case _SearchResultsSection.shared:
-      return AppLocalizations.of(context).searchResultShared;
+      return AppLocalizations.of(context).shared;
     case _SearchResultsSection.albums:
       return AppLocalizations.of(context).albums;
     case _SearchResultsSection.magic:
@@ -359,7 +357,7 @@ class _SearchResultsSectionWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
     final showTypeLabel = results.length > 1;
     final children = <Widget>[];
     for (int i = 0; i < results.length; i++) {
@@ -408,7 +406,7 @@ class _SearchResultsSectionWidget extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 title,
-                style: textTheme.bodyBold,
+                style: TextStyles.large.copyWith(color: colors.textBase),
               ),
             ],
           ),

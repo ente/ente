@@ -422,7 +422,7 @@ phrase.
 ## Further Details
 
 Thank you for reading this far! For implementation details, we request you to
-checkout [our code](https://github.com/ente-io).
+checkout [our code](https://github.com/ente).
 
 If you'd like to help us improve this document, kindly email
 [security@ente.com](mailto:security@ente.com).

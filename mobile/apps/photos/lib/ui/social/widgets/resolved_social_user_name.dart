@@ -5,13 +5,10 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/contacts_changed_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/models/api/collection/user.dart";
-import "package:photos/service_locator.dart" show flagService;
 import "package:photos/services/contacts/contact_identity_resolver.dart";
 
-typedef ResolvedSocialUserNameBuilder = Widget Function(
-  BuildContext context,
-  String resolvedName,
-);
+typedef ResolvedSocialUserNameBuilder =
+    Widget Function(BuildContext context, String resolvedName);
 
 class ResolvedSocialUserName extends StatefulWidget {
   final User user;
@@ -34,16 +31,16 @@ class _ResolvedSocialUserNameState extends State<ResolvedSocialUserName> {
   @override
   void initState() {
     super.initState();
-    _contactsChangedSubscription =
-        Bus.instance.on<ContactsChangedEvent>().listen((event) {
-      if (mounted &&
-          event.matchesContactUserId(widget.user.id) &&
-          flagService.enableContact) {
-        setState(() {});
-      }
-    });
-    _peopleChangedSubscription =
-        Bus.instance.on<PeopleChangedEvent>().listen((_) {
+    _contactsChangedSubscription = Bus.instance
+        .on<ContactsChangedEvent>()
+        .listen((event) {
+          if (mounted && event.matchesContactUserId(widget.user.id)) {
+            setState(() {});
+          }
+        });
+    _peopleChangedSubscription = Bus.instance.on<PeopleChangedEvent>().listen((
+      _,
+    ) {
       if (mounted) {
         setState(() {});
       }
@@ -59,9 +56,6 @@ class _ResolvedSocialUserNameState extends State<ResolvedSocialUserName> {
 
   @override
   Widget build(BuildContext context) {
-    return widget.builder(
-      context,
-      resolveDisplayName(widget.user),
-    );
+    return widget.builder(context, resolveDisplayName(widget.user));
   }
 }

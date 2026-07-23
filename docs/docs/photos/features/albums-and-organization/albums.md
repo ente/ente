@@ -174,7 +174,9 @@ If the folder contains nested subfolders and you choose to create a new album, y
 - Only the leaf folder name is used (e.g., both `A/B/C/Photos/x.jpg` and `1/2/3/Photos/y.jpg` go to an album called "Photos")
 - Example: Folder `Photos` containing `New Year/` and `Summer/` → Two albums: "New Year" and "Summer"
 
-> **Note**: Ente albums cannot be nested. In separate album mode, each nested folder becomes a top-level album - they won't be organized in a hierarchy.
+> [!NOTE]
+>
+> Ente albums cannot be nested. In separate album mode, each nested folder becomes a top-level album - they won't be organized in a hierarchy.
 
 Learn more about [watch folders](/photos/features/backup-and-sync/watch-folders) for automatic desktop syncing.
 

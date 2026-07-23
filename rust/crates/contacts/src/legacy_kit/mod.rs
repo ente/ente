@@ -6,7 +6,7 @@ use std::sync::Arc;
 use ente_core::{
     auth::{self, KeyAttributes, SrpSession},
     crypto::{self, SecretString, SecretVec, kdf, sealed, secretbox},
-    http::{HttpClient, HttpConfig},
+    http::{Api, ApiConfig, Http},
 };
 use uuid::Uuid;
 
@@ -47,7 +47,7 @@ pub(crate) fn create_legacy_kit_request(
 
     let kit_id = Uuid::new_v4().to_string();
     let variant = LegacyKitVariant::TwoOfThree;
-    let kit_secret = crypto::keys::generate_key_secure();
+    let kit_secret = SecretVec::new(crypto::random_bytes(32));
     let checksum = checksum(LEGACY_KIT_PAYLOAD_VERSION, variant, &kit_id, &kit_secret);
     let shares = split_secret_2_of_3(&kit_secret)?;
     let result_shares = shares
@@ -68,7 +68,8 @@ pub(crate) fn create_legacy_kit_request(
     let enc_key = derive_kit_enc_key(&kit_secret)?;
     let (auth_public_key, _auth_secret_key) = derive_kit_auth_keypair(&kit_secret)?;
 
-    let encrypted_recovery_blob = secretbox::encrypt(recovery_key, enc_key.as_ref())?;
+    let encrypted_recovery_blob =
+        secretbox::encrypt_combined(recovery_key, &crypto::Key::try_from_slice(&enc_key)?);
     let owner_blob = create_owner_blob(&result_shares);
     let encrypted_owner_blob = encrypt_owner_blob(&owner_blob, master_key)?;
 
@@ -77,8 +78,8 @@ pub(crate) fn create_legacy_kit_request(
             id: kit_id,
             variant,
             notice_period_in_hours,
-            encrypted_recovery_blob: crypto::encode_b64(&encrypted_recovery_blob.encrypted_data),
-            auth_public_key: crypto::encode_b64(&auth_public_key),
+            encrypted_recovery_blob: crypto::encode_b64(&encrypted_recovery_blob),
+            auth_public_key: crypto::encode_b64(auth_public_key.as_bytes()),
             encrypted_owner_blob,
         },
         result_shares,
@@ -124,11 +125,11 @@ pub(crate) fn decode_download_content(
 }
 
 pub struct LegacyKitRecoveryClient {
-    http: Arc<HttpClient>,
+    api: Arc<Api>,
 }
 
 pub struct LegacyKitRecoveryHandle {
-    http: Arc<HttpClient>,
+    api: Arc<Api>,
     session: LegacyKitRecoverySession,
     session_token: SecretString,
     kit_secret: SecretVec,
@@ -150,17 +151,17 @@ impl LegacyKitRecoveryClient {
         client_version: Option<String>,
         user_agent: Option<String>,
     ) -> Result<Self> {
-        let http = HttpClient::new_with_config(HttpConfig {
-            base_url: base_url.into(),
-            auth_token: None,
-            user_agent,
-            client_package,
-            client_version,
-            timeout_secs: Some(30),
-        })?;
-        Ok(Self {
-            http: Arc::new(http),
-        })
+        let api = Api::new(
+            Http::new()?,
+            ApiConfig {
+                origin: base_url.into(),
+                client_package,
+                client_version,
+                user_agent,
+                auth: None,
+            },
+        );
+        Ok(Self { api: Arc::new(api) })
     }
 
     pub fn reconstruct_secret(shares: &[LegacyKitShare]) -> Result<SecretVec> {
@@ -176,15 +177,16 @@ impl LegacyKitRecoveryClient {
             ContactsError::InvalidInput("at least two legacy kit shares are required".into())
         })?;
         let challenge = self
-            .http
-            .post_json::<LegacyKitChallengeResponse, _>(
-                "/legacy-kits/recovery/challenge",
-                &LegacyKitChallengeRequest {
-                    kit_id: first_share.kit_id.clone(),
-                },
-            )
-            .await
-            .map_err(ContactsError::from)?;
+            .api
+            .post("/legacy-kits/recovery/challenge")
+            .json(&LegacyKitChallengeRequest {
+                kit_id: first_share.kit_id.clone(),
+            })
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<LegacyKitChallengeResponse>()
+            .await?;
         self.open_from_encrypted_challenge(shares, &challenge.encrypted_challenge, email)
             .await
     }
@@ -217,33 +219,39 @@ impl LegacyKitRecoveryHandle {
     }
 
     pub async fn refresh_session(&self) -> Result<LegacyKitRecoverySession> {
-        self.http
-            .post_json(
-                "/legacy-kits/recovery/session",
-                &LegacyKitSessionRequest {
-                    session_id: self.session.id.clone(),
-                    session_token: self.session_token.as_ref().to_owned(),
-                },
-            )
-            .await
-            .map_err(ContactsError::from)
+        Ok(self
+            .api
+            .post("/legacy-kits/recovery/session")
+            .json(&LegacyKitSessionRequest {
+                session_id: self.session.id.clone(),
+                session_token: self.session_token.as_ref().to_owned(),
+            })
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?)
     }
 
     pub async fn recovery_bundle(&self) -> Result<LegacyKitRecoveryBundle> {
         let response = self
-            .http
-            .post_json::<LegacyKitRecoveryInfoResponse, _>(
-                "/legacy-kits/recovery/info",
-                &LegacyKitSessionRequest {
-                    session_id: self.session.id.clone(),
-                    session_token: self.session_token.as_ref().to_owned(),
-                },
-            )
-            .await
-            .map_err(ContactsError::from)?;
+            .api
+            .post("/legacy-kits/recovery/info")
+            .json(&LegacyKitSessionRequest {
+                session_id: self.session.id.clone(),
+                session_token: self.session_token.as_ref().to_owned(),
+            })
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<LegacyKitRecoveryInfoResponse>()
+            .await?;
         let enc_key = derive_kit_enc_key(&self.kit_secret)?;
         let encrypted_recovery_blob = crypto::decode_b64(&response.encrypted_recovery_blob)?;
-        let recovery_key = secretbox::decrypt_box(&encrypted_recovery_blob, enc_key.as_ref())?;
+        let recovery_key = secretbox::decrypt_combined(
+            &encrypted_recovery_blob,
+            &crypto::Key::try_from_slice(&enc_key)?,
+        )?;
         Ok(LegacyKitRecoveryBundle {
             recovery_key: SecretVec::new(recovery_key),
             user_key_attributes: response.user_key_attr,
@@ -265,17 +273,18 @@ impl LegacyKitRecoveryHandle {
         let (mut srp_session, setup_request) =
             password_reset_setup_request(&srp_user_id, &login_key)?;
         let init_response = self
-            .http
-            .post_json::<LegacyKitSetupSrpResponse, _>(
-                "/legacy-kits/recovery/init-change-password",
-                &LegacyKitInitChangePasswordRequest {
-                    session_id: self.session.id.clone(),
-                    session_token: self.session_token.as_ref().to_owned(),
-                    setup_srp_request: setup_request,
-                },
-            )
-            .await
-            .map_err(ContactsError::from)?;
+            .api
+            .post("/legacy-kits/recovery/init-change-password")
+            .json(&LegacyKitInitChangePasswordRequest {
+                session_id: self.session.id.clone(),
+                session_token: self.session_token.as_ref().to_owned(),
+                setup_srp_request: setup_request,
+            })
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<LegacyKitSetupSrpResponse>()
+            .await?;
         let srp_m1 = srp_session_m1(&mut srp_session, &init_response)?;
         let updated_key_attr = LegacyKitUpdatedKeyAttr {
             kek_salt: updated_key_attrs.kek_salt.clone(),
@@ -289,21 +298,22 @@ impl LegacyKitRecoveryHandle {
             })?,
         };
         let change_response = self
-            .http
-            .post_json::<LegacyKitChangePasswordResponse, _>(
-                "/legacy-kits/recovery/change-password",
-                &LegacyKitChangePasswordRequest {
-                    session_id: self.session.id.clone(),
-                    session_token: self.session_token.as_ref().to_owned(),
-                    update_srp_and_keys_request: LegacyKitUpdateSrpAndKeysRequest {
-                        setup_id: init_response.setup_id,
-                        srp_m1,
-                        updated_key_attr,
-                    },
+            .api
+            .post("/legacy-kits/recovery/change-password")
+            .json(&LegacyKitChangePasswordRequest {
+                session_id: self.session.id.clone(),
+                session_token: self.session_token.as_ref().to_owned(),
+                update_srp_and_keys_request: LegacyKitUpdateSrpAndKeysRequest {
+                    setup_id: init_response.setup_id,
+                    srp_m1,
+                    updated_key_attr,
                 },
-            )
-            .await
-            .map_err(ContactsError::from)?;
+            })
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<LegacyKitChangePasswordResponse>()
+            .await?;
         let server_m2 = crypto::decode_b64(&change_response.srp_m2)?;
         srp_session.verify_m2(&server_m2)?;
         Ok(())
@@ -322,20 +332,21 @@ impl LegacyKitRecoveryClient {
         let (auth_public_key, auth_secret_key) = derive_kit_auth_keypair(&kit_secret)?;
         let challenge = decrypt_challenge(&auth_public_key, &auth_secret_key, encrypted_challenge)?;
         let response = self
-            .http
-            .post_json::<LegacyKitOpenRecoveryResponse, _>(
-                "/legacy-kits/recovery/open",
-                &LegacyKitOpenRecoveryRequest {
-                    kit_id: first_share.kit_id.clone(),
-                    challenge,
-                    used_part_indexes,
-                    email,
-                },
-            )
-            .await
-            .map_err(ContactsError::from)?;
+            .api
+            .post("/legacy-kits/recovery/open")
+            .json(&LegacyKitOpenRecoveryRequest {
+                kit_id: first_share.kit_id.clone(),
+                challenge,
+                used_part_indexes,
+                email,
+            })
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<LegacyKitOpenRecoveryResponse>()
+            .await?;
         Ok(LegacyKitRecoveryHandle {
-            http: Arc::clone(&self.http),
+            api: Arc::clone(&self.api),
             session: response.session,
             session_token: SecretString::new(response.session_token),
             kit_secret,
@@ -354,20 +365,20 @@ pub(crate) fn validate_notice_period(hours: i32) -> Result<()> {
 }
 
 fn derive_kit_enc_key(kit_secret: &[u8]) -> Result<SecretVec> {
-    let key = kdf::derive_subkey(kit_secret, 32, 1, b"lgkenc01").map_err(ContactsError::from)?;
-    Ok(SecretVec::new(key))
+    let kit_key = crypto::Key::try_from_slice(kit_secret)?;
+    kdf::derive_subkey(&kit_key, 32, 1, b"lgkenc01").map_err(ContactsError::from)
 }
 
-fn derive_kit_auth_keypair(kit_secret: &[u8]) -> Result<(Vec<u8>, SecretVec)> {
-    let seed = SecretVec::new(
-        kdf::derive_subkey(kit_secret, 32, 2, b"lgkauth1").map_err(ContactsError::from)?,
-    );
-    crypto::keys::derive_keypair_from_seed_secure(seed.as_ref()).map_err(Into::into)
+fn derive_kit_auth_keypair(kit_secret: &[u8]) -> Result<(crypto::PublicKey, crypto::SecretKey)> {
+    let kit_key = crypto::Key::try_from_slice(kit_secret)?;
+    let seed = kdf::derive_subkey(&kit_key, 32, 2, b"lgkauth1").map_err(ContactsError::from)?;
+    let sk = crypto::SecretKey::from_seed(seed.as_ref())?;
+    Ok((sk.public_key(), sk))
 }
 
 fn decrypt_challenge(
-    auth_public_key: &[u8],
-    auth_secret_key: &[u8],
+    auth_public_key: &crypto::PublicKey,
+    auth_secret_key: &crypto::SecretKey,
     encrypted_challenge_b64: &str,
 ) -> Result<String> {
     let encrypted_challenge = crypto::decode_b64(encrypted_challenge_b64)?;
@@ -399,9 +410,13 @@ fn decrypt_master_key_with_recovery_key(
         })?;
     let encrypted_master_key = crypto::decode_b64(encrypted_master_key)?;
     let master_key_nonce = crypto::decode_b64(master_key_nonce)?;
-    secretbox::decrypt(&encrypted_master_key, &master_key_nonce, recovery_key)
-        .map(SecretVec::new)
-        .map_err(Into::into)
+    secretbox::decrypt(
+        &encrypted_master_key,
+        &crypto::Nonce::try_from_slice(&master_key_nonce)?,
+        &crypto::Key::try_from_slice(recovery_key)?,
+    )
+    .map(SecretVec::new)
+    .map_err(Into::into)
 }
 
 fn password_reset_setup_request(

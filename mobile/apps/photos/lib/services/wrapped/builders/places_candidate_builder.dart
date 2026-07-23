@@ -48,8 +48,9 @@ class PlacesCandidateBuilder extends WrappedCandidateBuilder {
     if (dataset.cityClusters.isEmpty || dataset.totalCount == 0) {
       return null;
     }
-    final List<_PlaceClusterSummary> topClusters =
-        dataset.cityClusters.take(3).toList(growable: false);
+    final List<_PlaceClusterSummary> topClusters = dataset.cityClusters
+        .take(3)
+        .toList(growable: false);
     if (topClusters.isEmpty) {
       return null;
     }
@@ -90,8 +91,10 @@ class PlacesCandidateBuilder extends WrappedCandidateBuilder {
       preferNamedPeople: true,
       minimumSpacing: const Duration(days: 45),
     );
-    final List<int> metaUploadedIDs =
-        buildMetaUploadedIDs(mediaIds, _kTopCityMediaCount * 2);
+    final List<int> metaUploadedIDs = buildMetaUploadedIDs(
+      mediaIds,
+      _kTopCityMediaCount * 2,
+    );
 
     final Map<String, Object?> meta = <String, Object?>{
       "year": context.year,
@@ -124,11 +127,9 @@ class PlacesCandidateBuilder extends WrappedCandidateBuilder {
       subtitle: subtitle,
       media: media,
       meta: meta
-        ..addAll(
-          <String, Object?>{
-            if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
-          },
-        ),
+        ..addAll(<String, Object?>{
+          if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
+        }),
     );
   }
 
@@ -145,8 +146,9 @@ class PlacesCandidateBuilder extends WrappedCandidateBuilder {
           summary.totalCount >= _kMinSpotCaptures &&
           summary.distinctDays >= _kMinSpotDistinctDays,
     );
-    final _PlaceClusterSummary? cluster =
-        eligible.isEmpty ? null : eligible.first;
+    final _PlaceClusterSummary? cluster = eligible.isEmpty
+        ? null
+        : eligible.first;
     if (cluster == null) {
       return null;
     }
@@ -168,8 +170,8 @@ class PlacesCandidateBuilder extends WrappedCandidateBuilder {
     final String subtitle = distinctDays <= 0
         ? "You made $countText memories here."
         : distinctDays == 1
-            ? "You made $countText memories here in a single day."
-            : "You made $countText memories here across ${numberFormat.format(distinctDays)} days.";
+        ? "You made $countText memories here in a single day."
+        : "You made $countText memories here across ${numberFormat.format(distinctDays)} days.";
 
     final List<MediaRef> media = WrappedMediaSelector.selectMediaRefs(
       context: context,
@@ -178,8 +180,10 @@ class PlacesCandidateBuilder extends WrappedCandidateBuilder {
       preferNamedPeople: true,
       minimumSpacing: const Duration(days: 30),
     );
-    final List<int> metaUploadedIDs =
-        buildMetaUploadedIDs(mediaIds, _kSpotMediaCount * 2);
+    final List<int> metaUploadedIDs = buildMetaUploadedIDs(
+      mediaIds,
+      _kSpotMediaCount * 2,
+    );
 
     final int sharePercent = _percentOf(
       cluster.totalCount / dataset.totalCount.toDouble(),
@@ -215,11 +219,9 @@ class PlacesCandidateBuilder extends WrappedCandidateBuilder {
       subtitle: subtitle,
       media: media,
       meta: meta
-        ..addAll(
-          <String, Object?>{
-            if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
-          },
-        ),
+        ..addAll(<String, Object?>{
+          if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
+        }),
     );
   }
 
@@ -299,8 +301,8 @@ class _PlacesDataset {
     required this.totalCount,
     required List<_PlaceClusterSummary> cityClusters,
     required List<_PlaceClusterSummary> spotClusters,
-  })  : cityClusters = List<_PlaceClusterSummary>.unmodifiable(cityClusters),
-        spotClusters = List<_PlaceClusterSummary>.unmodifiable(spotClusters);
+  }) : cityClusters = List<_PlaceClusterSummary>.unmodifiable(cityClusters),
+       spotClusters = List<_PlaceClusterSummary>.unmodifiable(spotClusters);
 
   final int totalCount;
   final List<_PlaceClusterSummary> cityClusters;
@@ -351,40 +353,42 @@ class _PlacesDataset {
       );
     }
 
-    final List<_PlaceClusterSummary> cityClusters = _summariesForRadius(
-      geoFiles: geoFiles,
-      radiusKm: PlacesCandidateBuilder._kCityClusterRadiusKm,
-      cities: context.cities,
-    )
-        .where(
-          (_PlaceClusterSummary summary) =>
-              summary.totalCount >= PlacesCandidateBuilder._kMinCityCaptures,
-        )
-        .toList(growable: false)
-      ..sort(
-        (_PlaceClusterSummary a, _PlaceClusterSummary b) =>
-            b.totalCount.compareTo(a.totalCount),
-      );
+    final List<_PlaceClusterSummary> cityClusters =
+        _summariesForRadius(
+              geoFiles: geoFiles,
+              radiusKm: PlacesCandidateBuilder._kCityClusterRadiusKm,
+              cities: context.cities,
+            )
+            .where(
+              (_PlaceClusterSummary summary) =>
+                  summary.totalCount >=
+                  PlacesCandidateBuilder._kMinCityCaptures,
+            )
+            .toList(growable: false)
+          ..sort(
+            (_PlaceClusterSummary a, _PlaceClusterSummary b) =>
+                b.totalCount.compareTo(a.totalCount),
+          );
 
-    final List<_PlaceClusterSummary> spotClusters = _summariesForRadius(
-      geoFiles: geoFiles,
-      radiusKm: PlacesCandidateBuilder._kSpotClusterRadiusKm,
-      cities: context.cities,
-    )
-        .where(
-          (_PlaceClusterSummary summary) =>
-              summary.totalCount >= PlacesCandidateBuilder._kMinSpotCaptures,
-        )
-        .toList(growable: false)
-      ..sort(
-        (_PlaceClusterSummary a, _PlaceClusterSummary b) {
-          final int countCompare = b.totalCount.compareTo(a.totalCount);
-          if (countCompare != 0) {
-            return countCompare;
-          }
-          return b.distinctDays.compareTo(a.distinctDays);
-        },
-      );
+    final List<_PlaceClusterSummary> spotClusters =
+        _summariesForRadius(
+              geoFiles: geoFiles,
+              radiusKm: PlacesCandidateBuilder._kSpotClusterRadiusKm,
+              cities: context.cities,
+            )
+            .where(
+              (_PlaceClusterSummary summary) =>
+                  summary.totalCount >=
+                  PlacesCandidateBuilder._kMinSpotCaptures,
+            )
+            .toList(growable: false)
+          ..sort((_PlaceClusterSummary a, _PlaceClusterSummary b) {
+            final int countCompare = b.totalCount.compareTo(a.totalCount);
+            if (countCompare != 0) {
+              return countCompare;
+            }
+            return b.distinctDays.compareTo(a.distinctDays);
+          });
 
     return _PlacesDataset._(
       totalCount: geoFiles.length,
@@ -399,19 +403,19 @@ class _PlacesDataset {
     required List<WrappedCity> cities,
   }) {
     final List<_PlaceCluster> clusters = _clusterGeoFiles(geoFiles, radiusKm);
-    return clusters.map(
-      (_PlaceCluster cluster) {
-        final _ClusterLabel? label = _resolveLabel(
-          cluster.centerLatitude,
-          cluster.centerLongitude,
-          cities,
-        );
-        return _PlaceClusterSummary.fromCluster(
-          cluster: cluster,
-          label: label,
-        );
-      },
-    ).toList(growable: false);
+    return clusters
+        .map((_PlaceCluster cluster) {
+          final _ClusterLabel? label = _resolveLabel(
+            cluster.centerLatitude,
+            cluster.centerLongitude,
+            cities,
+          );
+          return _PlaceClusterSummary.fromCluster(
+            cluster: cluster,
+            label: label,
+          );
+        })
+        .toList(growable: false);
   }
 
   static _ClusterLabel? _resolveLabel(
@@ -428,8 +432,12 @@ class _PlacesDataset {
       if (city.latitude == 0 && city.longitude == 0) {
         continue;
       }
-      final double distance =
-          _distanceKm(lat, lng, city.latitude, city.longitude);
+      final double distance = _distanceKm(
+        lat,
+        lng,
+        city.latitude,
+        city.longitude,
+      );
       if (distance < bestDistance) {
         bestDistance = distance;
         closest = city;
@@ -489,10 +497,7 @@ class _PlaceClusterSummary {
     return _formatCoordinates(centerLatitude, centerLongitude);
   }
 
-  List<int> sampleMediaIds(
-    int maxCount, {
-    bool preferDistinctDays = false,
-  }) {
+  List<int> sampleMediaIds(int maxCount, {bool preferDistinctDays = false}) {
     if (files.isEmpty) {
       return const <int>[];
     }
@@ -541,32 +546,34 @@ class _PlaceClusterSummary {
     return selected;
   }
 
-  List<_GeoFile> _preferDistinctDaySource(
-    List<_GeoFile> unique,
-    int maxCount,
-  ) {
+  List<_GeoFile> _preferDistinctDaySource(List<_GeoFile> unique, int maxCount) {
     final Map<int, _GeoFile> firstPerDay = <int, _GeoFile>{};
     for (final _GeoFile file in unique) {
-      final DateTime timestamp =
-          DateTime.fromMicrosecondsSinceEpoch(file.captureMicros);
-      final DateTime day =
-          DateTime(timestamp.year, timestamp.month, timestamp.day);
+      final DateTime timestamp = DateTime.fromMicrosecondsSinceEpoch(
+        file.captureMicros,
+      );
+      final DateTime day = DateTime(
+        timestamp.year,
+        timestamp.month,
+        timestamp.day,
+      );
       final int dayKey = day.millisecondsSinceEpoch;
       firstPerDay.putIfAbsent(dayKey, () => file);
     }
     final List<MapEntry<int, _GeoFile>> dayEntries =
-        firstPerDay.entries.toList()
-          ..sort(
-            (MapEntry<int, _GeoFile> a, MapEntry<int, _GeoFile> b) =>
-                a.key.compareTo(b.key),
-          );
-    final List<_GeoFile> distinctDayFiles =
-        dayEntries.map((MapEntry<int, _GeoFile> entry) => entry.value).toList();
+        firstPerDay.entries.toList()..sort(
+          (MapEntry<int, _GeoFile> a, MapEntry<int, _GeoFile> b) =>
+              a.key.compareTo(b.key),
+        );
+    final List<_GeoFile> distinctDayFiles = dayEntries
+        .map((MapEntry<int, _GeoFile> entry) => entry.value)
+        .toList();
     if (distinctDayFiles.length >= maxCount) {
       return distinctDayFiles;
     }
-    final Set<int> seenIds =
-        distinctDayFiles.map((_GeoFile file) => file.uploadedFileID).toSet();
+    final Set<int> seenIds = distinctDayFiles
+        .map((_GeoFile file) => file.uploadedFileID)
+        .toSet();
     final List<_GeoFile> fallback = <_GeoFile>[
       for (final _GeoFile file in unique)
         if (!seenIds.contains(file.uploadedFileID)) file,
@@ -608,10 +615,14 @@ class _PlaceClusterSummary {
       );
     final Set<int> dayKeys = <int>{};
     for (final _GeoFile file in sorted) {
-      final DateTime timestamp =
-          DateTime.fromMicrosecondsSinceEpoch(file.captureMicros);
-      final DateTime day =
-          DateTime(timestamp.year, timestamp.month, timestamp.day);
+      final DateTime timestamp = DateTime.fromMicrosecondsSinceEpoch(
+        file.captureMicros,
+      );
+      final DateTime day = DateTime(
+        timestamp.year,
+        timestamp.month,
+        timestamp.day,
+      );
       dayKeys.add(day.millisecondsSinceEpoch);
     }
     final int firstMicros = sorted.first.captureMicros;
@@ -631,9 +642,9 @@ class _PlaceClusterSummary {
 
 class _PlaceCluster {
   _PlaceCluster(_GeoFile initial)
-      : files = <_GeoFile>[initial],
-        _sumLat = initial.latitude,
-        _sumLng = initial.longitude;
+    : files = <_GeoFile>[initial],
+      _sumLat = initial.latitude,
+      _sumLng = initial.longitude;
 
   final List<_GeoFile> files;
   double _sumLat;
@@ -675,10 +686,7 @@ class _ClusterLabel {
   final double distanceKm;
 }
 
-List<_PlaceCluster> _clusterGeoFiles(
-  List<_GeoFile> files,
-  double radiusKm,
-) {
+List<_PlaceCluster> _clusterGeoFiles(List<_GeoFile> files, double radiusKm) {
   if (files.isEmpty) {
     return const <_PlaceCluster>[];
   }
@@ -707,16 +715,12 @@ List<_PlaceCluster> _clusterGeoFiles(
   return clusters;
 }
 
-double _distanceKm(
-  double lat1,
-  double lon1,
-  double lat2,
-  double lon2,
-) {
+double _distanceKm(double lat1, double lon1, double lat2, double lon2) {
   const double earthRadiusKm = 6371.0;
   final double dLat = _toRadians(lat2 - lat1);
   final double dLon = _toRadians(lon2 - lon1);
-  final double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+  final double a =
+      math.sin(dLat / 2) * math.sin(dLat / 2) +
       math.cos(_toRadians(lat1)) *
           math.cos(_toRadians(lat2)) *
           math.sin(dLon / 2) *

@@ -1,5 +1,4 @@
 import 'dart:async';
-import "dart:io" show Platform;
 import "dart:typed_data" show Float32List;
 
 import "package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart"
@@ -7,12 +6,11 @@ import "package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart"
 import "package:logging/logging.dart";
 import "package:photos/core/errors.dart";
 import "package:photos/models/ml/vector.dart";
-import "package:photos/service_locator.dart"
-    show flagService, isLocalGalleryMode;
 import "package:photos/services/machine_learning/ml_constants.dart";
+import "package:photos/services/machine_learning/ml_model_assets.dart";
 import "package:photos/services/machine_learning/ml_model_download_service.dart";
-import "package:photos/services/machine_learning/semantic_search/clip/clip_text_encoder.dart";
 import "package:photos/services/machine_learning/semantic_search/query_result.dart";
+import "package:photos/services/machine_learning/webgpu_execution_policy.dart";
 import "package:photos/services/remote_assets_service.dart";
 import "package:photos/utils/isolate/isolate_operations.dart";
 import "package:photos/utils/isolate/super_isolate.dart";
@@ -25,21 +23,15 @@ class MLComputer extends SuperIsolate {
   final _logger = Logger('MLComputer');
 
   final _initModelLock = Lock();
-  bool _isClipTokenizerInitialized = false;
   String? _clipTextModelPath;
   String? _clipTextVocabPath;
   Future<void>? _clipTextWarmupFuture;
-
-  @override
-  bool get isDartUiIsolate => false;
 
   @override
   String get isolateName => "MLComputerIsolate";
 
   @override
   bool get shouldAutomaticDispose => false;
-
-  bool get _shouldUseRustMl => flagService.useRustForML || isLocalGalleryMode;
 
   // Singleton pattern
   MLComputer._privateConstructor();
@@ -63,7 +55,7 @@ class MLComputer extends SuperIsolate {
   }
 
   Future<(Uint64List, List<Uint64List>, List<Float32List>)>
-      bulkVectorSearchWithKeys(Uint64List potentialKeys, bool exact) async {
+  bulkVectorSearchWithKeys(Uint64List potentialKeys, bool exact) async {
     try {
       final result = await runInIsolate(
         IsolateOperation.bulkVectorSearchWithKeys,
@@ -78,33 +70,25 @@ class MLComputer extends SuperIsolate {
 
   Future<List<double>> runClipText(String query) async {
     try {
-      final useRustMl = _shouldUseRustMl;
-      await _ensureLoadedClipTextModel(useRustMl);
+      await _ensureLoadedClipTextModel();
       final modelPath = _clipTextModelPath;
       final vocabPath = _clipTextVocabPath;
-      if (useRustMl && (modelPath == null || modelPath.trim().isEmpty)) {
+      if (modelPath == null || modelPath.trim().isEmpty) {
         throw Exception(
           "RustMLMissingModelPath: Missing required model path: clipTextModelPath",
         );
       }
-      if (useRustMl && (vocabPath == null || vocabPath.trim().isEmpty)) {
+      if (vocabPath == null || vocabPath.trim().isEmpty) {
         throw Exception(
           "RustMLMissingModelPath: Missing required model path: clipTextVocabPath",
         );
       }
+      final enableWebGpu = await webGpuExecutionPolicy.isEligible();
       final isolateResult = await runInIsolate(IsolateOperation.runClipText, {
         "text": query,
-        "useRustMl": useRustMl,
-        if (useRustMl) ...{
-          "clipTextModelPath": modelPath,
-          "clipTextVocabPath": vocabPath,
-          "preferCoreml": Platform.isIOS,
-          "preferNnapi": Platform.isAndroid,
-          "preferXnnpack": Platform.isAndroid,
-          "allowCpuFallback": true,
-        } else ...{
-          "address": ClipTextEncoder.instance.sessionAddress,
-        },
+        "clipTextModelPath": modelPath,
+        "clipTextVocabPath": vocabPath,
+        "enableWebGpu": enableWebGpu,
       });
       if (isolateResult is RustCorruptModelCacheDeletedException) {
         _clipTextModelPath = null;
@@ -148,38 +132,23 @@ class MLComputer extends SuperIsolate {
     }
   }
 
-  Future<void> _ensureLoadedClipTextModel(bool useRustMl) async {
+  Future<void> _ensureLoadedClipTextModel() async {
     return _initModelLock.synchronized(() async {
       try {
         if (_clipTextVocabPath == null) {
-          final tokenizerRemotePath = ClipTextEncoder.instance.vocabRemotePath;
+          final tokenizerRemotePath = ClipTextModel.instance.vocabRemotePath;
           _clipTextVocabPath = await RemoteAssetsService.instance.getAssetPath(
             tokenizerRemotePath,
-            expectedSha256: ClipTextEncoder.instance.vocabSha256,
+            expectedSha256: ClipTextModel.instance.vocabSha256,
           );
         }
 
-        if (useRustMl &&
-            _clipTextVocabPath != null &&
-            _clipTextModelPath != null) {
+        if (_clipTextModelPath != null) {
           return;
         }
 
-        if (!useRustMl &&
-            _isClipTokenizerInitialized &&
-            ClipTextEncoder.instance.isInitialized) {
-          return;
-        }
-
-        if (!useRustMl && !_isClipTokenizerInitialized) {
-          await runInIsolate(IsolateOperation.initializeClipTokenizer, {
-            'vocabPath': _clipTextVocabPath!,
-          });
-          _isClipTokenizerInitialized = true;
-        }
-
-        final String? downloadedModelPath =
-            await ClipTextEncoder.instance.downloadModelSafe();
+        final String? downloadedModelPath = await ClipTextModel.instance
+            .downloadModelSafe();
         if (downloadedModelPath == null) {
           throw WiFiUnavailableError(
             "Could not download clip text model because high bandwidth "
@@ -187,17 +156,6 @@ class MLComputer extends SuperIsolate {
           );
         }
         _clipTextModelPath = downloadedModelPath;
-
-        if (useRustMl || ClipTextEncoder.instance.isInitialized) {
-          return;
-        }
-
-        final String modelName = ClipTextEncoder.instance.modelName;
-        final address = await runInIsolate(IsolateOperation.loadModel, {
-          'modelName': modelName,
-          'modelPath': downloadedModelPath,
-        }) as int;
-        ClipTextEncoder.instance.storeSessionAddress(address);
       } catch (e, s) {
         _logger.severe("Could not load clip text model in MLComputer", e, s);
         rethrow;
@@ -212,9 +170,10 @@ class MLComputer extends SuperIsolate {
     try {
       final queryToResults =
           await runInIsolate(IsolateOperation.computeBulkSimilarities, {
-        "textQueryToEmbeddingMap": textQueryToEmbeddingMap,
-        "minimumSimilarityMap": minimumSimilarityMap,
-      }) as Map<String, List<QueryResult>>;
+                "textQueryToEmbeddingMap": textQueryToEmbeddingMap,
+                "minimumSimilarityMap": minimumSimilarityMap,
+              })
+              as Map<String, List<QueryResult>>;
       return queryToResults;
     } catch (e, s) {
       _logger.severe(
@@ -233,9 +192,10 @@ class MLComputer extends SuperIsolate {
     try {
       final queryToResults =
           await runInIsolate(IsolateOperation.computeBulkSimilaritiesWithRust, {
-        "textQueryToEmbeddingMap": textQueryToEmbeddingMap,
-        "minimumSimilarityMap": minimumSimilarityMap,
-      }) as Map<String, List<QueryResult>>;
+                "textQueryToEmbeddingMap": textQueryToEmbeddingMap,
+                "minimumSimilarityMap": minimumSimilarityMap,
+              })
+              as Map<String, List<QueryResult>>;
       return queryToResults;
     } catch (e, s) {
       _logger.severe(
@@ -253,9 +213,10 @@ class MLComputer extends SuperIsolate {
   }) async {
     try {
       await runInIsolate(IsolateOperation.cacheImageEmbeddings, {
-        'embeddings': embeddings,
-        'cacheRustExact': cacheRustExact,
-      }) as bool;
+            'embeddings': embeddings,
+            'cacheRustExact': cacheRustExact,
+          })
+          as bool;
       _logger.info(
         'Cached ${embeddings.length} image embeddings inside MLComputer',
       );
@@ -269,8 +230,9 @@ class MLComputer extends SuperIsolate {
   Future<void> clearImageEmbeddingsCache() async {
     try {
       await runInIsolate(IsolateOperation.clearIsolateCache, {
-        'key': imageEmbeddingsKey,
-      }) as bool;
+            'key': imageEmbeddingsKey,
+          })
+          as bool;
       return;
     } catch (e, s) {
       _logger.severe(

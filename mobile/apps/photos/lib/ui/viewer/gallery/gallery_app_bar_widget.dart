@@ -1,27 +1,21 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math' as math;
 
+import "package:ente_components/ente_components.dart";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
-import "package:flutter/cupertino.dart";
-import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
-import "package:flutter_svg/flutter_svg.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:local_auth/local_auth.dart";
 import 'package:logging/logging.dart';
 import 'package:photos/core/configuration.dart';
 import "package:photos/core/constants.dart";
 import 'package:photos/core/event_bus.dart';
-import "package:photos/core/network/network.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/collection_meta_event.dart";
 import "package:photos/events/guest_view_event.dart";
 import "package:photos/events/magic_sort_change_event.dart";
 import 'package:photos/events/subscription_purchased_event.dart';
-import "package:photos/gateways/cast/cast_gateway.dart";
 import "package:photos/generated/l10n.dart";
-import "package:photos/l10n/l10n.dart";
-import "package:photos/models/button_result.dart";
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/device_collection.dart';
 import "package:photos/models/file/file.dart";
@@ -29,18 +23,15 @@ import 'package:photos/models/freeable_space_info.dart';
 import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/metadata/common_keys.dart";
 import 'package:photos/models/selected_files.dart';
+import 'package:photos/module/download/gallery.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/collections_service.dart';
 import "package:photos/services/files_service.dart";
 import "package:photos/states/location_screen_state.dart";
-import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/actions/collection/collection_sharing_actions.dart';
-import "package:photos/ui/cast/auto.dart";
-import "package:photos/ui/cast/choose.dart";
+import "package:photos/ui/cast/cast.dart";
 import "package:photos/ui/collections/album/smart_album_people.dart";
-import "package:photos/ui/common/popup_item.dart";
-import "package:photos/ui/common/popup_item_async.dart";
 import "package:photos/ui/common/web_page.dart";
 import 'package:photos/ui/components/action_sheet_widget.dart';
 import 'package:photos/ui/components/buttons/button_widget.dart';
@@ -52,34 +43,94 @@ import "package:photos/ui/sharing/manage_links_widget.dart";
 import 'package:photos/ui/sharing/share_collection_page.dart';
 import 'package:photos/ui/tools/free_space_page.dart';
 import "package:photos/ui/viewer/file/detail_page.dart";
+import "package:photos/ui/viewer/gallery/gallery_app_bar_actions.dart";
+import "package:photos/ui/viewer/gallery/gallery_app_bar_config.dart";
 import "package:photos/ui/viewer/gallery/hooks/add_photos_sheet.dart";
 import 'package:photos/ui/viewer/gallery/hooks/pick_cover_photo.dart';
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
-import "package:photos/ui/viewer/hierarchicial_search/applied_filters_for_appbar.dart";
-import "package:photos/ui/viewer/hierarchicial_search/recommended_filters_for_appbar.dart";
+import "package:photos/ui/viewer/hierarchicial_search/app_bar_filter_chips.dart";
 import "package:photos/ui/viewer/location/edit_location_sheet.dart";
+import 'package:photos/utils/delete_file_util.dart';
 import 'package:photos/utils/dialog_util.dart';
-import "package:photos/utils/file_download_util.dart";
 import 'package:photos/utils/magic_util.dart';
-import "package:uuid/uuid.dart";
 
 class GalleryAppBarWidget extends StatefulWidget {
+  static const double toolbarHeight = kToolbarHeight;
+  static const double _sliverExpandedHeight = 92.0;
+
+  static Color backgroundColor(BuildContext context) {
+    return getEnteColorScheme(context).backgroundColour;
+  }
+
+  static GalleryAppBarConfig sliverConfig(
+    GalleryType type,
+    String? title,
+    SelectedFiles selectedFiles, {
+    String? subtitle,
+    DeviceCollection? deviceCollection,
+    bool? isDeviceFolderBackedUp,
+    Future<void> Function()? onDisableDeviceFolderBackup,
+    Collection? collection,
+    List<EnteFile>? files,
+  }) {
+    return GalleryAppBarConfig(
+      sliverBuilder: (_) => GalleryAppBarWidget._(
+        type,
+        title,
+        selectedFiles,
+        subtitle: subtitle,
+        deviceCollection: deviceCollection,
+        isDeviceFolderBackedUp: isDeviceFolderBackedUp,
+        onDisableDeviceFolderBackup: onDisableDeviceFolderBackup,
+        collection: collection,
+        files: files,
+      ),
+      geometryBuilder: (context) =>
+          _resolveSliverGeometry(context, subtitle: subtitle),
+    );
+  }
+
+  static HeaderAppBarGeometry _resolveSliverGeometry(
+    BuildContext context, {
+    String? subtitle,
+  }) {
+    final inheritedSearchFilterData = InheritedSearchFilterData.maybeOf(
+      context,
+    );
+    final isHierarchicalSearchable =
+        inheritedSearchFilterData?.isHierarchicalSearchable ?? false;
+    final bottomHeight = isHierarchicalSearchable
+        ? AppBarFilterChips.preferredHeight(context)
+        : 0.0;
+    return SliverAppBarComponent.resolveGeometry(
+      context,
+      subtitle: subtitle,
+      expandedHeight: _sliverExpandedHeight,
+      collapsedHeight: toolbarHeight,
+      titleBuilderHeight: null,
+      bottomHeight: bottomHeight,
+    );
+  }
+
   final GalleryType type;
   final String? title;
+  final String? subtitle;
   final SelectedFiles selectedFiles;
   final DeviceCollection? deviceCollection;
+  final bool? isDeviceFolderBackedUp;
+  final Future<void> Function()? onDisableDeviceFolderBackup;
   final Collection? collection;
-  final bool isFromCollectPhotos;
   final List<EnteFile>? files;
 
-  const GalleryAppBarWidget(
+  const GalleryAppBarWidget._(
     this.type,
     this.title,
     this.selectedFiles, {
-    super.key,
+    this.subtitle,
     this.deviceCollection,
+    this.isDeviceFolderBackedUp,
+    this.onDisableDeviceFolderBackup,
     this.collection,
-    this.isFromCollectPhotos = false,
     this.files,
   });
 
@@ -95,11 +146,12 @@ enum AlbumPopupAction {
   sharedArchive,
   ownedHide,
   sharedHide,
-  playOnTv,
+  castAlbum,
   autoAddPhotos,
   sort,
   leave,
   freeUpSpace,
+  disableBackup,
   setCover,
   addPhotos,
   pinAlbum,
@@ -109,6 +161,7 @@ enum AlbumPopupAction {
   downloadAlbum,
   sortByMostRecent,
   sortByMostRelevant,
+  emptyTrash,
   editLocation,
   deleteLocation,
   galleryGuestView,
@@ -119,14 +172,12 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
   late StreamSubscription _userAuthEventSubscription;
   late StreamSubscription<CollectionMetaEvent> _collectionMetaEventSubscription;
   late Function() _selectedFilesListener;
-  String? _appBarTitle;
+  late String _appBarTitle;
   late CollectionActions collectionActions;
   bool isQuickLink = false;
   late GalleryType galleryType;
 
   bool _isICloudSharedAlbum = false;
-  final ValueNotifier<int> castNotifier = ValueNotifier<int>(0);
-
   @override
   void initState() {
     super.initState();
@@ -135,10 +186,11 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     };
     collectionActions = CollectionActions(CollectionsService.instance);
     widget.selectedFiles.addListener(_selectedFilesListener);
-    _userAuthEventSubscription =
-        Bus.instance.on<SubscriptionPurchasedEvent>().listen((event) {
-      setState(() {});
-    });
+    _userAuthEventSubscription = Bus.instance
+        .on<SubscriptionPurchasedEvent>()
+        .listen((event) {
+          setState(() {});
+        });
     _collectionMetaEventSubscription = Bus.instance
         .on<CollectionMetaEvent>()
         .where(
@@ -148,7 +200,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         )
         .listen(stateRefresh);
 
-    _appBarTitle = widget.title;
+    _appBarTitle = widget.title ?? "";
     galleryType = widget.type;
     _checkIfICloudSharedAlbum();
   }
@@ -159,12 +211,20 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         widget.deviceCollection == null) {
       return;
     }
-    final sharedPathIDs =
-        await FilesService.instance.getICloudSharedAlbumPathIDs();
+    final sharedPathIDs = await FilesService.instance
+        .getICloudSharedAlbumPathIDs();
     if (mounted && sharedPathIDs.contains(widget.deviceCollection!.id)) {
       setState(() {
         _isICloudSharedAlbum = true;
       });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant GalleryAppBarWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.title != widget.title) {
+      _appBarTitle = widget.title ?? "";
     }
   }
 
@@ -183,60 +243,43 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final inheritedSearchFilterData =
-        InheritedSearchFilterData.maybeOf(context);
+    final inheritedSearchFilterData = InheritedSearchFilterData.maybeOf(
+      context,
+    );
     final isHierarchicalSearchable =
         inheritedSearchFilterData?.isHierarchicalSearchable ?? false;
 
-    return galleryType == GalleryType.homepage
-        ? const SizedBox.shrink()
-        : isHierarchicalSearchable
-            ? ValueListenableBuilder(
-                valueListenable: inheritedSearchFilterData!
-                    .searchFilterDataProvider!.isSearchingNotifier,
-                child: const PreferredSize(
-                  preferredSize: Size.fromHeight(0),
-                  child: Flexible(child: RecommendedFiltersForAppbar()),
-                ),
-                builder: (context, isSearching, child) {
-                  return AppBar(
-                    elevation: 0,
-                    centerTitle: false,
-                    title: isSearching
-                        ? const SizedBox(
-                            // +1 to account for the filter's outer stroke width
-                            height: kFilterChipHeight + 1,
-                            child: AppliedFiltersForAppbar(),
-                          )
-                        : Text(
-                            _appBarTitle!,
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall!
-                                .copyWith(fontSize: 16),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                    actions: isSearching ? null : _getDefaultActions(context),
-                    bottom: child as PreferredSizeWidget,
-                    surfaceTintColor: Colors.transparent,
-                  );
-                },
-              )
-            : AppBar(
-                elevation: 0,
-                centerTitle: false,
-                title: Text(
-                  _appBarTitle!,
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall!
-                      .copyWith(fontSize: 16),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                actions: _getDefaultActions(context),
-              );
+    if (galleryType == GalleryType.homepage) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+
+    if (!isHierarchicalSearchable) {
+      return _GallerySliverAppBar(
+        title: _appBarTitle,
+        subtitle: widget.subtitle,
+        actions: _getDefaultActions(context),
+      );
+    }
+
+    return ValueListenableBuilder(
+      valueListenable: inheritedSearchFilterData!
+          .searchFilterDataProvider!
+          .isSearchingNotifier,
+      child: PreferredSize(
+        preferredSize: Size.fromHeight(
+          AppBarFilterChips.preferredHeight(context),
+        ),
+        child: const AppBarFilterChips(),
+      ),
+      builder: (context, isSearching, child) {
+        return _GallerySliverAppBar(
+          title: _appBarTitle,
+          subtitle: widget.subtitle,
+          actions: isSearching ? const [] : _getDefaultActions(context),
+          bottom: child as PreferredSizeWidget,
+        );
+      },
+    );
   }
 
   Future<dynamic> _renameAlbum(BuildContext context) async {
@@ -245,8 +288,9 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         galleryType != GalleryType.quickLink) {
       showToast(
         context,
-        AppLocalizations.of(context)
-            .typeOfGallerGallerytypeIsNotSupportedForRename(
+        AppLocalizations.of(
+          context,
+        ).typeOfGallerGallerytypeIsNotSupportedForRename(
           galleryType: "$galleryType",
         ),
       );
@@ -267,7 +311,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       textCapitalization: TextCapitalization.words,
       onSubmit: (String text) async {
         // indicates user cancelled the rename request
-        if (text == "" || text.trim() == _appBarTitle!.trim()) {
+        if (text == "" || text.trim() == _appBarTitle.trim()) {
           return;
         }
 
@@ -289,6 +333,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       },
     );
     if (result is Exception) {
+      if (!context.mounted) return null;
       await showGenericErrorDialog(context: context, error: result);
     }
   }
@@ -317,16 +362,19 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         ),
       ],
       title: AppLocalizations.of(context).leaveSharedAlbum,
-      body: AppLocalizations.of(context)
-          .photosAddedByYouWillBeRemovedFromTheAlbum,
+      body: AppLocalizations.of(
+        context,
+      ).photosAddedByYouWillBeRemovedFromTheAlbum,
     );
     if (actionResult?.action != null && mounted) {
       if (actionResult!.action == ButtonAction.error) {
+        if (!context.mounted) return null;
         await showGenericErrorDialog(
           context: context,
           error: actionResult.exception,
         );
       } else if (actionResult.action == ButtonAction.first) {
+        if (!context.mounted) return null;
         Navigator.of(context).pop();
       }
     }
@@ -337,27 +385,33 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
   // the space which can be claimed up. This code duplication should be removed
   // whenever we move to the new design for free up space.
   Future<dynamic> _deleteBackedUpFiles(BuildContext context) async {
-    final dialog =
-        createProgressDialog(context, AppLocalizations.of(context).calculating);
+    final dialog = createProgressDialog(
+      context,
+      AppLocalizations.of(context).calculating,
+    );
     await dialog.show();
     FreeableSpaceInfo status;
     try {
-      status = await FilesService.instance
-          .getFreeableSpaceInfo(pathID: widget.deviceCollection!.id);
+      status = await FilesService.instance.getFreeableSpaceInfo(
+        pathID: widget.deviceCollection!.id,
+      );
     } catch (e) {
       await dialog.hide();
+      if (!context.mounted) return null;
       unawaited(showGenericErrorDialog(context: context, error: e));
       return;
     }
 
     await dialog.hide();
     if (status.localIDs.isEmpty) {
+      if (!context.mounted) return null;
       await showErrorDialog(
         context,
         AppLocalizations.of(context).allClear,
         AppLocalizations.of(context).youveNoFilesInThisAlbumThatCanBeDeleted,
       );
     } else {
+      if (!context.mounted) return null;
       final bool? result = await routeToPage(
         context,
         FreeSpacePage(status, clearSpaceForFolder: true),
@@ -372,8 +426,9 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     showChoiceDialog(
       context,
       title: AppLocalizations.of(context).success,
-      body: AppLocalizations.of(context)
-          .youHaveSuccessfullyFreedUp(storageSaved: formatBytes(status.size)),
+      body: AppLocalizations.of(
+        context,
+      ).youHaveSuccessfullyFreedUp(storageSaved: formatBytes(status.size)),
       firstButtonLabel: AppLocalizations.of(context).rateUs,
       firstButtonOnTap: () async {
         await updateService.launchReviewUrl();
@@ -399,34 +454,35 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       return actions;
     }
 
+    final strings = AppLocalizations.of(context);
+    final colorScheme = getEnteColorScheme(context);
+
     if (galleryType == GalleryType.magic) {
       actions.add(
-        Tooltip(
-          message: AppLocalizations.of(context).sort,
-          child: PopupMenuButton(
-            icon: const Icon(Icons.sort_rounded),
-            itemBuilder: (context) {
-              return [
-                PopupMenuItem(
-                  value: AlbumPopupAction.sortByMostRecent,
-                  child: Text(AppLocalizations.of(context).mostRecent),
-                ),
-                PopupMenuItem(
-                  value: AlbumPopupAction.sortByMostRelevant,
-                  child: Text(AppLocalizations.of(context).mostRelevant),
-                ),
-              ];
-            },
-            onSelected: (AlbumPopupAction value) {
-              if (value == AlbumPopupAction.sortByMostRecent) {
-                Bus.instance
-                    .fire(MagicSortChangeEvent(MagicSortType.mostRecent));
-              } else if (value == AlbumPopupAction.sortByMostRelevant) {
-                Bus.instance
-                    .fire(MagicSortChangeEvent(MagicSortType.mostRelevant));
-              }
-            },
-          ),
+        galleryAppBarPopupMenuAction<AlbumPopupAction>(
+          tooltip: strings.sort,
+          icon: const HugeIcon(icon: HugeIcons.strokeRoundedFilterHorizontal),
+          optionsBuilder: () {
+            return [
+              EntePopupMenuOption(
+                value: AlbumPopupAction.sortByMostRecent,
+                label: strings.mostRecent,
+              ),
+              EntePopupMenuOption(
+                value: AlbumPopupAction.sortByMostRelevant,
+                label: strings.mostRelevant,
+              ),
+            ];
+          },
+          onSelected: (AlbumPopupAction value) {
+            if (value == AlbumPopupAction.sortByMostRecent) {
+              Bus.instance.fire(MagicSortChangeEvent(MagicSortType.mostRecent));
+            } else if (value == AlbumPopupAction.sortByMostRelevant) {
+              Bus.instance.fire(
+                MagicSortChangeEvent(MagicSortType.mostRelevant),
+              );
+            }
+          },
         ),
       );
     }
@@ -435,253 +491,54 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     isQuickLink = widget.collection?.isQuickLinkCollection() ?? false;
     if (galleryType.canAddFiles(widget.collection, userId)) {
       actions.add(
-        Tooltip(
-          message: AppLocalizations.of(context).addFiles,
-          child: IconButton(
-            icon: const Icon(Icons.add_photo_alternate_outlined),
-            onPressed: () async {
-              await _showAddPhotoDialog(context);
-            },
-          ),
+        IconButtonComponent(
+          tooltip: strings.addFiles,
+          icon: const HugeIcon(icon: HugeIcons.strokeRoundedImageAdd01),
+          variant: IconButtonComponentVariant.primary,
+          shouldSurfaceExecutionStates: false,
+          onTap: () async {
+            await _showAddPhotoDialog(context);
+          },
         ),
       );
     }
 
-    if (galleryType.isSharable() && !widget.isFromCollectPhotos) {
+    if (galleryType.isSharable()) {
       actions.add(
-        Tooltip(
-          message: AppLocalizations.of(context).share,
-          child: IconButton(
-            icon: Icon(
-              isQuickLink && (widget.collection!.hasLink)
-                  ? Icons.link_outlined
-                  : Icons.adaptive.share,
-            ),
-            onPressed: () async {
-              await _showShareCollectionDialog();
-            },
+        IconButtonComponent(
+          tooltip: strings.share,
+          icon: HugeIcon(
+            icon: isQuickLink && (widget.collection!.hasLink)
+                ? HugeIcons.strokeRoundedLink02
+                : HugeIcons.strokeRoundedShare08,
           ),
+          variant: IconButtonComponentVariant.primary,
+          shouldSurfaceExecutionStates: false,
+          onTap: () async {
+            await _showShareCollectionDialog();
+          },
         ),
       );
     }
 
-    if (widget.collection != null && castService.isSupported) {
-      actions.add(
-        Tooltip(
-          message: AppLocalizations.of(context).castAlbum,
-          child: IconButton(
-            icon: ValueListenableBuilder<int>(
-              valueListenable: castNotifier,
-              builder: (context, value, child) {
-                return castService.getActiveSessions().isNotEmpty
-                    ? const Icon(Icons.cast_connected_rounded)
-                    : const Icon(Icons.cast_outlined);
-              },
-            ),
-            onPressed: () async {
-              await _castChoiceDialog();
-            },
-          ),
-        ),
-      );
-    }
     final bool isArchived = widget.collection?.isArchived() ?? false;
     final bool isHidden = widget.collection?.isHidden() ?? false;
 
-    final items = [
-      if (galleryType.canRename())
-        EntePopupMenuItem(
-          isQuickLink
-              ? AppLocalizations.of(context).convertToAlbum
-              : AppLocalizations.of(context).renameAlbum,
-          value: AlbumPopupAction.rename,
-          icon: isQuickLink ? Icons.photo_album_outlined : Icons.edit,
-        ),
-      if (galleryType.canSetCover())
-        EntePopupMenuItem(
-          AppLocalizations.of(context).setCover,
-          value: AlbumPopupAction.setCover,
-          icon: Icons.image_outlined,
-        ),
-      if (galleryType.showMap())
-        EntePopupMenuItem(
-          AppLocalizations.of(context).map,
-          value: AlbumPopupAction.map,
-          icon: Icons.map_outlined,
-        ),
-      if (galleryType.canSort())
-        EntePopupMenuItem(
-          AppLocalizations.of(context).sortAlbumsBy,
-          value: AlbumPopupAction.sort,
-          icon: Icons.sort_outlined,
-        ),
-      if (galleryType == GalleryType.uncategorized)
-        EntePopupMenuItem(
-          AppLocalizations.of(context).cleanUncategorized,
-          value: AlbumPopupAction.cleanUncategorized,
-          icon: Icons.crop_original_outlined,
-        ),
-      if (galleryType.canPin())
-        EntePopupMenuItem(
-          widget.collection!.isPinned
-              ? AppLocalizations.of(context).unpinAlbum
-              : AppLocalizations.of(context).pinAlbum,
-          value: AlbumPopupAction.pinAlbum,
-          iconWidget: widget.collection!.isPinned
-              ? const Icon(CupertinoIcons.pin_slash)
-              : Transform.rotate(
-                  angle: 45 * math.pi / 180, // rotate by 45 degrees
-                  child: const Icon(CupertinoIcons.pin),
-                ),
-        ),
-      if (galleryType == GalleryType.locationTag)
-        EntePopupMenuItem(
-          AppLocalizations.of(context).editLocation,
-          value: AlbumPopupAction.editLocation,
-          icon: Icons.edit_outlined,
-        ),
-      if (galleryType == GalleryType.locationTag)
-        EntePopupMenuItem(
-          AppLocalizations.of(context).deleteLocation,
-          value: AlbumPopupAction.deleteLocation,
-          icon: Icons.delete_outline,
-          iconColor: warning500,
-          labelColor: warning500,
-        ),
-      // Do not show archive option for favorite collection. If collection is
-      // already archived, allow user to unarchive that collection.
-      if (isArchived || (galleryType.canArchive() && !isHidden))
-        EntePopupMenuItem(
-          value: AlbumPopupAction.ownedArchive,
-          isArchived
-              ? AppLocalizations.of(context).unarchiveAlbum
-              : AppLocalizations.of(context).archiveAlbum,
-          icon: isArchived ? Icons.unarchive : Icons.archive_outlined,
-        ),
-      if (!isArchived && galleryType.canHide())
-        EntePopupMenuItem(
-          value: AlbumPopupAction.ownedHide,
-          isHidden
-              ? AppLocalizations.of(context).unhide
-              : AppLocalizations.of(context).hide,
-          icon: isHidden
-              ? Icons.visibility_outlined
-              : Icons.visibility_off_outlined,
-        ),
-      // Gallery Guest View option
-      if (widget.collection != null)
-        EntePopupMenuItem(
-          AppLocalizations.of(context).guestView,
-          value: AlbumPopupAction.galleryGuestView,
-          iconWidget: SvgPicture.asset(
-            "assets/icons/guest_view_icon.svg",
-            width: 20,
-            height: 20,
-            colorFilter: ColorFilter.mode(
-              getEnteColorScheme(context).textBase,
-              BlendMode.srcIn,
-            ),
-          ),
-        ),
-      if (widget.collection != null)
-        EntePopupMenuItem(
-          value: AlbumPopupAction.playOnTv,
-          context.l10n.playOnTv,
-          icon: Icons.tv_outlined,
-        ),
-      if (hasGrantedMLConsent &&
-          (widget.collection?.canAutoAdd(userId) ?? false))
-        EntePopupMenuItemAsync(
-          (value) => (value?[widget.collection!.id]?.personIDs.isEmpty ?? true)
-              ? AppLocalizations.of(context).autoAddPeople
-              : AppLocalizations.of(context).editAutoAddPeople,
-          value: AlbumPopupAction.autoAddPhotos,
-          future: smartAlbumsService.getSmartConfigs,
-          iconWidget: (value) => Image.asset(
-            (value?[widget.collection!.id]?.personIDs.isEmpty ?? true)
-                ? "assets/auto-add-people.png"
-                : "assets/edit-auto-add-people.png",
-            width: 20,
-            height: 20,
-            color: EnteTheme.isDark(context) ? Colors.white : Colors.black,
-          ),
-        ),
-      if (galleryType.canDelete())
-        EntePopupMenuItem(
-          isQuickLink
-              ? AppLocalizations.of(context).removeLink
-              : AppLocalizations.of(context).deleteAlbum,
-          value: isQuickLink
-              ? AlbumPopupAction.removeLink
-              : AlbumPopupAction.delete,
-          icon:
-              isQuickLink ? Icons.remove_circle_outline : Icons.delete_outline,
-        ),
-      if (galleryType == GalleryType.sharedCollection)
-        EntePopupMenuItem(
-          widget.collection!.hasShareePinned()
-              ? AppLocalizations.of(context).unpinAlbum
-              : AppLocalizations.of(context).pinAlbum,
-          value: AlbumPopupAction.shareePinAlbum,
-          iconWidget: widget.collection!.hasShareePinned()
-              ? const Icon(CupertinoIcons.pin_slash)
-              : Transform.rotate(
-                  angle: 45 * math.pi / 180,
-                  child: const Icon(CupertinoIcons.pin),
-                ),
-        ),
-      if (galleryType == GalleryType.sharedCollection)
-        EntePopupMenuItem(
-          widget.collection!.hasShareeArchived()
-              ? AppLocalizations.of(context).unarchiveAlbum
-              : AppLocalizations.of(context).archiveAlbum,
-          value: AlbumPopupAction.sharedArchive,
-          icon: widget.collection!.hasShareeArchived()
-              ? Icons.unarchive
-              : Icons.archive_outlined,
-        ),
-      if (galleryType == GalleryType.sharedCollection)
-        EntePopupMenuItem(
-          widget.collection!.hasShareeHidden()
-              ? AppLocalizations.of(context).unhide
-              : AppLocalizations.of(context).hide,
-          value: AlbumPopupAction.sharedHide,
-          icon: widget.collection!.hasShareeHidden()
-              ? Icons.visibility_outlined
-              : Icons.visibility_off_outlined,
-        ),
-      if (galleryType == GalleryType.sharedCollection)
-        EntePopupMenuItem(
-          AppLocalizations.of(context).leaveAlbum,
-          value: AlbumPopupAction.leave,
-          icon: Icons.logout,
-        ),
-      if (galleryType == GalleryType.localFolder && !_isICloudSharedAlbum)
-        EntePopupMenuItem(
-          AppLocalizations.of(context).freeUpDeviceSpace,
-          value: AlbumPopupAction.freeUpSpace,
-          icon: Icons.delete_sweep_outlined,
-        ),
-      if (galleryType == GalleryType.sharedPublicCollection &&
-          widget.collection!.isDownloadEnabledForPublicLink())
-        EntePopupMenuItem(
-          AppLocalizations.of(context).download,
-          value: AlbumPopupAction.downloadAlbum,
-          icon: Platform.isAndroid
-              ? Icons.download
-              : Icons.cloud_download_outlined,
-        ),
-    ];
-
-    if (items.isEmpty) {
+    if (!_hasOverflowMenuActions(userId, isArchived, isHidden)) {
       return actions;
     }
 
     actions.add(
-      PopupMenuButton(
-        itemBuilder: (context) {
-          return items;
-        },
+      galleryAppBarPopupMenuAction<AlbumPopupAction>(
+        tooltip: strings.more,
+        icon: const HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical),
+        optionsBuilder: () => _buildOverflowMenuOptions(
+          strings: strings,
+          iconColor: colorScheme.contentLight,
+          userId: userId,
+          isArchived: isArchived,
+          isHidden: isHidden,
+        ),
         onSelected: (AlbumPopupAction value) async {
           if (value == AlbumPopupAction.rename) {
             await _renameAlbum(context);
@@ -709,28 +566,30 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
             await _removeQuickLink();
           } else if (value == AlbumPopupAction.leave) {
             await _leaveAlbum(context);
-          } else if (value == AlbumPopupAction.playOnTv) {
-            await _castChoiceDialog();
+          } else if (value == AlbumPopupAction.castAlbum) {
+            await showCastSheet(context, widget.collection!);
           } else if (value == AlbumPopupAction.autoAddPhotos) {
             await routeToPage(
               context,
-              SmartAlbumPeople(
-                collectionId: widget.collection!.id,
-              ),
+              SmartAlbumPeople(collectionId: widget.collection!.id),
             );
             setState(() {});
           } else if (value == AlbumPopupAction.freeUpSpace) {
             await _deleteBackedUpFiles(context);
+          } else if (value == AlbumPopupAction.disableBackup) {
+            await widget.onDisableDeviceFolderBackup!.call();
           } else if (value == AlbumPopupAction.setCover) {
             await setCoverPhoto(context);
           } else if (value == AlbumPopupAction.sort) {
             await _showSortOption(context);
           } else if (value == AlbumPopupAction.sharedArchive) {
             final hasShareeArchived = widget.collection!.hasShareeArchived();
-            final int prevVisiblity =
-                hasShareeArchived ? archiveVisibility : visibleVisibility;
-            final int newVisiblity =
-                hasShareeArchived ? visibleVisibility : archiveVisibility;
+            final int prevVisiblity = hasShareeArchived
+                ? archiveVisibility
+                : visibleVisibility;
+            final int newVisiblity = hasShareeArchived
+                ? visibleVisibility
+                : archiveVisibility;
 
             await changeCollectionVisibility(
               context,
@@ -744,10 +603,12 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
             }
           } else if (value == AlbumPopupAction.sharedHide) {
             final hasShareeHidden = widget.collection!.hasShareeHidden();
-            final int prevVisiblity =
-                hasShareeHidden ? hiddenVisibility : visibleVisibility;
-            final int newVisiblity =
-                hasShareeHidden ? visibleVisibility : hiddenVisibility;
+            final int prevVisiblity = hasShareeHidden
+                ? hiddenVisibility
+                : visibleVisibility;
+            final int newVisiblity = hasShareeHidden
+                ? visibleVisibility
+                : hiddenVisibility;
 
             await changeCollectionVisibility(
               context,
@@ -765,6 +626,8 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
             await onCleanUncategorizedClick(context);
           } else if (value == AlbumPopupAction.downloadAlbum) {
             await _downloadPublicAlbumToGallery(widget.files!);
+          } else if (value == AlbumPopupAction.emptyTrash) {
+            await emptyTrash(context);
           } else if (value == AlbumPopupAction.editLocation) {
             editLocation();
           } else if (value == AlbumPopupAction.deleteLocation) {
@@ -781,6 +644,256 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     return actions;
   }
 
+  bool _hasOverflowMenuActions(int userId, bool isArchived, bool isHidden) {
+    return galleryType.canRename() ||
+        galleryType.canSetCover() ||
+        galleryType.showMap() ||
+        galleryType.canSort() ||
+        galleryType == GalleryType.uncategorized ||
+        galleryType.canPin() ||
+        galleryType == GalleryType.locationTag ||
+        isArchived ||
+        (galleryType.canArchive() && !isHidden) ||
+        (!isArchived && galleryType.canHide()) ||
+        widget.collection != null ||
+        galleryType.canDelete() ||
+        galleryType == GalleryType.trash ||
+        galleryType == GalleryType.sharedCollection ||
+        (galleryType == GalleryType.localFolder && !_isICloudSharedAlbum) ||
+        _canDisableDeviceFolderBackup ||
+        (galleryType == GalleryType.sharedPublicCollection &&
+            (widget.collection?.isDownloadEnabledForPublicLink() ?? false));
+  }
+
+  Future<List<EntePopupMenuOption<AlbumPopupAction>>>
+  _buildOverflowMenuOptions({
+    required AppLocalizations strings,
+    required Color iconColor,
+    required int userId,
+    required bool isArchived,
+    required bool isHidden,
+  }) async {
+    final warningColor = context.componentColors.warning;
+    final canAutoAdd =
+        hasGrantedMLConsent && (widget.collection?.canAutoAdd(userId) ?? false);
+    final hasAutoAddPeople = canAutoAdd
+        ? !((await smartAlbumsService.getSmartConfigs())[widget.collection!.id]
+                  ?.personIDs
+                  .isEmpty ??
+              true)
+        : false;
+
+    return [
+      if (galleryType.canRename())
+        _menuOption(
+          AlbumPopupAction.rename,
+          isQuickLink ? strings.convertToAlbum : strings.renameAlbum,
+          galleryAppBarMenuIcon(
+            isQuickLink
+                ? HugeIcons.strokeRoundedAlbum02
+                : HugeIcons.strokeRoundedPencilEdit01,
+            iconColor,
+          ),
+        ),
+      if (galleryType.canSetCover())
+        _menuOption(
+          AlbumPopupAction.setCover,
+          strings.setCover,
+          galleryAppBarMenuIcon(HugeIcons.strokeRoundedImage01, iconColor),
+        ),
+      if (galleryType.showMap())
+        _menuOption(
+          AlbumPopupAction.map,
+          strings.map,
+          galleryAppBarMenuIcon(HugeIcons.strokeRoundedLocation01, iconColor),
+        ),
+      if (galleryType.canSort())
+        _menuOption(
+          AlbumPopupAction.sort,
+          strings.sortAlbumsBy,
+          galleryAppBarMenuIcon(HugeIcons.strokeRoundedSorting01, iconColor),
+        ),
+      if (galleryType == GalleryType.uncategorized)
+        _menuOption(
+          AlbumPopupAction.cleanUncategorized,
+          strings.cleanUncategorized,
+          galleryAppBarMenuIcon(HugeIcons.strokeRoundedClean, iconColor),
+        ),
+      if (galleryType.canPin())
+        _menuOption(
+          AlbumPopupAction.pinAlbum,
+          widget.collection!.isPinned ? strings.unpin : strings.pin,
+          galleryAppBarMenuIcon(
+            widget.collection!.isPinned
+                ? HugeIcons.strokeRoundedPinOff
+                : HugeIcons.strokeRoundedPin,
+            iconColor,
+          ),
+        ),
+      if (galleryType == GalleryType.locationTag)
+        _menuOption(
+          AlbumPopupAction.editLocation,
+          strings.editLocation,
+          galleryAppBarMenuIcon(HugeIcons.strokeRoundedLocation01, iconColor),
+        ),
+      if (galleryType == GalleryType.locationTag)
+        _menuOption(
+          AlbumPopupAction.deleteLocation,
+          strings.deleteLocation,
+          galleryAppBarMenuIcon(HugeIcons.strokeRoundedDelete01, warningColor),
+          labelColor: warningColor,
+        ),
+      if (isArchived || (galleryType.canArchive() && !isHidden))
+        _menuOption(
+          AlbumPopupAction.ownedArchive,
+          isArchived ? strings.unarchiveAlbum : strings.archiveAlbum,
+          galleryAppBarMenuIcon(
+            isArchived
+                ? HugeIcons.strokeRoundedUnarchive03
+                : HugeIcons.strokeRoundedArchive03,
+            iconColor,
+          ),
+        ),
+      if (!isArchived && galleryType.canHide())
+        _menuOption(
+          AlbumPopupAction.ownedHide,
+          isHidden ? strings.unhide : strings.hide,
+          galleryAppBarMenuIcon(
+            isHidden
+                ? HugeIcons.strokeRoundedView
+                : HugeIcons.strokeRoundedViewOffSlash,
+            iconColor,
+          ),
+        ),
+      if (widget.collection != null)
+        _menuOption(
+          AlbumPopupAction.galleryGuestView,
+          strings.guestView,
+          galleryAppBarMenuIcon(HugeIcons.strokeRoundedIncognito, iconColor),
+        ),
+      if (widget.collection != null && castService.isSupported)
+        _menuOption(
+          AlbumPopupAction.castAlbum,
+          strings.castAlbum,
+          galleryAppBarMenuIcon(
+            !flagService.enableMultiCast &&
+                    castService.getActiveSessions().isNotEmpty
+                ? HugeIcons.strokeRoundedTvSmart
+                : HugeIcons.strokeRoundedTv02,
+            iconColor,
+          ),
+        ),
+      if (canAutoAdd)
+        _menuOption(
+          AlbumPopupAction.autoAddPhotos,
+          hasAutoAddPeople ? strings.editAutoAddPeople : strings.autoAddPeople,
+          galleryAppBarMenuIcon(HugeIcons.strokeRoundedUserAdd01, iconColor),
+        ),
+      if (galleryType.canDelete())
+        _menuOption(
+          isQuickLink ? AlbumPopupAction.removeLink : AlbumPopupAction.delete,
+          isQuickLink ? strings.removeLink : strings.deleteAlbum,
+          galleryAppBarMenuIcon(
+            isQuickLink
+                ? HugeIcons.strokeRoundedLinkBackward
+                : HugeIcons.strokeRoundedDelete01,
+            iconColor,
+          ),
+        ),
+      if (galleryType == GalleryType.sharedCollection)
+        _menuOption(
+          AlbumPopupAction.shareePinAlbum,
+          widget.collection!.hasShareePinned() ? strings.unpin : strings.pin,
+          galleryAppBarMenuIcon(
+            widget.collection!.hasShareePinned()
+                ? HugeIcons.strokeRoundedPinOff
+                : HugeIcons.strokeRoundedPin,
+            iconColor,
+          ),
+        ),
+      if (galleryType == GalleryType.sharedCollection)
+        _menuOption(
+          AlbumPopupAction.sharedArchive,
+          widget.collection!.hasShareeArchived()
+              ? strings.unarchiveAlbum
+              : strings.archiveAlbum,
+          galleryAppBarMenuIcon(
+            widget.collection!.hasShareeArchived()
+                ? HugeIcons.strokeRoundedUnarchive03
+                : HugeIcons.strokeRoundedArchive03,
+            iconColor,
+          ),
+        ),
+      if (galleryType == GalleryType.sharedCollection)
+        _menuOption(
+          AlbumPopupAction.sharedHide,
+          widget.collection!.hasShareeHidden() ? strings.unhide : strings.hide,
+          galleryAppBarMenuIcon(
+            widget.collection!.hasShareeHidden()
+                ? HugeIcons.strokeRoundedView
+                : HugeIcons.strokeRoundedViewOffSlash,
+            iconColor,
+          ),
+        ),
+      if (galleryType == GalleryType.sharedCollection)
+        _menuOption(
+          AlbumPopupAction.leave,
+          strings.leaveAlbum,
+          galleryAppBarMenuIcon(HugeIcons.strokeRoundedLogout05, iconColor),
+        ),
+      if (galleryType == GalleryType.localFolder && !_isICloudSharedAlbum)
+        _menuOption(
+          AlbumPopupAction.freeUpSpace,
+          strings.freeUpSpace,
+          galleryAppBarMenuIcon(HugeIcons.strokeRoundedClean, iconColor),
+        ),
+      if (_canDisableDeviceFolderBackup)
+        _menuOption(
+          AlbumPopupAction.disableBackup,
+          strings.disableBackup,
+          galleryAppBarMenuIcon(HugeIcons.strokeRoundedUpload01, iconColor),
+        ),
+      if (galleryType == GalleryType.sharedPublicCollection &&
+          (widget.collection?.isDownloadEnabledForPublicLink() ?? false))
+        _menuOption(
+          AlbumPopupAction.downloadAlbum,
+          strings.download,
+          galleryAppBarMenuIcon(HugeIcons.strokeRoundedDownload01, iconColor),
+        ),
+      if (galleryType == GalleryType.trash)
+        _menuOption(
+          AlbumPopupAction.emptyTrash,
+          strings.deleteAll,
+          galleryAppBarMenuIcon(HugeIcons.strokeRoundedDelete01, warningColor),
+          labelColor: warningColor,
+        ),
+    ];
+  }
+
+  bool get _isDeviceFolderBackedUp =>
+      widget.isDeviceFolderBackedUp ??
+      widget.deviceCollection?.shouldBackup ??
+      false;
+
+  bool get _canDisableDeviceFolderBackup =>
+      galleryType == GalleryType.localFolder &&
+      _isDeviceFolderBackedUp &&
+      widget.onDisableDeviceFolderBackup != null;
+
+  EntePopupMenuOption<AlbumPopupAction> _menuOption(
+    AlbumPopupAction value,
+    String label,
+    Widget leadingWidget, {
+    Color? labelColor,
+  }) {
+    return EntePopupMenuOption(
+      value: value,
+      label: label,
+      labelColor: labelColor,
+      leadingWidget: leadingWidget,
+    );
+  }
+
   Future<void> _downloadPublicAlbumToGallery(List<EnteFile>? files) async {
     if (files == null || files.isEmpty) {
       return;
@@ -793,6 +906,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         );
       } catch (e, s) {
         _logger.severe("Failed to download album", e, s);
+        if (!mounted) return;
         await showGenericErrorDialog(context: context, error: e);
       }
       return;
@@ -813,6 +927,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       }
     } catch (e, s) {
       _logger.severe("Failed to download album", e, s);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
     await dialog.hide();
@@ -830,8 +945,10 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       await locationService.deleteLocationTag(
         InheritedLocationScreenState.of(context).locationTagEntity.id,
       );
+      if (!mounted) return;
       Navigator.of(context).pop();
     } catch (e) {
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }
@@ -846,6 +963,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     );
     if (actionResult?.action != null && mounted) {
       if (actionResult!.action == ButtonAction.first) {
+        if (!buildContext.mounted) return;
         await collectionActions.removeFromUncatIfPresentInOtherAlbum(
           widget.collection!,
           buildContext,
@@ -860,6 +978,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       widget.collection!,
     );
     if (coverPhotoID != null) {
+      if (!context.mounted) return;
       unawaited(changeCoverPhoto(context, widget.collection!, coverPhotoID));
     }
   }
@@ -869,6 +988,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       try {
         await setMapEnabled(true);
       } catch (e) {
+        if (!mounted) return;
         showShortToast(
           context,
           AppLocalizations.of(context).somethingWentWrong,
@@ -876,6 +996,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         return;
       }
     }
+    if (!mounted) return;
     unawaited(
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -912,6 +1033,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       ],
     );
     if (sortByAsc != null) {
+      if (!bContext.mounted) return;
       unawaited(changeSortOrder(bContext, widget.collection!, sortByAsc));
     }
   }
@@ -922,6 +1044,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       widget.collection!,
       useCache: false,
     );
+    if (!mounted) return;
     final bool isEmptyCollection = count == 0;
     if (isEmptyCollection) {
       final dialog = createProgressDialog(
@@ -930,13 +1053,16 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       );
       await dialog.show();
       try {
-        await CollectionsService.instance
-            .trashEmptyCollection(widget.collection!);
+        await CollectionsService.instance.trashEmptyCollection(
+          widget.collection!,
+        );
         await dialog.hide();
+        if (!mounted) return;
         Navigator.of(context).pop();
       } catch (e, s) {
         _logger.warning("failed to trash collection", e, s);
         await dialog.hide();
+        if (!mounted) return;
         await showGenericErrorDialog(context: context, error: e);
       }
     } else {
@@ -944,6 +1070,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         context,
         widget.collection!,
       );
+      if (!mounted) return;
       if (result == true) {
         Navigator.of(context).pop();
       } else {
@@ -954,16 +1081,15 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
 
   Future<void> _removeQuickLink() async {
     try {
-      final bool result =
-          await CollectionActions(CollectionsService.instance).disableUrl(
-        context,
-        widget.collection!,
-      );
+      final bool result = await CollectionActions(
+        CollectionsService.instance,
+      ).disableUrl(context, widget.collection!);
       if (result && mounted) {
         Navigator.of(context).pop();
       }
     } catch (e, s) {
       _logger.severe("failed to trash collection", e, s);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }
@@ -977,9 +1103,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
               galleryType != GalleryType.hiddenOwnedCollection &&
               galleryType != GalleryType.favorite &&
               !isQuickLink)) {
-        throw Exception(
-          "Cannot share collection of type $galleryType",
-        );
+        throw Exception("Cannot share collection of type $galleryType");
       }
       final int? userID = Configuration.instance.getUserID();
       final bool isOwner = userID == collection.owner.id;
@@ -998,19 +1122,9 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
           ),
         );
       } else if (collection.hasLink) {
-        unawaited(
-          routeToPage(
-            context,
-            ShareCollectionPage(collection),
-          ),
-        );
+        unawaited(routeToPage(context, ShareCollectionPage(collection)));
       } else {
-        unawaited(
-          routeToPage(
-            context,
-            AlbumParticipantsPage(collection),
-          ),
-        );
+        unawaited(routeToPage(context, AlbumParticipantsPage(collection)));
       }
     } catch (e, s) {
       _logger.severe("Failed to open share collection dialog", e, s);
@@ -1023,10 +1137,12 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     try {
       if (galleryType == GalleryType.sharedPublicCollection &&
           collection!.isCollectEnabledForPublicLink()) {
-        final authToken = CollectionsService.instance
-            .getSharedPublicAlbumToken(collection.id);
-        final albumKey =
-            CollectionsService.instance.getSharedPublicAlbumKey(collection.id);
+        final authToken = CollectionsService.instance.getSharedPublicAlbumToken(
+          collection.id,
+        );
+        final albumKey = CollectionsService.instance.getSharedPublicAlbumKey(
+          collection.id,
+        );
 
         final res = await showChoiceDialog(
           context,
@@ -1037,6 +1153,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         );
 
         if (res != null && res.action == ButtonAction.first) {
+          if (!mounted) return;
           await Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => WebPage(
@@ -1051,6 +1168,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       }
     } catch (e, s) {
       _logger.severe("Failed to show add photo dialog", e, s);
+      if (!bContext.mounted) return;
       await showGenericErrorDialog(context: bContext, error: e);
     }
   }
@@ -1071,8 +1189,9 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
 
   Future<void> archiveOrUnarchive() async {
     final isArchived = widget.collection!.isArchived();
-    final int prevVisiblity =
-        isArchived ? archiveVisibility : visibleVisibility;
+    final int prevVisiblity = isArchived
+        ? archiveVisibility
+        : visibleVisibility;
     final int newVisiblity = isArchived ? visibleVisibility : archiveVisibility;
 
     await changeCollectionVisibility(
@@ -1082,133 +1201,6 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       prevVisibility: prevVisiblity,
     );
     setState(() {});
-  }
-
-  Future<void> _castChoiceDialog() async {
-    final gw = CastGateway(NetworkClient.instance.enteDio);
-    if (castService.getActiveSessions().isNotEmpty) {
-      await showChoiceDialog(
-        context,
-        title: AppLocalizations.of(context).stopCastingTitle,
-        firstButtonLabel: AppLocalizations.of(context).yes,
-        secondButtonLabel: AppLocalizations.of(context).no,
-        body: AppLocalizations.of(context).stopCastingBody,
-        firstButtonOnTap: () async {
-          gw.revokeAllTokens().ignore();
-          await castService.closeActiveCasts();
-        },
-      );
-      castNotifier.value++;
-      return;
-    }
-
-    // stop any existing cast session
-    gw.revokeAllTokens().ignore();
-    if (!Platform.isAndroid && !kDebugMode) {
-      await _pairWithPin(gw, '');
-    } else {
-      final result = await showDialog<ButtonResult?>(
-        context: context,
-        barrierDismissible: true,
-        useRootNavigator: false,
-        builder: (BuildContext context) {
-          return const CastChooseDialog();
-        },
-      );
-      if (result == null) {
-        return;
-      }
-      // wait to allow the dialog to close
-      await Future.delayed(const Duration(milliseconds: 100));
-      if (result.action == ButtonAction.first) {
-        await showDialog(
-          useRootNavigator: false,
-          context: context,
-          barrierDismissible: true,
-          builder: (BuildContext bContext) {
-            return AutoCastDialog(
-              (device) async {
-                await _castPair(bContext, gw, device);
-                Navigator.pop(bContext);
-              },
-            );
-          },
-        );
-      }
-      if (result.action == ButtonAction.second) {
-        await _pairWithPin(gw, '');
-      }
-    }
-  }
-
-  Future<void> _pairWithPin(CastGateway gw, String code) async {
-    await showTextInputDialog(
-      context,
-      title: context.l10n.playOnTv,
-      body: AppLocalizations.of(context).castInstruction(
-        castUrl: flagService.castUrl,
-      ),
-      submitButtonLabel: AppLocalizations.of(context).pair,
-      textInputType: TextInputType.streetAddress,
-      hintText: context.l10n.deviceCodeHint,
-      showOnlyLoadingState: true,
-      alwaysShowSuccessState: false,
-      initialValue: code,
-      onSubmit: (String text) async {
-        final bool paired = await _castPair(context, gw, text);
-        if (!paired) {
-          Future.delayed(Duration.zero, () => _pairWithPin(gw, code));
-        }
-      },
-    );
-  }
-
-  String lastCode = '';
-  Future<bool> _castPair(
-    BuildContext bContext,
-    CastGateway gw,
-    String code,
-  ) async {
-    try {
-      if (lastCode == code) {
-        return false;
-      }
-      lastCode = code;
-      _logger.info("Casting album to device with code $code");
-      final String? publicKey = await gw.getPublicKey(code);
-      if (publicKey == null) {
-        showToast(context, AppLocalizations.of(context).deviceNotFound);
-
-        return false;
-      }
-      final String castToken = const Uuid().v4().toString();
-      final castPayload = CollectionsService.instance
-          .getCastData(castToken, widget.collection!, publicKey);
-      await gw.publishCastPayload(
-        code,
-        castPayload,
-        widget.collection!.id,
-        castToken,
-      );
-      _logger.info("cast album completed");
-      // showToast(bContext, AppLocalizations.of(context).pairingComplete);
-      castNotifier.value++;
-      return true;
-    } catch (e, s) {
-      lastCode = '';
-      _logger.severe("Failed to cast album", e, s);
-      if (e is CastIPMismatchException) {
-        await showErrorDialog(
-          context,
-          AppLocalizations.of(context).castIPMismatchTitle,
-          AppLocalizations.of(context).castIPMismatchBody,
-        );
-      } else {
-        await showGenericErrorDialog(context: bContext, error: e);
-      }
-      castNotifier.value++;
-      return false;
-    }
   }
 
   Future<void> _onGalleryGuestViewClick() async {
@@ -1228,15 +1220,14 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         );
         collectionFiles = filesResult.files;
       } else {
+        if (!mounted) return;
         showToast(context, AppLocalizations.of(context).somethingWentWrong);
         return;
       }
 
       if (collectionFiles.isEmpty) {
-        showToast(
-          context,
-          AppLocalizations.of(context).nothingToSeeHere,
-        );
+        if (!mounted) return;
+        showToast(context, AppLocalizations.of(context).nothingToSeeHere);
         return;
       }
 
@@ -1250,16 +1241,45 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         ),
       );
       await localSettings.setOnGuestView(true);
+      if (!mounted) return;
       routeToPage(context, page, forceCustomPageRoute: true).ignore();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Bus.instance.fire(GuestViewEvent(true, false));
       });
     } else {
+      if (!mounted) return;
       await showErrorDialog(
         context,
         AppLocalizations.of(context).noSystemLockFound,
         AppLocalizations.of(context).guestViewEnablePreSteps,
       );
     }
+  }
+}
+
+class _GallerySliverAppBar extends StatelessWidget {
+  const _GallerySliverAppBar({
+    required this.title,
+    this.subtitle,
+    required this.actions,
+    this.bottom,
+  });
+
+  final String title;
+  final String? subtitle;
+  final List<Widget> actions;
+  final PreferredSizeWidget? bottom;
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverAppBarComponent(
+      title: title,
+      subtitle: subtitle,
+      actions: actions,
+      bottom: bottom,
+      expandedHeight: GalleryAppBarWidget._sliverExpandedHeight,
+      collapsedHeight: GalleryAppBarWidget.toolbarHeight,
+      backgroundColor: GalleryAppBarWidget.backgroundColor(context),
+    );
   }
 }

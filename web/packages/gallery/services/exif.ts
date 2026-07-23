@@ -653,7 +653,7 @@ const parseCamera = (tags: RawExifTags) => {
  * 3. EXIF IFD0 | 0x010e | ImageDescription
  *
  * For an overview of why this ordering was chosen, see
- * https://github.com/ente-io/ente/discussions/3857#discussioncomment-11764990
+ * https://github.com/ente/ente/discussions/3857#discussioncomment-11764990
  */
 const parseDescription = (tags: RawExifTags) =>
     // While the TypeScript tags for these three fields are varying (The XMP one

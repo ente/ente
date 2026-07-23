@@ -102,11 +102,9 @@ credentials:
 
 #### Self-hosted S3 configuration
 
-::: warning MinIO
-
-MinIO has dropped open-source support and is no longer recommended for new deployments. Consider using [Garage](https://garagehq.deuxfleurs.fr/) or a managed S3-compatible service instead.
-
-:::
+> [!WARNING]
+>
+> MinIO has dropped open-source support and is no longer recommended for new deployments. Consider using [Garage](https://garagehq.deuxfleurs.fr/) or a managed S3-compatible service instead.
 
 If you're using a self-hosted S3-compatible storage (MinIO, Garage, etc.), enable path-style URLs:
 
@@ -148,15 +146,15 @@ externalDatabase:
 
 For external access, configure ingress for each component.
 
-::: tip Automate certificate and DNS management
-
-If you have [cert-manager](https://cert-manager.io/) installed, it can automatically provision TLS certificates from Let's Encrypt (or other issuers) using ingress annotations.
-
-Similarly, [external-dns](https://github.com/kubernetes-sigs/external-dns) can automatically create DNS records for your ingress hosts - no manual DNS configuration needed.
-
-Both are **highly recommended** for production Kubernetes deployments.
-
-:::
+> [!TIP]
+>
+> **Automate certificate and DNS management**
+>
+> If you have [cert-manager](https://cert-manager.io/) installed, it can automatically provision TLS certificates from Let's Encrypt (or other issuers) using ingress annotations.
+>
+> Similarly, [external-dns](https://github.com/kubernetes-sigs/external-dns) can automatically create DNS records for your ingress hosts - no manual DNS configuration needed.
+>
+> Both are **highly recommended** for production Kubernetes deployments.
 
 ```yaml
 # Museum API server
@@ -289,15 +287,13 @@ Open the Photos web app in your browser (e.g., `https://photos.example.com`).
 
 Select **Don't have an account?** to create a new user and follow the prompts.
 
-::: tip
-
-If you haven't configured SMTP, retrieve the verification code from the Museum logs:
-
-```sh
-kubectl logs deploy/ente-photos-museum -n ente-photos | grep -i "ott"
-```
-
-:::
+> [!TIP]
+>
+> If you haven't configured SMTP, retrieve the verification code from the Museum logs:
+>
+> ```sh
+> kubectl logs deploy/ente-photos-museum -n ente-photos | grep -i "ott"
+> ```
 
 ## Configuration reference
 
@@ -330,13 +326,11 @@ credentials:
         secret: "your-generated-jwt-secret"
 ```
 
-::: warning
-
-If you don't provide these keys, they will be regenerated on each Helm upgrade, which will invalidate encryption keys making existing data not-accessible.
-
-**Always set explicit keys for production deployments. Remember to save them securely**
-
-:::
+> [!WARNING]
+>
+> If you don't provide these keys, they will be regenerated on each Helm upgrade, which will invalidate encryption keys making existing data not-accessible.
+>
+> **Always set explicit keys for production deployments. Remember to save them securely**
 
 ### Using existing secrets
 
@@ -416,13 +410,11 @@ To remove the deployment:
 helm uninstall ente-photos --namespace ente-photos
 ```
 
-::: warning
-
-This does not delete persistent data in your database or S3 storage.
-
-Clean up those resources manually if needed.
-
-:::
+> [!WARNING]
+>
+> This does not delete persistent data in your database or S3 storage.
+>
+> Clean up those resources manually if needed.
 
 ## Troubleshooting
 

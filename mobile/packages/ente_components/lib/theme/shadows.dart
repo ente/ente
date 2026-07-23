@@ -7,18 +7,10 @@ class Shadows {
   const Shadows._();
 
   static const soft = [
-    BoxShadow(
-      color: Color(0x14000000),
-      blurRadius: 16,
-      offset: Offset(0, 8),
-    ),
+    BoxShadow(color: Color(0x14000000), blurRadius: 16, offset: Offset(0, 8)),
   ];
 
   static const floating = [
-    BoxShadow(
-      color: Color(0x24000000),
-      blurRadius: 24,
-      offset: Offset(0, 12),
-    ),
+    BoxShadow(color: Color(0x24000000), blurRadius: 24, offset: Offset(0, 12)),
   ];
 }

@@ -8,11 +8,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path_provider_foundation/path_provider_foundation.dart';
 import 'package:photos/core/constants.dart';
 import 'package:photos/models/file/file.dart';
+import 'package:photos/module/download/thumbnail.dart';
 import 'package:photos/services/album_home_widget_service.dart';
 import 'package:photos/services/memory_home_widget_service.dart';
 import 'package:photos/services/people_home_widget_service.dart';
 import 'package:photos/services/smart_memories_service.dart';
-import 'package:photos/utils/thumbnail_util.dart';
 import 'package:synchronized/synchronized.dart';
 
 enum WidgetStatus {
@@ -62,12 +62,10 @@ class HomeWidgetService {
   Future<void> setAppGroup({String id = iOSGroupIDMemory}) async {
     if (!Platform.isIOS || _isAppGroupSet) return;
     _logger.info("Setting app group id");
-    await hw.HomeWidget.setAppGroupId(id).catchError(
-      (error) {
-        _logger.severe("Failed to set app group ID: $error");
-        return null;
-      },
-    );
+    await hw.HomeWidget.setAppGroupId(id).catchError((error) {
+      _logger.severe("Failed to set app group ID: $error");
+      return null;
+    });
     _isAppGroupSet = true;
   }
 
@@ -124,10 +122,7 @@ class HomeWidgetService {
     return const Size(THUMBNAIL_SIZE, THUMBNAIL_SIZE);
   }
 
-  Future<int> countHomeWidgets(
-    String androidClass,
-    String iOSClass,
-  ) async {
+  Future<int> countHomeWidgets(String androidClass, String iOSClass) async {
     final installedWidgets = await getInstalledWidgets();
     final relevantWidgets = installedWidgets
         .where(
@@ -184,8 +179,8 @@ class HomeWidgetService {
         "title": title,
         "subText": subText,
         "generatedId": file.generatedID!,
-        if (mainKey != null) "mainKey": mainKey,
-        if (uploadedFileID != null) UPLOADED_FILE_ID_KEY: uploadedFileID,
+        "mainKey": ?mainKey,
+        UPLOADED_FILE_ID_KEY: ?uploadedFileID,
       };
 
       // Save metadata in platform-specific format
@@ -212,10 +207,7 @@ class HomeWidgetService {
       );
     } else {
       // Android needs the data as a JSON string
-      await hw.HomeWidget.saveWidgetData<String>(
-        dataKey,
-        jsonEncode(metadata),
-      );
+      await hw.HomeWidget.saveWidgetData<String>(dataKey, jsonEncode(metadata));
     }
   }
 
@@ -239,10 +231,7 @@ class HomeWidgetService {
       AlbumHomeWidgetService.instance.clearWidget(),
       PeopleHomeWidgetService.instance.clearWidget(),
       MemoryHomeWidgetService.instance.clearWidget(),
-      hw.HomeWidget.saveWidgetData<int?>(
-        WIDGET_HIDE_TITLE_FLAGS_KEY,
-        null,
-      ),
+      hw.HomeWidget.saveWidgetData<int?>(WIDGET_HIDE_TITLE_FLAGS_KEY, null),
     ]);
 
     try {
@@ -264,8 +253,9 @@ class HomeWidgetService {
       return;
     }
 
-    final generatedId =
-        int.tryParse(uri.queryParameters[GENERATED_ID_PARAM] ?? "");
+    final generatedId = int.tryParse(
+      uri.queryParameters[GENERATED_ID_PARAM] ?? "",
+    );
     if (generatedId == null) {
       _logger.warning("Widget launch failed: Invalid or missing generated ID");
       return;
@@ -274,9 +264,7 @@ class HomeWidgetService {
     // Route to appropriate handler based on widget scheme
     switch (uri.scheme) {
       case MEMORY_WIDGET_SCHEME:
-        await MemoryHomeWidgetService.instance.onLaunchFromWidget(
-          generatedId,
-        );
+        await MemoryHomeWidgetService.instance.onLaunchFromWidget(generatedId);
         break;
 
       case PEOPLE_WIDGET_SCHEME:
@@ -288,8 +276,9 @@ class HomeWidgetService {
         break;
 
       case ALBUM_WIDGET_SCHEME:
-        final collectionId =
-            int.tryParse(uri.queryParameters[MAIN_KEY_PARAM] ?? "");
+        final collectionId = int.tryParse(
+          uri.queryParameters[MAIN_KEY_PARAM] ?? "",
+        );
         if (collectionId == null) {
           _logger.warning(
             "Album widget launch failed: Invalid or missing collection ID",

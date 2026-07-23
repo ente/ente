@@ -1,8 +1,8 @@
+import { prettyFormatCode } from "@/utils/format";
 import { Box, Button, Stack, Typography, useTheme } from "@mui/material";
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import { decryptMetadataJSON } from "ente-base/crypto";
 import React, { useEffect, useMemo, useState } from "react";
-import { prettyFormatCode } from "utils/format";
 
 interface SharedCode {
     startTime: number;

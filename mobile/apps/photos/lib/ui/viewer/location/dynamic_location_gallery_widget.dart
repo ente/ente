@@ -37,19 +37,19 @@ class _DynamicLocationGalleryWidgetState
 
   @override
   void initState() {
-    final collectionsToHide =
-        CollectionsService.instance.archivedOrHiddenCollectionIds();
-    fileLoadResult =
-        FilesDB.instance.fetchAllUploadedAndSharedFilesWithLocation(
-      galleryLoadStartTime,
-      galleryLoadEndTime,
-      limit: null,
-      asc: false,
-      filterOptions: DBFilterOptions(
-        ignoredCollectionIDs: collectionsToHide,
-        hideIgnoredForUpload: true,
-      ),
-    );
+    final collectionsToHide = CollectionsService.instance
+        .archivedOrHiddenCollectionIds();
+    fileLoadResult = FilesDB.instance
+        .fetchAllUploadedAndSharedFilesWithLocation(
+          galleryLoadStartTime,
+          galleryLoadEndTime,
+          limit: null,
+          asc: false,
+          filterOptions: DBFilterOptions(
+            ignoredCollectionIDs: collectionsToHide,
+            hideIgnoredForUpload: true,
+          ),
+        );
 
     super.initState();
   }
@@ -76,12 +76,7 @@ class _DynamicLocationGalleryWidgetState
       widget.memoriesCountNotifier.value = copyOfFiles.length;
       final limitedResults = copyOfFiles.take(galleryFilesLimit).toList();
 
-      return Future.value(
-        FileLoadResult(
-          limitedResults,
-          result.hasMore,
-        ),
-      );
+      return Future.value(FileLoadResult(limitedResults, result.hasMore));
     }
 
     return FutureBuilder(
@@ -105,14 +100,15 @@ class _DynamicLocationGalleryWidgetState
                   child: Gallery(
                     loadingWidget: const SizedBox.shrink(),
                     disableScroll: true,
-                    asyncLoader: (
-                      creationStartTime,
-                      creationEndTime, {
-                      limit,
-                      asc,
-                    }) async {
-                      return snapshot.data as FileLoadResult;
-                    },
+                    asyncLoader:
+                        (
+                          creationStartTime,
+                          creationEndTime, {
+                          limit,
+                          asc,
+                        }) async {
+                          return snapshot.data as FileLoadResult;
+                        },
                     tagPrefix: widget.tagPrefix,
                     enableFileGrouping: false,
                     showSelectAll: false,
@@ -139,7 +135,8 @@ class _DynamicLocationGalleryWidgetState
 
     final numberOfRows = (fileCount / photoGridSize).ceil();
 
-    final galleryHeight = (thumbnailHeight * numberOfRows) +
+    final galleryHeight =
+        (thumbnailHeight * numberOfRows) +
         (galleryGridSpacing * (numberOfRows - 1));
     return galleryHeight + 120;
   }

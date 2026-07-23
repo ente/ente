@@ -18,11 +18,11 @@ class CropCalculation {
 
   /// Create Rect from crop calculation
   Rect toRect() => Rect.fromLTWH(
-        x.toDouble(),
-        y.toDouble(),
-        width.toDouble(),
-        height.toDouble(),
-      );
+    x.toDouble(),
+    y.toDouble(),
+    width.toDouble(),
+    height.toDouble(),
+  );
 
   /// FFmpeg crop filter string: crop=w:h:x:y
   String toFFmpegFilter() => 'crop=$width:$height:$x:$y';

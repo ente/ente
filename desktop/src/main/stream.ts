@@ -1,7 +1,7 @@
 /**
  * @file stream data to-from renderer using a custom protocol handler.
  */
-import { net, protocol } from "electron/main";
+import { net, protocol, type BrowserWindow } from "electron/main";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import { Writable } from "node:stream";
@@ -40,10 +40,10 @@ import {
  *
  * Depends on {@link registerPrivilegedSchemes}.
  */
-export const registerStreamProtocol = () => {
+export const registerStreamProtocol = (mainWindow: BrowserWindow) => {
     protocol.handle("stream", (request: Request) => {
         try {
-            return handleStreamRequest(request);
+            return handleStreamRequest(mainWindow, request);
         } catch (e) {
             log.error(`Failed to handle stream request for ${request.url}`, e);
             return new Response(String(e), { status: 500 });
@@ -51,7 +51,23 @@ export const registerStreamProtocol = () => {
     });
 };
 
-const handleStreamRequest = async (request: Request): Promise<Response> => {
+const rendererOrigin = "ente://app";
+
+const handleStreamRequest = async (
+    mainWindow: BrowserWindow,
+    request: Request,
+): Promise<Response> => {
+    // Electron strips Origin/Referer from custom-scheme requests, so we cannot
+    // identify the caller from the request itself. Instead gate on the main
+    // window's current URL: only honor stream requests while our own renderer
+    // (and not, say, a payment page it navigated to) is the loaded document.
+    const windowURL = mainWindow.webContents.getURL();
+    if (
+        windowURL != rendererOrigin &&
+        !windowURL.startsWith(`${rendererOrigin}/`)
+    )
+        return new Response("", { status: 403 });
+
     const url = request.url;
     // The request URL contains the command to run as the host, and the
     // pathname of the file(s) as the search params.

@@ -1,31 +1,29 @@
-import 'dart:math' as math;
-
+import "package:ente_components/ente_components.dart" as components;
 import "package:flutter/material.dart";
-import "package:flutter_svg/svg.dart";
-import "package:photos/theme/ente_theme.dart";
+import "package:hugeicons/hugeicons.dart";
 
-/// Pass icon or asset path of svg
+/// Pass [hugeIcon], or [iconWidget] for custom assets.
 class SelectionActionButton extends StatelessWidget {
   final String labelText;
-  final IconData? icon;
+  final List<List<dynamic>>? hugeIcon;
   final Widget? iconWidget;
-  final String? svgAssetPath;
   final VoidCallback? onTap;
   final bool shouldShow;
+  final bool isCritical;
 
   const SelectionActionButton({
     required this.labelText,
     required this.onTap,
-    this.icon,
-    this.svgAssetPath,
+    this.hugeIcon,
     this.iconWidget,
     this.shouldShow = true,
+    this.isCritical = false,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    assert(icon != null || iconWidget != null || svgAssetPath != null);
+    assert(hugeIcon != null || iconWidget != null);
     return AnimatedSize(
       duration: const Duration(milliseconds: 350),
       curve: Curves.easeInOutCirc,
@@ -34,14 +32,12 @@ class SelectionActionButton extends StatelessWidget {
         child: shouldShow
             ? _Body(
                 labelText: labelText,
-                icon: icon,
+                hugeIcon: hugeIcon,
                 onTap: onTap,
-                svgAssetPath: svgAssetPath,
                 iconWidget: iconWidget,
+                isCritical: isCritical,
               )
-            : const SizedBox(
-                height: 60,
-              ),
+            : const SizedBox(height: 60),
       ),
     );
   }
@@ -49,15 +45,15 @@ class SelectionActionButton extends StatelessWidget {
 
 class _Body extends StatefulWidget {
   final String labelText;
-  final IconData? icon;
-  final String? svgAssetPath;
+  final List<List<dynamic>>? hugeIcon;
   final Widget? iconWidget;
   final VoidCallback? onTap;
+  final bool isCritical;
   const _Body({
     required this.labelText,
     required this.onTap,
-    this.icon,
-    this.svgAssetPath,
+    required this.isCritical,
+    this.hugeIcon,
     this.iconWidget,
   });
 
@@ -67,18 +63,25 @@ class _Body extends StatefulWidget {
 
 class __BodyState extends State<_Body> {
   static const minWidth = 64.0;
+  static const iconSize = 22.0;
   late double widthOfButton;
   Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
     widthOfButton = getWidthOfButton();
-    final colorScheme = getEnteColorScheme(context);
+    final colors = components.ComponentTheme.colorsOf(context);
+    final foregroundColor = widget.isCritical
+        ? colors.warning
+        : colors.textBase;
+    final labelStyle = components.TextStyles.mini.copyWith(
+      color: foregroundColor,
+    );
     return GestureDetector(
       onTap: widget.onTap,
       onTapDown: (details) {
         setState(() {
-          backgroundColor = colorScheme.fillFaintPressed;
+          backgroundColor = colors.fillDark;
         });
       },
       onTapUp: (details) {
@@ -93,7 +96,7 @@ class __BodyState extends State<_Body> {
       },
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(16),
           color: backgroundColor,
         ),
         child: Padding(
@@ -104,59 +107,20 @@ class __BodyState extends State<_Body> {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (widget.icon == Icons.navigation_rounded)
-                  Transform.rotate(
-                    angle: math.pi / 2,
-                    child: Icon(
-                      widget.icon,
-                      size: 24,
-                      color: getEnteColorScheme(context).primary300,
-                      shadows: const [
-                        BoxShadow(
-                          color: Color.fromARGB(12, 0, 179, 60),
-                          offset: Offset(0, 2.51),
-                          blurRadius: 5.02,
-                          spreadRadius: 0,
-                        ),
-                        BoxShadow(
-                          color: Color.fromARGB(24, 0, 179, 60),
-                          offset: Offset(0, 1.25),
-                          blurRadius: 3.76,
-                          spreadRadius: 0,
-                        ),
-                        BoxShadow(
-                          color: Color.fromARGB(24, 0, 179, 60),
-                          offset: Offset(0, 0.63),
-                          blurRadius: 1.88,
-                          spreadRadius: 0,
-                        ),
-                      ],
-                    ),
+                if (widget.hugeIcon != null)
+                  HugeIcon(
+                    icon: widget.hugeIcon!,
+                    size: iconSize,
+                    color: foregroundColor,
                   )
-                else if (widget.svgAssetPath != null)
-                  SvgPicture.asset(
-                    widget.svgAssetPath!,
-                    colorFilter: ColorFilter.mode(
-                      getEnteColorScheme(context).textMuted,
-                      BlendMode.srcIn,
-                    ),
-                    width: 24,
-                    height: 24,
-                  )
-                else if (widget.iconWidget != null)
-                  widget.iconWidget!
                 else
-                  Icon(
-                    widget.icon,
-                    size: 24,
-                    color: getEnteColorScheme(context).textMuted,
-                  ),
+                  widget.iconWidget!,
                 const SizedBox(height: 4),
                 Text(
                   widget.labelText,
                   textAlign: TextAlign.center,
                   //textTheme in [getWidthOfLongestWord] should be same as this
-                  style: getEnteTextTheme(context).miniMuted,
+                  style: labelStyle,
                 ),
               ],
             ),
@@ -166,10 +130,8 @@ class __BodyState extends State<_Body> {
     );
   }
 
-  getWidthOfButton() {
-    final widthOfWidestWord = getWidthOfWidestWord(
-      widget.labelText,
-    );
+  double getWidthOfButton() {
+    final widthOfWidestWord = getWidthOfWidestWord(widget.labelText);
     if (widthOfWidestWord > minWidth) return widthOfWidestWord;
     return minWidth;
   }
@@ -180,8 +142,7 @@ class __BodyState extends State<_Body> {
 
     double maxWidth = 0.0;
     for (String word in words) {
-      final width =
-          computeWidthOfWord(word, getEnteTextTheme(context).miniMuted);
+      final width = computeWidthOfWord(word, components.TextStyles.mini);
       if (width > maxWidth) {
         maxWidth = width;
       }
@@ -189,7 +150,7 @@ class __BodyState extends State<_Body> {
     return maxWidth;
   }
 
-//Todo: this doesn't give the correct width of the word, make it right
+  //Todo: this doesn't give the correct width of the word, make it right
   double computeWidthOfWord(String text, TextStyle style) {
     final textPainter = TextPainter(
       text: TextSpan(text: text, style: style),
@@ -197,7 +158,7 @@ class __BodyState extends State<_Body> {
       textDirection: TextDirection.ltr,
       textScaler: MediaQuery.textScalerOf(context),
     )..layout();
-//buffer of 8 added as width is shorter than actual text width
+    //buffer of 8 added as width is shorter than actual text width
     return textPainter.size.width + 8;
   }
 }

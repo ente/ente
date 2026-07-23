@@ -6,12 +6,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/internal/testutil"
-	museumcontroller "github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/controller/family"
-	"github.com/ente-io/museum/pkg/repo"
-	storagebonusrepo "github.com/ente-io/museum/pkg/repo/storagebonus"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/internal/testutil"
+	museumcontroller "github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/controller/family"
+	"github.com/ente/museum/pkg/repo"
+	storagebonusrepo "github.com/ente/museum/pkg/repo/storagebonus"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )

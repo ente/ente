@@ -26,9 +26,9 @@ For complete details, see the [CLI feature guide](/photos/features/utilities/cli
 
 ### How do I install the CLI? {#install-cli-advanced}
 
-Ente's CLI is distributed directly over [GitHub](https://github.com/ente-io/ente/releases?q=tag%3Acli-v0).
+Ente's CLI is distributed directly over [GitHub](https://github.com/ente/ente/releases?q=tag%3Acli-v0).
 
-Download the appropriate version for your platform and follow the installation instructions in the [CLI README](https://github.com/ente-io/ente/tree/main/cli#readme).
+Download the appropriate version for your platform and follow the installation instructions in the [CLI README](https://github.com/ente/ente/tree/main/cli#readme).
 
 Learn more in the [CLI installation guide](/photos/features/utilities/cli#installation).
 
@@ -36,7 +36,7 @@ Learn more in the [CLI installation guide](/photos/features/utilities/cli#instal
 
 The CLI supports incremental exports, which means it will only download new or changed files. Configure the export directory for the account once, then run exports whenever you need:
 
-```bash
+```sh
 # Configure where this account should export files
 ente account update --app photos --email you@example.com --dir /path/to/backup
 
@@ -61,7 +61,7 @@ The recommended approach is to use the CLI to pull data from Ente to your NAS:
 
 Example cron job for daily sync:
 
-```bash
+```sh
 # Run once to set up the export directory
 /usr/local/bin/ente account update --app photos --email you@example.com --dir /nas/ente-backup
 
@@ -71,7 +71,9 @@ Example cron job for daily sync:
 
 See the [CLI NAS sync guide](/photos/features/utilities/cli#nas-sync-setup) for detailed setup.
 
-**Note**: Two-way sync is not currently supported. The CLI pulls data from Ente to your local storage.
+> [!NOTE]
+>
+> Two-way sync is not currently supported. The CLI pulls data from Ente to your local storage.
 
 ### CLI not found after installation {#cli-not-found}
 
@@ -107,8 +109,7 @@ You can use our CLI tool or our desktop app to set up exports of your data to yo
 
 Open `Settings > Export data`, choose a destination folder, and enable "Continuous export" to automatically export new items.
 
-**CLI**:
-Use [Ente's CLI](https://github.com/ente-io/ente/tree/main/cli#export) to export your data in a cron job to a location of your choice. The exports are incremental, and will also gracefully handle interruptions.
+**CLI**: Use [Ente's CLI](https://github.com/ente/ente/tree/main/cli#export) to export your data in a cron job to a location of your choice. The exports are incremental, and will also gracefully handle interruptions.
 
 For complete details, see the [Export feature guide](/photos/features/backup-and-sync/export).
 
@@ -225,7 +226,7 @@ To avoid this, ensure video streaming is enabled so that streamable versions are
 
 ### How does Cast work? {#how-does-cast-work}
 
-Ente Cast lets you play slideshow albums on Chromecast TVs or any internet-connected large screen. You can pair using auto-pair (Chromium browsers with Chromecast) or PIN pairing (works with any device).
+Ente Cast lets you play slideshow albums on Chromecast TVs or any internet-connected large screen. You can pair using auto-pair (Chromium browsers with Chromecast) or PIN pairing (works with any device). You can also manage multiple active cast sessions and disconnect screens you are no longer using.
 
 For setup instructions, see the [Cast feature guide](/photos/features/utilities/cast/).
 
@@ -384,7 +385,7 @@ Note that these FAQs are primarily for Ente's cloud service. Self-hosting has ad
 
 You can:
 
-1. **GitHub Issues**: Report bugs or request features on [GitHub](https://github.com/ente-io/ente/issues)
+1. **GitHub Issues**: Report bugs or request features on [GitHub](https://github.com/ente/ente/issues)
 2. **Discord**: Join our [Discord community](https://ente.com/discord) for discussions
 3. **Email**: Contact [support@ente.com](mailto:support@ente.com)
 

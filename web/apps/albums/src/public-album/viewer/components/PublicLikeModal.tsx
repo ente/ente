@@ -7,7 +7,7 @@ import {
     styled,
     Typography,
 } from "@mui/material";
-import { type ModalVisibilityProps } from "ente-base/components/utils/modal";
+import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import { t } from "i18next";
 import React from "react";
 

@@ -32,9 +32,7 @@ class CollectionsGateway {
   ///
   /// Returns the raw collection data from the API response.
   Future<Map<String, dynamic>> getCollection(int collectionID) async {
-    final response = await _enteDio.get(
-      "/collections/$collectionID",
-    );
+    final response = await _enteDio.get("/collections/$collectionID");
     return response.data["collection"];
   }
 
@@ -75,9 +73,7 @@ class CollectionsGateway {
   ///
   /// [collectionID] - The ID of the collection to leave.
   Future<void> leaveCollection(int collectionID) async {
-    await _enteDio.post(
-      "/collections/leave/$collectionID",
-    );
+    await _enteDio.post("/collections/leave/$collectionID");
   }
 
   /// Gets the diff of files in a collection since a given time.
@@ -92,10 +88,7 @@ class CollectionsGateway {
   }) async {
     final response = await _enteDio.get(
       "/collections/v2/diff",
-      queryParameters: {
-        "collectionID": collectionID,
-        "sinceTime": sinceTime,
-      },
+      queryParameters: {"collectionID": collectionID, "sinceTime": sinceTime},
     );
     return response.data;
   }
@@ -104,10 +97,7 @@ class CollectionsGateway {
   ///
   /// [request] - The request containing the collection ID and metadata.
   Future<void> updateMagicMetadata(UpdateMagicMetadataRequest request) async {
-    await _enteDio.put(
-      "/collections/magic-metadata",
-      data: request.toJson(),
-    );
+    await _enteDio.put("/collections/magic-metadata", data: request.toJson());
   }
 
   /// Updates the public magic metadata of a collection.
@@ -146,10 +136,7 @@ class CollectionsGateway {
   }) async {
     await _enteDio.post(
       "/collections/join-link",
-      data: {
-        "collectionID": collectionID,
-        "encryptedKey": encryptedKey,
-      },
+      data: {"collectionID": collectionID, "encryptedKey": encryptedKey},
       options: Options(headers: headers),
     );
   }
@@ -166,10 +153,7 @@ class CollectionsGateway {
   }) async {
     final response = await _enteDio.get(
       "/collections/v2",
-      queryParameters: {
-        "sinceTime": sinceTime,
-        "source": source,
-      },
+      queryParameters: {"sinceTime": sinceTime, "source": source},
     );
     return response.data;
   }
@@ -178,9 +162,7 @@ class CollectionsGateway {
   ///
   /// Returns the raw response data containing pending actions.
   Future<Map<String, dynamic>> fetchPendingRemovalActions() async {
-    final response = await _enteDio.get(
-      "/collection-actions/pending-remove",
-    );
+    final response = await _enteDio.get("/collection-actions/pending-remove");
     return response.data;
   }
 

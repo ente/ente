@@ -8,6 +8,7 @@
  *
  * To see where this code fits, see [Note: Crypto code hierarchy].
  */
+import { ensureArrayBufferBacked } from "ente-base/bytes";
 import { mergeUint8Arrays } from "ente-utils/array";
 import sodium from "libsodium-wrappers-sumo";
 import {
@@ -42,9 +43,13 @@ export const toB64 = async (input: Uint8Array) => {
  *
  * This is the converse of {@link toBase64}.
  */
-export const fromB64 = async (input: string): Promise<Uint8Array> => {
+export const fromB64 = async (
+    input: string,
+): Promise<Uint8Array<ArrayBuffer>> => {
     await sodium.ready;
-    return sodium.from_base64(input, sodium.base64_variants.ORIGINAL);
+    return ensureArrayBufferBacked(
+        sodium.from_base64(input, sodium.base64_variants.ORIGINAL),
+    );
 };
 
 /**
@@ -83,9 +88,13 @@ export const toB64URLSafeNoPadding = async (input: Uint8Array) => {
  * This is the converse of {@link toB64URLSafeNoPadding}, and does not expect
  * its input string's length to be a an integer multiple of 4.
  */
-export const fromB64URLSafeNoPadding = async (input: string) => {
+export const fromB64URLSafeNoPadding = async (
+    input: string,
+): Promise<Uint8Array<ArrayBuffer>> => {
     await sodium.ready;
-    return sodium.from_base64(input, sodium.base64_variants.URLSAFE_NO_PADDING);
+    return ensureArrayBufferBacked(
+        sodium.from_base64(input, sodium.base64_variants.URLSAFE_NO_PADDING),
+    );
 };
 
 /**
@@ -304,7 +313,10 @@ export const encryptBlobBytes = async (
         null,
         sodium.crypto_secretstream_xchacha20poly1305_TAG_FINAL,
     );
-    return { encryptedData: pushResult, decryptionHeader: header };
+    return {
+        encryptedData: ensureArrayBufferBacked(pushResult),
+        decryptionHeader: ensureArrayBufferBacked(header),
+    };
 };
 
 /**
@@ -446,16 +458,18 @@ export const encryptStreamChunk = async (
     data: Uint8Array,
     pushState: SodiumStateAddress,
     isFinalChunk: boolean,
-): Promise<Uint8Array> => {
+): Promise<Uint8Array<ArrayBuffer>> => {
     await sodium.ready;
     const tag = isFinalChunk
         ? sodium.crypto_secretstream_xchacha20poly1305_TAG_FINAL
         : sodium.crypto_secretstream_xchacha20poly1305_TAG_MESSAGE;
-    return sodium.crypto_secretstream_xchacha20poly1305_push(
-        pushState,
-        data,
-        null,
-        tag,
+    return ensureArrayBufferBacked(
+        sodium.crypto_secretstream_xchacha20poly1305_push(
+            pushState,
+            data,
+            null,
+            tag,
+        ),
     );
 };
 
@@ -465,12 +479,14 @@ export const encryptStreamChunk = async (
 export const decryptBoxBytes = async (
     { encryptedData, nonce }: EncryptedBox,
     key: BytesOrB64,
-): Promise<Uint8Array> => {
+): Promise<Uint8Array<ArrayBuffer>> => {
     await sodium.ready;
-    return sodium.crypto_secretbox_open_easy(
-        await bytes(encryptedData),
-        await bytes(nonce),
-        await bytes(key),
+    return ensureArrayBufferBacked(
+        sodium.crypto_secretbox_open_easy(
+            await bytes(encryptedData),
+            await bytes(nonce),
+            await bytes(key),
+        ),
     );
 };
 
@@ -488,7 +504,7 @@ export const decryptBox = (
 export const decryptBlobBytes = async (
     { encryptedData, decryptionHeader }: EncryptedBlob,
     key: BytesOrB64,
-): Promise<Uint8Array> => {
+): Promise<Uint8Array<ArrayBuffer>> => {
     await sodium.ready;
     const pullState = sodium.crypto_secretstream_xchacha20poly1305_init_pull(
         await bytes(decryptionHeader),
@@ -499,7 +515,7 @@ export const decryptBlobBytes = async (
         await bytes(encryptedData),
         null,
     );
-    return pullResult.message;
+    return ensureArrayBufferBacked(pullResult.message);
 };
 
 /**
@@ -533,7 +549,7 @@ export const decryptMetadataJSON = async (
 export const decryptStreamBytes = async (
     { encryptedData, decryptionHeader }: EncryptedFile,
     key: BytesOrB64,
-): Promise<Uint8Array> => {
+): Promise<Uint8Array<ArrayBuffer>> => {
     await sodium.ready;
     const pullState = sodium.crypto_secretstream_xchacha20poly1305_init_pull(
         await fromB64(decryptionHeader),
@@ -603,13 +619,13 @@ export const initChunkDecryption = async (
 export const decryptStreamChunk = async (
     data: Uint8Array,
     pullState: SodiumStateAddress,
-): Promise<Uint8Array> => {
+): Promise<Uint8Array<ArrayBuffer>> => {
     await sodium.ready;
     const pullResult = sodium.crypto_secretstream_xchacha20poly1305_pull(
         pullState,
         data,
     );
-    return pullResult.message;
+    return ensureArrayBufferBacked(pullResult.message);
 };
 
 /**
@@ -718,12 +734,14 @@ export const boxSeal = async (data: string, publicKey: string) => {
 export const boxSealOpenBytes = async (
     encryptedData: string,
     { publicKey, privateKey }: KeyPair,
-): Promise<Uint8Array> => {
+): Promise<Uint8Array<ArrayBuffer>> => {
     await sodium.ready;
-    return sodium.crypto_box_seal_open(
-        await fromB64(encryptedData),
-        await fromB64(publicKey),
-        await fromB64(privateKey),
+    return ensureArrayBufferBacked(
+        sodium.crypto_box_seal_open(
+            await fromB64(encryptedData),
+            await fromB64(publicKey),
+            await fromB64(privateKey),
+        ),
     );
 };
 
@@ -859,6 +877,21 @@ export const deriveInteractiveKey = async (
 };
 
 /**
+ * A variant of {@link deriveSensitiveKey} for deriving an alternative key with
+ * parameters suitable for moderate-cost password gates.
+ */
+export const deriveModerateKey = async (
+    passphrase: string,
+): Promise<DerivedKey> => {
+    const salt = await generateDeriveKeySalt();
+    const opsLimit = sodium.crypto_pwhash_OPSLIMIT_MODERATE;
+    const memLimit = sodium.crypto_pwhash_MEMLIMIT_MODERATE;
+
+    const key = await deriveKey(passphrase, salt, opsLimit, memLimit);
+    return { key, salt, opsLimit, memLimit };
+};
+
+/**
  * Derive a {@link subKeyID}-th subkey of length {@link subKeyLength} bytes by
  * applying a KDF (Key Derivation Function) for the given {@link key} and the
  * {@link context}.
@@ -891,12 +924,14 @@ export const deriveSubKeyBytes = async (
     subKeyLength: number,
     subKeyID: number,
     context: string,
-): Promise<Uint8Array> => {
+): Promise<Uint8Array<ArrayBuffer>> => {
     await sodium.ready;
-    return sodium.crypto_kdf_derive_from_key(
-        subKeyLength,
-        subKeyID,
-        context,
-        await bytes(key),
+    return ensureArrayBufferBacked(
+        sodium.crypto_kdf_derive_from_key(
+            subKeyLength,
+            subKeyID,
+            context,
+            await bytes(key),
+        ),
     );
 };

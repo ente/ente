@@ -73,9 +73,7 @@ class _QrContentEntry extends StatelessWidget {
                 right: 12,
                 child: GestureDetector(
                   onTap: () async {
-                    await Clipboard.setData(
-                      ClipboardData(text: content),
-                    );
+                    await Clipboard.setData(ClipboardData(text: content));
                     if (context.mounted) {
                       showShortToast(context, l10n.copied);
                     }

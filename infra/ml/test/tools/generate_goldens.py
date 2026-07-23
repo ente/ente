@@ -6,12 +6,9 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
-import sys
 from typing import Any, Mapping
 
-ML_DIR = Path(__file__).resolve().parents[1]
-if str(ML_DIR) not in sys.path:
-    sys.path.insert(0, str(ML_DIR))
+from _paths import repo_root, resolve_ml_relative, resolve_repo_relative
 
 from ground_truth.pipeline import GroundTruthPipeline
 from ground_truth.schema import dump_results_document
@@ -28,36 +25,6 @@ def _git_revision(default: str = "local") -> str:
     except (subprocess.SubprocessError, FileNotFoundError):
         return default
     return completed.stdout.strip() or default
-
-
-def _repo_root(ml_dir: Path) -> Path:
-    try:
-        completed = subprocess.run(
-            ["git", "-C", str(ml_dir), "rev-parse", "--show-toplevel"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-    except (subprocess.SubprocessError, FileNotFoundError):
-        return ml_dir.parents[2]
-    root = completed.stdout.strip()
-    if not root:
-        return ml_dir.parents[2]
-    return Path(root)
-
-
-def _resolve_repo_relative(path_value: str, *, repo_root: Path) -> Path:
-    path = Path(path_value)
-    if path.is_absolute():
-        return path
-    return repo_root / path
-
-
-def _resolve_ml_relative(path_value: str, *, ml_dir: Path) -> Path:
-    path = Path(path_value)
-    if path.is_absolute():
-        return path
-    return ml_dir / path
 
 
 def _validate_source_hash(
@@ -84,7 +51,6 @@ def _validate_source_hash(
 def _build_results(
     *,
     manifest_items: list[Mapping[str, Any]],
-    ml_dir: Path,
     model_cache_dir: Path,
     model_base_url: str,
     code_revision: str,
@@ -97,7 +63,7 @@ def _build_results(
     results = []
     for item in manifest_items:
         file_id = str(item["file_id"])
-        source_path = _resolve_ml_relative(str(item["source"]), ml_dir=ml_dir)
+        source_path = resolve_ml_relative(str(item["source"]))
         if not source_path.exists():
             raise FileNotFoundError(
                 f"source file does not exist for '{file_id}': {source_path}"
@@ -145,12 +111,10 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    ml_dir = Path(__file__).resolve().parents[1]
-    repo_root = _repo_root(ml_dir)
-
-    manifest_path = _resolve_repo_relative(args.manifest, repo_root=repo_root)
-    output_dir = _resolve_repo_relative(args.output_dir, repo_root=repo_root)
-    model_cache_dir = _resolve_repo_relative(args.model_cache_dir, repo_root=repo_root)
+    root = repo_root()
+    manifest_path = resolve_repo_relative(args.manifest, repo_root=root)
+    output_dir = resolve_repo_relative(args.output_dir, repo_root=root)
+    model_cache_dir = resolve_repo_relative(args.model_cache_dir, repo_root=root)
 
     manifest_payload = json.loads(manifest_path.read_text())
     items = manifest_payload.get("items", [])
@@ -160,7 +124,6 @@ def main() -> int:
     code_revision = _git_revision()
     results = _build_results(
         manifest_items=items,
-        ml_dir=ml_dir,
         model_cache_dir=model_cache_dir,
         model_base_url=args.model_base_url,
         code_revision=code_revision,

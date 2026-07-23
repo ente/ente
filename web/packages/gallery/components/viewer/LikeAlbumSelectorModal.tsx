@@ -1,6 +1,6 @@
 import CloseIcon from "@mui/icons-material/Close";
 import { Box, Dialog, IconButton, styled, Typography } from "@mui/material";
-import { type ModalVisibilityProps } from "ente-base/components/utils/modal";
+import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import { t } from "i18next";
 import React from "react";
 

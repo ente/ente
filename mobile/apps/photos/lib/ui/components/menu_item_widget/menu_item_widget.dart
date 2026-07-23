@@ -113,8 +113,8 @@ class _MenuItemWidgetState extends State<MenuItemWidget> {
     menuItemColor = widget.menuItemColor;
     borderRadius =
         (widget.isBottomBorderRadiusRemoved || widget.isTopBorderRadiusRemoved)
-            ? widget.multipleBorderRadius
-            : widget.singleBorderRadius;
+        ? widget.multipleBorderRadius
+        : widget.singleBorderRadius;
     if (widget.expandableController != null) {
       _expandableControllerListener = () {
         setState(() {});
@@ -140,8 +140,9 @@ class _MenuItemWidgetState extends State<MenuItemWidget> {
   void dispose() {
     if (widget.expandableController != null) {
       if (_expandableControllerListener != null) {
-        widget.expandableController!
-            .removeListener(_expandableControllerListener!);
+        widget.expandableController!.removeListener(
+          _expandableControllerListener!,
+        );
       }
       widget.expandableController!.dispose();
     }
@@ -170,8 +171,8 @@ class _MenuItemWidgetState extends State<MenuItemWidget> {
     final isExpanded = widget.expandableController?.value;
     final bottomBorderRadius =
         (isExpanded != null && isExpanded) || widget.isBottomBorderRadiusRemoved
-            ? const Radius.circular(0)
-            : circularRadius;
+        ? const Radius.circular(0)
+        : circularRadius;
     final topBorderRadius = widget.isTopBorderRadiusRemoved
         ? const Radius.circular(0)
         : circularRadius;
@@ -231,14 +232,11 @@ class _MenuItemWidgetState extends State<MenuItemWidget> {
         executionStateNotifier.value = ExecutionState.inProgress;
       }),
     );
-    await widget.onTap?.call().then(
-      (value) {
-        widget.alwaysShowSuccessState
-            ? executionStateNotifier.value = ExecutionState.successful
-            : null;
-      },
-      onError: (error, stackTrace) => _debouncer.cancelDebounceTimer(),
-    );
+    await widget.onTap?.call().then((value) {
+      widget.alwaysShowSuccessState
+          ? executionStateNotifier.value = ExecutionState.successful
+          : null;
+    }, onError: (error, stackTrace) => _debouncer.cancelDebounceTimer());
     _debouncer.cancelDebounceTimer();
     if (widget.alwaysShowSuccessState) {
       Future.delayed(const Duration(seconds: 2), () {
@@ -258,7 +256,7 @@ class _MenuItemWidgetState extends State<MenuItemWidget> {
     }
   }
 
-  void _onTapDown(details) {
+  void _onTapDown(TapDownDetails details) {
     if (executionStateNotifier.value == ExecutionState.inProgress ||
         executionStateNotifier.value == ExecutionState.successful) {
       return;
@@ -280,22 +278,19 @@ class _MenuItemWidgetState extends State<MenuItemWidget> {
         widget.onLongPress != null;
   }
 
-  void _onTapUp(details) {
+  void _onTapUp(TapUpDetails details) {
     if (executionStateNotifier.value == ExecutionState.inProgress ||
         executionStateNotifier.value == ExecutionState.successful) {
       return;
     }
-    Future.delayed(
-      const Duration(milliseconds: 100),
-      () {
-        if (!mounted) {
-          return;
-        }
-        setState(() {
-          menuItemColor = widget.menuItemColor;
-        });
-      },
-    );
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        menuItemColor = widget.menuItemColor;
+      });
+    });
   }
 
   void _onCancel() {

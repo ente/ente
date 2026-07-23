@@ -12,25 +12,25 @@ description: ente photos application
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 
-version: 1.3.45+1785
+version: 1.3.60+2158
 publish_to: none
 
+resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
 
 dependencies:
   adaptive_theme: 3.7.2
   android_intent_plus: 5.3.0
-  animated_list_plus: 0.5.2
   app_links: 6.4.1
-  archive: 4.0.7
-  async: 2.13.0
+  archive: 4.0.9
+  async: 2.13.1
   audio_session: 0.2.2
   backup_exclusion:
     path: ../../packages/backup_exclusion
   battery_info: # replace with battery_plus
     git:
-      url: https://github.com/ente-io/battery_info
+      url: https://github.com/ente/battery_info
       ref: 95c7a9f0400b968b3bfdc98c8c10a07fb4a62ea2
   bip39: 1.0.6
   cached_network_image: 3.4.1
@@ -39,22 +39,22 @@ dependencies:
   collection: 1.19.1 #dart
   computer: # logged task name in verbose in fork
     git:
-      url: https://github.com/ente-io/computer.git
+      url: https://github.com/ente/computer.git
       ref: 82e365fed8a1a76f6eea0220de98389eed7b0445
   connectivity_plus: 6.1.4
   convert: 3.1.2
   crypto: 3.0.7
   cupertino_icons: 1.0.8
-  dart_ui_isolate: 1.1.1
   defer_pointer: 0.0.2
-  device_info_plus: 11.3.0
+  device_info_plus: 11.5.0
   dio: 5.9.2
-  dio_http2_adapter: 2.7.0
-  dots_indicator: 4.0.1
-  dotted_border: 2.1.0
+  dio_http2_adapter: 2.7.1
+  dotted_border: 3.1.0
   dropdown_button2: 2.3.9
   email_validator: 3.0.0
   encrypt: 5.0.3
+  ente_account_deletion:
+    path: ../../packages/account_deletion
   ente_cast:
     path: plugins/ente_cast
   ente_components:
@@ -63,20 +63,30 @@ dependencies:
     path: ../../packages/contacts
   ente_crypto:
     path: plugins/ente_crypto
+  ente_crypto_api:
+    path: ../../packages/ente_crypto_api
   ente_feature_flag:
     path: plugins/ente_feature_flag
   ente_icons:
     path: ../../packages/ente_icons
+  ente_install_source:
+    path: ../../packages/install_source
+  ente_lock_screen:
+    path: ../../packages/lock_screen
   ente_photos_rust:
     path: rust_builder
   ente_pure_utils:
     path: ../../packages/ente_pure_utils
   ente_qr:
-    path: plugins/ente_qr
+    path: ../../packages/ente_qr
   ente_qr_ui:
     path: ../../packages/qr
   ente_rust:
     path: ../../packages/rust
+  ente_strings:
+    path: ../../packages/strings
+  ente_ui:
+    path: ../../packages/ui
   equatable: 2.0.7
   event_bus: 2.0.1
   exif_reader: 4.1.0
@@ -87,18 +97,22 @@ dependencies:
   fast_base58: 0.2.1
   ffmpeg_kit_flutter:
     git:
-      url: https://github.com/ente-io/ffmpeg-kit
+      url: https://github.com/ente/ffmpeg-kit
       path: flutter/flutter
       ref: 15afc08775a75fe9c12de3366fa99e39bf171ccc
   figma_squircle: 0.6.3
-  file_saver: 0.2.14
+  file_saver: 0.3.1
   firebase_core: 3.15.1
   firebase_messaging: 15.2.9
   fixnum: 1.1.1
   flutter:
     sdk: flutter
   flutter_animate: 4.5.2
-  flutter_cache_manager: 3.4.1
+  flutter_cache_manager:
+    git:
+      url: https://github.com/Baseflow/flutter_cache_manager.git
+      ref: 54904e499a06d0364a2b3f4ca9789e5f829f1879
+      path: flutter_cache_manager
   flutter_displaymode: 0.6.0
   flutter_easyloading: 3.0.5
   flutter_email_sender: 7.0.0
@@ -109,7 +123,6 @@ dependencies:
     sdk: flutter
   flutter_map: 7.0.2
   flutter_map_marker_cluster: 1.4.0
-  flutter_password_strength: 0.1.6
   flutter_rust_bridge: 2.12.0
   # Do not upgrade this package unless this issue is resolved:
   # https://github.com/juliansteenbakker/flutter_secure_storage/issues/870
@@ -120,11 +133,11 @@ dependencies:
   flutter_secure_storage: 9.0.0
   flutter_sodium:
     git:
-      url: https://github.com/ente-io/flutter_sodium
+      url: https://github.com/ente/flutter_sodium
       ref: a05d5b1bfdce64a387f8f5970160b22ce7b88282
   flutter_spinkit: 5.2.1
   flutter_staggered_grid_view: 0.7.0
-  flutter_svg: 2.2.3
+  flutter_svg: 2.3.0
   flutter_timezone: 4.1.1
   fluttertoast: 8.2.14
   fraction: 5.0.5
@@ -132,17 +145,16 @@ dependencies:
   home_widget: 0.8.0
   html_unescape: 2.0.0
   http: 1.6.0
-  hugeicons: 1.1.5
-  image: 4.5.4
+  hugeicons: 1.1.7
+  image: 4.7.0
   in_app_purchase: 3.2.1
   intl: 0.20.2
   just_audio: 0.10.5
   latlong2: 0.9.1
   launcher_icon_switcher: 0.0.2
-  like_button: 2.1.0
-  local_auth: 2.3.0
-  local_auth_android: 1.0.49
-  local_auth_ios: 1.1.7
+  local_auth: 3.0.1
+  local_auth_android: 2.0.8
+  local_auth_darwin: 2.0.3
   log_viewer:
     path: ../../packages/log_viewer
   logging: 1.3.0
@@ -150,84 +162,58 @@ dependencies:
   maps_launcher: 3.0.0+1
   media_extension:
     git:
-      url: https://github.com/ente-io/media_extension.git
+      url: https://github.com/ente/media_extension.git
       ref: 7dfca297926ad113780e8151d58262bf5f8c8e9c
-  media_kit:
-    git:
-      url: https://github.com/media-kit/media-kit
-      path: media_kit
-      ref: c9617f570b8c0ba02857e721997f78c053a856c1
-  media_kit_libs_ios_video:
-    git:
-      url: https://github.com/media-kit/media-kit
-      path: libs/ios/media_kit_libs_ios_video
-      ref: c9617f570b8c0ba02857e721997f78c053a856c1
-  media_kit_libs_video:
-    git:
-      url: https://github.com/media-kit/media-kit
-      path: libs/universal/media_kit_libs_video
-      ref: c9617f570b8c0ba02857e721997f78c053a856c1
-  media_kit_video:
-    git:
-      url: https://github.com/media-kit/media-kit
-      path: media_kit_video
-      ref: c9617f570b8c0ba02857e721997f78c053a856c1
+  media_kit: 1.2.2
+  media_kit_libs_video: 1.0.7
+  media_kit_video: 2.0.0
   mesh_gradient: 1.3.8
   ml_linalg: 13.12.6
   mobile_ocr:
     git:
-      url: https://github.com/ente-io/mobile_ocr
-      ref: bd1cce917e914690c00cc138b000b728742dde2b
+      url: https://github.com/ente/mobile_ocr
+      ref: 37aee4c4ff77c59a4ab46e272e31a53a035f628e
   modal_bottom_sheet: 3.0.0
   motionphoto:
     git:
-      url: https://github.com/ente-io/motionphoto.git
+      url: https://github.com/ente/motionphoto.git
       ref: 64e47a446bf3b64f012f2076481cebea51ca27cf
   move_to_background: # no updates in git, replace package
     git:
-      url: https://github.com/ente-io/move_to_background.git
+      url: https://github.com/ente/move_to_background.git
       ref: 0cdfeed654d79636eff0c57110f3f6ad5801ba2f
   nanoid: 1.0.0
+  native_dio_adapter: 1.5.1
   native_video_editor:
     path: ../../packages/native_video_editor
-  native_video_player: 4.0.0
-  onnx_dart:
-    path: plugins/onnx_dart
-  onnxruntime:
-    git:
-      url: https://github.com/ente-io/onnxruntime.git
-      ref: 212b2cab85647c6d2ffee213dc3b875ef2bf6504
+  native_video_player: 4.0.1
   open_mail_app: # replace plugin, git is archived
     git:
-      url: https://github.com/ente-io/open-mail-app-flutter.git
+      url: https://github.com/ente/open-mail-app-flutter.git
       ref: 13c0244db82b386ad1a53b2451bdfda8d2687cb6
   package_info_plus: 8.3.1
   panorama:
     git:
-      url: https://github.com/ente-io/panorama_blur.git
+      url: https://github.com/ente/panorama_blur.git
       ref: d7bf958d045ce5c06080aaa39074546f46f064d1
   password_strength: 0.2.0
   path: 1.9.1 #dart
   path_provider: 2.1.5
-  path_provider_foundation: 2.4.1
+  path_provider_foundation: 2.6.0
   permission_handler: 12.0.1
   photo_manager: 3.7.1
   photo_manager_image_provider: 2.2.0
   photo_view: 0.15.0
   pinput: 5.0.2
   pointycastle: 3.9.1
-  privacy_screen: # pub.dev is behind
-    git:
-      url: https://github.com/ente-io/privacy_screen.git
-      ref: 2389eaa88f07724a38b9dcab49fef8e96c723921
-  pro_image_editor: 11.3.0
+  pro_image_editor: 11.23.0
+  protobuf: 4.2.0
   random_access_source: 4.2.1
   receive_sharing_intent: # pub.dev is behind
     git:
       url: https://github.com/KasemJaffer/receive_sharing_intent.git
       ref: 2cea396843cd3ab1b5ec4334be4233864637874e
   rive: 0.14.0-dev.13
-  screenshot: 3.0.0
   scrollable_positioned_list: 0.3.8
   sentry: 8.14.2
   sentry_flutter: 8.14.2
@@ -237,21 +223,19 @@ dependencies:
   sqflite_migration: 0.3.0
   sqlite3_flutter_libs: 0.5.41
   sqlite_async: 0.11.7
-  step_progress_indicator: 1.0.2
   styled_text: 8.1.0
-  syncfusion_flutter_core: 29.2.11
-  syncfusion_flutter_sliders: 29.2.11
-  synchronized: 3.3.1
+  synchronized: 3.4.0
   system_info_plus: 0.0.6
   thermal: 1.1.11
+  timeago: 3.7.1
   timezone: 0.10.1
   tuple: 2.0.2
   ua_client_hints: 1.4.1
   url_launcher: 6.3.2
-  uuid: 4.5.2
+  uuid: 4.5.3
   video_editor: # edge cases handled in fork
     git:
-      url: https://github.com/ente-io/video_editor_fork.git
+      url: https://github.com/ente/video_editor_fork.git
       ref: 1eeb18e2b1ce36bd8ca70178c0d4b485e9982257
   video_player: 2.10.0
   video_thumbnail: 0.5.6
@@ -260,70 +244,24 @@ dependencies:
   wechat_assets_picker: 9.8.0
   widgets_to_image: 1.0.0
   workmanager: 0.9.0+3
-  xml: 6.5.0
-
-dependency_overrides:
-  cronet_http: 1.6.0
-  # Remove this after removing dependency from flutter_sodium.
-  # Newer flutter packages depends on ffi > 2.0.0 while flutter_sodium depends on ffi < 2.0.0
-  ffi: 2.1.0
-  flutter_sodium: # update source if there is any update
-    git:
-      url: https://github.com/ente-io/flutter_sodium
-      ref: a05d5b1bfdce64a387f8f5970160b22ce7b88282
-  intl: 0.20.2
-  js: 0.6.7
-  media_kit: # update media_kit* if there is any update
-    git:
-      url: https://github.com/media-kit/media-kit
-      path: media_kit
-      ref: c9617f570b8c0ba02857e721997f78c053a856c1
-  media_kit_libs_ios_video:
-    git:
-      url: https://github.com/media-kit/media-kit
-      path: libs/ios/media_kit_libs_ios_video
-      ref: c9617f570b8c0ba02857e721997f78c053a856c1
-  media_kit_libs_video:
-    git:
-      url: https://github.com/media-kit/media-kit
-      path: libs/universal/media_kit_libs_video
-      ref: c9617f570b8c0ba02857e721997f78c053a856c1
-  media_kit_video:
-    git:
-      url: https://github.com/media-kit/media-kit
-      path: media_kit_video
-      ref: c9617f570b8c0ba02857e721997f78c053a856c1
-  motion_sensors:
-    git:
-      url: https://github.com/deckerst/aves_panorama_motion_sensors.git
-      ref: 4b11d59f4bda152627f701070272f657f8358e67
-  protobuf: 3.1.0
-  # Fixes an iOS AVFoundation crash for videos whose minFrameDuration is zero.
-  # https://github.com/flutter/flutter/issues/151031
-  video_player_avfoundation:
-    git:
-      url: https://github.com/ente-io/packages.git
-      path: packages/video_player/video_player_avfoundation
-      ref: e6f7518a2ea4b31cf44e7bd6f44b35b1d66b2085
-  watcher: 1.1.2
-  win32: "5.10.1"
-
+  xml: 6.6.1
 dev_dependencies:
-  build_runner: 2.6.0
+  build_runner: 2.13.1
   flutter_driver:
     sdk: flutter
   flutter_launcher_icons: 0.14.4
-  flutter_lints: 5.0.0
-  flutter_native_splash: 2.4.6
+  flutter_lints: 6.0.0
+  flutter_native_splash: 2.4.7
   flutter_test:
     sdk: flutter
-  freezed: 3.2.0
+  freezed: 3.2.3
   integration_test:
     sdk: flutter
-  intl_utils: 2.8.10
   json_annotation: 4.9.0
-  json_serializable: 6.10.0
-  mockito: 5.5.0
+  json_serializable: 6.11.2
+  mockito: 5.5.1
+  path_provider_platform_interface: 2.1.3
+  sqflite_common_ffi: 2.3.7+1
   test: 1.26.3
 
 # ------------------------------
@@ -333,7 +271,7 @@ dev_dependencies:
 # (ADAPTIVE ICONS or NON ADAPTIVE ICONS) within the `flutter_icons` section. You
 # may have to update the `icon_X.xml` generated within `res/minimap-*` folder.
 # Sample commit for adding an icon:
-# https://github.com/ente-io/ente/commit/40ae8d91c359447fc2cf6672bfa754c5cc7a6af1
+# https://github.com/ente/ente/commit/40ae8d91c359447fc2cf6672bfa754c5cc7a6af1
 
 # flutter_icons:
 # ADAPTIVE ICONS
@@ -400,8 +338,11 @@ flutter:
     - assets/video-editor/
     - assets/image-editor/
     - assets/icons/
+    - assets/icons/nav_bar/
     - assets/launcher_icon/
   fonts:
+    # TODO: Migrate legacy Photos text styles to ente_components fonts, then
+    # remove this app-local Inter declaration.
     - family: Inter
       fonts:
         - asset: fonts/Inter-Regular.ttf

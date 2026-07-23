@@ -89,7 +89,7 @@ class MediaStreamTypes {
 enum SideDataType {
   displayMatrix;
 
-  getString() {
+  String getString() {
     switch (this) {
       case SideDataType.displayMatrix:
         return 'Display Matrix';

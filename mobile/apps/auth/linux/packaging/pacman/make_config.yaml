@@ -12,8 +12,10 @@ metainfo: linux/packaging/enteauth.appdata.xml
 
 dependencies:
   - sqlite
+  - libsodium
   - libsecret
   - libappindicator-gtk3
+  - polkit
 
 keywords:
   - Authentication
@@ -30,6 +32,8 @@ supported_mime_type:
 postinstall_scripts:
   - gtk-update-icon-cache -q -t -f usr/share/icons/hicolor
   - update-desktop-database -q
+  - install -D -o root -g root -m 0644 /usr/share/enteauth/data/flutter_assets/assets/polkit/com.ente.auth.policy /usr/share/polkit-1/actions/com.ente.auth.policy
+  - if command -v chcon >/dev/null 2>&1; then chcon system_u:object_r:usr_t:s0 /usr/share/polkit-1/actions/com.ente.auth.policy || true; fi
   - if [ ! -e /usr/lib/libsodium.so.23 ]; then
   - "   ln -s /usr/lib/libsodium.so /usr/lib/libsodium.so.23"
   - fi
@@ -40,6 +44,7 @@ postupgrade_scripts:
 postremove_scripts:
   - gtk-update-icon-cache -q -t -f usr/share/icons/hicolor
   - update-desktop-database -q
+  - rm -f /usr/share/polkit-1/actions/com.ente.auth.policy
   - if [ -e /usr/lib/libsodium.so.23 ]; then
   - rm /usr/lib/libsodium.so.23
   - fi

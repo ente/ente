@@ -1,10 +1,3 @@
-enum TagChipState {
-  selected,
-  unselected,
-}
+enum TagChipState { selected, unselected }
 
-enum TagChipAction {
-  none,
-  menu,
-  check,
-}
+enum TagChipAction { none, menu, check }

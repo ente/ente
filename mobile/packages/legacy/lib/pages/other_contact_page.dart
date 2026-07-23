@@ -17,7 +17,6 @@ import "package:flutter/material.dart";
 import "package:intl/intl.dart";
 import "package:logging/logging.dart";
 
-
 // OtherContactPage is used to start recovery process for other user's account
 // Based on the state of the contact & recovery session, it will show
 // different UI
@@ -72,9 +71,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
     _logger.info('session ${widget.emergencyInfo}');
     if (recoverySession != null) {
       final dateTime = DateTime.now().add(
-        Duration(
-          microseconds: recoverySession!.waitTill,
-        ),
+        Duration(microseconds: recoverySession!.waitTill),
       );
       waitTill = _getFormattedTime(context, dateTime);
     }
@@ -88,9 +85,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
           onTap: () {
             Navigator.pop(context);
           },
-          child: const Icon(
-            Icons.arrow_back_outlined,
-          ),
+          child: const Icon(Icons.arrow_back_outlined),
         ),
       ),
       body: Padding(
@@ -98,13 +93,8 @@ class _OtherContactPageState extends State<OtherContactPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TitleBarTitleWidget(
-              title: context.strings.recoverAccount,
-            ),
-            Text(
-              accountEmail,
-              style: textTheme.smallMuted,
-            ),
+            TitleBarTitleWidget(title: context.strings.recoverAccount),
+            Text(accountEmail, style: textTheme.smallMuted),
             const SizedBox(height: 12),
             // Description text based on recovery state
             if (recoverySession == null)
@@ -122,10 +112,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
               ),
             if (recoverySession != null && recoverySession!.status == "WAITING")
               Text(
-                context.strings.recoverAccountAfter(
-                  accountEmail,
-                  waitTill!,
-                ),
+                context.strings.recoverAccountAfter(accountEmail, waitTill!),
                 style: textTheme.smallMuted,
               ),
             const SizedBox(height: 24),
@@ -140,8 +127,9 @@ class _OtherContactPageState extends State<OtherContactPage> {
                         final confirmed = await showAlertBottomSheet<bool>(
                           context,
                           title: context.strings.startRecovery,
-                          message:
-                              context.strings.startRecoveryDesc(accountEmail),
+                          message: context.strings.startRecoveryDesc(
+                            accountEmail,
+                          ),
                           assetPath: "assets/warning-grey.png",
                           buttons: [
                             SizedBox(
@@ -159,7 +147,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
                           try {
                             await EmergencyContactService.instance
                                 .startRecovery(widget.contact);
-                            if (mounted) {
+                            if (context.mounted) {
                               _fetchData().ignore();
                               await showAlertBottomSheet(
                                 context,
@@ -172,8 +160,12 @@ class _OtherContactPageState extends State<OtherContactPage> {
                               );
                             }
                           } catch (e) {
-                            showGenericErrorDialog(context: context, error: e)
-                                .ignore();
+                            if (context.mounted) {
+                              showGenericErrorDialog(
+                                context: context,
+                                error: e,
+                              ).ignore();
+                            }
                           }
                         }
                       },
@@ -184,15 +176,26 @@ class _OtherContactPageState extends State<OtherContactPage> {
                 backgroundColor: colorScheme.primary700,
                 onTap: () async {
                   try {
-                    final (String key, KeyAttributes attributes) =
-                        await EmergencyContactService.instance
-                            .getRecoveryInfo(recoverySession!);
+                    final (
+                      String key,
+                      KeyAttributes attributes,
+                    ) = await EmergencyContactService.instance.getRecoveryInfo(
+                      recoverySession!,
+                    );
+                    if (!context.mounted) {
+                      return;
+                    }
                     routeToPage(
                       context,
                       RecoverOthersAccount(key, attributes, recoverySession!),
                     ).ignore();
                   } catch (e) {
-                    showGenericErrorDialog(context: context, error: e).ignore();
+                    if (context.mounted) {
+                      showGenericErrorDialog(
+                        context: context,
+                        error: e,
+                      ).ignore();
+                    }
                   }
                 },
               ),
@@ -261,9 +264,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
     return DateFormat(
       'E, MMM d, y - HH:mm',
       Localizations.localeOf(context).languageCode,
-    ).format(
-      dateTime,
-    );
+    ).format(dateTime);
   }
 
   Future<void> _showCancelRecoverySheet() async {
@@ -292,7 +293,9 @@ class _OtherContactPageState extends State<OtherContactPage> {
           _fetchData().ignore();
         }
       } catch (e) {
-        showGenericErrorDialog(context: context, error: e).ignore();
+        if (mounted) {
+          showGenericErrorDialog(context: context, error: e).ignore();
+        }
       }
     }
   }
@@ -326,7 +329,9 @@ class _OtherContactPageState extends State<OtherContactPage> {
           Navigator.of(context).pop();
         }
       } catch (e) {
-        showGenericErrorDialog(context: context, error: e).ignore();
+        if (mounted) {
+          showGenericErrorDialog(context: context, error: e).ignore();
+        }
       }
     }
   }

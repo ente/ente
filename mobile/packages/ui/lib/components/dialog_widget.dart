@@ -83,11 +83,7 @@ class DialogWidget extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ContentContainer(
-                  title: title,
-                  body: body,
-                  icon: icon,
-                ),
+                ContentContainer(title: title, body: body, icon: icon),
                 const SizedBox(height: 36),
                 Actions(buttons),
               ],
@@ -120,14 +116,7 @@ class ContentContainer extends StatelessWidget {
       children: [
         icon == null
             ? const SizedBox.shrink()
-            : Row(
-                children: [
-                  Icon(
-                    icon,
-                    size: 32,
-                  ),
-                ],
-              ),
+            : Row(children: [Icon(icon, size: 32)]),
         icon == null ? const SizedBox.shrink() : const SizedBox(height: 19),
         Text(title, style: textTheme.largeBold),
         body != null ? const SizedBox(height: 19) : const SizedBox.shrink(),

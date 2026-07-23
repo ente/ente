@@ -5,13 +5,13 @@
         "dev": "vitepress dev docs",
         "build": "vitepress build docs",
         "preview": "vitepress preview docs",
-        "pretty": "prettier --write .",
-        "pretty:check": "prettier -c ."
+        "lint": "prettier --check --log-level warn .",
+        "lint:fix": "prettier --write --log-level warn ."
     },
     "devDependencies": {
-        "prettier": "3.6.2",
-        "sitemap": "8.0.2",
+        "prettier": "3.8.3",
+        "sitemap": "9.0.1",
         "vitepress": "1.6.4"
     },
-    "packageManager": "yarn@1.22.22"
+    "packageManager": "npm@11.12.1"
 }

@@ -92,9 +92,9 @@ class _PathInfoStorageViewerState extends State<PathInfoStorageViewer> {
               padding: const EdgeInsets.only(left: 12.0),
               child: Text(
                 formatBytes(stat.size),
-                style: getEnteTextTheme(context)
-                    .small
-                    .copyWith(color: getEnteColorScheme(context).textFaint),
+                style: getEnteTextTheme(
+                  context,
+                ).small.copyWith(color: getEnteColorScheme(context).textFaint),
               ),
             )
           : SizedBox.fromSize(

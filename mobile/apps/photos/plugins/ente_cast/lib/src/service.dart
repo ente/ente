@@ -79,9 +79,13 @@ class CastService {
       debugPrint("send close message for ${session.sessionId}");
       unawaited(
         Future(() {
-          session.sendMessage(CastSession.kNamespaceConnection, {
-            "type": "CLOSE",
-          });
+          try {
+            session.sendMessage(CastSession.kNamespaceConnection, {
+              "type": "CLOSE",
+            });
+          } catch (error) {
+            debugPrint("sendMessage failed: $error");
+          }
         }).timeout(
           const Duration(seconds: 5),
           onTimeout: () {

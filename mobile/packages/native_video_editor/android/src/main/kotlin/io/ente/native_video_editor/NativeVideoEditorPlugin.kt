@@ -76,11 +76,10 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
                                 )
                             )
                         }
+                    } catch (e: LinkageError) {
+                        reportProcessingError(result, "TRIM_LINKAGE_ERROR", "Trim", e)
                     } catch (e: Exception) {
-                        // Log.e(TAG, "Trim failed", e)
-                        withContext(Dispatchers.Main) {
-                            result.error("TRIM_ERROR", e.message, buildErrorDetails(e))
-                        }
+                        reportProcessingError(result, "TRIM_ERROR", "Trim", e)
                     } finally {
                         currentJob = null
                     }
@@ -116,11 +115,10 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
                                 )
                             )
                         }
+                    } catch (e: LinkageError) {
+                        reportProcessingError(result, "ROTATE_LINKAGE_ERROR", "Rotation", e)
                     } catch (e: Exception) {
-                        // Log.e(TAG, "Rotation failed", e)
-                        withContext(Dispatchers.Main) {
-                            result.error("ROTATE_ERROR", e.message, buildErrorDetails(e))
-                        }
+                        reportProcessingError(result, "ROTATE_ERROR", "Rotation", e)
                     } finally {
                         currentJob = null
                     }
@@ -162,11 +160,10 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
                                 )
                             )
                         }
+                    } catch (e: LinkageError) {
+                        reportProcessingError(result, "CROP_LINKAGE_ERROR", "Crop", e)
                     } catch (e: Exception) {
-                        // Log.e(TAG, "Crop failed", e)
-                        withContext(Dispatchers.Main) {
-                            result.error("CROP_ERROR", e.message, buildErrorDetails(e))
-                        }
+                        reportProcessingError(result, "CROP_ERROR", "Crop", e)
                     } finally {
                         currentJob = null
                     }
@@ -185,10 +182,10 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
                         withContext(Dispatchers.Main) {
                             result.success(info)
                         }
+                    } catch (e: LinkageError) {
+                        reportProcessingError(result, "INFO_LINKAGE_ERROR", "Get video info", e)
                     } catch (e: Exception) {
-                        withContext(Dispatchers.Main) {
-                            result.error("INFO_ERROR", e.message, buildErrorDetails(e))
-                        }
+                        reportProcessingError(result, "INFO_ERROR", "Get video info", e)
                     } finally {
                         currentJob = null
                     }
@@ -316,14 +313,29 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
                         )
                     )
                 }
+            } catch (e: LinkageError) {
+                reportProcessingError(result, "PROCESS_LINKAGE_ERROR", "Process video", e)
             } catch (e: Exception) {
-                // Log.e(TAG, "Process video failed", e)
-                withContext(Dispatchers.Main) {
-                    result.error("PROCESS_ERROR", e.message, buildErrorDetails(e))
-                }
+                reportProcessingError(result, "PROCESS_ERROR", "Process video", e)
             } finally {
                 currentJob = null
             }
+        }
+    }
+
+    private suspend fun reportProcessingError(
+        result: Result,
+        code: String,
+        operation: String,
+        throwable: Throwable
+    ) {
+        Log.e(TAG, "$operation failed", throwable)
+        withContext(Dispatchers.Main) {
+            result.error(
+                code,
+                throwable.message ?: throwable::class.java.simpleName,
+                buildErrorDetails(throwable)
+            )
         }
     }
 

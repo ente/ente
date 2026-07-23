@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 )
 
 // Listmonk credentials to interact with the Listmonk API.
@@ -27,6 +27,8 @@ type Credentials struct {
 }
 
 const listmonkRequestTimeout = 60 * time.Second
+
+var ErrSubscriberNotFound = errors.New("subscriber not found")
 
 // Subscriber captures a listmonk subscriber record required by museum.
 type Subscriber struct {
@@ -89,6 +91,12 @@ func GetSubscriberID(endpoint string, username string, password string, subscrib
 	if err != nil {
 		return 0, stacktrace.Propagate(err, "")
 	}
+	if resp.StatusCode != http.StatusOK {
+		return 0, stacktrace.Propagate(
+			fmt.Errorf("listmonk request failed with status %d: %s", resp.StatusCode, strings.TrimSpace(string(body))),
+			"",
+		)
+	}
 
 	// Parsing the JSON response
 	var subscriberResp SubscriberResponse
@@ -98,7 +106,7 @@ func GetSubscriberID(endpoint string, username string, password string, subscrib
 
 	// Checking if there are any subscribers found
 	if len(subscriberResp.Data.Results) == 0 {
-		return 0, stacktrace.Propagate(errors.New("subscriber not found"), "")
+		return 0, stacktrace.Propagate(ErrSubscriberNotFound, "")
 	}
 
 	// Extracting the ID from the response

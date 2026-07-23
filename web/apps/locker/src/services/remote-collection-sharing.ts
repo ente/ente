@@ -1,7 +1,7 @@
+import type { LockerCollectionParticipant } from "@/types";
 import { getPublicKey } from "ente-accounts-rs/services/user";
 import { authenticatedRequestHeaders, ensureOk } from "ente-base/http";
 import { apiURL } from "ente-base/origins";
-import type { LockerCollectionParticipant } from "types";
 import { z } from "zod";
 import { boxSeal } from "./crypto";
 import {

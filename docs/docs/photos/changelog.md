@@ -7,6 +7,76 @@ description: Release notes of recent updates to Ente Photos mobile and desktop a
 
 A short summary list of changes to the Ente Photos mobile and desktop apps. For a more descriptive list with screenshots and blog post links, see the [news](https://ente.com/news).
 
+## v1.3.58 (mobile) - Jul 2026
+
+* Added support for casting albums to multiple screens and managing active cast sessions.
+* Improved the account deletion flow with clearer impact details and confirmation.
+* Simplified delete confirmations into a single prompt that remembers the last selected option.
+* Clear cached images and videos from device storage during logout and automatic cache cleanup.
+* Fixed backup folder selection when switching from the local gallery to an account.
+* Reduced storage growth on iOS by deleting temporary photo copies after machine-learning processing.
+* Show smaller detected people groups in Search when larger groups are unavailable.
+
+## v1.7.26 (desktop) - Jul 2026
+
+- Fix machine learning features failing to load.
+
+## v1.7.25 (desktop) - Jun 2026
+
+- Reduce desktop app package size by excluding unused ONNX Runtime native binaries.
+- Sign shipped Windows native modules and DLLs.
+- Make the upload dialog draggable.
+- Import Google Takeout favourites into Favourite Album.
+- Navigate files keeping the File Info opened using Alt/Option + Arrow Keys
+- Use Google Takeout metadata titles when naming imported folders.
+- Update the Archive section to show only archived albums on the top bar.
+- Fix link icon visibility for albums shared with people and a public link. By @yashs33244.
+- Show files skipped during upload (hidden files and unreadable zips) in the upload progress.
+- Support Traditional Chinese and Urdu translations.
+- Update to Electron 42.
+
+## v1.3.57 (mobile) - Jun 2026
+
+- Redesigned the Search tab with improved spacing, previews, empty states, and keyboard handling.
+- Improved Albums with Shared/Received filters, refreshed empty states, and better add-to-album flows.
+- Fixed a bug in bulk file downloads and improved backup album selection.
+- Added skipped backup file reasons, such as “Deleted from Ente”.
+- Preserved draft comments when closing and reopening the photo comment panel.
+- Polished app lock, login/signup, gallery, trash, and warning screens.
+
+## v1.3.56 (mobile) - Jun 2026
+
+- Update to media_kit v1.2.2 to fix app crashing on using media_kit video player.
+- Add album title tooltips, fix album sorting labels, and consistent typography.
+- Fixed album widgets repeatedly showing the same cached photos from selected albums.
+- Fixed JPEG export artifacts in the image editor.
+- Use app bar from new design on galleries.
+- Stopped repeatedly retrying Apple Photos items that cannot be downloaded from iCloud during backup.
+- Migrated remaining sharing calls from `Share` to `SharePlus`.
+
+## v1.7.24 (desktop) - May 2026
+
+- Upload files to shared albums
+- Add shared files to your albums
+- Add shared files to shared albums
+- Favorite files in shared albums
+- Indicator for shared files in map view
+
+## v1.3.54 (mobile) - Jun 2026
+
+- New design system
+- Improved albums navigation
+- Feed gets its own tab
+- Bulk ignore faces from photo info
+- Better OCR animations
+- Faster file downloads
+- Faster face thumbnail generation
+- Fixed ML lookup failures for large offline galleries
+- Fixed video edit delete navigation
+- Fixed upload dates for files with ISO-like metadata timestamps
+- Fixed grey screen after single-memory delete or favorite actions
+- Better file-picker support for selecting photos in other Android apps
+
 ## v1.3.44 (mobile) - May 2026
 
 - Added support for selecting photos in 3rd party apps

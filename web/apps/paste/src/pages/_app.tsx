@@ -1,4 +1,5 @@
 import "@fontsource-variable/inter";
+import "@fontsource/gochi-hand";
 import { CssBaseline } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import { CustomHead } from "ente-base/components/Head";

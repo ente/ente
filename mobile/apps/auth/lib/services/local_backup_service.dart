@@ -375,9 +375,7 @@ class LocalBackupService {
 
 class _BackupTarget {
   const _BackupTarget.file(this.path, {this.iosBookmark}) : treeUri = null;
-  const _BackupTarget.saf(this.treeUri)
-      : path = null,
-        iosBookmark = null;
+  const _BackupTarget.saf(this.treeUri) : path = null, iosBookmark = null;
 
   final String? path;
   final String? treeUri;

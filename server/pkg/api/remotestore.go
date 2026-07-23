@@ -1,13 +1,12 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller/remotestore"
-	"github.com/ente-io/museum/pkg/utils/handler"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller/remotestore"
+	"github.com/ente/museum/pkg/utils/handler"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,9 +18,8 @@ type RemoteStoreHandler struct {
 // InsertOrUpdate handler for inserting or updating key
 func (h *RemoteStoreHandler) InsertOrUpdate(c *gin.Context) {
 	var request ente.UpdateKeyValueRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		handler.Error(c,
-			stacktrace.Propagate(ente.ErrBadRequest, fmt.Sprintf("Request binding failed %s", err)))
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Request binding failed"))
 		return
 	}
 
@@ -52,7 +50,7 @@ func (h *RemoteStoreHandler) GetKey(c *gin.Context) {
 	var request ente.GetValueRequest
 	if err := c.ShouldBindQuery(&request); err != nil {
 		handler.Error(c,
-			stacktrace.Propagate(ente.ErrBadRequest, fmt.Sprintf("Request binding failed %s", err)))
+			stacktrace.Propagate(ente.ErrBadRequest, "Request binding failed %s", err))
 		return
 	}
 
@@ -81,9 +79,13 @@ func (h *RemoteStoreHandler) CheckDomain(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(ente.NewBadRequestWithMessage("domain is missing"), ""))
 		return
 	}
+	if err := ente.ValidatePublicCustomDomain(domain); err != nil {
+		c.Status(http.StatusBadRequest)
+		return
+	}
 	_, err := h.Controller.DomainOwner(c, domain)
 	if err != nil {
-		handler.Error(c, stacktrace.Propagate(err, "failed to get feature flags"))
+		handler.Error(c, stacktrace.Propagate(err, "failed to check custom domain"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{})

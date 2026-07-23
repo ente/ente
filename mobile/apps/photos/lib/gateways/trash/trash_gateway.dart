@@ -26,29 +26,20 @@ class TrashGateway {
   ///
   /// [items] - List of maps containing fileID and collectionID for each file.
   Future<void> trashFiles(List<Map<String, dynamic>> items) async {
-    await _enteDio.post(
-      "/files/trash",
-      data: {"items": items},
-    );
+    await _enteDio.post("/files/trash", data: {"items": items});
   }
 
   /// Permanently deletes files from trash.
   ///
   /// [fileIDs] - List of file IDs to permanently delete.
   Future<void> deleteFiles(List<int> fileIDs) async {
-    await _enteDio.post(
-      "/trash/delete",
-      data: {"fileIDs": fileIDs},
-    );
+    await _enteDio.post("/trash/delete", data: {"fileIDs": fileIDs});
   }
 
   /// Empties the trash, permanently deleting all trashed files.
   ///
   /// [lastUpdatedAt] - Last sync timestamp to ensure consistency.
   Future<void> emptyTrash(int lastUpdatedAt) async {
-    await _enteDio.post(
-      "/trash/empty",
-      data: {"lastUpdatedAt": lastUpdatedAt},
-    );
+    await _enteDio.post("/trash/empty", data: {"lastUpdatedAt": lastUpdatedAt});
   }
 }

@@ -25,8 +25,9 @@ class RitualsService {
   static const _notificationLookaheadDays = 60;
   static const _maxScheduledNotificationsPerRitual = 30;
   final Logger _logger = Logger("RitualsService");
-  final ValueNotifier<RitualsState> stateNotifier =
-      ValueNotifier<RitualsState>(RitualsState.loading());
+  final ValueNotifier<RitualsState> stateNotifier = ValueNotifier<RitualsState>(
+    RitualsState.loading(),
+  );
   late SharedPreferences _preferences;
   Timer? _debounce;
   int _refreshGeneration = 0;
@@ -46,8 +47,9 @@ class RitualsService {
       );
       return;
     }
-    _filesUpdatedSubscription =
-        Bus.instance.on<FilesUpdatedEvent>().listen((event) {
+    _filesUpdatedSubscription = Bus.instance.on<FilesUpdatedEvent>().listen((
+      event,
+    ) {
       if (event is CollectionUpdatedEvent &&
           event.collectionID != null &&
           (event.type == EventType.deletedFromRemote ||
@@ -234,21 +236,17 @@ class RitualsService {
     );
   }
 
-  Future<RitualsSummary> _buildSummary(
-    List<Ritual> rituals,
-  ) async {
+  Future<RitualsSummary> _buildSummary(List<Ritual> rituals) async {
     final userId = Configuration.instance.getUserID();
     final now = DateTime.now();
     final todayMidnight = DateTime(now.year, now.month, now.day);
     final monthStart = DateTime(now.year, now.month, 1);
     final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
-    final monthEndInclusive =
-        lastDayOfMonth.isAfter(todayMidnight) ? todayMidnight : lastDayOfMonth;
+    final monthEndInclusive = lastDayOfMonth.isAfter(todayMidnight)
+        ? todayMidnight
+        : lastDayOfMonth;
     if (userId == null) {
-      return RitualsSummary(
-        ritualProgress: {},
-        generatedAt: DateTime.now(),
-      );
+      return RitualsSummary(ritualProgress: {}, generatedAt: DateTime.now());
     }
     final ritualAlbumIds = rituals
         .map((r) => r.albumId)
@@ -272,11 +270,12 @@ class RitualsService {
     );
     final recentStart = todayMidnight.subtract(const Duration(days: 42));
     for (final EnteFile file in files) {
-      final bool ownerMatches =
-          file.ownerID == null ? true : file.ownerID == userId;
+      final bool ownerMatches = file.ownerID == null
+          ? true
+          : file.ownerID == userId;
       final bool eligible =
           (file.uploadedFileID != null && file.uploadedFileID != -1) ||
-              (file.localID != null && file.localID!.isNotEmpty);
+          (file.localID != null && file.localID!.isNotEmpty);
       if (!(ownerMatches && eligible)) {
         continue;
       }
@@ -285,8 +284,9 @@ class RitualsService {
       if (collectionId == null || collectionId <= 0) continue;
       if (!ritualAlbumIds.contains(collectionId)) continue;
 
-      final date =
-          DateTime.fromMicrosecondsSinceEpoch(file.creationTime!).toLocal();
+      final date = DateTime.fromMicrosecondsSinceEpoch(
+        file.creationTime!,
+      ).toLocal();
       final bucket = DateTime(date.year, date.month, date.day);
       if (bucket.isAfter(todayMidnight)) continue;
       final dayKey = bucket.millisecondsSinceEpoch;
@@ -298,8 +298,10 @@ class RitualsService {
         () => <int, int>{},
       );
       countsByDay.update(dayKey, (value) => value + 1, ifAbsent: () => 1);
-      final byDay =
-          collectionRecentFilesByDay.putIfAbsent(collectionId, () => {});
+      final byDay = collectionRecentFilesByDay.putIfAbsent(
+        collectionId,
+        () => {},
+      );
       final existing = byDay[dayKey];
       if (existing == null) {
         byDay[dayKey] = file;
@@ -353,11 +355,7 @@ class RitualsService {
   Future<List<Ritual>> _loadRituals() async {
     final raw = _preferences.getStringList(_ritualsPrefsKey) ?? [];
     final rituals = raw
-        .map(
-          (str) => Ritual.fromJson(
-            Map<String, dynamic>.from(_decode(str)),
-          ),
-        )
+        .map((str) => Ritual.fromJson(Map<String, dynamic>.from(_decode(str))))
         .where((element) => element.id.isNotEmpty)
         .toList(growable: true);
     return _pruneOrphanedRituals(rituals);
@@ -502,10 +500,12 @@ class RitualsService {
     final baseId = ritual.id.hashCode & 0x7fffffff;
     final l10n = await LanguageService.locals;
     int scheduled = 0;
-    for (int offset = 0;
-        offset < _notificationLookaheadDays &&
-            scheduled < _maxScheduledNotificationsPerRitual;
-        offset++) {
+    for (
+      int offset = 0;
+      offset < _notificationLookaheadDays &&
+          scheduled < _maxScheduledNotificationsPerRitual;
+      offset++
+    ) {
       final targetDate = today.add(Duration(days: offset));
       final dayIndex = targetDate.weekday % 7; // Sunday -> 0
       if (!ritual.daysOfWeek[dayIndex]) continue;
@@ -513,8 +513,9 @@ class RitualsService {
         continue;
       }
       final icon = ritual.icon.isEmpty ? "📸" : ritual.icon;
-      final title =
-          ritual.title.trim().isEmpty ? icon : "$icon ${ritual.title.trim()}";
+      final title = ritual.title.trim().isEmpty
+          ? icon
+          : "$icon ${ritual.title.trim()}";
       final scheduledDate = DateTime(
         targetDate.year,
         targetDate.month,
@@ -604,12 +605,13 @@ class RitualsService {
         if (createdTime == null || createdTime < start || createdTime >= end) {
           continue;
         }
-        final ownerMatches =
-            file.ownerID == null ? true : file.ownerID == userId;
+        final ownerMatches = file.ownerID == null
+            ? true
+            : file.ownerID == userId;
         if (!ownerMatches) continue;
         final eligible =
             (file.uploadedFileID != null && file.uploadedFileID != -1) ||
-                (file.localID != null && file.localID!.isNotEmpty);
+            (file.localID != null && file.localID!.isNotEmpty);
         if (!eligible) continue;
         return true;
       }
@@ -689,9 +691,11 @@ class RitualsService {
 
     int longest = 0;
     int rolling = 0;
-    for (var day = startDay;
-        !day.isAfter(endDayInclusive);
-        day = _nextDay(day)) {
+    for (
+      var day = startDay;
+      !day.isAfter(endDayInclusive);
+      day = _nextDay(day)
+    ) {
       final dayIndex = day.weekday % 7; // Sunday -> 0
       if (!_isScheduledDay(daysOfWeek, dayIndex)) continue;
 

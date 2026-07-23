@@ -1,16 +1,16 @@
+import 'package:ente_components/ente_components.dart';
 import "package:ente_ui/components/captioned_text_widget_v2.dart";
 import "package:ente_ui/components/divider_widget.dart";
 import "package:ente_ui/components/menu_item_widget_v2.dart";
 import "package:ente_ui/components/separators.dart";
 import "package:ente_ui/components/title_bar_title_widget.dart";
 import "package:ente_ui/components/title_bar_widget.dart";
-import "package:ente_ui/theme/ente_theme.dart";
-import "package:ente_ui/utils/dialog_util.dart";
 import 'package:flutter/material.dart';
 import "package:locker/core/constants.dart";
 import "package:locker/l10n/l10n.dart";
 import "package:locker/services/collections/collections_api_client.dart";
 import "package:locker/services/collections/models/collection.dart";
+import "package:locker/utils/error_sheet.dart";
 
 class DeviceLimitPickerPage extends StatelessWidget {
   final Collection collection;
@@ -28,27 +28,23 @@ class DeviceLimitPickerPage extends StatelessWidget {
             ),
           ),
           SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 20,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ClipRRect(
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(8)),
-                        child: ItemsWidget(collection),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              childCount: 1,
-            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.all(Radius.circular(8)),
+                      child: ItemsWidget(collection),
+                    ),
+                  ],
+                ),
+              );
+            }, childCount: 1),
           ),
           const SliverPadding(padding: EdgeInsets.symmetric(vertical: 12)),
         ],
@@ -106,13 +102,10 @@ class _ItemsWidgetState extends State<ItemsWidget> {
       items,
       DividerWidget(
         dividerType: DividerType.menuNoIcon,
-        bgColor: getEnteColorScheme(context).fillFaint,
+        bgColor: context.componentColors.fillLight,
       ),
     );
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: items,
-    );
+    return Column(mainAxisSize: MainAxisSize.min, children: items);
   }
 
   Widget _menuItemForPicker(
@@ -122,7 +115,7 @@ class _ItemsWidgetState extends State<ItemsWidget> {
   }) {
     return MenuItemWidgetV2(
       key: ValueKey(deviceLimit),
-      menuItemColor: getEnteColorScheme(context).fillFaint,
+      menuItemColor: context.componentColors.fillLight,
       captionedTextWidget: CaptionedTextWidgetV2(
         title: deviceLimit == 0 ? context.l10n.noDeviceLimit : "$deviceLimit",
       ),
@@ -132,13 +125,13 @@ class _ItemsWidgetState extends State<ItemsWidget> {
       isBottomBorderRadiusRemoved: !isLast,
       showOnlyLoadingState: true,
       onTap: () async {
-        await _updateUrlSettings(context, {
-          'deviceLimit': deviceLimit,
-        }).then(
-          (value) => setState(() {
-            currentDeviceLimit = deviceLimit;
-          }),
-        );
+        await _updateUrlSettings(context, {'deviceLimit': deviceLimit});
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          currentDeviceLimit = deviceLimit;
+        });
       },
     );
   }
@@ -148,10 +141,14 @@ class _ItemsWidgetState extends State<ItemsWidget> {
     Map<String, dynamic> prop,
   ) async {
     try {
-      await CollectionApiClient.instance
-          .updateShareUrl(widget.collection, prop);
+      await CollectionApiClient.instance.updateShareUrl(
+        widget.collection,
+        prop,
+      );
     } catch (e) {
-      await showGenericErrorBottomSheet(context: context, error: e);
+      if (context.mounted) {
+        await showLockerErrorSheet(context, e);
+      }
       rethrow;
     }
   }

@@ -162,7 +162,7 @@ void main() {
         "caution/light": Color.fromRGBO(250, 244, 235, 1),
         "fill/base": Color.fromRGBO(0, 0, 0, 1),
         "fill/dark": Color.fromRGBO(234, 234, 234, 1),
-        "fill/darker": Color.fromRGBO(233, 233, 233, 1),
+        "fill/darker": Color.fromRGBO(222, 222, 222, 1),
         "fill/darkest": Color.fromRGBO(210, 210, 210, 1),
         "fill/light": Color.fromRGBO(255, 255, 255, 1),
         "primary/dark": Color.fromRGBO(6, 157, 30, 1),
@@ -183,7 +183,7 @@ void main() {
         "text/darker": Color.fromRGBO(21, 21, 21, 1),
         "text/light": Color.fromRGBO(102, 102, 102, 1),
         "text/lighter": Color.fromRGBO(150, 150, 150, 1),
-        "text/lightest": Color.fromRGBO(222, 222, 222, 1),
+        "text/lightest": Color.fromRGBO(214, 214, 214, 1),
         "text/reverse": Color.fromRGBO(255, 255, 255, 1),
         "warning/dark": Color.fromRGBO(221, 52, 52, 1),
         "warning/darker": Color.fromRGBO(197, 46, 46, 1),
@@ -217,7 +217,7 @@ void main() {
         "special/white": Color.fromRGBO(255, 255, 255, 1),
         "special/white-overlay": Color.fromRGBO(255, 255, 255, 0.14),
         "stroke/dark": Color.fromRGBO(62, 62, 62, 1),
-        "stroke/faint": Color.fromRGBO(33, 33, 33, 1),
+        "stroke/faint": Color.fromRGBO(42, 42, 42, 1),
         "text/base": Color.fromRGBO(255, 255, 255, 1),
         "text/dark": Color.fromRGBO(229, 229, 229, 1),
         "text/darker": Color.fromRGBO(204, 204, 204, 1),
@@ -239,7 +239,22 @@ void main() {
   group("text styles", () {
     test("match the published type scale", () {
       expect(TextStyles.fontFamily, "Inter");
+      expect(TextStyles.outfitFontFamily, "Outfit");
+      expect(TextStyles.fontPackage, "ente_components");
 
+      expect(TextStyles.display1.fontFamily, "packages/ente_components/Outfit");
+      expect(TextStyles.display1.fontSize, 32);
+      expect(TextStyles.display1.height, 40 / 32);
+      expect(TextStyles.display1.fontWeight, FontWeight.w600);
+      expect(TextStyles.display1.letterSpacing, 0);
+
+      expect(TextStyles.display2.fontFamily, "packages/ente_components/Outfit");
+      expect(TextStyles.display2.fontSize, 24);
+      expect(TextStyles.display2.height, 32 / 24);
+      expect(TextStyles.display2.fontWeight, FontWeight.w600);
+      expect(TextStyles.display2.letterSpacing, 0);
+
+      expect(TextStyles.h1.fontFamily, "packages/ente_components/Inter");
       expect(TextStyles.h1.fontSize, 20);
       expect(TextStyles.h1.height, 28 / 20);
       expect(TextStyles.h1.fontWeight, FontWeight.w700);
@@ -249,6 +264,12 @@ void main() {
       expect(TextStyles.h2.height, 24 / 18);
       expect(TextStyles.h2.fontWeight, FontWeight.w600);
 
+      expect(TextStyles.display3.fontFamily, "packages/ente_components/Outfit");
+      expect(TextStyles.display3.fontSize, 20);
+      expect(TextStyles.display3.height, 28 / 20);
+      expect(TextStyles.display3.fontWeight, FontWeight.w600);
+
+      expect(TextStyles.body.fontFamily, "packages/ente_components/Inter");
       expect(TextStyles.body.fontSize, 14);
       expect(TextStyles.body.height, 20 / 14);
       expect(TextStyles.body.fontWeight, FontWeight.w500);
@@ -267,13 +288,19 @@ void main() {
       expect(theme.scaffoldBackgroundColor, ColorTokens.light.backgroundBase);
       expect(theme.colorScheme.primary, ColorTokens.light.primary);
       expect(theme.colorScheme.error, ColorTokens.light.warning);
-      expect(theme.textTheme.headlineLarge?.fontFamily, TextStyles.fontFamily);
+      expect(
+        theme.textTheme.headlineLarge?.fontFamily,
+        TextStyles.h1.fontFamily,
+      );
       expect(theme.textTheme.headlineLarge?.fontSize, TextStyles.h1.fontSize);
       expect(
         theme.textTheme.headlineLarge?.fontWeight,
         TextStyles.h1.fontWeight,
       );
-      expect(theme.textTheme.bodyMedium?.fontFamily, TextStyles.fontFamily);
+      expect(
+        theme.textTheme.bodyMedium?.fontFamily,
+        TextStyles.body.fontFamily,
+      );
       expect(theme.textTheme.bodyMedium?.fontSize, TextStyles.body.fontSize);
     });
 
@@ -284,7 +311,10 @@ void main() {
       expect(theme.scaffoldBackgroundColor, ColorTokens.dark.backgroundBase);
       expect(theme.colorScheme.primary, ColorTokens.dark.primary);
       expect(theme.colorScheme.error, ColorTokens.dark.warning);
-      expect(theme.textTheme.labelSmall?.fontFamily, TextStyles.fontFamily);
+      expect(
+        theme.textTheme.labelSmall?.fontFamily,
+        TextStyles.tiny.fontFamily,
+      );
       expect(theme.textTheme.labelSmall?.fontSize, TextStyles.tiny.fontSize);
       expect(
         theme.textTheme.labelSmall?.fontWeight,

@@ -62,8 +62,9 @@ class UserDetails {
     if (familyData?.members == null) {
       return null;
     }
-    return familyData!.members!
-        .firstWhereOrNull((member) => member.email.trim() == email.trim());
+    return familyData!.members!.firstWhereOrNull(
+      (member) => member.email.trim() == email.trim(),
+    );
   }
 
   bool isFamilyAdmin() {
@@ -131,7 +132,7 @@ class UserDetails {
       (map['storageBonus'] ?? 0) as int,
       (map['sharedCollectionsCount'] ?? 0) as int,
       Subscription.fromMap(map['subscription']),
-      FamilyData.fromMap(map['familyData']),
+      map['familyData'] != null ? FamilyData.fromMap(map['familyData']) : null,
       ProfileData.fromJson(map['profileData']),
       BonusData.fromJson(map['bonusData']),
     );
@@ -161,6 +162,7 @@ class FamilyMember {
   final String email;
   final int usage;
   final String id;
+  final int? userID;
   final bool isAdmin;
   final FamilyMemberStatus status;
   final int? storageLimit;
@@ -169,6 +171,7 @@ class FamilyMember {
     this.email,
     this.usage,
     this.id,
+    this.userID,
     this.isAdmin,
     this.status,
     this.storageLimit,
@@ -185,6 +188,7 @@ class FamilyMember {
       (map['email'] ?? '') as String,
       (map['usage'] ?? 0) as int,
       map['id'] as String,
+      map['userID'] as int?,
       map['isAdmin'] as bool,
       FamilyMemberStatus.fromServerValue(map['status'] as String?),
       map['storageLimit'] as int?,
@@ -196,6 +200,7 @@ class FamilyMember {
       'email': email,
       'usage': usage,
       'id': id,
+      'userID': userID,
       'isAdmin': isAdmin,
       'status': status.serverValue,
       'storageLimit': storageLimit,
@@ -249,12 +254,7 @@ class FamilyData {
   final int expiryTime;
   final int adminBonus;
 
-  FamilyData(
-    this.members,
-    this.storage,
-    this.expiryTime,
-    this.adminBonus,
-  );
+  FamilyData(this.members, this.storage, this.expiryTime, this.adminBonus);
 
   int getTotalUsage() {
     return members
@@ -268,8 +268,7 @@ class FamilyData {
     return members!.firstWhereOrNull((element) => element.id == id);
   }
 
-  static fromMap(Map<String, dynamic>? map) {
-    if (map == null) return null;
+  static FamilyData fromMap(Map<String, dynamic> map) {
     assert(map['members'] != null && map['members'].length >= 0);
     final members = List<FamilyMember>.from(
       map['members'].map((x) => FamilyMember.fromMap(x)),

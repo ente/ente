@@ -1,3 +1,10 @@
+import { CollectionChipRow } from "@/components/createItemDialog/CollectionChipRow";
+import {
+    lockerItemIcon,
+    lockerItemIconConfig,
+} from "@/components/lockerItemIcons";
+import type { LockerUploadProgress } from "@/services/remote";
+import type { LockerCollection, LockerUploadCandidate } from "@/types";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
@@ -12,11 +19,6 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
-import { CollectionChipRow } from "components/createItemDialog/CollectionChipRow";
-import {
-    lockerItemIcon,
-    lockerItemIconConfig,
-} from "components/lockerItemIcons";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { t } from "i18next";
@@ -28,8 +30,6 @@ import React, {
     useRef,
     useState,
 } from "react";
-import type { LockerUploadProgress } from "services/remote";
-import type { LockerCollection, LockerUploadCandidate } from "types";
 
 import {
     addCollectionName,

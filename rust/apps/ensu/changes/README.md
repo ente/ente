@@ -1,4 +1,4 @@
-For each user facing change, create a new `01-arbitrary-slug.md`, e.g.:
+For each user facing change, create a new `arbitrary-slug.md`, e.g.:
 
 ```md
 - Added support for switching model endpoints.

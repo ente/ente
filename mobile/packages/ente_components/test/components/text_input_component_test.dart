@@ -94,8 +94,37 @@ void main() {
 
     expect(
       _fieldDecoration(tester).border?.top.color,
-      ColorTokens.light.primary,
+      ColorTokens.light.textLighter,
     );
+  });
+
+  testWidgets("TextInputComponent unfocuses when tapping outside", (
+    tester,
+  ) async {
+    final focusNode = FocusNode();
+    addTearDown(focusNode.dispose);
+
+    await tester.pumpWidget(
+      _wrap(
+        Column(
+          children: [
+            TextInputComponent(label: "Email", focusNode: focusNode),
+            const SizedBox(height: 40),
+            const Text("Outside"),
+          ],
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(TextField));
+    await tester.pump();
+
+    expect(focusNode.hasFocus, isTrue);
+
+    await tester.tap(find.text("Outside"));
+    await tester.pump();
+
+    expect(focusNode.hasFocus, isFalse);
   });
 
   testWidgets("TextInputComponent maps error and success states to borders", (
@@ -149,6 +178,26 @@ void main() {
     },
   );
 
+  testWidgets(
+    "TextInputComponent forwards read-only state while staying enabled",
+    (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          const TextInputComponent(
+            label: "Username",
+            initialValue: "hello",
+            readOnly: true,
+          ),
+        ),
+      );
+
+      final input = tester.widget<TextField>(find.byType(TextField));
+      expect(input.readOnly, isTrue);
+      expect(input.enabled, isTrue);
+      expect(_fieldDecoration(tester).color, ColorTokens.light.fillLight);
+    },
+  );
+
   testWidgets("TextInputComponent supports the multiline layout", (
     tester,
   ) async {
@@ -166,11 +215,23 @@ void main() {
     );
 
     final input = tester.widget<TextField>(find.byType(TextField));
-    final container = tester.widget<Container>(_fieldContainers().first);
+    final padding = tester.widget<Padding>(
+      find
+          .descendant(
+            of: _fieldContainers().first,
+            matching: find.byWidgetPredicate(
+              (widget) =>
+                  widget is Padding &&
+                  widget.padding ==
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            ),
+          )
+          .first,
+    );
 
     expect(input.maxLines, 4);
     expect(
-      container.padding,
+      padding.padding,
       const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
     expect(_fieldDecoration(tester).borderRadius, BorderRadius.circular(16));
@@ -307,6 +368,88 @@ void main() {
       expect(inputs.last.obscureText, isFalse);
     },
   );
+
+  testWidgets(
+    "TextInputComponent gives suffix actions a 48px tap target without resizing",
+    (tester) async {
+      var suffixTapCount = 0;
+
+      await tester.pumpWidget(
+        _wrap(
+          SizedBox(
+            width: 240,
+            child: TextInputComponent(
+              suffix: const Icon(
+                Icons.close_rounded,
+                key: ValueKey("custom-suffix-icon"),
+              ),
+              onSuffixTap: () => suffixTapCount++,
+            ),
+          ),
+        ),
+      );
+
+      final fieldFinder = _fieldContainers().first;
+      final fieldRect = tester.getRect(fieldFinder);
+
+      expect(fieldRect.height, 52);
+
+      await tester.tapAt(Offset(fieldRect.right - 51, fieldRect.center.dy));
+      await tester.pump();
+
+      expect(suffixTapCount, 1);
+      expect(tester.getRect(fieldFinder).height, 52);
+    },
+  );
+
+  testWidgets("TextInputComponent grows the suffix slot to fit wide suffixes", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        const SizedBox(
+          width: 240,
+          child: TextInputComponent(
+            suffix: SizedBox(
+              key: ValueKey("wide-suffix"),
+              width: 80,
+              height: 48,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.getSize(find.byKey(const ValueKey("wide-suffix"))).width, 80);
+  });
+
+  testWidgets("TextInputComponent centers single-line affixes vertically", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        const SizedBox(
+          width: 240,
+          child: TextInputComponent(
+            prefix: Icon(Icons.search, key: ValueKey("prefix-icon")),
+            suffix: Icon(Icons.close_rounded, key: ValueKey("suffix-icon")),
+            onSuffixTap: _noop,
+          ),
+        ),
+      ),
+    );
+
+    final fieldCenter = tester.getRect(_fieldContainers().first).center.dy;
+
+    expect(
+      tester.getRect(find.byKey(const ValueKey("prefix-icon"))).center.dy,
+      fieldCenter,
+    );
+    expect(
+      tester.getRect(find.byKey(const ValueKey("suffix-icon"))).center.dy,
+      fieldCenter,
+    );
+  });
 
   testWidgets("TextInputComponent renders alert message visuals", (
     tester,
@@ -448,3 +591,5 @@ Widget _wrap(Widget child) {
     ),
   );
 }
+
+void _noop() {}

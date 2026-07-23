@@ -16,6 +16,7 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/face_ml/face_filtering/face_filtering_constants.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/search_service.dart";
+import "package:photos/settings/local_settings.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/theme/text_style.dart";
@@ -29,21 +30,13 @@ import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/viewer/people/face_thumbnail_squircle.dart";
 import "package:photos/ui/viewer/people/person_face_widget.dart";
 import "package:photos/utils/dialog_util.dart";
-import "package:photos/utils/local_settings.dart";
 import "package:photos/utils/people_sort_util.dart";
 import "package:photos/utils/person_contact_linking_util.dart";
 
-enum PersonSelectionMode {
-  linkContact,
-  autofillContact,
-}
-
 class LinkContactToPersonSelectionPage extends StatefulWidget {
-  final String? emailToLink;
-  final PersonSelectionMode mode;
+  final String emailToLink;
   const LinkContactToPersonSelectionPage({
-    this.emailToLink,
-    this.mode = PersonSelectionMode.linkContact,
+    required this.emailToLink,
     super.key,
   });
 
@@ -79,8 +72,10 @@ class _LinkContactToPersonSelectionPageState
 
   Future<List<_PersonSelectionEntry>> _loadPersonEntries() async {
     final persons = await PersonService.instance.getPersons();
-    final results = await SearchService.instance
-        .getAllFace(null, minClusterSize: kMinimumClusterSizeAllFaces);
+    final results = await SearchService.instance.getAllFace(
+      null,
+      minClusterSize: kMinimumClusterSizeAllFaces,
+    );
     final resultsById = <String, GenericSearchResult>{};
     for (final result in results) {
       final personId = result.params[kPersonParamID] as String?;
@@ -97,7 +92,7 @@ class _LinkContactToPersonSelectionPageState
       if (person.data.isIgnored) {
         continue;
       }
-      if (widget.mode == PersonSelectionMode.linkContact && isAlreadyLinked) {
+      if (isAlreadyLinked) {
         continue;
       }
       final searchResult = resultsById[person.remoteID];
@@ -105,10 +100,7 @@ class _LinkContactToPersonSelectionPageState
         continue;
       }
       entries.add(
-        _PersonSelectionEntry(
-          personEntity: person,
-          searchResult: searchResult,
-        ),
+        _PersonSelectionEntry(personEntity: person, searchResult: searchResult),
       );
     }
     return entries;
@@ -238,14 +230,16 @@ class _LinkContactToPersonSelectionPageState
         builder: (context, snapshot) {
           final slivers = <Widget>[
             SearchableAppBar(
-              title: Text(
-                context.l10n.selectPersonToLink,
-              ),
+              title: Text(context.l10n.selectPersonToLink),
               onSearch: _updateSearchQuery,
               onSearchClosed: _clearSearchQuery,
               centerTitle: false,
-              searchIconPadding:
-                  const EdgeInsets.fromLTRB(12, 12, horizontalEdgePadding, 12),
+              searchIconPadding: const EdgeInsets.fromLTRB(
+                12,
+                12,
+                horizontalEdgePadding,
+                12,
+              ),
               actions: [
                 Padding(
                   padding: const EdgeInsets.only(right: horizontalEdgePadding),
@@ -277,8 +271,9 @@ class _LinkContactToPersonSelectionPageState
             slivers.add(
               SliverFillRemaining(
                 child: Center(
-                  child:
-                      Text(AppLocalizations.of(context).noResultsFound + '.'),
+                  child: Text(
+                    AppLocalizations.of(context).noResultsFound + '.',
+                  ),
                 ),
               ),
             );
@@ -291,8 +286,9 @@ class _LinkContactToPersonSelectionPageState
             slivers.add(
               SliverFillRemaining(
                 child: Center(
-                  child:
-                      Text(AppLocalizations.of(context).noResultsFound + '.'),
+                  child: Text(
+                    AppLocalizations.of(context).noResultsFound + '.',
+                  ),
                 ),
               ),
             );
@@ -301,7 +297,8 @@ class _LinkContactToPersonSelectionPageState
 
           final screenWidth = MediaQuery.of(context).size.width;
           final crossAxisCount = (screenWidth / 100).floor();
-          final itemSize = (screenWidth -
+          final itemSize =
+              (screenWidth -
                   ((horizontalEdgePadding * 2) +
                       ((crossAxisCount - 1) * gridPadding))) /
               crossAxisCount;
@@ -328,29 +325,24 @@ class _LinkContactToPersonSelectionPageState
                     return _RoundedPersonFaceWidget(
                       key: ValueKey(results[index].personEntity.remoteID),
                       onTap: () async {
-                        if (widget.mode ==
-                            PersonSelectionMode.autofillContact) {
-                          Navigator.of(
-                            context,
-                          ).pop(results[index].personEntity);
-                          return;
-                        }
                         try {
                           final updatedPerson = await linkPersonToContact(
                             context,
-                            emailToLink: widget.emailToLink!,
+                            emailToLink: widget.emailToLink,
                             personEntity: results[index].personEntity,
                           );
 
                           if (updatedPerson != null) {
+                            if (!context.mounted) return;
                             Navigator.of(context).pop(updatedPerson);
                           }
                         } catch (e) {
+                          _logger.severe("Failed to link person to contact", e);
+                          if (!context.mounted) return;
                           await showGenericErrorDialog(
                             context: context,
                             error: e,
                           );
-                          _logger.severe("Failed to link person to contact", e);
                         }
                       },
                       itemSize: itemSize,
@@ -387,10 +379,7 @@ class _LinkContactToPersonSelectionPageState
             context: context,
             elevation: 0,
             shape: RoundedRectangleBorder(
-              side: BorderSide(
-                width: 0.5,
-                color: colorScheme.strokeFaint,
-              ),
+              side: BorderSide(width: 0.5, color: colorScheme.strokeFaint),
               borderRadius: BorderRadius.circular(_sortMenuCornerRadius),
             ),
             position: RelativeRect.fromLTRB(
@@ -464,8 +453,9 @@ class _LinkContactToPersonSelectionPageState
         detail = _isSortAscending(key) ? "A-Z" : "Z-A";
         break;
       case PeopleSortKey.lastUpdated:
-        detail =
-            _isSortAscending(key) ? l10n.sortOldestFirst : l10n.sortNewestFirst;
+        detail = _isSortAscending(key)
+            ? l10n.sortOldestFirst
+            : l10n.sortNewestFirst;
         break;
     }
 
@@ -496,10 +486,7 @@ class _LinkContactToPersonSelectionPageState
         child: Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Text(
-              label,
-              style: textTheme.mini,
-            ),
+            Text(label, style: textTheme.mini),
             if (isSelected) ...[
               const SizedBox(width: 8),
               Container(
@@ -511,16 +498,9 @@ class _LinkContactToPersonSelectionPageState
                 ),
               ),
               const SizedBox(width: 6),
-              Text(
-                detail,
-                style: textTheme.miniMuted,
-              ),
+              Text(detail, style: textTheme.miniMuted),
               const SizedBox(width: 4),
-              Icon(
-                directionIcon,
-                size: 16,
-                color: colorScheme.textMuted,
-              ),
+              Icon(directionIcon, size: 16, color: colorScheme.textMuted),
             ],
           ],
         ),
@@ -533,13 +513,23 @@ class _LinkContactToPersonSelectionPageState
     required String emailToLink,
     required PersonEntity personEntity,
   }) async {
-    if (await checkIfEmailAlreadyAssignedToAPerson(emailToLink)) {
-      await showAlreadyLinkedEmailDialog(context, emailToLink);
+    final linkedPerson = await findPersonLinkedToEmail(
+      emailToLink,
+      excludedPersonId: personEntity.remoteID,
+    );
+    if (linkedPerson != null) {
+      if (!context.mounted) return null;
+      await showAlreadyLinkedEmailDialog(
+        context,
+        emailToLink,
+        linkedPerson: linkedPerson,
+      );
       return null;
     }
 
     final personName = personEntity.data.name;
     PersonEntity? updatedPerson;
+    if (!context.mounted) return null;
     final result = await showDialogWidget(
       context: context,
       title: context.l10n.linkPersonToEmail(email: emailToLink),
@@ -556,8 +546,10 @@ class _LinkContactToPersonSelectionPageState
           labelText: context.l10n.link,
           isInAlert: true,
           onTap: () async {
-            updatedPerson = await PersonService.instance
-                .updateAttributes(personEntity.remoteID, email: emailToLink);
+            updatedPerson = await PersonService.instance.updateAttributes(
+              personEntity.remoteID,
+              email: emailToLink,
+            );
             Bus.instance.fire(
               PeopleChangedEvent(
                 type: PeopleEventType.saveOrEditPerson,
@@ -577,8 +569,10 @@ class _LinkContactToPersonSelectionPageState
     );
 
     if (result?.exception != null) {
-      Logger("linkPersonToContact")
-          .severe("Failed to link person to contact", result!.exception);
+      Logger(
+        "linkPersonToContact",
+      ).severe("Failed to link person to contact", result!.exception);
+      if (!context.mounted) return null;
       await showGenericErrorDialog(context: context, error: result.exception);
       return null;
     } else {
@@ -599,10 +593,7 @@ class _PersonSelectionEntry {
 
 class ReassignMeSelectionPage extends StatefulWidget {
   final String currentMeId;
-  const ReassignMeSelectionPage({
-    required this.currentMeId,
-    super.key,
-  });
+  const ReassignMeSelectionPage({required this.currentMeId, super.key});
 
   @override
   State<ReassignMeSelectionPage> createState() =>
@@ -620,7 +611,8 @@ class _ReassignMeSelectionPageState extends State<ReassignMeSelectionPage> {
     _personEntities = PersonService.instance.getPersons().then((persons) async {
       final List<PersonEntity> result = [];
       for (final person in persons) {
-        if ((person.data.email != null && person.data.email!.isNotEmpty) ||
+        if (person.data.userID != null ||
+            (person.data.email != null && person.data.email!.isNotEmpty) ||
             (person.data.isIgnored)) {
           continue;
         }
@@ -640,9 +632,7 @@ class _ReassignMeSelectionPageState extends State<ReassignMeSelectionPage> {
     const gridPadding = 16.0;
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          context.l10n.selectYourFace,
-        ),
+        title: Text(context.l10n.selectYourFace),
         centerTitle: false,
       ),
       body: FutureBuilder<List<PersonEntity>>(
@@ -666,7 +656,8 @@ class _ReassignMeSelectionPageState extends State<ReassignMeSelectionPage> {
             final screenWidth = MediaQuery.of(context).size.width;
             final crossAxisCount = (screenWidth / 100).floor();
 
-            final itemSize = (screenWidth -
+            final itemSize =
+                (screenWidth -
                     ((horizontalEdgePadding * 2) +
                         ((crossAxisCount - 1) * gridPadding))) /
                 crossAxisCount;
@@ -688,6 +679,7 @@ class _ReassignMeSelectionPageState extends State<ReassignMeSelectionPage> {
               itemCount: results.length,
               itemBuilder: (context, index) {
                 return _RoundedPersonFaceWidget(
+                  key: ValueKey(results[index].remoteID),
                   onTap: () async {
                     final dialog = createProgressDialog(
                       context,
@@ -699,16 +691,20 @@ class _ReassignMeSelectionPageState extends State<ReassignMeSelectionPage> {
                         currentPersonID: widget.currentMeId,
                         newPersonID: results[index].remoteID,
                       );
+                      if (!context.mounted) return;
                       showToast(
                         context,
-                        context.l10n
-                            .reassignedToName(name: results[index].data.name),
+                        context.l10n.reassignedToName(
+                          name: results[index].data.name,
+                        ),
                       );
                       await Future.delayed(const Duration(milliseconds: 1250));
                       unawaited(dialog.hide());
+                      if (!context.mounted) return;
                       Navigator.of(context).pop();
                     } catch (e) {
                       unawaited(dialog.hide());
+                      if (!context.mounted) return;
                       unawaited(
                         showGenericErrorDialog(context: context, error: e),
                       );
@@ -731,9 +727,13 @@ class _ReassignMeSelectionPageState extends State<ReassignMeSelectionPage> {
   }) async {
     try {
       final email = Configuration.instance.getEmail();
+      final userID = Configuration.instance.getUserID();
 
-      final updatedPerson1 = await PersonService.instance
-          .updateAttributes(currentPersonID, email: '');
+      final updatedPerson1 = await PersonService.instance.updateAttributes(
+        currentPersonID,
+        email: null,
+        userID: null,
+      );
       Bus.instance.fire(
         PeopleChangedEvent(
           type: PeopleEventType.saveOrEditPerson,
@@ -742,8 +742,11 @@ class _ReassignMeSelectionPageState extends State<ReassignMeSelectionPage> {
         ),
       );
 
-      final updatedPerson2 = await PersonService.instance
-          .updateAttributes(newPersonID, email: email);
+      final updatedPerson2 = await PersonService.instance.updateAttributes(
+        newPersonID,
+        email: email,
+        userID: userID,
+      );
       Bus.instance.fire(
         PeopleChangedEvent(
           type: PeopleEventType.saveOrEditPerson,

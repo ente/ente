@@ -31,9 +31,7 @@ class DBFilterOptions {
     this.ignoreSharedItems = false,
   });
 
-  static DBFilterOptions dedupeOption = DBFilterOptions(
-    dedupeUploadID: true,
-  );
+  static DBFilterOptions dedupeOption = DBFilterOptions(dedupeUploadID: true);
 }
 
 Future<List<EnteFile>> applyDBFilters(

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store-connect</string>
+    <key>signingStyle</key>
+    <string>manual</string>
+    <key>teamID</key>
+    <string>6Z68YJY9Q2</string>
+    <key>destination</key>
+    <string>upload</string>
+    <key>manageAppVersionAndBuildNumber</key>
+    <false/>
+    <key>signingCertificate</key>
+    <string>Apple Distribution</string>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>io.ente.frame</key>
+        <string>Photos App Store</string>
+        <key>io.ente.frame.ShareExtension</key>
+        <string>Photos Share Extension App Store</string>
+        <key>io.ente.frame.EnteAlbumWidget</key>
+        <string>Photos Album Widget App Store</string>
+        <key>io.ente.frame.EnteMemoryWidget</key>
+        <string>Photos Memory Widget App Store</string>
+        <key>io.ente.frame.EntePeopleWidget</key>
+        <string>Photos People Widget App Store</string>
+    </dict>
+</dict>
+</plist>

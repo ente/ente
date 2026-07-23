@@ -7,9 +7,7 @@ extension PumpApp on WidgetTester {
   Future<void> pumpApp(Widget widget) {
     return pumpWidget(
       MaterialApp(
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-        ],
+        localizationsDelegates: const [GlobalMaterialLocalizations.delegate],
         supportedLocales: AppLocalizations.supportedLocales,
         home: widget,
       ),

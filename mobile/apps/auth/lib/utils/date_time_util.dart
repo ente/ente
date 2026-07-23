@@ -79,10 +79,12 @@ String getAbbreviationOfYear(DateTime dateTime) {
 
 //14:32
 String getTime(DateTime dateTime) {
-  final hours =
-      dateTime.hour > 9 ? dateTime.hour.toString() : "0${dateTime.hour}";
-  final minutes =
-      dateTime.minute > 9 ? dateTime.minute.toString() : "0${dateTime.minute}";
+  final hours = dateTime.hour > 9
+      ? dateTime.hour.toString()
+      : "0${dateTime.hour}";
+  final minutes = dateTime.minute > 9
+      ? dateTime.minute.toString()
+      : "0${dateTime.minute}";
   return "$hours:$minutes";
 }
 
@@ -106,9 +108,10 @@ String getFullDate(DateTime dateTime) {
 }
 
 String daysLeft(int futureTime) {
-  final int daysLeft = ((futureTime - DateTime.now().microsecondsSinceEpoch) /
-          Duration.microsecondsPerDay)
-      .ceil();
+  final int daysLeft =
+      ((futureTime - DateTime.now().microsecondsSinceEpoch) /
+              Duration.microsecondsPerDay)
+          .ceil();
   return '$daysLeft day${daysLeft <= 1 ? "" : "s"}';
 }
 
@@ -124,20 +127,20 @@ String formatDuration(Duration position) {
   final hoursString = hours >= 10
       ? '$hours'
       : hours == 0
-          ? '00'
-          : '0$hours';
+      ? '00'
+      : '0$hours';
 
   final minutesString = minutes >= 10
       ? '$minutes'
       : minutes == 0
-          ? '00'
-          : '0$minutes';
+      ? '00'
+      : '0$minutes';
 
   final secondsString = seconds >= 10
       ? '$seconds'
       : seconds == 0
-          ? '00'
-          : '0$seconds';
+      ? '00'
+      : '0$seconds';
 
   final formattedTime =
       '${hoursString == '00' ? '' : '$hoursString:'}$minutesString:$secondsString';
@@ -175,10 +178,10 @@ Widget getDayWidget(
       style: (getDayTitle(timestamp) == "Today" && !smallerTodayFont)
           ? Theme.of(context).textTheme.headlineSmall
           : Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'Inter-SemiBold',
-              ),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'Inter-SemiBold',
+            ),
     ),
   );
 }
@@ -216,11 +219,7 @@ String secondsToHHMMSS(int value) {
   return result;
 }
 
-bool isValidDate({
-  required int day,
-  required int month,
-  required int year,
-}) {
+bool isValidDate({required int day, required int month, required int year}) {
   if (day < 0 || day > 31 || month < 0 || month > 12 || year < 0) {
     return false;
   }

@@ -1,14 +1,10 @@
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
-import "package:ente_ui/components/captioned_text_widget.dart";
-import "package:ente_ui/components/divider_widget.dart";
-import "package:ente_ui/components/menu_item_widget.dart";
-import "package:ente_ui/components/separators.dart";
-import "package:ente_ui/components/title_bar_title_widget.dart";
-import "package:ente_ui/components/title_bar_widget.dart";
-import "package:ente_ui/theme/ente_theme.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:locker/l10n/l10n.dart";
+import "package:locker/ui/settings/components/settings_item.dart";
+import "package:locker/ui/settings/components/settings_page_scaffold.dart";
 
 class LanguageSelectorPage extends StatelessWidget {
   final List<Locale> supportedLocales;
@@ -24,45 +20,12 @@ class LanguageSelectorPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(
-        primary: false,
-        slivers: <Widget>[
-          TitleBarWidget(
-            flexibleSpaceTitle: TitleBarTitleWidget(
-              title: context.l10n.selectLanguage,
-            ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 20,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ClipRRect(
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(8)),
-                        child: _LanguageItemsWidget(
-                          supportedLocales,
-                          onLocaleChanged,
-                          currentLocale,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              childCount: 1,
-            ),
-          ),
-          const SliverPadding(padding: EdgeInsets.symmetric(vertical: 12)),
-        ],
-      ),
+    return SettingsPageScaffold(
+      title: context.l10n.selectLanguage,
+      children: [
+        _LanguageItemsWidget(supportedLocales, onLocaleChanged, currentLocale),
+        const SizedBox(height: 24),
+      ],
     );
   }
 }
@@ -93,31 +56,22 @@ class _LanguageItemsWidgetState extends State<_LanguageItemsWidget> {
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> items = [];
-    for (Locale locale in widget.supportedLocales) {
-      items.add(_menuItemForPicker(locale));
-    }
-    items = addSeparators(
-      items,
-      DividerWidget(
-        dividerType: DividerType.menuNoIcon,
-        bgColor: getEnteColorScheme(context).fillFaint,
-      ),
+    return MenuGroupComponent(
+      items: [
+        for (final locale in widget.supportedLocales)
+          _menuItemForPicker(locale),
+      ],
     );
-    return Column(mainAxisSize: MainAxisSize.min, children: items);
   }
 
   Widget _menuItemForPicker(Locale locale) {
-    return MenuItemWidget(
+    return SettingsItem(
       key: ValueKey(locale.toString()),
-      menuItemColor: getEnteColorScheme(context).fillFaint,
-      captionedTextWidget: CaptionedTextWidget(
-        title: getLocaleDisplayName(locale) + (kDebugMode ? ' ($locale)' : ''),
-      ),
-      trailingIcon: currentLocale == locale ? Icons.check : null,
-      alignCaptionedTextToLeft: true,
-      isTopBorderRadiusRemoved: true,
-      isBottomBorderRadiusRemoved: true,
+      title: getLocaleDisplayName(locale) + (kDebugMode ? ' ($locale)' : ''),
+      showChevron: false,
+      trailing: currentLocale == locale
+          ? Icon(Icons.check, color: context.componentColors.primary)
+          : null,
       showOnlyLoadingState: true,
       onTap: () async {
         widget.onLocaleChanged(locale);

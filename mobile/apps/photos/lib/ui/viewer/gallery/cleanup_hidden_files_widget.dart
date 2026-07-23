@@ -10,10 +10,7 @@ import 'package:photos/ui/components/menu_section_description_widget.dart';
 class CleanupHiddenFilesWidget extends StatelessWidget {
   final VoidCallback onCleanupComplete;
 
-  const CleanupHiddenFilesWidget({
-    required this.onCleanupComplete,
-    super.key,
-  });
+  const CleanupHiddenFilesWidget({required this.onCleanupComplete, super.key});
 
   @override
   Widget build(BuildContext context) {

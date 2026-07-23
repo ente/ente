@@ -9,10 +9,7 @@ import 'package:ente_auth/utils/email_util.dart';
 import 'package:flutter/material.dart';
 
 class CodeErrorWidget extends StatelessWidget {
-  const CodeErrorWidget({
-    super.key,
-    required this.errors,
-  });
+  const CodeErrorWidget({super.key, required this.errors});
 
   final List<Code> errors;
 
@@ -27,12 +24,7 @@ class CodeErrorWidget extends StatelessWidget {
         color: Theme.of(context).colorScheme.codeCardBackgroundColor,
         borderRadius: BorderRadius.circular(8),
       ),
-      margin: const EdgeInsets.only(
-        left: 16,
-        right: 16,
-        bottom: 8,
-        top: 8,
-      ),
+      margin: const EdgeInsets.only(left: 16, right: 16, bottom: 8, top: 8),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Column(
@@ -94,9 +86,7 @@ class CodeErrorWidget extends StatelessWidget {
                         await showDialog(
                           context: context,
                           builder: (BuildContext context) {
-                            return RawCodesViewer(
-                              errors.map((e) => e.rawData).join('\n'),
-                            );
+                            return RawCodesViewer(errors);
                           },
                           barrierColor: Colors.black87,
                           barrierDismissible: false,

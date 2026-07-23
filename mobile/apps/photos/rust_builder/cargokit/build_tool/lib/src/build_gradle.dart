@@ -24,14 +24,17 @@ class BuildGradle {
       final target = Target.forFlutterName(arch);
       if (target == null) {
         throw Exception(
-            "Unknown darwin target or platform: $arch, ${Environment.darwinPlatformName}");
+          "Unknown darwin target or platform: $arch, ${Environment.darwinPlatformName}",
+        );
       }
       return target;
     }).toList();
 
     final environment = BuildEnvironment.fromEnvironment(isAndroid: true);
-    final provider =
-        ArtifactProvider(environment: environment, userOptions: userOptions);
+    final provider = ArtifactProvider(
+      environment: environment,
+      userOptions: userOptions,
+    );
     final artifacts = await provider.getArtifacts(targets);
 
     for (final target in targets) {
@@ -104,18 +107,12 @@ class BuildGradle {
     }
 
     final prebuiltRoot = Directory(
-      path.join(
-        sdkPath,
-        'ndk',
-        ndkVersion,
-        'toolchains',
-        'llvm',
-        'prebuilt',
-      ),
+      path.join(sdkPath, 'ndk', ndkVersion, 'toolchains', 'llvm', 'prebuilt'),
     );
     if (!prebuiltRoot.existsSync()) {
       log.warning(
-          'NDK prebuilt directory does not exist: ${prebuiltRoot.path}');
+        'NDK prebuilt directory does not exist: ${prebuiltRoot.path}',
+      );
       return null;
     }
 

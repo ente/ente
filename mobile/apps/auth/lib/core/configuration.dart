@@ -1,17 +1,28 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:ente_account_deletion/account_deletion.dart';
 import 'package:ente_base/models/database.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import 'package:ente_crypto_api/ente_crypto_api.dart';
+import 'package:ente_lock_screen/lock_screen_host.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-class Configuration extends BaseConfiguration {
+class Configuration extends BaseConfiguration
+    implements LockScreenHost, AccountDeletionHost {
   Configuration._privateConstructor();
 
   static final Configuration instance = Configuration._privateConstructor();
+  @override
+  EnteAppIdentity get appIdentity => const EnteAppIdentity(
+    app: "auth",
+    clientPackageName: "io.ente.auth",
+    passkeyRedirectUrl: "enteauth://passkey",
+    referralSourcePrefix: "auth",
+  );
+
   static const authSecretKeyKey = "auth_secret_key";
   static const offlineAuthSecretKey = "offline_auth_secret_key";
   static const hasOptedForOfflineModeKey = "has_opted_for_offline_mode";
@@ -37,28 +48,23 @@ class Configuration extends BaseConfiguration {
   }
 
   Future<void> _initOfflineAccount() async {
-    _offlineAuthKey = await _secureStorage.read(
-      key: offlineAuthSecretKey,
-    );
+    _offlineAuthKey = await _secureStorage.read(key: offlineAuthSecretKey);
   }
 
   Future<void> _initOnlineAccount() async {
     if (hasConfiguredAccount()) {
-      _authSecretKey = await _secureStorage.read(
-        key: authSecretKeyKey,
-      );
+      _authSecretKey = await _secureStorage.read(key: authSecretKeyKey);
     }
   }
 
   @override
   // This includes both base keys (key, secretKey) and auth-specific keys.
   List<String> get secureStorageKeys => [
-        BaseConfiguration.keyKey,
-        BaseConfiguration.secretKeyKey,
-        authSecretKeyKey,
-        // Note: offlineAuthSecretKey is intentionally not included here
-        // as it persists across logouts for offline mode
-      ];
+    ...BaseConfiguration.accountSecureStorageKeys,
+    authSecretKeyKey,
+    // Note: offlineAuthSecretKey is intentionally not included here
+    // as it persists across logouts for offline mode
+  ];
 
   @override
   Future<void> logout({bool autoLogout = false}) async {
@@ -68,10 +74,7 @@ class Configuration extends BaseConfiguration {
 
   Future<void> setAuthSecretKey(String? authSecretKey) async {
     _authSecretKey = authSecretKey;
-    await _secureStorage.write(
-      key: authSecretKeyKey,
-      value: authSecretKey,
-    );
+    await _secureStorage.write(key: authSecretKeyKey, value: authSecretKey);
   }
 
   Uint8List? getAuthSecretKey() {
@@ -91,12 +94,8 @@ class Configuration extends BaseConfiguration {
   }
 
   Future<void> optForOfflineMode() async {
-    if ((await _secureStorage.containsKey(
-      key: offlineAuthSecretKey,
-    ))) {
-      _offlineAuthKey = await _secureStorage.read(
-        key: offlineAuthSecretKey,
-      );
+    if ((await _secureStorage.containsKey(key: offlineAuthSecretKey))) {
+      _offlineAuthKey = await _secureStorage.read(key: offlineAuthSecretKey);
     } else {
       _offlineAuthKey = CryptoUtil.bin2base64(CryptoUtil.generateKey());
       await _secureStorage.write(

@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller/memory_share"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/handler"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller/memory_share"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/handler"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,8 +20,8 @@ type MemoryShareHandler struct {
 // Create creates a new memory share
 func (h *MemoryShareHandler) Create(c *gin.Context) {
 	var req ente.CreateMemoryShareRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "invalid request body"))
+	if err := handler.BindJSON(c, &req); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "invalid request body"))
 		return
 	}
 

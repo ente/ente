@@ -106,10 +106,7 @@ class _TwoFactorAuthenticationPageState
       width: 48,
       decoration: BoxDecoration(
         color: colorScheme.backdropBase,
-        border: Border.all(
-          color: colorScheme.strokeFaint,
-          width: 1.75,
-        ),
+        border: Border.all(color: colorScheme.strokeFaint, width: 1.75),
         borderRadius: BorderRadius.circular(18),
       ),
     );
@@ -117,24 +114,16 @@ class _TwoFactorAuthenticationPageState
     final focusedPinTheme = defaultPinTheme.copyWith(
       decoration: BoxDecoration(
         color: colorScheme.backdropBase,
-        border: Border.all(
-          color: colorScheme.primary700,
-          width: 1.75,
-        ),
+        border: Border.all(color: colorScheme.primary700, width: 1.75),
         borderRadius: BorderRadius.circular(18),
       ),
     );
 
     final submittedPinTheme = defaultPinTheme.copyWith(
-      textStyle: textTheme.h3Bold.copyWith(
-        color: colorScheme.primary700,
-      ),
+      textStyle: textTheme.h3Bold.copyWith(color: colorScheme.primary700),
       decoration: BoxDecoration(
         color: colorScheme.backdropBase,
-        border: Border.all(
-          color: colorScheme.strokeFaint,
-          width: 1.75,
-        ),
+        border: Border.all(color: colorScheme.strokeFaint, width: 1.75),
         borderRadius: BorderRadius.circular(18),
       ),
     );
@@ -155,17 +144,13 @@ class _TwoFactorAuthenticationPageState
               const SizedBox(height: 24),
               Text(
                 context.strings.twoFactorAuthTitle,
-                style: textTheme.body.copyWith(
-                  color: colorScheme.textBase,
-                ),
+                style: textTheme.body.copyWith(color: colorScheme.textBase),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
                 context.strings.enterCodeHint,
-                style: textTheme.small.copyWith(
-                  color: colorScheme.textMuted,
-                ),
+                style: textTheme.small.copyWith(color: colorScheme.textMuted),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),

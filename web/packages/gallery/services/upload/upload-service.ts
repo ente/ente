@@ -3,7 +3,7 @@
 
 import type { BytesOrB64 } from "ente-base/crypto/types";
 import { streamEncryptionChunkSize } from "ente-base/crypto/types";
-import { type CryptoWorker } from "ente-base/crypto/worker";
+import type { CryptoWorker } from "ente-base/crypto/worker";
 import { ensureElectron } from "ente-base/electron";
 import { basename, nameAndExtension } from "ente-base/file-name";
 import {
@@ -184,7 +184,9 @@ class UploadService {
             metadata.contentLength >= 0 &&
             metadata.contentMd5
         ) {
-            return fetchUploadURLWithMetadata(metadata);
+            return fetchUploadURLWithMetadata(metadata).catch((e: unknown) => {
+                throw translateURLFetchErrorIfNeeded(e);
+            });
         }
         if (this.uploadURLs.length == 0 && this.pendingUploadCount) {
             await this.refillUploadURLs();
@@ -335,9 +337,9 @@ export interface UploadAsset {
 }
 
 interface ThumbnailedFile {
-    fileStreamOrData: FileStream | Uint8Array;
+    fileStreamOrData: FileStream | Uint8Array<ArrayBuffer>;
     /** The JPEG data of the generated thumbnail */
-    thumbnail: Uint8Array;
+    thumbnail: Uint8Array<ArrayBuffer>;
     /**
      * `true` if this is a fallback (all black) thumbnail we're returning since
      * thumbnail generation failed for some reason.
@@ -360,7 +362,7 @@ interface EncryptedFileStream {
      * be smaller since a file would rarely align exactly to a
      * {@link streamEncryptionChunkSize} multiple).
      */
-    stream: ReadableStream<Uint8Array>;
+    stream: ReadableStream<Uint8Array<ArrayBuffer>>;
     /**
      * Number of chunks {@link stream} will emit, each
      * {@link streamEncryptionChunkSize} sized (except the last one).
@@ -374,14 +376,17 @@ interface EncryptedFilePieces {
      * the decryption header that was used during encryption (base64 string).
      */
     file: {
-        encryptedData: Uint8Array | EncryptedFileStream;
+        encryptedData: Uint8Array<ArrayBuffer> | EncryptedFileStream;
         decryptionHeader: string;
     };
     /**
      * The encrypted contents of the file's thumbnail (as bytes), and the
      * decryption header that was used during encryption (base64 string).
      */
-    thumbnail: { encryptedData: Uint8Array; decryptionHeader: string };
+    thumbnail: {
+        encryptedData: Uint8Array<ArrayBuffer>;
+        decryptionHeader: string;
+    };
     /**
      * The encrypted contents of the file's metadata (as a base64 string), and
      * the decryption header that was used during encryption (base64 string).
@@ -682,6 +687,11 @@ interface UploadContext {
      */
     skipDuplicateAddToUploadCollection?: boolean;
     /**
+     * If true, media originating from Google Photos partner sharing is
+     * uploaded. Otherwise it is skipped before reading the media file.
+     */
+    includePartnerSharedFiles?: boolean;
+    /**
      * If present, then the upload is happening in the context of the public
      * albums app and these are the credentials that should be used for
      * performing API requests (instead of trying to obtain and use the
@@ -730,11 +740,27 @@ export const upload = async (
     worker: CryptoWorker,
     uploadContext: UploadContext,
 ): Promise<UploadResult> => {
-    const { abortIfCancelled, skipDuplicateAddToUploadCollection } =
-        uploadContext;
+    const {
+        abortIfCancelled,
+        includePartnerSharedFiles = true,
+        skipDuplicateAddToUploadCollection,
+    } = uploadContext;
 
     log.info(`Upload ${fileName} | start`);
     try {
+        if (!includePartnerSharedFiles) {
+            const parsedMetadataJSON = matchJSONMetadata(
+                uploadAsset.pathPrefix,
+                collection.id,
+                fileName,
+                parsedMetadataJSONMap,
+            );
+            if (parsedMetadataJSON?.fromPartnerSharing) {
+                log.info(`Not uploading ${fileName} (from partner sharing)`);
+                return { type: "partnerShared" };
+            }
+        }
+
         /*
          * We read the file four times:
          * 1. To determine its MIME type (only needs first few KBs).
@@ -1117,7 +1143,9 @@ const readImageOrVideoDetails = async (uploadItem: UploadItem) => {
  * size of the stream will be reasonable enough to be read in its entirety
  * without us running out of memory.
  */
-const readEntireStream = async (stream: ReadableStream) =>
+const readEntireStream = async (
+    stream: ReadableStream,
+): Promise<Uint8Array<ArrayBuffer>> =>
     new Uint8Array(await new Response(stream).arrayBuffer());
 
 interface ExtractAssetMetadataResult {
@@ -1311,7 +1339,8 @@ const extractImageOrVideoMetadata = async (
         caption != null &&
         (typeof caption == "string" || typeof caption == "number")
     ) {
-        publicMagicMetadata.caption = String(caption);
+        publicMagicMetadata.caption =
+            typeof caption == "number" ? String(caption) : caption;
     }
 
     if (parsedMetadata?.cameraMake) {
@@ -1457,7 +1486,7 @@ const readLivePhoto = async (
     // This is a reasonable behaviour since the videos corresponding to live
     // photos are only a couple of seconds long (we've already done a pre-flight
     // check during areLivePhotoAssets to ensure their size is small).
-    const fileOrData = async (sd: FileStream | Uint8Array) => {
+    const fileOrData = async (sd: FileStream | Uint8Array<ArrayBuffer>) => {
         const fos = async ({ file, stream }: FileStream) =>
             file ? file : await readEntireStream(stream);
         return sd instanceof Uint8Array ? sd : fos(sd);
@@ -1500,8 +1529,8 @@ const augmentWithThumbnail = async (
     fileTypeInfo: FileTypeInfo,
     fileStream: FileStream,
 ): Promise<ThumbnailedFile> => {
-    let fileData: Uint8Array | undefined;
-    let thumbnail: Uint8Array | undefined;
+    let fileData: Uint8Array<ArrayBuffer> | undefined;
+    let thumbnail: Uint8Array<ArrayBuffer> | undefined;
     let hasStaticThumbnail = false;
 
     const electron = globalThis.electron;
@@ -1683,7 +1712,7 @@ const encryptFileStream = async (
               .pullState
         : undefined;
     const ref = { pullCount: 1 };
-    const encryptedFileStream = new ReadableStream({
+    const encryptedFileStream = new ReadableStream<Uint8Array<ArrayBuffer>>({
         async pull(controller) {
             const { value, done } = await fileStreamReader.read();
             if (done) {
@@ -1919,7 +1948,7 @@ const uploadStreamUsingMultipart = async (
     );
 
     if (shouldSendPartChecksums) {
-        const parts: Uint8Array[] = [];
+        const parts: Uint8Array<ArrayBuffer>[] = [];
         const partMd5s: string[] = [];
         let fileSize = 0;
         while (true) {

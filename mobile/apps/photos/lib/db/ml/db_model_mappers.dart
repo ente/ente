@@ -12,9 +12,7 @@ Map<String, dynamic> mapRemoteToFaceDB(Face face) {
     faceIDColumn: face.faceID,
     fileIDColumn: face.fileID,
     faceDetectionColumn: json.encode(face.detection.toJson()),
-    embeddingColumn: EVector(
-      values: face.embedding,
-    ).writeToBuffer(),
+    embeddingColumn: EVector(values: face.embedding).writeToBuffer(),
     faceScore: face.score,
     faceBlur: face.blur,
     isSideways: face.detection.faceIsSideways() ? 1 : 0,

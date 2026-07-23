@@ -15,7 +15,8 @@ const kPersonShowTimeout = Duration(days: 16 * kMemoriesUpdateFrequencyDays);
 const kClipShowTimeout = Duration(days: 10 * kMemoriesUpdateFrequencyDays);
 const kTripShowTimeout = Duration(days: 40 * kMemoriesUpdateFrequencyDays);
 
-final maxShowTimeout = [
+final maxShowTimeout =
+    [
       kPersonShowTimeout,
       kTripShowTimeout,
     ].reduce((value, element) => value > element ? value : element) *
@@ -36,9 +37,7 @@ class MemoriesCache {
     required this.baseLocations,
   });
 
-  factory MemoriesCache.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory MemoriesCache.fromJson(Map<String, dynamic> json) {
     return MemoriesCache(
       toShowMemories: ToShowMemory.decodeJsonToList(json['toShowMemories']),
       peopleShownLogs: PeopleShownLog.decodeJsonToList(json['peopleShownLogs']),
@@ -64,9 +63,7 @@ class MemoriesCache {
     return jsonEncode(cache.toJson());
   }
 
-  static MemoriesCache decodeFromJsonString(
-    String jsonString,
-  ) {
+  static MemoriesCache decodeFromJsonString(String jsonString) {
     return MemoriesCache.fromJson(jsonDecode(jsonString));
   }
 }
@@ -102,7 +99,8 @@ class ToShowMemory {
   bool shouldShowNow() {
     final now = DateTime.now().microsecondsSinceEpoch;
     final relevantForNow = isRelevantAt(now);
-    final calculatedForNow = (now >= calculationTime) &&
+    final calculatedForNow =
+        (now >= calculationTime) &&
         (now < calculationTime + kMemoriesUpdateFrequency.inMicroseconds);
     return relevantForNow &&
         (calculatedForNow ||
@@ -128,17 +126,17 @@ class ToShowMemory {
     this.location,
     this.spec,
   }) : assert(
-          (spec != null) ||
-              (type == MemoryType.people &&
-                  personID != null &&
-                  peopleMemoryType != null) ||
-              (type == MemoryType.trips && location != null) ||
-              (type == MemoryType.clip && clipMemoryType != null) ||
-              (type != MemoryType.people &&
-                  type != MemoryType.trips &&
-                  type != MemoryType.clip),
-          "PersonID and peopleMemoryType must be provided for people memory type, and location must be provided for trips memory type",
-        );
+         (spec != null) ||
+             (type == MemoryType.people &&
+                 personID != null &&
+                 peopleMemoryType != null) ||
+             (type == MemoryType.trips && location != null) ||
+             (type == MemoryType.clip && clipMemoryType != null) ||
+             (type != MemoryType.people &&
+                 type != MemoryType.trips &&
+                 type != MemoryType.clip),
+         "PersonID and peopleMemoryType must be provided for people memory type, and location must be provided for trips memory type",
+       );
 
   factory ToShowMemory.fromSmartMemory(
     SmartMemory memory,
@@ -241,10 +239,7 @@ class ToShowMemory {
       'clipMemoryType': clipMemoryType?.toString().split('.').last,
       if (spec != null) 'spec': spec!.toJson(),
       'location': location != null
-          ? {
-              'latitude': location!.latitude!,
-              'longitude': location!.longitude!,
-            }
+          ? {'latitude': location!.latitude!, 'longitude': location!.longitude!}
           : null,
     };
   }
@@ -324,11 +319,7 @@ class PeopleShownLog {
   final PeopleMemoryType peopleMemoryType;
   final int lastTimeShown;
 
-  PeopleShownLog(
-    this.personID,
-    this.peopleMemoryType,
-    this.lastTimeShown,
-  );
+  PeopleShownLog(this.personID, this.peopleMemoryType, this.lastTimeShown);
 
   factory PeopleShownLog.fromOldCacheMemory(ToShowMemory memory) {
     assert(
@@ -374,19 +365,11 @@ class ClipShownLog {
   final ClipMemoryType clipMemoryType;
   final int lastTimeShown;
 
-  ClipShownLog(
-    this.clipMemoryType,
-    this.lastTimeShown,
-  );
+  ClipShownLog(this.clipMemoryType, this.lastTimeShown);
 
   factory ClipShownLog.fromOldCacheMemory(ToShowMemory memory) {
-    assert(
-      memory.type == MemoryType.clip && memory.clipMemoryType != null,
-    );
-    return ClipShownLog(
-      memory.clipMemoryType!,
-      memory.lastTimeToShow,
-    );
+    assert(memory.type == MemoryType.clip && memory.clipMemoryType != null);
+    return ClipShownLog(memory.clipMemoryType!, memory.lastTimeToShow);
   }
 
   factory ClipShownLog.fromJson(Map<String, dynamic> json) {
@@ -419,11 +402,7 @@ class TripsShownLog {
   final int lastTimeShown;
   final String? tripKey;
 
-  TripsShownLog(
-    this.location,
-    this.lastTimeShown,
-    this.tripKey,
-  );
+  TripsShownLog(this.location, this.lastTimeShown, this.tripKey);
 
   factory TripsShownLog.fromOldCacheMemory(ToShowMemory memory) {
     assert(memory.type == MemoryType.trips && memory.location != null);

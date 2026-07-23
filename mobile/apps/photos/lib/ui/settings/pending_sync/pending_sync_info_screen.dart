@@ -125,46 +125,41 @@ class _PendingSyncInfoScreenState extends State<PendingSyncInfoScreen> {
             ],
           ),
           SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Column(
-                        children: [
-                          MenuSectionTitle(
-                            title: AppLocalizations.of(context).cachedData,
-                          ),
-                          ListView.builder(
-                            shrinkWrap: true,
-                            padding: const EdgeInsets.all(0),
-                            physics: const ScrollPhysics(),
-                            // to disable GridView's scrolling
-                            itemBuilder: (context, index) {
-                              final path = paths[index];
-                              return PathInfoStorageViewer(
-                                path,
-                                removeTopRadius: index > 0,
-                                removeBottomRadius: index < paths.length - 1,
-                                enableDoubleTapClear: internalUser,
-                                key: ValueKey("$index-$_refreshCounterKey"),
-                              );
-                            },
-                            itemCount: paths.length,
-                          ),
-                          const SizedBox(
-                            height: 24,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              },
-              childCount: 1,
-            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Column(
+                      children: [
+                        MenuSectionTitle(
+                          title: AppLocalizations.of(context).cachedData,
+                        ),
+                        ListView.builder(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.all(0),
+                          physics: const ScrollPhysics(),
+                          // to disable GridView's scrolling
+                          itemBuilder: (context, index) {
+                            final path = paths[index];
+                            return PathInfoStorageViewer(
+                              path,
+                              removeTopRadius: index > 0,
+                              removeBottomRadius: index < paths.length - 1,
+                              enableDoubleTapClear: internalUser,
+                              key: ValueKey("$index-$_refreshCounterKey"),
+                            );
+                          },
+                          itemCount: paths.length,
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }, childCount: 1),
           ),
         ],
       ),

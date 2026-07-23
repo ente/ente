@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 	"golang.org/x/net/idna"
 )
 
@@ -53,10 +53,14 @@ const (
 	UploadV2 int64 = 1 << 0
 	// Comments marks availability of the comments feature.
 	Comments int64 = 1 << 1
-	// BackupOptions gates new backup-related features.
+	// BackupOptions marks availability of backup option features for older clients.
 	BackupOptions int64 = 1 << 2
 	// VideoStreaming gates video streaming feature.
 	VideoStreaming int64 = 1 << 3
+	// 1 << 4 previously gated CastSessionsV2 for released clients. Reuse it
+	// only when those clients no longer need to be isolated from a new flag.
+	// CastSessionsV2 gates cast sessions v2 support.
+	CastSessionsV2 int64 = 1 << 5
 )
 
 type FlagKey string
@@ -147,6 +151,10 @@ func (k FlagKey) IsValidValue(value string) error {
 }
 
 var domainRegex = regexp.MustCompile(`^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
+
+func ValidatePublicCustomDomain(value string) error {
+	return isValidDomainWithoutScheme(value)
+}
 
 const customDomainFamilyPrefix = "_"
 

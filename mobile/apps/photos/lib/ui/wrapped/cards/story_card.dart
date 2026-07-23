@@ -1,10 +1,11 @@
 part of 'package:photos/ui/wrapped/wrapped_viewer_page.dart';
 
-typedef _CardContentBuilder = Widget? Function(
-  WrappedCard card,
-  EnteColorScheme colorScheme,
-  EnteTextTheme textTheme,
-);
+typedef _CardContentBuilder =
+    Widget? Function(
+      WrappedCard card,
+      EnteColorScheme colorScheme,
+      EnteTextTheme textTheme,
+    );
 
 final List<_CardContentBuilder> _cardContentBuilders = <_CardContentBuilder>[
   buildStatsCardContent,
@@ -58,7 +59,8 @@ class _StoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isBadge = card.type == WrappedCardType.badge ||
+    final bool isBadge =
+        card.type == WrappedCardType.badge ||
         card.type == WrappedCardType.badgeDebug;
     final bool showMeshGradient = _shouldApplyMeshGradient(card);
     return AnimatedOpacity(
@@ -105,9 +107,7 @@ bool _shouldApplyMeshGradient(WrappedCard card) {
 }
 
 class _MeshGradientOverlay extends StatelessWidget {
-  const _MeshGradientOverlay({
-    required this.variantIndex,
-  });
+  const _MeshGradientOverlay({required this.variantIndex});
 
   final int variantIndex;
 
@@ -119,22 +119,10 @@ class _MeshGradientOverlay extends StatelessWidget {
   ];
 
   static final List<MeshGradientPoint> _points = <MeshGradientPoint>[
-    MeshGradientPoint(
-      position: const Offset(-0.3, 0.2),
-      color: _palette[0],
-    ),
-    MeshGradientPoint(
-      position: const Offset(0.2, -0.2),
-      color: _palette[1],
-    ),
-    MeshGradientPoint(
-      position: const Offset(0.9, 0.5),
-      color: _palette[2],
-    ),
-    MeshGradientPoint(
-      position: const Offset(0.4, 1.2),
-      color: _palette[3],
-    ),
+    MeshGradientPoint(position: const Offset(-0.3, 0.2), color: _palette[0]),
+    MeshGradientPoint(position: const Offset(0.2, -0.2), color: _palette[1]),
+    MeshGradientPoint(position: const Offset(0.9, 0.5), color: _palette[2]),
+    MeshGradientPoint(position: const Offset(0.4, 1.2), color: _palette[3]),
   ];
 
   static const List<_MeshGradientVariant> _variants = <_MeshGradientVariant>[
@@ -158,7 +146,7 @@ class _MeshGradientOverlay extends StatelessWidget {
         _variants[variantIndex % _variants.length];
     const double maxTranslation =
         ((_kCanvasScale - 1.0) / (2 * _kCanvasScale)) *
-            _kTranslationSafetyFactor;
+        _kTranslationSafetyFactor;
     final Offset translation = Offset(
       variant.horizontalFactor * maxTranslation,
       variant.verticalFactor * maxTranslation,
@@ -180,10 +168,7 @@ class _MeshGradientOverlay extends StatelessWidget {
               translation: translation,
               child: Opacity(
                 opacity: 0.62,
-                child: MeshGradient(
-                  points: _points,
-                  options: _options,
-                ),
+                child: MeshGradient(points: _points, options: _options),
               ),
             ),
           );
@@ -204,10 +189,7 @@ class _MeshGradientVariant {
 }
 
 class _StoryCardBackground extends StatelessWidget {
-  const _StoryCardBackground({
-    required this.card,
-    required this.colorScheme,
-  });
+  const _StoryCardBackground({required this.card, required this.colorScheme});
 
   final WrappedCard card;
   final EnteColorScheme colorScheme;
@@ -221,10 +203,7 @@ class _StoryCardBackground extends StatelessWidget {
     if (primary.uploadedFileID <= 0) {
       return Container(color: colorScheme.backgroundElevated);
     }
-    return _BlurredMediaBackground(
-      mediaRef: primary,
-      colorScheme: colorScheme,
-    );
+    return _BlurredMediaBackground(mediaRef: primary, colorScheme: colorScheme);
   }
 }
 
@@ -290,9 +269,7 @@ class _BlurredMediaBackgroundState extends State<_BlurredMediaBackground> {
   }
 
   Widget _buildPlaceholder() {
-    return Container(
-      color: widget.colorScheme.backgroundElevated,
-    );
+    return Container(color: widget.colorScheme.backgroundElevated);
   }
 
   Widget _buildBackground(EnteFile file) {
@@ -309,8 +286,6 @@ class _BlurredMediaBackgroundState extends State<_BlurredMediaBackground> {
                 fit: BoxFit.cover,
                 rawThumbnail: true,
                 shouldShowSyncStatus: false,
-                shouldShowArchiveStatus: false,
-                shouldShowPinIcon: false,
                 shouldShowOwnerAvatar: false,
                 shouldShowFavoriteIcon: false,
                 shouldShowVideoDuration: false,
@@ -343,18 +318,12 @@ class _CardContent extends StatelessWidget {
         return built;
       }
     }
-    return _GenericCardContent(
-      card: card,
-      textTheme: textTheme,
-    );
+    return _GenericCardContent(card: card, textTheme: textTheme);
   }
 }
 
 class _GenericCardContent extends StatelessWidget {
-  const _GenericCardContent({
-    required this.card,
-    required this.textTheme,
-  });
+  const _GenericCardContent({required this.card, required this.textTheme});
 
   final WrappedCard card;
   final EnteTextTheme textTheme;
@@ -364,10 +333,7 @@ class _GenericCardContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        buildWrappedCardTitle(
-          card.title,
-          textTheme.h2Bold,
-        ),
+        buildWrappedCardTitle(card.title, textTheme.h2Bold),
         if (card.subtitle != null && card.subtitle!.isNotEmpty)
           buildWrappedCardSubtitle(
             card.subtitle!,
@@ -424,14 +390,9 @@ class _StoryDesignSurface extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  _StoryCardBackground(
-                    card: card,
-                    colorScheme: colorScheme,
-                  ),
+                  _StoryCardBackground(card: card, colorScheme: colorScheme),
                   if (showMeshGradient)
-                    _MeshGradientOverlay(
-                      variantIndex: gradientVariantIndex,
-                    ),
+                    _MeshGradientOverlay(variantIndex: gradientVariantIndex),
                   Positioned.fill(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -439,12 +400,15 @@ class _StoryDesignSurface extends StatelessWidget {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            colorScheme.backgroundElevated
-                                .withValues(alpha: 0.45),
-                            colorScheme.backgroundElevated
-                                .withValues(alpha: 0.2),
-                            colorScheme.backgroundElevated
-                                .withValues(alpha: 0.08),
+                            colorScheme.backgroundElevated.withValues(
+                              alpha: 0.45,
+                            ),
+                            colorScheme.backgroundElevated.withValues(
+                              alpha: 0.2,
+                            ),
+                            colorScheme.backgroundElevated.withValues(
+                              alpha: 0.08,
+                            ),
                           ],
                           stops: const <double>[0.0, 0.6, 1.0],
                         ),
@@ -465,7 +429,8 @@ class _StoryDesignSurface extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(
-                          height: _kStoryControlReserveHeight -
+                          height:
+                              _kStoryControlReserveHeight -
                               _kStoryControlBottomPadding,
                         ),
                         const SizedBox(height: _kStoryControlBottomPadding),

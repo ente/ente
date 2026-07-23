@@ -100,10 +100,7 @@ class _CreateRitualCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.backgroundElevated2,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.backgroundElevated2,
-          width: 2,
-        ),
+        border: Border.all(color: colorScheme.backgroundElevated2, width: 2),
       ),
       child: Material(
         color: Colors.transparent,
@@ -147,10 +144,7 @@ class _CreateRitualCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: colorScheme.textMuted,
-                ),
+                Icon(Icons.chevron_right_rounded, color: colorScheme.textMuted),
               ],
             ),
           ),
@@ -194,10 +188,7 @@ class _RitualCard extends StatelessWidget {
             if (onTap != null) {
               onTap!();
             } else {
-              routeToPage(
-                context,
-                AllRitualsScreen(ritual: ritual),
-              );
+              routeToPage(context, AllRitualsScreen(ritual: ritual));
             }
           },
           borderRadius: BorderRadius.circular(16),
@@ -353,9 +344,9 @@ class _RitualCard extends StatelessWidget {
                               const SizedBox(width: 10),
                               Text(
                                 context.l10n.delete,
-                                style: getEnteTextTheme(context)
-                                    .body
-                                    .copyWith(color: Colors.red),
+                                style: getEnteTextTheme(
+                                  context,
+                                ).body.copyWith(color: Colors.red),
                               ),
                             ],
                           ),

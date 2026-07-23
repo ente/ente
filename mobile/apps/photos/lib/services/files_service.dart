@@ -48,8 +48,8 @@ class FilesService {
 
   Future<bool> hasMigratedSizes() async {
     try {
-      final List<int> uploadIDsWithMissingSize =
-          await _filesDB.getUploadIDsWithMissingSize(_config.getUserID()!);
+      final List<int> uploadIDsWithMissingSize = await _filesDB
+          .getUploadIDsWithMissingSize(_config.getUserID()!);
       if (uploadIDsWithMissingSize.isEmpty) {
         return Future.value(true);
       }
@@ -123,9 +123,7 @@ class FilesService {
         sharedIDs.add(asset.id);
       }
     }
-    _logger.info(
-      "Found ${sharedIDs.length} assets in iCloud shared albums",
-    );
+    _logger.info("Found ${sharedIDs.length} assets in iCloud shared albums");
     return sharedIDs;
   }
 
@@ -159,8 +157,9 @@ class FilesService {
     LatLng location,
     BuildContext context,
   ) async {
-    final List<EnteFile> uploadedFiles =
-        files.where((element) => element.uploadedFileID != null).toList();
+    final List<EnteFile> uploadedFiles = files
+        .where((element) => element.uploadedFileID != null)
+        .toList();
 
     final List<EnteFile> remoteFilesToUpdate = [];
     final Map<int, Map<String, dynamic>> fileIDToUpdateMetadata = {};
@@ -229,10 +228,7 @@ class FilesService {
 
   // Note: this method is not used anywhere, but it is kept for future
   // reference when we add bulk EditTime feature
-  Future<void> bulkEditTime(
-    List<EnteFile> files,
-    EditTimeSource source,
-  ) async {
+  Future<void> bulkEditTime(List<EnteFile> files, EditTimeSource source) async {
     final ListMatch<EnteFile> result = files.splitMatch(
       (element) => element.isUploaded,
     );
@@ -287,10 +283,10 @@ class FilesService {
   Future<void> removeIgnoredFiles(Future<FileLoadResult> result) async {
     final ignoredIDs = await IgnoredFilesService.instance.idToIgnoreReasonMap;
     (await result).files.removeWhere(
-          (f) =>
-              f.uploadedFileID == null &&
-              IgnoredFilesService.instance.shouldSkipUpload(ignoredIDs, f),
-        );
+      (f) =>
+          f.uploadedFileID == null &&
+          IgnoredFilesService.instance.shouldSkipUpload(ignoredIDs, f),
+    );
   }
 }
 

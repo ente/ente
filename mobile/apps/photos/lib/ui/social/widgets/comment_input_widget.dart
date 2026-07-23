@@ -1,3 +1,4 @@
+import "package:ente_components/ente_components.dart";
 import "package:ente_icons/ente_icons.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
@@ -87,23 +88,20 @@ class _CommentInputWidgetState extends State<CommentInputWidget>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final componentColors = context.componentColors;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final textFieldFillColor =
-        isDarkMode ? const Color(0xFF212121) : const Color(0xFFF3F3F3);
+    final textFieldFillColor = isDarkMode
+        ? const Color(0xFF212121)
+        : const Color(0xFFF3F3F3);
     final textFieldBorderColor = isDarkMode
         ? const Color(0xFF0E0E0E)
         : const Color(0xFF000000).withValues(alpha: 0.02);
 
     return Container(
-      padding: const EdgeInsets.only(
-        bottom: 20,
-        left: 18,
-        right: 18,
-        top: 20,
-      ),
-      color:
-          isDarkMode ? const Color(0xFF0E0E0E) : colorScheme.backgroundElevated,
+      padding: const EdgeInsets.only(bottom: 20, left: 18, right: 18, top: 20),
+      color: isDarkMode
+          ? const Color(0xFF0E0E0E)
+          : colorScheme.backgroundElevated,
       child: SafeArea(
         top: false,
         child: Container(
@@ -144,15 +142,13 @@ class _CommentInputWidgetState extends State<CommentInputWidget>
                 minLines: 1,
                 maxLines: widget.replyingTo != null ? 4 : 8,
                 textAlignVertical: TextAlignVertical.center,
-                style: textTheme.body.copyWith(
-                  height: 15 / 16,
-                  letterSpacing: -0.32,
-                  color: colorScheme.textBase.withValues(alpha: 0.8),
+                style: TextStyles.body.copyWith(
+                  color: componentColors.textBase,
                 ),
                 decoration: InputDecoration(
                   hintText: l10n.commentHint,
-                  hintStyle: textTheme.body.copyWith(
-                    color: colorScheme.textMuted,
+                  hintStyle: TextStyles.body.copyWith(
+                    color: componentColors.textLighter,
                   ),
                   border: InputBorder.none,
                   filled: true,
@@ -170,8 +166,10 @@ class _CommentInputWidgetState extends State<CommentInputWidget>
                         parent: animation,
                         curve: Curves.easeInOutExpo,
                       );
-                      final scale = Tween<double>(begin: 0.5, end: 1.0)
-                          .animate(curvedAnimation);
+                      final scale = Tween<double>(
+                        begin: 0.5,
+                        end: 1.0,
+                      ).animate(curvedAnimation);
                       return FadeTransition(
                         opacity: curvedAnimation,
                         child: ScaleTransition(scale: scale, child: child),
@@ -179,32 +177,32 @@ class _CommentInputWidgetState extends State<CommentInputWidget>
                     },
                     child: switch (widget.sendState) {
                       SendButtonState.sending => const Padding(
-                          key: ValueKey('loading'),
-                          padding: EdgeInsets.all(12),
-                          child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: EnteLoadingWidget(size: 20, padding: 0),
-                          ),
+                        key: ValueKey('loading'),
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: EnteLoadingWidget(size: 20, padding: 0),
                         ),
+                      ),
                       SendButtonState.error => Padding(
-                          key: const ValueKey('error'),
-                          padding: const EdgeInsets.all(12),
-                          child: Icon(
-                            Icons.error_outline,
-                            color: colorScheme.warning500,
-                            size: 24,
-                          ),
+                        key: const ValueKey('error'),
+                        padding: const EdgeInsets.all(12),
+                        child: Icon(
+                          Icons.error_outline,
+                          color: colorScheme.warning500,
+                          size: 24,
                         ),
+                      ),
                       SendButtonState.idle => IconButton(
-                          key: const ValueKey('send'),
-                          onPressed: widget.onSend,
-                          icon: Icon(
-                            EnteIcons.sendStroke,
-                            color: colorScheme.textBase.withValues(alpha: 0.8),
-                            size: 24,
-                          ),
+                        key: const ValueKey('send'),
+                        onPressed: widget.onSend,
+                        icon: Icon(
+                          EnteIcons.sendStroke,
+                          color: colorScheme.textBase.withValues(alpha: 0.8),
+                          size: 24,
                         ),
+                      ),
                     },
                   ),
                   enabledBorder: OutlineInputBorder(

@@ -26,9 +26,7 @@ class MapGalleryTileBadge extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: const BoxDecoration(
-          borderRadius: BorderRadius.all(
-            Radius.circular(2),
-          ),
+          borderRadius: BorderRadius.all(Radius.circular(2)),
           shape: BoxShape.rectangle,
           // color: Color.fromRGBO(30, 215, 96, 1),
           color: Colors.green,

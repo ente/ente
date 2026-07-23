@@ -34,9 +34,9 @@ class _MemoryLaneDebugPanelState extends State<MemoryLaneDebugPanel> {
     super.initState();
     if (kDebugMode && _featureEnabled) {
       _reloadTimeline();
-      _timelineSubscription = Bus.instance
-          .on<MemoryLaneChangedEvent>()
-          .listen(_handleTimelineChanged);
+      _timelineSubscription = Bus.instance.on<MemoryLaneChangedEvent>().listen(
+        _handleTimelineChanged,
+      );
     }
   }
 
@@ -58,8 +58,9 @@ class _MemoryLaneDebugPanelState extends State<MemoryLaneDebugPanel> {
       _error = null;
     });
     try {
-      final timeline =
-          await MemoryLaneService.instance.getTimeline(widget.person.remoteID);
+      final timeline = await MemoryLaneService.instance.getTimeline(
+        widget.person.remoteID,
+      );
       if (!mounted) return;
       setState(() {
         _timeline = timeline;
@@ -97,8 +98,9 @@ class _MemoryLaneDebugPanelState extends State<MemoryLaneDebugPanel> {
       _error = null;
     });
     try {
-      await MemoryLaneCacheService.instance
-          .removeTimeline(widget.person.remoteID);
+      await MemoryLaneCacheService.instance.removeTimeline(
+        widget.person.remoteID,
+      );
       await _reloadTimeline();
       if (!mounted) return;
       setState(() {
@@ -125,12 +127,14 @@ class _MemoryLaneDebugPanelState extends State<MemoryLaneDebugPanel> {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
     final timeline = _timeline;
-    final bool inReadySet =
-        MemoryLaneService.instance.hasReadyTimelineSync(widget.person.remoteID);
+    final bool inReadySet = MemoryLaneService.instance.hasReadyTimelineSync(
+      widget.person.remoteID,
+    );
     final DateTime? updatedAt = timeline == null
         ? null
-        : DateTime.fromMicrosecondsSinceEpoch(timeline.updatedAtMicros)
-            .toLocal();
+        : DateTime.fromMicrosecondsSinceEpoch(
+            timeline.updatedAtMicros,
+          ).toLocal();
     final int uniqueYears = timeline == null
         ? 0
         : timeline.entries.map((entry) => entry.year).toSet().length;
@@ -213,8 +217,9 @@ class _MemoryLaneDebugPanelState extends State<MemoryLaneDebugPanel> {
                   child: const Text("Force recompute"),
                 ),
                 FilledButton.tonal(
-                  onPressed:
-                      _loading || timeline == null ? null : _clearTimeline,
+                  onPressed: _loading || timeline == null
+                      ? null
+                      : _clearTimeline,
                   child: const Text("Clear cache entry"),
                 ),
               ],

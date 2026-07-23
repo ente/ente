@@ -3,9 +3,9 @@ title: Passkeys
 description: Use passkeys for authentication in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Passkeys

@@ -12,12 +12,13 @@ import 'package:hugeicons/hugeicons.dart';
 /// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=4809-7992&m=dev
 /// Section: Bottom sheet / Bottom Sheet Header
 /// Specs: H2 title, optional 36px circular close action, and optional centered
-/// illustration slot for warning and error sheets.
+/// illustration for warning and error sheets.
 class _BottomSheetHeaderComponent extends StatelessWidget {
   const _BottomSheetHeaderComponent({
     this.title,
     this.illustration,
     this.onClose,
+    this.closeResult,
     this.showCloseButton = true,
     this.closeTooltip = 'Close',
     this.textAlign,
@@ -31,6 +32,7 @@ class _BottomSheetHeaderComponent extends StatelessWidget {
   ///
   /// Barrier taps, drag dismissals, and system back dismissals do not call this.
   final FutureOr<void> Function()? onClose;
+  final Object? closeResult;
   final bool showCloseButton;
   final String closeTooltip;
   final TextAlign? textAlign;
@@ -43,6 +45,7 @@ class _BottomSheetHeaderComponent extends StatelessWidget {
         title: title,
         illustration: illustration,
         onClose: onClose,
+        closeResult: closeResult,
         showCloseButton: showCloseButton,
         closeTooltip: closeTooltip,
       );
@@ -53,12 +56,17 @@ class _BottomSheetHeaderComponent extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           if (showCloseButton)
-            _BottomSheetCloseButton(onClose: onClose, tooltip: closeTooltip),
+            _BottomSheetCloseButton(
+              onClose: onClose,
+              closeResult: closeResult,
+              tooltip: closeTooltip,
+            ),
         ],
       );
     }
 
     final colors = context.componentColors;
+
     return SizedBox(
       height: _headerHeight,
       child: Row(
@@ -75,7 +83,11 @@ class _BottomSheetHeaderComponent extends StatelessWidget {
           ),
           if (showCloseButton) const SizedBox(width: Spacing.md),
           if (showCloseButton)
-            _BottomSheetCloseButton(onClose: onClose, tooltip: closeTooltip),
+            _BottomSheetCloseButton(
+              onClose: onClose,
+              closeResult: closeResult,
+              tooltip: closeTooltip,
+            ),
         ],
       ),
     );
@@ -96,15 +108,21 @@ class BottomSheetComponent extends StatelessWidget {
     this.content,
     this.actions = const [],
     this.onClose,
+    this.closeResult,
     this.showCloseButton = true,
     this.closeTooltip = 'Close',
     this.textAlign,
     this.crossAxisAlignment = CrossAxisAlignment.start,
     this.padding = const EdgeInsets.all(Spacing.xl),
     this.contentSpacing = Spacing.lg,
-    this.actionsTopSpacing = Spacing.lg,
+    this.actionsTopSpacing,
     this.backgroundColor,
+    this.borderSide,
     this.isKeyboardAware = false,
+    this.isScrollable = false,
+    this.initialChildSize = 0.5,
+    this.snap = false,
+    this.snapSizes,
   });
 
   final String? title;
@@ -118,15 +136,31 @@ class BottomSheetComponent extends StatelessWidget {
   ///
   /// Barrier taps, drag dismissals, and system back dismissals do not call this.
   final FutureOr<void> Function()? onClose;
+  final Object? closeResult;
   final bool showCloseButton;
   final String closeTooltip;
   final TextAlign? textAlign;
   final CrossAxisAlignment crossAxisAlignment;
   final EdgeInsets padding;
   final double contentSpacing;
-  final double actionsTopSpacing;
+  final double? actionsTopSpacing;
   final Color? backgroundColor;
+
+  /// Optional outline for sheet designs that specify a bordered surface.
+  /// Source: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=4809-8027&m=dev
+  final BorderSide? borderSide;
+
   final bool isKeyboardAware;
+  final bool isScrollable;
+
+  /// Initial sheet height fraction when [isScrollable] is true.
+  final double initialChildSize;
+
+  /// Whether the sheet snaps to [snapSizes] when [isScrollable] is true.
+  final bool snap;
+
+  /// Sheet height fractions to snap to when [isScrollable] and [snap] are true.
+  final List<double>? snapSizes;
 
   @override
   Widget build(BuildContext context) {
@@ -134,8 +168,10 @@ class BottomSheetComponent extends StatelessWidget {
     final bottomInset = isKeyboardAware
         ? MediaQuery.viewInsetsOf(context).bottom
         : 0.0;
+
     final usesCenteredLayout =
         illustration != null || (message != null && content == null);
+
     final effectiveHeader =
         header ??
         ((title != null || showCloseButton || usesCenteredLayout)
@@ -143,12 +179,14 @@ class BottomSheetComponent extends StatelessWidget {
                 title: title,
                 illustration: illustration,
                 onClose: onClose,
+                closeResult: closeResult,
                 showCloseButton: showCloseButton,
                 closeTooltip: closeTooltip,
                 textAlign: textAlign,
                 isCentered: usesCenteredLayout,
               )
             : null);
+
     final effectiveContent =
         content ??
         (message == null
@@ -158,18 +196,75 @@ class BottomSheetComponent extends StatelessWidget {
                 textAlign: usesCenteredLayout ? TextAlign.center : textAlign,
                 style: TextStyles.body.copyWith(color: colors.textLight),
               ));
+
     final effectiveCrossAxisAlignment = usesCenteredLayout
         ? CrossAxisAlignment.stretch
         : crossAxisAlignment;
+
     final effectiveContentSpacing = usesCenteredLayout
-        ? Spacing.xs
+        ? Spacing.lg
         : contentSpacing;
+
+    final effectiveActionsTopSpacing =
+        actionsTopSpacing ?? (usesCenteredLayout ? Spacing.xxl : Spacing.lg);
+
+    final children = <Widget>[
+      ?effectiveHeader,
+      if (effectiveContent != null) ...[
+        if (effectiveHeader != null) SizedBox(height: effectiveContentSpacing),
+        effectiveContent,
+      ],
+      if (actions.isNotEmpty) ...[
+        SizedBox(height: effectiveActionsTopSpacing),
+        _BottomSheetActions(actions: actions),
+      ],
+    ];
+
+    final sheetBody = isScrollable
+        ? DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: initialChildSize,
+            snap: snap,
+            snapSizes: snapSizes,
+            builder: (context, scrollController) {
+              return ListView(
+                controller: scrollController,
+                padding: padding,
+                shrinkWrap: true,
+                children: children,
+              );
+            },
+          )
+        : Padding(
+            padding: padding,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: effectiveCrossAxisAlignment,
+              children: children,
+            ),
+          );
+
+    final safeAreaBody = SafeArea(top: false, child: sheetBody);
+    final outlinedBody = borderSide == null
+        ? safeAreaBody
+        : DecoratedBox(
+            position: DecorationPosition.foreground,
+            decoration: BoxDecoration(
+              border: Border.fromBorderSide(borderSide!),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(Radii.bottomSheet),
+                topRight: Radius.circular(Radii.bottomSheet),
+              ),
+            ),
+            child: safeAreaBody,
+          );
 
     return AnimatedPadding(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOutCubic,
       padding: EdgeInsets.only(bottom: bottomInset),
       child: Container(
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: backgroundColor ?? colors.backgroundBase,
           borderRadius: const BorderRadius.only(
@@ -177,28 +272,7 @@ class BottomSheetComponent extends StatelessWidget {
             topRight: Radius.circular(Radii.bottomSheet),
           ),
         ),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: padding,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: effectiveCrossAxisAlignment,
-              children: [
-                if (effectiveHeader != null) effectiveHeader,
-                if (effectiveContent != null) ...[
-                  if (effectiveHeader != null)
-                    SizedBox(height: effectiveContentSpacing),
-                  effectiveContent,
-                ],
-                if (actions.isNotEmpty) ...[
-                  SizedBox(height: actionsTopSpacing),
-                  _BottomSheetActions(actions: actions),
-                ],
-              ],
-            ),
-          ),
-        ),
+        child: outlinedBody,
       ),
     );
   }
@@ -215,6 +289,7 @@ Future<T?> showBottomSheetComponent<T>({
   Color? barrierColor,
 }) {
   final colors = context.componentColors;
+
   return showModalBottomSheet<T>(
     context: context,
     useRootNavigator: useRootNavigator,
@@ -223,6 +298,7 @@ Future<T?> showBottomSheetComponent<T>({
     enableDrag: enableDrag,
     backgroundColor: Colors.transparent,
     barrierColor: barrierColor ?? colors.specialScrim.withValues(alpha: 0.55),
+    useSafeArea: true,
     builder: (context) {
       return PopScope(canPop: isDismissible, child: builder(context));
     },
@@ -234,6 +310,7 @@ class _CenteredHeader extends StatelessWidget {
     required this.title,
     required this.illustration,
     required this.onClose,
+    required this.closeResult,
     required this.showCloseButton,
     required this.closeTooltip,
   });
@@ -241,6 +318,7 @@ class _CenteredHeader extends StatelessWidget {
   final String? title;
   final Widget? illustration;
   final FutureOr<void> Function()? onClose;
+  final Object? closeResult;
   final bool showCloseButton;
   final String closeTooltip;
 
@@ -255,12 +333,17 @@ class _CenteredHeader extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             if (showCloseButton)
-              _BottomSheetCloseButton(onClose: onClose, tooltip: closeTooltip),
+              _BottomSheetCloseButton(
+                onClose: onClose,
+                closeResult: closeResult,
+                tooltip: closeTooltip,
+              ),
           ],
         ),
         if (showCloseButton && (illustration != null || title != null))
           const SizedBox(height: Spacing.xs),
-        if (illustration != null) Center(child: illustration!),
+        if (illustration != null)
+          _BottomSheetIllustration(child: illustration!),
         if (title != null) ...[
           SizedBox(height: illustration == null ? 0 : Spacing.lg),
           Text(
@@ -276,11 +359,36 @@ class _CenteredHeader extends StatelessWidget {
   }
 }
 
+class _BottomSheetIllustration extends StatelessWidget {
+  const _BottomSheetIllustration({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: _illustrationSlotBottomInset),
+        child: FittedBox(
+          alignment: Alignment.bottomCenter,
+          fit: BoxFit.scaleDown,
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
 class _BottomSheetCloseButton extends StatelessWidget {
-  const _BottomSheetCloseButton({required this.onClose, required this.tooltip});
+  const _BottomSheetCloseButton({
+    required this.onClose,
+    required this.closeResult,
+    required this.tooltip,
+  });
 
   /// Called when the close button is pressed, before the sheet is dismissed.
   final FutureOr<void> Function()? onClose;
+  final Object? closeResult;
   final String tooltip;
 
   @override
@@ -305,7 +413,7 @@ class _BottomSheetCloseButton extends StatelessWidget {
 
     final route = ModalRoute.of(context);
     if (route == null || route.isCurrent) {
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(closeResult);
     }
   }
 }
@@ -331,3 +439,4 @@ class _BottomSheetActions extends StatelessWidget {
 }
 
 const double _headerHeight = 38;
+const double _illustrationSlotBottomInset = 11;

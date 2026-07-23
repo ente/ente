@@ -11,22 +11,7 @@
   "invalidEmailAddress": "Ogiltig e-postadress",
   "enterValidEmail": "Ange en giltig e-postadress.",
   "deleteAccount": "Radera konto",
-  "deleteAccountWarning": "Detta kommer att ta bort ditt Ente Auth, Ente foton och Ente Locker konto.",
-  "askDeleteReason": "Vad är den främsta anledningen till att du raderar ditt konto?",
-  "deleteAccountFeedbackPrompt": "Vi är ledsna att se dig lämna oss. Vänligen dela dina synpunkter för att hjälpa oss att förbättra.",
-  "feedback": "Feedback",
-  "kindlyHelpUsWithThisInformation": "Vänligen hjälp oss med denna information",
-  "confirmDeletePrompt": "Ja, jag vill permanent ta bort detta konto och data i alla appar.",
-  "confirmAccountDeletion": "Bekräfta radering av konto",
-  "deleteAccountPermanentlyButton": "Radera kontot permanent",
-  "yourAccountHasBeenDeleted": "Ditt konto har raderats",
-  "selectReason": "Välj anledning",
-  "deleteReason1": "Det saknas en viktig funktion som jag behöver",
-  "deleteReason2": "Appen eller en viss funktion beter sig inte som jag tycker det ska",
-  "deleteReason3": "Jag hittade en annan tjänst som jag gillar bättre",
-  "deleteReason4": "Min orsak finns inte med",
   "sendEmail": "Skicka e-post",
-  "deleteRequestSLAText": "Din begäran kommer att hanteras inom 72 timmar.",
   "entePhotosPerm": "Ente <i>behöver tillåtelse att</i> bevara dina foton",
   "ok": "OK",
   "createAccount": "Skapa konto",
@@ -245,7 +230,6 @@
   "after1Month": "Om en månad",
   "after1Year": "Om ett år",
   "manageParticipants": "Hantera",
-  "collabLinkSectionDescription": "Skapa en länk så att personer kan lägga till och visa foton i ditt delade album utan att behöva en Ente app eller konto. Perfekt för att samla in bilder från evenemang.",
   "collectPhotos": "Samla in foton",
   "collaborativeLink": "Samarbetslänk",
   "shareWithNonenteUsers": "Dela med icke-Ente användare",
@@ -351,7 +335,6 @@
   "creatingLink": "Skapar länk...",
   "removeWithQuestionMark": "Ta bort?",
   "removeParticipantBody": "{userEmail} kommer att tas bort från detta delade album\n\nAlla bilder som lagts till av dem kommer också att tas bort från albumet",
-  "keepPhotos": "Behåll foton",
   "deletePhotos": "Radera foton",
   "inviteToEnte": "Bjud in till Ente",
   "removePublicLink": "Ta bort publik länk",
@@ -359,6 +342,9 @@
   "sharing": "Delar...",
   "youCannotShareWithYourself": "Du kan inte dela med dig själv",
   "archive": "Arkiv",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
   "createAlbumActionHint": "Långtryck för att välja foton och klicka på + för att skapa ett album",
   "importing": "Importerar....",
   "failedToLoadAlbums": "Det gick inte att läsa in album",
@@ -370,9 +356,6 @@
   "videoSmallCase": "video",
   "photoSmallCase": "foto",
   "singleFileDeleteHighlight": "Det kommer att tas bort från alla album.",
-  "singleFileInBothLocalAndRemote": "Denna {fileType} finns i både Ente och din enhet.",
-  "singleFileInRemoteOnly": "Denna {fileType} kommer att raderas från Ente.",
-  "singleFileDeleteFromDevice": "Denna {fileType} kommer att raderas från din enhet.",
   "deleteFromEnte": "Radera från ente",
   "yesDelete": "Ja, radera",
   "movedToTrash": "Flyttad till papperskorgen",
@@ -508,7 +491,6 @@
   "authToChangeEmailVerificationSetting": "Vänligen autentisera för att ändra e-postverifieringen",
   "exportYourData": "Exportera din data",
   "logout": "Logga ut",
-  "authToInitiateAccountDeletion": "Vänligen autentisera för att initiera borttagning av konto",
   "areYouSureYouWantToLogout": "Är du säker på att du vill logga ut?",
   "yesLogout": "Ja, logga ut",
   "aNewVersionOfEnteIsAvailable": "En ny version av Ente är tillgänglig.",
@@ -669,7 +651,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "PlayStore-prenumeration",
   "appstoreSubscription": "AppStore-prenumeration",
-  "subAlreadyLinkedErrMessage": "Din {id} är redan kopplad till ett annat Ente-konto.\nOm du vill använda din {id} med detta konto, vänligen kontakta vår support",
   "visitWebToManage": "Vänligen besök {webUrl} för att hantera ditt abonnemang",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
@@ -715,11 +696,6 @@
   "shareAnAlbumNow": "Dela ett album nu",
   "collectEventPhotos": "Samla händelsefoton",
   "loggingOut": "Loggar ut...",
-  "@onDevice": {
-    "description": "The text displayed above folders/albums stored on device",
-    "type": "text"
-  },
-  "onDevice": "På enhet",
   "name": "Namn",
   "newest": "Nyaste",
   "lastUpdated": "Senast uppdaterad",
@@ -753,6 +729,9 @@
   "moveToAlbum": "Flytta till album",
   "unhide": "Visa",
   "unarchive": "Ångra arkivering",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
   "favorite": "Favorit",
   "removeFromFavorite": "Ta bort från favoriter",
   "shareLink": "Dela länk",
@@ -935,25 +914,9 @@
   "verifyIDLabel": "Verifiera",
   "fileInfoAddDescHint": "Lägg till en beskrivning...",
   "editLocationTagTitle": "Redigera plats",
-  "androidBiometricHint": "Verifiera identitet",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
   "androidBiometricNotRecognized": "Inte igenkänd. Försök igen.",
   "@androidBiometricNotRecognized": {
     "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Avbryt",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "goToSettings": "Gå till inställningar",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
-  "iOSOkButton": "OK",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
   },
   "map": "Karta",
   "@map": {
@@ -971,7 +934,6 @@
   "viewAll": "Visa alla",
   "nothingSharedWithYouYet": "Inget delat med dig ännu",
   "sharedWithYou": "Delat med dig",
-  "sharedByYou": "Delat av dig",
   "inviteYourFriendsToEnte": "Bjud in dina vänner till Ente",
   "failedToDownloadVideo": "Kunde inte ladda ner video",
   "hiding": "Döljer...",
@@ -1041,7 +1003,6 @@
   "noDeviceFound": "Ingen enhet hittades",
   "pairingComplete": "Parkoppling lyckades",
   "savingEdits": "Sparar ändringar...",
-  "pairWithPin": "Parkoppla med PIN-kod",
   "faceRecognition": "Ansiktsigenkänning",
   "foundFaces": "Hittade ansikten",
   "rotate": "Rotera",
@@ -1063,17 +1024,11 @@
   "enabled": "Aktiverad",
   "moreDetails": "Mer detaljer",
   "panorama": "Panorama",
-  "reenterPassword": "Ange lösenord igen",
-  "reenterPin": "Ange PIN-kod igen",
   "deviceLock": "Enhetslås",
   "pinLock": "PIN-lås",
   "next": "Nästa",
-  "setNewPassword": "Ange nytt lösenord",
-  "enterPin": "Ange PIN-kod",
-  "setNewPin": "Ange ny PIN-kod",
   "appLock": "Applås",
   "noSystemLockFound": "Inget systemlås hittades",
-  "tapToUnlock": "Tryck för att låsa upp",
   "tooManyIncorrectAttempts": "För många felaktiga försök",
   "videoInfo": "Videoinformation",
   "immediately": "Omedelbart",

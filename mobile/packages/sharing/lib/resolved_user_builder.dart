@@ -3,11 +3,12 @@ import 'package:ente_sharing/extensions/user_extension.dart';
 import 'package:ente_sharing/models/user.dart';
 import 'package:flutter/widgets.dart';
 
-typedef ResolvedUserWidgetBuilder = Widget Function(
-  BuildContext context,
-  String displayName,
-  String actualEmail,
-);
+typedef ResolvedUserWidgetBuilder =
+    Widget Function(
+      BuildContext context,
+      String displayName,
+      String actualEmail,
+    );
 
 class ResolvedUserBuilder extends StatelessWidget {
   final User user;
@@ -23,7 +24,7 @@ class ResolvedUserBuilder extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
       valueListenable: ContactsDisplayService.instance.changes,
-      builder: (context, __, ___) =>
+      builder: (context, _, _) =>
           builder(context, user.resolvedDisplayName, user.email),
     );
   }

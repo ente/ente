@@ -1,9 +1,7 @@
 class Sessions {
   final List<Session> sessions;
 
-  Sessions(
-    this.sessions,
-  );
+  Sessions(this.sessions);
 
   factory Sessions.fromMap(Map<String, dynamic> map) {
     if (map["sessions"] == null) {

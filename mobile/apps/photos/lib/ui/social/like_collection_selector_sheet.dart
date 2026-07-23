@@ -1,4 +1,5 @@
 import "package:ente_icons/ente_icons.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/constants.dart";
@@ -8,7 +9,7 @@ import "package:photos/models/collection/collection.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/social/social_data_provider.dart";
-import "package:photos/services/collections_service.dart";
+import "package:photos/service_locator.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/components/buttons/icon_button_widget.dart";
@@ -24,10 +25,7 @@ class _CollectionLikeState {
   final Collection collection;
   bool isLiked;
 
-  _CollectionLikeState({
-    required this.collection,
-    required this.isLiked,
-  });
+  _CollectionLikeState({required this.collection, required this.isLiked});
 }
 
 /// Shows the like collection selector bottom sheet
@@ -35,11 +33,13 @@ class _CollectionLikeState {
 /// Parameters:
 /// - [fileID]: The uploaded file ID to like
 /// - [currentUserID]: Current user's ID for checking existing likes
+/// - [collections]: Shared collections eligible for this action
 /// - [file]: The EnteFile for displaying thumbnail (optional, will fetch if null)
 Future<void> showLikeCollectionSelectorSheet(
   BuildContext context, {
   required int fileID,
   required int currentUserID,
+  required List<Collection> collections,
   EnteFile? file,
 }) {
   return showModalBottomSheet(
@@ -49,6 +49,7 @@ Future<void> showLikeCollectionSelectorSheet(
     builder: (_) => LikeCollectionSelectorSheet(
       fileID: fileID,
       currentUserID: currentUserID,
+      collections: collections,
       file: file,
     ),
   );
@@ -57,11 +58,13 @@ Future<void> showLikeCollectionSelectorSheet(
 class LikeCollectionSelectorSheet extends StatefulWidget {
   final int fileID;
   final int currentUserID;
+  final List<Collection> collections;
   final EnteFile? file;
 
   const LikeCollectionSelectorSheet({
     required this.fileID,
     required this.currentUserID,
+    required this.collections,
     this.file,
     super.key,
   });
@@ -92,39 +95,15 @@ class _LikeCollectionSelectorSheetState
       // Load file if not provided (for thumbnail)
       _file ??= await FilesDB.instance.getAnyUploadedFile(widget.fileID);
 
-      // Get all collections containing this file
-      final collectionIDs = await FilesDB.instance.getAllCollectionIDsOfFile(
-        widget.fileID,
-      );
-
-      // Filter to shared collections only
-      final sharedCollections = collectionIDs
-          .map((id) => CollectionsService.instance.getCollectionByID(id))
-          .whereType<Collection>()
-          .where(
-            (c) =>
-                c.hasSharees || c.hasLink || !c.isOwner(widget.currentUserID),
-          )
-          .toList();
-
-      // If no shared collections, close the sheet
-      if (sharedCollections.isEmpty) {
-        if (mounted) Navigator.of(context).pop();
-        return;
-      }
-
       // Fetch like states in parallel
       final collectionStates = await Future.wait(
-        sharedCollections.map((collection) async {
+        widget.collections.map((collection) async {
           final reactions = await SocialDataProvider.instance
               .getReactionsForFileInCollection(widget.fileID, collection.id);
           final isLiked = reactions.any(
             (r) => r.userID == widget.currentUserID && !r.isDeleted,
           );
-          return _CollectionLikeState(
-            collection: collection,
-            isLiked: isLiked,
-          );
+          return _CollectionLikeState(collection: collection, isLiked: isLiked);
         }),
       );
 
@@ -160,10 +139,12 @@ class _LikeCollectionSelectorSheetState
       _logger.severe("Failed to toggle like", e);
       if (mounted) {
         setState(() => state.isLiked = previousState);
-        showShortToast(
-          context,
-          AppLocalizations.of(context).failedToUpdateLike,
-        );
+        if (flagService.internalUser || kDebugMode) {
+          showShortToast(
+            context,
+            AppLocalizations.of(context).failedToUpdateLike,
+          );
+        }
       }
     }
   }
@@ -240,11 +221,10 @@ class _LikeCollectionSelectorSheetState
         maxHeight: mediaQuery.size.height * _maxHeightFraction,
       ),
       decoration: BoxDecoration(
-        color:
-            isDarkMode ? const Color(0xFF0E0E0E) : colorScheme.backgroundBase,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(28),
-        ),
+        color: isDarkMode
+            ? const Color(0xFF0E0E0E)
+            : colorScheme.backgroundColour,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: SafeArea(
         top: false,
@@ -366,10 +346,7 @@ class _AlbumsHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            l10n.albumsCount(count: albumCount),
-            style: textTheme.small,
-          ),
+          Text(l10n.albumsCount(count: albumCount), style: textTheme.small),
           GestureDetector(
             onTap: onLikeAll,
             child: Container(
@@ -377,7 +354,7 @@ class _AlbumsHeader extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isDarkMode
                     ? const Color(0xFF0E0E0E)
-                    : colorScheme.backgroundBase,
+                    : colorScheme.backgroundColour,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Row(
@@ -411,8 +388,9 @@ class _TitleSection extends StatelessWidget {
     final textTheme = getEnteTextTheme(context);
     final colorScheme = getEnteColorScheme(context);
 
-    final subtitle =
-        isVideo ? l10n.selectAlbumToLikeVideo : l10n.selectAlbumToLikePhoto;
+    final subtitle = isVideo
+        ? l10n.selectAlbumToLikeVideo
+        : l10n.selectAlbumToLikePhoto;
 
     return Padding(
       padding: const EdgeInsets.only(top: 27, bottom: 9),
@@ -435,10 +413,7 @@ class _FileThumbnail extends StatelessWidget {
   final EnteFile? file;
   final Color placeholderColor;
 
-  const _FileThumbnail({
-    required this.file,
-    required this.placeholderColor,
-  });
+  const _FileThumbnail({required this.file, required this.placeholderColor});
 
   @override
   Widget build(BuildContext context) {
@@ -477,11 +452,7 @@ class _AlbumListItem extends StatelessWidget {
   final _CollectionLikeState state;
   final VoidCallback onTap;
 
-  const _AlbumListItem({
-    required this.state,
-    required this.onTap,
-    super.key,
-  });
+  const _AlbumListItem({required this.state, required this.onTap, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -501,7 +472,7 @@ class _AlbumListItem extends StatelessWidget {
         decoration: BoxDecoration(
           color: isDarkTheme
               ? const Color(0xFF0E0E0E)
-              : colorScheme.backgroundBase,
+              : colorScheme.backgroundColour,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(

@@ -1,14 +1,15 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:adaptive_theme/adaptive_theme.dart';
+import 'package:ente_account_deletion/account_deletion.dart';
 import 'package:ente_accounts/services/user_service.dart';
-import "package:ente_auth/app/view/app.dart";
+import 'package:ente_auth/app/view/app.dart';
 import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/core/constants.dart';
 import 'package:ente_auth/ente_theme_data.dart';
 import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/locale.dart';
+import 'package:ente_auth/services/auth_theme_preferences.dart';
 import 'package:ente_auth/services/authenticator_service.dart';
 import 'package:ente_auth/services/billing_service.dart';
 import 'package:ente_auth/services/local_backup_service.dart';
@@ -21,9 +22,11 @@ import 'package:ente_auth/store/code_display_store.dart';
 import 'package:ente_auth/store/code_store.dart';
 import 'package:ente_auth/ui/home_page.dart';
 import 'package:ente_auth/ui/utils/icon_utils.dart';
+import 'package:ente_auth/utils/debug_build_flags.dart';
 import 'package:ente_auth/utils/directory_utils.dart' as auth_dir_utils;
 import 'package:ente_auth/utils/gallery_import_util.dart';
 import 'package:ente_auth/utils/window_protocol_handler.dart';
+import 'package:ente_components/ente_components.dart' as components;
 import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_crypto_dart_adapter/ente_crypto_dart_adapter.dart';
 import 'package:ente_lock_screen/lock_screen_settings.dart';
@@ -35,7 +38,7 @@ import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:ente_strings/l10n/strings_localizations.dart';
 import 'package:ente_ui/theme/theme_config.dart';
 import 'package:flutter/foundation.dart';
-import "package:flutter/material.dart";
+import 'package:flutter/material.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:tray_manager/tray_manager.dart';
@@ -45,30 +48,29 @@ final _logger = Logger("main");
 
 Future<void> initSystemTray() async {
   if (PlatformDetector.isMobile()) return;
-  String path = Platform.isWindows
-      ? 'assets/icons/auth-icon-monochrome.ico'
+  final String path = Platform.isWindows
+      ? 'assets/icons/auth-icon.ico'
       : Platform.isMacOS
-          ? 'assets/icons/auth-icon-monochrome-padded.png'
-          : 'assets/icons/auth-icon-monochrome.png';
+      ? 'assets/icons/auth-icon-monochrome-padded.png'
+      : _linuxTrayIconPath();
   await trayManager.setIcon(path, isTemplate: true);
   Menu menu = Menu(
     items: [
-      MenuItem(
-        key: 'hide_window',
-        label: 'Hide Window',
-      ),
-      MenuItem(
-        key: 'show_window',
-        label: 'Show Window',
-      ),
+      MenuItem(key: 'hide_window', label: 'Hide Window'),
+      MenuItem(key: 'show_window', label: 'Show Window'),
       MenuItem.separator(),
-      MenuItem(
-        key: 'exit_app',
-        label: 'Exit App',
-      ),
+      MenuItem(key: 'exit_app', label: 'Exit App'),
     ],
   );
   await trayManager.setContextMenu(menu);
+}
+
+String _linuxTrayIconPath() {
+  if (Platform.environment.containsKey('FLATPAK_ID') ||
+      Platform.environment.containsKey('SNAP')) {
+    return 'io.ente.auth';
+  }
+  return 'assets/icons/auth-icon-monochrome.png';
 }
 
 void main() async {
@@ -103,7 +105,8 @@ void main() async {
 
 Future<void> _runInForeground() async {
   AppThemeConfig.initialize(EnteApp.auth);
-  final savedThemeMode = _themeMode(await AdaptiveTheme.getThemeMode());
+  components.ComponentTheme.configure(app: components.ComponentApp.auth);
+  final savedThemeMode = await AuthThemePreferences.getThemeMode();
   final configuration = Configuration.instance;
   return await _runWithLogs(() async {
     _logger.info("Starting app in foreground");
@@ -117,7 +120,8 @@ Future<void> _runInForeground() async {
     unawaited(UpdateService.instance.showUpdateNotification());
     runApp(
       AppLock(
-        builder: (args) => App(locale: locale),
+        builder: (args) => App(locale: locale, savedThemeMode: savedThemeMode),
+        debugShowCheckedModeBanner: false,
         lockScreen: LockScreen(configuration),
         enabled: await LockScreenSettings.instance.shouldShowLockScreen(),
         locale: locale,
@@ -134,13 +138,6 @@ Future<void> _runInForeground() async {
       ),
     );
   });
-}
-
-ThemeMode _themeMode(AdaptiveThemeMode? savedThemeMode) {
-  if (savedThemeMode == null) return ThemeMode.system;
-  if (savedThemeMode.isLight) return ThemeMode.light;
-  if (savedThemeMode.isDark) return ThemeMode.dark;
-  return ThemeMode.system;
 }
 
 Future _runWithLogs(Function() function, {String prefix = ""}) async {
@@ -164,8 +161,11 @@ void _registerWindowsProtocol() {
   const kWindowsScheme = 'enteauth';
   // Register our protocol only on Windows platform
   if (!kIsWeb && Platform.isWindows) {
-    WindowsProtocolHandler()
-        .register(kWindowsScheme, executable: null, arguments: null);
+    WindowsProtocolHandler().register(
+      kWindowsScheme,
+      executable: null,
+      arguments: null,
+    );
   }
 }
 
@@ -179,12 +179,7 @@ Future<void> _init(bool bool, {String? via}) async {
   await Configuration.instance.init([AuthenticatorDB.instance]);
   await cleanupPickedImagesOnStartup(logger: _logger);
   await Network.instance.init(Configuration.instance);
-  await UserService.instance.init(
-    Configuration.instance,
-    const HomePage(),
-    clientPackageName: 'io.ente.auth',
-    passkeyRedirectUrl: 'enteauth://passkey',
-  );
+  await UserService.instance.init(Configuration.instance, const HomePage());
   await AuthenticatorService.instance.init();
   await BillingService.instance.init();
   await NotificationService.instance.init();
@@ -193,6 +188,14 @@ Future<void> _init(bool bool, {String? via}) async {
   await LockScreenSettings.instance.init(
     Configuration.instance,
     hasOptedForOfflineMode: Configuration.instance.hasOptedForOfflineMode(),
+    hideAppContentDefault: true,
+  );
+  if (shouldAllowAuthScreenCapture) {
+    await LockScreenSettings.instance.setHideAppContent(false, persist: false);
+  }
+  AccountDeletionSettings.instance.init(
+    host: Configuration.instance,
+    enteDio: Network.instance.enteDio,
   );
   await LocalBackupService.instance.init(
     hasOptedForOfflineMode: Configuration.instance.hasOptedForOfflineMode(),

@@ -1,11 +1,3 @@
-import { Box } from "@mui/material";
-import { savedLocalUser } from "ente-accounts-rs/services/accounts-db";
-import type { MiniDialogAttributes } from "ente-base/components/MiniDialog";
-import log from "ente-base/log";
-import { t } from "i18next";
-import type { DragEvent } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Trans } from "react-i18next";
 import {
     LOCKER_FILE_LIMIT_PAID,
     LOCKER_MAX_FILE_SIZE_BYTES,
@@ -13,7 +5,7 @@ import {
     lockerUploadAllowance,
     type LockerUploadLimitState,
     type LockerUploadPreflightFailure,
-} from "services/locker-limits";
+} from "@/services/locker-limits";
 import {
     createCollection as createCollectionAPI,
     createInfoItem,
@@ -33,14 +25,22 @@ import {
     updateItemCollections,
     uploadLockerFile,
     type LockerUploadProgress,
-} from "services/remote";
+} from "@/services/remote";
 import type {
     LockerCollection,
     LockerItem,
     LockerItemType,
     LockerUploadCandidate,
-} from "types";
-import { getItemTitle, isCollectionOwner } from "types";
+} from "@/types";
+import { getItemTitle, isCollectionOwner } from "@/types";
+import { Box } from "@mui/material";
+import { savedLocalUser } from "ente-accounts-rs/services/accounts-db";
+import type { MiniDialogAttributes } from "ente-base/components/MiniDialog";
+import log from "ente-base/log";
+import { t } from "i18next";
+import type { DragEvent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Trans } from "react-i18next";
 import { filterNonEmptyUploadItems } from "../createItemDialog/fileUploadHelpers";
 import type { CreateItemDialogEditItem } from "../createItemDialog/useCreateItemDialogState";
 
@@ -555,13 +555,14 @@ export const useLockerActions = ({
                 message: (
                     <Trans
                         i18nKey="deleteFileConfirmation"
-                        values={{ fileName: getItemTitle(item) }}
                         components={{
-                            strong: (
+                            fileName: (
                                 <Box
                                     component="span"
                                     sx={{ fontWeight: 700, color: "text.base" }}
-                                />
+                                >
+                                    {getItemTitle(item)}
+                                </Box>
                             ),
                         }}
                     />

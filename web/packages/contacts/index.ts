@@ -3,6 +3,8 @@ import { getUserRecoveryKey } from "ente-accounts-rs/services/recovery-key";
 import { masterKeyFromSession } from "ente-accounts-rs/services/session-storage";
 import { ensureLocalUser } from "ente-accounts-rs/services/user";
 import { clientPackageName, desktopAppVersion, isDesktop } from "ente-base/app";
+import { ensureArrayBufferBacked } from "ente-base/bytes";
+import { retryAsyncOperation } from "ente-base/http";
 import log from "ente-base/log";
 import { apiOrigin } from "ente-base/origins";
 import { savedAuthToken } from "ente-base/token";
@@ -52,7 +54,6 @@ export type {
 
 const CONTACT_DIFF_LIMIT = 500;
 const AVATAR_FAILURE_TTL_MS = 60_000;
-const READY_RETRY_COOLDOWN_MS = 5_000;
 const CONTACTS_CACHE_SCHEMA_VERSION = 2;
 
 interface RemoteContactRecord {
@@ -99,6 +100,13 @@ interface ContactsReadyInput {
     masterKeyB64: string;
 }
 
+type ContactsSessionInput = ContactsReadyInput & {
+    sessionKey: string;
+    baseURL: string;
+    authToken: string;
+    generation: number;
+};
+
 type RootKeySource = "cache" | "unresolved";
 
 interface OpenedContactsCtx {
@@ -122,8 +130,6 @@ interface ContactsState {
     avatarLoadsByContactID: Map<string, Promise<void>>;
     avatarFailureUntilByContactID: Map<string, number>;
     avatarListenersByContactID: Map<string, Set<() => void>>;
-    lastReadyInput: ContactsReadyInput | undefined;
-    retryTimer: ReturnType<typeof setTimeout> | undefined;
 }
 
 const emptySnapshot = (): ContactsDisplaySnapshot => ({
@@ -148,8 +154,6 @@ const state: ContactsState = {
     avatarLoadsByContactID: new Map(),
     avatarFailureUntilByContactID: new Map(),
     avatarListenersByContactID: new Map(),
-    lastReadyInput: undefined,
-    retryTimer: undefined,
 };
 
 const buildSessionKey = (baseURL: string, userID: number) =>
@@ -195,10 +199,6 @@ const clearInMemoryState = () => {
     state.avatarURLByContactID = new Map();
     state.avatarLoadsByContactID = new Map();
     state.avatarFailureUntilByContactID = new Map();
-    if (state.retryTimer) {
-        clearTimeout(state.retryTimer);
-        state.retryTimer = undefined;
-    }
 };
 
 const emitSnapshot = (isHydrated = true) => {
@@ -345,7 +345,13 @@ const loadLocalSessionState = async (sessionKey: string) => {
     }
 
     emitSnapshot(true);
+    return generation;
 };
+
+const ensureSessionLoaded = async (sessionKey: string) =>
+    state.currentSessionKey === sessionKey
+        ? state.sessionGeneration
+        : loadLocalSessionState(sessionKey);
 
 const ensureContactsCtxOpen = async ({
     sessionKey,
@@ -353,13 +359,13 @@ const ensureContactsCtxOpen = async ({
     authToken,
     userID,
     masterKeyB64,
-}: ContactsReadyInput & {
-    sessionKey: string;
-    baseURL: string;
-    authToken: string;
-}) => {
+    generation,
+}: ContactsSessionInput) => {
+    if (!isCurrentSession(sessionKey, generation)) {
+        return;
+    }
+
     let ctx = state.ctx;
-    const generation = state.sessionGeneration;
 
     if (!ctx) {
         const cachedWrappedRootContactKey =
@@ -409,22 +415,19 @@ const syncContacts = async ({
     authToken,
     userID,
     masterKeyB64,
-}: ContactsReadyInput & {
-    sessionKey: string;
-    baseURL: string;
-    authToken: string;
-}) => {
+    generation,
+}: ContactsSessionInput) => {
     const ctx = await ensureContactsCtxOpen({
         sessionKey,
         baseURL,
         authToken,
         userID,
         masterKeyB64,
+        generation,
     });
     if (!ctx) {
         return;
     }
-    const generation = state.sessionGeneration;
 
     let sinceTime = (await savedContactsSinceTime(sessionKey)) ?? 0;
     let didChange = false;
@@ -478,7 +481,6 @@ export const ensureContactsReady = async ({
     userID,
     masterKeyB64,
 }: ContactsReadyInput) => {
-    state.lastReadyInput = { userID, masterKeyB64 };
     const authToken = await savedAuthToken();
     if (!authToken) {
         state.sessionGeneration += 1;
@@ -491,45 +493,31 @@ export const ensureContactsReady = async ({
     const baseURL = await apiOrigin();
     const sessionKey = buildSessionKey(baseURL, userID);
 
-    if (state.currentSessionKey !== sessionKey) {
-        await loadLocalSessionState(sessionKey);
+    const generation = await ensureSessionLoaded(sessionKey);
+    if (generation === undefined) {
+        return;
     }
 
     if (state.readyPromise) {
         return state.readyPromise;
     }
 
-    const readyPromise = syncContacts({
-        sessionKey,
-        baseURL,
-        authToken,
-        userID,
-        masterKeyB64,
-    })
-        .then(() => {
-            if (state.retryTimer) {
-                clearTimeout(state.retryTimer);
-                state.retryTimer = undefined;
-            }
-        })
-        .catch((error: unknown) => {
-            if (state.retryTimer) {
-                clearTimeout(state.retryTimer);
-            }
-            const retryInput = state.lastReadyInput;
-            state.retryTimer = setTimeout(() => {
-                state.retryTimer = undefined;
-                if (retryInput) {
-                    void ensureContactsReady(retryInput).catch(() => undefined);
-                }
-            }, READY_RETRY_COOLDOWN_MS);
-            throw error;
-        })
-        .finally(() => {
-            if (state.readyPromise === readyPromise) {
-                state.readyPromise = undefined;
-            }
-        });
+    const readyPromise = retryAsyncOperation(
+        () =>
+            syncContacts({
+                sessionKey,
+                baseURL,
+                authToken,
+                userID,
+                masterKeyB64,
+                generation,
+            }),
+        { retryProfile: "background" },
+    ).finally(() => {
+        if (state.readyPromise === readyPromise) {
+            state.readyPromise = undefined;
+        }
+    });
 
     state.readyPromise = readyPromise;
 
@@ -548,8 +536,9 @@ const ensureCurrentLegacyCtx = async () => {
     const user = ensureLocalUser();
     const baseURL = await apiOrigin();
     const sessionKey = buildSessionKey(baseURL, user.id);
-    if (state.currentSessionKey !== sessionKey) {
-        await loadLocalSessionState(sessionKey);
+    const generation = await ensureSessionLoaded(sessionKey);
+    if (generation === undefined) {
+        throw new Error("Contacts context not available");
     }
     const ctx = await ensureContactsCtxOpen({
         sessionKey,
@@ -557,6 +546,7 @@ const ensureCurrentLegacyCtx = async () => {
         authToken,
         userID: user.id,
         masterKeyB64,
+        generation,
     });
     if (!ctx) {
         throw new Error("Contacts context not available");
@@ -820,7 +810,9 @@ const ensureProfilePictureLoaded = async (contactID: string) => {
             ) {
                 return;
             }
-            const blob = new Blob([bytes], { type: inferImageMimeType(bytes) });
+            const blob = new Blob([ensureArrayBufferBacked(bytes)], {
+                type: inferImageMimeType(bytes),
+            });
             const url = URL.createObjectURL(blob);
             cleanupAvatarURL(contactID);
             state.avatarURLByContactID.set(contactID, url);

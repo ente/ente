@@ -15,7 +15,7 @@ class BillingGateway {
   ///
   /// Returns [BillingPlans] containing all available subscription plans.
   Future<BillingPlans> getUserPlans() async {
-    final response = await _enteDio.get("/billing/user-plans/");
+    final response = await _enteDio.get("/billing/user-plans");
     return BillingPlans.fromMap(response.data);
   }
 
@@ -77,8 +77,9 @@ class BillingGateway {
   ///
   /// Returns the reactivated [Subscription].
   Future<Subscription> activateStripeSubscription() async {
-    final response =
-        await _enteDio.post("/billing/stripe/activate-subscription");
+    final response = await _enteDio.post(
+      "/billing/stripe/activate-subscription",
+    );
     return Subscription.fromMap(response.data["subscription"]);
   }
 
@@ -93,9 +94,7 @@ class BillingGateway {
   }) async {
     final response = await _enteDio.get(
       "/billing/stripe/customer-portal",
-      queryParameters: {
-        "redirectURL": redirectURL,
-      },
+      queryParameters: {"redirectURL": redirectURL},
     );
     return response.data["url"] as String;
   }

@@ -28,9 +28,7 @@ Future<int?> showPickCoverPhotoSheet(
     },
     shape: const RoundedRectangleBorder(
       side: BorderSide(width: 0),
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(5),
-      ),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(5)),
     ),
     topControl: const SizedBox.shrink(),
     backgroundColor: getEnteColorScheme(context).backgroundElevated,
@@ -42,10 +40,7 @@ Future<int?> showPickCoverPhotoSheet(
 class PickCoverPhotoWidget extends StatelessWidget {
   final Collection collection;
 
-  const PickCoverPhotoWidget(
-    this.collection, {
-    super.key,
-  });
+  const PickCoverPhotoWidget(this.collection, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -75,33 +70,34 @@ class PickCoverPhotoWidget extends StatelessWidget {
                   Expanded(
                     child: GalleryFilesState(
                       child: Gallery(
-                        asyncLoader: (
-                          creationStartTime,
-                          creationEndTime, {
-                          limit,
-                          asc,
-                        }) async {
-                          final FileLoadResult result =
-                              await FilesDB.instance.getFilesInCollection(
-                            collection.id,
-                            creationStartTime,
-                            creationEndTime,
-                            limit: limit,
-                            asc: asc,
-                          );
-                          // hide ignored files from home page UI
-                          final ignoredIDs = await IgnoredFilesService
-                              .instance.idToIgnoreReasonMap;
-                          result.files.removeWhere(
-                            (f) =>
-                                f.uploadedFileID == null &&
-                                IgnoredFilesService.instance.shouldSkipUpload(
-                                  ignoredIDs,
-                                  f,
-                                ),
-                          );
-                          return result;
-                        },
+                        asyncLoader:
+                            (
+                              creationStartTime,
+                              creationEndTime, {
+                              limit,
+                              asc,
+                            }) async {
+                              final FileLoadResult result = await FilesDB
+                                  .instance
+                                  .getFilesInCollection(
+                                    collection.id,
+                                    creationStartTime,
+                                    creationEndTime,
+                                    limit: limit,
+                                    asc: asc,
+                                  );
+                              // hide ignored files from home page UI
+                              final ignoredIDs = await IgnoredFilesService
+                                  .instance
+                                  .idToIgnoreReasonMap;
+                              result.files.removeWhere(
+                                (f) =>
+                                    f.uploadedFileID == null &&
+                                    IgnoredFilesService.instance
+                                        .shouldSkipUpload(ignoredIDs, f),
+                              );
+                              return result;
+                            },
                         reloadEvent: Bus.instance
                             .on<CollectionUpdatedEvent>()
                             .where(
@@ -149,8 +145,9 @@ class PickCoverPhotoWidget extends StatelessWidget {
                                   key: ValueKey(value),
                                   isDisabled: !value,
                                   buttonType: ButtonType.neutral,
-                                  labelText: AppLocalizations.of(context)
-                                      .useSelectedPhoto,
+                                  labelText: AppLocalizations.of(
+                                    context,
+                                  ).useSelectedPhoto,
                                   onTap: () async {
                                     final selectedFile =
                                         selectedFiles.files.first;

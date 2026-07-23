@@ -22,8 +22,7 @@ class IgnoredFilesDB {
   static const columnReason = 'reason';
 
   Future _onCreate(Database db, int version) async {
-    await db.execute(
-      '''
+    await db.execute('''
         CREATE TABLE $tableName (
           $columnLocalID TEXT NOT NULL,
           $columnTitle TEXT NOT NULL,
@@ -33,8 +32,7 @@ class IgnoredFilesDB {
         );
       CREATE INDEX IF NOT EXISTS local_id_index ON $tableName($columnLocalID);
       CREATE INDEX IF NOT EXISTS device_folder_index ON $tableName($columnDeviceFolder);
-      ''',
-    );
+      ''');
   }
 
   IgnoredFilesDB._privateConstructor();

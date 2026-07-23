@@ -3,9 +3,9 @@ title: Missing Thumbnails
 description: Fix missing or incorrect photo thumbnails in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Missing Thumbnails

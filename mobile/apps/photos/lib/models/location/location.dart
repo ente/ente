@@ -13,7 +13,7 @@ abstract class Location with _$Location {
   factory Location.fromJson(Map<String, Object?> json) =>
       _$LocationFromJson(json);
 
-  static isValidLocation(Location? location) {
+  static bool isValidLocation(Location? location) {
     if (location == null) return false;
     if (location.latitude == null || location.longitude == null) return false;
     final latValue = location.latitude!;

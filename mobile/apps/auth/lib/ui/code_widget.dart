@@ -15,6 +15,7 @@ import 'package:ente_auth/store/code_display_store.dart';
 import 'package:ente_auth/store/code_store.dart';
 import 'package:ente_auth/theme/ente_theme.dart';
 import 'package:ente_auth/ui/code_timer_progress.dart';
+import 'package:ente_auth/ui/code_widget_layout_utils.dart';
 import 'package:ente_auth/ui/components/auth_qr_dialog.dart';
 import 'package:ente_auth/ui/components/note_dialog.dart';
 import 'package:ente_auth/ui/home/shortcuts.dart';
@@ -23,6 +24,7 @@ import 'package:ente_auth/ui/utils/icon_utils.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_auth/utils/toast_util.dart';
 import 'package:ente_auth/utils/totp_util.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_events/event_bus.dart';
 import 'package:ente_lock_screen/local_authentication_service.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
@@ -151,14 +153,6 @@ class _CodeWidgetState extends State<CodeWidget> {
                     : const Size(39, 39),
               ),
             ),
-          if (widget.code.isTrashed && kDebugMode)
-            Align(
-              alignment: Alignment.topLeft,
-              child: CustomPaint(
-                painter: PinBgPainter(color: colorScheme.warning700),
-                size: const Size(39, 39),
-              ),
-            ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -170,10 +164,8 @@ class _CodeWidgetState extends State<CodeWidget> {
                     duration: const Duration(milliseconds: 180),
                     switchInCurve: Curves.easeIn,
                     switchOutCurve: Curves.easeOut,
-                    transitionBuilder: (child, animation) => FadeTransition(
-                      opacity: animation,
-                      child: child,
-                    ),
+                    transitionBuilder: (child, animation) =>
+                        FadeTransition(opacity: animation, child: child),
                     child: isSelectionActive
                         ? const SizedBox.shrink()
                         : CodeTimerProgress(
@@ -337,7 +329,8 @@ class _CodeWidgetState extends State<CodeWidget> {
       );
     }
 
-    return Container(
+    final bool isIOS = !kIsWeb && Platform.isIOS;
+    final Widget content = Container(
       margin: widget.isCompactMode
           ? const EdgeInsets.only(left: 16, right: 16, bottom: 6, top: 6)
           : const EdgeInsets.only(left: 16, right: 16, bottom: 8, top: 8),
@@ -367,6 +360,30 @@ class _CodeWidgetState extends State<CodeWidget> {
           return clippedCard(l10n);
         },
       ),
+    );
+    final Widget scaledContent;
+    if (isIOS) {
+      final double scale = capCodeWidgetTextScaleForIOS(
+        MediaQuery.textScalerOf(context).scale(1.0),
+      );
+      scaledContent = MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(scale)),
+        child: content,
+      );
+    } else {
+      scaledContent = content;
+    }
+
+    return Semantics(
+      container: true,
+      identifier: 'auth_code_item',
+      label: [
+        widget.code.issuer,
+        widget.code.account,
+      ].where((value) => value.isNotEmpty).join(', '),
+      child: scaledContent,
     );
   }
 
@@ -485,8 +502,10 @@ class _CodeWidgetState extends State<CodeWidget> {
                         switchOutCurve: Curves.easeOut,
                         transitionBuilder: (child, animation) => FadeTransition(
                           opacity: animation,
-                          child:
-                              ScaleTransition(scale: animation, child: child),
+                          child: ScaleTransition(
+                            scale: animation,
+                            child: child,
+                          ),
                         ),
                         child: isSelected
                             ? Align(
@@ -536,9 +555,9 @@ class _CodeWidgetState extends State<CodeWidget> {
                 Text(
                   safeDecode(widget.code.account).trim(),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontSize: isCompactMode ? 12 : 12,
-                        color: Colors.grey,
-                      ),
+                    fontSize: isCompactMode ? 12 : 12,
+                    color: Colors.grey,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -878,10 +897,11 @@ class _CodeWidgetState extends State<CodeWidget> {
     String content, {
     required String confirmationMessage,
   }) async {
-    final shouldMinimizeOnCopy =
-        PreferenceService.instance.shouldMinimizeOnCopy();
+    final shouldMinimizeOnCopy = PreferenceService.instance
+        .shouldMinimizeOnCopy();
 
     await FlutterClipboard.copy(content);
+    if (!mounted) return;
     showToast(context, confirmationMessage);
     if (Platform.isAndroid && shouldMinimizeOnCopy) {
       // ignore: unawaited_futures
@@ -905,6 +925,7 @@ class _CodeWidgetState extends State<CodeWidget> {
     if (!isAuthSuccessful) {
       return;
     }
+    if (!mounted) return;
     final Code? code = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (BuildContext context) {
@@ -932,9 +953,11 @@ class _CodeWidgetState extends State<CodeWidget> {
         .replaceAll('algorithm=sha256', 'algorithm=SHA256')
         .replaceAll('algorithm=sha512', 'algorithm=SHA512');
 
-    await showDialog(
+    if (!mounted) return;
+    await showBottomSheetComponent<void>(
       context: context,
-      builder: (BuildContext dialogContext) {
+      useRootNavigator: true,
+      builder: (_) {
         return AuthQrDialog(
           data: qrData,
           title: widget.code.issuer,
@@ -960,6 +983,7 @@ class _CodeWidgetState extends State<CodeWidget> {
     if (!isAuthSuccessful) {
       return;
     }
+    if (!mounted) return;
     showShareDialog(context, widget.code);
   }
 
@@ -972,15 +996,17 @@ class _CodeWidgetState extends State<CodeWidget> {
     final Code code = widget.code.copyWith(
       display: display.copyWith(pinned: !currentlyPinned),
     );
+    if (!mounted) return;
     unawaited(
-      CodeStore.instance.addCode(code).then(
-            (value) => showToast(
-              context,
-              !currentlyPinned
-                  ? context.l10n.pinnedCodeMessage(widget.code.issuer)
-                  : context.l10n.unpinnedCodeMessage(widget.code.issuer),
-            ),
-          ),
+      CodeStore.instance.addCode(code).then((value) {
+        if (!mounted) return;
+        showToast(
+          context,
+          !currentlyPinned
+              ? context.l10n.pinnedCodeMessage(widget.code.issuer)
+              : context.l10n.unpinnedCodeMessage(widget.code.issuer),
+        );
+      }),
     );
   }
 
@@ -992,16 +1018,18 @@ class _CodeWidgetState extends State<CodeWidget> {
       showToast(context, 'Code can only be deleted from trash');
       return;
     }
-    bool isAuthSuccessful =
-        await LocalAuthenticationService.instance.requestLocalAuthentication(
-      context,
-      context.l10n.deleteCodeAuthMessage,
-    );
+    bool isAuthSuccessful = await LocalAuthenticationService.instance
+        .requestLocalAuthentication(
+          context,
+          context.l10n.deleteCodeAuthMessage,
+        );
     if (!isAuthSuccessful) {
       return;
     }
+    if (!mounted) return;
     FocusScope.of(context).requestFocus();
     final l10n = context.l10n;
+    if (!mounted) return;
     await showChoiceActionSheet(
       context,
       title: l10n.deleteCodeTitle,
@@ -1014,6 +1042,7 @@ class _CodeWidgetState extends State<CodeWidget> {
           LocalBackupService.instance.triggerDailyBackupIfNeeded().ignore();
         } catch (e, s) {
           logger.severe('Failed to delete code', e, s);
+          if (!mounted) return;
           showGenericErrorDialog(context: context, error: e).ignore();
         }
       },
@@ -1028,19 +1057,21 @@ class _CodeWidgetState extends State<CodeWidget> {
       showToast(context, 'Code is already trashed');
       return;
     }
-    bool isAuthSuccessful =
-        await LocalAuthenticationService.instance.requestLocalAuthentication(
-      context,
-      context.l10n.deleteCodeAuthMessage,
-    );
+    bool isAuthSuccessful = await LocalAuthenticationService.instance
+        .requestLocalAuthentication(
+          context,
+          context.l10n.deleteCodeAuthMessage,
+        );
     if (!isAuthSuccessful) {
       return;
     }
+    if (!mounted) return;
     FocusScope.of(context).requestFocus();
     final l10n = context.l10n;
     final String issuerAccount = widget.code.account.isNotEmpty
         ? '${widget.code.issuer} (${widget.code.account})'
         : widget.code.issuer;
+    if (!mounted) return;
     await showChoiceActionSheet(
       context,
       title: l10n.trashCode,
@@ -1056,6 +1087,7 @@ class _CodeWidgetState extends State<CodeWidget> {
           await CodeStore.instance.addCode(code);
         } catch (e) {
           logger.severe('Failed to trash code: ${e.toString()}');
+          if (!mounted) return;
           showGenericErrorDialog(context: context, error: e).ignore();
         }
       },

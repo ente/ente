@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/stacktrace"
 )
 
 func ensureAccessTokenAvailable(ctx context.Context, tx *sql.Tx, token string) error {

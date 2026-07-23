@@ -16,10 +16,9 @@ class EmptyState extends StatelessWidget {
           text ?? AppLocalizations.of(context).nothingToSeeHere,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: Theme.of(context)
-                .colorScheme
-                .defaultTextColor
-                .withValues(alpha: 0.35),
+            color: Theme.of(
+              context,
+            ).colorScheme.defaultTextColor.withValues(alpha: 0.35),
           ),
         ),
       ),

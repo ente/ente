@@ -7,7 +7,9 @@ description: Edit your videos with trim, crop, and rotate tools
 
 The video editor lets you make basic edits to your videos directly within Ente Photos. Edit videos with trim, crop, and rotate tools, and save them as new copies while preserving your originals.
 
-> **Note**: The video editor was revamped in v1.2.18 to drastically improve speed when editing larger videos and enhance the user experience.
+> [!NOTE]
+>
+> The video editor was revamped in v1.2.18 to drastically improve speed when editing larger videos and enhance the user experience.
 
 ## Features
 

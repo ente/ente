@@ -38,14 +38,15 @@ Future<void> changeVisibility(
   await dialog.show();
   try {
     await FileMagicService.instance.changeVisibility(files, newVisibility);
-    showShortToast(
-      context,
-      newVisibility == archiveVisibility
-          ? AppLocalizations.of(context).successfullyArchived
-          : AppLocalizations.of(context).successfullyUnarchived,
-    );
-
     await dialog.hide();
+    if (context.mounted) {
+      showShortToast(
+        context,
+        newVisibility == archiveVisibility
+            ? AppLocalizations.of(context).successfullyArchived
+            : AppLocalizations.of(context).successfullyUnarchived,
+      );
+    }
   } catch (e, s) {
     _logger.severe("failed to update file visibility", e, s);
     await dialog.hide();
@@ -61,16 +62,16 @@ Future<void> changeCollectionVisibility(
   bool isOwner = true,
   bool showProgressDialog = true,
 }) async {
-  final visibilityAction =
-      _getVisibilityAction(context, newVisibility, prevVisibility);
+  final visibilityAction = _getVisibilityAction(
+    context,
+    newVisibility,
+    prevVisibility,
+  );
   ProgressDialog? dialog;
   if (showProgressDialog) {
     dialog = createProgressDialog(
       context,
-      _visActionProgressDialogText(
-        context,
-        visibilityAction,
-      ),
+      _visActionProgressDialogText(context, visibilityAction),
     );
     await dialog.show();
   }
@@ -80,8 +81,10 @@ Future<void> changeCollectionVisibility(
     if (isOwner) {
       await CollectionsService.instance.updateMagicMetadata(collection, update);
     } else {
-      await CollectionsService.instance
-          .updateShareeMagicMetadata(collection, update);
+      await CollectionsService.instance.updateShareeMagicMetadata(
+        collection,
+        update,
+      );
     }
     // Force reload home gallery to pull in/remove the now visibility changed
     // files
@@ -90,17 +93,13 @@ Future<void> changeCollectionVisibility(
         "CollectionVisibilityChange: $visibilityAction",
       ),
     );
-    if (showProgressDialog) {
+    await dialog?.hide();
+    if (showProgressDialog && context.mounted) {
       showShortToast(
         context,
-        _visActionSuccessfulText(
-          context,
-          visibilityAction,
-        ),
+        _visActionSuccessfulText(context, visibilityAction),
       );
     }
-
-    await dialog?.hide();
   } catch (e, s) {
     _logger.severe("failed to update collection visibility", e, s);
     await dialog?.hide();
@@ -115,14 +114,18 @@ Future<void> changeSortOrder(
 ) async {
   try {
     final Map<String, dynamic> update = {"asc": sortedInAscOrder};
-    await CollectionsService.instance
-        .updatePublicMagicMetadata(collection, update);
+    await CollectionsService.instance.updatePublicMagicMetadata(
+      collection,
+      update,
+    );
     Bus.instance.fire(
       CollectionMetaEvent(collection.id, CollectionMetaEventType.sortChanged),
     );
   } catch (e, s) {
     _logger.severe("failed to update collection visibility", e, s);
-    showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
+    if (context.mounted) {
+      showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
+    }
     rethrow;
   }
 }
@@ -133,16 +136,16 @@ Future<void> updateOrder(
   int order,
 ) async {
   try {
-    final Map<String, dynamic> update = {
-      orderKey: order,
-    };
+    final Map<String, dynamic> update = {orderKey: order};
     await CollectionsService.instance.updateMagicMetadata(collection, update);
     Bus.instance.fire(
       CollectionMetaEvent(collection.id, CollectionMetaEventType.orderChanged),
     );
   } catch (e, s) {
     _logger.severe("failed to update order", e, s);
-    showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
+    if (context.mounted) {
+      showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
+    }
     rethrow;
   }
 }
@@ -153,17 +156,19 @@ Future<void> updateShareeOrder(
   int order,
 ) async {
   try {
-    final Map<String, dynamic> update = {
-      orderKey: order,
-    };
-    await CollectionsService.instance
-        .updateShareeMagicMetadata(collection, update);
+    final Map<String, dynamic> update = {orderKey: order};
+    await CollectionsService.instance.updateShareeMagicMetadata(
+      collection,
+      update,
+    );
     Bus.instance.fire(
       CollectionMetaEvent(collection.id, CollectionMetaEventType.orderChanged),
     );
   } catch (e, s) {
     _logger.severe("failed to update sharee order", e, s);
-    showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
+    if (context.mounted) {
+      showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
+    }
     rethrow;
   }
 }
@@ -177,8 +182,10 @@ Future<void> changeCoverPhoto(
 ) async {
   try {
     final Map<String, dynamic> update = {"coverID": uploadedFileID};
-    await CollectionsService.instance
-        .updatePublicMagicMetadata(collection, update);
+    await CollectionsService.instance.updatePublicMagicMetadata(
+      collection,
+      update,
+    );
     Bus.instance.fire(
       CollectionUpdatedEvent(
         collection.id,
@@ -189,7 +196,9 @@ Future<void> changeCoverPhoto(
     );
   } catch (e, s) {
     _logger.severe("failed to update cover", e, s);
-    showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
+    if (context.mounted) {
+      showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
+    }
     rethrow;
   }
 }
@@ -211,11 +220,18 @@ Future<bool> editTime(
       final file = entry.key;
       if (file.uploadedFileID == null) continue;
       final editedTime = entry.value;
-      fileIdToTimeUpdate[file.uploadedFileID!] = {editTimeKey: editedTime};
+      fileIdToTimeUpdate[file.uploadedFileID!] = {
+        editTimeKey: editedTime,
+        dateTimeKey: formatPubMagicDateTime(
+          DateTime.fromMicrosecondsSinceEpoch(editedTime),
+        ),
+      };
     }
 
-    final dialog =
-        createProgressDialog(context, AppLocalizations.of(context).pleaseWait);
+    final dialog = createProgressDialog(
+      context,
+      AppLocalizations.of(context).pleaseWait,
+    );
     await dialog.show();
     try {
       await FileMagicService.instance.updatePublicMagicMetadata(
@@ -228,8 +244,10 @@ Future<bool> editTime(
           ForceReloadHomeGalleryEvent("FileMetadataChange-$editTimeKey"),
         );
       }
-      showShortToast(context, AppLocalizations.of(context).done);
       await dialog.hide();
+      if (context.mounted) {
+        showShortToast(context, AppLocalizations.of(context).done);
+      }
     } catch (e, s) {
       _logger.severe("failed to update times $fileIdToTimeUpdate", e, s);
       await dialog.hide();
@@ -237,15 +255,13 @@ Future<bool> editTime(
     }
     return true;
   } catch (e) {
+    if (!context.mounted) return false;
     showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
     return false;
   }
 }
 
-Future<void> editFilename(
-  BuildContext context,
-  EnteFile file,
-) async {
+Future<void> editFilename(BuildContext context, EnteFile file) async {
   final fileName = file.displayName;
   final nameWithoutExt = basenameWithoutExtension(fileName);
   final extName = extension(fileName);
@@ -276,6 +292,7 @@ Future<void> editFilename(
   );
   if (result is Exception) {
     _logger.severe("Failed to rename file");
+    if (!context.mounted) return;
     await showGenericErrorDialog(context: context, error: result);
   }
 }
@@ -313,18 +330,20 @@ Future<void> _updatePublicMetadata(
   }
   ProgressDialog? dialog;
   if (context != null && showProgressDialogs) {
-    dialog =
-        createProgressDialog(context, AppLocalizations.of(context).pleaseWait);
+    dialog = createProgressDialog(
+      context,
+      AppLocalizations.of(context).pleaseWait,
+    );
     await dialog.show();
   }
   try {
     final Map<String, dynamic> update = {key: value};
     await FileMagicService.instance.updatePublicMagicMetadata(files, update);
     if (context != null) {
-      if (showDoneToast) {
+      await dialog?.hide();
+      if (showDoneToast && context.mounted) {
         showShortToast(context, AppLocalizations.of(context).done);
       }
-      await dialog?.hide();
     }
 
     if (_shouldReloadGallery(key)) {
@@ -343,7 +362,10 @@ bool _shouldReloadGallery(String key) {
   return key == editTimeKey;
 }
 
-_visActionProgressDialogText(BuildContext context, _VisibilityAction action) {
+String _visActionProgressDialogText(
+  BuildContext context,
+  _VisibilityAction action,
+) {
   switch (action) {
     case _VisibilityAction.archive:
       return AppLocalizations.of(context).archiving;
@@ -356,7 +378,10 @@ _visActionProgressDialogText(BuildContext context, _VisibilityAction action) {
   }
 }
 
-_visActionSuccessfulText(BuildContext context, _VisibilityAction action) {
+String _visActionSuccessfulText(
+  BuildContext context,
+  _VisibilityAction action,
+) {
   switch (action) {
     case _VisibilityAction.archive:
       return AppLocalizations.of(context).successfullyArchived;
@@ -370,7 +395,7 @@ _visActionSuccessfulText(BuildContext context, _VisibilityAction action) {
 }
 
 _VisibilityAction _getVisibilityAction(
-  context,
+  BuildContext context,
   int newVisibility,
   int prevVisibility,
 ) {

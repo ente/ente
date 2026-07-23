@@ -148,17 +148,3 @@ func (u SupportUpdateBonus) Validate() error {
 	}
 	return nil
 }
-
-// ClearOrphanObjectsRequest is the API request to trigger the process for
-// clearing orphan objects in DC.
-//
-// The optional prefix can be specified to limit the cleanup to objects that
-// begin with that prefix.
-//
-// ForceTaskLock can be used to force the cleanup to start even if there is an
-// existing task lock for the clear orphan objects task.
-type ClearOrphanObjectsRequest struct {
-	DC            string `json:"dc" binding:"required"`
-	Prefix        string `json:"prefix"`
-	ForceTaskLock bool   `json:"forceTaskLock"`
-}

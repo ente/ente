@@ -1,6 +1,6 @@
 import "package:ente_pure_utils/ente_pure_utils.dart";
-import "package:flutter/cupertino.dart";
 import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/db/files_db.dart";
@@ -39,6 +39,7 @@ class AlbumSelectionActionWidget extends StatefulWidget {
 class _AlbumSelectionActionWidgetState
     extends State<AlbumSelectionActionWidget> {
   final _logger = Logger("AlbumSelectionActionWidgetState");
+  final _scrollController = ScrollController();
   late CollectionActions collectionActions;
   bool hasFavorites = false;
 
@@ -52,6 +53,7 @@ class _AlbumSelectionActionWidgetState
   @override
   void dispose() {
     widget.selectedAlbums.removeListener(_selectionChangedListener);
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -73,14 +75,14 @@ class _AlbumSelectionActionWidgetState
       items.add(
         SelectionActionButton(
           labelText: AppLocalizations.of(context).share,
-          icon: Icons.adaptive.share,
+          hugeIcon: HugeIcons.strokeRoundedShare03,
           onTap: _shareCollection,
         ),
       );
       items.add(
         SelectionActionButton(
-          labelText: AppLocalizations.of(context).pinAlbum,
-          icon: Icons.push_pin_rounded,
+          labelText: AppLocalizations.of(context).pin,
+          hugeIcon: HugeIcons.strokeRoundedPin,
           onTap: _onPinClick,
           shouldShow: hasUnpinnedAlbum,
         ),
@@ -88,8 +90,8 @@ class _AlbumSelectionActionWidgetState
 
       items.add(
         SelectionActionButton(
-          labelText: AppLocalizations.of(context).unpinAlbum,
-          icon: CupertinoIcons.pin_slash,
+          labelText: AppLocalizations.of(context).unpin,
+          hugeIcon: HugeIcons.strokeRoundedPinOff,
           onTap: _onUnpinClick,
           shouldShow: hasPinnedAlbum,
         ),
@@ -98,14 +100,15 @@ class _AlbumSelectionActionWidgetState
       items.add(
         SelectionActionButton(
           labelText: AppLocalizations.of(context).delete,
-          icon: Icons.delete_outline,
+          hugeIcon: HugeIcons.strokeRoundedDelete01,
           onTap: _trashCollection,
+          isCritical: true,
         ),
       );
       items.add(
         SelectionActionButton(
           labelText: AppLocalizations.of(context).hide,
-          icon: Icons.visibility_off_outlined,
+          hugeIcon: HugeIcons.strokeRoundedViewOffSlash,
           onTap: _onHideOrUnHideClick,
         ),
       );
@@ -116,15 +119,16 @@ class _AlbumSelectionActionWidgetState
       items.add(
         SelectionActionButton(
           labelText: AppLocalizations.of(context).unarchive,
-          icon: Icons.unarchive_outlined,
+          hugeIcon: HugeIcons.strokeRoundedUnarchive03,
           onTap: _archiveClick,
         ),
       );
       items.add(
         SelectionActionButton(
           labelText: AppLocalizations.of(context).delete,
-          icon: Icons.delete_outline,
+          hugeIcon: HugeIcons.strokeRoundedDelete01,
           onTap: _trashCollection,
+          isCritical: true,
         ),
       );
     } else if (widget.sectionType == UISectionType.hiddenCollections) {
@@ -132,22 +136,23 @@ class _AlbumSelectionActionWidgetState
       items.add(
         SelectionActionButton(
           labelText: AppLocalizations.of(context).unhide,
-          icon: Icons.visibility_outlined,
+          hugeIcon: HugeIcons.strokeRoundedView,
           onTap: _onHideOrUnHideClick,
         ),
       );
       items.add(
         SelectionActionButton(
           labelText: AppLocalizations.of(context).delete,
-          icon: Icons.delete_outline,
+          hugeIcon: HugeIcons.strokeRoundedDelete01,
           onTap: _trashCollection,
+          isCritical: true,
         ),
       );
     } else {
       items.add(
         SelectionActionButton(
           labelText: AppLocalizations.of(context).archive,
-          icon: Icons.archive_outlined,
+          hugeIcon: HugeIcons.strokeRoundedArchive03,
           onTap: _archiveClick,
         ),
       );
@@ -166,8 +171,8 @@ class _AlbumSelectionActionWidgetState
 
         items.add(
           SelectionActionButton(
-            labelText: AppLocalizations.of(context).pinAlbum,
-            icon: Icons.push_pin_rounded,
+            labelText: AppLocalizations.of(context).pin,
+            hugeIcon: HugeIcons.strokeRoundedPin,
             onTap: _onPinClickForSharee,
             shouldShow: hasShareeUnpinnedAlbum,
           ),
@@ -175,8 +180,8 @@ class _AlbumSelectionActionWidgetState
 
         items.add(
           SelectionActionButton(
-            labelText: AppLocalizations.of(context).unpinAlbum,
-            icon: CupertinoIcons.pin_slash,
+            labelText: AppLocalizations.of(context).unpin,
+            hugeIcon: HugeIcons.strokeRoundedPinOff,
             onTap: _onUnpinClickForSharee,
             shouldShow: hasShareePinnedAlbum,
           ),
@@ -187,7 +192,7 @@ class _AlbumSelectionActionWidgetState
       items.add(
         SelectionActionButton(
           labelText: AppLocalizations.of(context).hide,
-          icon: Icons.visibility_off_outlined,
+          hugeIcon: HugeIcons.strokeRoundedViewOffSlash,
           onTap: _onHideOrUnHideClick,
         ),
       );
@@ -195,13 +200,11 @@ class _AlbumSelectionActionWidgetState
       items.add(
         SelectionActionButton(
           labelText: AppLocalizations.of(context).leaveAlbum,
-          icon: Icons.logout,
+          hugeIcon: HugeIcons.strokeRoundedLogout05,
           onTap: _leaveAlbum,
         ),
       );
     }
-
-    final scrollController = ScrollController();
 
     return MediaQuery(
       data: MediaQuery.of(context).removePadding(removeBottom: true),
@@ -209,9 +212,10 @@ class _AlbumSelectionActionWidgetState
         child: Scrollbar(
           radius: const Radius.circular(1),
           thickness: 2,
-          controller: scrollController,
+          controller: _scrollController,
           thumbVisibility: true,
           child: SingleChildScrollView(
+            controller: _scrollController,
             physics: const BouncingScrollPhysics(
               decelerationRate: ScrollDecelerationRate.fast,
             ),
@@ -259,12 +263,15 @@ class _AlbumSelectionActionWidgetState
         continue;
       }
       count = await FilesDB.instance.collectionFileCount(collection.id);
+      if (!mounted) return;
       final bool isEmptyCollection = count == 0;
       if (isEmptyCollection) {
         try {
           await CollectionsService.instance.trashEmptyCollection(collection);
+          if (!mounted) return;
         } catch (e, s) {
           _logger.warning("failed to trash collection", e, s);
+          if (!mounted) return;
           errors.add(e);
         }
       } else {
@@ -273,6 +280,7 @@ class _AlbumSelectionActionWidgetState
     }
     if (errors.isNotEmpty) {
       await showGenericErrorDialog(context: context, error: errors.first);
+      if (!mounted) return;
     }
 
     if (nonEmptyCollection.isNotEmpty) {
@@ -284,6 +292,7 @@ class _AlbumSelectionActionWidgetState
         debugPrint("Failed to delete collection");
       }
     }
+    if (!mounted) return;
     if (hasFavorites) {
       _showFavToast();
     }
@@ -368,11 +377,14 @@ class _AlbumSelectionActionWidgetState
       for (final collection in collections) {
         final isOwner = collection.isOwner(userID);
         final isHidden = collection.isHidden();
-        final int prevVisiblity =
-            isHidden ? hiddenVisibility : visibleVisibility;
-        final int newVisiblity =
-            isHidden ? visibleVisibility : hiddenVisibility;
+        final int prevVisiblity = isHidden
+            ? hiddenVisibility
+            : visibleVisibility;
+        final int newVisiblity = isHidden
+            ? visibleVisibility
+            : hiddenVisibility;
 
+        if (!mounted) return;
         await changeCollectionVisibility(
           context,
           collection: collection,
@@ -382,6 +394,7 @@ class _AlbumSelectionActionWidgetState
           showProgressDialog: false,
         );
       }
+      if (!mounted) return;
       showShortToast(
         context,
         isUnhiding
@@ -390,6 +403,7 @@ class _AlbumSelectionActionWidgetState
       );
     } catch (e, s) {
       _logger.warning("failed to change visibility", e, s);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     } finally {
       await dialog.hide();
@@ -417,8 +431,8 @@ class _AlbumSelectionActionWidgetState
     // Determine if we're archiving or unarchiving based on first collection
     final isUnarchiving =
         widget.sectionType == UISectionType.incomingCollections
-            ? collections.first.hasShareeArchived()
-            : collections.first.isArchived();
+        ? collections.first.hasShareeArchived()
+        : collections.first.isArchived();
     final dialog = createProgressDialog(
       context,
       isUnarchiving
@@ -431,11 +445,14 @@ class _AlbumSelectionActionWidgetState
       for (final collection in collections) {
         if (widget.sectionType == UISectionType.incomingCollections) {
           final hasShareeArchived = collection.hasShareeArchived();
-          final int prevVisiblity =
-              hasShareeArchived ? archiveVisibility : visibleVisibility;
-          final int newVisiblity =
-              hasShareeArchived ? visibleVisibility : archiveVisibility;
+          final int prevVisiblity = hasShareeArchived
+              ? archiveVisibility
+              : visibleVisibility;
+          final int newVisiblity = hasShareeArchived
+              ? visibleVisibility
+              : archiveVisibility;
 
+          if (!mounted) return;
           await changeCollectionVisibility(
             context,
             collection: collection,
@@ -446,11 +463,14 @@ class _AlbumSelectionActionWidgetState
           );
         } else {
           final isArchived = collection.isArchived();
-          final int prevVisiblity =
-              isArchived ? archiveVisibility : visibleVisibility;
-          final int newVisiblity =
-              isArchived ? visibleVisibility : archiveVisibility;
+          final int prevVisiblity = isArchived
+              ? archiveVisibility
+              : visibleVisibility;
+          final int newVisiblity = isArchived
+              ? visibleVisibility
+              : archiveVisibility;
 
+          if (!mounted) return;
           await changeCollectionVisibility(
             context,
             collection: collection,
@@ -460,6 +480,7 @@ class _AlbumSelectionActionWidgetState
           );
         }
       }
+      if (!mounted) return;
       showShortToast(
         context,
         isUnarchiving
@@ -468,6 +489,7 @@ class _AlbumSelectionActionWidgetState
       );
     } catch (e, s) {
       _logger.warning("failed to change archive state", e, s);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     } finally {
       await dialog.hide();

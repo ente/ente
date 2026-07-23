@@ -8,6 +8,12 @@ inputs:
     output:
         description: "Build output directory within web/apps/<app>"
         default: "out"
+    account-id:
+        description: "Cloudflare account ID"
+        required: true
+    api-token:
+        description: "Cloudflare API token"
+        required: true
 
 runs:
     using: "composite"
@@ -15,11 +21,11 @@ runs:
         - name: Build ${{ inputs.app }}
           shell: bash
           working-directory: web
-          run: yarn build:${{ inputs.app }}
+          run: npm run build:${{ inputs.app }}
 
         - name: Publish ${{ inputs.app }}
-          uses: cloudflare/wrangler-action@v3
+          uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
           with:
-              accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
-              apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
+              accountId: ${{ inputs.account-id }}
+              apiToken: ${{ inputs.api-token }}
               command: pages deploy --project-name=ente --commit-dirty=true --branch=deploy/${{ inputs.app }} web/apps/${{ inputs.app }}/${{ inputs.output }}

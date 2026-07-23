@@ -25,13 +25,13 @@ VITE_ENTE_API_ORIGIN=http://localhost:8080 npm run dev
 ### Checks
 
 ```sh
-npm run lint
+npm run lint # or lint:fix
 npm run build
 ```
 
-> [!TIP]
+> [!NOTE]
 >
-> See [web/docs/new.md](../../web/docs/new.md) for help in setting up your editor to do the formatting and linting. You can also run the formatter and linter manually using `npm run lint-fix`.
+> If `package-lock.json` has not changed since your last `npm ci`, you can use `npm install` as a faster incremental alternative.
 
 ### Deployment
 

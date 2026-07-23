@@ -33,10 +33,7 @@ class LogStore {
     await _database.database; // Initialize database
 
     // Start periodic flush timer - less frequent for better batching
-    _flushTimer = Timer.periodic(
-      const Duration(seconds: 15),
-      (_) => _flush(),
-    );
+    _flushTimer = Timer.periodic(const Duration(seconds: 15), (_) => _flush());
 
     _initialized = true;
   }
@@ -100,11 +97,7 @@ class LogStore {
     // Flush any pending logs first
     await _flush();
 
-    return _database.getLogs(
-      filter: filter,
-      limit: limit,
-      offset: offset,
-    );
+    return _database.getLogs(filter: filter, limit: limit, offset: offset);
   }
 
   /// Get unique logger names

@@ -1,8 +1,7 @@
 name: ente_lock_screen
 description: A Flutter package containing lock screen UI components and services for Ente apps
-version: 1.0.0
-publish_to: none
 
+resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
   flutter: ">=1.17.0"
@@ -18,6 +17,8 @@ dependencies:
     path: ../events
   ente_pure_utils:
     path: ../ente_pure_utils
+  ente_screen_cover:
+    path: ../screen_cover
   ente_strings:
     path: ../strings
   ente_ui:
@@ -27,10 +28,6 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_animate: 4.5.2
-  flutter_local_authentication:
-    git:
-      url: https://github.com/eaceto/flutter_local_authentication
-      ref: 1ac346a04592a05fd75acccf2e01fa3c7e955d96
   # Do not upgrade this package unless this issue is resolved:
   # https://github.com/juliansteenbakker/flutter_secure_storage/issues/870
   # On v9.2.4, keys related to lockscreen persist even after reintsall. For context see:
@@ -38,15 +35,18 @@ dependencies:
   # Let's wait till the issue is resolved by the package maintainer.
   # If not resolved and we need to upgrade, write a migration script.
   flutter_secure_storage: 9.0.0
-  flutter_svg: 2.2.3
-  local_auth: 2.3.0
+  flutter_svg: 2.3.0
+  local_auth: 3.0.1
+  local_auth_android: 2.0.8
+  local_auth_darwin: 2.0.3
+  local_auth_linux:
+    path: ../local_auth_linux
   logging: 1.3.0
   pinput: 5.0.2
-  privacy_screen: 0.0.8
   shared_preferences: 2.5.3
 
 dev_dependencies:
-  flutter_lints: 5.0.0
+  flutter_lints: 6.0.0
   flutter_test:
     sdk: flutter
 

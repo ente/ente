@@ -1,6 +1,6 @@
 package ente
 
-import enteTime "github.com/ente-io/museum/pkg/utils/time"
+import enteTime "github.com/ente/museum/pkg/utils/time"
 
 const MemoryShareTTL = 7 * 24 * enteTime.MicroSecondsInOneHour
 

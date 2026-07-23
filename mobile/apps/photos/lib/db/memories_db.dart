@@ -18,10 +18,11 @@ class MemoriesDB {
   final String _dbName;
 
   MemoriesDB._privateConstructor({String dbName = _databaseName})
-      : _dbName = dbName;
+    : _dbName = dbName;
   static final MemoriesDB instance = MemoriesDB._privateConstructor();
-  static final MemoriesDB localGalleryInstance =
-      MemoriesDB._privateConstructor(dbName: "ente.memories.offline.db");
+  static final MemoriesDB localGalleryInstance = MemoriesDB._privateConstructor(
+    dbName: "ente.memories.offline.db",
+  );
 
   Future<Database>? _dbFuture;
   Future<Database> get database async {
@@ -41,14 +42,12 @@ class MemoriesDB {
   }
 
   Future _onCreate(Database db, int version) async {
-    await db.execute(
-      '''
+    await db.execute('''
                 CREATE TABLE $table (
                   $columnFileID INTEGER PRIMARY KEY NOT NULL,
                   $columnSeenTime TEXT NOT NULL
                 )
-                ''',
-    );
+                ''');
   }
 
   Future<void> clearTable() async {

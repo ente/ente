@@ -24,6 +24,8 @@ import "package:photos/ui/viewer/location/pick_center_point_widget.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/share_util.dart";
 
+const _kSearchPreviewFallbackClusterSize = 3;
+
 enum ResultType {
   collection,
   deviceCollection,
@@ -195,6 +197,7 @@ extension SectionTypeExtensions on SectionType {
         return () async {
           final centerPoint = await showPickCenterPointSheet(context);
           if (centerPoint != null) {
+            if (!context.mounted) return;
             showAddLocationSheet(context, centerPoint);
           }
         };
@@ -216,25 +219,29 @@ extension SectionTypeExtensions on SectionType {
                 return;
               }
               try {
-                final Collection c =
-                    await CollectionsService.instance.createAlbum(text);
+                final Collection c = await CollectionsService.instance
+                    .createAlbum(text);
 
                 // Close the dialog now so that it does not flash when leaving the album again.
+                if (!context.mounted) return;
                 Navigator.of(context).pop();
 
+                if (!context.mounted) return;
                 // ignore: unawaited_futures
                 await routeToPage(
                   context,
                   CollectionPage(CollectionWithThumbnail(c, null)),
                 );
               } catch (e, s) {
-                Logger("CreateNewAlbumIcon")
-                    .severe("Failed to create a new album", e, s);
+                Logger(
+                  "CreateNewAlbumIcon",
+                ).severe("Failed to create a new album", e, s);
                 rethrow;
               }
             },
           );
           if (result is Exception) {
+            if (!context.mounted) return;
             await showGenericErrorDialog(context: context, error: result);
           }
         };
@@ -247,10 +254,7 @@ extension SectionTypeExtensions on SectionType {
     }
   }
 
-  Future<List<SearchResult>> getData(
-    BuildContext? context, {
-    int? limit,
-  }) {
+  Future<List<SearchResult>> getData(BuildContext? context, {int? limit}) {
     switch (this) {
       case SectionType.face:
         return SearchService.instance.getAllFace(
@@ -258,9 +262,15 @@ extension SectionTypeExtensions on SectionType {
           minClusterSize: limit == null
               ? kMinimumClusterSizeAllFaces
               : kMinimumClusterSizeSearchResult,
+          fallbackMinClusterSize: limit == null
+              ? null
+              : _kSearchPreviewFallbackClusterSize,
         );
       case SectionType.magic:
-        return SearchService.instance.getMagicSectionResults(context!);
+        return SearchService.instance.getMagicSectionResults(
+          context!,
+          limit: limit,
+        );
       case SectionType.wrapped:
         return Future.value(const <SearchResult>[]);
       case SectionType.location:
@@ -275,8 +285,10 @@ extension SectionTypeExtensions on SectionType {
         return SearchService.instance.getAllCollectionSearchResults(limit);
 
       case SectionType.fileTypesAndExtension:
-        return SearchService.instance
-            .getAllFileTypesAndExtensionsResults(context!, limit);
+        return SearchService.instance.getAllFileTypesAndExtensionsResults(
+          context!,
+          limit,
+        );
     }
   }
 

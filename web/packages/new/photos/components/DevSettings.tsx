@@ -214,7 +214,7 @@ const updateAPIOrigin = async (origin: string) => {
         PingResponse.parse(await res.json());
     } catch (e) {
         log.error("Invalid response", e);
-        throw new Error("Invalid response");
+        throw new Error("Invalid response", { cause: e });
     }
 
     await setKV("apiOrigin", origin);

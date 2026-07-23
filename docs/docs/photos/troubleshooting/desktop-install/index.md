@@ -3,9 +3,9 @@ title: Desktop Installation Troubleshooting
 description: Troubleshoot desktop app installation issues for Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Desktop Installation Troubleshooting

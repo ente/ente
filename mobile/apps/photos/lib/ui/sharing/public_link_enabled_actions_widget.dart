@@ -2,24 +2,24 @@ import 'package:collection/collection.dart';
 import 'package:ente_qr_ui/ente_qr_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/generated/l10n.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/services/collections_service.dart';
-import 'package:photos/theme/ente_theme.dart';
-import 'package:photos/ui/components/captioned_text_widget.dart';
-import 'package:photos/ui/components/divider_widget.dart';
-import 'package:photos/ui/components/menu_item_widget/menu_item_widget.dart';
 import 'package:photos/ui/notification/toast.dart';
+import 'package:photos/ui/sharing/share_components.dart';
 import 'package:photos/utils/share_util.dart';
 
 class PublicLinkEnabledActionsWidget extends StatelessWidget {
   final Collection collection;
   final GlobalKey? sendLinkButtonKey;
+  final List<Widget> additionalItems;
 
   const PublicLinkEnabledActionsWidget({
     super.key,
     required this.collection,
     this.sendLinkButtonKey,
+    this.additionalItems = const [],
   });
 
   @override
@@ -28,79 +28,47 @@ class PublicLinkEnabledActionsWidget extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final enteColorScheme = getEnteColorScheme(context);
     final bool hasExpired =
         collection.publicURLs.firstOrNull?.isExpired ?? false;
+    final items = <Widget>[];
 
     if (hasExpired) {
-      return MenuItemWidget(
-        captionedTextWidget: CaptionedTextWidget(
+      items.add(
+        ShareMenuItem(
           title: AppLocalizations.of(context).linkHasExpired,
-          textColor: enteColorScheme.warning500,
+          leading: const Icon(Icons.error_outline_rounded),
+          isDestructive: true,
+          isDisabled: true,
         ),
-        leadingIcon: Icons.error_outline,
-        leadingIconColor: enteColorScheme.warning500,
-        menuItemColor: enteColorScheme.fillFaint,
-        singleBorderRadius: 8,
       );
-    }
-
-    final String url = CollectionsService.instance.getPublicUrl(collection);
-    final GlobalKey effectiveKey = sendLinkButtonKey ?? GlobalKey();
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        MenuItemWidget(
-          captionedTextWidget: CaptionedTextWidget(
-            title: AppLocalizations.of(context).copyLink,
-            makeTextBold: true,
-          ),
-          leadingIcon: Icons.copy,
-          menuItemColor: enteColorScheme.fillFaint,
+    } else {
+      final String url = CollectionsService.instance.getPublicUrl(collection);
+      final GlobalKey effectiveKey = sendLinkButtonKey ?? GlobalKey();
+      items.addAll([
+        ShareMenuItem(
+          title: AppLocalizations.of(context).copyLink,
+          icon: HugeIcons.strokeRoundedCopy01,
           showOnlyLoadingState: true,
           onTap: () async {
             await Clipboard.setData(ClipboardData(text: url));
+            if (!context.mounted) return;
             showShortToast(
               context,
               AppLocalizations.of(context).linkCopiedToClipboard,
             );
           },
-          isBottomBorderRadiusRemoved: true,
         ),
-        DividerWidget(
-          dividerType: DividerType.menu,
-          bgColor: enteColorScheme.fillFaint,
-        ),
-        MenuItemWidget(
+        ShareMenuItem(
           key: effectiveKey,
-          captionedTextWidget: CaptionedTextWidget(
-            title: AppLocalizations.of(context).sendLink,
-            makeTextBold: true,
-          ),
-          leadingIcon: Icons.adaptive.share,
-          menuItemColor: enteColorScheme.fillFaint,
+          title: AppLocalizations.of(context).sendLink,
+          icon: HugeIcons.strokeRoundedSent,
           onTap: () async {
-            await shareAlbumLink(
-              context,
-              url,
-              effectiveKey,
-            );
+            await shareAlbumLink(context, url, effectiveKey);
           },
-          isTopBorderRadiusRemoved: true,
-          isBottomBorderRadiusRemoved: true,
         ),
-        DividerWidget(
-          dividerType: DividerType.menu,
-          bgColor: enteColorScheme.fillFaint,
-        ),
-        MenuItemWidget(
-          captionedTextWidget: CaptionedTextWidget(
-            title: AppLocalizations.of(context).sendQrCode,
-            makeTextBold: true,
-          ),
-          leadingIcon: Icons.qr_code_outlined,
-          menuItemColor: enteColorScheme.fillFaint,
+        ShareMenuItem(
+          title: AppLocalizations.of(context).sendQrCode,
+          icon: HugeIcons.strokeRoundedQrCode,
           onTap: () async {
             await showDialog<void>(
               context: context,
@@ -127,10 +95,11 @@ class PublicLinkEnabledActionsWidget extends StatelessWidget {
               },
             );
           },
-          isTopBorderRadiusRemoved: true,
-          isBottomBorderRadiusRemoved: false,
         ),
-      ],
-    );
+      ]);
+    }
+
+    items.addAll(additionalItems);
+    return ShareMenuGroup(items: items);
   }
 }

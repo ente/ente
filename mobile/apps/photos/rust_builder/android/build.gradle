@@ -51,6 +51,6 @@ android {
 
 apply from: "../cargokit/gradle/plugin.gradle"
 cargokit {
-    manifestDir = "../../rust"
+    manifestDir = "../../../../../rust/bindings/frb/photos"
     libname = "ente_photos_rust"
 }

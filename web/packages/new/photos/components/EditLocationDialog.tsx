@@ -297,7 +297,7 @@ const EditableMap: React.FC<EditableMapProps> = ({
     };
 
     const handleSearchSubmit = async (
-        e?: React.FormEvent<HTMLFormElement> | React.MouseEvent,
+        e?: React.SubmitEvent<HTMLFormElement> | React.MouseEvent,
     ) => {
         e?.preventDefault();
 

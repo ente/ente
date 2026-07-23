@@ -132,7 +132,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "少なくとも1つのコレクションを選択してください",
   "unknownItemType": "不明なアイテムタイプ",
   "fileDeletedSuccessfully": "アイテムが正常に削除されました",
   "failedToDeleteFile": "アイテムの削除に失敗しました: {error}",
@@ -253,7 +252,6 @@
   "optionalNote": "オプションのメモ",
   "upload": "アップロード",
   "documentsHint": "ドキュメント",
-  "searchHint": "検索...",
   "searchEmptyTitle": "一致するものが見つかりません",
   "searchEmptyDescription": "別のキーワードで検索してみてください。",
   "searchEverywhereTitle": "「{query}」をすべての場所で検索",

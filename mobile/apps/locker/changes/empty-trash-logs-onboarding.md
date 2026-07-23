@@ -1,0 +1,1 @@
+- Fixed empty trash handling, log viewer header styling, and signup recovery UI issues.

@@ -38,8 +38,9 @@ class AddOnPage extends StatelessWidget {
             flexibleSpaceTitle: TitleBarTitleWidget(
               title: AppLocalizations.of(context).addOns,
             ),
-            flexibleSpaceCaption:
-                AppLocalizations.of(context).addOnPageSubtitle,
+            flexibleSpaceCaption: AppLocalizations.of(
+              context,
+            ).addOnPageSubtitle,
             actionIcons: [
               IconButtonWidget(
                 icon: Icons.close_outlined,
@@ -53,19 +54,19 @@ class AddOnPage extends StatelessWidget {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (delegateBuildContext, index) {
-                  final bonus = bonusData.getAddOnBonuses()[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: AddOnViewSection(
-                      sectionName: _sectionNameForBonusType(bonus.type),
-                      bonus: bonus,
-                    ),
-                  );
-                },
-                childCount: bonusData.getAddOnBonuses().length,
-              ),
+              delegate: SliverChildBuilderDelegate((
+                delegateBuildContext,
+                index,
+              ) {
+                final bonus = bonusData.getAddOnBonuses()[index];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: AddOnViewSection(
+                    sectionName: _sectionNameForBonusType(bonus.type),
+                    bonus: bonus,
+                  ),
+                );
+              }, childCount: bonusData.getAddOnBonuses().length),
             ),
           ),
         ],
@@ -96,26 +97,23 @@ class AddOnViewSection extends StatelessWidget {
           children: [
             Text(
               sectionName,
-              style: textStyle.body.copyWith(
-                color: colorScheme.textMuted,
-              ),
+              style: textStyle.body.copyWith(color: colorScheme.textMuted),
             ),
             if (bonus.validTill != 0)
               Text(
                 AppLocalizations.of(context).validTill(
-                  endDate: DateFormat.yMMMd(
-                    Localizations.localeOf(context).languageCode,
-                  )
-                      .format(
-                        DateTime.fromMicrosecondsSinceEpoch(
-                          bonus.validTill,
-                        ),
-                      )
-                      .toString(),
+                  endDate:
+                      DateFormat.yMMMd(
+                            Localizations.localeOf(context).languageCode,
+                          )
+                          .format(
+                            DateTime.fromMicrosecondsSinceEpoch(
+                              bonus.validTill,
+                            ),
+                          )
+                          .toString(),
                 ),
-                style: textStyle.body.copyWith(
-                  color: colorScheme.textMuted,
-                ),
+                style: textStyle.body.copyWith(color: colorScheme.textMuted),
               ),
           ],
         ),

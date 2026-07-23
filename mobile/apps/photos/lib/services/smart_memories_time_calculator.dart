@@ -17,8 +17,9 @@ class TimeMemoriesCalculator {
   }) async {
     final List<TimeMemory> recentMemoryResult = [];
     final List<TimeMemory> historicalMemoryResult = [];
-    final availableFiles =
-        allFiles is List<EnteFile> ? allFiles : allFiles.toList();
+    final availableFiles = allFiles is List<EnteFile>
+        ? allFiles
+        : allFiles.toList();
     if (availableFiles.isEmpty) return [];
     final recentCandidates = recentSourceFiles ?? availableFiles;
 
@@ -183,8 +184,9 @@ class TimeMemoriesCalculator {
             .map((e) => e.key)
             .toList();
         if (significantWeeks.length >= 3) {
-          final allPhotos =
-              currentWeekYearGroups.values.expand((x) => x).toList();
+          final allPhotos = currentWeekYearGroups.values
+              .expand((x) => x)
+              .toList();
           final photoSelection = await SmartMemoriesService._bestSelection(
             allPhotos,
             isLocalGalleryMode: isLocalGalleryMode,
@@ -266,8 +268,8 @@ class TimeMemoriesCalculator {
     final sortedYearsForCurrentMonth = currentMonthYearGroups.keys.toList()
       ..sort(
         (a, b) => currentMonthYearGroups[b]!.length.compareTo(
-              currentMonthYearGroups[a]!.length,
-            ),
+          currentMonthYearGroups[a]!.length,
+        ),
       );
     for (int i = 0; i < 2; i++) {
       if (sortedYearsForCurrentMonth.isEmpty) break;
@@ -390,8 +392,9 @@ class TimeMemoriesCalculator {
     final List<FillerMemory> memoryResults = [];
     if (allFiles.isEmpty) return [];
     final nowInMicroseconds = currentTime.microsecondsSinceEpoch;
-    final windowEnd =
-        currentTime.add(kMemoriesUpdateFrequency).microsecondsSinceEpoch;
+    final windowEnd = currentTime
+        .add(kMemoriesUpdateFrequency)
+        .microsecondsSinceEpoch;
     final currentYear = currentTime.year;
     final cutOffTime = currentTime.subtract(
       const Duration(days: 364) - kMemoriesUpdateFrequency,
@@ -409,7 +412,9 @@ class TimeMemoriesCalculator {
       final diff = fileTimeInYear.difference(currentTime);
       if (!diff.isNegative && diff < kMemoriesUpdateFrequency) {
         final yearsAgo = currentYear - fileDate.year;
-        yearsAgoToMemories.putIfAbsent(yearsAgo, () => []).add(
+        yearsAgoToMemories
+            .putIfAbsent(yearsAgo, () => [])
+            .add(
               Memory.fromFile(
                 file,
                 seenTimes,
@@ -420,11 +425,14 @@ class TimeMemoriesCalculator {
               ),
             );
       } else if (almostYearEnd) {
-        final altDiff =
-            fileDate.copyWith(year: currentYear + 1).difference(currentTime);
+        final altDiff = fileDate
+            .copyWith(year: currentYear + 1)
+            .difference(currentTime);
         if (!altDiff.isNegative && altDiff < kMemoriesUpdateFrequency) {
           final yearsAgo = currentYear - fileDate.year + 1;
-          yearsAgoToMemories.putIfAbsent(yearsAgo, () => []).add(
+          yearsAgoToMemories
+              .putIfAbsent(yearsAgo, () => [])
+              .add(
                 Memory.fromFile(
                   file,
                   seenTimes,
@@ -437,9 +445,11 @@ class TimeMemoriesCalculator {
         }
       }
     }
-    for (var yearAgo = 1;
-        yearAgo <= SmartMemoriesService.yearsBefore;
-        yearAgo++) {
+    for (
+      var yearAgo = 1;
+      yearAgo <= SmartMemoriesService.yearsBefore;
+      yearAgo++
+    ) {
       final memories = yearsAgoToMemories[yearAgo];
       if (memories == null) continue;
       memories.sort(
@@ -491,7 +501,9 @@ class TimeMemoriesCalculator {
       final fileTimeInYear = fileDate.copyWith(year: currentYear);
       final diff = fileTimeInYear.difference(startPoint);
       if (!diff.isNegative && diff < diffThreshold) {
-        daysToMemories.putIfAbsent(diff.inDays, () => []).add(
+        daysToMemories
+            .putIfAbsent(diff.inDays, () => [])
+            .add(
               Memory.fromFile(
                 file,
                 seenTimes,
@@ -503,10 +515,13 @@ class TimeMemoriesCalculator {
             );
         daysToYears.putIfAbsent(diff.inDays, () => []).add(fileDate.year);
       } else if (almostYearEnd) {
-        final altDiff =
-            fileDate.copyWith(year: currentYear + 1).difference(currentTime);
+        final altDiff = fileDate
+            .copyWith(year: currentYear + 1)
+            .difference(currentTime);
         if (!altDiff.isNegative && altDiff < diffThreshold) {
-          daysToMemories.putIfAbsent(altDiff.inDays, () => []).add(
+          daysToMemories
+              .putIfAbsent(altDiff.inDays, () => [])
+              .add(
                 Memory.fromFile(
                   file,
                   seenTimes,

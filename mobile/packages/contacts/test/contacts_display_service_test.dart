@@ -55,41 +55,40 @@ void main() {
     }
   });
 
-  test('ensureReady hydrates cached display data and notifies listeners',
-      () async {
-    rustApi.diffPages = [
-      [
-        const ContactRecord(
-          id: 'ct_1',
-          contactUserId: 7,
-          email: 'alice@test.test',
-          data: ContactData(contactUserId: 7, name: 'Alice'),
-          profilePictureAttachmentId: 'att_1',
-          isDeleted: false,
-          createdAt: 1,
-          updatedAt: 2,
-        ),
-      ],
-      const [],
-    ];
-    var notifications = 0;
-    void listener() => notifications += 1;
-    displayService.changes.addListener(listener);
+  test(
+    'ensureReady hydrates cached display data and notifies listeners',
+    () async {
+      rustApi.diffPages = [
+        [
+          const ContactRecord(
+            id: 'ct_1',
+            contactUserId: 7,
+            email: 'alice@test.test',
+            data: ContactData(contactUserId: 7, name: 'Alice'),
+            profilePictureAttachmentId: 'att_1',
+            isDeleted: false,
+            createdAt: 1,
+            updatedAt: 2,
+          ),
+        ],
+        const [],
+      ];
+      var notifications = 0;
+      void listener() => notifications += 1;
+      displayService.changes.addListener(listener);
 
-    await displayService.ensureReady(session);
+      await displayService.ensureReady(session);
 
-    expect(
-      displayService.getCachedSavedName(contactUserId: 7),
-      'Alice',
-    );
-    expect(
-      displayService.getCachedResolvedEmail(email: 'alice@test.test'),
-      'alice@test.test',
-    );
-    expect(notifications, greaterThan(0));
+      expect(displayService.getCachedSavedName(contactUserId: 7), 'Alice');
+      expect(
+        displayService.getCachedResolvedEmail(email: 'alice@test.test'),
+        'alice@test.test',
+      );
+      expect(notifications, greaterThan(0));
 
-    displayService.changes.removeListener(listener);
-  });
+      displayService.changes.removeListener(listener);
+    },
+  );
 
   test('profile picture loads are single-flight per contact', () async {
     rustApi.diffPages = [
@@ -157,36 +156,36 @@ void main() {
     expect(rustApi.ctx.getProfilePictureCalls, 1);
   });
 
-  test('stale in-flight profile picture load does not overwrite newer contact',
-      () async {
-    rustApi.diffPages = [
-      [
-        const ContactRecord(
-          id: 'ct_1',
-          contactUserId: 7,
-          email: 'alice@test.test',
-          data: ContactData(contactUserId: 7, name: 'Alice'),
-          profilePictureAttachmentId: 'att_old',
-          isDeleted: false,
-          createdAt: 1,
-          updatedAt: 2,
-        ),
-      ],
-      const [],
-    ];
-    rustApi.ctx.profilePictureBarrier = Completer<void>();
-    rustApi.ctx.profilePictureBytesByContactId['ct_1'] = Uint8List.fromList([
-      1,
-      2,
-      3,
-    ]);
+  test(
+    'stale in-flight profile picture load does not overwrite newer contact',
+    () async {
+      rustApi.diffPages = [
+        [
+          const ContactRecord(
+            id: 'ct_1',
+            contactUserId: 7,
+            email: 'alice@test.test',
+            data: ContactData(contactUserId: 7, name: 'Alice'),
+            profilePictureAttachmentId: 'att_old',
+            isDeleted: false,
+            createdAt: 1,
+            updatedAt: 2,
+          ),
+        ],
+        const [],
+      ];
+      rustApi.ctx.profilePictureBarrier = Completer<void>();
+      rustApi.ctx.profilePictureBytesByContactId['ct_1'] = Uint8List.fromList([
+        1,
+        2,
+        3,
+      ]);
 
-    await displayService.ensureReady(session);
+      await displayService.ensureReady(session);
 
-    final pending = displayService.getProfilePictureBytes(contactUserId: 7);
+      final pending = displayService.getProfilePictureBytes(contactUserId: 7);
 
-    displayService.debugHydrateContacts(
-      [
+      displayService.debugHydrateContacts([
         const ContactRecord(
           id: 'ct_1',
           contactUserId: 7,
@@ -197,63 +196,63 @@ void main() {
           createdAt: 1,
           updatedAt: 3,
         ),
-      ],
-      notify: false,
-    );
+      ], notify: false);
 
-    rustApi.ctx.profilePictureBarrier!.complete();
+      rustApi.ctx.profilePictureBarrier!.complete();
 
-    expect(await pending, isNull);
-    expect(
-      displayService.getCachedProfilePictureBytes(contactUserId: 7),
-      isNull,
-    );
-  });
+      expect(await pending, isNull);
+      expect(
+        displayService.getCachedProfilePictureBytes(contactUserId: 7),
+        isNull,
+      );
+    },
+  );
 
   test(
-      'stale in-flight ensureReady does not repopulate cache after session switch',
-      () async {
-    final diffBarrier = Completer<void>();
-    rustApi.ctx.diffBarrier = diffBarrier;
-    rustApi.ctx.diffStarted = Completer<void>();
-    rustApi.diffPages = [
-      [
-        const ContactRecord(
-          id: 'ct_old',
-          contactUserId: 7,
-          email: 'alice@test.test',
-          data: ContactData(contactUserId: 7, name: 'Alice'),
-          profilePictureAttachmentId: null,
-          isDeleted: false,
-          createdAt: 1,
-          updatedAt: 2,
-        ),
-      ],
-      const [],
-    ];
+    'stale in-flight ensureReady does not repopulate cache after session switch',
+    () async {
+      final diffBarrier = Completer<void>();
+      rustApi.ctx.diffBarrier = diffBarrier;
+      rustApi.ctx.diffStarted = Completer<void>();
+      rustApi.diffPages = [
+        [
+          const ContactRecord(
+            id: 'ct_old',
+            contactUserId: 7,
+            email: 'alice@test.test',
+            data: ContactData(contactUserId: 7, name: 'Alice'),
+            profilePictureAttachmentId: null,
+            isDeleted: false,
+            createdAt: 1,
+            updatedAt: 2,
+          ),
+        ],
+        const [],
+      ];
 
-    final oldEnsureReady = displayService.ensureReady(session);
-    await rustApi.ctx.diffStarted!.future;
+      final oldEnsureReady = displayService.ensureReady(session);
+      await rustApi.ctx.diffStarted!.future;
 
-    rustApi.nextOpenContext = FakeContactsRustContext();
-    rustApi.diffPages = [const []];
-    final nextSession = ContactsSession(
-      baseUrl: session.baseUrl,
-      authToken: 'token-2',
-      userId: 2,
-      accountKey: Uint8List.fromList([9, 9, 9]),
-    );
-    await displayService.ensureReady(nextSession);
+      rustApi.nextOpenContext = FakeContactsRustContext();
+      rustApi.diffPages = [const []];
+      final nextSession = ContactsSession(
+        baseUrl: session.baseUrl,
+        authToken: 'token-2',
+        userId: 2,
+        accountKey: Uint8List.fromList([9, 9, 9]),
+      );
+      await displayService.ensureReady(nextSession);
 
-    diffBarrier.complete();
-    await oldEnsureReady;
+      diffBarrier.complete();
+      await oldEnsureReady;
 
-    expect(displayService.getCachedSavedName(contactUserId: 7), isNull);
-    expect(
-      displayService.getCachedResolvedEmail(email: 'alice@test.test'),
-      isNull,
-    );
-  });
+      expect(displayService.getCachedSavedName(contactUserId: 7), isNull);
+      expect(
+        displayService.getCachedResolvedEmail(email: 'alice@test.test'),
+        isNull,
+      );
+    },
+  );
 
   test('session switch creates a fresh contacts service instance', () async {
     final rustApiForFirstSession = FakeContactsRustApi();
@@ -294,25 +293,27 @@ void main() {
     expect(services, isEmpty);
   });
 
-  test('ensureReady keeps hydrated cache and retries later when sync fails',
-      () async {
-    await contactsService.open(session);
-    await contactsService.createContact(
-      const ContactData(contactUserId: 7, name: 'Alice'),
-    );
-    rustApi.ctx.diffError = StateError('boom');
+  test(
+    'ensureReady keeps hydrated cache and retries later when sync fails',
+    () async {
+      await contactsService.open(session);
+      await contactsService.createContact(
+        const ContactData(contactUserId: 7, name: 'Alice'),
+      );
+      rustApi.ctx.diffError = StateError('boom');
 
-    await expectLater(displayService.ensureReady(session), completes);
+      await expectLater(displayService.ensureReady(session), completes);
 
-    expect(displayService.getCachedSavedName(contactUserId: 7), 'Alice');
-    expect(rustApi.ctx.getDiffCalls, 1);
+      expect(displayService.getCachedSavedName(contactUserId: 7), 'Alice');
+      expect(rustApi.ctx.getDiffCalls, 1);
 
-    rustApi.ctx.diffError = null;
-    rustApi.diffPages = [const []];
+      rustApi.ctx.diffError = null;
+      rustApi.diffPages = [const []];
 
-    await expectLater(displayService.ensureReady(session), completes);
-    expect(rustApi.ctx.getDiffCalls, 2);
-  });
+      await expectLater(displayService.ensureReady(session), completes);
+      expect(rustApi.ctx.getDiffCalls, 2);
+    },
+  );
 }
 
 class FakeContactsRustApi implements ContactsRustApi {

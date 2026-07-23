@@ -1,3 +1,4 @@
+import { ensureArrayBufferBacked } from "ente-base/bytes";
 import {
     fileNameFromComponents,
     lowercaseExtension,
@@ -55,9 +56,9 @@ export const potentialFileTypeFromExtension = (
  */
 interface LivePhoto {
     imageFileName: string;
-    imageData: Uint8Array;
+    imageData: Uint8Array<ArrayBuffer>;
     videoFileName: string;
-    videoData: Uint8Array;
+    videoData: Uint8Array<ArrayBuffer>;
 }
 
 /**
@@ -80,7 +81,7 @@ export const decodeLivePhoto = async (
     zipBlob: Blob,
 ): Promise<LivePhoto> => {
     let imageFileName, videoFileName: string | undefined;
-    let imageData, videoData: Uint8Array | undefined;
+    let imageData, videoData: Uint8Array<ArrayBuffer> | undefined;
 
     const [name] = nameAndExtension(fileName);
     const zip = await JSZip.loadAsync(zipBlob, { createFolders: true });
@@ -89,11 +90,13 @@ export const decodeLivePhoto = async (
         if (zipFileName.startsWith("image")) {
             const [, imageExt] = nameAndExtension(zipFileName);
             imageFileName = fileNameFromComponents([name, imageExt]);
-            imageData = await zip.files[zipFileName]?.async("uint8array");
+            const bytes = await zip.files[zipFileName]?.async("uint8array");
+            imageData = bytes && ensureArrayBufferBacked(bytes);
         } else if (zipFileName.startsWith("video")) {
             const [, videoExt] = nameAndExtension(zipFileName);
             videoFileName = fileNameFromComponents([name, videoExt]);
-            videoData = await zip.files[zipFileName]?.async("uint8array");
+            const bytes = await zip.files[zipFileName]?.async("uint8array");
+            videoData = bytes && ensureArrayBufferBacked(bytes);
         }
     }
 
@@ -131,12 +134,14 @@ export const encodeLivePhoto = async ({
     imageFileOrData,
     videoFileName,
     videoFileOrData,
-}: EncodeLivePhotoInput) => {
+}: EncodeLivePhotoInput): Promise<Uint8Array<ArrayBuffer>> => {
     const [, imageExt] = nameAndExtension(imageFileName);
     const [, videoExt] = nameAndExtension(videoFileName);
 
     const zip = new JSZip();
     zip.file(fileNameFromComponents(["image", imageExt]), imageFileOrData);
     zip.file(fileNameFromComponents(["video", videoExt]), videoFileOrData);
-    return await zip.generateAsync({ type: "uint8array" });
+    return ensureArrayBufferBacked(
+        await zip.generateAsync({ type: "uint8array" }),
+    );
 };

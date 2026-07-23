@@ -33,8 +33,8 @@ class BottomOfTitleBarWidget extends StatelessWidget {
                     ? Text(
                         caption!,
                         style: getEnteTextTheme(context).small.copyWith(
-                              color: getEnteColorScheme(context).textMuted,
-                            ),
+                          color: getEnteColorScheme(context).textMuted,
+                        ),
                       )
                     : const SizedBox.shrink(),
               ],

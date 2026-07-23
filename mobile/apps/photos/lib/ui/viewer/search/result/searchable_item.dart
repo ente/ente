@@ -1,5 +1,7 @@
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
+import "package:flutter_svg/flutter_svg.dart";
 import "package:intl/intl.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/search/generic_search_result.dart";
@@ -32,7 +34,7 @@ class SearchableItemWidget extends StatelessWidget {
     //SearchResultPage
     const additionalPrefix = "searchable_item";
     final heroTagPrefix = additionalPrefix + searchResult.heroTag();
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
     final colorScheme = getEnteColorScheme(context);
     final result = searchResult;
     final bool isCluster =
@@ -50,18 +52,12 @@ class SearchableItemWidget extends StatelessWidget {
           if (searchResult.type() == ResultType.shared) {
             routeToPage(
               context,
-              ContactResultPage(
-                searchResult,
-                tagPrefix: additionalPrefix,
-              ),
+              ContactResultPage(searchResult, tagPrefix: additionalPrefix),
             );
           } else {
             routeToPage(
               context,
-              SearchResultPage(
-                searchResult,
-                tagPrefix: additionalPrefix,
-              ),
+              SearchResultPage(searchResult, tagPrefix: additionalPrefix),
             );
           }
         }
@@ -84,9 +80,7 @@ class SearchableItemWidget extends StatelessWidget {
           ? const SizedBox.shrink()
           : Text(
               searchResult.name(),
-              style: searchResult.type() == ResultType.locationSuggestion
-                  ? textTheme.bodyFaint
-                  : textTheme.body,
+              style: TextStyles.body.copyWith(color: colors.textBase),
               overflow: TextOverflow.ellipsis,
             ),
       subtitle: FutureBuilder<int>(
@@ -99,7 +93,7 @@ class SearchableItemWidget extends StatelessWidget {
                 count: noOfMemories,
                 formattedCount: NumberFormat().format(noOfMemories),
               ),
-              style: textTheme.smallMuted,
+              style: TextStyles.mini.copyWith(color: colors.textLight),
               overflow: TextOverflow.ellipsis,
             );
           } else {
@@ -119,6 +113,8 @@ class SearchableItemWidget extends StatelessWidget {
 }
 
 class SearchableItemPlaceholder extends StatelessWidget {
+  static const _inviteAsset = "assets/invite_contact.svg";
+
   final SectionType sectionType;
   const SearchableItemPlaceholder(this.sectionType, {super.key});
 
@@ -129,7 +125,7 @@ class SearchableItemPlaceholder extends StatelessWidget {
     }
 
     final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
     return ThumbnailListItem(
       backgroundColor: thumbnailListItemBackgroundColor(context),
       onTap: sectionType.ctaOnTap(context),
@@ -139,15 +135,19 @@ class SearchableItemPlaceholder extends StatelessWidget {
         ),
         child: Container(
           color: colorScheme.fillFaint,
-          child: Icon(
-            sectionType.getCTAIcon(),
-            color: colorScheme.strokeMuted,
+          child: Center(
+            child: sectionType == SectionType.contacts
+                ? SvgPicture.asset(_inviteAsset, width: 20, height: 20)
+                : Icon(
+                    sectionType.getCTAIcon(),
+                    color: colorScheme.strokeMuted,
+                  ),
           ),
         ),
       ),
       title: Text(
         sectionType.getCTAText(context),
-        style: textTheme.body,
+        style: TextStyles.body.copyWith(color: colors.textBase),
       ),
     );
   }

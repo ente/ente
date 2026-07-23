@@ -1,4 +1,4 @@
-import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 
@@ -23,8 +23,8 @@ class AlbumFilter extends HierarchicalSearchFilter {
   }
 
   @override
-  IconData icon() {
-    return Icons.photo_library_outlined;
+  SearchFilterIcon icon() {
+    return HugeIcons.strokeRoundedAlbum02;
   }
 
   @override

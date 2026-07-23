@@ -39,10 +39,12 @@ class DateParseService {
 
   static final _ordinalRegex = RegExp(r'\b(\d{1,2})(st|nd|rd|th)\b');
   static final _normalizeRegex = RegExp(r'\bof\b|[,\.]+|\s+');
-  static final _isoFormatRegex =
-      RegExp(r'^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})$');
-  static final _standardFormatRegex =
-      RegExp(r'^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$');
+  static final _isoFormatRegex = RegExp(
+    r'^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})$',
+  );
+  static final _standardFormatRegex = RegExp(
+    r'^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$',
+  );
   static final _dotFormatRegex = RegExp(r'^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$');
   static final _compactFormatRegex = RegExp(r'^(\d{8})$');
   static final _shortFormatRegex = RegExp(r'^(\d{1,2})[\/-](\d{1,2})$');

@@ -1,4 +1,4 @@
-import type { NotificationAttributes } from "@/shared/ui/feedback/Notification";
+import type { NotificationAttributes } from "ente-base/components/Notification";
 import { createContext, useContext } from "react";
 
 /**

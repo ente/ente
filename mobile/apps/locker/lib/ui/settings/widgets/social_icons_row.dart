@@ -1,4 +1,4 @@
-import "package:ente_ui/theme/ente_theme.dart";
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:url_launcher/url_launcher_string.dart";
@@ -9,45 +9,37 @@ class SocialIconsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-
-    return Row(
+    return const Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _SocialIconButton(
           icon: HugeIcons.strokeRoundedDiscord,
           url: "https://ente.com/discord",
-          color: colorScheme.textMuted,
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         _SocialIconButton(
           icon: HugeIcons.strokeRoundedYoutube,
           url: "https://www.youtube.com/@entestudio",
-          color: colorScheme.textMuted,
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         _SocialIconButton(
           icon: HugeIcons.strokeRoundedGithub,
-          url: "https://github.com/ente-io",
-          color: colorScheme.textMuted,
+          url: "https://github.com/ente",
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         _SocialIconButton(
           icon: HugeIcons.strokeRoundedNewTwitter,
           url: "https://twitter.com/enteio",
-          color: colorScheme.textMuted,
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         _SocialIconButton(
           icon: HugeIcons.strokeRoundedMastodon,
           url: "https://fosstodon.org/@ente",
-          color: colorScheme.textMuted,
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         _SocialIconButton(
           icon: HugeIcons.strokeRoundedReddit,
           url: "https://reddit.com/r/enteio",
-          color: colorScheme.textMuted,
         ),
       ],
     );
@@ -55,39 +47,20 @@ class SocialIconsRow extends StatelessWidget {
 }
 
 class _SocialIconButton extends StatelessWidget {
-  final dynamic icon;
+  final List<List<dynamic>> icon;
   final String url;
-  final Color color;
 
-  const _SocialIconButton({
-    required this.icon,
-    required this.url,
-    required this.color,
-  });
+  const _SocialIconButton({required this.icon, required this.url});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        launchUrlString(
-          url,
-          mode: LaunchMode.externalApplication,
-        );
+    return IconButtonComponent(
+      variant: IconButtonComponentVariant.secondary,
+      shouldSurfaceExecutionStates: false,
+      icon: HugeIcon(icon: icon, size: IconSizes.small, strokeWidth: 1.6),
+      onTap: () async {
+        await launchUrlString(url, mode: LaunchMode.externalApplication);
       },
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: HugeIcon(
-            icon: icon,
-            color: color,
-            size: 20,
-          ),
-        ),
-      ),
     );
   }
 }

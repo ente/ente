@@ -36,15 +36,17 @@ class SectionedListSliver<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final childCount =
-        sectionLayouts.isEmpty ? 0 : sectionLayouts.last.lastIndex + 1;
+    final childCount = sectionLayouts.isEmpty
+        ? 0
+        : sectionLayouts.last.lastIndex + 1;
     return _SliverKnownExtentList(
       sectionLayouts: sectionLayouts,
       delegate: SliverChildBuilderDelegate(
         (context, index) {
           if (index >= childCount) return null;
-          final sectionLayout = sectionLayouts
-              .firstWhereOrNull((section) => section.hasChild(index));
+          final sectionLayout = sectionLayouts.firstWhereOrNull(
+            (section) => section.hasChild(index),
+          );
           return sectionLayout?.builder(context, index) ?? const SizedBox();
         },
         childCount: childCount,
@@ -113,14 +115,16 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
   }
 
   int getMinChildIndexForScrollOffset(double scrollOffset) {
-    return sectionAtOffset(scrollOffset)
-            ?.getMinChildIndexForScrollOffset(scrollOffset) ??
+    return sectionAtOffset(
+          scrollOffset,
+        )?.getMinChildIndexForScrollOffset(scrollOffset) ??
         0;
   }
 
   int getMaxChildIndexForScrollOffset(double scrollOffset) {
-    return sectionAtOffset(scrollOffset)
-            ?.getMaxChildIndexForScrollOffset(scrollOffset) ??
+    return sectionAtOffset(
+          scrollOffset,
+        )?.getMaxChildIndexForScrollOffset(scrollOffset) ??
         0;
   }
 
@@ -184,10 +188,7 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
         } else {
           max = computeMaxScrollOffset(constraints);
         }
-        geometry = SliverGeometry(
-          scrollExtent: max,
-          maxPaintExtent: max,
-        );
+        geometry = SliverGeometry(scrollExtent: max, maxPaintExtent: max);
         childManager.didFinishLayout();
         return;
       }
@@ -223,9 +224,11 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
     }
 
     var estimatedMaxScrollOffset = double.infinity;
-    for (var index = indexOf(trailingChildWithLayout!) + 1;
-        targetLastIndex == null || index <= targetLastIndex;
-        ++index) {
+    for (
+      var index = indexOf(trailingChildWithLayout!) + 1;
+      targetLastIndex == null || index <= targetLastIndex;
+      ++index
+    ) {
       var child = childAfter(trailingChildWithLayout!);
       if (child == null || indexOf(child) != index) {
         child = insertAndLayoutChild(
@@ -245,8 +248,9 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
       final childParentData =
           child.parentData as SliverMultiBoxAdaptorParentData;
       assert(childParentData.index == index);
-      childParentData.layoutOffset =
-          indexToLayoutOffset(childParentData.index!);
+      childParentData.layoutOffset = indexToLayoutOffset(
+        childParentData.index!,
+      );
     }
 
     final lastIndex = indexOf(lastChild!);
@@ -296,7 +300,8 @@ class _RenderSliverKnownExtentBoxAdaptor extends RenderSliverMultiBoxAdaptor {
       cacheExtent: cacheExtent,
       maxPaintExtent: estimatedMaxScrollOffset,
       // Conservative to avoid flickering away the clip during scroll.
-      hasVisualOverflow: (targetLastIndexForPaint != null &&
+      hasVisualOverflow:
+          (targetLastIndexForPaint != null &&
               lastIndex >= targetLastIndexForPaint) ||
           constraints.scrollOffset > 0.0,
     );

@@ -11,21 +11,7 @@
   "invalidEmailAddress": "آدرس ایمیل معتبر نیست",
   "enterValidEmail": "لطفا یک ایمیل معتبر وارد کنید.",
   "deleteAccount": "حذف حساب کاربری",
-  "askDeleteReason": "دلیل اصلی که حساب کاربری‌تان را حذف می‌کنید، چیست؟",
-  "deleteAccountFeedbackPrompt": "ما متاسفیم که می‌بینیم شما می‌روید. لطفا نظرات خود را برای کمک به بهبود ما به اشتراک بگذارید.",
-  "feedback": "بازخورد",
-  "kindlyHelpUsWithThisInformation": "لطفا با این اطلاعات به ما کمک کنید",
-  "confirmDeletePrompt": "بله، می خواهم این حساب و داده های آن را در همه برنامه ها برای همیشه حذف کنم.",
-  "confirmAccountDeletion": "تایید حذف حساب کاربری",
-  "deleteAccountPermanentlyButton": "حذف دائمی حساب کاربری",
-  "yourAccountHasBeenDeleted": "حساب کاربری شما حذف شده است",
-  "selectReason": "انتخاب دلیل",
-  "deleteReason1": "یک ویژگی کلیدی که به آن نیاز دارم، وجود ندارد",
-  "deleteReason2": "برنامه یا یک ویژگی خاص آنطور که من فکر می‌کنم، عمل نمی‌کند",
-  "deleteReason3": "سرویس دیگری پیدا کردم که بهتر می‌پسندم",
-  "deleteReason4": "دلیل من ذکر نشده است",
   "sendEmail": "ارسال ایمیل",
-  "deleteRequestSLAText": "درخواست شما ظرف مدت ۷۲ ساعت پردازش خواهد شد.",
   "entePhotosPerm": "Ente برای نگه‌داری عکس‌های شما <i>به دسترسی نیاز دارد</i>",
   "ok": "تایید",
   "createAccount": "ایجاد حساب کاربری",
@@ -204,11 +190,13 @@
     "description": "Label for setting custom value for link expiry"
   },
   "manageParticipants": "مدیریت",
-  "collabLinkSectionDescription": "پیوندی ایجاد کنید تا به افراد اجازه دهید بدون نیاز به برنامه یا حساب کاربری Ente عکس‌ها را در آلبوم اشتراک گذاشته شده شما اضافه و مشاهده کنند. برای جمع‌آوری عکس‌های رویداد عالی است.",
   "verifyEmailID": "تایید {email}",
   "details": "جزئیات",
   "faq": "سوالات متداول",
   "archive": "بایگانی",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
   "uncategorized": "دسته‌بندی نشده",
   "videoSmallCase": "ویدیو",
   "photoSmallCase": "عکس",
@@ -313,17 +301,9 @@
   "verifyIDLabel": "تایید",
   "fileInfoAddDescHint": "افزودن توضیحات...",
   "editLocationTagTitle": "ویرایش مکان",
-  "androidBiometricHint": "تایید هویت",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
   "androidBiometricSuccess": "موفقیت",
   "@androidBiometricSuccess": {
     "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "لغو",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
   },
   "fileTypes": "انواع پرونده",
   "hearUsExplanation": "ما نصب برنامه را ردیابی نمی‌کنیم. اگر بگویید کجا ما را پیدا کردید، به ما کمک می‌کند!",

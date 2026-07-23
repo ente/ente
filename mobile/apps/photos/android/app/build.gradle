@@ -4,6 +4,7 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
     id 'org.jetbrains.kotlin.plugin.serialization' version '2.1.10'
 }
+
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file('local.properties')
 if (localPropertiesFile.exists()) {
@@ -28,6 +29,31 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// Ente's custom prebuilt ONNX Runtime AAR is resolved straight from its
+// GitHub release through an Ivy repository; its SHA-256 is pinned in
+// gradle/verification-metadata.xml. See mobile/native/onnxruntime/README.md.
+repositories {
+    exclusiveContent {
+        forRepository {
+            ivy {
+                name = 'enteOnnxRuntimePackaging'
+                url = 'https://github.com/laurens-pilot/ort-packaging/releases/download'
+                patternLayout {
+                    artifact 'ort-[revision]/[artifact]-[revision].[ext]'
+                }
+                metadataSources { artifact() }
+            }
+        }
+        filter { includeGroup 'io.ente.onnxruntime' }
+    }
+}
+
+configurations.configureEach {
+    // mobile_ocr also declares Microsoft's stock AAR. The custom AAR exposes
+    // the same Java API and must be the sole source of libonnxruntime.so.
+    exclude group: 'com.microsoft.onnxruntime', module: 'onnxruntime-android'
+}
+
 android {
     namespace = "io.ente.photos"
     compileSdk = 36
@@ -46,7 +72,7 @@ android {
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
     }
-    
+
     lintOptions {
         disable 'InvalidPackage'
         warningsAsErrors false
@@ -75,7 +101,7 @@ android {
            storePassword keystoreProperties['storePassword'] ? keystoreProperties['storePassword'] : System.getenv("SIGNING_STORE_PASSWORD")
        }
     }
-    
+
     flavorDimensions "default"
     productFlavors {
         independent {
@@ -114,6 +140,10 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
+            ndk {
+                abiFilters.clear()
+                abiFilters "arm64-v8a", "armeabi-v7a"
+            }
             minifyEnabled true
             proguardFiles getDefaultProguardFile(
                 "proguard-android-optimize.txt",
@@ -163,19 +193,28 @@ flutter {
     source = "../.."
 }
 
-dependencies {  
+dependencies {
     implementation 'io.sentry:sentry-android:2.0.0'
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.21'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0'
     implementation 'com.android.support:multidex:1.0.3'
     implementation 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
-    implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.8.1'
+    // Custom WebGPU/XNNPACK build required by Rust ML, which dynamically
+    // loads libonnxruntime.so.
+    implementation 'io.ente.onnxruntime:onnxruntime-webgpu-android:1.27.0-r2@aar'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 
     constraints {
+        // TODO: Remove this once https://github.com/ABausG/home_widget/issues/417
+        // is closed and the fix is available in a stable home_widget release.
+        implementation("androidx.glance:glance-appwidget") {
+            version {
+                strictly "1.1.1"
+            }
+            because("home_widget requests 1.+, which can resolve to pre-release Glance versions requiring newer Android tooling")
+        }
         implementation("androidx.work:work-runtime:2.8.1") {
             because("Align work-runtime versions")
         }

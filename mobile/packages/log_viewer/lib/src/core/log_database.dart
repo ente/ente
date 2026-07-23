@@ -104,24 +104,30 @@ class LogDatabase {
     if (filter != null) {
       // Logger filter
       if (filter.selectedLoggers.isNotEmpty) {
-        final placeholders =
-            List.filled(filter.selectedLoggers.length, '?').join(',');
+        final placeholders = List.filled(
+          filter.selectedLoggers.length,
+          '?',
+        ).join(',');
         conditions.add('logger_name IN ($placeholders)');
         args.addAll(filter.selectedLoggers);
       }
 
       // Level filter
       if (filter.selectedLevels.isNotEmpty) {
-        final placeholders =
-            List.filled(filter.selectedLevels.length, '?').join(',');
+        final placeholders = List.filled(
+          filter.selectedLevels.length,
+          '?',
+        ).join(',');
         conditions.add('level IN ($placeholders)');
         args.addAll(filter.selectedLevels);
       }
 
       // Process prefix filter
       if (filter.selectedProcesses.isNotEmpty) {
-        final placeholders =
-            List.filled(filter.selectedProcesses.length, '?').join(',');
+        final placeholders = List.filled(
+          filter.selectedProcesses.length,
+          '?',
+        ).join(',');
         conditions.add('process_prefix IN ($placeholders)');
         args.addAll(filter.selectedProcesses);
       }
@@ -151,8 +157,9 @@ class LogDatabase {
       _tableName,
       where: whereClause,
       whereArgs: args.isEmpty ? null : args,
-      orderBy:
-          filter?.sortNewestFirst == false ? 'timestamp ASC' : 'timestamp DESC',
+      orderBy: filter?.sortNewestFirst == false
+          ? 'timestamp ASC'
+          : 'timestamp DESC',
       limit: limit,
       offset: offset,
     );
@@ -177,8 +184,9 @@ class LogDatabase {
       'SELECT DISTINCT process_prefix FROM $_tableName WHERE process_prefix != "" ORDER BY process_prefix',
     );
 
-    final prefixes =
-        results.map((row) => row['process_prefix'] as String).toList();
+    final prefixes = results
+        .map((row) => row['process_prefix'] as String)
+        .toList();
 
     // Always include 'Foreground' as an option for empty prefix
     final uniquePrefixes = <String>[''];
@@ -192,8 +200,9 @@ class LogDatabase {
     final db = await database;
 
     if (filter == null || !filter.hasActiveFilters) {
-      final result =
-          await db.rawQuery('SELECT COUNT(*) as count FROM $_tableName');
+      final result = await db.rawQuery(
+        'SELECT COUNT(*) as count FROM $_tableName',
+      );
       return result.first['count'] as int;
     }
 
@@ -202,22 +211,28 @@ class LogDatabase {
     final args = <dynamic>[];
 
     if (filter.selectedLoggers.isNotEmpty) {
-      final placeholders =
-          List.filled(filter.selectedLoggers.length, '?').join(',');
+      final placeholders = List.filled(
+        filter.selectedLoggers.length,
+        '?',
+      ).join(',');
       conditions.add('logger_name IN ($placeholders)');
       args.addAll(filter.selectedLoggers);
     }
 
     if (filter.selectedLevels.isNotEmpty) {
-      final placeholders =
-          List.filled(filter.selectedLevels.length, '?').join(',');
+      final placeholders = List.filled(
+        filter.selectedLevels.length,
+        '?',
+      ).join(',');
       conditions.add('level IN ($placeholders)');
       args.addAll(filter.selectedLevels);
     }
 
     if (filter.selectedProcesses.isNotEmpty) {
-      final placeholders =
-          List.filled(filter.selectedProcesses.length, '?').join(',');
+      final placeholders = List.filled(
+        filter.selectedProcesses.length,
+        '?',
+      ).join(',');
       conditions.add('process_prefix IN ($placeholders)');
       args.addAll(filter.selectedProcesses);
     }
@@ -298,22 +313,28 @@ class LogDatabase {
 
     if (filter != null) {
       if (filter.selectedLoggers.isNotEmpty) {
-        final placeholders =
-            List.filled(filter.selectedLoggers.length, '?').join(',');
+        final placeholders = List.filled(
+          filter.selectedLoggers.length,
+          '?',
+        ).join(',');
         conditions.add('logger_name IN ($placeholders)');
         args.addAll(filter.selectedLoggers);
       }
 
       if (filter.selectedLevels.isNotEmpty) {
-        final placeholders =
-            List.filled(filter.selectedLevels.length, '?').join(',');
+        final placeholders = List.filled(
+          filter.selectedLevels.length,
+          '?',
+        ).join(',');
         conditions.add('level IN ($placeholders)');
         args.addAll(filter.selectedLevels);
       }
 
       if (filter.selectedProcesses.isNotEmpty) {
-        final placeholders =
-            List.filled(filter.selectedProcesses.length, '?').join(',');
+        final placeholders = List.filled(
+          filter.selectedProcesses.length,
+          '?',
+        ).join(',');
         conditions.add('process_prefix IN ($placeholders)');
         args.addAll(filter.selectedProcesses);
       }
@@ -335,8 +356,9 @@ class LogDatabase {
       }
     }
 
-    final whereClause =
-        conditions.isEmpty ? '' : 'WHERE ${conditions.join(' AND ')}';
+    final whereClause = conditions.isEmpty
+        ? ''
+        : 'WHERE ${conditions.join(' AND ')}';
 
     // Get total count for percentage calculation
     final totalQuery = 'SELECT COUNT(*) as total FROM $_tableName $whereClause';
@@ -346,7 +368,8 @@ class LogDatabase {
     if (totalCount == 0) return [];
 
     // Get logger statistics using single optimized query
-    final statsQuery = '''
+    final statsQuery =
+        '''
       SELECT 
         logger_name,
         COUNT(*) as count,
@@ -405,9 +428,7 @@ class LogDatabase {
 
     return result
         .map(
-          (row) => DateTime.fromMillisecondsSinceEpoch(
-            row['timestamp'] as int,
-          ),
+          (row) => DateTime.fromMillisecondsSinceEpoch(row['timestamp'] as int),
         )
         .toList();
   }

@@ -15,11 +15,7 @@ class EntityGateway {
   ) async {
     await _enteDio.post(
       "/user-entity/key",
-      data: {
-        "type": entityType.name,
-        "encryptedKey": encKey,
-        "header": header,
-      },
+      data: {"type": entityType.name, "encryptedKey": encKey, "header": header},
     );
   }
 
@@ -27,9 +23,7 @@ class EntityGateway {
     try {
       final response = await _enteDio.get(
         "/user-entity/key",
-        queryParameters: {
-          "type": type.name,
-        },
+        queryParameters: {"type": type.name},
       );
       return EntityKey.fromMap(response.data);
     } on DioException catch (e) {
@@ -53,7 +47,7 @@ class EntityGateway {
       "/user-entity/entity",
       data: {
         "encryptedData": encryptedData,
-        if (id != null) "id": id,
+        "id": ?id,
         "header": header,
         "type": type.name,
       },
@@ -79,15 +73,8 @@ class EntityGateway {
     return EntityData.fromMap(response.data);
   }
 
-  Future<void> deleteEntity(
-    String id,
-  ) async {
-    await _enteDio.delete(
-      "/user-entity/entity",
-      queryParameters: {
-        "id": id,
-      },
-    );
+  Future<void> deleteEntity(String id) async {
+    await _enteDio.delete("/user-entity/entity", queryParameters: {"id": id});
   }
 
   Future<List<EntityData>> getDiff(

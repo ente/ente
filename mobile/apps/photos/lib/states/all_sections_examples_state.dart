@@ -4,7 +4,6 @@ import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
-import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/people_changed_event.dart";
@@ -13,6 +12,7 @@ import "package:photos/events/tab_changed_event.dart";
 import "package:photos/models/search/search_result.dart";
 import "package:photos/models/search/search_types.dart";
 import "package:photos/services/search_service.dart";
+import "package:photos/ui/viewer/search_tab/search_tab_preview_limits.dart";
 
 class AllSectionsExamplesData {
   final List<List<SearchResult>> sectionResults;
@@ -26,7 +26,13 @@ class AllSectionsExamplesData {
 
 class AllSectionsExamplesProvider extends StatefulWidget {
   final Widget child;
-  const AllSectionsExamplesProvider({super.key, required this.child});
+  final SearchTabPreviewLimits previewLimits;
+
+  const AllSectionsExamplesProvider({
+    super.key,
+    required this.child,
+    required this.previewLimits,
+  });
 
   @override
   State<AllSectionsExamplesProvider> createState() =>
@@ -56,7 +62,7 @@ class _AllSectionsExamplesProviderState
   bool isOnSearchTab = false;
   bool _firstLoadInProgressOrComplete = false;
   final _logger = Logger("AllSectionsExamplesProvider");
-  static const _initialLoadDelay = Duration(seconds: 10);
+  static const _initialLoadDelay = Duration(seconds: 30);
   Timer? _initialLoadTimer;
 
   final _debouncer = Debouncer(
@@ -72,14 +78,16 @@ class _AllSectionsExamplesProviderState
     _filesUpdatedEvent = Bus.instance.on<FilesUpdatedEvent>().listen((event) {
       onDataUpdate();
     });
-    _onPeopleChangedEvent =
-        Bus.instance.on<PeopleChangedEvent>().listen((event) {
+    _onPeopleChangedEvent = Bus.instance.on<PeopleChangedEvent>().listen((
+      event,
+    ) {
       onDataUpdate();
     });
-    _peopleSortChangedEvent =
-        Bus.instance.on<PeopleSortOrderChangeEvent>().listen((event) {
-      onDataUpdate();
-    });
+    _peopleSortChangedEvent = Bus.instance
+        .on<PeopleSortOrderChangeEvent>()
+        .listen((event) {
+          onDataUpdate();
+        });
     _tabChangeEvent = Bus.instance.on<TabChangedEvent>().listen((event) {
       if (event.source == TabChangedEventSource.pageView &&
           event.selectedIndex == 3) {
@@ -120,17 +128,18 @@ class _AllSectionsExamplesProviderState
       setState(() {
         _logger.info("'_debounceTimer: reloading all sections in search tab");
         final allSectionsExamples = <Future<List<SearchResult>>>[];
-        final hasAnySearchableFilesFuture =
-            SearchService.instance.hasAnyFilesForSearch();
+        final hasAnySearchableFilesFuture = SearchService.instance
+            .hasAnyFilesForSearch();
         for (SectionType sectionType in SectionType.values) {
-          // Contacts section has been moved to shared collections tab.
-          // File types are rendered as lazy placeholders in the search tab.
+          // Albums moved to the Albums tab. Contacts and file types render as
+          // lazy sections in Search so they do not block the section preload.
           if (sectionType == SectionType.contacts ||
+              sectionType == SectionType.album ||
               sectionType == SectionType.fileTypesAndExtension) {
             allSectionsExamples.add(Future.value([]));
           } else {
             allSectionsExamples.add(
-              sectionType.getData(context, limit: kSearchSectionLimit),
+              sectionType.getData(context, limit: _fetchLimitFor(sectionType)),
             );
           }
         }
@@ -156,6 +165,15 @@ class _AllSectionsExamplesProviderState
   void _cancelInitialLoadTimer() {
     _initialLoadTimer?.cancel();
     _initialLoadTimer = null;
+  }
+
+  int _fetchLimitFor(SectionType sectionType) {
+    return switch (sectionType) {
+      SectionType.face => widget.previewLimits.faceFetchLimit,
+      SectionType.magic => widget.previewLimits.magicFetchLimit,
+      SectionType.location => widget.previewLimits.locationFetchLimit,
+      _ => 0,
+    };
   }
 
   @override

@@ -45,6 +45,7 @@ export class CryptoWorker {
     deriveKey = libsodium.deriveKey;
     deriveSensitiveKey = libsodium.deriveSensitiveKey;
     deriveInteractiveKey = libsodium.deriveInteractiveKey;
+    deriveModerateKey = libsodium.deriveModerateKey;
     deriveSubKeyBytes = libsodium.deriveSubKeyBytes;
 }
 

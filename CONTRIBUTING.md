@@ -18,7 +18,7 @@ Just hang around, enjoy the vibe. The Ente community — the people who are buil
 - [Discord](https://ente.com/discord)
 - [Mastodon](https://fosstodon.org/@ente)
 - [X / Twitter](https://twitter.com/enteio)
-- [Github Discussions](https://github.com/ente-io/ente/discussions)
+- [Github Discussions](https://github.com/ente/ente/discussions)
 
 Just being around might seem a small thing, but it provides us energy. Knowing that there is a community of people who care for what we are building, **who want us to do better**.
 
@@ -29,27 +29,21 @@ Visit our Crowdin projects to help with translations:
 | Project                                                             |                                                                                                                                   |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | [Auth](https://crowdin.com/project/ente-authenticator-app)          | [![Crowdin](https://badges.crowdin.net/ente-authenticator-app/localized.svg)](https://crowdin.com/project/ente-authenticator-app) |
-| [Locker](https://crowdin.com/project/ente-locker)                  | [![Crowdin](https://badges.crowdin.net/ente-locker/localized.svg)](https://crowdin.com/project/ente-locker)                       |
+| [Locker](https://crowdin.com/project/ente-locker)                   | [![Crowdin](https://badges.crowdin.net/ente-locker/localized.svg)](https://crowdin.com/project/ente-locker)                       |
 | [Photos](https://crowdin.com/project/ente-photos-app)               | [![Crowdin](https://badges.crowdin.net/ente-photos-app/localized.svg)](https://crowdin.com/project/ente-photos-app)               |
 | [Photos Web / Desktop](https://crowdin.com/project/ente-photos-web) | [![Crowdin](https://badges.crowdin.net/ente-photos-web/localized.svg)](https://crowdin.com/project/ente-photos-web)               |
 
-If your language is not listed for translation, please [create a GitHub
-issue](https://github.com/ente-io/ente/issues/new?title=Request+for+New+Language+Translation&body=Language+name%3A+%0AProject%3A+auth%2Flocker%2Fphotos%2Fweb)
-to have it added. It is okay to have partial translations. Once ~90% of the
-strings in a language get translated, we will start surfacing it in the apps.
+If your language is not listed for translation, please [create a GitHub issue](https://github.com/ente/ente/issues/new?title=Request+for+New+Language+Translation&body=Language+name%3A+%0AProject%3A+auth%2Flocker%2Fphotos%2Fweb) to have it added. It is okay to have partial translations. Once ~90% of the strings in a language get translated, we will start surfacing it in the apps.
 
 ## Document
 
-The help guides and FAQs for users of Ente products are also open source, and
-can be edited in a wiki-esque manner by our community members. More than the
-quantity, we feel this helps improve the quality and approachability of the
-documentation by bringing in more diverse viewpoints and familiarity levels.
+The help guides and FAQs for users of Ente products are also open source, and can be edited in a wiki-esque manner by our community members. More than the quantity, we feel this helps improve the quality and approachability of the documentation by bringing in more diverse viewpoints and familiarity levels.
 
 See [docs/](docs/README.md) for how to edit these documents.
 
 ## Code contributions
 
-If you'd like to contribute code, it is best to start small. Consider some well-scoped changes, say like adding more [custom icons to auth](mobile/apps/auth/docs/adding-icons.md), or fixing a specific bug. There is a (possibly outdated) list of tasks with the ["help wanted" or "good first issue"](<https://github.com/ente-io/ente/issues?q=state%3Aopen%20(label%3A%22good%20first%20issue%22%20OR%20label%3A%22help%20wanted%22%20)>) label too.
+If you'd like to contribute code, it is best to start small. Consider some well-scoped changes, say like adding more [custom icons to auth](mobile/apps/auth/docs/adding-icons.md), or fixing a specific bug. There is a (possibly outdated) list of tasks with the ["help wanted" or "good first issue"](<https://github.com/ente/ente/issues?q=state%3Aopen%20(label%3A%22good%20first%20issue%22%20OR%20label%3A%22help%20wanted%22%20)>) label too.
 
 In your PR, please include before / after screenshots, and clearly indicate the tests that you performed.
 
@@ -57,8 +51,4 @@ Code that changes the behaviour of the product might not get merged, at least no
 
 ## Leave a review or star
 
-If you haven't already done so, consider [starring this
-repository](https://github.com/ente-io/ente/stargazers) or leaving a review on
-[PlayStore](https://play.google.com/store/apps/details?id=io.ente.auth),
-[AppStore](https://apps.apple.com/us/app/ente-authenticator/id6444121398) or
-[AlternativeTo](https://alternativeto.net/software/ente-authenticator/).
+If you haven't already done so, consider [starring this repository](https://github.com/ente/ente/stargazers) or leaving a review on [PlayStore](https://play.google.com/store/apps/details?id=io.ente.auth), [AppStore](https://apps.apple.com/us/app/ente-authenticator/id6444121398) or [AlternativeTo](https://alternativeto.net/software/ente-authenticator/).

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	legacykitrepo "github.com/ente-io/museum/pkg/repo/legacy_kit"
-	"github.com/ente-io/museum/pkg/utils/email"
-	"github.com/ente-io/stacktrace"
+	legacykitrepo "github.com/ente/museum/pkg/repo/legacy_kit"
+	"github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 )
 

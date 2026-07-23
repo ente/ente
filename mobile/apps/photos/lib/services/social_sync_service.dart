@@ -31,10 +31,12 @@ class SocialSyncService {
   /// Uses diff-based sync with separate sinceTime for comments and reactions.
   Future<void> syncCollection(int collectionID) async {
     int normalizeSinceTime(int syncTime) => syncTime > 0 ? syncTime - 1 : 0;
-    int commentsSinceTime =
-        normalizeSinceTime(await _db.getCommentsSyncTime(collectionID));
-    int reactionsSinceTime =
-        normalizeSinceTime(await _db.getReactionsSyncTime(collectionID));
+    int commentsSinceTime = normalizeSinceTime(
+      await _db.getCommentsSyncTime(collectionID),
+    );
+    int reactionsSinceTime = normalizeSinceTime(
+      await _db.getReactionsSyncTime(collectionID),
+    );
 
     int maxCommentsUpdatedAt = commentsSinceTime;
     int maxReactionsUpdatedAt = reactionsSinceTime;
@@ -189,10 +191,12 @@ class SocialSyncService {
 
       for (final update in latestUpdates.updates) {
         try {
-          final localCommentsSyncTime =
-              await _db.getCommentsSyncTime(update.collectionID);
-          final localReactionsSyncTime =
-              await _db.getReactionsSyncTime(update.collectionID);
+          final localCommentsSyncTime = await _db.getCommentsSyncTime(
+            update.collectionID,
+          );
+          final localReactionsSyncTime = await _db.getReactionsSyncTime(
+            update.collectionID,
+          );
 
           final forceCommentsEqualSync = _shouldForceEqualSync(
             _commentsEqualSeenCache,
@@ -209,10 +213,12 @@ class SocialSyncService {
             localReactionsSyncTime,
           );
 
-          final needsCommentsSync = update.commentsUpdatedAt != null &&
+          final needsCommentsSync =
+              update.commentsUpdatedAt != null &&
               (update.commentsUpdatedAt! > localCommentsSyncTime ||
                   forceCommentsEqualSync);
-          final needsReactionsSync = update.reactionsUpdatedAt != null &&
+          final needsReactionsSync =
+              update.reactionsUpdatedAt != null &&
               (update.reactionsUpdatedAt! > localReactionsSyncTime ||
                   forceReactionsEqualSync);
 
@@ -225,8 +231,9 @@ class SocialSyncService {
 
           // Sync anon profiles if needed
           if (update.anonProfilesUpdatedAt != null) {
-            final localAnonSyncTime =
-                await _db.getAnonProfilesSyncTime(update.collectionID);
+            final localAnonSyncTime = await _db.getAnonProfilesSyncTime(
+              update.collectionID,
+            );
             if (update.anonProfilesUpdatedAt! > localAnonSyncTime) {
               await syncAnonProfiles(update.collectionID);
             }

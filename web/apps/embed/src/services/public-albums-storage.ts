@@ -12,7 +12,7 @@ import {
     LocalTimestamp,
     transformFilesIfNeeded,
 } from "ente-gallery/services/files-db";
-import { type Collection } from "ente-media/collection";
+import type { Collection } from "ente-media/collection";
 import type { EnteFile } from "ente-media/file";
 import { nullToUndefined } from "ente-utils/transform";
 import { z } from "zod";

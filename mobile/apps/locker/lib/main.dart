@@ -2,9 +2,13 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:adaptive_theme/adaptive_theme.dart';
+import 'package:ente_account_deletion/account_deletion.dart';
+import 'package:ente_accounts/services/install_source_handler.dart';
 import 'package:ente_accounts/services/user_service.dart';
+import 'package:ente_components/ente_components.dart' as components;
 import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_crypto_dart_adapter/ente_crypto_dart_adapter.dart';
+import 'package:ente_install_source/ente_install_source.dart';
 import "package:ente_legacy/services/emergency_service.dart";
 import "package:ente_legacy/services/legacy_kit_service.dart";
 import 'package:ente_lock_screen/lock_screen_settings.dart';
@@ -15,7 +19,6 @@ import 'package:ente_network/network.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:ente_rust/ente_rust.dart';
 import "package:ente_strings/l10n/strings_localizations.dart";
-import "package:ente_ui/theme/ente_theme_data.dart";
 import "package:ente_ui/theme/theme_config.dart";
 import 'package:ente_ui/utils/window_listener_service.dart';
 import "package:flutter/material.dart";
@@ -34,11 +37,13 @@ import 'package:locker/services/files/download/service_locator.dart';
 import 'package:locker/services/files/links/links_client.dart';
 import 'package:locker/services/files/links/links_service.dart';
 import 'package:locker/services/files/offline/offline_files_service.dart';
+import 'package:locker/services/local_settings.dart';
 import 'package:locker/services/trash/trash_service.dart';
 import 'package:locker/services/update_service.dart';
 import 'package:locker/ui/pages/home_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:rive/rive.dart' as rive;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
@@ -49,6 +54,7 @@ Future<void>? _rustInitFuture;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await rive.RiveNative.init();
   registerCryptoApi(const EnteCryptoDartAdapter());
 
   if (PlatformDetector.isDesktop()) {
@@ -86,19 +92,10 @@ Future<void> _initSystemTray() async {
   await trayManager.setIcon(path);
   final Menu menu = Menu(
     items: [
-      MenuItem(
-        key: 'hide_window',
-        label: 'Hide Window',
-      ),
-      MenuItem(
-        key: 'show_window',
-        label: 'Show Window',
-      ),
+      MenuItem(key: 'hide_window', label: 'Hide Window'),
+      MenuItem(key: 'show_window', label: 'Show Window'),
       MenuItem.separator(),
-      MenuItem(
-        key: 'exit_app',
-        label: 'Exit App',
-      ),
+      MenuItem(key: 'exit_app', label: 'Exit App'),
     ],
   );
   await trayManager.setContextMenu(menu);
@@ -106,6 +103,7 @@ Future<void> _initSystemTray() async {
 
 Future<void> _runInForeground() async {
   AppThemeConfig.initialize(EnteApp.locker);
+  components.ComponentTheme.configure(app: components.ComponentApp.locker);
   final adaptiveThemeMode = await AdaptiveTheme.getThemeMode();
   final savedThemeMode = _themeMode(adaptiveThemeMode);
   return await _runWithLogs(() async {
@@ -125,8 +123,14 @@ Future<void> _runInForeground() async {
         lockScreen: LockScreen(Configuration.instance),
         enabled: await LockScreenSettings.instance.shouldShowLockScreen(),
         locale: locale,
-        lightTheme: lightThemeData,
-        darkTheme: darkThemeData,
+        lightTheme: components.ComponentTheme.themeForApp(
+          components.ComponentApp.locker,
+          brightness: Brightness.light,
+        ),
+        darkTheme: components.ComponentTheme.themeForApp(
+          components.ComponentApp.locker,
+          brightness: Brightness.dark,
+        ),
         savedThemeMode: savedThemeMode,
         supportedLocales: appSupportedLocales,
         localizationsDelegates: const [
@@ -186,29 +190,45 @@ Future<void> _init(bool bool, {String? via}) async {
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     final PackageInfo packageInfo = await PackageInfo.fromPlatform();
 
+    LocalSettings.instance.init(preferences);
+
     await CryptoUtil.init();
 
     await LockerDB.instance.init();
 
-    await Configuration.instance.init([
-      LockerDB.instance,
-    ]);
+    await Configuration.instance.init([LockerDB.instance]);
 
     await Network.instance.init(Configuration.instance);
+    final installSourceService = InstallSourceService(
+      Network.instance.enteDio,
+      app: Configuration.instance.appIdentity.app,
+      getToken: Configuration.instance.getToken,
+    );
     await UserService.instance.init(
       Configuration.instance,
       const HomePage(),
-      clientPackageName: 'io.ente.locker',
-      passkeyRedirectUrl: 'entelocker://passkey',
+      installSourceHandler: InstallSourceHandler(
+        hasInstallSource: installSourceService.hasInstallSource,
+        autoAttributeSource: installSourceService.autoAttributeSource,
+        autoAttributePendingSource:
+            installSourceService.autoAttributePendingSource,
+      ),
     );
-    await LockScreenSettings.instance.init(Configuration.instance);
+    await LockScreenSettings.instance.init(
+      Configuration.instance,
+      hideAppContentDefault: true,
+    );
+    AccountDeletionSettings.instance.init(
+      host: Configuration.instance,
+      enteDio: Network.instance.enteDio,
+    );
     await CollectionApiClient.instance.init();
     await CollectionService.instance.init(preferences);
     await FavoritesService.instance.init();
     await OfflineFilesService.instance.init();
     await LinksClient.instance.init();
     await LinksService.instance.init();
-    await ServiceLocator.instance.init(
+    ServiceLocator.instance.init(
       preferences,
       Network.instance.enteDio,
       Network.instance.getDio(),
@@ -227,6 +247,12 @@ Future<void> _init(bool bool, {String? via}) async {
     await LegacyKitService.instance.init(
       config: Configuration.instance,
       sessionProvider: LockerContactsDisplayService.buildSession,
+    );
+    unawaited(
+      Future.delayed(
+        const Duration(seconds: 5),
+        installSourceService.autoAttributePendingSource,
+      ),
     );
   } catch (e) {
     _logger.severe("Error during initialization", e);

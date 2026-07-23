@@ -30,10 +30,7 @@ class LinksService {
       file.uploadedFileID!,
       metadata: secretPayload.metadata(),
     );
-    final fragmentSecret = await _resolveFragmentSecret(
-      link,
-      secretPayload,
-    );
+    final fragmentSecret = await _resolveFragmentSecret(link, secretPayload);
     link.fullURL = "${link.url}#$fragmentSecret";
     return link;
   }

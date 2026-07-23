@@ -4,4 +4,5 @@ edition = "2024"
 
 [dependencies]
 camino = "=1.2.2"
+flutter_rust_bridge_codegen = "=2.12.0"
 uniffi_bindgen = { version = "=0.31.0", default-features = false, features = ["cargo-metadata"] }

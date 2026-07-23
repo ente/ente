@@ -22,7 +22,7 @@ import 'package:photos/ui/viewer/location/dynamic_location_gallery_widget.dart';
 import "package:photos/ui/viewer/location/edit_center_point_tile_widget.dart";
 import "package:photos/ui/viewer/location/radius_picker_widget.dart";
 
-showEditLocationSheet(
+void showEditLocationSheet(
   BuildContext context,
   LocalEntity<LocationTag> locationTagEntity,
 ) {
@@ -36,9 +36,7 @@ showEditLocationSheet(
     },
     shape: const RoundedRectangleBorder(
       side: BorderSide(width: 0),
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(5),
-      ),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(5)),
     ),
     topControl: const SizedBox.shrink(),
     backgroundColor: getEnteColorScheme(context).backgroundElevated,
@@ -47,9 +45,7 @@ showEditLocationSheet(
 }
 
 class EditLocationSheet extends StatefulWidget {
-  const EditLocationSheet({
-    super.key,
-  });
+  const EditLocationSheet({super.key});
 
   @override
   State<EditLocationSheet> createState() => _EditLocationSheetState();
@@ -62,8 +58,9 @@ class _EditLocationSheetState extends State<EditLocationSheet> {
   final ValueNotifier<int?> _memoriesCountNotifier = ValueNotifier(null);
   final ValueNotifier<bool> _submitNotifer = ValueNotifier(false);
   final ValueNotifier<bool> _cancelNotifier = ValueNotifier(false);
-  final ValueNotifier<double> _selectedRadiusNotifier =
-      ValueNotifier(defaultRadiusValue);
+  final ValueNotifier<double> _selectedRadiusNotifier = ValueNotifier(
+    defaultRadiusValue,
+  );
   final _focusNode = FocusNode();
   final _textEditingController = TextEditingController();
   final _isEmptyNotifier = ValueNotifier(false);
@@ -89,8 +86,9 @@ class _EditLocationSheetState extends State<EditLocationSheet> {
   Widget build(BuildContext context) {
     final textTheme = getEnteTextTheme(context);
     final colorScheme = getEnteColorScheme(context);
-    final locationName =
-        InheritedLocationTagData.of(context).locationTagEntity!.item.name;
+    final locationName = InheritedLocationTagData.of(
+      context,
+    ).locationTagEntity!.item.name;
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 32, 0, 8),
       child: Column(
@@ -119,8 +117,9 @@ class _EditLocationSheetState extends State<EditLocationSheet> {
                           children: [
                             Expanded(
                               child: TextInputWidget(
-                                hintText:
-                                    AppLocalizations.of(context).locationName,
+                                hintText: AppLocalizations.of(
+                                  context,
+                                ).locationName,
                                 focusNode: _focusNode,
                                 submitNotifier: _submitNotifer,
                                 cancelNotifier: _cancelNotifier,
@@ -149,8 +148,9 @@ class _EditLocationSheetState extends State<EditLocationSheet> {
                                     key: ValueKey(value),
                                     buttonType: ButtonType.secondary,
                                     buttonSize: ButtonSize.small,
-                                    labelText:
-                                        AppLocalizations.of(context).save,
+                                    labelText: AppLocalizations.of(
+                                      context,
+                                    ).save,
                                     isDisabled: value,
                                     onTap: () async {
                                       _focusNode.unfocus();
@@ -165,9 +165,7 @@ class _EditLocationSheetState extends State<EditLocationSheet> {
                         const SizedBox(height: 20),
                         const EditCenterPointTileWidget(),
                         const SizedBox(height: 20),
-                        RadiusPickerWidget(
-                          _selectedRadiusNotifier,
-                        ),
+                        RadiusPickerWidget(_selectedRadiusNotifier),
                         const SizedBox(height: 16),
                       ],
                     ),
@@ -199,8 +197,9 @@ class _EditLocationSheetState extends State<EditLocationSheet> {
                                 Text(
                                   AppLocalizations.of(context).memoryCount(
                                     count: value,
-                                    formattedCount:
-                                        NumberFormat().format(value),
+                                    formattedCount: NumberFormat().format(
+                                      value,
+                                    ),
                                   ),
                                   style: textTheme.body,
                                 ),
@@ -208,8 +207,9 @@ class _EditLocationSheetState extends State<EditLocationSheet> {
                                   Padding(
                                     padding: const EdgeInsets.only(top: 2),
                                     child: Text(
-                                      AppLocalizations.of(context)
-                                          .galleryMemoryLimitInfo,
+                                      AppLocalizations.of(
+                                        context,
+                                      ).galleryMemoryLimitInfo,
                                       style: textTheme.miniMuted,
                                     ),
                                   ),
@@ -251,6 +251,7 @@ class _EditLocationSheetState extends State<EditLocationSheet> {
       newName: _textEditingController.text.trim(),
       newCenterPoint: InheritedLocationTagData.of(context).centerPoint,
     );
+    if (!mounted) return;
     Navigator.of(context).pop();
   }
 
@@ -274,9 +275,7 @@ class _EditLocationSheetState extends State<EditLocationSheet> {
   void _selectedRadiusListener() {
     InheritedLocationTagData.of(
       context,
-    ).updateSelectedRadius(
-      _selectedRadiusNotifier.value,
-    );
+    ).updateSelectedRadius(_selectedRadiusNotifier.value);
     _memoriesCountNotifier.value = null;
   }
 }

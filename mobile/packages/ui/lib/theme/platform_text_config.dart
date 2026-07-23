@@ -55,12 +55,12 @@ class PlatformTextConfig {
     // Clamp text scaling between 0.8 and 1.3 to prevent extreme scaling
     // that can break UI layouts
     final textScaleFactor =
-        (data.textScaler.scale(1.0) * getPlatformFontScaleFactor())
-            .clamp(0.8, 1.3);
+        (data.textScaler.scale(1.0) * getPlatformFontScaleFactor()).clamp(
+          0.8,
+          1.3,
+        );
 
-    return data.copyWith(
-      textScaler: TextScaler.linear(textScaleFactor),
-    );
+    return data.copyWith(textScaler: TextScaler.linear(textScaleFactor));
   }
 }
 
@@ -68,8 +68,6 @@ class PlatformTextConfig {
 extension PlatformTextScaling on BuildContext {
   /// Get MediaQuery with platform-adjusted text scaling
   MediaQueryData get platformAdjustedMediaQuery {
-    return PlatformTextConfig.adjustMediaQueryTextScaling(
-      MediaQuery.of(this),
-    );
+    return PlatformTextConfig.adjustMediaQueryTextScaling(MediaQuery.of(this));
   }
 }

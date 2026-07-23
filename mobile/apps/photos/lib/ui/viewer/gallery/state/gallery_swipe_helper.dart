@@ -18,15 +18,15 @@ class GallerySwipeHelper extends InheritedWidget {
 
   /// Get the SwipeToSelectHelper from the nearest ancestor GallerySwipeHelper.
   static SwipeToSelectHelper? of(BuildContext context) {
-    final widget =
-        context.dependOnInheritedWidgetOfExactType<GallerySwipeHelper>();
+    final widget = context
+        .dependOnInheritedWidgetOfExactType<GallerySwipeHelper>();
     return widget?.helper;
   }
 
   /// Get the swipeActiveNotifier from the nearest ancestor GallerySwipeHelper.
   static ValueNotifier<bool>? swipeActiveNotifierOf(BuildContext context) {
-    final widget =
-        context.dependOnInheritedWidgetOfExactType<GallerySwipeHelper>();
+    final widget = context
+        .dependOnInheritedWidgetOfExactType<GallerySwipeHelper>();
     return widget?.swipeActiveNotifier;
   }
 

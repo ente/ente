@@ -81,8 +81,9 @@ class _ChristmasPullOverlayState extends State<ChristmasPullOverlay> {
             width: double.infinity,
             child: rive.RiveWidgetBuilder(
               fileLoader: _riveFileLoader,
-              stateMachineSelector:
-                  const rive.StateMachineNamed("State Machine 1"),
+              stateMachineSelector: const rive.StateMachineNamed(
+                "State Machine 1",
+              ),
               onLoaded: _onRiveLoaded,
               builder: (BuildContext context, rive.RiveState state) {
                 if (state is rive.RiveLoaded) {

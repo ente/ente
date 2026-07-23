@@ -3,8 +3,8 @@ package storagebonus
 import (
 	"context"
 
-	entity "github.com/ente-io/museum/ente/storagebonus"
-	"github.com/ente-io/stacktrace"
+	entity "github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )

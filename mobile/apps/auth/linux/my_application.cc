@@ -1,6 +1,7 @@
 #include "my_application.h"
 
 #include <flutter_linux/flutter_linux.h>
+#include <gio/gio.h>
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
 #endif
@@ -18,6 +19,37 @@ struct _MyApplication
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
+
+static gboolean should_prefer_dark_theme()
+{
+  GSettingsSchemaSource *schema_source = g_settings_schema_source_get_default();
+  if (schema_source == nullptr)
+  {
+    return FALSE;
+  }
+
+  GSettingsSchema *schema = g_settings_schema_source_lookup(
+      schema_source, "org.gnome.desktop.interface", TRUE);
+  if (schema == nullptr)
+  {
+    return FALSE;
+  }
+
+  gboolean has_color_scheme_key =
+      g_settings_schema_has_key(schema, "color-scheme");
+  g_settings_schema_unref(schema);
+  if (!has_color_scheme_key)
+  {
+    return FALSE;
+  }
+
+  g_autoptr(GSettings) settings =
+      g_settings_new("org.gnome.desktop.interface");
+  g_autofree gchar *color_scheme =
+      g_settings_get_string(settings, "color-scheme");
+
+  return g_strcmp0(color_scheme, "prefer-dark") == 0;
+}
 
 // Implements GApplication::activate.
 static void my_application_activate(GApplication *application)
@@ -71,6 +103,13 @@ static void my_application_activate(GApplication *application)
 
   if (use_header_bar)
   {
+    GtkSettings *settings = gtk_settings_get_default();
+    if (settings != nullptr && should_prefer_dark_theme())
+    {
+      g_object_set(
+          settings, "gtk-application-prefer-dark-theme", TRUE, nullptr);
+    }
+
     GtkHeaderBar *header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
     gtk_header_bar_set_title(header_bar, "Ente Auth");

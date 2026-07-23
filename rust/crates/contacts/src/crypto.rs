@@ -9,10 +9,10 @@ pub fn encrypt_root_contact_key(
     root_contact_key: &[u8],
     master_key: &[u8],
 ) -> Result<WrappedRootContactKey> {
-    let encrypted = secretbox::encrypt_with_key(root_contact_key, master_key)?;
+    let encrypted = secretbox::encrypt(root_contact_key, &crypto::Key::try_from_slice(master_key)?);
     Ok(WrappedRootContactKey {
-        encrypted_key: crypto::encode_b64(&encrypted.ciphertext),
-        header: crypto::encode_b64(&encrypted.nonce),
+        encrypted_key: crypto::encode_b64(&encrypted.encrypted_data),
+        header: crypto::encode_b64(encrypted.nonce.as_bytes()),
     })
 }
 
@@ -22,35 +22,52 @@ pub fn decrypt_root_contact_key(
 ) -> Result<Vec<u8>> {
     let encrypted_key = crypto::decode_b64(&wrapped_root_contact_key.encrypted_key)?;
     let header = crypto::decode_b64(&wrapped_root_contact_key.header)?;
-    Ok(secretbox::decrypt(&encrypted_key, &header, master_key)?)
+    Ok(secretbox::decrypt(
+        &encrypted_key,
+        &crypto::Nonce::try_from_slice(&header)?,
+        &crypto::Key::try_from_slice(master_key)?,
+    )?)
 }
 
 pub fn wrap_contact_key(contact_key: &[u8], root_contact_key: &[u8]) -> Result<String> {
-    let encrypted = secretbox::encrypt(contact_key, root_contact_key)?;
-    Ok(crypto::encode_b64(&encrypted.encrypted_data))
+    let encrypted =
+        secretbox::encrypt_combined(contact_key, &crypto::Key::try_from_slice(root_contact_key)?);
+    Ok(crypto::encode_b64(&encrypted))
 }
 
 pub fn unwrap_contact_key(encrypted_key_b64: &str, root_contact_key: &[u8]) -> Result<Vec<u8>> {
     let encrypted_key = crypto::decode_b64(encrypted_key_b64)?;
-    Ok(secretbox::decrypt_box(&encrypted_key, root_contact_key)?)
+    Ok(secretbox::decrypt_combined(
+        &encrypted_key,
+        &crypto::Key::try_from_slice(root_contact_key)?,
+    )?)
 }
 
 pub fn encrypt_contact_data(data: &ContactData, contact_key: &[u8]) -> Result<String> {
-    let encrypted = blob::encrypt_json_combined(data, contact_key)?;
+    let encrypted = blob::encrypt_json_combined(data, &crypto::Key::try_from_slice(contact_key)?)?;
     Ok(crypto::encode_b64(&encrypted))
 }
 
 pub fn decrypt_contact_data(encrypted_data_b64: &str, contact_key: &[u8]) -> Result<ContactData> {
     let encrypted_data = crypto::decode_b64(encrypted_data_b64)?;
-    Ok(blob::decrypt_json_combined(&encrypted_data, contact_key)?)
+    Ok(blob::decrypt_json_combined(
+        &encrypted_data,
+        &crypto::Key::try_from_slice(contact_key)?,
+    )?)
 }
 
 pub fn encrypt_profile_picture(bytes: &[u8], contact_key: &[u8]) -> Result<Vec<u8>> {
-    Ok(blob::encrypt_combined(bytes, contact_key)?)
+    Ok(blob::encrypt_combined(
+        bytes,
+        &crypto::Key::try_from_slice(contact_key)?,
+    )?)
 }
 
 pub fn decrypt_profile_picture(bytes: &[u8], contact_key: &[u8]) -> Result<Vec<u8>> {
-    Ok(blob::decrypt_combined(bytes, contact_key)?)
+    Ok(blob::decrypt_combined(
+        bytes,
+        &crypto::Key::try_from_slice(contact_key)?,
+    )?)
 }
 
 pub fn content_md5_base64(bytes: &[u8]) -> String {

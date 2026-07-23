@@ -5,16 +5,11 @@ description: Create secure, shareable links for documents and collections
 
 # Public Links
 
-Public links let you share individual items or whole collections with anyone,
-even if they don't have an Ente account. Recipients can view the content in
-their web browser.
+Public links let you share individual items or whole collections with anyone, even if they don't have an Ente account. Recipients can view the content in their web browser.
 
-Use public links when you want browser-based sharing without requiring the
-recipient to sign in.
+Use public links when you want browser-based sharing without requiring the recipient to sign in.
 
-If you want to share a collection privately with another Ente user inside the
-app, use [Share with Ente users](/locker/features/sharing/share-with-users)
-instead.
+If you want to share a collection privately with another Ente user inside the app, use [Share with Ente users](/locker/features/sharing/share-with-users) instead.
 
 ## How it works
 

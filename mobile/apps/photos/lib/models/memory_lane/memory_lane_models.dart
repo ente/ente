@@ -36,11 +36,11 @@ class MemoryLaneEntry {
   });
 
   Map<String, dynamic> toJson() => {
-        "faceId": faceId,
-        "fileId": fileId,
-        "creationTime": creationTimeMicros,
-        "year": year,
-      };
+    "faceId": faceId,
+    "fileId": fileId,
+    "creationTime": creationTimeMicros,
+    "year": year,
+  };
 
   factory MemoryLaneEntry.fromJson(Map<String, dynamic> json) {
     return MemoryLaneEntry(
@@ -68,11 +68,11 @@ class MemoryLanePersonTimeline {
   bool get isReady => status == MemoryLaneStatus.ready;
 
   Map<String, dynamic> toJson() => {
-        "personId": personId,
-        "status": memoryLaneStatusToString(status),
-        "updatedAt": updatedAtMicros,
-        "entries": entries.map((entry) => entry.toJson()).toList(),
-      };
+    "personId": personId,
+    "status": memoryLaneStatusToString(status),
+    "updatedAt": updatedAtMicros,
+    "entries": entries.map((entry) => entry.toJson()).toList(),
+  };
 
   factory MemoryLanePersonTimeline.fromJson(Map<String, dynamic> json) {
     final Iterable entriesJson = json["entries"] as Iterable? ?? [];
@@ -120,13 +120,13 @@ class MemoryLaneComputeLogEntry {
   });
 
   Map<String, dynamic> toJson() => {
-        "personId": personId,
-        "name": name,
-        "birthDate": birthDate,
-        "faceCount": faceCount,
-        "lastComputed": lastComputedMicros,
-        "logicVersion": logicVersion,
-      };
+    "personId": personId,
+    "name": name,
+    "birthDate": birthDate,
+    "faceCount": faceCount,
+    "lastComputed": lastComputedMicros,
+    "logicVersion": logicVersion,
+  };
 
   factory MemoryLaneComputeLogEntry.fromJson(Map<String, dynamic> json) {
     return MemoryLaneComputeLogEntry(
@@ -174,19 +174,17 @@ class MemoryLaneCachePayload {
   });
 
   MemoryLaneCachePayload.empty()
-      : version = currentVersion,
-        timelines = {},
-        computeLogVersion = currentComputeLogVersion,
-        computeLog = {};
+    : version = currentVersion,
+      timelines = {},
+      computeLogVersion = currentComputeLogVersion,
+      computeLog = {};
 
   Map<String, dynamic> toJson() => {
-        "version": version,
-        "people": timelines.map((key, value) => MapEntry(key, value.toJson())),
-        "computeLogVersion": computeLogVersion,
-        "computeLog": computeLog.map(
-          (key, value) => MapEntry(key, value.toJson()),
-        ),
-      };
+    "version": version,
+    "people": timelines.map((key, value) => MapEntry(key, value.toJson())),
+    "computeLogVersion": computeLogVersion,
+    "computeLog": computeLog.map((key, value) => MapEntry(key, value.toJson())),
+  };
 
   String toEncodedJson() => jsonEncode(toJson());
 
@@ -194,11 +192,10 @@ class MemoryLaneCachePayload {
 
   Iterable<MemoryLanePersonTimeline> get allTimelines => timelines.values;
 
-  MemoryLaneCachePayload copyWithTimeline(
-    MemoryLanePersonTimeline timeline,
-  ) {
-    final updatedTimelines =
-        Map<String, MemoryLanePersonTimeline>.from(timelines);
+  MemoryLaneCachePayload copyWithTimeline(MemoryLanePersonTimeline timeline) {
+    final updatedTimelines = Map<String, MemoryLanePersonTimeline>.from(
+      timelines,
+    );
     updatedTimelines[timeline.personId] = timeline;
     return MemoryLaneCachePayload(
       version: version,
@@ -209,8 +206,9 @@ class MemoryLaneCachePayload {
   }
 
   MemoryLaneCachePayload copyWithoutPerson(String personId) {
-    final updatedTimelines =
-        Map<String, MemoryLanePersonTimeline>.from(timelines)..remove(personId);
+    final updatedTimelines = Map<String, MemoryLanePersonTimeline>.from(
+      timelines,
+    )..remove(personId);
     final updatedLog = Map<String, MemoryLaneComputeLogEntry>.from(computeLog)
       ..remove(personId);
     return MemoryLaneCachePayload(

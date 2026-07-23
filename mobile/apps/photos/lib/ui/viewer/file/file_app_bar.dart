@@ -1,12 +1,11 @@
 import "dart:async";
 import 'dart:io';
-import "dart:math" as math;
 
-import "package:ente_icons/ente_icons.dart";
-import 'package:flutter/cupertino.dart';
+import "package:ente_components/ente_components.dart";
+import "package:ente_lock_screen/local_authentication_service.dart";
 import 'package:flutter/material.dart';
 import "package:flutter/services.dart";
-import "package:flutter_svg/flutter_svg.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:local_auth/local_auth.dart";
 import 'package:logging/logging.dart';
 import 'package:media_extension/media_extension.dart';
@@ -22,26 +21,23 @@ import "package:photos/models/file/trash_file.dart";
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/metadata/common_keys.dart";
 import 'package:photos/models/selected_files.dart';
+import 'package:photos/module/download/file.dart';
+import 'package:photos/module/download/gallery.dart';
 import "package:photos/service_locator.dart";
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/hidden_service.dart';
-import "package:photos/services/local_authentication_service.dart";
 import "package:photos/services/video_preview_service.dart";
 import "package:photos/states/detail_page_state.dart";
 import "package:photos/theme/colors.dart";
-import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
 import "package:photos/ui/actions/file/file_actions.dart";
 import 'package:photos/ui/collections/collection_action_sheet.dart';
-import "package:photos/ui/common/popup_item.dart";
 import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/viewer/actions/suggest_delete_sheet.dart';
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/file_details/favorite_widget.dart";
 import "package:photos/ui/viewer/file_details/upload_icon_widget.dart";
 import 'package:photos/utils/dialog_util.dart';
-import "package:photos/utils/file_download_util.dart";
-import 'package:photos/utils/file_util.dart';
 import "package:photos/utils/magic_util.dart";
 import "package:photos/utils/share_util.dart";
 
@@ -78,9 +74,6 @@ class FileAppBarState extends State<FileAppBar> {
   bool isGuestView = false;
   bool shouldLoopVideo = localSettings.shouldLoopVideo();
   bool _reloadActions = false;
-  bool _isMenuOpen = false;
-  bool _pendingActionsReload = false;
-  ValueNotifier<bool>? _isInSharedCollectionNotifier;
   ValueNotifier<String?>? _showingThumbnailFallbackNotifier;
 
   @override
@@ -109,29 +102,13 @@ class FileAppBarState extends State<FileAppBar> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final detailPageState = InheritedDetailPageState.maybeOf(context);
-    _updateIsInSharedCollectionNotifier(
-      detailPageState?.isInSharedCollectionNotifier,
-    );
     _updateShowingThumbnailFallbackNotifier(
       detailPageState?.showingThumbnailFallbackNotifier,
     );
   }
 
-  void _onSharedCollectionChanged() {
-    _requestActionsReload();
-  }
-
   void _onThumbnailFallbackChanged() {
     _requestActionsReload();
-  }
-
-  void _updateIsInSharedCollectionNotifier(ValueNotifier<bool>? notifier) {
-    if (_isInSharedCollectionNotifier == notifier) {
-      return;
-    }
-    _isInSharedCollectionNotifier?.removeListener(_onSharedCollectionChanged);
-    _isInSharedCollectionNotifier = notifier;
-    _isInSharedCollectionNotifier?.addListener(_onSharedCollectionChanged);
   }
 
   void _updateShowingThumbnailFallbackNotifier(
@@ -144,14 +121,11 @@ class FileAppBarState extends State<FileAppBar> {
       _onThumbnailFallbackChanged,
     );
     _showingThumbnailFallbackNotifier = notifier;
-    _showingThumbnailFallbackNotifier?.addListener(
-      _onThumbnailFallbackChanged,
-    );
+    _showingThumbnailFallbackNotifier?.addListener(_onThumbnailFallbackChanged);
   }
 
   @override
   void dispose() {
-    _isInSharedCollectionNotifier?.removeListener(_onSharedCollectionChanged);
     _showingThumbnailFallbackNotifier?.removeListener(
       _onThumbnailFallbackChanged,
     );
@@ -233,28 +207,9 @@ class FileAppBarState extends State<FileAppBar> {
   }
 
   void _requestActionsReload() {
-    if (_isMenuOpen) {
-      _pendingActionsReload = true;
-      return;
-    }
     if (mounted) {
       setState(() {
         _reloadActions = true;
-        _pendingActionsReload = false;
-      });
-    }
-  }
-
-  void _handleMenuOpened() {
-    _isMenuOpen = true;
-  }
-
-  void _handleMenuClosed() {
-    _isMenuOpen = false;
-    if (_pendingActionsReload && mounted) {
-      setState(() {
-        _reloadActions = true;
-        _pendingActionsReload = false;
       });
     }
   }
@@ -301,10 +256,6 @@ class FileAppBarState extends State<FileAppBar> {
     final Collection? collection = collectionID != null
         ? CollectionsService.instance.getCollectionByID(collectionID)
         : null;
-    final isInSharedCollection = InheritedDetailPageState.maybeOf(
-          context,
-        )?.isInSharedCollectionNotifier.value ??
-        false;
     bool isFileHidden = false;
     if (isOwnedByUser && isFileUploaded) {
       isFileHidden = collection?.isHidden() ?? false;
@@ -335,43 +286,33 @@ class FileAppBarState extends State<FileAppBar> {
       );
     }
 
-    final List<PopupMenuItem> items = [];
+    final List<EntePopupMenuOption<int>> items = [];
     final bool restrictFileActions =
         widget.mode == DetailPageMode.minimalistic || widget.file is TrashFile;
 
     if (restrictFileActions) {
       items.add(
-        EntePopupMenuItem(
+        _fileMenuOption(
           AppLocalizations.of(context).info,
           value: 12,
-          icon: Platform.isAndroid ? Icons.info_outline : CupertinoIcons.info,
-          iconColor: Theme.of(context).iconTheme.color,
+          hugeIcon: HugeIcons.strokeRoundedInformationCircle,
         ),
       );
     } else {
       if (isFileUploaded) {
         items.add(
-          EntePopupMenuItem(
+          _fileMenuOption(
             AppLocalizations.of(context).download,
             value: 1,
-            icon: Platform.isAndroid
-                ? Icons.download
-                : Icons.cloud_download_outlined,
-            iconColor: Theme.of(context).iconTheme.color,
+            hugeIcon: HugeIcons.strokeRoundedDownload01,
           ),
         );
         if (isOwnedByUser && !isFileHidden) {
           items.add(
-            EntePopupMenuItem(
+            _fileMenuOption(
               AppLocalizations.of(context).sendLink,
               value: 14,
-              iconWidget: Transform.rotate(
-                angle: math.pi / 2,
-                child: Icon(
-                  Icons.navigation_rounded,
-                  color: Theme.of(context).iconTheme.color,
-                ),
-              ),
+              hugeIcon: HugeIcons.strokeRoundedNavigation03,
             ),
           );
         }
@@ -382,23 +323,10 @@ class FileAppBarState extends State<FileAppBar> {
               widget.file.fileType == FileType.livePhoto ||
               widget.file.fileType == FileType.video)) {
         items.add(
-          EntePopupMenuItem(
+          _fileMenuOption(
             AppLocalizations.of(context).edit,
             value: 11,
-            icon: Icons.tune_outlined,
-            iconColor: Theme.of(context).iconTheme.color,
-          ),
-        );
-      }
-      // Add to Album option - shown when file is in shared collection
-      // (moved from bottom bar to make room for social icons)
-      if (isInSharedCollection && isFileUploaded && !isFileHidden) {
-        items.add(
-          EntePopupMenuItem(
-            AppLocalizations.of(context).addToAlbum,
-            value: 10,
-            icon: EnteIcons.addToAlbum,
-            iconColor: Theme.of(context).iconTheme.color,
+            hugeIcon: HugeIcons.strokeRoundedSlidersHorizontal,
           ),
         );
       }
@@ -407,13 +335,14 @@ class FileAppBarState extends State<FileAppBar> {
         final bool isArchived =
             widget.file.magicMetadata.visibility == archiveVisibility;
         items.add(
-          EntePopupMenuItem(
+          _fileMenuOption(
             isArchived
                 ? AppLocalizations.of(context).unarchive
                 : AppLocalizations.of(context).archive,
             value: 2,
-            icon: isArchived ? Icons.unarchive : Icons.archive_outlined,
-            iconColor: Theme.of(context).iconTheme.color,
+            hugeIcon: isArchived
+                ? HugeIcons.strokeRoundedUnarchive03
+                : HugeIcons.strokeRoundedArchive03,
           ),
         );
       }
@@ -422,67 +351,56 @@ class FileAppBarState extends State<FileAppBar> {
               widget.file.fileType == FileType.livePhoto) &&
           Platform.isAndroid) {
         items.add(
-          EntePopupMenuItem(
+          _fileMenuOption(
             AppLocalizations.of(context).setAs,
             value: 3,
-            icon: Icons.wallpaper_outlined,
-            iconColor: Theme.of(context).iconTheme.color,
+            hugeIcon: HugeIcons.strokeRoundedImage01,
           ),
         );
       }
       if (isOwnedByUser && widget.file.isUploaded) {
         if (!isFileHidden) {
           items.add(
-            EntePopupMenuItem(
+            _fileMenuOption(
               AppLocalizations.of(context).hide,
               value: 4,
-              icon: Icons.visibility_off,
-              iconColor: Theme.of(context).iconTheme.color,
+              hugeIcon: HugeIcons.strokeRoundedViewOffSlash,
             ),
           );
         } else {
           items.add(
-            EntePopupMenuItem(
+            _fileMenuOption(
               AppLocalizations.of(context).unhide,
               value: 5,
-              icon: Icons.visibility,
-              iconColor: Theme.of(context).iconTheme.color,
+              hugeIcon: HugeIcons.strokeRoundedView,
             ),
           );
         }
       }
 
       items.add(
-        EntePopupMenuItem(
+        _fileMenuOption(
           AppLocalizations.of(context).guestView,
           value: 6,
-          iconWidget: SvgPicture.asset(
-            "assets/icons/guest_view_icon.svg",
-            colorFilter: ColorFilter.mode(
-              getEnteColorScheme(context).textBase,
-              BlendMode.srcIn,
-            ),
-          ),
+          hugeIcon: HugeIcons.strokeRoundedIncognito,
         ),
       );
 
       if (canSuggestDeleteAction) {
         items.add(
-          EntePopupMenuItem(
+          _fileMenuOption(
             AppLocalizations.of(context).suggestDeletion,
             value: 13,
-            icon: Icons.flag_outlined,
-            iconColor: Theme.of(context).iconTheme.color,
+            hugeIcon: HugeIcons.strokeRoundedFlag01,
           ),
         );
       }
 
       items.add(
-        EntePopupMenuItem(
+        _fileMenuOption(
           AppLocalizations.of(context).info,
           value: 12,
-          icon: Platform.isAndroid ? Icons.info_outline : CupertinoIcons.info,
-          iconColor: Theme.of(context).iconTheme.color,
+          hugeIcon: HugeIcons.strokeRoundedInformationCircle,
         ),
       );
     }
@@ -491,123 +409,126 @@ class FileAppBarState extends State<FileAppBar> {
       // Video streaming options
       if (_shouldShowCreateStreamOption()) {
         items.add(
-          EntePopupMenuItem(
+          _fileMenuOption(
             AppLocalizations.of(context).createStream,
             value: 8,
-            icon: Icons.video_settings_outlined,
-            iconColor: Theme.of(context).iconTheme.color,
+            hugeIcon: HugeIcons.strokeRoundedVideoReplay,
           ),
         );
       }
 
       if (_shouldShowRecreateStreamOption()) {
         items.add(
-          EntePopupMenuItem(
+          _fileMenuOption(
             AppLocalizations.of(context).recreateStream,
             value: 9,
-            icon: Icons.refresh_outlined,
-            iconColor: Theme.of(context).iconTheme.color,
+            hugeIcon: HugeIcons.strokeRoundedRefresh,
           ),
         );
       }
 
       items.add(
-        EntePopupMenuItem(
+        _fileMenuOption(
           shouldLoopVideo
               ? AppLocalizations.of(context).loopVideoOn
               : AppLocalizations.of(context).loopVideoOff,
           value: 7,
-          iconWidget: Stack(
-            alignment: Alignment.center,
-            children: [
-              Icon(
-                Icons.loop_rounded,
-                color: Theme.of(context).iconTheme.color,
-              ),
-              shouldLoopVideo
-                  ? Transform.rotate(
-                      angle: 3.14 / 4,
-                      child: Container(
-                        width: 2,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).iconTheme.color,
-                          borderRadius: BorderRadius.circular(1),
-                        ),
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-            ],
-          ),
+          hugeIcon: shouldLoopVideo
+              ? HugeIcons.strokeRoundedRepeatOff
+              : HugeIcons.strokeRoundedRepeat,
         ),
       );
     }
 
     if (items.isNotEmpty) {
       _actions.add(
-        PopupMenuButton(
-          tooltip: MaterialLocalizations.of(context).moreButtonTooltip,
-          onOpened: _handleMenuOpened,
-          itemBuilder: (context) {
-            return items;
-          },
-          onCanceled: _handleMenuClosed,
-          onSelected: (dynamic value) async {
-            _handleMenuClosed();
-            if (value == 1) {
-              await _download(widget.file);
-            } else if (value == 14) {
-              await _sendLink(widget.file);
-            } else if (value == 2) {
-              await _toggleFileArchiveStatus(widget.file);
-            } else if (value == 3) {
-              await _setAs(widget.file);
-            } else if (value == 4) {
-              await _handleHideRequest(context);
-            } else if (value == 5) {
-              await _handleUnHideRequest(context);
-            } else if (value == 6) {
-              await _onTapGuestView();
-            } else if (value == 99) {
-              try {
-                await VideoPreviewService.instance.chunkAndUploadVideo(
-                  context,
-                  widget.file,
-                );
-              } catch (e) {
-                if (mounted) {
-                  await showGenericErrorDialog(context: context, error: e);
-                }
-              }
-            } else if (value == 7) {
-              _onToggleLoopVideo();
-            } else if (value == 8) {
-              await _handleVideoStream('create');
-            } else if (value == 9) {
-              await _handleVideoStream('recreate');
-            } else if (value == 11) {
-              widget.onEditRequested(widget.file);
-            } else if (value == 12) {
-              await showDetailsSheet(context, widget.file);
-            } else if (value == 13) {
-              if (collection != null) {
-                await _handleSuggestDelete(collection);
-              }
-            } else if (value == 10) {
-              final selectedFiles = SelectedFiles();
-              selectedFiles.files.add(widget.file);
-              showCollectionActionSheet(
-                context,
-                selectedFiles: selectedFiles,
-                actionType: CollectionActionType.addFiles,
-              );
+        EntePopupMenuButton<int>(
+          optionsBuilder: () => items,
+          onSelected: (selected) async {
+            if (!mounted) {
+              return;
             }
+            await _handleFileMenuSelection(selected, collection);
           },
+          child: Tooltip(
+            message: MaterialLocalizations.of(context).moreButtonTooltip,
+            child: const SizedBox.square(
+              dimension: kMinInteractiveDimension,
+              child: Center(
+                child: HugeIcon(
+                  icon: HugeIcons.strokeRoundedMoreVertical,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
         ),
       );
     }
 
     return _actions;
+  }
+
+  EntePopupMenuOption<int> _fileMenuOption(
+    String label, {
+    required int value,
+    required List<List<dynamic>> hugeIcon,
+  }) {
+    return EntePopupMenuOption<int>(
+      value: value,
+      label: label,
+      leadingWidget: HugeIcon(
+        icon: hugeIcon,
+        size: IconSizes.small,
+        color: context.componentColors.textLight,
+      ),
+    );
+  }
+
+  Future<void> _handleFileMenuSelection(
+    int value,
+    Collection? collection,
+  ) async {
+    if (value == 1) {
+      await _download(widget.file);
+    } else if (value == 14) {
+      await _sendLink(widget.file);
+    } else if (value == 2) {
+      await _toggleFileArchiveStatus(widget.file);
+    } else if (value == 3) {
+      await _setAs(widget.file);
+    } else if (value == 4) {
+      await _handleHideRequest(context);
+    } else if (value == 5) {
+      await _handleUnHideRequest(context);
+    } else if (value == 6) {
+      await _onTapGuestView();
+    } else if (value == 99) {
+      try {
+        await VideoPreviewService.instance.chunkAndUploadVideo(
+          context,
+          widget.file,
+        );
+      } catch (e) {
+        if (mounted) {
+          await showGenericErrorDialog(context: context, error: e);
+        }
+      }
+    } else if (value == 7) {
+      _onToggleLoopVideo();
+    } else if (value == 8) {
+      await _handleVideoStream('create');
+    } else if (value == 9) {
+      await _handleVideoStream('recreate');
+    } else if (value == 11) {
+      widget.onEditRequested(widget.file);
+    } else if (value == 12) {
+      await showDetailsSheet(context, widget.file);
+    } else if (value == 13) {
+      if (collection != null) {
+        await _handleSuggestDelete(collection);
+      }
+    }
   }
 
   Future<void> _handleSuggestDelete(Collection collection) async {
@@ -626,7 +547,7 @@ class FileAppBarState extends State<FileAppBar> {
     );
   }
 
-  _onToggleLoopVideo() {
+  void _onToggleLoopVideo() {
     localSettings.setShouldLoopVideo(!shouldLoopVideo);
     setState(() {
       _reloadActions = true;
@@ -644,6 +565,7 @@ class FileAppBarState extends State<FileAppBar> {
       }
     } catch (e, s) {
       _logger.severe("failed to update file visibility", e, s);
+      if (!context.mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }
@@ -651,7 +573,7 @@ class FileAppBarState extends State<FileAppBar> {
   Future<void> _handleUnHideRequest(BuildContext context) async {
     final selectedFiles = SelectedFiles();
     selectedFiles.files.add(widget.file);
-    showCollectionActionSheet(
+    await showCollectionActionSheet(
       context,
       selectedFiles: selectedFiles,
       actionType: CollectionActionType.unHide,
@@ -661,13 +583,9 @@ class FileAppBarState extends State<FileAppBar> {
   Future<void> _toggleFileArchiveStatus(EnteFile file) async {
     final bool isArchived =
         widget.file.magicMetadata.visibility == archiveVisibility;
-    await changeVisibility(
-      context,
-      [
-        widget.file,
-      ],
-      isArchived ? visibleVisibility : archiveVisibility,
-    );
+    await changeVisibility(context, [
+      widget.file,
+    ], isArchived ? visibleVisibility : archiveVisibility);
     if (mounted) {
       setState(() {
         _reloadActions = true;
@@ -693,18 +611,16 @@ class FileAppBarState extends State<FileAppBar> {
       return;
     }
 
-    final fileToDownload =
-        !file.isRemoteFile ? (file.copyWith()..localID = null) : file;
+    final fileToDownload = !file.isRemoteOnlyFile
+        ? (file.copyWith()..localID = null)
+        : file;
     final persistToFilesDB =
         widget.galleryType != GalleryType.sharedPublicCollection;
     if (flagService.internalUser) {
       try {
-        await galleryDownloadQueueService.enqueueFiles(
-          [
-            fileToDownload,
-          ],
-          persistToFilesDB: persistToFilesDB,
-        );
+        await galleryDownloadQueueService.enqueueFiles([
+          fileToDownload,
+        ], persistToFilesDB: persistToFilesDB);
       } catch (e) {
         _logger.warning("Failed to save file", e);
         if (mounted) {
@@ -714,6 +630,7 @@ class FileAppBarState extends State<FileAppBar> {
       return;
     }
 
+    if (!mounted) return;
     final dialog = createProgressDialog(
       context,
       AppLocalizations.of(context).downloading,
@@ -754,9 +671,14 @@ class FileAppBarState extends State<FileAppBar> {
       isDismissible: true,
     );
     await dialog.show();
+    if (!mounted) return;
     final Collection? sharedLinkCollection = await CollectionActions(
       CollectionsService.instance,
     ).createSharedCollectionLink(context, [file]);
+    if (!mounted) {
+      await dialog.hide();
+      return;
+    }
     if (sharedLinkCollection == null) {
       await dialog.hide();
       return;
@@ -766,6 +688,7 @@ class FileAppBarState extends State<FileAppBar> {
     );
     await dialog.hide();
     unawaited(Clipboard.setData(ClipboardData(text: url)));
+    if (!mounted) return;
     await shareLinkWithDescription(url, context: context);
   }
 
@@ -783,6 +706,7 @@ class FileAppBarState extends State<FileAppBar> {
       final m = MediaExtension();
       final bool result = await m.setAs("file://${fileToSave.path}", "image/*");
       if (result == false) {
+        if (!mounted) return;
         showShortToast(
           context,
           AppLocalizations.of(context).somethingWentWrong,
@@ -792,6 +716,7 @@ class FileAppBarState extends State<FileAppBar> {
     } catch (e) {
       await dialog.hide();
       _logger.severe("Failed to use as", e);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }
@@ -801,6 +726,7 @@ class FileAppBarState extends State<FileAppBar> {
       Bus.instance.fire(GuestViewEvent(true, true));
       await localSettings.setOnGuestView(true);
     } else {
+      if (!mounted) return;
       await showErrorDialog(
         context,
         AppLocalizations.of(context).noSystemLockFound,
@@ -810,11 +736,11 @@ class FileAppBarState extends State<FileAppBar> {
   }
 
   Future<void> _requestAuthentication() async {
-    final hasAuthenticated =
-        await LocalAuthenticationService.instance.requestLocalAuthentication(
-      context,
-      "Please authenticate to view more photos and videos.",
-    );
+    final hasAuthenticated = await LocalAuthenticationService.instance
+        .requestLocalAuthentication(
+          context,
+          "Please authenticate to view more photos and videos.",
+        );
     if (hasAuthenticated) {
       Bus.instance.fire(GuestViewEvent(false, false));
       await localSettings.setOnGuestView(false);
@@ -853,10 +779,12 @@ class FileAppBarState extends State<FileAppBar> {
 
       if (!wasAdded) {
         // File was already in queue
+        if (!mounted) return;
         showToast(context, AppLocalizations.of(context).videoAlreadyInQueue);
         return;
       }
 
+      if (!mounted) return;
       showToast(context, AppLocalizations.of(context).addedToQueue);
 
       if (mounted) {
@@ -866,6 +794,7 @@ class FileAppBarState extends State<FileAppBar> {
       }
     } catch (e, s) {
       _logger.severe("Failed to $streamType video stream", e, s);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }

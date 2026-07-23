@@ -7,7 +7,9 @@ description: Stream your videos without downloading them first
 
 Video streaming is a beta feature that lets you watch videos without downloading the entire file first. Instead of downloading the full video, Ente generates a streamable version that supports instant playback and seeking.
 
-> **Note**: Video streaming is available in beta on mobile apps starting v0.9.98 and on desktop starting v1.7.13.
+> [!NOTE]
+>
+> Video streaming is available in beta on mobile apps starting v0.9.98 and on desktop starting v1.7.13.
 
 ## How it works
 

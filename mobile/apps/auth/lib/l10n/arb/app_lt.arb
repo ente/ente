@@ -112,7 +112,9 @@
   "passwordEmptyError": "Slaptažodis negali būti tuščias.",
   "passwordTooShort": "Slaptažodis turi būti bent 8 simbolių ilgio.",
   "importFromApp": "Importuoti kodus iš „{appName}“",
-  "importGoogleAuthGuide": "Eksportuokite paskyras iš „Google Authenticator“ į QR kodą naudodami parinktį Perkelti paskyras. Tada naudojant kitą įrenginį nuskenuokite QR kodą.\n\nPatarimas: QR kodą galite nufotografuoti naudojant nešiojamojo kompiuterio internetinę vaizdo kamerą.",
+  "importGoogleAuthGuide": "Eksportuokite savo paskyras iš „Google“ autentifikavimas“ į QR kodą naudodami parinktį Perkelti paskyras. Tada nuskenuokite QR kodą arba importuokite jį iš vaizdo.",
+  "scannerTorchOn": "Įjungti žibintuvėlį",
+  "scannerTorchOff": "Išjungti žibintuvėlį",
   "importSelectJsonFile": "Pasirinkti JSON failą",
   "importSelectAppExport": "Pasirinkti „{appName}“ eksporto failą",
   "importEnteEncGuide": "Pasirinkite užšifruotą JSON failą, eksportuotą iš „Ente“",
@@ -194,7 +196,7 @@
   "deleteAccountQuery": "Apgailestausime, kad išeinate. Ar susiduriate su kažkokiomis problemomis?",
   "yesSendFeedbackAction": "Taip, siųsti atsiliepimą",
   "noDeleteAccountAction": "Ne, ištrinti paskyrą",
-  "initiateAccountDeleteTitle": "Nustatykite tapatybę, kad pradėtumėte paskyros ištrynimą",
+  "authToInitiateAccountDeletion": "Atrakinkite, kad ištrintumėte savo paskyrą",
   "sendEmail": "Siųsti el. laišką",
   "createNewAccount": "Kurti naują paskyrą",
   "weakStrength": "Silpna",
@@ -329,6 +331,16 @@
         "description": "The number of codes imported",
         "type": "int",
         "example": "1"
+      }
+    }
+  },
+  "importGoogleAuthConfirmation": "{codeCount, plural, one {Importuoti {codeCount} kodą iš „Google“ autentifikavimas“?} few {Importuoti {codeCount} kodus iš „Google“ autentifikavimas“?} many {Importuoti {codeCount} kodo iš „Google“ autentifikavimas“?} other {Importuoti {codeCount} kodų iš „Google“ autentifikavimas“?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
       }
     }
   },
@@ -486,6 +498,9 @@
   "somethingWentWrongParsingCode": "Mums nepavyko išanalizuoti {x} kodų.",
   "updateNotAvailable": "Nėra naujinimų",
   "viewRawCodes": "Peržiūrėti neapdorotus kodus",
+  "parsingError": "Analizavimo klaida.",
+  "deleteUnparseableCodeTitle": "Ištrinti neanalizuojamą kodą?",
+  "deleteUnparseableCodeMessage": "Tai negrįžtamai ištrins šį kodą iš „Auth“. Jis nebus perkeltas į šiukšlinę.",
   "rawCodes": "Neapdoroti kodai",
   "rawCodeData": "Neapdoroti kodo duomenys",
   "appLock": "Programos užraktas",
@@ -625,7 +640,7 @@
   "todaysLogs": "Šiandienos žurnalai",
   "appIcon": "Programos piktograma",
   "importAndOTPGuide": "Eksportuokite savo atsarginę kopiją iš „andOTP“ naudojant parinktį „Backup“ nustatymuose.\n\nJei atsarginė kopija užšifruota, turėsite įvesti atsarginės kopijos slaptažodį, kad ją iššifruotumėte.",
-  "enterPasswordToDecryptAndOTP": "Įveskite slaptažodį, kad iššifruotumėte andOTP atsarginę kopiją.",
-  "failedToDecryptAndOTPBackup": "Nepavyko iššifruoti andOTP atsarginę kopiją",
-  "notSupportedForHOTP": "Nepalaikomas algoritmai HOTP"
+  "enterPasswordToDecryptAndOTP": "Įveskite slaptažodį, kad iššifruotumėte „andOTP“ atsarginę kopiją.",
+  "failedToDecryptAndOTPBackup": "Nepavyko iššifruoti „andOTP“ atsarginę kopiją.",
+  "notSupportedForHOTP": "Nepalaikomas algoritmai HOTP."
 }

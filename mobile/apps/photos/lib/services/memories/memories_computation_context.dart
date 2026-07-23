@@ -60,8 +60,8 @@ class MemoriesComputationContext {
       allFileIdsToFile: Map<int, EnteFile>.from(
         args["allFileIdsToFile"] as Map,
       ),
-      collectionIDsToExclude:
-          (args["collectionIDsToExclude"] as Set).cast<int>(),
+      collectionIDsToExclude: (args["collectionIDsToExclude"] as Set)
+          .cast<int>(),
       isLocalGalleryMode: args["isLocalGalleryMode"] ?? false,
       mlEnabled: args["mlEnabled"] ?? false,
       now: args["now"] as DateTime,
@@ -82,8 +82,8 @@ class MemoriesComputationContext {
         args["clusterIdToFaceIDs"] as Map,
       ),
       assignedClusterIDs: (args["assignedClusterIDs"] as Set).cast<String>(),
-      allImageEmbeddings:
-          (args["allImageEmbeddings"] as List).cast<EmbeddingVector>(),
+      allImageEmbeddings: (args["allImageEmbeddings"] as List)
+          .cast<EmbeddingVector>(),
       clipPositiveTextVector: args["clipPositiveTextVector"] as Vector,
       clipPeopleActivityVectors: Map<PeopleActivity, Vector>.from(
         args["clipPeopleActivityVectors"] as Map,

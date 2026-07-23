@@ -13,6 +13,9 @@ import DoneIcon from "@mui/icons-material/Done";
 import EditIcon from "@mui/icons-material/Edit";
 import FaceRetouchingNaturalIcon from "@mui/icons-material/FaceRetouchingNatural";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
+import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
+import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
+import KeyboardOptionKeyIcon from "@mui/icons-material/KeyboardOptionKey";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import PhotoOutlinedIcon from "@mui/icons-material/PhotoOutlined";
 import TextSnippetOutlinedIcon from "@mui/icons-material/TextSnippetOutlined";
@@ -35,7 +38,7 @@ import {
     type DialogProps,
 } from "@mui/material";
 import { LinkButtonUndecorated } from "ente-base/components/LinkButton";
-import { type ButtonishProps } from "ente-base/components/mui";
+import type { ButtonishProps } from "ente-base/components/mui";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
 import {
     SidebarDrawer,
@@ -56,7 +59,7 @@ import type { Location } from "ente-base/types";
 import { CopyButton } from "ente-gallery/components/FileInfoComponents";
 import { tagNumericValue, type RawExifTags } from "ente-gallery/services/exif";
 import { formattedByteSize } from "ente-gallery/utils/units";
-import { type EnteFile } from "ente-media/file";
+import type { EnteFile } from "ente-media/file";
 import {
     fileCreationPhotoDate,
     fileFileName,
@@ -89,6 +92,7 @@ import { updateMapEnabled } from "ente-new/photos/services/settings";
 import { useFormik } from "formik";
 import { t } from "i18next";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Trans } from "react-i18next";
 
 // Re-uses images from ~leaflet package.
 import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.webpack.css";
@@ -131,8 +135,8 @@ export type FileInfoProps = ModalVisibilityProps & {
      */
     allowMap?: boolean;
     /**
-     * If set, then a clickable chip will be shown for each normal collection
-     * that this file is a part of.
+     * If set, then a chip will be shown for each collection that this file is
+     * a part of.
      *
      * Uses {@link fileCollectionIDs}, {@link collectionNameByID} and
      * {@link onSelectCollection}, so all of those props should also be set for
@@ -151,6 +155,12 @@ export type FileInfoProps = ModalVisibilityProps & {
      * Used when {@link showCollections} is set.
      */
     collectionNameByID?: Map<number, string>;
+    /**
+     * IDs of hidden collections.
+     *
+     * Used when {@link showCollections} is set.
+     */
+    hiddenCollectionIDs?: Set<number>;
     /**
      * Called when the action on the file info drawer has changed some metadata
      * for a file.
@@ -183,6 +193,11 @@ export type FileInfoProps = ModalVisibilityProps & {
      * Called when the user selects a person in the file info panel.
      */
     onSelectPerson?: (personID: string) => void;
+    /**
+     * Called when an edit surface owned by the file info panel is opened or
+     * closed, so the viewer can avoid navigating to another file underneath it.
+     */
+    onNavigationLockChange?: (locked: boolean) => void;
 };
 
 export const FileInfo: React.FC<FileInfoProps> = ({
@@ -195,10 +210,12 @@ export const FileInfo: React.FC<FileInfoProps> = ({
     showCollections,
     fileCollectionIDs,
     collectionNameByID,
+    hiddenCollectionIDs,
     onFileMetadataUpdate,
     onUpdateCaption,
     onSelectCollection,
     onSelectPerson,
+    onNavigationLockChange,
 }) => {
     const { mapEnabled } = useSettingsSnapshot();
     const peopleState = usePeopleStateSnapshot();
@@ -212,6 +229,12 @@ export const FileInfo: React.FC<FileInfoProps> = ({
         useModalVisibility();
     const { show: showEditLocation, props: editLocationVisibilityProps } =
         useModalVisibility();
+
+    const [captionNavigationLocked, setCaptionNavigationLocked] =
+        useState(false);
+    const [dateTimeNavigationLocked, setDateTimeNavigationLocked] =
+        useState(false);
+    const [renameNavigationLocked, setRenameNavigationLocked] = useState(false);
 
     const assignablePeople = useMemo(
         () =>
@@ -263,6 +286,8 @@ export const FileInfo: React.FC<FileInfoProps> = ({
         // rerun whenever reopened (even if for the same file).
         if (!open) return undefined;
 
+        setAnnotatedFaces([]);
+
         let didCancel = false;
 
         void getAnnotatedFacesForFile(file).then(
@@ -303,8 +328,21 @@ export const FileInfo: React.FC<FileInfoProps> = ({
 
     const uploaderName = file.pubMagicMetadata?.data.uploaderName;
 
+    const navigationLocked =
+        open &&
+        (rawExifVisibilityProps.open ||
+            assignPersonVisibilityProps.open ||
+            editLocationVisibilityProps.open ||
+            captionNavigationLocked ||
+            dateTimeNavigationLocked ||
+            renameNavigationLocked);
+
+    useEffect(() => {
+        onNavigationLockChange?.(navigationLocked);
+    }, [onNavigationLockChange, navigationLocked]);
+
     return (
-        <FileInfoSidebar {...{ open, onClose }}>
+        <BottomAlignedFileInfoSidebar {...{ open, onClose }}>
             <SidebarDrawerTitlebar
                 onClose={onClose}
                 onRootClose={onClose}
@@ -317,16 +355,24 @@ export const FileInfo: React.FC<FileInfoProps> = ({
                         allowEdits,
                         onFileMetadataUpdate,
                         onUpdateCaption,
-                        onClose,
+                        onNavigationLockChange: setCaptionNavigationLocked,
                     }}
                 />
-                <CreationTime {...{ file, allowEdits, onFileMetadataUpdate }} />
+                <CreationTime
+                    {...{
+                        file,
+                        allowEdits,
+                        onFileMetadataUpdate,
+                        onNavigationLockChange: setDateTimeNavigationLocked,
+                    }}
+                />
                 <FileName
                     {...{
                         file,
                         annotatedExif,
                         allowEdits,
                         onFileMetadataUpdate,
+                        onNavigationLockChange: setRenameNavigationLocked,
                     }}
                 />
 
@@ -445,6 +491,7 @@ export const FileInfo: React.FC<FileInfoProps> = ({
                                 file,
                                 fileCollectionIDs,
                                 collectionNameByID,
+                                hiddenCollectionIDs,
                                 onSelectCollection,
                             }}
                         />
@@ -458,6 +505,7 @@ export const FileInfo: React.FC<FileInfoProps> = ({
                     </Typography>
                 )}
             </Stack>
+            <FileInfoNavigationHint />
             <RawExif
                 {...rawExifVisibilityProps}
                 onInfoClose={onClose}
@@ -481,9 +529,100 @@ export const FileInfo: React.FC<FileInfoProps> = ({
                     onConfirm={handleEditLocationConfirm}
                 />
             )}
-        </FileInfoSidebar>
+        </BottomAlignedFileInfoSidebar>
     );
 };
+
+const navigationShortcut = "Alt / Option";
+
+const FileInfoNavigationHint: React.FC = () => (
+    <Typography
+        component="div"
+        variant="tiny"
+        sx={{
+            display: { xs: "none", sm: "block" },
+            mt: "auto",
+            pb: 3,
+            px: 2,
+            color: "text.muted",
+            opacity: 0.24,
+        }}
+    >
+        <Trans
+            i18nKey="use_shortcut_to_navigate"
+            components={{
+                shortcut: <ShortcutHint shortcut={navigationShortcut} />,
+            }}
+        />
+    </Typography>
+);
+
+interface ShortcutHintProps {
+    shortcut: string;
+}
+
+function ShortcutHint({ shortcut }: ShortcutHintProps) {
+    return (
+        <InlineShortcut>
+            <NavigationHintKey>
+                <KeyboardOptionKeyIcon sx={{ fontSize: 12 }} />
+                <Typography
+                    component="span"
+                    variant="tiny"
+                    sx={{ fontWeight: "medium" }}
+                >
+                    {shortcut}
+                </Typography>
+            </NavigationHintKey>
+            <NavigationHintSeparator>+</NavigationHintSeparator>
+            <NavigationHintKey>
+                <KeyboardArrowLeftIcon
+                    titleAccess={t("previous")}
+                    sx={{ fontSize: 14 }}
+                />
+            </NavigationHintKey>
+            <NavigationHintSeparator>/</NavigationHintSeparator>
+            <NavigationHintKey>
+                <KeyboardArrowRightIcon
+                    titleAccess={t("next")}
+                    sx={{ fontSize: 14 }}
+                />
+            </NavigationHintKey>
+        </InlineShortcut>
+    );
+}
+
+const InlineShortcut = styled("span")({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    verticalAlign: "middle",
+});
+
+const NavigationHintKey = styled("span")(
+    ({ theme }) => `
+    min-height: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 5px;
+    border: 1px solid ${theme.vars.palette.stroke.faint};
+    border-radius: 4px;
+    color: ${theme.vars.palette.text.muted};
+`,
+);
+
+const NavigationHintSeparator: React.FC<React.PropsWithChildren> = ({
+    children,
+}) => (
+    <Typography
+        component="span"
+        variant="tiny"
+        sx={{ color: "text.faint", lineHeight: 1 }}
+    >
+        {children}
+    </Typography>
+);
 
 /**
  * Some immediate fields of interest, in the form that we want to display on the
@@ -501,8 +640,7 @@ type AnnotatedExif = Required<FileInfoExif> & {
 const annotateExif = (
     fileInfoExif: FileInfoExif | undefined,
 ): AnnotatedExif | undefined => {
-    if (!fileInfoExif || !fileInfoExif.tags || !fileInfoExif.parsed)
-        return undefined;
+    if (!fileInfoExif?.tags || !fileInfoExif.parsed) return undefined;
 
     const info: AnnotatedExif = { ...fileInfoExif };
 
@@ -563,6 +701,15 @@ const FileInfoSidebar = styled(
         },
     }),
 }));
+
+const BottomAlignedFileInfoSidebar = styled(FileInfoSidebar)({
+    ".MuiDrawer-paper": { display: "flex", flexDirection: "column" },
+    ".MuiDrawer-paper > .MuiBox-root": {
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+    },
+});
 
 interface InfoItemProps {
     /**
@@ -655,7 +802,7 @@ type CaptionProps = Pick<
     | "allowEdits"
     | "onFileMetadataUpdate"
     | "onUpdateCaption"
-    | "onClose"
+    | "onNavigationLockChange"
 >;
 
 const Caption: React.FC<CaptionProps> = ({
@@ -663,7 +810,7 @@ const Caption: React.FC<CaptionProps> = ({
     allowEdits,
     onFileMetadataUpdate,
     onUpdateCaption,
-    onClose,
+    onNavigationLockChange,
 }) => {
     const [isSaving, setIsSaving] = useState(false);
 
@@ -671,6 +818,7 @@ const Caption: React.FC<CaptionProps> = ({
 
     const formik = useFormik<{ caption: string }>({
         initialValues: { caption },
+        enableReinitialize: true,
         validate: ({ caption }) =>
             caption.length > 5000
                 ? { caption: t("caption_character_limit") }
@@ -683,7 +831,6 @@ const Caption: React.FC<CaptionProps> = ({
                 await onFileMetadataUpdate?.();
                 onUpdateCaption(file.id, newCaption);
                 setIsSaving(false);
-                onClose();
             } catch (e) {
                 log.error("Failed to update caption", e);
                 setIsSaving(false);
@@ -693,6 +840,10 @@ const Caption: React.FC<CaptionProps> = ({
     });
 
     const { values, errors, handleChange, handleSubmit, resetForm } = formik;
+
+    useEffect(() => {
+        onNavigationLockChange?.(values.caption != caption || isSaving);
+    }, [onNavigationLockChange, values.caption, caption, isSaving]);
 
     if (!caption.length && !allowEdits) {
         // Visually take up some space, otherwise the info panel for the shared
@@ -747,13 +898,14 @@ const CaptionForm = styled("form")(({ theme }) => ({
 
 type CreationTimeProps = Pick<
     FileInfoProps,
-    "allowEdits" | "onFileMetadataUpdate"
+    "allowEdits" | "onFileMetadataUpdate" | "onNavigationLockChange"
 > & { file: EnteFile };
 
 const CreationTime: React.FC<CreationTimeProps> = ({
     file,
     allowEdits,
     onFileMetadataUpdate,
+    onNavigationLockChange,
 }) => {
     const { onGenericError } = useBaseContext();
 
@@ -761,6 +913,10 @@ const CreationTime: React.FC<CreationTimeProps> = ({
     const [isSaving, setIsSaving] = useState(false);
 
     const originalDate = fileCreationPhotoDate(file);
+
+    useEffect(() => {
+        onNavigationLockChange?.(isEditing || isSaving);
+    }, [onNavigationLockChange, isEditing, isSaving]);
 
     const saveEdits = async (pickedTime: ParsedMetadataDate) => {
         setIsEditing(false);
@@ -820,7 +976,7 @@ const CreationTime: React.FC<CreationTimeProps> = ({
 
 type FileNameProps = Pick<
     FileInfoProps,
-    "allowEdits" | "onFileMetadataUpdate"
+    "allowEdits" | "onFileMetadataUpdate" | "onNavigationLockChange"
 > & { file: EnteFile; annotatedExif: AnnotatedExif | undefined };
 
 const FileName: React.FC<FileNameProps> = ({
@@ -828,9 +984,14 @@ const FileName: React.FC<FileNameProps> = ({
     annotatedExif,
     allowEdits,
     onFileMetadataUpdate,
+    onNavigationLockChange,
 }) => {
     const { show: showRename, props: renameVisibilityProps } =
         useModalVisibility();
+
+    useEffect(() => {
+        onNavigationLockChange?.(renameVisibilityProps.open);
+    }, [onNavigationLockChange, renameVisibilityProps.open]);
 
     const fileName = fileFileName(file);
 
@@ -1103,6 +1264,7 @@ const RawExif: React.FC<RawExifProps> = ({
                 onRootClose={handleRootClose}
                 title={t("exif")}
                 caption={fileName}
+                showRootCloseButton={false}
                 actionButton={
                     <CopyButton size="small" text={JSON.stringify(tags)} />
                 }
@@ -1147,12 +1309,13 @@ type AlbumsProps = Required<
         FileInfoProps,
         "fileCollectionIDs" | "collectionNameByID" | "onSelectCollection"
     >
-> & { file: EnteFile };
+> & { file: EnteFile; hiddenCollectionIDs?: Set<number> };
 
 const Albums: React.FC<AlbumsProps> = ({
     file,
     fileCollectionIDs,
     collectionNameByID,
+    hiddenCollectionIDs,
     onSelectCollection,
 }) => (
     <InfoItem icon={<FolderOutlinedIcon />}>
@@ -1168,14 +1331,24 @@ const Albums: React.FC<AlbumsProps> = ({
             {fileCollectionIDs
                 .get(file.id)
                 ?.filter((collectionID) => collectionNameByID.has(collectionID))
-                .map((collectionID) => (
-                    <ChipButton
-                        key={collectionID}
-                        onClick={() => onSelectCollection(collectionID)}
-                    >
-                        {collectionNameByID.get(collectionID)}
-                    </ChipButton>
-                ))}
+                .map((collectionID) => {
+                    const isHiddenCollection =
+                        hiddenCollectionIDs?.has(collectionID);
+                    return (
+                        <ChipButton
+                            key={collectionID}
+                            onClick={() => {
+                                if (!isHiddenCollection) {
+                                    onSelectCollection(collectionID);
+                                }
+                            }}
+                        >
+                            {isHiddenCollection
+                                ? t("section_hidden")
+                                : collectionNameByID.get(collectionID)}
+                        </ChipButton>
+                    );
+                })}
         </Stack>
     </InfoItem>
 );

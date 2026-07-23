@@ -9,6 +9,7 @@ import "package:photos/services/album_home_widget_service.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/favorites_service.dart";
 import "package:photos/services/home_widget_service.dart";
+import "package:photos/settings/local_settings.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/collections/flex_grid_view.dart";
 import "package:photos/ui/common/loading_widget.dart";
@@ -19,7 +20,6 @@ import "package:photos/ui/components/models/button_type.dart";
 import 'package:photos/ui/components/title_bar_title_widget.dart';
 import 'package:photos/ui/components/title_bar_widget.dart';
 import "package:photos/ui/components/toggle_switch_widget.dart";
-import "package:photos/utils/local_settings.dart";
 
 class AlbumsWidgetSettings extends StatefulWidget {
   const AlbumsWidgetSettings({super.key});
@@ -50,14 +50,15 @@ class _AlbumsWidgetSettingsState extends State<AlbumsWidgetSettings> {
   }
 
   Future<void> selectExisting() async {
-    final selectedAlbums =
-        AlbumHomeWidgetService.instance.getSelectedAlbumIds();
+    final selectedAlbums = AlbumHomeWidgetService.instance
+        .getSelectedAlbumIds();
     final albums = <Collection>{};
 
     if (selectedAlbums != null) {
       for (final collectionID in selectedAlbums) {
-        final collection =
-            CollectionsService.instance.getCollectionByID(collectionID);
+        final collection = CollectionsService.instance.getCollectionByID(
+          collectionID,
+        );
 
         if (collection != null) {
           albums.add(collection);
@@ -66,8 +67,8 @@ class _AlbumsWidgetSettingsState extends State<AlbumsWidgetSettings> {
     }
 
     if (albums.isEmpty) {
-      final favorites =
-          await FavoritesService.instance.getFavoritesCollection();
+      final favorites = await FavoritesService.instance
+          .getFavoritesCollection();
 
       if (favorites == null) {
         return;
@@ -113,6 +114,7 @@ class _AlbumsWidgetSettingsState extends State<AlbumsWidgetSettings> {
                                 .toList();
                             await AlbumHomeWidgetService.instance
                                 .updateSelectedAlbums(albums);
+                            if (!context.mounted) return;
                             Navigator.pop(context);
                           }
                         : null,
@@ -210,7 +212,6 @@ class _AlbumsWidgetSettingsState extends State<AlbumsWidgetSettings> {
 
                     return CollectionsFlexiGridViewWidget(
                       data,
-                      displayLimitCount: snapshot.data!.length,
                       shrinkWrap: false,
                       selectedAlbums: _selectedAlbums,
                       shouldShowCreateAlbum: false,

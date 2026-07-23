@@ -4,11 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
-	"github.com/ente-io/museum/ente"
 
-	model "github.com/ente-io/museum/ente/userentity"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	model "github.com/ente/museum/ente/userentity"
+	"github.com/ente/stacktrace"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,6 +23,9 @@ func (r *Repository) Create(ctx context.Context, userID int64, entry model.Entit
 		}
 		id = *idPrt
 	}
+	if entry.Type.CanRestoreDeletedData() {
+		return r.createOrRestoreDeleted(ctx, userID, id, entry)
+	}
 	err := r.DB.QueryRow(`INSERT into entity_data(
                          id,
                          user_id,
@@ -38,6 +40,36 @@ func (r *Repository) Create(ctx context.Context, userID int64, entry model.Entit
 		Scan(&id)
 	if err != nil {
 		return id, stacktrace.Propagate(err, "failed to create enity data")
+	}
+	return id, nil
+}
+
+func (r *Repository) createOrRestoreDeleted(ctx context.Context, userID int64, id string, entry model.EntityDataRequest) (string, error) {
+	err := r.DB.QueryRowContext(ctx, `INSERT into entity_data(
+                         id,
+                         user_id,
+                         type,
+                         encrypted_data,
+                         header) VALUES ($1,$2,$3,$4,$5)
+                         ON CONFLICT (id) DO UPDATE SET
+                         encrypted_data = EXCLUDED.encrypted_data,
+                         header = EXCLUDED.header,
+                         is_deleted = FALSE
+                         WHERE entity_data.user_id = EXCLUDED.user_id
+                         AND entity_data.type = EXCLUDED.type
+                         AND entity_data.is_deleted = TRUE
+                         RETURNING id`,
+		id,
+		userID,
+		entry.Type,
+		entry.EncryptedData,
+		entry.Header).
+		Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return id, ente.NewAlreadyExistsError("Entity already exists")
+	}
+	if err != nil {
+		return id, stacktrace.Propagate(err, "failed to create entity data")
 	}
 	return id, nil
 }
@@ -64,7 +96,7 @@ func (r *Repository) Delete(ctx context.Context, userID int64, id string) (bool,
 		`UPDATE entity_data SET is_deleted = true, encrypted_data = NULL, header = NULL where id=$1 and user_id = $2`,
 		id, userID)
 	if err != nil {
-		return false, stacktrace.Propagate(err, fmt.Sprintf("faield to delele entity_data with id=%s", id))
+		return false, stacktrace.Propagate(err, "faield to delele entity_data with id=%s", id)
 	}
 	return true, nil
 }
@@ -83,7 +115,7 @@ func (r *Repository) Update(ctx context.Context, userID int64, req model.UpdateE
 	if affected != 1 {
 		dbEntity, dbEntityErr := r.Get(ctx, userID, req.ID)
 		if dbEntityErr != nil {
-			return stacktrace.Propagate(dbEntityErr, fmt.Sprintf("failed to get entity for update with id=%s", req.ID))
+			return stacktrace.Propagate(dbEntityErr, "failed to get entity for update with id=%s", req.ID)
 		}
 		if dbEntity.IsDeleted {
 			return stacktrace.Propagate(ente.NewBadRequestWithMessage("entity is already deleted"), "")

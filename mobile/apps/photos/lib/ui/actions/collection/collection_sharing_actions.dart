@@ -1,5 +1,6 @@
 import "dart:async";
 
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart' hide isValidEmail;
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
@@ -9,6 +10,7 @@ import 'package:photos/db/files_db.dart';
 import 'package:photos/gateways/collections/models/create_request.dart';
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/api/collection/user.dart";
+import 'package:photos/models/button_result.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/files_split.dart';
@@ -18,8 +20,6 @@ import 'package:photos/services/account/user_service.dart';
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/contacts/contact_identity_resolver.dart';
 import 'package:photos/services/hidden_service.dart';
-import 'package:photos/theme/colors.dart';
-import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/ui/common/progress_dialog.dart';
 import "package:photos/ui/common/user_dialogs.dart";
 import 'package:photos/ui/components/action_sheet_widget.dart';
@@ -52,9 +52,11 @@ class CollectionActions {
       return true;
     } catch (e) {
       if (e is SharingNotPermittedForFreeAccountsError) {
+        if (!context.mounted) return false;
         await _showUnSupportedAlert(context);
       } else {
         logger.severe("Failed to update shareUrl collection", e);
+        if (!context.mounted) return false;
         await showGenericErrorDialog(context: context, error: e);
       }
       return false;
@@ -75,7 +77,7 @@ class CollectionActions {
           onTap: () async {
             // for quickLink collection, we need to trash the collection
             if (collection.isQuickLinkCollection() && !collection.hasSharees) {
-              await trashCollectionKeepingPhotos(collection, context);
+              await trashCollectionKeepingPhotos(collection);
             } else {
               await CollectionsService.instance.disableShareUrl(collection);
             }
@@ -92,11 +94,13 @@ class CollectionActions {
       title: AppLocalizations.of(context).removePublicLink,
       body:
           //'This will remove the public link for accessing "${collection.name}".',
-          AppLocalizations.of(context)
-              .disableLinkMessage(albumName: collection.displayName),
+          AppLocalizations.of(
+            context,
+          ).disableLinkMessage(albumName: collection.displayName),
     );
     if (actionResult?.action != null) {
       if (actionResult!.action == ButtonAction.error) {
+        if (!context.mounted) return false;
         await showGenericErrorDialog(
           context: context,
           error: actionResult.exception,
@@ -127,15 +131,13 @@ class CollectionActions {
         fileWithMinCreationTime.creationTime!,
         fileWithMaxCreationTime.creationTime!,
       );
-      final CreateRequest req =
-          await collectionsService.buildCollectionCreateRequest(
-        dummyName,
-        visibility: visibleVisibility,
-        subType: subTypeSharedFilesCollection,
-      );
-      final collection = await collectionsService.createAndCacheCollection(
-        req,
-      );
+      final CreateRequest req = await collectionsService
+          .buildCollectionCreateRequest(
+            dummyName,
+            visibility: visibleVisibility,
+            subType: subTypeSharedFilesCollection,
+          );
+      final collection = await collectionsService.createAndCacheCollection(req);
       newCollection = collection;
       logger.info("adding files to share to new album");
       await collectionsService.addOrCopyToCollection(collection.id, files);
@@ -146,7 +148,7 @@ class CollectionActions {
         if (e is SharingNotPermittedForFreeAccountsError) {
           if (newCollection.isQuickLinkCollection() &&
               !newCollection.hasSharees) {
-            await trashCollectionKeepingPhotos(newCollection, context);
+            await trashCollectionKeepingPhotos(newCollection);
           }
           rethrow;
         }
@@ -154,9 +156,11 @@ class CollectionActions {
       return collection;
     } catch (e, s) {
       if (e is SharingNotPermittedForFreeAccountsError) {
+        if (!context.mounted) return null;
         await _showUnSupportedAlert(context);
       } else {
         logger.severe("Failing to create link for selected files", e, s);
+        if (!context.mounted) return null;
         await showGenericErrorDialog(context: context, error: e);
       }
     }
@@ -180,8 +184,10 @@ class CollectionActions {
           shouldSurfaceExecutionStates: true,
           labelText: AppLocalizations.of(context).yesRemove,
           onTap: () async {
-            final newSharees = await CollectionsService.instance
-                .unshare(collection.id, user.email);
+            final newSharees = await CollectionsService.instance.unshare(
+              collection.id,
+              user.email,
+            );
             collection.updateSharees(newSharees);
           },
         ),
@@ -194,11 +200,13 @@ class CollectionActions {
         ),
       ],
       title: AppLocalizations.of(context).removeWithQuestionMark,
-      body: AppLocalizations.of(context)
-          .removeParticipantBody(userEmail: resolveDisplayName(user)),
+      body: AppLocalizations.of(
+        context,
+      ).removeParticipantBody(userEmail: resolveDisplayName(user)),
     );
     if (actionResult?.action != null) {
       if (actionResult!.action == ButtonAction.error) {
+        if (!context.mounted) return false;
         await showGenericErrorDialog(
           context: context,
           error: actionResult.exception,
@@ -229,6 +237,7 @@ class CollectionActions {
     } catch (e) {
       await dialog?.hide();
       logger.severe("Failed to get public key", e);
+      if (!context.mounted) return false;
       await showGenericErrorDialog(context: context, error: e);
       return false;
     }
@@ -237,6 +246,7 @@ class CollectionActions {
     if (publicKey == null || publicKey == '') {
       // todo: neeraj replace this as per the design where a new screen
       // is used for error. Do this change along with handling of network errors
+      if (!context.mounted) return false;
       await showInviteDialog(context, email);
       return false;
     } else {
@@ -284,6 +294,7 @@ class CollectionActions {
     } catch (e) {
       await dialog?.hide();
       logger.severe("Failed to get public key", e);
+      if (!context.mounted) return false;
       await showGenericErrorDialog(context: context, error: e);
       return false;
     }
@@ -292,6 +303,7 @@ class CollectionActions {
     if (publicKey == null || publicKey == '') {
       // todo: neeraj replace this as per the design where a new screen
       // is used for error. Do this change along with handling of network errors
+      if (!context.mounted) return false;
       await showDialogWidget(
         context: context,
         title: AppLocalizations.of(context).inviteToEnte,
@@ -317,17 +329,23 @@ class CollectionActions {
       return false;
     } else {
       try {
-        final newSharees = await CollectionsService.instance
-            .share(collection.id, email, publicKey, role);
+        final newSharees = await CollectionsService.instance.share(
+          collection.id,
+          email,
+          publicKey,
+          role,
+        );
         await dialog?.hide();
         collection.updateSharees(newSharees);
         return true;
       } catch (e) {
         await dialog?.hide();
         if (e is SharingNotPermittedForFreeAccountsError) {
+          if (!context.mounted) return false;
           await _showUnSupportedAlert(context);
         } else {
           logger.severe("failed to share collection", e);
+          if (!context.mounted) return false;
           await showGenericErrorDialog(context: context, error: e);
         }
         return false;
@@ -339,73 +357,130 @@ class CollectionActions {
     BuildContext context,
     List<Collection> collections,
   ) async {
-    final textTheme = getEnteTextTheme(context);
-    final actionResult = await showActionSheet(
+    return _showDeleteCollectionConfirmationSheet(
       context: context,
-      buttons: [
-        ButtonWidget(
-          labelText: AppLocalizations.of(context).keepPhotos,
-          buttonType: ButtonType.neutral,
-          buttonSize: ButtonSize.large,
-          buttonAction: ButtonAction.first,
-          shouldStickToDarkTheme: true,
-          isInAlert: true,
-          onTap: () async {
-            for (final collection in collections) {
-              try {
-                await trashCollectionKeepingPhotos(collection, context);
-              } catch (e, s) {
-                logger.severe(
-                  "Failed to keep photos & delete collection",
-                  e,
-                  s,
-                );
-                rethrow;
-              }
-            }
-          },
-        ),
-        ButtonWidget(
-          labelText: AppLocalizations.of(context).deletePhotos,
-          buttonType: ButtonType.critical,
-          buttonSize: ButtonSize.large,
-          buttonAction: ButtonAction.second,
-          shouldStickToDarkTheme: true,
-          isInAlert: true,
-          onTap: () async {
-            for (final collection in collections) {
-              try {
-                await collectionsService.trashNonEmptyCollection(collection);
-              } catch (e) {
-                logger.severe("Failed to delete collection", e);
-                rethrow;
-              }
-            }
-          },
-        ),
-        ButtonWidget(
-          labelText: AppLocalizations.of(context).cancel,
-          buttonType: ButtonType.secondary,
-          buttonSize: ButtonSize.large,
-          buttonAction: ButtonAction.third,
-          shouldStickToDarkTheme: true,
-          isInAlert: true,
-        ),
-      ],
-      bodyWidget: StyledText(
-        text: AppLocalizations.of(context)
-            .deleteMultipleAlbumDialog(count: collections.length),
-        style: textTheme.body.copyWith(color: textMutedDark),
-        tags: {
-          'bold': StyledTextTag(
-            style: textTheme.body.copyWith(color: textBaseDark),
+      title: AppLocalizations.of(context).deleteMultipleAlbumsQuestion,
+      message: AppLocalizations.of(
+        context,
+      ).deleteMultipleAlbumDialog(count: collections.length),
+      keepPhotos: () async {
+        for (final collection in collections) {
+          try {
+            await trashCollectionKeepingPhotos(collection);
+          } catch (e, s) {
+            logger.severe("Failed to keep photos & delete collection", e, s);
+            rethrow;
+          }
+        }
+      },
+      deletePhotos: () async {
+        for (final collection in collections) {
+          try {
+            await collectionsService.trashNonEmptyCollection(collection);
+          } catch (e) {
+            logger.severe("Failed to delete collection", e);
+            rethrow;
+          }
+        }
+      },
+    );
+  }
+
+  // deleteCollectionSheet returns true if the album is successfully deleted
+  Future<bool> deleteCollectionSheet(
+    BuildContext bContext,
+    Collection collection,
+  ) async {
+    final currentUserID = Configuration.instance.getUserID()!;
+    if (collection.owner.id != currentUserID) {
+      throw AssertionError("Can not delete album owned by others");
+    }
+    if (collection.hasSharees) {
+      final bool confirmDelete = await _confirmSharedAlbumDeletion(
+        bContext,
+        collection,
+      );
+      if (!confirmDelete) {
+        return false;
+      }
+    }
+    if (!bContext.mounted) return false;
+    return _showDeleteCollectionConfirmationSheet(
+      context: bContext,
+      title: AppLocalizations.of(bContext).deleteAlbumQuestion,
+      message: AppLocalizations.of(bContext).deleteAlbumDialog,
+      keepPhotos: () async {
+        try {
+          await trashCollectionKeepingPhotos(collection);
+        } catch (e, s) {
+          logger.severe("Failed to keep photos & delete collection", e, s);
+          rethrow;
+        }
+      },
+      deletePhotos: () async {
+        try {
+          await collectionsService.trashNonEmptyCollection(collection);
+        } catch (e) {
+          logger.severe("Failed to delete collection", e);
+          rethrow;
+        }
+      },
+    );
+  }
+
+  Future<bool> _showDeleteCollectionConfirmationSheet({
+    required BuildContext context,
+    required String title,
+    required String message,
+    required Future<void> Function() keepPhotos,
+    required Future<void> Function() deletePhotos,
+  }) async {
+    final l10n = AppLocalizations.of(context);
+    final actionResult = await showBottomSheetComponent<ButtonResult>(
+      context: context,
+      builder: (sheetContext) {
+        final colors = sheetContext.componentColors;
+        return BottomSheetComponent(
+          title: title,
+          illustration: Image.asset("assets/warning-grey.png"),
+          closeTooltip: l10n.close,
+          closeResult: ButtonResult(ButtonAction.third),
+          content: StyledText(
+            text: message,
+            textAlign: TextAlign.center,
+            style: TextStyles.body.copyWith(color: colors.textLight),
+            tags: {
+              'bold': StyledTextTag(
+                style: TextStyles.body.copyWith(color: colors.textBase),
+              ),
+            },
           ),
-        },
-      ),
-      actionSheetType: ActionSheetType.defaultActionSheet,
+          actions: [
+            ButtonComponent(
+              label: l10n.keepPhotos,
+              variant: ButtonComponentVariant.neutral,
+              onTap: () => _runCollectionAction(
+                sheetContext,
+                ButtonAction.first,
+                keepPhotos,
+              ),
+            ),
+            ButtonComponent(
+              label: l10n.deletePhotos,
+              variant: ButtonComponentVariant.critical,
+              onTap: () => _runCollectionAction(
+                sheetContext,
+                ButtonAction.second,
+                deletePhotos,
+              ),
+            ),
+          ],
+        );
+      },
     );
     if (actionResult?.action != null &&
         actionResult!.action == ButtonAction.error) {
+      if (!context.mounted) return false;
       await showGenericErrorDialog(
         context: context,
         error: actionResult.exception,
@@ -420,102 +495,36 @@ class CollectionActions {
     return false;
   }
 
-  // deleteCollectionSheet returns true if the album is successfully deleted
-  Future<bool> deleteCollectionSheet(
-    BuildContext bContext,
-    Collection collection,
+  Future<void> _runCollectionAction(
+    BuildContext context,
+    ButtonAction action,
+    Future<void> Function() callback,
   ) async {
-    final textTheme = getEnteTextTheme(bContext);
-    final currentUserID = Configuration.instance.getUserID()!;
-    if (collection.owner.id != currentUserID) {
-      throw AssertionError("Can not delete album owned by others");
-    }
-    if (collection.hasSharees) {
-      final bool confirmDelete =
-          await _confirmSharedAlbumDeletion(bContext, collection);
-      if (!confirmDelete) {
-        return false;
+    try {
+      await callback();
+      if (context.mounted) {
+        Navigator.of(context).pop(ButtonResult(action));
       }
+    } catch (error) {
+      if (context.mounted) {
+        Navigator.of(
+          context,
+        ).pop(ButtonResult(ButtonAction.error, _toException(error)));
+      }
+      rethrow;
     }
-    final actionResult = await showActionSheet(
-      context: bContext,
-      buttons: [
-        ButtonWidget(
-          labelText: AppLocalizations.of(bContext).keepPhotos,
-          buttonType: ButtonType.neutral,
-          buttonSize: ButtonSize.large,
-          buttonAction: ButtonAction.first,
-          shouldStickToDarkTheme: true,
-          isInAlert: true,
-          onTap: () async {
-            try {
-              await trashCollectionKeepingPhotos(collection, bContext);
-            } catch (e, s) {
-              logger.severe("Failed to keep photos & delete collection", e, s);
-              rethrow;
-            }
-          },
-        ),
-        ButtonWidget(
-          labelText: AppLocalizations.of(bContext).deletePhotos,
-          buttonType: ButtonType.critical,
-          buttonSize: ButtonSize.large,
-          buttonAction: ButtonAction.second,
-          shouldStickToDarkTheme: true,
-          isInAlert: true,
-          onTap: () async {
-            try {
-              await collectionsService.trashNonEmptyCollection(collection);
-            } catch (e) {
-              logger.severe("Failed to delete collection", e);
-              rethrow;
-            }
-          },
-        ),
-        ButtonWidget(
-          labelText: AppLocalizations.of(bContext).cancel,
-          buttonType: ButtonType.secondary,
-          buttonSize: ButtonSize.large,
-          buttonAction: ButtonAction.third,
-          shouldStickToDarkTheme: true,
-          isInAlert: true,
-        ),
-      ],
-      bodyWidget: StyledText(
-        text: AppLocalizations.of(bContext).deleteAlbumDialog,
-        style: textTheme.body.copyWith(color: textMutedDark),
-        tags: {
-          'bold': StyledTextTag(
-            style: textTheme.body.copyWith(color: textBaseDark),
-          ),
-        },
-      ),
-      actionSheetType: ActionSheetType.defaultActionSheet,
-    );
-    if (actionResult?.action != null &&
-        actionResult!.action == ButtonAction.error) {
-      await showGenericErrorDialog(
-        context: bContext,
-        error: actionResult.exception,
-      );
-      return false;
-    }
-    if ((actionResult?.action != null) &&
-        (actionResult!.action == ButtonAction.first ||
-            actionResult.action == ButtonAction.second)) {
-      return true;
-    }
-    return false;
   }
 
-  Future<void> trashCollectionKeepingPhotos(
-    Collection collection,
-    BuildContext bContext,
-  ) async {
-    final List<EnteFile> files =
-        await FilesDB.instance.getAllFilesCollection(collection.id);
+  Exception _toException(Object error) {
+    return error is Exception ? error : Exception(error.toString());
+  }
+
+  Future<void> trashCollectionKeepingPhotos(Collection collection) async {
+    final List<EnteFile> files = await FilesDB.instance.getAllFilesCollection(
+      collection.id,
+    );
     await moveFilesFromCurrentCollection(
-      bContext,
+      null,
       collection,
       files,
       isHidden: collection.isHidden() && !collection.isDefaultHidden(),
@@ -529,11 +538,14 @@ class CollectionActions {
     BuildContext bContext,
   ) async {
     try {
-      final List<EnteFile> files =
-          await FilesDB.instance.getAllFilesCollection(collection.id);
+      final List<EnteFile> files = await FilesDB.instance.getAllFilesCollection(
+        collection.id,
+      );
+      if (!bContext.mounted) return;
       await moveFilesFromCurrentCollection(bContext, collection, files);
     } catch (e) {
       logger.severe("Failed to remove files from uncategorized", e);
+      if (!bContext.mounted) return;
       await showErrorDialogForException(
         context: bContext,
         exception: e as Exception,
@@ -576,15 +588,15 @@ class CollectionActions {
   we will just remove (not move) the files from the given collection.
   */
   Future<void> moveFilesFromCurrentCollection(
-    BuildContext context,
+    BuildContext? context,
     Collection collection,
     Iterable<EnteFile> files, {
     bool isHidden = false,
   }) async {
     final int currentUserID = Configuration.instance.getUserID()!;
     final isCollectionOwner = collection.owner.id == currentUserID;
-    final bool canRemoveAllParticipants =
-        collectionsService.canRemoveFilesFromAllParticipants(collection);
+    final bool canRemoveAllParticipants = collectionsService
+        .canRemoveFilesFromAllParticipants(collection);
     final bool isCollectionAdmin =
         canRemoveAllParticipants && !isCollectionOwner;
     final FilesSplit split = FilesSplit.split(
@@ -620,10 +632,12 @@ class CollectionActions {
     }
 
     if (!isCollectionOwner && split.ownedByOtherUsers.isNotEmpty) {
-      showShortToast(
-        context,
-        AppLocalizations.of(context).canOnlyRemoveFilesOwnedByYou,
-      );
+      if (context != null && context.mounted) {
+        showShortToast(
+          context,
+          AppLocalizations.of(context).canOnlyRemoveFilesOwnedByYou,
+        );
+      }
       return;
     }
 
@@ -643,8 +657,8 @@ class CollectionActions {
       }
     }
 
-    final Map<int, List<EnteFile>> collectionToFilesMap =
-        await FilesDB.instance.getAllFilesGroupByCollectionID(uploadedIDs);
+    final Map<int, List<EnteFile>> collectionToFilesMap = await FilesDB.instance
+        .getAllFilesGroupByCollectionID(uploadedIDs);
 
     // Fix files in pendingAssignMap with correct collectionID entries.
     // This is needed when files are selected after filtering by another album,
@@ -677,8 +691,9 @@ class CollectionActions {
           if (!destCollectionToFilesMap.containsKey(targetCollection.id)) {
             destCollectionToFilesMap[targetCollection.id] = <EnteFile>[];
           }
-          destCollectionToFilesMap[targetCollection.id]!
-              .add(pendingAssignMap[file.uploadedFileID!]!);
+          destCollectionToFilesMap[targetCollection.id]!.add(
+            pendingAssignMap[file.uploadedFileID!]!,
+          );
           pendingAssignMap.remove(file.uploadedFileID);
         }
       }
@@ -689,8 +704,8 @@ class CollectionActions {
       if (isHidden) {
         toCollectionID = collectionsService.cachedDefaultHiddenCollection!.id;
       } else {
-        final Collection uncategorizedCollection =
-            await collectionsService.getUncategorizedCollection();
+        final Collection uncategorizedCollection = await collectionsService
+            .getUncategorizedCollection();
         toCollectionID = uncategorizedCollection.id;
       }
 
@@ -700,8 +715,9 @@ class CollectionActions {
           if (!destCollectionToFilesMap.containsKey(toCollectionID)) {
             destCollectionToFilesMap[toCollectionID] = <EnteFile>[];
           }
-          destCollectionToFilesMap[toCollectionID]!
-              .add(pendingAssignMap[file.uploadedFileID!]!);
+          destCollectionToFilesMap[toCollectionID]!.add(
+            pendingAssignMap[file.uploadedFileID!]!,
+          );
         }
       }
     }
@@ -746,8 +762,9 @@ class CollectionActions {
     if (fromCollectionID == toCollectionID) {
       return false;
     }
-    final Collection? targetCollection =
-        collectionsService.getCollectionByID(toCollectionID);
+    final Collection? targetCollection = collectionsService.getCollectionByID(
+      toCollectionID,
+    );
     // ignore non-cached, deleted, uncategorized and favorite collections,
     // and collections ignored by others
     if (targetCollection == null ||
@@ -763,9 +780,7 @@ class CollectionActions {
   Future<void> _showUnSupportedAlert(BuildContext context) async {
     final AlertDialog alert = AlertDialog(
       title: Text(AppLocalizations.of(context).sorry),
-      content: Text(
-        AppLocalizations.of(context).subscribeToEnableSharing,
-      ),
+      content: Text(AppLocalizations.of(context).subscribeToEnableSharing),
       actions: [
         ButtonWidget(
           buttonType: ButtonType.primary,
@@ -776,13 +791,15 @@ class CollectionActions {
           labelText: AppLocalizations.of(context).subscribe,
           onTap: () async {
             // for quickLink collection, we need to trash the collection
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (BuildContext context) {
-                  return getSubscriptionPage();
-                },
-              ),
-            ).ignore();
+            Navigator.of(context)
+                .push(
+                  MaterialPageRoute(
+                    builder: (BuildContext context) {
+                      return getSubscriptionPage();
+                    },
+                  ),
+                )
+                .ignore();
           },
         ),
         Padding(

@@ -77,10 +77,7 @@ class BottomActionBarWidget extends StatelessWidget {
             onTrashed: onTrashed,
           ),
           const DividerWidget(dividerType: DividerType.bottomBar),
-          ActionBarWidget(
-            code: code,
-            onCancel: onCancel,
-          ),
+          ActionBarWidget(code: code, onCancel: onCancel),
           // const SizedBox(height: 2)
         ],
       ),

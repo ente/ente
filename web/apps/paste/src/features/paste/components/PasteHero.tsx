@@ -1,6 +1,6 @@
+import { usePasteColorMode } from "@/features/paste/hooks/usePasteColorMode";
+import { getPasteThemeTokens } from "@/features/paste/theme/pasteThemeTokens";
 import { Typography } from "@mui/material";
-import { usePasteColorMode } from "features/paste/hooks/usePasteColorMode";
-import { getPasteThemeTokens } from "features/paste/theme/pasteThemeTokens";
 
 export const PasteHero = () => {
     const { resolvedMode } = usePasteColorMode();

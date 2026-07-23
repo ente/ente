@@ -1,73 +1,44 @@
 {
-  "build": {
-    "beforeDevCommand": "cd ../../../web && yarn build:wasm && yarn workspace ensu next dev -p 3010",
-    "beforeBuildCommand": "node scripts/tauri-build-web.mjs",
-    "devPath": "http://localhost:3010",
-    "distDir": "../../../../web/apps/ensu/out"
-  },
-  "package": {
+    "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
     "productName": "Ensu",
-    "version": "0.1.16-beta"
-  },
-  "tauri": {
-    "windows": [
-      {
-        "title": "Ensu",
-        "width": 1200,
-        "height": 800,
-        "minWidth": 960,
-        "minHeight": 640,
-        "resizable": true,
-        "visible": false,
-        "hiddenTitle": false
-      }
-    ],
+    "version": "0.1.18-beta",
+    "identifier": "io.ente.ensu",
+    "mainBinaryName": "Ensu",
+    "build": {
+        "beforeDevCommand": "node ../../../web/scripts/check-deps.mjs && cd ../../../web && npm run build:wasm && npm exec --workspace ensu -- next dev --webpack -p 3010",
+        "beforeBuildCommand": "node scripts/tauri-build-web.mjs",
+        "devUrl": "http://localhost:3010",
+        "frontendDist": "../../../../web/apps/ensu/out"
+    },
+    "app": {
+        "windows": [
+            {
+                "title": "Ensu",
+                "width": 1200,
+                "height": 800,
+                "minWidth": 960,
+                "minHeight": 640,
+                "resizable": true,
+                "visible": false,
+                "hiddenTitle": false
+            }
+        ],
+        "security": { "csp": null }
+    },
     "bundle": {
-      "active": true,
-      "targets": "all",
-      "identifier": "io.ente.ensu",
-      "icon": ["icons/icon.icns", "icons/icon.ico", "icons/icon.png"],
-      "macOS": {
-        "minimumSystemVersion": "10.15"
-      }
+        "active": true,
+        "targets": "all",
+        "icon": ["icons/icon.icns", "icons/icon.ico", "icons/icon.png"],
+        "macOS": { "minimumSystemVersion": "10.15" },
+        "linux": {
+            "deb": { "depends": ["libvulkan1"] },
+            "rpm": { "depends": ["vulkan-loader"] }
+        }
     },
-    "allowlist": {
-      "all": false,
-      "shell": {
-        "all": false,
-        "open": "^((mailto:)|(tel:)|(https?://)|(file://)).+"
-      },
-      "dialog": {
-        "all": false,
-        "open": true,
-        "save": true
-      },
-      "fs": {
-        "all": true,
-        "scope": [
-          "$APPDATA",
-          "$APPDATA/*",
-          "$APPDATA/**",
-          "$DOCUMENT",
-          "$DOCUMENT/*",
-          "$DOCUMENT/**"
-        ]
-      },
-      "path": {
-        "all": true
-      },
-      "process": {
-        "all": false,
-        "relaunch": true
-      }
-    },
-    "security": {
-      "csp": null
-    },
-    "updater": {
-      "active": false,
-      "dialog": false,
-      "endpoints": ["https://ente.com/release-info/ensu-desktop.json"]
+    "plugins": {
+        "updater": {
+            "endpoints": ["https://ente.com/release-info/ensu-desktop.json"],
+            "pubkey": ""
+        }
     }
-  }
 }

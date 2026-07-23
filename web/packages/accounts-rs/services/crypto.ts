@@ -100,9 +100,7 @@ export const deriveSensitiveKey = async (
 ): Promise<DerivedKey> => {
     const wasm = await loadCryptoReadyEnteWasm();
     try {
-        return normalizeDerivedKey(
-            wasm.auth_generate_sensitive_kek(password) as WasmDerivedKey,
-        );
+        return normalizeDerivedKey(wasm.auth_generate_sensitive_kek(password));
     } catch (error) {
         throw normalizeDerivedKeyError(error);
     }
@@ -114,7 +112,7 @@ export const deriveInteractiveKey = async (
     const wasm = await loadCryptoReadyEnteWasm();
     try {
         return normalizeDerivedKey(
-            wasm.auth_generate_interactive_kek(password) as WasmDerivedKey,
+            wasm.auth_generate_interactive_kek(password),
         );
     } catch (error) {
         throw normalizeDerivedKeyError(error);

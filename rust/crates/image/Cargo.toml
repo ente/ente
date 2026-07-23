@@ -1,14 +1,15 @@
 [package]
-name = "ente_image"
-version = "0.1.0"
+name = "ente-image"
 edition = "2024"
 
 [dependencies]
 fast_image_resize = { version = "5.5.0", features = ["image"] }
-image = { version = "0.25.5", default-features = true }
+image = { version = "0.25.10", default-features = true }
+jxl-oxide = { version = "0.12.6", features = ["image"] }
 kamadak-exif = "0.6.1"
-ente_heic = { package = "heic_decoder", git = "https://github.com/ente-io/heic-decoder.git", rev = "34f09f38ff25cb84d5fff14c8b9d3ff908b4c679", features = [
+ente_heic = { package = "heic_decoder", git = "https://github.com/ente/heic-decoder.git", rev = "2017f4ddaf91017483f6eb71500f520fba47391a", features = [
     "image-integration",
 ] }
-thiserror = "2.0.11"
+moxcms = { version = "0.8.1", features = ["in_place"] }
+thiserror.workspace = true
 tiff = "0.10.3"

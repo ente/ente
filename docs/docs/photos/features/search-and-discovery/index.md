@@ -165,7 +165,9 @@ Learn more in [Albums and Organization FAQ](/photos/faq/albums-and-organization#
 - **Mobile apps**: All search features including ML (face recognition and magic search)
 - **Desktop apps**: All search features including ML (face recognition and magic search)
 
-> **Note**: Machine learning features (face recognition and magic search) only work on mobile and desktop apps, not on photos.ente.com.
+> [!NOTE]
+>
+> Machine learning features (face recognition and magic search) only work on mobile and desktop apps, not on photos.ente.com.
 
 ## Privacy and Security
 

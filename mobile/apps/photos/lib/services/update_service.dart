@@ -13,16 +13,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tuple/tuple.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-enum ChangeLogAction {
-  skip,
-  consumeWithoutShowing,
-  show,
-}
+enum ChangeLogAction { skip, consumeWithoutShowing, show }
 
 class UpdateService {
   static const kUpdateAvailableShownTimeKey = "update_available_shown_time_key";
   static const changeLogVersionKey = "update_change_log_key";
-  static const currentChangeLogVersion = 53;
+  static const currentChangeLogVersion = 57;
 
   LatestVersionInfo? _latestVersion;
   final _logger = Logger("UpdateService");
@@ -30,8 +26,8 @@ class UpdateService {
   final SharedPreferences _prefs;
 
   UpdateService(SharedPreferences prefs, PackageInfo packageInfo)
-      : _prefs = prefs,
-        _packageInfo = packageInfo {
+    : _prefs = prefs,
+      _packageInfo = packageInfo {
     debugPrint("UpdateService constructor");
   }
 
@@ -49,7 +45,6 @@ class UpdateService {
 
   Future<ChangeLogAction> getChangeLogAction({
     required Locale locale,
-    required bool isAndroid,
     required bool isLocalGallery,
     required bool isSignedIn,
   }) async {
@@ -57,28 +52,20 @@ class UpdateService {
       return ChangeLogAction.skip;
     }
 
-    if (!isAndroid) {
-      return ChangeLogAction.consumeWithoutShowing;
-    }
-
     if (!(isLocalGallery || isSignedIn)) {
       return ChangeLogAction.skip;
     }
 
     return ChangeLogStrings.hasContentForLocale(
-      locale,
-      isLocalGallery: isLocalGallery,
-    )
+          locale,
+          isLocalGallery: isLocalGallery,
+        )
         ? ChangeLogAction.show
         : ChangeLogAction.consumeWithoutShowing;
   }
 
   Future<bool> hideChangeLog() async {
     return _prefs.setInt(changeLogVersionKey, currentChangeLogVersion);
-  }
-
-  Future<bool> resetChangeLog() async {
-    return _prefs.remove(changeLogVersionKey);
   }
 
   Future<bool> shouldUpdate() async {
@@ -124,7 +111,7 @@ class UpdateService {
     final now = DateTime.now().microsecondsSinceEpoch;
     final hasBeenThresholdDaysSinceLastNotification =
         (now - lastNotificationShownTime) >
-            ((_latestVersion!.shouldNotify ? 1 : 3) * microSecondsInDay);
+        ((_latestVersion!.shouldNotify ? 1 : 3) * microSecondsInDay);
 
     return shouldUpdate && hasBeenThresholdDaysSinceLastNotification;
   }
@@ -151,9 +138,9 @@ class UpdateService {
   }
 
   Future<LatestVersionInfo> _getLatestVersionInfo() async {
-    final response = await NetworkClient.instance
-        .getDio()
-        .get("https://ente.com/release-info/independent.json");
+    final response = await NetworkClient.instance.getDio().get(
+      "https://ente.com/release-info/independent.json",
+    );
     return LatestVersionInfo.fromMap(response.data["latestVersion"]);
   }
 

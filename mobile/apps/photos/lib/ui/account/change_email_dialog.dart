@@ -88,10 +88,6 @@ class _ChangeEmailBottomSheetState extends State<_ChangeEmailBottomSheet> {
       return;
     }
 
-    await UserService.instance.sendOtt(
-      context,
-      email,
-      isChangeEmail: true,
-    );
+    await UserService.instance.sendOtt(context, email, isChangeEmail: true);
   }
 }

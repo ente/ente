@@ -58,8 +58,9 @@ class _PetsItemWidgetState extends State<PetsItemWidget> {
         }
       }
 
-      final mlDataDB =
-          isLocalGallery ? MLDataDB.localGalleryInstance : MLDataDB.instance;
+      final mlDataDB = isLocalGallery
+          ? MLDataDB.localGalleryInstance
+          : MLDataDB.instance;
       final dbPetFaces = await mlDataDB.getPetFacesForFileID(fileKey);
       if (dbPetFaces == null || dbPetFaces.isEmpty) {
         if (mounted) setState(() => _isLoading = false);
@@ -72,8 +73,9 @@ class _PetsItemWidgetState extends State<PetsItemWidget> {
       final faces = <Face>[];
       for (final dbPetFace in dbPetFaces) {
         final json = jsonDecode(dbPetFace.detection) as Map<String, dynamic>;
-        final boxList =
-            (json['box'] as List).map((e) => (e as num).toDouble()).toList();
+        final boxList = (json['box'] as List)
+            .map((e) => (e as num).toDouble())
+            .toList();
         final detection = Detection(
           box: FaceBox(
             x: boxList[0],

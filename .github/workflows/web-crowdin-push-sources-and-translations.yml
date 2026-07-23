@@ -1,4 +1,4 @@
-name: "Push sources and translations to Crowdin (web)"
+name: "Push sources and translations to Crowdin (Web)"
 
 # This is a variant of web-crowdin-sync.yml that uploads the translated strings in
 # addition to the source strings.
@@ -40,10 +40,10 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@v6
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
             - name: Crowdin push
-              uses: crowdin/github-action@v2
+              uses: crowdin/github-action@52aa776766211d83d975df51f3b9c53c2f8ba35f # v2.16.3
               with:
                   base_path: "web/"
                   config: "web/crowdin.yml"

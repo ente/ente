@@ -102,6 +102,18 @@ Ente's servers cannot see your location tags or where your photos were taken.
 
 ## Machine Learning and Face Recognition
 
+### What happens if I enable Machine Learning but turn off local processing? {#ml-local-processing-off}
+
+Machine Learning enables features like face recognition and magic search.
+
+Local processing controls whether the current device performs the indexing work itself. When local processing is on, the device downloads photos, runs the ML models, and builds indexes locally.
+
+If local processing is turned off, that device skips the heavy work and can instead use indexes created by another device, such as your desktop.
+
+This can be useful on phones with low memory or limited performance.
+
+Learn more in the [Machine learning guide](/photos/features/search-and-discovery/machine-learning#the-indexing-process).
+
 ### Why doesn't search work for me? {#search-not-working}
 
 If you're searching for objects (like "food", "car", "dog") or trying to find faces but nothing appears, you likely need to enable **Machine Learning (ML)**.
@@ -146,8 +158,7 @@ Faces should start appearing shortly after logging back in.
 
 ### Why is the People section empty even though Machine Learning shows 100%? {#people-section-empty}
 
-If Machine Learning shows 100% on both Android and Desktop, the People
-section should normally populate shortly after.
+If Machine Learning shows 100% on both Android and Desktop, the People section should normally populate shortly after.
 
 Try these steps first:
 
@@ -155,9 +166,19 @@ Try these steps first:
 2. Log out and log back in
 3. Check if People start showing up
 
-If the People section is still empty, please
-[send logs](/photos/faq/troubleshooting#sharing-logs) from your desktop app
-so we can investigate further.
+If the People section is still empty, please [send logs](/photos/faq/troubleshooting#sharing-logs) from your desktop app so we can investigate further.
+
+### Why do some people in my People section show letters instead of face thumbnails? {#face-thumbnails-show-letters}
+
+The letter placeholders are a fallback the app shows when it can't load the face thumbnail for someone yet. This often happens after adding new photos, when the app still needs to generate the thumbnails and download the original photos it needs.
+
+Try the following:
+
+1. Force-quit and reopen the Ente app.
+2. Open the People section and leave it on screen for a few minutes, with the app in the foreground and your device on WiFi. This gives the app a chance to generate the thumbnails and download the originals.
+3. If the thumbnails are still letters after 10-15 minutes, force-quit and reopen once more.
+
+The faces should gradually reappear as the app catches up.
 
 ### How do I enable face recognition? {#enable-face-recognition}
 
@@ -299,6 +320,28 @@ You can help improve face grouping by reviewing and confirming suggestions:
 
 This helps the app learn and improve grouping accuracy for the specific person over time.
 
+### Will indexing on desktop download a fresh copy of my library even if I'm using watched folders? {#indexing-watched-folders}
+
+The desktop app may still download or cache items from your Ente account during ML indexing, depending on what's available locally. Expect some temporary local storage and network use during the initial indexing run.
+
+### Once indexing is done, will my phone storage be affected? {#indexing-phone-storage}
+
+No. ML results sync to your account and are available on your phone without re-running the work. Your phone may still cache thumbnails and any files you open, but it does not duplicate the full desktop processing cache.
+
+### Can I reset the machine learning database and re-run face detection from scratch? {#reset-ml-database}
+
+Not currently. There is no built-in option to reset the ML database and detected faces.
+
+### Does Ente adapt as I name people and clean up duplicate face clusters? {#ml-adapts-to-corrections}
+
+Yes. Naming a person triggers automatic merging of the closest matching clusters. Beyond that, Ente surfaces less-confident matches as suggestions for you to accept or reject, and rejected clusters won't be suggested again. All corrections sync across devices.
+
+The fastest way through a large cluster list is to name the people who appear most often in your library first, then accept or reject the follow-up suggestions.
+
+### What happens if I enable Machine Learning but turn off local indexing? {#ml-without-local-indexing}
+
+Local indexing lets your device do the ML work itself — downloading photos, running the models, and building the indexes locally. If you turn it off, the device skips that work and pulls in indexes already built by another of your devices (such as desktop). This is useful for phones with limited RAM.
+
 ## Magic Search
 
 ### What is magic search? {#what-is-magic-search}
@@ -354,12 +397,7 @@ Learn more in [Metadata and Editing FAQ](/photos/faq/metadata-and-editing#descri
 
 Ente supports multiple search types:
 
-**Date search**: Search by date, month, or year
-**Location search**: Find photos taken in specific locations (if they have GPS data)
-**Magic search**: Natural language descriptions of photo content
-**Face search**: Find photos of specific people
-**Description search**: Search descriptions/captions you've added
-**File name search**: Search by original file name
+**Date search**: Search by date, month, or year **Location search**: Find photos taken in specific locations (if they have GPS data) **Magic search**: Natural language descriptions of photo content **Face search**: Find photos of specific people **Description search**: Search descriptions/captions you've added **File name search**: Search by original file name
 
 Simply type in the search bar and Ente will show matching results across all these categories.
 

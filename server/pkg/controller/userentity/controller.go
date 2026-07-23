@@ -1,11 +1,11 @@
 package authenticaor
 
 import (
-	"github.com/ente-io/museum/ente"
-	model "github.com/ente-io/museum/ente/userentity"
-	"github.com/ente-io/museum/pkg/repo/userentity"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	model "github.com/ente/museum/ente/userentity"
+	"github.com/ente/museum/pkg/repo/userentity"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,6 +18,15 @@ type Controller struct {
 func (c *Controller) CreateKey(ctx *gin.Context, req model.EntityKeyRequest) error {
 	userID := auth.GetUserID(ctx.Request.Header)
 	return c.Repo.CreateKey(ctx, userID, req)
+}
+
+func (c *Controller) EnsureKey(ctx *gin.Context, req model.EntityKeyRequest) (*model.EntityKey, error) {
+	userID := auth.GetUserID(ctx.Request.Header)
+	res, err := c.Repo.EnsureKey(ctx, userID, req)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	return &res, nil
 }
 
 // GetKey

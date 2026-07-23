@@ -88,10 +88,7 @@ class _LogViewerPageState extends State<LogViewerPage> {
     setState(() {
       _timelineStartTime = start;
       _timelineEndTime = end;
-      _filter = _filter.copyWith(
-        startTime: start,
-        endTime: end,
-      );
+      _filter = _filter.copyWith(startTime: start, endTime: end);
     });
     _loadLogs();
   }
@@ -145,9 +142,9 @@ class _LogViewerPageState extends State<LogViewerPage> {
           _isLoading = false;
           _isLoadingMore = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load logs: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to load logs: $e')));
       }
     }
   }
@@ -222,7 +219,8 @@ class _LogViewerPageState extends State<LogViewerPage> {
 
     setState(() {
       // Only update logger filters if logger: syntax was found or query is empty
-      final newLoggerFilters = loggerFilters ??
+      final newLoggerFilters =
+          loggerFilters ??
           (query.isEmpty ? <String>{} : _filter.selectedLoggers);
 
       _filter = _filter.copyWith(
@@ -244,9 +242,7 @@ class _LogViewerPageState extends State<LogViewerPage> {
           endTime: _timelineEndTime,
         );
       } else {
-        _filter = _filter.copyWith(
-          clearTimeFilter: true,
-        );
+        _filter = _filter.copyWith(clearTimeFilter: true);
       }
     });
     _loadLogs();
@@ -303,9 +299,9 @@ class _LogViewerPageState extends State<LogViewerPage> {
       await _logStore.clearLogs();
       await _loadLogs();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Logs cleared')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Logs cleared')));
       }
     }
   }
@@ -314,21 +310,21 @@ class _LogViewerPageState extends State<LogViewerPage> {
     try {
       final logText = await _logStore.exportLogs(filter: _filter);
 
-      await Share.share(logText, subject: 'App Logs');
+      await SharePlus.instance.share(
+        ShareParams(text: logText, subject: 'App Logs'),
+      );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to export logs: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to export logs: $e')));
       }
     }
   }
 
   void _toggleSort() {
     setState(() {
-      _filter = _filter.copyWith(
-        sortNewestFirst: !_filter.sortNewestFirst,
-      );
+      _filter = _filter.copyWith(sortNewestFirst: !_filter.sortNewestFirst);
     });
     _loadLogs();
   }
@@ -351,9 +347,7 @@ class _LogViewerPageState extends State<LogViewerPage> {
   void _showLogDetail(LogEntry log) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => LogDetailPage(log: log),
-      ),
+      MaterialPageRoute(builder: (context) => LogDetailPage(log: log)),
     );
   }
 
@@ -448,8 +442,10 @@ class _LogViewerPageState extends State<LogViewerPage> {
                 value: 'clear',
                 child: ListTile(
                   leading: Icon(Icons.clear_all, color: Colors.red),
-                  title:
-                      Text('Clear Logs', style: TextStyle(color: Colors.red)),
+                  title: Text(
+                    'Clear Logs',
+                    style: TextStyle(color: Colors.red),
+                  ),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
@@ -482,8 +478,10 @@ class _LogViewerPageState extends State<LogViewerPage> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 isDense: true,
               ),
               onChanged: _onSearchChanged,
@@ -569,8 +567,9 @@ class _LogViewerPageState extends State<LogViewerPage> {
                           deleteIcon: const Icon(Icons.close, size: 16),
                           onDeleted: () {
                             setState(() {
-                              final newLoggers =
-                                  Set<String>.from(_filter.selectedLoggers);
+                              final newLoggers = Set<String>.from(
+                                _filter.selectedLoggers,
+                              );
                               newLoggers.remove(logger);
                               _filter = _filter.copyWith(
                                 selectedLoggers: newLoggers,
@@ -599,11 +598,13 @@ class _LogViewerPageState extends State<LogViewerPage> {
                           deleteIcon: const Icon(Icons.close, size: 16),
                           onDeleted: () {
                             setState(() {
-                              final newLevels =
-                                  Set<String>.from(_filter.selectedLevels);
+                              final newLevels = Set<String>.from(
+                                _filter.selectedLevels,
+                              );
                               newLevels.remove(level);
-                              _filter =
-                                  _filter.copyWith(selectedLevels: newLevels);
+                              _filter = _filter.copyWith(
+                                selectedLevels: newLevels,
+                              );
                             });
                             _loadLogs();
                           },
@@ -629,8 +630,9 @@ class _LogViewerPageState extends State<LogViewerPage> {
                           deleteIcon: const Icon(Icons.close, size: 16),
                           onDeleted: () {
                             setState(() {
-                              final newProcesses =
-                                  Set<String>.from(_filter.selectedProcesses);
+                              final newProcesses = Set<String>.from(
+                                _filter.selectedProcesses,
+                              );
                               newProcesses.remove(process);
                               _filter = _filter.copyWith(
                                 selectedProcesses: newProcesses,
@@ -650,63 +652,56 @@ class _LogViewerPageState extends State<LogViewerPage> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _logs.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.inbox,
-                              size: 64,
-                              color: theme.disabledColor,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              _filter.hasActiveFilters
-                                  ? 'No logs match the current filters'
-                                  : 'No logs available',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: theme.disabledColor,
-                              ),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.inbox, size: 64, color: theme.disabledColor),
+                        const SizedBox(height: 16),
+                        Text(
+                          _filter.hasActiveFilters
+                              ? 'No logs match the current filters'
+                              : 'No logs available',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: theme.disabledColor,
+                          ),
                         ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _loadLogs,
-                        child: ListView.separated(
-                          itemCount: _logs.length + (_hasMoreLogs ? 1 : 0),
-                          separatorBuilder: (context, index) =>
-                              index >= _logs.length
-                                  ? const SizedBox.shrink()
-                                  : const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            // Show loading indicator at the bottom
-                            if (index >= _logs.length) {
-                              if (_isLoadingMore) {
-                                return const Padding(
-                                  padding: EdgeInsets.all(16),
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                );
-                              } else {
-                                // Trigger loading more when reaching the end
-                                WidgetsBinding.instance
-                                    .addPostFrameCallback((_) {
-                                  _loadMoreLogs();
-                                });
-                                return const SizedBox.shrink();
-                              }
-                            }
-
-                            final log = _logs[index];
-                            return LogListTile(
-                              log: log,
-                              onTap: () => _showLogDetail(log),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadLogs,
+                    child: ListView.separated(
+                      itemCount: _logs.length + (_hasMoreLogs ? 1 : 0),
+                      separatorBuilder: (context, index) =>
+                          index >= _logs.length
+                          ? const SizedBox.shrink()
+                          : const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        // Show loading indicator at the bottom
+                        if (index >= _logs.length) {
+                          if (_isLoadingMore) {
+                            return const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Center(child: CircularProgressIndicator()),
                             );
-                          },
-                        ),
-                      ),
+                          } else {
+                            // Trigger loading more when reaching the end
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              _loadMoreLogs();
+                            });
+                            return const SizedBox.shrink();
+                          }
+                        }
+
+                        final log = _logs[index];
+                        return LogListTile(
+                          log: log,
+                          onTap: () => _showLogDetail(log),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),

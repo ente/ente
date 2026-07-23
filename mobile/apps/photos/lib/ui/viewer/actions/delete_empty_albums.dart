@@ -1,3 +1,4 @@
+import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
 import 'package:photos/core/event_bus.dart';
 import "package:photos/db/files_db.dart";
@@ -6,15 +7,16 @@ import "package:photos/generated/l10n.dart";
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/file/file.dart';
 import 'package:photos/services/collections_service.dart';
-import "package:photos/services/sync/remote_sync_service.dart";
-import "package:photos/theme/ente_theme.dart";
-import 'package:photos/ui/components/action_sheet_widget.dart';
-import 'package:photos/ui/components/buttons/button_widget.dart';
-import 'package:photos/ui/components/models/button_type.dart';
 
 class DeleteEmptyAlbums extends StatefulWidget {
-  final List<Collection> collections;
-  const DeleteEmptyAlbums(this.collections, {super.key});
+  final Future<void> Function()? onDeleted;
+  final EdgeInsetsGeometry padding;
+
+  const DeleteEmptyAlbums({
+    super.key,
+    this.onDeleted,
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  });
 
   @override
   State<DeleteEmptyAlbums> createState() => _DeleteEmptyAlbumsState();
@@ -30,114 +32,72 @@ class _DeleteEmptyAlbumsState extends State<DeleteEmptyAlbums> {
     super.dispose();
   }
 
-  Future<bool> _showDeleteButton() async {
-    if (!RemoteSyncService.instance.isFirstRemoteSyncDone()) {
-      return Future.value(false);
-    }
-    final Map<int, int> collectionIDToLatestTimeCount =
-        await CollectionsService.instance.getCollectionIDToNewestFileTime();
-    final emptyAlbumCount = widget.collections
-        .where((collection) {
-          final latestTimeCount = collectionIDToLatestTimeCount[collection.id];
-          return latestTimeCount == null;
-        })
-        .toList()
-        .length;
-    return emptyAlbumCount > 2;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _showDeleteButton(),
-      builder: (context, snapshot) {
-        if (snapshot.hasData && snapshot.data!) {
-          final colorScheme = getEnteColorScheme(context);
-          final textTheme = getEnteTextTheme(context);
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(8.5, 4, 8, 12),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: GestureDetector(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: colorScheme.fillFaint,
-                    borderRadius: const BorderRadius.all(Radius.circular(4)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 12,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.delete_sweep_outlined, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          AppLocalizations.of(context).deleteEmptyAlbums,
-                          style: textTheme.smallBold,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                onTap: () async {
-                  await showActionSheet(
-                    context: context,
-                    isDismissible: true,
-                    buttons: [
-                      ButtonWidget(
-                        labelText: AppLocalizations.of(context).yes,
-                        buttonType: ButtonType.neutral,
-                        buttonSize: ButtonSize.large,
-                        shouldStickToDarkTheme: true,
-                        shouldSurfaceExecutionStates: true,
-                        isInAlert: true,
-                        progressStatus: _deleteProgress,
-                        onTap: () async {
-                          await _deleteEmptyAlbums();
-                          Bus.instance.fire(
-                            CollectionUpdatedEvent(
-                              0,
-                              <EnteFile>[],
-                              "empty_albums_deleted",
-                            ),
-                          );
-                          CollectionsService.instance.sync().ignore();
-                          _isCancelled = false;
-                        },
-                      ),
-                      ButtonWidget(
-                        labelText: AppLocalizations.of(context).cancel,
-                        buttonType: ButtonType.secondary,
-                        buttonSize: ButtonSize.large,
-                        shouldStickToDarkTheme: true,
-                        isInAlert: true,
-                        onTap: () async {
-                          _isCancelled = true;
-                        },
-                      ),
-                    ],
-                    title: AppLocalizations.of(context)
-                        .deleteEmptyAlbumsWithQuestionMark,
-                    body: AppLocalizations.of(context).deleteAlbumsDialogBody,
-                    actionSheetType: ActionSheetType.defaultActionSheet,
-                  );
-                },
-              ),
+    final colors = context.componentColors;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: _confirmAndDeleteEmptyAlbums,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Padding(
+          padding: widget.padding,
+          child: Text(
+            AppLocalizations.of(context).deleteEmptyAlbums,
+            style: TextStyles.body.copyWith(
+              color: colors.textLight,
+              decoration: TextDecoration.underline,
+              decorationColor: colors.textLight,
             ),
-          );
-        }
-        return const SizedBox.shrink();
-      },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmAndDeleteEmptyAlbums() async {
+    final l10n = AppLocalizations.of(context);
+    await showBottomSheetComponent<void>(
+      context: context,
+      isDismissible: true,
+      builder: (sheetContext) => BottomSheetComponent(
+        title: l10n.deleteEmptyAlbumsWithQuestionMark,
+        message: l10n.deleteAlbumsDialogBody,
+        illustration: Image.asset("assets/warning-grey.png"),
+        closeTooltip: l10n.close,
+        onClose: () {
+          _isCancelled = true;
+        },
+        actions: [
+          ButtonComponent(
+            label: l10n.yes,
+            variant: ButtonComponentVariant.critical,
+            shouldSurfaceExecutionStates: true,
+            progressStatus: _deleteProgress,
+            onTap: () async {
+              _isCancelled = false;
+              _deleteProgress.value = "";
+              await _deleteEmptyAlbums();
+              Bus.instance.fire(
+                CollectionUpdatedEvent(0, <EnteFile>[], "empty_albums_deleted"),
+              );
+              CollectionsService.instance.sync().ignore();
+              _isCancelled = false;
+              await widget.onDeleted?.call();
+              if (sheetContext.mounted) {
+                Navigator.of(sheetContext).pop();
+              }
+            },
+          ),
+        ],
+      ),
     );
   }
 
   Future<void> _deleteEmptyAlbums() async {
     final collections = CollectionsService.instance.getCollectionsForUI();
-    final idToFileTimeStamp =
-        await FilesDB.instance.getCollectionIDToMaxCreationTime();
+    final idToFileTimeStamp = await FilesDB.instance
+        .getCollectionIDToMaxCreationTime();
 
     // remove collections which are not empty or can't be deleted
     collections.removeWhere(
@@ -161,8 +121,10 @@ class _DeleteEmptyAlbumsState extends State<DeleteEmptyAlbums> {
           return;
         }
         final int current = i + 1;
-        final String currentlyDeleting =
-            current.toString().padLeft(totalDigits, '0');
+        final String currentlyDeleting = current.toString().padLeft(
+          totalDigits,
+          '0',
+        );
 
         _deleteProgress.value = AppLocalizations.of(context).deleteProgress(
           currentlyDeleting: currentlyDeleting,

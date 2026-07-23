@@ -18,26 +18,18 @@ class MenuSectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
-    final effectiveTextStyle = textStyle ??
-        getEnteTextTheme(context).small.copyWith(
-              color: colorScheme.textMuted,
-            );
+    final effectiveTextStyle =
+        textStyle ??
+        getEnteTextTheme(context).small.copyWith(color: colorScheme.textMuted);
     return Padding(
       padding: padding,
       child: Row(
         children: [
           iconData != null
-              ? Icon(
-                  iconData,
-                  color: colorScheme.strokeMuted,
-                  size: 17,
-                )
+              ? Icon(iconData, color: colorScheme.strokeMuted, size: 17)
               : const SizedBox.shrink(),
           iconData != null ? const SizedBox(width: 8) : const SizedBox.shrink(),
-          Text(
-            title,
-            style: effectiveTextStyle,
-          ),
+          Text(title, style: effectiveTextStyle),
         ],
       ),
     );

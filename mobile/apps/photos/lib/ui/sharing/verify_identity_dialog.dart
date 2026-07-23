@@ -23,11 +23,7 @@ class VerifyIdentifyDialog extends StatefulWidget {
   // self is true when the user is viewing their own verification ID
   final bool self;
 
-  VerifyIdentifyDialog({
-    super.key,
-    required this.self,
-    this.email = '',
-  }) {
+  VerifyIdentifyDialog({super.key, required this.self, this.email = ''}) {
     if (!self && email.isEmpty) {
       throw ArgumentError("email cannot be empty when self is false");
     }
@@ -45,11 +41,13 @@ class _VerifyIdentifyDialogState extends State<VerifyIdentifyDialog> {
     final textStyle = getEnteTextTheme(context);
     final String subTitle = widget.self
         ? AppLocalizations.of(context).thisIsYourVerificationId
-        : AppLocalizations.of(context)
-            .thisIsPersonVerificationId(email: widget.email);
+        : AppLocalizations.of(
+            context,
+          ).thisIsPersonVerificationId(email: widget.email);
     final String bottomText = widget.self
-        ? AppLocalizations.of(context)
-            .someoneSharingAlbumsWithYouShouldSeeTheSameId
+        ? AppLocalizations.of(
+            context,
+          ).someoneSharingAlbumsWithYouShouldSeeTheSameId
         : AppLocalizations.of(context).howToViewShareeVerificationID;
 
     final AlertDialog alert = AlertDialog(
@@ -72,8 +70,9 @@ class _VerifyIdentifyDialogState extends State<VerifyIdentifyDialog> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        AppLocalizations.of(context)
-                            .emailNoEnteAccount(email: widget.email),
+                        AppLocalizations.of(
+                          context,
+                        ).emailNoEnteAccount(email: widget.email),
                       ),
                       const SizedBox(height: 24),
                       ButtonWidget(
@@ -84,8 +83,9 @@ class _VerifyIdentifyDialogState extends State<VerifyIdentifyDialog> {
                         onTap: () async {
                           // ignore: unawaited_futures
                           shareText(
-                            AppLocalizations.of(context)
-                                .shareTextRecommendUsingEnte,
+                            AppLocalizations.of(
+                              context,
+                            ).shareTextRecommendUsingEnte,
                           );
                         },
                       ),
@@ -95,17 +95,11 @@ class _VerifyIdentifyDialogState extends State<VerifyIdentifyDialog> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        subTitle,
-                        style: textStyle.bodyMuted,
-                      ),
+                      Text(subTitle, style: textStyle.bodyMuted),
                       const SizedBox(height: 20),
                       _verificationIDWidget(context, publicKey),
                       const SizedBox(height: 16),
-                      Text(
-                        bottomText,
-                        style: textStyle.bodyMuted,
-                      ),
+                      Text(bottomText, style: textStyle.bodyMuted),
                       const SizedBox(height: 24),
                       ButtonWidget(
                         buttonType: ButtonType.neutral,
@@ -118,17 +112,15 @@ class _VerifyIdentifyDialogState extends State<VerifyIdentifyDialog> {
                   );
                 }
               } else if (snapshot.hasError) {
-                Logger("VerificationID")
-                    .severe("failed to end userID", snapshot.error);
+                Logger(
+                  "VerificationID",
+                ).severe("failed to end userID", snapshot.error);
                 return Text(
                   AppLocalizations.of(context).somethingWentWrong,
                   style: textStyle.bodyMuted,
                 );
               } else {
-                return const SizedBox(
-                  height: 200,
-                  child: EnteLoadingWidget(),
-                );
+                return const SizedBox(height: 200, child: EnteLoadingWidget());
               }
             },
           ),
@@ -142,8 +134,9 @@ class _VerifyIdentifyDialogState extends State<VerifyIdentifyDialog> {
     if (widget.self) {
       return Configuration.instance.getKeyAttributes()!.publicKey;
     }
-    final String? userPublicKey =
-        await UserService.instance.getPublicKey(widget.email);
+    final String? userPublicKey = await UserService.instance.getPublicKey(
+      widget.email,
+    );
     if (userPublicKey == null) {
       // user not found
       return "";
@@ -156,13 +149,13 @@ class _VerifyIdentifyDialogState extends State<VerifyIdentifyDialog> {
     final textStyle = getEnteTextTheme(context);
     final String verificationID = _generateVerificationID(publicKey);
     return DottedBorder(
-      color: colorScheme.strokeMuted,
-      //color of dotted/dash line
-      strokeWidth: 1,
-
-      dashPattern: const [12, 6],
-      radius: const Radius.circular(8),
-      //dash patterns, 10 is dash width, 6 is space width
+      options: RectDottedBorderOptions(
+        color: colorScheme.strokeMuted,
+        //color of dotted/dash line
+        strokeWidth: 1,
+        dashPattern: const [12, 6],
+        //dash patterns, 10 is dash width, 6 is space width
+      ),
       child: Column(
         children: [
           GestureDetector(
@@ -170,33 +163,29 @@ class _VerifyIdentifyDialogState extends State<VerifyIdentifyDialog> {
               if (verificationID.isEmpty) {
                 return;
               }
-              await Clipboard.setData(
-                ClipboardData(text: verificationID),
-              );
+              await Clipboard.setData(ClipboardData(text: verificationID));
+              if (!context.mounted) return;
               // ignore: unawaited_futures
               shareText(
                 widget.self
-                    ? AppLocalizations.of(context)
-                        .shareMyVerificationID(verificationID: verificationID)
-                    : AppLocalizations.of(context)
-                        .shareTextConfirmOthersVerificationID(
+                    ? AppLocalizations.of(
+                        context,
+                      ).shareMyVerificationID(verificationID: verificationID)
+                    : AppLocalizations.of(
+                        context,
+                      ).shareTextConfirmOthersVerificationID(
                         verificationID: verificationID,
                       ),
               );
             },
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: const BorderRadius.all(
-                  Radius.circular(2),
-                ),
+                borderRadius: const BorderRadius.all(Radius.circular(2)),
                 color: colorScheme.backgroundElevated2,
               ),
               padding: const EdgeInsets.all(20),
               width: double.infinity,
-              child: Text(
-                verificationID,
-                style: textStyle.bodyBold,
-              ),
+              child: Text(verificationID, style: textStyle.bodyBold),
             ),
           ),
         ],

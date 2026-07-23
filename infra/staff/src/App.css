@@ -25,7 +25,7 @@
     margin-top: 90px;
     padding: 20px;
     border-radius: 10px;
-    background-color: #fcfcfc;
+    background-color: light-dark(#fcfcfc, #1f1f1f);
 }
 
 .link-text {
@@ -35,6 +35,10 @@
     font-size: 40px;
     font-weight: bold;
     text-decoration: none;
+}
+
+.link-text:hover {
+    color: #1db954;
 }
 
 .text-fields {
@@ -51,11 +55,31 @@
     height: 56px;
     border: none;
     color: white;
-    background-color: #00b33c;
+    background-color: #1db954;
 }
 
 .fetch-button-container button:hover {
-    background-color: #007c6c;
+    background-color: #00b33c;
+}
+
+@media (prefers-color-scheme: dark) {
+    .horizontal-group .MuiInputLabel-root {
+        color: rgb(255 255 255 / 70%);
+    }
+
+    .horizontal-group .MuiOutlinedInput-root {
+        color: rgb(255 255 255 / 87%);
+    }
+
+    .horizontal-group .MuiOutlinedInput-notchedOutline {
+        border-color: rgb(255 255 255 / 23%);
+    }
+
+    .horizontal-group
+        .MuiOutlinedInput-root:hover
+        .MuiOutlinedInput-notchedOutline {
+        border-color: rgb(255 255 255 / 87%);
+    }
 }
 
 .content-container {

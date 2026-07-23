@@ -3,9 +3,9 @@ title: Trash
 description: Manage deleted photos and recovery in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Trash

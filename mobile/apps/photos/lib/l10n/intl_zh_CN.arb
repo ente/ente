@@ -1,35 +1,26 @@
 {
   "@@locale ": "en",
+  "onboardingTitle": "用于你不想忘记的一切",
+  "onboardingDesc": "保存你的照片和视频。每一份回忆，尽在一处。",
   "enterYourEmailAddress": "请输入您的电子邮件地址",
   "enterYourNewEmailAddress": "输入您的新电子邮件地址",
   "accountWelcomeBack": "欢迎回来！",
   "emailAlreadyRegistered": "此电子邮件地址已被注册。",
   "emailNotRegistered": "此电子邮件地址未被注册。",
+  "accountSetupIncompleteCreateAccount": "账号设置未完成。请创建账号以完成设置。",
   "email": "电子邮件地址",
   "cancel": "取消",
+  "cast": "投屏",
   "verify": "验证",
   "invalidEmailAddress": "无效的电子邮件地址",
+  "validEmailAddress": "有效邮件地址",
   "enterValidEmail": "请输入一个有效的电子邮件地址。",
   "deleteAccount": "删除账户",
-  "deleteAccountWarning": "这将删除您的Ente 验证器、Ente 照片和 Ente 文件柜账户。",
-  "askDeleteReason": "您删除账户的主要原因是什么？",
-  "deleteAccountFeedbackPrompt": "我们很抱歉看到您离开。请分享您的反馈以帮助我们改进。",
-  "feedback": "反馈",
-  "kindlyHelpUsWithThisInformation": "请帮助我们了解这个信息",
-  "confirmDeletePrompt": "是的，我想永久删除此账户及其所有关联的应用程序的数据。",
-  "confirmAccountDeletion": "确认删除账户",
-  "deleteAccountPermanentlyButton": "永久删除账户",
-  "yourAccountHasBeenDeleted": "您的账户已删除",
-  "selectReason": "选择原因",
-  "deleteReason1": "缺少我所需的关键功能",
-  "deleteReason2": "应用或某项功能未按预期运行",
-  "deleteReason3": "我发现另一个产品更好用",
-  "deleteReason4": "其他原因",
   "sendEmail": "发送电子邮件",
-  "deleteRequestSLAText": "您的请求将在 72 小时内处理。",
   "entePhotosPerm": "Ente <i>需要许可</i>才能保存您的照片",
   "ok": "Ok",
   "createAccount": "创建账户",
+  "createAccountTitle": "创建帐户",
   "createNewAccount": "创建新账号",
   "password": "密码",
   "confirmPassword": "请确认密码",
@@ -58,6 +49,7 @@
   "incorrectRecoveryKeyBody": "您输入的恢复密钥不正确",
   "forgotPassword": "忘记密码",
   "enterYourRecoveryKey": "输入您的恢复密钥",
+  "noRecoveryKey": "丢失恢复密钥？",
   "sorry": "抱歉",
   "noRecoveryKeyNoDecryption": "由于我们端到端加密协议的性质，如果没有您的密码或恢复密钥，您的数据将无法解密",
   "verifyEmail": "验证电子邮件",
@@ -65,9 +57,21 @@
   "checkInboxAndSpamFolder": "请检查您的收件箱 (或者是在您的“垃圾邮件”列表内) 以完成验证",
   "tapToEnterCode": "点击以输入代码",
   "resendEmail": "重新发送电子邮件",
+  "resendCode": "重新发送验证码",
   "weHaveSendEmailTo": "我们已经发送邮件到 <green>{email}</green>",
   "@weHaveSendEmailTo": {
     "description": "Text to indicate that we have sent a mail to the user",
+    "placeholders": {
+      "email": {
+        "description": "The email address of the user",
+        "type": "String",
+        "example": "example@ente.com"
+      }
+    }
+  },
+  "weHaveSentCodeTo": "我们已向 {email} 发送验证码",
+  "@weHaveSentCodeTo": {
+    "description": "Text to indicate that we have sent a verification code to the user's email",
     "placeholders": {
       "email": {
         "description": "The email address of the user",
@@ -86,6 +90,10 @@
   "weakStrength": "弱",
   "strongStrength": "强",
   "moderateStrength": "中等",
+  "strongPassword": "强密码",
+  "passwordRequirements": "请使用至少 9 个字符、一个大写字母和一个特殊字符",
+  "passwordsMatch": "密码一致",
+  "passwordsDontMatch": "密码不一致",
   "passwordStrength": "密码强度： {passwordStrengthValue}",
   "@passwordStrength": {
     "description": "Text to indicate the password strength",
@@ -102,6 +110,7 @@
   "generatingEncryptionKeys": "正在生成加密密钥...",
   "pleaseWait": "请稍候...",
   "continueLabel": "继续",
+  "continueInMailApp": "在邮件应用中继续",
   "insecureDevice": "设备不安全",
   "sorryWeCouldNotGenerateSecureKeysOnThisDevicennplease": "抱歉，我们无法在此设备上生成安全密钥。\n\n请使用其他设备注册。",
   "howItWorks": "工作原理",
@@ -115,6 +124,8 @@
   "changeEmail": "修改邮箱",
   "enterYourPassword": "输入您的密码",
   "welcomeBack": "欢迎回来！",
+  "readyToBackupTitle": "已准备好备份",
+  "readyToBackupSubtitle": "你的照片将在后台同步。首次备份可能需要一些时间。",
   "contactSupport": "联系支持",
   "locationPickerTip": "您也可以在照片的详情界面上添加以照片为中心的定位",
   "@locationPickerTip": {
@@ -128,8 +139,10 @@
   "verifyPassword": "验证密码",
   "recoveryKey": "恢复密钥",
   "recoveryKeyOnForgotPassword": "如果您忘记了密码，恢复数据的唯一方法就是使用此密钥。",
+  "recoveryKeySaveDescription": "请将此密钥保存在安全的地方。",
   "doThisLater": "稍后再说",
   "saveKey": "保存密钥",
+  "shareKey": "共享密钥",
   "recoveryKeyCopiedToClipboard": "恢复密钥已复制到剪贴板",
   "recoverAccount": "恢复账户",
   "recover": "恢复",
@@ -150,6 +163,7 @@
   "copypasteThisCodentoYourAuthenticatorApp": "请复制粘贴此代码\n到您的身份验证器应用程序上",
   "tapToCopy": "点击以复制",
   "scanThisBarcodeWithnyourAuthenticatorApp": "用您的身份验证器应用\n扫描此条码",
+  "twoFAVerification": "双重认证",
   "enterThe6digitCodeFromnyourAuthenticatorApp": "从你的身份验证器应用中\n输入6位数字代码",
   "confirm": "确认",
   "setupComplete": "设置完成",
@@ -218,6 +232,7 @@
     "description": "Text to indicate that there is limit on number of devices"
   },
   "albumLayout": "相册布局",
+  "layoutMasonry": "瀑布流布局",
   "layoutGrouped": "已分组",
   "layoutContinuous": "连续",
   "layoutTrip": "旅游",
@@ -245,7 +260,17 @@
   "after1Month": "1个月后",
   "after1Year": "1 年后",
   "manageParticipants": "管理",
-  "collabLinkSectionDescription": "创建一个链接来让他人无需 Ente 应用程序或账户即可在您的共享相册中添加和查看照片。非常适合收集活动照片。",
+  "albumParticipantsCount": "{count, plural, =0 {没有参与者} other {{count} 位参与者}}",
+  "@albumParticipantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    },
+    "description": "Number of participants in an album, including the album owner."
+  },
+  "collabLinkSectionDescription": "允许他人在没有 Ente 账号的情况下添加照片",
   "collectPhotos": "收集照片",
   "collaborativeLink": "协作链接",
   "shareWithNonenteUsers": "与非 Ente 用户共享",
@@ -256,9 +281,19 @@
   "copyLink": "复制链接",
   "copyEmbedHtml": "复制嵌入 HTML",
   "linkHasExpired": "链接已过期",
+  "linkRequestLimitExceeded": "此相册已在过多设备上被查看",
   "publicLinkEnabled": "公开链接已启用",
   "shareALink": "分享链接",
   "sharedAlbumSectionDescription": "与其他 Ente 用户（包括免费计划用户）创建共享和协作相册。",
+  "shareWithPeopleSectionTitle": "{numberOfPeople, plural, =0 {与指定人员共享} other {已与 {numberOfPeople} 人共享}}",
+  "@shareWithPeopleSectionTitle": {
+    "placeholders": {
+      "numberOfPeople": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
   "thisIsYourVerificationId": "这是您的验证 ID",
   "someoneSharingAlbumsWithYouShouldSeeTheSameId": "与您共享相册的人应该会在他们的设备上看到相同的 ID。",
   "howToViewShareeVerificationID": "请让他们在设置屏幕上长按他们的电子邮件地址，并验证两台设备上的 ID 是否匹配。",
@@ -274,8 +309,12 @@
   "verificationId": "验证 ID",
   "verifyEmailID": "验证 {email}",
   "emailNoEnteAccount": "{email} 没有 Ente 帐户。\n\n向他们发出共享照片的邀请。",
+  "shareMyVerificationID": "这是我的 ente.com 验证 ID：{verificationID}。",
+  "shareTextConfirmOthersVerificationID": "嘿，你能确认这是你的 ente.com 验证 ID 吗：{verificationID}",
   "somethingWentWrong": "出了些问题",
   "sendInvite": "发送邀请",
+  "shareTextRecommendUsingEnte": "下载 Ente，这样我们就能轻松共享原始画质的照片和视频：\n\nhttps://ente.com",
+  "shareTextRecommendUsingEnteForFamily": "下载 Ente，这样我就能把你加入我的家庭计划：\n\nhttps://ente.com",
   "done": "已完成",
   "applyCodeTitle": "应用代码",
   "enterCodeDescription": "输入您的朋友提供的代码来为您申请免费存储",
@@ -303,6 +342,7 @@
   "theyAlsoGetXGb": "他们也会获得 {storageAmountInGB} GB",
   "referralStorageForBoth": "对方升级后：他们可获得 {storageAmountInGB} GB，你也可获得 {storageAmountInGB} GB。",
   "freeStorageOnReferralSuccess": "每当有人使用您的代码注册付费计划时您将获得{storageAmountInGB} GB",
+  "shareTextReferralCode": "Ente Photos 是一个私密安全的照片之家 \n* 从 https://ente.com/app 下载 Ente Photos \n* 创建账号 \n* 在“设置 -> 推荐”中使用推荐码 {referralCode} \n* 升级到付费套餐后即可获得 {referralStorageInGB}GB 免费空间",
   "claimFreeStorage": "领取免费存储",
   "inviteYourFriends": "邀请您的朋友",
   "earnFreeStorage": "获得免费空间",
@@ -360,6 +400,7 @@
   "cannotMoveToSharedAlbumsMessage": "项目只能添加到共享相册，无法移动。要改为添加吗？",
   "deleteSharedAlbum": "要删除共享相册吗？",
   "deleteAlbum": "删除相册",
+  "deleteAlbumQuestion": "删除此相册？",
   "deleteAlbumDialog": "也删除此相册中存在的照片(和视频)，从 <bold>他们所加入的所有</bold> 其他相册？",
   "deleteSharedAlbumDialogBody": "将为所有人删除相册\n\n您将无法访问此相册中他人拥有的共享照片",
   "yesRemove": "是，移除",
@@ -374,6 +415,9 @@
   "sharing": "正在分享...",
   "youCannotShareWithYourself": "莫开玩笑，您不能与自己分享",
   "archive": "存档",
+  "@archive": {
+    "description": "Action of 'Archiving' an element"
+  },
   "createAlbumActionHint": "长按选择照片，然后点击 + 创建相册",
   "importing": "正在导入...",
   "failedToLoadAlbums": "加载相册失败",
@@ -385,16 +429,19 @@
   "videoSmallCase": "视频",
   "photoSmallCase": "照片",
   "singleFileDeleteHighlight": "它将从所有相册中删除。",
-  "singleFileInBothLocalAndRemote": "{fileType} 已同时存在于 Ente 和您的设备中。",
-  "singleFileInRemoteOnly": "{fileType} 将从 Ente 中删除。",
-  "singleFileDeleteFromDevice": "此 {fileType} 将从您的设备中删除。",
   "deleteFromEnte": "从 Ente 中删除",
   "yesDelete": "是的, 删除",
   "movedToTrash": "已移至回收站",
+  "deleteFromDeviceQuestion": "从设备中删除？",
   "deleteFromDevice": "从设备中删除",
   "deleteFromBoth": "同时从两者中删除",
+  "moreOptions": "更多选项",
+  "@moreOptions": {
+    "description": "Button label for showing additional delete options."
+  },
   "newAlbum": "新建相册",
   "albums": "相册",
+  "ente": "Ente",
   "memoryCount": "{count, plural, =0{暂无回忆} other{{formattedCount} 个回忆}}",
   "@memoryCount": {
     "description": "The text to display the number of memories",
@@ -460,6 +507,7 @@
   },
   "discover_identity": "身份",
   "discover_screenshots": "屏幕截图",
+  "discover_qr_codes": "二维码",
   "discover_receipts": "收据",
   "discover_notes": "备注",
   "discover_memes": "表情包",
@@ -473,6 +521,7 @@
   "discover_sunset": "日落",
   "discover_hills": "山",
   "discover_greenery": "绿植",
+  "mlIndexingDescription": "请注意，在所有项目处理完成之前，机器学习会导致更高的带宽和电池用量。建议使用桌面应用以加快处理速度，所有结果都会自动同步。",
   "loadingModel": "正在下载模型...",
   "waitingForWifi": "正在等待 WiFi...",
   "status": "状态",
@@ -481,6 +530,8 @@
   "clearIndexes": "清空索引",
   "selectFoldersForBackup": "选择要备份的文件夹",
   "selectFolders": "选择文件夹",
+  "backupToEnte": "备份到 Ente",
+  "selectAlbumsToBackUpToEnte": "选择要备份到 Ente 的相册",
   "selectedFoldersWillBeEncryptedAndBackedUp": "所选文件夹将被加密并备份",
   "unselectAll": "取消全部选择",
   "selectAll": "全选",
@@ -505,6 +556,7 @@
   "updateSettings": "更新设置",
   "updatingFolderSelection": "正在更新文件夹选择...",
   "itemCount": "{count, plural, one{{count} 个项目} other{{count} 个项目}}",
+  "deleteItemCount": "{count, plural, other {删除 {count} 个项目}}",
   "duplicateItemsGroup": "{count} 个文件，每个文件 {formattedSize}",
   "@duplicateItemsGroup": {
     "description": "Display the number of duplicate files and their size",
@@ -542,11 +594,11 @@
   "authToChangeYourEmail": "请验证以更改您的电子邮件",
   "changePassword": "修改密码",
   "authToChangeYourPassword": "请验证以更改密码",
+  "authToInitiateAccountDeletion": "解锁以删除您的帐户",
   "emailVerificationToggle": "电子邮件验证",
   "authToChangeEmailVerificationSetting": "请进行身份验证以更改电子邮件验证",
   "exportYourData": "导出您的数据",
   "logout": "退出登录",
-  "authToInitiateAccountDeletion": "请进行身份验证以启动账户删除",
   "areYouSureYouWantToLogout": "您确定要退出登录吗？",
   "yesLogout": "是的，退出登陆",
   "aNewVersionOfEnteIsAvailable": "有新版本的 Ente 可供使用。",
@@ -582,6 +634,7 @@
   "youveNoDuplicateFilesThatCanBeCleared": "您没有任何可以清除的重复文件",
   "success": "成功",
   "rateUs": "给我们评分",
+  "changeLogReferralCta": "送出 10 GB，获得 10 GB",
   "remindToEmptyDeviceTrash": "同时从“设置”->“存储”中清空“最近删除”以领取释放的空间",
   "youHaveSuccessfullyFreedUp": "您已成功释放了 {storageSaved}！",
   "@youHaveSuccessfullyFreedUp": {
@@ -612,13 +665,54 @@
     }
   },
   "familyPlans": "家庭计划",
+  "family": "家庭",
+  "designedForFamilies": "专为家庭设计",
+  "shareYourSubscription": "与亲友共享你的订阅",
+  "shareStorageWith5Members": "与 5 位成员共享存储空间",
+  "privateSpaceForEveryMember": "每位成员都有私密空间",
+  "feedToEngageWithFamily": "与家人互动的信息流",
+  "plansStartAt": "计划低至 {price}/月",
+  "@plansStartAt": {
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "$1.99"
+      }
+    }
+  },
+  "viewPlans": "查看计划",
+  "bringYourFamilyAlong": "带上你的家人一起使用",
+  "yourPlanSupportsFamily": "你的计划已支持家庭功能",
+  "addUpTo5MembersFree": "免费添加最多 5 位成员",
+  "addFamilyMember": "添加家庭成员",
+  "addMember": "添加成员",
+  "inviteMembers": "邀请成员",
+  "enterEmailAddresses": "输入他们的电子邮件地址。他们需要拥有 Ente 账号。",
+  "inviteLimitReached": "你已添加 5 个邀请。请移除一个后再添加新的邀请",
+  "emailAddress": "电子邮件地址",
+  "sendInvites": "发送邀请",
+  "sendCountInvites": "{count, plural, =0 {发送邀请} other {发送 {count} 个邀请}}",
+  "@sendCountInvites": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "enterAnEmailAddress": "请输入邮箱",
+  "enterAValidEmailAddress": "请输入有效的邮箱地址",
+  "alreadyAdded": "已添加",
+  "members": "成员",
+  "resendInvite": "重新发送邀请",
+  "revokeInviteConfirmTitle": "撤销邀请？",
   "referrals": "推荐",
   "notifications": "通知",
   "socialNotifications": "点赞与评论",
-  "socialNotificationsExplanation": "接收你照片的点赞通知，以及你参与的相册中的评论通知",
   "advanced": "高级设置",
   "general": "通用",
   "security": "安全",
+  "settings": "设置",
   "authToViewYourRecoveryKey": "请验证以查看您的恢复密钥",
   "twofactor": "双重认证",
   "authToConfigureTwofactorAuthentication": "请进行身份验证以配置双重身份认证",
@@ -644,6 +738,9 @@
   "reportBug": "报告错误",
   "suggestFeatures": "建议新功能",
   "support": "支持",
+  "helpAndSupport": "帮助和支持",
+  "browseHelpPages": "浏览帮助页面",
+  "backupAndSync": "备份和同步",
   "appearance": "外观",
   "theme": "主题",
   "lightTheme": "浅色",
@@ -715,7 +812,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "PlayStore 订阅",
   "appstoreSubscription": "AppStore 订阅",
-  "subAlreadyLinkedErrMessage": "您的 {id} 已链接到另一个 Ente 账户。\n如果您想在此账户中使用您的 {id} ，请联系我们的支持人员",
   "visitWebToManage": "请访问 {webUrl} 来管理您的订阅",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
@@ -761,7 +857,6 @@
   "existingUser": "现有用户",
   "newToEnte": "初来 Ente",
   "pleaseLoginAgain": "请重新登录",
-  "autoLogoutMessage": "由于技术故障，您已退出登录。对于由此造成的不便，我们深表歉意。",
   "yourSubscriptionHasExpired": "您的订阅已过期",
   "storageLimitExceeded": "已超出存储限制",
   "upgrade": "升级",
@@ -783,11 +878,6 @@
   "collectEventPhotos": "收集活动照片",
   "sessionExpired": "会话已过期",
   "loggingOut": "正在退出登录...",
-  "@onDevice": {
-    "description": "The text displayed above folders/albums stored on device",
-    "type": "text"
-  },
-  "onDevice": "在设备上",
   "@onEnte": {
     "description": "The text displayed above albums backed up to Ente",
     "type": "text"
@@ -829,6 +919,9 @@
   "moveToAlbum": "移动到相册",
   "unhide": "取消隐藏",
   "unarchive": "取消存档",
+  "@unarchive": {
+    "description": "Action of 'Unarchiving' an element"
+  },
   "favorite": "收藏",
   "removeFromFavorite": "从收藏中移除",
   "shareLink": "分享链接",
@@ -883,10 +976,7 @@
   "photosAddedByYouWillBeRemovedFromTheAlbum": "您添加的照片将从相册中移除",
   "youveNoFilesInThisAlbumThatCanBeDeleted": "您在此相册中没有可以删除的文件",
   "youDontHaveAnyArchivedItems": "您没有任何存档的项目。",
-  "ignoredFolderUploadReason": "此相册中的某些文件在上传时会被忽略，因为它们之前已从 Ente 中删除。",
   "resetIgnoredFiles": "重置忽略的文件",
-  "deviceFilesAutoUploading": "添加到此设备相册的文件将自动上传到 Ente。",
-  "turnOnBackupForAutoUpload": "打开备份可自动上传添加到此设备文件夹的文件至 Ente。",
   "noHiddenPhotosOrVideos": "没有隐藏的照片或视频",
   "toHideAPhotoOrVideo": "隐藏照片或视频",
   "openTheItem": "• 打开该项目",
@@ -1153,10 +1243,6 @@
     "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
   },
   "setRadius": "设定半径",
-  "androidBiometricHint": "验证身份",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
   "androidBiometricNotRecognized": "无法识别。请重试。",
   "@androidBiometricNotRecognized": {
     "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
@@ -1164,14 +1250,6 @@
   "androidBiometricSuccess": "成功",
   "@androidBiometricSuccess": {
     "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "取消",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "需要身份验证",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
   "androidBiometricRequiredTitle": "需要生物识别认证",
   "@androidBiometricRequiredTitle": {
@@ -1185,25 +1263,13 @@
   "@androidDeviceCredentialsSetupDescription": {
     "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
   },
-  "goToSettings": "前往设置",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
   "androidGoToSettingsDescription": "您未在该设备上设置生物识别身份验证。前往“设置>安全”添加生物识别身份验证。",
   "@androidGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
   },
-  "iOSLockOut": "生物识别认证已禁用。请锁定并解锁您的屏幕以启用它。",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
   "iOSGoToSettingsDescription": "您未在该设备上设置生物识别身份验证。请在您的手机上启用 Touch ID或Face ID。",
   "@iOSGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure Biometrics for their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "好的",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
   },
   "openstreetmapContributors": "OpenStreetMap 贡献者",
   "hostedAtOsmFrance": "法国 OSM 主办",
@@ -1222,8 +1288,6 @@
   "noPhotosFoundHere": "这里没有找到照片",
   "zoomOutToSeePhotos": "缩小以查看照片",
   "noImagesWithLocation": "没有带有位置的图像",
-  "unpinAlbum": "取消置顶相册",
-  "pinAlbum": "置顶相册",
   "pin": "置顶",
   "pinPerson": "置顶人员",
   "pinToTop": "置顶到最上",
@@ -1237,7 +1301,6 @@
   "nothingSharedWithYouYet": "尚未与您共享任何内容",
   "noAlbumsSharedByYouYet": "您尚未共享任何相册",
   "sharedWithYou": "已与您共享",
-  "sharedByYou": "您共享的",
   "inviteYourFriendsToEnte": "邀请您的朋友加入 Ente",
   "failedToDownloadVideo": "视频下载失败",
   "hiding": "正在隐藏...",
@@ -1249,7 +1312,6 @@
   "addToHiddenAlbum": "添加到隐藏相册",
   "moveToHiddenAlbum": "移至隐藏相册",
   "fileTypes": "文件类型",
-  "deleteConfirmDialogBody": "此账户已链接到其他 Ente 应用程序（如果您使用任何应用程序）。您在所有 Ente 应用程序中上传的数据将被安排删除，并且您的账户将被永久删除。",
   "hearUsExplanation": "我们不跟踪应用程序安装情况。如果您告诉我们您是在哪里找到我们的，将会有所帮助！",
   "viewAddOnButton": "查看附加组件",
   "addOns": "附加组件",
@@ -1309,16 +1371,6 @@
   "playOnTv": "在电视上播放相册",
   "pair": "配对",
   "deviceNotFound": "未发现设备",
-  "castInstruction": "在您要配对的设备上访问 {castUrl}。\n在下框中输入代码即可在电视上播放相册。",
-  "@castInstruction": {
-    "description": "Instructions shown when pairing a device to play an album on TV.",
-    "placeholders": {
-      "castUrl": {
-        "type": "String",
-        "example": "https://cast.ente.com"
-      }
-    }
-  },
   "deviceCodeHint": "输入代码",
   "joinDiscord": "加入 Discord",
   "locations": "位置",
@@ -1351,8 +1403,6 @@
   "removePersonLabel": "移除人物标签",
   "removePersonTag": "移除人物标签",
   "areYouSureRemoveThisPersonTag": "您确定要从此人中移除这个人物标签吗？",
-  "autoPairDesc": "自动配对仅适用于支持 Chromecast 的设备。",
-  "manualPairDesc": "用 PIN 码配对适用于您希望在其上查看相册的任何屏幕。",
   "connectToDevice": "连接到设备",
   "autoCastDialogBody": "您将在此处看到可用的 Cast 设备。",
   "autoCastiOSPermission": "请确保已在“设置”中为 Ente Photos 应用打开本地网络权限。",
@@ -1364,7 +1414,6 @@
   "pairingComplete": "配对完成",
   "savingEdits": "正在保存编辑内容...",
   "autoPair": "自动配对",
-  "pairWithPin": "用 PIN 配对",
   "faceRecognition": "人脸识别",
   "foundFaces": "已找到的人脸",
   "clusteringProgress": "聚类进展",
@@ -1393,20 +1442,13 @@
   "enableMLIndexingDesc": "Ente 支持设备上的机器学习，实现人脸识别、魔法搜索和其他高级搜索功能",
   "magicSearchHint": "魔法搜索允许按内容搜索照片，例如“lower'”、“red car”、“identity documents”",
   "panorama": "全景",
-  "reenterPassword": "再次输入密码",
-  "reenterPin": "再次输入 PIN 码",
   "deviceLock": "设备锁",
   "pinLock": "PIN 锁定",
   "next": "下一步",
-  "setNewPassword": "设置新密码",
-  "enterPin": "输入 PIN 码",
-  "setNewPin": "设置新 PIN 码",
   "appLock": "应用锁",
   "noSystemLockFound": "未找到系统锁",
-  "tapToUnlock": "点击解锁",
   "tooManyIncorrectAttempts": "错误尝试次数过多",
   "videoInfo": "视频详情",
-  "autoLock": "自动锁定",
   "immediately": "立即",
   "autoLockFeatureDescription": "应用程序进入后台后锁定的时间",
   "hideContent": "隐藏内容",
@@ -1780,9 +1822,7 @@
   "newPhotosEmoji": " 新 📸",
   "sorryWeHadToPauseYourBackups": "抱歉，我们不得不暂停您的备份",
   "clickToInstallOurBestVersionYet": "点击安装我们迄今最好的版本",
-  "onThisDayNotificationExplanation": "接收关于往年这一天回忆的提醒。",
   "birthdayNotifications": "生日通知",
-  "receiveRemindersOnBirthdays": "接收某人生日时的提醒。点击通知将带您查看生日人物的照片。",
   "happyBirthday": "生日快乐！ 🥳",
   "birthdays": "生日",
   "wishThemAHappyBirthday": "祝 {name} 生日快乐！ 🎉",

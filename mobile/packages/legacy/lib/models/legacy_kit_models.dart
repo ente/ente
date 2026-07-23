@@ -2,13 +2,7 @@ import "dart:convert";
 
 import "package:ente_rust/ente_rust.dart" as rust;
 
-enum LegacyKitRecoveryStatus {
-  waiting,
-  ready,
-  blocked,
-  cancelled,
-  recovered,
-}
+enum LegacyKitRecoveryStatus { waiting, ready, blocked, cancelled, recovered }
 
 class LegacyKitRecoverySession {
   final String id;
@@ -89,10 +83,7 @@ class LegacyKitPart {
   final int index;
   final String name;
 
-  const LegacyKitPart({
-    required this.index,
-    required this.name,
-  });
+  const LegacyKitPart({required this.index, required this.name});
 
   factory LegacyKitPart.fromRust(rust.LegacyKitPart part) {
     return LegacyKitPart(index: part.index, name: part.name);
@@ -123,9 +114,9 @@ class LegacyKit {
       id: kit.id,
       noticePeriodInHours: kit.noticePeriodInHours,
       legacyUrl: kit.legacyUrl,
-      parts: kit.metadata.parts.map(LegacyKitPart.fromRust).toList(
-            growable: false,
-          ),
+      parts: kit.metadata.parts
+          .map(LegacyKitPart.fromRust)
+          .toList(growable: false),
       createdAt: kit.createdAt,
       updatedAt: kit.updatedAt,
       activeRecoverySession: kit.activeRecoverySession == null
@@ -195,17 +186,14 @@ class LegacyKitCreateResult {
   final LegacyKit kit;
   final List<LegacyKitShare> shares;
 
-  const LegacyKitCreateResult({
-    required this.kit,
-    required this.shares,
-  });
+  const LegacyKitCreateResult({required this.kit, required this.shares});
 
   factory LegacyKitCreateResult.fromRust(rust.LegacyKitCreateResult result) {
     return LegacyKitCreateResult(
       kit: LegacyKit.fromRust(result.kit),
-      shares: result.shares.map(LegacyKitShare.fromRust).toList(
-            growable: false,
-          ),
+      shares: result.shares
+          .map(LegacyKitShare.fromRust)
+          .toList(growable: false),
     );
   }
 }

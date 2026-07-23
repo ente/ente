@@ -7,10 +7,7 @@ class DummyFile extends EnteFile {
   final String groupID;
   final int index;
 
-  DummyFile({
-    required this.groupID,
-    required this.index,
-  }) {
+  DummyFile({required this.groupID, required this.index}) {
     // Set a unique generatedID based on groupID and index
     // Using a negative number to distinguish from real files
     generatedID = -(groupID.hashCode + index);

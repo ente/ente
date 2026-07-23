@@ -49,7 +49,7 @@ const isFinderModule = (x: number, y: number, size: number) => {
 
 export const createQrSvgData = (value: string): QrSvgData | null => {
     try {
-        const qr = encodeQR(value, "raw", { border: 0, ecc: "medium" });
+        const qr = encodeQR(value, "raw", { border: 1, ecc: "medium" });
         const modules: QrModule[] = [];
 
         for (let y = 0; y < qr.length; y++) {

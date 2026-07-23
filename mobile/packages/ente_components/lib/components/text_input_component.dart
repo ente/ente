@@ -43,14 +43,18 @@ class TextInputComponent extends StatefulWidget {
     this.isEmptyNotifier,
     this.inputFormatters,
     this.keyboardType,
+    this.textInputAction,
     this.enableFillColor = true,
     this.autocorrect = true,
+    this.enableSuggestions = true,
     this.isRequired = false,
     this.prefix,
     this.suffix,
+    this.onSuffixTap,
     this.messageType = TextInputComponentMessageType.helper,
     this.messageIcon,
     this.isDisabled = false,
+    this.readOnly = false,
     this.autofillHints,
     this.maxLines,
     this.minLines,
@@ -86,18 +90,34 @@ class TextInputComponent extends StatefulWidget {
   final ValueNotifier<bool>? isEmptyNotifier;
   final List<TextInputFormatter>? inputFormatters;
   final TextInputType? keyboardType;
+
+  /// Platform IME action. When set to [TextInputAction.next], completing the
+  /// field moves focus to the next node instead of doing nothing.
+  final TextInputAction? textInputAction;
   final bool enableFillColor;
   final bool autocorrect;
+  final bool enableSuggestions;
   final bool isRequired;
 
   /// Caller-owned leading widget. Pass explicit color and size when needed.
   final Widget? prefix;
 
-  /// Caller-owned trailing widget. Multiline fields pin this slot to the top.
+  /// Caller-owned trailing widget. Sits in an icon slot that is at least
+  /// [IconSizes.medium] square and grows to fit wider content (e.g. a row of
+  /// affordances). Multiline fields pin this slot to the top.
   final Widget? suffix;
+
+  /// Optional tap handler for [suffix]. When provided, the trailing affordance
+  /// gets a 48px tap target without changing the field's visual layout.
+  final VoidCallback? onSuffixTap;
   final TextInputComponentMessageType messageType;
   final IconData? messageIcon;
   final bool isDisabled;
+
+  /// When true the field is non-editable but keeps the enabled visual style
+  /// (unlike [isDisabled], which also mutes the text and disables the suffix
+  /// tap). Text stays selectable and the soft keyboard is suppressed.
+  final bool readOnly;
   final Iterable<String>? autofillHints;
   final int? maxLines;
   final int? minLines;
@@ -110,6 +130,7 @@ class TextInputComponent extends StatefulWidget {
 class _TextInputComponentState extends State<TextInputComponent> {
   static const _kHeight = 52.0;
   static const _kIconContainerSize = IconSizes.medium;
+  static const _kSuffixTapTargetSize = 48.0;
 
   TextEditingController? _internalController;
   FocusNode? _internalFocusNode;
@@ -127,6 +148,7 @@ class _TextInputComponentState extends State<TextInputComponent> {
   @override
   void initState() {
     super.initState();
+    _configureGroupId();
     widget.submitNotifier?.addListener(_handleSubmitRequested);
     widget.cancelNotifier?.addListener(_handleCancel);
     _internalController = widget.controller == null
@@ -144,6 +166,9 @@ class _TextInputComponentState extends State<TextInputComponent> {
   @override
   void didUpdateWidget(covariant TextInputComponent oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.isDisabled != widget.isDisabled) {
+      _configureGroupId();
+    }
     if (oldWidget.submitNotifier != widget.submitNotifier) {
       oldWidget.submitNotifier?.removeListener(_handleSubmitRequested);
       widget.submitNotifier?.addListener(_handleSubmitRequested);
@@ -194,6 +219,23 @@ class _TextInputComponentState extends State<TextInputComponent> {
     super.dispose();
   }
 
+  late Object _groupId;
+  final _defaultGroupId = Object();
+  final _disabledGroupId = Object();
+
+  @override
+  void didChangeDependencies() {
+    _configureGroupId();
+    super.didChangeDependencies();
+  }
+
+  void _configureGroupId() {
+    _groupId = _defaultGroupId;
+    if (widget.isDisabled) {
+      _groupId = _disabledGroupId;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
@@ -201,6 +243,7 @@ class _TextInputComponentState extends State<TextInputComponent> {
     final messageColor = _messageColor(colors);
     final prefix = _buildPrefix();
     final suffix = _buildSuffix(colors);
+    final suffixTap = _suffixTapHandler;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,77 +268,100 @@ class _TextInputComponentState extends State<TextInputComponent> {
           ),
           const SizedBox(height: Spacing.sm),
         ],
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.isDisabled ? null : _focusNode.requestFocus,
-          child: Container(
-            height: _isMultiline ? null : _kHeight,
-            constraints: _isMultiline
-                ? const BoxConstraints(minHeight: _kHeight)
-                : null,
-            padding: EdgeInsets.symmetric(
-              horizontal: Spacing.lg,
-              vertical: _isMultiline ? Spacing.lg : 0,
-            ),
-            decoration: BoxDecoration(
-              color: _backgroundColor(colors),
-              borderRadius: BorderRadius.circular(Radii.lg),
-              border: Border.all(color: _borderColor(colors)),
-            ),
-            child: Row(
-              crossAxisAlignment: _isMultiline
-                  ? CrossAxisAlignment.start
-                  : CrossAxisAlignment.center,
-              children: [
-                if (prefix != null) ...[
-                  prefix,
-                  const SizedBox(width: Spacing.sm),
-                ],
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    focusNode: _focusNode,
-                    enabled: !widget.isDisabled,
-                    autofocus: widget.autofocus,
-                    obscureText: _obscureText,
-                    maxLines: widget.isPasswordInput
-                        ? 1
-                        : widget.maxLines ?? (_isMultiline ? null : 1),
-                    minLines: widget.isPasswordInput ? null : widget.minLines,
-                    keyboardType: widget.keyboardType,
-                    textCapitalization: widget.textCapitalization,
-                    inputFormatters: _inputFormatters,
-                    autofillHints:
-                        widget.autofillHints ??
-                        (widget.isPasswordInput
-                            ? const [AutofillHints.password]
-                            : const []),
-                    autocorrect: widget.autocorrect && !widget.isPasswordInput,
-                    enableSuggestions: !widget.isPasswordInput,
-                    textAlignVertical: _isMultiline
-                        ? TextAlignVertical.top
-                        : TextAlignVertical.center,
-                    onEditingComplete: _handleEditingComplete,
-                    style: TextStyles.body.copyWith(color: _textColor(colors)),
-                    decoration: InputDecoration(
-                      hintText: widget.hintText,
-                      hintStyle: TextStyles.body.copyWith(
-                        color: _hintColor(colors),
-                      ),
-                      border: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
+        TextFieldTapRegion(
+          groupId: _groupId,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.isDisabled ? null : _focusNode.requestFocus,
+            child: Container(
+              height: _isMultiline ? null : _kHeight,
+              constraints: _isMultiline
+                  ? const BoxConstraints(minHeight: _kHeight)
+                  : null,
+              decoration: BoxDecoration(
+                color: _backgroundColor(colors),
+                borderRadius: BorderRadius.circular(Radii.lg),
+                border: Border.all(color: _borderColor(colors)),
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                fit: _isMultiline ? StackFit.loose : StackFit.expand,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: Spacing.lg,
+                      vertical: _isMultiline ? Spacing.lg : 0,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: _isMultiline
+                          ? CrossAxisAlignment.start
+                          : CrossAxisAlignment.center,
+                      children: [
+                        if (prefix != null) ...[
+                          prefix,
+                          const SizedBox(width: Spacing.sm),
+                        ],
+                        Expanded(
+                          child: TextField(
+                            groupId: _groupId,
+                            controller: _controller,
+                            focusNode: _focusNode,
+                            enabled: !widget.isDisabled,
+                            readOnly: widget.readOnly,
+                            autofocus: widget.autofocus,
+                            obscureText: _obscureText,
+                            maxLines: widget.isPasswordInput
+                                ? 1
+                                : widget.maxLines ?? (_isMultiline ? null : 1),
+                            minLines: widget.isPasswordInput
+                                ? null
+                                : widget.minLines,
+                            keyboardType: widget.keyboardType,
+                            textInputAction: widget.textInputAction,
+                            textCapitalization: widget.textCapitalization,
+                            inputFormatters: _inputFormatters,
+                            autofillHints:
+                                widget.autofillHints ??
+                                (widget.isPasswordInput
+                                    ? const [AutofillHints.password]
+                                    : const []),
+                            autocorrect:
+                                widget.autocorrect && !widget.isPasswordInput,
+                            enableSuggestions:
+                                widget.enableSuggestions &&
+                                !widget.isPasswordInput,
+                            textAlignVertical: _isMultiline
+                                ? TextAlignVertical.top
+                                : TextAlignVertical.center,
+                            onEditingComplete: _handleEditingComplete,
+                            onTapOutside: (_) => _focusNode.unfocus(),
+                            style: TextStyles.body.copyWith(
+                              color: _textColor(colors),
+                            ),
+                            decoration: InputDecoration(
+                              hintText: widget.hintText,
+                              hintStyle: TextStyles.body.copyWith(
+                                color: _hintColor(colors),
+                              ),
+                              border: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ),
+                        if (suffix != null) ...[
+                          const SizedBox(width: Spacing.sm),
+                          suffix,
+                        ],
+                      ],
                     ),
                   ),
-                ),
-                if (suffix != null) ...[
-                  const SizedBox(width: Spacing.sm),
-                  suffix,
+                  if (suffixTap != null) _suffixTapTarget(suffixTap),
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -358,8 +424,11 @@ class _TextInputComponentState extends State<TextInputComponent> {
     if (_isError) {
       return colors.warning;
     }
-    if (_hasSuccess || _focusNode.hasFocus) {
+    if (_hasSuccess) {
       return colors.primary;
+    }
+    if (_focusNode.hasFocus) {
+      return colors.textLighter;
     }
     return colors.strokeFaint;
   }
@@ -393,37 +462,18 @@ class _TextInputComponentState extends State<TextInputComponent> {
   Widget? _buildSuffix(ColorTokens colors) {
     final Widget child;
     if (widget.isPasswordInput) {
-      child = GestureDetector(
-        key: const ValueKey('text-field-password-toggle'),
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.isDisabled
-            ? null
-            : () => setState(() => _obscureText = !_obscureText),
-        child: Icon(
-          _obscureText
-              ? Icons.visibility_off_outlined
-              : Icons.visibility_outlined,
-          size: IconSizes.small,
-          color: colors.textLighter,
-        ),
+      child = Icon(
+        _obscureText
+            ? Icons.visibility_off_outlined
+            : Icons.visibility_outlined,
+        size: IconSizes.small,
+        color: colors.textLighter,
       );
     } else if (widget.isClearable && _hasText) {
-      child = GestureDetector(
-        key: const ValueKey('text-field-clear'),
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.isDisabled
-            ? null
-            : () {
-                _controller.clear();
-                if (widget.shouldUnfocusOnClearOrSubmit) {
-                  FocusScope.of(context).unfocus();
-                }
-              },
-        child: Icon(
-          Icons.close_rounded,
-          size: IconSizes.small,
-          color: colors.textLighter,
-        ),
+      child = Icon(
+        Icons.close_rounded,
+        size: IconSizes.small,
+        color: colors.textLighter,
       );
     } else if (widget.suffix != null) {
       child = widget.suffix!;
@@ -432,6 +482,54 @@ class _TextInputComponentState extends State<TextInputComponent> {
     }
 
     return _slot(child);
+  }
+
+  VoidCallback? get _suffixTapHandler {
+    if (widget.isDisabled) return null;
+    if (widget.isPasswordInput) {
+      return () => setState(() => _obscureText = !_obscureText);
+    }
+    if (widget.isClearable && _hasText) {
+      return () {
+        _controller.clear();
+        if (widget.shouldUnfocusOnClearOrSubmit) {
+          FocusScope.of(context).unfocus();
+        }
+      };
+    }
+    return widget.onSuffixTap;
+  }
+
+  Widget _suffixTapTarget(VoidCallback onTap) {
+    return PositionedDirectional(
+      top: _suffixTapTargetTop,
+      end: Spacing.lg - (_kSuffixTapTargetSize - _kIconContainerSize) / 2,
+      width: _kSuffixTapTargetSize,
+      height: _kSuffixTapTargetSize,
+      child: GestureDetector(
+        key: _suffixTapTargetKey,
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: const SizedBox.expand(),
+      ),
+    );
+  }
+
+  double get _suffixTapTargetTop {
+    if (_isMultiline) {
+      return Spacing.lg - (_kSuffixTapTargetSize - _kIconContainerSize) / 2;
+    }
+    return (_kHeight - _kSuffixTapTargetSize) / 2;
+  }
+
+  Key? get _suffixTapTargetKey {
+    if (widget.isPasswordInput) {
+      return const ValueKey('text-field-password-toggle');
+    }
+    if (widget.isClearable && _hasText) {
+      return const ValueKey('text-field-clear');
+    }
+    return null;
   }
 
   Widget? _messageIcon(Color color) {
@@ -455,9 +553,12 @@ class _TextInputComponentState extends State<TextInputComponent> {
   }
 
   Widget _slot(Widget child) {
-    return SizedBox.square(
-      dimension: _kIconContainerSize,
-      child: Center(child: child),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        minWidth: _kIconContainerSize,
+        minHeight: _kIconContainerSize,
+      ),
+      child: Center(widthFactor: 1, heightFactor: 1, child: child),
     );
   }
 
@@ -492,7 +593,9 @@ class _TextInputComponentState extends State<TextInputComponent> {
       TextInput.finishAutofillContext();
     }
     if (widget.onSubmit == null) {
-      if (widget.shouldUnfocusOnClearOrSubmit) {
+      if (widget.textInputAction == TextInputAction.next) {
+        _focusNode.nextFocus();
+      } else if (widget.shouldUnfocusOnClearOrSubmit) {
         FocusScope.of(context).unfocus();
       }
       return;
@@ -508,6 +611,7 @@ class _TextInputComponentState extends State<TextInputComponent> {
     if (widget.onSubmit == null || widget.isDisabled || _isSubmitting) {
       return;
     }
+    final popNavAfterSubmission = widget.popNavAfterSubmission;
 
     setState(() {
       _isSubmitting = true;
@@ -520,18 +624,19 @@ class _TextInputComponentState extends State<TextInputComponent> {
     try {
       await widget.onSubmit!.call(_controller.text);
     } catch (error) {
-      if (error.toString().contains('Incorrect password')) {
-        _surfaceWrongPasswordState();
-      }
       if (mounted) {
+        if (error.toString().contains('Incorrect password')) {
+          _surfaceWrongPasswordState();
+        }
         setState(() => _isSubmitting = false);
+        if (popNavAfterSubmission) {
+          _popNavigatorStack(
+            context,
+            e: error is Exception ? error : Exception(error.toString()),
+          );
+        }
       }
-      if (widget.popNavAfterSubmission) {
-        _popNavigatorStack(
-          context,
-          e: error is Exception ? error : Exception(error.toString()),
-        );
-      } else {
+      if (!popNavAfterSubmission) {
         rethrow;
       }
       return;

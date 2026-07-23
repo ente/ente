@@ -1,3 +1,28 @@
+import {
+    addCollectionName,
+    toggleCollectionName,
+    uploadQueueItemKey,
+} from "@/components/createItemDialog/fileUploadHelpers";
+import { FileUploadSection } from "@/components/createItemDialog/FileUploadSection";
+import {
+    CollectionSelector,
+    ItemFormFields,
+} from "@/components/createItemDialog/ItemFormFields";
+import { typeDisplayName } from "@/components/createItemDialog/itemFormFieldsUtils";
+import { lockerDialogPaperSx } from "@/components/lockerDialogStyles";
+import {
+    createDocumentIcon,
+    createDocumentIconConfig,
+    lockerItemIcon,
+    lockerItemIconConfig,
+} from "@/components/lockerItemIcons";
+import type { LockerUploadLimitState } from "@/services/locker-limits";
+import type { LockerUploadProgress } from "@/services/remote";
+import type {
+    LockerCollection,
+    LockerItemType,
+    LockerUploadCandidate,
+} from "@/types";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import {
     Box,
@@ -9,36 +34,11 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
-import {
-    addCollectionName,
-    toggleCollectionName,
-    uploadQueueItemKey,
-} from "components/createItemDialog/fileUploadHelpers";
-import { FileUploadSection } from "components/createItemDialog/FileUploadSection";
-import {
-    CollectionSelector,
-    ItemFormFields,
-} from "components/createItemDialog/ItemFormFields";
-import { typeDisplayName } from "components/createItemDialog/itemFormFieldsUtils";
-import { lockerDialogPaperSx } from "components/lockerDialogStyles";
-import {
-    createDocumentIcon,
-    createDocumentIconConfig,
-    lockerItemIcon,
-    lockerItemIconConfig,
-} from "components/lockerItemIcons";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { t } from "i18next";
 import React, { useRef } from "react";
 import { Trans } from "react-i18next";
-import type { LockerUploadLimitState } from "services/locker-limits";
-import type { LockerUploadProgress } from "services/remote";
-import type {
-    LockerCollection,
-    LockerItemType,
-    LockerUploadCandidate,
-} from "types";
 import {
     type CreateItemDialogEditItem,
     type CreateOption,

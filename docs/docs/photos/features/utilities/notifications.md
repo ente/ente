@@ -7,7 +7,9 @@ description: Details about notifications in Ente Photos
 
 Ente can send notifications to keep you updated on shared content and remind you of meaningful memories at the right time.
 
-> **Note**: Notifications are currently only available on mobile apps (iOS and Android). Desktop and web versions do not support notifications.
+> [!NOTE]
+>
+> Notifications are currently only available on mobile apps (iOS and Android). Desktop and web versions do not support notifications.
 
 ## Notification types
 

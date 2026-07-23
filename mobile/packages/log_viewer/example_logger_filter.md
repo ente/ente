@@ -5,14 +5,17 @@ The log viewer now supports filtering logs by logger names directly through the 
 ## Search Syntax
 
 ### Basic Logger Filtering
+
 - `logger:AuthService` - Shows only logs from the AuthService logger
 - `logger:UserService` - Shows only logs from the UserService logger
 
 ### Wildcard Support
+
 - `logger:Auth*` - Shows logs from all loggers starting with "Auth" (e.g., AuthService, Authentication, AuthManager)
 - `logger:*Service` - Not supported yet (only prefix wildcards are supported)
 
 ### Combined Search
+
 - `logger:AuthService error` - Shows logs from AuthService that contain "error" in the message
 - `login logger:UserService` - Shows logs from UserService that contain "login"
 - `logger:Auth* failed` - Shows logs from loggers starting with "Auth" that contain "failed"

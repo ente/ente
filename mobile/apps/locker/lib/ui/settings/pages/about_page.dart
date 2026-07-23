@@ -1,13 +1,12 @@
-import "package:ente_ui/components/title_bar_title_widget.dart";
-import "package:ente_ui/theme/ente_theme.dart";
-import "package:ente_ui/utils/dialog_util.dart";
 import "package:ente_ui/utils/toast_util.dart";
 import "package:ente_utils/platform_util.dart";
 import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:locker/l10n/l10n.dart";
 import "package:locker/services/update_service.dart";
+import "package:locker/ui/settings/components/settings_item.dart";
+import "package:locker/ui/settings/components/settings_page_scaffold.dart";
 import "package:locker/ui/settings/widgets/app_update_dialog.dart";
-import "package:locker/ui/settings/widgets/settings_widget.dart";
 import "package:url_launcher/url_launcher.dart";
 
 class AboutPage extends StatelessWidget {
@@ -16,59 +15,57 @@ class AboutPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final colorScheme = getEnteColorScheme(context);
 
-    return Scaffold(
-      backgroundColor: colorScheme.backgroundBase,
-      appBar: AppBar(
-        backgroundColor: colorScheme.backgroundBase,
-        surfaceTintColor: Colors.transparent,
-        toolbarHeight: 48,
-        leadingWidth: 48,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back_outlined),
+    return SettingsPageScaffold(
+      title: l10n.about,
+      children: [
+        SettingsItem(
+          title: l10n.weAreOpenSource,
+          icon: HugeIcons.strokeRoundedGithub,
+          showOnlyLoadingState: true,
+          onTap: () => _onOpenSourceTapped(),
         ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TitleBarTitleWidget(title: l10n.about),
-              const SizedBox(height: 24),
-              SettingsItem(
-                title: l10n.weAreOpenSource,
-                onTap: () => _onOpenSourceTapped(),
-              ),
-              const SizedBox(height: 8),
-              SettingsItem(
-                title: l10n.privacy,
-                onTap: () => _onPrivacyTapped(context),
-              ),
-              const SizedBox(height: 8),
-              SettingsItem(
-                title: l10n.termsOfServicesTitle,
-                onTap: () => _onTermsTapped(context),
-              ),
-              if (UpdateService.instance.isIndependent()) ...[
-                const SizedBox(height: 8),
-                SettingsItem(
-                  title: l10n.checkForUpdates,
-                  onTap: () => _onCheckForUpdatesTapped(context),
-                ),
-              ],
-            ],
+        const SizedBox(height: 8),
+        SettingsItem(
+          title: l10n.blog,
+          icon: HugeIcons.strokeRoundedPencilEdit01,
+          showOnlyLoadingState: true,
+          onTap: () => _onBlogTapped(context),
+        ),
+        const SizedBox(height: 8),
+        SettingsItem(
+          title: l10n.privacy,
+          icon: HugeIcons.strokeRoundedShield01,
+          showOnlyLoadingState: true,
+          onTap: () => _onPrivacyTapped(context),
+        ),
+        const SizedBox(height: 8),
+        SettingsItem(
+          title: l10n.termsOfServicesTitle,
+          icon: HugeIcons.strokeRoundedFile01,
+          showOnlyLoadingState: true,
+          onTap: () => _onTermsTapped(context),
+        ),
+        if (UpdateService.instance.isIndependent()) ...[
+          const SizedBox(height: 8),
+          SettingsItem(
+            title: l10n.checkForUpdates,
+            icon: HugeIcons.strokeRoundedDownload04,
+            showOnlyLoadingState: true,
+            onTap: () => _onCheckForUpdatesTapped(context),
           ),
-        ),
-      ),
+        ],
+      ],
     );
   }
 
-  void _onOpenSourceTapped() {
-    // ignore: unawaited_futures
-    launchUrl(Uri.parse("https://github.com/ente-io/ente"));
+  Future<void> _onOpenSourceTapped() async {
+    await launchUrl(Uri.parse("https://github.com/ente/ente"));
+  }
+
+  Future<void> _onBlogTapped(BuildContext context) async {
+    final l10n = context.l10n;
+    await PlatformUtil.openWebView(context, l10n.blog, "https://ente.com/blog");
   }
 
   Future<void> _onPrivacyTapped(BuildContext context) async {
@@ -91,11 +88,8 @@ class AboutPage extends StatelessWidget {
 
   Future<void> _onCheckForUpdatesTapped(BuildContext context) async {
     final l10n = context.l10n;
-    final dialog = createProgressDialog(context, l10n.checkingForUpdates);
-    await dialog.show();
     final shouldUpdate = await UpdateService.instance.shouldUpdate();
     final latestVersion = UpdateService.instance.getLatestVersionInfo();
-    await dialog.hide();
     if (!context.mounted) {
       return;
     }
@@ -107,9 +101,6 @@ class AboutPage extends StatelessWidget {
       showShortToast(context, l10n.youAreOnTheLatestVersion);
       return;
     }
-    await showAppUpdateBottomSheet(
-      context,
-      latestVersionInfo: latestVersion,
-    );
+    await showAppUpdateBottomSheet(context, latestVersionInfo: latestVersion);
   }
 }

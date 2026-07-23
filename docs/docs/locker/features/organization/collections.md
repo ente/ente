@@ -5,14 +5,11 @@ description: Organize your documents and information into collections for easy a
 
 # Collections
 
-Collections help you organize your items into groups. Create collections for
-different areas of your life to keep your information structured and easy to
-find.
+Collections help you organize your items into groups. Create collections for different areas of your life to keep your information structured and easy to find.
 
 ## Items can belong to multiple collections
 
-Unlike folders, items in Locker can belong to multiple collections at once. This
-lets you organize the same item in different ways:
+Unlike folders, items in Locker can belong to multiple collections at once. This lets you organize the same item in different ways:
 
 - A passport scan could be in both "Travel Documents" and "Family Documents"
 - Insurance information could be in "Financial" and "Medical"
@@ -66,8 +63,8 @@ lets you organize the same item in different ways:
 2. Tap the menu icon
 3. Select **Delete collection**
 4. Choose whether to:
-   - **Keep items**: Items are removed from the collection but not deleted
-   - **Delete items**: Items are moved to Trash
+    - **Keep items**: Items are removed from the collection but not deleted
+    - **Delete items**: Items are moved to Trash
 
 ## Removing items from a collection
 
@@ -81,9 +78,7 @@ The item remains in any other collections it belongs to.
 
 ## Important collection
 
-Locker includes a special **Important** collection for marking your most
-critical items. Add items here for quick access to your most frequently needed
-information.
+Locker includes a special **Important** collection for marking your most critical items. Add items here for quick access to your most frequently needed information.
 
 To add an item to Important:
 
@@ -91,8 +86,7 @@ To add an item to Important:
 2. Tap the star or favorite icon
 3. The item is added to the Important collection
 
-The Important collection is automatically created when you first mark an item as
-important.
+The Important collection is automatically created when you first mark an item as important.
 
 ## Collection organization tips
 
@@ -107,11 +101,9 @@ Consider creating collections like:
 
 ## Sharing collections
 
-Share entire collections with other Ente users. This is useful for family
-members who need access to the same information.
+Share entire collections with other Ente users. This is useful for family members who need access to the same information.
 
-Learn more about
-[Sharing collections with users](/locker/features/sharing/share-with-users).
+Learn more about [Sharing collections with users](/locker/features/sharing/share-with-users).
 
 ## Related FAQs
 

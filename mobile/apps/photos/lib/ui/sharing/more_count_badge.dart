@@ -3,44 +3,55 @@ import 'package:photos/theme/colors.dart';
 import 'package:photos/theme/ente_theme.dart';
 import 'package:tuple/tuple.dart';
 
-enum MoreCountType { xl, lg, md, sm, xs }
+enum MoreCountType { xs, small, medium, regular, large, huge }
 
 class MoreCountWidget extends StatelessWidget {
   final MoreCountType type;
   final bool thumbnailView;
   final int count;
+  final Color? backgroundColor;
+  final Color? textColor;
 
   const MoreCountWidget(
     this.count, {
     super.key,
-    this.type = MoreCountType.md,
+    this.type = MoreCountType.medium,
     this.thumbnailView = false,
+    this.backgroundColor,
+    this.textColor,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final displayChar = "+$count";
-    final Color decorationColor = thumbnailView
-        ? backgroundElevated2Light
-        : colorScheme.backgroundElevated2;
+    final Color decorationColor =
+        backgroundColor ??
+        (thumbnailView
+            ? backgroundElevated2Light
+            : colorScheme.backgroundElevated2);
 
     final avatarStyle = getAvatarStyle(context, type);
     final double size = avatarStyle.item1;
-    final TextStyle textStyle = thumbnailView
-        ? avatarStyle.item2.copyWith(color: textFaintLight)
-        : avatarStyle.item2.copyWith(color: Colors.white);
+    final resolvedTextColor =
+        textColor ??
+        (thumbnailView && backgroundColor == null
+            ? textBaseLight
+            : Colors.white);
+    final TextStyle textStyle = avatarStyle.item2.copyWith(
+      color: resolvedTextColor,
+    );
     return Container(
-      padding: const EdgeInsets.all(0.5),
+      padding: thumbnailView ? EdgeInsets.zero : const EdgeInsets.all(0.5),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-          color: thumbnailView
-              ? strokeMutedDark
-              : getEnteColorScheme(context).strokeMuted,
-          width: 1.0,
-          strokeAlign: BorderSide.strokeAlignOutside,
-        ),
+        border: thumbnailView
+            ? null
+            : Border.all(
+                color: getEnteColorScheme(context).strokeMuted,
+                width: 1.0,
+                strokeAlign: BorderSide.strokeAlignOutside,
+              ),
       ),
       child: SizedBox(
         height: size,
@@ -66,16 +77,18 @@ class MoreCountWidget extends StatelessWidget {
   ) {
     final enteTextTheme = getEnteTextTheme(context);
     switch (type) {
-      case MoreCountType.xl:
-        return Tuple2(32.0, enteTextTheme.small);
-      case MoreCountType.lg:
+      case MoreCountType.huge:
+        return Tuple2(56.0, enteTextTheme.largeBold);
+      case MoreCountType.large:
+        return Tuple2(32.0, enteTextTheme.mini);
+      case MoreCountType.regular:
         return Tuple2(28.0, enteTextTheme.mini);
-      case MoreCountType.md:
+      case MoreCountType.medium:
         return Tuple2(24.0, enteTextTheme.mini);
-      case MoreCountType.sm:
-        return Tuple2(18.0, enteTextTheme.tiny);
+      case MoreCountType.small:
+        return Tuple2(20.0, enteTextTheme.tiny);
       case MoreCountType.xs:
-        return Tuple2(18.0, enteTextTheme.tiny);
+        return Tuple2(16.0, enteTextTheme.tiny);
     }
   }
 }

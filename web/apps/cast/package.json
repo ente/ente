@@ -8,7 +8,7 @@
         "ente-media": "*"
     },
     "devDependencies": {
-        "@types/chromecast-caf-receiver": "^6.0.25",
+        "@types/chromecast-caf-receiver": "6.0.26",
         "ente-build-config": "*"
     }
 }

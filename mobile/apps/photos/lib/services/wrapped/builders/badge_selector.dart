@@ -31,9 +31,7 @@ class WrappedBadgeSelector {
     existingCards;
 
     final _BadgeComputationContext metrics =
-        _BadgeComputationContext.fromEngineContext(
-      context: context,
-    );
+        _BadgeComputationContext.fromEngineContext(context: context);
 
     final List<_BadgeCandidate> candidates = <_BadgeCandidate>[];
     void addCandidate(_BadgeCandidate? candidate) {
@@ -65,37 +63,39 @@ class WrappedBadgeSelector {
       );
     }
 
-    final List<_BadgeCandidate> eligible =
-        candidates.where((_BadgeCandidate candidate) {
-      if (!candidate.eligible) {
-        return false;
-      }
-      if (candidate.score <= 0) {
-        return false;
-      }
-      return true;
-    }).toList(growable: false);
+    final List<_BadgeCandidate> eligible = candidates
+        .where((_BadgeCandidate candidate) {
+          if (!candidate.eligible) {
+            return false;
+          }
+          if (candidate.score <= 0) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
 
     eligible.sort(_badgeComparator);
 
-    final _BadgeCandidate primary =
-        eligible.isNotEmpty ? eligible.first : candidates.last;
+    final _BadgeCandidate primary = eligible.isNotEmpty
+        ? eligible.first
+        : candidates.last;
 
     final List<Map<String, Object?>> candidatesMeta =
-        candidates.map((_BadgeCandidate candidate) {
-      return candidate.toMetaMap();
-    }).toList(growable: false)
-          ..sort(
-            (Map<String, Object?> a, Map<String, Object?> b) {
-              final double scoreA = (a["score"] as num?)?.toDouble() ?? 0;
-              final double scoreB = (b["score"] as num?)?.toDouble() ?? 0;
-              final int scoreCompare = scoreB.compareTo(scoreA);
-              if (scoreCompare != 0) {
-                return scoreCompare;
-              }
-              return (a["key"] as String).compareTo(b["key"] as String);
-            },
-          );
+        candidates
+            .map((_BadgeCandidate candidate) {
+              return candidate.toMetaMap();
+            })
+            .toList(growable: false)
+          ..sort((Map<String, Object?> a, Map<String, Object?> b) {
+            final double scoreA = (a["score"] as num?)?.toDouble() ?? 0;
+            final double scoreB = (b["score"] as num?)?.toDouble() ?? 0;
+            final int scoreCompare = scoreB.compareTo(scoreA);
+            if (scoreCompare != 0) {
+              return scoreCompare;
+            }
+            return (a["key"] as String).compareTo(b["key"] as String);
+          });
 
     final WrappedCard badgeCard = WrappedCard(
       type: WrappedCardType.badge,
@@ -125,8 +125,9 @@ class WrappedBadgeSelector {
     if (sampleCompare != 0) {
       return sampleCompare;
     }
-    final int hashCompare =
-        a.deterministicTieBreaker.compareTo(b.deterministicTieBreaker);
+    final int hashCompare = a.deterministicTieBreaker.compareTo(
+      b.deterministicTieBreaker,
+    );
     if (hashCompare != 0) {
       return hashCompare;
     }
@@ -136,14 +137,16 @@ class WrappedBadgeSelector {
   static _BadgeCandidate _buildConsistencyChamp(
     _BadgeComputationContext metrics,
   ) {
-    final double streakScore =
-        metrics.longestStreakDays <= 0 ? 0 : metrics.longestStreakDays / 150.0;
+    final double streakScore = metrics.longestStreakDays <= 0
+        ? 0
+        : metrics.longestStreakDays / 150.0;
     final double activeRatio = metrics.daysWithCaptures / 365.0;
     final double score = _clamp01(
       0.5 * _clamp01(streakScore) + 0.5 * _clamp01(activeRatio),
     );
 
-    final bool eligible = metrics.daysWithCaptures >= 15 &&
+    final bool eligible =
+        metrics.daysWithCaptures >= 15 &&
         metrics.longestStreakDays >= 3 &&
         metrics.totalCount > 0;
 
@@ -179,9 +182,7 @@ class WrappedBadgeSelector {
     );
   }
 
-  static _BadgeCandidate? _buildPortraitPro(
-    _BadgeComputationContext metrics,
-  ) {
+  static _BadgeCandidate? _buildPortraitPro(_BadgeComputationContext metrics) {
     if (!metrics.peopleStats.hasFaceMoments) {
       return null;
     }
@@ -190,8 +191,9 @@ class WrappedBadgeSelector {
       return null;
     }
     final int soloMoments = metrics.peopleStats.soloMoments;
-    final double share =
-        totalFaceMoments == 0 ? 0 : soloMoments / totalFaceMoments.toDouble();
+    final double share = totalFaceMoments == 0
+        ? 0
+        : soloMoments / totalFaceMoments.toDouble();
     final double score = _clamp01(share);
     final int soloPercent = _percentOf(share);
     final bool eligible =
@@ -228,9 +230,7 @@ class WrappedBadgeSelector {
     );
   }
 
-  static _BadgeCandidate? _buildPeoplePerson(
-    _BadgeComputationContext metrics,
-  ) {
+  static _BadgeCandidate? _buildPeoplePerson(_BadgeComputationContext metrics) {
     if (!metrics.peopleStats.hasFaceMoments || metrics.totalCount <= 0) {
       return null;
     }
@@ -280,9 +280,7 @@ class WrappedBadgeSelector {
     );
   }
 
-  static _BadgeCandidate? _buildGlobetrotter(
-    _BadgeComputationContext metrics,
-  ) {
+  static _BadgeCandidate? _buildGlobetrotter(_BadgeComputationContext metrics) {
     if (metrics.placesStats == null || metrics.placesStats!.totalCount <= 0) {
       return null;
     }
@@ -299,12 +297,14 @@ class WrappedBadgeSelector {
         ? 0
         : outsidePrimaryCount / metrics.totalCount.toDouble();
     final double score = _clamp01(outsideShare);
-    final bool eligible = geoCount >= 40 &&
+    final bool eligible =
+        geoCount >= 40 &&
         (uniqueCities >= 3 || uniqueCountries >= 2) &&
         score >= 0.25;
 
-    final int geoSharePercent =
-        metrics.totalCount == 0 ? 0 : _percentOf(geoCount / metrics.totalCount);
+    final int geoSharePercent = metrics.totalCount == 0
+        ? 0
+        : _percentOf(geoCount / metrics.totalCount);
 
     final int awayPercent = _percentOf(outsideShare);
 
@@ -339,17 +339,16 @@ class WrappedBadgeSelector {
     );
   }
 
-  static _BadgeCandidate _buildMinimalist(
-    _BadgeComputationContext metrics,
-  ) {
+  static _BadgeCandidate _buildMinimalist(_BadgeComputationContext metrics) {
     final bool eligible = metrics.totalCount > 0;
 
-    final double volumeScore =
-        metrics.totalCount <= 0 ? 0 : 150 / metrics.totalCount;
+    final double volumeScore = metrics.totalCount <= 0
+        ? 0
+        : 150 / metrics.totalCount;
     final double calmDaysRatio = metrics.elapsedDays <= 0
         ? 0
         : (metrics.elapsedDays - metrics.daysWithCaptures) /
-            metrics.elapsedDays;
+              metrics.elapsedDays;
     final double score = _clamp01(
       0.5 * _clamp01(volumeScore) + 0.5 * _clamp01(calmDaysRatio),
     );
@@ -419,18 +418,18 @@ class _BadgeCandidate {
     required this.sampleSize,
     required this.debugWhy,
     Map<String, Object?>? extras,
-  })  : meta = <String, Object?>{
-          "emoji": emoji,
-          "gradient": <String>[gradientStart, gradientEnd],
-          "detailChips": detailChips,
-          "score": score,
-          "uploadedFileIDs": mediaRefs
-              .map((MediaRef ref) => ref.uploadedFileID)
-              .where((int id) => id > 0)
-              .toList(growable: false),
-          "extras": extras ?? const <String, Object?>{},
-        },
-        deterministicTieBreaker = _stableHash(key);
+  }) : meta = <String, Object?>{
+         "emoji": emoji,
+         "gradient": <String>[gradientStart, gradientEnd],
+         "detailChips": detailChips,
+         "score": score,
+         "uploadedFileIDs": mediaRefs
+             .map((MediaRef ref) => ref.uploadedFileID)
+             .where((int id) => id > 0)
+             .toList(growable: false),
+         "extras": extras ?? const <String, Object?>{},
+       },
+       deterministicTieBreaker = _stableHash(key);
 
   final String key;
   final String name;
@@ -491,23 +490,24 @@ class _BadgeComputationContext {
     required WrappedEngineContext context,
   }) {
     final _StatsSnapshot statsSnapshot = _StatsSnapshot.fromContext(context);
-    final _PeopleDataset peopleDataset =
-        _PeopleDataset.fromContext(context.people, context.year);
+    final _PeopleDataset peopleDataset = _PeopleDataset.fromContext(
+      context.people,
+      context.year,
+    );
     final _PlacesDataset placesDataset = _PlacesDataset.fromContext(context);
 
     final int totalCount = statsSnapshot.totalCount;
 
-    final Set<int> highlightIds = _collectUnique(
-      <List<int>>[
-        statsSnapshot.firstCaptureUploadedIDs,
-        statsSnapshot.lastCaptureUploadedIDs,
-        statsSnapshot.streakStartUploadedIDs,
-        statsSnapshot.busiestDayMediaUploadedIDs,
-      ],
-    );
+    final Set<int> highlightIds = _collectUnique(<List<int>>[
+      statsSnapshot.firstCaptureUploadedIDs,
+      statsSnapshot.lastCaptureUploadedIDs,
+      statsSnapshot.streakStartUploadedIDs,
+      statsSnapshot.busiestDayMediaUploadedIDs,
+    ]);
 
-    final _BadgePlaceStats? placeStats =
-        placesDataset.totalCount > 0 ? _BadgePlaceStats(placesDataset) : null;
+    final _BadgePlaceStats? placeStats = placesDataset.totalCount > 0
+        ? _BadgePlaceStats(placesDataset)
+        : null;
 
     return _BadgeComputationContext(
       year: context.year,
@@ -568,8 +568,10 @@ class _BadgePlaceStats {
       totalCount: totalCount,
       clusters: cityClusters,
     );
-    final int outsidePrimaryCountryCount =
-        math.max(totalCount - primaryCountryCount, 0);
+    final int outsidePrimaryCountryCount = math.max(
+      totalCount - primaryCountryCount,
+      0,
+    );
 
     return _BadgePlaceStats._(
       totalCount: totalCount,

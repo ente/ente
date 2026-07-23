@@ -3,7 +3,6 @@ import { isHLSGenerationSupported } from "ente-gallery/services/video";
 import { wait } from "ente-utils/promise";
 import { t } from "i18next";
 import { isMLSupported } from "../ml";
-import { isDevBuildAndUser } from "../settings";
 import type { SearchOption, SidebarActionID } from "./types";
 
 export interface SidebarAction {
@@ -287,13 +286,6 @@ const sidebarActions = (): SidebarAction[] => {
             keywords: ["logs", "debug"],
         },
         {
-            id: "help.testUpload",
-            label: t("test_upload"),
-            path: [helpCategory, t("test_upload")],
-            keywords: ["test", "upload"],
-            available: () => isDevBuildAndUser(),
-        },
-        {
             id: "utility.logout",
             label: t("logout"),
             path: [preferencesCategory, t("logout")],
@@ -413,7 +405,6 @@ export const performSidebarAction = async (
         case "help.requestFeature":
         case "help.support":
         case "help.viewLogs":
-        case "help.testUpload":
             ctx.setPendingHelpAction(actionID);
             ctx.showHelp();
             return Promise.resolve();

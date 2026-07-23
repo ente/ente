@@ -122,7 +122,7 @@ const fetchMultipartUploadURLs = async ({
 
 const putFileToS3 = async (
     url: string,
-    data: Uint8Array,
+    data: Uint8Array<ArrayBuffer>,
     contentMd5: string,
     onProgress?: (progress: { loaded: number; total?: number }) => void,
 ): Promise<void> => {
@@ -156,7 +156,7 @@ const putFileToS3 = async (
 };
 
 const uploadSingleObject = async (
-    data: Uint8Array,
+    data: Uint8Array<ArrayBuffer>,
     contentMd5: string,
     onProgress?: (progress: { loaded: number; total?: number }) => void,
 ): Promise<string> => {
@@ -179,7 +179,7 @@ const uploadSingleObject = async (
 
 const putFilePartToS3 = async (
     url: string,
-    data: Uint8Array,
+    data: Uint8Array<ArrayBuffer>,
     contentMd5: string,
     onProgress?: (progress: { loaded: number; total?: number }) => void,
 ): Promise<string> => {
@@ -255,7 +255,7 @@ const completeMultipartUpload = async (
     );
 };
 
-const mergeUint8Arrays = (chunks: Uint8Array[]): Uint8Array => {
+const mergeUint8Arrays = (chunks: Uint8Array[]): Uint8Array<ArrayBuffer> => {
     const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
     const merged = new Uint8Array(totalLength);
     let offset = 0;
@@ -321,9 +321,9 @@ export const uploadLockerFileWithDeps = async <TCollectionRecord>(
 
     try {
         if (plaintextChunkCount >= MULTIPART_CHUNKS_PER_PART) {
-            const parts: Uint8Array[] = [];
+            const parts: Uint8Array<ArrayBuffer>[] = [];
             const partMd5s: string[] = [];
-            let pendingEncryptedChunks: Uint8Array[] = [];
+            let pendingEncryptedChunks: Uint8Array<ArrayBuffer>[] = [];
 
             for (
                 let chunkIndex = 0;
@@ -397,7 +397,7 @@ export const uploadLockerFileWithDeps = async <TCollectionRecord>(
             );
             encryptedFileObjectKey = multipartUpload.objectKey;
         } else {
-            const encryptedChunks: Uint8Array[] = [];
+            const encryptedChunks: Uint8Array<ArrayBuffer>[] = [];
 
             for (
                 let chunkIndex = 0;

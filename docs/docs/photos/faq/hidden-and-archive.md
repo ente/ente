@@ -3,9 +3,9 @@ title: Hide vs Archive
 description: Understand the difference between hiding and archiving photos in Ente
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Hide vs Archive

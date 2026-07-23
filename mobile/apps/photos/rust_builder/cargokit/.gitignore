@@ -1,4 +1,1 @@
-target
-.dart_tool
-*.iml
-!pubspec.lock
+target/

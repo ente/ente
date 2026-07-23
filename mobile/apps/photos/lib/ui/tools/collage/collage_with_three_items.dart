@@ -7,13 +7,7 @@ import "package:photos/ui/tools/collage/collage_item_widget.dart";
 import "package:photos/ui/tools/collage/collage_swap_mixin.dart";
 import "package:widgets_to_image/widgets_to_image.dart";
 
-enum Variant {
-  first,
-  second,
-  third,
-  fourth,
-  fifth,
-}
+enum Variant { first, second, third, fourth, fifth }
 
 class CollageWithThreeItems extends StatefulWidget {
   const CollageWithThreeItems(
@@ -41,11 +35,7 @@ class _CollageWithThreeItemsState extends State<CollageWithThreeItems>
   @override
   void initState() {
     super.initState();
-    initCollageFiles([
-      widget.first,
-      widget.second,
-      widget.third,
-    ]);
+    initCollageFiles([widget.first, widget.second, widget.third]);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.onControllerReady?.call(_widgetsToImageController);
       widget.onSelectionClearSetter?.call(clearSwapSelection);
@@ -91,9 +81,7 @@ class _CollageWithThreeItemsState extends State<CollageWithThreeItems>
     return Row(
       children: [
         CollageLayoutIconButton(
-          child: FirstVariantIcon(
-            isActive: _variant == Variant.first,
-          ),
+          child: FirstVariantIcon(isActive: _variant == Variant.first),
           onTap: () {
             setState(() {
               _variant = Variant.first;
@@ -101,9 +89,7 @@ class _CollageWithThreeItemsState extends State<CollageWithThreeItems>
           },
         ),
         CollageLayoutIconButton(
-          child: SecondVariantIcon(
-            isActive: _variant == Variant.second,
-          ),
+          child: SecondVariantIcon(isActive: _variant == Variant.second),
           onTap: () {
             setState(() {
               _variant = Variant.second;
@@ -114,9 +100,7 @@ class _CollageWithThreeItemsState extends State<CollageWithThreeItems>
           behavior: HitTestBehavior.opaque,
           child: Padding(
             padding: const EdgeInsets.all(4),
-            child: ThirdVariantIcon(
-              isActive: _variant == Variant.third,
-            ),
+            child: ThirdVariantIcon(isActive: _variant == Variant.third),
           ),
           onTap: () {
             setState(() {
@@ -125,9 +109,7 @@ class _CollageWithThreeItemsState extends State<CollageWithThreeItems>
           },
         ),
         CollageLayoutIconButton(
-          child: FourthVariantIcon(
-            isActive: _variant == Variant.fourth,
-          ),
+          child: FourthVariantIcon(isActive: _variant == Variant.fourth),
           onTap: () {
             setState(() {
               _variant = Variant.fourth;
@@ -135,9 +117,7 @@ class _CollageWithThreeItemsState extends State<CollageWithThreeItems>
           },
         ),
         CollageLayoutIconButton(
-          child: FifthVariantIcon(
-            isActive: _variant == Variant.fifth,
-          ),
+          child: FifthVariantIcon(isActive: _variant == Variant.fifth),
           onTap: () {
             setState(() {
               _variant = Variant.fifth;
@@ -151,17 +131,9 @@ class _CollageWithThreeItemsState extends State<CollageWithThreeItems>
   Widget _getCollage() {
     switch (_variant) {
       case Variant.first:
-        return FirstVariant(
-          _collageItem(0),
-          _collageItem(1),
-          _collageItem(2),
-        );
+        return FirstVariant(_collageItem(0), _collageItem(1), _collageItem(2));
       case Variant.second:
-        return SecondVariant(
-          _collageItem(0),
-          _collageItem(1),
-          _collageItem(2),
-        );
+        return SecondVariant(_collageItem(0), _collageItem(1), _collageItem(2));
       case Variant.third:
         return SizedBox(
           width: 320,
@@ -172,17 +144,9 @@ class _CollageWithThreeItemsState extends State<CollageWithThreeItems>
           ),
         );
       case Variant.fourth:
-        return FourthVariant(
-          _collageItem(0),
-          _collageItem(1),
-          _collageItem(2),
-        );
+        return FourthVariant(_collageItem(0), _collageItem(1), _collageItem(2));
       case Variant.fifth:
-        return FifthVariant(
-          _collageItem(0),
-          _collageItem(1),
-          _collageItem(2),
-        );
+        return FifthVariant(_collageItem(0), _collageItem(1), _collageItem(2));
     }
   }
 
@@ -443,10 +407,7 @@ class FifthVariant extends StatelessWidget {
 }
 
 class FirstVariantIcon extends StatelessWidget {
-  const FirstVariantIcon({
-    super.key,
-    this.isActive = false,
-  });
+  const FirstVariantIcon({super.key, this.isActive = false});
 
   final bool isActive;
 
@@ -467,10 +428,7 @@ class FirstVariantIcon extends StatelessWidget {
 }
 
 class SecondVariantIcon extends StatelessWidget {
-  const SecondVariantIcon({
-    super.key,
-    this.isActive = false,
-  });
+  const SecondVariantIcon({super.key, this.isActive = false});
   final bool isActive;
 
   @override
@@ -490,10 +448,7 @@ class SecondVariantIcon extends StatelessWidget {
 }
 
 class ThirdVariantIcon extends StatelessWidget {
-  const ThirdVariantIcon({
-    super.key,
-    this.isActive = false,
-  });
+  const ThirdVariantIcon({super.key, this.isActive = false});
   final bool isActive;
 
   @override
@@ -512,10 +467,7 @@ class ThirdVariantIcon extends StatelessWidget {
 }
 
 class FourthVariantIcon extends StatelessWidget {
-  const FourthVariantIcon({
-    super.key,
-    this.isActive = false,
-  });
+  const FourthVariantIcon({super.key, this.isActive = false});
   final bool isActive;
 
   @override
@@ -535,10 +487,7 @@ class FourthVariantIcon extends StatelessWidget {
 }
 
 class FifthVariantIcon extends StatelessWidget {
-  const FifthVariantIcon({
-    super.key,
-    this.isActive = false,
-  });
+  const FifthVariantIcon({super.key, this.isActive = false});
   final bool isActive;
 
   @override

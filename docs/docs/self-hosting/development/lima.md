@@ -1,8 +1,6 @@
 ---
 title: Using Lima for development
-description:
-    Running Museum (server + DB) and web apps in a Lima VM for local
-    development
+description: Running Museum (server + DB) and web apps in a Lima VM for local development
 ---
 
 # Using Lima for development
@@ -33,7 +31,7 @@ Using a VM-local clone avoids host-mount permission differences.
 ```sh
 limactl shell docker /bin/bash -lc '
   cd ~ &&
-  git clone https://github.com/ente-io/ente.git &&
+  git clone https://github.com/ente/ente.git &&
   cd ente
 '
 ```
@@ -72,10 +70,8 @@ limactl shell docker /bin/bash -lc '
     -e NEXT_PUBLIC_ENTE_ENDPOINT=http://localhost:8080 \
     node:24-bookworm \
     bash -lc "
-      corepack enable &&
-      corepack prepare yarn@1.22.22 --activate &&
-      yarn install --frozen-lockfile &&
-      yarn workspace paste next dev -p 3008
+      npm ci &&
+      npm exec --workspace paste -- next dev --webpack -p 3008
     "
 '
 ```

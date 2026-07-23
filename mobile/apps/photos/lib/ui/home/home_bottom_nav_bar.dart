@@ -1,13 +1,20 @@
 import 'dart:async';
 
+import 'package:ente_components/theme/icon_sizes.dart';
+import 'package:ente_components/theme/radii.dart';
+import 'package:ente_components/theme/spacing.dart';
+import 'package:ente_components/theme/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:photos/core/event_bus.dart';
 import 'package:photos/events/tab_changed_event.dart';
 import "package:photos/models/selected_albums.dart";
 import 'package:photos/models/selected_files.dart';
-import "package:photos/theme/colors.dart";
-import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/ui/tabs/nav_bar.dart';
+
+const double _homeNavContainerHeight = 70;
+const double _homeNavButtonPadding = 10;
+const double _homeNavItemSpacing = 22;
 
 class HomeBottomNavigationBar extends StatefulWidget {
   const HomeBottomNavigationBar(
@@ -40,8 +47,9 @@ class _HomeBottomNavigationBarState extends State<HomeBottomNavigationBar> {
     currentTabIndex = widget.selectedTabIndex;
     widget.selectedFiles.addListener(_selectedFilesListener);
     widget.selectedAlbums.addListener(_selectedAlbumsListener);
-    _tabChangedEventSubscription =
-        Bus.instance.on<TabChangedEvent>().listen((event) {
+    _tabChangedEventSubscription = Bus.instance.on<TabChangedEvent>().listen((
+      event,
+    ) {
       if (event.source != TabChangedEventSource.tabBar) {
         debugPrint(
           '${(TabChangedEvent).toString()} index changed  from '
@@ -85,17 +93,13 @@ class _HomeBottomNavigationBarState extends State<HomeBottomNavigationBar> {
       _handleSearchTabDoubleTap(index);
     }
     debugPrint("_TabChanged called via method $mode");
-    Bus.instance.fire(
-      TabChangedEvent(
-        index,
-        TabChangedEventSource.tabBar,
-      ),
-    );
+    Bus.instance.fire(TabChangedEvent(index, TabChangedEventSource.tabBar));
   }
 
   void _handleSearchTabDoubleTap(int index) {
     final now = DateTime.now();
-    final isRepeatTap = _lastTapIndex == index &&
+    final isRepeatTap =
+        _lastTapIndex == index &&
         _lastTapAt != null &&
         now.difference(_lastTapAt!) <= _doubleTapWindow;
     _lastTapIndex = index;
@@ -112,14 +116,15 @@ class _HomeBottomNavigationBarState extends State<HomeBottomNavigationBar> {
   Widget build(BuildContext context) {
     final bool filesAreSelected = widget.selectedFiles.files.isNotEmpty;
     final bool albumsAreSelected = widget.selectedAlbums.albums.isNotEmpty;
-    final enteColorScheme = getEnteColorScheme(context);
 
     return SafeArea(
       child: RepaintBoundary(
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-          height: filesAreSelected || albumsAreSelected ? 0 : 56,
+          height: filesAreSelected || albumsAreSelected
+              ? 0
+              : _homeNavContainerHeight,
           child: IgnorePointer(
             ignoring: filesAreSelected || albumsAreSelected,
             child: ListView(
@@ -128,80 +133,11 @@ class _HomeBottomNavigationBarState extends State<HomeBottomNavigationBar> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    GNav(
-                      curve: Curves.easeOutExpo,
-                      backgroundColor:
-                          getEnteColorScheme(context).backgroundElevated2,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      iconSize: 24,
-                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-                      duration: const Duration(milliseconds: 200),
-                      gap: 0,
-                      tabBorderRadius: 32,
-                      tabBackgroundColor:
-                          Theme.of(context).brightness == Brightness.light
-                              ? strokeFainterLight
-                              : strokeSolidFaintLight,
-                      haptic: false,
-                      tabs: [
-                        GButton(
-                          margin: const EdgeInsets.fromLTRB(8, 6, 10, 6),
-                          icon: Icons.home_rounded,
-                          iconColor: enteColorScheme.tabIcon,
-                          iconActiveColor: strokeBaseLight,
-                          text: '',
-                          onPressed: () {
-                            _onTabChange(
-                              0,
-                              mode: "OnPressed",
-                            ); // To take care of occasional missing events
-                          },
-                        ),
-                        GButton(
-                          margin: const EdgeInsets.fromLTRB(10, 6, 10, 6),
-                          icon: Icons.collections_rounded,
-                          iconColor: enteColorScheme.tabIcon,
-                          iconActiveColor: strokeBaseLight,
-                          text: '',
-                          onPressed: () {
-                            _onTabChange(
-                              1,
-                              mode: "OnPressed",
-                            ); // To take care of occasional missing
-                            // events
-                          },
-                        ),
-                        GButton(
-                          margin: const EdgeInsets.fromLTRB(10, 6, 8, 6),
-                          icon: Icons.people_outlined,
-                          iconColor: enteColorScheme.tabIcon,
-                          iconActiveColor: strokeBaseLight,
-                          text: '',
-                          onPressed: () {
-                            _onTabChange(
-                              2,
-                              mode: "OnPressed",
-                            ); // To take care
-                            // of occasional missing events
-                          },
-                        ),
-                        GButton(
-                          margin: const EdgeInsets.fromLTRB(10, 6, 8, 6),
-                          icon: Icons.search_outlined,
-                          iconColor: enteColorScheme.tabIcon,
-                          iconActiveColor: strokeBaseLight,
-                          text: '',
-                          onPressed: () {
-                            _onTabChange(
-                              3,
-                              mode: "OnPressed",
-                            ); // To take care
-                            // of occasional missing events
-                          },
-                        ),
-                      ],
+                    _HomeNavBar(
                       selectedIndex: currentTabIndex,
-                      onTabChange: _onTabChange,
+                      onTabChange: (index) {
+                        _onTabChange(index, mode: "OnPressed");
+                      },
                     ),
                   ],
                 ),
@@ -212,4 +148,122 @@ class _HomeBottomNavigationBarState extends State<HomeBottomNavigationBar> {
       ),
     );
   }
+}
+
+class _HomeNavBar extends StatelessWidget {
+  const _HomeNavBar({required this.selectedIndex, required this.onTabChange});
+
+  static const _tabs = [
+    _HomeNavTab(
+      semanticLabel: 'Home',
+      semanticIdentifier: 'ente.photos.tab.home',
+      outlineAsset: 'assets/icons/nav_bar/home_outline.svg',
+      filledAsset: 'assets/icons/nav_bar/home_filled.svg',
+    ),
+    _HomeNavTab(
+      semanticLabel: 'Albums',
+      semanticIdentifier: 'ente.photos.tab.albums',
+      outlineAsset: 'assets/icons/nav_bar/albums_outline.svg',
+      filledAsset: 'assets/icons/nav_bar/albums_filled.svg',
+    ),
+    _HomeNavTab(
+      semanticLabel: 'Feed',
+      semanticIdentifier: 'ente.photos.tab.feed',
+      outlineAsset: 'assets/icons/nav_bar/feed_outline.svg',
+      filledAsset: 'assets/icons/nav_bar/feed_filled.svg',
+    ),
+    _HomeNavTab(
+      semanticLabel: 'Search',
+      semanticIdentifier: 'ente.photos.tab.search',
+      outlineAsset: 'assets/icons/nav_bar/search_outline.svg',
+      filledAsset: 'assets/icons/nav_bar/search_filled.svg',
+    ),
+  ];
+
+  final int selectedIndex;
+  final ValueChanged<int> onTabChange;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    return GNav(
+      curve: Curves.easeOutExpo,
+      backgroundColor: colors.fillLight,
+      mainAxisAlignment: MainAxisAlignment.center,
+      padding: const EdgeInsets.all(_homeNavButtonPadding),
+      duration: const Duration(milliseconds: 200),
+      gap: 0,
+      borderRadius: Radii.button,
+      boxShadow: const [
+        BoxShadow(
+          color: Color.fromRGBO(0, 0, 0, 0.25),
+          offset: Offset(0, 4),
+          blurRadius: 8.75,
+        ),
+      ],
+      tabBorderRadius: Radii.md,
+      tabBackgroundColor: colors.fillDark,
+      haptic: false,
+      selectedIndex: selectedIndex,
+      onTabChange: onTabChange,
+      tabs: List.generate(_tabs.length, (index) {
+        return GButton(
+          margin: EdgeInsets.only(
+            left: index == 0 ? Spacing.lg : _homeNavItemSpacing,
+            right: index == _tabs.length - 1 ? Spacing.lg : _homeNavItemSpacing,
+            top: Spacing.md,
+            bottom: Spacing.md,
+          ),
+          text: '',
+          semanticLabel: _tabs[index].semanticLabel,
+          semanticIdentifier: _tabs[index].semanticIdentifier,
+          leading: SizedBox.square(
+            dimension: IconSizes.small,
+            child: _HomeNavIcon(
+              tab: _tabs[index],
+              selected: selectedIndex == index,
+              color: colors.iconColor,
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _HomeNavIcon extends StatelessWidget {
+  const _HomeNavIcon({
+    required this.tab,
+    required this.selected,
+    required this.color,
+  });
+
+  final _HomeNavTab tab;
+  final bool selected;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorFilter = ColorFilter.mode(color, BlendMode.srcIn);
+    return SvgPicture.asset(
+      selected ? tab.filledAsset : tab.outlineAsset,
+      width: IconSizes.small,
+      height: IconSizes.small,
+      colorFilter: colorFilter,
+    );
+  }
+}
+
+class _HomeNavTab {
+  const _HomeNavTab({
+    required this.semanticLabel,
+    required this.semanticIdentifier,
+    required this.outlineAsset,
+    required this.filledAsset,
+  });
+
+  final String semanticLabel;
+  final String semanticIdentifier;
+  final String outlineAsset;
+  final String filledAsset;
 }

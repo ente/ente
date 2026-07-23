@@ -7,10 +7,7 @@ import 'package:flutter/material.dart';
 class CustomIconWidget extends StatelessWidget {
   final String iconData;
 
-  CustomIconWidget({
-    super.key,
-    required this.iconData,
-  });
+  CustomIconWidget({super.key, required this.iconData});
 
   @override
   Widget build(BuildContext context) {
@@ -26,9 +23,9 @@ class CustomIconWidget extends StatelessWidget {
               shape: SmoothRectangleBorder(
                 side: BorderSide(
                   width: 1.5,
-                  color: getEnteColorScheme(context)
-                      .tagChipSelectedColor
-                      .withValues(alpha: 0.5),
+                  color: getEnteColorScheme(
+                    context,
+                  ).tagChipSelectedColor.withValues(alpha: 0.5),
                 ),
                 borderRadius: SmoothBorderRadius(
                   cornerRadius: 15.5,
@@ -36,10 +33,7 @@ class CustomIconWidget extends StatelessWidget {
                 ),
               ),
             ),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 8,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             child: FittedBox(
               fit: BoxFit.contain,
               child: IconUtils.instance.getIcon(

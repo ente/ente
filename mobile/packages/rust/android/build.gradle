@@ -51,6 +51,6 @@ android {
 
 apply from: "../cargokit/gradle/plugin.gradle"
 cargokit {
-    manifestDir = "../rust"
+    manifestDir = "../../../../rust/bindings/frb/ente-rust"
     libname = "ente_rust"
 }

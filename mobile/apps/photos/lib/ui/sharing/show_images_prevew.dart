@@ -9,20 +9,14 @@ import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 
 class LinkPlaceholder extends StatelessWidget {
-  const LinkPlaceholder({
-    required this.files,
-    super.key,
-  });
+  const LinkPlaceholder({required this.files, super.key});
 
   final List<EnteFile> files;
 
   @override
   Widget build(BuildContext context) {
     final int length = files.length;
-    Widget placeholderWidget = const SizedBox(
-      height: 300,
-      width: 300,
-    );
+    Widget placeholderWidget = const SizedBox(height: 300, width: 300);
 
     if (length == 1) {
       placeholderWidget = _BackDrop(
@@ -277,7 +271,8 @@ class LinkPlaceholder extends StatelessWidget {
                               child: Center(
                                 child: FittedBox(
                                   child: Text(
-                                    "+" "${length - 3}",
+                                    "+"
+                                    "${length - 3}",
                                     style: getEnteTextTheme(context).h3Bold,
                                   ),
                                 ),
@@ -301,10 +296,7 @@ class LinkPlaceholder extends StatelessWidget {
 }
 
 class _BackDrop extends StatelessWidget {
-  const _BackDrop({
-    required this.backDropImage,
-    required this.children,
-  });
+  const _BackDrop({required this.backDropImage, required this.children});
 
   final List<Widget> children;
   final EnteFile backDropImage;
@@ -323,9 +315,7 @@ class _BackDrop extends StatelessWidget {
           ),
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: Container(
-              color: Colors.transparent,
-            ),
+            child: Container(color: Colors.transparent),
           ),
           ...children,
         ],

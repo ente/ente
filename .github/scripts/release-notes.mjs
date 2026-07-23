@@ -22,7 +22,9 @@ function readMarkdown(file) {
 
 function changesetFiles(dir) {
     return fs
-        .readdirSync(dir)
+        .readdirSync(dir, { withFileTypes: true })
+        .filter((entry) => entry.isFile())
+        .map((entry) => entry.name)
         .filter((name) => name.endsWith(".md") && name !== "README.md")
         .sort()
         .map((name) => path.join(dir, name));
@@ -49,32 +51,38 @@ function previousBody() {
         .trim();
 }
 
-function groupedBody(body, previous) {
+function releaseNotes(body, previous) {
     const previousLines = new Set(previous.split("\n").filter(Boolean));
-    if (!previousLines.size) return body;
-
     const latest = [];
     const previousAgain = [];
     for (const line of body.split("\n").filter(Boolean)) {
         (previousLines.has(line) ? previousAgain : latest).push(line);
     }
 
-    if (!previousAgain.length) return body;
-    return [
-        latest.length ? `New changes:\n\n${latest.join("\n")}` : "",
-        `Previous changes:\n${previousAgain.join("\n")}`,
-    ]
-        .filter(Boolean)
-        .join("\n\n");
+    const groupedBody =
+        previousAgain.length
+            ? [latest.join("\n"), `Previous changes:\n${previousAgain.join("\n")}`].filter(Boolean).join("\n\n")
+            : body;
+    return { groupedBody, hasNewChanges: latest.length > 0 };
 }
 
-function output(name, value) {
-    console.log(`${name}<<EOF`);
-    console.log(value);
-    console.log("EOF");
+function playStoreBody(body) {
+    return Array.from(body || "Bug fixes and improvements").slice(0, 500).join("");
+}
+
+function output(name, text) {
+    let delimiter = "RELEASE_NOTES_EOF";
+    while (text.includes(delimiter)) delimiter += "_";
+
+    console.log(`${name}<<${delimiter}`);
+    console.log(text);
+    console.log(delimiter);
 }
 
 const body = currentBody();
+const notes = releaseNotes(body, previousBody());
 
 output("release_body", body);
-output("release_body_grouped", groupedBody(body, previousBody()));
+output("release_body_grouped", notes.groupedBody);
+output("play_store_release_notes", playStoreBody(body));
+output("has_new_changes", notes.hasNewChanges ? "true" : "false");

@@ -79,6 +79,7 @@
   "downloadFailed": "Download failed",
   "failedToDownloadOrDecrypt": "Failed to download item",
   "errorOpeningFile": "Error opening item",
+  "unableToExtractFileInformation": "Unable to extract information from this file",
   "errorOpeningFileMessage": "Error opening item: {error}",
   "@errorOpeningFileMessage": {
     "description": "Error message when opening an item fails",
@@ -183,7 +184,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "Please select at least one collection",
   "unknownItemType": "Unknown item type",
   "fileDeletedSuccessfully": "Item deleted successfully",
   "failedToDeleteFile": "Failed to delete item: {error}",
@@ -272,6 +272,26 @@
   "yourTrashIsEmpty": "Your trash is empty",
   "homeLockerEmptyTitle": "Your Locker is empty",
   "homeLockerEmptySubtitle": "Click the + button to get started",
+  "homeEmptyStateLegacyDescription": "Setup your Legacy so loved ones can access important information, in your absence",
+  "@homeEmptyStateLegacyDescription": {
+    "description": "Description shown in the empty Locker home state above the Legacy setup action"
+  },
+  "setupYourLegacy": "Setup your Legacy",
+  "@setupYourLegacy": {
+    "description": "Action that opens Legacy setup from the empty Locker home state"
+  },
+  "shareYourLegacyBannerTitle": "Share your Legacy",
+  "@shareYourLegacyBannerTitle": {
+    "description": "Title of the home banner prompting the user to set up Legacy"
+  },
+  "setupLegacy": "Setup Legacy",
+  "@setupLegacy": {
+    "description": "Short action label on the home banner that opens Legacy setup"
+  },
+  "shareYourLegacyBannerDescription": "Help loved ones access important information, in your absence.",
+  "@shareYourLegacyBannerDescription": {
+    "description": "Description of the home banner prompting the user to set up Legacy"
+  },
   "uploadDocument": "Upload document",
   "items": "{count} items",
   "@items": {
@@ -315,7 +335,7 @@
   "optionalNote": "Optional note",
   "upload": "Upload",
   "documentsHint": "Documents",
-  "searchHint": "Search...",
+  "searchHint": "Search your documents",
   "searchEmptyTitle": "No matches found",
   "searchEmptyDescription": "Try searching for something else.",
   "searchEverywhereTitle": "Search everywhere for \"{query}\"",
@@ -379,6 +399,7 @@
   "authToChangeYourEmail": "Please authenticate to change your email",
   "changePasswordTitle": "Change password",
   "authToChangeYourPassword": "Please authenticate to change your password",
+  "authToInitiateAccountDeletion": "Unlock to delete your account",
   "recoveryKey": "Recovery key",
   "ok": "Ok",
   "logout": "Logout",
@@ -421,11 +442,27 @@
   "downloadUpdate": "Download update",
   "support": "Support",
   "helpAndSupport": "Help and Support",
+  "getInTouch": "Get in touch",
+  "browseHelpPages": "Browse help pages",
   "contactSupport": "Contact support",
   "help": "Help",
+  "askAQuestion": "Ask a question",
   "suggestFeatures": "Suggest features",
+  "requestAFeature": "Request a feature",
   "reportABug": "Report a bug",
+  "reportAnIssue": "Report an issue",
   "reportBug": "Report bug",
+  "viewAllHelpTopics": "View all help topics",
+  "gettingStarted": "Getting started",
+  "gettingStartedDesc": "Install Locker, create an account, and save your first item",
+  "informationTypes": "Information types",
+  "informationTypesDesc": "Documents, notes, cards, passwords, and other item types",
+  "organization": "Organization",
+  "organizationDesc": "Collections, favorites, search, and ways to keep items organized",
+  "legacyDesc": "Trusted contacts, Legacy Kit, and account recovery planning",
+  "securityDesc": "Encryption, recovery keys, app lock, and account protection",
+  "troubleshooting": "Troubleshooting",
+  "troubleshootingDesc": "Common issues and their solutions",
   "logsDialogBodyLocker": "This will send logs to help us debug your issue.",
   "@logsDialogBodyLocker": {
     "description": "Dialog body text for sending logs in Locker app (without file name warning)"
@@ -826,6 +863,8 @@
   },
   "locker": "Locker",
   "loginToEnteAccount": "Log in to your Ente account",
+  "createAnEnteAccount": "Create an Ente account",
+  "loginToExistingAccount": "Login to existing account",
   "unlockLockerNewUserTitle": "Join Ente to use Locker",
   "unlockLockerNewUserBody": "Locker is currently available only to existing Ente users. You can create an account on Ente Photos to use Locker.",
   "checkoutEntePhotos": "Checkout Ente Photos",
@@ -1010,6 +1049,7 @@
   "editNotSupportedForSharedFiles": "Edit is not supported for shared files",
   "deleteNotSupportedForSharedFiles": "Delete is not supported for shared files",
   "importantNotSupportedForSharedFiles": "Important is not supported for shared files",
+  "canOnlyRemoveFilesOwnedByYou": "Can only remove files owned by you",
   "sharingSection": "Sharing",
   "sharingEnabledToggle": "Sharing enabled",
   "publicLinkSection": "Public Link",

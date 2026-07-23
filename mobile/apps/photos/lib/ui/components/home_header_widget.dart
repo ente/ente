@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import "package:hugeicons/hugeicons.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/ui/common/backup_flow_helper.dart";
 import 'package:photos/ui/components/buttons/icon_button_widget.dart';
@@ -24,7 +25,7 @@ class _HomeHeaderWidgetState extends State<HomeHeaderWidget> {
           children: [
             IconButtonWidget(
               iconButtonType: IconButtonType.primary,
-              icon: Icons.menu_outlined,
+              iconWidget: const HugeIcon(icon: HugeIcons.strokeRoundedMenu01),
               onTap: () {
                 Scaffold.of(context).openDrawer();
               },
@@ -37,7 +38,9 @@ class _HomeHeaderWidgetState extends State<HomeHeaderWidget> {
         ),
         showAddAlbumAction
             ? IconButtonWidget(
-                icon: Icons.add_photo_alternate_outlined,
+                iconWidget: const HugeIcon(
+                  icon: HugeIcons.strokeRoundedUpload01,
+                ),
                 iconButtonType: IconButtonType.primary,
                 onTap: () async => handleFullPermissionBackupFlow(context),
               )

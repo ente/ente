@@ -43,8 +43,8 @@ pub fn recover_with_key(
     let master_key = SecretVec::new(
         secretbox::decrypt(
             &encrypted_master_key_bytes,
-            &master_key_nonce_bytes,
-            &recovery_key,
+            &crypto::Nonce::try_from_slice(&master_key_nonce_bytes)?,
+            &crypto::Key::try_from_slice(&recovery_key)?,
         )
         .map_err(|_| AuthError::IncorrectRecoveryKey)?,
     );
@@ -55,8 +55,12 @@ pub fn recover_with_key(
         .map_err(|e| AuthError::Decode(format!("secret_key_decryption_nonce: {}", e)))?;
 
     let secret_key = SecretVec::new(
-        secretbox::decrypt(&encrypted_secret_key, &secret_key_nonce, &master_key)
-            .map_err(|_| AuthError::InvalidKeyAttributes)?,
+        secretbox::decrypt(
+            &encrypted_secret_key,
+            &crypto::Nonce::try_from_slice(&secret_key_nonce)?,
+            &crypto::Key::try_from_slice(&master_key)?,
+        )
+        .map_err(|_| AuthError::InvalidKeyAttributes)?,
     );
 
     let public_key = crypto::decode_b64(&attributes.public_key)
@@ -65,8 +69,12 @@ pub fn recover_with_key(
         .map_err(|e| AuthError::Decode(format!("encrypted_token: {}", e)))?;
 
     let token = SecretVec::new(
-        sealed::open(&sealed_token, &public_key, &secret_key)
-            .map_err(|_| AuthError::InvalidKeyAttributes)?,
+        sealed::open(
+            &sealed_token,
+            &crypto::PublicKey::try_from_slice(&public_key)?,
+            &crypto::SecretKey::try_from_slice(&secret_key)?,
+        )
+        .map_err(|_| AuthError::InvalidKeyAttributes)?,
     );
 
     Ok(LoginResult {
@@ -97,8 +105,12 @@ pub fn get_recovery_key(master_key: &[u8], attributes: &KeyAttributes) -> Result
         .map_err(|e| AuthError::Decode(format!("recovery_key_decryption_nonce: {}", e)))?;
 
     let recovery_key = SecretVec::new(
-        secretbox::decrypt(&encrypted_bytes, &nonce_bytes, master_key)
-            .map_err(|_| AuthError::InvalidKeyAttributes)?,
+        secretbox::decrypt(
+            &encrypted_bytes,
+            &crypto::Nonce::try_from_slice(&nonce_bytes)?,
+            &crypto::Key::try_from_slice(master_key)?,
+        )
+        .map_err(|_| AuthError::InvalidKeyAttributes)?,
     );
 
     Ok(crypto::encode_hex(&recovery_key))
@@ -155,21 +167,20 @@ pub fn recovery_key_to_mnemonic(recovery_key_b64: &str) -> Result<String> {
 mod tests {
     use super::*;
     use crate::auth::{KeyDerivationStrength, generate_keys_with_strength};
-    use crate::crypto::keys;
+    use crate::crypto::Key;
 
     fn generate_test_keys(password: &str) -> super::super::KeyGenResult {
         generate_keys_with_strength(password, KeyDerivationStrength::Interactive).unwrap()
     }
 
     fn create_sealed_token(token: &[u8], public_key: &[u8]) -> String {
-        let sealed = sealed::seal(token, public_key).unwrap();
+        let pk = crypto::PublicKey::try_from_slice(public_key).unwrap();
+        let sealed = sealed::seal(token, &pk).unwrap();
         crypto::encode_b64(&sealed)
     }
 
     #[test]
     fn test_recovery_roundtrip() {
-        crypto::init().unwrap();
-
         let gen_result = generate_test_keys("original_password");
         let public_key = crypto::decode_b64(&gen_result.key_attributes.public_key).unwrap();
         let encrypted_token = create_sealed_token(b"my_token", &public_key);
@@ -191,21 +202,17 @@ mod tests {
 
     #[test]
     fn test_wrong_recovery_key() {
-        crypto::init().unwrap();
-
         let gen_result = generate_test_keys("password");
         let public_key = crypto::decode_b64(&gen_result.key_attributes.public_key).unwrap();
         let encrypted_token = create_sealed_token(b"token", &public_key);
 
-        let wrong_key = crypto::encode_hex(&keys::generate_key());
+        let wrong_key = crypto::encode_hex(Key::generate().as_bytes());
         let result = recover_with_key(&wrong_key, &gen_result.key_attributes, &encrypted_token);
         assert!(matches!(result, Err(AuthError::IncorrectRecoveryKey)));
     }
 
     #[test]
     fn test_get_recovery_key() {
-        crypto::init().unwrap();
-
         let gen_result = generate_test_keys("password");
         let master_key = crypto::decode_b64(&gen_result.private_key_attributes.key).unwrap();
 
@@ -218,8 +225,6 @@ mod tests {
 
     #[test]
     fn test_recovery_key_mnemonic_roundtrip() {
-        crypto::init().unwrap();
-
         let gen_result = generate_test_keys("password");
         let master_key = crypto::decode_b64(&gen_result.private_key_attributes.key).unwrap();
         let recovery_key_hex = get_recovery_key(&master_key, &gen_result.key_attributes).unwrap();
@@ -236,8 +241,6 @@ mod tests {
 
     #[test]
     fn test_recovery_key_from_hex_accepts_legacy_format() {
-        crypto::init().unwrap();
-
         let gen_result = generate_test_keys("password");
         let decoded =
             recovery_key_from_mnemonic_or_hex(&gen_result.private_key_attributes.recovery_key)

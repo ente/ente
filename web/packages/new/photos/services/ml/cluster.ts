@@ -43,6 +43,20 @@ export interface ClusteringProgress {
     total: number;
 }
 
+export type ClusterFacesReason =
+    | "add-cgroup"
+    | "add-cluster-to-cgroup"
+    | "apply-person-suggestion-updates"
+    | "delete-cgroup"
+    | "enable-ml"
+    | "ignore-cluster"
+    | "live-upload-index"
+    | "ml-sync"
+    | "remote-pull"
+    | `remote-pull:${string}`
+    | "rename-cgroup"
+    | "set-cgroup-pinned";
+
 /** A {@link Face} annotated with data needed during clustering. */
 export type ClusterFace = Omit<Face, "embedding"> & {
     embedding: Float32Array;
@@ -70,6 +84,7 @@ export const _clusterFaces = async (
     faceIndexes: FaceIndex[],
     localFiles: EnteFile[],
     onProgress: (progress: ClusteringProgress) => void,
+    reason: ClusterFacesReason,
 ) => {
     const startTime = Date.now();
 
@@ -175,7 +190,9 @@ export const _clusterFaces = async (
     }
 
     const t = `(${Date.now() - startTime} ms)`;
-    log.info(`Refreshed ${clusters.length} clusters from ${total} faces ${t}`);
+    log.info(
+        `Refreshed ${clusters.length} clusters from ${total} faces ${t} [reason=${reason}]`,
+    );
 
     return { clusters, modifiedClusterIDs };
 };

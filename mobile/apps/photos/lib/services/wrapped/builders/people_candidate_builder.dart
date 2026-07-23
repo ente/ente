@@ -13,8 +13,10 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
   @override
   Future<List<WrappedCard>> build(WrappedEngineContext context) async {
     final WrappedPeopleContext peopleContext = context.people;
-    final _PeopleDataset dataset =
-        _PeopleDataset.fromContext(peopleContext, context.year);
+    final _PeopleDataset dataset = _PeopleDataset.fromContext(
+      peopleContext,
+      context.year,
+    );
     if (!dataset.hasAnyContent) {
       return const <WrappedCard>[];
     }
@@ -26,14 +28,18 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
       cards.add(topPersonCard);
     }
 
-    final WrappedCard? topThreeCard =
-        _buildTopThreePeopleCard(context, dataset);
+    final WrappedCard? topThreeCard = _buildTopThreePeopleCard(
+      context,
+      dataset,
+    );
     if (topThreeCard != null) {
       cards.add(topThreeCard);
     }
 
-    final WrappedCard? groupVsSoloCard =
-        _buildGroupVsSoloCard(context, dataset);
+    final WrappedCard? groupVsSoloCard = _buildGroupVsSoloCard(
+      context,
+      dataset,
+    );
     if (groupVsSoloCard != null) {
       cards.add(groupVsSoloCard);
     }
@@ -59,8 +65,8 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
     final int uniqueMoments = topPerson.uniqueMoments;
     final double share =
         dataset.totalNamedFaceCount == 0 || topPerson.faceCount == 0
-            ? 0
-            : topPerson.faceCount / dataset.totalNamedFaceCount;
+        ? 0
+        : topPerson.faceCount / dataset.totalNamedFaceCount;
     final int sharePercent = _percentOf(share);
     final List<String> chips = _cleanChips(<String>[
       "Appearances: ${numberFormat.format(topPerson.faceCount)}",
@@ -76,8 +82,8 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
     final String title = displayName.isEmpty
         ? "Your star"
         : endsWithS
-            ? "$displayName spotlight"
-            : "$displayName's spotlight";
+        ? "$displayName spotlight"
+        : "$displayName's spotlight";
     final String? heroName = displayName.isNotEmpty ? displayName : null;
     final String subtitle = heroName != null
         ? "$heroName was the star of your year!"
@@ -102,8 +108,10 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
       preferNamedPeople: true,
       minimumSpacing: const Duration(days: 30),
     );
-    final List<int> metaUploadedIDs =
-        buildMetaUploadedIDs(candidateIds, maxMediaCount * 2);
+    final List<int> metaUploadedIDs = buildMetaUploadedIDs(
+      candidateIds,
+      maxMediaCount * 2,
+    );
 
     final Map<String, Object?> meta = <String, Object?>{
       "personId": topPerson.personEntry.personID,
@@ -121,11 +129,9 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
       subtitle: subtitle,
       media: media,
       meta: meta
-        ..addAll(
-          <String, Object?>{
-            if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
-          },
-        ),
+        ..addAll(<String, Object?>{
+          if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
+        }),
     );
   }
 
@@ -136,19 +142,18 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
     if (dataset.topNamedPeople.length < 3) {
       return null;
     }
-    final List<_PersonStats> topThree =
-        dataset.topNamedPeople.take(3).toList(growable: false);
+    final List<_PersonStats> topThree = dataset.topNamedPeople
+        .take(3)
+        .toList(growable: false);
     final NumberFormat numberFormat = NumberFormat.decimalPattern();
 
     final List<String> names = topThree
         .map((_PersonStats stats) => stats.displayNameForTitle)
         .toList(growable: false);
-    final List<String> chips = _cleanChips(
-      <String>[
-        for (final _PersonStats stats in topThree)
-          "${stats.displayNameForTitle}: ${numberFormat.format(stats.faceCount)} shots",
-      ],
-    );
+    final List<String> chips = _cleanChips(<String>[
+      for (final _PersonStats stats in topThree)
+        "${stats.displayNameForTitle}: ${numberFormat.format(stats.faceCount)} shots",
+    ]);
 
     final List<int> candidateIds = limitSelectorCandidates(
       context,
@@ -185,8 +190,10 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
       preferNamedPeople: true,
       minimumSpacing: const Duration(days: 21),
     );
-    final List<int> metaUploadedIDs =
-        buildMetaUploadedIDs(candidateIds, maxMediaCount * 2);
+    final List<int> metaUploadedIDs = buildMetaUploadedIDs(
+      candidateIds,
+      maxMediaCount * 2,
+    );
 
     final Map<String, Object?> meta = <String, Object?>{
       "personIds": topThree
@@ -203,11 +210,9 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
           "${_formatNameList(names)} kept showing up in your favorite frames.",
       media: media,
       meta: meta
-        ..addAll(
-          <String, Object?>{
-            if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
-          },
-        ),
+        ..addAll(<String, Object?>{
+          if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
+        }),
     );
   }
 
@@ -223,12 +228,15 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
       return null;
     }
     final NumberFormat numberFormat = NumberFormat.decimalPattern();
-    final int groupPercent =
-        _percentOf(dataset.groupMoments / totalMoments.toDouble());
-    final int soloPercent =
-        _percentOf(dataset.soloMoments / totalMoments.toDouble());
-    final int duoPercent =
-        _percentOf(dataset.duoMoments / totalMoments.toDouble());
+    final int groupPercent = _percentOf(
+      dataset.groupMoments / totalMoments.toDouble(),
+    );
+    final int soloPercent = _percentOf(
+      dataset.soloMoments / totalMoments.toDouble(),
+    );
+    final int duoPercent = _percentOf(
+      dataset.duoMoments / totalMoments.toDouble(),
+    );
 
     final bool hasGroup = groupPercent > 0;
     final bool hasSolo = soloPercent > 0;
@@ -240,8 +248,8 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
     final String? intimateSummary = intimateParts.isEmpty
         ? null
         : intimateParts.length == 1
-            ? intimateParts.first
-            : "${intimateParts[0]} and ${intimateParts[1]}";
+        ? intimateParts.first
+        : "${intimateParts[0]} and ${intimateParts[1]}";
 
     final String subtitle;
     if (hasGroup && intimateSummary != null) {
@@ -264,13 +272,10 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
         "Solo shots: ${numberFormat.format(dataset.soloMoments)}",
     ]);
 
-    final List<int> candidateIds = limitSelectorCandidates(
-      context,
-      <int>[
-        ...dataset.groupSampleFileIDs(kWrappedSelectorCandidateCap),
-        ...dataset.soloSampleFileIDs(kWrappedSelectorCandidateCap),
-      ],
-    );
+    final List<int> candidateIds = limitSelectorCandidates(context, <int>[
+      ...dataset.groupSampleFileIDs(kWrappedSelectorCandidateCap),
+      ...dataset.soloSampleFileIDs(kWrappedSelectorCandidateCap),
+    ]);
     const int maxMediaCount = 5;
 
     final List<MediaRef> media = WrappedMediaSelector.selectMediaRefs(
@@ -280,8 +285,10 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
       preferNamedPeople: true,
       minimumSpacing: const Duration(days: 45),
     );
-    final List<int> metaUploadedIDs =
-        buildMetaUploadedIDs(candidateIds, maxMediaCount * 2);
+    final List<int> metaUploadedIDs = buildMetaUploadedIDs(
+      candidateIds,
+      maxMediaCount * 2,
+    );
 
     final Map<String, Object?> meta = <String, Object?>{
       "groupShots": dataset.groupMoments,
@@ -301,11 +308,9 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
       subtitle: subtitle,
       media: media,
       meta: meta
-        ..addAll(
-          <String, Object?>{
-            if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
-          },
-        ),
+        ..addAll(<String, Object?>{
+          if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
+        }),
     );
   }
 
@@ -313,22 +318,22 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
     WrappedEngineContext context,
     _PeopleDataset dataset,
   ) {
-    final List<_PersonStats> newPeople = dataset.topPeople.where(
-      (_PersonStats stats) {
-        final int? firstSeenYear = stats.firstSeenYear;
-        if (firstSeenYear == null || firstSeenYear != dataset.year) {
-          return false;
-        }
-        if (stats.faceCount < _kMinFacesPerNewPerson) {
-          return false;
-        }
-        if (stats.personEntry.totalClusterFaceCount <
-            _kMinClusterFacesForNewPerson) {
-          return false;
-        }
-        return true;
-      },
-    ).toList(growable: false);
+    final List<_PersonStats> newPeople = dataset.topPeople
+        .where((_PersonStats stats) {
+          final int? firstSeenYear = stats.firstSeenYear;
+          if (firstSeenYear == null || firstSeenYear != dataset.year) {
+            return false;
+          }
+          if (stats.faceCount < _kMinFacesPerNewPerson) {
+            return false;
+          }
+          if (stats.personEntry.totalClusterFaceCount <
+              _kMinClusterFacesForNewPerson) {
+            return false;
+          }
+          return true;
+        })
+        .toList(growable: false);
 
     if (newPeople.isEmpty) {
       return null;
@@ -336,8 +341,9 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
 
     final NumberFormat numberFormat = NumberFormat.decimalPattern();
     final int count = newPeople.length;
-    final List<_PersonStats> highlights =
-        newPeople.take(3).toList(growable: false);
+    final List<_PersonStats> highlights = newPeople
+        .take(3)
+        .toList(growable: false);
     final List<String> highlightNames = highlights
         .map((_PersonStats stats) => stats.displayNameForTitle)
         .toList(growable: false);
@@ -350,8 +356,9 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
         () {
           final _PersonStats stats = highlights[index];
           final String name = stats.displayNameForTitle.trim();
-          final String labelName =
-              name.isNotEmpty ? name : "New friend ${index + 1}";
+          final String labelName = name.isNotEmpty
+              ? name
+              : "New friend ${index + 1}";
           final String countLabel = stats.faceCount == 1
               ? "1 memory"
               : "${numberFormat.format(stats.faceCount)} memories";
@@ -394,8 +401,10 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
       preferNamedPeople: true,
       minimumSpacing: const Duration(days: 30),
     );
-    final List<int> metaUploadedIDs =
-        buildMetaUploadedIDs(candidateIds, maxMediaCount * 2);
+    final List<int> metaUploadedIDs = buildMetaUploadedIDs(
+      candidateIds,
+      maxMediaCount * 2,
+    );
 
     final Map<String, Object?> meta = <String, Object?>{
       "newPersonCount": count,
@@ -414,11 +423,9 @@ class PeopleCandidateBuilder extends WrappedCandidateBuilder {
       subtitle: subtitle,
       media: media,
       meta: meta
-        ..addAll(
-          <String, Object?>{
-            if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
-          },
-        ),
+        ..addAll(<String, Object?>{
+          if (metaUploadedIDs.isNotEmpty) "uploadedFileIDs": metaUploadedIDs,
+        }),
     );
   }
 }
@@ -437,10 +444,10 @@ class _PeopleDataset {
     required this.duoMoments,
     required List<_FileSample> groupSamples,
     required List<_FileSample> soloSamples,
-  })  : _topPeople = List<_PersonStats>.unmodifiable(topPeople),
-        _topNamedPeople = List<_PersonStats>.unmodifiable(topNamedPeople),
-        _groupSamples = List<_FileSample>.unmodifiable(groupSamples),
-        _soloSamples = List<_FileSample>.unmodifiable(soloSamples);
+  }) : _topPeople = List<_PersonStats>.unmodifiable(topPeople),
+       _topNamedPeople = List<_PersonStats>.unmodifiable(topNamedPeople),
+       _groupSamples = List<_FileSample>.unmodifiable(groupSamples),
+       _soloSamples = List<_FileSample>.unmodifiable(soloSamples);
 
   final int year;
   final List<_PersonStats> _topPeople;
@@ -483,10 +490,7 @@ class _PeopleDataset {
         .toList(growable: false);
   }
 
-  static _PeopleDataset fromContext(
-    WrappedPeopleContext context,
-    int year,
-  ) {
+  static _PeopleDataset fromContext(WrappedPeopleContext context, int year) {
     if (context.files.isEmpty) {
       return _PeopleDataset._empty(year);
     }
@@ -515,27 +519,26 @@ class _PeopleDataset {
         continue;
       }
       final List<WrappedFaceRef> faces = file.faces;
-      final bool includesSelf = selfPersonID != null &&
-          faces.any(
-            (WrappedFaceRef face) => face.personID == selfPersonID,
-          );
-      final bool hasNamedPerson = faces.any(
-        (WrappedFaceRef face) {
-          final String? personID = face.personID;
-          if (personID == null) {
-            return false;
-          }
-          final WrappedPersonEntry? entry = context.persons[personID];
-          if (entry == null || entry.isHidden || entry.isMe) {
-            return false;
-          }
-          return entry.displayName.trim().isNotEmpty;
-        },
-      );
-      final int highQualityCount =
-          faces.where((WrappedFaceRef face) => face.isHighQuality).length;
-      final int effectiveCount =
-          highQualityCount > 0 ? highQualityCount : faces.length;
+      final bool includesSelf =
+          selfPersonID != null &&
+          faces.any((WrappedFaceRef face) => face.personID == selfPersonID);
+      final bool hasNamedPerson = faces.any((WrappedFaceRef face) {
+        final String? personID = face.personID;
+        if (personID == null) {
+          return false;
+        }
+        final WrappedPersonEntry? entry = context.persons[personID];
+        if (entry == null || entry.isHidden || entry.isMe) {
+          return false;
+        }
+        return entry.displayName.trim().isNotEmpty;
+      });
+      final int highQualityCount = faces
+          .where((WrappedFaceRef face) => face.isHighQuality)
+          .length;
+      final int effectiveCount = highQualityCount > 0
+          ? highQualityCount
+          : faces.length;
       if (effectiveCount > 0) {
         totalFaceMoments += 1;
         if (hasNamedPerson) {
@@ -583,29 +586,23 @@ class _PeopleDataset {
           personID,
           () => _PersonStats(personEntry),
         );
-        stats.addFace(
-          file: file,
-          face: face,
-          includesSelf: includesSelf,
-        );
+        stats.addFace(file: file, face: face, includesSelf: includesSelf);
       }
     }
 
     final List<_PersonStats> orderedPeople =
         personStats.values.toList(growable: false)
-          ..sort(
-            (_PersonStats a, _PersonStats b) {
-              if (b.faceCount != a.faceCount) {
-                return b.faceCount.compareTo(a.faceCount);
-              }
-              if (b.uniqueMoments != a.uniqueMoments) {
-                return b.uniqueMoments.compareTo(a.uniqueMoments);
-              }
-              return a.displayNameForTitle
-                  .toLowerCase()
-                  .compareTo(b.displayNameForTitle.toLowerCase());
-            },
-          );
+          ..sort((_PersonStats a, _PersonStats b) {
+            if (b.faceCount != a.faceCount) {
+              return b.faceCount.compareTo(a.faceCount);
+            }
+            if (b.uniqueMoments != a.uniqueMoments) {
+              return b.uniqueMoments.compareTo(a.uniqueMoments);
+            }
+            return a.displayNameForTitle.toLowerCase().compareTo(
+              b.displayNameForTitle.toLowerCase(),
+            );
+          });
 
     for (final _PersonStats stats in orderedPeople) {
       final int? seenYear = firstSeenYear[stats.personEntry.personID];
@@ -696,29 +693,24 @@ class _PersonStats {
       );
       _captures[file.uploadedFileID] = capture;
     }
-    capture.registerFace(
-      face,
-      includesSelf: includesSelf,
-    );
+    capture.registerFace(face, includesSelf: includesSelf);
   }
 
   List<int> topMediaFileIDs(int count) {
     final List<_PersonCapture> captures =
         _captures.values.toList(growable: false)
-          ..sort(
-            (_PersonCapture a, _PersonCapture b) {
-              if (a.includesSelf != b.includesSelf) {
-                return a.includesSelf ? -1 : 1;
-              }
-              if (b.highQualityFaces != a.highQualityFaces) {
-                return b.highQualityFaces.compareTo(a.highQualityFaces);
-              }
-              if ((b.bestScore ?? 0) != (a.bestScore ?? 0)) {
-                return (b.bestScore ?? 0).compareTo(a.bestScore ?? 0);
-              }
-              return b.captureMicros.compareTo(a.captureMicros);
-            },
-          );
+          ..sort((_PersonCapture a, _PersonCapture b) {
+            if (a.includesSelf != b.includesSelf) {
+              return a.includesSelf ? -1 : 1;
+            }
+            if (b.highQualityFaces != a.highQualityFaces) {
+              return b.highQualityFaces.compareTo(a.highQualityFaces);
+            }
+            if ((b.bestScore ?? 0) != (a.bestScore ?? 0)) {
+              return (b.bestScore ?? 0).compareTo(a.bestScore ?? 0);
+            }
+            return b.captureMicros.compareTo(a.captureMicros);
+          });
     return captures
         .where((_PersonCapture capture) => capture.fileID > 0)
         .map((_PersonCapture capture) => capture.fileID)
@@ -753,10 +745,7 @@ class _PersonCapture {
   int highQualityFaces = 0;
   bool includesSelf;
 
-  void registerFace(
-    WrappedFaceRef face, {
-    required bool includesSelf,
-  }) {
+  void registerFace(WrappedFaceRef face, {required bool includesSelf}) {
     if (includesSelf) {
       this.includesSelf = true;
     }
@@ -770,19 +759,16 @@ class _PersonCapture {
 }
 
 class _FileSample {
-  const _FileSample({
-    required this.fileID,
-    required this.captureMicros,
-  });
+  const _FileSample({required this.fileID, required this.captureMicros});
 
   final int fileID;
   final int captureMicros;
 }
 
 List<String> _cleanChips(List<String> chips) {
-  return chips.where((String chip) => chip.trim().isNotEmpty).toList(
-        growable: false,
-      );
+  return chips
+      .where((String chip) => chip.trim().isNotEmpty)
+      .toList(growable: false);
 }
 
 String _formatNameList(List<String> names) {

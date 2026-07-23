@@ -17,6 +17,7 @@ Future<T?> showAlertBottomSheet<T>(
     isScrollControlled: true,
     isDismissible: isDismissible,
     enableDrag: isDismissible,
+    backgroundColor: Colors.transparent,
     builder: (context) => AlertBottomSheet<T>(
       title: title,
       message: message,
@@ -53,7 +54,7 @@ class AlertBottomSheet<T> extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.fill,
+        color: colorScheme.backgroundColour,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
@@ -71,20 +72,30 @@ class AlertBottomSheet<T> extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    BottomSheetCloseButton(onTap: onClose),
+                    BottomSheetCloseButton(
+                      onTap: onClose,
+                      backgroundColor: colorScheme.fill,
+                      iconSize: 18,
+                    ),
                   ],
                 ),
-              SizedBox(height: showCloseButton ? 4 : 24),
+              if (showCloseButton) const SizedBox(height: 4),
               if (assetPath != null) ...[
-                Center(child: Image.asset(assetPath!)),
-                const SizedBox(height: 24),
+                Center(
+                  child: FittedBox(
+                    alignment: Alignment.bottomCenter,
+                    fit: BoxFit.scaleDown,
+                    child: Image.asset(assetPath!),
+                  ),
+                ),
+                const SizedBox(height: 16),
               ],
               Text(
                 title,
                 style: textTheme.largeBold,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 16),
               Text(
                 message,
                 style: textTheme.small.copyWith(
@@ -104,12 +115,12 @@ class AlertBottomSheet<T> extends StatelessWidget {
     if (buttons == null || buttons!.isEmpty) return [];
 
     return [
-      const SizedBox(height: 16),
+      const SizedBox(height: 24),
       ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: buttons!.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (_, index) => buttons![index],
       ),
     ];

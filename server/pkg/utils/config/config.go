@@ -30,7 +30,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 	"github.com/spf13/viper"
 )
 

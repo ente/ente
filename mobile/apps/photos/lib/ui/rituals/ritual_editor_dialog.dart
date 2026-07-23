@@ -124,9 +124,7 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                               color: segmentedBackgroundColor,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Center(
-                              child: Text(text, style: style),
-                            ),
+                            child: Center(child: Text(text, style: style)),
                           );
                         }
 
@@ -557,6 +555,7 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                               await ritualsService.saveRitual(
                                                 updated,
                                               );
+                                              if (!context.mounted) return;
                                               Navigator.of(context).pop();
                                             }
                                           : null,
@@ -619,6 +618,7 @@ Future<Collection?> _pickAlbum(BuildContext context) async {
   );
   Collection? selected;
 
+  if (!context.mounted) return null;
   await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -635,10 +635,7 @@ Future<Collection?> _pickAlbum(BuildContext context) async {
 }
 
 class _AlbumPickerSheet extends StatefulWidget {
-  const _AlbumPickerSheet({
-    required this.albums,
-    required this.onSelected,
-  });
+  const _AlbumPickerSheet({required this.albums, required this.onSelected});
 
   final List<Collection> albums;
   final ValueChanged<Collection?> onSelected;
@@ -709,11 +706,7 @@ class _AlbumPickerSheetState extends State<_AlbumPickerSheet> {
       Navigator.of(context).pop();
     }
 
-    final newAlbumRow = GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: createAlbum,
-      child: const NewAlbumListItemWidget(),
-    );
+    final newAlbumRow = NewAlbumListItemWidget(onTap: (_) => createAlbum());
 
     Widget buildEmptyState() {
       final message = widget.albums.isEmpty
@@ -723,9 +716,7 @@ class _AlbumPickerSheetState extends State<_AlbumPickerSheet> {
         return Center(
           child: Text(
             message,
-            style: textTheme.small.copyWith(
-              color: colorScheme.textMuted,
-            ),
+            style: textTheme.small.copyWith(color: colorScheme.textMuted),
           ),
         );
       }
@@ -738,9 +729,7 @@ class _AlbumPickerSheetState extends State<_AlbumPickerSheet> {
             child: Center(
               child: Text(
                 message,
-                style: textTheme.small.copyWith(
-                  color: colorScheme.textMuted,
-                ),
+                style: textTheme.small.copyWith(color: colorScheme.textMuted),
               ),
             ),
           ),
@@ -803,21 +792,15 @@ class _AlbumPickerSheetState extends State<_AlbumPickerSheet> {
                       fillColor: colorScheme.fillFaint,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(
-                          color: colorScheme.strokeFaint,
-                        ),
+                        borderSide: BorderSide(color: colorScheme.strokeFaint),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(
-                          color: colorScheme.strokeFaint,
-                        ),
+                        borderSide: BorderSide(color: colorScheme.strokeFaint),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(
-                          color: colorScheme.strokeFaint,
-                        ),
+                        borderSide: BorderSide(color: colorScheme.strokeFaint),
                       ),
                     ),
                     onChanged: (_) => setState(() {}),
@@ -833,6 +816,8 @@ class _AlbumPickerSheetState extends State<_AlbumPickerSheet> {
                             child: buildEmptyState(),
                           )
                         : ListView.separated(
+                            keyboardDismissBehavior:
+                                ScrollViewKeyboardDismissBehavior.onDrag,
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                             itemBuilder: (context, index) {
                               if (showNewAlbumRow && index == 0) {
@@ -856,7 +841,7 @@ class _AlbumPickerSheetState extends State<_AlbumPickerSheet> {
                                 ),
                               );
                             },
-                            separatorBuilder: (_, __) => const SizedBox(
+                            separatorBuilder: (_, _) => const SizedBox(
                               height: ThumbnailListItem.defaultItemSpacing,
                             ),
                             itemCount:
@@ -904,10 +889,7 @@ class _AlbumPreviewTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  context.l10n.ritualAlbumLabel,
-                  style: textTheme.miniMuted,
-                ),
+                Text(context.l10n.ritualAlbumLabel, style: textTheme.miniMuted),
                 const SizedBox(height: 2),
                 Text(
                   displayedName,
@@ -918,10 +900,7 @@ class _AlbumPreviewTile extends StatelessWidget {
               ],
             ),
           ),
-          Icon(
-            Icons.chevron_right_rounded,
-            color: colorScheme.textMuted,
-          ),
+          Icon(Icons.chevron_right_rounded, color: colorScheme.textMuted),
         ],
       ),
     );
@@ -944,10 +923,7 @@ class _AlbumThumbnail extends StatelessWidget {
           color: colorScheme.fillFaintPressed,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(
-          Icons.photo_album_outlined,
-          color: colorScheme.textMuted,
-        ),
+        child: Icon(Icons.photo_album_outlined, color: colorScheme.textMuted),
       );
     }
     return ClipRRect(
@@ -1149,9 +1125,7 @@ class _EmojiPickerSheetState extends State<_EmojiPickerSheet> {
       _isUpdatingController = true;
       _customEmojiController.value = TextEditingValue(
         text: _customEmoji,
-        selection: TextSelection.collapsed(
-          offset: _customEmoji.length,
-        ),
+        selection: TextSelection.collapsed(offset: _customEmoji.length),
       );
       _isUpdatingController = false;
       return;
@@ -1160,9 +1134,7 @@ class _EmojiPickerSheetState extends State<_EmojiPickerSheet> {
     _isUpdatingController = true;
     _customEmojiController.value = TextEditingValue(
       text: firstGrapheme,
-      selection: TextSelection.collapsed(
-        offset: firstGrapheme.length,
-      ),
+      selection: TextSelection.collapsed(offset: firstGrapheme.length),
     );
     _isUpdatingController = false;
     _popWithEmoji(firstGrapheme);
@@ -1223,10 +1195,7 @@ class _EmojiPickerSheetState extends State<_EmojiPickerSheet> {
                       ),
                     ),
                     child: Center(
-                      child: Text(
-                        emoji,
-                        style: const TextStyle(fontSize: 22),
-                      ),
+                      child: Text(emoji, style: const TextStyle(fontSize: 22)),
                     ),
                   ),
                 );
@@ -1260,21 +1229,15 @@ class _EmojiPickerSheetState extends State<_EmojiPickerSheet> {
                       fillColor: colorScheme.fillFaint,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: colorScheme.strokeFaint,
-                        ),
+                        borderSide: BorderSide(color: colorScheme.strokeFaint),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: colorScheme.strokeFaint,
-                        ),
+                        borderSide: BorderSide(color: colorScheme.strokeFaint),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: colorScheme.strokeFaint,
-                        ),
+                        borderSide: BorderSide(color: colorScheme.strokeFaint),
                       ),
                     ),
                   ),
@@ -1290,9 +1253,7 @@ class _EmojiPickerSheetState extends State<_EmojiPickerSheet> {
                   ),
                   onPressed: _customEmoji.isEmpty
                       ? null
-                      : () => _popWithEmoji(
-                          _customEmoji,
-                        ),
+                      : () => _popWithEmoji(_customEmoji),
                   child: Text(
                     context.l10n.ritualEmojiUseAction,
                     style: textTheme.bodyBold.copyWith(color: Colors.white),

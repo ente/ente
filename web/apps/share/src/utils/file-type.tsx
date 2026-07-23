@@ -6,7 +6,8 @@ import {
     LockPasswordIcon,
     NoteIcon,
     VideoReplayIcon,
-} from "hugeicons-react";
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import React from "react";
 
 export enum LockerInfoType {
@@ -118,25 +119,49 @@ export const getLockerFileIcon = (
         switch (lockerType as LockerInfoType) {
             case LockerInfoType.Note:
                 return {
-                    icon: <NoteIcon size={size} color="#FF9800" />,
+                    icon: (
+                        <HugeiconsIcon
+                            icon={NoteIcon}
+                            size={size}
+                            color="#FF9800"
+                        />
+                    ),
                     backgroundColor: "#FF98000F",
                 };
 
             case LockerInfoType.EmergencyContact:
                 return {
-                    icon: <ContactBookIcon size={size} color="#F44336" />,
+                    icon: (
+                        <HugeiconsIcon
+                            icon={ContactBookIcon}
+                            size={size}
+                            color="#F44336"
+                        />
+                    ),
                     backgroundColor: "#F443360F",
                 };
 
             case LockerInfoType.AccountCredential:
                 return {
-                    icon: <LockPasswordIcon size={size} color="#1071FF" />,
+                    icon: (
+                        <HugeiconsIcon
+                            icon={LockPasswordIcon}
+                            size={size}
+                            color="#1071FF"
+                        />
+                    ),
                     backgroundColor: "#1071FF0F",
                 };
 
             case LockerInfoType.PhysicalRecord:
                 return {
-                    icon: <Briefcase01Icon size={size} color="#9C27B0" />,
+                    icon: (
+                        <HugeiconsIcon
+                            icon={Briefcase01Icon}
+                            size={size}
+                            color="#9C27B0"
+                        />
+                    ),
                     backgroundColor: "#9C27B00F",
                 };
         }
@@ -147,28 +172,38 @@ export const getLockerFileIcon = (
 
     if (isImageExtension(extension)) {
         return {
-            icon: <Image01Icon size={size} color="#08C225" />,
+            icon: (
+                <HugeiconsIcon icon={Image01Icon} size={size} color="#08C225" />
+            ),
             backgroundColor: "#08C2250F",
         };
     }
 
     if (isVideoExtension(extension)) {
         return {
-            icon: <VideoReplayIcon size={size} color="#8A38F5" />,
+            icon: (
+                <HugeiconsIcon
+                    icon={VideoReplayIcon}
+                    size={size}
+                    color="#8A38F5"
+                />
+            ),
             backgroundColor: "rgba(138, 56, 245, 0.06)",
         };
     }
 
     if (isDocumentExtension(extension)) {
         return {
-            icon: <File02Icon size={size} color="#FF1A53" />,
+            icon: (
+                <HugeiconsIcon icon={File02Icon} size={size} color="#FF1A53" />
+            ),
             backgroundColor: "rgba(255, 26, 83, 0.06)",
         };
     }
 
     // Default: Generic file icon
     return {
-        icon: <File02Icon size={size} color="#757575" />,
+        icon: <HugeiconsIcon icon={File02Icon} size={size} color="#757575" />,
         backgroundColor: "#FAFAFA",
     };
 };

@@ -1,3 +1,10 @@
+import {
+    deletePasskey,
+    getPasskeys,
+    registerPasskey,
+    renamePasskey,
+    type Passkey,
+} from "@/services/passkey";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -34,13 +41,6 @@ import log from "ente-base/log";
 import { useFormik } from "formik";
 import { t } from "i18next";
 import React, { useCallback, useEffect, useState } from "react";
-import {
-    deletePasskey,
-    getPasskeys,
-    registerPasskey,
-    renamePasskey,
-    type Passkey,
-} from "services/passkey";
 
 const AccountsPagePaper = styled(Paper)(({ theme }) => ({
     marginBlock: theme.spacing(2),

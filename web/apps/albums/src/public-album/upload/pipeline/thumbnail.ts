@@ -1,5 +1,5 @@
-import * as ffmpeg from "@/public-album/media/processing/ffmpeg";
 import log from "ente-base/log";
+import * as ffmpeg from "ente-gallery/services/ffmpeg";
 import { FileType, type FileTypeInfo } from "ente-media/file-type";
 import { isHEICExtension } from "ente-media/formats";
 import { heicToJPEG } from "ente-media/heic-convert";
@@ -46,7 +46,7 @@ const canvasThumbnailGenerationTimeout = 30 * 1000;
 export const generateThumbnailWeb = async (
     blob: Blob,
     fileTypeInfo: FileTypeInfo,
-): Promise<Uint8Array> =>
+): Promise<Uint8Array<ArrayBuffer>> =>
     fileTypeInfo.fileType == FileType.image
         ? await generateImageThumbnailWeb(blob, fileTypeInfo)
         : await generateVideoThumbnailWeb(blob);
@@ -96,7 +96,9 @@ const generateImageThumbnailUsingCanvas = async (blob: Blob) => {
     return await compressedJPEGData(canvas);
 };
 
-const compressedJPEGData = async (canvas: HTMLCanvasElement) => {
+const compressedJPEGData = async (
+    canvas: HTMLCanvasElement,
+): Promise<Uint8Array<ArrayBuffer>> => {
     let blob: Blob | undefined | null;
     let prevSize = Number.MAX_SAFE_INTEGER;
     let quality = 0.7;
@@ -172,7 +174,7 @@ export const generateVideoThumbnailUsingCanvas = async (blob: Blob) => {
  * A fallback, black, thumbnail for use in cases where thumbnail generation
  * fails.
  */
-export const fallbackThumbnail = () =>
+export const fallbackThumbnail = (): Uint8Array<ArrayBuffer> =>
     Uint8Array.from(atob(blackThumbnailB64), (c) => c.charCodeAt(0));
 
 const blackThumbnailB64 =

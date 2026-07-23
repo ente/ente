@@ -1,5 +1,5 @@
 rust_input: crate::api
-rust_root: rust/
+rust_root: ../../../rust/bindings/frb/photos/
 dart_output: lib/src/rust
 dart_entrypoint_class_name: EntePhotosRust
 

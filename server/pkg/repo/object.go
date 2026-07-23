@@ -7,8 +7,8 @@ import (
 	"math/rand"
 	"strconv"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
 )
 
@@ -16,6 +16,12 @@ type ObjectRepository struct {
 	DB                 *sql.DB
 	LatencySensitiveDB *sql.DB
 	QueueRepo          *QueueRepository
+}
+
+type ObjectReferenceStatus struct {
+	ObjectKey     string
+	InObjectKeys  bool
+	InTempObjects bool
 }
 
 func (repo *ObjectRepository) objectLookupDB() *sql.DB {
@@ -138,6 +144,116 @@ func (repo *ObjectRepository) GetAccessibleObjectWithDCs(ctx context.Context, fi
 	}
 	if !canAccess {
 		return s3ObjectKey, datacenters, stacktrace.Propagate(ente.ErrPermissionDenied, "access denied")
+	}
+	if !objectKey.Valid || !fileSize.Valid || !objectType.Valid {
+		return s3ObjectKey, datacenters, stacktrace.Propagate(sql.ErrNoRows, "")
+	}
+	s3ObjectKey.ObjectKey = objectKey.String
+	s3ObjectKey.FileSize = fileSize.Int64
+	s3ObjectKey.Type = ente.ObjectType(objectType.String)
+	return s3ObjectKey, datacenters, nil
+}
+
+// GetOwnedObject verifies ownership and returns the S3 object key in a single
+// latency-sensitive DB query.
+func (repo *ObjectRepository) GetOwnedObject(ctx context.Context, fileID int64, ownerID int64, objType ente.ObjectType) (ente.S3ObjectKey, error) {
+	s3ObjectKey, _, err := repo.GetOwnedObjectWithDCs(ctx, fileID, ownerID, objType)
+	return s3ObjectKey, err
+}
+
+// GetOwnedObjectWithDCs verifies ownership and returns the S3 object key along
+// with replicated datacenters in a single latency-sensitive DB query.
+func (repo *ObjectRepository) GetOwnedObjectWithDCs(ctx context.Context, fileID int64, ownerID int64, objType ente.ObjectType) (ente.S3ObjectKey, []string, error) {
+	row := repo.objectLookupDB().QueryRowContext(ctx, `
+		SELECT
+			f.file_id,
+			f.owner_id = $2 AS is_owner,
+			ok.object_key,
+			ok.size,
+			ok.o_type::text,
+			COALESCE(ok.datacenters, '{}'::s3region[])
+		FROM files f
+		LEFT JOIN object_keys ok
+			ON ok.file_id = f.file_id
+			AND ok.o_type = $3::object_type
+			AND ok.is_deleted = FALSE
+		WHERE f.file_id = $1`,
+		fileID, ownerID, objType)
+
+	var s3ObjectKey ente.S3ObjectKey
+	var isOwner bool
+	var objectKey sql.NullString
+	var fileSize sql.NullInt64
+	var objectType sql.NullString
+	datacenters := make([]string, 0)
+	err := row.Scan(
+		&s3ObjectKey.FileID,
+		&isOwner,
+		&objectKey,
+		&fileSize,
+		&objectType,
+		pq.Array(&datacenters),
+	)
+	if err != nil {
+		return s3ObjectKey, datacenters, stacktrace.Propagate(err, "")
+	}
+	if !isOwner {
+		return s3ObjectKey, datacenters, stacktrace.Propagate(ente.ErrPermissionDenied, "not file owner")
+	}
+	if !objectKey.Valid || !fileSize.Valid || !objectType.Valid {
+		return s3ObjectKey, datacenters, stacktrace.Propagate(sql.ErrNoRows, "")
+	}
+	s3ObjectKey.ObjectKey = objectKey.String
+	s3ObjectKey.FileSize = fileSize.Int64
+	s3ObjectKey.Type = ente.ObjectType(objectType.String)
+	return s3ObjectKey, datacenters, nil
+}
+
+// GetCollectionObject verifies collection membership and returns the S3 object
+// key in a single latency-sensitive DB query.
+func (repo *ObjectRepository) GetCollectionObject(ctx context.Context, collectionID int64, fileID int64, objType ente.ObjectType) (ente.S3ObjectKey, error) {
+	s3ObjectKey, _, err := repo.GetCollectionObjectWithDCs(ctx, collectionID, fileID, objType)
+	return s3ObjectKey, err
+}
+
+// GetCollectionObjectWithDCs verifies collection membership and returns the S3
+// object key along with replicated datacenters in a single latency-sensitive DB
+// query.
+func (repo *ObjectRepository) GetCollectionObjectWithDCs(ctx context.Context, collectionID int64, fileID int64, objType ente.ObjectType) (ente.S3ObjectKey, []string, error) {
+	row := repo.objectLookupDB().QueryRowContext(ctx, `
+		SELECT
+			cf.file_id,
+			ok.object_key,
+			ok.size,
+			ok.o_type::text,
+			COALESCE(ok.datacenters, '{}'::s3region[])
+		FROM collection_files cf
+		LEFT JOIN object_keys ok
+			ON ok.file_id = cf.file_id
+			AND ok.o_type = $3::object_type
+			AND ok.is_deleted = FALSE
+		WHERE cf.collection_id = $1
+			AND cf.file_id = $2
+			AND cf.is_deleted = FALSE`,
+		collectionID, fileID, objType)
+
+	var s3ObjectKey ente.S3ObjectKey
+	var objectKey sql.NullString
+	var fileSize sql.NullInt64
+	var objectType sql.NullString
+	datacenters := make([]string, 0)
+	err := row.Scan(
+		&s3ObjectKey.FileID,
+		&objectKey,
+		&fileSize,
+		&objectType,
+		pq.Array(&datacenters),
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return s3ObjectKey, datacenters, stacktrace.Propagate(ente.ErrPermissionDenied, "file not in collection")
+	}
+	if err != nil {
+		return s3ObjectKey, datacenters, stacktrace.Propagate(err, "")
 	}
 	if !objectKey.Valid || !fileSize.Valid || !objectType.Valid {
 		return s3ObjectKey, datacenters, stacktrace.Propagate(sql.ErrNoRows, "")
@@ -271,6 +387,59 @@ func (repo *ObjectRepository) DoesObjectOrTempObjectExist(objectKey string) (boo
 		         EXISTS (SELECT 1 FROM temp_objects WHERE object_key = $1))`,
 		objectKey).Scan(&exists)
 	return exists, stacktrace.Propagate(err, "")
+}
+
+func (repo *ObjectRepository) GetObjectReferenceStatuses(ctx context.Context, objectKeys []string) (map[string]ObjectReferenceStatus, error) {
+	statuses := make(map[string]ObjectReferenceStatus, len(objectKeys))
+	if len(objectKeys) == 0 {
+		return statuses, nil
+	}
+	for _, objectKey := range objectKeys {
+		statuses[objectKey] = ObjectReferenceStatus{ObjectKey: objectKey}
+	}
+
+	rows, err := repo.DB.QueryContext(ctx,
+		`SELECT object_key FROM object_keys WHERE object_key = ANY($1::text[])`,
+		pq.Array(objectKeys),
+	)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	for rows.Next() {
+		var objectKey string
+		if err = rows.Scan(&objectKey); err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		status := statuses[objectKey]
+		status.InObjectKeys = true
+		statuses[status.ObjectKey] = status
+	}
+	if err = rows.Close(); err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	if err = rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+
+	rows, err = repo.DB.QueryContext(ctx,
+		`SELECT object_key FROM temp_objects WHERE object_key = ANY($1::text[])`,
+		pq.Array(objectKeys),
+	)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var objectKey string
+		if err = rows.Scan(&objectKey); err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		status := statuses[objectKey]
+		status.InTempObjects = true
+		statuses[status.ObjectKey] = status
+	}
+	return statuses, stacktrace.Propagate(rows.Err(), "")
 }
 
 // GetObjectState returns various bits of information about an object that are

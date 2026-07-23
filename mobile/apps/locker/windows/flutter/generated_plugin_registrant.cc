@@ -8,9 +8,9 @@
 
 #include <app_links/app_links_plugin_c_api.h>
 #include <file_saver/file_saver_plugin.h>
-#include <flutter_local_authentication/flutter_local_authentication_plugin_c_api.h>
 #include <flutter_secure_storage_windows/flutter_secure_storage_windows_plugin.h>
 #include <local_auth_windows/local_auth_plugin.h>
+#include <rive_native/rive_native_plugin.h>
 #include <screen_retriever_windows/screen_retriever_windows_plugin_c_api.h>
 #include <sentry_flutter/sentry_flutter_plugin.h>
 #include <share_plus/share_plus_windows_plugin_c_api.h>
@@ -24,12 +24,12 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("AppLinksPluginCApi"));
   FileSaverPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FileSaverPlugin"));
-  FlutterLocalAuthenticationPluginCApiRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("FlutterLocalAuthenticationPluginCApi"));
   FlutterSecureStorageWindowsPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FlutterSecureStorageWindowsPlugin"));
   LocalAuthPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("LocalAuthPlugin"));
+  RiveNativePluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("RiveNativePlugin"));
   ScreenRetrieverWindowsPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("ScreenRetrieverWindowsPluginCApi"));
   SentryFlutterPluginRegisterWithRegistrar(

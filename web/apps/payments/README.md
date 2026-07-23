@@ -1,7 +1,6 @@
 # Payments
 
-Code that runs on `payments.ente.com`. It brokers between our services and
-Stripe's API for payments.
+Code that runs on `payments.ente.com`. It brokers between our services and Stripe's API for payments.
 
 ## Development
 
@@ -13,8 +12,7 @@ There are three pieces that need to be connected to have a working local setup:
 
 ### Client app
 
-For the client, let us consider the Photos web app (similar configuration can be
-done in the mobile client too).
+For the client, let us consider the Photos web app (similar configuration can be done in the mobile client too).
 
 Add the following to `web/apps/photos/.env.local`:
 
@@ -27,20 +25,16 @@ Modify "https://payments.ente.com" to "http://localhost:3001".
 Then start it locally
 
 ```sh
-yarn dev:photos
+npm run dev:photos
 ```
 
 This tells it to connect to the museum and payments app running on localhost.
 
-> For connecting from the mobile app, you'll need to run museum on a local IP
-> instead localhost. If so, just replace "http://localhost:8080" with (say)
-> "http://192.168.1.2:8080" wherever mentioned.
+> For connecting from the mobile app, you'll need to run museum on a local IP instead localhost. If so, just replace "http://localhost:8080" with (say) "http://192.168.1.2:8080" wherever mentioned.
 
 ### Payments app
 
-For this (payments) web app, configure it to connect to the local museum, and
-use a set of (development) Stripe keys which can be found in
-[Stripe's developer dashboard](https://dashboard.stripe.com).
+For this (payments) web app, configure it to connect to the local museum, and use a set of (development) Stripe keys which can be found in [Stripe's developer dashboard](https://dashboard.stripe.com).
 
 Add the following to `web/apps/payments/.env.local`:
 
@@ -52,21 +46,18 @@ VITE_STRIPE_US_PUBLISHABLE_KEY = stripe_publishable_key
 Then start it locally
 
 ```sh
-yarn dev:payments
+npm run dev:payments
 ```
 
 ### Museum
 
-1. Install the [stripe-cli](https://docs.stripe.com/stripe-cli) and capture the
-   webhook signing secret.
+1. Install the [stripe-cli](https://docs.stripe.com/stripe-cli) and capture the webhook signing secret.
 
 2. Define this secret within your `museum.yaml`
 
-3. Update the `whitelisted-redirect-urls` so that it supports redirecting to the
-   locally running payments app.
+3. Update the `whitelisted-redirect-urls` so that it supports redirecting to the locally running payments app.
 
-Assuming that your local payments app is running on `localhost:3001`, your
-`server/museum.yaml` should look as follows.
+Assuming that your local payments app is running on `localhost:3001`, your `server/museum.yaml` should look as follows.
 
 ```yaml
 stripe:
@@ -82,8 +73,7 @@ stripe:
         cancel: ?status=fail&reason=canceled
 ```
 
-Make sure you have test plans available for museum to use, by placing them in
-(say) `server/data/billing/us-testing.json`.
+Make sure you have test plans available for museum to use, by placing them in (say) `server/data/billing/us-testing.json`.
 
 Finally, start museum, for example:
 
@@ -91,7 +81,4 @@ Finally, start museum, for example:
 docker compose up
 ```
 
-Now if you try to purchase a plan from your locally running photos web client,
-it should redirect to the locally running payments app, and from there to
-Stripe. Once the test purchase completes it should redirect back to the local
-web client.
+Now if you try to purchase a plan from your locally running photos web client, it should redirect to the locally running payments app, and from there to Stripe. Once the test purchase completes it should redirect back to the local web client.

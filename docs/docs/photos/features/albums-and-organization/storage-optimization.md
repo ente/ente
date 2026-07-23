@@ -87,7 +87,9 @@ Open `Settings > Free up space > Deduplicate files`, review the duplicates found
 - Your photos remain visible in all their original albums
 - Storage quota is reduced by the space occupied by removed duplicates
 
-> **Note**: This tool only removes exact duplicates (same file hash). For similar but not identical photos, use the "Similar images" feature below.
+> [!NOTE]
+>
+> This tool only removes exact duplicates (same file hash). For similar but not identical photos, use the "Similar images" feature below.
 
 ## Remove similar images
 
@@ -207,7 +209,9 @@ Accepting suggestions helps you:
 
 Rejecting suggestions keeps the photo in your account. The photo was already removed from the shared album when the suggestion was made.
 
-> **Note**: Delete suggestions is currently available on mobile apps only.
+> [!NOTE]
+>
+> Delete suggestions is currently available on mobile apps only.
 
 Learn more about [suggest deletion](/photos/features/sharing-and-collaboration/collaboration#suggest-deletion) in the collaboration guide.
 

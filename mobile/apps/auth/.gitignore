@@ -1,50 +1,9 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.buildlog/
-.history
-.svn/
-android/app/build/
-
-# Editors
-.vscode/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-.pub-cache/
-.pub/
-/build/
-lib/l10n/untranslated_messages.json
-macos/build/
-
-# Web related
-lib/generated_plugin_registrant.dart
-
-# Exceptions to above rules.
-!/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
-
-android/key.properties
 dist/
 
 # FVM Version Cache
 .fvm/
+
+# Generated l10n audit output
+lib/l10n/untranslated_messages.json
+
 lib/l10n/arb/*.dart

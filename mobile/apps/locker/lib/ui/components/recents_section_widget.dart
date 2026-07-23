@@ -1,7 +1,4 @@
-import "package:ente_ui/components/close_icon_button.dart";
-import "package:ente_ui/theme/colors.dart";
-import 'package:ente_ui/theme/ente_theme.dart';
-import "package:ente_ui/theme/text_style.dart";
+import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import "package:hugeicons/hugeicons.dart";
@@ -11,7 +8,6 @@ import "package:locker/models/selected_files.dart";
 import 'package:locker/services/collections/collections_service.dart';
 import 'package:locker/services/collections/models/collection.dart';
 import 'package:locker/services/files/sync/models/file.dart';
-import 'package:locker/ui/components/collection_chip.dart';
 import "package:locker/ui/components/empty_state_widget.dart";
 import 'package:locker/ui/components/item_list_view.dart';
 import 'package:locker/ui/pages/all_collections_page.dart';
@@ -112,58 +108,31 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
       return null;
     }
 
-    final chipModels = orderedFilters
-        .map(
-          (collection) => _FilterChipViewModel(
-            key: 'c_${collection.id}',
-            label: _collectionLabel(collection),
-            isSelected: _selectedCollections.contains(collection),
-            onTap: () => _onCollectionSelected(collection),
-          ),
-        )
-        .toList();
-
     return _FilterChipsRow(
-      chips: chipModels,
-      showClearButton: false,
-      onClearTapped: _clearAllFilters,
+      chips: _buildFilterChipModels(context, orderedFilters),
       onFilterIconTapped: () => _showFilterBottomSheet(context),
     );
   }
 
   void _showFilterBottomSheet(BuildContext context) {
-    showModalBottomSheet(
+    final navigator = Navigator.of(context);
+
+    showBottomSheetComponent<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (bottomSheetContext) {
+      builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setBottomSheetState) {
-            final colorScheme = getEnteColorScheme(context);
-            final textTheme = getEnteTextTheme(context);
             final orderedFilters = _getOrderedCollections();
-            final chipModels = orderedFilters
-                .map(
-                  (collection) => _FilterChipViewModel(
-                    key: 'c_${collection.id}',
-                    label: _collectionLabel(collection),
-                    isSelected: _selectedCollections.contains(collection),
-                    onTap: () async {
-                      await _onCollectionSelected(collection);
-                      setBottomSheetState(() {});
-                    },
-                  ),
-                )
-                .toList();
 
             return _FilterBottomSheet(
-              chips: chipModels,
-              colorScheme: colorScheme,
-              textTheme: textTheme,
-              hasActiveFilters: _hasActiveFilters,
+              chips: _buildFilterChipModels(
+                context,
+                orderedFilters,
+                afterTap: () => setBottomSheetState(() {}),
+              ),
               onSeeAllCollections: () {
-                Navigator.push(
-                  context,
+                navigator.pop();
+                navigator.push(
                   MaterialPageRoute(
                     builder: (context) => const AllCollectionsPage(),
                   ),
@@ -173,12 +142,31 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
                 await _clearAllFilters();
                 setBottomSheetState(() {});
               },
-              onClose: () => Navigator.pop(context),
             );
           },
         );
       },
     );
+  }
+
+  List<_FilterChipViewModel> _buildFilterChipModels(
+    BuildContext context,
+    List<Collection> collections, {
+    VoidCallback? afterTap,
+  }) {
+    return collections
+        .map(
+          (collection) => _FilterChipViewModel(
+            key: 'c_${collection.id}',
+            label: _collectionLabel(context, collection),
+            isSelected: _selectedCollections.contains(collection),
+            onTap: () async {
+              await _onCollectionSelected(collection);
+              afterTap?.call();
+            },
+          ),
+        )
+        .toList();
   }
 
   Widget _buildRecentsTable(BuildContext context) {
@@ -189,10 +177,7 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
       layoutBuilder: (currentChild, previousChildren) {
         return Stack(
           alignment: Alignment.topCenter,
-          children: <Widget>[
-            ...previousChildren,
-            if (currentChild != null) currentChild,
-          ],
+          children: <Widget>[...previousChildren, ?currentChild],
         );
       },
       child: _displayedFiles.isEmpty
@@ -257,9 +242,8 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
   Future<void> _updateFilteredFiles() async {
     final int computationId = ++_filtersComputationId;
     final hasCollectionFilters = _selectedCollections.isNotEmpty;
-    final hasAnyFilters = hasCollectionFilters;
 
-    if (!hasAnyFilters) {
+    if (!hasCollectionFilters) {
       if (!mounted || computationId != _filtersComputationId) {
         return;
       }
@@ -278,7 +262,7 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
 
     final fileCollections = await _ensureCollectionsForFiles(
       widget.recentFiles,
-      refresh: hasCollectionFilters,
+      refresh: true,
     );
 
     if (!mounted || computationId != _filtersComputationId) {
@@ -287,8 +271,9 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
 
     final filteredFiles = <EnteFile>[];
     final filteredFileCollections = <int, List<Collection>>{};
-    final selectedCollectionIds =
-        _selectedCollections.map((collection) => collection.id).toSet();
+    final selectedCollectionIds = _selectedCollections
+        .map((collection) => collection.id)
+        .toSet();
 
     for (final file in widget.recentFiles) {
       final fileId = file.uploadedFileID;
@@ -296,13 +281,12 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
           ? (fileCollections[fileId] ?? const <Collection>[])
           : const <Collection>[];
 
-      if (hasCollectionFilters) {
-        final collectionIdsForFile =
-            collectionsForFile.map((collection) => collection.id).toSet();
+      final collectionIdsForFile = collectionsForFile
+          .map((collection) => collection.id)
+          .toSet();
 
-        if (!selectedCollectionIds.every(collectionIdsForFile.contains)) {
-          continue;
-        }
+      if (!selectedCollectionIds.every(collectionIdsForFile.contains)) {
+        continue;
       }
 
       filteredFiles.add(file);
@@ -312,7 +296,6 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
     }
 
     final availableCollections = _computeAvailableCollections(
-      hasActiveFilters: hasAnyFilters,
       filteredFiles: filteredFiles,
       fileCollections: filteredFileCollections,
     );
@@ -357,11 +340,13 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
       final existingRequest = _fileCollectionsRequests[fileId];
       if (existingRequest != null) {
         pending.add(
-          existingRequest.then((collections) {
-            _fileCollectionsCache[fileId] = collections;
-          }).whenComplete(() {
-            _fileCollectionsRequests.remove(fileId);
-          }),
+          existingRequest
+              .then((collections) {
+                _fileCollectionsCache[fileId] = collections;
+              })
+              .whenComplete(() {
+                _fileCollectionsRequests.remove(fileId);
+              }),
         );
         continue;
       }
@@ -369,11 +354,13 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
       final request = CollectionService.instance.getCollectionsForFile(file);
       _fileCollectionsRequests[fileId] = request;
       pending.add(
-        request.then((collections) {
-          _fileCollectionsCache[fileId] = collections;
-        }).whenComplete(() {
-          _fileCollectionsRequests.remove(fileId);
-        }),
+        request
+            .then((collections) {
+              _fileCollectionsCache[fileId] = collections;
+            })
+            .whenComplete(() {
+              _fileCollectionsRequests.remove(fileId);
+            }),
       );
     }
 
@@ -398,14 +385,9 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
   }
 
   List<Collection> _computeAvailableCollections({
-    required bool hasActiveFilters,
     required List<EnteFile> filteredFiles,
     required Map<int, List<Collection>> fileCollections,
   }) {
-    if (!hasActiveFilters) {
-      return List.from(widget.collections);
-    }
-
     final availableIds = <int>{};
 
     for (final file in filteredFiles) {
@@ -461,10 +443,10 @@ class _RecentsSectionWidgetState extends State<RecentsSectionWidget> {
     return orderedCollections;
   }
 
-  String _collectionLabel(Collection collection) {
+  String _collectionLabel(BuildContext context, Collection collection) {
     final name = collection.displayName?.trim();
     if (name == null || name.isEmpty) {
-      return 'Untitled';
+      return context.l10n.untitled;
     }
     return name;
   }
@@ -487,174 +469,62 @@ class _FilterChipViewModel {
 class _FilterChipsRow extends StatelessWidget {
   const _FilterChipsRow({
     required this.chips,
-    required this.showClearButton,
-    required this.onClearTapped,
     required this.onFilterIconTapped,
   });
 
   final List<_FilterChipViewModel> chips;
-  final bool showClearButton;
-  final VoidCallback onClearTapped;
   final VoidCallback onFilterIconTapped;
 
   @override
   Widget build(BuildContext context) {
     final listKey = chips.map((chip) => chip.key).join('-');
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
 
-    return SizedBox(
-      height: 44,
-      child: Row(
-        children: [
-          _FilterIconButton(
-            onTap: onFilterIconTapped,
-            colorScheme: colorScheme,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: ListView.builder(
-                  key: ValueKey(listKey),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: chips.length,
-                  itemBuilder: (context, index) {
-                    final chip = chips[index];
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.only(right: 8),
-                      child: CollectionChip(
-                        label: chip.label,
-                        isSelected: chip.isSelected,
-                        onTap: chip.onTap,
-                        colorScheme: colorScheme,
-                        textTheme: textTheme,
-                        backgroundColor: colorScheme.backdropBase,
+    return Row(
+      children: [
+        IconButtonComponent(
+          icon: const HugeIcon(icon: HugeIcons.strokeRoundedFilterHorizontal),
+          variant: IconButtonComponentVariant.primary,
+          shouldSurfaceExecutionStates: false,
+          tooltip: context.l10n.filters,
+          onTap: onFilterIconTapped,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: SizedBox(
+                    key: ValueKey(listKey),
+                    width: constraints.maxWidth,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.only(right: 24),
+                      child: Row(
+                        children: chips.map((chip) {
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: const EdgeInsets.only(right: 8),
+                            child: TagChipComponent(
+                              label: chip.label,
+                              state: chip.isSelected
+                                  ? TagChipComponentState.selected
+                                  : TagChipComponentState.unselected,
+                              onTap: chip.onTap,
+                            ),
+                          );
+                        }).toList(),
                       ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            switchInCurve: Curves.easeOut,
-            switchOutCurve: Curves.easeIn,
-            transitionBuilder: (Widget child, Animation<double> animation) {
-              return SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(1.0, 0.0),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeOut,
-                  ),
-                ),
-                child: FadeTransition(
-                  opacity: animation,
-                  child: child,
-                ),
-              );
-            },
-            child: showClearButton
-                ? Padding(
-                    key: const ValueKey('clear_button'),
-                    padding: const EdgeInsets.only(left: 8),
-                    child: _FilterClearButton(
-                      onTap: onClearTapped,
-                      colorScheme: colorScheme,
-                      textTheme: textTheme,
                     ),
-                  )
-                : const SizedBox.shrink(key: ValueKey('no_clear_button')),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FilterIconButton extends StatelessWidget {
-  const _FilterIconButton({
-    required this.onTap,
-    required this.colorScheme,
-  });
-
-  final VoidCallback onTap;
-  final EnteColorScheme colorScheme;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: colorScheme.backdropBase,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Center(
-          child: Icon(
-            Icons.filter_list,
-            color: colorScheme.textMuted,
-            size: 24,
+                  ),
+                );
+              },
+            ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _FilterClearButton extends StatelessWidget {
-  const _FilterClearButton({
-    required this.onTap,
-    required this.colorScheme,
-    required this.textTheme,
-  });
-
-  final VoidCallback onTap;
-  final EnteColorScheme colorScheme;
-  final EnteTextTheme textTheme;
-
-  @override
-  Widget build(BuildContext context) {
-    final accentColor = colorScheme.warning500;
-    final backgroundColor = accentColor.withValues(alpha: 0.12);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 44),
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: const BorderRadius.all(Radius.circular(24.0)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            HugeIcon(
-              icon: HugeIcons.strokeRoundedDelete02,
-              size: 16,
-              color: accentColor,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              context.l10n.clear,
-              style: textTheme.small.copyWith(
-                color: accentColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
+      ],
     );
   }
 }
@@ -662,101 +532,60 @@ class _FilterClearButton extends StatelessWidget {
 class _FilterBottomSheet extends StatelessWidget {
   const _FilterBottomSheet({
     required this.chips,
-    required this.colorScheme,
-    required this.textTheme,
-    required this.hasActiveFilters,
     required this.onSeeAllCollections,
     required this.onClearAllFilters,
-    required this.onClose,
   });
 
   final List<_FilterChipViewModel> chips;
-  final EnteColorScheme colorScheme;
-  final EnteTextTheme textTheme;
-  final bool hasActiveFilters;
   final VoidCallback onSeeAllCollections;
   final VoidCallback onClearAllFilters;
-  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.componentColors;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           child: Row(
             children: [
               _ActionPillButton(
                 label: context.l10n.seeAllCollections,
                 onTap: onSeeAllCollections,
-                colorScheme: colorScheme,
-                textTheme: textTheme,
+                colors: colors,
               ),
               const Spacer(),
               _ActionPillButton(
                 label: context.l10n.clearAllFilters,
                 onTap: onClearAllFilters,
-                colorScheme: colorScheme,
-                textTheme: textTheme,
+                colors: colors,
               ),
             ],
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: colorScheme.backdropBase.withValues(alpha: 1.0),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-            border: Border(
-              top: BorderSide(color: colorScheme.strokeFaint),
-            ),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        context.l10n.filters,
-                        style: textTheme.largeBold,
-                      ),
-                      const CloseIconButton(),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 200),
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: chips.map((chip) {
-                            return CollectionChip(
-                              label: chip.label,
-                              isSelected: chip.isSelected,
-                              onTap: chip.onTap,
-                              colorScheme: colorScheme,
-                              textTheme: textTheme,
-                              backgroundColor: colorScheme.backgroundElevated2,
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+        BottomSheetComponent(
+          title: context.l10n.filters,
+          content: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 200),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: chips.map((chip) {
+                    return TagChipComponent(
+                      label: chip.label,
+                      state: chip.isSelected
+                          ? TagChipComponentState.selected
+                          : TagChipComponentState.unselected,
+                      onTap: chip.onTap,
+                    );
+                  }).toList(),
+                ),
               ),
             ),
           ),
@@ -770,14 +599,12 @@ class _ActionPillButton extends StatelessWidget {
   const _ActionPillButton({
     required this.label,
     required this.onTap,
-    required this.colorScheme,
-    required this.textTheme,
+    required this.colors,
   });
 
   final String label;
   final VoidCallback onTap;
-  final EnteColorScheme colorScheme;
-  final EnteTextTheme textTheme;
+  final ColorTokens colors;
 
   @override
   Widget build(BuildContext context) {
@@ -785,21 +612,12 @@ class _ActionPillButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: colorScheme.backgroundElevated2,
+          color: colors.fillLight,
           borderRadius: BorderRadius.circular(50),
-          border: Border.all(
-            color: colorScheme.strokeFaint,
-            width: 1,
-          ),
+          border: Border.all(color: colors.strokeFaint, width: 1),
         ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 12.0,
-          vertical: 8.0,
-        ),
-        child: Text(
-          label,
-          style: textTheme.small,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+        child: Text(label, style: TextStyles.body),
       ),
     );
   }

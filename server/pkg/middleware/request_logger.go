@@ -9,15 +9,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ente-io/museum/pkg/utils/network"
+	"github.com/ente/museum/pkg/utils/network"
 
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/stacktrace"
 	"github.com/gin-contrib/requestid"
 
-	timeUtil "github.com/ente-io/museum/pkg/utils/time"
+	timeUtil "github.com/ente/museum/pkg/utils/time"
 
-	"github.com/ente-io/museum/pkg/utils/handler"
+	"github.com/ente/museum/pkg/utils/handler"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -33,6 +33,7 @@ var latency = promauto.NewHistogramVec(prometheus.HistogramOpts{
 // shouldSkipBodyLog returns true if the body should not be logged.
 // This is useful for endpoints that receive large or sensitive payloads.
 func shouldSkipBodyLog(method string, path string) bool {
+	isReadOnly := method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions
 	if method == "PUT" && path == "/embeddings" {
 		return true
 	}
@@ -51,7 +52,19 @@ func shouldSkipBodyLog(method string, path string) bool {
 	if path == "/admin/user/terminate-session" {
 		return true
 	}
+	if method == http.MethodPost && (path == "/events" || path == "/events/user") {
+		return true
+	}
 	if method == http.MethodPost && (path == "/paste/create" || path == "/paste/guard" || path == "/paste/consume") {
+		return true
+	}
+	if method == http.MethodPost && (path == "/users/recover-account" || path == "/users/recover-account/validate") {
+		return true
+	}
+	if !isReadOnly && (strings.HasPrefix(path, "/space") || strings.HasPrefix(path, "/account/space")) {
+		return true
+	}
+	if !isReadOnly && (path == "/user-entity/key" || path == "/user-entity/key/ensure") {
 		return true
 	}
 	return false

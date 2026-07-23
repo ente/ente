@@ -4,9 +4,7 @@ import "package:photos/generated/l10n.dart";
 import "package:photos/theme/ente_theme.dart";
 
 class AppVersionWidget extends StatefulWidget {
-  const AppVersionWidget({
-    super.key,
-  });
+  const AppVersionWidget({super.key});
 
   @override
   State<AppVersionWidget> createState() => _AppVersionWidgetState();
@@ -51,8 +49,9 @@ class _AppVersionWidgetState extends State<AppVersionWidget> {
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Center(
                 child: Text(
-                  AppLocalizations.of(context)
-                      .appVersion(versionValue: snapshot.data!),
+                  AppLocalizations.of(
+                    context,
+                  ).appVersion(versionValue: snapshot.data!),
                   style: textTheme.smallMuted,
                 ),
               ),

@@ -5,7 +5,7 @@ vendor: Ente
 packager: Ente Developers
 packagerEmail: auth@ente.com
 license: GPLv3
-url: https://github.com/ente-io/ente
+url: https://github.com/ente/ente
 package_name: enteauth
 include_build_number: false
 
@@ -17,6 +17,14 @@ requires:
   - libsqlite3x
   - libsecret
   - libappindicator
+  - polkit
+
+postinstall_scripts:
+  - install -D -o root -g root -m 0644 /usr/share/enteauth/data/flutter_assets/assets/polkit/com.ente.auth.policy /usr/share/polkit-1/actions/com.ente.auth.policy
+  - if command -v chcon >/dev/null 2>&1; then chcon system_u:object_r:usr_t:s0 /usr/share/polkit-1/actions/com.ente.auth.policy || true; fi
+
+postuninstall_scripts:
+  - rm -f /usr/share/polkit-1/actions/com.ente.auth.policy
 
 keywords:
   - Authentication

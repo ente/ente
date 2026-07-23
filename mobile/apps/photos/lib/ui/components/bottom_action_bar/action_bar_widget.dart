@@ -1,8 +1,8 @@
+import 'package:ente_components/ente_components.dart' as components;
 import 'package:flutter/material.dart';
 import 'package:photos/core/configuration.dart';
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/selected_files.dart';
-import 'package:photos/theme/ente_theme.dart';
 
 class ActionBarWidget extends StatefulWidget {
   final SelectedFiles? selectedFiles;
@@ -42,7 +42,10 @@ class _ActionBarWidgetState extends State<ActionBarWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = getEnteTextTheme(context);
+    final colors = components.ComponentTheme.colorsOf(context);
+    final miniStyle = components.TextStyles.mini.copyWith(
+      color: colors.textBase,
+    );
     return SizedBox(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
@@ -61,10 +64,10 @@ class _ActionBarWidgetState extends State<ActionBarWidget> {
                             count: _selectedFilesNotifier.value,
                             yourCount: _selectedOwnedFilesNotifier.value,
                           )
-                        : AppLocalizations.of(context).selectedPhotos(
-                            count: _selectedFilesNotifier.value,
-                          ),
-                    style: textTheme.miniMuted,
+                        : AppLocalizations.of(
+                            context,
+                          ).selectedPhotos(count: _selectedFilesNotifier.value),
+                    style: miniStyle,
                   );
                 },
               ),
@@ -82,7 +85,7 @@ class _ActionBarWidgetState extends State<ActionBarWidget> {
                     alignment: Alignment.centerRight,
                     child: Text(
                       AppLocalizations.of(context).cancel,
-                      style: textTheme.mini,
+                      style: miniStyle,
                     ),
                   ),
                 ),

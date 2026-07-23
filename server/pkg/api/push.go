@@ -3,11 +3,11 @@ package api
 import (
 	"net/http"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/handler"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/handler"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,7 +18,7 @@ type PushHandler struct {
 
 func (h *PushHandler) AddToken(c *gin.Context) {
 	var req ente.PushTokenRequest
-	err := c.ShouldBindJSON(&req)
+	err := handler.BindJSON(c, &req)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return

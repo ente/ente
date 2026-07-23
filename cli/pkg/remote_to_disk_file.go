@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ente-io/cli/pkg/mapper"
-	"github.com/ente-io/cli/pkg/model"
-	"github.com/ente-io/cli/pkg/model/export"
-	"github.com/ente-io/cli/utils"
+	"github.com/ente/cli/pkg/mapper"
+	"github.com/ente/cli/pkg/model"
+	"github.com/ente/cli/pkg/model/export"
+	"github.com/ente/cli/utils"
 	"log"
 	"os"
 	"path/filepath"
@@ -69,7 +69,7 @@ func (c *ClICtrl) syncFiles(ctx context.Context, account model.Account) error {
 				return err
 			}
 		}
-		fileBytes, err := c.GetValue(ctx, model.RemoteFiles, []byte(fmt.Sprintf("%d", albumFileEntry.FileID)))
+		fileBytes, err := c.GetValue(ctx, model.RemoteFiles, fmt.Appendf(nil, "%d", albumFileEntry.FileID))
 		if err != nil {
 			return err
 		}
@@ -85,7 +85,7 @@ func (c *ClICtrl) syncFiles(ctx context.Context, account model.Account) error {
 				if errors.Is(err, model.ErrDecryption) {
 					continue
 				} else if existingEntry.IsLivePhoto() && errors.Is(err, zip.ErrFormat) {
-					log.Printf(fmt.Sprintf("err processing live photo %s (%d), %s", existingEntry.GetTitle(), existingEntry.ID, err.Error()))
+					log.Printf("err processing live photo %s (%d), %s", existingEntry.GetTitle(), existingEntry.ID, err.Error())
 					continue
 				} else if existingEntry.IsLivePhoto() && errors.Is(err, model.ErrLiveZip) {
 					continue

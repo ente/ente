@@ -23,10 +23,9 @@ startup_wm_class: io.ente.auth
 # flutter_distributor automatically detects the shared libraries that your app
 # depends on, but you can also specify them manually here.
 #
-# The following example shows how to bundle the libcurl library with your app.
-#
-# include:
-#   - libcurl.so.4
+# Bundled libp11-kit from the Ubuntu build depends on libffi.so.8.
+include:
+  - libffi.so.8
 
 supported_mime_type:
   - x-scheme-handler/enteauth

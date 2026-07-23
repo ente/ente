@@ -8,8 +8,7 @@ const int android11SDKINT = 30;
 const mnemonicKeyWordCount = 24;
 
 const kDefaultProductionEndpoint = 'https://api.ente.com';
-const String githubDiscussionsUrl =
-    "https://github.com/ente-io/ente/discussions";
+const String githubDiscussionsUrl = "https://github.com/ente/ente/discussions";
 
 const supportEmail = 'support@ente.com';
 
@@ -22,7 +21,8 @@ const publicLinkDeviceLimits = [0, 50, 25, 10, 5, 2, 1];
 
 const uploadTempFilePrefix = "upload_file_";
 
-const blackThumbnailBase64 = '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAEBAQEBAQEB'
+const blackThumbnailBase64 =
+    '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAEBAQEBAQEB'
     'AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQ'
     'EBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARC'
     'ACWASwDAREAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUF'

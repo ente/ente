@@ -1,0 +1,191 @@
+name: "Warm caches"
+
+# Nightly priming of the caches used by the PR lint workflows.
+#
+# A PR run can only restore caches that were saved on the PR's own ref or on
+# main. The lint workflows never run on main, so anything they save is scoped
+# to their own PR and only churns the repository's shared 10 GB cache pool.
+# Instead, this workflow (which runs on main's ref) saves the caches, and the
+# lint workflows restore them without saving (save-if: false).
+#
+# Each job must mirror the commands, features and RUSTFLAGS of the workflow it
+# primes, otherwise the saved cache will not match what that workflow needs.
+
+on:
+    schedule:
+        - cron: "17 2 * * *"
+    # For bootstrapping the caches (dispatch on main, otherwise the caches get
+    # saved against the wrong ref).
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    rust-workspace:
+        # For rust-lint.yml and rust-test.yml.
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: rust
+        env:
+            RUSTFLAGS: -D warnings
+        steps:
+            - name: Checkout
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+            - name: Setup go
+              uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+              with:
+                  go-version-file: server/go.mod
+                  cache: false
+
+            - name: Free runner disk space
+              run: sudo rm -rf /usr/share/dotnet
+
+            - name: Install Linux dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libvulkan-dev glslc
+
+            - name: Setup Rust cache
+              uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+              with:
+                  workspaces: rust
+                  shared-key: rust-workspace
+                  cache-directories: rust/.cache
+
+            - run: cargo clippy --locked --all-targets --features museum,ente-photos/ml-assets
+
+            - run: cargo test --locked --features museum,ente-photos/ml-assets
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+
+            - run: cargo install cargo-audit --version 0.22.2 --locked
+
+    rust-flutter:
+        # For the cargo steps of mobile-lint.yml.
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: rust
+        env:
+            RUSTFLAGS: -D warnings
+        steps:
+            - name: Checkout code and submodules
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+              with:
+                  submodules: recursive
+
+            - name: Install Flutter
+              uses: ./.github/actions/setup-flutter
+
+            - name: Setup Rust cache
+              uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+              with:
+                  workspaces: rust
+                  shared-key: rust-flutter
+
+            - run: cargo codegen frb
+
+            - run: cargo clippy -p ente_photos_rust --features flutter --all-targets --locked
+
+            - run: cargo clippy -p ente_rust --features flutter --all-targets --locked
+
+    rust-wasm:
+        # For web-lint.yml's WASM builds.
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: web
+        steps:
+            - name: Checkout
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+            - name: Setup node
+              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+              with:
+                  node-version: 24
+                  cache: "npm"
+                  cache-dependency-path: "web/package-lock.json"
+
+            - name: Setup Rust cache
+              uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+              with:
+                  workspaces: rust
+                  shared-key: rust-wasm
+
+            - run: npm ci
+
+            - run: npm run build:wasm
+
+            - run: npm run build:space-wasm
+
+    ensu-android:
+        # For ensu-android-build.yml.
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+            - name: Setup Rust cache
+              uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+              with:
+                  workspaces: rust
+                  shared-key: ensu-android
+
+            - name: Install Vulkan build dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y libvulkan-dev glslc
+
+            - run: cargo codegen native
+              working-directory: rust
+
+            - name: Build Ensu
+              working-directory: mobile/native/android/apps/ensu
+              run: ./gradlew :app:assembleDebug
+
+    ensu-ios:
+        # For ensu-ios-build.yml.
+        runs-on: macos-26
+        steps:
+            - name: Checkout
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+            - name: Setup Rust cache
+              uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+              with:
+                  workspaces: rust
+                  shared-key: ensu-ios
+
+            - run: cargo codegen native
+              working-directory: rust
+
+            # Compile the app and tests without running them.
+            - name: Build Ensu
+              working-directory: mobile/native/apple/apps/ensu
+              run: xcodebuild build-for-testing -scheme Ensu -destination 'platform=iOS Simulator,name=iPhone 17'
+
+    go-server:
+        # For server-lint.yml.
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: server
+        steps:
+            - name: Checkout
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+            - name: Setup go
+              uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+              with:
+                  go-version-file: server/go.mod
+                  cache-dependency-path: server/go.sum
+                  cache: true
+
+            - name: Install dependencies
+              run: sudo apt-get update && sudo apt-get install libsodium-dev
+
+            - name: Lint
+              run: "./scripts/lint.sh"

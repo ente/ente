@@ -84,8 +84,10 @@ class _CustomScrollBarState extends State<CustomScrollBar> {
     }
 
     if (_showScrollbarDivisions) {
-      getIntrinsicSizeOfWidget(const ScrollBarDivider(title: "Temp"), context)
-          .then((size) {
+      getIntrinsicSizeOfWidget(
+        const ScrollBarDivider(title: "Temp"),
+        context,
+      ).then((size) {
         if (mounted) {
           setState(() {
             heightOfScrollbarDivider = size.height;
@@ -123,7 +125,8 @@ class _CustomScrollBarState extends State<CustomScrollBar> {
 
     for (final scrollbarDivision in widget.galleryGroups.scrollbarDivisions) {
       final scrollOffsetOfGroup = widget
-          .galleryGroups.groupIdToScrollOffsetMap[scrollbarDivision.groupID];
+          .galleryGroups
+          .groupIdToScrollOffsetMap[scrollbarDivision.groupID];
       if (scrollOffsetOfGroup == null) {
         continue;
       }
@@ -154,23 +157,22 @@ class _CustomScrollBarState extends State<CustomScrollBar> {
         final value = (_kScrollbarMinLength - heightOfScrollbarDivider!) / 2;
 
         if (fractionOfGroupScrollOffsetWrtMaxExtent < 0.5) {
-          positionCorrection = value * fractionOfGroupScrollOffsetWrtMaxExtent -
+          positionCorrection =
+              value * fractionOfGroupScrollOffsetWrtMaxExtent -
               (heightOfScrollbarDivider! *
                   fractionOfGroupScrollOffsetWrtMaxExtent);
         } else {
           positionCorrection =
               -value * fractionOfGroupScrollOffsetWrtMaxExtent -
-                  (heightOfScrollbarDivider! *
-                      fractionOfGroupScrollOffsetWrtMaxExtent);
+              (heightOfScrollbarDivider! *
+                  fractionOfGroupScrollOffsetWrtMaxExtent);
         }
 
         final adaptedPosition =
             heightOfScrollTrack! * fractionOfGroupScrollOffsetWrtMaxExtent +
-                positionCorrection;
+            positionCorrection;
 
-        result.add(
-          (position: adaptedPosition, title: scrollbarDivision.title),
-        );
+        result.add((position: adaptedPosition, title: scrollbarDivision.title));
       }
     }
     final filteredResult = <({double position, String title})>[];
@@ -221,26 +223,21 @@ class _CustomScrollBarState extends State<CustomScrollBar> {
       clipBehavior: Clip.none,
       alignment: Alignment.centerLeft,
       children: [
-        // This media query is used to adjust the bottom padding of the scrollbar
-        MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            padding: EdgeInsets.only(
-              bottom: widget.bottomPadding.value,
-              top: widget.topPadding,
-              right: 3,
-            ),
+        ScrollbarWithUseNotifer(
+          key: _scrollbarKey,
+          controller: widget.scrollController,
+          interactive: true,
+          inUseNotifier: widget.inUseNotifier,
+          minScrollbarLength: _kScrollbarMinLength,
+          showThumb: _showThumb,
+          radius: const Radius.circular(4),
+          thickness: 8,
+          scrollbarPadding: EdgeInsets.only(
+            bottom: widget.bottomPadding.value,
+            top: widget.topPadding,
+            right: 3,
           ),
-          child: ScrollbarWithUseNotifer(
-            key: _scrollbarKey,
-            controller: widget.scrollController,
-            interactive: true,
-            inUseNotifier: widget.inUseNotifier,
-            minScrollbarLength: _kScrollbarMinLength,
-            showThumb: _showThumb,
-            radius: const Radius.circular(4),
-            thickness: 8,
-            child: widget.child,
-          ),
+          child: widget.child,
         ),
         positionToTitleMap == null || heightOfScrollbarDivider == null
             ? const SizedBox.shrink()
@@ -289,10 +286,7 @@ class ScrollBarDivider extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.backgroundElevated2,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: colorScheme.strokeFaint,
-          width: 0.5,
-        ),
+        border: Border.all(color: colorScheme.strokeFaint, width: 0.5),
         // TODO: Remove shadow if scrolling perf
         // is affected.
         boxShadow: [
@@ -303,16 +297,9 @@ class ScrollBarDivider extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 4,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Center(
-        child: Text(
-          title,
-          style: textTheme.miniMuted,
-          maxLines: 1,
-        ),
+        child: Text(title, style: textTheme.miniMuted, maxLines: 1),
       ),
     );
   }

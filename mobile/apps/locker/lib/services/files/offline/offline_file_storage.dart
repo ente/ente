@@ -126,10 +126,7 @@ Future<void> cleanupStaleOfflineFileCopies({
   Duration olderThan = Duration.zero,
 }) async {
   _logger.fine('Cleaning stale offline file copies older than $olderThan');
-  await _deleteCachedFileCopies(
-    null,
-    olderThan: olderThan,
-  );
+  await _deleteCachedFileCopies(null, olderThan: olderThan);
   await _cleanupStaleOpenHandoffCopies(olderThan: olderThan);
 }
 
@@ -154,9 +151,7 @@ int? _parseCachedFileId(String baseName) {
       _parseCachedDecryptedFileId(baseName);
 }
 
-Future<void> _deleteOfflineEncryptedCopies([
-  Set<int>? ids,
-]) async {
+Future<void> _deleteOfflineEncryptedCopies([Set<int>? ids]) async {
   final directory = await _getOfflineEncryptedDirectory();
   await _deleteMatchingFiles(
     directory,
@@ -187,9 +182,7 @@ Future<void> _deleteCachedFileCopies(
   );
 }
 
-Future<void> _deleteOpenHandoffCopies([
-  Set<int>? ids,
-]) async {
+Future<void> _deleteOpenHandoffCopies([Set<int>? ids]) async {
   final handoffDirectory = Directory(getOpenHandoffDirectoryPath());
   if (!await handoffDirectory.exists()) {
     return;
@@ -225,20 +218,12 @@ Future<void> _cleanupStaleOpenHandoffCopies({
     // Handoffs are open_handoff/<fileId>/<timestamp>/<display-name>.
     // Age the timestamp entries, not the long-lived fileId parent.
     if (fileIdEntity is! Directory) {
-      await _deleteIfEligible(
-        fileIdEntity,
-        now: now,
-        olderThan: olderThan,
-      );
+      await _deleteIfEligible(fileIdEntity, now: now, olderThan: olderThan);
       continue;
     }
 
     await for (final handoffEntity in fileIdEntity.list(followLinks: false)) {
-      await _deleteIfEligible(
-        handoffEntity,
-        now: now,
-        olderThan: olderThan,
-      );
+      await _deleteIfEligible(handoffEntity, now: now, olderThan: olderThan);
     }
 
     if (await _isDirectoryEmpty(fileIdEntity)) {
@@ -267,11 +252,7 @@ Future<void> _deleteMatchingFiles(
       continue;
     }
 
-    await _deleteIfEligible(
-      entity,
-      now: now,
-      olderThan: olderThan,
-    );
+    await _deleteIfEligible(entity, now: now, olderThan: olderThan);
   }
 }
 
@@ -290,11 +271,7 @@ Future<void> _deleteImmediateChildren(
       continue;
     }
 
-    await _deleteIfEligible(
-      entity,
-      now: now,
-      olderThan: olderThan,
-    );
+    await _deleteIfEligible(entity, now: now, olderThan: olderThan);
   }
 }
 
@@ -331,11 +308,7 @@ Future<void> _deleteIfEligible(
   required DateTime now,
   required Duration olderThan,
 }) async {
-  if (await _isEligibleForDeletion(
-    entity,
-    now: now,
-    olderThan: olderThan,
-  )) {
+  if (await _isEligibleForDeletion(entity, now: now, olderThan: olderThan)) {
     await _deleteEntity(entity);
   }
 }

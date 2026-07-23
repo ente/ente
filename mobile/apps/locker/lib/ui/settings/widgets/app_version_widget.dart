@@ -1,5 +1,6 @@
-import "package:ente_ui/theme/ente_theme.dart";
-import "package:ente_ui/utils/dialog_util.dart";
+import "dart:async";
+
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:package_info_plus/package_info_plus.dart";
 
@@ -22,8 +23,7 @@ class _AppVersionWidgetState extends State<AppVersionWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = getEnteTextTheme(context);
-    final colorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -33,15 +33,43 @@ class _AppVersionWidgetState extends State<AppVersionWidget> {
             _kConsecutiveTapTimeWindowInMilliseconds) {
           _consecutiveTaps++;
           if (_consecutiveTaps == _kTapThresholdForInspector) {
-            final dialog = createProgressDialog(
-              context,
-              "Starting network inspector...",
+            unawaited(
+              showBottomSheetComponent<void>(
+                context: context,
+                isDismissible: false,
+                enableDrag: false,
+                builder: (_) => BottomSheetComponent(
+                  title: "Starting network inspector...",
+                  showCloseButton: false,
+                  content: Row(
+                    children: [
+                      SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          "Please wait",
+                          style: TextStyles.body.copyWith(
+                            color: colors.textLight,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             );
-            await dialog.show();
             await Future.delayed(
               const Duration(milliseconds: _kDummyDelayDurationInMilliseconds),
             );
-            await dialog.hide();
+            if (context.mounted) {
+              Navigator.of(context).pop();
+            }
           }
         } else {
           _consecutiveTaps = 1;
@@ -57,9 +85,7 @@ class _AppVersionWidgetState extends State<AppVersionWidget> {
               child: Center(
                 child: Text(
                   "Version ${snapshot.data!}",
-                  style: textTheme.mini.copyWith(
-                    color: colorScheme.textMuted,
-                  ),
+                  style: TextStyles.mini.copyWith(color: colors.textLight),
                 ),
               ),
             );

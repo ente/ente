@@ -32,7 +32,7 @@ class MemoryShareService {
   final Logger _logger = Logger("MemoryShareService");
 
   static const int _shortFragmentSecretLength = 12;
-  static const int _maxMemoryShareFiles = 30;
+  static const int _maxMemoryShareFiles = 100;
   static final RegExp _base62SecretPattern = RegExp(r'^[0-9A-Za-z]{12}$');
 
   static List<EnteFile> uniqueUploadedFiles(List<EnteFile> files) {
@@ -100,8 +100,9 @@ class MemoryShareService {
       }
       final requestData = {
         'type': MemoryShareType.share.name,
-        'metadataCipher':
-            CryptoUtil.bin2base64(encryptedMetadata.encryptedData!),
+        'metadataCipher': CryptoUtil.bin2base64(
+          encryptedMetadata.encryptedData!,
+        ),
         'metadataNonce': CryptoUtil.bin2base64(encryptedMetadata.nonce!),
         ...secretPayload.metadata(),
         'memoryHash': resolvedMemoryHash,
@@ -143,8 +144,9 @@ class MemoryShareService {
       final resolvedMemoryHash = memoryHash ?? _getMemoryLaneHash(metadata);
       final secretPayload = await _prepareShareSecret();
       final shareKey = secretPayload.shareKey;
-      final metadataBytes =
-          Uint8List.fromList(utf8.encode(jsonEncode(metadata)));
+      final metadataBytes = Uint8List.fromList(
+        utf8.encode(jsonEncode(metadata)),
+      );
       final compressedMetadataBytes = Uint8List.fromList(
         GZipCodec().encode(metadataBytes),
       );
@@ -167,8 +169,9 @@ class MemoryShareService {
       }
       final requestData = {
         'type': MemoryShareType.lane.name,
-        'metadataCipher':
-            CryptoUtil.bin2base64(encryptedMetadata.encryptedData!),
+        'metadataCipher': CryptoUtil.bin2base64(
+          encryptedMetadata.encryptedData!,
+        ),
         'metadataNonce': CryptoUtil.bin2base64(encryptedMetadata.nonce!),
         ...secretPayload.metadata(),
         'memoryHash': resolvedMemoryHash,
@@ -281,9 +284,7 @@ class MemoryShareService {
       final shareKey = _resolveShareKeyFromUrlFragment(uri.fragment);
       final response = await _enteDio.get(
         '/public-memory/files',
-        options: Options(
-          headers: {'X-Auth-Access-Token': accessToken},
-        ),
+        options: Options(headers: {'X-Auth-Access-Token': accessToken}),
       );
       final rawFiles = response.data['files'] as List<dynamic>? ?? const [];
       final files = <EnteFile>[];
@@ -335,10 +336,7 @@ class MemoryShareService {
         shareKey,
         CryptoUtil.base642bin(metadataNonce),
       );
-      final parsed = _decodeMemoryShareMetadata(
-        decryptedMetadata,
-        share.type,
-      );
+      final parsed = _decodeMemoryShareMetadata(decryptedMetadata, share.type);
       if (parsed is! Map<String, dynamic>) {
         return null;
       }
@@ -384,9 +382,11 @@ class MemoryShareService {
       file.ownerID = _toInt(remoteFile['ownerID']);
       // /public-memory/files returns per-share re-encrypted key material at the
       // top level. Fall back to nested fields for compatibility.
-      file.encryptedKey = item['encryptedKey'] as String? ??
+      file.encryptedKey =
+          item['encryptedKey'] as String? ??
           remoteFile['encryptedKey'] as String?;
-      file.keyDecryptionNonce = item['keyDecryptionNonce'] as String? ??
+      file.keyDecryptionNonce =
+          item['keyDecryptionNonce'] as String? ??
           remoteFile['keyDecryptionNonce'] as String?;
       final collectionAddedAt = _toInt(remoteFile['collectionAddedAt']);
       if (collectionAddedAt != null) {
@@ -450,8 +450,9 @@ class MemoryShareService {
           );
           file.pubMmdEncodedJson = utf8.decode(utfEncodedMmd);
           file.pubMmdVersion = _toInt(pubMagicMetadata['version']) ?? 0;
-          file.pubMagicMetadata =
-              PubMagicMetadata.fromEncodedJson(file.pubMmdEncodedJson!);
+          file.pubMagicMetadata = PubMagicMetadata.fromEncodedJson(
+            file.pubMmdEncodedJson!,
+          );
         }
       }
 
@@ -465,8 +466,9 @@ class MemoryShareService {
 
   Future<_MemoryShareSecretPayload> _prepareShareSecret() async {
     try {
-      final memoryEntityKey =
-          await entityService.getOrCreateEntityKey(EntityType.memory);
+      final memoryEntityKey = await entityService.getOrCreateEntityKey(
+        EntityType.memory,
+      );
       final secret = _generateBase62Secret(_shortFragmentSecretLength);
       final shareKey = _deriveShareKeyFromSecret(secret);
       final encryptedSecret = CryptoUtil.encryptSync(
@@ -476,10 +478,12 @@ class MemoryShareService {
       return _MemoryShareSecretPayload(
         secret: secret,
         shareKey: shareKey,
-        encryptedShareSecret:
-            CryptoUtil.bin2base64(encryptedSecret.encryptedData!),
-        encryptedShareSecretNonce:
-            CryptoUtil.bin2base64(encryptedSecret.nonce!),
+        encryptedShareSecret: CryptoUtil.bin2base64(
+          encryptedSecret.encryptedData!,
+        ),
+        encryptedShareSecretNonce: CryptoUtil.bin2base64(
+          encryptedSecret.nonce!,
+        ),
       );
     } catch (e, s) {
       _logger.severe("Failed to prepare memory share secret", e, s);
@@ -487,10 +491,7 @@ class MemoryShareService {
     }
   }
 
-  String? _resolveFragmentSecret(
-    MemoryShare share,
-    Uint8List memoryEntityKey,
-  ) {
+  String? _resolveFragmentSecret(MemoryShare share, Uint8List memoryEntityKey) {
     try {
       final decrypted = CryptoUtil.decryptSync(
         CryptoUtil.base642bin(share.encryptedKey),
@@ -553,8 +554,9 @@ class MemoryShareService {
       return tokenFromQuery;
     }
     const routePrefixes = {"memories"};
-    final pathSegments =
-        uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
+    final pathSegments = uri.pathSegments
+        .where((segment) => segment.isNotEmpty)
+        .toList();
     for (var i = pathSegments.length - 1; i >= 0; i--) {
       final segment = pathSegments[i];
       if (!routePrefixes.contains(segment.toLowerCase())) {
@@ -622,10 +624,13 @@ class MemoryShareService {
       if (entries.isEmpty) {
         throw Exception("No uploaded files to share");
       }
-      final uniqueFileIDs =
-          entries.map((entry) => entry.fileId).toSet().toList();
-      final filesByID =
-          await FilesDB.instance.getFileIDToFileFromIDs(uniqueFileIDs);
+      final uniqueFileIDs = entries
+          .map((entry) => entry.fileId)
+          .toSet()
+          .toList();
+      final filesByID = await FilesDB.instance.getFileIDToFileFromIDs(
+        uniqueFileIDs,
+      );
       final laneItems = <_MemoryLaneShareItem>[];
       final seenUploadedFileIDs = <int>{};
       for (final entry in entries) {
@@ -724,8 +729,10 @@ class MemoryShareService {
   }
 
   String _getMemoryHash(List<EnteFile> files) {
-    final uploadedFileIDs =
-        files.map((file) => file.uploadedFileID).whereType<int>().toList();
+    final uploadedFileIDs = files
+        .map((file) => file.uploadedFileID)
+        .whereType<int>()
+        .toList();
     if (uploadedFileIDs.isEmpty) {
       throw Exception("No uploaded files to share");
     }
@@ -772,8 +779,8 @@ class MemoryShareService {
     final normalizedBirthDate = birthDate?.trim();
     final captionType =
         (normalizedBirthDate != null && normalizedBirthDate.isNotEmpty)
-            ? 'age'
-            : 'yearsAgo';
+        ? 'age'
+        : 'yearsAgo';
 
     return {
       'name': title,
@@ -852,10 +859,7 @@ class _MemoryLaneShareItem {
   final EnteFile file;
   final MemoryLaneEntry entry;
 
-  const _MemoryLaneShareItem({
-    required this.file,
-    required this.entry,
-  });
+  const _MemoryLaneShareItem({required this.file, required this.entry});
 }
 
 class _MemoryShareSecretPayload {

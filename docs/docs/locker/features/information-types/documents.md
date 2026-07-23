@@ -5,9 +5,7 @@ description: Upload and store important files like passports, contracts, and tax
 
 # Document
 
-Documents let you upload and store files securely with end-to-end encryption.
-Store PDFs, images, scanned documents, and other important files that you need
-to keep safe and accessible.
+Documents let you upload and store files securely with end-to-end encryption. Store PDFs, images, scanned documents, and other important files that you need to keep safe and accessible.
 
 ## Use cases
 
@@ -44,8 +42,7 @@ Check the app for the complete list of supported formats.
 
 ### Secure viewing
 
-View your uploaded documents directly within the app. Documents are decrypted
-on your device for viewing and remain encrypted in storage.
+View your uploaded documents directly within the app. Documents are decrypted on your device for viewing and remain encrypted in storage.
 
 ### Document details
 
@@ -56,8 +53,7 @@ Each document can include:
 
 ### Search
 
-Find documents quickly by searching for their titles. Use descriptive names
-when uploading to make documents easier to find later.
+Find documents quickly by searching for their titles. Use descriptive names when uploading to make documents easier to find later.
 
 ## Organization tips
 
@@ -77,8 +73,7 @@ Share documents via public links:
 2. Tap the share button
 3. Tap **Share link**
 
-To share documents with another Ente user, add them to a collection and share
-the collection.
+To share documents with another Ente user, add them to a collection and share the collection.
 
 Learn more about [Sharing](/locker/features/sharing/).
 
@@ -94,8 +89,7 @@ Uploaded documents count toward your storage quota. Consider:
 
 - **Use descriptive titles**: Make documents easy to find with clear names
 - **Organize with collections**: Group related documents together
-- **Keep originals safe**: Locker is for secure backup, not a replacement for
-  physical document storage
+- **Keep originals safe**: Locker is for secure backup, not a replacement for physical document storage
 
 ## Related FAQs
 

@@ -2,19 +2,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="io.ente.photos">
     
-    <!-- Adding the following block to prevent the app from having multiple
-    launcher entries. We can remove this along with the `LAUNCHER` category from
-    main/AndroidManifest.xml once
-    https://github.com/flutter/flutter/issues/38965 is fixed. -->
+    <!-- Strips MainActivity's launcher entry; see independent/AndroidManifest.xml. -->
     <application>
-        <activity android:name=".MainActivity"
-            android:launchMode="singleTask"
-            android:theme="@style/LaunchTheme"
-            android:exported="true"
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
-            android:hardwareAccelerated="true"
-            android:windowSoftInputMode="adjustResize">
-
+        <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER" tools:node="remove"/>

@@ -1,34 +1,37 @@
+import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
-import 'package:photos/theme/ente_theme.dart';
+import "package:flutter_svg/flutter_svg.dart";
 
 class NoThumbnailWidget extends StatelessWidget {
   final bool addBorder;
   final double borderRadius;
+  final double iconWidth;
+  final double iconHeight;
   const NoThumbnailWidget({
     this.addBorder = true,
     this.borderRadius = 1,
+    this.iconWidth = 35,
+    this.iconHeight = 20,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    final enteColorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
         border: addBorder
-            ? Border.all(
-                color: enteColorScheme.strokeFaint,
-                width: 1,
-              )
+            ? Border.all(color: colors.strokeFaint, width: 1)
             : null,
-        color: enteColorScheme.fillFaint,
+        color: colors.fillLight,
       ),
       child: Center(
-        child: Icon(
-          Icons.photo_outlined,
-          color: enteColorScheme.strokeMuted,
-          size: 24,
+        child: SvgPicture.asset(
+          "assets/icons/album_empty_thumbnail.svg",
+          width: iconWidth,
+          height: iconHeight,
+          colorFilter: ColorFilter.mode(colors.textLightest, BlendMode.srcIn),
         ),
       ),
     );

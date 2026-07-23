@@ -1,97 +1,101 @@
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
+import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/events/pause_video_event.dart";
 import "package:photos/generated/l10n.dart";
-import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/collection/collection_items.dart';
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/selected_files.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/ui/collections/collection_action_sheet.dart";
-import "package:photos/ui/components/buttons/chip_button_widget.dart";
-import "package:photos/ui/components/info_item_widget.dart";
 import "package:photos/ui/viewer/gallery/collection_page.dart";
 
 class AlbumsItemWidget extends StatelessWidget {
   final EnteFile file;
   final int currentUserID;
-  const AlbumsItemWidget(
-    this.file,
-    this.currentUserID, {
-    super.key,
-  });
+  const AlbumsItemWidget(this.file, this.currentUserID, {super.key});
 
   @override
   Widget build(BuildContext context) {
-    final fileIsBackedup = file.uploadedFileID == null ? false : true;
-    late Future<Set<int>> allCollectionIDsOfFile;
-    //Typing this as Future<Set<T>> as it would be easier to implement showing multiple device folders for a file in the future
-    final Future<Set<String>> allDeviceFoldersOfFile =
-        Future.sync(() => {file.deviceFolder ?? ''});
-    if (fileIsBackedup) {
-      allCollectionIDsOfFile = FilesDB.instance.getAllCollectionIDsOfFile(
-        file.uploadedFileID!,
+    final Future<List<Widget>> chipsFuture;
+    if (file.uploadedFileID != null) {
+      chipsFuture = _collectionsListOfFile(
+        context,
+        FilesDB.instance.getAllCollectionIDsOfFile(file.uploadedFileID!),
+        currentUserID,
+      );
+    } else {
+      chipsFuture = _deviceFoldersListOfFile(
+        Future.sync(() => {file.deviceFolder ?? ''}),
       );
     }
-    return InfoItemWidget(
+
+    return Column(
       key: const ValueKey("Albums"),
-      leadingIcon: Icons.folder_outlined,
-      title: AppLocalizations.of(context).albums,
-      subtitleSection: fileIsBackedup
-          ? _collectionsListOfFile(
-              context,
-              allCollectionIDsOfFile,
-              currentUserID,
-            )
-          : _deviceFoldersListOfFile(allDeviceFoldersOfFile),
-      hasChipButtons: true,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(AppLocalizations.of(context).albums, style: TextStyles.h2),
+        const SizedBox(height: Spacing.lg),
+        FutureBuilder<List<Widget>>(
+          future: chipsFuture,
+          builder: (context, snapshot) {
+            final chips = snapshot.data ?? const <Widget>[];
+            return Wrap(
+              spacing: Spacing.sm,
+              runSpacing: Spacing.sm,
+              children: chips,
+            );
+          },
+        ),
+      ],
     );
   }
 
-  Future<List<ChipButtonWidget>> _deviceFoldersListOfFile(
+  Future<List<Widget>> _deviceFoldersListOfFile(
     Future<Set<String>> allDeviceFoldersOfFile,
   ) async {
     try {
-      final chipButtons = <ChipButtonWidget>[];
-      final List<String> deviceFolders =
-          (await allDeviceFoldersOfFile).toList();
+      final chips = <Widget>[];
+      final List<String> deviceFolders = (await allDeviceFoldersOfFile)
+          .toList();
       for (var deviceFolder in deviceFolders) {
-        chipButtons.add(
-          ChipButtonWidget(
-            deviceFolder,
-          ),
-        );
+        chips.add(FilterChipComponent(label: deviceFolder, onChanged: (_) {}));
       }
-      return chipButtons;
+      return chips;
     } catch (e, s) {
-      Logger("AlbumsItemWidget").info("Failed to build owned album chips", e, s);
+      Logger(
+        "AlbumsItemWidget",
+      ).info("Failed to build owned album chips", e, s);
       return [];
     }
   }
 
-  Future<List<ChipButtonWidget>> _collectionsListOfFile(
+  Future<List<Widget>> _collectionsListOfFile(
     BuildContext context,
     Future<Set<int>> allCollectionIDsOfFile,
     int currentUserID,
   ) async {
     try {
-      final chipButtons = <ChipButtonWidget>[];
+      final colors = context.componentColors;
+      final chips = <Widget>[];
       final Set<int> collectionIDs = await allCollectionIDsOfFile;
-      final collections = <Collection>[];
+      if (!context.mounted) return const [];
       for (var collectionID in collectionIDs) {
-        final c = CollectionsService.instance.getCollectionByID(collectionID);
-        collections.add(c!);
-        chipButtons.add(
-          ChipButtonWidget(
-            c.isHidden() ? AppLocalizations.of(context).hidden : c.displayName,
-            onTap: () {
+        final c = CollectionsService.instance.getCollectionByID(collectionID)!;
+        chips.add(
+          FilterChipComponent(
+            label: c.isHidden()
+                ? AppLocalizations.of(context).hidden
+                : c.displayName,
+            onChanged: (_) {
               if (c.isHidden()) {
                 return;
               }
-              // stop playing video when navigating to collection page
               Bus.instance.fire(PauseVideoEvent());
               routeToPage(
                 context,
@@ -104,13 +108,15 @@ class AlbumsItemWidget extends StatelessWidget {
           ),
         );
       }
-
-      // Add the '+' button if feature flag is enabled
-      chipButtons.add(
-        ChipButtonWidget(
-          null,
-          leadingIcon: Icons.add,
-          iconSize: 15,
+      chips.add(
+        IconButtonComponent(
+          icon: HugeIcon(
+            icon: HugeIcons.strokeRoundedPlusSign,
+            size: IconSizes.small,
+            color: colors.textBase,
+          ),
+          variant: IconButtonComponentVariant.circular,
+          shouldSurfaceExecutionStates: false,
           onTap: () {
             final selectedFiles = SelectedFiles();
             selectedFiles.files.add(file);
@@ -122,10 +128,11 @@ class AlbumsItemWidget extends StatelessWidget {
           },
         ),
       );
-
-      return chipButtons;
+      return chips;
     } catch (e, s) {
-      Logger("AlbumsItemWidget").info("Failed to build shared album chips", e, s);
+      Logger(
+        "AlbumsItemWidget",
+      ).info("Failed to build shared album chips", e, s);
       return [];
     }
   }

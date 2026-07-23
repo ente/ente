@@ -149,9 +149,9 @@ const toLineJoin = (value: number): ParsedArrowPath["lineJoin"] =>
     value === 2 ? "round" : value === 3 ? "bevel" : "miter";
 
 const toRGB = (rgb: readonly number[]) => {
-    const r = Number(rgb[0] ?? 1);
-    const g = Number(rgb[1] ?? 1);
-    const b = Number(rgb[2] ?? 1);
+    const r = rgb[0] ?? 1;
+    const g = rgb[1] ?? 1;
+    const b = rgb[2] ?? 1;
     return `rgb(${Math.round(r * 255)} ${Math.round(g * 255)} ${Math.round(b * 255)})`;
 };
 

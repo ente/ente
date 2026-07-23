@@ -23,13 +23,13 @@ class TripMemory extends SmartMemory {
     super.firstCreationTime,
     super.lastCreationTime,
   }) : super(
-          memories,
-          MemoryType.trips,
-          '',
-          firstDateToShow,
-          lastDateToShow,
-          id: id,
-        );
+         memories,
+         MemoryType.trips,
+         '',
+         firstDateToShow,
+         lastDateToShow,
+         id: id,
+       );
 
   TripMemory copyWith({
     List<Memory>? memories,

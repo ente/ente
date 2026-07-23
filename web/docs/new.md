@@ -1,7 +1,6 @@
 # Welcome!
 
-If you're new to web stuff or coming back to it after mobile/backend
-development, here is a recommended workflow:
+If you're new to web stuff or coming back to it after mobile/backend development, here is a recommended workflow:
 
 1. Install **VS Code**.
 
@@ -9,30 +8,13 @@ development, here is a recommended workflow:
 
 3. Enable the VS Code setting to format on save.
 
-4. Install **node** on your machine. There are myriad ways to do this, here are
-   some examples:
-    - OS agnostic: Install [NVM](https://github.com/nvm-sh/nvm), then
-      `nvm install 24 && corepack enable`.
+4. Install **node** on your machine. There are myriad ways to do this, here are some examples:
+    - OS agnostic: Install [NVM](https://github.com/nvm-sh/nvm), then `nvm install 24`.
 
     - macOS: `brew install node@24`
 
-    - Ubuntu: `sudo apt install nodejs npm && sudo npm i -g corepack`
+    - Ubuntu: `sudo apt install nodejs npm`
 
-5. Enable corepack. This allows us to use the correct version of our package
-   manager (**Yarn**):
-
-    ```sh
-    corepack enable
-    ```
-
-    If now you run `yarn --version` in the web directory, you should be seeing a
-    1.22.xx version, otherwise your `yarn install` will fail.
-
-    ```sh
-    $ yarn --version
-    1.22.22
-    ```
-
-6. Install [Rust](https://www.rust-lang.org/tools/install).
+5. Install [Rust](https://www.rust-lang.org/tools/install).
 
 That's it. Enjoy coding!

@@ -66,7 +66,7 @@ export const firstNonEmpty = (
  *
  * @param as An array of {@link Uint8Array}.
  */
-export const mergeUint8Arrays = (as: Uint8Array[]): Uint8Array => {
+export const mergeUint8Arrays = (as: Uint8Array[]): Uint8Array<ArrayBuffer> => {
     // A longer but better performing replacement of
     //
     //     new Uint8Array(as.reduce((acc, x) => acc.concat(...x), []))

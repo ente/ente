@@ -53,10 +53,7 @@ class _WidgetSizeGetterTempWidgetState
   @override
   Widget build(BuildContext context) {
     SchedulerBinding.instance.addPostFrameCallback(postFrameCallback);
-    return Container(
-      key: widgetKey,
-      child: widget.child,
-    );
+    return Container(key: widgetKey, child: widget.child);
   }
 
   var widgetKey = GlobalKey();

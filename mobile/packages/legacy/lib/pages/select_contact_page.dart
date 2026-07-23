@@ -74,7 +74,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
       valueListenable: ContactsDisplayService.instance.changes,
-      builder: (context, __, ___) {
+      builder: (context, _, _) {
         final colorScheme = getEnteColorScheme(context);
         final textTheme = getEnteTextTheme(context);
         final List<User> suggestedUsers = _getSuggestedUser();
@@ -235,8 +235,9 @@ class _AddContactSheetState extends State<AddContactSheet> {
                       ),
                       menuItemColor: colorScheme.fillFaint,
                       pressedColor: colorScheme.fillFaintPressed,
-                      trailingIcon:
-                          (selectedEmail == user.email) ? Icons.check : null,
+                      trailingIcon: (selectedEmail == user.email)
+                          ? Icons.check
+                          : null,
                       trailingIconColor: colorScheme.primary500,
                       surfaceExecutionStates: false,
                       onTap: () async {
@@ -336,7 +337,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
     if (confirmed == true) {
       try {
         final success = await EmergencyContactService.instance.addContact(
-          context,
+          mounted ? context : null,
           emailToAdd,
           _selectedRecoveryDays,
         );
@@ -430,8 +431,8 @@ class _AddContactSheetState extends State<AddContactSheet> {
     }
     suggestedUsers.sort(
       (a, b) => a.resolvedDisplayName.toLowerCase().compareTo(
-            b.resolvedDisplayName.toLowerCase(),
-          ),
+        b.resolvedDisplayName.toLowerCase(),
+      ),
     );
 
     return suggestedUsers;

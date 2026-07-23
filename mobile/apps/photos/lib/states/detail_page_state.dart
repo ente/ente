@@ -8,8 +8,10 @@ import "package:photos/models/file/file.dart";
 /// [offset] is the pan translation in logical pixels.
 @immutable
 class ZoomTransform {
-  static const ZoomTransform identity =
-      ZoomTransform(scale: 1.0, offset: Offset.zero);
+  static const ZoomTransform identity = ZoomTransform(
+    scale: 1.0,
+    offset: Offset.zero,
+  );
 
   final double scale;
   final Offset offset;
@@ -25,15 +27,10 @@ class ZoomTransform {
   int get hashCode => Object.hash(scale, offset);
 }
 
-enum FullScreenRequestReason {
-  userInteraction,
-  playbackStateChange,
-}
+enum FullScreenRequestReason { userInteraction, playbackStateChange }
 
-typedef FullScreenRequestCallback = void Function(
-  bool shouldEnable,
-  FullScreenRequestReason reason,
-);
+typedef FullScreenRequestCallback =
+    void Function(bool shouldEnable, FullScreenRequestReason reason);
 
 String? detailPageFileIdentifier(EnteFile file) {
   if (file.uploadedFileID != null) {
@@ -105,10 +102,7 @@ class InheritedDetailPageState extends InheritedWidget {
     enableFullScreenNotifier.value = shouldEnable;
     if (shouldEnable) {
       Future.delayed(const Duration(milliseconds: 200), () {
-        SystemChrome.setEnabledSystemUIMode(
-          SystemUiMode.manual,
-          overlays: [],
-        );
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
       });
     } else {
       SystemChrome.setEnabledSystemUIMode(

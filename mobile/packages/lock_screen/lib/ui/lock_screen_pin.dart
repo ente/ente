@@ -1,8 +1,5 @@
-import "dart:convert";
 import "dart:io";
-import "dart:typed_data";
 
-import "package:ente_crypto_api/ente_crypto_api.dart";
 import "package:ente_lock_screen/lock_screen_settings.dart";
 import "package:ente_lock_screen/ui/custom_pin_keypad.dart";
 import "package:ente_lock_screen/ui/lock_screen_confirm_pin.dart";
@@ -66,40 +63,49 @@ class _LockScreenPinState extends State<LockScreenPin> {
   }
 
   Future<bool> confirmPinAuth(String inputtedPin) async {
-    final Uint8List? salt = await _lockscreenSetting.getSalt();
-    final hash = CryptoUtil.cryptoPwHash(
-      utf8.encode(inputtedPin),
-      salt!,
-      CryptoUtil.pwhashMemLimitInteractive,
-      CryptoUtil.pwhashOpsLimitSensitive,
-    );
-    if (widget.authPin == base64Encode(hash)) {
+    final matched = _lockscreenSetting.useLegacyHashFallback
+        ? await _lockscreenSetting.verifyWithLegacyFallback(
+            text: inputtedPin,
+            storedHash: widget.authPin,
+            storageKey: LockScreenSettings.pin,
+          )
+        : await _lockscreenSetting.verify(
+            text: inputtedPin,
+            storedHash: widget.authPin,
+          );
+    if (matched) {
       invalidAttemptsCount = 0;
       await _lockscreenSetting.setInvalidAttemptCount(0);
-      widget.isAuthenticatingOnAppLaunch ||
-              widget.isAuthenticatingForInAppChange
-          ? Navigator.of(context).pop(true)
-          : Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => const LockScreenOptions(),
-              ),
-            );
+      if (mounted) {
+        widget.isAuthenticatingOnAppLaunch ||
+                widget.isAuthenticatingForInAppChange
+            ? Navigator.of(context).pop(true)
+            : Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const LockScreenOptions(),
+                ),
+              );
+      }
       return true;
     } else {
-      setState(() {
-        isPinValid = true;
-      });
+      if (mounted) {
+        setState(() {
+          isPinValid = true;
+        });
+      }
       await HapticFeedback.vibrate();
       await Future.delayed(const Duration(milliseconds: 75));
-      _pinController.clear();
-      setState(() {
-        isPinValid = false;
-      });
+      if (mounted) {
+        _pinController.clear();
+        setState(() {
+          isPinValid = false;
+        });
+      }
 
       if (widget.isAuthenticatingOnAppLaunch) {
         invalidAttemptsCount++;
         await _lockscreenSetting.setInvalidAttemptCount(invalidAttemptsCount);
-        if (invalidAttemptsCount > 4) {
+        if (invalidAttemptsCount > 4 && mounted) {
           Navigator.of(context).pop(false);
         }
       }
@@ -118,7 +124,9 @@ class _LockScreenPinState extends State<LockScreenPin> {
               LockScreenConfirmPin(pin: inputtedPin),
         ),
       );
-      _pinController.clear();
+      if (mounted) {
+        _pinController.clear();
+      }
     }
   }
 
@@ -133,10 +141,7 @@ class _LockScreenPinState extends State<LockScreenPin> {
       padding: const EdgeInsets.only(top: 6.0),
       decoration: BoxDecoration(
         color: colorTheme.backgroundBase,
-        border: Border.all(
-          color: colorTheme.fillMuted,
-          width: 1,
-        ),
+        border: Border.all(color: colorTheme.fillMuted, width: 1),
         borderRadius: BorderRadius.circular(15.0),
       ),
     );
@@ -150,18 +155,13 @@ class _LockScreenPinState extends State<LockScreenPin> {
           onPressed: () {
             Navigator.of(context).pop(false);
           },
-          icon: Icon(
-            Icons.arrow_back,
-            color: colorTheme.textBase,
-          ),
+          icon: Icon(Icons.arrow_back, color: colorTheme.textBase),
         ),
         centerTitle: true,
         title: SvgPicture.asset(
-          'assets/svg/app-logo.svg',
-          colorFilter: ColorFilter.mode(
-            colorTheme.primary700,
-            BlendMode.srcIn,
-          ),
+          LockScreenSettings.instance.appLogoAsset,
+          height: LockScreenSettings.instance.appLogoHeight,
+          colorFilter: ColorFilter.mode(colorTheme.primary700, BlendMode.srcIn),
         ),
       ),
       floatingActionButton: isPlatformDesktop
@@ -186,11 +186,7 @@ class _LockScreenPinState extends State<LockScreenPin> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 40),
-            Image.asset(
-              'assets/lock_screen_icon.png',
-              width: 129,
-              height: 95,
-            ),
+            Image.asset('assets/lock_screen_icon.png', width: 129, height: 95),
             const SizedBox(height: 24),
             Text(
               widget.isChangingLockScreenSettings
@@ -209,9 +205,7 @@ class _LockScreenPinState extends State<LockScreenPin> {
                 textStyle: textTheme.h3Bold,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15.0),
-                  border: Border.all(
-                    color: colorTheme.fillMuted,
-                  ),
+                  border: Border.all(color: colorTheme.fillMuted),
                 ),
               ),
               submittedPinTheme: pinPutDecoration.copyWith(
@@ -220,33 +214,25 @@ class _LockScreenPinState extends State<LockScreenPin> {
                 ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15.0),
-                  border: Border.all(
-                    color: colorTheme.primary700,
-                  ),
+                  border: Border.all(color: colorTheme.primary700),
                 ),
               ),
               followingPinTheme: pinPutDecoration.copyWith(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15.0),
-                  border: Border.all(
-                    color: colorTheme.fillMuted,
-                  ),
+                  border: Border.all(color: colorTheme.fillMuted),
                 ),
               ),
               focusedPinTheme: pinPutDecoration.copyWith(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15.0),
-                  border: Border.all(
-                    color: colorTheme.fillBase,
-                  ),
+                  border: Border.all(color: colorTheme.fillBase),
                 ),
               ),
               errorPinTheme: pinPutDecoration.copyWith(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15.0),
-                  border: Border.all(
-                    color: colorTheme.warning400,
-                  ),
+                  border: Border.all(color: colorTheme.warning400),
                 ),
               ),
               forceErrorState: isPinValid,

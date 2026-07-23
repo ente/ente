@@ -11,20 +11,14 @@ import "package:path_provider/path_provider.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/utils/dialog_util.dart";
-import "package:photos/utils/file_util.dart";
 
 final _logger = Logger("VideoMemoryService");
 
-Future<void> createSlideshow(
-  BuildContext context,
-  List<EnteFile> files,
-) async {
-  final dialog = createProgressDialog(
-    context,
-    "Creating video...",
-  );
+Future<void> createSlideshow(BuildContext context, List<EnteFile> files) async {
+  final dialog = createProgressDialog(context, "Creating video...");
 
   try {
     await dialog.show();
@@ -35,6 +29,7 @@ Future<void> createSlideshow(
       await dialog.hide();
     }
 
+    if (!context.mounted) return;
     final command = _buildFFmpegCommand(
       context,
       imageData.paths,
@@ -42,6 +37,7 @@ Future<void> createSlideshow(
       imageData.widths,
     );
 
+    if (!context.mounted) return;
     await _executeFFmpegProcess(
       context: context,
       command: command,
@@ -55,9 +51,7 @@ Future<void> createSlideshow(
   }
 }
 
-Future<ImageProcessingResult> _prepareImageFiles(
-  List<EnteFile> files,
-) async {
+Future<ImageProcessingResult> _prepareImageFiles(List<EnteFile> files) async {
   final List<String> paths = [];
   final List<double> heights = [];
   final List<double> widths = [];
@@ -85,8 +79,9 @@ Future<ImageProcessingResult> _prepareImageFiles(
       } else {
         processedPath =
             '$tempPath/${DateTime.now().millisecondsSinceEpoch}.jpg';
-        File(processedPath)
-            .writeAsBytesSync(img.encodeJpg(decodedImage, quality: 95));
+        File(
+          processedPath,
+        ).writeAsBytesSync(img.encodeJpg(decodedImage, quality: 95));
       }
 
       paths.add(processedPath);
@@ -95,11 +90,7 @@ Future<ImageProcessingResult> _prepareImageFiles(
     }
   }
 
-  return ImageProcessingResult(
-    paths: paths,
-    heights: heights,
-    widths: widths,
-  );
+  return ImageProcessingResult(paths: paths, heights: heights, widths: widths);
 }
 
 bool _isJpegFile(String path) {
@@ -127,6 +118,7 @@ Future<void> _executeFFmpegProcess({
             "FFmpeg command executed successfully in $executionTime seconds",
           );
           _completeOperation(completer, onComplete);
+          if (!context.mounted) return;
           showToast(
             context,
             AppLocalizations.of(
@@ -137,9 +129,10 @@ Future<void> _executeFFmpegProcess({
           _logger.warning(
             "FFmpeg process failed with return code $returnCode in $executionTime seconds",
           );
-          showToast(context, AppLocalizations.of(context).videoExportFailed);
           _completeOperation(completer, onComplete);
           await FFmpegKit.cancel();
+          if (!context.mounted) return;
+          showToast(context, AppLocalizations.of(context).videoExportFailed);
         }
       },
       (log) {
@@ -166,10 +159,7 @@ Future<void> _executeFFmpegProcess({
   }
 }
 
-void _completeOperation(
-  Completer<void> completer,
-  Function onComplete,
-) {
+void _completeOperation(Completer<void> completer, Function onComplete) {
   onComplete();
   if (!completer.isCompleted) {
     completer.complete();
@@ -237,9 +227,11 @@ String _buildFFmpegCommand(
     }
   }
 
-  command.write('" -map "[f${imagePaths.length - 2}]" '
-      '-c:v libx264 -crf 18 -preset slow -movflags +faststart -pix_fmt yuv420p -r 60 '
-      '-t ${imagePaths.length * 2} "$outputPath"');
+  command.write(
+    '" -map "[f${imagePaths.length - 2}]" '
+    '-c:v libx264 -crf 18 -preset slow -movflags +faststart -pix_fmt yuv420p -r 60 '
+    '-t ${imagePaths.length * 2} "$outputPath"',
+  );
 
   return command.toString();
 }

@@ -74,7 +74,10 @@ class ThumbnailManager {
         return thumb;
     }
 
-    async thumbnailData(file: EnteFile, cachedOnly = false) {
+    async thumbnailData(
+        file: EnteFile,
+        cachedOnly = false,
+    ): Promise<Uint8Array<ArrayBuffer> | undefined> {
         await this.initThumbnailCacheIfNeeded();
 
         const key = file.id.toString();
@@ -108,11 +111,6 @@ class ThumbnailManager {
 
 export const thumbnailManager = new ThumbnailManager();
 
-type CaptureStackTrace = (
-    targetObject: object,
-    constructorOpt?: object,
-) => void;
-
 class NetworkThumbnailError extends Error {
     error: unknown;
 
@@ -121,10 +119,7 @@ class NetworkThumbnailError extends Error {
             `NetworkThumbnailError: ${e instanceof Error ? e.message : String(e)}`,
         );
 
-        const captureStackTrace = Reflect.get(Error, "captureStackTrace") as
-            | CaptureStackTrace
-            | undefined;
-        if (captureStackTrace) captureStackTrace(this, NetworkThumbnailError);
+        Error.captureStackTrace?.(this, NetworkThumbnailError);
 
         this.error = e;
     }

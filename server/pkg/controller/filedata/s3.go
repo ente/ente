@@ -8,10 +8,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/ente-io/museum/ente"
-	fileData "github.com/ente-io/museum/ente/filedata"
-	"github.com/ente-io/museum/pkg/utils/file"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	fileData "github.com/ente/museum/ente/filedata"
+	"github.com/ente/museum/pkg/utils/file"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
@@ -133,7 +133,7 @@ func (c *Controller) uploadObject(obj fileData.S3FileMetadata, objectKey string,
 	}
 	var err error
 	var result *s3manager.UploadOutput
-	for retries := 0; retries < 3; retries++ {
+	for range 3 {
 		result, err = uploader.Upload(&up)
 		if err == nil || !strings.Contains(err.Error(), "connection reset by peer") {
 			break

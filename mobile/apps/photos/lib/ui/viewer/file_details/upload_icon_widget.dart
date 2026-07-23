@@ -41,8 +41,9 @@ class _UpdateIconWidgetState extends State<UploadIconWidget> {
   void initState() {
     super.initState();
     ignoreService = IgnoredFilesService.instance;
-    _firstImportEvent =
-        Bus.instance.on<CollectionUpdatedEvent>().listen((event) {
+    _firstImportEvent = Bus.instance.on<CollectionUpdatedEvent>().listen((
+      event,
+    ) {
       if (mounted &&
           event.type == EventType.addedOrUpdated &&
           event.updatedFiles.isNotEmpty &&
@@ -73,15 +74,9 @@ class _UpdateIconWidgetState extends State<UploadIconWidget> {
       if (isUploadedNow) {
         return Padding(
           padding: const EdgeInsets.all(8.0),
-          child: const Icon(
-            Icons.cloud_done_outlined,
-            color: Colors.white,
-          )
+          child: const Icon(Icons.cloud_done_outlined, color: Colors.white)
               .animate()
-              .fadeIn(
-                duration: 500.ms,
-                curve: Curves.easeInOutCubic,
-              )
+              .fadeIn(duration: 500.ms, curve: Curves.easeInOutCubic)
               .fadeOut(
                 delay: const Duration(seconds: 3),
                 duration: 500.ms,
@@ -96,8 +91,10 @@ class _UpdateIconWidgetState extends State<UploadIconWidget> {
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           final Map<String, String> idsToReasonMap = snapshot.data!;
-          final ignoreReason =
-              ignoreService.getUploadSkipReason(idsToReasonMap, widget.file);
+          final ignoreReason = ignoreService.getUploadSkipReason(
+            idsToReasonMap,
+            widget.file,
+          );
           final bool isIgnored = ignoreReason != null;
           final bool isQueuedForUpload =
               !isIgnored && widget.file.collectionID != null;
@@ -107,33 +104,35 @@ class _UpdateIconWidgetState extends State<UploadIconWidget> {
           if (isIgnored && (kDebugMode || ignoreReason != kIgnoreReasonTrash)) {
             showToast(
               context,
-              AppLocalizations.of(context)
-                  .uploadIsIgnoredDueToIgnorereason(ignoreReason: ignoreReason),
+              AppLocalizations.of(
+                context,
+              ).uploadIsIgnoredDueToIgnorereason(ignoreReason: ignoreReason),
             );
           }
           return Tooltip(
             message: isIgnored
-                ? AppLocalizations.of(context)
-                    .tapToUploadIsIgnoredDue(ignoreReason: ignoreReason)
+                ? AppLocalizations.of(
+                    context,
+                  ).tapToUploadIsIgnoredDue(ignoreReason: ignoreReason)
                 : AppLocalizations.of(context).tapToUpload,
             child: IconButton(
-              icon: const Icon(
-                Icons.upload_rounded,
-                color: Colors.white,
-              ),
+              icon: const Icon(Icons.upload_rounded, color: Colors.white),
               onPressed: () async {
                 if (isIgnored) {
-                  await IgnoredFilesService.instance
-                      .removeIgnoredMappings([widget.file]);
+                  await IgnoredFilesService.instance.removeIgnoredMappings([
+                    widget.file,
+                  ]);
                 }
                 if (widget.file.collectionID == null) {
-                  widget.file.collectionID = (await CollectionsService.instance
-                          .getUncategorizedCollection())
-                      .id;
+                  widget.file.collectionID =
+                      (await CollectionsService.instance
+                              .getUncategorizedCollection())
+                          .id;
                   await FilesDB.instance.insert(widget.file);
                 }
-                await RemoteSyncService.instance
-                    .whiteListVideoForUpload(widget.file);
+                await RemoteSyncService.instance.whiteListVideoForUpload(
+                  widget.file,
+                );
                 RemoteSyncService.instance.sync().ignore();
                 if (mounted) {
                   setState(() {

@@ -51,8 +51,9 @@ fn encrypt_blob<T: Serialize>(payload: &T, master_key: &[u8], label: &str) -> Re
     let payload = serde_json::to_vec(payload).map_err(|error| {
         ContactsError::InvalidInput(format!("failed to encode {label} payload: {error}"))
     })?;
-    let encrypted = secretbox::encrypt(&payload, master_key)?;
-    Ok(crypto::encode_b64(&encrypted.encrypted_data))
+    let encrypted =
+        secretbox::encrypt_combined(&payload, &crypto::Key::try_from_slice(master_key)?);
+    Ok(crypto::encode_b64(&encrypted))
 }
 
 fn decrypt_blob<T: DeserializeOwned>(
@@ -61,7 +62,8 @@ fn decrypt_blob<T: DeserializeOwned>(
     label: &str,
 ) -> Result<T> {
     let encrypted_blob = crypto::decode_b64(encrypted_blob_b64)?;
-    let plaintext = secretbox::decrypt_box(&encrypted_blob, master_key)?;
+    let plaintext =
+        secretbox::decrypt_combined(&encrypted_blob, &crypto::Key::try_from_slice(master_key)?)?;
     serde_json::from_slice(&plaintext).map_err(|error| {
         ContactsError::InvalidInput(format!("failed to decode {label} payload: {error}"))
     })

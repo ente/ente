@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
+const double _bottomControlToastMargin = 96;
+
 void showToast(
   BuildContext context,
   String message, {
   toastLength = Toast.LENGTH_LONG,
   iOSDismissOnTap = true,
+  double mobileBottomMargin = 16,
 }) async {
   // If on mobile render toast above the keyboard using FToast.
   final bool isMobile = PlatformDetector.isMobile();
@@ -49,11 +52,15 @@ void showToast(
       gravity: ToastGravity.BOTTOM,
       toastDuration: const Duration(seconds: 2),
       positionedToastBuilder: (context, child, _) {
-        final double currentInset = MediaQuery.of(context).viewInsets.bottom;
+        final mediaQuery = MediaQuery.of(context);
+        final double keyboardInset = mediaQuery.viewInsets.bottom;
+        final double bottomInset = keyboardInset > 0
+            ? keyboardInset
+            : mediaQuery.viewPadding.bottom;
         return Positioned(
           left: 16,
           right: 16,
-          bottom: currentInset + 16,
+          bottom: bottomInset + mobileBottomMargin,
           child: child,
         );
       },
@@ -63,7 +70,9 @@ void showToast(
 
   // Default path (desktop)
   try {
+    if (!context.mounted) return;
     await Fluttertoast.cancel();
+    if (!context.mounted) return;
     await Fluttertoast.showToast(
       msg: message,
       toastLength: toastLength,
@@ -74,6 +83,7 @@ void showToast(
       fontSize: 16.0,
     );
   } on MissingPluginException catch (_) {
+    if (!context.mounted) return;
     final fToast = FToast()..init(context);
     final Widget baseToast = Container(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
@@ -96,6 +106,19 @@ void showToast(
       toastDuration: const Duration(seconds: 2),
     );
   }
+}
+
+void showToastAboveBottomControls(
+  BuildContext context,
+  String message, {
+  toastLength = Toast.LENGTH_LONG,
+}) {
+  showToast(
+    context,
+    message,
+    toastLength: toastLength,
+    mobileBottomMargin: _bottomControlToastMargin,
+  );
 }
 
 void showShortToast(BuildContext context, String message) {

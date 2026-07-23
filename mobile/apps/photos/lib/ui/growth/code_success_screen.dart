@@ -20,15 +20,13 @@ class CodeSuccessScreen extends StatelessWidget {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    final pageBackgroundColor =
-        isDarkMode ? const Color(0xFF161616) : const Color(0xFFFAFAFA);
-    final cardColor =
-        isDarkMode ? const Color(0xFF212121) : const Color(0xFFFFFFFF);
+    final cardColor = isDarkMode
+        ? const Color(0xFF212121)
+        : const Color(0xFFFFFFFF);
     const greenColor = Color(0xFF08C225);
 
     return Scaffold(
-      backgroundColor: pageBackgroundColor,
+      backgroundColor: colorScheme.backgroundColour,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -148,11 +146,12 @@ class CodeSuccessScreen extends StatelessWidget {
                           const SizedBox(height: 12),
                           // Referral code with dotted border
                           DottedBorder(
-                            color: greenColor,
-                            strokeWidth: 1,
-                            dashPattern: const [6, 6],
-                            borderType: BorderType.RRect,
-                            radius: const Radius.circular(16),
+                            options: const RoundedRectDottedBorderOptions(
+                              color: greenColor,
+                              strokeWidth: 1,
+                              dashPattern: [6, 6],
+                              radius: Radius.circular(16),
+                            ),
                             child: Container(
                               decoration: BoxDecoration(
                                 color: cardColor,
@@ -164,8 +163,9 @@ class CodeSuccessScreen extends StatelessWidget {
                               ),
                               child: Text(
                                 referralView.code,
-                                style:
-                                    textTheme.small.copyWith(color: greenColor),
+                                style: textTheme.small.copyWith(
+                                  color: greenColor,
+                                ),
                               ),
                             ),
                           ),

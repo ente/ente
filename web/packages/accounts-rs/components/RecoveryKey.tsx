@@ -6,7 +6,7 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
-import { type MiniDialogAttributes } from "ente-base/components/MiniDialog";
+import type { MiniDialogAttributes } from "ente-base/components/MiniDialog";
 import { SpacedRow } from "ente-base/components/containers";
 import { DialogCloseIconButton } from "ente-base/components/mui/DialogCloseIconButton";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";

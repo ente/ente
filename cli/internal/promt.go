@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ente-io/cli/internal/api"
+	"github.com/ente/cli/internal/api"
 	"golang.org/x/term"
 )
 

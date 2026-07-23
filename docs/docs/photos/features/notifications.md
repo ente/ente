@@ -3,9 +3,9 @@ title: Notifications
 description: Manage notifications for shared albums and updates in Ente Photos
 search: false
 head:
-  - - meta
-    - name: robots
-      content: noindex
+    - - meta
+      - name: robots
+        content: noindex
 ---
 
 # Notifications

@@ -3,13 +3,7 @@ import "package:photos/generated/l10n.dart";
 import "package:photos/models/memories/memory.dart";
 import "package:photos/models/memories/smart_memory.dart";
 
-enum TimeMemoryKind {
-  day,
-  month,
-  week,
-  lastWeek,
-  lastMonth,
-}
+enum TimeMemoryKind { day, month, week, lastWeek, lastMonth }
 
 class TimeMemory extends SmartMemory {
   // For computing the title
@@ -18,10 +12,7 @@ class TimeMemory extends SmartMemory {
   DateTime? month;
   int? yearsAgo;
 
-  static TimeMemoryKind inferKind({
-    DateTime? day,
-    DateTime? month,
-  }) {
+  static TimeMemoryKind inferKind({DateTime? day, DateTime? month}) {
     if (day != null) {
       return TimeMemoryKind.day;
     }
@@ -42,23 +33,23 @@ class TimeMemory extends SmartMemory {
     TimeMemoryKind? kind,
     super.firstCreationTime,
     super.lastCreationTime,
-  })  : kind = kind ?? inferKind(day: day, month: month),
-        assert(
-          kind != TimeMemoryKind.day || day != null,
-          "day must be provided for day-based time memories",
-        ),
-        assert(
-          kind != TimeMemoryKind.month || month != null,
-          "month must be provided for month-based time memories",
-        ),
-        super(
-          memories,
-          MemoryType.time,
-          '',
-          firstDateToShow,
-          lastDateToShow,
-          id: id,
-        );
+  }) : kind = kind ?? inferKind(day: day, month: month),
+       assert(
+         kind != TimeMemoryKind.day || day != null,
+         "day must be provided for day-based time memories",
+       ),
+       assert(
+         kind != TimeMemoryKind.month || month != null,
+         "month must be provided for month-based time memories",
+       ),
+       super(
+         memories,
+         MemoryType.time,
+         '',
+         firstDateToShow,
+         lastDateToShow,
+         id: id,
+       );
 
   @override
   String createTitle(AppLocalizations locals, String languageCode) {

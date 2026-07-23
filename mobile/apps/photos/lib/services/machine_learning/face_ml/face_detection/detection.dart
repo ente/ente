@@ -24,8 +24,8 @@ abstract class Detection {
 
   const Detection.empty() : score = 0;
 
-  get width;
-  get height;
+  double get width;
+  double get height;
 
   @override
   String toString();
@@ -60,22 +60,23 @@ class FaceDetectionRelative extends Detection {
     required super.score,
     required List<double> box,
     required List<List<double>> allKeypoints,
-  })  : assert(
-          box.every((e) => e >= -0.1 && e <= 1.1),
-          "Bounding box values must be in the range [0, 1], with only a small margin of error allowed.",
-        ),
-        assert(
-          allKeypoints
-              .every((sublist) => sublist.every((e) => e >= -0.1 && e <= 1.1)),
-          "All keypoints must be in the range [0, 1], with only a small margin of error allowed.",
-        ),
-        box = List<double>.from(box.map((e) => e.clamp(0.0, 1.0))),
-        allKeypoints = allKeypoints
-            .map(
-              (sublist) =>
-                  List<double>.from(sublist.map((e) => e.clamp(0.0, 1.0))),
-            )
-            .toList();
+  }) : assert(
+         box.every((e) => e >= -0.1 && e <= 1.1),
+         "Bounding box values must be in the range [0, 1], with only a small margin of error allowed.",
+       ),
+       assert(
+         allKeypoints.every(
+           (sublist) => sublist.every((e) => e >= -0.1 && e <= 1.1),
+         ),
+         "All keypoints must be in the range [0, 1], with only a small margin of error allowed.",
+       ),
+       box = List<double>.from(box.map((e) => e.clamp(0.0, 1.0))),
+       allKeypoints = allKeypoints
+           .map(
+             (sublist) =>
+                 List<double>.from(sublist.map((e) => e.clamp(0.0, 1.0))),
+           )
+           .toList();
 
   void correctForMaintainedAspectRatio(
     Dimensions originalSize,
@@ -173,14 +174,22 @@ class FaceDetectionRelative extends Detection {
     );
 
     // Extract bounding box values
-    final String xMin =
-        xMinBox.clamp(0.0, 0.999999).toStringAsFixed(5).substring(2);
-    final String yMin =
-        yMinBox.clamp(0.0, 0.999999).toStringAsFixed(5).substring(2);
-    final String xMax =
-        xMaxBox.clamp(0.0, 0.999999).toStringAsFixed(5).substring(2);
-    final String yMax =
-        yMaxBox.clamp(0.0, 0.999999).toStringAsFixed(5).substring(2);
+    final String xMin = xMinBox
+        .clamp(0.0, 0.999999)
+        .toStringAsFixed(5)
+        .substring(2);
+    final String yMin = yMinBox
+        .clamp(0.0, 0.999999)
+        .toStringAsFixed(5)
+        .substring(2);
+    final String xMax = xMaxBox
+        .clamp(0.0, 0.999999)
+        .toStringAsFixed(5)
+        .substring(2);
+    final String yMax = yMaxBox
+        .clamp(0.0, 0.999999)
+        .toStringAsFixed(5)
+        .substring(2);
 
     // Convert the bounding box values to string and concatenate
     final String rawID = "${xMin}_${yMin}_${xMax}_$yMax";
@@ -197,11 +206,7 @@ class FaceDetectionRelative extends Detection {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'score': score,
-      'box': box,
-      'allKeypoints': allKeypoints,
-    };
+    return {'score': score, 'box': box, 'allKeypoints': allKeypoints};
   }
 
   factory FaceDetectionRelative.fromJson(Map<String, dynamic> json) {
@@ -215,12 +220,10 @@ class FaceDetectionRelative extends Detection {
   }
 
   @override
-
   /// The width of the bounding box of the face detection, in relative range [0, 1].
   double get width => xMaxBox - xMinBox;
 
   @override
-
   /// The height of the bounding box of the face detection, in relative range [0, 1].
   double get height => yMaxBox - yMinBox;
 }
@@ -262,11 +265,9 @@ class FaceDetectionAbsolute extends Detection {
   }
 
   @override
-
   /// The width of the bounding box of the face detection, in number of pixels, range [0, imageWidth].
   double get width => xMaxBox - xMinBox;
   @override
-
   /// The height of the bounding box of the face detection, in number of pixels, range [0, imageHeight].
   double get height => yMaxBox - yMinBox;
 
@@ -277,13 +278,14 @@ class FaceDetectionAbsolute extends Detection {
 
     final bool faceIsUpright =
         (max(leftEye[1], rightEye[1]) + 0.5 * eyeDistanceY < nose[1]) &&
-            (nose[1] + 0.5 * mouthDistanceY < min(leftMouth[1], rightMouth[1]));
+        (nose[1] + 0.5 * mouthDistanceY < min(leftMouth[1], rightMouth[1]));
 
-    final bool noseStickingOutLeft = (nose[0] < min(leftEye[0], rightEye[0])) &&
+    final bool noseStickingOutLeft =
+        (nose[0] < min(leftEye[0], rightEye[0])) &&
         (nose[0] < min(leftMouth[0], rightMouth[0]));
     final bool noseStickingOutRight =
         (nose[0] > max(leftEye[0], rightEye[0])) &&
-            (nose[0] > max(leftMouth[0], rightMouth[0]));
+        (nose[0] > max(leftMouth[0], rightMouth[0]));
 
     final bool noseCloseToLeftEye =
         (nose[0] - leftEye[0]).abs() < 0.2 * eyeDistanceX;

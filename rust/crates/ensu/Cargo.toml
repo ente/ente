@@ -1,0 +1,75 @@
+[package]
+name = "ente-ensu"
+edition = "2024"
+
+[dependencies]
+ente-core.workspace = true
+ente-image.workspace = true
+ente-model-download.workspace = true
+memmap2 = "0.9.9"
+parking_lot = "0.12"
+regex = { version = "1", optional = true }
+rubato = { version = "0.16", optional = true }
+rusqlite = { version = "0.38", features = ["bundled"], optional = true }
+self_cell = "1"
+serde.workspace = true
+serde_json.workspace = true
+sha2 = "0.11.0"
+thiserror.workspace = true
+tokio = { version = "1", features = ["rt", "time"] }
+transcribe-rs = { version = "0.3.11", default-features = false, features = ["onnx", "vad-silero"], optional = true }
+url = "2.5.8"
+uuid = { version = "1", features = ["v4", "rng-getrandom"] }
+zeroize = { version = "1.8", features = ["derive"] }
+zstd = "0.13.3"
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+# llama-cpp-2's default features are "openmp" and "android-shared-stdcxx".
+#
+# - "openmp" enables OpenMP CPU parallelism. It requires libomp, which usually
+#   ships with Linux/Windows toolchains but not Apple's clang. Without it,
+#   llama.cpp falls back to its built-in thread pool.
+#
+# - "android-shared-stdcxx" is a no-op everywhere except Android (where it
+#   enables the NDK's shared C++ runtime).
+#
+# On Apple platforms, Accelerate is auto-linked by llama-cpp-sys-2 for CPU
+# SIMD helpers. llama-cpp-2 additionally enables the "metal" feature on arm64,
+# which causes Metal to be used for GPU inference.
+#
+# "mtmd" is used on all platforms for enabling multimodal support.
+[target.'cfg(target_os = "macos")'.dependencies]
+llama-cpp-2 = { version = "=0.1.144", default-features = false, features = ["mtmd"] }
+
+# Desktop Linux enables the Vulkan GPU backend, which runs on AMD, Intel and
+# NVIDIA GPUs through the system Vulkan loader (no vendor SDK required). The
+# build needs a Vulkan loader plus "glslc" to compile the compute shaders.
+[target.'cfg(target_os = "linux")'.dependencies]
+llama-cpp-2 = { version = "=0.1.144", features = ["mtmd", "vulkan"] }
+
+# Android (and anything else that is neither macOS nor desktop Linux) stays on
+# the CPU backend. Windows Vulkan additionally requires a VULKAN_SDK, so it is
+# intentionally left out here.
+[target.'cfg(all(not(target_os = "macos"), not(target_os = "linux")))'.dependencies]
+llama-cpp-2 = { version = "=0.1.144", features = ["mtmd"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+ort = { workspace = true, features = ["load-dynamic"], optional = true }
+
+# The iOS app links Ente's custom ONNX Runtime XCFramework via SPM, so ort-sys
+# must not download/link pyke's binaries. See mobile/native/onnxruntime/README.md.
+[target.'cfg(target_os = "ios")'.dependencies]
+ort-sys = { workspace = true, features = ["disable-linking"], optional = true }
+
+[features]
+default = ["sqlite"]
+sqlite = ["dep:rusqlite"]
+transcription = [
+    "dep:ort",
+    "dep:ort-sys",
+    "dep:regex",
+    "dep:rubato",
+    "dep:transcribe-rs",
+]

@@ -1,7 +1,7 @@
 {
     /* TSConfig file used for typechecking the files in src/.
      *
-     * The base configuration was generated using `yarn create vite`. This was
+     * The base configuration was generated using `npm create vite`. This was
      * already almost the same as the `tsconfig-typecheck.json` we use
      * elsewhere, with one or two differences.
      *

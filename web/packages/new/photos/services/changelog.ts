@@ -26,7 +26,7 @@ import type { Electron } from "ente-base/types/ipc";
  * The what's new dialog sets the saved version to the current one whenever it
  * is shown.
  */
-const changelogVersion = 10;
+const changelogVersion = 12;
 
 /**
  * Return true if we should show the {@link WhatsNew} dialog.
@@ -36,6 +36,7 @@ const changelogVersion = 10;
  */
 export const shouldShowWhatsNew = async (electron: Electron) => {
     const lastShownVersion = await electron.lastShownChangelogVersion();
+
     if (!lastShownVersion) {
         // On a fresh install, save the current version but don't show the
         // what's new dialog.

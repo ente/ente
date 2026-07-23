@@ -1,7 +1,8 @@
+import { LockerHead } from "@/components/LockerHead";
+import { lockerLogout } from "@/services/logout";
 import "@fontsource-variable/inter";
 import { CssBaseline } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
-import { LockerHead } from "components/LockerHead";
 import {
     isSavedUserTokenMismatch,
     savedLocalUser,
@@ -23,7 +24,6 @@ import log from "ente-base/log";
 import { logStartupBanner } from "ente-base/log-web";
 import type { AppProps } from "next/app";
 import React, { useCallback, useEffect, useMemo } from "react";
-import { lockerLogout } from "services/logout";
 
 const App: React.FC<AppProps> = ({ Component, pageProps }) => {
     useSetupLogs();

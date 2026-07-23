@@ -19,11 +19,11 @@ class TunneledTransport implements Transport {
   }
 
   TunneledTransport._(this._tunnel, this._options)
-      : _dsn = _options.dsn != null ? Dsn.parse(_options.dsn!) : null,
-        _headers = _buildHeaders(
-          _options.platformChecker.isWeb,
-          _options.sentryClientName,
-        ) {
+    : _dsn = _options.dsn != null ? Dsn.parse(_options.dsn!) : null,
+      _headers = _buildHeaders(
+        _options.platformChecker.isWeb,
+        _options.sentryClientName,
+      ) {
     _credentialBuilder = _CredentialBuilder(
       _dsn,
       _options.sentryClientName,
@@ -87,8 +87,8 @@ class _CredentialBuilder {
   int get timestamp => _clock().millisecondsSinceEpoch;
 
   _CredentialBuilder._(String authHeader, ClockProvider clock)
-      : _authHeader = authHeader,
-        _clock = clock;
+    : _authHeader = authHeader,
+      _clock = clock;
 
   factory _CredentialBuilder(
     Dsn? dsn,
@@ -109,7 +109,8 @@ class _CredentialBuilder {
     String? secretKey,
     String? sdkIdentifier,
   }) {
-    var header = 'Sentry sentry_version=7, sentry_client=$sdkIdentifier, '
+    var header =
+        'Sentry sentry_version=7, sentry_client=$sdkIdentifier, '
         'sentry_key=$publicKey';
 
     if (secretKey != null) {
@@ -120,12 +121,9 @@ class _CredentialBuilder {
   }
 
   Map<String, String> configure(Map<String, String> headers) {
-    return headers
-      ..addAll(
-        <String, String>{
-          'X-Sentry-Auth': '$_authHeader, sentry_timestamp=$timestamp',
-        },
-      );
+    return headers..addAll(<String, String>{
+      'X-Sentry-Auth': '$_authHeader, sentry_timestamp=$timestamp',
+    });
   }
 }
 

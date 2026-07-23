@@ -2,8 +2,6 @@
  * @file Storage (in-memory, local, remote) and update of various settings.
  */
 
-import { savedPartialLocalUser } from "ente-accounts/services/accounts-db";
-import { isDevBuild } from "ente-base/env";
 import log from "ente-base/log";
 import {
     updateChecksumProtectedUploadsEnabled,
@@ -234,17 +232,6 @@ const setSettingsSnapshot = (snapshot: Settings) => {
     _state.settingsSnapshot = snapshot;
     _state.settingsListeners.forEach((l) => l());
 };
-
-/**
- * Return `true` if this is a development build, and the current user (if any)
- * is marked as an "development" user.
- *
- * Emails that end in "@ente.com" are considered as dev users.
- */
-export const isDevBuildAndUser = () => isDevBuild && isDevUserViaEmail();
-
-const isDevUserViaEmail = () =>
-    !!savedPartialLocalUser()?.email?.endsWith("@ente.com");
 
 /**
  * Persist the user's custom domain preference both locally and on remote.
