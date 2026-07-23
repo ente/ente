@@ -53,10 +53,9 @@ class AllExifItemWidgetNew extends StatelessWidget {
       onTap = null;
     } else if (currentExif.isNotEmpty) {
       label = l10n.viewAllExifData;
-      onTap = () => showDialog(
-        useRootNavigator: false,
+      onTap = () => showBottomSheetComponent<void>(
         context: context,
-        builder: (_) => ExifInfoDialogNew(file: file, exif: currentExif),
+        builder: (_) => ExifInfoSheetNew(file: file, exif: currentExif),
         barrierColor: context.componentColors.specialScrim,
       );
     } else {
