@@ -23,11 +23,13 @@ class AlbumsItemWidgetNew extends StatefulWidget {
   const AlbumsItemWidgetNew({
     required this.file,
     required this.loadDelay,
+    required this.showHiddenCollections,
     super.key,
   });
 
   final EnteFile file;
   final Duration loadDelay;
+  final bool showHiddenCollections;
 
   @override
   State<AlbumsItemWidgetNew> createState() => _AlbumsItemWidgetNewState();
@@ -71,6 +73,10 @@ class _AlbumsItemWidgetNewState extends State<AlbumsItemWidgetNew> {
       return ids
           .map(CollectionsService.instance.getCollectionByID)
           .whereType<Collection>()
+          .where(
+            (collection) =>
+                widget.showHiddenCollections || !collection.isHidden(),
+          )
           .toList(growable: false);
     } catch (error, stackTrace) {
       Logger(

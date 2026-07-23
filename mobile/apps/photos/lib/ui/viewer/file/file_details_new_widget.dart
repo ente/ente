@@ -10,6 +10,7 @@ import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/services/collections_service.dart";
 import "package:photos/ui/viewer/file_details/file_info_faces_item_widget.dart";
 import "package:photos/ui/viewer/file_details/file_info_pets_item_widget.dart";
 import "package:photos/ui/viewer/file_details_new/added_by_widget.dart";
@@ -83,6 +84,16 @@ class _FileDetailsNewWidgetState extends State<FileDetailsNewWidget> {
     final hasPreview =
         file.uploadedFileID != null &&
         fileDataService.previewIds.containsKey(file.uploadedFileID);
+    final sourceCollectionID = file.collectionID;
+    final collectionsService = CollectionsService.instance;
+    final showHiddenCollections =
+        sourceCollectionID != null &&
+        (sourceCollectionID ==
+                collectionsService.cachedDefaultHiddenCollection?.id ||
+            (collectionsService
+                    .getCollectionByID(sourceCollectionID)
+                    ?.isHidden() ??
+                false));
     final sections = <WidgetBuilder>[
       (_) => AddedByWidgetNew(file),
       if (file.isUploaded &&
@@ -154,6 +165,7 @@ class _FileDetailsNewWidgetState extends State<FileDetailsNewWidget> {
           child: AlbumsItemWidgetNew(
             file: file,
             loadDelay: _metadataDelay + const Duration(milliseconds: 200),
+            showHiddenCollections: showHiddenCollections,
           ),
         ),
       if (isImage || (file.isVideo && (hasPreview || internalUser)))
