@@ -18,6 +18,8 @@ dev_dependencies:
     sdk: flutter
 
 flutter:
+  assets:
+    - assets/apps/
   fonts:
     - family: Inter
       fonts:

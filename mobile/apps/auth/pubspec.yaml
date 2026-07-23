@@ -164,6 +164,9 @@ flutter:
     - assets/svg/
 
   fonts:
+    - family: Gochi Hand
+      fonts:
+        - asset: fonts/GochiHand-Regular.ttf
     - family: Inter
       fonts:
         - asset: fonts/Inter-Regular.ttf

@@ -334,6 +334,10 @@
   "@enteLocker": {
     "description": "Product name"
   },
+  "moreFrom": "More from",
+  "@moreFrom": {
+    "description": "Heading shown above links to other Ente apps"
+  },
   "confirmDeleteAccountAcrossApps": "I understand this deletes my data across Ente Photos, Ente Auth, and Ente Locker.",
   "@confirmDeleteAccountAcrossApps": {
     "description": "Checkbox label for final account deletion confirmation"
