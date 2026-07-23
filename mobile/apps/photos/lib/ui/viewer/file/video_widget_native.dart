@@ -313,159 +313,139 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
                     showDetailsSheet(context, widget.file);
                   }
                 },
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 750),
-            switchOutCurve: Curves.easeOutExpo,
-            switchInCurve: Curves.easeInExpo,
-            //Loading two high-res potrait videos together causes one to
-            //go blank. So only loading video when it is completely visible.
-            child: !_isCompletelyVisible || _filePath == null
-                ? _getLoadingWidget()
-                : Stack(
-                    key: const ValueKey("video_ready"),
-                    children: [
-                      ZoomableVideoViewer(
-                        transformationController: _transformationController,
-                        onInteractionLockChanged: _onInteractionLockChanged,
-                        child: Center(
-                          child: AspectRatio(
-                            aspectRatio: aspectRatio ?? 1,
-                            child: NativeVideoPlayerView(
-                              onViewReady: _initializeController,
+          child: ValueListenableBuilder(
+            valueListenable: _isPlaybackReady,
+            builder: (context, isPlaybackReady, _) {
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 750),
+                switchOutCurve: Curves.easeOutExpo,
+                switchInCurve: Curves.easeInExpo,
+                //Loading two high-res potrait videos together causes one to
+                //go blank. So only loading video when it is completely visible.
+                child: !_isCompletelyVisible || _filePath == null
+                    ? _getLoadingWidget()
+                    : Stack(
+                        key: const ValueKey("video_ready"),
+                        children: [
+                          ZoomableVideoViewer(
+                            transformationController: _transformationController,
+                            onInteractionLockChanged: _onInteractionLockChanged,
+                            child: Center(
+                              child: AspectRatio(
+                                aspectRatio: aspectRatio ?? 1,
+                                child: NativeVideoPlayerView(
+                                  onViewReady: _initializeController,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                      GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onTap: widget.isFromMemories
-                            ? null
-                            : () {
-                                _showControls.value = !_showControls.value;
-                                if (widget.playbackCallback != null) {
-                                  widget.playbackCallback!(
-                                    !_showControls.value,
-                                    FullScreenRequestReason.userInteraction,
-                                  );
-                                }
-                              },
-                        onLongPress: () {
-                          if (widget.isFromMemories) {
-                            widget.playbackCallback?.call(
-                              false,
-                              FullScreenRequestReason.userInteraction,
-                            );
-                            _controller?.pause();
-                          }
-                        },
-                        onLongPressUp: () {
-                          if (widget.isFromMemories) {
-                            widget.playbackCallback?.call(
-                              true,
-                              FullScreenRequestReason.userInteraction,
-                            );
-                            _controller?.play();
-                          }
-                        },
-                        child: Container(
-                          constraints: const BoxConstraints.expand(),
-                        ),
-                      ),
-                      widget.isFromMemories
-                          ? const SizedBox.shrink()
-                          : Positioned.fill(
+                          GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onTap: widget.isFromMemories
+                                ? null
+                                : () {
+                                    _showControls.value = !_showControls.value;
+                                    if (widget.playbackCallback != null) {
+                                      widget.playbackCallback!(
+                                        !_showControls.value,
+                                        FullScreenRequestReason.userInteraction,
+                                      );
+                                    }
+                                  },
+                            onLongPress: () {
+                              if (widget.isFromMemories) {
+                                widget.playbackCallback?.call(
+                                  false,
+                                  FullScreenRequestReason.userInteraction,
+                                );
+                                _controller?.pause();
+                              }
+                            },
+                            onLongPressUp: () {
+                              if (widget.isFromMemories) {
+                                widget.playbackCallback?.call(
+                                  true,
+                                  FullScreenRequestReason.userInteraction,
+                                );
+                                _controller?.play();
+                              }
+                            },
+                            child: Container(
+                              constraints: const BoxConstraints.expand(),
+                            ),
+                          ),
+                          if (!widget.isFromMemories && isPlaybackReady)
+                            Positioned.fill(
                               child: Center(
                                 child: ValueListenableBuilder(
-                                  builder:
-                                      (BuildContext context, bool value, _) {
-                                        return value
-                                            ? ValueListenableBuilder(
-                                                builder:
-                                                    (context, bool value, _) {
-                                                      return AnimatedOpacity(
-                                                        duration:
-                                                            const Duration(
-                                                              milliseconds: 200,
-                                                            ),
-                                                        opacity: value ? 1 : 0,
-                                                        curve: Curves
-                                                            .easeInOutQuad,
-                                                        child: IgnorePointer(
-                                                          ignoring: !value,
-                                                          child:
-                                                              PlayPauseButton(
-                                                                _controller,
-                                                              ),
-                                                        ),
-                                                      );
-                                                    },
-                                                valueListenable: _showControls,
-                                              )
-                                            : const SizedBox();
-                                      },
-                                  valueListenable: _isPlaybackReady,
+                                  valueListenable: _showControls,
+                                  builder: (context, showControls, _) {
+                                    return AnimatedOpacity(
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
+                                      opacity: showControls ? 1 : 0,
+                                      curve: Curves.easeInOutQuad,
+                                      child: IgnorePointer(
+                                        ignoring: !showControls,
+                                        child: PlayPauseButton(_controller),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ),
-                      widget.isFromMemories
-                          ? const SizedBox.shrink()
-                          : Positioned(
-                              bottom: verticalMargin,
-                              right: 0,
-                              left: 0,
-                              child: SafeArea(
-                                top: false,
-                                left: false,
-                                right: false,
-                                child: Padding(
-                                  padding: EdgeInsets.only(
-                                    bottom: widget.isFromMemories ? 32 : 0,
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      ValueListenableBuilder(
-                                        valueListenable: _showControls,
-                                        builder: (context, value, _) {
-                                          return VideoStreamChangeWidget(
-                                            showControls: value,
-                                            file: widget.file,
-                                            isPreviewPlayer:
-                                                widget.selectedPreview,
-                                            onStreamChange:
-                                                widget.onStreamChange,
-                                          );
-                                        },
+                          if (!isPlaybackReady)
+                            Positioned.fill(child: _getLoadingWidget()),
+                          widget.isFromMemories
+                              ? const SizedBox.shrink()
+                              : Positioned(
+                                  bottom: verticalMargin,
+                                  right: 0,
+                                  left: 0,
+                                  child: SafeArea(
+                                    top: false,
+                                    left: false,
+                                    right: false,
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        bottom: widget.isFromMemories ? 32 : 0,
                                       ),
-                                      ValueListenableBuilder(
-                                        valueListenable: _isPlaybackReady,
-                                        builder:
-                                            (
-                                              BuildContext context,
-                                              bool value,
-                                              _,
-                                            ) {
-                                              return value
-                                                  ? _SeekBarAndDuration(
-                                                      controller: _controller,
-                                                      duration: duration,
-                                                      showControls:
-                                                          _showControls,
-                                                      isSeeking: _isSeeking,
-                                                      position: position,
-                                                      file: widget.file,
-                                                    )
-                                                  : const SizedBox();
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          ValueListenableBuilder(
+                                            valueListenable: _showControls,
+                                            builder: (context, value, _) {
+                                              return VideoStreamChangeWidget(
+                                                showControls: value,
+                                                file: widget.file,
+                                                isPreviewPlayer:
+                                                    widget.selectedPreview,
+                                                onStreamChange:
+                                                    widget.onStreamChange,
+                                              );
                                             },
+                                          ),
+                                          if (isPlaybackReady)
+                                            _SeekBarAndDuration(
+                                              controller: _controller,
+                                              duration: duration,
+                                              showControls: _showControls,
+                                              isSeeking: _isSeeking,
+                                              position: position,
+                                              file: widget.file,
+                                            ),
+                                        ],
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                    ],
-                  ),
+                        ],
+                      ),
+              );
+            },
           ),
         ),
       ),
@@ -747,6 +727,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
 
   void _setFilePathForNativePlayer(String url, bool update) {
     if (!mounted) return;
+    _isPlaybackReady.value = false;
     setState(() {
       _filePath = url;
     });
