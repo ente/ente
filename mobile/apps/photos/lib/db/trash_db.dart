@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -14,7 +15,7 @@ import 'package:sqflite/sqflite.dart';
 // during restore, all file attributes will be fetched & stored as required.
 class TrashDB {
   static const _databaseName = "ente.trash.db";
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
   static final Logger _logger = Logger("TrashDB");
   static const tableName = 'trash';
 
@@ -31,6 +32,7 @@ class TrashDB {
 
   static const columnCreationTime = 'creation_time';
   static const columnLocalID = 'local_id';
+  static const columnIsTrashedOnDevice = 'is_trashed_on_device';
 
   // standard file metadata, which isn't editable
   static const columnFileMetadata = 'file_metadata';
@@ -55,6 +57,7 @@ class TrashDB {
           $columnThumbnailDecryptionHeader TEXT,
           $columnUpdationTime INTEGER,
           $columnLocalID TEXT,
+          $columnIsTrashedOnDevice INTEGER NOT NULL DEFAULT 0,
           $columnCreationTime INTEGER NOT NULL,
           $columnFileMetadata TEXT DEFAULT '{}',
           $columnMMdEncodedJson TEXT DEFAULT '{}',
@@ -66,6 +69,14 @@ class TrashDB {
       CREATE INDEX IF NOT EXISTS delete_by_time_index ON $tableName($columnTrashDeleteBy);
       CREATE INDEX IF NOT EXISTS updated_at_time_index ON $tableName($columnTrashUpdatedAt);
       ''');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE $tableName ADD COLUMN $columnIsTrashedOnDevice INTEGER NOT NULL DEFAULT 0',
+      );
+    }
   }
 
   TrashDB._privateConstructor();
@@ -91,6 +102,7 @@ class TrashDB {
       path,
       version: _databaseVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -108,24 +120,36 @@ class TrashDB {
   }
 
   Future<void> insertMultiple(List<TrashFile> trashFiles) async {
+    if (trashFiles.isEmpty) return;
     final startTime = DateTime.now();
     final db = await instance.database;
-    var batch = db.batch();
-    int batchCounter = 0;
-    for (TrashFile trash in trashFiles) {
-      if (batchCounter == 400) {
+    await db.transaction((transaction) async {
+      final localIDs = <int, String?>{
+        for (final row in await transaction.query(
+          tableName,
+          columns: [columnUploadedFileID, columnLocalID],
+          where:
+              '$columnIsTrashedOnDevice = 1 AND $columnUploadedFileID '
+              'IN (${trashFiles.map((trash) => trash.uploadedFileID!).join(',')})',
+        ))
+          row[columnUploadedFileID] as int: row[columnLocalID] as String?,
+      };
+      for (final trashFileBatch in trashFiles.chunks(400)) {
+        final batch = transaction.batch();
+        for (final trash in trashFileBatch) {
+          if (localIDs.containsKey(trash.uploadedFileID)) {
+            trash.localID = localIDs[trash.uploadedFileID];
+            trash.isTrashedOnDevice = true;
+          }
+          batch.insert(
+            tableName,
+            _getRowForTrash(trash),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
         await batch.commit(noResult: true);
-        batch = db.batch();
-        batchCounter = 0;
       }
-      batch.insert(
-        tableName,
-        _getRowForTrash(trash),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-      batchCounter++;
-    }
-    await batch.commit(noResult: true);
+    });
     final endTime = DateTime.now();
     final duration = Duration(
       microseconds:
@@ -158,6 +182,36 @@ class TrashDB {
     );
   }
 
+  Future<void> markTrashedOnDevice(List<(int, String)> localIDs) async {
+    if (localIDs.isEmpty) return;
+    final db = await instance.database;
+    await db.transaction((transaction) async {
+      for (final entries in localIDs.chunks(400)) {
+        final batch = transaction.batch();
+        for (final (uploadedFileID, localID) in entries) {
+          batch.rawInsert(
+            '''
+          INSERT INTO $tableName (
+            $columnUploadedFileID,
+            $columnCollectionID,
+            $columnTrashUpdatedAt,
+            $columnTrashDeleteBy,
+            $columnCreationTime,
+            $columnLocalID,
+            $columnIsTrashedOnDevice
+          ) VALUES (?, 0, 0, -1, 0, ?, 1)
+          ON CONFLICT($columnUploadedFileID) DO UPDATE SET
+            $columnLocalID = excluded.$columnLocalID,
+            $columnIsTrashedOnDevice = 1
+        ''',
+            [uploadedFileID, localID],
+          );
+        }
+        await batch.commit(noResult: true);
+      }
+    });
+  }
+
   Future<FileLoadResult> getTrashedFiles(
     int startTime,
     int endTime, {
@@ -168,7 +222,9 @@ class TrashDB {
     final order = (asc ?? false ? 'ASC' : 'DESC');
     final results = await db.query(
       tableName,
-      where: '$columnCreationTime >= ? AND $columnCreationTime <= ?',
+      where:
+          '$columnTrashDeleteBy != -1 AND '
+          '$columnCreationTime >= ? AND $columnCreationTime <= ?',
       whereArgs: [startTime, endTime],
       orderBy: '$columnCreationTime ' + order,
       limit: limit,
@@ -205,6 +261,7 @@ class TrashDB {
     final fileMetadata = row[columnFileMetadata] ?? '{}';
     trashFile.applyMetadata(jsonDecode(fileMetadata));
     trashFile.localID = row[columnLocalID];
+    trashFile.isTrashedOnDevice = row[columnIsTrashedOnDevice] == 1;
 
     trashFile.mMdVersion = row[columnMMdVersion] ?? 0;
     trashFile.mMdEncodedJson = row[columnMMdEncodedJson] ?? '{}';
@@ -236,6 +293,7 @@ class TrashDB {
     row[columnUpdationTime] = trash.updationTime;
 
     row[columnLocalID] = trash.localID;
+    row[columnIsTrashedOnDevice] = trash.isTrashedOnDevice ? 1 : 0;
     row[columnCreationTime] = trash.creationTime;
     row[columnFileMetadata] = jsonEncode(trash.metadata);
 
