@@ -41,20 +41,50 @@ Future<void> showFileDetailsNewSheet(
   }
 }
 
-class FileDetailsNewSheet extends StatelessWidget {
+class FileDetailsNewSheet extends StatefulWidget {
   const FileDetailsNewSheet({required this.file, super.key});
 
   final EnteFile file;
 
   @override
+  State<FileDetailsNewSheet> createState() => _FileDetailsNewSheetState();
+}
+
+class _FileDetailsNewSheetState extends State<FileDetailsNewSheet> {
+  final _sheetController = DraggableScrollableController();
+  bool _isExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _sheetController.addListener(_onSheetSizeChanged);
+  }
+
+  @override
+  void dispose() {
+    _sheetController.removeListener(_onSheetSizeChanged);
+    _sheetController.dispose();
+    super.dispose();
+  }
+
+  void _onSheetSizeChanged() {
+    final isNowExpanded = _sheetController.size > 0.75;
+    if (isNowExpanded != _isExpanded) {
+      setState(() => _isExpanded = isNowExpanded);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isKeyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 60;
+    final disableSnap = isKeyboardOpen || _isExpanded;
     return DraggableScrollableSheet(
+      controller: _sheetController,
       initialChildSize: 0.75,
       minChildSize: 0.5,
       maxChildSize: 0.95,
-      snap: !isKeyboardOpen,
-      snapSizes: isKeyboardOpen ? null : const [0.75],
+      snap: !disableSnap,
+      snapSizes: disableSnap ? null : const [0.75],
       expand: false,
       builder: (context, scrollController) => Container(
         clipBehavior: Clip.antiAlias,
@@ -64,7 +94,10 @@ class FileDetailsNewSheet extends StatelessWidget {
             top: Radius.circular(Radii.bottomSheet),
           ),
         ),
-        child: FileDetailsNewWidget(file, scrollController: scrollController),
+        child: FileDetailsNewWidget(
+          widget.file,
+          scrollController: scrollController,
+        ),
       ),
     );
   }
