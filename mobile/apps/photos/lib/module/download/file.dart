@@ -15,6 +15,7 @@ import 'package:photos/core/constants.dart';
 import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
+import "package:photos/models/file/trash_file.dart";
 import 'package:photos/module/download/decrypt.dart';
 import 'package:photos/module/live_photo/download.dart';
 
@@ -35,8 +36,9 @@ Future<File?> getFile(
   bool isOrigin = false,
   bool forGalleryDownload = false, // only relevant for live photos
 }) async {
+  final isRemoteTrashFile = (file is TrashFile && file.uploadedFileID != null);
   try {
-    if (file.isRemoteOnlyFile) {
+    if (file.isRemoteOnlyFile || isRemoteTrashFile) {
       return getFileFromServer(
         file,
         liveVideo: liveVideo,

@@ -440,6 +440,11 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
       return null;
     }
 
+    // File is a non-system-only trash file, load thumbnail from remote
+    if (widget.file is TrashFile && widget.file.uploadedFileID != null) {
+      return null;
+    }
+
     final completer = Completer<Uint8List?>();
 
     late TaskQueue<String> relevantTaskQueue;
