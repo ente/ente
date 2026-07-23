@@ -115,7 +115,7 @@ class FileViewerState extends State<FileViewer> {
         return;
       }
 
-      final videoProps = await getVideoProps(videoFile);
+      final videoProps = await getVideoProps(videoFile.path);
       if (videoProps != null &&
           videoProps.width != null &&
           videoProps.height != null &&

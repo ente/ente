@@ -1,16 +1,23 @@
-import "dart:io";
-
+import "package:ffmpeg_kit_flutter/ffmpeg_kit_config.dart";
 import "package:logging/logging.dart";
 import "package:photos/models/ffmpeg/ffprobe_props.dart";
 import "package:photos/services/isolated_ffmpeg_service.dart";
 
 final _logger = Logger("VideoMetadata");
 
-Future<FFProbeProps?> getVideoProps(File file) async {
+/// content:// URI paths are supported only on Android.
+Future<FFProbeProps?> getVideoProps(String path) async {
   try {
+    String? ffprobePath = path;
+    if (path.startsWith("content://")) {
+      ffprobePath = await FFmpegKitConfig.getSafParameterForRead(path);
+      if (ffprobePath == null || ffprobePath.isEmpty) {
+        throw Exception("FFmpegKitConfig.getSafParameterForRead() failed");
+      }
+    }
     final stopwatch = Stopwatch()..start();
     final mediaInfo = await IsolatedFfmpegService.instance.getVideoInfo(
-      file.path,
+      ffprobePath,
     );
     if (mediaInfo.isEmpty) {
       return null;
