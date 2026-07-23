@@ -102,7 +102,7 @@ Future<void> showSingleFileDeleteSheet(
 }
 
 Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
-  if (Platform.isAndroid && localSettings.useNewFileDetailsSheet) {
+  if (localSettings.useNewFileDetailsSheet) {
     await showFileDetailsNewSheet(context, file);
     return;
   }

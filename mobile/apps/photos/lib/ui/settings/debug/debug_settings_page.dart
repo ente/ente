@@ -1,5 +1,3 @@
-import "dart:io";
-
 import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
@@ -111,34 +109,32 @@ class _DebugSettingsPageState extends State<DebugSettingsPage> {
                               },
                             ),
                           ),
-                          if (Platform.isAndroid)
-                            MenuItemWidgetNew(
-                              title: "Use new file details sheet",
-                              leadingIconWidget: _buildIconWidget(
-                                context,
-                                HugeIcons.strokeRoundedDashboardSquare02,
-                              ),
-                              trailingWidget: ToggleSwitchWidget(
-                                value: () =>
-                                    localSettings.useNewFileDetailsSheet,
-                                onChanged: () async {
-                                  final newValue =
-                                      !localSettings.useNewFileDetailsSheet;
-                                  await localSettings.setUseNewFileDetailsSheet(
-                                    newValue,
-                                  );
-                                  if (!mounted) return;
-                                  setState(() {});
-                                  if (!context.mounted) return;
-                                  showShortToast(
-                                    context,
-                                    newValue
-                                        ? "New file details sheet enabled."
-                                        : "Old file details sheet enabled.",
-                                  );
-                                },
-                              ),
+                          MenuItemWidgetNew(
+                            title: "Use new file details sheet",
+                            leadingIconWidget: _buildIconWidget(
+                              context,
+                              HugeIcons.strokeRoundedDashboardSquare02,
                             ),
+                            trailingWidget: ToggleSwitchWidget(
+                              value: () => localSettings.useNewFileDetailsSheet,
+                              onChanged: () async {
+                                final newValue =
+                                    !localSettings.useNewFileDetailsSheet;
+                                await localSettings.setUseNewFileDetailsSheet(
+                                  newValue,
+                                );
+                                if (!mounted) return;
+                                setState(() {});
+                                if (!context.mounted) return;
+                                showShortToast(
+                                  context,
+                                  newValue
+                                      ? "New file details sheet enabled."
+                                      : "Old file details sheet enabled.",
+                                );
+                              },
+                            ),
+                          ),
                           if (flagService.flags.internalUser)
                             MenuItemWidgetNew(
                               title: "Background sync notification",
