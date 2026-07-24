@@ -4,35 +4,15 @@ import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
-import "package:photos/core/network/network.dart";
 import "package:photos/gateways/cast/cast_gateway.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/services/auto_cast_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/utils/dialog_util.dart";
-import "package:uuid/uuid.dart";
-
-class _DeviceNotFoundException implements Exception {
-  const _DeviceNotFoundException();
-}
-
-Future<void> _pairWithAuto(Collection collection, String code) async {
-  final gw = CastGateway(NetworkClient.instance.enteDio);
-  final publicKey = await gw.getPublicKey(code);
-  if (publicKey == null) {
-    throw const _DeviceNotFoundException();
-  }
-  final castToken = const Uuid().v4();
-  final castData = collectionsService.getCastData(
-    castToken,
-    collection,
-    publicKey,
-  );
-  await gw.publishCastPayload(code, castData, collection.id, castToken);
-}
 
 /// Shows the auto-pairing sheet for Cast devices.
 Future<void> showPairWithAutoSheet(
@@ -62,7 +42,7 @@ class _PairWithAutoSheetState extends State<_PairWithAutoSheet> {
   @override
   void initState() {
     super.initState();
-    _devices = castService.searchDevices();
+    _devices = autoCastService.searchDevices();
   }
 
   @override
@@ -102,7 +82,7 @@ class _PairWithAutoSheetState extends State<_PairWithAutoSheet> {
               children: snapshot.data!.map((result) {
                 final device = result.$2;
                 final name = result.$1;
-                final isCasting = castService.isCastingToDevice(device);
+                final isCasting = autoCastService.isCastingToDevice(device);
                 final isInProgress = _devicesInProgress.contains(device);
                 return MenuComponent(
                   title: name,
@@ -169,28 +149,12 @@ class _PairWithAutoSheetState extends State<_PairWithAutoSheet> {
     }
     setState(() => _devicesInProgress.add(device));
     try {
-      final code = await castService.connectDevice(device);
+      await autoCastService.connect(device, widget.collection);
       if (!mounted) {
-        await castService.stopCastingToDevice(device);
+        await autoCastService.stop(device);
         return;
       }
-      try {
-        await _pairWithAuto(widget.collection, code);
-      } catch (error, stackTrace) {
-        try {
-          await castService.stopCastingToDevice(device);
-        } catch (stopError, stopStackTrace) {
-          _logger.warning(
-            "Failed to stop Cast after pairing failed",
-            stopError,
-            stopStackTrace,
-          );
-        }
-        Error.throwWithStackTrace(error, stackTrace);
-      }
-      if (mounted) {
-        await Navigator.maybePop(context);
-      }
+      await Navigator.maybePop(context);
     } catch (e, s) {
       if (!mounted) return;
       await _handleError(e, s);
@@ -218,7 +182,7 @@ class _PairWithAutoSheetState extends State<_PairWithAutoSheet> {
               if (!mounted) return;
               setState(() => _devicesInProgress.add(device));
               try {
-                await castService.stopCastingToDevice(device);
+                await autoCastService.stop(device);
               } catch (e, s) {
                 _logger.severe("Failed to stop casting", e, s);
                 if (!mounted) return;
@@ -247,7 +211,7 @@ class _PairWithAutoSheetState extends State<_PairWithAutoSheet> {
       );
       return;
     }
-    if (error is _DeviceNotFoundException) {
+    if (error is AutoCastDeviceNotFoundException) {
       showToast(context, l10n.deviceNotFound);
       return;
     }

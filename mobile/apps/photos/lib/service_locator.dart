@@ -6,6 +6,7 @@ import "package:package_info_plus/package_info_plus.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/network/endpoint_config.dart";
 import "package:photos/gateways/billing/billing_gateway.dart";
+import "package:photos/gateways/cast/cast_gateway.dart";
 import "package:photos/gateways/collections/collection_files_gateway.dart";
 import "package:photos/gateways/collections/collection_share_gateway.dart";
 import "package:photos/gateways/collections/collections_gateway.dart";
@@ -23,6 +24,7 @@ import "package:photos/gateways/users/users_gateway.dart";
 import "package:photos/module/download/gallery_download_queue_service.dart";
 import "package:photos/module/download/manager.dart";
 import "package:photos/services/account/billing_service.dart";
+import "package:photos/services/auto_cast_service.dart";
 import "package:photos/services/backup_preference_service.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/entity_service.dart";
@@ -99,6 +101,17 @@ CastService? _castService;
 CastService get castService {
   _castService ??= CastService();
   return _castService!;
+}
+
+AutoCastService? _autoCastService;
+
+AutoCastService get autoCastService {
+  _autoCastService ??= AutoCastService(
+    transport: castService,
+    gateway: CastGateway(ServiceLocator.instance.enteDio),
+    encodePayload: collectionsService.getCastData,
+  );
+  return _autoCastService!;
 }
 
 LocalSettings get localSettings => ServiceLocator.instance.localSettings;
