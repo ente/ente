@@ -16,6 +16,8 @@ PODS:
     - FlutterMacOS
   - device_info_plus (0.0.1):
     - Flutter
+  - ente_cast (0.0.1):
+    - Flutter
   - ente_photos_rust (0.0.1):
     - Flutter
   - ente_qr (0.0.1):
@@ -259,6 +261,7 @@ DEPENDENCIES:
   - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - cupertino_http (from `.symlinks/plugins/cupertino_http/darwin`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
+  - ente_cast (from `.symlinks/plugins/ente_cast/ios`)
   - ente_photos_rust (from `.symlinks/plugins/ente_photos_rust/ios`)
   - ente_qr (from `.symlinks/plugins/ente_qr/ios`)
   - ente_rust (from `.symlinks/plugins/ente_rust/ios`)
@@ -352,6 +355,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/cupertino_http/darwin"
   device_info_plus:
     :path: ".symlinks/plugins/device_info_plus/ios"
+  ente_cast:
+    :path: ".symlinks/plugins/ente_cast/ios"
   ente_photos_rust:
     :path: ".symlinks/plugins/ente_photos_rust/ios"
   ente_qr:
@@ -470,6 +475,7 @@ SPEC CHECKSUMS:
   connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
   cupertino_http: 94ac07f5ff090b8effa6c5e2c47871d48ab7c86c
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
+  ente_cast: a25feb3127397e5fc6aff03a12120916707757d4
   ente_photos_rust: 380a324fc22445a1281e206726ccddd86582ad28
   ente_qr: 86beaf5d2644705db9b565b32dd8b82c05fb36af
   ente_rust: d0197ebd5460e8f67576579452b073d698404abe

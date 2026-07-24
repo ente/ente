@@ -3,6 +3,7 @@ name: ente_cast
 resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
+  flutter: ">=3.38.0"
 
 dependencies:
   cast:
@@ -13,8 +14,18 @@ dependencies:
   dio: 5.9.2
   flutter:
     sdk: flutter
+  multicast_dns: 0.3.3+1
 
 dev_dependencies:
   flutter_lints: 6.0.0
+  flutter_test:
+    sdk: flutter
 
 flutter:
+  plugin:
+    platforms:
+      android:
+        package: io.ente.cast
+        pluginClass: EnteCastPlugin
+      ios:
+        pluginClass: EnteCastPlugin
