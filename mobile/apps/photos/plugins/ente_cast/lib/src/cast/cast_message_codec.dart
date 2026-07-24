@@ -1,13 +1,20 @@
 import "dart:convert";
 import "dart:typed_data";
 
+import "package:ente_cast/src/cast/simple_protobuf.dart";
+
 const maxCastFrameLength = 64 * 1024;
 
 final class CastEnvelope {
   final String namespace;
-  final String payload;
+  final String? payload;
+  final Uint8List? binaryPayload;
 
-  const CastEnvelope({required this.namespace, required this.payload});
+  const CastEnvelope({
+    required this.namespace,
+    required this.payload,
+    required this.binaryPayload,
+  });
 }
 
 Uint8List encodeCastEnvelope({
@@ -16,14 +23,30 @@ Uint8List encodeCastEnvelope({
   required String namespace,
   required String payload,
 }) {
-  final output = BytesBuilder(copy: false);
-  _writeVarintField(output, 1, 0);
-  _writeStringField(output, 2, sourceID);
-  _writeStringField(output, 3, destinationID);
-  _writeStringField(output, 4, namespace);
-  _writeVarintField(output, 5, 0);
-  _writeStringField(output, 6, payload);
-  return output.takeBytes();
+  return _encodeCastEnvelope(
+    sourceID: sourceID,
+    destinationID: destinationID,
+    namespace: namespace,
+    payloadType: 0,
+    payloadField: 6,
+    payload: utf8.encode(payload),
+  );
+}
+
+Uint8List encodeBinaryCastEnvelope({
+  required String sourceID,
+  required String destinationID,
+  required String namespace,
+  required Uint8List payload,
+}) {
+  return _encodeCastEnvelope(
+    sourceID: sourceID,
+    destinationID: destinationID,
+    namespace: namespace,
+    payloadType: 1,
+    payloadField: 7,
+    payload: payload,
+  );
 }
 
 Uint8List encodeCastFrame({
@@ -38,49 +61,63 @@ Uint8List encodeCastFrame({
     namespace: namespace,
     payload: payload,
   );
-  if (envelope.length > maxCastFrameLength) {
-    throw const FormatException("Cast message exceeds the frame limit");
-  }
+  return _frame(envelope);
+}
 
-  final frame = Uint8List(envelope.length + 4);
-  ByteData.sublistView(frame).setUint32(0, envelope.length, Endian.big);
-  frame.setRange(4, frame.length, envelope);
-  return frame;
+Uint8List encodeBinaryCastFrame({
+  required String sourceID,
+  required String destinationID,
+  required String namespace,
+  required Uint8List payload,
+}) {
+  final envelope = encodeBinaryCastEnvelope(
+    sourceID: sourceID,
+    destinationID: destinationID,
+    namespace: namespace,
+    payload: payload,
+  );
+  return _frame(envelope);
 }
 
 CastEnvelope decodeCastEnvelope(Uint8List bytes) {
-  final cursor = _Cursor();
   String? namespace;
-  String? payload;
-
-  while (cursor.offset < bytes.length) {
-    final tag = _readVarint(bytes, cursor);
-    final field = tag >> 3;
-    final wireType = tag & 7;
-    if (wireType == 2) {
-      final length = _readVarint(bytes, cursor);
-      final end = cursor.offset + length;
-      if (end > bytes.length) {
-        throw const FormatException("Truncated Cast message field");
-      }
-      if (field == 4 || field == 6) {
-        final value = utf8.decode(bytes.sublist(cursor.offset, end));
-        if (field == 4) {
-          namespace = value;
-        } else {
-          payload = value;
+  int? payloadType;
+  Uint8List? stringPayload;
+  Uint8List? binaryPayload;
+  final reader = ProtoReader(bytes);
+  while (reader.hasNext) {
+    final field = reader.readField();
+    switch (field.number) {
+      case 4:
+        if (field.bytes case final value?) {
+          namespace = utf8.decode(value);
         }
-      }
-      cursor.offset = end;
-    } else {
-      _skipField(bytes, cursor, wireType);
+      case 5:
+        payloadType = field.varint;
+      case 6:
+        stringPayload = field.bytes;
+      case 7:
+        binaryPayload = field.bytes;
     }
   }
-
-  if (namespace == null || payload == null) {
+  if (namespace == null || payloadType == null) {
     throw const FormatException("Incomplete Cast message");
   }
-  return CastEnvelope(namespace: namespace, payload: payload);
+  if (payloadType == 0 && stringPayload != null) {
+    return CastEnvelope(
+      namespace: namespace,
+      payload: utf8.decode(stringPayload),
+      binaryPayload: null,
+    );
+  }
+  if (payloadType == 1 && binaryPayload != null) {
+    return CastEnvelope(
+      namespace: namespace,
+      payload: null,
+      binaryPayload: binaryPayload,
+    );
+  }
+  throw const FormatException("Cast payload type does not match its field");
 }
 
 final class CastFrameDecoder {
@@ -123,57 +160,30 @@ final class CastFrameDecoder {
   }
 }
 
-void _writeVarintField(BytesBuilder output, int field, int value) {
-  _writeVarint(output, field << 3);
-  _writeVarint(output, value);
+Uint8List _encodeCastEnvelope({
+  required String sourceID,
+  required String destinationID,
+  required String namespace,
+  required int payloadType,
+  required int payloadField,
+  required List<int> payload,
+}) {
+  return (ProtoWriter()
+        ..writeVarint(1, 0)
+        ..writeString(2, sourceID)
+        ..writeString(3, destinationID)
+        ..writeString(4, namespace)
+        ..writeVarint(5, payloadType)
+        ..writeBytes(payloadField, payload))
+      .takeBytes();
 }
 
-void _writeStringField(BytesBuilder output, int field, String value) {
-  final bytes = utf8.encode(value);
-  _writeVarint(output, (field << 3) | 2);
-  _writeVarint(output, bytes.length);
-  output.add(bytes);
-}
-
-void _writeVarint(BytesBuilder output, int value) {
-  var remaining = value;
-  while (remaining >= 0x80) {
-    output.addByte((remaining & 0x7f) | 0x80);
-    remaining >>= 7;
+Uint8List _frame(Uint8List envelope) {
+  if (envelope.length > maxCastFrameLength) {
+    throw const FormatException("Cast message exceeds the frame limit");
   }
-  output.addByte(remaining);
-}
-
-int _readVarint(Uint8List bytes, _Cursor cursor) {
-  var value = 0;
-  var shift = 0;
-  while (cursor.offset < bytes.length && shift <= 63) {
-    final byte = bytes[cursor.offset++];
-    value |= (byte & 0x7f) << shift;
-    if (byte & 0x80 == 0) {
-      return value;
-    }
-    shift += 7;
-  }
-  throw const FormatException("Invalid Cast message varint");
-}
-
-void _skipField(Uint8List bytes, _Cursor cursor, int wireType) {
-  switch (wireType) {
-    case 0:
-      _readVarint(bytes, cursor);
-    case 1:
-      cursor.offset += 8;
-    case 5:
-      cursor.offset += 4;
-    default:
-      throw FormatException("Unsupported Cast wire type $wireType");
-  }
-  if (cursor.offset > bytes.length) {
-    throw const FormatException("Truncated Cast message field");
-  }
-}
-
-final class _Cursor {
-  int offset = 0;
+  final frame = Uint8List(envelope.length + 4);
+  ByteData.sublistView(frame).setUint32(0, envelope.length, Endian.big);
+  frame.setRange(4, frame.length, envelope);
+  return frame;
 }

@@ -1,6 +1,7 @@
 import Darwin
 import Flutter
 import Foundation
+import Security
 
 public final class EnteCastPlugin: NSObject, FlutterPlugin {
     private var discoveries: [UUID: BonjourDiscovery] = [:]
@@ -10,16 +11,41 @@ public final class EnteCastPlugin: NSObject, FlutterPlugin {
             name: "io.ente.cast/discovery",
             binaryMessenger: registrar.messenger()
         )
+        let authChannel = FlutterMethodChannel(
+            name: "io.ente.cast/auth",
+            binaryMessenger: registrar.messenger()
+        )
         let instance = EnteCastPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
+        registrar.addMethodCallDelegate(instance, channel: authChannel)
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        guard call.method == "searchDevices" else {
+        switch call.method {
+        case "searchDevices":
+            searchDevices(call, result: result)
+        case "verifyDeviceCredentials":
+            do {
+                try verifyDeviceCredentials(call)
+                result(nil)
+            } catch {
+                result(
+                    FlutterError(
+                        code: "CAST_AUTH_FAILED",
+                        message: error.localizedDescription,
+                        details: nil
+                    )
+                )
+            }
+        default:
             result(FlutterMethodNotImplemented)
-            return
         }
+    }
 
+    private func searchDevices(
+        _ call: FlutterMethodCall,
+        result: @escaping FlutterResult
+    ) {
         let arguments = call.arguments as? [String: Any]
         let timeoutMilliseconds =
             (arguments?["timeoutMilliseconds"] as? NSNumber)?.doubleValue ?? 7_000
@@ -43,6 +69,136 @@ public final class EnteCastPlugin: NSObject, FlutterPlugin {
         }
         discoveries[discoveryID] = discovery
         discovery.start()
+    }
+
+    private func verifyDeviceCredentials(_ call: FlutterMethodCall) throws {
+        guard let arguments = call.arguments as? [String: Any] else {
+            throw CastAuthError("Missing authentication arguments")
+        }
+        let leafData = try bytes("clientAuthCertificate", in: arguments)
+        let intermediateData = try byteArrays(
+            "intermediateCertificates",
+            in: arguments
+        )
+        let rootData = try byteArrays("trustAnchors", in: arguments)
+        guard !rootData.isEmpty else {
+            throw CastAuthError("Cast trust store is empty")
+        }
+
+        let roots = try rootData.map(certificate)
+        let chainData = [leafData] + intermediateData.filter { candidate in
+            !rootData.contains(candidate)
+        }
+        let certificates = try chainData.map(certificate)
+        var trust: SecTrust?
+        let createStatus = SecTrustCreateWithCertificates(
+            certificates as CFArray,
+            SecPolicyCreateSSL(false, nil),
+            &trust
+        )
+        guard createStatus == errSecSuccess, let trust else {
+            throw CastAuthError("Unable to create Cast certificate trust")
+        }
+        guard SecTrustSetAnchorCertificates(trust, roots as CFArray)
+            == errSecSuccess else {
+            throw CastAuthError("Unable to configure Cast trust anchors")
+        }
+        guard SecTrustSetAnchorCertificatesOnly(trust, true) == errSecSuccess else {
+            throw CastAuthError("Unable to restrict Cast trust anchors")
+        }
+        guard SecTrustSetNetworkFetchAllowed(trust, false) == errSecSuccess else {
+            throw CastAuthError("Unable to disable certificate network fetches")
+        }
+        var trustError: CFError?
+        guard SecTrustEvaluateWithError(trust, &trustError) else {
+            let message = trustError.map { CFErrorCopyDescription($0) as String }
+                ?? "Cast certificate chain is untrusted"
+            throw CastAuthError(message)
+        }
+
+        guard let publicKey = SecTrustCopyKey(trust) else {
+            throw CastAuthError("Cast device certificate has no public key")
+        }
+        let hashAlgorithm =
+            (arguments["hashAlgorithm"] as? NSNumber)?.intValue
+        let algorithm: SecKeyAlgorithm
+        switch hashAlgorithm {
+        case 0:
+            algorithm = .rsaSignatureMessagePKCS1v15SHA1
+        case 1:
+            algorithm = .rsaSignatureMessagePKCS1v15SHA256
+        default:
+            throw CastAuthError("Unsupported Cast signature hash algorithm")
+        }
+        guard SecKeyIsAlgorithmSupported(publicKey, .verify, algorithm) else {
+            throw CastAuthError("Cast device authentication key is not RSA")
+        }
+        let keyAttributes = SecKeyCopyAttributes(publicKey) as? [CFString: Any]
+        let keySize = keyAttributes?[kSecAttrKeySizeInBits] as? NSNumber
+        guard let keySize, keySize.intValue >= 2_048 else {
+            throw CastAuthError("Cast device authentication key is too small")
+        }
+
+        let signature = try bytes("signature", in: arguments)
+        let signatureInput = try bytes("signatureInput", in: arguments)
+        var signatureError: Unmanaged<CFError>?
+        guard SecKeyVerifySignature(
+            publicKey,
+            algorithm,
+            signatureInput as CFData,
+            signature as CFData,
+            &signatureError
+        ) else {
+            let message = signatureError
+                .map { CFErrorCopyDescription($0.takeRetainedValue()) as String }
+                ?? "Cast device signature is invalid"
+            throw CastAuthError(message)
+        }
+    }
+
+    private func certificate(_ data: Data) throws -> SecCertificate {
+        guard let certificate = SecCertificateCreateWithData(nil, data as CFData)
+        else {
+            throw CastAuthError("Unable to parse Cast certificate")
+        }
+        return certificate
+    }
+
+    private func bytes(
+        _ name: String,
+        in arguments: [String: Any]
+    ) throws -> Data {
+        guard let value = arguments[name] as? FlutterStandardTypedData else {
+            throw CastAuthError("Missing \(name)")
+        }
+        return value.data
+    }
+
+    private func byteArrays(
+        _ name: String,
+        in arguments: [String: Any]
+    ) throws -> [Data] {
+        guard let values = arguments[name] as? [Any] else {
+            throw CastAuthError("Missing \(name)")
+        }
+        return try values.map { value in
+            guard let bytes = value as? FlutterStandardTypedData else {
+                throw CastAuthError("\(name) contains a non-byte value")
+            }
+            return bytes.data
+        }
+    }
+}
+
+private struct CastAuthError: LocalizedError {
+    init(_ message: String) {
+        self.message = message
+    }
+
+    let message: String
+
+    var errorDescription: String? {
+        message
     }
 }
 

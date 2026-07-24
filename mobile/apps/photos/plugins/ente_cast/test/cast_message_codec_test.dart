@@ -48,6 +48,22 @@ void main() {
 
     expect(decoded.namespace, "urn:x-cast:pair-request");
     expect(decoded.payload, '{"collectionID":42}');
+    expect(decoded.binaryPayload, isNull);
+  });
+
+  test("encodes and decodes binary Cast fields", () {
+    final encoded = encodeBinaryCastEnvelope(
+      sourceID: "sender-0",
+      destinationID: "receiver-0",
+      namespace: "urn:x-cast:com.google.cast.tp.deviceauth",
+      payload: Uint8List.fromList([0, 1, 255]),
+    );
+
+    final decoded = decodeCastEnvelope(encoded);
+
+    expect(decoded.namespace, "urn:x-cast:com.google.cast.tp.deviceauth");
+    expect(decoded.payload, isNull);
+    expect(decoded.binaryPayload, [0, 1, 255]);
   });
 
   test("rejects a truncated Cast message", () {
