@@ -1,16 +1,11 @@
 package io.ente.ensu.knowledge
 
-import io.ente.ensu.bindings.CancellationToken
+import io.ente.ensu.assets.AssetStore
 import io.ente.ensu.bindings.KnowledgeDatasetConfig
-import io.ente.ensu.bindings.KnowledgeDownloadCallback
-import io.ente.ensu.bindings.KnowledgeDownloadProgress
 import io.ente.ensu.bindings.KnowledgePromptHit
 import io.ente.ensu.bindings.KnowledgeReconciliation
 import io.ente.ensu.bindings.RetrievalIndex
-import io.ente.ensu.bindings.cleanupObsoleteKnowledgePackRevisions
-import io.ente.ensu.bindings.downloadKnowledgePack
-import io.ente.ensu.bindings.reconcileKnowledgePack
-import java.io.File
+import io.ente.ensu.bindings.knowledgePackAsset
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -24,10 +19,9 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 class KnowledgeProvider(
-    private val knowledgeRoot: File
+    private val assetStore: AssetStore
 ) {
     private data class ActiveMutation(
-        val cancellation: CancellationToken,
         val task: Deferred<KnowledgeReconciliation>
     )
 
@@ -74,19 +68,11 @@ class KnowledgeProvider(
             mutationGate.withLock {
                 mutations[dataset.stableId] ?: run {
                     ownsMutation = true
-                    val cancellation = CancellationToken()
                     val task = async(Dispatchers.IO) {
                         try {
-                            downloadKnowledgePack(
-                                packRoot(dataset).absolutePath,
-                                dataset.stableId,
-                                object : KnowledgeDownloadCallback {
-                                    override fun onProgress(progress: KnowledgeDownloadProgress) {
-                                        onProgress(progress)
-                                    }
-                                },
-                                cancellation
-                            )
+                            assetStore.download(listOf(knowledgePackAsset(dataset.stableId))) {
+                                onProgress(KnowledgeDownloadProgress(it.label, it.percentage))
+                            }
                             indexGate.withLock {
                                 val result = reconcileAndOpenLocked(dataset)
                                 check(result.activeIdentity == dataset.currentDownloadIdentity) {
@@ -97,14 +83,13 @@ class KnowledgeProvider(
                         } catch (error: Throwable) {
                             withContext(NonCancellable) {
                                 indexGate.withLock {
-                                    incomingRevision(dataset).deleteRecursively()
                                     runCatching { reconcileAndOpenLocked(dataset) }
                                 }
                             }
                             throw error
                         }
                     }
-                    ActiveMutation(cancellation, task).also {
+                    ActiveMutation(task).also {
                         mutations[dataset.stableId] = it
                     }
                 }
@@ -114,7 +99,7 @@ class KnowledgeProvider(
         try {
             mutation.task.await()
         } catch (error: CancellationException) {
-            if (ownsMutation) mutation.cancellation.cancel()
+            if (ownsMutation) mutation.task.cancel()
             throw error
         } finally {
             withContext(NonCancellable) {
@@ -132,7 +117,7 @@ class KnowledgeProvider(
 
     suspend fun cancel(dataset: KnowledgeDatasetConfig): KnowledgeReconciliation {
         val mutation = mutationGate.withLock { mutations[dataset.stableId] }
-        mutation?.cancellation?.cancel()
+        mutation?.task?.cancel()
         runCatching { mutation?.task?.await() }
         mutationGate.withLock {
             if (mutations[dataset.stableId] === mutation) {
@@ -166,8 +151,7 @@ class KnowledgeProvider(
 
     private fun reconcileAndOpenLocked(dataset: KnowledgeDatasetConfig): KnowledgeReconciliation {
         val previous = indexes[dataset.stableId]
-        val root = packRoot(dataset).absolutePath
-        val result = reconcileKnowledgePack(root, dataset.stableId)
+        val result = assetStore.reconcileKnowledge(dataset.stableId)
         val directory = result.activeDirectory
         if (directory == null) {
             indexes.remove(dataset.stableId)
@@ -179,18 +163,17 @@ class KnowledgeProvider(
         }
         result.activeIdentity?.let { activeIdentity ->
             runCatching {
-                cleanupObsoleteKnowledgePackRevisions(root, dataset.stableId, activeIdentity)
+                assetStore.cleanupKnowledgeRevisions(dataset.stableId, activeIdentity)
             }
         }
         return result
     }
 
-    private fun packRoot(dataset: KnowledgeDatasetConfig): File =
-        File(knowledgeRoot, dataset.stableId)
-
-    private fun incomingRevision(dataset: KnowledgeDatasetConfig): File =
-        File(packRoot(dataset), dataset.currentDownloadIdentity)
-
     private suspend fun lifecycleGate(stableId: String): Mutex =
         mutationGate.withLock { lifecycleGates.getOrPut(stableId) { Mutex() } }
 }
+
+data class KnowledgeDownloadProgress(
+    val label: String,
+    val percentage: Double
+)

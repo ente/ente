@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use ente_model_download::download::{self, Downloader, Progress, Target};
+use ente_assets::{Asset, AssetFile, AssetStore, download};
 
 use crate::config::{
     KNOWLEDGE_ARTIFACT_FILENAMES, KnowledgeDatasetConfig, is_path_safe_component,
@@ -10,67 +10,39 @@ use crate::config::{
 
 use super::{RetrievalError, index::RetrievalIndex};
 
-pub fn download_knowledge_pack(
-    pack_root: impl AsRef<Path>,
-    expected_pack: &KnowledgeDatasetConfig,
-    on_progress: impl FnMut(Progress) + Send,
-    cancellation: download::CancellationToken,
-) -> Result<(), download::Error> {
-    let pack_root = pack_root.as_ref();
-    let targets = knowledge_download_targets(pack_root, expected_pack)?;
-    tokio::runtime::Builder::new_current_thread()
-        .enable_io()
-        .enable_time()
-        .build()?
-        .block_on(Downloader::new()?.download(targets, on_progress, cancellation))
-}
-
-fn knowledge_download_targets(
-    pack_root: &Path,
-    expected_pack: &KnowledgeDatasetConfig,
-) -> Result<Vec<Target>, download::Error> {
-    let root_identity = pack_root
-        .file_name()
-        .and_then(|name| name.to_str())
-        .ok_or_else(|| {
-            download::Error::InvalidTarget(
-                "knowledge pack root must have a UTF-8 stable ID".to_string(),
-            )
-        })?;
-    if root_identity != expected_pack.stable_id {
-        return Err(download::Error::InvalidTarget(
-            "knowledge pack root must end with the selected stable ID".to_string(),
-        ));
-    }
-    fs::create_dir_all(pack_root)?;
-    if !fs::symlink_metadata(pack_root)?.file_type().is_dir() {
-        return Err(download::Error::InvalidTarget(
-            "knowledge pack root must be a directory, not a symlink".to_string(),
-        ));
-    }
-    let revision_directory = pack_root.join(&expected_pack.current_download_identity);
-    fs::create_dir_all(&revision_directory)?;
-    if !fs::symlink_metadata(&revision_directory)?
-        .file_type()
-        .is_dir()
-    {
-        return Err(download::Error::InvalidTarget(
-            "knowledge revision path must be a directory, not a symlink".to_string(),
-        ));
-    }
-
+pub fn knowledge_asset(expected_pack: &KnowledgeDatasetConfig) -> Result<Asset, download::Error> {
     let urls = knowledge_artifact_urls(expected_pack);
-    Ok(KNOWLEDGE_ARTIFACT_FILENAMES
+    let files = KNOWLEDGE_ARTIFACT_FILENAMES
         .into_iter()
         .zip(urls)
         .zip(expected_pack.artifact_sha256.iter().cloned())
-        .map(|((filename, url), sha256)| Target {
-            label: filename.to_owned(),
+        .map(|((filename, url), sha256)| AssetFile {
+            name: filename.to_owned(),
             url,
             sha256,
-            destination: revision_directory.join(filename),
         })
-        .collect())
+        .collect();
+    Asset::files(
+        vec![
+            "knowledge".to_string(),
+            expected_pack.stable_id.clone(),
+            expected_pack.current_download_identity.clone(),
+        ],
+        files,
+    )
+}
+
+pub fn knowledge_pack_root(
+    store: &AssetStore,
+    expected_pack: &KnowledgeDatasetConfig,
+) -> Result<PathBuf, download::Error> {
+    store
+        .asset_dir(&knowledge_asset(expected_pack)?)
+        .parent()
+        .map(Path::to_path_buf)
+        .ok_or_else(|| {
+            download::Error::InvalidTarget("knowledge asset has no pack directory".to_string())
+        })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -241,23 +213,21 @@ mod tests {
     use crate::retrieval::index::tests::synthetic_pack;
 
     #[test]
-    fn constructs_only_the_four_fixed_download_targets() {
-        let temp = tempfile::tempdir().unwrap();
+    fn constructs_only_the_four_fixed_download_files() {
         let expected = defaults().knowledge_datasets.remove(0);
-        let pack_root = temp.path().join(&expected.stable_id);
-        let targets = knowledge_download_targets(&pack_root, &expected).unwrap();
-        assert_eq!(targets.len(), 4);
-        for (target, filename) in targets.iter().zip(KNOWLEDGE_ARTIFACT_FILENAMES) {
-            assert!(target.url.ends_with(filename));
-            assert!(target.destination.ends_with(filename));
-            assert!(
-                target
-                    .destination
-                    .to_string_lossy()
-                    .contains(&expected.current_download_identity)
-            );
-            assert_eq!(target.sha256.len(), 64);
+        let store = AssetStore::new("assets");
+        let asset = knowledge_asset(&expected).unwrap();
+        assert_eq!(
+            store.asset_dir(&asset),
+            Path::new("assets")
+                .join("knowledge")
+                .join(&expected.stable_id)
+                .join(&expected.current_download_identity)
+        );
+        for name in KNOWLEDGE_ARTIFACT_FILENAMES {
+            assert!(store.file_path(&asset, name).is_some());
         }
+        assert!(!store.is_downloaded(&asset));
     }
 
     #[test]

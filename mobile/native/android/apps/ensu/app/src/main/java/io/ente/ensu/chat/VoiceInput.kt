@@ -14,11 +14,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import io.ente.ensu.bindings.AssetDownloadException
 import io.ente.ensu.bindings.LlmException
 import io.ente.ensu.bindings.Transcriber
 import io.ente.ensu.bindings.TranscriptionException
-import io.ente.ensu.bindings.uniffiEnsureInitialized
-import io.ente.ensu.llm.ModelDownloader
+import io.ente.ensu.bindings.transcriptionModelAsset
+import io.ente.ensu.bindings.voiceActivityModelAsset
+import io.ente.ensu.assets.AssetStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -67,13 +69,13 @@ internal fun VoiceInputState.statusText(): String? = when (this) {
 
 @Composable
 internal fun rememberVoiceTranscriptionController(
-    modelDownloader: ModelDownloader,
+    assetStore: AssetStore,
     transcriber: Transcriber,
     onTranscript: (String) -> Unit
 ): VoiceTranscriptionController {
     val lifecycleOwner = LocalLifecycleOwner.current
     val controller = remember(transcriber) {
-        VoiceTranscriptionController(modelDownloader, transcriber, onTranscript)
+        VoiceTranscriptionController(assetStore, transcriber, onTranscript)
     }
     DisposableEffect(controller, lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -93,13 +95,13 @@ internal fun rememberVoiceTranscriptionController(
 }
 
 internal class VoiceTranscriptionController(
-    private val modelDownloader: ModelDownloader,
+    private val assetStore: AssetStore,
     private val transcriber: Transcriber,
     private val onTranscript: (String) -> Unit
 ) {
-    private val modelTargets = listOf(
-        modelDownloader.transcriptionTarget,
-        modelDownloader.voiceActivityTarget
+    private val modelAssets = listOf(
+        transcriptionModelAsset(),
+        voiceActivityModelAsset()
     )
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -146,6 +148,13 @@ internal class VoiceTranscriptionController(
             } catch (error: TranscriptionException) {
                 Log.w(TAG, "Voice model preparation failed: ${error.message}", error)
                 state = VoiceInputState.Error(transcriptionErrorMessage(error))
+            } catch (error: AssetDownloadException) {
+                if (error is AssetDownloadException.Cancelled) {
+                    state = VoiceInputState.Idle
+                    return@launch
+                }
+                Log.w(TAG, "Voice model download failed: ${error.message}", error)
+                state = VoiceInputState.Error(downloadErrorMessage())
             } catch (error: LlmException) {
                 if (error is LlmException.Cancelled) {
                     state = VoiceInputState.Idle
@@ -276,8 +285,6 @@ internal class VoiceTranscriptionController(
             ensureTranscriptionModelDownloaded()
             awaitTranscriptionModelPreload()
             val transcript = withContext(Dispatchers.IO) {
-                uniffiEnsureInitialized()
-
                 withContext(Dispatchers.Main.immediate) {
                     state = VoiceInputState.Transcribing
                 }
@@ -301,6 +308,13 @@ internal class VoiceTranscriptionController(
         } catch (error: TranscriptionException) {
             Log.w(TAG, "Voice transcription failed: ${error.message}", error)
             state = VoiceInputState.Error(transcriptionErrorMessage(error))
+        } catch (error: AssetDownloadException) {
+            if (error is AssetDownloadException.Cancelled) {
+                state = VoiceInputState.Idle
+                return
+            }
+            Log.w(TAG, "Voice model download failed: ${error.message}", error)
+            state = VoiceInputState.Error(downloadErrorMessage())
         } catch (error: LlmException) {
             if (error is LlmException.Cancelled) {
                 state = VoiceInputState.Idle
@@ -322,7 +336,6 @@ internal class VoiceTranscriptionController(
         transcriptionPreloadJob?.cancel()
         transcriptionPreloadJob = scope.launch(Dispatchers.IO) {
             try {
-                uniffiEnsureInitialized()
                 transcriber.loadModel()
             } catch (error: CancellationException) {
                 throw error
@@ -345,15 +358,17 @@ internal class VoiceTranscriptionController(
 
     private suspend fun ensureTranscriptionModelDownloaded() {
         val activeJob = coroutineContext[Job]
-        uniffiEnsureInitialized()
 
-        if (withContext(Dispatchers.IO) { modelTargets.all { modelDownloader.isDownloaded(it) } }) {
+        if (withContext(Dispatchers.IO) { modelAssets.all { assetStore.isDownloaded(it) } }) {
             return
         }
 
         setStateIfJobActive(activeJob, VoiceInputState.Downloading(null))
-        modelDownloader.download(modelTargets) { progress ->
-            postStateIfJobActive(activeJob, VoiceInputState.Downloading(progress.percent?.coerceIn(0, 100)))
+        assetStore.download(modelAssets) { progress ->
+            postStateIfJobActive(
+                activeJob,
+                VoiceInputState.Downloading(progress.percentage.toInt().coerceIn(0, 100))
+            )
         }
     }
 

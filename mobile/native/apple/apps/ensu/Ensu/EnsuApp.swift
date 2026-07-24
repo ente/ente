@@ -2,14 +2,17 @@ import SwiftUI
 
 @main
 struct EnsuApp: App {
+    private let assetStore: AssetStore
+
     init() {
         EnsuLogging.shared.start()
-        ModelDownloader.registerBackgroundTask()
+        AssetStore.registerBackgroundTask()
+        assetStore = AssetStore()
     }
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            RootView(assetStore: assetStore)
         }
     }
 }

@@ -1,6 +1,8 @@
 package io.ente.ensu.llm
 
 import android.util.Log
+import io.ente.ensu.assets.AssetStore
+import io.ente.ensu.bindings.Asset
 import io.ente.ensu.bindings.LlmChatMessage as NativeChatMessage
 import io.ente.ensu.bindings.LlmChatRequest
 import io.ente.ensu.bindings.LlmContext
@@ -12,13 +14,15 @@ import io.ente.ensu.bindings.LlmModel
 import io.ente.ensu.bindings.LlmModelLoadParams
 import io.ente.ensu.bindings.KnowledgeEmbeddingConfig
 import io.ente.ensu.bindings.Transcriber
-import io.ente.ensu.bindings.knowledgeEmbeddingModelTarget
+import io.ente.ensu.bindings.knowledgeEmbeddingModelAsset
+import io.ente.ensu.bindings.llmAsset
 import io.ente.ensu.bindings.llmCancel
 import io.ente.ensu.bindings.llmInitBackend
 import io.ente.ensu.device.AndroidDeviceCapabilityProvider
 import io.ente.ensu.device.requireChatSupported
 import io.ente.ensu.settings.IS_ENSU_PACKS_ENABLED
 import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -26,11 +30,11 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 class RequiredModelValidationError(
-    val targetId: String
-) : Exception("Downloaded model failed validation: $targetId")
+    val modelId: String
+) : Exception("Downloaded model failed validation: $modelId")
 
 class LlmProvider(
-    private val downloader: ModelDownloader,
+    private val assetStore: AssetStore,
     private val transcriber: Transcriber,
     private val deviceCapabilityProvider: AndroidDeviceCapabilityProvider,
     private val knowledgeEmbedding: KnowledgeEmbeddingConfig,
@@ -48,18 +52,25 @@ class LlmProvider(
     @Volatile private var currentJobId: Long? = null
     private var backendInitialized = false
     private val modelLoadMutex = Mutex()
-    private val embeddingDownloadTarget = knowledgeEmbeddingModelTarget()
+    private val activeDownloads = AtomicInteger()
+    private val embeddingAsset = knowledgeEmbeddingModelAsset()
 
     class EmbeddingAssetInvalid : Exception("Embedding model asset is invalid")
 
     fun isChatModelReady(selection: LlmModelSelection): Boolean =
-        downloader.isDownloaded(selection.modelTarget)
+        assetStore.isDownloaded(chatAsset(selection))
 
     fun isEmbeddingModelReady(): Boolean =
-        downloader.isDownloaded(embeddingDownloadTarget)
+        assetStore.isDownloaded(embeddingAsset)
 
     suspend fun estimateEmbeddingDownloadSize(): Long? =
-        downloader.estimateDownloadSize(embeddingDownloadTarget)
+        assetStore.estimateDownloadSize(embeddingAsset)
+
+    suspend fun estimateChatModelDownloadSize(selection: LlmModelSelection): Long? =
+        assetStore.estimateDownloadSize(chatAsset(selection))
+
+    val isDownloadActive: Boolean
+        get() = activeDownloads.get() > 0
 
     suspend fun ensureModelReady(
         selection: LlmModelSelection,
@@ -78,29 +89,30 @@ class LlmProvider(
     ) {
         withContext(ioDispatcher) {
             deviceCapabilityProvider.chatCapability().requireChatSupported()
-            val missingTargets = modelLoadMutex.withLock {
+            val asset = chatAsset(selection)
+            val missingAssets = modelLoadMutex.withLock {
                 val embeddingReady = isEmbeddingModelReady()
                 if (IS_ENSU_PACKS_ENABLED && !embeddingReady) {
-                    val embeddingFile = downloader.llmModelPath(embeddingDownloadTarget)
+                    val embeddingFile = assetStore.llmModelPath(embeddingAsset)
                     if (embeddingFile?.exists() == true) {
-                        downloader.removeDownloaded(embeddingDownloadTarget)
+                        assetStore.removeDownloaded(embeddingAsset)
                     }
                 }
 
                 buildList {
-                    if (!isChatModelReady(selection)) add(selection.modelTarget)
-                    if (IS_ENSU_PACKS_ENABLED && !isEmbeddingModelReady()) add(embeddingDownloadTarget)
+                    if (!assetStore.isDownloaded(asset)) add(asset)
+                    if (IS_ENSU_PACKS_ENABLED && !isEmbeddingModelReady()) add(embeddingAsset)
                 }
             }
-            if (missingTargets.isNotEmpty()) {
-                downloader.download(missingTargets, onProgress)
+            if (missingAssets.isNotEmpty()) {
+                downloadAssets(missingAssets, onProgress)
             }
             modelLoadMutex.withLock {
                 if (IS_ENSU_PACKS_ENABLED && !isEmbeddingModelReady()) {
-                    downloader.removeDownloaded(embeddingDownloadTarget)
+                    assetStore.removeDownloaded(embeddingAsset)
                     throw RequiredModelValidationError(knowledgeEmbedding.targetId)
                 }
-                if (!isChatModelReady(selection)) {
+                if (!assetStore.isDownloaded(asset)) {
                     throw RequiredModelValidationError(selection.id)
                 }
                 ensureModelReadyLocked(
@@ -128,7 +140,7 @@ class LlmProvider(
             val mmprojPath = if (imageFiles.isEmpty()) {
                 null
             } else {
-                downloader.llmMmprojPath(selection.modelTarget)?.absolutePath
+                assetStore.llmMmprojPath(chatAsset(selection))?.absolutePath
             }
             val clampedTemperature = temperature.coerceIn(0.35f, 0.7f)
 
@@ -174,7 +186,7 @@ class LlmProvider(
 
             val embeddingModel = LlmModel.load(
                 LlmModelLoadParams(
-                    modelPath = requireNotNull(downloader.llmModelPath(embeddingDownloadTarget)).absolutePath,
+                    modelPath = requireNotNull(assetStore.llmModelPath(embeddingAsset)).absolutePath,
                     nGpuLayers = 0,
                     useMmap = true,
                     useMlock = false
@@ -196,9 +208,10 @@ class LlmProvider(
         withContext(ioDispatcher) {
             runCatching {
                 modelLoadMutex.withLock {
-                    if (!downloader.isDownloaded(selection.modelTarget)) return@withLock
+                    val asset = chatAsset(selection)
+                    if (!assetStore.isDownloaded(asset)) return@withLock
                     val mmprojPath =
-                        downloader.llmMmprojPath(selection.modelTarget)?.absolutePath
+                        assetStore.llmMmprojPath(asset)?.absolutePath
                         ?.takeIf { File(it).exists() }
                         ?: return@withLock
                     ensureModelReadyLocked(selection, onProgress = {})
@@ -289,19 +302,20 @@ class LlmProvider(
 
         unloadModel()
 
-        val wasAlreadyDownloaded = downloader.isDownloaded(selection.modelTarget)
+        val asset = chatAsset(selection)
+        val wasAlreadyDownloaded = assetStore.isDownloaded(asset)
         if (shouldDownload) {
-            downloader.download(listOf(selection.modelTarget), onProgress)
+            downloadAssets(listOf(asset), onProgress)
         }
 
         onProgress(DownloadProgress(100, "Loading model...", phase = DownloadPhase.Loading))
         try {
             loadWithFallbacks(
                 selection,
-                requireNotNull(downloader.llmModelPath(selection.modelTarget))
+                requireNotNull(assetStore.llmModelPath(asset))
             )
         } catch (error: Throwable) {
-            if (allowRecovery && wasAlreadyDownloaded && downloader.removeDownloaded(selection.modelTarget)) {
+            if (allowRecovery && wasAlreadyDownloaded && assetStore.removeDownloaded(asset)) {
                 onProgress(DownloadProgress(0, "Starting download...", phase = DownloadPhase.Downloading))
                 ensureModelReadyLocked(selection, onProgress, allowRecovery = false)
                 return
@@ -310,6 +324,27 @@ class LlmProvider(
         }
         onProgress(DownloadProgress(100, "Ready", phase = DownloadPhase.Ready))
     }
+
+    private suspend fun downloadAssets(
+        assets: List<Asset>,
+        onProgress: (DownloadProgress) -> Unit
+    ) {
+        activeDownloads.incrementAndGet()
+        try {
+            assetStore.download(assets) { progress ->
+                onProgress(
+                    DownloadProgress(
+                        progress.percentage.toInt().coerceIn(0, 99),
+                        progress.status
+                    )
+                )
+            }
+        } finally {
+            activeDownloads.decrementAndGet()
+        }
+    }
+
+    private fun chatAsset(selection: LlmModelSelection): Asset = llmAsset(selection.id)
 
     private fun loadWithFallbacks(selection: LlmModelSelection, modelFile: File) {
         val desiredCtx = selection.contextLength ?: 12000

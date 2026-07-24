@@ -27,7 +27,7 @@
         </activity>
 
         <service
-            android:name=".llm.ModelDownloadJobService"
+            android:name=".assets.AssetDownloadJobService"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 

@@ -7,13 +7,15 @@ use support::ml_indexing::{
     ComparisonStats, MlIndexingTestContext, fail_if_any, run_with_large_stack,
 };
 
-#[test]
-fn rust_ml_matches_python_goldens() {
-    run_with_large_stack("rust_ml_matches_python_goldens", run_ml_indexing_test);
+#[tokio::test]
+async fn rust_ml_matches_python_goldens() -> Result<()> {
+    let context = MlIndexingTestContext::load().await?;
+    run_with_large_stack("rust_ml_matches_python_goldens", move || {
+        run_ml_indexing_test(context)
+    })
 }
 
-fn run_ml_indexing_test() -> Result<()> {
-    let context = MlIndexingTestContext::load()?;
+fn run_ml_indexing_test(context: MlIndexingTestContext) -> Result<()> {
     let runtime = context.prepare_runtime();
 
     let mut failures = context.validate_manifest_expectations()?;
