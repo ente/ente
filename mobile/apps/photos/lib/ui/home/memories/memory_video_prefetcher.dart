@@ -2,6 +2,7 @@ import "dart:async";
 import "dart:collection";
 
 import "package:logging/logging.dart";
+import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/module/download/file.dart";
@@ -161,6 +162,9 @@ class MemoryVideoPrefetcher {
     required int uploadedFileID,
     bool Function()? stillActive,
   }) async {
+    if (!file.isOwner) {
+      return _OriginalPrefetchResult.ineligible;
+    }
     final fileSize = file.fileSize;
     final duration = file.duration;
     if (fileSize == null ||

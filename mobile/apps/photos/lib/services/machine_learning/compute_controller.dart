@@ -209,8 +209,8 @@ class ComputeController {
     if (ml) {
       if (_currentRunState == ComputeRunState.runningML) {
         _currentRunState = ComputeRunState.idle;
+        _waitingToRunML = false;
       }
-      _waitingToRunML = false;
     } else if (stream) {
       if (_currentRunState == ComputeRunState.generatingStream) {
         _currentRunState = ComputeRunState.idle;

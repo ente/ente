@@ -361,6 +361,10 @@ class MLService {
       return;
     }
     try {
+      if (!hasGrantedMLConsent) {
+        _logger.info("runAllML called without ML consent, skipping");
+        return;
+      }
       final MLMode mode = isLocalGalleryMode
           ? MLMode.localGallery
           : MLMode.enteGallery;
