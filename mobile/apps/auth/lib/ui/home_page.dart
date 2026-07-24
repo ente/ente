@@ -1040,6 +1040,36 @@ class _HomePageState extends State<HomePage> {
         return true;
       }
 
+      // On desktop, typing a printable character opens search with that input.
+      if (PlatformDetector.isDesktop() &&
+          !isHomeSearchFocused &&
+          !isMetaKeyPressed &&
+          !pressed.contains(LogicalKeyboardKey.altLeft) &&
+          !pressed.contains(LogicalKeyboardKey.alt) &&
+          !pressed.contains(LogicalKeyboardKey.altRight) &&
+          event.logicalKey != LogicalKeyboardKey.keyC &&
+          event.logicalKey != LogicalKeyboardKey.keyN &&
+          event.character != null &&
+          event.character!.trim().isNotEmpty) {
+        final String searchStarter = event.character!;
+        setState(() {
+          _showSearchBox = true;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          searchBoxFocusNode.requestFocus();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            _searchText = searchStarter;
+            _textController.value = TextEditingValue(
+              text: searchStarter,
+              selection: TextSelection.collapsed(offset: searchStarter.length),
+            );
+          });
+        });
+        return true;
+      }
+
       // Only use Escape for the HomePage search UI.
       if (event.logicalKey == LogicalKeyboardKey.escape && _showSearchBox) {
         setState(() {
