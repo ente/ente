@@ -36,7 +36,6 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
   double _passwordStrength = 0.0;
   bool _emailIsValid = false;
   bool _hasAgreedToTOS = true;
-  bool _hasAgreedToE2E = false;
   bool _password1Visible = false;
   bool _password2Visible = false;
   bool _passwordsMatch = false;
@@ -450,9 +449,7 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Column(
-                    children: [_getTOSAgreement(), _getPasswordAgreement()],
-                  ),
+                  _getTOSAgreement(),
                 ],
               ),
             ),
@@ -548,64 +545,10 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
     );
   }
 
-  Widget _getPasswordAgreement() {
-    final textTheme = getEnteTextTheme(context);
-    final colorScheme = getEnteColorScheme(context);
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _hasAgreedToE2E = !_hasAgreedToE2E;
-        });
-      },
-      behavior: HitTestBehavior.translucent,
-      child: Row(
-        children: [
-          Checkbox(
-            value: _hasAgreedToE2E,
-            side: CheckboxTheme.of(context).side,
-            fillColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) {
-                return colorScheme.primary700;
-              }
-              return Colors.transparent;
-            }),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(4),
-            ),
-            onChanged: (value) {
-              setState(() {
-                _hasAgreedToE2E = value!;
-              });
-            },
-          ),
-          Expanded(
-            child: StyledText(
-              text: context.strings.ackPasswordLostWarning,
-              style: textTheme.small.copyWith(color: colorScheme.textMuted),
-              tags: {
-                'underline': StyledTextActionTag(
-                  (String? text, Map<String?, String?> attrs) =>
-                      PlatformUtil.openWebView(
-                        context,
-                        context.strings.encryption,
-                        "https://ente.com/architecture",
-                      ),
-                  style: const TextStyle(decoration: TextDecoration.underline),
-                ),
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   bool _isFormValid() {
     return _emailIsValid &&
         _passwordsMatch &&
         _hasAgreedToTOS &&
-        _hasAgreedToE2E &&
         _passwordIsValid;
   }
 }
