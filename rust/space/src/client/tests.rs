@@ -1324,6 +1324,51 @@ async fn list_space_friends_uses_space_friends_endpoint() {
 }
 
 #[tokio::test]
+async fn sent_friend_request_actions_use_request_endpoints() {
+    let mut server = Server::new_async().await;
+    let ctx = test_account_ctx(&server.url());
+    let list = server
+        .mock("GET", "/spaces/space_owner_main/friends/requests/sent")
+        .match_header("x-space-session-token", "space-session-token")
+        .with_status(200)
+        .with_body(
+            json!([{
+                "requestId": 42,
+                "target": {
+                    "spaceId": "space_target",
+                    "spaceSlug": "target",
+                    "publicKey": "target-public-key",
+                    "keyVersion": 1
+                },
+                "createdAt": "2026-04-16T00:00:00Z"
+            }])
+            .to_string(),
+        )
+        .create_async()
+        .await;
+    let cancel = server
+        .mock("DELETE", "/spaces/space_owner_main/friends/requests/42")
+        .match_header("x-space-session-token", "space-session-token")
+        .with_status(200)
+        .create_async()
+        .await;
+
+    let response = ctx
+        .list_sent_friend_requests("space_owner_main")
+        .await
+        .expect("sent friend requests should load");
+    ctx.delete_friend_request("space_owner_main", 42)
+        .await
+        .expect("sent friend request should cancel");
+
+    assert_eq!(response.len(), 1);
+    assert_eq!(response[0].request_id, 42);
+    assert_eq!(response[0].target.space_id, "space_target");
+    list.assert_async().await;
+    cancel.assert_async().await;
+}
+
+#[tokio::test]
 async fn get_relationship_uses_relationship_endpoint() {
     let mut server = Server::new_async().await;
     let ctx = test_account_ctx(&server.url());

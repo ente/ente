@@ -34,7 +34,9 @@ export const SpaceShareIcon: React.FC<{ strokeWidth?: number }> = ({
 interface SpaceShareInviteButtonProps {
     className?: string;
     iconStrokeWidth?: number;
+    label?: string;
     profileLink?: string;
+    showIcon?: boolean;
     sharing?: boolean;
     sx?: SxProps<Theme>;
     onShareComplete?: () => void;
@@ -46,7 +48,9 @@ interface SpaceShareInviteButtonProps {
 export const SpaceShareInviteButton: React.FC<SpaceShareInviteButtonProps> = ({
     className,
     iconStrokeWidth,
+    label,
     profileLink,
+    showIcon = true,
     sharing,
     sx,
     onShareComplete,
@@ -60,11 +64,12 @@ export const SpaceShareInviteButton: React.FC<SpaceShareInviteButtonProps> = ({
     const isSharing = sharing ?? phase == "sharing";
     const isDisabled = isSharing || !profileLink;
     const buttonLabel =
-        phase == "copied"
+        label ??
+        (phase == "copied"
             ? "Invite link copied"
             : isSharing
               ? "Sharing invite..."
-              : "Share invite";
+              : "Share invite");
 
     const setSharing = (nextSharing: boolean) => {
         if (sharing === undefined) setPhase(nextSharing ? "sharing" : "idle");
@@ -125,7 +130,7 @@ export const SpaceShareInviteButton: React.FC<SpaceShareInviteButtonProps> = ({
             onClick={() => void shareInvite()}
             sx={sx}
         >
-            <SpaceShareIcon strokeWidth={iconStrokeWidth} />
+            {showIcon && <SpaceShareIcon strokeWidth={iconStrokeWidth} />}
             {buttonLabel}
         </Box>
     );

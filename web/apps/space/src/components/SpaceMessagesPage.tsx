@@ -1,3 +1,4 @@
+import { SpaceFriendRequestCanceledToast } from "components/SpaceFriendRequestCanceledToast";
 import { SpacePageMeta } from "components/SpacePageMeta";
 import { SpaceRouteFallback } from "components/SpaceRouteFallback";
 import React from "react";
@@ -7,6 +8,7 @@ import {
     confirmCurrentFriendRequest,
     deleteCurrentFriendRequest,
     deleteCurrentMessage,
+    isFriendRequestCanceledError,
     loadCurrentMessageActivityPostPreview,
     loadCurrentMessageConversations,
     loadCurrentMessageThread,
@@ -115,6 +117,8 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
     const [isConversationsLoading, setIsConversationsLoading] =
         React.useState(true);
     const [isThreadLoading, setIsThreadLoading] = React.useState(false);
+    const [showFriendRequestCanceledToast, setShowFriendRequestCanceledToast] =
+        React.useState(false);
     const [messages, setMessages] = React.useState<SpaceMessage[]>([]);
     const [selectedFriendProfile, setSelectedFriendProfile] =
         React.useState<SpaceMessageConversation["friend"]>();
@@ -301,13 +305,27 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
             const actorSpaceId = profile?.spaceId;
             if (!actorSpaceId) throw new Error("Missing space.");
 
-            await confirmCurrentFriendRequest(
-                actorSpaceId,
-                friendRequestIdFromConversation(conversation),
-            );
+            try {
+                await confirmCurrentFriendRequest(
+                    actorSpaceId,
+                    friendRequestIdFromConversation(conversation),
+                );
+            } catch (error: unknown) {
+                if (!isFriendRequestCanceledError(error)) throw error;
+                setConversations((currentConversations) =>
+                    currentConversations.filter(
+                        (candidate) =>
+                            conversationId(candidate) !=
+                            conversationId(conversation),
+                    ),
+                );
+                setShowFriendRequestCanceledToast(true);
+                void refreshConversations();
+                return;
+            }
             window.location.reload();
         },
-        [profile?.spaceId],
+        [profile?.spaceId, refreshConversations],
     );
 
     const deleteFriendRequest = React.useCallback(
@@ -315,10 +333,24 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
             const actorSpaceId = profile?.spaceId;
             if (!actorSpaceId) throw new Error("Missing space.");
 
-            await deleteCurrentFriendRequest(
-                actorSpaceId,
-                friendRequestIdFromConversation(conversation),
-            );
+            try {
+                await deleteCurrentFriendRequest(
+                    actorSpaceId,
+                    friendRequestIdFromConversation(conversation),
+                );
+            } catch (error: unknown) {
+                if (!isFriendRequestCanceledError(error)) throw error;
+                setConversations((currentConversations) =>
+                    currentConversations.filter(
+                        (candidate) =>
+                            conversationId(candidate) !=
+                            conversationId(conversation),
+                    ),
+                );
+                setShowFriendRequestCanceledToast(true);
+                void refreshConversations();
+                return;
+            }
             void refreshConversations();
         },
         [profile?.spaceId, refreshConversations],
@@ -663,6 +695,11 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
                 profile={profile}
                 selectedFriend={selectedFriend}
             />
+            {showFriendRequestCanceledToast && (
+                <SpaceFriendRequestCanceledToast
+                    onClose={() => setShowFriendRequestCanceledToast(false)}
+                />
+            )}
         </>
     );
 };

@@ -170,7 +170,6 @@ class SettingsPage extends StatelessWidget {
               moreFromEnteUri(
                 sourceApp: ComponentApp.auth,
                 destinationApp: app,
-                sourcePlatform: Platform.operatingSystem,
               ).toString(),
               mode: LaunchMode.externalApplication,
             ).ignore();

@@ -26,14 +26,13 @@ import {
     type ListedFile,
 } from "./UploadFileList";
 
-export function UploadProgressDetails({ closeOnly }: { closeOnly: boolean }) {
+export function UploadProgressDetails() {
     const {
         finishedUploads,
         hasLivePhotos,
         inProgressUploads,
         retryFailed,
         preUploadSkippedFiles,
-        uploadCounter,
         uploadFileNames,
         uploadPhase,
         onClose,
@@ -45,15 +44,21 @@ export function UploadProgressDetails({ closeOnly }: { closeOnly: boolean }) {
 
     const statCounts = uploadProgressStatCounts({
         uploadPhase,
-        uploadCounter,
         inProgressUploads,
         finishedUploads,
         preUploadSkippedFiles,
     });
+    const skippedCount = statCounts.skipped;
     const failedCount = statCounts.failed;
     const activeStat =
         selectedStat ??
-        (isDone ? (failedCount > 0 ? "failed" : "completed") : "inProgress");
+        (isDone
+            ? failedCount > 0
+                ? "failed"
+                : skippedCount > 0
+                  ? "skipped"
+                  : "completed"
+            : "inProgress");
 
     const handleSelectStat = (kind: UploadStatKind) => {
         setSelectedStat(kind);
@@ -190,13 +195,13 @@ export function UploadProgressDetails({ closeOnly }: { closeOnly: boolean }) {
                     </Typography>
                 )}
             </Box>
-            {isDone && (closeOnly || failedCount > 0) && (
+            {isDone && (
                 <Button
                     fullWidth
-                    onClick={closeOnly ? onClose : retryFailed}
+                    onClick={failedCount > 0 ? retryFailed : onClose}
                     sx={retryButtonSx}
                 >
-                    {t(closeOnly ? "close" : "retry_failed_uploads")}
+                    {t(failedCount > 0 ? "retry_failed_uploads" : "close")}
                 </Button>
             )}
         </Stack>

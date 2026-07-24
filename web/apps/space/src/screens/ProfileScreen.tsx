@@ -1,11 +1,19 @@
 import {
     AddSquareIcon,
     ArrowLeft02Icon,
+    BubbleChatIcon,
     Menu01Icon,
+    MoreHorizontalIcon,
     MultiplicationSignIcon,
+    UserRemove01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Box, Skeleton } from "@mui/material";
+import { Box, Menu, MenuItem, Skeleton } from "@mui/material";
+import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
+import {
+    spaceActionDoneDurationMs,
+    type SpaceActionPhase,
+} from "components/SpaceActionFeedback";
 import { SpaceAvatarImage } from "components/SpaceAvatarImage";
 import {
     SpaceFileViewer,
@@ -36,6 +44,7 @@ import { thumbHashDataURLFromBase64 } from "utils/thumbhash";
 export const profileBackground = "#FFFFFF";
 
 const green = "#08C225";
+const dangerColor = "#F63A3A";
 const textBase = "#000";
 const textStrong = "#303030";
 const textSoft = "#777777";
@@ -534,12 +543,16 @@ interface ProfileScreenProps {
     onOpenProfilePhoto?: () => void;
     onOpenSettings?: () => void;
     onLoadPostImage?: (asset: SpacePostAsset) => Promise<string>;
+    onMessageFriend?: () => void;
     onReplyToPost?: (
         postSpaceId: string,
         postId: number,
         text: string,
     ) => Promise<void>;
     onSetPostLiked?: (postId: number, liked: boolean) => Promise<void>;
+    onUnfriend?: () => Promise<void> | void;
+    onUnfriendComplete?: () => void;
+    onUpdatePostCaption?: (postId: number, caption: string) => Promise<void>;
     postGroups?: ProfilePostGroup[];
     profile: SetupProfile;
     profileLink?: string;
@@ -560,8 +573,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     onOpenProfilePhoto,
     onOpenSettings,
     onLoadPostImage,
+    onMessageFriend,
     onReplyToPost,
     onSetPostLiked,
+    onUnfriend,
+    onUnfriendComplete,
+    onUpdatePostCaption,
     postGroups = [],
     profile,
     profileLink,
@@ -569,12 +586,21 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 }) => {
     const [selectedPost, setSelectedPost] =
         useState<SelectedProfilePost | null>(null);
+    const [isDraftPostExiting, setIsDraftPostExiting] = useState(false);
     const [isPostPhotoOpening, setIsPostPhotoOpening] = useState(false);
     const [deletedPostIDs, setDeletedPostIDs] = useState<Set<string>>(
         () => new Set(),
     );
     const [profileShareToast, setProfileShareToast] =
         useState<ProfileToastState | null>(null);
+    const [friendActionsAnchor, setFriendActionsAnchor] =
+        useState<HTMLElement | null>(null);
+    const [isUnfriendSheetOpen, setIsUnfriendSheetOpen] = useState(false);
+    const [unfriendActionPhase, setUnfriendActionPhase] =
+        useState<SpaceActionPhase | null>(null);
+    const [unfriendErrorMessage, setUnfriendErrorMessage] = useState<
+        string | null
+    >(null);
     const [loadedPhotoDimensionsByID, setLoadedPhotoDimensionsByID] = useState<
         Record<string, ProfilePhotoDimensions>
     >({});
@@ -596,6 +622,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     );
     const isOwnerProfile = headerVariant == "owner";
     const isFriendProfile = headerVariant == "friend";
+    const friendActionsButtonID = React.useId();
+    const friendActionsMenuID = React.useId();
+    const isFriendActionsOpen = Boolean(friendActionsAnchor);
+    const isUnfriendActionRunning = unfriendActionPhase != null;
+    const canManageFriend =
+        isFriendProfile && Boolean(onMessageFriend || onUnfriend);
     const displayName = profile.fullName.trim() || profile.username.trim();
     const coverUrl = profile.coverUrl ?? null;
     const isCoverURLPending = Boolean(profile.coverObjectID && !coverUrl);
@@ -620,7 +652,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         0,
     );
     const canOpenFriends = isOwnerProfile && Boolean(onOpenFriends);
-    const canOpenProfileCover = isOwnerProfile && Boolean(onOpenProfileCover);
+    const canOpenProfileCover = Boolean(onOpenProfileCover);
     const canOpenProfilePhoto = Boolean(onOpenProfilePhoto);
     const hasProfilePosts = postsSharedCount > 0;
     const shouldShowPostLoadingIndicator =
@@ -680,6 +712,57 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         );
     }, []);
 
+    const closeFriendActions = () => setFriendActionsAnchor(null);
+
+    const messageFriend = () => {
+        closeFriendActions();
+        onMessageFriend?.();
+    };
+
+    const requestUnfriend = () => {
+        closeFriendActions();
+        setUnfriendErrorMessage(null);
+        setIsUnfriendSheetOpen(true);
+    };
+
+    const cancelUnfriend = () => {
+        if (isUnfriendActionRunning) return;
+        setUnfriendErrorMessage(null);
+        setIsUnfriendSheetOpen(false);
+    };
+
+    const confirmUnfriend = () => {
+        if (!onUnfriend || isUnfriendActionRunning) return;
+        setUnfriendErrorMessage(null);
+        setUnfriendActionPhase("busy");
+        void (async () => {
+            try {
+                await Promise.resolve(onUnfriend());
+                setUnfriendActionPhase("done");
+            } catch (error) {
+                console.error("Failed to unfriend space friend", error);
+                setUnfriendActionPhase(null);
+                setUnfriendErrorMessage("Couldn't unfriend. Please try again.");
+            }
+        })();
+    };
+
+    React.useEffect(() => {
+        if (unfriendActionPhase != "done") return;
+
+        const timeoutID = window.setTimeout(() => {
+            setIsUnfriendSheetOpen(false);
+            onUnfriendComplete?.();
+        }, spaceActionDoneDurationMs);
+
+        return () => window.clearTimeout(timeoutID);
+    }, [onUnfriendComplete, unfriendActionPhase]);
+
+    const handleUnfriendSheetExited = () => {
+        setUnfriendActionPhase(null);
+        setUnfriendErrorMessage(null);
+    };
+
     const revokeLocalPostObjectUrls = React.useCallback(() => {
         localPostObjectUrlsRef.current.forEach((objectUrl) =>
             URL.revokeObjectURL(objectUrl),
@@ -696,6 +779,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     };
     const closeSelectedPost = () => {
         activeLocalPostObjectUrlRef.current = null;
+        setIsDraftPostExiting(false);
         setSelectedPost(null);
         revokeLocalPostObjectUrls();
     };
@@ -1053,7 +1137,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 position: "relative",
             }}
         >
-            {selectedPost && <SpaceViewerFeedBackdrop />}
+            {selectedPost && (
+                <SpaceViewerFeedBackdrop exiting={isDraftPostExiting} />
+            )}
             <Box
                 sx={{
                     bgcolor: profileBackground,
@@ -1369,7 +1455,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                             >
                                 {displayName}
                             </Box>
-                            {isOwnerProfile && (
+                            {isOwnerProfile ? (
                                 <Box
                                     component="button"
                                     type="button"
@@ -1403,6 +1489,192 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                 >
                                     <SpaceShareIcon strokeWidth={2.2} />
                                 </Box>
+                            ) : (
+                                canManageFriend && (
+                                    <Box
+                                        component="button"
+                                        id={friendActionsButtonID}
+                                        type="button"
+                                        aria-label={`Actions for ${displayName}`}
+                                        aria-controls={
+                                            isFriendActionsOpen
+                                                ? friendActionsMenuID
+                                                : undefined
+                                        }
+                                        aria-expanded={
+                                            isFriendActionsOpen
+                                                ? "true"
+                                                : undefined
+                                        }
+                                        aria-haspopup="menu"
+                                        onClick={(event) =>
+                                            setFriendActionsAnchor(
+                                                event.currentTarget,
+                                            )
+                                        }
+                                        sx={{
+                                            alignItems: "center",
+                                            bgcolor: "transparent",
+                                            border: 0,
+                                            color: textStrong,
+                                            cursor: "pointer",
+                                            display: "flex",
+                                            gridColumn: 3,
+                                            height: spaceTouchTargetSize,
+                                            justifyContent: "flex-start",
+                                            justifySelf: "start",
+                                            ml: "8px",
+                                            p: 0,
+                                            position: "absolute",
+                                            top: "50%",
+                                            transform: "translateY(-50%)",
+                                            width: spaceTouchTargetSize,
+                                            "&:focus-visible": {
+                                                borderRadius: "50%",
+                                                outline: `2px solid ${green}`,
+                                                outlineOffset: 2,
+                                            },
+                                        }}
+                                    >
+                                        <HugeiconsIcon
+                                            icon={MoreHorizontalIcon}
+                                            size={24}
+                                            strokeWidth={2}
+                                        />
+                                    </Box>
+                                )
+                            )}
+                            {canManageFriend && (
+                                <Menu
+                                    id={friendActionsMenuID}
+                                    anchorEl={friendActionsAnchor}
+                                    open={isFriendActionsOpen}
+                                    onClose={closeFriendActions}
+                                    anchorOrigin={{
+                                        horizontal: "right",
+                                        vertical: "bottom",
+                                    }}
+                                    transformOrigin={{
+                                        horizontal: "right",
+                                        vertical: "top",
+                                    }}
+                                    slotProps={{
+                                        paper: {
+                                            sx: {
+                                                bgcolor: "#FFFFFF",
+                                                borderRadius: "14px",
+                                                boxShadow:
+                                                    "0 14px 40px rgba(0, 0, 0, 0.16)",
+                                                mt: "6px",
+                                                minWidth: 0,
+                                                p: "4px",
+                                                width: "max-content",
+                                            },
+                                        },
+                                        list: {
+                                            "aria-labelledby":
+                                                friendActionsButtonID,
+                                            sx: { p: 0 },
+                                        },
+                                    }}
+                                >
+                                    {onMessageFriend && (
+                                        <MenuItem
+                                            dense
+                                            disableRipple
+                                            onClick={messageFriend}
+                                            sx={{
+                                                alignItems: "center",
+                                                borderRadius: "10px",
+                                                color: textBase,
+                                                display: "flex",
+                                                gap: "8px",
+                                                minHeight: 36,
+                                                px: "9px",
+                                                py: "4px",
+                                                whiteSpace: "nowrap",
+                                                "&.Mui-focusVisible": {
+                                                    bgcolor:
+                                                        "rgba(0, 0, 0, 0.04)",
+                                                },
+                                                "&:active": {
+                                                    bgcolor:
+                                                        "rgba(0, 0, 0, 0.04)",
+                                                },
+                                                "&:hover": {
+                                                    bgcolor:
+                                                        "rgba(0, 0, 0, 0.04)",
+                                                },
+                                            }}
+                                        >
+                                            <HugeiconsIcon
+                                                icon={BubbleChatIcon}
+                                                size={18}
+                                                strokeWidth={1.8}
+                                                style={{ flexShrink: 0 }}
+                                            />
+                                            <Box
+                                                sx={{
+                                                    fontFamily:
+                                                        '"Inter Variable", Inter, sans-serif',
+                                                    fontSize: 13,
+                                                    fontWeight: 650,
+                                                    lineHeight: "18px",
+                                                }}
+                                            >
+                                                Message
+                                            </Box>
+                                        </MenuItem>
+                                    )}
+                                    {onUnfriend && (
+                                        <MenuItem
+                                            dense
+                                            disableRipple
+                                            onClick={requestUnfriend}
+                                            sx={{
+                                                alignItems: "center",
+                                                borderRadius: "10px",
+                                                color: dangerColor,
+                                                display: "flex",
+                                                gap: "8px",
+                                                minHeight: 36,
+                                                px: "9px",
+                                                py: "4px",
+                                                whiteSpace: "nowrap",
+                                                "&.Mui-focusVisible": {
+                                                    bgcolor:
+                                                        "rgba(246, 58, 58, 0.06)",
+                                                },
+                                                "&:active": {
+                                                    bgcolor:
+                                                        "rgba(246, 58, 58, 0.06)",
+                                                },
+                                                "&:hover": {
+                                                    bgcolor:
+                                                        "rgba(246, 58, 58, 0.06)",
+                                                },
+                                            }}
+                                        >
+                                            <HugeiconsIcon
+                                                icon={UserRemove01Icon}
+                                                size={18}
+                                                strokeWidth={1.8}
+                                                style={{ flexShrink: 0 }}
+                                            />
+                                            <Box
+                                                sx={{
+                                                    fontFamily:
+                                                        '"Inter Variable", Inter, sans-serif',
+                                                    fontSize: 13,
+                                                    fontWeight: 650,
+                                                    lineHeight: "18px",
+                                                }}
+                                            >
+                                                Unfriend
+                                            </Box>
+                                        </MenuItem>
+                                    )}
+                                </Menu>
                             )}
                         </Box>
                         {isStatsLoading ? (
@@ -1766,6 +2038,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                 : handleSelectedPostIndexChange
                         }
                         onClose={closeSelectedPost}
+                        onDraftPostExitStart={() => setIsDraftPostExiting(true)}
                         onDeletePost={
                             isOwnerProfile ? deleteSelectedPost : undefined
                         }
@@ -1805,9 +2078,24 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                 : undefined
                         }
                         onSetPostLiked={onSetPostLiked}
+                        onUpdatePostCaption={
+                            isOwnerProfile ? onUpdatePostCaption : undefined
+                        }
                     />
                 )}
             </Box>
+            <ConfirmationActionSheet
+                open={isUnfriendSheetOpen}
+                title="Are you sure you want to unfriend?"
+                confirmLabel="Yes, unfriend"
+                confirmActionPhase={unfriendActionPhase}
+                confirmDisabled={isUnfriendActionRunning}
+                errorMessage={unfriendErrorMessage}
+                cancelDisabled={isUnfriendActionRunning}
+                onCancel={cancelUnfriend}
+                onConfirm={confirmUnfriend}
+                onExited={handleUnfriendSheetExited}
+            />
         </Box>
     );
 };

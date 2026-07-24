@@ -212,6 +212,7 @@ type SpaceFriendRequestRecord struct {
 	RequesterKeyVersion           int
 	CreatedAt                     int64
 	Requester                     SpaceActorRecord
+	Target                        SpaceActorRecord
 }
 
 type SpaceBrowserSessionRecord struct {

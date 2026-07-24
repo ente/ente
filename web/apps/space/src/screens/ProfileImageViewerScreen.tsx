@@ -24,11 +24,15 @@ interface FriendProfileImageViewerScreenProps {
     displayName: string;
     imageUrl: string;
     onClose: () => void;
+    variant: "avatar" | "cover";
 }
 
 export const FriendProfileImageViewerScreen: React.FC<
     FriendProfileImageViewerScreenProps
-> = ({ displayName, imageUrl, onClose }) => {
+> = ({ displayName, imageUrl, onClose, variant }) => {
+    const imageDescription =
+        variant == "cover" ? "cover image" : "profile picture";
+
     useEffect(() => {
         const previousOverflow = document.body.style.overflow;
         document.body.style.overflow = "hidden";
@@ -47,7 +51,7 @@ export const FriendProfileImageViewerScreen: React.FC<
     return (
         <Box
             role="dialog"
-            aria-label={`${displayName} profile picture`}
+            aria-label={`${displayName} ${imageDescription}`}
             aria-modal="true"
             onClick={onClose}
             sx={{
@@ -63,21 +67,27 @@ export const FriendProfileImageViewerScreen: React.FC<
         >
             <Box
                 component="img"
-                alt={`${displayName}'s profile picture`}
+                alt={`${displayName}'s ${imageDescription}`}
                 src={imageUrl}
                 onClick={(event) => event.stopPropagation()}
                 sx={{
-                    aspectRatio: "1 / 1",
-                    borderRadius: "50%",
+                    aspectRatio: variant == "cover" ? undefined : "1 / 1",
+                    borderRadius: variant == "cover" ? 0 : "50%",
                     display: "block",
+                    maxHeight:
+                        variant == "cover" ? "calc(100svh - 112px)" : undefined,
+                    maxWidth: variant == "cover" ? "100vw" : undefined,
                     objectFit: "cover",
-                    width: "min(calc(100vw - 48px), calc(100svh - 112px), 512px)",
+                    width:
+                        variant == "cover"
+                            ? "auto"
+                            : "min(calc(100vw - 48px), calc(100svh - 112px), 512px)",
                 }}
             />
             <Box
                 component="button"
                 type="button"
-                aria-label="Close profile picture"
+                aria-label={`Close ${imageDescription}`}
                 autoFocus
                 onClick={(event) => {
                     event.stopPropagation();

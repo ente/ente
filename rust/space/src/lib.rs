@@ -23,5 +23,5 @@ pub use transport::{
     PostPage, PostResponse, PresignUploadResponse, ProfileAvatarPayload, ProfileAvatarResponse,
     ProfileCoverPayload, ProfileCoverResponse, SpaceActorResponse, SpaceFriendRequestResponse,
     SpaceFriendResponse, SpaceKeyResponse, SpaceKeyVersionResponse, SpaceLookupResponse,
-    SpaceProfileResponse, SpaceUnreadStatusResponse,
+    SpaceProfileResponse, SpaceSentFriendRequestResponse, SpaceUnreadStatusResponse,
 };

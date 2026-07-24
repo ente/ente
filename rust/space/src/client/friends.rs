@@ -11,7 +11,7 @@ use crate::error::{Result, SpaceError};
 use crate::transport::{
     AddFriendPayload, ConfirmFriendRequestPayload, FriendRelationshipResponse,
     FriendStatusResponse, FriendTargetPayload, RefreshFriendSharesRequest, ShareUpdatePayload,
-    SpaceFriendRequestResponse, SpaceFriendResponse,
+    SpaceFriendRequestResponse, SpaceFriendResponse, SpaceSentFriendRequestResponse,
 };
 use ente_core::crypto::{decode_b64, encode_b64};
 
@@ -73,6 +73,21 @@ impl AccountSpaceCtx {
         space_id: &str,
     ) -> Result<Vec<SpaceFriendRequestResponse>> {
         let path = format!("/spaces/{space_id}/friends/requests");
+        Ok(self
+            .api()
+            .get(&path)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?)
+    }
+
+    pub async fn list_sent_friend_requests(
+        &self,
+        space_id: &str,
+    ) -> Result<Vec<SpaceSentFriendRequestResponse>> {
+        let path = format!("/spaces/{space_id}/friends/requests/sent");
         Ok(self
             .api()
             .get(&path)

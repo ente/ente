@@ -35,7 +35,7 @@ export function UploadCompletionV2({
         finishedUploads,
         preUploadSkippedFiles,
     );
-    const hasFailedUploads = counts.failed > 0;
+    const hasReviewableUploads = counts.failed > 0 || counts.skipped > 0;
 
     const handleClose: DialogProps["onClose"] = (_, reason) => {
         if (reason != "backdropClick") onClose();
@@ -107,20 +107,20 @@ export function UploadCompletionV2({
                     ))}
                 </Box>
                 <Stack sx={{ gap: 1.5 }}>
-                    {hasFailedUploads ? (
+                    {hasReviewableUploads ? (
                         <Button
                             fullWidth
                             onClick={onReviewFailed}
                             sx={primaryButtonSx}
                         >
-                            Review failed items
+                            Review items
                         </Button>
                     ) : null}
                     <Button
                         fullWidth
                         onClick={onClose}
                         sx={
-                            hasFailedUploads
+                            hasReviewableUploads
                                 ? secondaryButtonSx
                                 : primaryButtonSx
                         }

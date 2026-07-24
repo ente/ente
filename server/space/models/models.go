@@ -140,6 +140,12 @@ type SpaceFriendRequestResponse struct {
 	CreatedAt string             `json:"createdAt"`
 }
 
+type SpaceSentFriendRequestResponse struct {
+	RequestID int64              `json:"requestId"`
+	Target    SpaceActorResponse `json:"target"`
+	CreatedAt string             `json:"createdAt"`
+}
+
 type FriendRelationshipResponse struct {
 	Relationship string `json:"relationship"`
 }

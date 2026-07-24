@@ -1,5 +1,7 @@
 import {
     ArrowLeft02Icon,
+    BubbleChatIcon,
+    Cancel01Icon,
     MoreVerticalIcon,
     UserAdd02Icon,
     UserRemove01Icon,
@@ -8,14 +10,17 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Box, Menu, MenuItem, Skeleton } from "@mui/material";
 import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
 import {
+    SpaceActionFeedbackIcon,
     spaceActionDoneDurationMs,
     type SpaceActionPhase,
 } from "components/SpaceActionFeedback";
 import { SpaceAvatarImage } from "components/SpaceAvatarImage";
 import { SpaceInviteFriendsDialog } from "components/SpaceInviteFriendsDialog";
+import { SpaceLoadingSpinner } from "components/SpaceRouteFallback";
 import { SpaceShareInviteButton } from "components/SpaceShareInviteButton";
 import type { FriendProfile } from "data/friends";
 import React, { useState } from "react";
+import type { SpaceFriendRequest } from "services/space";
 import { spaceTouchTargetSize } from "styles/touchTargets";
 
 export const friendsBackground = "#FFFFFF";
@@ -38,47 +43,41 @@ const friendAvatarCacheKey = (friend: FriendProfile) =>
     ].join(":");
 
 interface FriendsScreenProps {
+    friendRequests: SpaceFriendRequest[];
     friends: FriendProfile[];
+    isLoading: boolean;
+    onAcceptFriendRequest: (requestID: number) => Promise<void>;
+    onDeleteFriendRequest: (requestID: number) => Promise<void>;
     onLoadFriendAvatar?: (friend: FriendProfile) => Promise<string | null>;
     onBack?: () => void;
+    onMessage?: (friendID: string) => void;
     onOpenFriend?: (friendID: string) => void;
     profileLink?: string;
     onUnfriend?: (friendID: string) => Promise<void> | void;
 }
 
-interface FriendRowProps {
+interface FriendIdentityProps {
     avatarUrl?: string | null;
     friend: FriendProfile;
     onLoadAvatar?: () => Promise<string | null | undefined>;
-    onOpenFriend?: (friendID: string) => void;
-    onUnfriend?: (friendID: string) => void;
+    onOpen?: () => void;
+    primaryText?: string;
+    secondaryText?: string;
 }
 
-const FriendRow: React.FC<FriendRowProps> = ({
+const FriendIdentity: React.FC<FriendIdentityProps> = ({
     avatarUrl,
     friend,
     onLoadAvatar,
-    onOpenFriend,
-    onUnfriend,
+    onOpen,
+    primaryText,
+    secondaryText = `@${friend.username}`,
 }) => {
-    const [actionsAnchor, setActionsAnchor] = useState<HTMLElement | null>(
-        null,
-    );
-    const isActionsOpen = Boolean(actionsAnchor);
-    const actionsMenuID = `friend-actions-menu-${friend.id}`;
-    const actionsButtonID = `friend-actions-button-${friend.id}`;
     const displayName = friend.fullName.trim() || friend.username.trim();
     const avatarRef = React.useRef<HTMLDivElement | null>(null);
     const [shouldLoadAvatar, setShouldLoadAvatar] = useState(
         Boolean(avatarUrl || !friend.avatarObjectID),
     );
-
-    const closeActions = () => setActionsAnchor(null);
-
-    const unfriend = () => {
-        closeActions();
-        onUnfriend?.(friend.id);
-    };
 
     React.useEffect(() => {
         if (avatarUrl) setShouldLoadAvatar(true);
@@ -118,6 +117,139 @@ const FriendRow: React.FC<FriendRowProps> = ({
 
     return (
         <Box
+            component={onOpen ? "button" : "div"}
+            type={onOpen ? "button" : undefined}
+            onClick={onOpen}
+            sx={{
+                alignItems: "center",
+                bgcolor: "transparent",
+                border: 0,
+                borderRadius: "12px",
+                cursor: onOpen ? "pointer" : "default",
+                display: "flex",
+                gap: "12px",
+                maxWidth: "100%",
+                minWidth: 0,
+                p: 0,
+                textAlign: "left",
+                width: "fit-content",
+                "&:focus-visible": {
+                    outline: `2px solid ${green}`,
+                    outlineOffset: 2,
+                },
+            }}
+        >
+            <Box
+                ref={avatarRef}
+                sx={{
+                    alignItems: "center",
+                    bgcolor: avatarSkeletonBackground,
+                    borderRadius: "50%",
+                    display: "flex",
+                    flexShrink: 0,
+                    height: 44,
+                    justifyContent: "center",
+                    overflow: "hidden",
+                    width: 44,
+                }}
+            >
+                {avatarUrl || !friend.avatarObjectID ? (
+                    <SpaceAvatarImage src={avatarUrl} />
+                ) : (
+                    <Skeleton
+                        variant="circular"
+                        sx={{
+                            bgcolor: avatarSkeletonBackground,
+                            height: "100%",
+                            transform: "none",
+                            width: "100%",
+                        }}
+                    />
+                )}
+            </Box>
+            <Box
+                sx={{
+                    display: "flex",
+                    flex: "0 1 auto",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    minWidth: 0,
+                }}
+            >
+                <Box
+                    sx={{
+                        color: textStrong,
+                        fontFamily: '"Inter Variable", Inter, sans-serif',
+                        fontSize: 14,
+                        fontWeight: 700,
+                        lineHeight: "20px",
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                    }}
+                >
+                    {primaryText ?? displayName}
+                </Box>
+                <Box
+                    sx={{
+                        color: textSoft,
+                        fontFamily: '"Inter Variable", Inter, sans-serif',
+                        fontSize: 13,
+                        fontWeight: 500,
+                        lineHeight: "18px",
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                    }}
+                >
+                    {secondaryText}
+                </Box>
+            </Box>
+        </Box>
+    );
+};
+
+interface FriendRowProps {
+    avatarUrl?: string | null;
+    friend: FriendProfile;
+    onLoadAvatar?: () => Promise<string | null | undefined>;
+    onMessage?: (friendID: string) => void;
+    onOpenFriend?: (friendID: string) => void;
+    onUnfriend?: (friendID: string) => void;
+}
+
+const FriendRow: React.FC<FriendRowProps> = ({
+    avatarUrl,
+    friend,
+    onLoadAvatar,
+    onMessage,
+    onOpenFriend,
+    onUnfriend,
+}) => {
+    const [actionsAnchor, setActionsAnchor] = useState<HTMLElement | null>(
+        null,
+    );
+    const isActionsOpen = Boolean(actionsAnchor);
+    const actionsMenuID = `friend-actions-menu-${friend.id}`;
+    const actionsButtonID = `friend-actions-button-${friend.id}`;
+    const displayName = friend.fullName.trim() || friend.username.trim();
+
+    const closeActions = () => setActionsAnchor(null);
+
+    const message = () => {
+        closeActions();
+        onMessage?.(friend.id);
+    };
+
+    const unfriend = () => {
+        closeActions();
+        onUnfriend?.(friend.id);
+    };
+
+    return (
+        <Box
             component="li"
             sx={{
                 alignItems: "center",
@@ -131,100 +263,14 @@ const FriendRow: React.FC<FriendRowProps> = ({
                 width: "100%",
             }}
         >
-            <Box
-                component={onOpenFriend ? "button" : "div"}
-                type={onOpenFriend ? "button" : undefined}
-                onClick={
+            <FriendIdentity
+                avatarUrl={avatarUrl}
+                friend={friend}
+                onLoadAvatar={onLoadAvatar}
+                onOpen={
                     onOpenFriend ? () => onOpenFriend(friend.id) : undefined
                 }
-                sx={{
-                    alignItems: "center",
-                    bgcolor: "transparent",
-                    border: 0,
-                    borderRadius: "12px",
-                    cursor: onOpenFriend ? "pointer" : "default",
-                    display: "flex",
-                    gap: "12px",
-                    maxWidth: "100%",
-                    minWidth: 0,
-                    p: 0,
-                    textAlign: "left",
-                    width: "fit-content",
-                    "&:focus-visible": {
-                        outline: `2px solid ${green}`,
-                        outlineOffset: 2,
-                    },
-                }}
-            >
-                <Box
-                    ref={avatarRef}
-                    sx={{
-                        alignItems: "center",
-                        bgcolor: avatarSkeletonBackground,
-                        borderRadius: "50%",
-                        display: "flex",
-                        flexShrink: 0,
-                        height: 48,
-                        justifyContent: "center",
-                        overflow: "hidden",
-                        width: 48,
-                    }}
-                >
-                    {avatarUrl || !friend.avatarObjectID ? (
-                        <SpaceAvatarImage src={avatarUrl} />
-                    ) : (
-                        <Skeleton
-                            variant="circular"
-                            sx={{
-                                bgcolor: avatarSkeletonBackground,
-                                height: "100%",
-                                transform: "none",
-                                width: "100%",
-                            }}
-                        />
-                    )}
-                </Box>
-                <Box
-                    sx={{
-                        display: "flex",
-                        flex: "0 1 auto",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                        minWidth: 0,
-                    }}
-                >
-                    <Box
-                        sx={{
-                            color: textStrong,
-                            fontFamily: '"Inter Variable", Inter, sans-serif',
-                            fontSize: 15,
-                            fontWeight: 700,
-                            lineHeight: "20px",
-                            minWidth: 0,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                        }}
-                    >
-                        {displayName}
-                    </Box>
-                    <Box
-                        sx={{
-                            color: textSoft,
-                            fontFamily: '"Inter Variable", Inter, sans-serif',
-                            fontSize: 13,
-                            fontWeight: 600,
-                            lineHeight: "18px",
-                            minWidth: 0,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                        }}
-                    >
-                        @{friend.username}
-                    </Box>
-                </Box>
-            </Box>
+            />
             <Box
                 component="button"
                 id={actionsButtonID}
@@ -268,7 +314,7 @@ const FriendRow: React.FC<FriendRowProps> = ({
                 slotProps={{
                     paper: {
                         sx: {
-                            borderRadius: "16px",
+                            borderRadius: "14px",
                             boxShadow: "0 14px 40px rgba(0, 0, 0, 0.16)",
                             mt: "6px",
                             minWidth: 0,
@@ -279,16 +325,55 @@ const FriendRow: React.FC<FriendRowProps> = ({
                     list: { "aria-labelledby": actionsButtonID, sx: { p: 0 } },
                 }}
             >
+                {onMessage && (
+                    <MenuItem
+                        dense
+                        disableRipple
+                        onClick={message}
+                        sx={{
+                            borderRadius: "10px",
+                            color: textBase,
+                            gap: "8px",
+                            minHeight: 36,
+                            px: "9px",
+                            py: "4px",
+                            whiteSpace: "nowrap",
+                            "&.Mui-focusVisible": {
+                                bgcolor: "rgba(0, 0, 0, 0.04)",
+                            },
+                            "&:active": { bgcolor: "rgba(0, 0, 0, 0.04)" },
+                            "&:hover": { bgcolor: "rgba(0, 0, 0, 0.04)" },
+                        }}
+                    >
+                        <HugeiconsIcon
+                            icon={BubbleChatIcon}
+                            size={18}
+                            strokeWidth={1.8}
+                        />
+                        <Box
+                            sx={{
+                                fontFamily:
+                                    '"Inter Variable", Inter, sans-serif',
+                                fontSize: 13,
+                                fontWeight: 650,
+                                lineHeight: "18px",
+                            }}
+                        >
+                            Message
+                        </Box>
+                    </MenuItem>
+                )}
                 <MenuItem
+                    dense
                     disableRipple
                     onClick={unfriend}
                     sx={{
                         borderRadius: "10px",
                         color: dangerColor,
                         gap: "8px",
-                        minHeight: spaceTouchTargetSize,
+                        minHeight: 36,
                         px: "9px",
-                        py: "7px",
+                        py: "4px",
                         whiteSpace: "nowrap",
                         "&.Mui-focusVisible": {
                             bgcolor: "rgba(246, 58, 58, 0.06)",
@@ -318,10 +403,203 @@ const FriendRow: React.FC<FriendRowProps> = ({
     );
 };
 
+interface FriendRequestRowProps {
+    onAccept: (requestID: number) => Promise<void>;
+    onDelete: (requestID: number) => Promise<void>;
+    request: SpaceFriendRequest;
+}
+
+const FriendRequestRow: React.FC<FriendRequestRowProps> = ({
+    onAccept,
+    onDelete,
+    request,
+}) => {
+    const [action, setAction] = React.useState<"accept" | "delete" | null>(
+        null,
+    );
+    const isReceived = request.direction == "received";
+    const isBusy = action != null;
+    const displayName =
+        request.friend.fullName.trim() || request.friend.username.trim();
+    const runAction = (
+        nextAction: "accept" | "delete",
+        handler: (requestID: number) => Promise<void>,
+    ) => {
+        if (isBusy) return;
+        setAction(nextAction);
+        void handler(request.requestId).catch((error: unknown) => {
+            console.error("Failed to update friend request", error);
+            setAction(null);
+        });
+    };
+
+    return (
+        <Box
+            component="li"
+            sx={{
+                alignItems: "center",
+                display: "grid",
+                gap: "8px",
+                gridTemplateColumns: "minmax(0, 1fr) auto",
+                listStyle: "none",
+                minHeight: 72,
+                px: "18px",
+                py: "12px",
+                width: "100%",
+            }}
+        >
+            <FriendIdentity
+                friend={request.friend}
+                primaryText={`@${request.friend.username}`}
+                secondaryText={
+                    isReceived ? "Sent you a friend request" : "Request sent"
+                }
+            />
+            <Box
+                sx={{
+                    alignItems: "center",
+                    display: "flex",
+                    flexShrink: 0,
+                    gap: "6px",
+                }}
+            >
+                {isReceived ? (
+                    <>
+                        <Box
+                            component="button"
+                            type="button"
+                            disabled={isBusy}
+                            onClick={() => runAction("accept", onAccept)}
+                            sx={{
+                                alignItems: "center",
+                                bgcolor: green,
+                                border: 0,
+                                borderRadius: "12px",
+                                color: "#FFFFFF",
+                                cursor: isBusy ? "default" : "pointer",
+                                display: "flex",
+                                fontFamily:
+                                    '"Inter Variable", Inter, sans-serif',
+                                fontSize: 12,
+                                fontWeight: 700,
+                                height: 34,
+                                justifyContent: "center",
+                                minWidth: 64,
+                                px: "12px",
+                                "&:disabled": { opacity: 0.6 },
+                                "&:focus-visible": {
+                                    outline: `2px solid ${green}`,
+                                    outlineOffset: 2,
+                                },
+                                "&:hover": isBusy
+                                    ? undefined
+                                    : { bgcolor: "#07A820" },
+                            }}
+                        >
+                            {action == "accept" ? (
+                                <SpaceActionFeedbackIcon
+                                    phase="busy"
+                                    size={16}
+                                />
+                            ) : (
+                                "Accept"
+                            )}
+                        </Box>
+                        <Box
+                            component="button"
+                            type="button"
+                            aria-label={`Decline friend request from ${displayName}`}
+                            disabled={isBusy}
+                            onClick={() => runAction("delete", onDelete)}
+                            sx={{
+                                alignItems: "center",
+                                bgcolor: "transparent",
+                                border: 0,
+                                borderRadius: "50%",
+                                color: textBase,
+                                cursor: isBusy ? "default" : "pointer",
+                                display: "flex",
+                                height: 34,
+                                justifyContent: "center",
+                                p: 0,
+                                width: 34,
+                                "&:disabled": { opacity: 0.45 },
+                                "&:focus-visible": {
+                                    outline: `2px solid ${green}`,
+                                    outlineOffset: 2,
+                                },
+                                "&:hover": isBusy
+                                    ? undefined
+                                    : { bgcolor: "#F1F1F1" },
+                            }}
+                        >
+                            {action == "delete" ? (
+                                <SpaceActionFeedbackIcon
+                                    phase="busy"
+                                    size={18}
+                                />
+                            ) : (
+                                <HugeiconsIcon
+                                    icon={Cancel01Icon}
+                                    size={18}
+                                    strokeWidth={2}
+                                />
+                            )}
+                        </Box>
+                    </>
+                ) : (
+                    <Box
+                        component="button"
+                        type="button"
+                        aria-label={`Cancel friend request to ${displayName}`}
+                        disabled={isBusy}
+                        onClick={() => runAction("delete", onDelete)}
+                        sx={{
+                            alignItems: "center",
+                            bgcolor: "#F2F2F2",
+                            border: 0,
+                            borderRadius: "12px",
+                            color: textBase,
+                            cursor: isBusy ? "default" : "pointer",
+                            display: "flex",
+                            fontFamily: '"Inter Variable", Inter, sans-serif',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            height: 34,
+                            justifyContent: "center",
+                            minWidth: 64,
+                            px: "12px",
+                            "&:disabled": { opacity: 0.6 },
+                            "&:focus-visible": {
+                                outline: `2px solid ${green}`,
+                                outlineOffset: 2,
+                            },
+                            "&:hover": isBusy
+                                ? undefined
+                                : { bgcolor: "#E8E8E8" },
+                        }}
+                    >
+                        {action == "delete" ? (
+                            <SpaceActionFeedbackIcon phase="busy" size={16} />
+                        ) : (
+                            "Cancel"
+                        )}
+                    </Box>
+                )}
+            </Box>
+        </Box>
+    );
+};
+
 export const FriendsScreen: React.FC<FriendsScreenProps> = ({
+    friendRequests,
     friends,
+    isLoading,
+    onAcceptFriendRequest,
+    onDeleteFriendRequest,
     onLoadFriendAvatar,
     onBack,
+    onMessage,
     onOpenFriend,
     profileLink,
     onUnfriend,
@@ -539,7 +817,19 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                     </Box>
                 </Box>
 
-                {friends.length > 0 ? (
+                {isLoading ? (
+                    <Box
+                        sx={{
+                            display: "grid",
+                            inset: 0,
+                            placeItems: "center",
+                            position: "absolute",
+                            pointerEvents: "none",
+                        }}
+                    >
+                        <SpaceLoadingSpinner ariaLabel="Loading friends" />
+                    </Box>
+                ) : friendRequests.length > 0 || friends.length > 0 ? (
                     <Box
                         component="ul"
                         sx={{
@@ -552,12 +842,21 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                             width: "100%",
                         }}
                     >
+                        {friendRequests.map((request) => (
+                            <FriendRequestRow
+                                key={`request-${request.requestId}`}
+                                request={request}
+                                onAccept={onAcceptFriendRequest}
+                                onDelete={onDeleteFriendRequest}
+                            />
+                        ))}
                         {friends.map((friend) => (
                             <FriendRow
                                 key={friend.id}
                                 avatarUrl={loadedAvatarURLFor(friend)}
                                 friend={friend}
                                 onLoadAvatar={() => loadFriendAvatar(friend)}
+                                onMessage={onMessage}
                                 onOpenFriend={onOpenFriend}
                                 onUnfriend={() => {
                                     setUnfriendErrorMessage(null);

@@ -590,7 +590,9 @@ const ConversationListItem: React.FC<{
                                     whiteSpace: "nowrap",
                                 }}
                             >
-                                {firstNameFrom(name)}
+                                {isFriendRequest
+                                    ? `@${conversation.friend.username}`
+                                    : firstNameFrom(name)}
                             </Box>
                             <Box
                                 aria-hidden

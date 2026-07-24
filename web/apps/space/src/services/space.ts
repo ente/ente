@@ -137,6 +137,12 @@ interface SpaceFriendRequestResponse {
     createdAt: string;
 }
 
+interface SpaceSentFriendRequestResponse {
+    requestId: number;
+    target: SpaceActor;
+    createdAt: string;
+}
+
 interface SpaceConversationChatSummaryResponse {
     latestActivity: SpaceMessageConversationActivity;
     unreadActivities?: SpaceMessageConversationActivity[];
@@ -284,6 +290,12 @@ export interface SpaceMessageConversationList {
     items: SpaceMessageConversation[];
 }
 
+export interface SpaceFriendRequest {
+    direction: "received" | "sent";
+    friend: FriendProfile;
+    requestId: number;
+}
+
 export interface SpaceUnreadStatus {
     messagesUnread: boolean;
 }
@@ -298,6 +310,12 @@ interface SpaceFriendRequestContext {
         requestId: bigint,
     ) => Promise<unknown>;
     deleteFriendRequest: (spaceId: string, requestId: bigint) => Promise<void>;
+    listFriendRequests: (
+        spaceId: string,
+    ) => Promise<SpaceFriendRequestResponse[]>;
+    listSentFriendRequests: (
+        spaceId: string,
+    ) => Promise<SpaceSentFriendRequestResponse[]>;
     requestFriendByUsername: (
         spaceId: string,
         username: string,
@@ -856,6 +874,33 @@ export const loadCurrentSpaceFriendsCount = async (spaceId: string) => {
     }
 };
 
+export const loadCurrentFriendRequests = async (
+    spaceId: string,
+): Promise<SpaceFriendRequest[]> => {
+    const ctx = await ensureCurrentSpaceContext();
+    try {
+        const requestContext = ctx as SpaceFriendRequestContext;
+        const [receivedRequests, sentRequests] = await Promise.all([
+            requestContext.listFriendRequests(spaceId),
+            requestContext.listSentFriendRequests(spaceId),
+        ]);
+        return [
+            ...receivedRequests.map((request) => ({
+                direction: "received" as const,
+                friend: actorProfile(request.requester),
+                requestId: request.requestId,
+            })),
+            ...sentRequests.map((request) => ({
+                direction: "sent" as const,
+                friend: actorProfile(request.target),
+                requestId: request.requestId,
+            })),
+        ];
+    } finally {
+        releaseCurrentSpaceContext(ctx);
+    }
+};
+
 export const loadCurrentSpaceProfile = async (
     spaceId: string,
     viewerSpaceId?: string,
@@ -1295,6 +1340,23 @@ export const confirmCurrentFriendRequest = async (
     }
 };
 
+export const isFriendRequestCanceledError = (error: unknown) => {
+    if (!error || typeof error != "object") return false;
+
+    const { code, message, status } = error as {
+        code?: unknown;
+        message?: unknown;
+        status?: unknown;
+    };
+    return (
+        status == 400 ||
+        status == 404 ||
+        (code == "invalid_input" &&
+            typeof message == "string" &&
+            message.includes("friend request is not available"))
+    );
+};
+
 export const deleteCurrentFriendRequest = async (
     spaceId: string,
     requestId: number,
@@ -1357,6 +1419,23 @@ export const deleteCurrentPost = async (spaceId: string, postId: number) => {
     const ctx = await ensureCurrentSpaceContext();
     try {
         await ctx.deletePost(spaceId, BigInt(postId));
+    } finally {
+        releaseCurrentSpaceContext(ctx);
+    }
+};
+
+export const updateCurrentPostCaption = async (
+    spaceId: string,
+    postId: number,
+    caption: string,
+) => {
+    const ctx = await ensureCurrentSpaceContext();
+    try {
+        await ctx.updatePostCaption(
+            spaceId,
+            BigInt(postId),
+            caption.trim() || null,
+        );
     } finally {
         releaseCurrentSpaceContext(ctx);
     }

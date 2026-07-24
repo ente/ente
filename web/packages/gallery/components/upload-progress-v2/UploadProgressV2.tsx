@@ -59,7 +59,7 @@ function UploadProgress({
      * showStopConfirmation: If the user tries to close the upload, we show
      * a confirmation modal, and this variable is the decider for that.
      */
-    const [expanded, setExpanded] = useState(false);
+    const [expanded, setExpanded] = useState(true);
     const [dragPosition, setDragPosition] = useState<DragPosition>();
     const [showStopConfirmation, setShowStopConfirmation] = useState(false);
     const [summaryMode, setSummaryMode] = useState<"review" | "cancelling">();
@@ -121,11 +121,7 @@ function UploadProgress({
 
     return (
         <UploadProgressContext.Provider value={contextValue}>
-            {expanded ? (
-                <UploadProgressDialog closeOnly={summaryMode == "cancelling"} />
-            ) : (
-                <MinimizedUploadProgress />
-            )}
+            {expanded ? <UploadProgressDialog /> : <MinimizedUploadProgress />}
             <StopUploadConfirmationDialog
                 open={showStopConfirmation}
                 onClose={handleStopConfirmationClose}

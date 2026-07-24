@@ -30,6 +30,7 @@ func Register(privateAPI, publicAPI gin.IRouter, handlers *Handlers) {
 	spaceAPI.DELETE("/messages/:messageID", selected(handlers.DeleteMessage))
 	spaceAPI.POST("/friends/add", selected(handlers.AddFriend))
 	spaceAPI.GET("/friends/requests", selected(handlers.ListFriendRequests))
+	spaceAPI.GET("/friends/requests/sent", selected(handlers.ListSentFriendRequests))
 	spaceAPI.POST("/friends/requests/:requestID/confirm", selected(handlers.ConfirmFriendRequest))
 	spaceAPI.DELETE("/friends/requests/:requestID", selected(handlers.DeleteFriendRequest))
 	spaceAPI.POST("/friends/unfriend", selected(handlers.Unfriend))

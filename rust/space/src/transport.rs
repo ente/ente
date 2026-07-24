@@ -531,6 +531,14 @@ pub struct SpaceFriendRequestResponse {
     pub created_at: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpaceSentFriendRequestResponse {
+    pub request_id: i64,
+    pub target: SpaceActorResponse,
+    pub created_at: String,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ShareUpdatePayload {

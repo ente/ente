@@ -1,6 +1,7 @@
 import {
     Cancel01Icon,
     Delete02Icon,
+    Edit01Icon,
     FavouriteIcon,
     Loading03Icon,
     MoreHorizontalIcon,
@@ -48,7 +49,7 @@ const captionInputMinHeight = 40;
 const replyInputMinHeight = 48;
 const replyInputPadding = 14;
 const replyInputPaddingLeft = 18;
-const replyActionDoneDurationMs = 1000;
+const viewerActionDoneDurationMs = 1000;
 const captionInputMaxHeight = 112;
 const defaultPhotoWidth = 900;
 const defaultPhotoHeight = 680;
@@ -56,6 +57,7 @@ const viewerSwipeMinDeltaPx = 72;
 const viewerSwipeAxisRatio = 1.5;
 const viewerHeaderAvatarSize = 28;
 const viewerHeaderButtonVisualSize = 28;
+const draftPostExitDurationMs = 320;
 
 interface ViewerViewportSize {
     x: number;
@@ -149,6 +151,7 @@ interface SpaceFileViewerProps {
     isDraftPostPreviewPending?: boolean;
     onClose: () => void;
     onDeletePost?: () => Promise<void> | void;
+    onDraftPostExitStart?: () => void;
     onDraftPostPublished?: () => void;
     onOpenProfile?: () => void;
     onPublishDraftPost?: (
@@ -161,6 +164,7 @@ interface SpaceFileViewerProps {
         text: string,
     ) => Promise<void>;
     onSetPostLiked?: (postId: number, liked: boolean) => Promise<void>;
+    onUpdatePostCaption?: (postId: number, caption: string) => Promise<void>;
     onSwipeLeft?: () => void;
     onSwipeRight?: () => void;
     onPhotoIndexChange?: (index: number) => void;
@@ -231,18 +235,23 @@ const viewerActionButtonSx = {
     "&:hover": { bgcolor: controlBackgroundHover },
 };
 
-export const SpaceViewerFeedBackdrop: React.FC = () => (
+export const SpaceViewerFeedBackdrop: React.FC<{ exiting?: boolean }> = ({
+    exiting = false,
+}) => (
     <Box
         aria-hidden
         sx={{
             bgcolor: viewerBackground,
             bottom: "-100vh",
             left: 0,
+            opacity: exiting ? 0 : 1,
             pointerEvents: "none",
             position: "absolute",
             right: 0,
             top: "-100vh",
+            transition: `opacity ${draftPostExitDurationMs}ms cubic-bezier(0.22, 1, 0.36, 1)`,
             zIndex: 1299,
+            "@media (prefers-reduced-motion: reduce)": { transition: "none" },
         }}
     />
 );
@@ -296,11 +305,13 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     isDraftPostPreviewPending = false,
     onClose,
     onDeletePost,
+    onDraftPostExitStart,
     onDraftPostPublished,
     onOpenProfile,
     onPublishDraftPost,
     onReplyToPost,
     onSetPostLiked,
+    onUpdatePostCaption,
     onSwipeLeft,
     onSwipeRight,
     onPhotoIndexChange,
@@ -335,6 +346,11 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
         viewerPhotos.length - 1,
     );
     const activePhoto = viewerPhotos[activePhotoIndex] ?? photo;
+    const canUpdatePostCaption =
+        !isDraftPost &&
+        Boolean(activePhoto.postId) &&
+        Boolean(onUpdatePostCaption);
+    const canManagePost = canDeletePost || canUpdatePostCaption;
     const viewerPhotosRef = React.useRef(viewerPhotos);
     const onCloseRef = React.useRef(onClose);
     const onPhotoIndexChangeRef = React.useRef(onPhotoIndexChange);
@@ -356,6 +372,16 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     );
     const [photoLikePopID, setPhotoLikePopID] = React.useState(0);
     const [caption, setCaption] = React.useState(activePhoto.caption ?? "");
+    const [captionEditValue, setCaptionEditValue] = React.useState(
+        activePhoto.caption ?? "",
+    );
+    const [isCaptionEditing, setIsCaptionEditing] = React.useState(false);
+    const [captionUpdateActionPhase, setCaptionUpdateActionPhase] =
+        React.useState<SpaceActionPhase | null>(null);
+    const [hasCaptionUpdateError, setHasCaptionUpdateError] =
+        React.useState(false);
+    const isCaptionEditingRef = React.useRef(isCaptionEditing);
+    isCaptionEditingRef.current = isCaptionEditing;
     const [replyText, setReplyText] = React.useState("");
     const [isReplyFocused, setIsReplyFocused] =
         React.useState(focusReplyOnOpen);
@@ -363,6 +389,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
         React.useState<SpaceActionPhase | null>(null);
     const [draftPostActionPhase, setDraftPostActionPhase] =
         React.useState<SpaceActionPhase | null>(null);
+    const [isDraftPostExit, setIsDraftPostExit] = React.useState(false);
     const [isDesktopViewer, setIsDesktopViewer] = React.useState(
         () =>
             typeof window != "undefined" &&
@@ -389,6 +416,13 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     const actionsButtonID = "space-viewer-actions-button";
     const isActionsOpen = Boolean(actionsAnchor);
     const isDeleteActionRunning = deleteActionPhase != null;
+    const normalizedCaptionEditValue = captionEditValue.trim();
+    const isCaptionUpdateActionRunning = captionUpdateActionPhase != null;
+    const isCaptionUpdateDisabled =
+        isCaptionUpdateActionRunning ||
+        normalizedCaptionEditValue == caption.trim() ||
+        !activePhoto.postId ||
+        !onUpdatePostCaption;
     const isDraftPostActionRunning = draftPostActionPhase != null;
     const hasDraftPostPreparationError = Boolean(draftPostPreparationError);
     const canQueueDraftPostPublish =
@@ -423,6 +457,8 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
         isActionsOpen ||
         (canDeletePost && deleteSheetOpen) ||
         isDeleteExit ||
+        isDraftPostExit ||
+        isCaptionEditing ||
         isDraftPost ||
         isDraftPostPreviewPending;
     const viewerViewportSize = React.useCallback(() => {
@@ -461,6 +497,50 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     };
 
     const closeActions = () => setActionsAnchor(null);
+
+    const requestCaptionEdit = () => {
+        if (!canUpdatePostCaption || isCaptionUpdateActionRunning) return;
+
+        closeActions();
+        setCaptionEditValue(caption);
+        setCaptionUpdateActionPhase(null);
+        setHasCaptionUpdateError(false);
+        setIsCaptionEditing(true);
+    };
+
+    const cancelCaptionEdit = React.useCallback(() => {
+        setCaptionEditValue(caption);
+        setHasCaptionUpdateError(false);
+        setIsCaptionEditing(false);
+    }, [caption]);
+
+    const closeViewer = () => {
+        if (isCaptionEditing && !isCaptionUpdateActionRunning) {
+            cancelCaptionEdit();
+            return;
+        }
+        onClose();
+    };
+
+    const updateCaption = () => {
+        if (isCaptionUpdateDisabled || !activePhoto.postId) {
+            return;
+        }
+
+        setHasCaptionUpdateError(false);
+        setCaptionUpdateActionPhase("busy");
+        void onUpdatePostCaption(activePhoto.postId, normalizedCaptionEditValue)
+            .then(() => {
+                setCaption(normalizedCaptionEditValue);
+                setCaptionEditValue(normalizedCaptionEditValue);
+                setCaptionUpdateActionPhase("done");
+            })
+            .catch((error: unknown) => {
+                console.error("Failed to update post caption", error);
+                setCaptionUpdateActionPhase(null);
+                setHasCaptionUpdateError(true);
+            });
+    };
 
     const requestDeletePost = () => {
         if (!canDeletePost || isDeleteActionRunning || isDeleteExit) return;
@@ -508,7 +588,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
 
     const publishDraftPostWithCaption = React.useCallback(
         (captionToPublish: string, editToPublish: SpaceViewerDraftPostEdit) => {
-            if (!onPublishDraftPost || isDeleteExit) return;
+            if (!onPublishDraftPost || isDeleteExit || isDraftPostExit) return;
 
             setDraftPostActionPhase("busy");
             let publishPromise: Promise<void>;
@@ -523,13 +603,18 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
             }
 
             setQueuedDraftPost(undefined);
-            onClose();
-            onDraftPostPublished?.();
+            setIsDraftPostExit(true);
+            onDraftPostExitStart?.();
             void publishPromise.catch((error: unknown) => {
                 console.error("Failed to publish space post", error);
             });
         },
-        [isDeleteExit, onClose, onDraftPostPublished, onPublishDraftPost],
+        [
+            isDeleteExit,
+            isDraftPostExit,
+            onDraftPostExitStart,
+            onPublishDraftPost,
+        ],
     );
 
     const publishDraftPost = () => {
@@ -538,7 +623,8 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
             isDraftPostActionRunning ||
             isDraftPostPreviewPending ||
             hasDraftPostPreparationError ||
-            isDeleteExit
+            isDeleteExit ||
+            isDraftPostExit
         )
             return;
 
@@ -595,7 +681,16 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
 
     React.useLayoutEffect(() => {
         resizeCaptionInput(captionInputRef.current, replyInputMinHeight);
-    }, [caption]);
+    }, [caption, captionEditValue, isCaptionEditing]);
+
+    React.useEffect(() => {
+        if (!isCaptionEditing) return;
+
+        const input = captionInputRef.current;
+        if (!input) return;
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+    }, [isCaptionEditing]);
 
     React.useLayoutEffect(() => {
         resizeCaptionInput(replyInputRef.current, replyInputMinHeight);
@@ -635,24 +730,43 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     }, [onPublishDraftPost, publishDraftPostWithCaption, queuedDraftPost]);
 
     React.useEffect(() => {
+        if (captionUpdateActionPhase != "done") return;
+
+        const timeoutID = window.setTimeout(() => {
+            setCaptionUpdateActionPhase(null);
+            setIsCaptionEditing(false);
+        }, viewerActionDoneDurationMs);
+
+        return () => window.clearTimeout(timeoutID);
+    }, [captionUpdateActionPhase]);
+
+    React.useEffect(() => {
         if (replyActionPhase != "done") return;
 
         const timeoutID = window.setTimeout(() => {
             setReplyActionPhase(null);
             setIsReplyFocused(false);
-        }, replyActionDoneDurationMs);
+        }, viewerActionDoneDurationMs);
 
         return () => window.clearTimeout(timeoutID);
     }, [replyActionPhase]);
 
     React.useEffect(() => {
-        setIsPhotoLiked(activePhoto.viewerLiked ?? false);
+        if (isCaptionEditingRef.current) return;
+
         setCaption(activePhoto.caption ?? "");
+        setCaptionEditValue(activePhoto.caption ?? "");
+    }, [activePhoto.caption]);
+
+    React.useEffect(() => {
+        setIsPhotoLiked(activePhoto.viewerLiked ?? false);
+        setCaptionUpdateActionPhase(null);
+        setHasCaptionUpdateError(false);
+        setIsCaptionEditing(false);
         setReplyText("");
         setIsReplyFocused(focusReplyOnOpen && canReplyToPost);
         setReplyActionPhase(null);
     }, [
-        activePhoto.caption,
         activePhoto.imageUrl,
         activePhoto.postId,
         activePhoto.timestampMs,
@@ -713,6 +827,17 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
         onClose();
     }, [isDeleteExit, onClose]);
 
+    const finishDraftPostExit = React.useCallback(() => {
+        onClose();
+        onDraftPostPublished?.();
+    }, [onClose, onDraftPostPublished]);
+
+    React.useEffect(() => {
+        if (!isDraftPostExit) return;
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+            finishDraftPostExit();
+    }, [finishDraftPostExit, isDraftPostExit]);
+
     React.useEffect(() => {
         const root = viewerRootRef.current;
         if (!root || !canReplyToPost) return;
@@ -742,6 +867,20 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                 true,
             );
     }, [canReplyToPost]);
+
+    React.useEffect(() => {
+        const root = viewerRootRef.current;
+        if (!root || !isCaptionEditing) return;
+
+        const blockPhotoGesture = (event: PointerEvent) => {
+            if (viewerSwipeStartsOnInteractiveTarget(event.target)) return;
+            event.stopPropagation();
+        };
+
+        root.addEventListener("pointerdown", blockPhotoGesture, true);
+        return () =>
+            root.removeEventListener("pointerdown", blockPhotoGesture, true);
+    }, [isCaptionEditing]);
 
     React.useEffect(() => {
         const root = viewerRootRef.current;
@@ -881,6 +1020,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                 ) {
                     return;
                 }
+                if (deltaX < 0 && pswp?.currSlide?.isPannable()) return;
 
                 const swipeAction =
                     deltaX < 0
@@ -912,15 +1052,25 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
 
     React.useEffect(() => {
         const closeOnEscape = (event: KeyboardEvent) => {
-            if (deleteSheetOpen) return;
+            if (deleteSheetOpen || isDraftPostExit) return;
             if (event.key != "Escape") return;
 
+            if (isCaptionEditing && !isCaptionUpdateActionRunning) {
+                cancelCaptionEdit();
+                return;
+            }
             onCloseRef.current();
         };
 
         window.addEventListener("keydown", closeOnEscape);
         return () => window.removeEventListener("keydown", closeOnEscape);
-    }, [deleteSheetOpen]);
+    }, [
+        cancelCaptionEdit,
+        deleteSheetOpen,
+        isDraftPostExit,
+        isCaptionEditing,
+        isCaptionUpdateActionRunning,
+    ]);
 
     return (
         <Box
@@ -928,6 +1078,16 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
             role="dialog"
             aria-label={`${displayName} photo viewer`}
             aria-modal="true"
+            onTransitionEnd={(event) => {
+                if (
+                    !isDraftPostExit ||
+                    event.currentTarget != event.target ||
+                    event.propertyName != "opacity"
+                )
+                    return;
+
+                finishDraftPostExit();
+            }}
             sx={{
                 bgcolor: viewerBackground,
                 boxSizing: "border-box",
@@ -938,11 +1098,17 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                 isolation: "isolate",
                 maxWidth: "100vw",
                 minHeight: "100svh",
+                opacity: isDraftPostExit ? 0 : 1,
                 overflow: "hidden",
                 overflowX: "hidden",
+                pointerEvents: isDraftPostExit ? "none" : "auto",
                 position: "fixed",
+                transition: `opacity ${draftPostExitDurationMs}ms cubic-bezier(0.22, 1, 0.36, 1)`,
                 width: "100%",
                 zIndex: 1300,
+                "@media (prefers-reduced-motion: reduce)": {
+                    transition: "none",
+                },
             }}
         >
             <Box
@@ -1095,7 +1261,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                         justifySelf: "flex-end",
                     }}
                 >
-                    {canDeletePost && (
+                    {canManagePost && !isCaptionEditing && (
                         <Box
                             component="button"
                             id={actionsButtonID}
@@ -1138,8 +1304,12 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                     <Box
                         component="button"
                         type="button"
-                        aria-label="Close viewer"
-                        onClick={onClose}
+                        aria-label={
+                            isCaptionEditing && !isCaptionUpdateActionRunning
+                                ? "Cancel caption edit"
+                                : "Close viewer"
+                        }
+                        onClick={closeViewer}
                         sx={viewerHeaderButtonSx}
                     >
                         <Box
@@ -1155,7 +1325,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                         </Box>
                     </Box>
                 </Box>
-                {canDeletePost && (
+                {canManagePost && (
                     <Menu
                         id={actionsMenuID}
                         anchorEl={actionsAnchor}
@@ -1173,7 +1343,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                             paper: {
                                 sx: {
                                     bgcolor: "#1E1E1E",
-                                    borderRadius: "16px",
+                                    borderRadius: "14px",
                                     boxShadow:
                                         "0 14px 40px rgba(0, 0, 0, 0.16)",
                                     mt: "6px",
@@ -1188,48 +1358,96 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                             },
                         }}
                     >
-                        <MenuItem
-                            disableRipple
-                            onClick={requestDeletePost}
-                            sx={{
-                                alignItems: "center",
-                                borderRadius: "10px",
-                                color: dangerColor,
-                                display: "flex",
-                                gap: "8px",
-                                minHeight: spaceTouchTargetSize,
-                                px: "8px",
-                                py: "7px",
-                                whiteSpace: "nowrap",
-                                "&.Mui-focusVisible": {
-                                    bgcolor: "rgba(246, 58, 58, 0.14)",
-                                },
-                                "&:active": {
-                                    bgcolor: "rgba(246, 58, 58, 0.14)",
-                                },
-                                "&:hover": {
-                                    bgcolor: "rgba(246, 58, 58, 0.14)",
-                                },
-                            }}
-                        >
-                            <HugeiconsIcon
-                                icon={Delete02Icon}
-                                size={18}
-                                strokeWidth={1.8}
-                                style={{ flexShrink: 0 }}
-                            />
-                            <Box
+                        {canUpdatePostCaption && (
+                            <MenuItem
+                                dense
+                                disableRipple
+                                onClick={requestCaptionEdit}
                                 sx={{
-                                    fontFamily:
-                                        '"Inter Variable", Inter, sans-serif',
-                                    fontSize: 13,
-                                    fontWeight: 650,
-                                    lineHeight: "18px",
+                                    alignItems: "center",
+                                    borderRadius: "10px",
+                                    color: textBase,
+                                    display: "flex",
+                                    gap: "8px",
+                                    minHeight: 36,
+                                    px: "9px",
+                                    py: "4px",
+                                    whiteSpace: "nowrap",
+                                    "&.Mui-focusVisible": {
+                                        bgcolor: "rgba(255, 255, 255, 0.1)",
+                                    },
+                                    "&:active": {
+                                        bgcolor: "rgba(255, 255, 255, 0.1)",
+                                    },
+                                    "&:hover": {
+                                        bgcolor: "rgba(255, 255, 255, 0.1)",
+                                    },
                                 }}
                             >
-                                Delete post
-                            </Box>
-                        </MenuItem>
+                                <HugeiconsIcon
+                                    icon={Edit01Icon}
+                                    size={18}
+                                    strokeWidth={1.8}
+                                    style={{ flexShrink: 0 }}
+                                />
+                                <Box
+                                    sx={{
+                                        fontFamily:
+                                            '"Inter Variable", Inter, sans-serif',
+                                        fontSize: 13,
+                                        fontWeight: 650,
+                                        lineHeight: "18px",
+                                    }}
+                                >
+                                    Edit caption
+                                </Box>
+                            </MenuItem>
+                        )}
+                        {canDeletePost && (
+                            <MenuItem
+                                dense
+                                disableRipple
+                                onClick={requestDeletePost}
+                                sx={{
+                                    alignItems: "center",
+                                    borderRadius: "10px",
+                                    color: dangerColor,
+                                    display: "flex",
+                                    gap: "8px",
+                                    minHeight: 36,
+                                    px: "9px",
+                                    py: "4px",
+                                    whiteSpace: "nowrap",
+                                    "&.Mui-focusVisible": {
+                                        bgcolor: "rgba(246, 58, 58, 0.14)",
+                                    },
+                                    "&:active": {
+                                        bgcolor: "rgba(246, 58, 58, 0.14)",
+                                    },
+                                    "&:hover": {
+                                        bgcolor: "rgba(246, 58, 58, 0.14)",
+                                    },
+                                }}
+                            >
+                                <HugeiconsIcon
+                                    icon={Delete02Icon}
+                                    size={18}
+                                    strokeWidth={1.8}
+                                    style={{ flexShrink: 0 }}
+                                />
+                                <Box
+                                    sx={{
+                                        fontFamily:
+                                            '"Inter Variable", Inter, sans-serif',
+                                        fontSize: 13,
+                                        fontWeight: 650,
+                                        lineHeight: "18px",
+                                    }}
+                                >
+                                    Delete post
+                                </Box>
+                            </MenuItem>
+                        )}
                     </Menu>
                 )}
             </Box>
@@ -1455,7 +1673,207 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                     </Box>
                 </Box>
             ) : null}
-            {hasDisplayCaption && (
+            {isCaptionEditing && (
+                <Box
+                    data-space-viewer-bottom="true"
+                    sx={{
+                        alignItems: "stretch",
+                        bottom: "max(24px, calc(env(safe-area-inset-bottom) + 16px))",
+                        boxSizing: "border-box",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px",
+                        left: { xs: "16px", sm: "auto" },
+                        maxWidth: { sm: 390 },
+                        position: "fixed",
+                        right: "16px",
+                        width: { sm: "calc(100% - 32px)" },
+                        zIndex: 2,
+                    }}
+                >
+                    {hasCaptionUpdateError && (
+                        <Box
+                            role="alert"
+                            sx={{
+                                bgcolor: "rgba(246, 58, 58, 0.16)",
+                                borderRadius: "12px",
+                                color: "#FF8A8A",
+                                fontFamily:
+                                    '"Inter Variable", Inter, sans-serif',
+                                fontSize: 13,
+                                fontWeight: 650,
+                                lineHeight: "18px",
+                                px: "12px",
+                                py: "8px",
+                            }}
+                        >
+                            Couldn&apos;t save caption. Try again.
+                        </Box>
+                    )}
+                    <Box
+                        sx={{
+                            alignItems: "flex-end",
+                            display: "flex",
+                            gap: "8px",
+                        }}
+                    >
+                        <Box
+                            ref={captionInputRef}
+                            component="textarea"
+                            aria-label="Edit caption"
+                            disabled={isCaptionUpdateActionRunning}
+                            onChange={(event) => {
+                                setCaptionEditValue(event.target.value);
+                                setHasCaptionUpdateError(false);
+                                resizeCaptionInput(
+                                    event.currentTarget,
+                                    replyInputMinHeight,
+                                );
+                            }}
+                            placeholder="Add a caption..."
+                            rows={1}
+                            value={captionEditValue}
+                            sx={{
+                                bgcolor: inputBackground,
+                                border: 0,
+                                borderRadius: "24px",
+                                boxSizing: "border-box",
+                                color: textBase,
+                                flex: "1 1 auto",
+                                fontFamily:
+                                    '"Inter Variable", Inter, sans-serif',
+                                fontSize: 14,
+                                fontWeight: 500,
+                                lineHeight: "20px",
+                                maxHeight: captionInputMaxHeight,
+                                minHeight: replyInputMinHeight,
+                                minWidth: 0,
+                                outline: 0,
+                                overflow: "hidden",
+                                pb: `${replyInputPadding}px`,
+                                pl: `${replyInputPaddingLeft}px`,
+                                pr: `${replyInputPadding}px`,
+                                pt: `${replyInputPadding}px`,
+                                resize: "none",
+                                "&::placeholder": { color: textSecondary },
+                                "&:disabled": { opacity: 0.74 },
+                                "&:focus": { bgcolor: inputBackgroundActive },
+                            }}
+                        />
+                        <Box
+                            component="button"
+                            type="button"
+                            aria-label={
+                                captionUpdateActionPhase == "busy"
+                                    ? "Saving caption"
+                                    : captionUpdateActionPhase == "done"
+                                      ? "Caption saved"
+                                      : "Save caption"
+                            }
+                            disabled={isCaptionUpdateDisabled}
+                            onClick={updateCaption}
+                            sx={{
+                                alignItems: "center",
+                                bgcolor: "#FFFFFF",
+                                border: 0,
+                                borderRadius: "24px",
+                                boxSizing: "border-box",
+                                boxShadow: "0 10px 28px rgba(0, 0, 0, 0.28)",
+                                color: "#111111",
+                                cursor: isCaptionUpdateDisabled
+                                    ? "default"
+                                    : "pointer",
+                                display: "flex",
+                                flexShrink: 0,
+                                fontFamily:
+                                    '"Inter Variable", Inter, sans-serif',
+                                fontSize: 14,
+                                fontWeight: 750,
+                                height: replyInputMinHeight,
+                                justifyContent: "center",
+                                lineHeight: "20px",
+                                minWidth: 70,
+                                px: "20px",
+                                py: "10px",
+                                "&:disabled": {
+                                    opacity: captionUpdateActionPhase
+                                        ? 1
+                                        : 0.62,
+                                },
+                                "&:focus-visible": {
+                                    outline: `2px solid ${green}`,
+                                    outlineOffset: 2,
+                                },
+                                "&:hover": {
+                                    bgcolor: isCaptionUpdateDisabled
+                                        ? "#FFFFFF"
+                                        : "#F0F0F0",
+                                },
+                            }}
+                        >
+                            <Box
+                                component="span"
+                                sx={{ display: "grid", placeItems: "center" }}
+                            >
+                                <Box
+                                    component="span"
+                                    sx={{
+                                        gridArea: "1 / 1",
+                                        visibility:
+                                            captionUpdateActionPhase == null
+                                                ? "visible"
+                                                : "hidden",
+                                    }}
+                                >
+                                    Save
+                                </Box>
+                                <Box
+                                    component="span"
+                                    sx={{
+                                        animation:
+                                            captionUpdateActionPhase == "busy"
+                                                ? `${postButtonSpin} 2.4s linear infinite`
+                                                : "none",
+                                        display: "flex",
+                                        gridArea: "1 / 1",
+                                        lineHeight: 0,
+                                        visibility:
+                                            captionUpdateActionPhase == "busy"
+                                                ? "visible"
+                                                : "hidden",
+                                    }}
+                                >
+                                    <HugeiconsIcon
+                                        icon={Loading03Icon}
+                                        size={22}
+                                        strokeWidth={1.8}
+                                    />
+                                </Box>
+                                <Box
+                                    component="span"
+                                    sx={{
+                                        display: "flex",
+                                        gridArea: "1 / 1",
+                                        lineHeight: 0,
+                                        visibility:
+                                            captionUpdateActionPhase == "done"
+                                                ? "visible"
+                                                : "hidden",
+                                    }}
+                                >
+                                    <HugeiconsIcon
+                                        icon={Tick02Icon}
+                                        primaryColor={green}
+                                        size={22}
+                                        strokeWidth={1.8}
+                                    />
+                                </Box>
+                            </Box>
+                        </Box>
+                    </Box>
+                </Box>
+            )}
+            {hasDisplayCaption && !isCaptionEditing && (
                 <Box
                     component="p"
                     data-space-viewer-chrome="true"
@@ -1497,7 +1915,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                     </Box>
                 </Box>
             )}
-            {showPhotoLikeButton && (
+            {showPhotoLikeButton && !isCaptionEditing && (
                 <Box
                     data-space-viewer-bottom="true"
                     sx={{

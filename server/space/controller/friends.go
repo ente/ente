@@ -89,6 +89,22 @@ func (c *FriendsController) ListRequests(ctx context.Context, space *repo.SpaceR
 	return resp, nil
 }
 
+func (c *FriendsController) ListSentRequests(ctx context.Context, space *repo.SpaceRecord) ([]models.SpaceSentFriendRequestResponse, error) {
+	requests, err := c.FriendsRepo.ListSentFriendRequestsForSpace(ctx, space.SpaceID)
+	if err != nil {
+		return nil, err
+	}
+	resp := make([]models.SpaceSentFriendRequestResponse, 0, len(requests))
+	for _, request := range requests {
+		resp = append(resp, models.SpaceSentFriendRequestResponse{
+			RequestID: request.RequestID,
+			Target:    toActorResponse(request.Target, true),
+			CreatedAt: formatMicros(request.CreatedAt),
+		})
+	}
+	return resp, nil
+}
+
 func (c *FriendsController) ConfirmRequest(ctx context.Context, targetSpace *repo.SpaceRecord, requestID int64, req models.ConfirmFriendRequestPayload) (*models.FriendStatusResponse, error) {
 	if strings.TrimSpace(req.TargetFriendSealedSpaceKey) == "" || req.TargetKeyVersion <= 0 {
 		return nil, ente.NewBadRequestWithMessage("targetFriendSealedSpaceKey and targetKeyVersion are required")
@@ -116,8 +132,8 @@ func (c *FriendsController) ConfirmRequest(ctx context.Context, targetSpace *rep
 	return &models.FriendStatusResponse{Status: "friend"}, nil
 }
 
-func (c *FriendsController) DeleteRequest(ctx context.Context, targetSpace *repo.SpaceRecord, requestID int64) error {
-	if err := c.FriendsRepo.DeleteFriendRequest(ctx, targetSpace.SpaceID, requestID); err != nil {
+func (c *FriendsController) DeleteRequest(ctx context.Context, space *repo.SpaceRecord, requestID int64) error {
+	if err := c.FriendsRepo.DeleteFriendRequest(ctx, space.SpaceID, requestID); err != nil {
 		if errors.Is(stacktrace.RootCause(err), sql.ErrNoRows) {
 			return ente.ErrNotFound
 		}

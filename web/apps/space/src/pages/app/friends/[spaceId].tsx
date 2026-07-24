@@ -1,3 +1,4 @@
+import { spaceDefaultProfilePicPath } from "components/SpaceAvatarImage";
 import { SpacePageMeta } from "components/SpacePageMeta";
 import { SpaceRouteFallback } from "components/SpaceRouteFallback";
 import { useBrowserBackClose } from "hooks/useBrowserBackClose";
@@ -13,12 +14,14 @@ import {
     loadCurrentSpacePostAssetURL,
     loadCurrentSpaceProfile,
     loadCurrentSpaceProfilePostsPage,
+    removeCurrentSpaceFriend,
     replyToCurrentPost,
     setCurrentPostLiked,
     type SpaceProfilePost,
 } from "services/space";
 import { useSpaceAppState } from "state/spaceAppState";
 import { profilePostGroupsFromPosts } from "utils/spacePostDisplay";
+import { spaceDefaultCoverImagePath } from "utils/spacePostImage";
 import { friendSpaceIdFromQuery, spaceRoutes } from "utils/spaceRoutes";
 import { useSpaceRouter } from "utils/spaceRouteTransitions";
 
@@ -52,7 +55,9 @@ const Page: React.FC = () => {
     const [friendsLoadAttempted, setFriendsLoadAttempted] = useState(false);
     const [isProfileLoading, setIsProfileLoading] = useState(false);
     const [isPostsLoading, setIsPostsLoading] = useState(false);
-    const [isProfilePhotoOpen, setIsProfilePhotoOpen] = useState(false);
+    const [openProfileImage, setOpenProfileImage] = useState<
+        "avatar" | "cover" | null
+    >(null);
     const [loadedProfileSpaceId, setLoadedProfileSpaceId] = useState<string>();
     const [loadedPostsSpaceId, setLoadedPostsSpaceId] = useState<string>();
     const [selectedProfile, setSelectedProfile] = useState(selectedFriend);
@@ -80,7 +85,11 @@ const Page: React.FC = () => {
             ? selectedProfile
             : undefined;
     const friendAvatarUrl =
-        currentSelectedProfile?.avatarUrl ?? selectedFriend?.avatarUrl ?? null;
+        (currentSelectedProfile
+            ? currentSelectedProfile.avatarUrl
+            : selectedFriend?.avatarUrl) || spaceDefaultProfilePicPath;
+    const friendCoverUrl =
+        currentSelectedProfile?.coverUrl || spaceDefaultCoverImagePath;
     const friendDisplayName =
         currentSelectedProfile?.fullName.trim() ||
         selectedFriend?.fullName.trim() ||
@@ -89,9 +98,9 @@ const Page: React.FC = () => {
         "Friend";
 
     useBrowserBackClose({
-        open: isProfilePhotoOpen,
-        onClose: () => setIsProfilePhotoOpen(false),
-        stateKey: "space-friend-profile-photo",
+        open: Boolean(openProfileImage),
+        onClose: () => setOpenProfileImage(null),
+        stateKey: "space-friend-profile-image",
     });
 
     useEffect(() => {
@@ -187,6 +196,24 @@ const Page: React.FC = () => {
         void router.push(spaceRoutes.friends);
     };
 
+    const unfriend = React.useCallback(async () => {
+        const actorSpaceId = profile?.spaceId;
+        if (!actorSpaceId || !selectedFriendSpaceId) return;
+
+        await removeCurrentSpaceFriend(actorSpaceId, selectedFriendSpaceId);
+    }, [profile?.spaceId, selectedFriendSpaceId]);
+
+    const finishUnfriend = React.useCallback(() => {
+        setFriends((currentFriends) =>
+            currentFriends.filter(
+                (friend) =>
+                    friend.spaceId != selectedFriendSpaceId &&
+                    friend.id != friendSpaceId,
+            ),
+        );
+        void router.replace(spaceRoutes.friends);
+    }, [friendSpaceId, router, selectedFriendSpaceId, setFriends]);
+
     if (
         !router.isReady ||
         profileLoadStatus != "ready" ||
@@ -256,28 +283,42 @@ const Page: React.FC = () => {
                 }}
                 onBack={goBack}
                 onLoadPostImage={loadCurrentSpacePostAssetURL}
-                onOpenProfilePhoto={
-                    friendAvatarUrl
-                        ? () => setIsProfilePhotoOpen(true)
+                onMessageFriend={
+                    selectedFriendSpaceId
+                        ? () =>
+                              void router.push(
+                                  spaceRoutes.message(selectedFriendSpaceId),
+                              )
                         : undefined
                 }
+                onOpenProfileCover={() => setOpenProfileImage("cover")}
+                onOpenProfilePhoto={() => setOpenProfileImage("avatar")}
                 onReplyToPost={(postSpaceId, postId, text) =>
                     replyToCurrentPost(actorSpaceId, postSpaceId, postId, text)
                 }
                 onSetPostLiked={(postId, liked) =>
                     setCurrentPostLiked(actorSpaceId, postId, liked)
                 }
+                onUnfriend={selectedFriendSpaceId ? unfriend : undefined}
+                onUnfriendComplete={
+                    selectedFriendSpaceId ? finishUnfriend : undefined
+                }
                 showPostLoadingIndicator={false}
             />
-            {isProfilePhotoOpen && friendAvatarUrl && (
+            {openProfileImage && (
                 <>
                     <SpacePageMeta
                         themeColor={friendProfileImageViewerBackground}
                     />
                     <FriendProfileImageViewerScreen
                         displayName={friendDisplayName}
-                        imageUrl={friendAvatarUrl}
-                        onClose={() => setIsProfilePhotoOpen(false)}
+                        imageUrl={
+                            openProfileImage == "cover"
+                                ? friendCoverUrl
+                                : friendAvatarUrl
+                        }
+                        onClose={() => setOpenProfileImage(null)}
+                        variant={openProfileImage}
                     />
                 </>
             )}

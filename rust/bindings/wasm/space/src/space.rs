@@ -233,6 +233,14 @@ struct FriendRequestJs {
     created_at: String,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SentFriendRequestJs {
+    request_id: i64,
+    target: ActorJs,
+    created_at: String,
+}
+
 fn decode_b64_field(value: &str) -> Result<Vec<u8>, WasmSpaceError> {
     decode_b64(value)
         .map_err(CoreSpaceError::from)
@@ -1162,6 +1170,24 @@ impl SpaceAccountCtxHandle {
         swb::to_value(&items).map_err(Into::into)
     }
 
+    /// List outgoing friend requests for the current account.
+    #[wasm_bindgen(js_name = listSentFriendRequests)]
+    pub async fn list_sent_friend_requests(
+        &self,
+        space_id: String,
+    ) -> Result<JsValue, WasmSpaceError> {
+        let requests = self.inner.list_sent_friend_requests(&space_id).await?;
+        let mut items = Vec::with_capacity(requests.len());
+        for request in requests {
+            items.push(SentFriendRequestJs {
+                request_id: request.request_id,
+                target: public_actor_to_js(request.target)?,
+                created_at: request.created_at,
+            });
+        }
+        swb::to_value(&items).map_err(Into::into)
+    }
+
     /// Confirm an incoming friend request.
     #[wasm_bindgen(js_name = confirmFriendRequest)]
     pub async fn confirm_friend_request(
@@ -1178,7 +1204,7 @@ impl SpaceAccountCtxHandle {
         .map_err(Into::into)
     }
 
-    /// Delete an incoming friend request.
+    /// Delete a pending friend request.
     #[wasm_bindgen(js_name = deleteFriendRequest)]
     pub async fn delete_friend_request(
         &self,

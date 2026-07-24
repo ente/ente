@@ -13,6 +13,7 @@ import {
     loadCurrentUnreadStatus,
     replyToCurrentPost,
     setCurrentPostLiked,
+    updateCurrentPostCaption,
     type SpacePost,
 } from "services/space";
 import {
@@ -28,6 +29,8 @@ import {
 import { prepareSpacePostImageFromEdit } from "utils/spacePostImage";
 import { spaceRoutes } from "utils/spaceRoutes";
 import { useSpaceRouter } from "utils/spaceRouteTransitions";
+
+const inviteFriendsToastDelayMs = 3000;
 
 const Page: React.FC = () => {
     const router = useSpaceRouter();
@@ -51,6 +54,10 @@ const Page: React.FC = () => {
     const [isFeedLoading, setIsFeedLoading] = useState(true);
     const [isFeedLoadingMore, setIsFeedLoadingMore] = useState(false);
     const [isFriendsLoading, setIsFriendsLoading] = useState(true);
+    const [showInviteFriendsToast, setShowInviteFriendsToast] = useState(false);
+    const inviteFriendsToastTimerRef = React.useRef<number | undefined>(
+        undefined,
+    );
     const isInitialFeedLoading =
         profileLoadStatus == "ready" &&
         Boolean(profile?.spaceId) &&
@@ -62,6 +69,18 @@ const Page: React.FC = () => {
     const isHomeFeedLoading = isFeedLoading && !isSkippingInitialFeedSkeleton;
     const closeFriendRequestSentToast = React.useCallback(
         () => setFriendRequestSentToastName(undefined),
+        [],
+    );
+    const closeInviteFriendsToast = React.useCallback(
+        () => setShowInviteFriendsToast(false),
+        [],
+    );
+
+    useEffect(
+        () => () => {
+            if (inviteFriendsToastTimerRef.current !== undefined)
+                window.clearTimeout(inviteFriendsToastTimerRef.current);
+        },
         [],
     );
 
@@ -229,13 +248,26 @@ const Page: React.FC = () => {
                     Boolean(profile) &&
                     !isHomeFeedLoading
                 }
+                showInviteFriendsToast={
+                    showInviteFriendsToast &&
+                    !isFriendsLoading &&
+                    friends.length == 0
+                }
                 onFriendRequestSentToastClose={closeFriendRequestSentToast}
+                onInviteFriendsToastClose={closeInviteFriendsToast}
                 onCreatePost={
                     profile
                         ? async (image, caption) => {
                               const spaceId = profile.spaceId;
                               if (!spaceId) throw new Error("Missing space.");
 
+                              const isFirstPost =
+                                  !feedItems.some(
+                                      (item) => item.spaceId == spaceId,
+                                  ) &&
+                                  !localFeedPosts.some(
+                                      (item) => item.status != "failed",
+                                  );
                               const localPostId = createLocalFeedPostID();
                               const displayName =
                                   profile.fullName.trim() ||
@@ -280,6 +312,14 @@ const Page: React.FC = () => {
                                       localPostId,
                                       post,
                                   );
+                                  if (isFirstPost) {
+                                      inviteFriendsToastTimerRef.current =
+                                          window.setTimeout(() => {
+                                              setShowInviteFriendsToast(true);
+                                              inviteFriendsToastTimerRef.current =
+                                                  undefined;
+                                          }, inviteFriendsToastDelayMs);
+                                  }
                               } catch (error) {
                                   failLocalFeedPost(
                                       setLocalFeedPosts,
@@ -307,6 +347,35 @@ const Page: React.FC = () => {
                     );
                     setFeedItems((currentItems) =>
                         currentItems.filter((item) => item.postId != postId),
+                    );
+                }}
+                onUpdatePostCaption={async (postId, caption) => {
+                    const spaceId = profile?.spaceId;
+                    if (!spaceId) throw new Error("Missing space.");
+
+                    await updateCurrentPostCaption(spaceId, postId, caption);
+                    const normalizedCaption = caption.trim() || undefined;
+                    setLocalFeedPosts((currentPosts) =>
+                        currentPosts.map((item) =>
+                            (item.status == "posted" ||
+                                item.status == "ready") &&
+                            item.post.postId == postId
+                                ? {
+                                      ...item,
+                                      post: {
+                                          ...item.post,
+                                          caption: normalizedCaption,
+                                      },
+                                  }
+                                : item,
+                        ),
+                    );
+                    setFeedItems((currentItems) =>
+                        currentItems.map((item) =>
+                            item.postId == postId
+                                ? { ...item, caption: normalizedCaption }
+                                : item,
+                        ),
                     );
                 }}
                 onOpenFriend={(friendID) =>

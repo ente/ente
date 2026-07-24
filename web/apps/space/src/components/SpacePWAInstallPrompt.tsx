@@ -3,21 +3,19 @@ import {
     ArrowDown01Icon,
     MoreHorizontalIcon,
     MoreVerticalIcon,
-    MultiplicationSignIcon,
     ScreenAddToHomeIcon,
     Upload01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Box, Dialog, useMediaQuery } from "@mui/material";
+import { SpaceActionToast } from "components/SpaceActionToast";
 import { SpaceBottomSheetTransition } from "components/SpaceBottomSheetTransition";
 import { useSpacePWAInstallPrompt } from "hooks/useSpacePWAInstallPrompt";
 import React from "react";
-import { spaceTouchTargetSize } from "styles/touchTargets";
 
 const green = "#08C225";
 const textBase = "#000";
 const textSoft = "#777777";
-const promptHorizontalPadding = "16px";
 
 interface SpacePWAInstallPromptProps {
     enabled: boolean;
@@ -50,148 +48,53 @@ export const SpacePWAInstallPrompt: React.FC<SpacePWAInstallPromptProps> = ({
 
     return (
         <>
-            <Box
-                sx={{
-                    boxSizing: "border-box",
-                    left: "50%",
-                    px: promptHorizontalPadding,
-                    pointerEvents: "none",
-                    position: "fixed",
-                    top: "calc(env(safe-area-inset-top) + 10px)",
-                    transform: "translateX(-50%)",
-                    width: "100%",
-                    zIndex: 19,
-                    "@media (min-width: 600px)": { maxWidth: 390 },
-                }}
-            >
-                <Box
-                    role="status"
-                    aria-live="polite"
-                    sx={{
-                        alignItems: "center",
-                        bgcolor: "#FFFFFF",
-                        borderRadius: "18px",
-                        boxShadow: "0 12px 32px rgba(0, 0, 0, 0.18)",
-                        boxSizing: "border-box",
-                        color: textBase,
-                        display: "flex",
-                        fontFamily: '"Inter Variable", Inter, sans-serif',
-                        fontSize: 14,
-                        fontWeight: 650,
-                        gap: "10px",
-                        lineHeight: "20px",
-                        minHeight: 50,
-                        pointerEvents: "auto",
-                        pl: "10px",
-                        pr: "6px",
-                        py: "3px",
-                        width: "100%",
-                    }}
-                >
+            <SpaceActionToast
+                action={
                     <Box
-                        component="span"
+                        component="button"
+                        type="button"
+                        onClick={openInstructions}
                         sx={{
                             alignItems: "center",
-                            color: green,
+                            bgcolor: green,
+                            border: 0,
+                            borderRadius: "14px",
+                            color: "#FFFFFF",
+                            cursor: "pointer",
                             display: "flex",
                             flexShrink: 0,
-                            height: 24,
+                            fontFamily: '"Inter Variable", Inter, sans-serif',
+                            fontSize: 13,
+                            fontWeight: 700,
+                            height: 34,
                             justifyContent: "center",
-                            width: 24,
+                            lineHeight: "18px",
+                            minWidth: 48,
+                            px: "17px",
+                            transition: "filter 120ms ease",
+                            "&:active": { filter: "brightness(0.96)" },
+                            "&:focus-visible": {
+                                outline: "2px solid rgba(0 0 0 / 0.72)",
+                                outlineOffset: 2,
+                            },
+                            "&:hover": { filter: "brightness(0.98)" },
                         }}
                     >
-                        <HugeiconsIcon
-                            icon={ScreenAddToHomeIcon}
-                            size={24}
-                            strokeWidth={1.9}
-                        />
+                        Add
                     </Box>
-                    <Box
-                        sx={{
-                            flex: "1 1 auto",
-                            minWidth: 0,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                        }}
-                    >
-                        Add to home screen
-                    </Box>
-                    <Box
-                        sx={{
-                            alignItems: "center",
-                            display: "flex",
-                            flexShrink: 0,
-                            gap: 0,
-                        }}
-                    >
-                        <Box
-                            component="button"
-                            type="button"
-                            onClick={openInstructions}
-                            sx={{
-                                alignItems: "center",
-                                bgcolor: green,
-                                border: 0,
-                                borderRadius: "14px",
-                                color: "#FFFFFF",
-                                cursor: "pointer",
-                                display: "flex",
-                                flexShrink: 0,
-                                fontFamily:
-                                    '"Inter Variable", Inter, sans-serif',
-                                fontSize: 13,
-                                fontWeight: 700,
-                                height: 34,
-                                justifyContent: "center",
-                                lineHeight: "18px",
-                                minWidth: 48,
-                                px: "17px",
-                                transition: "filter 120ms ease",
-                                "&:active": { filter: "brightness(0.96)" },
-                                "&:focus-visible": {
-                                    outline: "2px solid rgba(0 0 0 / 0.72)",
-                                    outlineOffset: 2,
-                                },
-                                "&:hover": { filter: "brightness(0.98)" },
-                            }}
-                        >
-                            Add
-                        </Box>
-                        <Box
-                            component="button"
-                            type="button"
-                            aria-label="Close install prompt"
-                            onClick={dismiss}
-                            sx={{
-                                alignItems: "center",
-                                appearance: "none",
-                                bgcolor: "transparent",
-                                border: 0,
-                                color: textBase,
-                                cursor: "pointer",
-                                display: "flex",
-                                flexShrink: 0,
-                                height: spaceTouchTargetSize,
-                                justifyContent: "center",
-                                opacity: 0.9,
-                                p: 0,
-                                width: 36,
-                                "&:focus-visible": {
-                                    outline: "2px solid rgba(0 0 0 / 0.72)",
-                                    outlineOffset: 2,
-                                },
-                            }}
-                        >
-                            <HugeiconsIcon
-                                icon={MultiplicationSignIcon}
-                                size={16}
-                                strokeWidth={2}
-                            />
-                        </Box>
-                    </Box>
-                </Box>
-            </Box>
+                }
+                closeLabel="Close install prompt"
+                icon={
+                    <HugeiconsIcon
+                        icon={ScreenAddToHomeIcon}
+                        size={24}
+                        strokeWidth={1.9}
+                    />
+                }
+                message="Add to home screen"
+                onClose={dismiss}
+                zIndex={19}
+            />
             <SpacePWAInstallInstructions
                 mode={mode}
                 open={instructionsOpen}

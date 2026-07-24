@@ -10,6 +10,7 @@ import {
     loadCurrentSpacePostAssetURL,
     loadCurrentSpaceProfilePostsPage,
     setCurrentPostLiked,
+    updateCurrentPostCaption,
     type SpaceProfilePost,
 } from "services/space";
 import { spaceInviteURL } from "services/spaceInvite";
@@ -200,6 +201,35 @@ const Page: React.FC = () => {
                     );
                     setPosts((currentPosts) =>
                         currentPosts.filter((post) => post.postId != postId),
+                    );
+                }}
+                onUpdatePostCaption={async (postId, caption) => {
+                    const spaceId = profile.spaceId;
+                    if (!spaceId) throw new Error("Missing space.");
+
+                    await updateCurrentPostCaption(spaceId, postId, caption);
+                    const normalizedCaption = caption.trim() || undefined;
+                    setLocalFeedPosts((currentPosts) =>
+                        currentPosts.map((item) =>
+                            (item.status == "posted" ||
+                                item.status == "ready") &&
+                            item.post.postId == postId
+                                ? {
+                                      ...item,
+                                      post: {
+                                          ...item.post,
+                                          caption: normalizedCaption,
+                                      },
+                                  }
+                                : item,
+                        ),
+                    );
+                    setPosts((currentPosts) =>
+                        currentPosts.map((post) =>
+                            post.postId == postId
+                                ? { ...post, caption: normalizedCaption }
+                                : post,
+                        ),
                     );
                 }}
                 onOpenFriends={() => void router.push(spaceRoutes.friends)}
