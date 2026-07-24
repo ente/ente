@@ -75,26 +75,14 @@ class CastService {
     if (session == null) {
       return;
     }
-
-    try {
-      final receiverSessionID = session.receiverSessionID;
-      if (receiverSessionID != null) {
-        session.connection.sendToPlatformReceiver(
-          ChromecastConnection.receiverNamespace,
-          {"type": "STOP", "sessionId": receiverSessionID},
-        );
-        await session.connection.flush();
-      }
-    } finally {
-      await _disconnectSession(session);
-    }
+    await _stopSession(session);
   }
 
   Future<void> closeActiveCasts() async {
     if (!isSupported) {
       return;
     }
-    await Future.wait(_sessions.values.toList().map(_disconnectSession));
+    await Future.wait(_sessions.values.toList().map(_stopSession));
   }
 
   Map<String, String> getActiveSessions() {
@@ -182,6 +170,21 @@ class CastService {
 
   Future<void> _disconnectSession(_CastSession session) {
     return session.closeFuture ??= _closeSession(session);
+  }
+
+  Future<void> _stopSession(_CastSession session) async {
+    try {
+      final receiverSessionID = session.receiverSessionID;
+      if (receiverSessionID != null) {
+        session.connection.sendToPlatformReceiver(
+          ChromecastConnection.receiverNamespace,
+          {"type": "STOP", "sessionId": receiverSessionID},
+        );
+        await session.connection.flush();
+      }
+    } finally {
+      await _disconnectSession(session);
+    }
   }
 
   Future<void> _closeSession(_CastSession session) async {
