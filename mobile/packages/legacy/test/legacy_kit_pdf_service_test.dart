@@ -41,6 +41,16 @@ void main() {
     );
   });
 
+  test("keeps the complete display name in the QR payload", () {
+    const partName = "Mother 👩‍👩‍👧‍👦 Very Long Name";
+
+    expect(
+      (jsonDecode(_share(1, partName).toQrPayload())
+          as Map<String, dynamic>)["n"],
+      partName,
+    );
+  });
+
   test("formats recovery URL for recovery sheet instructions", () {
     expect(
       LegacyKitPdfService.displayRecoveryUrl("https://legacy.ente.com/"),
@@ -74,10 +84,7 @@ void main() {
 
     for (var index = 0; index < sheets.length; index++) {
       expect(String.fromCharCodes(sheets[index].take(4)), "%PDF");
-      expect(
-        _metadataPayload(sheets[index], "ente-legacy-kit-share-v1:"),
-        shares[index].toQrPayload(),
-      );
+      expect(String.fromCharCodes(sheets[index]), isNot(contains("/Keywords")));
     }
   });
 
@@ -148,12 +155,6 @@ Set<String> _embeddedFonts(List<int> pdf) {
       .allMatches(String.fromCharCodes(pdf))
       .map((match) => match.group(1)!)
       .toSet();
-}
-
-String _metadataPayload(List<int> pdf, String prefix) {
-  final text = String.fromCharCodes(pdf);
-  final encoded = RegExp("$prefix([A-Za-z0-9_-]+)").firstMatch(text)!.group(1)!;
-  return utf8.decode(base64Url.decode(base64Url.normalize(encoded)));
 }
 
 LegacyKitShare _share(int index, String partName) {

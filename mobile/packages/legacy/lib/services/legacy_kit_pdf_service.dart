@@ -1,8 +1,5 @@
-import "dart:convert";
-
 import "package:ente_legacy/models/legacy_kit_models.dart";
 import "package:ente_strings/ente_strings.dart";
-import "package:flutter/foundation.dart";
 import "package:flutter/services.dart";
 import "package:pdf/pdf.dart";
 import "package:pdf/widgets.dart" as pw;
@@ -10,7 +7,7 @@ import "package:pdf/widgets.dart" as pw;
 class LegacyKitPdfService {
   const LegacyKitPdfService();
 
-  static const String _shareMetadataPrefix = "ente-legacy-kit-share-v1:";
+  static const String _shareTextPrefix = "ente-legacy-kit-share-v1:";
   static const String _assetRoot = "packages/ente_legacy/assets";
   static const String _fontRoot = "packages/ente_components/fonts";
   static const String _enteLogoBlackAsset =
@@ -34,7 +31,6 @@ class LegacyKitPdfService {
   static const PdfColor _card = PdfColor.fromInt(0xFFEAEAEA);
   static const PdfColor _divider = PdfColor.fromInt(0xFFD9D9D9);
   static const PdfColor _stepNumber = PdfColor.fromInt(0xFF5B5B5B);
-  static const PdfColor _copyCodeBackground = PdfColor.fromInt(0xFF666666);
 
   Future<Uint8List> buildRecoverySheet({
     required String accountEmail,
@@ -45,7 +41,7 @@ class LegacyKitPdfService {
   }) async {
     final assets = await _loadAssets();
     final sortedShares = _sortedShares(allShares);
-    final pdf = _document(keywords: _shareMetadata(share));
+    final pdf = _document();
     pdf.addPage(
       _buildPage(
         accountEmail,
@@ -101,23 +97,14 @@ class LegacyKitPdfService {
     }
   }
 
-  pw.Document _document({required String keywords}) {
+  pw.Document _document() {
     return pw.Document(
       title: "Ente Legacy Kit",
       author: "ente",
       creator: "ente locker",
       subject: "Ente Legacy Kit recovery sheet",
-      keywords: keywords,
       producer: "ente locker",
     );
-  }
-
-  String _shareMetadata(LegacyKitShare share) {
-    return "$_shareMetadataPrefix${_encodeMetadataPayload(share.toQrPayload())}";
-  }
-
-  String _encodeMetadataPayload(String payload) {
-    return base64Url.encode(utf8.encode(payload)).replaceAll("=", "");
   }
 
   pw.Page _buildPage(
@@ -276,12 +263,16 @@ class LegacyKitPdfService {
                 ),
               ),
             ),
-            if (kDebugMode)
-              pw.Positioned(
-                left: 360,
-                top: 533,
-                child: _copyCodeBlock(share.toCopyCode()),
+            // PDF.js can recover this existing copy code without rendering the
+            // QR. Matching the card color keeps it out of the visual design.
+            pw.Positioned(
+              left: 360,
+              top: 533,
+              child: _copyCodeText(
+                // Terminate the base64url value before adjacent PDF text.
+                "$_shareTextPrefix${share.toCopyCode()}:",
               ),
+            ),
             pw.Positioned(
               left: 0,
               top: 860,
@@ -507,24 +498,6 @@ class LegacyKitPdfService {
     );
   }
 
-  pw.Widget _copyCodeBlock(String copyCode) {
-    return pw.Container(
-      width: 242,
-      height: 56,
-      padding: const pw.EdgeInsets.all(6),
-      decoration: pw.BoxDecoration(
-        color: _copyCodeBackground,
-        border: pw.Border.all(
-          color: _white,
-          width: 1,
-          style: pw.BorderStyle.dashed,
-        ),
-        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
-      ),
-      child: pw.Center(child: _copyCodeText(copyCode)),
-    );
-  }
-
   pw.Widget _enteLockup(_SheetAssets assets) {
     final enteLogoSvg = assets.enteLogoBlackSvg;
     final enteComBadgeSvg = assets.enteComBadgeSvg;
@@ -589,42 +562,21 @@ class LegacyKitPdfService {
   pw.Widget _copyCodeText(String copyCode) {
     return pw.SizedBox(
       width: 226,
-      child: pw.Column(
-        mainAxisSize: pw.MainAxisSize.min,
-        children: _displayCopyCodeLines(copyCode)
-            .map(
-              (line) => pw.SizedBox(
-                height: 11,
-                child: pw.FittedBox(
-                  fit: pw.BoxFit.scaleDown,
-                  child: pw.Text(
-                    line,
-                    textAlign: pw.TextAlign.center,
-                    softWrap: false,
-                    maxLines: 1,
-                    style: pw.TextStyle(
-                      color: _white,
-                      fontSize: 7,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            )
-            .toList(growable: false),
+      height: 11,
+      child: pw.FittedBox(
+        fit: pw.BoxFit.scaleDown,
+        child: pw.Text(
+          copyCode,
+          softWrap: false,
+          maxLines: 1,
+          style: pw.TextStyle(
+            color: _card,
+            fontSize: 7,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
       ),
     );
-  }
-
-  List<String> _displayCopyCodeLines(String copyCode) {
-    const chunkSize = 33;
-    final chunks = <String>[];
-    for (var index = 0; index < copyCode.length; index += chunkSize) {
-      final nextIndex = index + chunkSize;
-      final end = nextIndex > copyCode.length ? copyCode.length : nextIndex;
-      chunks.add(copyCode.substring(index, end));
-    }
-    return chunks;
   }
 
   List<LegacyKitShare> _sortedShares(List<LegacyKitShare> shares) {
