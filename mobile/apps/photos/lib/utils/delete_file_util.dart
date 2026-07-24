@@ -248,6 +248,7 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
     ..addAll(await _tryDeleteSharedMediaFiles(localSharedMediaIDs));
   final removedIDs = deletedIDs.union(result.trashedIDs);
   final List<EnteFile> deletedFiles = [];
+  final List<int> uploadedFileIDsToClear = [];
   for (final file in files) {
     // Handle only files deleted, moved to trash, or already missing.
     if (removedIDs.contains(file.localID) ||
@@ -256,10 +257,20 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
       if (localOnlyIDs.contains(file.localID)) {
         await FilesDB.instance.deleteLocalFile(file);
       } else {
+        final uploadedFileID = file.uploadedFileID;
         file.localID = null;
-        await FilesDB.instance.update(file);
+        if (uploadedFileID != null) {
+          uploadedFileIDsToClear.add(uploadedFileID);
+        } else {
+          await FilesDB.instance.update(file);
+        }
       }
     }
+  }
+  if (uploadedFileIDsToClear.isNotEmpty) {
+    await FilesDB.instance.clearLocalIDsForUploadedFileIDs(
+      uploadedFileIDsToClear,
+    );
   }
   if (deletedFiles.isNotEmpty || alreadyDeletedIDs.isNotEmpty) {
     Bus.instance.fire(
