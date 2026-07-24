@@ -165,7 +165,7 @@ fn should_print_stats() -> bool {
 
 pub(crate) struct MlIndexingTestContext {
     asset_lock: AssetLock,
-    store: AssetStore,
+    fixture_paths: Vec<PathBuf>,
     golden_results: HashMap<String, ComparableResult>,
     manifest: FixtureManifest,
     model_paths: ModelPaths,
@@ -184,7 +184,7 @@ impl MlIndexingTestContext {
             resolve_document_asset(&store, "python-golden", &asset_lock.python_golden).await?;
         let manifest = load_manifest(&manifest_path)?;
         let golden_results = load_golden_results(&golden_path)?;
-        fetch_fixtures(&store, &asset_lock.fixture_base_url, &manifest).await?;
+        let fixture_paths = fetch_fixtures(&store, &asset_lock.fixture_base_url, &manifest).await?;
 
         let onnx_runtime_library =
             resolve_onnx_runtime_library(&store, &asset_lock.onnx_runtime).await?;
@@ -196,7 +196,7 @@ impl MlIndexingTestContext {
 
         Ok(Self {
             asset_lock,
-            store,
+            fixture_paths,
             golden_results,
             manifest,
             model_paths,
@@ -231,15 +231,14 @@ impl MlIndexingTestContext {
         let expected_unsupported = self.unsupported_decode_file_ids();
         let mut rust_results = HashMap::new();
 
-        for (index, fixture) in self.manifest.files.iter().enumerate() {
+        for (index, (fixture, image_path)) in self
+            .manifest
+            .files
+            .iter()
+            .zip(&self.fixture_paths)
+            .enumerate()
+        {
             let file_id = file_id_for_manifest_path(&fixture.path)?;
-            let image_path = match self.resolve_fixture(fixture) {
-                Ok(path) => path,
-                Err(error) => {
-                    failures.push(format!("{file_id}: failed to resolve fixture: {error:#}"));
-                    continue;
-                }
-            };
             let req = AnalyzeImageRequest {
                 file_id: (index + 1) as i64,
                 image_path: image_path.to_string_lossy().into_owned(),
@@ -332,20 +331,6 @@ impl MlIndexingTestContext {
             }
         }
         Ok(ids)
-    }
-
-    fn resolve_fixture(&self, fixture: &FixtureFile) -> Result<PathBuf> {
-        let label = file_id_for_manifest_path(&fixture.path)?;
-        let asset = file_asset(
-            "fixtures",
-            &label,
-            &fixture.path,
-            &fixture_url(&self.asset_lock.fixture_base_url, &fixture.path)?,
-            &fixture.sha256,
-        )?;
-        self.store
-            .file_path(&asset, &label)
-            .context("fixture asset has no declared file")
     }
 
     fn unsupported_decode_file_ids(&self) -> HashSet<String> {
@@ -589,14 +574,13 @@ async fn resolve_document_asset(
     label: &str,
     asset: &DocumentAsset,
 ) -> Result<PathBuf> {
-    download_asset(
+    download_file(
         store,
         "documents",
         label,
-        &asset.path,
+        &file_id_for_manifest_path(&asset.path)?,
         &asset.url,
         &asset.sha256,
-        label,
     )
     .await
 }
@@ -613,21 +597,23 @@ async fn fetch_fixtures(
     store: &AssetStore,
     fixture_base_url: &str,
     manifest: &FixtureManifest,
-) -> Result<()> {
+) -> Result<Vec<PathBuf>> {
+    let mut paths = Vec::with_capacity(manifest.files.len());
     for fixture in &manifest.files {
         let label = file_id_for_manifest_path(&fixture.path)?;
-        download_asset(
-            store,
-            "fixtures",
-            &label,
-            &fixture.path,
-            &fixture_url(fixture_base_url, &fixture.path)?,
-            &fixture.sha256,
-            &label,
-        )
-        .await?;
+        paths.push(
+            download_file(
+                store,
+                "fixtures",
+                &label,
+                &label,
+                &fixture_url(fixture_base_url, &fixture.path)?,
+                &fixture.sha256,
+            )
+            .await?,
+        );
     }
-    Ok(())
+    Ok(paths)
 }
 
 async fn resolve_onnx_runtime_library(
@@ -648,25 +634,21 @@ async fn resolve_onnx_runtime_library(
     })?;
 
     let archive_name = url_file_name(&archive.url)?;
-    let archive_asset = file_asset(
+    let archive_path = download_file(
+        store,
         "onnx-runtime",
         &target_key,
-        &format!("{target_key}/{archive_name}"),
+        &archive_name,
         &archive.url,
         &archive.sha256,
-    )?;
-    store
-        .download(
-            &archive_asset,
-            |_| {},
-            download::CancellationToken::default(),
-        )
-        .await
-        .context("download ONNX Runtime archive")?;
-    let archive_path = store.asset_dir(&archive_asset).join(&archive_name);
+    )
+    .await?;
 
     let library_name = file_id_for_manifest_path(&archive.library_path)?;
-    let library_target = store.asset_dir(&archive_asset).join(library_name);
+    let library_target = archive_path
+        .parent()
+        .context("ONNX Runtime archive has no parent directory")?
+        .join(library_name);
     if library_target.is_file()
         && verify_file_sha256(
             &library_target,
@@ -797,14 +779,13 @@ async fn golden_model(
     model: &ModelAsset,
 ) -> Result<GoldenModelAsset> {
     Ok(GoldenModelAsset {
-        path: download_asset(
+        path: download_file(
             store,
             "models",
             label,
             &model.file_name,
             &model.url,
             &model.sha256,
-            label,
         )
         .await?,
         sha256: model.sha256.clone(),
@@ -816,69 +797,42 @@ async fn resolve_model_asset(
     label: &str,
     asset: &ModelAsset,
 ) -> Result<PathBuf> {
-    download_asset(
+    download_file(
         store,
         "models",
         label,
         &asset.file_name,
         &asset.url,
         &asset.sha256,
-        &asset.file_name,
     )
     .await
 }
 
-async fn download_asset(
+async fn download_file(
     store: &AssetStore,
     namespace: &str,
     key: &str,
-    relative_path: &str,
+    name: &str,
     url: &str,
     expected_sha256: &str,
-    label: &str,
 ) -> Result<PathBuf> {
-    let asset = file_asset(namespace, key, relative_path, url, expected_sha256)?;
-    store
-        .download(&asset, |_| {}, download::CancellationToken::default())
-        .await
-        .with_context(|| format!("download {label} from {url}"))?;
-    let name = Path::new(relative_path)
-        .file_name()
-        .with_context(|| format!("asset path has no file name: {relative_path}"))?;
-    Ok(store.asset_dir(&asset).join(name))
-}
-
-fn file_asset(
-    namespace: &str,
-    key: &str,
-    relative_path: &str,
-    url: &str,
-    expected_sha256: &str,
-) -> Result<Asset> {
-    let relative = Path::new(relative_path);
-    if relative.is_absolute() {
-        bail!("asset path must be relative: {relative_path}");
-    }
     let sha256 = normalize_sha256(expected_sha256);
-    let name = relative
-        .file_name()
-        .and_then(|name| name.to_str())
-        .with_context(|| format!("asset path has no UTF-8 file name: {relative_path}"))?;
-    if relative
-        .components()
-        .any(|component| !matches!(component, Component::Normal(_)))
-    {
-        bail!("asset path contains an unsafe component: {relative_path}");
-    }
-    Asset::files(
+    let asset = Asset::file(
         vec![namespace.to_string(), key.to_string(), sha256.clone()],
-        vec![AssetFile {
+        AssetFile {
             name: name.to_string(),
             url: url.to_string(),
             sha256,
-        }],
+        },
     )
-    .map_err(Into::into)
+    .with_context(|| format!("define asset {namespace}/{key}/{name}"))?;
+    store
+        .download(&asset, |_| {}, download::CancellationToken::default())
+        .await
+        .with_context(|| format!("download {name} from {url}"))?;
+    store
+        .file_path(&asset, name)
+        .context("downloaded asset has no declared file")
 }
 
 fn verify_file_sha256(path: &Path, expected_sha256: &str, label: &str) -> Result<()> {

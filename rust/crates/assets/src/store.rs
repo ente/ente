@@ -32,6 +32,10 @@ pub struct AssetFile {
 }
 
 impl Asset {
+    pub fn file(components: Vec<String>, file: AssetFile) -> Result<Self, Error> {
+        Self::files(components, vec![file])
+    }
+
     pub fn files(components: Vec<String>, files: Vec<AssetFile>) -> Result<Self, Error> {
         validate_components(&components)?;
         if files.is_empty() {
