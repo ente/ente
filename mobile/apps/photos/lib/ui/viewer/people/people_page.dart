@@ -13,6 +13,8 @@ import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file_load_result.dart';
 import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/ml/face/person.dart";
+import "package:photos/models/search/hierarchical/face_filter.dart";
+import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 import "package:photos/models/search/search_result.dart";
 import 'package:photos/models/selected_files.dart';
 import "package:photos/service_locator.dart";
@@ -106,12 +108,18 @@ class _PeoplePageState extends State<PeoplePage> {
         setState(() {});
       }
     });
-    _searchFilterDataProvider = widget.searchResult != null
-        ? SearchFilterDataProvider(
-            initialGalleryFilter: widget.searchResult!
-                .getHierarchicalSearchFilter(),
-          )
-        : null;
+    final HierarchicalSearchFilter initialGalleryFilter =
+        widget.searchResult?.getHierarchicalSearchFilter() ??
+        FaceFilter(
+          personId: _person.remoteID,
+          clusterId: null,
+          faceName: _person.data.name,
+          faceFile: null,
+          occurrence: kMostRelevantFilter,
+        );
+    _searchFilterDataProvider = SearchFilterDataProvider(
+      initialGalleryFilter: initialGalleryFilter,
+    );
     if (_memoryLaneEnabled) {
       _timelineNotifier = MemoryLaneService.instance.readyPersonIds;
       _timelineListener = () {

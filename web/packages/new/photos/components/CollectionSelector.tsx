@@ -26,6 +26,7 @@ import {
     LargeTileCreateNewButton,
     LargeTileTextOverlay,
 } from "ente-new/photos/components/Tiles";
+import { useSettingsSnapshot } from "ente-new/photos/components/utils/use-snapshot";
 import {
     canAddToCollection,
     canMoveToCollection,
@@ -44,6 +45,7 @@ import React, {
     useRef,
     useState,
 } from "react";
+import { CollectionSelectorV2 } from "./CollectionSelectorV2";
 
 export type CollectionSelectorAction =
     | "upload"
@@ -96,7 +98,7 @@ export interface CollectionSelectorAttributes {
     onCancel?: () => void;
 }
 
-type CollectionSelectorProps = ModalVisibilityProps & {
+export type CollectionSelectorProps = ModalVisibilityProps & {
     /** Callback fired after the selector has finished closing. */
     onExited?: () => void;
     /**
@@ -138,8 +140,23 @@ type CollectionSelectorProps = ModalVisibilityProps & {
 /**
  * A dialog allowing the user to select one of their existing collections or
  * create a new one.
+ *
+ * For internal users this renders the restyled {@link CollectionSelectorV2}
+ * variant; everyone else continues to get the classic implementation below.
+ * Both share the exact same props and behaviour.
  */
-export const CollectionSelector: React.FC<CollectionSelectorProps> = ({
+export const CollectionSelector: React.FC<CollectionSelectorProps> = (
+    props,
+) => {
+    const { isInternalUser } = useSettingsSnapshot();
+    return isInternalUser ? (
+        <CollectionSelectorV2 {...props} />
+    ) : (
+        <CollectionSelectorClassic {...props} />
+    );
+};
+
+const CollectionSelectorClassic: React.FC<CollectionSelectorProps> = ({
     open,
     onClose,
     onExited,

@@ -1452,6 +1452,7 @@ export const Upload: React.FC<UploadProps> = ({
             )}
             <SingleInputDialog
                 {...newAlbumNameInputVisibilityProps}
+                variant={isInternalUser ? "v2" : "default"}
                 onClose={handleNewAlbumNameInputClose}
                 title={t("new_album")}
                 label={t("album_name")}

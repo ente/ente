@@ -2316,6 +2316,7 @@ const Page: React.FC = () => {
             />
             <SingleInputDialog
                 {...albumNameInputVisibilityProps}
+                variant={isInternalUser ? "v2" : "default"}
                 title={t("new_album")}
                 label={t("album_name")}
                 submitButtonTitle={t("create")}
