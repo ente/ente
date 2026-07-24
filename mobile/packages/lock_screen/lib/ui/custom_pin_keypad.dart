@@ -14,7 +14,7 @@ class CustomPinKeypad extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Container(
-              color: context.componentColors.fillDark,
+              color: context.componentColors.strokeFaint,
               child: Column(
                 children: [
                   Row(
@@ -192,10 +192,10 @@ class _ButtonState extends State<_Button> {
             decoration: BoxDecoration(
               shape: BoxShape.rectangle,
               borderRadius: BorderRadius.circular(6),
-              color: isPressed
-                  ? colors.fillDarkest
-                  : widget.muteButton
+              color: widget.muteButton
                   ? Colors.transparent
+                  : isPressed
+                  ? colors.fillDarkest
                   : widget.icon == null
                   ? colors.fillLight
                   : null,
