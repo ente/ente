@@ -88,12 +88,14 @@ func (h *CastHandler) InsertCastData(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(err, "failed to bind"))
 		return
 	}
-	err := h.Ctrl.InsertCastData(c, &request)
+	deviceID, err := h.Ctrl.InsertCastData(c, &request)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "failed to start cast"))
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{})
+	c.JSON(http.StatusOK, gin.H{
+		"deviceID": deviceID.String(),
+	})
 }
 
 // RevokeAllToken disable all active cast token for a user

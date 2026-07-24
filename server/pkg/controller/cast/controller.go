@@ -77,14 +77,14 @@ func (c *Controller) GetEncCastData(ctx context.Context, deviceCode string) (*st
 	return c.CastRepo.GetEncCastData(ctx, deviceCode)
 }
 
-func (c *Controller) InsertCastData(ctx *gin.Context, request *cast.CastRequest) error {
+func (c *Controller) InsertCastData(ctx *gin.Context, request *cast.CastRequest) (uuid.UUID, error) {
 	userID := auth.GetUserID(ctx.Request.Header)
 	devices, err := c.CastRepo.GetAllDevices(ctx, userID)
 	if err != nil {
-		return stacktrace.Propagate(err, "failed to get existing devices")
+		return uuid.Nil, stacktrace.Propagate(err, "failed to get existing devices")
 	}
 	if len(devices) >= 50 {
-		return stacktrace.NewError("device limit reached")
+		return uuid.Nil, stacktrace.NewError("device limit reached")
 	}
 	return c.CastRepo.InsertCastData(ctx, userID, request.DeviceCode, request.CollectionID, request.CastToken, request.EncPayload)
 }
