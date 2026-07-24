@@ -64,7 +64,7 @@ export function MinimizedUploadProgress() {
                     <Stack sx={{ flex: 1, minWidth: 0, gap: 0.5 }}>
                         <Typography sx={minimizedTitleSx}>
                             {showUploadProgress
-                                ? `${progress.toLocaleString()}% uploaded`
+                                ? t("uploaded_percent", { percent: progress })
                                 : context.uploadPhase == "done"
                                   ? uploadStatusText(context.uploadPhase)
                                   : t("file_upload")}
@@ -76,7 +76,7 @@ export function MinimizedUploadProgress() {
                         </Typography>
                     </Stack>
                     <IconButton
-                        aria-label="Expand"
+                        aria-label={t("expand")}
                         onClick={handleExpand}
                         sx={minimizedIconButtonSx}
                     >

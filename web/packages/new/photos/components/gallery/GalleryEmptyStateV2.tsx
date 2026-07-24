@@ -141,7 +141,7 @@ export function GalleryEmptyStateV2({
                             fontWeight: 600,
                         }}
                     >
-                        Store and share your memories with full privacy
+                        {t("gallery_empty_state_v2_subtitle")}
                     </Typography>
                 </Stack>
 
@@ -154,7 +154,7 @@ export function GalleryEmptyStateV2({
                         disabled={isUploadInProgress}
                         startIcon={<FileDownloadIcon />}
                     >
-                        Upload your existing library
+                        {t("upload_existing_library")}
                     </GalleryEmptyStateButton>
                     <GalleryEmptyStateButton
                         color="secondary"
@@ -236,8 +236,7 @@ function MemoriesPreservedCount(): React.JSX.Element | null {
                 userSelect: "none",
             }}
         >
-            {count.toLocaleString("en-US")} {count == 1 ? "memory" : "memories"}{" "}
-            secured since you came here
+            {t("memories_secured_since_arrival", { count })}
         </Typography>
     );
 }

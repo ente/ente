@@ -87,7 +87,6 @@ import { CollectionMappingChoice } from "ente-new/photos/components/CollectionMa
 import type { CollectionSelectorAttributes } from "ente-new/photos/components/CollectionSelector";
 import type { RemotePullOpts } from "ente-new/photos/components/gallery";
 import { downloadAppDialogAttributes } from "ente-new/photos/components/utils/download";
-import { useSettingsSnapshot } from "ente-new/photos/components/utils/use-snapshot";
 import { suppressAutoLockOnBlurForTrustedPrompt } from "ente-new/photos/services/app-lock";
 import {
     addOrCopyToCollection,
@@ -104,6 +103,7 @@ import {
 } from "ente-new/photos/services/collection";
 import { redirectToCustomerPortal } from "ente-new/photos/services/user-details";
 import { usePhotosAppContext } from "ente-new/photos/types/context";
+import { enableV2 } from "ente-new/photos/utils/feature-flags";
 import { firstNonEmpty } from "ente-utils/array";
 import { t } from "i18next";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -231,8 +231,6 @@ export const Upload: React.FC<UploadProps> = ({
 }) => {
     const { showMiniDialog, onGenericError } = useBaseContext();
     const { showNotification, watchFolderView } = usePhotosAppContext();
-    const { isInternalUser } = useSettingsSnapshot();
-    const enableUploadProgressUIV2 = isInternalUser;
 
     const [uploadProgressView, setUploadProgressView] = useState(false);
     const [
@@ -391,6 +389,7 @@ export const Upload: React.FC<UploadProps> = ({
     }, []);
 
     const handleInputCancel = useCallback(() => {
+        selectedUploadType.current = undefined;
         setIsInputPending(false);
     }, []);
 
@@ -857,7 +856,7 @@ export const Upload: React.FC<UploadProps> = ({
     ) => {
         if (uploadItemsAndPaths.current !== uploadItemAndPaths) return;
 
-        if (!isInternalUser) {
+        if (!enableV2) {
             void commitUploadToExistingCollection(
                 collection,
                 uploadItemAndPaths,
@@ -988,7 +987,7 @@ export const Upload: React.FC<UploadProps> = ({
 
         if (uploadItemsAndPaths.current !== uploadItemAndPaths) return;
 
-        if (skipConfirmation || !isInternalUser) {
+        if (skipConfirmation || !enableV2) {
             void commitUploadToNewCollections(
                 uploadItemAndPaths,
                 collectionNameToUploadItems,
@@ -1389,13 +1388,12 @@ export const Upload: React.FC<UploadProps> = ({
                 open={props.uploadTypeSelectorView}
                 onClose={props.closeUploadTypeSelector}
                 intent={props.uploadTypeSelectorIntent}
-                {...{ isInternalUser }}
                 pendingUploadType={
                     isInputPending ? selectedUploadType.current : undefined
                 }
                 onSelect={handleUploadTypeSelect}
             />
-            {enableUploadProgressUIV2 ? (
+            {enableV2 ? (
                 <UploadProgressV2
                     open={uploadProgressView}
                     onClose={closeUploadProgress}
@@ -1430,7 +1428,7 @@ export const Upload: React.FC<UploadProps> = ({
                 open={showCanvasReadbackBlockedDialog}
                 onClose={() => setShowCanvasReadbackBlockedDialog(false)}
             />
-            {isInternalUser && (
+            {enableV2 && (
                 <UploadConfirmationDialog
                     open={!!uploadConfirmation}
                     isTakeout={uploadConfirmation?.isTakeout ?? false}
@@ -1452,7 +1450,7 @@ export const Upload: React.FC<UploadProps> = ({
             )}
             <SingleInputDialog
                 {...newAlbumNameInputVisibilityProps}
-                variant={isInternalUser ? "v2" : "default"}
+                variant={enableV2 ? "v2" : "default"}
                 onClose={handleNewAlbumNameInputClose}
                 title={t("new_album")}
                 label={t("album_name")}
@@ -1738,8 +1736,6 @@ const setPendingUploads = async (
 };
 
 type UploadTypeSelectorProps = ModalVisibilityProps & {
-    /** Whether experimental upload UI should be shown. */
-    isInternalUser: boolean;
     /**
      * The particular context / scenario in which this upload is occurring.
      */
@@ -1767,7 +1763,6 @@ type UploadTypeSelectorProps = ModalVisibilityProps & {
 const UploadTypeSelector: React.FC<UploadTypeSelectorProps> = ({
     open,
     onClose,
-    isInternalUser,
     intent,
     pendingUploadType,
     onSelect,
@@ -1814,13 +1809,7 @@ const UploadTypeSelector: React.FC<UploadTypeSelectorProps> = ({
             }}
         >
             <UploadOptions
-                {...{
-                    isInternalUser,
-                    intent,
-                    pendingUploadType,
-                    onSelect,
-                    onClose,
-                }}
+                {...{ intent, pendingUploadType, onSelect, onClose }}
             />
         </Dialog>
     );
@@ -1828,11 +1817,10 @@ const UploadTypeSelector: React.FC<UploadTypeSelectorProps> = ({
 
 type UploadOptionsProps = Pick<
     UploadTypeSelectorProps,
-    "isInternalUser" | "onClose" | "intent" | "pendingUploadType" | "onSelect"
+    "onClose" | "intent" | "pendingUploadType" | "onSelect"
 >;
 
 const UploadOptions: React.FC<UploadOptionsProps> = ({
-    isInternalUser,
     intent,
     pendingUploadType,
     onSelect,
@@ -1874,7 +1862,7 @@ const UploadOptions: React.FC<UploadOptionsProps> = ({
     const handleSelectFolder = () => handleSelect("folders");
 
     return showTakeoutOptions ? (
-        isInternalUser ? (
+        enableV2 ? (
             <TakeoutOptionsV2
                 onBack={handleTakeoutClose}
                 onSelectFolder={handleSelectFolder}
@@ -1887,7 +1875,7 @@ const UploadOptions: React.FC<UploadOptionsProps> = ({
                 onClose={handleTakeoutClose}
             />
         )
-    ) : isInternalUser && intent != "collect" ? (
+    ) : enableV2 && intent != "collect" ? (
         <DefaultOptionsV2
             intent={intent}
             isFileSelectionPending={pendingUploadType == "files"}

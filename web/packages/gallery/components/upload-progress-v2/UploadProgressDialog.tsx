@@ -55,7 +55,7 @@ export function UploadProgressDialog() {
 function UploadProgressV2Header() {
     const { onClose, setExpanded, uploadPhase } = useUploadProgressContext();
     const isDone = uploadPhase == "done";
-    const title = isDone ? "Upload details" : t("file_upload");
+    const title = t(isDone ? "upload_details" : "file_upload");
 
     const handleMinimize = () => setExpanded(false);
 
@@ -70,7 +70,7 @@ function UploadProgressV2Header() {
             </Typography>
             <Stack direction="row" sx={headerActionsSx}>
                 <IconButton
-                    aria-label="Minimize"
+                    aria-label={t("minimize")}
                     onClick={handleMinimize}
                     sx={headerActionButtonSx}
                 >
@@ -95,19 +95,19 @@ function UploadProgressV2Summary() {
     const isDeterminate = isUploading || uploadPhase == "readingMetadata";
     const progress = normalizePercent(percentComplete);
     const headline = isUploading
-        ? `${progress.toLocaleString()}% uploaded`
+        ? t("uploaded_percent", { percent: progress })
         : uploadStatusText(uploadPhase);
     const supportingText =
         uploadPhase == "preparing"
-            ? "Getting your upload ready"
+            ? t("upload_getting_ready")
             : uploadPhase == "cancelling"
-              ? "Finishing active uploads safely"
+              ? t("upload_finishing_active")
               : uploadCountsText(context);
     const progressCaption =
         uploadPhase == "readingMetadata"
-            ? "Reading file information"
+            ? t("upload_reading_file_information")
             : uploadPhase == "cancelling"
-              ? "This may take a moment"
+              ? t("this_may_take_a_moment")
               : isUploading
                 ? uploadStatusText(uploadPhase)
                 : undefined;
@@ -118,7 +118,7 @@ function UploadProgressV2Summary() {
                 <Stack sx={{ minWidth: 0, gap: "4px" }}>
                     <Typography
                         component="p"
-                        sx={[titleTextSx, !isDeterminate && waitingTitleSx]}
+                        sx={[titleTextSx, !isDeterminate && animatedEllipsisSx]}
                     >
                         {headline}
                     </Typography>
@@ -140,13 +140,20 @@ function UploadProgressV2Summary() {
                             }}
                         >
                             {progressCaption && (
-                                <Typography sx={mutedCaptionSx}>
+                                <Typography
+                                    sx={[
+                                        mutedCaptionSx,
+                                        isUploading && animatedEllipsisSx,
+                                    ]}
+                                >
                                     {progressCaption}
                                 </Typography>
                             )}
                             {isDeterminate && (
                                 <Typography sx={mutedCaptionSx}>
-                                    {"100%"}
+                                    {t("percent_complete", {
+                                        percent: progress,
+                                    })}
                                 </Typography>
                             )}
                         </Stack>
@@ -233,7 +240,7 @@ const waitingDotsAnimation = keyframes`
     33% { content: ".."; }
     66%, 100% { content: "..."; }
 `;
-const waitingTitleSx = {
+const animatedEllipsisSx = {
     "&::after": {
         display: "inline-block",
         width: "1.5em",

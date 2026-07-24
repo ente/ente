@@ -31,7 +31,6 @@ import {
     LargeTileCreateNewButton,
     LargeTileTextOverlay,
 } from "ente-new/photos/components/Tiles";
-import { useSettingsSnapshot } from "ente-new/photos/components/utils/use-snapshot";
 import {
     createAlbum,
     createHiddenAlbum,
@@ -41,6 +40,7 @@ import type {
     CollectionSummary,
 } from "ente-new/photos/services/collection-summary";
 import { usePhotosAppContext } from "ente-new/photos/types/context";
+import { enableV2 } from "ente-new/photos/utils/feature-flags";
 import { t } from "i18next";
 import memoize from "memoize-one";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -80,7 +80,6 @@ export const AllAlbums: React.FC<AllAlbums> = ({
     const fullScreen = useMediaQuery("(max-width: 428px)");
     const [searchTerm, setSearchTerm] = useState("");
     const { showNotification } = usePhotosAppContext();
-    const { isInternalUser } = useSettingsSnapshot();
     const { show: showAlbumNameInput, props: albumNameInputVisibilityProps } =
         useModalVisibility();
     const [albumCreatedToast, setAlbumCreatedToast] = useState<{
@@ -174,7 +173,7 @@ export const AllAlbums: React.FC<AllAlbums> = ({
             </AllAlbumsDialog>
             <SingleInputDialog
                 {...albumNameInputVisibilityProps}
-                variant={isInternalUser ? "v2" : "default"}
+                variant={enableV2 ? "v2" : "default"}
                 title={t("new_album")}
                 label={t("album_name")}
                 submitButtonTitle={t("create")}

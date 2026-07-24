@@ -76,10 +76,10 @@ export function UploadCompletionV2({
                             component="h2"
                             sx={completionTitleSx}
                         >
-                            Your upload is done!
+                            {t("upload_completion_title")}
                         </Typography>
                         <Typography sx={completionSubtitleSx}>
-                            Uploaded items are now available on Ente.
+                            {t("upload_completion_subtitle")}
                         </Typography>
                     </Stack>
                 </Stack>
@@ -97,7 +97,7 @@ export function UploadCompletionV2({
                                     }}
                                 />
                                 <Typography sx={completionStatLabelSx}>
-                                    {completionStatLabels[kind]}
+                                    {t(completionStatLabelKeys[kind])}
                                 </Typography>
                             </Stack>
                             <Typography sx={completionStatValueSx}>
@@ -113,7 +113,7 @@ export function UploadCompletionV2({
                             onClick={onReviewFailed}
                             sx={primaryButtonSx}
                         >
-                            Review items
+                            {t("review_items")}
                         </Button>
                     ) : null}
                     <Button
@@ -125,7 +125,7 @@ export function UploadCompletionV2({
                                 : primaryButtonSx
                         }
                     >
-                        Close
+                        {t("close")}
                     </Button>
                 </Stack>
             </Stack>
@@ -133,10 +133,10 @@ export function UploadCompletionV2({
     );
 }
 
-const completionStatLabels = {
-    completed: "Completed",
-    skipped: "Skipped",
-    failed: "Failed",
+const completionStatLabelKeys = {
+    completed: "upload_stat_completed",
+    skipped: "upload_stat_skipped",
+    failed: "upload_stat_failed",
 } as const;
 
 const completionDialogPaperSx = (theme: Theme) => ({
