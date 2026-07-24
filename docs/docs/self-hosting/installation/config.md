@@ -55,28 +55,21 @@ in `museum.yaml` is read as `s3.b2-eu-cen.endpoint` by Museum.
 
 ### App Endpoints
 
-The `apps` section tells Museum where each Ente web app is hosted. Configure the public URL of every web app you deploy; these URLs form Museum's list of trusted browser origins.
-
-If you set any of `apps.photos`, `apps.auth`, `apps.locker` or `apps.extra-origins`, Museum rejects browser requests from origins that are not in this list. If you set none of these keys, Museum only logs the unknown origins. This is a fallback so that older setups do not break; a future version of Museum will reject unknown origins by default. To choose the behavior explicitly, set `apps.cors-report-only` to `true` or `false`.
+The `apps` section specifies the base endpoints Museum uses when linking to or integrating with Ente web apps.
 
 | Variable               | Description                                             | Default                     |
 | ---------------------- | ------------------------------------------------------- | --------------------------- |
-| `apps.photos`          | Photos web app base endpoint                            | `https://photos.ente.com`   |
 | `apps.public-albums`   | Albums app base endpoint for public sharing             | `https://albums.ente.com`   |
 | `apps.embed-albums`    | Embed app base endpoint                                 | `https://embed.ente.com`    |
-| `apps.auth`            | Auth web app base endpoint                              | `https://auth.ente.com`     |
-| `apps.locker`          | Locker web app base endpoint                            | `https://locker.ente.com`   |
 | `apps.public-locker`   | Public Locker (share) app base endpoint                 | `https://share.ente.com`    |
 | `apps.public-paste`    | Ente Paste app base endpoint                            | `https://paste.ente.com`    |
 | `apps.public-memories` | Memories app base endpoint for public memory shares     | `https://memories.ente.com` |
 | `apps.accounts`        | Accounts app base endpoint (used for passkey-based 2FA) | `https://accounts.ente.com` |
 | `apps.accounts-legacy` | Legacy Accounts endpoint for passkey migration          | `https://accounts.ente.io`  |
-| `apps.payments`        | Payments web app base endpoint                          | `https://payments.ente.com` |
 | `apps.cast`            | Cast app base endpoint                                  | `https://cast.ente.com`     |
 | `apps.family`          | Family web app base endpoint                            | `https://family.ente.io`    |
 | `apps.space`           | Space web app base endpoint                             | `https://ente.space`        |
 | `apps.legacy`          | Legacy recovery web app base endpoint                   | `https://legacy.ente.com`   |
-| `apps.extra-origins`   | Additional trusted browser origins                      | Ente's other production origins |
 
 ### Database
 

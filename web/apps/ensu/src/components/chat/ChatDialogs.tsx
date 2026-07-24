@@ -38,9 +38,8 @@ interface IconProps {
 }
 
 interface SuggestedModel {
+    id: string;
     name: string;
-    url: string;
-    mmproj?: string;
 }
 
 type ModelGateStatus =
@@ -54,9 +53,7 @@ type ModelGateStatus =
 type SxEntry = Exclude<SxProps<Theme>, readonly unknown[]>;
 
 export interface ModelSettingsDraft {
-    useCustomModel: boolean;
-    modelUrl: string;
-    mmprojUrl: string;
+    modelId: string;
     contextLength: string;
     maxTokens: string;
 }
@@ -84,15 +81,10 @@ export interface ChatDialogsProps {
     handleConfirmDeleteSession: () => void | Promise<void>;
     showModelSettings: boolean;
     closeModelSettings: () => void;
-    useCustomModel: boolean;
+    selectedModelId: string;
     defaultModelName: string;
-    defaultModelUrl: string;
-    defaultModelMmproj?: string;
     loadedModelName: string | null;
-    allowMmproj: boolean;
     isTauriRuntime: boolean;
-    modelUrl: string;
-    mmprojUrl: string;
     suggestedModels: SuggestedModel[];
     contextLength: string;
     maxTokens: string;
@@ -136,15 +128,10 @@ export const ChatDialogs = memo(
         handleConfirmDeleteSession,
         showModelSettings,
         closeModelSettings,
-        useCustomModel,
+        selectedModelId,
         defaultModelName,
-        defaultModelUrl,
-        defaultModelMmproj,
         loadedModelName,
-        allowMmproj,
         isTauriRuntime,
-        modelUrl,
-        mmprojUrl,
         suggestedModels,
         contextLength,
         maxTokens,
@@ -184,18 +171,8 @@ export const ChatDialogs = memo(
         };
 
         // --- Model settings draft state ---
-        const [draftUseCustomModel, setDraftUseCustomModel] =
-            React.useState(false);
-        const [draftModelUrl, setDraftModelUrl] = React.useState("");
-        const [draftMmprojUrl, setDraftMmprojUrl] = React.useState("");
         const [draftContextLength, setDraftContextLength] = React.useState("");
         const [draftMaxTokens, setDraftMaxTokens] = React.useState("");
-        const [draftModelUrlError, setDraftModelUrlError] = React.useState<
-            string | null
-        >(null);
-        const [draftMmprojError, setDraftMmprojError] = React.useState<
-            string | null
-        >(null);
         const [draftContextError, setDraftContextError] = React.useState<
             string | null
         >(null);
@@ -204,7 +181,7 @@ export const ChatDialogs = memo(
         >(null);
         const [showAdvancedLimits, setShowAdvancedLimits] =
             React.useState(false);
-        const [selectedModelId, setSelectedModelId] = React.useState("default");
+        const [draftModelId, setDraftModelId] = React.useState("default");
         const [showBackupComingSoon, setShowBackupComingSoon] =
             React.useState(false);
 
@@ -213,63 +190,31 @@ export const ChatDialogs = memo(
 
         const modelOptions = React.useMemo(
             () => [
-                {
-                    id: "default",
-                    name: `${defaultModelName} (Default)`,
-                    url: defaultModelUrl,
-                    mmproj: allowMmproj
-                        ? (defaultModelMmproj ?? undefined)
-                        : "",
-                },
-                ...suggestedModels
-                    .filter((model) => model.url !== defaultModelUrl)
-                    .map((model) => ({
-                        id: model.url,
-                        name: model.name,
-                        url: model.url,
-                        mmproj: model.mmproj,
-                    })),
-                { id: "custom", name: "Custom", url: "", mmproj: "" },
+                { id: "default", name: `${defaultModelName} (Default)` },
+                ...suggestedModels,
             ],
-            [
-                allowMmproj,
-                defaultModelMmproj,
-                defaultModelName,
-                defaultModelUrl,
-                suggestedModels,
-            ],
+            [defaultModelName, suggestedModels],
         );
-        const isCustomSelected = selectedModelId === "custom";
-        const canSaveModelSettings =
-            !isCustomSelected || draftModelUrl.trim().length > 0;
 
         // Initialize model settings draft from parent state when dialog opens
         React.useEffect(() => {
             if (!showModelSettings) return;
-            setDraftUseCustomModel(useCustomModel);
-            setDraftModelUrl(modelUrl);
-            setDraftMmprojUrl(mmprojUrl);
+            setDraftModelId(
+                modelOptions.some((model) => model.id === selectedModelId)
+                    ? selectedModelId
+                    : "default",
+            );
             setDraftContextLength(contextLength);
             setDraftMaxTokens(maxTokens);
-            setDraftModelUrlError(null);
-            setDraftMmprojError(null);
             setDraftContextError(null);
             setDraftMaxTokensError(null);
-            const matchedOption = useCustomModel
-                ? modelOptions.find((model) => model.url === modelUrl)
-                : undefined;
-            setSelectedModelId(
-                !useCustomModel ? "default" : (matchedOption?.id ?? "custom"),
-            );
             setShowAdvancedLimits(!!contextLength || !!maxTokens);
         }, [
             contextLength,
             maxTokens,
-            mmprojUrl,
             modelOptions,
-            modelUrl,
+            selectedModelId,
             showModelSettings,
-            useCustomModel,
         ]);
 
         // Initialize system prompt draft from parent state when dialog opens
@@ -279,38 +224,6 @@ export const ChatDialogs = memo(
         }, [showSystemPromptSettings]); // eslint-disable-line react-hooks/exhaustive-deps
 
         const validateModelSettings = React.useCallback(() => {
-            const validateUrl = (value: string) => {
-                if (!value) return undefined;
-                try {
-                    const url = new URL(value);
-                    if (
-                        url.hostname !== "huggingface.co" &&
-                        !url.hostname.endsWith(".huggingface.co")
-                    ) {
-                        return "URL must be a huggingface.co link";
-                    }
-                    if (url.pathname.includes("/blob/")) {
-                        return "Use a direct file URL, not a /blob/ page";
-                    }
-                    if (!url.pathname.endsWith(".gguf")) {
-                        return "URL must end with .gguf";
-                    }
-                    return undefined;
-                } catch {
-                    return "Enter a valid URL";
-                }
-            };
-
-            const modelError = draftUseCustomModel
-                ? draftModelUrl
-                    ? validateUrl(draftModelUrl)
-                    : "Required"
-                : undefined;
-            const mmprojErr =
-                draftUseCustomModel && isTauriRuntime
-                    ? validateUrl(draftMmprojUrl)
-                    : undefined;
-
             const contextErrorValue =
                 draftContextLength && !/^\d+$/.test(draftContextLength)
                     ? "Enter a number"
@@ -332,28 +245,17 @@ export const ChatDialogs = memo(
                     ? "Must be <= context length"
                     : undefined;
 
-            setDraftModelUrlError(modelError ?? null);
-            setDraftMmprojError(mmprojErr ?? null);
             setDraftContextError(contextErrorValue ?? null);
             setDraftMaxTokensError(
                 maxTokensErrorValue ?? maxTokensLimitError ?? null,
             );
 
             return !(
-                modelError ||
-                mmprojErr ||
                 contextErrorValue ||
                 maxTokensErrorValue ||
                 maxTokensLimitError
             );
-        }, [
-            draftContextLength,
-            draftMaxTokens,
-            draftMmprojUrl,
-            draftModelUrl,
-            draftUseCustomModel,
-            isTauriRuntime,
-        ]);
+        }, [draftContextLength, draftMaxTokens]);
 
         return (
             <>
@@ -783,37 +685,14 @@ export const ChatDialogs = memo(
                                         select
                                         fullWidth
                                         label="Model"
-                                        value={selectedModelId}
-                                        onChange={(event) => {
-                                            const nextId = event.target.value;
-                                            const nextModel = modelOptions.find(
-                                                (model) => model.id === nextId,
-                                            );
-                                            setSelectedModelId(nextId);
-                                            if (!nextModel) return;
-                                            if (nextId === "default") {
-                                                setDraftUseCustomModel(false);
-                                                setDraftModelUrl("");
-                                                setDraftMmprojUrl("");
-                                                return;
-                                            }
-                                            setDraftUseCustomModel(true);
-                                            if (nextId === "custom") {
-                                                setDraftModelUrl("");
-                                                setDraftMmprojUrl("");
-                                                return;
-                                            }
-                                            setDraftModelUrl(nextModel.url);
-                                            setDraftMmprojUrl(
-                                                allowMmproj
-                                                    ? (nextModel.mmproj ?? "")
-                                                    : "",
-                                            );
-                                        }}
+                                        value={draftModelId}
+                                        onChange={(event) =>
+                                            setDraftModelId(event.target.value)
+                                        }
                                         helperText={
                                             loadedModelName
                                                 ? `Loaded: ${loadedModelName}`
-                                                : "Custom reveals direct Hugging Face URLs."
+                                                : " "
                                         }
                                     >
                                         {modelOptions.map((model) => (
@@ -826,43 +705,6 @@ export const ChatDialogs = memo(
                                         ))}
                                     </TextField>
                                 </Stack>
-
-                                {isCustomSelected && (
-                                    <Stack sx={{ gap: 1.5 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="Model .gguf URL"
-                                            placeholder="https://huggingface.co/..."
-                                            value={draftModelUrl}
-                                            onChange={(event) =>
-                                                setDraftModelUrl(
-                                                    event.target.value,
-                                                )
-                                            }
-                                            error={!!draftModelUrlError}
-                                            helperText={
-                                                draftModelUrlError ?? " "
-                                            }
-                                        />
-                                        {allowMmproj && (
-                                            <TextField
-                                                fullWidth
-                                                label="mmproj .gguf URL"
-                                                placeholder="(optional for multimodal)"
-                                                value={draftMmprojUrl}
-                                                onChange={(event) =>
-                                                    setDraftMmprojUrl(
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                error={!!draftMmprojError}
-                                                helperText={
-                                                    draftMmprojError ?? " "
-                                                }
-                                            />
-                                        )}
-                                    </Stack>
-                                )}
 
                                 <Stack sx={{ gap: 1.5 }}>
                                     <Button
@@ -937,16 +779,16 @@ export const ChatDialogs = memo(
                                     variant="contained"
                                     color="accent"
                                     disabled={
-                                        !canSaveModelSettings ||
                                         isSavingModel ||
                                         modelGateStatus === "downloading"
                                     }
                                     onClick={() => {
                                         if (!validateModelSettings()) return;
                                         handleSaveModel({
-                                            useCustomModel: draftUseCustomModel,
-                                            modelUrl: draftModelUrl,
-                                            mmprojUrl: draftMmprojUrl,
+                                            modelId:
+                                                draftModelId === "default"
+                                                    ? ""
+                                                    : draftModelId,
                                             contextLength: draftContextLength,
                                             maxTokens: draftMaxTokens,
                                         });

@@ -780,11 +780,6 @@ Future<MLResult> analyzeImageRust(Map args) async {
         args["petBodyEmbeddingDogModelPath"] as String?;
     final String? petBodyEmbeddingCatModelPath =
         args["petBodyEmbeddingCatModelPath"] as String?;
-    final bool preferCoreml = args["preferCoreml"] as bool? ?? true;
-    final bool preferNnapi = args["preferNnapi"] as bool? ?? true;
-    final bool preferXnnpack = args["preferXnnpack"] as bool? ?? false;
-    final bool allowCpuFallback = args["allowCpuFallback"] as bool? ?? true;
-
     bool isMissingModelPath(String? path) =>
         path == null || path.trim().isEmpty;
     final missingModelPaths = <String>[];
@@ -825,6 +820,13 @@ Future<MLResult> analyzeImageRust(Map args) async {
       );
     }
 
+    // The Rust runtime creates sessions lazily, so configure execution
+    // behavior here as well in case the runtime was not prepared explicitly
+    // in this isolate.
+    await rust_ml.setMlExecutionConfig(
+      enableWebgpu: (args["enableWebGpu"] as bool?) ?? false,
+    );
+
     final modelPaths = rust_ml.RustModelPaths(
       faceDetection: faceDetectionModelPath ?? "",
       faceEmbedding: faceEmbeddingModelPath ?? "",
@@ -837,13 +839,6 @@ Future<MLResult> analyzeImageRust(Map args) async {
       petBodyEmbeddingDog: petBodyEmbeddingDogModelPath ?? "",
       petBodyEmbeddingCat: petBodyEmbeddingCatModelPath ?? "",
     );
-    final providerPolicy = rust_ml.RustExecutionProviderPolicy(
-      preferCoreml: preferCoreml,
-      preferNnapi: preferNnapi,
-      preferXnnpack: preferXnnpack,
-      allowCpuFallback: allowCpuFallback,
-    );
-
     Future<rust_ml.AnalyzeImageResult> runRustAnalyzeForPath(
       String analyzePath,
     ) {
@@ -855,7 +850,6 @@ Future<MLResult> analyzeImageRust(Map args) async {
           runClip: runClip,
           runPets: runPets,
           modelPaths: modelPaths,
-          providerPolicy: providerPolicy,
         ),
       );
     }
@@ -886,7 +880,13 @@ Future<MLResult> analyzeImageRust(Map args) async {
       );
     }
 
-    final result = MLResult.fromEnteFileID(enteFileID);
+    final result = MLResult.fromEnteFileID(
+      enteFileID,
+      remoteFlags:
+          mlIndexFlagRuntimeRust |
+          (rustResult.usedCoreml ? mlIndexFlagCoreML : 0) |
+          (rustResult.usedWebgpu ? mlIndexFlagWebGPU : 0),
+    );
     result.decodedImageSize = Dimensions(
       width: rustResult.decodedImageSize.width,
       height: rustResult.decodedImageSize.height,

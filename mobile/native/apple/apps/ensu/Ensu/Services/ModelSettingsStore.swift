@@ -53,13 +53,7 @@ final class ModelSettingsStore: ObservableObject {
     static let shared = ModelSettingsStore()
     static let highRAMThresholdBytes: UInt64 = 16 * 1024 * 1024 * 1024
 
-    @Published var useCustomModel: Bool {
-        didSet { persist() }
-    }
-    @Published var modelUrl: String {
-        didSet { persist() }
-    }
-    @Published var mmprojUrl: String {
+    @Published var modelId: String {
         didSet { persist() }
     }
     @Published var contextLength: String {
@@ -78,54 +72,41 @@ final class ModelSettingsStore: ObservableObject {
     private let defaults = UserDefaults.standard
 
     private init() {
-        self.useCustomModel = defaults.bool(forKey: Keys.useCustomModel)
-        self.modelUrl = defaults.string(forKey: Keys.modelUrl) ?? ""
-        self.mmprojUrl = defaults.string(forKey: Keys.mmprojUrl) ?? ""
+        self.modelId = defaults.string(forKey: Keys.modelId) ?? ""
         self.contextLength = defaults.string(forKey: Keys.contextLength) ?? ""
         self.maxTokens = defaults.string(forKey: Keys.maxTokens) ?? ""
         self.temperature = defaults.string(forKey: Keys.temperature) ?? ""
         self.systemPromptBody = defaults.string(forKey: Keys.systemPromptBody) ?? ""
     }
 
-    func saveCustomModel(url: String, mmproj: String, contextLength: String, maxTokens: String, temperature: String) {
-        useCustomModel = true
-        modelUrl = url
-        mmprojUrl = mmproj
+    func saveModel(id: String, contextLength: String, maxTokens: String, temperature: String) {
+        modelId = id
         self.contextLength = contextLength
         self.maxTokens = maxTokens
         self.temperature = temperature
     }
 
     func resetToDefault() {
-        useCustomModel = false
-        modelUrl = ""
-        mmprojUrl = ""
+        modelId = ""
         contextLength = ""
         maxTokens = ""
         temperature = ""
     }
 
-    func currentTarget() -> LlmModelTarget {
-        let useCustom = useCustomModel && !modelUrl.isEmpty
+    func currentSelection() -> LlmModelSelection {
         let defaults = ConfigDefaults.shared
         let defaultModel = Self.platformDefaultModel
-        let url = useCustom ? modelUrl : defaultModel.url
-        let mmproj = useCustom ? (mmprojUrl.isEmpty ? nil : mmprojUrl) : defaultModel.mmprojUrl
-        let context = Int(contextLength)
-        let maxOutput = Int(maxTokens).flatMap { $0 > 0 ? $0 : nil }
-        let id: String
-        if useCustom {
-            let presets = [defaultModel] + defaults.mobileModelPresets
-            id = presets.first(where: { $0.url == url && $0.mmprojUrl == mmproj })?.id ?? "custom:\(url)"
-        } else {
-            id = defaultModel.id
-        }
-        return LlmModelTarget(id: id, url: url, mmprojUrl: mmproj, contextLength: context, maxTokens: maxOutput)
+        let presets = [defaultModel] + defaults.mobileModelPresets
+        let preset = presets.first(where: { $0.id == modelId }) ?? defaultModel
+        return LlmModelSelection(
+            id: preset.id,
+            modelTarget: try! mobileLlmTarget(modelId: preset.id),
+            contextLength: Int(contextLength),
+            maxTokens: Int(maxTokens).flatMap { $0 > 0 ? $0 : nil }
+        )
     }
 
     static var defaultModelName: String { platformDefaultModel.title }
-    static var defaultModelUrl: String { platformDefaultModel.url }
-    static var defaultMmprojUrl: String? { platformDefaultModel.mmprojUrl }
     static var defaultSystemPromptBody: String { platformSystemPromptBody }
 
     static func currentSystemPromptBody() -> String {
@@ -147,9 +128,7 @@ final class ModelSettingsStore: ObservableObject {
     }
 
     private func persist() {
-        defaults.set(useCustomModel, forKey: Keys.useCustomModel)
-        defaults.set(modelUrl, forKey: Keys.modelUrl)
-        defaults.set(mmprojUrl, forKey: Keys.mmprojUrl)
+        defaults.set(modelId, forKey: Keys.modelId)
         defaults.set(contextLength, forKey: Keys.contextLength)
         defaults.set(maxTokens, forKey: Keys.maxTokens)
         defaults.set(temperature, forKey: Keys.temperature)
@@ -157,9 +136,7 @@ final class ModelSettingsStore: ObservableObject {
     }
 
     fileprivate enum Keys {
-        static let useCustomModel = "ensu.model.use_custom"
-        static let modelUrl = "ensu.model.url"
-        static let mmprojUrl = "ensu.model.mmproj"
+        static let modelId = "ensu.model.id"
         static let contextLength = "ensu.model.context"
         static let maxTokens = "ensu.model.max_tokens"
         static let temperature = "ensu.model.temperature"

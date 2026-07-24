@@ -3,6 +3,9 @@ name = "ente-space"
 version = "0.0.1"
 edition = "2024"
 
+[features]
+museum = ["ente-core/srp"]
+
 [dependencies]
 ente-core.workspace = true
 md-5 = "0.11"
@@ -13,5 +16,10 @@ urlencoding = "2"
 zeroize = { version = "1.8", features = ["derive"] }
 
 [dev-dependencies]
+base64 = "0.22"
+ente-accounts.workspace = true
+ente-test-support.workspace = true
 mockito = "1.6"
+reqwest = { version = "0.12", features = ["json", "rustls-tls-native-roots"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+uuid = { version = "1.11", features = ["v4"] }

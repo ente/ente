@@ -135,8 +135,8 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         if (assetEntity != null) {
           final latLong = await assetEntity.latlngAsync();
           newFile.location = Location(
-            latitude: latLong.latitude,
-            longitude: latLong.longitude,
+            latitude: latLong?.latitude,
+            longitude: latLong?.longitude,
           );
         }
       }

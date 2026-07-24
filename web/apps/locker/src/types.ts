@@ -170,7 +170,7 @@ export const canLeaveCollection = (
     collection: LockerCollection,
     currentUserID: number | undefined,
 ) =>
-    canOpenCollectionSharing(collection) &&
+    !isImportantCollection(collection) &&
     !isCollectionOwner(collection, currentUserID);
 
 export const isLockerItemOwner = (

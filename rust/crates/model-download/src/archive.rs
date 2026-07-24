@@ -1,21 +1,11 @@
 use std::fs;
 use std::fs::File;
-use std::io::Read;
 use std::path::Path;
 
 use flate2::read::GzDecoder;
 use tar::Archive;
 
 use crate::download;
-
-pub(crate) fn looks_like_gzip(path: &Path) -> bool {
-    let mut file = match File::open(path) {
-        Ok(file) => file,
-        Err(_) => return false,
-    };
-    let mut header = [0u8; 2];
-    file.read_exact(&mut header).is_ok() && header == [0x1f, 0x8b]
-}
 
 pub(crate) fn extract_tar_gz(
     archive_path: &Path,

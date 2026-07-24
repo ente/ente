@@ -25,46 +25,47 @@ thiserror.workspace = true
 
 # ORT source and revision are pinned once in the workspace manifest; only the
 # per-target feature sets are declared here.
+# The iOS Cargokit build sets ORT_LIB_PATH to the directory containing the
+# verified custom static archive; see mobile/native/onnxruntime/README.md for
+# building outside Xcode.
 [target.'cfg(target_os = "ios")'.dependencies]
 ort = { workspace = true, features = [
     "std",
     "ndarray",
     "half",
-    # Temporarily disabled to avoid iOS duplicate ObjC class collisions
-    # when both Dart ONNXRuntime and Rust ONNXRuntime are linked.
-    # Re-enable once we move to a single shared ORT runtime.
-    # "coreml",
+    # CoreML is the preferred iOS execution provider for Rust ML sessions.
+    "coreml",
     "api-27",
-    # Link the revision-pinned crate's verified 1.27 archive directly into the
-    # Rust ML library.
-    "download-binaries",
-    "tls-native",
-    "xnnpack",
 ] }
 
-[target.'cfg(not(target_os = "ios"))'.dependencies]
+[target.'cfg(target_os = "android")'.dependencies]
+ash = { version = "0.38", default-features = false, features = ["loaded"] }
 ort = { workspace = true, features = [
     "ndarray",
     "half",
     "api-27",
     "load-dynamic",
     "copy-dylibs",
-    "coreml",
-    "nnapi",
+    "webgpu",
     "xnnpack",
+] }
+
+[target.'cfg(not(any(target_os = "ios", target_os = "android")))'.dependencies]
+ort = { workspace = true, features = [
+    "ndarray",
+    "half",
+    "api-27",
+    "load-dynamic",
+    "copy-dylibs",
 ] }
 
 [dev-dependencies]
 anyhow = "1"
+ente-model-download.workspace = true
 flate2 = "1.1"
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls-webpki-roots"] }
 serde = { version = "1", features = ["derive"] }
 serde_json.workspace = true
-sha2 = "0.10"
 tar = "0.4"
 tempfile = "3.12"
-
-[[test]]
-name = "ml_indexing"
-path = "tests/ml_indexing.rs"
-required-features = ["ml-assets"]
+tokio = { version = "1", features = ["rt"] }
+url = "2.5.8"

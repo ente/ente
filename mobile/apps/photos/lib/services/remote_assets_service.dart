@@ -193,6 +193,12 @@ class RemoteAssetsService {
       "https://models.ente.io/mobileclip_s2_text_int32.onnx",
       "https://models.ente.io/yolov5s_face_opset18_rgba_opt.onnx",
       "https://models.ente.io/yolov5s_face_opset18_rgba_opt_nosplits.onnx",
+      "https://models.ente.io/yolov5s_face_640_640_dynamic.onnx",
+      "https://models.ente.io/mobilefacenet_opset15.onnx",
+      "https://models.ente.com/yolov5s_face_640_640_dynamic.onnx",
+      "https://models.ente.com/mobilefacenet_opset15.onnx",
+      "https://models.ente.io/mobileclip_s2_image.onnx",
+      "https://models.ente.com/mobileclip_s2_image.onnx",
     ];
 
     await cleanupSelectedModels(oldModelNames);

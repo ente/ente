@@ -348,15 +348,8 @@ func (c *UserController) handleAccountDeletion(
 		}
 	}()
 
-	logger.Info("mark user as deleted")
-	err = c.UserRepo.Delete(userID)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-	}
-
-	logger.Info("schedule data deletion")
-	err = c.DataCleanupRepo.Insert(ctx, userID)
-	if err != nil {
+	logger.Info("mark user as deleted and schedule data deletion")
+	if err := c.markAccountDeletedAndScheduleCleanup(ctx, userID); err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
 
@@ -369,6 +362,23 @@ func (c *UserController) handleAccountDeletion(
 		UserID:                  userID,
 	}, nil
 
+}
+
+func (c *UserController) markAccountDeletedAndScheduleCleanup(ctx context.Context, userID int64) error {
+	transaction, err := c.UserRepo.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to start account deletion transaction")
+	}
+	defer transaction.Rollback()
+
+	emailHash, err := c.UserRepo.DeleteTx(ctx, transaction, userID)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	if err := c.DataCleanupRepo.InsertTx(ctx, transaction, userID, emailHash); err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	return stacktrace.Propagate(transaction.Commit(), "failed to commit account deletion")
 }
 
 func (c *UserController) NotifyAccountDeletion(userID int64, userEmail string, isSubscriptionCancelled bool) {

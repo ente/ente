@@ -452,12 +452,14 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
       final List<Collection> pinned = [];
       final List<Collection> unpinned = [];
       final List<Collection> recentlyCreated = [];
+      final userID = Configuration.instance.getUserID()!;
       // show uncategorized collection only for restore files action
       Collection? uncategorized;
       for (final collection in collections) {
         if (collection.isQuickLinkCollection() ||
             collection.type == CollectionType.favorites ||
-            collection.type == CollectionType.uncategorized) {
+            (collection.type == CollectionType.uncategorized &&
+                collection.isOwner(userID))) {
           if (collection.type == CollectionType.uncategorized) {
             uncategorized = collection;
           }

@@ -20,7 +20,7 @@ A new Flutter FFI plugin project.
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.platform = :ios, '11.0'
+  s.platform = :ios, '15.1'
 
   # Flutter.framework does not contain an i386 slice, and ONNX Runtime 1.27
   # does not publish an x86_64 iOS Simulator binary.
@@ -29,8 +29,26 @@ A new Flutter FFI plugin project.
 
   s.script_phase = {
     :name => 'Build Rust library',
-    # First argument is relative path to the `rust` folder, second is name of rust library
-    :script => 'sh "$PODS_TARGET_SRCROOT/../cargokit/build_pod.sh" ../../../../../rust/bindings/frb/photos ente_photos_rust',
+    # Point the Rust `ort` crate at the custom prebuilt ONNX Runtime static
+    # archive for the active platform (downloaded and SHA-256 verified by
+    # CocoaPods as the EnteOnnxRuntime pod), then run the Cargokit build.
+    # The build_pod.sh arguments are the relative path to the `rust` folder
+    # and the name of the Rust library.
+    :script => <<-SCRIPT,
+      set -e
+      case "$PLATFORM_NAME" in
+        iphoneos)        ort_slice=ios-arm64 ;;
+        iphonesimulator) ort_slice=ios-arm64-simulator ;;
+        *) echo "error: unsupported platform for ONNX Runtime: $PLATFORM_NAME" >&2; exit 1 ;;
+      esac
+      export ORT_LIB_PATH="$PODS_ROOT/EnteOnnxRuntime/static-lib/$ort_slice"
+      if [ ! -f "$ORT_LIB_PATH/libonnxruntime.a" ]; then
+        echo "error: $ORT_LIB_PATH/libonnxruntime.a is missing; run 'pod install'" >&2
+        exit 1
+      fi
+      unset ORT_IOS_XCFWK_PATH ORT_IOS_XCFWK_LOCATION
+      sh "$PODS_TARGET_SRCROOT/../cargokit/build_pod.sh" ../../../../../rust/bindings/frb/photos ente_photos_rust
+    SCRIPT
     :execution_position => :before_compile,
     :input_files => ['${BUILT_PRODUCTS_DIR}/cargokit_phony'],
     # Let Xcode know that the static library linked below is created by this

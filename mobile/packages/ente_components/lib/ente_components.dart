@@ -6,6 +6,7 @@ export 'components/bottom_sheet/error_bottom_sheet_component.dart';
 export 'components/buttons/button_component.dart';
 export 'components/buttons/icon_button_component.dart';
 export 'components/divider_component.dart';
+export 'components/ente_app_icon.dart';
 export 'components/filter_chip_component.dart';
 export 'components/menu_component.dart';
 export 'components/menu_group_component.dart';

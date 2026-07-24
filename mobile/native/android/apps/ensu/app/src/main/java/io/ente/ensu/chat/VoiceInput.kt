@@ -98,8 +98,8 @@ internal class VoiceTranscriptionController(
     private val onTranscript: (String) -> Unit
 ) {
     private val modelTargets = listOf(
-        modelDownloader.transcriptionModelTarget,
-        modelDownloader.voiceActivityModelTarget
+        modelDownloader.transcriptionTarget,
+        modelDownloader.voiceActivityTarget
     )
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)

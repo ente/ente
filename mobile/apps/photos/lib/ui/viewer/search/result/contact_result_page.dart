@@ -21,6 +21,7 @@ import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/search_constants.dart";
 import "package:photos/models/search/search_result.dart";
 import "package:photos/models/selected_files.dart";
+import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/photos_contacts_service.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -71,6 +72,7 @@ class _ContactResultPageState extends State<ContactResultPage> {
   late final int _contactUserId;
   late final SearchFilterDataProvider _searchFilterDataProvider;
   contacts.ContactRecord? _savedContact;
+  String? _personId;
   bool _resolvedSavedContact = false;
 
   @override
@@ -82,6 +84,7 @@ class _ContactResultPageState extends State<ContactResultPage> {
     _searchResultName = widget.searchResult.name();
     _contactEmail = params[kContactEmail] as String? ?? _searchResultName;
     _contactUserId = params[kContactUserId] as int;
+    _personId = params[kPersonParamID] as String?;
     _filesUpdatedEvent = Bus.instance.on<LocalPhotosUpdatedEvent>().listen((
       event,
     ) {
@@ -284,15 +287,16 @@ class _ContactResultPageState extends State<ContactResultPage> {
       ),
     );
     if (updated is contacts.ContactRecord && mounted) {
+      final personData = PersonService.instance.getCachedPartialPersonData(
+        userID: _contactUserId,
+        email: _contactEmail,
+      );
       setState(() {
         _savedContact = updated;
+        _personId = personData?[PersonService.kPersonIDKey];
       });
     }
   }
-
-  String? get _personId =>
-      (widget.searchResult as GenericSearchResult).params[kPersonParamID]
-          as String?;
 
   String get _savedContactDisplayName {
     final savedName = _savedContact?.data?.name.trim();

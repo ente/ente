@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -110,6 +111,18 @@ func (c *UserController) accountRecoveryRequest(token string) (ente.RecoverAccou
 	return ente.RecoverAccountRequest{UserID: jwtToken.UserID, EmailID: jwtToken.Email}, nil
 }
 
+func (c *UserController) GetScheduledDeletions(ctx context.Context, emailID string) ([]ente.ScheduledDeletion, error) {
+	normalizedEmail := email.NormalizeEmail(emailID)
+	if normalizedEmail == "" {
+		return nil, stacktrace.Propagate(ente.NewBadRequestWithMessage("email is required"), "")
+	}
+	emailHash, err := crypto.GetHash(normalizedEmail, c.HashingKey)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to hash email")
+	}
+	return c.DataCleanupRepo.FindScheduledByEmailHash(ctx, emailHash)
+}
+
 func (c *UserController) accountRecoveryStatus(req ente.RecoverAccountRequest, allowAlreadyRecovered bool) (ente.AccountRecoveryStatus, error) {
 	user, err := c.UserRepo.Get(req.UserID)
 	if err == nil {
@@ -135,6 +148,13 @@ func (c *UserController) accountRecoveryStatus(req ente.RecoverAccountRequest, a
 			return "", stacktrace.Propagate(ErrAccountRecoveryUnavailable, "key attributes have been deleted")
 		}
 		return "", stacktrace.Propagate(err, "failed to get key attributes")
+	}
+	scheduled, err := c.DataCleanupRepo.HasScheduledDelete(context.Background(), req.UserID)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "failed to check scheduled deletion")
+	}
+	if !scheduled {
+		return "", stacktrace.Propagate(ErrAccountRecoveryUnavailable, "scheduled deletion is no longer recoverable")
 	}
 
 	recoveryEmail := email.NormalizeEmail(req.EmailID)
@@ -179,17 +199,34 @@ func (c *UserController) recoverAccount(ctx *gin.Context, req ente.RecoverAccoun
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
-	if err := c.UserRepo.UpdateEmail(req.UserID, encryptedEmail, emailHash); err != nil {
+	transaction, err := c.UserRepo.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "failed to start account recovery transaction")
+	}
+	defer transaction.Rollback()
+	storedEmailHash, err := c.DataCleanupRepo.LockScheduledDelete(ctx, transaction, req.UserID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", stacktrace.Propagate(ErrAccountRecoveryUnavailable, "scheduled deletion is no longer recoverable")
+	}
+	if err != nil {
+		return "", stacktrace.Propagate(err, "failed to lock scheduled deletion")
+	}
+	if storedEmailHash != nil && *storedEmailHash != emailHash {
+		return "", stacktrace.Propagate(ErrAccountRecoveryUnavailable, "recovery email does not match scheduled deletion")
+	}
+	if err := c.UserRepo.UpdateEmailTx(ctx, transaction, req.UserID, encryptedEmail, emailHash); err != nil {
 		if isEmailHashUniqueConstraint(err) {
 			return "", stacktrace.Propagate(ErrAccountRecoveryEmailInUse, "email was claimed while recovering the account")
 		}
 		return "", stacktrace.Propagate(err, "failed to update email")
 	}
-	c.touchContactsAfterEmailUpdate(ctx, req.UserID)
-	if err := c.DataCleanupRepo.RemoveScheduledDelete(ctx, req.UserID); err != nil {
-		logger.WithError(err).Error("failed to remove scheduled delete")
-		return "", stacktrace.Propagate(err, "")
+	if err := c.DataCleanupRepo.RemoveScheduledDeleteTx(ctx, transaction, req.UserID); err != nil {
+		return "", stacktrace.Propagate(err, "failed to remove scheduled delete")
 	}
+	if err := transaction.Commit(); err != nil {
+		return "", stacktrace.Propagate(err, "failed to commit account recovery")
+	}
+	c.touchContactsAfterEmailUpdate(ctx, req.UserID)
 	return ente.AccountRecoveryRecovered, nil
 }
 

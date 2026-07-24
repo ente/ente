@@ -1009,7 +1009,7 @@ class _MemoryTopOverlay extends StatelessWidget {
           );
           if (safeIndex == null) return const SizedBox.shrink();
           final currentFile = inheritedData.memories[safeIndex].file;
-          final showFavorite = currentFile.isOwner && !isLocalGalleryMode;
+          final showFavorite = currentFile.isUploaded && !isLocalGalleryMode;
           return Padding(
             padding: EdgeInsets.only(top: max(safePadding.top, 40)),
             child: Column(

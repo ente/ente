@@ -105,6 +105,7 @@ fun ChatView(
     }
     val canStartVoiceInput = !chatState.isGenerating &&
         !chatState.isDownloading &&
+        chatState.isModelDownloaded &&
         !isChatUnsupported &&
         editingMessage == null
     val latestCanStartVoiceInput by rememberUpdatedState(canStartVoiceInput)
@@ -128,14 +129,12 @@ fun ChatView(
     val showDownloadOnboarding by remember(
         chatState.isModelDownloaded,
         chatState.isModelStateKnown,
-        chatState.messages,
         chatState.isGenerating,
         isChatUnsupported
     ) {
         derivedStateOf {
             chatState.isModelStateKnown &&
                 !chatState.isModelDownloaded &&
-                chatState.messages.isEmpty() &&
                 !chatState.isGenerating &&
                 !isChatUnsupported
         }

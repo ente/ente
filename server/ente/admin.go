@@ -74,6 +74,15 @@ type RecoverAccountRequest struct {
 	EmailID string `json:"emailID" binding:"required"`
 }
 
+type ScheduledDeletion struct {
+	UserID                  int64 `json:"userID"`
+	UserCreatedAt           int64 `json:"userCreatedAt"`
+	ScheduledAt             int64 `json:"scheduledAt"`
+	DeletionStartsAt        int64 `json:"deletionStartsAt"`
+	StorageConsumed         int64 `json:"storageConsumed"`
+	AuthenticatorEntryCount int64 `json:"authenticatorEntryCount"`
+}
+
 // UpdateSubscriptionRequest is used to update a user's subscription
 type UpdateSubscriptionRequest struct {
 	AdminID         int64                  `json:"-"`

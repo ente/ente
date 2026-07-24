@@ -6,7 +6,6 @@ import (
 	b64 "encoding/base64"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"path"
@@ -73,7 +72,6 @@ import (
 	userEntityRepo "github.com/ente/museum/pkg/repo/userentity"
 	"github.com/ente/museum/pkg/utils/billing"
 	"github.com/ente/museum/pkg/utils/config"
-	"github.com/ente/museum/pkg/utils/network"
 	"github.com/ente/museum/pkg/utils/s3config"
 	timeUtil "github.com/ente/museum/pkg/utils/time"
 	spaceapi "github.com/ente/museum/space/api"
@@ -109,15 +107,20 @@ func main() {
 		panic(err)
 	}
 
-	setAppDefaults()
+	viper.SetDefault("apps.public-albums", "https://albums.ente.com")
+	viper.SetDefault("apps.embed-albums", "https://embed.ente.com")
+	viper.SetDefault("apps.custom-domain.cname", "my.ente.com")
+	viper.SetDefault("apps.public-locker", "https://share.ente.com")
+	viper.SetDefault("apps.public-paste", "https://paste.ente.com")
+	viper.SetDefault("apps.public-memories", "https://memories.ente.com")
+	viper.SetDefault("apps.accounts", "https://accounts.ente.com")
+	viper.SetDefault("apps.accounts-legacy", "https://accounts.ente.io")
+	viper.SetDefault("apps.cast", "https://cast.ente.com")
+	viper.SetDefault("apps.family", "https://family.ente.io")
+	viper.SetDefault("apps.space", "https://ente.space")
 
 	setupLogger(environment)
 	log.Infof("Booting up %s server with commit #%s", environment, os.Getenv("GIT_COMMIT"))
-	if viper.GetBool("apps.cors-report-only") {
-		log.Info("CORS report-only: allowing unknown browser origins (configure apps.* to enforce)")
-	} else {
-		log.Info("CORS: rejecting unknown browser origins")
-	}
 
 	secretEncryptionKey := viper.GetString("key.encryption")
 	hashingKey := viper.GetString("key.hash")
@@ -963,6 +966,7 @@ func main() {
 	adminAPI.GET("/listmonk/missing-subscribers/count", adminHandler.GetListmonkMissingSubscribersCount)
 	adminAPI.GET("/users", adminHandler.GetUsers)
 	adminAPI.GET("/user", adminHandler.GetUser)
+	adminAPI.GET("/user/scheduled-deletions", adminHandler.GetScheduledDeletions)
 	adminAPI.POST("/user/disable-2fa", adminHandler.DisableTwoFactor)
 	adminAPI.POST("/user/update-referral", adminHandler.UpdateReferral)
 	adminAPI.POST("/user/disable-passkeys", adminHandler.RemovePasskeys)
@@ -1093,33 +1097,6 @@ func main() {
 	<-quit
 	log.Println("Shutting down server...")
 	discordController.NotifyShutdown()
-}
-
-func setAppDefaults() {
-	// In the future, the default will become:
-	// viper.SetDefault("apps.cors-report-only", false)
-	viper.SetDefault("apps.cors-report-only", viper.GetString("apps.photos") == "" &&
-		viper.GetString("apps.auth") == "" &&
-		viper.GetString("apps.locker") == "" &&
-		len(viper.GetStringSlice("apps.extra-origins")) == 0)
-
-	viper.SetDefault("apps.photos", "https://photos.ente.com")
-	viper.SetDefault("apps.public-albums", "https://albums.ente.com")
-	viper.SetDefault("apps.embed-albums", "https://embed.ente.com")
-	viper.SetDefault("apps.auth", "https://auth.ente.com")
-	viper.SetDefault("apps.locker", "https://locker.ente.com")
-	viper.SetDefault("apps.public-locker", "https://share.ente.com")
-	viper.SetDefault("apps.public-paste", "https://paste.ente.com")
-	viper.SetDefault("apps.public-memories", "https://memories.ente.com")
-	viper.SetDefault("apps.accounts", "https://accounts.ente.com")
-	viper.SetDefault("apps.accounts-legacy", "https://accounts.ente.io")
-	viper.SetDefault("apps.payments", "https://payments.ente.com")
-	viper.SetDefault("apps.cast", "https://cast.ente.com")
-	viper.SetDefault("apps.family", "https://family.ente.io")
-	viper.SetDefault("apps.space", "https://ente.space")
-	viper.SetDefault("apps.legacy", "https://legacy.ente.com")
-	viper.SetDefault("apps.extra-origins", []string{"https://ente.com", "https://ente.io", "https://web.ente.io", "https://auth.ente.io", "https://locker.ente.io", "https://share.ente.io", "https://payments.ente.io", "https://embed.ente.io", "https://cast.ente.io", "https://staff.ente.sh"})
-	viper.SetDefault("apps.custom-domain.cname", "my.ente.com")
 }
 
 func runServer(environment string, server *gin.Engine) {
@@ -1425,57 +1402,8 @@ func setupAndStartCrons(userAuthRepo *repo.UserAuthRepository, collectionLinkRep
 }
 
 func cors() gin.HandlerFunc {
-	origins := []string{"ente://app"}
-	apps, _ := viper.AllSettings()["apps"].(map[string]interface{})
-	for _, value := range apps {
-		if origin, ok := value.(string); ok {
-			origins = append(origins, origin)
-		}
-	}
-	origins = append(origins, viper.GetStringSlice("apps.extra-origins")...)
-	return corsForOrigins(origins, !viper.GetBool("apps.cors-report-only"))
-}
-
-func corsForOrigins(origins []string, enforce bool) gin.HandlerFunc {
-	knownOrigins := make(map[string]bool, len(origins))
-	for _, origin := range origins {
-		if origin = normalizeOrigin(origin); origin != "" {
-			knownOrigins[origin] = true
-		}
-	}
-	isAllowed := func(c *gin.Context, origin string) bool {
-		path := c.Request.URL.Path
-		if path == "/files/count" || path == "/billing/plans/v2" {
-			return true
-		}
-		if origin == "" || knownOrigins[normalizeOrigin(origin)] || network.IsLoopbackOrigin(origin) {
-			return true
-		}
-		// CollectionLinkMiddleware validates custom album domains.
-		return path == "/public-collection" || strings.HasPrefix(path, "/public-collection/")
-	}
-
 	return func(c *gin.Context) {
-		origin := c.GetHeader("Origin")
-		if !isAllowed(c, origin) {
-			if c.Request.Method != http.MethodOptions || enforce {
-				message := "unknown CORS origin"
-				if enforce {
-					message = "rejecting unknown CORS origin"
-				}
-				log.WithFields(log.Fields{
-					"clientPackage": c.GetHeader("X-Client-Package"),
-					"origin":        origin,
-					"path":          c.FullPath(),
-				}).Warn(message)
-			}
-			if enforce {
-				c.AbortWithStatus(http.StatusForbidden)
-				return
-			}
-		}
-
-		c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		c.Writer.Header().Set("Access-Control-Allow-Origin", c.GetHeader("Origin"))
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-Auth-Token, X-Space-Session-Token, X-Auth-Access-Token, X-Cast-Access-Token, X-Auth-Access-Token-JWT, X-Auth-Link-Device-Token, X-Client-Package, X-Client-Version, X-Paste-Consume, Authorization, accept, origin, Cache-Control, X-Requested-With, upgrade-insecure-requests, Range")
 		c.Writer.Header().Set("Access-Control-Expose-Headers", "X-Request-Id, X-Ente-Link-Device-Token")
@@ -1490,14 +1418,6 @@ func corsForOrigins(origins []string, enforce bool) gin.HandlerFunc {
 		}
 		c.Next()
 	}
-}
-
-func normalizeOrigin(origin string) string {
-	parsed, err := url.Parse(strings.TrimSpace(origin))
-	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
-		return ""
-	}
-	return strings.ToLower(parsed.Scheme + "://" + parsed.Host)
 }
 
 func cacheHeaders() gin.HandlerFunc {

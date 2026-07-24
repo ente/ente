@@ -43,11 +43,14 @@ import io.ente.ensu.designsystem.EnsuSpacing
 import io.ente.ensu.designsystem.EnsuTypography
 import io.ente.ensu.designsystem.HugeIcons
 
+internal const val IS_ENSU_PACKS_ENABLED = false
+
 @Composable
 fun SettingsScreen(
     buildVersion: String,
     isAdvancedUnlocked: Boolean,
     onOpenLogs: () -> Unit,
+    onOpenKnowledge: () -> Unit,
     onOpenModelSettings: () -> Unit,
     onOpenSystemPromptSettings: () -> Unit,
     onUnlockAdvanced: () -> Unit,
@@ -58,7 +61,7 @@ fun SettingsScreen(
     var lastBuildVersionTapAt by remember { mutableStateOf<Long?>(null) }
     val context = LocalContext.current
 
-    val allItems = remember(context, onOpenLogs, onSignIn) {
+    val allItems = remember(context, onOpenLogs, onOpenKnowledge, onSignIn) {
         buildList {
             add(
                 SettingsItem(
@@ -67,6 +70,16 @@ fun SettingsScreen(
                     onClick = { context.openExternalLink("https://ente.com/blog/ensu/") }
                 )
             )
+
+            if (IS_ENSU_PACKS_ENABLED) {
+                add(
+                    SettingsItem(
+                        title = "Ensu Packs",
+                        iconRes = HugeIcons.PackageIcon,
+                        onClick = onOpenKnowledge
+                    )
+                )
+            }
 
             add(
                 SettingsItem(

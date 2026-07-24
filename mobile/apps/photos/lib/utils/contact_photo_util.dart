@@ -30,14 +30,39 @@ Future<Uint8List?> buildContactPhotoAttachmentBytesFromFace({
 Future<Uint8List?> buildContactPhotoAttachmentBytesFromPerson(
   PersonEntity person,
 ) async {
-  final hiddenFileIds = await SearchService.instance.getHiddenFiles().then(
-    (files) => files.map((file) => file.uploadedFileID).toSet(),
-  );
   final faceIds = await MLDataDB.instance.getFaceIDsForPersonOrderedByScore(
     person.remoteID,
   );
+  return _buildContactPhotoAttachmentBytesFromFaceGroup(
+    faceIds: faceIds,
+    avatarFaceId: person.data.avatarFaceID,
+    personID: person.remoteID,
+  );
+}
+
+Future<Uint8List?> buildContactPhotoAttachmentBytesFromCluster(
+  String clusterID,
+) async {
+  final faceIds = await MLDataDB.instance.getFaceIDsForClusterOrderedByScore(
+    clusterID,
+  );
+  return _buildContactPhotoAttachmentBytesFromFaceGroup(
+    faceIds: faceIds,
+    clusterID: clusterID,
+  );
+}
+
+Future<Uint8List?> _buildContactPhotoAttachmentBytesFromFaceGroup({
+  required List<String> faceIds,
+  String? avatarFaceId,
+  String? personID,
+  String? clusterID,
+}) async {
+  final hiddenFileIds = await SearchService.instance.getHiddenFiles().then(
+    (files) => files.map((file) => file.uploadedFileID).toSet(),
+  );
   EnteFile? sourceFile;
-  String? faceId = person.data.avatarFaceID;
+  String? faceId = avatarFaceId;
 
   if (faceId != null) {
     final fileId = getFileIdFromFaceId<int>(faceId);
@@ -67,7 +92,8 @@ Future<Uint8List?> buildContactPhotoAttachmentBytesFromPerson(
   final face = await MLDataDB.instance.getCoverFaceForPerson(
     recentFileID: sourceFile.uploadedFileID!,
     avatarFaceId: faceId,
-    personID: person.remoteID,
+    personID: personID,
+    clusterID: clusterID,
   );
   if (face == null) {
     return null;

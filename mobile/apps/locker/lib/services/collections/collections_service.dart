@@ -25,6 +25,7 @@ import 'package:locker/services/files/offline/offline_files_service.dart';
 import 'package:locker/services/files/sync/models/file.dart';
 import 'package:locker/services/trash/models/trash_item_request.dart';
 import "package:locker/services/trash/trash_service.dart";
+import "package:locker/utils/collection_list_util.dart";
 import "package:locker/utils/crypto_helper.dart";
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -214,7 +215,9 @@ class CollectionService {
     final int userID = Configuration.instance.getUserID()!;
 
     return collections.where((c) {
-      if (!includeUncategorized && c.type == CollectionType.uncategorized) {
+      if (!includeUncategorized &&
+          c.type == CollectionType.uncategorized &&
+          c.isOwner(userID)) {
         return false;
       }
 
@@ -362,10 +365,10 @@ class CollectionService {
 
   Future<Collection> getOrCreateUncategorizedCollection() async {
     final collections = await getCollections();
-    for (final collection in collections) {
-      if (collection.type == CollectionType.uncategorized) {
-        return collection;
-      }
+    final userID = Configuration.instance.getUserID()!;
+    final collection = findUserUncategorizedCollection(collections, userID);
+    if (collection != null) {
+      return collection;
     }
     _logger.info("No collections found, creating uncategorized collection.");
     return await createCollection(

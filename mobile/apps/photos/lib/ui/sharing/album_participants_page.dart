@@ -76,7 +76,10 @@ class _AlbumParticipantsPageState extends State<AlbumParticipantsPage> {
     final bool hasActivePublicLink =
         _collection.hasLink &&
         !(_collection.publicURLs.firstOrNull?.isExpired ?? true);
-    final bool shouldShowPublicLink = !isOwner && hasActivePublicLink;
+    final bool shouldShowPublicLink =
+        _collection.type != CollectionType.uncategorized &&
+        !isOwner &&
+        hasActivePublicLink;
     final int participants = 1 + _collection.getSharees().length;
     final User owner = _collection.owner;
     if (owner.id == currentUserID && owner.email == "") {

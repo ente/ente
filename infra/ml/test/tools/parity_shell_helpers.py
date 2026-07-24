@@ -48,6 +48,15 @@ def cmd_manifest_fixtures(args: list[str]) -> None:
         print(f"{source}\t{source_url}\t{source_sha}")
 
 
+def cmd_model_assets(args: list[str]) -> None:
+    asset_lock = json.loads(Path(args[0]).read_text())
+    for model in asset_lock.get("models", {}).values():
+        file_name = str(model.get("file_name", "")).strip()
+        url = str(model.get("url", "")).strip()
+        sha256 = str(model.get("sha256", "")).strip()
+        print(f"{file_name}\t{url}\t{sha256}")
+
+
 def cmd_file_url(args: list[str]) -> None:
     posix_path = Path(args[0]).resolve().as_posix()
     if not posix_path.startswith("/"):
@@ -642,6 +651,7 @@ COMMANDS = {
     "sha256-file": cmd_sha256_file,
     "reserve-port": cmd_reserve_port,
     "manifest-fixtures": cmd_manifest_fixtures,
+    "model-assets": cmd_model_assets,
     "file-url": cmd_file_url,
     "pick-device": cmd_pick_device,
     "pick-ios-simulator": cmd_pick_ios_simulator,

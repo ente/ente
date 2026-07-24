@@ -6,18 +6,24 @@ edition = "2024"
 ente-core.workspace = true
 ente-image.workspace = true
 ente-model-download.workspace = true
-parking_lot = "0.12"
+memmap2 = "0.9.9"
 regex = { version = "1", optional = true }
 rubato = { version = "0.16", optional = true }
 rusqlite = { version = "0.38", features = ["bundled"], optional = true }
 self_cell = "1"
 serde.workspace = true
 serde_json.workspace = true
+sha2 = "0.11.0"
 thiserror.workspace = true
 tokio = { version = "1", features = ["rt", "time"] }
 transcribe-rs = { version = "0.3.11", default-features = false, features = ["onnx", "vad-silero"], optional = true }
+url = "2.5.8"
 uuid = { version = "1", features = ["v4", "rng-getrandom"] }
 zeroize = { version = "1.8", features = ["derive"] }
+zstd = "0.13.3"
+
+[dev-dependencies]
+tempfile = "3.27.0"
 
 # llama-cpp-2's default features are "openmp" and "android-shared-stdcxx".
 #
@@ -51,7 +57,18 @@ llama-cpp-2 = { version = "=0.1.144", features = ["mtmd"] }
 [target.'cfg(target_os = "android")'.dependencies]
 ort = { workspace = true, features = ["load-dynamic"], optional = true }
 
+# The iOS app links Ente's custom ONNX Runtime XCFramework via SPM, so ort-sys
+# must not download/link pyke's binaries. See mobile/native/onnxruntime/README.md.
+[target.'cfg(target_os = "ios")'.dependencies]
+ort-sys = { workspace = true, features = ["disable-linking"], optional = true }
+
 [features]
 default = ["sqlite"]
 sqlite = ["dep:rusqlite"]
-transcription = ["dep:ort", "dep:regex", "dep:rubato", "dep:transcribe-rs"]
+transcription = [
+    "dep:ort",
+    "dep:ort-sys",
+    "dep:regex",
+    "dep:rubato",
+    "dep:transcribe-rs",
+]

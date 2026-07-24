@@ -7,6 +7,8 @@ Current contents include:
 - `CLIP/`: CLIP/mobileclip notebooks and experiments.
 - `YOLOv5Face/`: YOLOv5Face notebooks and related assets.
 - `data/`: local sample images used by notebooks.
+- `optimizations/`: reproducible model-optimization scripts and their final
+  artifacts.
 
 ## Running notebooks
 

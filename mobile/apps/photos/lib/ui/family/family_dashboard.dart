@@ -22,13 +22,8 @@ enum FamilyMemberAction {
 }
 
 AvatarComponentColor familyMemberAvatarComponentColor(FamilyMember member) {
-  return avatarComponentColorForAvatarIdentity(
-    AvatarIdentity.account(
-      label: member.email,
-      email: member.email,
-      userID: member.userID,
-      currentUserEmail: null,
-    ),
+  return avatarComponentColorForIdentity(
+    avatarIdentityKey(email: member.email, userID: member.userID),
   );
 }
 
@@ -81,6 +76,7 @@ class FamilyDashboard extends StatelessWidget {
     required this.contactsByUserId,
     required this.profilePictureBytesByUserId,
     required this.linkedPersonIdsByUserId,
+    required this.linkedPersonNamesByUserId,
     required this.librarySharingEnabled,
     this.sharedAlbumCountsByUserId = const {},
     required this.onMemberTap,
@@ -95,9 +91,10 @@ class FamilyDashboard extends StatelessWidget {
   final Map<int, contacts.ContactRecord?> contactsByUserId;
   final Map<int, Uint8List?> profilePictureBytesByUserId;
   final Map<int, String> linkedPersonIdsByUserId;
+  final Map<int, String> linkedPersonNamesByUserId;
   final bool librarySharingEnabled;
   final Map<int, int> sharedAlbumCountsByUserId;
-  final ValueChanged<FamilyMember> onMemberTap;
+  final void Function(FamilyMember member, String displayName) onMemberTap;
   final VoidCallback onAddMember;
   final int remainingSlots;
 
@@ -117,6 +114,7 @@ class FamilyDashboard extends StatelessWidget {
         _FamilyStorageCard(
           userDetails: userDetails,
           members: activeMembers,
+          labelFor: _storageLabelFor,
           avatarColorFor: _avatarColorFor,
         ),
         const SizedBox(height: Spacing.xl),
@@ -136,7 +134,7 @@ class FamilyDashboard extends StatelessWidget {
             sharedAlbumCount: librarySharingEnabled
                 ? sharedAlbumCountsByUserId[member.userID]
                 : null,
-            onTap: () => onMemberTap(member),
+            onTap: () => onMemberTap(member, _displayNameFor(member)),
           ),
           if (index < visibleMembers.length - 1)
             const SizedBox(height: Spacing.sm),
@@ -178,11 +176,21 @@ class FamilyDashboard extends StatelessWidget {
   }
 
   String _displayNameFor(FamilyMember member) =>
-      _savedNameFor(member) ?? member.email;
+      _savedNameFor(member) ?? _linkedPersonNameFor(member) ?? member.email;
+
+  String _storageLabelFor(FamilyMember member) =>
+      _savedNameFor(member) ??
+      _linkedPersonNameFor(member) ??
+      member.email.split('@').first;
 
   String? _savedNameFor(FamilyMember member) {
     final savedName = contactsByUserId[member.userID]?.data?.name.trim();
     return savedName == null || savedName.isEmpty ? null : savedName;
+  }
+
+  String? _linkedPersonNameFor(FamilyMember member) {
+    final personName = linkedPersonNamesByUserId[member.userID]?.trim();
+    return personName == null || personName.isEmpty ? null : personName;
   }
 
   AvatarComponentColor _avatarColorFor(FamilyMember member) =>
@@ -193,11 +201,13 @@ class _FamilyStorageCard extends StatelessWidget {
   const _FamilyStorageCard({
     required this.userDetails,
     required this.members,
+    required this.labelFor,
     required this.avatarColorFor,
   });
 
   final UserDetails userDetails;
   final List<FamilyMember> members;
+  final String Function(FamilyMember member) labelFor;
   final AvatarComponentColor Function(FamilyMember member) avatarColorFor;
 
   @override
@@ -240,6 +250,18 @@ class _FamilyStorageCard extends StatelessWidget {
               members: members,
               totalStorage: totalStorage,
               colorFor: memberColor,
+            ),
+            const SizedBox(height: Spacing.sm),
+            Wrap(
+              spacing: 10,
+              runSpacing: Spacing.xs,
+              children: [
+                for (final member in members)
+                  _StorageLegend(
+                    color: memberColor(member),
+                    label: labelFor(member),
+                  ),
+              ],
             ),
           ],
         ),
@@ -303,6 +325,35 @@ class _StorageBar extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _StorageLegend extends StatelessWidget {
+  const _StorageLegend({required this.color, required this.label});
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 3),
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyles.tiny.copyWith(color: colors.textBase),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -390,9 +441,16 @@ class _MemberAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasPhoto = profilePictureBytes != null || linkedPersonId != null;
+    final cachedPixelWidth =
+        (AvatarComponentSize.large.dimension *
+                MediaQuery.devicePixelRatioOf(context))
+            .round();
     Widget avatar = profilePictureBytes != null
         ? AvatarComponent.image(
-            image: MemoryImage(profilePictureBytes!),
+            image: ResizeImage(
+              MemoryImage(profilePictureBytes!),
+              width: cachedPixelWidth,
+            ),
             size: AvatarComponentSize.large,
             semanticLabel: displayName,
           )
@@ -405,10 +463,7 @@ class _MemberAvatar extends StatelessWidget {
               child: ClipOval(
                 child: PersonFaceWidget(
                   personId: linkedPersonId,
-                  cachedPixelWidth:
-                      (AvatarComponentSize.large.dimension *
-                              MediaQuery.devicePixelRatioOf(context))
-                          .round(),
+                  cachedPixelWidth: cachedPixelWidth,
                 ),
               ),
             ),

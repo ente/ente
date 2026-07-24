@@ -63,7 +63,7 @@ import { NavbarBase } from "ente-base/components/Navbar";
 import type { NotificationAttributes } from "ente-base/components/Notification";
 import { useBaseContext } from "ente-base/context";
 import { buildEnvEnsuDesktopVersion } from "ente-base/env";
-import { getKV, removeKV, setKV } from "ente-base/kv";
+import { getKV, removeKV } from "ente-base/kv";
 import log from "ente-base/log";
 import { savedLogs } from "ente-base/log-web";
 import { saveStringAsFile } from "ente-base/utils/web";
@@ -591,15 +591,14 @@ const Page: React.FC = () => {
     const [showModelSettings, setShowModelSettings] = useState(false);
     const [showSystemPromptSettings, setShowSystemPromptSettings] =
         useState(false);
-    const [useCustomModel, setUseCustomModel] = useState(false);
+
     const [modelSettingsLoaded, setModelSettingsLoaded] = useState(false);
     const [resolvedDefaultModel, setResolvedDefaultModel] =
         useState<ModelInfo>(DEFAULT_MODEL);
     const [resolvedModelPresets, setResolvedModelPresets] = useState<
         ResolvedModelPreset[] | null
     >(null);
-    const [modelUrl, setModelUrl] = useState("");
-    const [mmprojUrl, setMmprojUrl] = useState("");
+    const [selectedModelId, setSelectedModelId] = useState("");
     const [contextLength, setContextLength] = useState("");
     const [maxTokens, setMaxTokens] = useState("");
     const [systemPrompt, setSystemPrompt] = useState(
@@ -953,111 +952,99 @@ const Page: React.FC = () => {
                 DEFAULT_CHAT_SYSTEM_PROMPT_BODY,
         );
 
-        // Only restore custom model settings when advanced settings are
-        // unlocked. Without this gate a user who had custom settings before
-        // the unlock feature was added would silently keep a hidden custom
-        // model with no visible way to change it.
-        if (!isUnlocked) {
-            setModelSettingsLoaded(true);
-            return;
-        }
-
-        let raw = window.localStorage.getItem(MODEL_SETTINGS_STORAGE_KEY);
-        if (!raw) {
-            // Migrate from IndexedDB (previous storage) to localStorage
-            void getKV(MODEL_SETTINGS_STORAGE_KEY)
-                .then((kvRaw) => {
-                    if (cancelled || !kvRaw || typeof kvRaw !== "object") {
-                        return;
-                    }
-                    const migrated = JSON.stringify(kvRaw);
-                    window.localStorage.setItem(
-                        MODEL_SETTINGS_STORAGE_KEY,
-                        migrated,
-                    );
-                    // Re-trigger the effect by reloading settings from the migrated data
-                    const parsed = kvRaw as {
-                        useCustomModel?: boolean;
-                        modelUrl?: string;
-                        mmprojUrl?: string;
-                        contextLength?: string;
-                        maxTokens?: string;
-                    };
-                    const isTauri = detectTauriRuntime();
-                    const canMmproj = isTauri;
-                    const rawContextLength = parsed.contextLength ?? "";
-                    const clampedContextLength =
-                        !isTauri &&
-                        rawContextLength &&
-                        Number(rawContextLength) > DEFAULT_WEB_CONTEXT_SIZE
-                            ? String(DEFAULT_WEB_CONTEXT_SIZE)
-                            : rawContextLength;
-                    if (clampedContextLength !== rawContextLength) {
-                        const clamped = {
-                            ...parsed,
-                            contextLength: clampedContextLength,
-                        };
-                        window.localStorage.setItem(
-                            MODEL_SETTINGS_STORAGE_KEY,
-                            JSON.stringify(clamped),
-                        );
-                    }
-                    setUseCustomModel(!!parsed.useCustomModel);
-                    setModelUrl(parsed.modelUrl ?? "");
-                    setMmprojUrl(canMmproj ? (parsed.mmprojUrl ?? "") : "");
-                    setContextLength(clampedContextLength);
-                    setMaxTokens(parsed.maxTokens ?? "");
-                    void removeKV(MODEL_SETTINGS_STORAGE_KEY);
-                })
-                .catch((error: unknown) => {
-                    log.error("Failed to migrate model settings", error);
-                })
-                .finally(() => {
-                    if (!cancelled) setModelSettingsLoaded(true);
-                });
-            return () => {
-                cancelled = true;
-            };
-        }
-        try {
-            const parsed = JSON.parse(raw) as {
-                useCustomModel?: boolean;
-                modelUrl?: string;
-                mmprojUrl?: string;
-                contextLength?: string;
-                maxTokens?: string;
-            };
-            const isTauri = detectTauriRuntime();
-            const canMmproj = isTauri;
+        const applySettings = (parsed: {
+            modelId?: string;
+            contextLength?: string;
+            maxTokens?: string;
+        }) => {
             const rawContextLength = parsed.contextLength ?? "";
             const clampedContextLength =
-                !isTauri &&
+                !detectTauriRuntime() &&
                 rawContextLength &&
                 Number(rawContextLength) > DEFAULT_WEB_CONTEXT_SIZE
                     ? String(DEFAULT_WEB_CONTEXT_SIZE)
                     : rawContextLength;
-            if (clampedContextLength !== rawContextLength) {
-                const nextSettings = {
-                    useCustomModel: !!parsed.useCustomModel,
-                    modelUrl: parsed.modelUrl ?? "",
-                    mmprojUrl: canMmproj ? (parsed.mmprojUrl ?? "") : "",
-                    contextLength: clampedContextLength,
-                    maxTokens: parsed.maxTokens ?? "",
-                };
-                window.localStorage.setItem(
-                    MODEL_SETTINGS_STORAGE_KEY,
-                    JSON.stringify(nextSettings),
+            const settings = {
+                modelId: parsed.modelId ?? "",
+                contextLength: clampedContextLength,
+                maxTokens: parsed.maxTokens ?? "",
+            };
+            window.localStorage.setItem(
+                MODEL_SETTINGS_STORAGE_KEY,
+                JSON.stringify(settings),
+            );
+            if (cancelled) return;
+            setSelectedModelId(settings.modelId);
+            setContextLength(settings.contextLength);
+            setMaxTokens(settings.maxTokens);
+        };
+
+        // Loads persisted settings and runs the one Rust model migration.
+        // Settings persisted by builds that stored a model URL selection
+        // convert through it once: a URL matching a current preset maps to
+        // its id, anything else becomes the default.
+        const loadSettings = async () => {
+            let raw = window.localStorage.getItem(MODEL_SETTINGS_STORAGE_KEY);
+            if (!raw) {
+                // Settings from even older builds live in IndexedDB.
+                const kvRaw = await getKV(MODEL_SETTINGS_STORAGE_KEY).catch(
+                    () => undefined,
                 );
+                if (kvRaw && typeof kvRaw === "object") {
+                    raw = JSON.stringify(kvRaw);
+                    window.localStorage.setItem(
+                        MODEL_SETTINGS_STORAGE_KEY,
+                        raw,
+                    );
+                    void removeKV(MODEL_SETTINGS_STORAGE_KEY);
+                }
             }
-            setUseCustomModel(!!parsed.useCustomModel);
-            setModelUrl(parsed.modelUrl ?? "");
-            setMmprojUrl(canMmproj ? (parsed.mmprojUrl ?? "") : "");
-            setContextLength(clampedContextLength);
-            setMaxTokens(parsed.maxTokens ?? "");
-        } catch (error) {
-            log.error("Failed to read model settings", error);
-        }
-        setModelSettingsLoaded(true);
+            const parsed = raw
+                ? (JSON.parse(raw) as {
+                      modelId?: string;
+                      useCustomModel?: boolean;
+                      modelUrl?: string;
+                      mmprojUrl?: string;
+                      contextLength?: string;
+                      maxTokens?: string;
+                  })
+                : {};
+            let modelId = parsed.modelId ?? "";
+            if (detectTauriRuntime()) {
+                const legacyModelUrl =
+                    parsed.modelId === undefined &&
+                    parsed.useCustomModel &&
+                    parsed.modelUrl?.trim()
+                        ? parsed.modelUrl.trim()
+                        : null;
+                const { invoke } = await import("@tauri-apps/api/core");
+                const converted = await invoke<string | null>(
+                    "llm_migrate_models",
+                    {
+                        legacyModelUrl,
+                        legacyMmprojUrl: legacyModelUrl
+                            ? parsed.mmprojUrl?.trim() || null
+                            : null,
+                    },
+                );
+                if (legacyModelUrl) {
+                    modelId = converted ?? "";
+                }
+            }
+            applySettings({
+                modelId,
+                contextLength: parsed.contextLength,
+                maxTokens: parsed.maxTokens,
+            });
+        };
+
+        void loadSettings()
+            .catch((error: unknown) => {
+                log.error("Failed to load model settings", error);
+            })
+            .finally(() => {
+                if (!cancelled) setModelSettingsLoaded(true);
+            });
         return () => {
             cancelled = true;
         };
@@ -1517,13 +1504,6 @@ const Page: React.FC = () => {
         };
     }, [currentRootSessionUuid]);
 
-    useEffect(() => {
-        if (isTauriRuntime) return;
-        if (mmprojUrl) {
-            setMmprojUrl("");
-        }
-    }, [isTauriRuntime, mmprojUrl]);
-
     const filteredSessions = useMemo(() => {
         const query = sessionSearch.trim().toLowerCase();
         if (!query) return sessions;
@@ -1652,7 +1632,7 @@ const Page: React.FC = () => {
         modelGateStatus === "downloading";
 
     const downloadSizeLabel = useMemo(() => {
-        if (useCustomModel) {
+        if (selectedModelId) {
             return "Approx. size varies by model";
         }
         if (resolvedDefaultModel.sizeBytes) {
@@ -1664,7 +1644,7 @@ const Page: React.FC = () => {
         return resolvedDefaultModel.sizeHuman
             ? `Approx. ${resolvedDefaultModel.sizeHuman}`
             : "Approx. size varies by model";
-    }, [allowMmproj, resolvedDefaultModel, useCustomModel]);
+    }, [allowMmproj, resolvedDefaultModel, selectedModelId]);
 
     const downloadStatusLabel = useMemo(() => {
         if (!showDownloadProgress) return null;
@@ -1715,31 +1695,15 @@ const Page: React.FC = () => {
     }, []);
 
     const getModelSettings = useCallback((): ModelSettings => {
-        const customModelEnabled = useCustomModel;
         return {
-            useCustomModel: customModelEnabled,
-            modelUrl:
-                customModelEnabled && modelUrl.trim()
-                    ? modelUrl.trim()
-                    : undefined,
-            mmprojUrl:
-                customModelEnabled && allowMmproj && mmprojUrl.trim()
-                    ? mmprojUrl.trim()
-                    : undefined,
+            modelId: selectedModelId || undefined,
             contextLength: contextLength ? Number(contextLength) : undefined,
             maxTokens:
                 maxTokens && Number(maxTokens) > 0
                     ? Number(maxTokens)
                     : undefined,
         };
-    }, [
-        useCustomModel,
-        modelUrl,
-        mmprojUrl,
-        contextLength,
-        maxTokens,
-        allowMmproj,
-    ]);
+    }, [selectedModelId, contextLength, maxTokens]);
 
     const modelSettingsKey = useMemo(
         () => JSON.stringify(getModelSettings()),
@@ -3200,40 +3164,25 @@ const Page: React.FC = () => {
 
     const handleSaveModel = useCallback(
         (draft: {
-            useCustomModel: boolean;
-            modelUrl: string;
-            mmprojUrl: string;
+            modelId: string;
             contextLength: string;
             maxTokens: string;
         }) => {
             setIsSavingModel(true);
-            const payload = {
-                useCustomModel: draft.useCustomModel,
-                modelUrl: draft.useCustomModel ? draft.modelUrl : "",
-                mmprojUrl:
-                    draft.useCustomModel && isTauriRuntime
-                        ? draft.mmprojUrl
-                        : "",
-                contextLength: draft.contextLength,
-                maxTokens: draft.maxTokens,
-            };
             if (typeof window !== "undefined") {
                 window.localStorage.setItem(
                     MODEL_SETTINGS_STORAGE_KEY,
-                    JSON.stringify(payload),
+                    JSON.stringify(draft),
                 );
-                void setKV(MODEL_SETTINGS_STORAGE_KEY, payload);
             }
-            setUseCustomModel(draft.useCustomModel);
-            setModelUrl(draft.modelUrl);
-            setMmprojUrl(draft.mmprojUrl);
+            setSelectedModelId(draft.modelId);
             setContextLength(draft.contextLength);
             setMaxTokens(draft.maxTokens);
             setLoadedModelName(null);
             setIsSavingModel(false);
             setShowModelSettings(false);
         },
-        [isTauriRuntime],
+        [],
     );
 
     const handleUseDefaultModel = useCallback(() => {
@@ -3241,18 +3190,13 @@ const Page: React.FC = () => {
             window.localStorage.setItem(
                 MODEL_SETTINGS_STORAGE_KEY,
                 JSON.stringify({
-                    useCustomModel: false,
-                    modelUrl: "",
-                    mmprojUrl: "",
+                    modelId: "",
                     contextLength: "",
                     maxTokens: "",
                 }),
             );
-            void removeKV(MODEL_SETTINGS_STORAGE_KEY);
         }
-        setUseCustomModel(false);
-        setModelUrl("");
-        setMmprojUrl("");
+        setSelectedModelId("");
         setContextLength("");
         setMaxTokens("");
         setLoadedModelName(null);
@@ -4241,15 +4185,10 @@ const Page: React.FC = () => {
                 handleConfirmDeleteSession={handleConfirmDeleteSession}
                 showModelSettings={showModelSettings}
                 closeModelSettings={closeModelSettings}
-                useCustomModel={useCustomModel}
+                selectedModelId={selectedModelId}
                 defaultModelName={resolvedDefaultModel.name}
-                defaultModelUrl={resolvedDefaultModel.url}
-                defaultModelMmproj={resolvedDefaultModel.mmprojUrl}
                 loadedModelName={loadedModelName}
-                allowMmproj={allowMmproj}
                 isTauriRuntime={isTauriRuntime}
-                modelUrl={modelUrl}
-                mmprojUrl={mmprojUrl}
                 suggestedModels={suggestedModels}
                 contextLength={contextLength}
                 maxTokens={maxTokens}

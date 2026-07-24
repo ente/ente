@@ -110,9 +110,10 @@ class _UserAvatarWidgetState extends State<UserAvatarWidget> {
     _debouncer.run(() async {
       if (!mounted) return;
       setState(() {
-        final data = PersonService
-            .instance
-            .emailToPartialPersonDataMapCache[widget.user.email];
+        final data = PersonService.instance.getCachedPartialPersonData(
+          userID: widget.user.id,
+          email: widget.user.email,
+        );
         if (data != null && data.containsKey(PersonService.kPersonIDKey)) {
           _canUsePersonFaceWidget = true;
           _personId = data[PersonService.kPersonIDKey] as String;
@@ -159,6 +160,7 @@ class _UserAvatarWidgetState extends State<UserAvatarWidget> {
             _contactPhotoBytes!,
             fit: BoxFit.cover,
             gaplessPlayback: true,
+            cacheWidth: cachedPixelWidth,
           ),
         ),
       );

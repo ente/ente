@@ -224,7 +224,10 @@ class _HomePageState extends UploaderPageState<HomePage>
   }
 
   List<Collection> _filterOutUncategorized(List<Collection> collections) {
-    return CollectionSortUtil.filterAndSortCollections(collections);
+    return CollectionSortUtil.filterAndSortCollections(
+      collections,
+      Configuration.instance.getUserID()!,
+    );
   }
 
   @override

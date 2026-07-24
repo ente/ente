@@ -1,16 +1,15 @@
 use crate::ml::{
     error::{MlError, MlResult},
     onnx,
+    postprocess::l2_normalize,
     runtime::MlRuntimeView,
     types::{DecodedImage, PetBodyResult, PetFaceResult},
 };
 
-use super::preprocess::{extract_crop, preprocess_pet_embedding};
-
-const FACE_EMBED_INPUT_SIZE: i64 = 224;
-const BODY_EMBED_INPUT_SIZE: i64 = 224;
-const FACE_EMBED_CHANNELS: i64 = 3;
-const BODY_EMBED_CHANNELS: i64 = 3;
+use super::{
+    COCO_CAT, PET_EMBEDDING_CHANNELS, PET_EMBEDDING_INPUT_SIZE, PET_SPECIES_CAT, PET_SPECIES_DOG,
+    preprocess::{IndexedEmbeddingBatch, PetEmbeddingPreprocessor, PetFaceEmbeddingInputs},
+};
 
 /// Run pet face embedding on aligned face inputs.
 ///
@@ -24,56 +23,41 @@ const BODY_EMBED_CHANNELS: i64 = 3;
 ///
 /// Faces are grouped by species and batched per model to avoid running the
 /// wrong embedding model on any detection.
-pub fn run_pet_face_embedding(
+pub(crate) fn run_pet_face_embedding(
     runtime: &MlRuntimeView<'_>,
-    aligned_faces: &[Vec<f32>],
+    aligned_faces: PetFaceEmbeddingInputs,
     face_results: &mut [PetFaceResult],
 ) -> MlResult<()> {
-    if aligned_faces.is_empty() {
+    let aligned_count = aligned_faces.dog.indices.len() + aligned_faces.cat.indices.len();
+    if aligned_count == 0 {
         return Ok(());
     }
-    if aligned_faces.len() != face_results.len() {
+    if aligned_count != face_results.len() {
         return Err(MlError::Postprocess(format!(
             "aligned pet faces count ({}) does not match face result count ({})",
-            aligned_faces.len(),
+            aligned_count,
             face_results.len()
         )));
     }
 
-    let per_face_len =
-        (FACE_EMBED_INPUT_SIZE * FACE_EMBED_INPUT_SIZE * FACE_EMBED_CHANNELS) as usize;
+    let per_face_len = PET_EMBEDDING_INPUT_SIZE * PET_EMBEDDING_INPUT_SIZE * PET_EMBEDDING_CHANNELS;
 
-    // Group indices by species (class_id from detection).
-    let mut dog_indices = Vec::new();
-    let mut cat_indices = Vec::new();
-    for (i, fr) in face_results.iter().enumerate() {
-        if fr.detection.class_id == 1 {
-            cat_indices.push(i);
-        } else {
-            dog_indices.push(i);
-        }
-    }
-
-    // Process each species batch.
-    for (species, indices) in [(0u8, &dog_indices), (1u8, &cat_indices)] {
-        if indices.is_empty() {
+    for (species, batch) in [
+        (PET_SPECIES_DOG, aligned_faces.dog),
+        (PET_SPECIES_CAT, aligned_faces.cat),
+    ] {
+        if batch.is_empty() {
             continue;
         }
-
-        let mut input = Vec::with_capacity(per_face_len * indices.len());
-        for &idx in indices {
-            let aligned = &aligned_faces[idx];
-            if aligned.len() != per_face_len {
-                return Err(MlError::Preprocess(format!(
-                    "aligned pet face tensor length {} does not match expected {}",
-                    aligned.len(),
-                    per_face_len
-                )));
-            }
-            input.extend_from_slice(aligned);
+        if batch.input.len() != per_face_len * batch.indices.len() {
+            return Err(MlError::Preprocess(format!(
+                "pet face batch tensor length {} does not match expected {}",
+                batch.input.len(),
+                per_face_len * batch.indices.len()
+            )));
         }
 
-        let mut session = if species == 0 {
+        let mut session = if species == PET_SPECIES_DOG {
             runtime.pet_face_embedding_dog_session()?
         } else {
             runtime.pet_face_embedding_cat_session()?
@@ -81,41 +65,23 @@ pub fn run_pet_face_embedding(
 
         let (shape, output) = onnx::run_f32(
             &mut session,
-            input,
+            batch.input,
             [
-                indices.len() as i64,
-                FACE_EMBED_CHANNELS,
-                FACE_EMBED_INPUT_SIZE,
-                FACE_EMBED_INPUT_SIZE,
+                batch.indices.len() as i64,
+                PET_EMBEDDING_CHANNELS as i64,
+                PET_EMBEDDING_INPUT_SIZE as i64,
+                PET_EMBEDDING_INPUT_SIZE as i64,
             ],
         )?;
 
-        if shape.is_empty() {
-            return Err(MlError::Postprocess(
-                "pet face embedding output shape is empty".to_string(),
-            ));
-        }
-        let batch = shape[0] as usize;
-        if batch != indices.len() {
-            return Err(MlError::Postprocess(format!(
-                "pet face embedding batch mismatch: output={batch}, expected={}",
-                indices.len()
-            )));
-        }
-        let embedding_size = output.len() / batch;
-        if embedding_size == 0 || output.len() != batch * embedding_size {
-            return Err(MlError::Postprocess(format!(
-                "pet face embedding output not evenly divisible: len={}, batch={batch}",
-                output.len()
-            )));
-        }
+        let embedding_size =
+            validate_embedding_batch_output("face", &shape, output.len(), batch.indices.len())?;
 
-        for (batch_idx, &orig_idx) in indices.iter().enumerate() {
+        for (batch_idx, &orig_idx) in batch.indices.iter().enumerate() {
             let start = batch_idx * embedding_size;
             let mut embedding = output[start..(start + embedding_size)].to_vec();
-            normalize_embedding(&mut embedding);
+            l2_normalize(&mut embedding, 1e-12);
             face_results[orig_idx].face_embedding = embedding;
-            face_results[orig_idx].species = species;
         }
     }
 
@@ -129,7 +95,7 @@ pub fn run_pet_face_embedding(
 /// Bodies are grouped by species and batched per model.
 ///
 /// This mirrors `pet_pipeline/embedding.py` `Embedder.embed_body()`.
-pub fn run_pet_body_embedding(
+pub(crate) fn run_pet_body_embedding(
     runtime: &MlRuntimeView<'_>,
     decoded: &DecodedImage,
     body_results: &mut [PetBodyResult],
@@ -138,43 +104,40 @@ pub fn run_pet_body_embedding(
         return Ok(());
     }
 
-    let per_body_len =
-        (BODY_EMBED_INPUT_SIZE * BODY_EMBED_INPUT_SIZE * BODY_EMBED_CHANNELS) as usize;
+    let per_body_len = PET_EMBEDDING_INPUT_SIZE * PET_EMBEDDING_INPUT_SIZE * PET_EMBEDDING_CHANNELS;
 
     // Preprocess all crops and group by species.
     // Skip detections whose crop is invalid (e.g. zero-area edge boxes)
     // rather than aborting the whole image.
-    let mut dog_indices = Vec::new();
-    let mut cat_indices = Vec::new();
-    let mut preprocessed: Vec<Option<Vec<f32>>> = Vec::with_capacity(body_results.len());
+    let cat_count = body_results
+        .iter()
+        .filter(|result| result.detection.coco_class == COCO_CAT)
+        .count();
+    let dog_count = body_results.len() - cat_count;
+    let mut dog_batch = IndexedEmbeddingBatch::new(dog_count, per_body_len);
+    let mut cat_batch = IndexedEmbeddingBatch::new(cat_count, per_body_len);
+    let mut preprocessor = PetEmbeddingPreprocessor::new();
+
     for (i, body_result) in body_results.iter().enumerate() {
-        let crop = extract_crop(decoded, &body_result.detection.box_xyxy).and_then(
-            |(crop_data, crop_w, crop_h)| preprocess_pet_embedding(&crop_data, crop_w, crop_h),
-        );
-        match crop {
-            Ok(input) => {
-                preprocessed.push(Some(input));
-                if body_result.detection.coco_class == 15 {
-                    cat_indices.push(i);
-                } else {
-                    dog_indices.push(i);
-                }
-            }
-            Err(_) => {
-                preprocessed.push(None);
-            }
+        let batch = if body_result.detection.coco_class == COCO_CAT {
+            &mut cat_batch
+        } else {
+            &mut dog_batch
+        };
+        let original_len = batch.input.len();
+        if preprocessor
+            .append(decoded, &body_result.detection.box_xyxy, &mut batch.input)
+            .is_ok()
+        {
+            batch.indices.push(i);
+        } else {
+            batch.input.truncate(original_len);
         }
     }
 
-    // Process each species batch.
-    for (is_cat, indices) in [(false, &dog_indices), (true, &cat_indices)] {
-        if indices.is_empty() {
+    for (is_cat, batch) in [(false, dog_batch), (true, cat_batch)] {
+        if batch.is_empty() {
             continue;
-        }
-
-        let mut input = Vec::with_capacity(per_body_len * indices.len());
-        for &idx in indices {
-            input.extend_from_slice(preprocessed[idx].as_ref().unwrap());
         }
 
         let mut session = if is_cat {
@@ -185,39 +148,22 @@ pub fn run_pet_body_embedding(
 
         let (shape, output) = onnx::run_f32(
             &mut session,
-            input,
+            batch.input,
             [
-                indices.len() as i64,
-                BODY_EMBED_CHANNELS,
-                BODY_EMBED_INPUT_SIZE,
-                BODY_EMBED_INPUT_SIZE,
+                batch.indices.len() as i64,
+                PET_EMBEDDING_CHANNELS as i64,
+                PET_EMBEDDING_INPUT_SIZE as i64,
+                PET_EMBEDDING_INPUT_SIZE as i64,
             ],
         )?;
 
-        if shape.is_empty() {
-            return Err(MlError::Postprocess(
-                "pet body embedding output shape is empty".to_string(),
-            ));
-        }
-        let batch = shape[0] as usize;
-        if batch != indices.len() {
-            return Err(MlError::Postprocess(format!(
-                "pet body embedding batch mismatch: output={batch}, expected={}",
-                indices.len()
-            )));
-        }
-        let embedding_size = output.len() / batch;
-        if embedding_size == 0 || output.len() != batch * embedding_size {
-            return Err(MlError::Postprocess(format!(
-                "pet body embedding output not evenly divisible: len={}, batch={batch}",
-                output.len()
-            )));
-        }
+        let embedding_size =
+            validate_embedding_batch_output("body", &shape, output.len(), batch.indices.len())?;
 
-        for (batch_idx, &orig_idx) in indices.iter().enumerate() {
+        for (batch_idx, &orig_idx) in batch.indices.iter().enumerate() {
             let start = batch_idx * embedding_size;
             let mut embedding = output[start..(start + embedding_size)].to_vec();
-            normalize_embedding(&mut embedding);
+            l2_normalize(&mut embedding, 1e-12);
             body_results[orig_idx].body_embedding = embedding;
         }
     }
@@ -225,16 +171,54 @@ pub fn run_pet_body_embedding(
     Ok(())
 }
 
-fn normalize_embedding(embedding: &mut [f32]) {
-    let mut norm = 0.0f32;
-    for value in embedding.iter() {
-        norm += value * value;
+fn validate_embedding_batch_output(
+    kind: &str,
+    shape: &[i64],
+    output_len: usize,
+    expected_batch: usize,
+) -> MlResult<usize> {
+    if shape.is_empty() {
+        return Err(MlError::Postprocess(format!(
+            "pet {kind} embedding output shape is empty"
+        )));
     }
-    let norm = norm.sqrt();
-    if norm <= 1e-12 {
-        return;
+
+    let output_batch = shape[0] as usize;
+    if output_batch != expected_batch {
+        return Err(MlError::Postprocess(format!(
+            "pet {kind} embedding batch mismatch: output={output_batch}, expected={expected_batch}"
+        )));
     }
-    for value in embedding.iter_mut() {
-        *value /= norm;
+
+    let embedding_size = output_len / output_batch;
+    if embedding_size == 0 || output_len != output_batch * embedding_size {
+        return Err(MlError::Postprocess(format!(
+            "pet {kind} embedding output not evenly divisible: len={output_len}, batch={output_batch}"
+        )));
+    }
+
+    Ok(embedding_size)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_embedding_batch_output;
+
+    #[test]
+    fn validates_pet_embedding_batch_shape() {
+        assert_eq!(
+            validate_embedding_batch_output("face", &[2, 128], 256, 2).unwrap(),
+            128
+        );
+    }
+
+    #[test]
+    fn rejects_uneven_pet_embedding_output() {
+        let error = validate_embedding_batch_output("body", &[2, 128], 255, 2).unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "postprocess error: pet body embedding output not evenly divisible: len=255, batch=2"
+        );
     }
 }

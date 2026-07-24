@@ -10,14 +10,6 @@ license = "AGPL-3.0-only"
 [features]
 museum = []
 
-[[test]]
-name = "paste"
-required-features = ["museum"]
-
-[[test]]
-name = "sync"
-required-features = ["museum"]
-
 [dependencies]
 # CLI
 clap = { version = "4.5", features = ["derive", "env"] }

@@ -373,13 +373,15 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
 
   Widget _buildDashboard(BuildContext context, {required bool isAdminView}) {
     final members = _userDetails.familyData?.members ?? const <FamilyMember>[];
+    final linkedPersons = _linkedPersonsFor(members);
     return FamilyDashboard(
       userDetails: _userDetails,
       members: members,
       isAdmin: isAdminView,
       contactsByUserId: _contactsByUserId,
       profilePictureBytesByUserId: _profilePictureBytesByUserId,
-      linkedPersonIdsByUserId: _linkedPersonIdsFor(members),
+      linkedPersonIdsByUserId: linkedPersons.idsByUserId,
+      linkedPersonNamesByUserId: linkedPersons.namesByUserId,
       librarySharingEnabled: _librarySharingEnabled,
       sharedAlbumCountsByUserId: _sharedAlbumCountsByUserId,
       onMemberTap: _showMemberActions,
@@ -388,25 +390,33 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
     );
   }
 
-  Map<int, String> _linkedPersonIdsFor(List<FamilyMember> members) {
+  ({Map<int, String> idsByUserId, Map<int, String> namesByUserId})
+  _linkedPersonsFor(List<FamilyMember> members) {
     if (!PersonService.isInitialized) {
-      return const {};
+      return (idsByUserId: const {}, namesByUserId: const {});
     }
-    final result = <int, String>{};
+    final idsByUserId = <int, String>{};
+    final namesByUserId = <int, String>{};
     for (final member in members) {
       final userID = member.userID;
       if (userID == null) {
         continue;
       }
-      final personID = PersonService.instance.getCachedPartialPersonData(
+      final personData = PersonService.instance.getCachedPartialPersonData(
         userID: userID,
         email: member.email,
-      )?[PersonService.kPersonIDKey];
-      if (personID != null) {
-        result[userID] = personID;
+      );
+      final personID = personData?[PersonService.kPersonIDKey];
+      if (personID == null) {
+        continue;
+      }
+      idsByUserId[userID] = personID;
+      final personName = personData?[PersonService.kNameKey]?.trim();
+      if (personName != null && personName.isNotEmpty) {
+        namesByUserId[userID] = personName;
       }
     }
-    return result;
+    return (idsByUserId: idsByUserId, namesByUserId: namesByUserId);
   }
 
   Widget _buildDashboardOverflow(BuildContext context) {
@@ -497,7 +507,10 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
     }
   }
 
-  Future<void> _showMemberActions(FamilyMember member) async {
+  Future<void> _showMemberActions(
+    FamilyMember member,
+    String fallbackDisplayName,
+  ) async {
     final isCurrentUser =
         member.email.trim().toLowerCase() ==
         _userDetails.email.trim().toLowerCase();
@@ -516,14 +529,21 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
       return;
     }
 
-    final displayName = savedContact?.data?.name.trim();
+    final savedContactName = savedContact?.data?.name.trim();
+    final displayName = savedContactName == null || savedContactName.isEmpty
+        ? fallbackDisplayName
+        : savedContactName;
+    final linkedPersonId = member.userID == null || !PersonService.isInitialized
+        ? null
+        : PersonService.instance.getCachedPartialPersonData(
+            userID: member.userID,
+            email: member.email,
+          )?[PersonService.kPersonIDKey];
     final l10n = AppLocalizations.of(context);
     await showBottomSheetComponent<void>(
       context: context,
       builder: (sheetContext) => BottomSheetComponent(
-        title: displayName == null || displayName.isEmpty
-            ? member.email
-            : displayName,
+        title: displayName,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -531,6 +551,8 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
               _buildMemberActionItem(
                 sheetContext,
                 member: member,
+                displayName: displayName,
+                linkedPersonId: linkedPersonId,
                 action: actions[index],
                 l10n: l10n,
               ),
@@ -546,6 +568,8 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
   Widget _buildMemberActionItem(
     BuildContext sheetContext, {
     required FamilyMember member,
+    required String displayName,
+    required String? linkedPersonId,
     required FamilyMemberAction action,
     required AppLocalizations l10n,
   }) {
@@ -600,18 +624,16 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
             await _openMemberContact(member);
             break;
           case FamilyMemberAction.shareAlbums:
-            await _openLibrarySharing(member);
+            await _openLibrarySharing(member, displayName);
             break;
           case FamilyMemberAction.editStorageLimit:
             final updatedUserDetails = await routeToPage<UserDetails>(
               context,
               EditStorageLimitPage(
                 member: member,
+                displayName: displayName,
+                linkedPersonId: linkedPersonId,
                 totalStorageInBytes: _userDetails.getTotalStorage(),
-                avatarColor: avatarComponentColorValue(
-                  context,
-                  familyMemberAvatarComponentColor(member),
-                ),
               ),
             );
             if (!mounted) {
@@ -732,21 +754,21 @@ class _FamilyPlanPageState extends State<FamilyPlanPage> {
     }
   }
 
-  Future<void> _openLibrarySharing(FamilyMember member) async {
+  Future<void> _openLibrarySharing(
+    FamilyMember member,
+    String displayName,
+  ) async {
     final userID = member.userID;
     if (!_librarySharingEnabled || userID == null || !member.isActive) {
       return;
     }
-    final savedName = _contactsByUserId[userID]?.data?.name.trim();
     await routeToPage(
       context,
       LibrarySharingPage(
         recipient: LibrarySharingRecipient(
           userID: userID,
           email: member.email,
-          displayName: savedName == null || savedName.isEmpty
-              ? null
-              : savedName,
+          displayName: displayName,
         ),
       ),
     );

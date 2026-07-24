@@ -1,32 +1,28 @@
 use std::{
     collections::{BTreeSet, HashMap, HashSet},
     fs,
-    io::{Read, Write},
     path::{Path, PathBuf},
-    time::Duration,
 };
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Result, bail};
+use ente_model_download::download;
 use ente_photos::ml::{
     error::MlError,
     indexing::{
         AnalyzeImageRequest, AnalyzeImageResult, analyze_image, init_ml_runtime, release_ml_runtime,
     },
-    runtime::{ExecutionProviderPolicy, MlRuntimeConfig, ModelPaths},
+    runtime::ModelPaths,
     types::FaceResult as RustFaceResult,
 };
 use flate2::read::GzDecoder;
-use reqwest::{StatusCode, Url, blocking::Client};
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
+use url::Url;
 
 const ASSET_LOCK_PATH: &str = "infra/ml/test/ml_indexing/assets.json";
 const CLIP_EMBEDDING_DIM: usize = 512;
 const FACE_EMBEDDING_DIM: usize = 192;
 const FLOAT_TOLERANCE: f64 = 1e-8;
 const PRINT_STATS_ENV: &str = "ENTE_ML_INDEXING_PRINT_STATS";
-const DOWNLOAD_MAX_ATTEMPTS: usize = 4;
-const DOWNLOAD_RETRY_BASE_DELAY_MS: u64 = 500;
 
 pub(crate) fn run_with_large_stack(name: &str, test: fn() -> Result<()>) {
     let result = std::thread::Builder::new()
@@ -168,10 +164,35 @@ fn should_print_stats() -> bool {
 pub(crate) struct MlIndexingTestContext {
     asset_lock: AssetLock,
     cache_dir: PathBuf,
-    client: Client,
     golden_results: HashMap<String, ComparableResult>,
     manifest: FixtureManifest,
-    runtime_config: MlRuntimeConfig,
+    model_paths: ModelPaths,
+}
+
+struct AssetFetcher {
+    runtime: tokio::runtime::Runtime,
+    downloader: download::Downloader,
+}
+
+impl AssetFetcher {
+    fn new() -> Result<Self> {
+        Ok(Self {
+            runtime: tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .context("build download runtime")?,
+            downloader: download::Downloader::new().context("build downloader")?,
+        })
+    }
+
+    fn fetch(&self, targets: Vec<download::Target>) -> Result<()> {
+        self.runtime.block_on(self.downloader.download(
+            targets,
+            |_| {},
+            download::CancellationToken::default(),
+        ))?;
+        Ok(())
+    }
 }
 
 impl MlIndexingTestContext {
@@ -179,53 +200,47 @@ impl MlIndexingTestContext {
         let repo_root = repo_root()?;
         let asset_lock = load_asset_lock(&repo_root)?;
         let cache_dir = cache_dir(&repo_root);
-        let client = Client::builder()
-            .user_agent("ente-rust-ml-indexing-test")
-            .build()
-            .context("build HTTP client")?;
+        let fetcher = AssetFetcher::new()?;
 
         let manifest_path =
-            resolve_document_asset(&client, &cache_dir, "manifest", &asset_lock.manifest)?;
+            resolve_document_asset(&fetcher, &cache_dir, "manifest", &asset_lock.manifest)?;
         let golden_path = resolve_document_asset(
-            &client,
+            &fetcher,
             &cache_dir,
             "python-golden",
             &asset_lock.python_golden,
         )?;
         let manifest = load_manifest(&manifest_path)?;
         let golden_results = load_golden_results(&golden_path)?;
+        fetch_fixtures(
+            &fetcher,
+            &cache_dir,
+            &asset_lock.fixture_base_url,
+            &manifest,
+        )?;
 
         let onnx_runtime_library =
-            resolve_onnx_runtime_library(&client, &cache_dir, &asset_lock.onnx_runtime)?;
+            resolve_onnx_runtime_library(&fetcher, &cache_dir, &asset_lock.onnx_runtime)?;
         let _ = ort::init_from(&onnx_runtime_library)
             .context("load ONNX Runtime dynamic library")?
             .commit();
 
-        let runtime_config = MlRuntimeConfig {
-            model_paths: resolve_model_paths(&client, &cache_dir, &asset_lock.models)?,
-            provider_policy: ExecutionProviderPolicy {
-                prefer_coreml: false,
-                prefer_nnapi: false,
-                prefer_xnnpack: false,
-                allow_cpu_fallback: true,
-            },
-        };
+        let model_paths = resolve_model_paths(&fetcher, &cache_dir, &asset_lock.models)?;
 
         Ok(Self {
             asset_lock,
             cache_dir,
-            client,
             golden_results,
             manifest,
-            runtime_config,
+            model_paths,
         })
     }
 
-    pub(crate) fn prepare_runtime(&self) -> Result<PreparedMlRuntime> {
-        init_ml_runtime(self.runtime_config.clone()).context("prepare ML runtime")?;
-        Ok(PreparedMlRuntime {
-            config: self.runtime_config.clone(),
-        })
+    pub(crate) fn prepare_runtime(&self) -> PreparedMlRuntime {
+        init_ml_runtime(self.model_paths.clone());
+        PreparedMlRuntime {
+            model_paths: self.model_paths.clone(),
+        }
     }
 
     pub(crate) fn validate_manifest_expectations(&self) -> Result<Vec<String>> {
@@ -264,7 +279,7 @@ impl MlIndexingTestContext {
                 run_faces: true,
                 run_clip: true,
                 run_pets: false,
-                runtime_config: runtime.config().clone(),
+                model_paths: runtime.model_paths().clone(),
             };
 
             if expected_unsupported.contains(&file_id) {
@@ -353,12 +368,7 @@ impl MlIndexingTestContext {
     }
 
     fn resolve_fixture(&self, fixture: &FixtureFile) -> Result<PathBuf> {
-        resolve_fixture_asset(
-            &self.client,
-            &self.cache_dir,
-            &self.asset_lock.fixture_base_url,
-            fixture,
-        )
+        cache_path_for(&self.cache_dir, "fixtures", &fixture.path, &fixture.sha256)
     }
 
     fn unsupported_decode_file_ids(&self) -> HashSet<String> {
@@ -370,19 +380,79 @@ impl MlIndexingTestContext {
     }
 }
 
+/// A downloaded production model together with its content hash as pinned in
+/// the asset lock, for embedding into generated golden entries.
+#[allow(dead_code)]
+pub(crate) struct GoldenModelAsset {
+    pub(crate) path: PathBuf,
+    pub(crate) sha256: String,
+}
+
+/// Downloaded production model assets for the golden self-test tooling, with
+/// ONNX Runtime already initialized. Used by the ml_goldens developer tool only.
+#[allow(dead_code)]
+pub(crate) struct GoldenTestAssets {
+    pub(crate) face_detection: GoldenModelAsset,
+    pub(crate) face_embedding: GoldenModelAsset,
+    pub(crate) clip_image: GoldenModelAsset,
+    pub(crate) clip_text: GoldenModelAsset,
+    pub(crate) clip_text_vocab: PathBuf,
+}
+
+#[allow(dead_code)]
+impl GoldenTestAssets {
+    pub(crate) fn load() -> Result<Self> {
+        let repo_root = repo_root()?;
+        let asset_lock = load_asset_lock(&repo_root)?;
+        let cache_dir = cache_dir(&repo_root);
+        let fetcher = AssetFetcher::new()?;
+
+        let onnx_runtime_library =
+            resolve_onnx_runtime_library(&fetcher, &cache_dir, &asset_lock.onnx_runtime)?;
+        let _ = ort::init_from(&onnx_runtime_library)
+            .context("load ONNX Runtime dynamic library")?
+            .commit();
+
+        let golden_model = |label: &str, model: &ModelAsset| -> Result<GoldenModelAsset> {
+            Ok(GoldenModelAsset {
+                path: resolve_model_asset(&fetcher, &cache_dir, label, model)?,
+                sha256: model.sha256.clone(),
+            })
+        };
+
+        let models = &asset_lock.models;
+        Ok(Self {
+            face_detection: golden_model("face-detection", &models.face_detection)?,
+            face_embedding: golden_model("face-embedding", &models.face_embedding)?,
+            clip_image: golden_model("clip-image", &models.clip_image)?,
+            clip_text: golden_model("clip-text", &models.clip_text)?,
+            clip_text_vocab: resolve_model_asset(
+                &fetcher,
+                &cache_dir,
+                "clip-text-vocab",
+                &models.clip_text_vocab,
+            )?,
+        })
+    }
+
+    pub(crate) fn golden_data_path() -> Result<PathBuf> {
+        Ok(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/ml/golden_data.rs"))
+    }
+}
+
 pub(crate) struct PreparedMlRuntime {
-    config: MlRuntimeConfig,
+    model_paths: ModelPaths,
 }
 
 impl PreparedMlRuntime {
-    fn config(&self) -> &MlRuntimeConfig {
-        &self.config
+    fn model_paths(&self) -> &ModelPaths {
+        &self.model_paths
     }
 }
 
 impl Drop for PreparedMlRuntime {
     fn drop(&mut self) {
-        let _ = release_ml_runtime();
+        release_ml_runtime();
     }
 }
 
@@ -422,6 +492,11 @@ struct ModelAssets {
     face_detection: ModelAsset,
     face_embedding: ModelAsset,
     clip_image: ModelAsset,
+    // Used by the ml_goldens developer tool only.
+    #[allow(dead_code)]
+    clip_text: ModelAsset,
+    #[allow(dead_code)]
+    clip_text_vocab: ModelAsset,
 }
 
 #[derive(Debug, Deserialize)]
@@ -540,33 +615,46 @@ fn file_id_for_manifest_path(path: &str) -> Result<String> {
 }
 
 fn resolve_document_asset(
-    client: &Client,
+    fetcher: &AssetFetcher,
     cache_dir: &Path,
     label: &str,
     asset: &DocumentAsset,
 ) -> Result<PathBuf> {
     let target = cache_path_for(cache_dir, "documents", &asset.path, &asset.sha256)?;
-    ensure_remote_asset(client, &asset.url, &asset.sha256, &target, label)
+    ensure_remote_asset(fetcher, &asset.url, &asset.sha256, &target, label)
 }
 
-fn resolve_fixture_asset(
-    client: &Client,
+fn fixture_url(fixture_base_url: &str, path: &str) -> Result<String> {
+    Ok(Url::parse(fixture_base_url)
+        .with_context(|| format!("parse fixture base URL '{fixture_base_url}'"))?
+        .join(path)
+        .with_context(|| format!("join fixture URL for {path}"))?
+        .to_string())
+}
+
+fn fetch_fixtures(
+    fetcher: &AssetFetcher,
     cache_dir: &Path,
     fixture_base_url: &str,
-    fixture: &FixtureFile,
-) -> Result<PathBuf> {
-    let file_id = file_id_for_manifest_path(&fixture.path)?;
-    let url = Url::parse(fixture_base_url)
-        .with_context(|| format!("parse fixture base URL '{fixture_base_url}'"))?
-        .join(&fixture.path)
-        .with_context(|| format!("join fixture URL for {}", fixture.path))?
-        .to_string();
-    let target = cache_path_for(cache_dir, "fixtures", &fixture.path, &fixture.sha256)?;
-    ensure_remote_asset(client, &url, &fixture.sha256, &target, &file_id)
+    manifest: &FixtureManifest,
+) -> Result<()> {
+    let targets = manifest
+        .files
+        .iter()
+        .map(|fixture| {
+            Ok(download::Target {
+                label: file_id_for_manifest_path(&fixture.path)?,
+                url: fixture_url(fixture_base_url, &fixture.path)?,
+                sha256: normalize_sha256(&fixture.sha256),
+                destination: cache_path_for(cache_dir, "fixtures", &fixture.path, &fixture.sha256)?,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    fetcher.fetch(targets).context("fetch fixtures")
 }
 
 fn resolve_onnx_runtime_library(
-    client: &Client,
+    fetcher: &AssetFetcher,
     cache_dir: &Path,
     assets: &OnnxRuntimeAssets,
 ) -> Result<PathBuf> {
@@ -591,7 +679,7 @@ fn resolve_onnx_runtime_library(
         &archive.sha256,
     )?;
     let archive_path = ensure_remote_asset(
-        client,
+        fetcher,
         &archive.url,
         &archive.sha256,
         &archive_path,
@@ -683,15 +771,15 @@ fn extract_tgz_member(archive_path: &Path, member_path: &str, target: &Path) -> 
 }
 
 fn resolve_model_paths(
-    client: &Client,
+    fetcher: &AssetFetcher,
     cache_dir: &Path,
     models: &ModelAssets,
 ) -> Result<ModelPaths> {
     let face_detection =
-        resolve_model_asset(client, cache_dir, "face-detection", &models.face_detection)?;
+        resolve_model_asset(fetcher, cache_dir, "face-detection", &models.face_detection)?;
     let face_embedding =
-        resolve_model_asset(client, cache_dir, "face-embedding", &models.face_embedding)?;
-    let clip_image = resolve_model_asset(client, cache_dir, "clip-image", &models.clip_image)?;
+        resolve_model_asset(fetcher, cache_dir, "face-embedding", &models.face_embedding)?;
+    let clip_image = resolve_model_asset(fetcher, cache_dir, "clip-image", &models.clip_image)?;
 
     Ok(ModelPaths {
         face_detection: face_detection.to_string_lossy().into_owned(),
@@ -708,139 +796,31 @@ fn resolve_model_paths(
 }
 
 fn resolve_model_asset(
-    client: &Client,
+    fetcher: &AssetFetcher,
     cache_dir: &Path,
     label: &str,
     asset: &ModelAsset,
 ) -> Result<PathBuf> {
     let target = cache_path_for(cache_dir, "models", &asset.file_name, &asset.sha256)?;
-    ensure_remote_asset(client, &asset.url, &asset.sha256, &target, label)
-}
-
-enum DownloadAttemptError {
-    Fatal(anyhow::Error),
-    Retryable(anyhow::Error),
+    ensure_remote_asset(fetcher, &asset.url, &asset.sha256, &target, label)
 }
 
 fn ensure_remote_asset(
-    client: &Client,
+    fetcher: &AssetFetcher,
     url: &str,
     expected_sha256: &str,
     target: &Path,
     label: &str,
 ) -> Result<PathBuf> {
-    if target.is_file() {
-        verify_file_sha256(target, expected_sha256, label)?;
-        return Ok(target.to_path_buf());
-    }
-
-    let parent = target
-        .parent()
-        .with_context(|| format!("resolve parent for {}", target.display()))?;
-    fs::create_dir_all(parent)
-        .with_context(|| format!("create cache directory {}", parent.display()))?;
-
-    let mut last_error = None;
-    for attempt in 1..=DOWNLOAD_MAX_ATTEMPTS {
-        match download_asset_once(client, url, expected_sha256, target, parent, label) {
-            Ok(path) => return Ok(path),
-            Err(DownloadAttemptError::Fatal(error)) => return Err(error),
-            Err(DownloadAttemptError::Retryable(error)) => {
-                last_error = Some(error);
-                if attempt < DOWNLOAD_MAX_ATTEMPTS {
-                    std::thread::sleep(download_retry_delay(attempt));
-                }
-            }
-        }
-    }
-
-    Err(last_error.expect("retry loop records an error before exhausting attempts")).with_context(
-        || format!("download {label} from {url} after {DOWNLOAD_MAX_ATTEMPTS} attempt(s)"),
-    )
-}
-
-fn download_asset_once(
-    client: &Client,
-    url: &str,
-    expected_sha256: &str,
-    target: &Path,
-    parent: &Path,
-    label: &str,
-) -> Result<PathBuf, DownloadAttemptError> {
-    let mut response = match client.get(url).send() {
-        Ok(response) if response.status().is_success() => response,
-        Ok(response) => {
-            let status = response.status();
-            let error = anyhow!("download {label} from {url}: HTTP status {status}");
-            return Err(if is_retryable_download_status(status) {
-                DownloadAttemptError::Retryable(error)
-            } else {
-                DownloadAttemptError::Fatal(error)
-            });
-        }
-        Err(error) => {
-            return Err(DownloadAttemptError::Retryable(
-                anyhow::Error::new(error).context(format!("download {label} from {url}")),
-            ));
-        }
-    };
-
-    let mut temp_file = tempfile::NamedTempFile::new_in(parent)
-        .map_err(|error| fatal_io(error, format!("create temp file in {}", parent.display())))?;
-    let mut hasher = Sha256::new();
-    let mut buffer = [0_u8; 1024 * 1024];
-    loop {
-        let read = match response.read(&mut buffer) {
-            Ok(read) => read,
-            Err(error) => {
-                return Err(DownloadAttemptError::Retryable(
-                    anyhow::Error::new(error)
-                        .context(format!("read {label} response body from {url}")),
-                ));
-            }
-        };
-        if read == 0 {
-            break;
-        }
-        hasher.update(&buffer[..read]);
-        temp_file
-            .write_all(&buffer[..read])
-            .map_err(|error| fatal_io(error, format!("write cached {label}")))?;
-    }
-
-    let actual_sha256 = hex_digest(&hasher.finalize());
-    if actual_sha256 != normalize_sha256(expected_sha256) {
-        return Err(DownloadAttemptError::Retryable(anyhow!(
-            "{label} SHA-256 mismatch after download: expected {}, got {actual_sha256}",
-            normalize_sha256(expected_sha256)
-        )));
-    }
-
-    temp_file
-        .flush()
-        .map_err(|error| fatal_io(error, format!("flush cached {label}")))?;
-    temp_file.persist(target).map_err(|error| {
-        DownloadAttemptError::Fatal(anyhow!(
-            "persist cached {label} to {}: {}",
-            target.display(),
-            error.error
-        ))
-    })?;
+    fetcher
+        .fetch(vec![download::Target {
+            label: label.to_string(),
+            url: url.to_string(),
+            sha256: normalize_sha256(expected_sha256),
+            destination: target.to_path_buf(),
+        }])
+        .with_context(|| format!("download {label} from {url}"))?;
     Ok(target.to_path_buf())
-}
-
-fn fatal_io(error: std::io::Error, context: String) -> DownloadAttemptError {
-    DownloadAttemptError::Fatal(anyhow::Error::new(error).context(context))
-}
-
-fn is_retryable_download_status(status: StatusCode) -> bool {
-    status == StatusCode::TOO_MANY_REQUESTS
-        || status == StatusCode::REQUEST_TIMEOUT
-        || status.is_server_error()
-}
-
-fn download_retry_delay(attempt: usize) -> Duration {
-    Duration::from_millis(DOWNLOAD_RETRY_BASE_DELAY_MS * 2_u64.pow((attempt - 1) as u32))
 }
 
 fn cache_path_for(
@@ -861,7 +841,8 @@ fn cache_path_for(
 }
 
 fn verify_file_sha256(path: &Path, expected_sha256: &str, label: &str) -> Result<()> {
-    let actual_sha256 = sha256_file(path)?;
+    let actual_sha256 =
+        download::sha256_file(path).with_context(|| format!("hash {}", path.display()))?;
     let expected_sha256 = normalize_sha256(expected_sha256);
     if actual_sha256 != expected_sha256 {
         bail!(
@@ -874,33 +855,8 @@ fn verify_file_sha256(path: &Path, expected_sha256: &str, label: &str) -> Result
     Ok(())
 }
 
-fn sha256_file(path: &Path) -> Result<String> {
-    let mut file = fs::File::open(path).with_context(|| format!("open {}", path.display()))?;
-    let mut hasher = Sha256::new();
-    let mut buffer = [0_u8; 1024 * 1024];
-    loop {
-        let read = file
-            .read(&mut buffer)
-            .with_context(|| format!("read {}", path.display()))?;
-        if read == 0 {
-            break;
-        }
-        hasher.update(&buffer[..read]);
-    }
-    let digest = hasher.finalize();
-    Ok(hex_digest(&digest))
-}
-
 fn normalize_sha256(value: &str) -> String {
     value.trim().to_ascii_lowercase()
-}
-
-fn hex_digest(bytes: &[u8]) -> String {
-    let mut hex = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        hex.push_str(&format!("{byte:02x}"));
-    }
-    hex
 }
 
 fn expect_decode_error(file_id: &str, req: AnalyzeImageRequest, failures: &mut Vec<String>) {

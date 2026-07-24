@@ -51,11 +51,8 @@ s3:
 
 # Specify the base endpoints for various web apps you're running.
 apps:
-    photos: http://localhost:3000
     public-albums: http://localhost:3002
     embed-albums: http://localhost:3006
-    auth: http://localhost:3003
-    locker: http://localhost:3009
     public-locker: http://localhost:3005
     public-paste: http://localhost:3008
     cast: http://localhost:3004

@@ -2214,10 +2214,10 @@ packages:
     dependency: transitive
     description:
       name: photo_manager
-      sha256: a0d9a7a9bc35eda02d33766412bde6d883a8b0acb86bbe37dac5f691a0894e8a
+      sha256: bf840253a7a5a48774f3a23b042a673614785e9874e0c86e2837681d576ef252
       url: "https://pub.dev"
     source: hosted
-    version: "3.7.1"
+    version: "3.10.0"
   photo_manager_image_provider:
     dependency: transitive
     description:

@@ -10,13 +10,13 @@ Custom domains allow you to serve your public links with your own personalized d
 For example, if I have an Ente album and wish to share it with my friends, I can open the album's sharing settings and create a public link. When I copy this link, it will be of the form of
 
 ```
-https://albums.ente.com/?t=...
+https://albums.ente.com/...#...
 ```
 
 The custom domains feature allows you to instead create a link that uses your own domain, say
 
 ```
-https://pics.example.org/?t=...
+https://pics.example.org/...#...
 ```
 
 You don't need to run any servers or manage any services, Ente will still host and serve your album for you, the only thing that changes is that you can serve your links using your personalized domain.

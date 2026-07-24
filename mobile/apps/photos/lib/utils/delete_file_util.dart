@@ -24,7 +24,6 @@ import 'package:photos/models/selected_files.dart';
 import 'package:photos/module/download/file.dart';
 import "package:photos/service_locator.dart";
 import "package:photos/services/files_service.dart";
-import "package:photos/services/media_store_service.dart";
 import "package:photos/services/sync/local_sync_service.dart";
 import 'package:photos/services/sync/remote_sync_service.dart';
 import 'package:photos/services/sync/sync_service.dart';
@@ -790,10 +789,10 @@ Future<void> showMediaManagementHintSheet(BuildContext context) async {
   if (!Platform.isAndroid) {
     return;
   }
-  if (!await MediaStoreService.isMediaManagementSupported()) {
+  if (await isAndroidSDKVersionLowerThan(android12SDKINT)) {
     return;
   }
-  if (await MediaStoreService.canManageMedia()) {
+  if (await PhotoManager.canManageMedia()) {
     return;
   }
   if (localSettings.isMediaManagementHintDismissed) {
@@ -818,7 +817,7 @@ Future<void> showMediaManagementHintSheet(BuildContext context) async {
           label: l10n.openSettings,
           shouldSurfaceExecutionStates: false,
           onTap: () async {
-            await MediaStoreService.openManageMediaSettings();
+            await PhotoManager.requestManageMedia();
             if (sheetContext.mounted) {
               Navigator.of(sheetContext).pop(false);
             }
@@ -888,7 +887,7 @@ Future<void> showDeleteSheet(
       return;
     }
     var didDelete = false;
-    if (Platform.isAndroid && await MediaStoreService.canManageMedia()) {
+    if (Platform.isAndroid && await PhotoManager.canManageMedia()) {
       if (!context.mounted) return;
       didDelete =
           await showBottomSheetComponent<bool>(

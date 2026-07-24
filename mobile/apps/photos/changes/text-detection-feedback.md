@@ -1,1 +1,0 @@
-- Fixed the “No text detected” message appearing unexpectedly when opening some photos.

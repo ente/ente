@@ -48,7 +48,7 @@ First, you need to create a public link for the album you want to embed:
 1. Open the album in Ente (web or mobile app)
 2. Open the album's sharing settings
 3. Create a public link
-4. Copy the link (it will look like `https://albums.ente.com/?t=...#...`)
+4. Copy the link (it will look like `https://albums.ente.com/...#...`)
 
 #### Step 2 - Add iframe to your website
 
@@ -56,7 +56,7 @@ Add an iframe to your HTML with the public link as the source, replacing `albums
 
 ```html
 <iframe
-    src="https://embed.ente.com/?t=...#..."
+    src="https://embed.ente.com/...#..."
     width="800"
     height="600"
     frameborder="0"
@@ -98,7 +98,7 @@ You can customize the appearance by adjusting the iframe attributes:
     style="position: relative; padding-bottom: 75%; height: 0; overflow: hidden;"
 >
     <iframe
-        src="https://embed.ente.com/?t=...#..."
+        src="https://embed.ente.com/...#..."
         style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
         frameborder="0"
         allowfullscreen

@@ -131,5 +131,8 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
 dependencies {
     api("net.java.dev.jna:jna:5.18.1@aar")
     api("androidx.annotation:annotation:1.7.1")
-    api("com.microsoft.onnxruntime:onnxruntime-android:1.27.0")
+    // Custom WebGPU/XNNPACK build; the Rust runtime dynamically loads its
+    // libonnxruntime.so. Resolved from the Ivy repository declared in
+    // settings.gradle.kts and SHA-256 pinned in gradle/verification-metadata.xml.
+    api("io.ente.onnxruntime:onnxruntime-webgpu-android:1.27.0-r2@aar")
 }

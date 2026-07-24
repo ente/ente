@@ -41,6 +41,10 @@ type UserInactivityCandidate struct {
 	LastActivity int64
 }
 
+type userMutationExecutor interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+}
+
 // Get returns a user indicated by the userID
 func (repo *UserRepository) Get(userID int64) (ente.User, error) {
 	var user ente.User
@@ -94,8 +98,20 @@ func (repo *UserRepository) IsLikelySelfHosted() bool {
 // Delete removes the email_hash and encrypted email information for the user. It replaces email_hash with placeholder value
 // based on DELETED_EMAIL_HASH_FORMAT
 func (repo *UserRepository) Delete(userID int64) error {
-	emailHash := fmt.Sprintf(DELETED_EMAIL_HASH_FORMAT, userID)
-	_, err := repo.DB.Exec(`UPDATE users SET encrypted_email = null, email_decryption_nonce = null, email_hash = $1 WHERE user_id = $2`, emailHash, userID)
+	return deleteUser(context.Background(), repo.DB, userID)
+}
+
+func (repo *UserRepository) DeleteTx(ctx context.Context, tx *sql.Tx, userID int64) (string, error) {
+	var emailHash string
+	if err := tx.QueryRowContext(ctx, `SELECT email_hash FROM users WHERE user_id = $1 FOR UPDATE`, userID).Scan(&emailHash); err != nil {
+		return "", stacktrace.Propagate(err, "failed to read email hash")
+	}
+	return emailHash, deleteUser(ctx, tx, userID)
+}
+
+func deleteUser(ctx context.Context, executor userMutationExecutor, userID int64) error {
+	deletedEmailHash := fmt.Sprintf(DELETED_EMAIL_HASH_FORMAT, userID)
+	_, err := executor.ExecContext(ctx, `UPDATE users SET encrypted_email = null, email_decryption_nonce = null, email_hash = $1 WHERE user_id = $2`, deletedEmailHash, userID)
 	return stacktrace.Propagate(err, "")
 }
 
@@ -324,7 +340,15 @@ func (repo *UserRepository) UpdateDeleteFeedback(userID int64, feedback map[stri
 
 // UpdateEmail updates the email address of a user
 func (repo *UserRepository) UpdateEmail(userID int64, encryptedEmail ente.EncryptionResult, emailHash string) error {
-	_, err := repo.DB.Exec(`UPDATE users SET encrypted_email = $1, email_decryption_nonce = $2, email_hash = $3 WHERE user_id = $4`, encryptedEmail.Cipher, encryptedEmail.Nonce, emailHash, userID)
+	return updateEmail(context.Background(), repo.DB, userID, encryptedEmail, emailHash)
+}
+
+func (repo *UserRepository) UpdateEmailTx(ctx context.Context, tx *sql.Tx, userID int64, encryptedEmail ente.EncryptionResult, emailHash string) error {
+	return updateEmail(ctx, tx, userID, encryptedEmail, emailHash)
+}
+
+func updateEmail(ctx context.Context, executor userMutationExecutor, userID int64, encryptedEmail ente.EncryptionResult, emailHash string) error {
+	_, err := executor.ExecContext(ctx, `UPDATE users SET encrypted_email = $1, email_decryption_nonce = $2, email_hash = $3 WHERE user_id = $4`, encryptedEmail.Cipher, encryptedEmail.Nonce, emailHash, userID)
 	return stacktrace.Propagate(err, "")
 }
 

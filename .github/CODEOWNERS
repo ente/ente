@@ -1,3 +1,5 @@
 /.github/ @mnvr @ua741 @mnvr-sudo
 /server/ @ua741 @mnvr @mnvr-sudo
 /mobile/packages/ente_components/ @ashilkn @AmanRajSinghMourya
+/rust/crates/photos/src/ml/ @laurenspriem @mnvr @mnvr-sudo
+/rust/crates/image/ @laurenspriem @mnvr @mnvr-sudo

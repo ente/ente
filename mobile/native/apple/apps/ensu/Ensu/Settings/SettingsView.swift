@@ -1,7 +1,10 @@
 import SwiftUI
 import Foundation
 
+let isEnsuPacksEnabled = false
+
 struct SettingsView: View {
+    @ObservedObject var knowledgeStore: KnowledgeStore
     let onSignIn: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -162,13 +165,22 @@ struct SettingsView: View {
     private var signInTitle: String { "Sign In to Backup" }
 
     private var allItems: [SettingsItem] {
-        [
+        var items: [SettingsItem] = []
+        if isEnsuPacksEnabled {
+            items.append(SettingsItem(
+                title: "Ensu Packs",
+                iconName: "PackageIcon",
+                destination: AnyView(KnowledgeSettingsView(store: knowledgeStore))
+            ))
+        }
+        items.append(
             SettingsItem(
                 title: "Logs",
                 iconName: "Bug01Icon",
                 destination: AnyView(LogsView(embeddedInNavigation: true))
             )
-        ]
+        )
+        return items
     }
 
     private var advancedItems: [SettingsItem] {

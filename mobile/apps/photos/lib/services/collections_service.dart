@@ -523,7 +523,8 @@ class CollectionsService {
           (c) =>
               !c.isDeleted &&
               (includeUncategorized ||
-                  c.type != CollectionType.uncategorized) &&
+                  c.type != CollectionType.uncategorized ||
+                  !c.isOwner(userID)) &&
               !c.isHidden() &&
               allowedRoles.contains(c.getRole(userID)),
         )
@@ -583,6 +584,7 @@ class CollectionsService {
     final List<Collection> quickLinks = [];
     final List<Collection> collections = getCollectionsForUI(
       includedShared: true,
+      includeUncategorized: true,
     );
     for (final c in collections) {
       if (c.owner.id == Configuration.instance.getUserID()) {

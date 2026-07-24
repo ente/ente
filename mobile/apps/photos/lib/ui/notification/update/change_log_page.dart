@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -77,31 +75,16 @@ class _ChangeLogPageState extends State<ChangeLogPage> {
     final strings = ChangeLogStrings.maybeForLocale(
       Localizations.localeOf(context),
       isLocalGallery: isLocalGalleryMode,
-      isAndroid: Platform.isAndroid,
     );
     if (strings == null) {
       return const SizedBox.shrink();
     }
-    final items =
-        <ChangeLogEntry>[
-              ChangeLogEntry(
-                strings.title1,
-                description: strings.desc1,
-                items: [strings.desc1Item1, strings.desc1Item2]
-                    .where((item) => item.trim().isNotEmpty)
-                    .toList(growable: false),
-              ),
-              ChangeLogEntry(strings.title2, description: strings.desc2),
-              ChangeLogEntry(strings.title3, description: strings.desc3),
-              ChangeLogEntry(strings.title4, description: strings.desc4),
-            ]
-            .where(
-              (entry) =>
-                  entry.title.trim().isNotEmpty ||
-                  (entry.description?.trim().isNotEmpty ?? false) ||
-                  entry.items.isNotEmpty,
-            )
-            .toList(growable: false);
+    final items = strings.entries
+        .map(
+          (entry) =>
+              ChangeLogEntry(entry.title, description: entry.description),
+        )
+        .toList(growable: false);
     return Flexible(
       child: ScrollbarTheme(
         data: ScrollbarTheme.of(context).copyWith(

@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	stdtime "time"
 
 	"github.com/ente/museum/ente"
 	contactmodel "github.com/ente/museum/ente/contact"
@@ -169,6 +170,15 @@ func TestSelfAccountRecoveryStatusAndRecovery(t *testing.T) {
 	if response.Status != ente.AccountRecoveryReady {
 		t.Fatalf("validation status = %q, want %q", response.Status, ente.AccountRecoveryReady)
 	}
+	if _, err := db.Exec(`UPDATE data_cleanup SET stage = $1 WHERE user_id = $2`, cleanupentity.Collection, userID); err != nil {
+		t.Fatalf("failed to advance cleanup: %v", err)
+	}
+	if _, err := controller.ValidateSelfAccountRecovery(token); !errors.Is(err, ErrAccountRecoveryUnavailable) {
+		t.Fatalf("validation after cleanup advanced error = %v, want ErrAccountRecoveryUnavailable", err)
+	}
+	if _, err := db.Exec(`UPDATE data_cleanup SET stage = $1 WHERE user_id = $2`, cleanupentity.Scheduled, userID); err != nil {
+		t.Fatalf("failed to restore scheduled cleanup fixture: %v", err)
+	}
 
 	gin.SetMode(gin.TestMode)
 	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
@@ -245,6 +255,107 @@ func TestValidateSelfAccountRecoveryReportsUnavailableAfterKeyCleanup(t *testing
 	var apiErr *ente.ApiError
 	if !errors.As(err, &apiErr) || apiErr.Code != accountRecoveryUnavailableCode || apiErr.HttpStatusCode != http.StatusGone {
 		t.Fatalf("ValidateSelfAccountRecovery() error = %v, want unavailable ApiError", err)
+	}
+}
+
+func TestAccountRecoveryLosesRaceToCleanupStageAdvance(t *testing.T) {
+	testutil.WithServerRoot(t)
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	t.Cleanup(func() { testutil.ResetTables(t, db) })
+
+	userID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       82,
+		Email:        "recover@example.com",
+		CreationTime: 1,
+	})
+	insertKeyAttributes(t, db, userID)
+	insertScheduledDelete(t, db, userID)
+	userRepo := &repo.UserRepository{
+		DB:                  db,
+		SecretEncryptionKey: testutil.SecretEncryptionKey(),
+		HashingKey:          testutil.HashingKey(),
+	}
+	if err := userRepo.Delete(userID); err != nil {
+		t.Fatalf("failed to delete user: %v", err)
+	}
+	controller := &UserController{
+		UserRepo:            userRepo,
+		DataCleanupRepo:     &cleanuprepo.Repository{DB: db},
+		SecretEncryptionKey: testutil.SecretEncryptionKey(),
+		HashingKey:          testutil.HashingKey(),
+	}
+
+	cleanupTx, err := db.BeginTx(t.Context(), nil)
+	if err != nil {
+		t.Fatalf("failed to start cleanup transaction: %v", err)
+	}
+	defer cleanupTx.Rollback()
+	if _, err := cleanupTx.ExecContext(t.Context(),
+		`UPDATE data_cleanup SET stage = $1 WHERE user_id = $2`,
+		cleanupentity.Collection,
+		userID,
+	); err != nil {
+		t.Fatalf("failed to advance cleanup: %v", err)
+	}
+
+	gin.SetMode(gin.TestMode)
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	recoveryDone := make(chan error, 1)
+	go func() {
+		recoveryDone <- controller.HandleAccountRecovery(ctx, ente.RecoverAccountRequest{
+			UserID:  userID,
+			EmailID: "recover@example.com",
+		})
+	}()
+	waitForDataCleanupRowLock(t, db)
+	if err := cleanupTx.Commit(); err != nil {
+		t.Fatalf("failed to commit cleanup stage advance: %v", err)
+	}
+
+	select {
+	case err := <-recoveryDone:
+		if !errors.Is(err, ErrAccountRecoveryUnavailable) {
+			t.Fatalf("HandleAccountRecovery() error = %v, want ErrAccountRecoveryUnavailable", err)
+		}
+	case <-stdtime.After(2 * stdtime.Second):
+		t.Fatal("account recovery did not finish after cleanup committed")
+	}
+	if _, err := userRepo.Get(userID); !errors.Is(err, ente.ErrUserDeleted) {
+		t.Fatalf("user state after lost recovery race = %v, want deleted", err)
+	}
+	var stage cleanupentity.Stage
+	if err := db.QueryRow(`SELECT stage FROM data_cleanup WHERE user_id = $1`, userID).Scan(&stage); err != nil {
+		t.Fatalf("failed to read cleanup stage: %v", err)
+	}
+	if stage != cleanupentity.Collection {
+		t.Fatalf("cleanup stage = %q, want %q", stage, cleanupentity.Collection)
+	}
+}
+
+func waitForDataCleanupRowLock(t *testing.T, db *sql.DB) {
+	t.Helper()
+	deadline := stdtime.Now().Add(2 * stdtime.Second)
+	for {
+		var waiting bool
+		err := db.QueryRow(`SELECT EXISTS(
+			SELECT 1 FROM pg_stat_activity
+			WHERE datname = current_database()
+			  AND pid <> pg_backend_pid()
+			  AND wait_event_type = 'Lock'
+			  AND query LIKE '%data_cleanup%'
+			  AND query LIKE '%FOR UPDATE%'
+		)`).Scan(&waiting)
+		if err != nil {
+			t.Fatalf("failed to inspect recovery lock wait: %v", err)
+		}
+		if waiting {
+			return
+		}
+		if stdtime.Now().After(deadline) {
+			t.Fatal("account recovery did not wait for the cleanup row lock")
+		}
+		stdtime.Sleep(10 * stdtime.Millisecond)
 	}
 }
 
@@ -432,6 +543,11 @@ func insertKeyAttributes(t *testing.T, db *sql.DB, userID int64) {
 
 func insertScheduledDelete(t *testing.T, db *sql.DB, userID int64) {
 	t.Helper()
+	t.Cleanup(func() {
+		if _, err := db.Exec(`DELETE FROM data_cleanup WHERE user_id = $1`, userID); err != nil {
+			t.Errorf("failed to remove data_cleanup fixture for user %d: %v", userID, err)
+		}
+	})
 	_, err := db.Exec(
 		`INSERT INTO data_cleanup(user_id, stage, stage_schedule_time, stage_attempt_count)
 		 VALUES($1, $2, $3, $4)`,

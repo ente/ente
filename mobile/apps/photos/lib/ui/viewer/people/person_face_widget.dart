@@ -307,8 +307,12 @@ class _PersonFaceWidgetState extends State<PersonFaceWidget>
               contactUserId: personData.userID,
               email: personData.userID == null ? personData.email : null,
             );
+        final resolvedName = PhotosContactsService.instance.getCachedSavedName(
+          contactUserId: personData.userID,
+          email: personData.userID == null ? personData.email : null,
+        );
         _personIdentity = AvatarIdentity.account(
-          label: personData.name,
+          label: resolvedName ?? personData.name,
           email: resolvedEmail ?? personData.email,
           userID: personData.userID,
           personID: personEntity.remoteID,

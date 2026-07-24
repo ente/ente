@@ -11,7 +11,6 @@ import io.ente.ensu.device.AndroidDeviceCapabilityProvider
 import io.ente.ensu.settings.SessionPreferencesDataStore
 import io.ente.ensu.chat.ChatRepository
 import io.ente.ensu.config.loadConfigDefaults
-import io.ente.ensu.bindings.ModelDownloadTarget
 import io.ente.ensu.llm.LlmProvider
 import io.ente.ensu.llm.ModelDownloader
 import io.ente.ensu.llm.ModelSettingsState
@@ -35,6 +34,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val appVersion = runCatching { getAppVersion(application) }.getOrDefault("unknown")
     private val deviceCapabilityProvider = AndroidDeviceCapabilityProvider(application)
     private val transcriber = (application as EnsuApplication).transcriber
+    val configDefaults = loadConfigDefaults()
 
     val logRepository = FileLogRepository(application)
     private val modelDownloader = (application as EnsuApplication).modelDownloader
@@ -43,15 +43,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val llmProvider = LlmProvider(
         downloader = modelDownloader,
         transcriber = transcriber,
-        deviceCapabilityProvider = deviceCapabilityProvider
+        deviceCapabilityProvider = deviceCapabilityProvider,
+        knowledgeEmbedding = configDefaults.knowledgeEmbedding
     )
     private val chatRepository = ChatRepository(application, credentialStore)
-    val configDefaults = loadConfigDefaults()
+    private val knowledgeProvider = (application as EnsuApplication).knowledgeProvider
 
     val store = AppStore(
+        context = application,
         sessionPreferences = sessionPreferences,
         chatRepository = chatRepository,
         llmProvider = llmProvider,
+        knowledgeProvider = knowledgeProvider,
         modelDownloader = modelDownloader,
         transcriber = transcriber,
         deviceCapabilityProvider = deviceCapabilityProvider,
@@ -63,12 +66,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         logRepository.log(LogLevel.Info, launchMessage, tag = "App")
 
         viewModelScope.launch {
+            runCatching {
+                advancedSettingsDataStore.migrateLegacyModelSelection { url, mmproj ->
+                    withContext(Dispatchers.IO) {
+                        modelDownloader.migrate(url, mmproj)
+                    }
+                }
+            }
             val initialSettings = runCatching {
                 advancedSettingsDataStore.settingsFlow.first()
             }.getOrDefault(AdvancedSettingsSnapshot())
-            withContext(Dispatchers.IO) {
-                modelDownloader.migrate(migrationTargets(initialSettings.modelSettings))
-            }
             store.applyPersistedSettings(
                 developerSettings = initialSettings.developerSettings,
                 modelSettings = initialSettings.modelSettings
@@ -86,21 +93,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         }
-    }
-
-    private fun migrationTargets(settings: ModelSettingsState): List<ModelDownloadTarget> {
-        val presets = listOf(configDefaults.mobileDefaultModel) + configDefaults.mobileModelPresets
-        val targets = presets
-            .map { ModelDownloadTarget.Gguf(it.id, it.url, it.mmprojUrl) }
-            .toMutableList()
-        if (settings.useCustomModel && settings.modelUrl.isNotBlank()) {
-            targets += ModelDownloadTarget.Gguf(
-                "custom:${settings.modelUrl}",
-                settings.modelUrl,
-                settings.mmprojUrl.takeIf { it.isNotBlank() }
-            )
-        }
-        return targets
     }
 
     @Suppress("DEPRECATION")

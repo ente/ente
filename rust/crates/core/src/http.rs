@@ -18,12 +18,14 @@ use gloo_timers::future::sleep;
 #[cfg(not(target_arch = "wasm32"))]
 use tokio::time::sleep;
 
+use reqwest::Method;
 use reqwest::header::{HeaderName, HeaderValue};
-use reqwest::{Method, Url};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zeroize::ZeroizeOnDrop;
+
+use crate::urls::api_url;
 
 const CLIENT_PACKAGE: HeaderName = HeaderName::from_static("x-client-package");
 const CLIENT_VERSION: HeaderName = HeaderName::from_static("x-client-version");
@@ -340,14 +342,10 @@ impl Api {
     }
 
     fn request(&self, method: Method, path: &str) -> RequestBuilder {
-        let mut builder = match Url::parse(&self.origin) {
-            Ok(mut url) => {
-                url.set_path(path);
-                self.http.client.request(method, url)
-            }
-            // reqwest hits the same parse failure, and reports it at send time.
-            Err(_) => self.http.client.request(method, self.origin.as_str()),
-        };
+        let mut builder = self
+            .http
+            .client
+            .request(method, api_url(&self.origin, path));
         if let Some(client_package) = &self.client_package {
             builder = builder.header(CLIENT_PACKAGE, client_package);
         }
@@ -965,6 +963,24 @@ mod tests {
         let api = Api::new(
             Http::new().unwrap(),
             ApiConfig::new(format!("{}/", server.url())),
+        );
+        api.ping().await.unwrap();
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn origin_path_prefix_is_preserved() {
+        let mut server = Server::new_async().await;
+        let mock = server
+            .mock("GET", "/ente/ping")
+            .with_body(r#"{"message":"pong","id":"abc"}"#)
+            .create_async()
+            .await;
+
+        let api = Api::new(
+            Http::new().unwrap(),
+            ApiConfig::new(format!("{}/ente", server.url())),
         );
         api.ping().await.unwrap();
 

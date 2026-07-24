@@ -144,7 +144,7 @@ final class VoiceTranscriptionService {
         let downloadId = beginDownload(taskId: taskId)
         let transcriber = transcriber
         let downloader = downloader
-        let targets = [downloader.transcriptionModelTarget, downloader.voiceActivityModelTarget]
+        let targets = [downloader.transcriptionTarget, downloader.voiceActivityTarget]
         let sampleRate = recording.sampleRate
         let pcm = recording.pcm
 
@@ -254,9 +254,9 @@ final class VoiceTranscriptionService {
         downloadId: UUID,
         onState: @escaping StateHandler
     ) async throws {
-        let targets = await [downloader.transcriptionModelTarget, downloader.voiceActivityModelTarget]
+        let targets = await [downloader.transcriptionTarget, downloader.voiceActivityTarget]
         let downloader = self.downloader
-        if targets.allSatisfy({ downloader.isDownloaded(target: $0) }) {
+        if targets.allSatisfy({ downloader.isDownloaded($0) }) {
             return
         }
         await MainActor.run { [weak self] in

@@ -130,6 +130,15 @@ impl LlmModel {
         let handle = llm::Context::new(&self.handle, params.into()).map_err(LlmError::from)?;
         Ok(Arc::new(LlmContext { handle }))
     }
+
+    pub fn new_embedding_context(
+        &self,
+        n_threads: Option<i32>,
+    ) -> Result<Arc<LlmContext>, LlmError> {
+        let handle = llm::Context::new_knowledge_embedding(&self.handle, n_threads)
+            .map_err(LlmError::from)?;
+        Ok(Arc::new(LlmContext { handle }))
+    }
 }
 
 #[derive(uniffi::Object)]
@@ -139,6 +148,10 @@ pub struct LlmContext {
 
 #[uniffi::export]
 impl LlmContext {
+    pub fn embed(&self, text: String) -> Result<Vec<f32>, LlmError> {
+        self.handle.embed(&text).map_err(LlmError::from)
+    }
+
     pub fn generate_chat_stream(
         &self,
         request: LlmChatRequest,

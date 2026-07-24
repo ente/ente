@@ -1,0 +1,1 @@
+- Added support for importing backups from the OTP Auth app.
