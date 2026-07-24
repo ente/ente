@@ -15,6 +15,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
 import "package:photos/app_mode.dart";
+import 'package:photos/core/cache/device_collections_cache.dart';
 import 'package:photos/core/cache/image_cache.dart';
 import 'package:photos/core/cache/thumbnail_in_memory_cache.dart';
 import 'package:photos/core/cache/video_cache_manager.dart';
@@ -238,6 +239,7 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     // Clear all in-memory caches
     ThumbnailInMemoryLruCache.clearAll();
     FileLruCache.clearAll();
+    DeviceCollectionsCache.clearAll();
 
     // Clear image cache
     try {

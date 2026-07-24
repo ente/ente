@@ -5,6 +5,7 @@ import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
+import 'package:photos/core/cache/device_collections_cache.dart';
 import 'package:photos/core/event_bus.dart';
 import 'package:photos/db/device_files_db.dart';
 import 'package:photos/db/files_db.dart';
@@ -104,8 +105,6 @@ class DeviceFolderVerticalGridSliver extends StatefulWidget {
 
 class _DeviceFolderVerticalGridViewBodyState
     extends State<DeviceFolderVerticalGridSliver> {
-  static List<DeviceCollection>? _cachedDeviceCollections;
-
   StreamSubscription<BackupFoldersUpdatedEvent>? _backupFoldersUpdatedEvent;
   StreamSubscription<LocalPhotosUpdatedEvent>? _localFilesSubscription;
   late Future<List<DeviceCollection>> _deviceCollectionsFuture;
@@ -144,10 +143,11 @@ class _DeviceFolderVerticalGridViewBodyState
   }
 
   Future<List<DeviceCollection>> _loadDeviceCollections() async {
+    final cacheGeneration = DeviceCollectionsCache.generation;
     final deviceCollections = await FilesDB.instance.getDeviceCollections(
       includeCoverThumbnail: true,
     );
-    _cachedDeviceCollections = deviceCollections;
+    DeviceCollectionsCache.putIfCurrent(cacheGeneration, deviceCollections);
     return deviceCollections;
   }
 
@@ -180,7 +180,7 @@ class _DeviceFolderVerticalGridViewBodyState
 
     return FutureBuilder<List<DeviceCollection>>(
       future: _deviceCollectionsFuture,
-      initialData: _cachedDeviceCollections,
+      initialData: DeviceCollectionsCache.deviceCollections,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           List<DeviceCollection> deviceCollections = snapshot.data!.toList();
