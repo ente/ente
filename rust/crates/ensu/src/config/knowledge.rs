@@ -126,7 +126,7 @@ pub(crate) fn knowledge_datasets() -> Vec<KnowledgeDatasetConfig> {
             download_size_bytes: 167_849_446,
             max_chars: 600,
             source_url_template: "https://simple.wikipedia.org/wiki/{title}".to_owned(),
-            relevance_threshold: 0.5,
+            relevance_threshold: 0.55,
             attribution: AttributionConfig {
                 credit: "Simple English Wikipedia contributors".to_owned(),
                 license_label: KNOWLEDGE_LICENSE_LABEL.to_owned(),
@@ -149,12 +149,35 @@ pub(crate) fn knowledge_datasets() -> Vec<KnowledgeDatasetConfig> {
             download_size_bytes: 202_595_475,
             max_chars: 1_400,
             source_url_template: "https://en.wikibooks.org/wiki/{title}".to_owned(),
-            relevance_threshold: 0.5,
+            relevance_threshold: 0.58,
             attribution: AttributionConfig {
                 credit: "Wikibooks contributors".to_owned(),
                 license_label: KNOWLEDGE_LICENSE_LABEL.to_owned(),
                 license_url: KNOWLEDGE_LICENSE_URL.to_owned(),
                 public_pack_url: "https://huggingface.co/datasets/ente-ai/ensu-knowledge-packs/tree/a13b90e443dcdc1561ac777ea17ee6ed4703e35f/wikibooks".to_owned(),
+                modification_notice: MODIFICATION_NOTICE.to_owned(),
+            },
+        },
+        KnowledgeDatasetConfig {
+            stable_id: "fullwiki".to_owned(),
+            label: "English Wikipedia".to_owned(),
+            current_download_identity: "enwiki-2026-07-07".to_owned(),
+            artifact_base_url: "https://huggingface.co/datasets/ente-ai/ensu-knowledge-packs/resolve/61f12c75fe451efe6c0d06af3903add4292e06af/fullwiki/data/".to_owned(),
+            artifact_sha256: vec![
+                "0c000cf313b642c9a25695c645c9cef2062e3d4c9e33d0cb05f19bf3145c8084".to_owned(),
+                "36fcb1045e20aac98f8477cbd4f15b79ffb337ced756a457d55180fa862c5453".to_owned(),
+                "a891fc7d87554dacd2d59e8f89a71507be24247df0e84ecd2b2ee3d8bfcb7c21".to_owned(),
+                "5c90adbe8c18c053f1977f6c3b00f83d9b381daf234d2d559d8eaa29c9597c70".to_owned(),
+            ],
+            download_size_bytes: 363_051_703,
+            max_chars: 600,
+            source_url_template: "https://en.wikipedia.org/wiki/{title}".to_owned(),
+            relevance_threshold: 0.55,
+            attribution: AttributionConfig {
+                credit: "English Wikipedia contributors".to_owned(),
+                license_label: KNOWLEDGE_LICENSE_LABEL.to_owned(),
+                license_url: KNOWLEDGE_LICENSE_URL.to_owned(),
+                public_pack_url: "https://huggingface.co/datasets/ente-ai/ensu-knowledge-packs/tree/61f12c75fe451efe6c0d06af3903add4292e06af/fullwiki".to_owned(),
                 modification_notice: MODIFICATION_NOTICE.to_owned(),
             },
         },
@@ -205,7 +228,7 @@ mod tests {
         let datasets = knowledge_datasets();
         let embedding = knowledge_embedding_config();
 
-        assert_eq!(datasets.len(), 2);
+        assert_eq!(datasets.len(), 3);
         assert_eq!(
             datasets
                 .iter()
@@ -216,6 +239,7 @@ mod tests {
         );
         assert_eq!(datasets[0].stable_id, "simplewiki");
         assert_eq!(datasets[1].stable_id, "wikibooks");
+        assert_eq!(datasets[2].stable_id, "fullwiki");
         assert!(
             datasets
                 .iter()
@@ -223,6 +247,10 @@ mod tests {
         );
         assert_eq!(datasets[0].download_size_bytes, 167_849_446);
         assert_eq!(datasets[1].download_size_bytes, 202_595_475);
+        assert_eq!(datasets[2].download_size_bytes, 363_051_703);
+        assert_eq!(datasets[0].relevance_threshold, 0.55);
+        assert_eq!(datasets[1].relevance_threshold, 0.58);
+        assert_eq!(datasets[2].relevance_threshold, 0.55);
         assert!(datasets.iter().all(|dataset| {
             dataset.artifact_sha256.len() == KNOWLEDGE_ARTIFACT_FILENAMES.len()
                 && dataset

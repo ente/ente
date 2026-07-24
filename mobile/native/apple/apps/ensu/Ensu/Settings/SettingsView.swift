@@ -1,7 +1,7 @@
 import SwiftUI
 import Foundation
 
-let isEnsuPacksEnabled = false
+let isEnsuPacksEnabled = true
 
 struct SettingsView: View {
     @ObservedObject var knowledgeStore: KnowledgeStore

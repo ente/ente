@@ -149,6 +149,9 @@ final class KnowledgeStore: ObservableObject {
             guard let self else { return }
             let result = await provider.cancel(dataset: dataset)
             await ownerTask?.value
+            guard mutationTasks[stableId] == nil else {
+                return
+            }
             if let result {
                 let enabled = packs
                     .first(where: { $0.id == stableId })?.enabled == true
