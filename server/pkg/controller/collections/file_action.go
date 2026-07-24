@@ -11,6 +11,7 @@ import (
 
 // AddFiles adds files to a collection
 func (c *CollectionController) AddFiles(ctx *gin.Context, userID int64, files []ente.CollectionFileItem, cID int64) error {
+	requestCtx := ctx.Request.Context()
 	resp, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{
 		CollectionID:   cID,
 		ActorUserID:    userID,
@@ -45,7 +46,7 @@ func (c *CollectionController) AddFiles(ctx *gin.Context, userID int64, files []
 	}
 
 	// Verify that none of the files are in trash or permanently deleted
-	trashedOrDeletedFileIDs, err := c.TrashRepo.GetFilesInTrashOrDeleted(ctx, userID, fileIDs)
+	trashedOrDeletedFileIDs, err := c.TrashRepo.GetFilesInTrashOrDeleted(requestCtx, userID, fileIDs)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to check trash state")
 	}
@@ -58,7 +59,7 @@ func (c *CollectionController) AddFiles(ctx *gin.Context, userID int64, files []
 		return stacktrace.Propagate(&ente.ErrFileInTrash, "")
 	}
 
-	err = c.CollectionRepo.AddFiles(cID, collectionOwnerID, files, filesOwnerID)
+	err = c.CollectionRepo.AddFiles(requestCtx, cID, collectionOwnerID, files, filesOwnerID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
