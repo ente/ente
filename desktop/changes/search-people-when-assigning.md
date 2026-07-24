@@ -1,0 +1,1 @@
+- Search for people by name in the Add a person dialog.
