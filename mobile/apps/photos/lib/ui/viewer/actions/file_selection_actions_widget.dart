@@ -609,7 +609,7 @@ class _FileSelectionActionsWidgetState
         skipNotify: true,
       );
     }
-    showCollectionActionSheet(
+    await showCollectionActionSheet(
       context,
       selectedFiles: widget.selectedFiles,
       actionType: CollectionActionType.moveFiles,
@@ -617,7 +617,7 @@ class _FileSelectionActionsWidgetState
   }
 
   Future<void> _moveFilesToHiddenAlbum() async {
-    showCollectionActionSheet(
+    await showCollectionActionSheet(
       context,
       selectedFiles: widget.selectedFiles,
       actionType: CollectionActionType.moveToHiddenCollection,
@@ -625,11 +625,14 @@ class _FileSelectionActionsWidgetState
   }
 
   Future<void> _addToAlbum() async {
-    showCollectionActionSheet(context, selectedFiles: widget.selectedFiles);
+    await showCollectionActionSheet(
+      context,
+      selectedFiles: widget.selectedFiles,
+    );
   }
 
   Future<void> _addToHiddenAlbum() async {
-    showCollectionActionSheet(
+    await showCollectionActionSheet(
       context,
       selectedFiles: widget.selectedFiles,
       actionType: CollectionActionType.addToHiddenAlbum,
@@ -883,7 +886,7 @@ class _FileSelectionActionsWidgetState
         skipNotify: true,
       );
     }
-    showCollectionActionSheet(
+    await showCollectionActionSheet(
       context,
       selectedFiles: widget.selectedFiles,
       actionType: CollectionActionType.unHide,
@@ -939,13 +942,17 @@ class _FileSelectionActionsWidgetState
 
   Future<void> _setPersonCover() async {
     final EnteFile file = widget.selectedFiles.files.first;
-    final updatedPerson = await PersonService.instance.updateAvatar(
+    final result = await PersonService.instance.updateAvatar(
       widget.person!,
       file,
     );
+    final updatedPerson = result.person;
     widget.selectedFiles.clearAll();
     if (mounted) {
       setState(() => {});
+      if (result.contactPictureUpdateFailed) {
+        showShortToast(context, "Failed to update contact picture");
+      }
     }
     Bus.instance.fire(
       PeopleChangedEvent(
@@ -1116,6 +1123,9 @@ class _FileSelectionActionsWidgetState
 
     if (actionResult?.action == ButtonAction.first) {
       widget.selectedFiles.clearAll();
+      if (mounted) {
+        await showMediaManagementHintSheet(context);
+      }
     }
   }
 

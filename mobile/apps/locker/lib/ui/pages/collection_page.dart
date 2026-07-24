@@ -178,6 +178,7 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
       }
     } catch (e, s) {
       _logger.severe(e, s);
+      if (!mounted) return;
       await showLockerErrorSheet(context, e);
     }
   }

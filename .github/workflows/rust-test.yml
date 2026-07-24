@@ -1,0 +1,58 @@
+name: "Test (Rust)"
+
+on:
+    pull_request:
+        paths:
+            - ".github/workflows/rust-test.yml"
+            - "rust/**"
+            - "server/**"
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    RUSTFLAGS: -D warnings
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        defaults:
+            run:
+                working-directory: rust
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+            - name: Free runner disk space
+              run: sudo rm -rf /usr/share/dotnet
+
+            - name: Install Linux dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libvulkan-dev glslc
+
+            - name: Setup go
+              uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+              with:
+                  go-version-file: server/go.mod
+
+            # Restore-only; primed on main by warm-caches.yml.
+            - name: Restore Rust cache
+              uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+              with:
+                  workspaces: rust
+                  shared-key: rust-workspace
+                  save-if: false
+                  cache-directories: rust/.cache
+
+            - run: cargo test --locked --features museum,ente-photos/ml-assets
+              # GITHUB_TOKEN lifts GitHub API rate limit when fetching
+              # postgresql_embedded binaries.
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}

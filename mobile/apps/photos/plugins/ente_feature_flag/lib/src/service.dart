@@ -53,14 +53,14 @@ class FlagService {
     return (flags.internalUser || kDebugMode) && !isDisabled;
   }
 
+  bool get webGPUEnabled => internalUser;
+
   bool get cloudflareUploadWorker =>
       internalUser || _isInUserRollout(_cfUploadWorkerRolloutPercent);
 
   bool get betaUser => flags.betaUser;
 
   bool get internalOrBetaUser => internalUser || betaUser;
-
-  bool get enableContact => internalUser;
 
   bool get enableStripe => Platform.isIOS ? false : flags.enableStripe;
 

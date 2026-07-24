@@ -52,6 +52,12 @@ Check the app for the complete list of supported formats.
 
 Individual file uploads have size limits. Large files may need to be compressed or split before uploading. Check the app for current size limits.
 
+### How do I add a photo or image to Locker on iOS? {#locker-add-image-ios}
+
+**On iOS:**
+
+Open Apple Photos, choose the photo, open the share sheet, and select Ente Locker to upload the image to Locker.
+
 ### How do I scan a physical document? {#locker-scan-document}
 
 Use your phone's camera or a scanning app to create an image or PDF of the physical document, then upload it to Locker as a Document.

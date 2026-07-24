@@ -45,8 +45,6 @@ workspace:
 
 dev_dependencies:
   flutter_lints: 6.0.0
-  # Pinned: 7.8.2+ needs cli_util ^0.5.0, which conflicts with ffigen's ^0.4.x.
-  melos: 7.8.1
 
 dependency_overrides:
   # Hosted 3.4.1 drops DB rows but fails to delete cache files; use the
@@ -67,54 +65,3 @@ dependency_overrides:
       url: https://github.com/ente/packages.git
       path: packages/video_player/video_player_avfoundation
       ref: e6f7518a2ea4b31cf44e7bd6f44b35b1d66b2085
-
-melos:
-  command:
-    bootstrap:
-      enforceLockfile: true
-
-  scripts:
-    codegen:rust:
-      run: |
-        (cd ../rust && cargo codegen frb)
-      description: Generate Rust bindings for all packages using flutter_rust_bridge.
-
-    clean:all:
-      run: dart run melos exec -- "flutter clean"
-      description: Run "flutter clean" in all projects.
-
-    clean:photos:
-      run: dart run melos exec --scope="photos" -- "flutter clean"
-      description: Clean the 'photos' app.
-
-    clean:auth:
-      run: dart run melos exec --scope="auth" -- "flutter clean"
-      description: Clean the 'auth' app.
-
-    clean:locker:
-      run: dart run melos exec --scope="locker" -- "flutter clean"
-      description: Clean the 'locker' app.
-
-    run:photos:apk:
-      run: dart run melos exec --scope="photos" -- "flutter run --flavor independent"
-      description: Run the 'photos' app in independent mode.
-
-    run:auth:apk:
-      run: dart run melos exec --scope="auth" -- "flutter run --flavor independent"
-      description: Run the 'auth' app in independent mode.
-
-    run:locker:apk:
-      run: dart run melos exec --scope="locker" -- "flutter run --flavor independent"
-      description: Run the 'locker' app in independent mode.
-
-    build:photos:apk:
-      run: dart run melos exec --scope="photos" -- "flutter build apk --release"
-      description: Build a release APK for the 'photos' app.
-
-    build:auth:appbundle:
-      run: dart run melos exec --scope="auth" -- "flutter build appbundle --release"
-      description: Build a release AppBundle for the 'auth' app.
-
-    build:locker:ios:
-      run: dart run melos exec --scope="locker" -- "flutter build ios --release"
-      description: Build a release iOS archive for the 'locker' app.

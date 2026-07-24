@@ -15,10 +15,10 @@ Parity Python project configuration stays at this root:
 Playground notebooks use their own Python project:
 
 - `infra/ml/playground/pyproject.toml`
-- `infra/ml/playground/uv.lock`
 
 ONNX Runtime 1.27 no longer publishes Apple x86_64 binaries. On macOS, the
-parity and playground Python environments therefore require Apple Silicon.
+parity and playground Python environments therefore require Apple Silicon and
+macOS 14 or newer.
 
 Use the directory-specific READMEs for day-to-day work:
 

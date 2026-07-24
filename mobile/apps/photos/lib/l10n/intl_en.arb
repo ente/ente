@@ -344,7 +344,7 @@
   "theyAlsoGetXGb": "They also get {storageAmountInGB} GB",
   "referralStorageForBoth": "{storageAmountInGB} GB for them + {storageAmountInGB} GB for you when they upgrade.",
   "freeStorageOnReferralSuccess": "{storageAmountInGB} GB each time someone signs up for a paid plan and applies your code",
-  "shareTextReferralCode": "Ente Photos is a private and safe home for your photos\n* Download Ente Photos from https://ente.com/app\n* Create an account\n* Apply the referral code {referralCode} in Settings->Referral\n* Get {referralStorageInGB}GB free when you upgrade to a paid plan",
+  "shareTextReferralCode": "Ente Photos is a private and safe home for your photos\n* Download Ente Photos from https://ente.com/app\n* Create an account\n* Apply the referral code {referralCode} in Settings->Referral\n* Get extra {referralStorageInGB} GB free!",
   "claimFreeStorage": "Claim free storage",
   "inviteYourFriends": "Invite your friends",
   "earnFreeStorage": "Earn free storage",
@@ -1038,7 +1038,7 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "PlayStore subscription",
   "appstoreSubscription": "AppStore subscription",
-  "subAlreadyLinkedErrMessage": "Your {id} is already linked to another Ente account.\nIf you would like to use your {id} with this account, please contact our support''",
+  "subAlreadyLinkedErrMessage": "Your {id} is already linked to another Ente account.\nIf you would like to use your {id} with this account, please contact our support.",
   "visitWebToManage": "Please visit {webUrl} to manage your subscription",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
@@ -1220,6 +1220,17 @@
   "favorite": "Favorite",
   "removeFromFavorite": "Remove from favorites",
   "shareMemories": "Share memories",
+  "shareMemory": "Share memory",
+  "shareItemCount": "{count, plural, one{Share {count} item} other{Share {count} items}}",
+  "@shareItemCount": {
+    "description": "Action to share the selected number of memory items",
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    }
+  },
   "shareTheseMemories": "Share these memories",
   "shareThisPhoto": "Share this photo",
   "shareThisVideo": "Share this video",
@@ -1870,6 +1881,8 @@
   "editPerson": "Edit person",
   "enterDateOfBirthHint": "Enter date of birth",
   "setAContactPhoto": "Set a contact photo",
+  "setSelectedPhoto": "Set selected photo",
+  "removeContactPhoto": "Remove contact photo",
   "mergedPhotos": "Merged photos",
   "orMergeWithExistingPerson": "Or merge with existing",
   "enterDateOfBirth": "Birthday (optional)",
@@ -2395,6 +2408,9 @@
   "@linkEmailToContactBannerCaption": {
     "description": "Caption for the 'Link email' title. It should be a continuation of the 'Link email' title. Just like how 'Link email' + 'for faster sharing' forms a proper sentence in English, the combination of these two strings should also be a proper sentence in other languages."
   },
+  "selectPerson": "Select person",
+  "selectPersonToLinkToThisContact": "Select a person to autofill this contact",
+  "searchAllPeople": "Search all people",
   "selectPersonToLink": "Select person to link",
   "linkPersonToEmail": "Link person to {email}",
   "@linkPersonToEmail": {
@@ -2446,7 +2462,6 @@
   "joinAlbumConfirmationDialogBody": "Joining an album will make your email visible to its participants.",
   "pleaseWaitThisWillTakeAWhile": "Please wait, this will take a while.",
   "editTime": "Edit time",
-  "editDateAndTime": "Edit date and time",
   "selectTime": "Select time",
   "selectDate": "Select date",
   "previous": "Previous",

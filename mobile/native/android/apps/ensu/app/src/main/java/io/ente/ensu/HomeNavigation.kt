@@ -37,6 +37,8 @@ import io.ente.ensu.llm.ModelSettingsScreen
 import io.ente.ensu.logging.LogViewerScreen
 import io.ente.ensu.settings.SettingsScreen
 import io.ente.ensu.settings.SystemPromptSettingsScreen
+import io.ente.ensu.settings.KnowledgeSettingsScreen
+import io.ente.ensu.device.isChatSupported
 
 @Composable
 internal fun HomeNavigation(
@@ -90,6 +92,9 @@ internal fun HomeNavigation(
                 HomeRoute.Settings -> {
                     SimpleTopBar(title = "Settings") { navController.popBackStack() }
                 }
+                HomeRoute.Knowledge -> {
+                    SimpleTopBar(title = "Ensu Packs") { navController.popBackStack() }
+                }
                 else -> Unit
             }
         }
@@ -113,6 +118,7 @@ internal fun HomeNavigation(
                 ) {
                     ChatView(
                         chatState = appState.chat,
+                        modelDownloader = store.modelDownloader,
                         transcriber = store.transcriber,
                         isDrawerOpen = drawerState.currentValue == DrawerValue.Open,
                         onMessageChange = store::updateMessageText,
@@ -145,6 +151,7 @@ internal fun HomeNavigation(
                         buildVersion = appVersion,
                         isAdvancedUnlocked = appState.developerSettings.isAdvancedUnlocked,
                         onOpenLogs = { navController.navigate(HomeRoute.Logs) },
+                        onOpenKnowledge = { navController.navigate(HomeRoute.Knowledge) },
                         onOpenModelSettings = { navController.navigate(HomeRoute.ModelSettings) },
                         onOpenSystemPromptSettings = { navController.navigate(HomeRoute.SystemPromptSettings) },
                         onUnlockAdvanced = {
@@ -152,6 +159,21 @@ internal fun HomeNavigation(
                             advancedSettingsDataStore.persistUnlockAdvancedSettings()
                         },
                         onSignIn = onSignIn
+                    )
+                }
+                composable(
+                    route = HomeRoute.Knowledge,
+                    enterTransition = { forwardEnter() },
+                    exitTransition = { forwardExit() },
+                    popEnterTransition = { backEnter() },
+                    popExitTransition = { backExit() }
+                ) {
+                    KnowledgeSettingsScreen(
+                        state = appState.knowledge,
+                        packDownloadsAllowed = appState.chat.deviceCapability.isChatSupported(),
+                        onDownloadOrUpdate = store::downloadOrUpdateKnowledgePack,
+                        onCancel = store::cancelKnowledgePackDownload,
+                        onSetEnabled = store::setKnowledgePackEnabled
                     )
                 }
                 composable(
@@ -221,6 +243,7 @@ internal object HomeRoute {
     const val Logs = "logs"
     const val ModelSettings = "model-settings"
     const val SystemPromptSettings = "system-prompt-settings"
+    const val Knowledge = "knowledge"
 }
 
 internal fun AnimatedContentTransitionScope<NavBackStackEntry>.forwardEnter() =

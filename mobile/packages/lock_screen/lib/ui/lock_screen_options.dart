@@ -45,6 +45,9 @@ class _LockScreenOptionsState extends State<LockScreenOptions> {
         .getShouldHideAppContent();
     final bool systemLockEnabled = _lockScreenSettings
         .shouldShowSystemLockScreen();
+    if (!mounted) {
+      return;
+    }
     setState(() {
       isPasswordEnabled = passwordEnabled;
       isPinEnabled = pinEnabled;
@@ -62,17 +65,21 @@ class _LockScreenOptionsState extends State<LockScreenOptions> {
       final linuxStatus = await LocalAuthenticationService.instance
           .getLinuxLocalAuthSetupStatus();
       if (Platform.isLinux && linuxStatus?.setupRequired == true) {
-        await showLinuxSystemAuthSetupDialog(context);
+        if (mounted) {
+          await showLinuxSystemAuthSetupDialog(context);
+        }
         await _initializeSettings();
         return;
       }
-      await showBottomSheetComponent(
-        context: context,
-        builder: (_) => BottomSheetComponent(
-          title: context.strings.noSystemLockFound,
-          message: context.strings.deviceLockEnablePreSteps,
-        ),
-      );
+      if (mounted) {
+        await showBottomSheetComponent(
+          context: context,
+          builder: (_) => BottomSheetComponent(
+            title: context.strings.noSystemLockFound,
+            message: context.strings.deviceLockEnablePreSteps,
+          ),
+        );
+      }
     }
     await _initializeSettings();
   }

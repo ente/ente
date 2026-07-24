@@ -124,6 +124,7 @@
   "import2FasGuide": "Use the \"Settings->Backup -Export\" option in 2FAS.\n\nIf your backup is encrypted, you will need to enter the password to decrypt the backup",
   "importLastpassGuide": "Use the \"Transfer accounts\" option within Lastpass Authenticator Settings and press \"Export accounts to file\". Import the JSON downloaded.",
   "importProtonAuthGuide": "Use the \"Export\" option in Proton Authenticator Settings to export your codes.\n\nIf your export is password protected, you will need to enter the password to decrypt it.",
+  "importOtpAuthGuide": "Export an encrypted backup from OTP Auth, then select the .otpauthdb or .otpauthdp file. Single-account .otpauth exports are also supported.",
   "invalidProtonExportTitle": "Invalid Proton export",
   "invalidProtonExportMessage": "The selected file is not a valid Proton Authenticator export.",
   "exportCodes": "Export codes",

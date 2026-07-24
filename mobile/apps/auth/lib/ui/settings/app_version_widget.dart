@@ -1,4 +1,5 @@
 import 'package:ente_auth/utils/dialog_util.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -45,11 +46,19 @@ class _AppVersionWidgetState extends State<AppVersionWidget> {
         future: _getAppVersion(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(
-                "Version: ${snapshot.data!}",
-                style: Theme.of(context).textTheme.bodySmall,
+            return SizedBox(
+              width: double.infinity,
+              height: 16,
+              child: Semantics(
+                identifier: 'auth_settings_app_version',
+                child: Center(
+                  child: Text(
+                    "Version ${snapshot.data!}",
+                    style: TextStyles.mini.copyWith(
+                      color: context.componentColors.textLight,
+                    ),
+                  ),
+                ),
               ),
             );
           }

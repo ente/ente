@@ -1,0 +1,5 @@
+include: ../../analysis_options.yaml
+
+analyzer:
+  errors:
+    use_build_context_synchronously: error

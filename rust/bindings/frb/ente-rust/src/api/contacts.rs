@@ -137,8 +137,6 @@ pub struct ContactData {
     pub contact_user_id: i64,
     /// User-chosen display name for the contact.
     pub name: String,
-    /// Optional birthday in `yyyy-MM-dd` format.
-    pub birth_date: Option<String>,
 }
 
 impl From<ContactData> for CoreContactData {
@@ -146,7 +144,6 @@ impl From<ContactData> for CoreContactData {
         Self {
             contact_user_id: value.contact_user_id,
             name: value.name,
-            birth_date: value.birth_date,
         }
     }
 }
@@ -163,8 +160,6 @@ pub struct ContactRecord {
     pub email: Option<String>,
     /// Client-managed display name from the encrypted payload.
     pub name: Option<String>,
-    /// Optional birthday from the encrypted payload.
-    pub birth_date: Option<String>,
     /// Current profile picture attachment id, if any.
     pub profile_picture_attachment_id: Option<String>,
     /// Whether this record is a tombstone.
@@ -182,7 +177,6 @@ impl From<CoreContactRecord> for ContactRecord {
             contact_user_id: value.contact_user_id,
             email: value.email,
             name: value.name,
-            birth_date: value.birth_date,
             profile_picture_attachment_id: value.profile_picture_attachment_id,
             is_deleted: value.is_deleted,
             created_at: value.created_at,

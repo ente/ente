@@ -1,3 +1,5 @@
+#![cfg(feature = "ml-assets")]
+
 mod support;
 
 use anyhow::Result;
@@ -12,7 +14,7 @@ fn rust_ml_matches_python_goldens() {
 
 fn run_ml_indexing_test() -> Result<()> {
     let context = MlIndexingTestContext::load()?;
-    let runtime = context.prepare_runtime()?;
+    let runtime = context.prepare_runtime();
 
     let mut failures = context.validate_manifest_expectations()?;
     let mut stats = ComparisonStats::default();

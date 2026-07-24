@@ -61,13 +61,14 @@ class FileActions {
 
     final currentCollectionIds = currentCollections.map((c) => c.id).toSet();
 
+    if (!context.mounted) return;
     final result = await showFileEditSheet(
       context,
       file: file,
       collections: editableCollections,
     );
 
-    if (result == null || !context.mounted) {
+    if (result == null) {
       return;
     }
 
@@ -75,12 +76,14 @@ class FileActions {
     final updatedAllCollections = await CollectionService.instance
         .getCollections();
 
-    final dialog = createProgressDialog(
-      context,
-      context.l10n.pleaseWait,
-      isDismissible: false,
-    );
-    await dialog.show();
+    final dialog = context.mounted
+        ? createProgressDialog(
+            context,
+            context.l10n.pleaseWait,
+            isDismissible: false,
+          )
+        : null;
+    await dialog?.show();
 
     try {
       final currentTitle = file.displayName;
@@ -92,7 +95,7 @@ class FileActions {
             .editFileName(file, result.title);
 
         if (!metadataUpdateSuccess) {
-          await dialog.hide();
+          await dialog?.hide();
           if (!context.mounted) {
             return;
           }
@@ -113,9 +116,9 @@ class FileActions {
       );
 
       if (wasFavorite && !isFavoriteNow) {
-        await FavoritesService.instance.removeFromFavorites(context, file);
+        await FavoritesService.instance.removeFromFavorites(file);
       } else if (!wasFavorite && isFavoriteNow) {
-        await FavoritesService.instance.addToFavorites(context, file);
+        await FavoritesService.instance.addToFavorites(file);
       }
 
       final regularCurrentIds = currentCollectionIds
@@ -140,7 +143,7 @@ class FileActions {
               (c) => c.id == collectionId,
             );
             await CollectionService.instance.moveFilesFromCurrentCollection(
-              context,
+              context.mounted ? context : null,
               collection,
               [file],
             );
@@ -177,7 +180,7 @@ class FileActions {
             (c) => c.id == collectionId,
           );
           await CollectionService.instance.moveFilesFromCurrentCollection(
-            context,
+            context.mounted ? context : null,
             collection,
             [file],
           );
@@ -185,17 +188,16 @@ class FileActions {
       }
 
       await CollectionService.instance.sync();
-      await dialog.hide();
+      await dialog?.hide();
+      onSuccess?.call();
 
       if (!context.mounted) {
         return;
       }
 
       showToast(context, context.l10n.fileUpdatedSuccessfully);
-
-      onSuccess?.call();
     } catch (e) {
-      await dialog.hide();
+      await dialog?.hide();
       _logger.severe('Failed to update file collections: $e');
 
       if (!context.mounted) {
@@ -296,14 +298,16 @@ class FileActions {
       return;
     }
 
-    final dialog = createProgressDialog(
-      context,
-      context.l10n.deletingFile,
-      isDismissible: false,
-    );
+    final dialog = context.mounted
+        ? createProgressDialog(
+            context,
+            context.l10n.deletingFile,
+            isDismissible: false,
+          )
+        : null;
 
     try {
-      await dialog.show();
+      await dialog?.show();
 
       final collections = await CollectionService.instance
           .getCollectionsForFile(file);
@@ -311,7 +315,7 @@ class FileActions {
         await CollectionService.instance.trashFile(file, collections.first);
       }
 
-      await dialog.hide();
+      await dialog?.hide();
 
       if (context.mounted) {
         showToast(context, context.l10n.fileDeletedSuccessfully);
@@ -319,7 +323,7 @@ class FileActions {
 
       onSuccess?.call();
     } catch (e) {
-      await dialog.hide();
+      await dialog?.hide();
 
       if (context.mounted) {
         await showLockerErrorSheet(context, e);
@@ -349,14 +353,16 @@ class FileActions {
       return;
     }
 
-    final dialog = createProgressDialog(
-      context,
-      context.l10n.deletingFile,
-      isDismissible: false,
-    );
+    final dialog = context.mounted
+        ? createProgressDialog(
+            context,
+            context.l10n.deletingFile,
+            isDismissible: false,
+          )
+        : null;
 
     try {
-      await dialog.show();
+      await dialog?.show();
 
       for (final file in files) {
         final collections = await CollectionService.instance
@@ -374,7 +380,7 @@ class FileActions {
       await CollectionService.instance.sync();
       await TrashService.instance.syncTrash();
 
-      await dialog.hide();
+      await dialog?.hide();
 
       if (context.mounted) {
         showToast(context, context.l10n.fileDeletedSuccessfully);
@@ -382,7 +388,7 @@ class FileActions {
 
       onSuccess?.call();
     } catch (e, stackTrace) {
-      await dialog.hide();
+      await dialog?.hide();
 
       _logger.severe('Failed to delete files: $e', e, stackTrace);
       if (!context.mounted) {
@@ -416,9 +422,9 @@ class FileActions {
       await dialog.show();
 
       if (isCurrentlyImportant) {
-        await FavoritesService.instance.removeFromFavorites(context, file);
+        await FavoritesService.instance.removeFromFavorites(file);
       } else {
-        await FavoritesService.instance.addToFavorites(context, file);
+        await FavoritesService.instance.addToFavorites(file);
       }
 
       await dialog.hide();
@@ -470,11 +476,7 @@ class FileActions {
         return;
       }
 
-      await FavoritesService.instance.updateFavorites(
-        context,
-        filesToMark,
-        true,
-      );
+      await FavoritesService.instance.updateFavorites(filesToMark, true);
 
       await dialog.hide();
 

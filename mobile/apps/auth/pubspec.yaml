@@ -91,7 +91,7 @@ dependencies:
   gradient_borders: 1.0.1
   http: 1.6.0
   hugeicons: 1.1.7
-  image: 4.5.4
+  image: 4.7.0
   intl: 0.20.2
   io: 1.0.5
   json_annotation: 4.9.0
@@ -143,6 +143,7 @@ dev_dependencies:
   flutter_lints: 6.0.0
   flutter_test:
     sdk: flutter
+  qr: 3.0.2
   shared_preferences_platform_interface: 2.4.2
 
 # The following section is specific to Flutter.
@@ -163,6 +164,9 @@ flutter:
     - assets/svg/
 
   fonts:
+    - family: Gochi Hand
+      fonts:
+        - asset: fonts/GochiHand-Regular.ttf
     - family: Inter
       fonts:
         - asset: fonts/Inter-Regular.ttf

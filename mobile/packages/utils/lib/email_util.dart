@@ -87,7 +87,7 @@ Future<void> sendLogs(
         buttonAction: ButtonAction.third,
         onTap: () async {
           final zipFilePath = await getZippedLogsFile();
-          await exportLogs(context, zipFilePath);
+          await exportLogs(null, zipFilePath);
         },
       ),
       ButtonWidget(
@@ -118,6 +118,9 @@ Future<void> _sendLogs(
     await FlutterEmailSender.send(email);
   } catch (e, s) {
     _logger.severe('email sender failed', e, s);
+    if (!context.mounted) {
+      return;
+    }
     Navigator.of(context).pop();
     await shareLogs(context, toEmail, zipFilePath);
   }
@@ -158,7 +161,7 @@ Future<void> shareLogs(
     ],
   );
   if (result?.action != null && result!.action == ButtonAction.second) {
-    await exportLogs(context, zipFilePath);
+    await exportLogs(null, zipFilePath);
   }
 }
 
@@ -184,7 +187,7 @@ Future<String> getZippedLogsFile({String logsSubPath = "logs"}) async {
 }
 
 Future<void> exportLogs(
-  BuildContext context,
+  BuildContext? context,
   String zipFilePath, [
   bool isSharing = false,
 ]) async {
@@ -251,11 +254,16 @@ Future<void> sendEmail(
         throw Exception('Could not launch ${params.toString()}');
       }
     } else {
+      if (!context.mounted) {
+        return;
+      }
       _showNoMailAppsDialog(context, to);
     }
   } catch (e) {
     _logger.severe("Failed to send email to $to", e);
-    _showNoMailAppsDialog(context, to);
+    if (context.mounted) {
+      _showNoMailAppsDialog(context, to);
+    }
   }
 }
 
@@ -292,8 +300,12 @@ void _showNoMailAppsDialog(BuildContext context, String toEmail) {
               text: 'Copy Email Address',
               onTap: () async {
                 await Clipboard.setData(ClipboardData(text: toEmail));
-                Navigator.of(bottomSheetContext).pop();
-                showShortToast(context, 'Email address copied');
+                if (bottomSheetContext.mounted) {
+                  Navigator.of(bottomSheetContext).pop();
+                }
+                if (context.mounted) {
+                  showShortToast(context, 'Email address copied');
+                }
               },
             ),
           ],

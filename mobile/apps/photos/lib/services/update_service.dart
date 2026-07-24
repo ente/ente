@@ -18,7 +18,7 @@ enum ChangeLogAction { skip, consumeWithoutShowing, show }
 class UpdateService {
   static const kUpdateAvailableShownTimeKey = "update_available_shown_time_key";
   static const changeLogVersionKey = "update_change_log_key";
-  static const currentChangeLogVersion = 56;
+  static const currentChangeLogVersion = 57;
 
   LatestVersionInfo? _latestVersion;
   final _logger = Logger("UpdateService");
@@ -47,7 +47,6 @@ class UpdateService {
     required Locale locale,
     required bool isLocalGallery,
     required bool isSignedIn,
-    required bool isAndroid,
   }) async {
     if (!await shouldShowChangeLog()) {
       return ChangeLogAction.skip;
@@ -60,7 +59,6 @@ class UpdateService {
     return ChangeLogStrings.hasContentForLocale(
           locale,
           isLocalGallery: isLocalGallery,
-          isAndroid: isAndroid,
         )
         ? ChangeLogAction.show
         : ChangeLogAction.consumeWithoutShowing;
@@ -68,10 +66,6 @@ class UpdateService {
 
   Future<bool> hideChangeLog() async {
     return _prefs.setInt(changeLogVersionKey, currentChangeLogVersion);
-  }
-
-  Future<bool> resetChangeLog() async {
-    return _prefs.remove(changeLogVersionKey);
   }
 
   Future<bool> shouldUpdate() async {

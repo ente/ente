@@ -13,7 +13,7 @@ name: "Warm caches"
 
 on:
     schedule:
-        - cron: "17 2 * * *"
+        - cron: "17 18 * * *"
     # For bootstrapping the caches (dispatch on main, otherwise the caches get
     # saved against the wrong ref).
     workflow_dispatch:
@@ -23,7 +23,7 @@ permissions:
 
 jobs:
     rust-workspace:
-        # For rust-lint.yml.
+        # For rust-lint.yml and rust-test.yml.
         runs-on: ubuntu-latest
         defaults:
             run:
@@ -33,6 +33,15 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+            - name: Setup go
+              uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+              with:
+                  go-version-file: server/go.mod
+                  cache: false
+
+            - name: Free runner disk space
+              run: sudo rm -rf /usr/share/dotnet
 
             - name: Install Linux dependencies
               run: |
@@ -46,9 +55,11 @@ jobs:
                   shared-key: rust-workspace
                   cache-directories: rust/.cache
 
-            - run: cargo clippy --all-targets --locked
+            - run: cargo clippy --locked --all-targets --features museum,ente-photos/ml-assets
 
-            - run: cargo test --locked --workspace --features ente-photos/ml-assets
+            - run: cargo test --locked --features museum,ente-photos/ml-assets
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
 
             - run: cargo install cargo-audit --version 0.22.2 --locked
 
@@ -82,7 +93,7 @@ jobs:
             - run: cargo clippy -p ente_rust --features flutter --all-targets --locked
 
     rust-wasm:
-        # For web-lint.yml's npm run build:wasm.
+        # For web-lint.yml's WASM builds.
         runs-on: ubuntu-latest
         defaults:
             run:
@@ -108,33 +119,7 @@ jobs:
 
             - run: npm run build:wasm
 
-    rust-cli:
-        # For rust-e2e-test.yml.
-        runs-on: ubuntu-latest
-        defaults:
-            run:
-                working-directory: rust
-        env:
-            RUSTFLAGS: -D warnings
-        steps:
-            - name: Checkout
-              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-            - name: Setup go
-              uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
-              with:
-                  go-version-file: server/go.mod
-                  cache: false
-
-            - name: Setup Rust cache
-              uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
-              with:
-                  workspaces: rust
-                  shared-key: rust-cli
-
-            - run: cargo test -p ente-rs --features museum --locked --no-run
-
-            - run: cargo test -p ente-e2e --features museum --locked --no-run
+            - run: npm run build:space-wasm
 
     ensu-android:
         # For ensu-android-build.yml.

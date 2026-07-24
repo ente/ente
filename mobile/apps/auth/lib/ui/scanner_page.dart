@@ -320,7 +320,7 @@ class ScannerPageState extends State<ScannerPage> {
       if (!mounted) return;
       await controller?.pause();
       if (!mounted) return;
-      final GalleryImportResult? importResult = await pickCodeFromGallery(
+      final GalleryImportResult? importResult = await pickCodeFromImage(
         context,
         logger: _logger,
       );

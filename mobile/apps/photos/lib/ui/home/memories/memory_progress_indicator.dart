@@ -1,6 +1,34 @@
 import "package:flutter/material.dart";
 
-const int kMemoryProgressTickCutoff = 60;
+const double kMemoryProgressGap = 10.0;
+const double kMemoryProgressHeight = 4.0;
+const double kMemoryProgressMinSegmentWidth = 8.0;
+
+double memoryProgressSegmentWidthForLayout({
+  required int totalSteps,
+  required double availableWidth,
+  double gap = kMemoryProgressGap,
+}) {
+  if (totalSteps <= 0) return 0;
+
+  final availableSegmentWidth = availableWidth - ((totalSteps - 1) * gap);
+  if (availableSegmentWidth <= 0) return 0;
+
+  return availableSegmentWidth / totalSteps;
+}
+
+bool memoryProgressUsesContinuousTrack({
+  required int totalSteps,
+  required double availableWidth,
+  double gap = kMemoryProgressGap,
+}) =>
+    totalSteps > 1 &&
+    memoryProgressSegmentWidthForLayout(
+          totalSteps: totalSteps,
+          availableWidth: availableWidth,
+          gap: gap,
+        ) <
+        kMemoryProgressMinSegmentWidth;
 
 class MemoryProgressIndicator extends StatefulWidget {
   final int totalSteps;
@@ -21,8 +49,8 @@ class MemoryProgressIndicator extends StatefulWidget {
     this.duration = const Duration(seconds: 5),
     this.selectedColor = Colors.white,
     this.unselectedColor = Colors.white54,
-    this.height = 2.0,
-    this.gap = 4.0,
+    this.height = kMemoryProgressHeight,
+    this.gap = kMemoryProgressGap,
     this.animationController,
     this.onAnimationControllerDisposed,
     this.onComplete,
@@ -72,63 +100,69 @@ class _MemoryProgressIndicatorState extends State<MemoryProgressIndicator>
 
   @override
   Widget build(BuildContext context) {
-    // For very large memories, a per-file tick bar would render as pixel-thin
-    // slivers. Show a single continuous bar instead, combining completed-file
-    // progress with the current file's in-flight animation.
-    if (widget.totalSteps >= kMemoryProgressTickCutoff) {
-      return AnimatedBuilder(
-        animation: _animation,
-        builder: (context, _) {
-          final progress =
-              (widget.currentIndex + _animation.value) / widget.totalSteps;
-          return LinearProgressIndicator(
-            value: progress.clamp(0.0, 1.0),
-            backgroundColor: widget.unselectedColor,
-            valueColor: AlwaysStoppedAnimation<Color>(widget.selectedColor),
-            minHeight: widget.height,
-            borderRadius: BorderRadius.circular(12),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (memoryProgressUsesContinuousTrack(
+          totalSteps: widget.totalSteps,
+          availableWidth: constraints.maxWidth,
+          gap: widget.gap,
+        )) {
+          return AnimatedBuilder(
+            animation: _animation,
+            builder: (context, _) {
+              final progress =
+                  (widget.currentIndex + _animation.value) / widget.totalSteps;
+              return LinearProgressIndicator(
+                value: progress.clamp(0.0, 1.0),
+                backgroundColor: widget.unselectedColor,
+                valueColor: AlwaysStoppedAnimation<Color>(widget.selectedColor),
+                minHeight: widget.height,
+                borderRadius: BorderRadius.circular(12),
+              );
+            },
           );
-        },
-      );
-    }
-    return Row(
-      children: List.generate(widget.totalSteps, (index) {
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: widget.gap),
-            child: index < widget.currentIndex
-                ? Container(
-                    height: widget.height,
-                    decoration: BoxDecoration(
-                      color: widget.selectedColor,
+        }
+
+        final segments = <Widget>[];
+        for (var index = 0; index < widget.totalSteps; index++) {
+          if (index > 0) {
+            segments.add(SizedBox(width: widget.gap));
+          }
+
+          final segment = index == widget.currentIndex
+              ? AnimatedBuilder(
+                  animation: _animation,
+                  builder: (context, _) {
+                    return LinearProgressIndicator(
+                      value: _animation.value,
+                      backgroundColor: widget.unselectedColor,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        widget.selectedColor,
+                      ),
+                      minHeight: widget.height,
                       borderRadius: BorderRadius.circular(12),
-                    ),
-                  )
-                : index == widget.currentIndex
-                ? AnimatedBuilder(
-                    animation: _animation,
-                    builder: (context, child) {
-                      return LinearProgressIndicator(
-                        value: _animation.value,
-                        backgroundColor: widget.unselectedColor,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          widget.selectedColor,
-                        ),
-                        minHeight: widget.height,
-                        borderRadius: BorderRadius.circular(12),
-                      );
-                    },
-                  )
-                : Container(
-                    height: widget.height,
-                    decoration: BoxDecoration(
-                      color: widget.unselectedColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    );
+                  },
+                )
+              : Container(
+                  height: widget.height,
+                  decoration: BoxDecoration(
+                    color: index < widget.currentIndex
+                        ? widget.selectedColor
+                        : widget.unselectedColor,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-          ),
-        );
-      }),
+                );
+
+          segments.add(
+            Expanded(
+              key: ValueKey("memory-progress-segment-$index"),
+              child: segment,
+            ),
+          );
+        }
+        return Row(children: segments);
+      },
     );
   }
 }

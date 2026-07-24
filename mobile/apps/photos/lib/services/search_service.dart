@@ -51,6 +51,7 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/account/user_service.dart";
 import 'package:photos/services/collections_service.dart';
 import "package:photos/services/contacts/contact_identity_resolver.dart";
+import "package:photos/services/contacts/direct_contact_users.dart";
 import "package:photos/services/date_parse_service.dart";
 import "package:photos/services/filter/db_filters.dart";
 import "package:photos/services/location_service.dart";
@@ -107,9 +108,17 @@ class SearchService {
     User user,
     List<Collection> collections,
   ) {
+    final contactUserId = user.id;
+    if (contactUserId == null || contactUserId <= 0) {
+      throw ArgumentError.value(
+        contactUserId,
+        "user.id",
+        "Contact search results require a positive user ID",
+      );
+    }
     final params = <String, dynamic>{
       kPersonParamID: user.linkedPersonID,
-      kContactUserId: user.id,
+      kContactUserId: contactUserId,
       kContactEmail: resolveKnownEmail(user) ?? user.email,
       kContactCollections: collections,
     };
@@ -124,11 +133,99 @@ class SearchService {
       await PhotosContactsService.instance.ensureReady();
     } catch (e, s) {
       _logger.warning(
-        "Failed to preload contacts cache; falling back to person/email results",
+        "Failed to preload contacts cache; continuing without saved contacts",
         e,
         s,
       );
     }
+  }
+
+  Map<User, List<EnteFile>> _directContactsWithSharedFiles(
+    List<EnteFile> allFiles, {
+    String? lowerCaseQuery,
+  }) {
+    final ownerUserId = Configuration.instance.getUserID()!;
+    final userDetails = UserService.instance.getCachedUserDetails();
+    final directContacts =
+        buildDirectContactUsers(
+          ownerUserId: ownerUserId,
+          ownerEmail: Configuration.instance.getEmail()!,
+          collections: _collectionService.getActiveCollections(),
+          familyMembers: userDetails?.familyData?.members ?? const [],
+          savedContacts: PhotosContactsService.instance.getCachedContacts(),
+        ).where(
+          (user) =>
+              lowerCaseQuery == null ||
+              matchesResolvedContactQuery(user, lowerCaseQuery),
+        );
+
+    final contactsToFiles = <User, List<EnteFile>>{};
+    final contactsByUserId = <int, User>{};
+    for (final contact in directContacts) {
+      contactsToFiles[contact] = [];
+      contactsByUserId[contact.id!] = contact;
+    }
+
+    for (final file in allFiles) {
+      if (file.isOwner) {
+        continue;
+      }
+      final contact = contactsByUserId[file.ownerID];
+      if (contact != null) {
+        contactsToFiles[contact]!.add(file);
+      }
+    }
+
+    return contactsToFiles;
+  }
+
+  Map<int, List<Collection>> _incomingContactCollectionsByUserId(
+    int ownerID, {
+    required bool excludeArchived,
+  }) {
+    final collectionsByUserId = <int, List<Collection>>{};
+    final collections = _collectionService.getCollectionsForUI(
+      includedShared: true,
+      includeCollab: true,
+    );
+    for (final collection in collections) {
+      if (collection.isHidden() ||
+          (excludeArchived && collection.isArchived()) ||
+          collection.isOwner(ownerID)) {
+        continue;
+      }
+      final contactUserId = collection.owner.id;
+      if (contactUserId != null && contactUserId > 0) {
+        collectionsByUserId
+            .putIfAbsent(contactUserId, () => [])
+            .add(collection);
+      }
+    }
+    return collectionsByUserId;
+  }
+
+  List<GenericSearchResult> _toContactSearchResults(
+    Iterable<MapEntry<User, List<EnteFile>>> entries,
+    Map<int, List<Collection>> collectionsByUserId,
+  ) {
+    return entries.map((entry) {
+      final user = entry.key;
+      final files = entry.value;
+      return GenericSearchResult(
+        ResultType.shared,
+        resolveDisplayName(user),
+        files,
+        hierarchicalSearchFilter: ContactsFilter(
+          user: user,
+          occurrence: kMostRelevantFilter,
+          matchedUploadedIDs: filesToUploadedFileIDs(files),
+        ),
+        params: _contactSearchParams(
+          user,
+          collectionsByUserId[user.id] ?? const [],
+        ),
+      );
+    }).toList();
   }
 
   Future<GenericSearchResult?> buildContactSearchResultForUser(
@@ -1791,80 +1888,19 @@ class SearchService {
     await _warmContactsCacheIfNeeded();
     final int ownerID = Configuration.instance.getUserID()!;
     final lowerCaseQuery = query.toLowerCase();
-    final searchResults = <GenericSearchResult>[];
     final allFiles = await getAllFilesForSearch();
-    final peopleToSharedFiles = <User, List<EnteFile>>{};
-    final peopleToSharedAlbums = <String, List<Collection>>{};
-    final existingEmails = <String>{};
-    final List<Collection> collections = _collectionService.getCollectionsForUI(
-      includedShared: true,
-      includeCollab: true,
+    final peopleToSharedFiles = _directContactsWithSharedFiles(
+      allFiles,
+      lowerCaseQuery: lowerCaseQuery,
     );
-
-    for (EnteFile file in allFiles) {
-      if (file.isOwner) continue;
-
-      final fileOwner = CollectionsService.instance.getFileOwner(
-        file.ownerID!,
-        file.collectionID,
-      );
-
-      if (matchesResolvedContactQuery(fileOwner, lowerCaseQuery)) {
-        if (peopleToSharedFiles.containsKey(fileOwner)) {
-          peopleToSharedFiles[fileOwner]!.add(file);
-        } else {
-          peopleToSharedFiles[fileOwner] = [file];
-          existingEmails.add(fileOwner.email);
-        }
-      }
-    }
-
-    final relevantContacts = UserService.instance.getRelevantContacts();
-
-    for (final user in relevantContacts) {
-      if (existingEmails.contains(user.email)) {
-        continue;
-      }
-      if (matchesResolvedContactQuery(user, lowerCaseQuery)) {
-        peopleToSharedFiles[user] = [];
-      }
-    }
-
-    for (Collection collection in collections) {
-      if (collection.isHidden() || collection.isOwner(ownerID)) {
-        continue;
-      }
-
-      if (peopleToSharedAlbums.containsKey(collection.owner.email)) {
-        peopleToSharedAlbums[collection.owner.email]!.add(collection);
-      } else {
-        peopleToSharedAlbums[collection.owner.email] = [collection];
-      }
-    }
-
-    for (final entry in peopleToSharedFiles.entries) {
-      final user = entry.key;
-      final files = entry.value;
-      final collections = peopleToSharedAlbums[user.email] ?? [];
-      final name = resolveDisplayName(user);
-      final params = _contactSearchParams(user, collections);
-
-      searchResults.add(
-        GenericSearchResult(
-          ResultType.shared,
-          name,
-          files,
-          hierarchicalSearchFilter: ContactsFilter(
-            user: user,
-            occurrence: kMostRelevantFilter,
-            matchedUploadedIDs: filesToUploadedFileIDs(files),
-          ),
-          params: params,
-        ),
-      );
-    }
-
-    return searchResults;
+    final peopleToSharedAlbums = _incomingContactCollectionsByUserId(
+      ownerID,
+      excludeArchived: false,
+    );
+    return _toContactSearchResults(
+      peopleToSharedFiles.entries,
+      peopleToSharedAlbums,
+    );
   }
 
   Future<List<GenericSearchResult>> getAllContactsSearchResults(
@@ -1873,51 +1909,12 @@ class SearchService {
     try {
       await _warmContactsCacheIfNeeded();
       final int ownerID = Configuration.instance.getUserID()!;
-      final searchResults = <GenericSearchResult>[];
       final allFiles = await getAllFilesForSearch();
-      final peopleToSharedFiles = <User, List<EnteFile>>{};
-      final peopleToSharedAlbums = <String, List<Collection>>{};
-      final existingEmails = <String>{};
-      final List<Collection> collections = _collectionService
-          .getCollectionsForUI(includedShared: true, includeCollab: true);
-
-      for (Collection collection in collections) {
-        if (collection.isHidden() ||
-            collection.isArchived() ||
-            collection.isOwner(ownerID)) {
-          continue;
-        }
-
-        if (peopleToSharedAlbums.containsKey(collection.owner.email)) {
-          peopleToSharedAlbums[collection.owner.email]!.add(collection);
-        } else {
-          peopleToSharedAlbums[collection.owner.email] = [collection];
-        }
-      }
-
-      for (EnteFile file in allFiles) {
-        if (file.isOwner) continue;
-
-        final fileOwner = CollectionsService.instance.getFileOwner(
-          file.ownerID!,
-          file.collectionID,
-        );
-        if (peopleToSharedFiles.containsKey(fileOwner)) {
-          peopleToSharedFiles[fileOwner]!.add(file);
-        } else {
-          peopleToSharedFiles[fileOwner] = [file];
-          existingEmails.add(fileOwner.email);
-        }
-      }
-
-      final allRelevantContacts = UserService.instance.getRelevantContacts();
-
-      for (final user in allRelevantContacts) {
-        if (existingEmails.contains(user.email)) {
-          continue;
-        }
-        peopleToSharedFiles[user] = [];
-      }
+      final peopleToSharedFiles = _directContactsWithSharedFiles(allFiles);
+      final peopleToSharedAlbums = _incomingContactCollectionsByUserId(
+        ownerID,
+        excludeArchived: true,
+      );
 
       final sortedEntries = peopleToSharedFiles.entries.toList();
       sortedEntries.sort((a, b) {
@@ -1937,28 +1934,7 @@ class SearchService {
           ? _preserveEmailOnlyContactsWithinLimit(sortedEntries, limit)
           : sortedEntries;
 
-      for (var entry in limitedEntries) {
-        final user = entry.key;
-        final files = entry.value;
-        final name = resolveDisplayName(user);
-        final collections = peopleToSharedAlbums[user.email] ?? [];
-        final params = _contactSearchParams(user, collections);
-        searchResults.add(
-          GenericSearchResult(
-            ResultType.shared,
-            name,
-            files,
-            hierarchicalSearchFilter: ContactsFilter(
-              user: user,
-              occurrence: kMostRelevantFilter,
-              matchedUploadedIDs: filesToUploadedFileIDs(files),
-            ),
-            params: params,
-          ),
-        );
-      }
-
-      return searchResults;
+      return _toContactSearchResults(limitedEntries, peopleToSharedAlbums);
     } catch (e) {
       _logger.severe("Error in getAllContactSearchResults", e);
       return [];

@@ -6,6 +6,8 @@ on:
         paths:
             - "web/**"
             - "rust/bindings/wasm/ente-wasm/**"
+            - "rust/bindings/wasm/space/**"
+            - "rust/space/**"
             - "rust/crates/contacts/**"
             - "rust/crates/core/**"
             - "rust/Cargo.lock"
@@ -50,6 +52,8 @@ jobs:
             - run: npm audit --audit-level critical
 
             - run: npm run build:wasm
+
+            - run: npm run build:space-wasm
 
             - run: npm run lint
 

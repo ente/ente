@@ -1,3 +1,5 @@
+#![cfg(feature = "museum")]
+
 mod support;
 
 use ente_test_support::HARDCODED_OTT;

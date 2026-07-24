@@ -20,14 +20,18 @@ import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/common/loading_widget.dart';
 import 'package:photos/ui/common/progress_dialog.dart';
+import 'package:photos/ui/components/buttons/button_widget.dart';
 import 'package:photos/ui/components/buttons/button_widget_v2.dart';
+import 'package:photos/ui/components/dialog_widget.dart';
 import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
+import 'package:photos/ui/components/models/button_type.dart';
 import 'package:photos/ui/family/family_plan_page.dart';
 import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/payment/subscription_common_widgets.dart';
 import 'package:photos/ui/payment/subscription_plan_widget.dart';
 import "package:photos/ui/payment/view_add_on_widget.dart";
 import 'package:photos/utils/dialog_util.dart';
+import 'package:photos/utils/email_util.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class StoreSubscriptionPage extends StatefulWidget {
@@ -130,8 +134,33 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
                 ? l10n.googlePlayId
                 : l10n.appleId;
             final String message = l10n.subAlreadyLinkedErrMessage(id: id);
-            // ignore: unawaited_futures
-            showErrorDialog(context, title, message);
+            await showDialogWidget(
+              context: context,
+              title: title,
+              body: message,
+              buttons: [
+                ButtonWidget(
+                  buttonType: ButtonType.primary,
+                  labelText: l10n.contactSupport,
+                  buttonAction: ButtonAction.first,
+                  isInAlert: true,
+                  onTap: () async {
+                    await sendLogs(
+                      context,
+                      l10n.contactSupport,
+                      "support@ente.com",
+                      postShare: () {},
+                    );
+                  },
+                ),
+                ButtonWidget(
+                  buttonType: ButtonType.secondary,
+                  labelText: l10n.cancel,
+                  buttonAction: ButtonAction.cancel,
+                  isInAlert: true,
+                ),
+              ],
+            );
             return;
           } catch (e) {
             _logger.warning("Could not complete payment ", e);

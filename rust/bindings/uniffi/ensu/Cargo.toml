@@ -8,6 +8,7 @@ crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
 ente-ensu = { workspace = true, features = ["transcription"] }
+ente-model-download.workspace = true
 thiserror.workspace = true
 uniffi.workspace = true
 uuid = { version = "1" }

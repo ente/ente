@@ -75,12 +75,14 @@ class _HomeEmptyStateWidgetState extends State<HomeEmptyStateWidget> {
                   ButtonComponent(
                     label: context.l10n.setupYourLegacy,
                     onTap: widget.onSetupLegacy,
+                    shouldSurfaceExecutionStates: false,
                   ),
                   const SizedBox(height: 12),
                   ButtonComponent(
                     label: context.l10n.saveToLocker,
                     variant: ButtonComponentVariant.neutral,
                     onTap: widget.onSaveToLocker,
+                    shouldSurfaceExecutionStates: false,
                   ),
                 ],
               ),

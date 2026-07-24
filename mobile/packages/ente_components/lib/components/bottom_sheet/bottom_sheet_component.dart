@@ -117,6 +117,7 @@ class BottomSheetComponent extends StatelessWidget {
     this.contentSpacing = Spacing.lg,
     this.actionsTopSpacing,
     this.backgroundColor,
+    this.borderSide,
     this.isKeyboardAware = false,
     this.isScrollable = false,
     this.initialChildSize = 0.5,
@@ -144,6 +145,11 @@ class BottomSheetComponent extends StatelessWidget {
   final double contentSpacing;
   final double? actionsTopSpacing;
   final Color? backgroundColor;
+
+  /// Optional outline for sheet designs that specify a bordered surface.
+  /// Source: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=4809-8027&m=dev
+  final BorderSide? borderSide;
+
   final bool isKeyboardAware;
   final bool isScrollable;
 
@@ -238,6 +244,21 @@ class BottomSheetComponent extends StatelessWidget {
             ),
           );
 
+    final safeAreaBody = SafeArea(top: false, child: sheetBody);
+    final outlinedBody = borderSide == null
+        ? safeAreaBody
+        : DecoratedBox(
+            position: DecorationPosition.foreground,
+            decoration: BoxDecoration(
+              border: Border.fromBorderSide(borderSide!),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(Radii.bottomSheet),
+                topRight: Radius.circular(Radii.bottomSheet),
+              ),
+            ),
+            child: safeAreaBody,
+          );
+
     return AnimatedPadding(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOutCubic,
@@ -251,7 +272,7 @@ class BottomSheetComponent extends StatelessWidget {
             topRight: Radius.circular(Radii.bottomSheet),
           ),
         ),
-        child: SafeArea(top: false, child: sheetBody),
+        child: outlinedBody,
       ),
     );
   }

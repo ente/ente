@@ -1,10 +1,10 @@
-import 'package:collection/collection.dart' show IterableExtension;
 import 'package:dotted_border/dotted_border.dart';
 import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
 import 'package:locker/extensions/collection_extension.dart';
 import 'package:locker/l10n/l10n.dart';
 import 'package:locker/services/collections/models/collection.dart';
+import 'package:locker/services/configuration.dart';
 import 'package:locker/utils/collection_actions.dart';
 import 'package:locker/utils/collection_list_util.dart';
 
@@ -46,25 +46,26 @@ class _CollectionSelectionWidgetState extends State<CollectionSelectionWidget> {
   @override
   void initState() {
     super.initState();
-    _availableCollections = uniqueCollectionsById(widget.collections);
-    _uncategorizedCollection = _availableCollections.firstWhereOrNull(
-      (collection) => collection.type == CollectionType.uncategorized,
-    );
-    _availableCollections.removeWhere(
-      (collection) => collection.type == CollectionType.uncategorized,
-    );
+    _updateCollections();
   }
 
   @override
   void didUpdateWidget(CollectionSelectionWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.collections != widget.collections) {
-      _availableCollections = uniqueCollectionsById(widget.collections);
-      _uncategorizedCollection = _availableCollections.firstWhereOrNull(
-        (collection) => collection.type == CollectionType.uncategorized,
-      );
+      _updateCollections();
+    }
+  }
+
+  void _updateCollections() {
+    _availableCollections = uniqueCollectionsById(widget.collections);
+    _uncategorizedCollection = findUserUncategorizedCollection(
+      _availableCollections,
+      Configuration.instance.getUserID()!,
+    );
+    if (_uncategorizedCollection != null) {
       _availableCollections.removeWhere(
-        (collection) => collection.type == CollectionType.uncategorized,
+        (collection) => collection.id == _uncategorizedCollection!.id,
       );
     }
   }

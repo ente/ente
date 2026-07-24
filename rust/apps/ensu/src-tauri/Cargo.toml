@@ -16,6 +16,7 @@ tauri-plugin-updater = "2.10.1"
 serde.workspace = true
 serde_json.workspace = true
 ente-ensu.workspace = true
+ente-model-download.workspace = true
 ente-core.workspace = true
 uuid = { version = "1", features = ["v4"] }
 keyring = { version = "3", default-features = false, features = ["apple-native", "windows-native", "linux-native-sync-persistent", "crypto-rust"] }

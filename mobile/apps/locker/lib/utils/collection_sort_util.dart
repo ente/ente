@@ -28,12 +28,15 @@ class CollectionSortUtil {
     return sortedList;
   }
 
-  /// Filters out uncategorized collections and sorts the remaining ones
+  /// Filters out the user's uncategorized collection and sorts the rest.
   static List<Collection> filterAndSortCollections(
     List<Collection> collections,
+    int userID,
   ) {
     final filtered = collections
-        .where((c) => c.type != CollectionType.uncategorized)
+        .where(
+          (c) => c.type != CollectionType.uncategorized || !c.isOwner(userID),
+        )
         .toList();
     sortCollections(filtered);
     return filtered;

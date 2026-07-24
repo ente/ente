@@ -3,45 +3,43 @@ import 'dart:io';
 import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/models/all_icon_data.dart';
 import 'package:ente_auth/services/preference_service.dart';
-import 'package:ente_auth/theme/ente_theme.dart';
 import 'package:ente_auth/ui/utils/icon_utils.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class CustomIconPage extends StatefulWidget {
-  final Map<String, AllIconData> allIcons;
-  final String currentIcon;
-
   const CustomIconPage({
     super.key,
     required this.allIcons,
     required this.currentIcon,
   });
 
+  final Map<String, AllIconData> allIcons;
+  final String currentIcon;
+
   @override
   State<CustomIconPage> createState() => _CustomIconPageState();
 }
 
 class _CustomIconPageState extends State<CustomIconPage> {
-  Map<String, AllIconData> _filteredIcons = {};
-  bool _showSearchBox = false;
   final bool _autoFocusSearch = PreferenceService.instance
       .shouldAutoFocusOnSearchBar();
-  final TextEditingController _textController = TextEditingController();
-  String _searchText = "";
-
-  // Used to request focus on the search box when clicked the search icon
-  late FocusNode searchBoxFocusNode;
   final Set<LogicalKeyboardKey> _pressedKeys = <LogicalKeyboardKey>{};
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _textController = TextEditingController();
+  late final FocusNode searchBoxFocusNode;
+  late Map<String, AllIconData> _filteredIcons;
+  bool _showSearchBox = false;
+  String _searchText = '';
 
   @override
   void initState() {
+    super.initState();
     _filteredIcons = widget.allIcons;
     _showSearchBox = _autoFocusSearch;
     searchBoxFocusNode = FocusNode();
     ServicesBinding.instance.keyboard.addHandler(_handleKeyEvent);
-    super.initState();
   }
 
   @override
@@ -53,241 +51,242 @@ class _CustomIconPageState extends State<CustomIconPage> {
     super.dispose();
   }
 
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.componentColors;
+    return Semantics(
+      container: true,
+      identifier: 'auth_custom_icon_page',
+      child: Scaffold(
+        backgroundColor: colors.backgroundBase,
+        body: Scrollbar(
+          controller: _scrollController,
+          thumbVisibility: true,
+          interactive: true,
+          child: AppBarComponent(
+            title: context.l10n.chooseIcon,
+            controller: _scrollController,
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: Spacing.sm),
+                child: Semantics(
+                  button: true,
+                  identifier: 'auth_icon_search_toggle',
+                  child: IconButtonComponent(
+                    variant: IconButtonComponentVariant.unfilled,
+                    tooltip: context.l10n.search,
+                    icon: Icon(
+                      _showSearchBox ? Icons.close : Icons.search,
+                      size: IconSizes.medium,
+                    ),
+                    onTap: _toggleSearch,
+                  ),
+                ),
+              ),
+            ],
+            slivers: [
+              if (_showSearchBox)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      Spacing.lg,
+                      0,
+                      Spacing.lg,
+                      Spacing.xl,
+                    ),
+                    child: Semantics(
+                      textField: true,
+                      identifier: 'auth_icon_search',
+                      child: TextInputComponent(
+                        controller: _textController,
+                        focusNode: searchBoxFocusNode,
+                        hintText: context.l10n.searchHint,
+                        autofocus: _autoFocusSearch,
+                        isClearable: true,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        prefix: Icon(
+                          Icons.search,
+                          size: IconSizes.small,
+                          color: colors.textLight,
+                        ),
+                        onChanged: (value) {
+                          _searchText = value;
+                          _applyFilteringAndRefresh();
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              if (_filteredIcons.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Text(
+                      context.l10n.noResult,
+                      style: TextStyles.body.copyWith(color: colors.textLight),
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(
+                    Spacing.lg,
+                    0,
+                    Spacing.lg,
+                    Spacing.xl,
+                  ),
+                  sliver: SliverGrid.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: (MediaQuery.sizeOf(context).width ~/ 104)
+                          .clamp(2, 8),
+                      crossAxisSpacing: Spacing.sm,
+                      mainAxisSpacing: Spacing.sm,
+                      mainAxisExtent: 104,
+                    ),
+                    itemCount: _filteredIcons.length,
+                    itemBuilder: _buildIconChoice,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIconChoice(BuildContext context, int index) {
+    final colors = context.componentColors;
+    final title = _filteredIcons.keys.elementAt(index);
+    final iconData = _filteredIcons[title]!;
+    final selected = title.toLowerCase() == widget.currentIcon.toLowerCase();
+    final iconWidget = _buildIcon(context, title, iconData);
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: title,
+      identifier: 'auth_icon_choice',
+      child: Material(
+        color: selected ? colors.primaryLight : colors.fillLight,
+        borderRadius: BorderRadius.circular(Radii.button),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => Navigator.of(context).pop(iconData),
+          child: Container(
+            padding: const EdgeInsets.all(Spacing.sm),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: selected ? colors.primary : Colors.transparent,
+              ),
+              borderRadius: BorderRadius.circular(Radii.button),
+            ),
+            child: Column(
+              children: [
+                Expanded(child: Center(child: iconWidget)),
+                const SizedBox(height: Spacing.sm),
+                Text(
+                  '${title[0].toUpperCase()}${title.substring(1)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyles.mini.copyWith(color: colors.textBase),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIcon(BuildContext context, String title, AllIconData iconData) {
+    final iconPath = iconData.type == IconType.simpleIcon
+        ? 'assets/simple-icons/icons/${simpleIconAssetStem(title, iconData.slug)}.svg'
+        : 'assets/custom-icons/icons/${iconData.slug ?? title}.svg';
+    return IconUtils.instance.getSVGIcon(
+      iconPath,
+      title,
+      iconData.color,
+      40,
+      context,
+    );
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _showSearchBox = !_showSearchBox;
+      if (_showSearchBox) {
+        searchBoxFocusNode.requestFocus();
+      } else {
+        _textController.clear();
+        _searchText = '';
+        _applyFiltering();
+      }
+    });
+  }
+
+  void _applyFilteringAndRefresh() {
+    setState(_applyFiltering);
+  }
+
+  void _applyFiltering() {
+    if (_searchText.isEmpty) {
+      _filteredIcons = widget.allIcons;
+      return;
+    }
+    final query = _searchText.toLowerCase();
+    _filteredIcons = {
+      for (final entry in widget.allIcons.entries)
+        if (entry.key.toLowerCase().contains(query)) entry.key: entry.value,
+    };
+  }
+
   bool _handleKeyEvent(KeyEvent event) {
     if (!mounted) return false;
-
-    // Always keep our pressed key state in sync.
     if (event is KeyDownEvent) {
       _pressedKeys.add(event.logicalKey);
     } else if (event is KeyUpEvent) {
       _pressedKeys.remove(event.logicalKey);
     }
 
-    // This handler is registered globally via ServicesBinding; only act when
-    // this page is the current route.
     final route = ModalRoute.of(context);
-    if (route != null && !route.isCurrent) {
-      return false;
-    }
+    if (route != null && !route.isCurrent) return false;
 
-    // Don't hijack keystrokes while the user is typing into some other text
-    // field (e.g. if a dialog is open).
     final primaryFocus = FocusManager.instance.primaryFocus;
-    final bool isEditableTextFocused =
-        primaryFocus?.context?.widget is EditableText;
-    final bool isSearchFocused = searchBoxFocusNode.hasFocus;
-    if (isEditableTextFocused && !isSearchFocused) {
-      return false;
+    final isEditableTextFocused = primaryFocus?.context?.widget is EditableText;
+    if (isEditableTextFocused && !searchBoxFocusNode.hasFocus) return false;
+
+    if (event is! KeyDownEvent) return false;
+    final pressed = HardwareKeyboard.instance.logicalKeysPressed;
+    final isModifierPressed = Platform.isMacOS || Platform.isIOS
+        ? pressed.any(
+            {
+              LogicalKeyboardKey.metaLeft,
+              LogicalKeyboardKey.meta,
+              LogicalKeyboardKey.metaRight,
+            }.contains,
+          )
+        : pressed.any(
+            {
+              LogicalKeyboardKey.controlLeft,
+              LogicalKeyboardKey.control,
+              LogicalKeyboardKey.controlRight,
+            }.contains,
+          );
+
+    if (isModifierPressed && event.logicalKey == LogicalKeyboardKey.keyF) {
+      if (!_showSearchBox) _toggleSearch();
+      _textController.clear();
+      _searchText = '';
+      _applyFilteringAndRefresh();
+      searchBoxFocusNode.requestFocus();
+      return true;
     }
-
-    if (event is KeyDownEvent) {
-      final pressed = HardwareKeyboard.instance.logicalKeysPressed;
-
-      final bool isMetaKeyPressed = Platform.isMacOS || Platform.isIOS
-          ? (pressed.contains(LogicalKeyboardKey.metaLeft) ||
-                pressed.contains(LogicalKeyboardKey.meta) ||
-                pressed.contains(LogicalKeyboardKey.metaRight))
-          : (pressed.contains(LogicalKeyboardKey.controlLeft) ||
-                pressed.contains(LogicalKeyboardKey.control) ||
-                pressed.contains(LogicalKeyboardKey.controlRight));
-
-      if (isMetaKeyPressed && event.logicalKey == LogicalKeyboardKey.keyF) {
-        setState(() {
-          _showSearchBox = true;
-          searchBoxFocusNode.requestFocus();
-          _textController.clear();
-          _searchText = "";
-        });
-        return true;
-      }
-
-      // Only use Escape for the page search UI.
-      if (event.logicalKey == LogicalKeyboardKey.escape && _showSearchBox) {
-        setState(() {
-          _textController.clear();
-          _searchText = "";
-          _showSearchBox = false;
-          _applyFilteringAndRefresh();
-        });
-        return true;
-      }
+    if (event.logicalKey == LogicalKeyboardKey.escape && _showSearchBox) {
+      _toggleSearch();
+      return true;
     }
-
     return false;
-  }
-
-  void _applyFilteringAndRefresh() {
-    if (_searchText.isEmpty) {
-      setState(() {
-        _filteredIcons = widget.allIcons;
-      });
-      return;
-    }
-
-    final filteredIcons = <String, AllIconData>{};
-    widget.allIcons.forEach((title, iconData) {
-      if (title.toLowerCase().contains(_searchText.toLowerCase())) {
-        filteredIcons[title] = iconData;
-      }
-    });
-
-    setState(() {
-      _filteredIcons = filteredIcons;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return Scaffold(
-      appBar: AppBar(
-        title: !_showSearchBox
-            ? Text(l10n.chooseIcon)
-            : TextField(
-                autocorrect: false,
-                enableSuggestions: false,
-                autofocus: _autoFocusSearch,
-                controller: _textController,
-                onChanged: (value) {
-                  _searchText = value;
-                  _applyFilteringAndRefresh();
-                },
-                decoration: InputDecoration(
-                  hintText: l10n.searchHint,
-                  border: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                ),
-                focusNode: searchBoxFocusNode,
-              ),
-        actions: [
-          IconButton(
-            icon: _showSearchBox
-                ? const Icon(Icons.clear)
-                : const Icon(Icons.search),
-            tooltip: l10n.search,
-            onPressed: () {
-              setState(() {
-                _showSearchBox = !_showSearchBox;
-                if (!_showSearchBox) {
-                  _textController.clear();
-                  _searchText = "";
-                } else {
-                  _searchText = _textController.text;
-
-                  // Request focus on the search box
-                  searchBoxFocusNode.requestFocus();
-                }
-                _applyFilteringAndRefresh();
-              });
-            },
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            children: [
-              Expanded(
-                child: Scrollbar(
-                  controller: _scrollController,
-                  thumbVisibility: true,
-                  interactive: true,
-                  child: GridView.builder(
-                    controller: _scrollController,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: (MediaQuery.sizeOf(context).width ~/ 90)
-                          .clamp(1, double.infinity)
-                          .toInt(),
-                      crossAxisSpacing: 14,
-                      mainAxisSpacing: 14,
-                      childAspectRatio: 1,
-                    ),
-                    itemCount: _filteredIcons.length,
-                    itemBuilder: (context, index) {
-                      final title = _filteredIcons.keys.elementAt(index);
-                      final iconData = _filteredIcons[title]!;
-                      IconType iconType = iconData.type;
-                      String? color = iconData.color;
-                      String? slug = iconData.slug;
-                      Widget iconWidget;
-                      if (iconType == IconType.simpleIcon) {
-                        final simpleIconPath = simpleIconAssetStem(title, slug);
-                        iconWidget = IconUtils.instance.getSVGIcon(
-                          "assets/simple-icons/icons/$simpleIconPath.svg",
-                          title,
-                          color,
-                          40,
-                          context,
-                        );
-                      } else {
-                        iconWidget = IconUtils.instance.getSVGIcon(
-                          "assets/custom-icons/icons/${slug ?? title}.svg",
-                          title,
-                          color,
-                          40,
-                          context,
-                        );
-                      }
-
-                      return GestureDetector(
-                        key: ValueKey(title),
-                        onTap: () {
-                          final newIcon = AllIconData(
-                            title: title,
-                            type: iconType,
-                            color: color,
-                            slug: slug,
-                          );
-                          Navigator.of(context).pop(newIcon);
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              width: 1.5,
-                              color:
-                                  title.toLowerCase() ==
-                                      widget.currentIcon.toLowerCase()
-                                  ? getEnteColorScheme(
-                                      context,
-                                    ).tagChipSelectedColor
-                                  : Colors.transparent,
-                            ),
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(12.0),
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              const SizedBox(height: 8),
-                              Expanded(child: iconWidget),
-                              const SizedBox(height: 12),
-                              Padding(
-                                padding:
-                                    title.toLowerCase() ==
-                                        widget.currentIcon.toLowerCase()
-                                    ? const EdgeInsets.only(left: 2, right: 2)
-                                    : const EdgeInsets.all(0.0),
-                                child: Text(
-                                  '${title[0].toUpperCase()}${title.substring(1)}',
-                                  style: getEnteTextTheme(context).mini,
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

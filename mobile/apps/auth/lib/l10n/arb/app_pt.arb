@@ -124,6 +124,7 @@
   "import2FasGuide": "Use a opção \"Opções-> Exportar cópia de segurança\" em 2FAS.\n\nSe a cópia de segurança estiver criptografada, você precisará inserir a senha para descriptografá-la",
   "importLastpassGuide": "Use a opção \"Transferir contas\" nas opções do LastPass Authenticator e pressione \"Exportar contas para arquivo\". Importe o arquivo JSON baixado.",
   "importProtonAuthGuide": "Use a opção \"Exportar\" nas opções do autenticador Proton para exportar seus códigos.\n\nSe sua exportação for protegida por senha, você precisará inserir a senha primeiro para descriptografá-la.",
+  "importOtpAuthGuide": "Exporte um backup criptografado do OTP Auth, então selecione o arquivo .otpauthdb ou .otpauthdp. Exportações .otpauth de conta única também são suportadas.",
   "invalidProtonExportTitle": "Exportação do Proton inválida",
   "invalidProtonExportMessage": "O arquivo selecionado não é uma exportação válida do Proton.",
   "exportCodes": "Exportar códigos",

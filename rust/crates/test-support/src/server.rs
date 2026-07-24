@@ -51,19 +51,23 @@ pub fn start(
 
 /// A local `museum.yaml` can clobber anything written here; keys that must
 /// survive that are set via env in [`start`] instead.
-pub fn write_config(path: &Path) -> TestResult {
+pub fn write_config(path: &Path, object_store_endpoint: &str) -> TestResult {
     fs::write(
         path,
-        r#"s3:
-    # Museum requires S3 credentials at boot; no current test exercises object storage.
+        format!(
+            r#"s3:
     are_local_buckets: true
     b2-eu-cen:
         key: changeme
         secret: changeme1234
-        endpoint: localhost:3200
+        endpoint: {object_store_endpoint}
         region: eu-central-2
         bucket: b2-eu-cen
-"#,
+space:
+    assets:
+        primaryBucket: b2-eu-cen
+"#
+        ),
     )?;
     Ok(())
 }

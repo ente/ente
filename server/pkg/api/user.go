@@ -149,8 +149,7 @@ func (h *UserHandler) SetRecoveryKey(c *gin.Context) {
 
 // GetPublicKey returns the public key of a user
 func (h *UserHandler) GetPublicKey(c *gin.Context) {
-	email := emailUtil.NormalizeEmail(c.Query("email"))
-	publicKey, err := h.UserController.GetPublicKey(email)
+	publicKey, err := h.UserController.GetPublicKey(auth.GetUserID(c.Request.Header), c.Query("email"))
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
@@ -583,6 +582,34 @@ func (h *UserHandler) SelfAccountRecovery(c *gin.Context) {
 		return
 	}
 	c.HTML(http.StatusOK, "account_recovered.html", gin.H{})
+}
+
+func (h *UserHandler) ValidateSelfAccountRecovery(c *gin.Context) {
+	var request ente.AccountRecoveryRequest
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Could not bind request params"))
+		return
+	}
+	response, err := h.UserController.ValidateSelfAccountRecovery(request.Token)
+	if err != nil {
+		handler.Error(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *UserHandler) RecoverSelfAccount(c *gin.Context) {
+	var request ente.AccountRecoveryRequest
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Could not bind request params"))
+		return
+	}
+	response, err := h.UserController.RecoverSelfAccount(c, request.Token)
+	if err != nil {
+		handler.Error(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, response)
 }
 
 // GetSRPAttributes returns the SRP attributes for a user

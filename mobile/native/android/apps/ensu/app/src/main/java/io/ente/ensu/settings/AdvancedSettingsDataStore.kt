@@ -8,6 +8,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import io.ente.ensu.settings.DeveloperSettingsState
 import io.ente.ensu.llm.ModelSettingsState
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
@@ -31,14 +32,32 @@ class AdvancedSettingsDataStore(private val context: Context) {
                 systemPrompt = prefs[Keys.systemPrompt].orEmpty()
             ),
             modelSettings = ModelSettingsState(
-                useCustomModel = prefs[Keys.useCustomModel] ?: false,
-                modelUrl = prefs[Keys.modelUrl].orEmpty(),
-                mmprojUrl = prefs[Keys.mmprojUrl].orEmpty(),
+                modelId = prefs[Keys.modelId].orEmpty(),
                 contextLength = prefs[Keys.contextLength].orEmpty(),
                 maxTokens = prefs[Keys.maxTokens].orEmpty(),
                 temperature = prefs[Keys.temperature].orEmpty()
             )
         )
+    }
+
+    suspend fun migrateLegacyModelSelection(
+        migrate: suspend (legacyModelUrl: String?, legacyMmprojUrl: String?) -> String?
+    ) {
+        val useCustomModel = booleanPreferencesKey("use_custom_model")
+        val modelUrl = stringPreferencesKey("model_url")
+        val mmprojUrl = stringPreferencesKey("mmproj_url")
+        val prefs = context.advancedSettingsPreferences.data.first()
+        val pending = prefs[Keys.modelId] == null
+        val url = prefs[modelUrl].takeIf { pending && prefs[useCustomModel] == true }
+        val presetId = migrate(url, prefs[mmprojUrl])
+        context.advancedSettingsPreferences.edit { prefs ->
+            if (pending && prefs[Keys.modelId] == null) {
+                prefs[Keys.modelId] = presetId.orEmpty()
+            }
+            prefs.remove(useCustomModel)
+            prefs.remove(modelUrl)
+            prefs.remove(mmprojUrl)
+        }
     }
 
     suspend fun unlockAdvancedSettings() {
@@ -67,9 +86,7 @@ class AdvancedSettingsDataStore(private val context: Context) {
 
     suspend fun saveModelSettings(settings: ModelSettingsState) {
         context.advancedSettingsPreferences.edit { prefs ->
-            prefs[Keys.useCustomModel] = settings.useCustomModel
-            prefs[Keys.modelUrl] = settings.modelUrl
-            prefs[Keys.mmprojUrl] = settings.mmprojUrl
+            prefs[Keys.modelId] = settings.modelId
             prefs[Keys.contextLength] = settings.contextLength
             prefs[Keys.maxTokens] = settings.maxTokens
             prefs[Keys.temperature] = settings.temperature
@@ -84,9 +101,7 @@ class AdvancedSettingsDataStore(private val context: Context) {
 
     suspend fun resetModelSettings() {
         context.advancedSettingsPreferences.edit { prefs ->
-            prefs[Keys.useCustomModel] = false
-            prefs[Keys.modelUrl] = ""
-            prefs[Keys.mmprojUrl] = ""
+            prefs[Keys.modelId] = ""
             prefs[Keys.contextLength] = ""
             prefs[Keys.maxTokens] = ""
             prefs[Keys.temperature] = ""
@@ -103,9 +118,7 @@ class AdvancedSettingsDataStore(private val context: Context) {
         private object Keys {
             val advancedUnlocked = booleanPreferencesKey("advanced_unlocked")
             val systemPrompt = stringPreferencesKey("system_prompt")
-            val useCustomModel = booleanPreferencesKey("use_custom_model")
-            val modelUrl = stringPreferencesKey("model_url")
-            val mmprojUrl = stringPreferencesKey("mmproj_url")
+            val modelId = stringPreferencesKey("model_id")
             val contextLength = stringPreferencesKey("context_length")
             val maxTokens = stringPreferencesKey("max_tokens")
             val temperature = stringPreferencesKey("temperature")

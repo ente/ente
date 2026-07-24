@@ -4,6 +4,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
 import { Box, IconButton, Link, Stack, Typography } from "@mui/material";
+import { isDesktop } from "ente-base/app";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import React from "react";
 
@@ -40,7 +41,7 @@ export function TakeoutOptionsV2({
                     </IconButton>
                     <Typography
                         sx={{
-                            fontFamily: "'Outfit', sans-serif",
+                            fontFamily: "'Outfit Variable', sans-serif",
                             fontSize: "24px",
                             fontWeight: 600,
                             lineHeight: "32px",
@@ -77,25 +78,40 @@ export function TakeoutOptionsV2({
                     <TakeoutOptionButton
                         icon={<HugeiconsIcon icon={FileZipIcon} size={18} />}
                         label="ZIP files"
-                        description="Select your ZIPs, we'll unzip them for you"
+                        description={
+                            isDesktop
+                                ? "Select your ZIPs, we'll unzip them for you"
+                                : "Desktop only"
+                        }
+                        disabled={!isDesktop}
                         onClick={onSelectZips}
                     />
                 </Stack>
-                <Link
-                    href="https://ente.com/help/photos/migration/from-google-photos/"
-                    target="_blank"
-                    rel="noopener"
+                <Typography
                     sx={{
                         alignSelf: "center",
-                        color: "accent.main",
+                        color: "text.faint",
                         fontSize: "14px",
                         fontWeight: 500,
                         lineHeight: "20px",
-                        textDecoration: "underline",
                     }}
                 >
-                    Need help?
-                </Link>
+                    <span style={{ opacity: 0.7 }}>
+                        Still have confusions?{" "}
+                    </span>
+                    <Link
+                        href="https://ente.com/help/photos/migration/from-google-photos/"
+                        target="_blank"
+                        rel="noopener"
+                        sx={{
+                            color: "accent.main",
+                            fontWeight: 500,
+                            textDecoration: "underline",
+                        }}
+                    >
+                        We&apos;re here to help
+                    </Link>
+                </Typography>
             </Stack>
         </Stack>
     );
@@ -105,6 +121,7 @@ interface TakeoutOptionButtonProps {
     icon: React.ReactNode;
     label: string;
     description: string;
+    disabled?: boolean;
     onClick: () => void;
 }
 
@@ -112,11 +129,13 @@ function TakeoutOptionButton({
     icon,
     label,
     description,
+    disabled,
     onClick,
 }: TakeoutOptionButtonProps): React.JSX.Element {
     return (
         <FocusVisibleButton
             fullWidth
+            disabled={disabled}
             onClick={onClick}
             sx={(theme) => ({
                 height: "60px",
@@ -128,6 +147,11 @@ function TakeoutOptionButton({
                 ...theme.applyStyles("dark", {
                     backgroundColor: "secondary.main",
                 }),
+                "&.Mui-disabled": {
+                    backgroundColor: "secondary.main",
+                    color: "text.faint",
+                    opacity: 0.55,
+                },
             })}
         >
             <Stack
@@ -170,18 +194,20 @@ function TakeoutOptionButton({
                         {description}
                     </Typography>
                 </Stack>
-                <Box
-                    sx={{
-                        display: "flex",
-                        width: "48px",
-                        height: "36px",
-                        flexShrink: 0,
-                        alignItems: "center",
-                        justifyContent: "center",
-                    }}
-                >
-                    <ChevronRightIcon sx={{ fontSize: "18px" }} />
-                </Box>
+                {!disabled && (
+                    <Box
+                        sx={{
+                            display: "flex",
+                            width: "48px",
+                            height: "36px",
+                            flexShrink: 0,
+                            alignItems: "center",
+                            justifyContent: "center",
+                        }}
+                    >
+                        <ChevronRightIcon sx={{ fontSize: "18px" }} />
+                    </Box>
+                )}
             </Stack>
         </FocusVisibleButton>
     );

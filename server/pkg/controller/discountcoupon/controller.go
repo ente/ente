@@ -62,7 +62,7 @@ func (c *Controller) processClaimRequest(ctx *gin.Context, req ClaimCouponReques
 			WithField("email", sanitizedEmail).
 			WithField("req_id", requestid.Get(ctx))
 
-	userID, err := c.UserRepo.GetUserIDWithEmail(sanitizedEmail)
+	userID, err := c.UserRepo.GetUserIDWithEmailUnrestricted(sanitizedEmail)
 	if err != nil {
 		logger.WithError(err).Info("User not found for discount coupon claim")
 		return

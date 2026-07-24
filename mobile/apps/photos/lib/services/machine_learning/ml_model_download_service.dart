@@ -14,6 +14,7 @@ class MLModelDownloadService {
   final _logger = Logger("MLModelDownloadService");
 
   final _downloadModelLock = Lock();
+  final _activeModelDownloadTriggers = <bool>{};
 
   bool _areIndexingModelsDownloaded = false;
   bool _areNonIndexingModelsDownloaded = false;
@@ -57,9 +58,16 @@ class MLModelDownloadService {
   }
 
   void triggerModelsDownload({required bool onlyIndexingModels}) {
-    if (!areModelsDownloaded(onlyIndexingModels: onlyIndexingModels)) {
-      unawaited(ensureModelsDownloaded(onlyIndexingModels: onlyIndexingModels));
+    if (areModelsDownloaded(onlyIndexingModels: onlyIndexingModels) ||
+        _activeModelDownloadTriggers.contains(onlyIndexingModels)) {
+      return;
     }
+    _activeModelDownloadTriggers.add(onlyIndexingModels);
+    ensureModelsDownloaded(onlyIndexingModels: onlyIndexingModels)
+        .whenComplete(
+          () => _activeModelDownloadTriggers.remove(onlyIndexingModels),
+        )
+        .ignore();
   }
 
   Future<void> ensureModelsDownloaded({

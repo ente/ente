@@ -18,6 +18,7 @@ import "package:photos/services/file_magic_service.dart";
 import "package:photos/src/rust/api/motion_photo_api.dart";
 import "package:photos/states/detail_page_state.dart";
 import 'package:photos/ui/notification/toast.dart';
+import "package:photos/ui/viewer/file/live_image_long_press_router.dart";
 import 'package:photos/ui/viewer/file/zoomable_image.dart';
 
 class ZoomableLiveImageNew extends StatefulWidget {
@@ -28,6 +29,7 @@ class ZoomableLiveImageNew extends StatefulWidget {
   final bool isFromMemories;
   final Function({required int memoryDuration})? onFinalFileLoad;
   final ValueNotifier<List<QrDetection>>? qrDetectionsNotifier;
+  final GestureLongPressStartCallback? onTextSelectionStart;
 
   const ZoomableLiveImageNew(
     this.enteFile, {
@@ -38,6 +40,7 @@ class ZoomableLiveImageNew extends StatefulWidget {
     this.isFromMemories = false,
     this.onFinalFileLoad,
     this.qrDetectionsNotifier,
+    this.onTextSelectionStart,
   });
 
   @override
@@ -48,9 +51,10 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
     with SingleTickerProviderStateMixin {
   final Logger _logger = Logger("ZoomableLiveImageNew");
   late EnteFile _enteFile;
+  late final LiveImageLongPressRouter _longPressRouter;
   bool _showVideo = false;
-  bool _isLoadingVideoPlayer = false;
   bool _isVideoFrameReady = true;
+  Future<MotionPhotoAvailability>? _videoLoad;
 
   late final _player = Player();
   VideoController? _videoController;
@@ -63,6 +67,10 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
     super.initState();
 
     _enteFile = widget.enteFile;
+    _longPressRouter = LiveImageLongPressRouter(
+      motionVideoIndex: _enteFile.pubMagicMetadata?.mvi,
+      probeMotionPhoto: _loadLiveVideo,
+    );
     _logger.info(
       'initState for ${_enteFile.generatedID} with tag ${_enteFile.tag} and name ${_enteFile.displayName}',
     );
@@ -116,7 +124,7 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
     return false;
   }
 
-  void _onLongPressEvent(bool isPressed, [Offset? localPosition]) {
+  bool _isLongPressInVisibleQrRegion(Offset localPosition) {
     // If pressing within a QR code region, let the QR overlay handle it,
     // but only when the overlay is actually visible (not in fullscreen mode).
     final isQrOverlayVisible =
@@ -124,28 +132,60 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
               context,
             )?.enableFullScreenNotifier.value ??
             true);
-    if (isPressed &&
-        isQrOverlayVisible &&
-        localPosition != null &&
-        _isPositionInQrRegion(localPosition)) {
-      return;
-    }
+    return isQrOverlayVisible && _isPositionInQrRegion(localPosition);
+  }
 
-    if (isPressed) {
-      if (_videoController == null) {
-        unawaited(_loadLiveVideo());
-      } else {
-        _videoController!.player.seek(Duration.zero).ignore();
-        _videoController!.player.play().ignore();
-      }
-    } else if (_videoController != null) {
-      // stop playing video
-      _videoController!.player.pause().ignore();
+  void _setPlaybackPressed(bool isPressed) {
+    if (!isPressed) {
+      _videoController?.player.pause().ignore();
     }
     if (mounted) {
       setState(() {
         _showVideo = isPressed;
       });
+    }
+  }
+
+  void _playOrLoadVideo() {
+    if (!_showVideo) return;
+    if (_videoController == null) {
+      unawaited(_loadLiveVideo());
+      return;
+    }
+    _videoController!.player.seek(Duration.zero).ignore();
+    _videoController!.player.play().ignore();
+  }
+
+  void _onLongPressStart(LongPressStartDetails details) {
+    if (_isLongPressInVisibleQrRegion(details.localPosition)) return;
+
+    final onTextSelectionStart = widget.onTextSelectionStart;
+    if (onTextSelectionStart == null || _enteFile.isLivePhoto) {
+      _setPlaybackPressed(true);
+      _playOrLoadVideo();
+      return;
+    }
+
+    _setPlaybackPressed(true);
+    unawaited(_routeLongPress(details, onTextSelectionStart));
+  }
+
+  Future<void> _routeLongPress(
+    LongPressStartDetails details,
+    GestureLongPressStartCallback onTextSelectionStart,
+  ) async {
+    var action = LiveImageLongPressAction.textSelection;
+    try {
+      action = await _longPressRouter.resolve();
+    } catch (error, stackTrace) {
+      _logger.warning("Motion photo probe failed", error, stackTrace);
+    }
+    if (!mounted) return;
+    if (action == LiveImageLongPressAction.playback) {
+      _playOrLoadVideo();
+    } else {
+      _setPlaybackPressed(false);
+      onTextSelectionStart(details);
     }
   }
 
@@ -183,9 +223,8 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
 
     if (!widget.isFromMemories) {
       return GestureDetector(
-        onLongPressStart: (details) =>
-            _onLongPressEvent(true, details.localPosition),
-        onLongPressEnd: (_) => _onLongPressEvent(false),
+        onLongPressStart: _onLongPressStart,
+        onLongPressEnd: (_) => _setPlaybackPressed(false),
         child: content,
       );
     }
@@ -209,29 +248,45 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
     );
   }
 
-  Future<void> _loadLiveVideo() async {
-    // do nothing is already loading or loaded
-    if (_isLoadingVideoPlayer || _videoController != null) {
-      return;
+  Future<MotionPhotoAvailability> _loadLiveVideo() {
+    if (_videoController != null) {
+      return Future.value(MotionPhotoAvailability.present);
     }
-    _isLoadingVideoPlayer = true;
-    try {
-      // For non-live photo, with fileType as Image, we still call _getMotionPhoto
-      // to check if it is a motion photo. This is needed to handle earlier
-      // uploads and upload from desktop
-      final File? videoFile = _enteFile.isLivePhoto
-          ? await _getLivePhotoVideo()
-          : await _getMotionPhotoVideo();
+    final activeLoad = _videoLoad;
+    if (activeLoad != null) return activeLoad;
 
-      if (!mounted) return;
-      if (videoFile != null && videoFile.existsSync()) {
-        await _setVideoController(videoFile.path);
-      } else if (_enteFile.isLivePhoto) {
-        showShortToast(context, AppLocalizations.of(context).downloadFailed);
+    late final Future<MotionPhotoAvailability> load;
+    load = _loadLiveVideoOnce().whenComplete(() {
+      if (identical(_videoLoad, load)) {
+        _videoLoad = null;
       }
-    } finally {
-      _isLoadingVideoPlayer = false;
+    });
+    _videoLoad = load;
+    return load;
+  }
+
+  Future<MotionPhotoAvailability> _loadLiveVideoOnce() async {
+    // For non-live photo, with fileType as Image, we still call _getMotionPhoto
+    // to check if it is a motion photo. This is needed to handle earlier
+    // uploads and upload from desktop.
+    final _MotionPhotoVideoResult result;
+    if (_enteFile.isLivePhoto) {
+      result = _MotionPhotoVideoResult(
+        MotionPhotoAvailability.present,
+        await _getLivePhotoVideo(),
+      );
+    } else {
+      result = await _getMotionPhotoVideo();
     }
+
+    if (!mounted) return result.availability;
+    final videoFile = result.videoFile;
+    if (videoFile != null && videoFile.existsSync()) {
+      await _setVideoController(videoFile.path);
+    } else if (_enteFile.isLivePhoto) {
+      showShortToast(context, AppLocalizations.of(context).downloadFailed);
+    }
+    return result.availability;
   }
 
   Future<File?> _getLivePhotoVideo() async {
@@ -263,9 +318,14 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
     return videoFile;
   }
 
-  Future<File?> _getMotionPhotoVideo() async {
+  Future<_MotionPhotoVideoResult> _getMotionPhotoVideo() async {
     if (_enteFile.isRemoteOnlyFile && !(await isFileCached(_enteFile))) {
-      if (!mounted) return null;
+      if (!mounted) {
+        return const _MotionPhotoVideoResult(
+          MotionPhotoAvailability.unknown,
+          null,
+        );
+      }
       showShortToast(context, AppLocalizations.of(context).downloading);
     }
 
@@ -295,16 +355,27 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
           index: index,
         );
         if (outputPath != null) {
-          return File(outputPath);
+          return _MotionPhotoVideoResult(
+            MotionPhotoAvailability.present,
+            File(outputPath),
+          );
         }
+        return const _MotionPhotoVideoResult(
+          MotionPhotoAvailability.present,
+          null,
+        );
       } else if (_enteFile.isMotionPhoto && _enteFile.canEditMetaInfo) {
         _logger.info('Incorrectly tagged as MP, reset tag ${_enteFile.tag}');
         FileMagicService.instance
             .updatePublicMagicMetadata([_enteFile], {motionVideoIndexKey: 0})
             .ignore();
       }
+      return const _MotionPhotoVideoResult(
+        MotionPhotoAvailability.absent,
+        null,
+      );
     }
-    return null;
+    return const _MotionPhotoVideoResult(MotionPhotoAvailability.unknown, null);
   }
 
   Future<void> _setVideoController(String url) async {
@@ -356,4 +427,11 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
       _isVideoFrameReady = true;
     });
   }
+}
+
+class _MotionPhotoVideoResult {
+  final MotionPhotoAvailability availability;
+  final File? videoFile;
+
+  const _MotionPhotoVideoResult(this.availability, this.videoFile);
 }

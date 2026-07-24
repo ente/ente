@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		A10000012F11111100AA0001 /* LlmIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000022F11111100AA0001 /* LlmIntegrationTests.swift */; };
+		DAE20A022F00000100000002 /* EnteOnnxRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = DAE20A012F00000100000001 /* EnteOnnxRuntime */; };
 		DAF584672E61BB8300F8A08F /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = DAF584662E61BB8300F8A08F /* ZIPFoundation */; };
 		DB9F1C3C2F9D123400ABCD02 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = DB9F1C3B2F9D123400ABCD02 /* Markdown */; };
 		DBA3E91C2F7A6B9000AA11BB /* SwiftMath in Frameworks */ = {isa = PBXBuildFile; productRef = DBA3E91B2F7A6B9000AA11BB /* SwiftMath */; };
@@ -65,6 +66,7 @@
 				DAF584672E61BB8300F8A08F /* ZIPFoundation in Frameworks */,
 				DBA3E91C2F7A6B9000AA11BB /* SwiftMath in Frameworks */,
 				DB9F1C3C2F9D123400ABCD02 /* Markdown in Frameworks */,
+				DAE20A022F00000100000002 /* EnteOnnxRuntime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -149,6 +151,7 @@
 				DAF584662E61BB8300F8A08F /* ZIPFoundation */,
 				DBA3E91B2F7A6B9000AA11BB /* SwiftMath */,
 				DB9F1C3B2F9D123400ABCD02 /* Markdown */,
+				DAE20A012F00000100000001 /* EnteOnnxRuntime */,
 			);
 			productName = Ensu;
 			productReference = DA72BC612E5F87A000D128FF /* Ensu.app */;
@@ -186,6 +189,7 @@
 				DBA3E91A2F7A6B9000AA11BB /* XCRemoteSwiftPackageReference "SwiftMath" */,
 				DAF584652E61BB6300F8A08F /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 				DB9F1C3A2F9D123400ABCD02 /* XCRemoteSwiftPackageReference "swift-markdown" */,
+				DAE20A032F00000100000003 /* XCLocalSwiftPackageReference "../../packages/EnteOnnxRuntime" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DA72BC622E5F87A000D128FF /* Products */;
@@ -575,6 +579,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		DAE20A032F00000100000003 /* XCLocalSwiftPackageReference "../../packages/EnteOnnxRuntime" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../packages/EnteOnnxRuntime;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		DAF584652E61BB6300F8A08F /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -603,6 +614,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		DAE20A012F00000100000001 /* EnteOnnxRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EnteOnnxRuntime;
+		};
 		DAF584662E61BB8300F8A08F /* ZIPFoundation */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DAF584652E61BB6300F8A08F /* XCRemoteSwiftPackageReference "ZIPFoundation" */;

@@ -5,4 +5,6 @@ pub mod db;
 pub mod download;
 pub mod image;
 pub mod llm;
+pub mod model;
+pub mod retrieval;
 pub mod transcription;

@@ -3,6 +3,7 @@ import 'package:ente_components/ente_components.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:intl/intl.dart';
 
 class DeleteAccountConfirmationStep extends StatelessWidget {
   const DeleteAccountConfirmationStep({
@@ -25,6 +26,7 @@ class DeleteAccountConfirmationStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
+    final canConfirm = summary != null || summaryUnsupported;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,12 +44,12 @@ class DeleteAccountConfirmationStep extends StatelessWidget {
         _buildSummary(context),
         const SizedBox(height: Spacing.lg),
         InkWell(
-          onTap: () => onConfirmationChanged(!confirmed),
+          onTap: canConfirm ? () => onConfirmationChanged(!confirmed) : null,
           borderRadius: BorderRadius.circular(Radii.sm),
           child: LabeledControlComponent(
             control: CheckboxComponent(
               selected: confirmed,
-              onChanged: onConfirmationChanged,
+              onChanged: canConfirm ? onConfirmationChanged : null,
               selectedColor: colors.warning,
             ),
             label: context.strings.confirmDeleteAccountAcrossApps,
@@ -100,33 +102,41 @@ class _SummaryRows extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final summary = this.summary;
+    final numberFormat = NumberFormat.decimalPattern(
+      Localizations.localeOf(context).toLanguageTag(),
+    );
     return Column(
       children: [
         _row(
-          assetName: 'photos.png',
+          app: ComponentApp.photos,
           title: summary == null
               ? context.strings.entePhotos
               : context.strings.photosAndVideosCount(
                   summary.photosAndVideosCount,
+                  numberFormat.format(summary.photosAndVideosCount),
                 ),
           subtitle: summary == null ? null : context.strings.entePhotos,
         ),
         const SizedBox(height: Spacing.sm),
         _row(
-          assetName: 'auth.png',
+          app: ComponentApp.auth,
           title: summary == null
               ? context.strings.enteAuth
               : context.strings.authenticatorCodesCount(
                   summary.authenticatorCodesCount,
+                  numberFormat.format(summary.authenticatorCodesCount),
                 ),
           subtitle: summary == null ? null : context.strings.enteAuth,
         ),
         const SizedBox(height: Spacing.sm),
         _row(
-          assetName: 'locker.png',
+          app: ComponentApp.locker,
           title: summary == null
               ? context.strings.enteLocker
-              : context.strings.lockerRecordsCount(summary.lockerRecordsCount),
+              : context.strings.lockerRecordsCount(
+                  summary.lockerRecordsCount,
+                  numberFormat.format(summary.lockerRecordsCount),
+                ),
           subtitle: summary == null ? null : context.strings.enteLocker,
         ),
       ],
@@ -134,7 +144,7 @@ class _SummaryRows extends StatelessWidget {
   }
 
   Widget _row({
-    required String assetName,
+    required ComponentApp app,
     required String title,
     String? subtitle,
   }) {
@@ -143,15 +153,7 @@ class _SummaryRows extends StatelessWidget {
       subtitle: subtitle,
       titleMaxLines: 1,
       subtitleMaxLines: 1,
-      leading: SizedBox(
-        width: 24,
-        height: 24,
-        child: Image.asset(
-          'assets/$assetName',
-          package: 'ente_account_deletion',
-          fit: BoxFit.contain,
-        ),
-      ),
+      leading: EnteAppIcon(app: app),
     );
   }
 }

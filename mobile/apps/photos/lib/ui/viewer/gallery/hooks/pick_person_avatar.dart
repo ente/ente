@@ -14,6 +14,7 @@ import "package:photos/ui/components/bottom_of_title_bar_widget.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
 import "package:photos/ui/components/title_bar_title_widget.dart";
+import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 
@@ -145,11 +146,17 @@ class PickPersonCoverPhotoWidget extends StatelessWidget {
                                 Bus.instance.fire(
                                   PeopleChangedEvent(
                                     type: PeopleEventType.saveOrEditPerson,
-                                    person: result,
+                                    person: result.person,
                                   ),
                                 );
                                 if (!context.mounted) return;
-                                Navigator.pop(context, result);
+                                if (result.contactPictureUpdateFailed) {
+                                  showShortToast(
+                                    context,
+                                    "Failed to update contact picture",
+                                  );
+                                }
+                                Navigator.pop(context, result.person);
                               },
                             ),
                           );

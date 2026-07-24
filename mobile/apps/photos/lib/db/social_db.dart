@@ -153,12 +153,48 @@ class SocialDB {
     return rows.map(_rowToComment).toList();
   }
 
-  Future<int> getCommentCountForFile(int fileID) async {
+  /// Restricts the lookup to [candidateCollectionIDs] so the composite
+  /// file/collection index can narrow the rows considered for the latest item.
+  Future<Comment?> getLatestCommentForFile(
+    int fileID, {
+    required List<int> candidateCollectionIDs,
+  }) async {
+    if (candidateCollectionIDs.isEmpty) {
+      return null;
+    }
+
+    final placeholders = List.filled(
+      candidateCollectionIDs.length,
+      '?',
+    ).join(',');
+    final db = await database;
+    final rows = await db.query(
+      _commentsTable,
+      where:
+          'file_id = ? AND is_deleted = 0 '
+          'AND collection_id IN ($placeholders)',
+      whereArgs: [fileID, ...candidateCollectionIDs],
+      orderBy: 'created_at DESC',
+      limit: 1,
+    );
+    return rows.isEmpty ? null : _rowToComment(rows.first);
+  }
+
+  Future<int> getCommentCountForFileInCollections(
+    int fileID,
+    List<int> collectionIDs,
+  ) async {
+    if (collectionIDs.isEmpty) {
+      return 0;
+    }
+
+    final placeholders = List.filled(collectionIDs.length, '?').join(',');
     final db = await database;
     final result = await db.rawQuery(
       'SELECT COUNT(*) as count FROM $_commentsTable '
-      'WHERE file_id = ? AND is_deleted = 0',
-      [fileID],
+      'WHERE file_id = ? AND collection_id IN ($placeholders) '
+      'AND is_deleted = 0',
+      [fileID, ...collectionIDs],
     );
     return Sqflite.firstIntValue(result) ?? 0;
   }
@@ -267,6 +303,30 @@ class SocialDB {
       whereArgs: [fileID],
     );
     return rows.map(_rowToReaction).toList();
+  }
+
+  Future<bool> hasUserReactedToFileInCollections(
+    int fileID,
+    int userID,
+    List<int> collectionIDs,
+  ) async {
+    if (collectionIDs.isEmpty) {
+      return false;
+    }
+
+    final placeholders = List.filled(collectionIDs.length, '?').join(',');
+    final db = await database;
+    final rows = await db.rawQuery(
+      '''
+      SELECT 1 FROM $_reactionsTable
+      WHERE file_id = ? AND user_id = ?
+        AND collection_id IN ($placeholders)
+        AND comment_id IS NULL AND is_deleted = 0
+      LIMIT 1
+      ''',
+      [fileID, userID, ...collectionIDs],
+    );
+    return rows.isNotEmpty;
   }
 
   Future<List<Reaction>> getReactionsForFileInCollection(

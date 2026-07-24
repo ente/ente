@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:confetti/confetti.dart';
 import "package:dio/dio.dart";
 import 'package:ente_auth/l10n/l10n.dart';
-import 'package:ente_auth/theme/colors.dart';
 import 'package:ente_auth/ui/common/loading_widget.dart';
 import 'package:ente_auth/ui/components/action_sheet_widget.dart';
 import 'package:ente_auth/ui/components/buttons/button_widget.dart';
@@ -15,6 +14,7 @@ import 'package:ente_auth/ui/components/models/button_type.dart';
 import 'package:ente_auth/utils/email_util.dart';
 import 'package:ente_auth/utils/platform_util.dart';
 import 'package:ente_base/typedefs.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_ui/components/progress_dialog.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -28,12 +28,15 @@ Future<ButtonResult?> showErrorDialog(
   String? body, {
   bool isDismissable = true,
   bool showContactSupport = true,
+  String dismissButtonLabel = "OK",
+  bool useRootNavigator = false,
 }) async {
   return showDialogWidget(
     context: context,
     title: title,
     body: body,
     isDismissible: isDismissable,
+    useRootNavigator: useRootNavigator,
     buttons: [
       if (showContactSupport)
         ButtonWidget(
@@ -45,9 +48,9 @@ Future<ButtonResult?> showErrorDialog(
             await sendEmail(context, to: "support@ente.com", body: body);
           },
         ),
-      const ButtonWidget(
+      ButtonWidget(
         buttonType: ButtonType.secondary,
-        labelText: "OK",
+        labelText: dismissButtonLabel,
         isInAlert: true,
         buttonAction: ButtonAction.second,
       ),
@@ -415,38 +418,27 @@ Future<dynamic> showTextInputDialog(
   bool useRootNavigator = false,
   VoidCallback? onCancel,
 }) {
-  return showDialog(
-    barrierColor: backdropFaintDark,
+  return showBottomSheetComponent<dynamic>(
     useRootNavigator: useRootNavigator,
     context: context,
-    builder: (context) {
-      final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-      final isKeyboardUp = bottomInset > 100;
-      return Material(
-        color: Colors.transparent,
-        child: Center(
-          child: Padding(
-            padding: EdgeInsets.only(bottom: isKeyboardUp ? bottomInset : 0),
-            child: TextInputDialog(
-              title: title,
-              message: message,
-              label: label,
-              body: body,
-              icon: icon,
-              submitButtonLabel: submitButtonLabel,
-              onSubmit: onSubmit,
-              hintText: hintText,
-              prefixIcon: prefixIcon,
-              initialValue: initialValue,
-              alignMessage: alignMessage,
-              maxLength: maxLength,
-              showOnlyLoadingState: showOnlyLoadingState,
-              textCapitalization: textCapitalization,
-              alwaysShowSuccessState: alwaysShowSuccessState,
-              isPasswordInput: isPasswordInput,
-            ),
-          ),
-        ),
+    builder: (_) {
+      return TextInputDialog(
+        title: title,
+        message: message,
+        label: label,
+        body: body,
+        icon: icon,
+        submitButtonLabel: submitButtonLabel,
+        onSubmit: onSubmit,
+        hintText: hintText,
+        prefixIcon: prefixIcon,
+        initialValue: initialValue,
+        alignMessage: alignMessage,
+        maxLength: maxLength,
+        showOnlyLoadingState: showOnlyLoadingState,
+        textCapitalization: textCapitalization,
+        alwaysShowSuccessState: alwaysShowSuccessState,
+        isPasswordInput: isPasswordInput,
       );
     },
   );

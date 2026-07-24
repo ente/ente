@@ -15,6 +15,10 @@ By default, Museum runs in local environment, thus `local.yaml` configuration is
 
 If `ENVIRONMENT` environment variable is set (say, to `production`), Museum will attempt to load `configurations/production.yaml`.
 
+> [!NOTE]
+>
+> Ente uses the `production` configuration for its own deployments, and it may change between releases.
+
 If `credentials-file` is defined and found, it overrides the defaults.
 
 Use `museum.yaml` file for declaring configuration over `local.yaml`.
@@ -51,21 +55,21 @@ in `museum.yaml` is read as `s3.b2-eu-cen.endpoint` by Museum.
 
 ### App Endpoints
 
-The web apps for Ente (Accounts, Cast, Albums, Share, Paste, Embed, Memories) use different endpoints.
-
-These endpoints are configurable in `museum.yaml` under the apps.\* section.
-
-Upon configuration, the application will start utilizing the specified endpoints instead of Ente's production instances or local endpoints (overridden values used for Compose and quickstart for ease of use.)
+The `apps` section specifies the base endpoints Museum uses when linking to or integrating with Ente web apps.
 
 | Variable               | Description                                             | Default                     |
 | ---------------------- | ------------------------------------------------------- | --------------------------- |
 | `apps.public-albums`   | Albums app base endpoint for public sharing             | `https://albums.ente.com`   |
+| `apps.embed-albums`    | Embed app base endpoint                                 | `https://embed.ente.com`    |
 | `apps.public-locker`   | Public Locker (share) app base endpoint                 | `https://share.ente.com`    |
 | `apps.public-paste`    | Ente Paste app base endpoint                            | `https://paste.ente.com`    |
 | `apps.public-memories` | Memories app base endpoint for public memory shares     | `https://memories.ente.com` |
-| `apps.cast`            | Cast app base endpoint                                  | `https://cast.ente.com`     |
-| `apps.embed-albums`    | Embed app base endpoint for embedded sharing            | `https://embed.ente.com`    |
 | `apps.accounts`        | Accounts app base endpoint (used for passkey-based 2FA) | `https://accounts.ente.com` |
+| `apps.accounts-legacy` | Legacy Accounts endpoint for passkey migration          | `https://accounts.ente.io`  |
+| `apps.cast`            | Cast app base endpoint                                  | `https://cast.ente.com`     |
+| `apps.family`          | Family web app base endpoint                            | `https://family.ente.io`    |
+| `apps.space`           | Space web app base endpoint                             | `https://ente.space`        |
+| `apps.legacy`          | Legacy recovery web app base endpoint                   | `https://legacy.ente.com`   |
 
 ### Database
 

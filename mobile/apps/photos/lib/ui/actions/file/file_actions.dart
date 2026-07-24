@@ -3,6 +3,7 @@ import "dart:io";
 
 import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
+import "package:photo_manager/photo_manager.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/details_sheet_event.dart";
 import "package:photos/generated/l10n.dart";
@@ -10,7 +11,6 @@ import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/module/metadata/panorama.dart';
 import "package:photos/service_locator.dart";
-import "package:photos/services/media_store_service.dart";
 import "package:photos/ui/notification/toast.dart";
 import 'package:photos/ui/viewer/file/file_details_widget.dart';
 import "package:photos/utils/delete_file_util.dart";
@@ -29,7 +29,7 @@ Future<void> showSingleFileDeleteSheet(
       showShortToast(context, l10n.noDeviceThatCanBeDeleted);
       return;
     }
-    if (Platform.isAndroid && await MediaStoreService.canManageMedia()) {
+    if (Platform.isAndroid && await PhotoManager.canManageMedia()) {
       if (!context.mounted) return;
       await showBottomSheetComponent<bool>(
         context: context,
@@ -111,9 +111,11 @@ Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
       opened: true,
     ),
   );
-  await showBottomSheetComponent(
+  await showModalBottomSheet(
     context: context,
-    builder: (_) => FileDetailsWidget(file),
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _DraggableDetailsSheet(file: file),
   );
   Bus.instance.fire(
     DetailsSheetEvent(
@@ -122,4 +124,67 @@ Future<void> showDetailsSheet(BuildContext context, EnteFile file) async {
       opened: false,
     ),
   );
+}
+
+class _DraggableDetailsSheet extends StatefulWidget {
+  final EnteFile file;
+  const _DraggableDetailsSheet({required this.file});
+
+  @override
+  State<_DraggableDetailsSheet> createState() => _DraggableDetailsSheetState();
+}
+
+class _DraggableDetailsSheetState extends State<_DraggableDetailsSheet> {
+  final _sheetController = DraggableScrollableController();
+  bool _isExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _sheetController.addListener(_onSheetSizeChanged);
+  }
+
+  @override
+  void dispose() {
+    _sheetController.removeListener(_onSheetSizeChanged);
+    _sheetController.dispose();
+    super.dispose();
+  }
+
+  void _onSheetSizeChanged() {
+    final isNowExpanded = _sheetController.size >= 0.75;
+    if (isNowExpanded != _isExpanded) {
+      setState(() {
+        _isExpanded = isNowExpanded;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 60;
+    final disableSnap = isKeyboardOpen || _isExpanded;
+    return DraggableScrollableSheet(
+      controller: _sheetController,
+      initialChildSize: disableSnap ? 0.95 : 0.75,
+      minChildSize: disableSnap ? 0.75 : 0.5,
+      maxChildSize: 0.95,
+      snap: !disableSnap,
+      snapSizes: disableSnap ? null : const [0.75],
+      expand: false,
+      builder: (context, scrollController) => Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: context.componentColors.backgroundBase,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(Radii.bottomSheet),
+          ),
+        ),
+        child: FileDetailsWidget(
+          widget.file,
+          scrollController: scrollController,
+        ),
+      ),
+    );
+  }
 }

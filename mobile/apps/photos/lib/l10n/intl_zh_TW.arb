@@ -1,5 +1,7 @@
 {
   "@@locale ": "en",
+  "onboardingTitle": "任何您想要保存的回憶",
+  "onboardingDesc": "保存您的照片及影片。所有回憶集於一方。",
   "enterYourEmailAddress": "請輸入您的電子信箱位址",
   "enterYourNewEmailAddress": "輸入您的新電子信箱位址",
   "accountWelcomeBack": "歡迎回來！",
@@ -9,6 +11,8 @@
   "email": "電子信箱位址",
   "cancel": "取消",
   "cast": "投放",
+  "castSessions": "過去的投放紀錄",
+  "noSessionsFound": "找不到投放紀錄！",
   "verify": "驗證",
   "invalidEmailAddress": "無效的電子信箱位址",
   "validEmailAddress": "有效的電子信箱位址",
@@ -630,6 +634,7 @@
   "authToChangeYourEmail": "請驗證身份以更改您的電子信箱",
   "changePassword": "更改密碼",
   "authToChangeYourPassword": "請驗證身份以更改您的密碼",
+  "authToInitiateAccountDeletion": "先解鎖才能刪除帳號",
   "emailVerificationToggle": "電子信箱驗證",
   "authToChangeEmailVerificationSetting": "請驗證身份以更改電子信箱驗證設定",
   "exportYourData": "匯出您的資料",
@@ -1215,6 +1220,17 @@
   "favorite": "加入最愛",
   "removeFromFavorite": "從最愛移除",
   "shareMemories": "分享回憶",
+  "shareMemory": "分享回憶",
+  "shareItemCount": "{count, plural, other{分享 {count} 個項目}}",
+  "@shareItemCount": {
+    "description": "Action to share the selected number of memory items",
+    "placeholders": {
+      "count": {
+        "example": "3",
+        "type": "int"
+      }
+    }
+  },
   "shareTheseMemories": "分享這些回憶",
   "shareThisPhoto": "分享此照片",
   "shareThisVideo": "分享此影片",
@@ -1822,6 +1838,16 @@
   "playOnTv": "在電視上播放相簿",
   "pair": "配對",
   "deviceNotFound": "找不到裝置",
+  "castInstruction": "請在要配對的裝置上造訪 {castUrl}。",
+  "@castInstruction": {
+    "description": "Instructions shown when pairing a device to play an album on TV.",
+    "placeholders": {
+      "castUrl": {
+        "type": "String",
+        "example": "https://cast.ente.com"
+      }
+    }
+  },
   "deviceCodeHint": "輸入驗證碼",
   "joinDiscord": "加入 Discord",
   "locations": "位置",
@@ -1855,6 +1881,8 @@
   "editPerson": "編輯人物",
   "enterDateOfBirthHint": "輸入出生日期",
   "setAContactPhoto": "設定聯絡人照片",
+  "setSelectedPhoto": "使用選取的照片",
+  "removeContactPhoto": "移除聯絡人照片",
   "mergedPhotos": "合併照片",
   "orMergeWithExistingPerson": "或合併到現有",
   "enterDateOfBirth": "生日（選填）",
@@ -1862,6 +1890,8 @@
   "removePersonLabel": "移除人物標籤",
   "removePersonTag": "移除人物標籤",
   "areYouSureRemoveThisPersonTag": "您確定要移除這個人物標籤嗎？",
+  "pairWithAutoDesc": "自動配對僅支援支援 Cast 的裝置。",
+  "pairWithCodeDesc": "使用 PIN 配對可搭配任何您想查看相簿的螢幕。",
   "connectToDevice": "連線到裝置",
   "autoCastDialogBody": "您會在這裡看到可用的投放裝置。",
   "autoCastiOSPermission": "請確定在「設定」中已開啟 Ente Photos 應用程式的區域網路權限。",
@@ -1873,6 +1903,7 @@
   "pairingComplete": "配對完成",
   "savingEdits": "正在儲存編輯……",
   "autoPair": "自動配對",
+  "pairUsingCode": "使用 PIN 進行配對",
   "faceRecognition": "臉部辨識",
   "foundFaces": "找到的臉孔",
   "clusteringProgress": "分群進度",
@@ -2377,6 +2408,9 @@
   "@linkEmailToContactBannerCaption": {
     "description": "Caption for the 'Link email' title. It should be a continuation of the 'Link email' title. Just like how 'Link email' + 'for faster sharing' forms a proper sentence in English, the combination of these two strings should also be a proper sentence in other languages."
   },
+  "selectPerson": "選擇人物",
+  "selectPersonToLinkToThisContact": "選擇一個人物來自動填入連絡人資訊",
+  "searchAllPeople": "搜尋所有的人物",
   "selectPersonToLink": "選擇要連結的人物",
   "linkPersonToEmail": "將人物連結到 {email}",
   "@linkPersonToEmail": {
@@ -2428,6 +2462,7 @@
   "joinAlbumConfirmationDialogBody": "加入相簿將使您的電子信箱對其參與者可見。",
   "pleaseWaitThisWillTakeAWhile": "請稍候，這需要一些時間。",
   "editTime": "編輯時間",
+  "editDateAndTime": "編輯日期和時間",
   "selectTime": "選擇時間",
   "selectDate": "選擇日期",
   "previous": "上一個",

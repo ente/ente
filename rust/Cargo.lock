@@ -279,6 +279,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ash"
+version = "0.38.0+1.3.281"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bb44936d800fea8f016d7f2311c6a4f97aebd5dc86f09906139ec848cf3a46f"
+dependencies = [
+ "libloading 0.8.9",
+]
+
+[[package]]
 name = "askama"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2261,6 +2270,7 @@ version = "0.1.18-beta"
 dependencies = [
  "ente-core",
  "ente-ensu",
+ "ente-model-download",
  "keyring",
  "libc",
  "serde",
@@ -2282,9 +2292,12 @@ version = "0.0.0"
 dependencies = [
  "base64 0.22.1",
  "ente-core",
+ "ente-test-support",
+ "hmac 0.13.0",
  "mockito",
  "serde",
  "serde_json",
+ "sha1 0.11.0",
  "sha2 0.11.0",
  "srp",
  "thiserror 2.0.18",
@@ -2307,15 +2320,22 @@ dependencies = [
 name = "ente-contacts"
 version = "0.0.0"
 dependencies = [
+ "base64 0.22.1",
+ "ente-accounts",
  "ente-core",
+ "ente-test-support",
+ "hmac 0.13.0",
  "md-5 0.11.0",
  "mockito",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
+ "sha1 0.11.0",
  "sha2 0.11.0",
  "thiserror 2.0.18",
  "tokio",
  "uuid",
+ "zeroize",
 ]
 
 [[package]]
@@ -2351,49 +2371,31 @@ dependencies = [
 ]
 
 [[package]]
-name = "ente-e2e"
-version = "0.0.0"
-dependencies = [
- "base64 0.22.1",
- "ente-accounts",
- "ente-contacts",
- "ente-core",
- "ente-rs",
- "ente-test-support",
- "hmac 0.13.0",
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "sha1 0.11.0",
- "tokio",
- "uuid",
- "zeroize",
-]
-
-[[package]]
 name = "ente-ensu"
 version = "0.0.0"
 dependencies = [
  "ente-core",
  "ente-image",
- "flate2",
- "futures-util",
+ "ente-model-download",
  "llama-cpp-2",
+ "memmap2",
  "ort",
- "parking_lot",
+ "ort-sys",
  "regex",
- "reqwest 0.12.28",
  "rubato",
  "rusqlite",
  "self_cell",
  "serde",
  "serde_json",
- "tar",
+ "sha2 0.11.0",
+ "tempfile",
  "thiserror 2.0.18",
  "tokio",
  "transcribe-rs",
+ "url",
  "uuid",
  "zeroize",
+ "zstd",
 ]
 
 [[package]]
@@ -2401,6 +2403,7 @@ name = "ente-ensu-uniffi"
 version = "0.0.0"
 dependencies = [
  "ente-ensu",
+ "ente-model-download",
  "thiserror 2.0.18",
  "uniffi",
  "uuid",
@@ -2421,6 +2424,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ente-model-download"
+version = "0.0.0"
+dependencies = [
+ "flate2",
+ "futures-util",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "tar",
+ "thiserror 2.0.18",
+ "tokio",
+]
+
+[[package]]
 name = "ente-paste"
 version = "0.0.0"
 dependencies = [
@@ -2438,7 +2456,9 @@ name = "ente-photos"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "ash",
  "ente-image",
+ "ente-model-download",
  "fast_image_resize",
  "flate2",
  "half",
@@ -2451,13 +2471,13 @@ dependencies = [
  "plsfix",
  "quick-xml",
  "regex",
- "reqwest 0.12.28",
  "serde",
  "serde_json",
- "sha2 0.10.9",
  "tar",
  "tempfile",
  "thiserror 2.0.18",
+ "tokio",
+ "url",
  "usearch",
 ]
 
@@ -2495,11 +2515,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "ente-space"
+version = "0.0.1"
+dependencies = [
+ "base64 0.22.1",
+ "ente-accounts",
+ "ente-core",
+ "ente-test-support",
+ "md-5 0.11.0",
+ "mockito",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "urlencoding",
+ "uuid",
+ "zeroize",
+]
+
+[[package]]
+name = "ente-space-wasm"
+version = "0.0.0"
+dependencies = [
+ "ente-core",
+ "ente-space",
+ "serde",
+ "serde-wasm-bindgen",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
 name = "ente-test-support"
 version = "0.0.0"
 dependencies = [
  "dirs 5.0.1",
  "postgresql_embedded",
+ "tokio",
  "uuid",
 ]
 
@@ -3589,7 +3642,7 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 [[package]]
 name = "heic_decoder"
 version = "0.2.0"
-source = "git+https://github.com/ente/heic-decoder.git?rev=0998ddc52085b38fa359049d1fe28baf144fe79b#0998ddc52085b38fa359049d1fe28baf144fe79b"
+source = "git+https://github.com/ente/heic-decoder.git?rev=2017f4ddaf91017483f6eb71500f520fba47391a#2017f4ddaf91017483f6eb71500f520fba47391a"
 dependencies = [
  "archmage",
  "brotli",
@@ -3599,6 +3652,7 @@ dependencies = [
  "moxcms",
  "png 0.18.1",
  "rav1d",
+ "rayon",
  "safe_unaligned_simd",
  "scuffle-h265",
 ]
@@ -3843,7 +3897,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.62.2",
+ "windows-core",
 ]
 
 [[package]]
@@ -5349,6 +5403,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8ca58f447f06ed17d5fc4043ce1b10dd205e060fb3ce5b979b8ed8e59ff3f79"
 
 [[package]]
+name = "memmap2"
+version = "0.9.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1219ed1b7f229ee7104d281dd01d6802fe28bb6e95d292942c4daacdeb798c0"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "memoffset"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6127,6 +6190,7 @@ name = "ort-sys"
 version = "2.0.0-rc.12"
 source = "git+https://github.com/pykeio/ort.git?rev=31c8f1443bb579bfddb82705288347697e468fb3#31c8f1443bb579bfddb82705288347697e468fb3"
 dependencies = [
+ "glob",
  "hmac-sha256",
  "lzma-rust2",
  "ureq",
@@ -7092,7 +7156,6 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "encoding_rs",
- "futures-channel",
  "futures-core",
  "futures-util",
  "h2",
@@ -7831,9 +7894,9 @@ dependencies = [
 
 [[package]]
 name = "serde_with"
-version = "3.20.0"
+version = "3.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e72c1c2cb7b223fafb600a619537a871c2818583d619401b785e7c0b746ccde2"
+checksum = "76a5c54c7310e7b8b9577c286d7e399ddd876c3e12b3ed917a8aabc4b96e9e8c"
 dependencies = [
  "base64 0.22.1",
  "bs58",
@@ -7851,9 +7914,9 @@ dependencies = [
 
 [[package]]
 name = "serde_with_macros"
-version = "3.20.0"
+version = "3.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b90c488738ecb4fb0262f41f43bc40efc5868d9fb744319ddf5f5317f417bfac"
+checksum = "84d57bc0c8b9a17920c178daa6bb924850d54a9c97ab45194bb8c17ad66bb660"
 dependencies = [
  "darling 0.23.0",
  "proc-macro2",
@@ -8534,7 +8597,7 @@ dependencies = [
  "unicode-segmentation",
  "url",
  "windows",
- "windows-core 0.61.2",
+ "windows-core",
  "windows-version",
  "x11-dl",
 ]
@@ -10182,7 +10245,7 @@ dependencies = [
  "webview2-com-macros",
  "webview2-com-sys",
  "windows",
- "windows-core 0.61.2",
+ "windows-core",
  "windows-implement",
  "windows-interface",
 ]
@@ -10206,7 +10269,7 @@ checksum = "381336cfffd772377d291702245447a5251a2ffa5bad679c99e61bc48bacbf9c"
 dependencies = [
  "thiserror 2.0.18",
  "windows",
- "windows-core 0.61.2",
+ "windows-core",
 ]
 
 [[package]]
@@ -10293,7 +10356,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9babd3a767a4c1aef6900409f85f5d53ce2544ccdfaa86dad48c91782c6d6893"
 dependencies = [
  "windows-collections",
- "windows-core 0.61.2",
+ "windows-core",
  "windows-future",
  "windows-link 0.1.3",
  "windows-numerics",
@@ -10305,7 +10368,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3beeceb5e5cfd9eb1d76b381630e82c4241ccd0d27f1a39ed41b2760b255c5e8"
 dependencies = [
- "windows-core 0.61.2",
+ "windows-core",
 ]
 
 [[package]]
@@ -10322,25 +10385,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "windows-core"
-version = "0.62.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8e83a14d34d0623b51dce9581199302a221863196a1dde71a7663a4c2be9deb"
-dependencies = [
- "windows-implement",
- "windows-interface",
- "windows-link 0.2.1",
- "windows-result 0.4.1",
- "windows-strings 0.5.1",
-]
-
-[[package]]
 name = "windows-future"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc6a41e98427b19fe4b73c550f060b59fa592d7d686537eebf9385621bfbad8e"
 dependencies = [
- "windows-core 0.61.2",
+ "windows-core",
  "windows-link 0.1.3",
  "windows-threading",
 ]
@@ -10385,7 +10435,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9150af68066c4c5c07ddc0ce30421554771e528bde427614c61038bc2c92c2b1"
 dependencies = [
- "windows-core 0.61.2",
+ "windows-core",
  "windows-link 0.1.3",
 ]
 
@@ -10936,7 +10986,7 @@ dependencies = [
  "webkit2gtk-sys",
  "webview2-com",
  "windows",
- "windows-core 0.61.2",
+ "windows-core",
  "windows-version",
  "x11-dl",
 ]

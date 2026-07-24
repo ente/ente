@@ -13,6 +13,7 @@ object HugeIcons {
     val Edit01Icon = R.drawable.hugeicon_edit01
     val Menu01Icon = R.drawable.hugeicon_menu01
     val PlusSignIcon = R.drawable.hugeicon_plus_sign
+    val PackageIcon = R.drawable.hugeicon_package
     val RepeatIcon = R.drawable.hugeicon_repeat
     val Search01Icon = R.drawable.hugeicon_search01
     val Settings01Icon = R.drawable.hugeicon_settings01

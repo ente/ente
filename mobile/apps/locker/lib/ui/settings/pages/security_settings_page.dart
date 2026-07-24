@@ -80,10 +80,11 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
           context,
           context.l10n.authToChangeEmailVerificationSetting,
         );
-    final isEmailMFAEnabled = UserService.instance.hasEmailMFAEnabled();
-    if (hasAuthenticated) {
-      await _updateEmailMFA(!isEmailMFAEnabled);
+    if (!hasAuthenticated) {
+      return;
     }
+    final isEmailMFAEnabled = UserService.instance.hasEmailMFAEnabled();
+    await _updateEmailMFA(!isEmailMFAEnabled);
   }
 
   Widget _buildPasskeyItem(BuildContext context) {
@@ -108,16 +109,17 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
               context,
               l10n.authToViewYourActiveSessions,
             );
-        if (hasAuthenticated) {
-          // ignore: unawaited_futures
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (BuildContext context) {
-                return SessionsPage(Configuration.instance);
-              },
-            ),
-          );
+        if (!context.mounted || !hasAuthenticated) {
+          return;
         }
+        // ignore: unawaited_futures
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return SessionsPage(Configuration.instance);
+            },
+          ),
+        );
       },
     );
   }
@@ -134,21 +136,27 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
 
   Future<void> _onAppLockTapped(BuildContext context) async {
     final l10n = context.l10n;
-    if (await LockScreenSettings.instance.isDeviceSupported()) {
+    final isDeviceSupported = await LockScreenSettings.instance
+        .isDeviceSupported();
+    if (!context.mounted) {
+      return;
+    }
+    if (isDeviceSupported) {
       final hasAuthenticated = await LocalAuthenticationService.instance
           .requestLocalAuthentication(
             context,
             l10n.authToChangeLockscreenSetting,
           );
-      if (hasAuthenticated) {
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (BuildContext context) {
-              return const LockScreenOptions();
-            },
-          ),
-        );
+      if (!context.mounted || !hasAuthenticated) {
+        return;
       }
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (BuildContext context) {
+            return const LockScreenOptions();
+          },
+        ),
+      );
     } else {
       await showBottomSheetComponent<void>(
         context: context,
@@ -174,13 +182,14 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
 
   Future<void> _onPasskeyClick(BuildContext buildContext) async {
     try {
+      final reason = buildContext.l10n.authToViewPasskey;
       final hasAuthenticated = await LocalAuthenticationService.instance
           .requestLocalAuthentication(
-            context,
-            context.l10n.authToViewPasskey,
+            buildContext,
+            reason,
             refocusWindows: false,
           );
-      if (!hasAuthenticated) {
+      if (!buildContext.mounted || !hasAuthenticated) {
         return;
       }
       final isPassKeyResetEnabled = await PasskeyService.instance
@@ -196,13 +205,19 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
           CryptoUtil.bin2base64(encryptionResult.nonce!),
         );
       }
+      if (!buildContext.mounted) {
+        return;
+      }
       await PasskeyService.instance.openPasskeyPage(buildContext);
     } catch (e, s) {
       _logger.severe("failed to open passkey page", e, s);
+      if (!buildContext.mounted) {
+        return;
+      }
       await showErrorBottomSheetComponent<void>(
-        context: context,
+        context: buildContext,
         message: e.toString(),
-        title: context.l10n.somethingWentWrong,
+        title: buildContext.l10n.somethingWentWrong,
       );
     }
   }
@@ -213,6 +228,9 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
         memoryCount: false,
       );
       if ((details.profileData?.canDisableEmailMFA ?? false) == false) {
+        if (!mounted) {
+          return;
+        }
         final result = await Navigator.of(context).push<bool>(
           MaterialPageRoute(
             builder: (BuildContext context) {
@@ -234,6 +252,9 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
       }
       await UserService.instance.updateEmailMFA(isEnabled);
     } catch (e) {
+      if (!mounted) {
+        return;
+      }
       await showErrorBottomSheetComponent<void>(
         context: context,
         message: e.toString(),

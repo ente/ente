@@ -7,6 +7,7 @@ use ente_ensu::db::{self, ChatDb, Error as DbError, SqliteBackend};
 use serde::{Deserialize, Serialize};
 use tauri::async_runtime;
 use tauri::{AppHandle, Manager, State};
+use tauri_plugin_fs::FsExt;
 use uuid::Uuid;
 
 use crate::commands::chat_db_migration;
@@ -442,9 +443,26 @@ pub fn chat_db_has_existing_store(app: AppHandle) -> Result<bool, ApiError> {
 }
 
 #[tauri::command]
-pub async fn chat_db_compress_attachment_image_file(path: String) -> Result<Vec<u8>, ApiError> {
+pub async fn chat_db_compress_attachment_image_file(
+    app: AppHandle,
+    path: String,
+) -> Result<Vec<u8>, ApiError> {
+    let scope = app.fs_scope();
     async_runtime::spawn_blocking(move || {
-        let data = fs::read(&path).map_err(|error| {
+        // Resolve relative symlinks from the link's parent, then read the exact path checked here.
+        let canonical_path = fs::canonicalize(&path).map_err(|_| {
+            ApiError::new(
+                "io_scope",
+                "image file is outside the allowed filesystem scope",
+            )
+        })?;
+        if !scope.is_allowed(&canonical_path) {
+            return Err(ApiError::new(
+                "io_scope",
+                "image file is outside the allowed filesystem scope",
+            ));
+        }
+        let data = fs::read(canonical_path).map_err(|error| {
             ApiError::new("io", format!("failed to read image file '{path}': {error}"))
         })?;
         ente_ensu::image::compress_attachment_image(&data)

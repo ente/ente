@@ -633,7 +633,6 @@
   "appleId": "Ідэнтыфікатар Apple",
   "playstoreSubscription": "Падпіска PlayStore",
   "appstoreSubscription": "Падпіска AppStore",
-  "subAlreadyLinkedErrMessage": "Ваш {id} ужо звязаны з іншым уліковым запісам Ente.\nКалі вы хочаце выкарыстоўваць ваш {id} з гэтым уліковым запісам, звярніцеся ў нашу службу падтрымкі",
   "visitWebToManage": "Наведайце {webUrl}, каб кіраваць сваёй падпіскай",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

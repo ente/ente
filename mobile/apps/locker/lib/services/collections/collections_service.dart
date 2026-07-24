@@ -14,6 +14,7 @@ import "package:flutter/material.dart";
 import 'package:locker/core/errors.dart';
 import 'package:locker/events/collections_updated_event.dart';
 import 'package:locker/events/user_details_refresh_event.dart';
+import 'package:locker/l10n/l10n.dart';
 import "package:locker/services/collections/collections_api_client.dart";
 import 'package:locker/services/collections/models/collection.dart';
 import "package:locker/services/collections/models/files_split.dart";
@@ -24,6 +25,7 @@ import 'package:locker/services/files/offline/offline_files_service.dart';
 import 'package:locker/services/files/sync/models/file.dart';
 import 'package:locker/services/trash/models/trash_item_request.dart';
 import "package:locker/services/trash/trash_service.dart";
+import "package:locker/utils/collection_list_util.dart";
 import "package:locker/utils/crypto_helper.dart";
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -213,7 +215,9 @@ class CollectionService {
     final int userID = Configuration.instance.getUserID()!;
 
     return collections.where((c) {
-      if (!includeUncategorized && c.type == CollectionType.uncategorized) {
+      if (!includeUncategorized &&
+          c.type == CollectionType.uncategorized &&
+          c.isOwner(userID)) {
         return false;
       }
 
@@ -361,10 +365,10 @@ class CollectionService {
 
   Future<Collection> getOrCreateUncategorizedCollection() async {
     final collections = await getCollections();
-    for (final collection in collections) {
-      if (collection.type == CollectionType.uncategorized) {
-        return collection;
-      }
+    final userID = Configuration.instance.getUserID()!;
+    final collection = findUserUncategorizedCollection(collections, userID);
+    if (collection != null) {
+      return collection;
     }
     _logger.info("No collections found, creating uncategorized collection.");
     return await createCollection(
@@ -475,7 +479,7 @@ class CollectionService {
   }
 
   Future<void> trashCollection(
-    BuildContext context,
+    BuildContext? context,
     Collection collection, {
     bool keepFiles = true,
   }) async {
@@ -487,14 +491,18 @@ class CollectionService {
   }
 
   Future<void> trashCollectionKeepingFiles(
-    BuildContext context,
+    BuildContext? context,
     Collection collection,
   ) async {
     try {
       final files = await _db.getFilesInCollection(collection);
 
       if (files.isNotEmpty) {
-        await moveFilesFromCurrentCollection(context, collection, files);
+        await moveFilesFromCurrentCollection(
+          context != null && context.mounted ? context : null,
+          collection,
+          files,
+        );
       }
 
       await _apiClient.trashCollection(collection, keepFiles: true);
@@ -558,7 +566,7 @@ class CollectionService {
   }
 
   Future<void> moveFilesFromCurrentCollection(
-    BuildContext context,
+    BuildContext? context,
     Collection collection,
     Iterable<EnteFile> files, {
     bool isHidden = false,
@@ -585,7 +593,9 @@ class CollectionService {
     }
 
     if (!isCollectionOwner && split.ownedByOtherUsers.isNotEmpty) {
-      showShortToast(context, "Can only remove files owned by you");
+      if (context != null && context.mounted) {
+        showShortToast(context, context.l10n.canOnlyRemoveFilesOwnedByYou);
+      }
       return;
     }
 

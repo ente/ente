@@ -16,12 +16,14 @@ class ContactAvatarWidget extends StatefulWidget {
   final String email;
   final String? personId;
   final double size;
+  final double? borderRadius;
 
   const ContactAvatarWidget({
     required this.contactUserId,
     required this.email,
     required this.size,
     this.personId,
+    this.borderRadius,
     super.key,
   });
 
@@ -68,38 +70,51 @@ class _ContactAvatarWidgetState extends State<ContactAvatarWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final cachedPixelWidth =
+        (widget.size * MediaQuery.devicePixelRatioOf(context)).toInt();
+    final avatar = FutureBuilder<Uint8List?>(
+      future: _photoFuture,
+      builder: (context, snapshot) {
+        final photoBytes = snapshot.data;
+        if (photoBytes != null) {
+          return Image.memory(
+            photoBytes,
+            fit: BoxFit.cover,
+            cacheWidth: cachedPixelWidth,
+          );
+        }
+        final personId = widget.personId;
+        if (_canUsePersonFaceWidget &&
+            personId != null &&
+            personId.isNotEmpty) {
+          return PersonFaceWidget(
+            key: ValueKey(personId),
+            personId: personId,
+            cachedPixelWidth: cachedPixelWidth,
+            onErrorCallback: () {
+              if (mounted) {
+                setState(() {
+                  _canUsePersonFaceWidget = false;
+                });
+              }
+            },
+          );
+        }
+        return FirstLetterUserAvatar(_fallbackUser());
+      },
+    );
     return SizedBox(
       width: widget.size,
       height: widget.size,
-      child: FaceThumbnailSquircleClip(
-        borderRadius: faceThumbnailSquircleBorderRadius(widget.size),
-        child: FutureBuilder<Uint8List?>(
-          future: _photoFuture,
-          builder: (context, snapshot) {
-            final photoBytes = snapshot.data;
-            if (photoBytes != null) {
-              return Image.memory(photoBytes, fit: BoxFit.cover);
-            }
-            final personId = widget.personId;
-            if (_canUsePersonFaceWidget &&
-                personId != null &&
-                personId.isNotEmpty) {
-              return PersonFaceWidget(
-                key: ValueKey(personId),
-                personId: personId,
-                onErrorCallback: () {
-                  if (mounted) {
-                    setState(() {
-                      _canUsePersonFaceWidget = false;
-                    });
-                  }
-                },
-              );
-            }
-            return FirstLetterUserAvatar(_fallbackUser());
-          },
-        ),
-      ),
+      child: widget.borderRadius == null
+          ? FaceThumbnailSquircleClip(
+              borderRadius: faceThumbnailSquircleBorderRadius(widget.size),
+              child: avatar,
+            )
+          : ClipRRect(
+              borderRadius: BorderRadius.circular(widget.borderRadius!),
+              child: avatar,
+            ),
     );
   }
 

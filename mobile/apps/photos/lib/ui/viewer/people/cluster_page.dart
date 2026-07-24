@@ -17,7 +17,6 @@ import "package:photos/models/ml/face/person.dart";
 import "package:photos/models/selected_files.dart";
 import "package:photos/service_locator.dart" show isLocalGalleryMode;
 import "package:photos/services/machine_learning/face_ml/feedback/cluster_feedback.dart";
-import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/ui/components/banners/name_face_banner.dart";
 import "package:photos/ui/notification/toast.dart";
@@ -28,7 +27,6 @@ import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.da
 import "package:photos/ui/viewer/gallery/state/selection_state.dart";
 import "package:photos/ui/viewer/people/add_person_action_sheet.dart";
 import "package:photos/ui/viewer/people/cluster_app_bar.dart";
-import "package:photos/ui/viewer/people/merge_clusters_to_person_sheet.dart";
 import "package:photos/ui/viewer/people/people_page.dart";
 import "package:photos/ui/viewer/people/person_face_widget.dart";
 import "package:photos/ui/viewer/people/save_person_banner.dart";
@@ -69,7 +67,6 @@ class _ClusterPageState extends State<ClusterPage> {
   late final StreamSubscription<LocalPhotosUpdatedEvent> _filesUpdatedEvent;
   late final StreamSubscription<PeopleChangedEvent> _peopleChangedEvent;
   late final StreamSubscription<AppModeChangedEvent> _appModeChangedEvent;
-  bool _isNamingBannerDismissed = false;
   bool get _localGalleryUiMode =>
       isLocalGalleryMode && !Configuration.instance.hasConfiguredAccount();
 
@@ -158,42 +155,6 @@ class _ClusterPageState extends State<ClusterPage> {
     }
   }
 
-  Future<void> _handleMergePerson() async {
-    if (_localGalleryUiMode) {
-      return;
-    }
-    final selection = await showMergeClustersToPersonPage(
-      context,
-      seedClusterId: widget.clusterID,
-    );
-    if (!mounted) {
-      return;
-    }
-    if (selection == null || selection.personId.isEmpty) {
-      return;
-    }
-    var person = selection.person;
-    person ??= await PersonService.instance.getPerson(selection.personId);
-    if (person == null) {
-      return;
-    }
-    if (selection.person == null ||
-        selection.seedClusterId != widget.clusterID) {
-      await ClusterFeedbackService.instance.addClusterToExistingPerson(
-        person: person,
-        clusterID: widget.clusterID,
-      );
-    }
-    if (!mounted) {
-      return;
-    }
-    Navigator.pop(context);
-    routeToPage(
-      context,
-      PeoplePage(person: person, searchResult: null),
-    ).ignore();
-  }
-
   @override
   Widget build(BuildContext context) {
     final appBar = ClusterAppBar.sliverConfig(
@@ -229,30 +190,14 @@ class _ClusterPageState extends State<ClusterPage> {
       enableFileGrouping: widget.enableGrouping,
       initialFiles: files,
       header:
-          (_localGalleryUiMode || widget.showNamingBanner) &&
-              files.isNotEmpty &&
-              !_isNamingBannerDismissed
+          (_localGalleryUiMode || widget.showNamingBanner) && files.isNotEmpty
           ? _localGalleryUiMode
                 ? const NameFaceBanner()
                 : SavePersonBanner(
                     faceWidget: PersonFaceWidget(clusterID: widget.clusterID),
                     text: AppLocalizations.of(context).savePerson,
                     subText: AppLocalizations.of(context).findThemQuickly,
-                    primaryActionLabel: AppLocalizations.of(context).save,
-                    secondaryActionLabel: AppLocalizations.of(context).merge,
-                    onPrimaryTap: _handleSavePerson,
-                    onSecondaryTap: _handleMergePerson,
-                    onDismissed: () {
-                      if (!mounted) {
-                        return;
-                      }
-                      setState(() {
-                        _isNamingBannerDismissed = true;
-                      });
-                    },
-                    dismissibleKey: ValueKey(
-                      "save-person-banner-${widget.clusterID}",
-                    ),
+                    onTap: _handleSavePerson,
                   )
           : null,
     );

@@ -11,7 +11,8 @@ use regex::Regex;
 
 use crate::ml::error::{MlError, MlResult};
 
-const CLIP_TEXT_TOKEN_COUNT: usize = 77;
+use super::CLIP_TEXT_TOKEN_COUNT;
+
 const BPE_MERGES_END_EXCLUSIVE: usize = 49152 - 256 - 2 + 1;
 
 static TOKEN_PATTERN: Lazy<Regex> = Lazy::new(|| {
@@ -33,7 +34,7 @@ struct TokenizerState {
 
 static TOKENIZER_STATE: Lazy<Mutex<Option<TokenizerState>>> = Lazy::new(|| Mutex::new(None));
 
-pub fn tokenize_clip_text(text: &str, vocab_path: &str) -> MlResult<Vec<i32>> {
+pub(crate) fn tokenize_clip_text(text: &str, vocab_path: &str) -> MlResult<Vec<i32>> {
     let mut state = match TOKENIZER_STATE.lock() {
         Ok(guard) => guard,
         Err(poisoned) => {

@@ -21,8 +21,13 @@ type DeleteUserCleanupController struct {
 	TaskLockRepo   *repo.TaskLockRepository
 	TrashRepo      *repo.TrashRepository
 	UsageRepo      *repo.UsageRepository
+	SpaceDataRepo  SpaceDataRepo
 	running        bool
 	HostName       string
+}
+
+type SpaceDataRepo interface {
+	DeleteUserData(ctx context.Context, userID int64) error
 }
 
 const (
@@ -111,8 +116,12 @@ func (c *DeleteUserCleanupController) deleteUserData(ctx context.Context, item *
 
 // startClean up will just verify that user
 func (c *DeleteUserCleanupController) startCleanup(ctx context.Context, item *entity.DataCleanup) error {
-	if err := c.isDeleted(item); err != nil {
+	deleted, err := c.isDeleted(ctx, item)
+	if err != nil {
 		return stacktrace.Propagate(err, "")
+	}
+	if !deleted {
+		return nil
 	}
 	// move to next stage for deleting collection
 	return c.Repo.MoveToNextStage(ctx, item.UserID, entity.Collection, time.Microseconds())
@@ -153,6 +162,11 @@ func (c *DeleteUserCleanupController) emptyTrash(ctx context.Context, item *enti
 }
 
 func (c *DeleteUserCleanupController) completeCleanup(ctx context.Context, item *entity.DataCleanup) error {
+	if c.SpaceDataRepo != nil {
+		if err := c.SpaceDataRepo.DeleteUserData(ctx, item.UserID); err != nil {
+			return stacktrace.Propagate(err, "failed to delete space data for user")
+		}
+	}
 	err := c.Repo.DeleteTableData(ctx, item.UserID)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to delete table data for user")
@@ -199,22 +213,20 @@ func (c *DeleteUserCleanupController) storageCheck(ctx context.Context, item *en
 	return c.completeCleanup(ctx, item)
 }
 
-func (c *DeleteUserCleanupController) isDeleted(item *entity.DataCleanup) error {
+func (c *DeleteUserCleanupController) isDeleted(ctx context.Context, item *entity.DataCleanup) (bool, error) {
 	u, err := c.UserRepo.Get(item.UserID)
 	if err == nil {
 		// user is not deleted, double check by verifying email is not empty
 		if u.Email != "" {
-			// todo: remove this logic after next deployment. This is to only handle cases
-			// where we have not removed scheduled delete entry for account post recovery.
-			remErr := c.Repo.RemoveScheduledDelete(context.Background(), item.UserID)
-			if remErr != nil {
-				return stacktrace.Propagate(remErr, "failed to remove scheduled delete entry")
+			if err := c.Repo.RemoveScheduledDeleteIfPresent(ctx, item.UserID); err != nil {
+				return false, stacktrace.Propagate(err, "failed to remove scheduled delete entry")
 			}
+			return false, nil
 		}
-		return stacktrace.Propagate(ente.NewBadRequestWithMessage("User ID is linked to undeleted account"), "")
+		return false, stacktrace.Propagate(ente.NewBadRequestWithMessage("User ID is linked to undeleted account"), "")
 	}
 	if !errors.Is(err, ente.ErrUserDeleted) {
-		return stacktrace.Propagate(err, "error while getting the user")
+		return false, stacktrace.Propagate(err, "error while getting the user")
 	}
-	return nil
+	return true, nil
 }

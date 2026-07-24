@@ -271,13 +271,14 @@ Future<void> _decorateEnteFileData(
   Map<String, IfdTag>? exifData,
 ) async {
   // h4ck to fetch location data if missing (thank you Android Q+) lazily only during uploads
-  if (file.location == null ||
-      (file.location!.latitude == 0 && file.location!.longitude == 0)) {
+  if (!file.hasLocation) {
     final latLong = await asset.latlngAsync();
-    file.location = Location(
-      latitude: latLong.latitude,
-      longitude: latLong.longitude,
-    );
+    if (latLong != null) {
+      file.location = Location(
+        latitude: latLong.latitude,
+        longitude: latLong.longitude,
+      );
+    }
   }
   await updateLocationFromEmbeddedMetadata(file, sourceFile, exifData);
   if (Platform.isIOS) {

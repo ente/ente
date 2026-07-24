@@ -6,7 +6,7 @@
         "test": "vitest --run"
     },
     "dependencies": {
-        "@fontsource/outfit": "5.2.8",
+        "@fontsource-variable/outfit": "5.2.8",
         "@hugeicons/core-free-icons": "1.2.1",
         "@hugeicons/react": "1.1.6",
         "chrono-node": "2.9.1",

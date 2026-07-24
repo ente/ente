@@ -33,62 +33,56 @@ const hydrateSessionFromSafeStorageIfNeeded = async () => {
     }
 };
 
-const refreshBootstrapAppLockState = async () => {
-    try {
-        /**
-         * The app lock config is persisted across sessions, and refreshing it
-         * here recomputes the lock state after session hydration.
-         */
-        await refreshAppLockStateFromSession();
-    } catch (e) {
-        log.error("Failed to refresh app lock state during bootstrap", e);
-    }
-};
-
 const bootstrapAppLock = async () => {
-    try {
-        await initAppLock();
-    } catch (e) {
-        log.error("Failed to initialize app lock during bootstrap", e);
-        return;
-    }
+    await initAppLock();
 
     if (!appLockSnapshot().enabled) {
         return;
     }
 
     await hydrateSessionFromSafeStorageIfNeeded();
-    await refreshBootstrapAppLockState();
+    await refreshAppLockStateFromSession();
 };
 
 /**
- * Initialize app lock and return true once app-lock gated rendering can proceed.
+ * Initialize app lock and return its bootstrap state and retry callback.
  *
  * This is meant to be called once from the top-level `_app.tsx`.
  */
 export const useSetupAppLock = () => {
-    const [isAppLockReady, setIsAppLockReady] = useState(false);
-    const didCancelRef = useRef(false);
+    const [status, setStatus] = useState<"loading" | "ready" | "error">(
+        "loading",
+    );
+    const [attempt, setAttempt] = useState(0);
 
     useEffect(() => {
-        didCancelRef.current = false;
+        let cancelled = false;
 
-        void (async () => {
+        const runBootstrap = async () => {
             try {
                 await bootstrapAppLock();
-            } finally {
-                if (!didCancelRef.current) {
-                    setIsAppLockReady(true);
-                }
+                if (!cancelled) setStatus("ready");
+            } catch (e) {
+                log.error("Failed to bootstrap app lock", e);
+                if (!cancelled) setStatus("error");
             }
-        })();
+        };
+
+        void runBootstrap();
 
         return () => {
-            didCancelRef.current = true;
+            cancelled = true;
         };
-    }, []);
+    }, [attempt]);
 
-    return isAppLockReady;
+    return {
+        isAppLockReady: status === "ready",
+        appLockSetupFailed: status === "error",
+        retryAppLockSetup: () => {
+            setStatus("loading");
+            setAttempt((attempt) => attempt + 1);
+        },
+    };
 };
 
 /**

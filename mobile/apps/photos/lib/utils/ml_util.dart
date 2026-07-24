@@ -1,4 +1,4 @@
-import "dart:io" show Directory, File, Platform;
+import "dart:io" show File, Platform;
 import "dart:math" as math show min, max;
 
 import "package:dio/dio.dart";
@@ -33,7 +33,6 @@ import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/src/rust/api/ml_indexing_api.dart" as rust_ml;
-import "package:photos/utils/image_decode_util.dart";
 import "package:photos/utils/network_util.dart";
 
 final _logger = Logger("MlUtil");
@@ -781,11 +780,6 @@ Future<MLResult> analyzeImageRust(Map args) async {
         args["petBodyEmbeddingDogModelPath"] as String?;
     final String? petBodyEmbeddingCatModelPath =
         args["petBodyEmbeddingCatModelPath"] as String?;
-    final bool preferCoreml = args["preferCoreml"] as bool? ?? true;
-    final bool preferNnapi = args["preferNnapi"] as bool? ?? true;
-    final bool preferXnnpack = args["preferXnnpack"] as bool? ?? false;
-    final bool allowCpuFallback = args["allowCpuFallback"] as bool? ?? true;
-
     bool isMissingModelPath(String? path) =>
         path == null || path.trim().isEmpty;
     final missingModelPaths = <String>[];
@@ -826,6 +820,13 @@ Future<MLResult> analyzeImageRust(Map args) async {
       );
     }
 
+    // The Rust runtime creates sessions lazily, so configure execution
+    // behavior here as well in case the runtime was not prepared explicitly
+    // in this isolate.
+    await rust_ml.setMlExecutionConfig(
+      enableWebgpu: (args["enableWebGpu"] as bool?) ?? false,
+    );
+
     final modelPaths = rust_ml.RustModelPaths(
       faceDetection: faceDetectionModelPath ?? "",
       faceEmbedding: faceEmbeddingModelPath ?? "",
@@ -838,13 +839,6 @@ Future<MLResult> analyzeImageRust(Map args) async {
       petBodyEmbeddingDog: petBodyEmbeddingDogModelPath ?? "",
       petBodyEmbeddingCat: petBodyEmbeddingCatModelPath ?? "",
     );
-    final providerPolicy = rust_ml.RustExecutionProviderPolicy(
-      preferCoreml: preferCoreml,
-      preferNnapi: preferNnapi,
-      preferXnnpack: preferXnnpack,
-      allowCpuFallback: allowCpuFallback,
-    );
-
     Future<rust_ml.AnalyzeImageResult> runRustAnalyzeForPath(
       String analyzePath,
     ) {
@@ -856,7 +850,6 @@ Future<MLResult> analyzeImageRust(Map args) async {
           runClip: runClip,
           runPets: runPets,
           modelPaths: modelPaths,
-          providerPolicy: providerPolicy,
         ),
       );
     }
@@ -878,49 +871,22 @@ Future<MLResult> analyzeImageRust(Map args) async {
         rethrow;
       }
 
-      _logger.warning(
-        "Rust decode failed for fileID $enteFileID (format: $fileFormat), retrying with JPEG fallback",
+      // A Rust decode error may be a resource-limit rejection. Retrying it
+      // through an unbounded Dart decoder can exhaust the mobile process.
+      throw _asInvalidImageFormatExceptionForRustDecodeFailure(
+        enteFileID: enteFileID,
+        fileFormat: fileFormat,
+        primaryError: e,
       );
-      final _DecodeFallbackFile? fallback;
-      try {
-        fallback = await _createJpegDecodeFallbackFile(imagePath: imagePath);
-      } catch (fallbackError, fallbackStack) {
-        _logger.severe(
-          "JPEG fallback conversion threw for fileID $enteFileID (format: $fileFormat)",
-          fallbackError,
-          fallbackStack,
-        );
-        rethrow;
-      }
-      if (fallback == null) {
-        _logger.warning(
-          "JPEG fallback conversion returned null/empty bytes for fileID $enteFileID (format: $fileFormat); storing empty result instead",
-        );
-        throw _asInvalidImageFormatExceptionForRustDecodeFailure(
-          enteFileID: enteFileID,
-          fileFormat: fileFormat,
-          primaryError: e,
-        );
-      }
-
-      try {
-        rustResult = await runRustAnalyzeForPath(fallback.file.path);
-        _logger.info(
-          "Rust decode fallback succeeded for fileID $enteFileID (original format: $fileFormat)",
-        );
-      } catch (retryError, retryStack) {
-        _logger.severe(
-          "Rust decode fallback retry failed for fileID $enteFileID (original format: $fileFormat)",
-          retryError,
-          retryStack,
-        );
-        rethrow;
-      } finally {
-        await _cleanupDecodeFallback(fallback);
-      }
     }
 
-    final result = MLResult.fromEnteFileID(enteFileID);
+    final result = MLResult.fromEnteFileID(
+      enteFileID,
+      remoteFlags:
+          mlIndexFlagRuntimeRust |
+          (rustResult.usedCoreml ? mlIndexFlagCoreML : 0) |
+          (rustResult.usedWebgpu ? mlIndexFlagWebGPU : 0),
+    );
     result.decodedImageSize = Dimensions(
       width: rustResult.decodedImageSize.width,
       height: rustResult.decodedImageSize.height,
@@ -1081,50 +1047,10 @@ Exception _asInvalidImageFormatExceptionForRustDecodeFailure({
   required int enteFileID,
   required String fileFormat,
   required Object primaryError,
-  Object? fallbackError,
 }) {
   final details = <String>[
     "InvalidImageFormatException: Rust decode failed for fileID $enteFileID (format: $fileFormat)",
     "primary_error: $primaryError",
-    if (fallbackError != null) "fallback_error: $fallbackError",
   ];
   return Exception(details.join("; "));
-}
-
-class _DecodeFallbackFile {
-  final File file;
-  final Directory directory;
-
-  const _DecodeFallbackFile({required this.file, required this.directory});
-}
-
-Future<_DecodeFallbackFile?> _createJpegDecodeFallbackFile({
-  required String imagePath,
-}) async {
-  final convertedData = await createSafeJpegDecodeFallbackBytes(
-    imagePath: imagePath,
-  );
-  if (convertedData == null || convertedData.isEmpty) {
-    return null;
-  }
-
-  final tempDirectory = await Directory.systemTemp.createTemp(
-    "ente_ml_decode_fallback_",
-  );
-  final fallbackFile = File("${tempDirectory.path}/ml_decode_retry.jpg");
-  await fallbackFile.writeAsBytes(convertedData, flush: true);
-  return _DecodeFallbackFile(file: fallbackFile, directory: tempDirectory);
-}
-
-Future<void> _cleanupDecodeFallback(_DecodeFallbackFile fallback) async {
-  try {
-    if (await fallback.file.exists()) {
-      await fallback.file.delete();
-    }
-    if (await fallback.directory.exists()) {
-      await fallback.directory.delete(recursive: true);
-    }
-  } catch (e, s) {
-    _logger.warning("Could not cleanup decode fallback file", e, s);
-  }
 }

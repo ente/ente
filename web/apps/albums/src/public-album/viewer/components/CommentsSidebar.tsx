@@ -25,11 +25,12 @@ import {
     Typography,
 } from "@mui/material";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
+import { formatTimeAgo } from "ente-base/date";
 import type { PublicAlbumsCredentials } from "ente-base/http";
 import log from "ente-base/log";
 import { getAvatarColor } from "ente-gallery/utils/avatar-colors";
 import type { EnteFile } from "ente-media/file";
-import i18n, { t } from "i18next";
+import { t } from "i18next";
 import React, {
     useCallback,
     useEffect,
@@ -165,36 +166,6 @@ interface CollectionInfo {
 // =============================================================================
 // Utility Functions
 // =============================================================================
-
-const formatTimeAgo = (timestampMicros: number): string => {
-    // Server timestamps are in microseconds, convert to milliseconds
-    const timestampMs = Math.floor(timestampMicros / 1000);
-    const now = Date.now();
-    const diff = now - timestampMs;
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return t("just_now");
-    if (minutes < 60) return t("minutes_ago", { count: minutes });
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return t("hours_ago", { count: hours });
-    const days = Math.floor(hours / 24);
-    if (days < 7) return t("days_ago", { count: days });
-
-    // For 7+ days, show actual date using locale-aware formatting
-    const date = new Date(timestampMs);
-    const currentYear = new Date(now).getFullYear();
-    const locale = i18n.language;
-    if (date.getFullYear() === currentYear) {
-        return date.toLocaleDateString(locale, {
-            month: "short",
-            day: "numeric",
-        });
-    }
-    return date.toLocaleDateString(locale, {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-    });
-};
 
 const getParentComment = (
     parentID: string | undefined,

@@ -26,6 +26,7 @@ import {
     LargeTileCreateNewButton,
     LargeTileTextOverlay,
 } from "ente-new/photos/components/Tiles";
+import { useSettingsSnapshot } from "ente-new/photos/components/utils/use-snapshot";
 import {
     canAddToCollection,
     canMoveToCollection,
@@ -37,7 +38,14 @@ import {
 } from "ente-new/photos/services/collection-summary";
 import { includes } from "ente-utils/type-guards";
 import { t } from "i18next";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
+import { CollectionSelectorV2 } from "./CollectionSelectorV2";
 
 export type CollectionSelectorAction =
     | "upload"
@@ -90,7 +98,9 @@ export interface CollectionSelectorAttributes {
     onCancel?: () => void;
 }
 
-type CollectionSelectorProps = ModalVisibilityProps & {
+export type CollectionSelectorProps = ModalVisibilityProps & {
+    /** Callback fired after the selector has finished closing. */
+    onExited?: () => void;
     /**
      * The same {@link CollectionSelector} can be used for different
      * purposes by customizing the {@link attributes} prop before opening it.
@@ -130,10 +140,26 @@ type CollectionSelectorProps = ModalVisibilityProps & {
 /**
  * A dialog allowing the user to select one of their existing collections or
  * create a new one.
+ *
+ * For internal users this renders the restyled {@link CollectionSelectorV2}
+ * variant; everyone else continues to get the classic implementation below.
+ * Both share the exact same props and behaviour.
  */
-export const CollectionSelector: React.FC<CollectionSelectorProps> = ({
+export const CollectionSelector: React.FC<CollectionSelectorProps> = (
+    props,
+) => {
+    const { isInternalUser } = useSettingsSnapshot();
+    return isInternalUser ? (
+        <CollectionSelectorV2 {...props} />
+    ) : (
+        <CollectionSelectorClassic {...props} />
+    );
+};
+
+const CollectionSelectorClassic: React.FC<CollectionSelectorProps> = ({
     open,
     onClose,
+    onExited,
     attributes,
     collectionSummaries,
     collectionForCollectionSummaryID,
@@ -149,9 +175,10 @@ export const CollectionSelector: React.FC<CollectionSelectorProps> = ({
         CollectionSummary[]
     >([]);
 
-    const handleExited = () => {
+    const handleExited = useCallback(() => {
         setSearchTerm("");
-    };
+        onExited?.();
+    }, [onExited]);
 
     useEffect(() => {
         if (!attributes || !open) {
@@ -201,10 +228,11 @@ export const CollectionSelector: React.FC<CollectionSelectorProps> = ({
         if (collections.length === 0) {
             onClose();
             attributes.onCreateCollection();
+            handleExited();
         }
 
         setFilteredCollections(collections);
-    }, [collectionSummaries, attributes, open, onClose, sortBy]);
+    }, [collectionSummaries, attributes, open, onClose, sortBy, handleExited]);
 
     const searchFilteredCollections = useMemo(() => {
         if (!searchTerm.trim()) {

@@ -42,37 +42,45 @@ class EmergencyContactService {
   }
 
   Future<bool> addContact(
-    BuildContext context,
+    BuildContext? context,
     String email,
     int recoveryNoticeInDays,
   ) async {
     if (!isValidEmail(email)) {
-      await showAlertBottomSheet(
-        context,
-        title: context.strings.letsTryThatAgain,
-        message: context.strings.enterValidEmail,
-        assetPath: "assets/warning-blue.png",
-      );
+      if (context != null && context.mounted) {
+        await showAlertBottomSheet(
+          context,
+          title: context.strings.letsTryThatAgain,
+          message: context.strings.enterValidEmail,
+          assetPath: "assets/warning-blue.png",
+        );
+      }
       return false;
     }
     if (email.trim() == _config.getEmail()) {
-      await showAlertBottomSheet(
-        context,
-        title: context.strings.oops,
-        message: context.strings.youCannotShareWithYourself,
-        assetPath: "assets/warning-blue.png",
-      );
+      if (context != null && context.mounted) {
+        await showAlertBottomSheet(
+          context,
+          title: context.strings.oops,
+          message: context.strings.youCannotShareWithYourself,
+          assetPath: "assets/warning-blue.png",
+        );
+      }
       return false;
     }
 
-    final dialog = createProgressDialog(context, context.strings.pleaseWait);
-    await dialog.show();
+    final dialog = context != null && context.mounted
+        ? createProgressDialog(context, context.strings.pleaseWait)
+        : null;
+    await dialog?.show();
 
     try {
       final String? publicKey = await _userService.getPublicKey(email);
       if (publicKey == null) {
-        await dialog.hide();
-        await showInviteSheet(context, email: email);
+        await dialog?.hide();
+        if (context != null && context.mounted) {
+          await showInviteSheet(context, email: email);
+        }
         return false;
       }
 
@@ -89,10 +97,10 @@ class EmergencyContactService {
           "recoveryNoticeInDays": recoveryNoticeInDays,
         },
       );
-      await dialog.hide();
+      await dialog?.hide();
       return true;
     } catch (e) {
-      await dialog.hide();
+      await dialog?.hide();
       rethrow;
     }
   }

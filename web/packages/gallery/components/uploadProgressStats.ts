@@ -35,7 +35,7 @@ export const uploadStatColors: Record<FinishedStatKind, string> = {
 };
 
 /**
- * There are a total of 10 probable stats which is retruned after each
+ * There are a total of 11 probable stats which is retruned after each
  * file upload and we are grouping them based on this, so that they
  * can be shown under the corresponding tab in the UI.
  *
@@ -48,6 +48,7 @@ export const statFinishedTypes: Record<FinishedStatKind, FinishedUploadType[]> =
         completed: ["uploaded", "uploadedWithStaticThumbnail"],
         skipped: [
             "alreadyUploaded",
+            "partnerShared",
             "largerThanAvailableStorage",
             "tooLarge",
             "unsupported",
@@ -77,23 +78,15 @@ export const uploadCompletionCounts = (
 
 export const uploadProgressStatCounts = ({
     uploadPhase,
-    uploadCounter,
     inProgressUploads,
     finishedUploads,
     preUploadSkippedFiles,
 }: {
     uploadPhase: UploadPhase;
-    uploadCounter: UploadCounter;
     inProgressUploads: InProgressUpload[];
     finishedUploads: SegregatedFinishedUploads;
     preUploadSkippedFiles: PreUploadSkippedFile[];
 }): Record<UploadStatKind, number> => ({
-    inProgress:
-        uploadPhase == "done"
-            ? 0
-            : Math.max(
-                  inProgressUploads.length,
-                  uploadCounter.total - uploadCounter.finished,
-              ),
+    inProgress: uploadPhase == "done" ? 0 : inProgressUploads.length,
     ...uploadCompletionCounts(finishedUploads, preUploadSkippedFiles),
 });

@@ -139,18 +139,18 @@ class _ItemsWidgetState extends State<ItemsWidget> {
           debugPrint(
             "Setting expire date to  ${DateTime.fromMicrosecondsSinceEpoch(newValidTill)}",
           );
-          await updateTime(newValidTill, context);
+          await updateTime(newValidTill, context.mounted ? context : null);
         }
       },
     );
   }
 
-  Future<void> updateTime(int newValidTill, BuildContext context) async {
+  Future<void> updateTime(int newValidTill, BuildContext? context) async {
     await _updateUrlSettings(context, {'validTill': newValidTill});
   }
 
   Future<void> _updateUrlSettings(
-    BuildContext context,
+    BuildContext? context,
     Map<String, dynamic> prop,
   ) async {
     try {
@@ -159,7 +159,9 @@ class _ItemsWidgetState extends State<ItemsWidget> {
         prop,
       );
     } catch (e) {
-      await showLockerErrorSheet(context, e);
+      if (context != null && context.mounted) {
+        await showLockerErrorSheet(context, e);
+      }
       rethrow;
     }
   }

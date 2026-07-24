@@ -21,6 +21,7 @@ import 'package:ente_auth/ui/home/widgets/rounded_action_buttons.dart';
 import 'package:ente_auth/ui/home_page.dart';
 import 'package:ente_auth/ui/settings/developer_settings_widget.dart';
 import 'package:ente_auth/ui/settings/language_picker.dart';
+import 'package:ente_auth/utils/debug_build_flags.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_auth/utils/navigation_util.dart';
 import 'package:ente_auth/utils/toast_util.dart';
@@ -254,7 +255,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
     final bool hasOptedBefore = Configuration.instance.hasOptedForOfflineMode();
     ButtonResult? result;
-    if (!hasOptedBefore) {
+    if (!hasOptedBefore && !shouldSkipAuthGuidance) {
       if (!mounted) return;
       result = await showChoiceActionSheet(
         context,
@@ -264,7 +265,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
         firstButtonLabel: context.l10n.ok,
       );
     }
-    if (hasOptedBefore || result?.action == ButtonAction.first) {
+    if (hasOptedBefore ||
+        shouldSkipAuthGuidance ||
+        result?.action == ButtonAction.first) {
       if (!context.mounted) return;
       await Configuration.instance.optForOfflineMode();
       if (!mounted) return;

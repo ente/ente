@@ -18,6 +18,25 @@ void main() {
     expect(tester.getSize(find.byType(AnimatedContainer)).height, 52);
   });
 
+  testWidgets("Compact ButtonComponent uses 48px geometry and body type", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        ButtonComponent(
+          label: "Save",
+          density: ButtonComponentDensity.compact,
+          onTap: () {},
+        ),
+      ),
+    );
+
+    expect(tester.getSize(find.byType(AnimatedContainer)).height, 48);
+    final style = tester.widget<Text>(find.text("Save")).style!;
+    expect(style.fontWeight, TextStyles.body.fontWeight);
+    expect(style.fontSize, TextStyles.body.fontSize);
+  });
+
   testWidgets("ButtonComponent calls onTap when tapped", (tester) async {
     var tapCount = 0;
 

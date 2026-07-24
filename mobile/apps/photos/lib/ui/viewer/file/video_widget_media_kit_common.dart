@@ -309,66 +309,64 @@ class SeekBarAndDuration extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final caption = file.caption;
+    final textStyle = getEnteTextTheme(
+      context,
+    ).mini.copyWith(color: textBaseDark);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.3),
           borderRadius: const BorderRadius.all(Radius.circular(8)),
           border: Border.all(color: strokeFaintDark, width: 1),
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            file.caption != null && file.caption!.isNotEmpty
-                ? Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 8, 0, 12),
-                    child: GestureDetector(
-                      onTap: () {
-                        showDetailsSheet(context, file);
-                      },
-                      child: Text(
-                        file.caption!,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: getEnteTextTheme(
-                          context,
-                        ).mini.copyWith(color: textBaseDark),
+            if (caption != null && caption.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+                child: GestureDetector(
+                  onTap: () => showDetailsSheet(context, file),
+                  child: Row(
+                    children: [
+                      Text('"', style: textStyle),
+                      Flexible(
+                        child: Text(
+                          caption,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textStyle,
+                        ),
                       ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
-            Row(
-              children: [
-                StreamBuilder(
-                  stream: controller?.player.stream.position,
-                  builder: (context, snapshot) {
-                    if (snapshot.data == null) {
-                      return Text(
-                        "0:00",
-                        style: getEnteTextTheme(
-                          context,
-                        ).mini.copyWith(color: textBaseDark),
-                      );
-                    }
-                    return Text(
-                      secondsToDuration(snapshot.data!.inSeconds),
-                      style: getEnteTextTheme(
-                        context,
-                      ).mini.copyWith(color: textBaseDark),
-                    );
-                  },
-                ),
-                Expanded(child: SeekBar(controller!, isSeekingNotifier)),
-                Text(
-                  _secondsToDuration(
-                    controller!.player.state.duration.inSeconds,
+                      Text('"', style: textStyle),
+                    ],
                   ),
-                  style: getEnteTextTheme(
-                    context,
-                  ).mini.copyWith(color: textBaseDark),
                 ),
-              ],
+              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  StreamBuilder(
+                    stream: controller?.player.stream.position,
+                    builder: (context, snapshot) => Text(
+                      snapshot.data == null
+                          ? "0:00"
+                          : secondsToDuration(snapshot.data!.inSeconds),
+                      style: textStyle,
+                    ),
+                  ),
+                  Expanded(child: SeekBar(controller!, isSeekingNotifier)),
+                  Text(
+                    _secondsToDuration(
+                      controller!.player.state.duration.inSeconds,
+                    ),
+                    style: textStyle,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -443,8 +441,8 @@ class _SeekBarState extends State<SeekBar> {
     return SliderTheme(
       data: SliderTheme.of(context).copyWith(
         trackHeight: 1.0,
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8.0),
-        overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
+        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
+        overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0),
         activeTrackColor: backgroundElevatedLight,
         inactiveTrackColor: fillMutedDark,
         thumbColor: backgroundElevatedLight,

@@ -1,17 +1,16 @@
 mod context;
-mod download;
+mod embed;
 mod event;
 mod generate;
 mod model;
 
 pub use context::*;
-pub use download::*;
 pub use event::*;
 pub use generate::*;
 pub use model::*;
 
 use llama_cpp_2::llama_backend::LlamaBackend;
-use std::sync::OnceLock;
+use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -29,11 +28,13 @@ pub enum Error {
     PromptTooLong { tokens: usize, context_size: u32 },
     #[error("{op}: {message}")]
     Llama { op: &'static str, message: String },
-    #[error(transparent)]
-    Download(#[from] crate::download::Error),
 }
 
 static BACKEND: OnceLock<Result<LlamaBackend, String>> = OnceLock::new();
+
+fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    mutex.lock().unwrap_or_else(PoisonError::into_inner)
+}
 
 fn backend() -> Result<&'static LlamaBackend, Error> {
     match BACKEND.get_or_init(|| LlamaBackend::init().map_err(|err| err.to_string())) {

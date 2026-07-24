@@ -14,7 +14,7 @@ import "package:photos/models/gallery_type.dart";
 import "package:photos/models/selected_files.dart";
 import "package:photos/module/download/file.dart";
 import "package:photos/services/app_lifecycle_service.dart";
-import "package:photos/theme/ente_theme.dart";
+import "package:photos/services/collections_service.dart";
 import "package:photos/ui/common/touch_cross_detector.dart";
 import "package:photos/ui/sharing/user_avator_widget.dart";
 import "package:photos/ui/viewer/actions/select_all_status_icon.dart";
@@ -106,9 +106,11 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
         widget.file.isUploaded &&
         widget.file.ownerID != null &&
         widget.file.ownerID != widget.currentUserID) {
-      final avatarColors = getEnteColorScheme(context).avatarColors;
-      selectionColor =
-          avatarColors[widget.file.ownerID!.remainder(avatarColors.length)];
+      final owner = CollectionsService.instance.getFileOwner(
+        widget.file.ownerID!,
+        widget.file.collectionID,
+      );
+      selectionColor = getUserAvatarColor(context, owner);
     }
     final String heroTag = widget.tag + widget.file.tag;
     final Widget thumbnailWidget = ThumbnailWidget(

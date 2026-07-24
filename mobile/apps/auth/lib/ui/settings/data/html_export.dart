@@ -258,7 +258,7 @@ Future<String> generateHtml(BuildContext context) async {
   <div class="footer" style="text-align: center; font-size: 12px; color:
     rgb(136, 136, 136)">
     <div>
-      <a href="https://ente.com" target="_blank"><img src="https://email-assets.ente.com/ente-green.png" style="width: 100px;
+      <a href="https://ente.com" target="_blank"><img src="https://email-assets.ente.com/ente-2026-green.png" style="width: 100px;
         padding: 24px" title="Ente" alt="Ente" /></a>
     </div>
     <div>

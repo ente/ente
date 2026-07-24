@@ -21,7 +21,7 @@ The split uses Shamir's 2-of-3 secret sharing. Legacy Kit is the version we ship
 
 ## Create a Legacy Kit
 
-Legacy Kit creation and management are available in Ente Locker on mobile.
+Legacy Kit creation and management are available in **Ente Locker on mobile**.
 
 **On mobile:**
 

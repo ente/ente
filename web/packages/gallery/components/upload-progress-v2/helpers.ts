@@ -15,6 +15,7 @@ import type { UploadProgressContextT } from "./context";
 export const finishedTypeReasons: Partial<Record<FinishedUploadType, string>> =
     {
         alreadyUploaded: "Already on Ente",
+        partnerShared: "Shared by partner",
         largerThanAvailableStorage: "Not enough storage",
         tooLarge: "File over 10 GB",
         unsupported: "File type not supported",

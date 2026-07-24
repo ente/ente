@@ -9,7 +9,6 @@ fn sample_contact() -> ContactData {
     ContactData {
         contact_user_id: 42,
         name: "B Test".to_string(),
-        birth_date: Some("2001-04-01".to_string()),
     }
 }
 

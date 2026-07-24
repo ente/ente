@@ -751,7 +751,6 @@
   "appleId": "„Apple ID“",
   "playstoreSubscription": "„PlayStore“ prenumerata",
   "appstoreSubscription": "„App Store“ prenumerata",
-  "subAlreadyLinkedErrMessage": "Jūsų {id} jau susietas su kita „Ente“ paskyra.\nJei norite naudoti savo {id} su šia paskyra, susisiekite su mūsų palaikymo komanda.",
   "visitWebToManage": "Aplankykite {webUrl}, kad tvarkytumėte savo prenumeratą",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

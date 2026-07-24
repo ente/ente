@@ -790,7 +790,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "PlayStore aboneliği",
   "appstoreSubscription": "AppStore aboneliği",
-  "subAlreadyLinkedErrMessage": "{id}'niz zaten başka bir ente hesabına bağlı.\n{id} numaranızı bu hesapla kullanmak istiyorsanız lütfen desteğimizle iletişime geçin''",
   "visitWebToManage": "Aboneliğinizi yönetmek için lütfen {webUrl} adresini ziyaret edin",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",

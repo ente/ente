@@ -67,6 +67,10 @@ export interface NotificationAttributes {
      */
     endIcon?: React.ReactNode;
     /**
+     * If true, show the default close button after the custom {@link endIcon}.
+     */
+    showCloseButtonWithEndIcon?: boolean;
+    /**
      * Optional handler when {@link endIcon} is clicked.
      *
      * If not provided, clicks on the end icon behave the same as clicking the
@@ -140,6 +144,7 @@ export const Notification: React.FC<NotificationProps> = ({
         title,
         caption,
         endIcon,
+        showCloseButtonWithEndIcon,
         onClick,
         onEndIconClick,
     } = attributes;
@@ -177,11 +182,10 @@ export const Notification: React.FC<NotificationProps> = ({
             sx={[
                 (theme) => ({
                     width: "min(320px, 100vw)",
-                    // If the `color` of the button is a translucent one, e.g.
-                    // "secondary", then the notification becomes opaque, which
-                    // is not what we want. So give the entire snackbar a solid
-                    // background color.
-                    backgroundColor: "background.default",
+                    backgroundColor:
+                        color && color != "inherit"
+                            ? `${color}.main`
+                            : "transparent",
                     boxShadow: theme.vars.palette.boxShadow.menu,
                 }),
                 ...(sx ? (isSxArray(sx) ? sx : [sx]) : []),
@@ -245,7 +249,7 @@ export const Notification: React.FC<NotificationProps> = ({
                         )}
                     </Stack>
 
-                    {endIcon ? (
+                    {endIcon && (
                         <IconButton
                             component="div"
                             onClick={handleEndIconClick}
@@ -253,7 +257,8 @@ export const Notification: React.FC<NotificationProps> = ({
                         >
                             {endIcon}
                         </IconButton>
-                    ) : (
+                    )}
+                    {(!endIcon || showCloseButtonWithEndIcon) && (
                         <IconButton
                             // Buttons cannot be nested in buttons, so we use a div
                             // here instead.

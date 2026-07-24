@@ -40,7 +40,7 @@ func verifyPassword(secret []byte, expectedPassHash *string, req ente.VerifyPass
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &enteJWT.LinkPasswordClaim{
 		PassHash:   req.PassHash,
-		ExpiryTime: time.NDaysFromNow(365),
+		ExpiryTime: time.NDaysFromNow(30),
 	})
 	// Sign and get the complete encoded token as a string using the secret
 	tokenString, err := token.SignedString(secret)

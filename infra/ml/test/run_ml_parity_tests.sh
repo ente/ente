@@ -8,6 +8,7 @@ ROOT_DIR="$(
 ML_DIR="$ROOT_DIR/infra/ml/test"
 UV_PROJECT_DIR="$ROOT_DIR/infra/ml"
 MANIFEST_PATH="$ROOT_DIR/infra/ml/test/ground_truth/manifest.json"
+ASSET_LOCK_PATH="$ML_DIR/ml_indexing/assets.json"
 TEST_DATA_DIR="$ML_DIR/test_data/ml-indexing/v1"
 PARITY_HELPERS="$ML_DIR/tools/parity_shell_helpers.py"
 
@@ -184,31 +185,46 @@ prepare_local_model_mirror_cache() {
   local downloaded=0
   local reused=0
   local failed=0
-  local -a model_files=(
-    "yolov5s_face_640_640_dynamic.onnx"
-    "mobilefacenet_opset15.onnx"
-    "mobileclip_s2_image.onnx"
-  )
+  local model_file model_url model_sha target_path tmp_path actual_sha
 
   mkdir -p "$model_dir"
 
-  for model_file in "${model_files[@]}"; do
-    local target_path="$model_dir/$model_file"
-    if [[ -f "$target_path" ]]; then
-      reused=$((reused + 1))
+  while IFS=$'\t' read -r model_file model_url model_sha; do
+    if [[ -z "$model_file" || -z "$model_url" || -z "$model_sha" ]]; then
+      echo "Local model mirror: invalid model entry in $ASSET_LOCK_PATH" >&2
+      failed=$((failed + 1))
       continue
     fi
 
-    local tmp_path="$target_path.tmp"
-    if curl -fsSL --retry 3 --retry-delay 1 "https://models.ente.io/$model_file" -o "$tmp_path"; then
-      mv "$tmp_path" "$target_path"
-      downloaded=$((downloaded + 1))
+    target_path="$model_dir/$model_file"
+    if [[ -f "$target_path" ]]; then
+      actual_sha="$(sha256_file "$target_path")"
+      if [[ "$actual_sha" == "$model_sha" ]]; then
+        reused=$((reused + 1))
+        continue
+      fi
+      rm -f "$target_path"
+    fi
+
+    tmp_path="$target_path.tmp"
+    if curl -fsSL --retry 3 --retry-delay 1 "$model_url" -o "$tmp_path"; then
+      actual_sha="$(sha256_file "$tmp_path")"
+      if [[ "$actual_sha" == "$model_sha" ]]; then
+        mv "$tmp_path" "$target_path"
+        downloaded=$((downloaded + 1))
+      else
+        rm -f "$tmp_path"
+        failed=$((failed + 1))
+        echo "Local model mirror: SHA-256 mismatch for $model_file"
+      fi
     else
       rm -f "$tmp_path"
       failed=$((failed + 1))
       echo "Local model mirror: failed to download $model_file (runner will fall back to direct model download)."
     fi
-  done
+  done < <(
+    python3 "$PARITY_HELPERS" model-assets "$ASSET_LOCK_PATH"
+  )
 
   echo "Local model mirror cache: downloaded=$downloaded reused=$reused failed=$failed dir=$model_dir"
 }

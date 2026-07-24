@@ -1,4 +1,5 @@
 import "package:ente_icons/ente_icons.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/constants.dart";
@@ -8,7 +9,7 @@ import "package:photos/models/collection/collection.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/social/social_data_provider.dart";
-import "package:photos/services/collections_service.dart";
+import "package:photos/service_locator.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/components/buttons/icon_button_widget.dart";
@@ -32,11 +33,13 @@ class _CollectionLikeState {
 /// Parameters:
 /// - [fileID]: The uploaded file ID to like
 /// - [currentUserID]: Current user's ID for checking existing likes
+/// - [collections]: Shared collections eligible for this action
 /// - [file]: The EnteFile for displaying thumbnail (optional, will fetch if null)
 Future<void> showLikeCollectionSelectorSheet(
   BuildContext context, {
   required int fileID,
   required int currentUserID,
+  required List<Collection> collections,
   EnteFile? file,
 }) {
   return showModalBottomSheet(
@@ -46,6 +49,7 @@ Future<void> showLikeCollectionSelectorSheet(
     builder: (_) => LikeCollectionSelectorSheet(
       fileID: fileID,
       currentUserID: currentUserID,
+      collections: collections,
       file: file,
     ),
   );
@@ -54,11 +58,13 @@ Future<void> showLikeCollectionSelectorSheet(
 class LikeCollectionSelectorSheet extends StatefulWidget {
   final int fileID;
   final int currentUserID;
+  final List<Collection> collections;
   final EnteFile? file;
 
   const LikeCollectionSelectorSheet({
     required this.fileID,
     required this.currentUserID,
+    required this.collections,
     this.file,
     super.key,
   });
@@ -89,30 +95,9 @@ class _LikeCollectionSelectorSheetState
       // Load file if not provided (for thumbnail)
       _file ??= await FilesDB.instance.getAnyUploadedFile(widget.fileID);
 
-      // Get all collections containing this file
-      final collectionIDs = await FilesDB.instance.getAllCollectionIDsOfFile(
-        widget.fileID,
-      );
-
-      // Filter to shared collections only
-      final sharedCollections = collectionIDs
-          .map((id) => CollectionsService.instance.getCollectionByID(id))
-          .whereType<Collection>()
-          .where(
-            (c) =>
-                c.hasSharees || c.hasLink || !c.isOwner(widget.currentUserID),
-          )
-          .toList();
-
-      // If no shared collections, close the sheet
-      if (sharedCollections.isEmpty) {
-        if (mounted) Navigator.of(context).pop();
-        return;
-      }
-
       // Fetch like states in parallel
       final collectionStates = await Future.wait(
-        sharedCollections.map((collection) async {
+        widget.collections.map((collection) async {
           final reactions = await SocialDataProvider.instance
               .getReactionsForFileInCollection(widget.fileID, collection.id);
           final isLiked = reactions.any(
@@ -154,10 +139,12 @@ class _LikeCollectionSelectorSheetState
       _logger.severe("Failed to toggle like", e);
       if (mounted) {
         setState(() => state.isLiked = previousState);
-        showShortToast(
-          context,
-          AppLocalizations.of(context).failedToUpdateLike,
-        );
+        if (flagService.internalUser || kDebugMode) {
+          showShortToast(
+            context,
+            AppLocalizations.of(context).failedToUpdateLike,
+          );
+        }
       }
     }
   }

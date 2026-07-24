@@ -49,14 +49,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.0.4"
-  ansi_styles:
-    dependency: transitive
-    description:
-      name: ansi_styles
-      sha256: "9c656cc12b3c27b17dd982b2cc5c0cfdfbdabd7bc8f3ae5e8542d9867b47ce8a"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.2+1"
   ansicolor:
     dependency: transitive
     description:
@@ -371,14 +363,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.0"
-  cli_launcher:
-    dependency: transitive
-    description:
-      name: cli_launcher
-      sha256: "35cf15a3ffaeb9c11849eaa0afba761bb76dceb42d050532bfd3e1299c9748cd"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.3+1"
   cli_util:
     dependency: transitive
     description:
@@ -460,14 +444,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
-  conventional_commit:
-    dependency: transitive
-    description:
-      name: conventional_commit
-      sha256: c40b1b449ce2a63fa2ce852f35e3890b1e182f5951819934c0e4a66254bc0dc3
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.6.1+1"
   convert:
     dependency: transitive
     description:
@@ -1450,10 +1426,10 @@ packages:
     dependency: transitive
     description:
       name: image
-      sha256: "4e973fcf4caae1a4be2fa0a13157aa38a8f9cb049db6529aa00b4d71abc4d928"
+      sha256: "6acdc597ab31dc6cd2bf108335f820c81f32cbf33df5d94e94781f417155a273"
       url: "https://pub.dev"
     source: hosted
-    version: "4.5.4"
+    version: "4.7.0"
   in_app_purchase:
     dependency: transitive
     description:
@@ -1804,14 +1780,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
-  melos:
-    dependency: "direct dev"
-    description:
-      name: melos
-      sha256: b40731f34d3aacb199641a9b4955e52a866b0b0bc93ffc5c8ff21bffc6593134
-      url: "https://pub.dev"
-    source: hosted
-    version: "7.8.1"
   menu_base:
     dependency: transitive
     description:
@@ -1864,8 +1832,8 @@ packages:
     dependency: transitive
     description:
       path: "."
-      ref: "69780e0dab62db9def55ab07bcf52442ec0b9f94"
-      resolved-ref: "69780e0dab62db9def55ab07bcf52442ec0b9f94"
+      ref: "37aee4c4ff77c59a4ab46e272e31a53a035f628e"
+      resolved-ref: "37aee4c4ff77c59a4ab46e272e31a53a035f628e"
       url: "https://github.com/ente/mobile_ocr"
     source: git
     version: "1.0.0"
@@ -1920,14 +1888,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.3.3+1"
-  mustache_template:
-    dependency: transitive
-    description:
-      name: mustache_template
-      sha256: "544ff0b837836f5ad6b351e7a676ff7c2cad4fa412c465908aeb9358caddb6fc"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.4"
   mutex:
     dependency: transitive
     description:
@@ -2190,10 +2150,10 @@ packages:
     dependency: transitive
     description:
       name: pdf
-      sha256: "28eacad99bffcce2e05bba24e50153890ad0255294f4dd78a17075a2ba5c8416"
+      sha256: e47a275b267873d5944ad5f5ff0dcc7ac2e36c02b3046a0ffac9b72fd362c44b
       url: "https://pub.dev"
     source: hosted
-    version: "3.11.3"
+    version: "3.12.0"
   permission_handler:
     dependency: transitive
     description:
@@ -2254,10 +2214,10 @@ packages:
     dependency: transitive
     description:
       name: photo_manager
-      sha256: a0d9a7a9bc35eda02d33766412bde6d883a8b0acb86bbe37dac5f691a0894e8a
+      sha256: bf840253a7a5a48774f3a23b042a673614785e9874e0c86e2837681d576ef252
       url: "https://pub.dev"
     source: hosted
-    version: "3.7.1"
+    version: "3.10.0"
   photo_manager_image_provider:
     dependency: transitive
     description:
@@ -2363,14 +2323,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
-  prompts:
-    dependency: transitive
-    description:
-      name: prompts
-      sha256: "3773b845e85a849f01e793c4fc18a45d52d7783b4cb6c0569fad19f9d0a774a1"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.0"
   protobuf:
     dependency: transitive
     description:
@@ -2395,14 +2347,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
-  pub_updater:
-    dependency: transitive
-    description:
-      name: pub_updater
-      sha256: "739a0161d73a6974c0675b864fb0cf5147305f7b077b7f03a58fa7a9ab3e7e7d"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.5.0"
   pubspec_parse:
     dependency: transitive
     description:

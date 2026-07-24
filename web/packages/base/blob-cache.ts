@@ -3,6 +3,7 @@ import { isDesktop } from "./app";
 const blobCacheNames = [
     "thumbs",
     "face-crops",
+    "space-media",
     // Desktop app only
     "files",
 ] as const;

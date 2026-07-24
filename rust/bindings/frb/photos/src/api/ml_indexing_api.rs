@@ -1,28 +1,7 @@
 use ente_photos::ml::{
-    error::MlError as SharedMlError,
-    indexing as shared_indexing,
-    runtime::{ExecutionProviderPolicy, MlRuntimeConfig, ModelPaths},
+    error::MlError as SharedMlError, indexing as shared_indexing, runtime::ModelPaths,
     types as shared_types,
 };
-
-#[derive(Clone, Debug)]
-pub struct RustExecutionProviderPolicy {
-    pub prefer_coreml: bool,
-    pub prefer_nnapi: bool,
-    pub prefer_xnnpack: bool,
-    pub allow_cpu_fallback: bool,
-}
-
-impl Default for RustExecutionProviderPolicy {
-    fn default() -> Self {
-        Self {
-            prefer_coreml: true,
-            prefer_nnapi: true,
-            prefer_xnnpack: false,
-            allow_cpu_fallback: true,
-        }
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct RustModelPaths {
@@ -39,12 +18,6 @@ pub struct RustModelPaths {
 }
 
 #[derive(Clone, Debug)]
-pub struct RustMlRuntimeConfig {
-    pub model_paths: RustModelPaths,
-    pub provider_policy: RustExecutionProviderPolicy,
-}
-
-#[derive(Clone, Debug)]
 pub struct AnalyzeImageRequest {
     pub file_id: i64,
     pub image_path: String,
@@ -52,7 +25,6 @@ pub struct AnalyzeImageRequest {
     pub run_clip: bool,
     pub run_pets: bool,
     pub model_paths: RustModelPaths,
-    pub provider_policy: RustExecutionProviderPolicy,
 }
 
 #[derive(Clone, Debug)]
@@ -144,6 +116,10 @@ pub struct AnalyzeImageResult {
     pub clip: Option<RustClipResult>,
     pub pet_faces: Option<Vec<RustPetFaceResult>>,
     pub pet_bodies: Option<Vec<RustPetBodyResult>>,
+    /// True when any model that contributed to this result ran on the
+    /// respective accelerated execution provider.
+    pub used_coreml: bool,
+    pub used_webgpu: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -151,7 +127,6 @@ pub struct RunClipTextRequest {
     pub text: String,
     pub model_path: String,
     pub vocab_path: String,
-    pub provider_policy: RustExecutionProviderPolicy,
 }
 
 #[derive(Clone, Debug)]
@@ -159,12 +134,20 @@ pub struct RunClipTextResult {
     pub embedding: Vec<f64>,
 }
 
-pub fn init_ml_runtime(config: RustMlRuntimeConfig) -> Result<(), String> {
-    shared_indexing::init_ml_runtime(to_runtime_config(&config)).map_err(|e| e.to_string())
+/// Configures process-wide ML execution behavior. `enable_webgpu` opts
+/// Android into the WebGPU execution provider (off by default, and only
+/// honored on Android 12+); it has no effect on other platforms. Call this
+/// before the runtime creates its first session.
+pub fn set_ml_execution_config(enable_webgpu: bool) {
+    shared_indexing::set_ml_execution_config(enable_webgpu);
 }
 
-pub fn release_ml_runtime() -> Result<(), String> {
-    shared_indexing::release_ml_runtime().map_err(|e| e.to_string())
+pub fn init_ml_runtime(model_paths: RustModelPaths) {
+    shared_indexing::init_ml_runtime(to_model_paths(&model_paths));
+}
+
+pub fn release_ml_runtime() {
+    shared_indexing::release_ml_runtime();
 }
 
 pub fn analyze_image_rust(req: AnalyzeImageRequest) -> Result<AnalyzeImageResult, RustMlError> {
@@ -174,10 +157,7 @@ pub fn analyze_image_rust(req: AnalyzeImageRequest) -> Result<AnalyzeImageResult
         run_faces: req.run_faces,
         run_clip: req.run_clip,
         run_pets: req.run_pets,
-        runtime_config: MlRuntimeConfig {
-            model_paths: to_model_paths(&req.model_paths),
-            provider_policy: to_provider_policy(&req.provider_policy),
-        },
+        model_paths: to_model_paths(&req.model_paths),
     };
 
     shared_indexing::analyze_image(shared_req)
@@ -190,7 +170,6 @@ pub fn run_clip_text_rust(req: RunClipTextRequest) -> Result<RunClipTextResult, 
         text: req.text,
         model_path: req.model_path,
         vocab_path: req.vocab_path,
-        provider_policy: to_provider_policy(&req.provider_policy),
     };
 
     shared_indexing::run_clip_text(shared_req)
@@ -208,11 +187,25 @@ pub fn tokenize_clip_text_rust(text: String, vocab_path: String) -> Result<Vec<i
     shared_indexing::tokenize_clip_text(&text, &vocab_path).map_err(|e| e.to_string())
 }
 
-fn to_runtime_config(config: &RustMlRuntimeConfig) -> MlRuntimeConfig {
-    MlRuntimeConfig {
-        model_paths: to_model_paths(&config.model_paths),
-        provider_policy: to_provider_policy(&config.provider_policy),
-    }
+/// A notable ML runtime event (execution provider fallback, golden self-test
+/// failure) buffered by the Rust runtime for app-side logging. `severity` is
+/// one of "info", "warning", or "severe".
+#[derive(Clone, Debug)]
+pub struct RustMlRuntimeEvent {
+    pub severity: String,
+    pub message: String,
+}
+
+/// Drains buffered ML runtime events. The buffer is process-wide, so drain
+/// after ML operations and log each event at its severity.
+pub fn take_ml_runtime_events() -> Vec<RustMlRuntimeEvent> {
+    ente_photos::ml::events::take_events()
+        .into_iter()
+        .map(|event| RustMlRuntimeEvent {
+            severity: event.severity.as_str().to_string(),
+            message: event.message,
+        })
+        .collect()
 }
 
 fn to_model_paths(paths: &RustModelPaths) -> ModelPaths {
@@ -227,15 +220,6 @@ fn to_model_paths(paths: &RustModelPaths) -> ModelPaths {
         pet_body_detection: paths.pet_body_detection.clone(),
         pet_body_embedding_dog: paths.pet_body_embedding_dog.clone(),
         pet_body_embedding_cat: paths.pet_body_embedding_cat.clone(),
-    }
-}
-
-fn to_provider_policy(policy: &RustExecutionProviderPolicy) -> ExecutionProviderPolicy {
-    ExecutionProviderPolicy {
-        prefer_coreml: policy.prefer_coreml,
-        prefer_nnapi: policy.prefer_nnapi,
-        prefer_xnnpack: policy.prefer_xnnpack,
-        allow_cpu_fallback: policy.allow_cpu_fallback,
     }
 }
 
@@ -272,6 +256,8 @@ fn to_api_analyze_image_result(result: shared_indexing::AnalyzeImageResult) -> A
         pet_bodies: result
             .pet_bodies
             .map(|bodies| bodies.into_iter().map(to_api_pet_body_result).collect()),
+        used_coreml: result.used_coreml,
+        used_webgpu: result.used_webgpu,
     }
 }
 

@@ -76,7 +76,7 @@ String _actionName(
   return text;
 }
 
-void showCollectionActionSheet(
+Future<void> showCollectionActionSheet(
   BuildContext context, {
   SelectedFiles? selectedFiles,
   List<SharedMediaFile>? sharedFiles,
@@ -99,7 +99,7 @@ void showCollectionActionSheet(
       ? selectedPeople.length
       : selectedFiles?.files.length ?? 0;
 
-  showBottomSheetComponent<void>(
+  return showBottomSheetComponent<void>(
     context: context,
     builder: (_) => BottomSheetComponent(
       title: _actionName(context, actionType, filesCount),
@@ -452,12 +452,14 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
       final List<Collection> pinned = [];
       final List<Collection> unpinned = [];
       final List<Collection> recentlyCreated = [];
+      final userID = Configuration.instance.getUserID()!;
       // show uncategorized collection only for restore files action
       Collection? uncategorized;
       for (final collection in collections) {
         if (collection.isQuickLinkCollection() ||
             collection.type == CollectionType.favorites ||
-            collection.type == CollectionType.uncategorized) {
+            (collection.type == CollectionType.uncategorized &&
+                collection.isOwner(userID))) {
           if (collection.type == CollectionType.uncategorized) {
             uncategorized = collection;
           }

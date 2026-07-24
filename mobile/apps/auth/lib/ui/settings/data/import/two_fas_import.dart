@@ -1,20 +1,13 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/models/code_display.dart';
-import 'package:ente_auth/services/authenticator_service.dart';
-import 'package:ente_auth/store/code_store.dart';
-import 'package:ente_auth/ui/components/buttons/button_widget.dart';
-import 'package:ente_auth/ui/components/dialog_widget.dart';
-import 'package:ente_auth/ui/components/models/button_type.dart';
 import 'package:ente_auth/ui/settings/data/import/import_file_cleanup.dart';
-import 'package:ente_auth/ui/settings/data/import/import_success.dart';
+import 'package:ente_auth/ui/settings/data/import/import_flow.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_ui/components/progress_dialog.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
@@ -22,68 +15,26 @@ import 'package:pointycastle/export.dart';
 
 Future<void> show2FasImportInstruction(BuildContext context) async {
   final l10n = context.l10n;
-  final result = await showDialogWidget(
+  await showFileImportInstruction(
     context: context,
-    title: l10n.importFromApp("2FAS Authenticator"),
+    title: "2FAS Authenticator",
     body: l10n.import2FasGuide,
-    buttons: [
-      ButtonWidget(
-        buttonType: ButtonType.primary,
-        labelText: l10n.importSelectAppExport("2FAS Authenticator"),
-        isInAlert: true,
-        buttonSize: ButtonSize.large,
-        buttonAction: ButtonAction.first,
-      ),
-      ButtonWidget(
-        buttonType: ButtonType.secondary,
-        labelText: context.l10n.cancel,
-        buttonSize: ButtonSize.large,
-        isInAlert: true,
-        buttonAction: ButtonAction.second,
-      ),
-    ],
+    actionLabel: l10n.importSelectAppExport("2FAS Authenticator"),
+    semanticsIdentifier: 'auth_import_instruction_two_fas',
+    onImport: () => _pick2FasFile(context),
   );
-  if (result?.action != null && result!.action != ButtonAction.cancel) {
-    if (!context.mounted) return;
-    if (result.action == ButtonAction.first) {
-      await _pick2FasFile(context);
-    } else {}
-  }
 }
 
 Future<void> _pick2FasFile(BuildContext context) async {
-  final l10n = context.l10n;
-  FilePickerResult? result = await FilePicker.platform.pickFiles(
-    dialogTitle: l10n.importSelectJsonFile,
+  await pickAndProcessImportFile(
+    context: context,
+    dialogTitle: context.l10n.importSelectJsonFile,
+    showProgressBeforeProcessing: false,
+    logger: Logger('2FASImport'),
+    logMessage: 'Exception while processing 2FAS import',
+    process: (path, progressDialog) =>
+        _process2FasExportFile(context, path, progressDialog),
   );
-  if (result == null) {
-    return;
-  }
-  if (!context.mounted) return;
-  final ProgressDialog progressDialog = createProgressDialog(
-    context,
-    l10n.pleaseWait,
-  );
-
-  try {
-    if (!context.mounted) return;
-    String path = result.files.single.path!;
-    int? count = await _process2FasExportFile(context, path, progressDialog);
-    await progressDialog.hide();
-    if (count != null) {
-      if (!context.mounted) return;
-      await importSuccessDialog(context, count);
-    }
-  } catch (e, s) {
-    Logger('2FASImport').severe('exception while processing import', e, s);
-    await progressDialog.hide();
-    if (!context.mounted) return;
-    await showErrorDialog(
-      context,
-      context.l10n.sorry,
-      "${context.l10n.importFailureDesc}\n Error: ${e.toString()}",
-    );
-  }
 }
 
 Future<int?> _process2FasExportFile(
@@ -124,21 +75,16 @@ Future<int?> _process2FasExportFile(
     if (!context.mounted) return null;
     String? password;
     try {
-      await showTextInputDialog(
+      password = await promptForImportPassword(
         context,
         title: context.l10n.enterPasswordToDecrypt2FASBackup,
-        submitButtonLabel: context.l10n.submit,
-        isPasswordInput: true,
-        onSubmit: (value) async {
-          password = value;
-        },
       );
       if (password == null) {
         await dialog.hide();
         return null;
       }
       await dialog.show();
-      final content = decrypt2FasVault(decodedJson, password: password!);
+      final content = decrypt2FasVault(decodedJson, password: password);
       decodedServices = jsonDecode(content);
     } catch (e, s) {
       Logger("2FASImport").warning("exception while decrypting  backup", e, s);
@@ -156,7 +102,7 @@ Future<int?> _process2FasExportFile(
   } else {
     await dialog.show();
   }
-  final parsedCodes = [];
+  final parsedCodes = <Code>[];
   for (var item in decodedServices) {
     var kind = item['otp']['tokenType'];
     var account = item['otp']['account'] ?? '';
@@ -171,19 +117,18 @@ Future<int?> _process2FasExportFile(
     var digits = item['otp']['digits'];
     var counter = item['otp']['counter'];
 
-    // Build the OTP URL
-    String otpUrl;
-
-    if (kind.toLowerCase() == 'totp' || kind.toLowerCase() == 'steam') {
-      otpUrl =
-          'otpauth://$kind/$issuer:$account?secret=$secret&issuer=$issuer&algorithm=$algorithm&digits=$digits&period=$timer';
-    } else if (kind.toLowerCase() == 'hotp') {
-      otpUrl =
-          'otpauth://$kind/$issuer:$account?secret=$secret&issuer=$issuer&algorithm=$algorithm&digits=$digits&counter=$counter';
-    } else {
-      throw Exception('Invalid OTP type ${kind.toLowerCase()}');
-    }
-    Code code = Code.fromOTPAuthUrl(otpUrl);
+    Code code = Code.fromOTPAuthUrl(
+      buildImportOtpUri(
+        kind: kind,
+        issuer: issuer,
+        account: account,
+        secret: secret,
+        algorithm: algorithm,
+        digits: digits,
+        period: timer,
+        counter: counter,
+      ),
+    );
     if (groupID != null && groupIdToName.containsKey(groupID)) {
       code = code.copyWith(
         display: CodeDisplay(tags: [groupIdToName[groupID]]),
@@ -192,12 +137,7 @@ Future<int?> _process2FasExportFile(
     parsedCodes.add(code);
   }
 
-  for (final code in parsedCodes) {
-    await CodeStore.instance.addCode(code, shouldSync: false);
-  }
-  unawaited(AuthenticatorService.instance.onlineSync());
-  int count = parsedCodes.length;
-  return count;
+  return saveImportedCodes(parsedCodes);
 }
 
 String decrypt2FasVault(dynamic data, {required String password}) {

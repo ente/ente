@@ -29,6 +29,31 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// Ente's custom prebuilt ONNX Runtime AAR is resolved straight from its
+// GitHub release through an Ivy repository; its SHA-256 is pinned in
+// gradle/verification-metadata.xml. See mobile/native/onnxruntime/README.md.
+repositories {
+    exclusiveContent {
+        forRepository {
+            ivy {
+                name = 'enteOnnxRuntimePackaging'
+                url = 'https://github.com/laurens-pilot/ort-packaging/releases/download'
+                patternLayout {
+                    artifact 'ort-[revision]/[artifact]-[revision].[ext]'
+                }
+                metadataSources { artifact() }
+            }
+        }
+        filter { includeGroup 'io.ente.onnxruntime' }
+    }
+}
+
+configurations.configureEach {
+    // mobile_ocr also declares Microsoft's stock AAR. The custom AAR exposes
+    // the same Java API and must be the sole source of libonnxruntime.so.
+    exclude group: 'com.microsoft.onnxruntime', module: 'onnxruntime-android'
+}
+
 android {
     namespace = "io.ente.photos"
     compileSdk = 36
@@ -173,8 +198,9 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0'
     implementation 'com.android.support:multidex:1.0.3'
     implementation 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
-    // Required by Rust ML, which dynamically loads libonnxruntime.so.
-    implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.27.0'
+    // Custom WebGPU/XNNPACK build required by Rust ML, which dynamically
+    // loads libonnxruntime.so.
+    implementation 'io.ente.onnxruntime:onnxruntime-webgpu-android:1.27.0-r2@aar'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'

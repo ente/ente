@@ -22,8 +22,11 @@ export const DEFAULT_MODEL: ModelInfo = {
     id: "lfm-vl-1.6b",
     name: "LFM 2.5 VL 1.6B (Q4_0)",
     url: "https://huggingface.co/LiquidAI/LFM2.5-VL-1.6B-GGUF/resolve/main/LFM2.5-VL-1.6B-Q4_0.gguf?download=true",
+    sha256: "8186364a4e7c3ad30f6dd3d3b7a4e0074c77dd91eed6cad5d8be9090ce285804",
     mmprojUrl:
         "https://huggingface.co/LiquidAI/LFM2.5-VL-1.6B-GGUF/resolve/main/mmproj-LFM2.5-VL-1.6b-Q8_0.gguf",
+    mmprojSha256:
+        "2ce89e610c56f3198ece2b86cf61743a08b9307279c89125eb2412ebb908689d",
     sizeBytes: 695_752_160,
     mmprojSizeBytes: 583_109_888,
     sizeHuman: "~664 MB",
@@ -33,8 +36,11 @@ const DESKTOP_DEFAULT_MODEL: ModelInfo = {
     id: "gemma-4-e4b-q4km",
     name: "Gemma 4 E4B (Q4_K_M)",
     url: "https://huggingface.co/unsloth/gemma-4-E4B-it-GGUF/resolve/main/gemma-4-E4B-it-Q4_K_M.gguf?download=true",
+    sha256: "519b9793ed6ce0ff530f1b7c96e848e08e49e7af4d57bb97f76215963a54146d",
     mmprojUrl:
         "https://huggingface.co/unsloth/gemma-4-E4B-it-GGUF/resolve/main/mmproj-F16.gguf",
+    mmprojSha256:
+        "ddf46c21d7078e95338cfc22306b19b276a29a5ad089023449dd54d4b6170a51",
     sizeBytes: 4_977_169_088,
     mmprojSizeBytes: 990_372_800,
     sizeHuman: "5.97 GB",
@@ -44,7 +50,9 @@ interface ConfigModelPreset {
     id: string;
     title: string;
     url: string;
+    sha256: string;
     mmprojUrl?: string | null;
+    mmprojSha256?: string | null;
 }
 
 interface ConfigDefaults {
@@ -59,58 +67,72 @@ interface ConfigDefaults {
 }
 
 interface TauriLlmModelDownloadProgress {
-    label: string;
     percent: number;
     status: string;
     bytesDownloaded: number;
     totalBytes?: number;
-    fileBytesDownloaded: number;
-    fileTotalBytes?: number;
+}
+
+interface TauriModelStatus {
+    modelPath: string;
+    mmprojPath?: string | null;
+    downloaded: boolean;
 }
 
 export interface ResolvedModelPreset {
+    id: string;
     name: string;
-    url: string;
-    mmproj?: string;
 }
 
-const FALLBACK_SHARED_MODEL_PRESETS: ResolvedModelPreset[] = [
+const FALLBACK_SHARED_MODEL_PRESETS: ModelInfo[] = [
     {
-        name: "LFM 2.5 1.2B Instruct (Q4_0)",
-        url: "https://huggingface.co/LiquidAI/LFM2.5-1.2B-GGUF/resolve/main/LFM2.5-1.2B-Q4_0.gguf?download=true",
-    },
-    {
+        id: "qwen-0.8b",
         name: "Qwen 3.5 0.8B (Q4_K_M)",
         url: "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf?download=true",
-        mmproj: "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/mmproj-F16.gguf",
+        sha256: "bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517",
+        mmprojUrl:
+            "https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/mmproj-F16.gguf",
+        mmprojSha256:
+            "56e4c6cfe73b0c82e3e82bc518d7591997e61d81f723fc41a586f4fa69ea2453",
     },
     {
+        id: "qwen-2b-q8",
         name: "Qwen 3.5 2B (Q8_0)",
         url: "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q8_0.gguf?download=true",
-        mmproj: "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/mmproj-F16.gguf",
+        sha256: "1b04acba824817554f4ce23639bc8495ff70453b8fcb047900c731521021f2c1",
+        mmprojUrl:
+            "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/mmproj-F16.gguf",
+        mmprojSha256:
+            "7035e9cb8d7c6a9681d07eef9a364783e86ea4cd73faab2eabb4f43a101830c7",
     },
     {
+        id: "gemma-4-e2b-q4km",
         name: "Gemma 4 E2B (Q4_K_M)",
         url: "https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_K_M.gguf?download=true",
-        mmproj: "https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/mmproj-F16.gguf",
+        sha256: "9378bc471710229ef165709b62e34bfb62231420ddaf6d729e727305b5b8672d",
+        mmprojUrl:
+            "https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/mmproj-F16.gguf",
+        mmprojSha256:
+            "140be8d7849741f88c50757d529b84373ee8e27052cc2236855b537f4a8215fa",
     },
 ];
 
-export const FALLBACK_MOBILE_MODEL_PRESETS: ResolvedModelPreset[] = [
+export const FALLBACK_MOBILE_MODEL_PRESETS: ModelInfo[] = [
     ...FALLBACK_SHARED_MODEL_PRESETS,
 ];
 
-export const FALLBACK_DESKTOP_MODEL_PRESETS: ResolvedModelPreset[] = [
+export const FALLBACK_DESKTOP_MODEL_PRESETS: ModelInfo[] = [
     {
+        id: "qwen-4b-q4km",
         name: "Qwen 3.5 4B (Q4_K_M)",
         url: "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf?download=true",
-        mmproj: "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/mmproj-F16.gguf",
+        sha256: "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4",
+        mmprojUrl:
+            "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/mmproj-F16.gguf",
+        mmprojSha256:
+            "cd88edcf8d031894960bb0c9c5b9b7e1fea6ebee02b9f7ce925a00d12891f864",
     },
-    {
-        name: "LFM 2.5 VL 1.6B (Q4_0)",
-        url: "https://huggingface.co/LiquidAI/LFM2.5-VL-1.6B-GGUF/resolve/main/LFM2.5-VL-1.6B-Q4_0.gguf?download=true",
-        mmproj: "https://huggingface.co/LiquidAI/LFM2.5-VL-1.6B-GGUF/resolve/main/mmproj-LFM2.5-VL-1.6b-Q8_0.gguf",
-    },
+    DEFAULT_MODEL,
     ...FALLBACK_SHARED_MODEL_PRESETS,
 ];
 
@@ -172,11 +194,7 @@ export class LlmProvider {
         const presets = this.useDesktopRustDefaults
             ? this.configDefaults.desktopModelPresets
             : this.configDefaults.mobileModelPresets;
-        return presets.map((preset) => ({
-            name: preset.title,
-            url: preset.url,
-            mmproj: preset.mmprojUrl ?? undefined,
-        }));
+        return presets.map((preset) => ({ id: preset.id, name: preset.title }));
     }
 
     public getBackendKind() {
@@ -221,28 +239,26 @@ export class LlmProvider {
         const { model, contextSize } = this.resolveRuntimeSettings(settings);
         const contextKey = JSON.stringify({ contextSize });
 
-        const modelPath = await this.resolveModelPath(model, settings);
-        const mmprojUrl =
-            this.backend.kind === "tauri"
-                ? this.resolveMmprojUrl(model, settings)
-                : undefined;
-        const mmprojPath =
-            this.backend.kind === "tauri" && mmprojUrl
-                ? await this.resolveAuxModelPath(mmprojUrl, settings)
-                : undefined;
+        if (this.backend.kind !== "tauri") {
+            const modelPath = model.url;
+            return {
+                model,
+                modelPath,
+                mmprojPath: undefined,
+                contextKey,
+                modelAvailable: await this.backend.isModelAvailable(modelPath),
+                mmprojAvailable: undefined,
+            };
+        }
 
-        const modelAvailable = await this.backend.isModelAvailable(modelPath);
-        const mmprojAvailable = mmprojPath
-            ? await this.backend.isModelAvailable(mmprojPath)
-            : undefined;
-
+        const status = await this.modelStatus(model.id);
         return {
             model,
-            modelPath,
-            mmprojPath,
+            modelPath: status.modelPath,
+            mmprojPath: status.mmprojPath ?? undefined,
             contextKey,
-            modelAvailable,
-            mmprojAvailable,
+            modelAvailable: status.downloaded,
+            mmprojAvailable: status.mmprojPath ? status.downloaded : undefined,
         };
     }
 
@@ -255,15 +271,10 @@ export class LlmProvider {
         const { model, contextSize } = this.resolveRuntimeSettings(settings);
         const contextKey = JSON.stringify({ contextSize });
 
-        const modelPath = await this.resolveModelPath(model, settings);
-        const mmprojUrl =
-            this.backend.kind === "tauri"
-                ? this.resolveMmprojUrl(model, settings)
-                : undefined;
-        const mmprojPath =
-            this.backend.kind === "tauri" && mmprojUrl
-                ? await this.resolveAuxModelPath(mmprojUrl, settings)
-                : undefined;
+        const modelId = this.backend.kind === "tauri" ? model.id : undefined;
+        const status = modelId ? await this.modelStatus(modelId) : undefined;
+        const modelPath = status?.modelPath ?? model.url;
+        const mmprojPath = status?.mmprojPath ?? undefined;
 
         const ensureKey = JSON.stringify({
             modelId: model.id,
@@ -328,54 +339,8 @@ export class LlmProvider {
             this.currentMmprojPath = undefined;
             this.currentContextKey = undefined;
 
-            if (this.backend.kind === "tauri") {
-                const downloads: Array<{
-                    url: string;
-                    path: string;
-                    label: string;
-                }> = [];
-                const installed =
-                    await this.backend.isModelAvailable(modelPath);
-                log.info("LLM model installed", { modelPath, installed });
-                if (!installed) {
-                    downloads.push({
-                        url: model.url,
-                        path: modelPath,
-                        label: "model",
-                    });
-                }
-                if (mmprojUrl && mmprojPath) {
-                    const mmprojInstalled =
-                        await this.backend.isModelAvailable(mmprojPath);
-                    log.info("LLM mmproj installed", {
-                        mmprojPath,
-                        mmprojInstalled,
-                    });
-                    if (!mmprojInstalled) {
-                        downloads.push({
-                            url: mmprojUrl,
-                            path: mmprojPath,
-                            label: "mmproj",
-                        });
-                    }
-                }
-
-                log.info("LLM download plan", {
-                    downloads: downloads.map((download) => ({
-                        url: download.url,
-                        path: download.path,
-                        label: download.label,
-                    })),
-                });
-
-                if (downloads.length === 1) {
-                    const download = downloads[0];
-                    if (download) {
-                        await this.downloadModel(download.url, download.path);
-                    }
-                } else if (downloads.length > 1) {
-                    await this.downloadModelsCombined(downloads);
-                }
+            if (modelId && !(await this.modelStatus(modelId)).downloaded) {
+                await this.downloadModelNative(modelId);
             }
 
             if (emitProgress) {
@@ -538,7 +503,9 @@ export class LlmProvider {
                     id: rustPreset.id,
                     name: rustPreset.title,
                     url: rustPreset.url,
+                    sha256: rustPreset.sha256,
                     mmprojUrl: rustPreset.mmprojUrl ?? undefined,
+                    mmprojSha256: rustPreset.mmprojSha256 ?? undefined,
                 };
                 this.configDefaults = defaults;
             } catch (defaultsError) {
@@ -559,112 +526,66 @@ export class LlmProvider {
     }
 
     private resolveTargetModel(settings: ModelSettings): ModelInfo {
-        if (settings.useCustomModel && settings.modelUrl) {
+        const preset = this.resolveConfigPreset(settings.modelId);
+        if (preset) {
             return {
-                id: `custom:${settings.modelUrl}`,
-                name: "Custom model",
-                url: settings.modelUrl,
-                mmprojUrl: settings.mmprojUrl,
+                id: preset.id,
+                name: preset.title,
+                url: preset.url,
+                sha256: preset.sha256,
+                mmprojUrl: preset.mmprojUrl ?? undefined,
+                mmprojSha256: preset.mmprojSha256 ?? undefined,
             };
+        }
+        if (settings.modelId && !this.configDefaults) {
+            const fallback = [
+                ...FALLBACK_DESKTOP_MODEL_PRESETS,
+                ...FALLBACK_MOBILE_MODEL_PRESETS,
+            ].find((preset) => preset.id === settings.modelId);
+            if (fallback) {
+                return fallback;
+            }
         }
         return this.defaultModel;
     }
 
-    private resolveMmprojUrl(model: ModelInfo, settings: ModelSettings) {
-        const override = settings.mmprojUrl;
-        if (settings.useCustomModel) {
-            return override && override.trim() ? override : undefined;
+    private resolveConfigPreset(modelId: string | undefined) {
+        const defaults = this.configDefaults;
+        if (!defaults || !modelId) {
+            return undefined;
         }
-        if (override !== undefined) {
-            return override && override.trim() ? override : undefined;
-        }
-        return model.mmprojUrl;
+        return [
+            defaults.mobileDefaultModel,
+            defaults.desktopDefaultModel,
+            ...defaults.mobileModelPresets,
+            ...defaults.desktopModelPresets,
+        ].find((preset) => preset.id == modelId);
     }
 
-    private async resolveModelPath(
-        model: ModelInfo,
-        settings: ModelSettings,
-    ): Promise<string> {
-        if (this.backend.kind !== "tauri") {
-            return model.url;
-        }
-
-        const { appDataDir, join } = await import("@tauri-apps/api/path");
-
-        const baseDir = await appDataDir();
-        const modelsDir = await join(baseDir, "models");
-        const filename = filenameFromUrl(model.url);
-
-        if (settings.useCustomModel && settings.modelUrl) {
-            const hash = await hashUrl(settings.modelUrl);
-            const customDir = await join(modelsDir, "custom");
-            return join(customDir, `${hash}_${filename}`);
-        }
-
-        return join(modelsDir, filename);
+    private async modelStatus(modelId: string): Promise<TauriModelStatus> {
+        const { invoke } = await import("@tauri-apps/api/core");
+        return invoke<TauriModelStatus>("llm_model_status", { modelId });
     }
 
-    private async resolveAuxModelPath(
-        url: string,
-        settings: ModelSettings,
-    ): Promise<string> {
-        const { appDataDir, join } = await import("@tauri-apps/api/path");
-
-        const baseDir = await appDataDir();
-        const modelsDir = await join(baseDir, "models");
-        const filename = filenameFromUrl(url);
-        const hash = await hashUrl(url);
-
-        if (settings.useCustomModel) {
-            const customDir = await join(modelsDir, "custom");
-            return join(customDir, `${hash}_${filename}`);
-        }
-
-        return join(modelsDir, `${hash}_${filename}`);
-    }
-
-    private async downloadModelsCombined(
-        downloads: Array<{ url: string; path: string; label: string }>,
-    ) {
-        await this.downloadModelsNative(downloads);
-    }
-
-    private async downloadModel(
-        url: string,
-        destPath: string,
-        onProgress?: (progress: DownloadProgress) => void,
-    ) {
-        const emit = onProgress ?? ((progress) => this.emitProgress(progress));
-        emit({
-            percent: 0,
-            status: "Starting download...",
-            bytesDownloaded: 0,
-            totalBytes: 0,
-        });
-
-        await this.downloadModelsNative(
-            [{ url, path: destPath, label: "Model" }],
-            emit,
-        );
-    }
-
-    private async downloadModelsNative(
-        downloads: Array<{ url: string; path: string; label: string }>,
-        onProgress?: (progress: DownloadProgress) => void,
-    ) {
-        const emit = onProgress ?? ((progress) => this.emitProgress(progress));
+    private async downloadModelNative(modelId: string) {
         const [{ invoke }, { listen }] = await Promise.all([
             import("@tauri-apps/api/core"),
             import("@tauri-apps/api/event"),
         ]);
 
-        log.info("LLM native download start", { downloads });
+        log.info("LLM native download start", { modelId });
+        this.emitProgress({
+            percent: 0,
+            status: "Starting download...",
+            bytesDownloaded: 0,
+            totalBytes: 0,
+        });
         this.downloadActive = true;
         const unlisten = await listen<TauriLlmModelDownloadProgress>(
             "llm-download-progress",
             (event) => {
                 const progress = event.payload;
-                emit({
+                this.emitProgress({
                     percent: Math.min(99, progress.percent),
                     status: progress.status,
                     bytesDownloaded: progress.bytesDownloaded,
@@ -674,29 +595,11 @@ export class LlmProvider {
         );
 
         try {
-            await invoke("llm_download_model_files", { downloads });
-            log.info("LLM native download complete", { downloads });
+            await invoke("llm_download_model", { modelId });
+            log.info("LLM native download complete", { modelId });
         } finally {
             this.downloadActive = false;
             unlisten();
         }
     }
 }
-
-const filenameFromUrl = (url: string) => {
-    try {
-        const parsed = new URL(url);
-        const name = parsed.pathname.split("/").pop();
-        return name && name.length ? name : "model.gguf";
-    } catch {
-        return "model.gguf";
-    }
-};
-
-const hashUrl = async (url: string) => {
-    const data = new TextEncoder().encode(url);
-    const digest = await crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(digest))
-        .map((byte) => byte.toString(16).padStart(2, "0"))
-        .join("");
-};

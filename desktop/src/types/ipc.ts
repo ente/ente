@@ -88,6 +88,8 @@ export interface PendingUploads {
     filePaths: string[];
     zipItems: ZipItem[];
     preUploadSkippedFiles?: PreUploadSkippedFile[];
+    importTakeoutFavorites?: boolean;
+    includePartnerSharedFiles?: boolean;
 }
 
 export type FFmpegCommand = string[] | { default: string[]; hdr: string[] };

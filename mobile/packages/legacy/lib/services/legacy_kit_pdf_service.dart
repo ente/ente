@@ -1,6 +1,7 @@
 import "dart:convert";
 
 import "package:ente_legacy/models/legacy_kit_models.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter/services.dart";
 import "package:pdf/pdf.dart";
 import "package:pdf/widgets.dart" as pw;
@@ -10,18 +11,11 @@ class LegacyKitPdfService {
 
   static const String _shareMetadataPrefix = "ente-legacy-kit-share-v1:";
   static const String _assetRoot = "packages/ente_legacy/assets";
-  static const String _duckyAsset = "$_assetRoot/legacy_kit_sheet_ducky.png";
-  static const String _heroBgLeftAsset =
-      "$_assetRoot/legacy_kit_sheet_hero_bg_left.svg";
-  static const String _heroBgRightAsset =
-      "$_assetRoot/legacy_kit_sheet_hero_bg_right.svg";
   static const String _logoAsset = "$_assetRoot/legacy_kit_sheet_logo.svg";
   static const String _enteLogoBlackAsset =
       "$_assetRoot/legacy_kit_sheet_ente_logo_black.svg";
   static const String _enteComBadgeAsset =
       "$_assetRoot/legacy_kit_sheet_ente_com_badge.svg";
-  static const String _personIconAsset =
-      "$_assetRoot/legacy_kit_sheet_person_icon.svg";
   static const String _nunitoExtraBoldAsset =
       "$_assetRoot/fonts/Nunito-ExtraBold.ttf";
   static const String _nunitoBlackAsset = "$_assetRoot/fonts/Nunito-Black.ttf";
@@ -30,20 +24,20 @@ class LegacyKitPdfService {
   static const String _interBoldAsset = "assets/fonts/Inter-Bold.ttf";
 
   static const PdfPageFormat _sheetPageFormat = PdfPageFormat(676, 900);
-  static const PdfColor _background = PdfColor.fromInt(0xFFFAFAFA);
   static const PdfColor _green = PdfColor.fromInt(0xFF08C225);
-  static const PdfColor _blue = PdfColor.fromInt(0xFF1071FF);
-  static const PdfColor _heroBadge = PdfColor.fromInt(0xFF0A48A3);
   static const PdfColor _dark = PdfColor.fromInt(0xFF212121);
   static const PdfColor _black = PdfColor.fromInt(0xFF000000);
   static const PdfColor _white = PdfColor.fromInt(0xFFFFFFFF);
-  static const PdfColor _muted = PdfColor.fromInt(0xFF969696);
-  static const PdfColor _textLight = PdfColor.fromInt(0xFF999999);
+  static const PdfColor _card = PdfColor.fromInt(0xFFEAEAEA);
+  static const PdfColor _divider = PdfColor.fromInt(0xFFD9D9D9);
+  static const PdfColor _stepNumber = PdfColor.fromInt(0xFF5B5B5B);
+  static const PdfColor _bodyText = PdfColor(0, 0, 0, 0.86);
+  static const PdfColor _chipBackground = PdfColor.fromInt(0xFF484848);
+  static const PdfColor _chipLabel = PdfColor.fromInt(0xFFF4F4F4);
   static const PdfColor _copyCodeBackground = PdfColor.fromInt(0xFF666666);
-  static const PdfColor _chipBackground = PdfColor.fromInt(0xFF0A0A0A);
   static const List<PdfColor> _holderChipColors = [
-    PdfColor.fromInt(0xFFFFA939),
-    PdfColor.fromInt(0xFFF24822),
+    PdfColor.fromInt(0xFFFF6060),
+    PdfColor.fromInt(0xFF1EA8FE),
   ];
 
   Future<Uint8List> buildRecoverySheet({
@@ -78,15 +72,10 @@ class LegacyKitPdfService {
     final baseFont = interMedium ?? interRegular;
 
     return _SheetAssets(
-      duckyImage: await _loadImage(_duckyAsset),
-      heroBgLeftSvg: await _loadSvg(_heroBgLeftAsset),
-      heroBgRightSvg: await _loadSvg(_heroBgRightAsset),
       logoSvg: await _loadSvg(_logoAsset),
       enteLogoBlackSvg: await _loadSvg(_enteLogoBlackAsset),
       enteComBadgeSvg: await _loadSvg(_enteComBadgeAsset),
-      personIconSvg: await _loadSvg(_personIconAsset),
       nunitoExtraBold: nunitoExtraBold ?? nunitoBlack,
-      nunitoBlack: nunitoBlack,
       theme: baseFont == null && interBold == null
           ? null
           : pw.ThemeData.withFont(base: baseFont, bold: interBold ?? baseFont),
@@ -96,15 +85,6 @@ class LegacyKitPdfService {
   Future<String?> _loadSvg(String asset) async {
     try {
       return await rootBundle.loadString(asset);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<Uint8List?> _loadImage(String asset) async {
-    try {
-      final bytes = await rootBundle.load(asset);
-      return bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes);
     } catch (_) {
       return null;
     }
@@ -176,56 +156,234 @@ class LegacyKitPdfService {
       width: _sheetPageFormat.width,
       height: _sheetPageFormat.height,
       child: pw.Container(
-        color: _background,
+        color: _white,
         child: pw.Stack(
           fit: pw.StackFit.expand,
           children: [
-            pw.Positioned(left: 42, top: 66, child: _header(assets)),
-            pw.Positioned(left: 550, top: 52, child: _enteLockup(assets)),
             pw.Positioned(
-              left: 456,
-              top: 97,
-              child: pw.Text(
-                "Protect your digital life",
-                style: pw.TextStyle(
-                  color: _black,
-                  fontSize: 15.7,
-                  font: assets.nunitoExtraBold,
-                  fontWeight: pw.FontWeight.bold,
+              left: 11,
+              top: 135,
+              child: pw.Container(
+                width: 654,
+                height: 752,
+                decoration: const pw.BoxDecoration(
+                  color: _card,
+                  borderRadius: pw.BorderRadius.all(pw.Radius.circular(24)),
+                ),
+              ),
+            ),
+            pw.Positioned(left: 269, top: 52, child: _header(assets)),
+            pw.Positioned(
+              left: 84,
+              top: 178,
+              child: _accountEmailPill(accountEmail, assets),
+            ),
+            pw.Positioned(
+              left: 84,
+              top: 223,
+              child: pw.SizedBox(
+                width: 506,
+                // Holder names are unbounded, so the greeting can wrap. The
+                // description follows it in flow instead of at a fixed offset.
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.SizedBox(
+                      width: 451,
+                      child: pw.Text(
+                        "Hi ${share.partName}, store this somewhere safe",
+                        maxLines: 2,
+                        style: pw.TextStyle(
+                          color: _black,
+                          fontSize: 21,
+                          font: assets.nunitoExtraBold,
+                          fontWeight: pw.FontWeight.bold,
+                          lineSpacing: 5,
+                        ),
+                      ),
+                    ),
+                    pw.SizedBox(height: 22),
+                    pw.Text(
+                      "You can use this with any other part to get access to my "
+                      "Ente account that contains important information.",
+                      style: const pw.TextStyle(
+                        color: _bodyText,
+                        fontSize: 14.4,
+                        lineSpacing: 6.5,
+                      ),
+                    ),
+                    pw.SizedBox(height: 24),
+                    pw.Container(
+                      width: 504,
+                      height: 2,
+                      // A pill radius is clamped by Flutter but not by the PDF
+                      // renderer, which would balloon this 2pt rule into a blob.
+                      decoration: const pw.BoxDecoration(
+                        color: _divider,
+                        borderRadius: pw.BorderRadius.all(
+                          pw.Radius.circular(1),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
             pw.Positioned(
-              left: 42,
-              top: 162,
-              child: _hero(accountEmail, share, assets),
-            ),
-            pw.Positioned(
-              left: 66,
-              top: 418,
+              left: 90,
+              top: 386,
               child: pw.Text(
                 "How to recover the account?",
                 style: pw.TextStyle(
                   color: _black,
-                  fontSize: 20,
+                  fontSize: 27,
                   font: assets.nunitoExtraBold,
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
             ),
             pw.Positioned(
-              left: 42,
-              top: 453,
-              child: _recoveryBlock(
-                qrPayload,
-                copyCode,
-                otherShares,
-                recoveryUrl,
+              left: 87,
+              top: 451,
+              child: _step(
+                "1",
+                pw.Text(
+                  "Get another part from",
+                  style: const pw.TextStyle(color: _black, fontSize: 14),
+                ),
+                trailing: _holderChips(otherShares),
+              ),
+            ),
+            pw.Positioned(
+              left: 87,
+              top: 512,
+              child: _step("2", _visitLabel(recoveryUrl)),
+            ),
+            pw.Positioned(left: 217, top: 573, child: _qrCard(qrPayload)),
+            if (kDebugMode)
+              pw.Positioned(
+                left: 217,
+                top: 831,
+                child: _copyCodeBlock(copyCode),
+              ),
+            pw.Positioned(left: 573, top: 812, child: _enteLockup(assets)),
+            pw.Positioned(
+              left: 504,
+              top: 845,
+              child: pw.Text(
+                "Protect your digital life",
+                style: pw.TextStyle(
+                  color: _black,
+                  fontSize: 12.6,
+                  font: assets.nunitoExtraBold,
+                  fontWeight: pw.FontWeight.bold,
+                ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  pw.Widget _accountEmailPill(String accountEmail, _SheetAssets assets) {
+    return pw.Container(
+      width: 200,
+      height: 29,
+      alignment: pw.Alignment.center,
+      padding: const pw.EdgeInsets.symmetric(horizontal: 12),
+      decoration: const pw.BoxDecoration(
+        color: _white,
+        borderRadius: pw.BorderRadius.all(pw.Radius.circular(11)),
+      ),
+      child: pw.FittedBox(
+        fit: pw.BoxFit.scaleDown,
+        child: pw.Text(
+          accountEmail,
+          maxLines: 1,
+          style: pw.TextStyle(
+            color: _black,
+            fontSize: 16.4,
+            font: assets.nunitoExtraBold,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  pw.Widget _qrCard(String qrPayload) {
+    return pw.Container(
+      width: 242,
+      height: 242,
+      padding: const pw.EdgeInsets.all(28),
+      decoration: const pw.BoxDecoration(
+        color: _white,
+        borderRadius: pw.BorderRadius.all(pw.Radius.circular(24)),
+      ),
+      child: pw.BarcodeWidget(barcode: pw.Barcode.qrCode(), data: qrPayload),
+    );
+  }
+
+  pw.Widget _step(String number, pw.Widget label, {pw.Widget? trailing}) {
+    return pw.Row(
+      mainAxisSize: pw.MainAxisSize.min,
+      crossAxisAlignment: pw.CrossAxisAlignment.center,
+      children: [
+        pw.Container(
+          width: 24,
+          height: 24,
+          decoration: const pw.BoxDecoration(
+            color: _divider,
+            shape: pw.BoxShape.circle,
+          ),
+          child: pw.Center(
+            child: pw.Text(
+              number,
+              style: const pw.TextStyle(color: _stepNumber, fontSize: 14),
+            ),
+          ),
+        ),
+        pw.SizedBox(width: 16),
+        label,
+        if (trailing != null) ...[pw.SizedBox(width: 24), trailing],
+      ],
+    );
+  }
+
+  pw.Widget _visitLabel(String recoveryUrl) {
+    return pw.RichText(
+      text: pw.TextSpan(
+        style: const pw.TextStyle(color: _black, fontSize: 14),
+        children: [
+          const pw.TextSpan(text: "Visit "),
+          pw.TextSpan(
+            text: displayRecoveryUrl(recoveryUrl),
+            style: const pw.TextStyle(
+              color: _black,
+              decoration: pw.TextDecoration.underline,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _copyCodeBlock(String copyCode) {
+    return pw.Container(
+      width: 242,
+      height: 56,
+      padding: const pw.EdgeInsets.all(6),
+      decoration: pw.BoxDecoration(
+        color: _copyCodeBackground,
+        border: pw.Border.all(
+          color: _white,
+          width: 1,
+          style: pw.BorderStyle.dashed,
+        ),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
+      ),
+      child: pw.Center(child: _copyCodeText(copyCode)),
     );
   }
 
@@ -292,26 +450,51 @@ class LegacyKitPdfService {
 
   pw.Widget _header(_SheetAssets assets) {
     final logoSvg = assets.logoSvg;
+    final enteLogoSvg = assets.enteLogoBlackSvg;
     return pw.Row(
       mainAxisSize: pw.MainAxisSize.min,
-      crossAxisAlignment: pw.CrossAxisAlignment.center,
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        logoSvg == null
-            ? _fallbackHeaderLogo()
-            : pw.SizedBox(
-                width: 29.4,
-                height: 30.4,
-                child: pw.SvgImage(svg: logoSvg),
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(top: 2),
+          child: logoSvg == null
+              ? _fallbackHeaderLogo()
+              : pw.SizedBox(
+                  width: 29.4,
+                  height: 30.4,
+                  child: pw.SvgImage(svg: logoSvg),
+                ),
+        ),
+        pw.SizedBox(width: 10.6),
+        pw.Column(
+          mainAxisSize: pw.MainAxisSize.min,
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            enteLogoSvg == null
+                ? pw.Text(
+                    "ente",
+                    style: pw.TextStyle(
+                      color: _dark,
+                      fontSize: 14,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  )
+                : pw.SizedBox(
+                    width: 44,
+                    height: 13.1,
+                    child: pw.SvgImage(svg: enteLogoSvg),
+                  ),
+            pw.SizedBox(height: 4),
+            pw.Text(
+              "Legacy Kit",
+              style: pw.TextStyle(
+                color: const PdfColor.fromInt(0xFF1C1C1C),
+                fontSize: 20,
+                font: assets.nunitoExtraBold,
+                fontWeight: pw.FontWeight.bold,
               ),
-        pw.SizedBox(width: 10),
-        pw.Text(
-          "Legacy Kit",
-          style: pw.TextStyle(
-            color: const PdfColor.fromInt(0xFF1C1C1C),
-            fontSize: 20,
-            font: assets.nunitoExtraBold,
-            fontWeight: pw.FontWeight.bold,
-          ),
+            ),
+          ],
         ),
       ],
     );
@@ -338,306 +521,15 @@ class LegacyKitPdfService {
     );
   }
 
-  pw.Widget _hero(
-    String accountEmail,
-    LegacyKitShare share,
-    _SheetAssets assets,
-  ) {
-    return pw.ClipRRect(
-      horizontalRadius: 24,
-      verticalRadius: 24,
-      child: pw.Container(
-        width: 592,
-        height: 218,
-        color: _blue,
-        child: pw.Stack(
-          fit: pw.StackFit.expand,
-          children: [
-            if (assets.heroBgLeftSvg != null)
-              pw.Positioned(
-                left: 13,
-                top: -24,
-                child: pw.SizedBox(
-                  width: 388,
-                  height: 253,
-                  child: pw.SvgImage(svg: assets.heroBgLeftSvg!),
-                ),
-              ),
-            if (assets.heroBgRightSvg != null)
-              pw.Positioned(
-                left: 400.5,
-                top: -6.5,
-                child: pw.SizedBox(
-                  width: 155,
-                  height: 139,
-                  child: pw.SvgImage(svg: assets.heroBgRightSvg!),
-                ),
-              ),
-            pw.Positioned(
-              left: 24,
-              top: 24,
-              child: _heroCopy(accountEmail, share, assets),
-            ),
-            if (assets.duckyImage != null)
-              pw.Positioned(
-                left: 398,
-                top: 37,
-                child: pw.Image(
-                  pw.MemoryImage(assets.duckyImage!),
-                  width: 158,
-                  height: 152,
-                  fit: pw.BoxFit.contain,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  pw.Widget _heroCopy(
-    String accountEmail,
-    LegacyKitShare share,
-    _SheetAssets assets,
-  ) {
-    return pw.SizedBox(
-      width: 344,
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            "HELD BY",
-            style: const pw.TextStyle(
-              color: _white,
-              fontSize: 14,
-              letterSpacing: 2.24,
-            ),
-          ),
-          pw.SizedBox(height: 9),
-          pw.Text(
-            share.partName,
-            style: pw.TextStyle(
-              color: _white,
-              fontSize: 32,
-              font: assets.nunitoExtraBold,
-              fontWeight: pw.FontWeight.bold,
-              lineSpacing: 0,
-            ),
-          ),
-          pw.SizedBox(height: 12),
-          _legacyKitBadge(accountEmail, assets),
-          pw.SizedBox(height: 12),
-          pw.Text(
-            "Store this somewhere safe",
-            style: pw.TextStyle(
-              color: _white,
-              fontSize: 16,
-              font: assets.nunitoBlack,
-              fontWeight: pw.FontWeight.bold,
-              lineSpacing: 3,
-            ),
-          ),
-          pw.SizedBox(height: 6),
-          pw.Text(
-            "This is part of a legacy kit and can be used with any other part to\nget access to $accountEmail's Ente account",
-            style: const pw.TextStyle(
-              color: PdfColor(1, 1, 1, 0.86),
-              fontSize: 11,
-              lineSpacing: 2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  pw.Widget _legacyKitBadge(String accountEmail, _SheetAssets assets) {
-    return pw.SizedBox(
-      width: 278,
-      height: 32,
-      child: pw.Stack(
-        children: [
-          pw.Positioned.fill(
-            child: pw.Container(
-              decoration: const pw.BoxDecoration(
-                color: _heroBadge,
-                borderRadius: pw.BorderRadius.all(pw.Radius.circular(12)),
-              ),
-            ),
-          ),
-          pw.Positioned(left: 15, top: 10, child: _legacyKitBadgeIcon(assets)),
-          pw.Positioned(
-            left: 31,
-            top: 8,
-            child: pw.SizedBox(
-              width: 237,
-              height: 16,
-              child: pw.Center(
-                child: pw.FittedBox(
-                  fit: pw.BoxFit.scaleDown,
-                  child: pw.Text(
-                    "Legacy Kit for $accountEmail",
-                    maxLines: 1,
-                    style: const pw.TextStyle(color: _white, fontSize: 14),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  pw.Widget _legacyKitBadgeIcon(_SheetAssets assets) {
-    final personIconSvg = assets.personIconSvg;
-    if (personIconSvg != null) {
-      return pw.SizedBox(
-        width: 9,
-        height: 11,
-        child: pw.SvgImage(svg: personIconSvg),
-      );
-    }
-    return pw.SizedBox(
-      width: 9,
-      height: 11,
-      child: pw.Stack(
-        children: [
-          pw.Positioned(
-            left: 2.2,
-            top: 0,
-            child: pw.Container(
-              width: 4.6,
-              height: 5.4,
-              decoration: const pw.BoxDecoration(
-                color: _white,
-                shape: pw.BoxShape.circle,
-              ),
-            ),
-          ),
-          pw.Positioned(
-            left: 0,
-            top: 5.6,
-            child: pw.Container(
-              width: 9,
-              height: 5.4,
-              decoration: const pw.BoxDecoration(
-                color: _white,
-                borderRadius: pw.BorderRadius.all(pw.Radius.circular(4)),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  pw.Widget _recoveryBlock(
-    String qrPayload,
-    String copyCode,
-    List<LegacyKitShare> otherShares,
-    String recoveryUrl,
-  ) {
-    return pw.Container(
-      width: 592,
-      height: 406,
-      padding: const pw.EdgeInsets.all(24),
-      decoration: const pw.BoxDecoration(
-        color: _dark,
-        borderRadius: pw.BorderRadius.all(pw.Radius.circular(24)),
-      ),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.center,
-        children: [
-          pw.SizedBox(
-            width: 242,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Container(
-                  width: 200,
-                  height: 200,
-                  padding: const pw.EdgeInsets.all(25),
-                  decoration: const pw.BoxDecoration(
-                    color: _white,
-                    borderRadius: pw.BorderRadius.all(pw.Radius.circular(20)),
-                  ),
-                  child: pw.BarcodeWidget(
-                    barcode: pw.Barcode.qrCode(),
-                    data: qrPayload,
-                  ),
-                ),
-                pw.SizedBox(height: 32),
-                pw.Container(
-                  width: 242,
-                  height: 126,
-                  padding: const pw.EdgeInsets.all(12),
-                  decoration: pw.BoxDecoration(
-                    color: _copyCodeBackground,
-                    border: pw.Border.all(
-                      color: _white,
-                      width: 1,
-                      style: pw.BorderStyle.dashed,
-                    ),
-                    borderRadius: const pw.BorderRadius.all(
-                      pw.Radius.circular(12),
-                    ),
-                  ),
-                  child: pw.Center(child: _copyCodeText(copyCode)),
-                ),
-              ],
-            ),
-          ),
-          pw.Spacer(),
-          pw.SizedBox(
-            width: 266,
-            height: 358,
-            child: pw.Column(
-              mainAxisAlignment: pw.MainAxisAlignment.center,
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                _instruction(
-                  "1.",
-                  "Get another part of the kit from",
-                  extra: _holderChips(otherShares),
-                ),
-                pw.SizedBox(height: 31),
-                _visitInstruction(recoveryUrl),
-                pw.SizedBox(height: 31),
-                _instruction("3.", "Upload both parts"),
-                pw.SizedBox(height: 31),
-                _instruction(
-                  "4.",
-                  "Change the password to gain\naccount access",
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  pw.Widget _instruction(String number, String text, {pw.Widget? extra}) {
-    return _instructionContent(
-      number,
-      pw.Text(
-        text,
-        style: const pw.TextStyle(color: _white, fontSize: 14, lineSpacing: 3),
-      ),
-      extra: extra,
-    );
-  }
-
   pw.Widget _copyCodeText(String copyCode) {
     return pw.SizedBox(
-      width: 218,
+      width: 226,
       child: pw.Column(
         mainAxisSize: pw.MainAxisSize.min,
         children: _displayCopyCodeLines(copyCode)
             .map(
               (line) => pw.SizedBox(
-                height: 17,
+                height: 11,
                 child: pw.FittedBox(
                   fit: pw.BoxFit.scaleDown,
                   child: pw.Text(
@@ -646,8 +538,8 @@ class LegacyKitPdfService {
                     softWrap: false,
                     maxLines: 1,
                     style: pw.TextStyle(
-                      color: _background,
-                      fontSize: 10,
+                      color: _white,
+                      fontSize: 7,
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
@@ -671,63 +563,6 @@ class LegacyKitPdfService {
       chunks.add(compactCode.substring(index, end));
     }
     return chunks;
-  }
-
-  pw.Widget _visitInstruction(String recoveryUrl) {
-    const textStyle = pw.TextStyle(color: _white, fontSize: 14, lineSpacing: 3);
-    return _instructionContent(
-      "2.",
-      pw.RichText(
-        text: pw.TextSpan(
-          style: textStyle,
-          children: [
-            const pw.TextSpan(text: "Visit "),
-            pw.TextSpan(
-              text: displayRecoveryUrl(recoveryUrl),
-              style: const pw.TextStyle(
-                color: _white,
-                decoration: pw.TextDecoration.underline,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  pw.Widget _instructionContent(
-    String number,
-    pw.Widget content, {
-    pw.Widget? extra,
-  }) {
-    return pw.Row(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.SizedBox(
-          width: 14,
-          child: pw.Text(
-            number,
-            style: const pw.TextStyle(color: _muted, fontSize: 14),
-          ),
-        ),
-        pw.SizedBox(width: 10),
-        pw.Expanded(
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              content,
-              if (extra != null) ...[
-                pw.SizedBox(height: 8),
-                pw.Padding(
-                  padding: const pw.EdgeInsets.only(left: 8),
-                  child: extra,
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
   }
 
   pw.Widget _holderChips(List<LegacyKitShare> shares) {
@@ -774,7 +609,7 @@ class LegacyKitPdfService {
           pw.SizedBox(width: 6),
           pw.Text(
             share.partName,
-            style: const pw.TextStyle(color: _textLight, fontSize: 12),
+            style: const pw.TextStyle(color: _chipLabel, fontSize: 12),
           ),
         ],
       ),
@@ -788,27 +623,17 @@ class LegacyKitPdfService {
 }
 
 class _SheetAssets {
-  final Uint8List? duckyImage;
-  final String? heroBgLeftSvg;
-  final String? heroBgRightSvg;
   final String? logoSvg;
   final String? enteLogoBlackSvg;
   final String? enteComBadgeSvg;
-  final String? personIconSvg;
   final pw.Font? nunitoExtraBold;
-  final pw.Font? nunitoBlack;
   final pw.ThemeData? theme;
 
   const _SheetAssets({
-    required this.duckyImage,
-    required this.heroBgLeftSvg,
-    required this.heroBgRightSvg,
     required this.logoSvg,
     required this.enteLogoBlackSvg,
     required this.enteComBadgeSvg,
-    required this.personIconSvg,
     required this.nunitoExtraBold,
-    required this.nunitoBlack,
     required this.theme,
   });
 }

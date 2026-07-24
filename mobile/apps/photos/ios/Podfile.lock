@@ -24,6 +24,7 @@ PODS:
     - Flutter
   - ente_screen_cover (0.0.1):
     - Flutter
+  - EnteOnnxRuntime (1.27.0-r2)
   - ffmpeg_kit_custom (6.0.3)
   - ffmpeg_kit_flutter (6.0.3):
     - ffmpeg_kit_custom
@@ -178,7 +179,7 @@ PODS:
     - Flutter
   - permission_handler_apple (9.4.8):
     - Flutter
-  - photo_manager (3.7.1):
+  - photo_manager (3.10.0):
     - Flutter
     - FlutterMacOS
   - PromisesObjC (2.4.0)
@@ -262,6 +263,7 @@ DEPENDENCIES:
   - ente_qr (from `.symlinks/plugins/ente_qr/ios`)
   - ente_rust (from `.symlinks/plugins/ente_rust/ios`)
   - ente_screen_cover (from `.symlinks/plugins/ente_screen_cover/ios`)
+  - EnteOnnxRuntime (from `../../../native/onnxruntime/EnteOnnxRuntime.podspec`)
   - ffmpeg_kit_flutter (from `.symlinks/plugins/ffmpeg_kit_flutter/ios`)
   - file_saver (from `.symlinks/plugins/file_saver/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
@@ -295,7 +297,7 @@ DEPENDENCIES:
   - open_mail_app (from `.symlinks/plugins/open_mail_app/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
-  - photo_manager (from `.symlinks/plugins/photo_manager/ios`)
+  - photo_manager (from `.symlinks/plugins/photo_manager/darwin`)
   - receive_sharing_intent (from `.symlinks/plugins/receive_sharing_intent/ios`)
   - rive_native (from `.symlinks/plugins/rive_native/ios`)
   - sentry_flutter (from `.symlinks/plugins/sentry_flutter/ios`)
@@ -358,6 +360,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/ente_rust/ios"
   ente_screen_cover:
     :path: ".symlinks/plugins/ente_screen_cover/ios"
+  EnteOnnxRuntime:
+    :podspec: "../../../native/onnxruntime/EnteOnnxRuntime.podspec"
   ffmpeg_kit_flutter:
     :path: ".symlinks/plugins/ffmpeg_kit_flutter/ios"
   file_saver:
@@ -425,7 +429,7 @@ EXTERNAL SOURCES:
   permission_handler_apple:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
   photo_manager:
-    :path: ".symlinks/plugins/photo_manager/ios"
+    :path: ".symlinks/plugins/photo_manager/darwin"
   receive_sharing_intent:
     :path: ".symlinks/plugins/receive_sharing_intent/ios"
   rive_native:
@@ -466,10 +470,11 @@ SPEC CHECKSUMS:
   connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
   cupertino_http: 94ac07f5ff090b8effa6c5e2c47871d48ab7c86c
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
-  ente_photos_rust: 3ba148cb0582699855b6c154aecd41ca604ba1e8
+  ente_photos_rust: 380a324fc22445a1281e206726ccddd86582ad28
   ente_qr: 86beaf5d2644705db9b565b32dd8b82c05fb36af
   ente_rust: d0197ebd5460e8f67576579452b073d698404abe
   ente_screen_cover: 6792566774f1c83939f9c1d03ed0a1f1ded45ae4
+  EnteOnnxRuntime: 2b0a46f3b247216f991233074d030ab53c257a3f
   ffmpeg_kit_custom: 682b4f2f1ff1f8abae5a92f6c3540f2441d5be99
   ffmpeg_kit_flutter: 915b345acc97d4142e8a9a8549d177ff10f043f5
   file_saver: 6cdbcddd690cb02b0c1a0c225b37cd805c2bf8b6
@@ -515,7 +520,7 @@ SPEC CHECKSUMS:
   OrderedSet: e539b66b644ff081c73a262d24ad552a69be3a94
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   permission_handler_apple: 92d754bbaa7361d436db2d6c3c1c2a0fdcec462e
-  photo_manager: 1d80ae07a89a67dfbcae95953a1e5a24af7c3e62
+  photo_manager: 93cc83778e33d5fd49dfd7e34b73f8f5a4f10aaf
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   receive_sharing_intent: 222384f00ffe7e952bbfabaa9e3967cb87e5fe00
   rive_native: a57df296c558867395bfe82fafe857ec67640f58
@@ -537,6 +542,6 @@ SPEC CHECKSUMS:
   wakelock_plus: e29112ab3ef0b318e58cfa5c32326458be66b556
   workmanager_apple: 904529ae31e97fc5be632cf628507652294a0778
 
-PODFILE CHECKSUM: 980a2602621422bdfd82e34ef370d44ddd600fad
+PODFILE CHECKSUM: 7af4c0a38ff14aa9b6ef0b1309156a8d783a20c6
 
-COCOAPODS: 1.16.2
+COCOAPODS: 1.17.0

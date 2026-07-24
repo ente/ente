@@ -2,14 +2,12 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/models/code.dart';
-import 'package:ente_auth/ui/components/buttons/button_widget.dart';
-import 'package:ente_auth/ui/components/models/button_type.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_auth/utils/share_utils.dart';
 import 'package:ente_auth/utils/totp_util.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
@@ -46,66 +44,61 @@ class _ShareCodeDialogState extends State<ShareCodeDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(context.l10n.shareCodes),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(context.l10n.shareCodesDuration),
-          const SizedBox(height: 10),
-          DropdownButtonHideUnderline(
-            child: DropdownButton2(
-              hint: Text(context.l10n.selectAnOption),
-              items: _durationInMins
-                  .map(
-                    (item) => DropdownMenuItem<int>(
-                      value: item,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(getItemLabel(item)),
-                      ),
-                    ),
-                  )
-                  .toList(),
-              value: selectedValue,
-              onChanged: (value) {
-                setState(() {
-                  selectedValue = value ?? 2;
-                });
-              },
+    final colors = context.componentColors;
+    return Semantics(
+      identifier: 'auth_share_code_sheet',
+      child: BottomSheetComponent(
+        title: context.l10n.shareCodes,
+        closeTooltip: context.l10n.close,
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              context.l10n.shareCodesDuration,
+              style: TextStyles.body.copyWith(color: colors.textLight),
             ),
+            const SizedBox(height: Spacing.lg),
+            MenuGroupComponent(
+              showDividers: true,
+              items: [
+                for (final duration in _durationInMins)
+                  MenuComponent(
+                    title: getItemLabel(duration),
+                    selected: selectedValue == duration,
+                    trailing: RadioComponent(
+                      selected: selectedValue == duration,
+                      onChanged: (_) => _selectDuration(duration),
+                    ),
+                    onTap: () => _selectDuration(duration),
+                  ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          ButtonComponent(
+            label: context.l10n.share,
+            onTap: () async {
+              try {
+                await shareCode(selectedValue);
+                if (context.mounted) Navigator.of(context).pop();
+              } catch (e, s) {
+                logger.severe('Failed to generate shared codes', e, s);
+                if (!context.mounted) return;
+                showGenericErrorDialog(context: context, error: e).ignore();
+              }
+            },
           ),
         ],
       ),
-      actions: [
-        ButtonWidget(
-          buttonType: ButtonType.primary,
-          buttonSize: ButtonSize.large,
-          labelText: context.l10n.share,
-          onTap: () async {
-            try {
-              if (!context.mounted) return;
-              await shareCode(selectedValue);
-              if (!context.mounted) return;
-              Navigator.of(context).pop();
-            } catch (e, s) {
-              logger.severe('Failed to generate shared codes', e, s);
-              showGenericErrorDialog(context: context, error: e).ignore();
-            }
-          },
-        ),
-        const SizedBox(height: 8),
-        ButtonWidget(
-          buttonType: ButtonType.secondary,
-          buttonSize: ButtonSize.large,
-          labelText: context.l10n.cancel,
-          onTap: () async {
-            Navigator.of(context).pop();
-          },
-        ),
-      ],
     );
+  }
+
+  void _selectDuration(int duration) {
+    if (selectedValue != duration) {
+      setState(() => selectedValue = duration);
+    }
   }
 
   Future<void> shareCode(int durationInMin) async {
@@ -150,10 +143,9 @@ void showShareDialog(BuildContext context, Code code) {
   if (!code.type.canShareCodes) {
     return;
   }
-  showDialog(
+  showBottomSheetComponent<void>(
     context: context,
-    builder: (BuildContext context) {
-      return ShareCodeDialog(code: code);
-    },
+    useRootNavigator: true,
+    builder: (_) => ShareCodeDialog(code: code),
   );
 }

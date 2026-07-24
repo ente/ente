@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import io.ente.ensu.bindings.Transcriber
+import io.ente.ensu.llm.ModelDownloader
 import io.ente.ensu.designsystem.EnsuColor
 import io.ente.ensu.designsystem.EnsuSpacing
 import io.ente.ensu.device.ChatDeviceCapability
@@ -58,6 +59,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun ChatView(
     chatState: ChatState,
+    modelDownloader: ModelDownloader,
     transcriber: Transcriber,
     isDrawerOpen: Boolean,
     onMessageChange: (String) -> Unit,
@@ -87,6 +89,7 @@ fun ChatView(
     val isChatUnsupported = unsupportedCapability != null
     var pendingVoiceSessionKey by remember { mutableStateOf<String?>(null) }
     val voiceController = rememberVoiceTranscriptionController(
+        modelDownloader = modelDownloader,
         transcriber = transcriber,
         onTranscript = { transcript ->
             latestOnMessageChange(appendVoiceTranscript(latestMessageText, transcript))
@@ -102,6 +105,7 @@ fun ChatView(
     }
     val canStartVoiceInput = !chatState.isGenerating &&
         !chatState.isDownloading &&
+        chatState.isModelDownloaded &&
         !isChatUnsupported &&
         editingMessage == null
     val latestCanStartVoiceInput by rememberUpdatedState(canStartVoiceInput)
@@ -124,13 +128,13 @@ fun ChatView(
 
     val showDownloadOnboarding by remember(
         chatState.isModelDownloaded,
-        chatState.messages,
+        chatState.isModelStateKnown,
         chatState.isGenerating,
         isChatUnsupported
     ) {
         derivedStateOf {
-            !chatState.isModelDownloaded &&
-                chatState.messages.isEmpty() &&
+            chatState.isModelStateKnown &&
+                !chatState.isModelDownloaded &&
                 !chatState.isGenerating &&
                 !isChatUnsupported
         }
@@ -217,6 +221,7 @@ fun ChatView(
                         streamingParentId = chatState.streamingParentId,
                         isGenerating = chatState.isGenerating,
                         isModelDownloaded = chatState.isModelDownloaded,
+                        isModelStateKnown = chatState.isModelStateKnown,
                         isChatUnsupported = isChatUnsupported,
                         isDownloading = chatState.isDownloading,
                         downloadPercent = chatState.downloadPercent,
@@ -250,7 +255,7 @@ fun ChatView(
                             inputBarHeightDp = with(density) { coords.size.height.toDp() }
                         }
                 )
-            } else if (!showDownloadOnboarding) {
+            } else if (chatState.isModelStateKnown && !showDownloadOnboarding) {
                 MessageInput(
                     modifier = Modifier
                         .fillMaxWidth()

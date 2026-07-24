@@ -30,6 +30,7 @@ export function MinimizedUploadProgress() {
     const { dragPosition, dragHandleProps } =
         useMinimizedUploadDrag(dragSurfaceRef);
     const progress = normalizePercent(percentComplete);
+    const showUploadProgress = context.uploadPhase == "uploading";
 
     const setDragSurface = (surface: HTMLDivElement | null) => {
         dragSurfaceRef.current = surface;
@@ -62,16 +63,16 @@ export function MinimizedUploadProgress() {
                     </Box>
                     <Stack sx={{ flex: 1, minWidth: 0, gap: 0.5 }}>
                         <Typography sx={minimizedTitleSx}>
-                            {context.uploadPhase == "cancelling"
-                                ? t("file_upload")
+                            {showUploadProgress
+                                ? `${progress.toLocaleString()}% uploaded`
                                 : context.uploadPhase == "done"
                                   ? uploadStatusText(context.uploadPhase)
-                                  : `${progress.toLocaleString()}% uploaded`}
+                                  : t("file_upload")}
                         </Typography>
                         <Typography sx={minimizedSubtitleSx}>
-                            {context.uploadPhase == "cancelling"
-                                ? uploadStatusText(context.uploadPhase)
-                                : uploadCountsText(context)}
+                            {showUploadProgress || context.uploadPhase == "done"
+                                ? uploadCountsText(context)
+                                : uploadStatusText(context.uploadPhase)}
                         </Typography>
                     </Stack>
                     <IconButton

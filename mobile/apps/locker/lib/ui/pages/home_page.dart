@@ -6,6 +6,7 @@ import "package:ente_accounts/services/user_service.dart";
 import "package:ente_components/ente_components.dart";
 import 'package:ente_events/event_bus.dart';
 import "package:ente_events/models/trigger_logout_event.dart";
+import "package:ente_legacy/events/legacy_kit_created_event.dart";
 import 'package:ente_ui/utils/dialog_util.dart';
 import "package:ente_utils/email_util.dart";
 import 'package:flutter/material.dart';
@@ -20,11 +21,13 @@ import 'package:locker/services/collections/collections_service.dart';
 import 'package:locker/services/collections/models/collection.dart';
 import 'package:locker/services/configuration.dart';
 import 'package:locker/services/files/sync/models/file.dart';
+import 'package:locker/services/local_settings.dart';
 import "package:locker/states/user_details_state.dart";
 import "package:locker/ui/components/empty_state_widget.dart";
 import "package:locker/ui/components/home_empty_state_widget.dart";
 import "package:locker/ui/components/legacy_setup_banner.dart";
 import 'package:locker/ui/components/recents_section_widget.dart';
+import "package:locker/ui/components/save_to_locker_empty_state_widget.dart";
 import 'package:locker/ui/components/search_result_view.dart';
 import "package:locker/ui/drawer/drawer_page.dart";
 import 'package:locker/ui/mixins/search_mixin.dart';
@@ -104,15 +107,11 @@ class LockerHomeHeader extends StatelessWidget {
                 onTap: onLegacyTapped,
                 child: SizedBox.square(
                   dimension: 24,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(3, 4, 3, 3.5),
-                    child: SvgPicture.asset(
-                      'assets/svg/legacy_heartbeat_icon.svg',
-                      fit: BoxFit.fill,
-                      colorFilter: ColorFilter.mode(
-                        colors.textBase,
-                        BlendMode.srcIn,
-                      ),
+                  child: SvgPicture.asset(
+                    'assets/svg/legacy_heartbeat_icon.svg',
+                    colorFilter: ColorFilter.mode(
+                      colors.textBase,
+                      BlendMode.srcIn,
                     ),
                   ),
                 ),
@@ -167,6 +166,9 @@ class _HomePageState extends UploaderPageState<HomePage>
   bool _hasCompletedInitialLoad = false;
   bool _isSettingsOpen = false;
   bool get _isSyncing => !_hasCompletedInitialLoad || _isLoading;
+  bool get _isHomeEmptyState => _error == null && _recentFiles.isEmpty;
+  bool get _showsLegacySetupEmptyState =>
+      _isHomeEmptyState && !_hasSetupLegacyKit;
 
   List<Collection> _collections = [];
   List<Collection> _filteredCollections = [];
@@ -179,11 +181,13 @@ class _HomePageState extends UploaderPageState<HomePage>
   String? _error;
   // Accumulated rightward drag distance for the open-drawer swipe.
   double _drawerDragDx = 0;
+  late bool _hasSetupLegacyKit;
   final _logger = Logger('HomePage');
   StreamSubscription? _mediaStreamSubscription;
   StreamSubscription<Uri>? _deepLinkSubscription;
   StreamSubscription<TriggerLogoutEvent>? _triggerLogoutSubscription;
   StreamSubscription<CollectionsUpdatedEvent>? _collectionsUpdatedSubscription;
+  StreamSubscription<LegacyKitCreatedEvent>? _legacyKitCreatedSubscription;
 
   @override
   void onFileUploadComplete() {
@@ -220,12 +224,17 @@ class _HomePageState extends UploaderPageState<HomePage>
   }
 
   List<Collection> _filterOutUncategorized(List<Collection> collections) {
-    return CollectionSortUtil.filterAndSortCollections(collections);
+    return CollectionSortUtil.filterAndSortCollections(
+      collections,
+      Configuration.instance.getUserID()!,
+    );
   }
 
   @override
   void initState() {
     super.initState();
+
+    _hasSetupLegacyKit = LocalSettings.instance.hasSetupLegacyKit;
 
     _loadCollections();
 
@@ -267,6 +276,18 @@ class _HomePageState extends UploaderPageState<HomePage>
     ) async {
       await _autoLogoutAlert();
     });
+
+    _legacyKitCreatedSubscription = Bus.instance
+        .on<LegacyKitCreatedEvent>()
+        .listen((_) => unawaited(_evaluateLegacyKit()));
+  }
+
+  Future<void> _evaluateLegacyKit() async {
+    if (_hasSetupLegacyKit) return;
+    if (await hasLegacyKit() != true) return;
+    await LocalSettings.instance.setHasSetupLegacyKit(true);
+    if (!mounted) return;
+    setState(() => _hasSetupLegacyKit = true);
   }
 
   @override
@@ -278,6 +299,7 @@ class _HomePageState extends UploaderPageState<HomePage>
     _deepLinkSubscription?.cancel();
     _triggerLogoutSubscription?.cancel();
     _collectionsUpdatedSubscription?.cancel();
+    _legacyKitCreatedSubscription?.cancel();
     disposeSharing();
     super.dispose();
   }
@@ -489,6 +511,9 @@ class _HomePageState extends UploaderPageState<HomePage>
           _isLoading = false;
           _hasCompletedInitialLoad = hasCompletedFirstSync;
         });
+        if (_recentFiles.isEmpty) {
+          unawaited(_evaluateLegacyKit());
+        }
       }
     } catch (error) {
       if (mounted) {
@@ -556,7 +581,6 @@ class _HomePageState extends UploaderPageState<HomePage>
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
-    final isHomeEmptyState = _error == null && _recentFiles.isEmpty;
     return UserDetailsStateWidget(
       child: ListenableBuilder(
         listenable: _selectedFiles,
@@ -615,7 +639,7 @@ class _HomePageState extends UploaderPageState<HomePage>
                           scaffoldKey.currentState?.openDrawer();
                         }
                       },
-                      child: _buildHomeContent(isHomeEmptyState),
+                      child: _buildHomeContent(),
                     ),
                     ValueListenableBuilder<List<EnteFile>>(
                       valueListenable: _displayedFilesNotifier,
@@ -631,7 +655,7 @@ class _HomePageState extends UploaderPageState<HomePage>
                     ),
                   ],
                 ),
-                floatingActionButton: isSearchActive || isHomeEmptyState
+                floatingActionButton: isSearchActive || _isHomeEmptyState
                     ? null
                     : ListenableBuilder(
                         listenable: _selectedFiles,
@@ -702,18 +726,7 @@ class _HomePageState extends UploaderPageState<HomePage>
         final scrollBottomPadding = MediaQuery.of(context).padding.bottom + 120;
 
         return _recentFiles.isEmpty
-            ? SizedBox.expand(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: HomeEmptyStateWidget(
-                      isLoading: _isSyncing,
-                      onSetupLegacy: () => openLegacyPage(context),
-                      onSaveToLocker: _openSavePage,
-                    ),
-                  ),
-                ),
-              )
+            ? _buildEmptyState(scrollBottomPadding)
             : SingleChildScrollView(
                 controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -740,15 +753,41 @@ class _HomePageState extends UploaderPageState<HomePage>
     );
   }
 
-  Widget _buildHomeContent(bool isHomeEmptyState) {
+  Widget _buildEmptyState(double scrollBottomPadding) {
+    if (_hasSetupLegacyKit && !_isSyncing) {
+      return SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.only(
+          left: Spacing.xl,
+          right: Spacing.xl,
+          bottom: scrollBottomPadding,
+        ),
+        child: SaveToLockerEmptyStateWidget(onUploadDocument: addFile),
+      );
+    }
+    return SizedBox.expand(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: HomeEmptyStateWidget(
+            isLoading: _isSyncing,
+            onSetupLegacy: () => openLegacyFromHome(context),
+            onSaveToLocker: _openSavePage,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHomeContent() {
     return Column(
       children: [
         LockerHomeHeader(
           scaffoldKey: scaffoldKey,
-          onLegacyTapped: () => unawaited(openLegacyPage(context)),
+          onLegacyTapped: () => unawaited(openLegacyFromHome(context)),
           isSyncing: _isSyncing,
         ),
-        if (!isHomeEmptyState) _buildSearchBar(),
+        if (!_showsLegacySetupEmptyState) _buildSearchBar(),
         Expanded(child: _buildBody()),
       ],
     );

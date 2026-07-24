@@ -17,12 +17,13 @@ Future<void> pumpComponent(
   double width = 420,
   double? height,
   TextScaler textScaler = TextScaler.noScaling,
+  bool boldText = false,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: ComponentTheme.lightTheme(),
       home: MediaQuery(
-        data: MediaQueryData(textScaler: textScaler),
+        data: MediaQueryData(textScaler: textScaler, boldText: boldText),
         child: Scaffold(
           body: Align(
             alignment: Alignment.topLeft,
@@ -608,6 +609,39 @@ void main() {
     expect(
       tester.getSize(find.byType(TooltipBubbleComponent)).width,
       lessThan(160),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('SliverAppBarComponent measures titles with bold text style', (
+    tester,
+  ) async {
+    const title = 'Summer Vacation';
+
+    await pumpComponent(
+      tester,
+      CustomScrollView(
+        slivers: [
+          const SliverAppBarComponent(
+            title: title,
+            actions: [Icon(Icons.more_vert)],
+          ),
+          SliverList.builder(
+            itemCount: 8,
+            itemBuilder: (context, index) {
+              return SizedBox(height: 60, child: Text('Item $index'));
+            },
+          ),
+        ],
+      ),
+      width: 320,
+      height: 360,
+      boldText: true,
+    );
+
+    expect(
+      tester.widget<Text>(find.text(title)).style?.fontWeight,
+      FontWeight.bold,
     );
     expect(tester.takeException(), isNull);
   });
