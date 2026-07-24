@@ -613,19 +613,19 @@ func (repo *CollectionRepository) UnShare(collectionID int64, toUserID int64) er
 
 // AddFiles adds files to a collection
 func (repo *CollectionRepository) AddFiles(
+	ctx context.Context,
 	collectionID int64,
 	collectionOwnerID int64,
 	files []ente.CollectionFileItem,
 	fileOwnerID int64,
 ) error {
 	updationTime := time.Microseconds()
-	context := context.Background()
-	tx, err := repo.DB.BeginTx(context, nil)
+	tx, err := repo.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	for _, file := range files {
-		_, err := tx.ExecContext(context, `INSERT INTO collection_files
+		_, err := tx.ExecContext(ctx, `INSERT INTO collection_files
             (collection_id, file_id, encrypted_key, key_decryption_nonce, is_deleted, updation_time, c_owner_id, f_owner_id)
             VALUES($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT ON CONSTRAINT unique_collection_files_cid_fid
@@ -645,7 +645,7 @@ func (repo *CollectionRepository) AddFiles(
 			return stacktrace.Propagate(err, "")
 		}
 	}
-	_, err = tx.ExecContext(context, `UPDATE collections SET updation_time = $1
+	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
 		 WHERE collection_id = $2`, updationTime, collectionID)
 	if err != nil {
 		tx.Rollback()
