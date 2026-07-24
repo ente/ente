@@ -1,7 +1,7 @@
 //! WASM bindings for authentication and account crypto.
 
-use ente_accounts::auth as core_auth;
-use ente_core::crypto as core_crypto;
+use ente_accounts::auth;
+use ente_core::b64;
 use serde_wasm_bindgen as swb;
 use wasm_bindgen::prelude::*;
 
@@ -27,9 +27,9 @@ impl AuthError {
     }
 }
 
-impl From<core_auth::AuthError> for AuthError {
-    fn from(e: core_auth::AuthError) -> Self {
-        use core_auth::AuthError as E;
+impl From<auth::Error> for AuthError {
+    fn from(e: auth::Error) -> Self {
+        use auth::Error as E;
 
         let code = match &e {
             E::IncorrectPassword => "incorrect_password",
@@ -185,13 +185,13 @@ pub fn auth_derive_srp_credentials(
     password: &str,
     srp_attrs: JsValue,
 ) -> Result<SrpCredentials, AuthError> {
-    let srp_attrs: core_auth::SrpAttributes = swb::from_value(srp_attrs)?;
+    let srp_attrs: auth::SrpAttributes = swb::from_value(srp_attrs)?;
 
-    let creds = core_auth::derive_srp_credentials(password, &srp_attrs)?;
+    let creds = auth::derive_srp_credentials(password, &srp_attrs)?;
 
     Ok(SrpCredentials {
-        kek: core_crypto::encode_b64(&creds.kek),
-        login_key: core_crypto::encode_b64(&creds.login_key),
+        kek: b64::encode(&creds.kek),
+        login_key: b64::encode(&creds.login_key),
     })
 }
 
@@ -205,17 +205,17 @@ pub fn auth_derive_kek(
     mem_limit: u32,
     ops_limit: u32,
 ) -> Result<String, AuthError> {
-    let kek = core_auth::derive_kek(password, kek_salt_b64, mem_limit, ops_limit)?;
-    Ok(core_crypto::encode_b64(&kek))
+    let kek = auth::derive_kek(password, kek_salt_b64, mem_limit, ops_limit)?;
+    Ok(b64::encode(&kek))
 }
 
 /// Generate a KEK using the current sensitive web derivation policy.
 #[wasm_bindgen]
 pub fn auth_generate_sensitive_kek(password: &str) -> Result<GeneratedKek, AuthError> {
-    let generated = core_auth::generate_sensitive_kek(password)?;
+    let generated = auth::generate_sensitive_kek(password)?;
     Ok(GeneratedKek {
-        key: core_crypto::encode_b64(&generated.key),
-        salt: core_crypto::encode_b64(&generated.salt),
+        key: b64::encode(&generated.key),
+        salt: b64::encode(&generated.salt),
         mem_limit: generated.mem_limit,
         ops_limit: generated.ops_limit,
     })
@@ -224,10 +224,10 @@ pub fn auth_generate_sensitive_kek(password: &str) -> Result<GeneratedKek, AuthE
 /// Generate a KEK using the current interactive web derivation policy.
 #[wasm_bindgen]
 pub fn auth_generate_interactive_kek(password: &str) -> Result<GeneratedKek, AuthError> {
-    let generated = core_auth::generate_interactive_kek(password)?;
+    let generated = auth::generate_interactive_kek(password)?;
     Ok(GeneratedKek {
-        key: core_crypto::encode_b64(&generated.key),
-        salt: core_crypto::encode_b64(&generated.salt),
+        key: b64::encode(&generated.key),
+        salt: b64::encode(&generated.salt),
         mem_limit: generated.mem_limit,
         ops_limit: generated.ops_limit,
     })
@@ -239,30 +239,30 @@ pub fn auth_generate_srp_setup(
     kek_b64: &str,
     srp_user_id: &str,
 ) -> Result<GeneratedSrpSetup, AuthError> {
-    let kek = core_crypto::decode_b64(kek_b64).map_err(|e| AuthError {
+    let kek = b64::decode(kek_b64).map_err(|e| AuthError {
         code: "decode".to_string(),
         message: format!("kek: {}", e),
     })?;
 
-    let generated = core_auth::generate_srp_setup(&kek, srp_user_id)?;
+    let generated = auth::generate_srp_setup(&kek, srp_user_id)?;
     Ok(GeneratedSrpSetup {
-        srp_salt: core_crypto::encode_b64(&generated.srp_salt),
-        srp_verifier: core_crypto::encode_b64(&generated.srp_verifier),
-        login_sub_key: core_crypto::encode_b64(&generated.login_sub_key),
+        srp_salt: b64::encode(&generated.srp_salt),
+        srp_verifier: b64::encode(&generated.srp_verifier),
+        login_sub_key: b64::encode(&generated.login_sub_key),
     })
 }
 
 /// Convert a recovery key mnemonic or legacy hex string into base64 bytes.
 #[wasm_bindgen]
 pub fn auth_recovery_key_from_mnemonic_or_hex(input: &str) -> Result<String, AuthError> {
-    let recovery_key = core_auth::recovery_key_from_mnemonic_or_hex(input)?;
-    Ok(core_crypto::encode_b64(&recovery_key))
+    let recovery_key = auth::recovery_key_from_mnemonic_or_hex(input)?;
+    Ok(b64::encode(&recovery_key))
 }
 
 /// Convert a base64-encoded recovery key into its English mnemonic.
 #[wasm_bindgen]
 pub fn auth_recovery_key_to_mnemonic(recovery_key_b64: &str) -> Result<String, AuthError> {
-    core_auth::recovery_key_to_mnemonic(recovery_key_b64).map_err(Into::into)
+    auth::recovery_key_to_mnemonic(recovery_key_b64).map_err(Into::into)
 }
 
 /// Decrypt the master key, secret key and auth token.
@@ -275,19 +275,19 @@ pub fn auth_decrypt_secrets(
     key_attrs: JsValue,
     encrypted_token_b64: &str,
 ) -> Result<DecryptedSecrets, AuthError> {
-    let kek = core_crypto::decode_b64(kek_b64).map_err(|e| AuthError {
+    let kek = b64::decode(kek_b64).map_err(|e| AuthError {
         code: "decode".to_string(),
         message: format!("kek: {}", e),
     })?;
 
-    let key_attrs: core_auth::KeyAttributes = swb::from_value(key_attrs)?;
+    let key_attrs: auth::KeyAttributes = swb::from_value(key_attrs)?;
 
-    let secrets = core_auth::decrypt_secrets(&kek, &key_attrs, encrypted_token_b64)?;
+    let secrets = auth::decrypt_secrets(&kek, &key_attrs, encrypted_token_b64)?;
 
     Ok(DecryptedSecrets {
-        master_key: core_crypto::encode_b64(&secrets.master_key),
-        secret_key: core_crypto::encode_b64(&secrets.secret_key),
-        token: core_crypto::encode_b64_url_safe(&secrets.token),
+        master_key: b64::encode(&secrets.master_key),
+        secret_key: b64::encode(&secrets.secret_key),
+        token: b64::encode_url_safe(&secrets.token),
     })
 }
 
@@ -321,17 +321,17 @@ pub fn auth_decrypt_keys_only(
     kek_b64: &str,
     key_attrs: JsValue,
 ) -> Result<DecryptedKeys, AuthError> {
-    let kek = core_crypto::decode_b64(kek_b64).map_err(|e| AuthError {
+    let kek = b64::decode(kek_b64).map_err(|e| AuthError {
         code: "decode".to_string(),
         message: format!("kek: {}", e),
     })?;
-    let key_attrs: core_auth::KeyAttributes = swb::from_value(key_attrs)?;
+    let key_attrs: auth::KeyAttributes = swb::from_value(key_attrs)?;
 
-    let (master_key, secret_key) = core_auth::decrypt_keys_only(&kek, &key_attrs)?;
+    let (master_key, secret_key) = auth::decrypt_keys_only(&kek, &key_attrs)?;
 
     Ok(DecryptedKeys {
-        master_key: core_crypto::encode_b64(&master_key),
-        secret_key: core_crypto::encode_b64(&secret_key),
+        master_key: b64::encode(&master_key),
+        secret_key: b64::encode(&secret_key),
     })
 }
 
@@ -344,7 +344,7 @@ pub fn auth_decrypt_keys_only(
 /// - Receive `srpM2` from server, verify
 #[wasm_bindgen]
 pub struct SrpSession {
-    inner: core_auth::SrpSession,
+    inner: auth::SrpSession,
 }
 
 #[wasm_bindgen]
@@ -358,32 +358,32 @@ impl SrpSession {
         srp_salt_b64: &str,
         login_key_b64: &str,
     ) -> Result<SrpSession, AuthError> {
-        let srp_salt = core_crypto::decode_b64(srp_salt_b64)
-            .map_err(|e| core_auth::AuthError::Decode(format!("srp_salt: {}", e)))?;
-        let login_key = core_crypto::decode_b64(login_key_b64)
-            .map_err(|e| core_auth::AuthError::Decode(format!("login_key: {}", e)))?;
+        let srp_salt = b64::decode(srp_salt_b64)
+            .map_err(|e| auth::Error::Decode(format!("srp_salt: {}", e)))?;
+        let login_key = b64::decode(login_key_b64)
+            .map_err(|e| auth::Error::Decode(format!("login_key: {}", e)))?;
 
-        let inner = core_auth::SrpSession::new(srp_user_id, &srp_salt, &login_key)?;
+        let inner = auth::SrpSession::new(srp_user_id, &srp_salt, &login_key)?;
         Ok(Self { inner })
     }
 
     /// Get the public ephemeral value A as base64.
     pub fn public_a(&self) -> String {
-        core_crypto::encode_b64(&self.inner.public_a())
+        b64::encode(&self.inner.public_a())
     }
 
     /// Compute the client proof M1 from the server's public value B (base64).
     pub fn compute_m1(&mut self, srp_b_b64: &str) -> Result<String, AuthError> {
-        let srp_b = core_crypto::decode_b64(srp_b_b64)
-            .map_err(|e| core_auth::AuthError::Decode(format!("srpB: {}", e)))?;
+        let srp_b =
+            b64::decode(srp_b_b64).map_err(|e| auth::Error::Decode(format!("srpB: {}", e)))?;
         let m1 = self.inner.compute_m1(&srp_b)?;
-        Ok(core_crypto::encode_b64(&m1))
+        Ok(b64::encode(&m1))
     }
 
     /// Verify the server proof M2 (base64).
     pub fn verify_m2(&self, srp_m2_b64: &str) -> Result<(), AuthError> {
-        let srp_m2 = core_crypto::decode_b64(srp_m2_b64)
-            .map_err(|e| core_auth::AuthError::Decode(format!("srpM2: {}", e)))?;
+        let srp_m2 =
+            b64::decode(srp_m2_b64).map_err(|e| auth::Error::Decode(format!("srpM2: {}", e)))?;
         self.inner.verify_m2(&srp_m2)?;
         Ok(())
     }

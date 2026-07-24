@@ -2,10 +2,9 @@
 
 use ente_accounts::auth::KeyAttributes;
 use ente_contacts::{
-    ContactsCtx, ContactsError as CoreContactsError, LegacyContactState, OpenContactsCtxInput,
-    RootKeySource, WrappedRootContactKey,
+    ContactsCtx, LegacyContactState, OpenContactsCtxInput, RootKeySource, WrappedRootContactKey,
 };
-use ente_core::crypto;
+use ente_core::b64;
 use js_sys::{Object, Reflect};
 use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen as swb;
@@ -44,8 +43,8 @@ impl From<ContactsError> for JsValue {
     }
 }
 
-impl From<CoreContactsError> for ContactsError {
-    fn from(e: CoreContactsError) -> Self {
+impl From<ente_contacts::ContactsError> for ContactsError {
+    fn from(e: ente_contacts::ContactsError) -> Self {
         use ente_contacts::ErrorKind as K;
         let message = ente_core::error::chain(&e);
         match e.kind() {
@@ -127,10 +126,9 @@ impl From<ente_contacts::ContactRecord> for ContactRecordJs {
 #[wasm_bindgen]
 pub async fn contacts_open_ctx(input: JsValue) -> Result<JsValue, ContactsError> {
     let input: OpenContactsCtxJsInput = swb::from_value(input)?;
-    let master_key =
-        crypto::decode_b64(&input.master_key_b64).map_err(|e| ContactsError::Decode {
-            message: e.to_string(),
-        })?;
+    let master_key = b64::decode(&input.master_key_b64).map_err(|e| ContactsError::Decode {
+        message: e.to_string(),
+    })?;
 
     let result = ContactsCtx::open(OpenContactsCtxInput {
         base_url: input.base_url,
@@ -330,7 +328,7 @@ impl ContactsCtxHandle {
             .legacy_recovery_bundle(&recovery_id, &current_user_key_attrs)
             .await?;
         swb::to_value(&LegacyRecoveryBundleJs {
-            recovery_key: crypto::encode_b64(bundle.recovery_key.as_ref()),
+            recovery_key: b64::encode(bundle.recovery_key.as_ref()),
             user_key_attributes: bundle.user_key_attributes,
         })
         .map_err(Into::into)

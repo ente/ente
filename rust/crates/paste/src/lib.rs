@@ -1,7 +1,7 @@
+use ente_core::b64;
 use ente_core::crypto::{self, Key, argon, blob, secretbox};
 use ente_core::http::{self, Api, ApiConfig, Http};
 use serde::{Deserialize, Serialize};
-use thiserror::Error as ThisError;
 
 pub const MAX_PASTE_CHARS: usize = 4000;
 
@@ -12,13 +12,16 @@ const PASTE_GUARD_COOKIE: &str = "paste_guard";
 const PASSWORD_FRAGMENT_PREFIX: &str = "p-";
 const PASSWORD_KDF_CONTEXT: &str = "ente-paste-password-v1";
 
-#[derive(Debug, ThisError)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
     Http(#[from] http::Error),
 
     #[error(transparent)]
     Crypto(#[from] crypto::Error),
+
+    #[error("base64 decode error: {0}")]
+    Base64Decode(#[from] b64::DecodeError),
 
     #[error("incorrect paste password")]
     IncorrectPassword,
@@ -316,11 +319,11 @@ fn encrypt_with_kdf_params(
     Ok((
         key_reference,
         PastePayload {
-            encrypted_data: crypto::encode_b64(&encrypted.encrypted_data),
-            decryption_header: crypto::encode_b64(encrypted.decryption_header.as_bytes()),
-            encrypted_paste_key: crypto::encode_b64(&encrypted_paste_key.encrypted_data),
-            encrypted_paste_key_nonce: crypto::encode_b64(encrypted_paste_key.nonce.as_bytes()),
-            kdf_nonce: crypto::encode_b64(salt.as_bytes()),
+            encrypted_data: b64::encode(&encrypted.encrypted_data),
+            decryption_header: b64::encode(encrypted.decryption_header.as_bytes()),
+            encrypted_paste_key: b64::encode(&encrypted_paste_key.encrypted_data),
+            encrypted_paste_key_nonce: b64::encode(encrypted_paste_key.nonce.as_bytes()),
+            kdf_nonce: b64::encode(salt.as_bytes()),
             kdf_mem_limit: params.mem_limit,
             kdf_ops_limit: params.ops_limit,
         },
@@ -332,7 +335,7 @@ fn derive_key_encryption_key(
     password: Option<&str>,
     payload: &PastePayload,
 ) -> Result<Key> {
-    let salt = crypto::Salt::try_from_slice(&crypto::decode_b64(&payload.kdf_nonce)?)?;
+    let salt = crypto::Salt::try_from_slice(&b64::decode(&payload.kdf_nonce)?)?;
     let kdf_secret = key.kdf_secret(password)?;
     Ok(argon::derive_key(
         &kdf_secret,
@@ -345,8 +348,8 @@ fn derive_key_encryption_key(
 }
 
 fn decode_wrapped_paste_key(payload: &PastePayload) -> Result<(Vec<u8>, crypto::Nonce)> {
-    let encrypted_paste_key = crypto::decode_b64(&payload.encrypted_paste_key)?;
-    let encrypted_paste_key_nonce = crypto::decode_b64(&payload.encrypted_paste_key_nonce)?;
+    let encrypted_paste_key = b64::decode(&payload.encrypted_paste_key)?;
+    let encrypted_paste_key_nonce = b64::decode(&payload.encrypted_paste_key_nonce)?;
     if encrypted_paste_key.len() < secretbox::MAC_BYTES {
         return Err(Error::MalformedPayload);
     }
@@ -356,8 +359,8 @@ fn decode_wrapped_paste_key(payload: &PastePayload) -> Result<(Vec<u8>, crypto::
 }
 
 fn decrypt_text(paste_key: &[u8], payload: &PastePayload) -> Result<String> {
-    let encrypted_data = crypto::decode_b64(&payload.encrypted_data)?;
-    let decryption_header = crypto::decode_b64(&payload.decryption_header)?;
+    let encrypted_data = b64::decode(&payload.encrypted_data)?;
+    let decryption_header = b64::decode(&payload.decryption_header)?;
     let text: PasteText = blob::decrypt_json(
         &blob::EncryptedBlob {
             encrypted_data,
@@ -446,10 +449,7 @@ mod tests {
         payload.kdf_nonce = "not base64".to_string();
         let error = decrypt(&payload, &paste_key, Some("correct horse")).unwrap_err();
 
-        assert!(matches!(
-            error,
-            Error::Crypto(crypto::Error::Base64Decode(_))
-        ));
+        assert!(matches!(error, Error::Base64Decode(_)));
     }
 
     #[test]
@@ -460,10 +460,7 @@ mod tests {
         payload.encrypted_paste_key = "not base64".to_string();
         let error = decrypt(&payload, &paste_key, Some("correct horse")).unwrap_err();
 
-        assert!(matches!(
-            error,
-            Error::Crypto(crypto::Error::Base64Decode(_))
-        ));
+        assert!(matches!(error, Error::Base64Decode(_)));
     }
 
     #[test]

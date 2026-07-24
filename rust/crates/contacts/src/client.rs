@@ -1,6 +1,7 @@
 use std::sync::{Arc, RwLock};
 
 use ente_accounts::auth::{self, KeyAttributes, SrpSession};
+use ente_core::b64;
 use ente_core::crypto::{self, SecretVec, sealed, secretbox};
 use ente_core::http::{self, Api, ApiConfig, Auth, Http};
 use sha2::{Digest, Sha256};
@@ -487,9 +488,9 @@ impl ContactsCtx {
     }
 
     pub fn legacy_verification_id(&self, public_key_b64: &str) -> Result<String> {
-        let public_key = crypto::decode_b64(public_key_b64)?;
+        let public_key = b64::decode(public_key_b64)?;
         let digest = Sha256::digest(&public_key);
-        auth::recovery_key_to_mnemonic(&crypto::encode_b64(digest.as_slice())).map_err(Into::into)
+        auth::recovery_key_to_mnemonic(&b64::encode(digest.as_slice())).map_err(Into::into)
     }
 
     pub async fn legacy_add_contact(
@@ -503,7 +504,7 @@ impl ContactsCtx {
             .await?
             .ok_or_else(|| ContactsError::InvalidInput("legacy contact is not on Ente".into()))?;
         let recovery_key = self.current_recovery_key(current_user_key_attrs)?;
-        let recipient_public_key = crypto::decode_b64(&public_key)?;
+        let recipient_public_key = b64::decode(&public_key)?;
         let encrypted_key = sealed::seal(
             &recovery_key,
             &crypto::PublicKey::try_from_slice(&recipient_public_key)?,
@@ -513,7 +514,7 @@ impl ContactsCtx {
             .post("/emergency-contacts/add")
             .json(&LegacyAddContactRequest {
                 email: email.trim().to_string(),
-                encrypted_key: crypto::encode_b64(&encrypted_key),
+                encrypted_key: b64::encode(&encrypted_key),
                 recovery_notice_in_days,
             })
             .send()
@@ -690,7 +691,7 @@ impl ContactsCtx {
             .json::<LegacyChangePasswordResponse>()
             .await?;
 
-        let server_m2 = crypto::decode_b64(&change_response.srp_m2)?;
+        let server_m2 = b64::decode(&change_response.srp_m2)?;
         srp_session.verify_m2(&server_m2)?;
         Ok(())
     }
@@ -961,8 +962,8 @@ impl ContactsCtx {
         encrypted_key_b64: &str,
         current_user_key_attrs: &KeyAttributes,
     ) -> Result<SecretVec> {
-        let public_key = crypto::decode_b64(&current_user_key_attrs.public_key)?;
-        let encrypted_key = crypto::decode_b64(encrypted_key_b64)?;
+        let public_key = b64::decode(&current_user_key_attrs.public_key)?;
+        let encrypted_key = b64::decode(encrypted_key_b64)?;
         let secret_key = self.current_secret_key(current_user_key_attrs)?;
         let decrypted = sealed::open(
             &encrypted_key,
@@ -973,10 +974,8 @@ impl ContactsCtx {
     }
 
     fn current_secret_key(&self, current_user_key_attrs: &KeyAttributes) -> Result<SecretVec> {
-        let encrypted_secret_key =
-            crypto::decode_b64(&current_user_key_attrs.encrypted_secret_key)?;
-        let secret_key_nonce =
-            crypto::decode_b64(&current_user_key_attrs.secret_key_decryption_nonce)?;
+        let encrypted_secret_key = b64::decode(&current_user_key_attrs.encrypted_secret_key)?;
+        let secret_key_nonce = b64::decode(&current_user_key_attrs.secret_key_decryption_nonce)?;
         let master_key = self.master_key.read().expect("master key lock poisoned");
         let secret_key = secretbox::decrypt(
             &encrypted_secret_key,
@@ -1039,8 +1038,8 @@ fn decrypt_master_key_with_recovery_key(
                 "target key attributes missing masterKeyDecryptionNonce".into(),
             )
         })?;
-    let encrypted_master_key = crypto::decode_b64(encrypted_master_key)?;
-    let master_key_nonce = crypto::decode_b64(master_key_nonce)?;
+    let encrypted_master_key = b64::decode(encrypted_master_key)?;
+    let master_key_nonce = b64::decode(master_key_nonce)?;
     secretbox::decrypt(
         &encrypted_master_key,
         &crypto::Nonce::try_from_slice(&master_key_nonce)?,
@@ -1060,14 +1059,14 @@ fn password_reset_setup_request(
         &generated_srp.srp_salt,
         &generated_srp.login_sub_key,
     )?;
-    let srp_a = crypto::encode_b64(&srp_session.public_a());
+    let srp_a = b64::encode(&srp_session.public_a());
 
     Ok((
         srp_session,
         LegacySetupSrpRequest {
             srp_user_id: srp_user_id.to_string(),
-            srp_salt: crypto::encode_b64(&generated_srp.srp_salt),
-            srp_verifier: crypto::encode_b64(&generated_srp.srp_verifier),
+            srp_salt: b64::encode(&generated_srp.srp_salt),
+            srp_verifier: b64::encode(&generated_srp.srp_verifier),
             srp_a,
         },
     ))
@@ -1077,7 +1076,7 @@ fn srp_session_m1(
     srp_session: &mut SrpSession,
     init_response: &LegacySetupSrpResponse,
 ) -> Result<String> {
-    let server_b = crypto::decode_b64(&init_response.srp_b)?;
+    let server_b = b64::decode(&init_response.srp_b)?;
     let client_m1 = srp_session.compute_m1(&server_b)?;
-    Ok(crypto::encode_b64(&client_m1))
+    Ok(b64::encode(&client_m1))
 }

@@ -61,6 +61,9 @@ impl From<db::Error> for DbError {
             E::Crypto(err) => Self::Crypto {
                 detail: err.to_string(),
             },
+            E::Base64Decode(err) => Self::Crypto {
+                detail: err.to_string(),
+            },
             E::SerdeJson(err) => Self::Json {
                 detail: err.to_string(),
             },

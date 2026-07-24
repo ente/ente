@@ -10,7 +10,7 @@ use crate::models::{
 };
 use crate::storage::Storage;
 use crate::sync::SyncEngine;
-use base64::Engine;
+use ente_core::b64;
 use ente_core::crypto;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -201,7 +201,7 @@ async fn sync_account_before_export(storage: &Storage, account: &Account) -> Res
     let api_client = AppClient::new(Some(account.endpoint.clone()), account.app)?;
 
     // Store token for this account
-    let token = base64::engine::general_purpose::URL_SAFE.encode(&secrets.token);
+    let token = b64::encode_url_safe(&secrets.token);
     api_client.set_token(&token);
 
     // Get the database path to create a new Storage instance
@@ -264,7 +264,7 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
     // Store token for this account
     // Token is stored as raw bytes from sealed_box_open
     // The Go CLI encodes it as base64 URL-encoded string WITH padding for the API
-    let token = base64::engine::general_purpose::URL_SAFE.encode(&secrets.token);
+    let token = b64::encode_url_safe(&secrets.token);
     api_client.set_token(&token);
 
     let api = ApiMethods::new(&api_client);
@@ -699,9 +699,7 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
             let encrypted_data = api.download_file(file.id).await?;
 
             // The file nonce/header is stored separately in the API response
-            let file_nonce = match base64::engine::general_purpose::STANDARD
-                .decode(&file.file.decryption_header)
-            {
+            let file_nonce = match b64::decode(&file.file.decryption_header) {
                 Ok(nonce) => nonce,
                 Err(e) => {
                     log::error!("Failed to decode file nonce for file {}: {}", file.id, e);
@@ -956,10 +954,8 @@ fn decrypt_collection_key(
     master_key: &[u8],
     _secret_key: &[u8],
 ) -> Result<Vec<u8>> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
-
-    let encrypted_bytes = BASE64.decode(encrypted_key)?;
-    let nonce_bytes = BASE64.decode(nonce)?;
+    let encrypted_bytes = b64::decode(encrypted_key)?;
+    let nonce_bytes = b64::decode(nonce)?;
 
     // Collection keys are encrypted with secret_box (XSalsa20-Poly1305) using master key
     Ok(crypto::secretbox::decrypt(
@@ -975,9 +971,7 @@ fn decrypt_shared_collection_key(
     public_key: &[u8],
     secret_key: &[u8],
 ) -> Result<Vec<u8>> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
-
-    let encrypted_bytes = BASE64.decode(encrypted_key)?;
+    let encrypted_bytes = b64::decode(encrypted_key)?;
 
     // Shared collection keys are encrypted with sealed_box (crypto_box_seal)
     // which uses the recipient's public key and an ephemeral keypair
@@ -994,10 +988,8 @@ fn decrypt_collection_name(
     nonce: &str,
     collection_key: &[u8],
 ) -> Result<String> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
-
-    let encrypted_bytes = BASE64.decode(encrypted_name)?;
-    let nonce_bytes = BASE64.decode(nonce)?;
+    let encrypted_bytes = b64::decode(encrypted_name)?;
+    let nonce_bytes = b64::decode(nonce)?;
 
     // Collection names are encrypted with secret_box using the collection key
     let decrypted = crypto::secretbox::decrypt(
@@ -1013,10 +1005,8 @@ fn decrypt_collection_name(
 
 /// Decrypt a file key using the collection key
 fn decrypt_file_key(encrypted_key: &str, nonce: &str, collection_key: &[u8]) -> Result<Vec<u8>> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
-
-    let encrypted_bytes = BASE64.decode(encrypted_key)?;
-    let nonce_bytes = BASE64.decode(nonce)?;
+    let encrypted_bytes = b64::decode(encrypted_key)?;
+    let nonce_bytes = b64::decode(nonce)?;
 
     // File keys are encrypted with secret_box (XSalsa20-Poly1305) using collection key
     Ok(crypto::secretbox::decrypt(
@@ -1082,16 +1072,14 @@ fn decrypt_file_metadata(
     file: &crate::api::models::File,
     file_key: &[u8],
 ) -> Result<Option<FileMetadata>> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
-
     // Check if metadata exists
     if file.metadata.encrypted_data.is_none() || file.metadata.decryption_header.is_empty() {
         return Ok(None);
     }
 
     let encrypted_data = file.metadata.encrypted_data.as_ref().unwrap();
-    let encrypted_bytes = BASE64.decode(encrypted_data)?;
-    let header_bytes = BASE64.decode(&file.metadata.decryption_header)?;
+    let encrypted_bytes = b64::decode(encrypted_data)?;
+    let header_bytes = b64::decode(&file.metadata.decryption_header)?;
 
     // Decrypt the metadata using streaming XChaCha20-Poly1305
     let decrypted = crypto::blob::decrypt(
@@ -1110,15 +1098,13 @@ fn decrypt_magic_metadata(
     magic_metadata: &crate::api::models::MagicMetadata,
     file_key: &[u8],
 ) -> Result<Option<serde_json::Value>> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
-
     // Check if data exists
     if magic_metadata.data.is_empty() || magic_metadata.header.is_empty() {
         return Ok(None);
     }
 
-    let encrypted_bytes = BASE64.decode(&magic_metadata.data)?;
-    let header_bytes = BASE64.decode(&magic_metadata.header)?;
+    let encrypted_bytes = b64::decode(&magic_metadata.data)?;
+    let header_bytes = b64::decode(&magic_metadata.header)?;
 
     // Decrypt the metadata using streaming XChaCha20-Poly1305
     let decrypted = crypto::blob::decrypt(

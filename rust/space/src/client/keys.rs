@@ -13,7 +13,7 @@ use crate::crypto::{encrypt_secretbox_payload, generate_key};
 use crate::error::{Result, SpaceError};
 use crate::models::CreatedSpace;
 use crate::transport::{RotateSpaceKeyRequest, SpaceKeyResponse, SpaceKeyVersionResponse};
-use ente_core::crypto::encode_b64;
+use ente_core::b64;
 
 impl AccountSpaceCtx {
     pub async fn list_space_key_versions(
@@ -107,15 +107,15 @@ impl AccountSpaceCtx {
         let space_root_key = self.get_or_create_space_root_key().await?;
         let request = RotateSpaceKeyRequest {
             key_version: current.key_version,
-            root_wrapped_space_key: encode_b64(&encrypt_secretbox_payload(
+            root_wrapped_space_key: b64::encode(&encrypt_secretbox_payload(
                 &space_root_key,
                 &next_space_key,
             )?),
-            wrapped_prev_key: encode_b64(&encrypt_secretbox_payload(
+            wrapped_prev_key: b64::encode(&encrypt_secretbox_payload(
                 &next_space_key,
                 &current.space_key,
             )?),
-            encrypted_profile: encode_b64(&encrypt_secretbox_payload(
+            encrypted_profile: b64::encode(&encrypt_secretbox_payload(
                 &next_space_key,
                 &next_profile,
             )?),

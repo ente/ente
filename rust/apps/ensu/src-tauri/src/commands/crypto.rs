@@ -1,3 +1,4 @@
+use ente_core::b64;
 use ente_core::crypto;
 use serde::{Deserialize, Serialize};
 
@@ -8,7 +9,6 @@ impl From<crypto::Error> for ApiError {
         use crypto::Error as E;
 
         let code = match &e {
-            E::Base64Decode(_) => "base64_decode",
             E::InvalidKeyLength { .. } => "invalid_key_length",
             E::InvalidNonceLength { .. } => "invalid_nonce_length",
             E::InvalidSaltLength { .. } => "invalid_salt_length",
@@ -33,6 +33,12 @@ impl From<crypto::Error> for ApiError {
         };
 
         ApiError::new(code, e.to_string())
+    }
+}
+
+impl From<b64::DecodeError> for ApiError {
+    fn from(e: b64::DecodeError) -> Self {
+        ApiError::new("base64_decode", e.to_string())
     }
 }
 
@@ -66,28 +72,28 @@ pub fn crypto_init() -> Result<(), ApiError> {
 
 #[tauri::command]
 pub fn crypto_generate_key() -> String {
-    crypto::encode_b64(crypto::Key::generate().as_bytes())
+    b64::encode(crypto::Key::generate().as_bytes())
 }
 
 #[tauri::command]
 pub fn crypto_encrypt_blob(input: CryptoBlobInput) -> Result<EncryptedBlob, ApiError> {
-    let data = crypto::decode_b64(&input.data_b64).map_err(ApiError::from)?;
-    let key = crypto::decode_b64(&input.key_b64).map_err(ApiError::from)?;
+    let data = b64::decode(&input.data_b64).map_err(ApiError::from)?;
+    let key = b64::decode(&input.key_b64).map_err(ApiError::from)?;
     let key = crypto::Key::try_from_slice(&key).map_err(ApiError::from)?;
     let out = crypto::blob::encrypt(&data, &key).map_err(ApiError::from)?;
     Ok(EncryptedBlob {
-        encrypted_data: crypto::encode_b64(&out.encrypted_data),
-        decryption_header: crypto::encode_b64(out.decryption_header.as_bytes()),
+        encrypted_data: b64::encode(&out.encrypted_data),
+        decryption_header: b64::encode(out.decryption_header.as_bytes()),
     })
 }
 
 #[tauri::command]
 pub fn crypto_decrypt_blob(input: CryptoBlobDecryptInput) -> Result<String, ApiError> {
-    let ciphertext = crypto::decode_b64(&input.encrypted_data_b64).map_err(ApiError::from)?;
-    let header = crypto::decode_b64(&input.header_b64).map_err(ApiError::from)?;
-    let key = crypto::decode_b64(&input.key_b64).map_err(ApiError::from)?;
+    let ciphertext = b64::decode(&input.encrypted_data_b64).map_err(ApiError::from)?;
+    let header = b64::decode(&input.header_b64).map_err(ApiError::from)?;
+    let key = b64::decode(&input.key_b64).map_err(ApiError::from)?;
     let header = crypto::Header::try_from_slice(&header).map_err(ApiError::from)?;
     let key = crypto::Key::try_from_slice(&key).map_err(ApiError::from)?;
     let plaintext = crypto::blob::decrypt(&ciphertext, &header, &key).map_err(ApiError::from)?;
-    Ok(crypto::encode_b64(&plaintext))
+    Ok(b64::encode(&plaintext))
 }

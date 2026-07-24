@@ -1,5 +1,6 @@
-use ente_core::crypto::{Key, Nonce, decode_b64, encode_b64, secretbox};
-use ente_core::http::Error as HttpError;
+use ente_core::b64;
+use ente_core::crypto::{Key, Nonce, secretbox};
+use ente_core::http;
 use ente_space::{AccountSpaceCtx, OpenAccountSpaceCtxInput, SpaceError};
 use serde::Deserialize;
 
@@ -24,7 +25,7 @@ pub async fn open_ctx(endpoint: &str, account: &TestAccount) -> AccountSpaceCtx 
         .post(format!("{endpoint}/account/space/sessions"))
         .header("X-Auth-Token", &account.auth_token)
         .header("X-Client-Package", CLIENT_PACKAGE)
-        .json(&serde_json::json!({ "sessionWrapKey": encode_b64(Key::generate().as_bytes()) }))
+        .json(&serde_json::json!({ "sessionWrapKey": b64::encode(Key::generate().as_bytes()) }))
         .send()
         .await
         .expect("space session create request failed");
@@ -61,8 +62,8 @@ async fn ensure_space_root_key(endpoint: &str, account: &TestAccount) -> Vec<u8>
         .header("X-Client-Package", CLIENT_PACKAGE)
         .json(&serde_json::json!({
             "type": "space",
-            "encryptedKey": encode_b64(encrypted_key),
-            "header": encode_b64(header),
+            "encryptedKey": b64::encode(encrypted_key),
+            "header": b64::encode(header),
         }))
         .send()
         .await
@@ -77,9 +78,9 @@ async fn ensure_space_root_key(endpoint: &str, account: &TestAccount) -> Vec<u8>
         .await
         .expect("space entity key ensure response parse failed");
 
-    let mut combined = decode_b64(&ensured.header).expect("valid space entity key header");
+    let mut combined = b64::decode(&ensured.header).expect("valid space entity key header");
     combined.extend_from_slice(
-        &decode_b64(&ensured.encrypted_key).expect("valid space entity key body"),
+        &b64::decode(&ensured.encrypted_key).expect("valid space entity key body"),
     );
     secretbox::decrypt_combined(&combined, &master_key).expect("space root key should decrypt")
 }
@@ -90,7 +91,7 @@ pub fn profile_payload(display_name: &str, bio: &str) -> Vec<u8> {
 
 pub fn assert_http_status<T>(result: Result<T, SpaceError>, expected_status: u16) {
     match result {
-        Err(SpaceError::Http(HttpError::Http { status, .. })) if status == expected_status => {}
+        Err(SpaceError::Http(http::Error::Http { status, .. })) if status == expected_status => {}
         Err(error) => panic!("expected HTTP {expected_status}, got {error:?}"),
         Ok(_) => panic!("expected HTTP {expected_status}, got success"),
     }

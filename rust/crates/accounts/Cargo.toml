@@ -10,7 +10,6 @@ ente-core.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-base64 = "0.22"
 bip39 = { version = "2", default-features = false, features = ["std"] }
 getrandom = { version = "0.2", features = ["js"] }
 hex = "0.4"

@@ -157,7 +157,7 @@ pub struct SrpAttributes {
 
 /// Error types for auth operations.
 #[derive(Debug, thiserror::Error)]
-pub enum AuthError {
+pub enum Error {
     /// Password verification failed.
     #[error("Incorrect password")]
     IncorrectPassword,
@@ -196,7 +196,7 @@ pub enum AuthError {
 }
 
 /// Result type for auth operations.
-pub type Result<T> = std::result::Result<T, AuthError>;
+pub type Result<T> = std::result::Result<T, Error>;
 
 #[cfg(test)]
 mod tests {

@@ -1,4 +1,5 @@
-use ente_core::crypto::{self, Header, Key, blob};
+use ente_core::b64;
+use ente_core::crypto::{Header, Key, blob};
 
 use crate::db::{Error, Result};
 
@@ -38,8 +39,8 @@ pub fn decrypt_string(data: &[u8], key: &[u8]) -> Result<String> {
 
 pub fn encrypt_json_field(value: &str, key: &[u8]) -> Result<String> {
     let encrypted = blob::encrypt(value.as_bytes(), &Key::try_from_slice(key)?)?;
-    let ciphertext_b64 = crypto::encode_b64(&encrypted.encrypted_data);
-    let header_b64 = crypto::encode_b64(encrypted.decryption_header.as_bytes());
+    let ciphertext_b64 = b64::encode(&encrypted.encrypted_data);
+    let header_b64 = b64::encode(encrypted.decryption_header.as_bytes());
     Ok(format!("enc:v1:{ciphertext_b64}:{header_b64}"))
 }
 
@@ -54,8 +55,8 @@ pub fn decrypt_json_field(value: &str, key: &[u8]) -> Result<String> {
     }
     let ciphertext_b64 = ciphertext_b64.ok_or(Error::InvalidEncryptedField)?;
     let header_b64 = header_b64.ok_or(Error::InvalidEncryptedField)?;
-    let ciphertext = crypto::decode_b64(ciphertext_b64)?;
-    let header = crypto::decode_b64(header_b64)?;
+    let ciphertext = b64::decode(ciphertext_b64)?;
+    let header = b64::decode(header_b64)?;
     let header = Header::try_from_slice(&header).map_err(|_| Error::InvalidEncryptedField)?;
     let plaintext = blob::decrypt(&ciphertext, &header, &Key::try_from_slice(key)?)?;
     Ok(String::from_utf8(plaintext)?)

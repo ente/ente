@@ -17,7 +17,7 @@ use crate::transport::{
     CreatePostRequest, CreatePostResponse, LikePostResponse, PostObjectPayload, PostPage,
     PostResponse, SpaceActorResponse, SpaceUnreadStatusResponse, UpdatePostCaptionRequest,
 };
-use ente_core::crypto::{decode_b64, encode_b64};
+use ente_core::b64;
 
 impl AccountSpaceCtx {
     pub fn generate_post_key(&self) -> Vec<u8> {
@@ -40,14 +40,14 @@ impl AccountSpaceCtx {
                 SpaceError::InvalidInput(format!("space {space_id} is not owned by the account"))
             })?;
         let caption_cipher = match caption_plaintext {
-            Some(value) => Some(encode_b64(&encrypt_secretbox_payload(
+            Some(value) => Some(b64::encode(&encrypt_secretbox_payload(
                 &post_key_bytes,
                 value,
             )?)),
             None => None,
         };
         let request = CreatePostRequest {
-            encrypted_post_key: encode_b64(&encrypt_secretbox_payload(
+            encrypted_post_key: b64::encode(&encrypt_secretbox_payload(
                 &access.space_key,
                 &post_key_bytes,
             )?),
@@ -235,7 +235,7 @@ impl AccountSpaceCtx {
         let mut owned = Vec::with_capacity(owned_records.len());
         if let Some(space_root_key) = space_root_key {
             for record in owned_records {
-                let packed = decode_b64(&record.root_wrapped_space_key)?;
+                let packed = b64::decode(&record.root_wrapped_space_key)?;
                 let space_key = decrypt_secretbox_payload(&space_root_key, &packed)?;
                 owned.push((record.space_id, space_key));
             }
@@ -257,7 +257,7 @@ impl AccountSpaceCtx {
     }
 
     pub fn decrypt_post_key(&self, space_key: &[u8], post: &PostResponse) -> Result<Vec<u8>> {
-        let packed = decode_b64(&post.encrypted_post_key)?;
+        let packed = b64::decode(&post.encrypted_post_key)?;
         decrypt_secretbox_payload(space_key, &packed)
     }
 
@@ -272,7 +272,7 @@ impl AccountSpaceCtx {
             .resolve_space_key_for_version_for_viewer(space_id, viewer_space_id, Some(key_version))
             .await?
             .ok_or_else(|| SpaceError::InvalidInput("missing space key for post".into()))?;
-        let packed = decode_b64(encrypted_post_key)?;
+        let packed = b64::decode(encrypted_post_key)?;
         decrypt_secretbox_payload(&space_key, &packed)
     }
 
@@ -281,7 +281,7 @@ impl AccountSpaceCtx {
         let caption_plaintext = if post.caption_cipher.is_empty() {
             None
         } else {
-            let packed = decode_b64(&post.caption_cipher)?;
+            let packed = b64::decode(&post.caption_cipher)?;
             Some(decrypt_secretbox_payload(&post_key, &packed)?)
         };
         Ok(DecryptedPost {
@@ -346,7 +346,7 @@ impl AccountSpaceCtx {
         };
         Ok(Some(decrypt_secretbox_payload(
             &space_key,
-            &decode_b64(&actor.encrypted_profile)?,
+            &b64::decode(&actor.encrypted_profile)?,
         )?))
     }
 
@@ -364,7 +364,7 @@ impl AccountSpaceCtx {
     ) -> Result<()> {
         let request = UpdatePostCaptionRequest {
             caption_cipher: match caption_plaintext {
-                Some(value) => Some(encode_b64(&encrypt_secretbox_payload(post_key, value)?)),
+                Some(value) => Some(b64::encode(&encrypt_secretbox_payload(post_key, value)?)),
                 None => None,
             },
         };

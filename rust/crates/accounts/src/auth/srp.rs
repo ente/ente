@@ -10,7 +10,7 @@ use srp::ClientG4096;
 use subtle::ConstantTimeEq;
 use zeroize::Zeroize;
 
-use super::{AuthError, Result};
+use super::{Error, Result};
 
 /// SRP session for password-based authentication.
 ///
@@ -51,7 +51,7 @@ impl SrpSession {
     /// * `login_key` - The login key derived from password (16 bytes)
     pub fn new(srp_user_id: &str, srp_salt: &[u8], login_key: &[u8]) -> Result<Self> {
         if login_key.len() != 16 {
-            return Err(AuthError::InvalidKey(format!(
+            return Err(Error::InvalidKey(format!(
                 "Login key must be 16 bytes, got {}",
                 login_key.len()
             )));
@@ -62,7 +62,7 @@ impl SrpSession {
         // Generate random ephemeral private key (64 bytes)
         let mut a_private = vec![0u8; 64];
         getrandom::getrandom(&mut a_private)
-            .map_err(|e| AuthError::Srp(format!("Failed to generate random bytes: {}", e)))?;
+            .map_err(|e| Error::Srp(format!("Failed to generate random bytes: {}", e)))?;
 
         // Compute public ephemeral
         let a_public = client.compute_public_ephemeral(&a_private);
@@ -104,7 +104,7 @@ impl SrpSession {
                 &self.salt,
                 server_b,
             )
-            .map_err(|e| AuthError::Srp(format!("Failed to process server response: {:?}", e)))?;
+            .map_err(|e| Error::Srp(format!("Failed to process server response: {:?}", e)))?;
 
         // The srp crate uses S directly for M2, but our server uses K = H(S).
         // Compute the proof values the way the server does.
@@ -143,11 +143,11 @@ impl SrpSession {
         let m1 = self
             .m1
             .as_ref()
-            .ok_or_else(|| AuthError::Srp("Client proof not computed".to_string()))?;
+            .ok_or_else(|| Error::Srp("Client proof not computed".to_string()))?;
         let k = self
             .k
             .as_ref()
-            .ok_or_else(|| AuthError::Srp("Client proof not computed".to_string()))?;
+            .ok_or_else(|| Error::Srp("Client proof not computed".to_string()))?;
 
         let a_padded = pad_to_n(&self.a_public);
 
@@ -159,9 +159,7 @@ impl SrpSession {
         let expected = m2_hasher.finalize().to_vec();
 
         if expected.ct_eq(server_m2).unwrap_u8() != 1 {
-            return Err(AuthError::Srp(
-                "Server proof verification failed".to_string(),
-            ));
+            return Err(Error::Srp("Server proof verification failed".to_string()));
         }
 
         Ok(())

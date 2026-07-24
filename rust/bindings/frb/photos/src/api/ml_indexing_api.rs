@@ -1,7 +1,4 @@
-use ente_photos::ml::{
-    error::MlError as SharedMlError, indexing as shared_indexing, runtime::ModelPaths,
-    types as shared_types,
-};
+use ente_photos::ml::{error::MlError, indexing, runtime::ModelPaths, types};
 
 #[derive(Clone, Debug)]
 pub struct RustModelPaths {
@@ -139,19 +136,19 @@ pub struct RunClipTextResult {
 /// honored on Android 12+); it has no effect on other platforms. Call this
 /// before the runtime creates its first session.
 pub fn set_ml_execution_config(enable_webgpu: bool) {
-    shared_indexing::set_ml_execution_config(enable_webgpu);
+    indexing::set_ml_execution_config(enable_webgpu);
 }
 
 pub fn init_ml_runtime(model_paths: RustModelPaths) {
-    shared_indexing::init_ml_runtime(to_model_paths(&model_paths));
+    indexing::init_ml_runtime(to_model_paths(&model_paths));
 }
 
 pub fn release_ml_runtime() {
-    shared_indexing::release_ml_runtime();
+    indexing::release_ml_runtime();
 }
 
 pub fn analyze_image_rust(req: AnalyzeImageRequest) -> Result<AnalyzeImageResult, RustMlError> {
-    let shared_req = shared_indexing::AnalyzeImageRequest {
+    let shared_req = indexing::AnalyzeImageRequest {
         file_id: req.file_id,
         image_path: req.image_path,
         run_faces: req.run_faces,
@@ -160,19 +157,19 @@ pub fn analyze_image_rust(req: AnalyzeImageRequest) -> Result<AnalyzeImageResult
         model_paths: to_model_paths(&req.model_paths),
     };
 
-    shared_indexing::analyze_image(shared_req)
+    indexing::analyze_image(shared_req)
         .map(to_api_analyze_image_result)
         .map_err(RustMlError::from)
 }
 
 pub fn run_clip_text_rust(req: RunClipTextRequest) -> Result<RunClipTextResult, RustMlError> {
-    let shared_req = shared_indexing::RunClipTextRequest {
+    let shared_req = indexing::RunClipTextRequest {
         text: req.text,
         model_path: req.model_path,
         vocab_path: req.vocab_path,
     };
 
-    shared_indexing::run_clip_text(shared_req)
+    indexing::run_clip_text(shared_req)
         .map(|result| RunClipTextResult {
             embedding: result
                 .embedding
@@ -184,7 +181,7 @@ pub fn run_clip_text_rust(req: RunClipTextRequest) -> Result<RunClipTextResult, 
 }
 
 pub fn tokenize_clip_text_rust(text: String, vocab_path: String) -> Result<Vec<i32>, String> {
-    shared_indexing::tokenize_clip_text(&text, &vocab_path).map_err(|e| e.to_string())
+    indexing::tokenize_clip_text(&text, &vocab_path).map_err(|e| e.to_string())
 }
 
 /// A notable ML runtime event (execution provider fallback, golden self-test
@@ -223,21 +220,21 @@ fn to_model_paths(paths: &RustModelPaths) -> ModelPaths {
     }
 }
 
-impl From<SharedMlError> for RustMlError {
-    fn from(value: SharedMlError) -> Self {
+impl From<MlError> for RustMlError {
+    fn from(value: MlError) -> Self {
         match value {
-            SharedMlError::InvalidRequest(message) => RustMlError::InvalidRequest(message),
-            SharedMlError::Decode(message) => RustMlError::Decode(message),
-            SharedMlError::Preprocess(message) => RustMlError::Preprocess(message),
-            SharedMlError::Ort(message) => RustMlError::Ort(message),
-            SharedMlError::CorruptModel(message) => RustMlError::CorruptModel(message),
-            SharedMlError::Postprocess(message) => RustMlError::Postprocess(message),
-            SharedMlError::Runtime(message) => RustMlError::Runtime(message),
+            MlError::InvalidRequest(message) => RustMlError::InvalidRequest(message),
+            MlError::Decode(message) => RustMlError::Decode(message),
+            MlError::Preprocess(message) => RustMlError::Preprocess(message),
+            MlError::Ort(message) => RustMlError::Ort(message),
+            MlError::CorruptModel(message) => RustMlError::CorruptModel(message),
+            MlError::Postprocess(message) => RustMlError::Postprocess(message),
+            MlError::Runtime(message) => RustMlError::Runtime(message),
         }
     }
 }
 
-fn to_api_analyze_image_result(result: shared_indexing::AnalyzeImageResult) -> AnalyzeImageResult {
+fn to_api_analyze_image_result(result: indexing::AnalyzeImageResult) -> AnalyzeImageResult {
     AnalyzeImageResult {
         file_id: result.file_id,
         decoded_image_size: RustDimensions {
@@ -261,7 +258,7 @@ fn to_api_analyze_image_result(result: shared_indexing::AnalyzeImageResult) -> A
     }
 }
 
-fn to_api_face_result(result: shared_types::FaceResult) -> RustFaceResult {
+fn to_api_face_result(result: types::FaceResult) -> RustFaceResult {
     RustFaceResult {
         detection: RustDetection {
             score: result.detection.score,
@@ -290,7 +287,7 @@ fn to_api_face_result(result: shared_types::FaceResult) -> RustFaceResult {
     }
 }
 
-fn to_api_pet_face_result(result: shared_types::PetFaceResult) -> RustPetFaceResult {
+fn to_api_pet_face_result(result: types::PetFaceResult) -> RustPetFaceResult {
     RustPetFaceResult {
         detection: RustPetFaceDetectionResult {
             score: result.detection.score as f64,
@@ -327,7 +324,7 @@ fn to_api_pet_face_result(result: shared_types::PetFaceResult) -> RustPetFaceRes
     }
 }
 
-fn to_api_pet_body_result(result: shared_types::PetBodyResult) -> RustPetBodyResult {
+fn to_api_pet_body_result(result: types::PetBodyResult) -> RustPetBodyResult {
     RustPetBodyResult {
         box_xyxy: result
             .detection

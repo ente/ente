@@ -25,11 +25,9 @@
 //! - [`kdf`] - derive subkeys from a high-entropy key (BLAKE2b)
 //! - [`hash`] - BLAKE2b hashing
 //!
-//! Base64 helpers ([`encode_b64`] and friends) are available directly on this
-//! module. Key material is typed ([`Key`],
-//! [`Nonce`], [`Salt`], [`Header`], [`PublicKey`], [`SecretKey`]), with lengths
-//! validated at construction, and secrets are held in zeroizing [`SecretVec`] /
-//! [`SecretString`].
+//! Key material is typed ([`Key`], [`Nonce`], [`Salt`], [`Header`],
+//! [`PublicKey`], [`SecretKey`]), with lengths validated at construction, and
+//! secrets are held in zeroizing [`SecretVec`] / [`SecretString`].
 //!
 //! # Example
 //!
@@ -43,7 +41,6 @@
 //! assert_eq!(decrypted, b"a secret");
 //! ```
 
-mod encoding;
 mod error;
 mod secret;
 mod types;
@@ -56,10 +53,6 @@ pub mod sealed;
 pub mod secretbox;
 pub mod stream;
 
-pub use encoding::{
-    decode_b64, decode_b64_url_safe_no_padding, encode_b64, encode_b64_url_safe,
-    encode_b64_url_safe_no_padding,
-};
 pub use error::{Error, Result};
 pub use secret::{SecretString, SecretVec};
 pub use types::{Header, Key, Nonce, PublicKey, Salt, SecretKey, random_bytes};

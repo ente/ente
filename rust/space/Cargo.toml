@@ -16,7 +16,6 @@ urlencoding = "2"
 zeroize = { version = "1.8", features = ["derive"] }
 
 [dev-dependencies]
-base64 = "0.22"
 ente-accounts.workspace = true
 ente-test-support.workspace = true
 mockito = "1.6"

@@ -29,6 +29,4 @@ pub use key_gen::{
 pub use recovery::{get_recovery_key, recovery_key_from_mnemonic_or_hex, recovery_key_to_mnemonic};
 
 // Types
-pub use types::{
-    AuthError, KeyAttributes, KeyGenResult, PrivateKeyAttributes, Result, SrpAttributes,
-};
+pub use types::{Error, KeyAttributes, KeyGenResult, PrivateKeyAttributes, Result, SrpAttributes};

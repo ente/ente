@@ -2,28 +2,29 @@
 
 use bip39::{Language, Mnemonic};
 
+use ente_core::b64;
 use ente_core::crypto::{self, SecretVec, secretbox};
 
-use super::{AuthError, KeyAttributes, Result};
+use super::{Error, KeyAttributes, Result};
 
 /// Get the recovery key from stored encrypted form.
 pub fn get_recovery_key(master_key: &[u8], attributes: &KeyAttributes) -> Result<String> {
     let encrypted_recovery_key = attributes
         .recovery_key_encrypted_with_master_key
         .as_ref()
-        .ok_or(AuthError::MissingField(
+        .ok_or(Error::MissingField(
             "recovery_key_encrypted_with_master_key",
         ))?;
 
     let nonce = attributes
         .recovery_key_decryption_nonce
         .as_ref()
-        .ok_or(AuthError::MissingField("recovery_key_decryption_nonce"))?;
+        .ok_or(Error::MissingField("recovery_key_decryption_nonce"))?;
 
-    let encrypted_bytes = crypto::decode_b64(encrypted_recovery_key)
-        .map_err(|e| AuthError::Decode(format!("recovery_key_encrypted_with_master_key: {}", e)))?;
-    let nonce_bytes = crypto::decode_b64(nonce)
-        .map_err(|e| AuthError::Decode(format!("recovery_key_decryption_nonce: {}", e)))?;
+    let encrypted_bytes = b64::decode(encrypted_recovery_key)
+        .map_err(|e| Error::Decode(format!("recovery_key_encrypted_with_master_key: {}", e)))?;
+    let nonce_bytes = b64::decode(nonce)
+        .map_err(|e| Error::Decode(format!("recovery_key_decryption_nonce: {}", e)))?;
 
     let recovery_key = SecretVec::new(
         secretbox::decrypt(
@@ -31,7 +32,7 @@ pub fn get_recovery_key(master_key: &[u8], attributes: &KeyAttributes) -> Result
             &crypto::Nonce::try_from_slice(&nonce_bytes)?,
             &crypto::Key::try_from_slice(master_key)?,
         )
-        .map_err(|_| AuthError::InvalidKeyAttributes)?,
+        .map_err(|_| Error::InvalidKeyAttributes)?,
     );
 
     Ok(hex::encode(&recovery_key))
@@ -51,18 +52,18 @@ pub fn recovery_key_from_mnemonic_or_hex(recovery_key_mnemonic_or_hex: &str) -> 
 
     let recovery_key = SecretVec::new(if trimmed_input.contains(' ') {
         if trimmed_input.split(' ').count() != 24 {
-            return Err(AuthError::IncorrectRecoveryKey);
+            return Err(Error::IncorrectRecoveryKey);
         }
 
         let mnemonic = Mnemonic::parse_in_normalized(Language::English, &trimmed_input)
-            .map_err(|_| AuthError::IncorrectRecoveryKey)?;
+            .map_err(|_| Error::IncorrectRecoveryKey)?;
         mnemonic.to_entropy()
     } else {
-        hex::decode(&trimmed_input).map_err(|_| AuthError::IncorrectRecoveryKey)?
+        hex::decode(&trimmed_input).map_err(|_| Error::IncorrectRecoveryKey)?
     });
 
     if recovery_key.len() != 32 {
-        return Err(AuthError::IncorrectRecoveryKey);
+        return Err(Error::IncorrectRecoveryKey);
     }
 
     Ok(recovery_key)
@@ -71,17 +72,16 @@ pub fn recovery_key_from_mnemonic_or_hex(recovery_key_mnemonic_or_hex: &str) -> 
 /// Convert a base64-encoded recovery key into its 24-word English mnemonic.
 pub fn recovery_key_to_mnemonic(recovery_key_b64: &str) -> Result<String> {
     let recovery_key = SecretVec::new(
-        crypto::decode_b64(recovery_key_b64)
-            .map_err(|e| AuthError::Decode(format!("recovery_key: {}", e)))?,
+        b64::decode(recovery_key_b64).map_err(|e| Error::Decode(format!("recovery_key: {}", e)))?,
     );
 
     if recovery_key.len() != 32 {
-        return Err(AuthError::IncorrectRecoveryKey);
+        return Err(Error::IncorrectRecoveryKey);
     }
 
     Mnemonic::from_entropy_in(Language::English, &recovery_key)
         .map(|mnemonic| mnemonic.to_string())
-        .map_err(|e| AuthError::InvalidKey(format!("recovery_key: {}", e)))
+        .map_err(|e| Error::InvalidKey(format!("recovery_key: {}", e)))
 }
 
 #[cfg(test)]
@@ -96,7 +96,7 @@ mod tests {
     #[test]
     fn test_get_recovery_key() {
         let gen_result = generate_test_keys("password");
-        let master_key = crypto::decode_b64(&gen_result.private_key_attributes.key).unwrap();
+        let master_key = b64::decode(&gen_result.private_key_attributes.key).unwrap();
 
         let recovered = get_recovery_key(&master_key, &gen_result.key_attributes).unwrap();
         assert_eq!(
@@ -108,9 +108,9 @@ mod tests {
     #[test]
     fn test_recovery_key_mnemonic_roundtrip() {
         let gen_result = generate_test_keys("password");
-        let master_key = crypto::decode_b64(&gen_result.private_key_attributes.key).unwrap();
+        let master_key = b64::decode(&gen_result.private_key_attributes.key).unwrap();
         let recovery_key_hex = get_recovery_key(&master_key, &gen_result.key_attributes).unwrap();
-        let recovery_key_b64 = crypto::encode_b64(&hex::decode(&recovery_key_hex).unwrap());
+        let recovery_key_b64 = b64::encode(&hex::decode(&recovery_key_hex).unwrap());
 
         let mnemonic = recovery_key_to_mnemonic(&recovery_key_b64).unwrap();
         let decoded = recovery_key_from_mnemonic_or_hex(&mnemonic).unwrap();

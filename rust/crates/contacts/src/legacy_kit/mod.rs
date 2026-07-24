@@ -4,6 +4,7 @@ mod shares;
 use std::sync::Arc;
 
 use ente_accounts::auth::{self, KeyAttributes, SrpSession};
+use ente_core::b64;
 use ente_core::{
     crypto::{self, SecretString, SecretVec, kdf, sealed, secretbox},
     http::{Api, ApiConfig, Http},
@@ -59,7 +60,7 @@ pub(crate) fn create_legacy_kit_request(
             variant,
             kit_id: kit_id.clone(),
             share_index: (index + 1) as u8,
-            share: crypto::encode_b64(&share_bytes),
+            share: b64::encode(&share_bytes),
             checksum: checksum.clone(),
             part_name: part_name.clone(),
         })
@@ -78,8 +79,8 @@ pub(crate) fn create_legacy_kit_request(
             id: kit_id,
             variant,
             notice_period_in_hours,
-            encrypted_recovery_blob: crypto::encode_b64(&encrypted_recovery_blob),
-            auth_public_key: crypto::encode_b64(auth_public_key.as_bytes()),
+            encrypted_recovery_blob: b64::encode(&encrypted_recovery_blob),
+            auth_public_key: b64::encode(auth_public_key.as_bytes()),
             encrypted_owner_blob,
         },
         result_shares,
@@ -247,7 +248,7 @@ impl LegacyKitRecoveryHandle {
             .json::<LegacyKitRecoveryInfoResponse>()
             .await?;
         let enc_key = derive_kit_enc_key(&self.kit_secret)?;
-        let encrypted_recovery_blob = crypto::decode_b64(&response.encrypted_recovery_blob)?;
+        let encrypted_recovery_blob = b64::decode(&response.encrypted_recovery_blob)?;
         let recovery_key = secretbox::decrypt_combined(
             &encrypted_recovery_blob,
             &crypto::Key::try_from_slice(&enc_key)?,
@@ -310,7 +311,7 @@ impl LegacyKitRecoveryHandle {
             .error_for_status()?
             .json::<LegacyKitChangePasswordResponse>()
             .await?;
-        let server_m2 = crypto::decode_b64(&change_response.srp_m2)?;
+        let server_m2 = b64::decode(&change_response.srp_m2)?;
         srp_session.verify_m2(&server_m2)?;
         Ok(())
     }
@@ -377,7 +378,7 @@ fn decrypt_challenge(
     auth_secret_key: &crypto::SecretKey,
     encrypted_challenge_b64: &str,
 ) -> Result<String> {
-    let encrypted_challenge = crypto::decode_b64(encrypted_challenge_b64)?;
+    let encrypted_challenge = b64::decode(encrypted_challenge_b64)?;
     let plaintext = sealed::open(&encrypted_challenge, auth_public_key, auth_secret_key)?;
     String::from_utf8(plaintext).map_err(|error| {
         ContactsError::InvalidInput(format!("legacy kit challenge was not valid UTF-8: {error}"))
@@ -404,8 +405,8 @@ fn decrypt_master_key_with_recovery_key(
                 "target key attributes missing masterKeyDecryptionNonce".into(),
             )
         })?;
-    let encrypted_master_key = crypto::decode_b64(encrypted_master_key)?;
-    let master_key_nonce = crypto::decode_b64(master_key_nonce)?;
+    let encrypted_master_key = b64::decode(encrypted_master_key)?;
+    let master_key_nonce = b64::decode(master_key_nonce)?;
     secretbox::decrypt(
         &encrypted_master_key,
         &crypto::Nonce::try_from_slice(&master_key_nonce)?,
@@ -425,13 +426,13 @@ fn password_reset_setup_request(
         &generated_srp.srp_salt,
         &generated_srp.login_sub_key,
     )?;
-    let srp_a = crypto::encode_b64(&srp_session.public_a());
+    let srp_a = b64::encode(&srp_session.public_a());
     Ok((
         srp_session,
         LegacyKitSetupSrpRequest {
             srp_user_id: srp_user_id.to_string(),
-            srp_salt: crypto::encode_b64(&generated_srp.srp_salt),
-            srp_verifier: crypto::encode_b64(&generated_srp.srp_verifier),
+            srp_salt: b64::encode(&generated_srp.srp_salt),
+            srp_verifier: b64::encode(&generated_srp.srp_verifier),
             srp_a,
         },
     ))
@@ -441,7 +442,7 @@ fn srp_session_m1(
     srp_session: &mut SrpSession,
     init_response: &LegacyKitSetupSrpResponse,
 ) -> Result<String> {
-    let server_b = crypto::decode_b64(&init_response.srp_b)?;
+    let server_b = b64::decode(&init_response.srp_b)?;
     let client_m1 = srp_session.compute_m1(&server_b)?;
-    Ok(crypto::encode_b64(&client_m1))
+    Ok(b64::encode(&client_m1))
 }

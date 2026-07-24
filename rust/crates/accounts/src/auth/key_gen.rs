@@ -1,5 +1,6 @@
 //! Key generation for new account sign-up.
 
+use ente_core::b64;
 use ente_core::crypto::{self, Key, SecretString, SecretVec, argon, kdf, secretbox};
 
 use super::{KeyAttributes, KeyGenResult, PrivateKeyAttributes, Result};
@@ -19,8 +20,8 @@ pub enum KeyDerivationStrength {
 fn encrypt_to_b64(plaintext: &[u8], key: &Key) -> Result<(String, String)> {
     let encrypted = secretbox::encrypt(plaintext, key);
     Ok((
-        crypto::encode_b64(&encrypted.encrypted_data),
-        crypto::encode_b64(encrypted.nonce.as_bytes()),
+        b64::encode(&encrypted.encrypted_data),
+        b64::encode(encrypted.nonce.as_bytes()),
     ))
 }
 
@@ -59,11 +60,11 @@ pub fn generate_keys_with_strength(
 
     // Build key attributes for server
     let key_attributes = KeyAttributes {
-        kek_salt: crypto::encode_b64(derived.salt.as_bytes()),
+        kek_salt: b64::encode(derived.salt.as_bytes()),
         kek_hash: None,
         encrypted_key: enc_key,
         key_decryption_nonce: key_nonce,
-        public_key: crypto::encode_b64(public_key.as_bytes()),
+        public_key: b64::encode(public_key.as_bytes()),
         encrypted_secret_key: enc_secret_key,
         secret_key_decryption_nonce: secret_key_nonce,
         mem_limit: derived.params.mem_limit,
@@ -76,9 +77,9 @@ pub fn generate_keys_with_strength(
 
     // Build private key attributes for local storage
     let private_key_attributes = PrivateKeyAttributes {
-        key: SecretString::new(crypto::encode_b64(master_key.as_bytes())),
+        key: SecretString::new(b64::encode(master_key.as_bytes())),
         recovery_key: SecretString::new(hex::encode(recovery_key.as_bytes())),
-        secret_key: SecretString::new(crypto::encode_b64(secret_key.as_bytes())),
+        secret_key: SecretString::new(b64::encode(secret_key.as_bytes())),
     };
 
     Ok(KeyGenResult {
@@ -125,7 +126,7 @@ pub fn generate_key_attributes_for_new_password_with_strength(
     let (enc_key, key_nonce) = encrypt_to_b64(master_key, &derived.key)?;
 
     let key_attributes = KeyAttributes {
-        kek_salt: crypto::encode_b64(derived.salt.as_bytes()),
+        kek_salt: b64::encode(derived.salt.as_bytes()),
         kek_hash: None,
         encrypted_key: enc_key,
         key_decryption_nonce: key_nonce,
@@ -198,7 +199,7 @@ mod tests {
         assert!(!result.private_key_attributes.recovery_key.is_empty());
         assert_eq!(result.login_key.len(), 16);
 
-        let master_key = crypto::decode_b64(&result.private_key_attributes.key).unwrap();
+        let master_key = b64::decode(&result.private_key_attributes.key).unwrap();
         assert_eq!(master_key.len(), 32);
         assert_eq!(result.private_key_attributes.recovery_key.len(), 64);
     }
@@ -207,24 +208,24 @@ mod tests {
     fn test_generate_keys_can_decrypt_master_key() {
         let result = generate_test_keys("my_secure_password").unwrap();
 
-        let encrypted_key = crypto::decode_b64(&result.key_attributes.encrypted_key).unwrap();
-        let nonce = crypto::decode_b64(&result.key_attributes.key_decryption_nonce).unwrap();
+        let encrypted_key = b64::decode(&result.key_attributes.encrypted_key).unwrap();
+        let nonce = b64::decode(&result.key_attributes.key_decryption_nonce).unwrap();
         let decrypted_master = decrypt_raw(&encrypted_key, &nonce, &result.key_encryption_key);
 
-        let original_master = crypto::decode_b64(&result.private_key_attributes.key).unwrap();
+        let original_master = b64::decode(&result.private_key_attributes.key).unwrap();
         assert_eq!(decrypted_master, original_master);
     }
 
     #[test]
     fn test_generate_keys_can_decrypt_secret_key() {
         let result = generate_test_keys("password").unwrap();
-        let master_key = crypto::decode_b64(&result.private_key_attributes.key).unwrap();
+        let master_key = b64::decode(&result.private_key_attributes.key).unwrap();
 
-        let encrypted = crypto::decode_b64(&result.key_attributes.encrypted_secret_key).unwrap();
-        let nonce = crypto::decode_b64(&result.key_attributes.secret_key_decryption_nonce).unwrap();
+        let encrypted = b64::decode(&result.key_attributes.encrypted_secret_key).unwrap();
+        let nonce = b64::decode(&result.key_attributes.secret_key_decryption_nonce).unwrap();
         let decrypted = decrypt_raw(&encrypted, &nonce, &master_key);
 
-        let original = crypto::decode_b64(&result.private_key_attributes.secret_key).unwrap();
+        let original = b64::decode(&result.private_key_attributes.secret_key).unwrap();
         assert_eq!(decrypted, original);
     }
 
@@ -233,7 +234,7 @@ mod tests {
         let result = generate_test_keys("password").unwrap();
         let recovery_key = hex::decode(&*result.private_key_attributes.recovery_key).unwrap();
 
-        let encrypted = crypto::decode_b64(
+        let encrypted = b64::decode(
             result
                 .key_attributes
                 .master_key_encrypted_with_recovery_key
@@ -241,7 +242,7 @@ mod tests {
                 .unwrap(),
         )
         .unwrap();
-        let nonce = crypto::decode_b64(
+        let nonce = b64::decode(
             result
                 .key_attributes
                 .master_key_decryption_nonce
@@ -251,16 +252,16 @@ mod tests {
         .unwrap();
         let decrypted = decrypt_raw(&encrypted, &nonce, &recovery_key);
 
-        let original = crypto::decode_b64(&result.private_key_attributes.key).unwrap();
+        let original = b64::decode(&result.private_key_attributes.key).unwrap();
         assert_eq!(decrypted, original);
     }
 
     #[test]
     fn test_generate_keys_master_can_decrypt_recovery() {
         let result = generate_test_keys("password").unwrap();
-        let master_key = crypto::decode_b64(&result.private_key_attributes.key).unwrap();
+        let master_key = b64::decode(&result.private_key_attributes.key).unwrap();
 
-        let encrypted = crypto::decode_b64(
+        let encrypted = b64::decode(
             result
                 .key_attributes
                 .recovery_key_encrypted_with_master_key
@@ -268,7 +269,7 @@ mod tests {
                 .unwrap(),
         )
         .unwrap();
-        let nonce = crypto::decode_b64(
+        let nonce = b64::decode(
             result
                 .key_attributes
                 .recovery_key_decryption_nonce
@@ -285,7 +286,7 @@ mod tests {
     #[test]
     fn test_password_change() {
         let initial = generate_test_keys("old_password").unwrap();
-        let master_key = crypto::decode_b64(&initial.private_key_attributes.key).unwrap();
+        let master_key = b64::decode(&initial.private_key_attributes.key).unwrap();
 
         let (new_attrs, new_login_key) = generate_key_attributes_for_new_password_with_strength(
             &master_key,
@@ -299,7 +300,7 @@ mod tests {
         assert_ne!(new_login_key, initial.login_key);
 
         // Verify we can decrypt with new password
-        let kek_salt = crypto::decode_b64(&new_attrs.kek_salt).unwrap();
+        let kek_salt = b64::decode(&new_attrs.kek_salt).unwrap();
         let salt = crypto::Salt::try_from_slice(&kek_salt).unwrap();
         let kek = argon::derive_key(
             "new_password",
@@ -310,8 +311,8 @@ mod tests {
             },
         )
         .unwrap();
-        let encrypted = crypto::decode_b64(&new_attrs.encrypted_key).unwrap();
-        let nonce = crypto::decode_b64(&new_attrs.key_decryption_nonce).unwrap();
+        let encrypted = b64::decode(&new_attrs.encrypted_key).unwrap();
+        let nonce = b64::decode(&new_attrs.key_decryption_nonce).unwrap();
         let decrypted = decrypt_raw(&encrypted, &nonce, kek.as_bytes());
         assert_eq!(decrypted, master_key);
     }
@@ -326,15 +327,15 @@ mod tests {
 
         let recovery_key = hex::decode(&recovery_hex).unwrap();
         let decrypted = decrypt_raw(
-            &crypto::decode_b64(&enc_master).unwrap(),
-            &crypto::decode_b64(&nonce_master).unwrap(),
+            &b64::decode(&enc_master).unwrap(),
+            &b64::decode(&nonce_master).unwrap(),
             &recovery_key,
         );
         assert_eq!(decrypted, master_key);
 
         let decrypted_recovery = decrypt_raw(
-            &crypto::decode_b64(&enc_recovery).unwrap(),
-            &crypto::decode_b64(&nonce_recovery).unwrap(),
+            &b64::decode(&enc_recovery).unwrap(),
+            &b64::decode(&nonce_recovery).unwrap(),
             &master_key,
         );
         assert_eq!(decrypted_recovery, recovery_key);

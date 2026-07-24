@@ -2,18 +2,7 @@
 
 use std::sync::Arc;
 
-use ente_accounts::auth::KeyAttributes as CoreKeyAttributes;
-use ente_contacts::{
-    AttachmentType as CoreAttachmentType, ContactData as CoreContactData,
-    ContactRecord as CoreContactRecord, ContactsCtx as CoreContactsCtx,
-    ContactsError as CoreContactsError, LegacyKit as CoreLegacyKit,
-    LegacyKitCreateResult as CoreLegacyKitCreateResult, LegacyKitMetadata as CoreLegacyKitMetadata,
-    LegacyKitOwnerRecoverySession, LegacyKitPart as CoreLegacyKitPart, LegacyKitRecoveryInitiator,
-    LegacyKitRecoverySession as CoreLegacyKitRecoverySession,
-    LegacyKitRecoveryStatus as CoreLegacyKitRecoveryStatus, LegacyKitShare as CoreLegacyKitShare,
-    LegacyKitVariant as CoreLegacyKitVariant, OpenContactsCtxInput as CoreOpenContactsCtxInput,
-    RootKeySource as CoreRootKeySource, WrappedRootContactKey as CoreWrappedRootContactKey,
-};
+use ente_contacts::{LegacyKitOwnerRecoverySession, LegacyKitRecoveryInitiator};
 use flutter_rust_bridge::frb;
 
 #[frb]
@@ -30,8 +19,8 @@ pub enum ContactsError {
     ActiveRecoverySession { message: String },
 }
 
-impl From<CoreContactsError> for ContactsError {
-    fn from(e: CoreContactsError) -> Self {
+impl From<ente_contacts::ContactsError> for ContactsError {
+    fn from(e: ente_contacts::ContactsError) -> Self {
         use ente_contacts::ErrorKind as K;
         let message = ente_core::error::chain(&e);
         match e.kind() {
@@ -62,8 +51,8 @@ pub struct WrappedRootContactKey {
     pub header: String,
 }
 
-impl From<CoreWrappedRootContactKey> for WrappedRootContactKey {
-    fn from(value: CoreWrappedRootContactKey) -> Self {
+impl From<ente_contacts::WrappedRootContactKey> for WrappedRootContactKey {
+    fn from(value: ente_contacts::WrappedRootContactKey) -> Self {
         Self {
             encrypted_key: value.encrypted_key,
             header: value.header,
@@ -71,7 +60,7 @@ impl From<CoreWrappedRootContactKey> for WrappedRootContactKey {
     }
 }
 
-impl From<WrappedRootContactKey> for CoreWrappedRootContactKey {
+impl From<WrappedRootContactKey> for ente_contacts::WrappedRootContactKey {
     fn from(value: WrappedRootContactKey) -> Self {
         Self {
             encrypted_key: value.encrypted_key,
@@ -110,7 +99,7 @@ pub struct AccountKeyAttributes {
     pub recovery_key_decryption_nonce: Option<String>,
 }
 
-impl From<AccountKeyAttributes> for CoreKeyAttributes {
+impl From<AccountKeyAttributes> for ente_accounts::auth::KeyAttributes {
     fn from(value: AccountKeyAttributes) -> Self {
         Self {
             kek_salt: value.kek_salt,
@@ -140,7 +129,7 @@ pub struct ContactData {
     pub name: String,
 }
 
-impl From<ContactData> for CoreContactData {
+impl From<ContactData> for ente_contacts::ContactData {
     fn from(value: ContactData) -> Self {
         Self {
             contact_user_id: value.contact_user_id,
@@ -171,8 +160,8 @@ pub struct ContactRecord {
     pub updated_at: i64,
 }
 
-impl From<CoreContactRecord> for ContactRecord {
-    fn from(value: CoreContactRecord) -> Self {
+impl From<ente_contacts::ContactRecord> for ContactRecord {
+    fn from(value: ente_contacts::ContactRecord) -> Self {
         Self {
             id: value.id,
             contact_user_id: value.contact_user_id,
@@ -194,10 +183,10 @@ pub enum LegacyKitVariant {
     TwoOfThree,
 }
 
-impl From<CoreLegacyKitVariant> for LegacyKitVariant {
-    fn from(value: CoreLegacyKitVariant) -> Self {
+impl From<ente_contacts::LegacyKitVariant> for LegacyKitVariant {
+    fn from(value: ente_contacts::LegacyKitVariant) -> Self {
         match value {
-            CoreLegacyKitVariant::TwoOfThree => Self::TwoOfThree,
+            ente_contacts::LegacyKitVariant::TwoOfThree => Self::TwoOfThree,
         }
     }
 }
@@ -218,14 +207,14 @@ pub enum LegacyKitRecoveryStatus {
     Recovered,
 }
 
-impl From<CoreLegacyKitRecoveryStatus> for LegacyKitRecoveryStatus {
-    fn from(value: CoreLegacyKitRecoveryStatus) -> Self {
+impl From<ente_contacts::LegacyKitRecoveryStatus> for LegacyKitRecoveryStatus {
+    fn from(value: ente_contacts::LegacyKitRecoveryStatus) -> Self {
         match value {
-            CoreLegacyKitRecoveryStatus::Waiting => Self::Waiting,
-            CoreLegacyKitRecoveryStatus::Ready => Self::Ready,
-            CoreLegacyKitRecoveryStatus::Blocked => Self::Blocked,
-            CoreLegacyKitRecoveryStatus::Cancelled => Self::Cancelled,
-            CoreLegacyKitRecoveryStatus::Recovered => Self::Recovered,
+            ente_contacts::LegacyKitRecoveryStatus::Waiting => Self::Waiting,
+            ente_contacts::LegacyKitRecoveryStatus::Ready => Self::Ready,
+            ente_contacts::LegacyKitRecoveryStatus::Blocked => Self::Blocked,
+            ente_contacts::LegacyKitRecoveryStatus::Cancelled => Self::Cancelled,
+            ente_contacts::LegacyKitRecoveryStatus::Recovered => Self::Recovered,
         }
     }
 }
@@ -246,8 +235,8 @@ pub struct LegacyKitRecoverySession {
     pub created_at: i64,
 }
 
-impl From<CoreLegacyKitRecoverySession> for LegacyKitRecoverySession {
-    fn from(value: CoreLegacyKitRecoverySession) -> Self {
+impl From<ente_contacts::LegacyKitRecoverySession> for LegacyKitRecoverySession {
+    fn from(value: ente_contacts::LegacyKitRecoverySession) -> Self {
         Self {
             id: value.id,
             kit_id: value.kit_id,
@@ -309,8 +298,8 @@ pub struct LegacyKitPart {
     pub name: String,
 }
 
-impl From<CoreLegacyKitPart> for LegacyKitPart {
-    fn from(value: CoreLegacyKitPart) -> Self {
+impl From<ente_contacts::LegacyKitPart> for LegacyKitPart {
+    fn from(value: ente_contacts::LegacyKitPart) -> Self {
         Self {
             index: value.index,
             name: value.name,
@@ -326,8 +315,8 @@ pub struct LegacyKitMetadata {
     pub parts: Vec<LegacyKitPart>,
 }
 
-impl From<CoreLegacyKitMetadata> for LegacyKitMetadata {
-    fn from(value: CoreLegacyKitMetadata) -> Self {
+impl From<ente_contacts::LegacyKitMetadata> for LegacyKitMetadata {
+    fn from(value: ente_contacts::LegacyKitMetadata) -> Self {
         Self {
             parts: value.parts.into_iter().map(Into::into).collect(),
         }
@@ -356,8 +345,8 @@ pub struct LegacyKit {
     pub active_recovery_session: Option<LegacyKitRecoverySession>,
 }
 
-impl From<CoreLegacyKit> for LegacyKit {
-    fn from(value: CoreLegacyKit) -> Self {
+impl From<ente_contacts::LegacyKit> for LegacyKit {
+    fn from(value: ente_contacts::LegacyKit) -> Self {
         Self {
             id: value.id,
             variant: value.variant.into(),
@@ -391,8 +380,8 @@ pub struct LegacyKitShare {
     pub part_name: String,
 }
 
-impl From<CoreLegacyKitShare> for LegacyKitShare {
-    fn from(value: CoreLegacyKitShare) -> Self {
+impl From<ente_contacts::LegacyKitShare> for LegacyKitShare {
+    fn from(value: ente_contacts::LegacyKitShare) -> Self {
         Self {
             payload_version: value.payload_version,
             variant: value.variant.into(),
@@ -415,8 +404,8 @@ pub struct LegacyKitCreateResult {
     pub shares: Vec<LegacyKitShare>,
 }
 
-impl From<CoreLegacyKitCreateResult> for LegacyKitCreateResult {
-    fn from(value: CoreLegacyKitCreateResult) -> Self {
+impl From<ente_contacts::LegacyKitCreateResult> for LegacyKitCreateResult {
+    fn from(value: ente_contacts::LegacyKitCreateResult) -> Self {
         Self {
             kit: value.kit.into(),
             shares: value.shares.into_iter().map(Into::into).collect(),
@@ -434,11 +423,11 @@ pub enum RootKeySource {
     Unresolved,
 }
 
-impl From<CoreRootKeySource> for RootKeySource {
-    fn from(value: CoreRootKeySource) -> Self {
+impl From<ente_contacts::RootKeySource> for RootKeySource {
+    fn from(value: ente_contacts::RootKeySource) -> Self {
         match value {
-            CoreRootKeySource::Cache => RootKeySource::Cache,
-            CoreRootKeySource::Unresolved => RootKeySource::Unresolved,
+            ente_contacts::RootKeySource::Cache => RootKeySource::Cache,
+            ente_contacts::RootKeySource::Unresolved => RootKeySource::Unresolved,
         }
     }
 }
@@ -451,10 +440,10 @@ pub enum AttachmentType {
     ProfilePicture,
 }
 
-impl From<AttachmentType> for CoreAttachmentType {
+impl From<AttachmentType> for ente_contacts::AttachmentType {
     fn from(value: AttachmentType) -> Self {
         match value {
-            AttachmentType::ProfilePicture => CoreAttachmentType::ProfilePicture,
+            AttachmentType::ProfilePicture => ente_contacts::AttachmentType::ProfilePicture,
         }
     }
 }
@@ -495,7 +484,7 @@ pub struct OpenContactsCtxResult {
 #[derive(Clone)]
 /// Opaque account-scoped contacts context exposed to Flutter.
 pub struct ContactsCtx {
-    inner: Arc<CoreContactsCtx>,
+    inner: Arc<ente_contacts::ContactsCtx>,
 }
 
 #[frb]
@@ -503,7 +492,7 @@ pub struct ContactsCtx {
 pub async fn open_contacts_ctx(
     input: OpenContactsCtxInput,
 ) -> Result<OpenContactsCtxResult, ContactsError> {
-    let opened = CoreContactsCtx::open(CoreOpenContactsCtxInput {
+    let opened = ente_contacts::ContactsCtx::open(ente_contacts::OpenContactsCtxInput {
         base_url: input.base_url,
         auth_token: input.auth_token,
         user_id: input.user_id,

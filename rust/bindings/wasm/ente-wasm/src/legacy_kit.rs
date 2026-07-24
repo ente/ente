@@ -1,8 +1,6 @@
 //! WASM bindings for offline legacy-kit recovery.
 
-use ente_contacts::{
-    LegacyKitRecoveryClient, LegacyKitRecoveryHandle as CoreLegacyKitRecoveryHandle, LegacyKitShare,
-};
+use ente_contacts::{LegacyKitRecoveryClient, LegacyKitShare};
 use serde::Deserialize;
 use serde_wasm_bindgen as swb;
 use wasm_bindgen::prelude::*;
@@ -41,7 +39,7 @@ pub async fn legacy_kit_open_recovery(
 /// Handle to an opened legacy-kit recovery session.
 #[wasm_bindgen]
 pub struct LegacyKitRecoveryHandle {
-    inner: CoreLegacyKitRecoveryHandle,
+    inner: ente_contacts::LegacyKitRecoveryHandle,
 }
 
 #[wasm_bindgen]

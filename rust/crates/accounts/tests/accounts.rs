@@ -3,9 +3,8 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use ente_accounts::{
-    AccountsClient, AccountsClientConfig, AuthFlow, AuthFlowUi, CreateAccountParams,
-    Error as AccountsError, LoginParams, OtpPurpose, Result as AccountsResult, SecondFactorMethod,
-    SetupTwoFactorParams, TotpPurpose,
+    AccountsClient, AccountsClientConfig, AuthFlow, AuthFlowUi, CreateAccountParams, LoginParams,
+    OtpPurpose, SecondFactorMethod, SetupTwoFactorParams, TotpPurpose,
 };
 use ente_core::crypto::SecretVec;
 use ente_test_support::{HARDCODED_OTT, HARDCODED_OTT_EMAIL_SUFFIX, Museum, TestResult};
@@ -26,41 +25,45 @@ impl AuthFlowUi for TestUi {
         _email: &str,
         _purpose: OtpPurpose,
         _resent: bool,
-    ) -> AccountsResult<String> {
+    ) -> ente_accounts::Result<String> {
         Ok(HARDCODED_OTT.into())
     }
 
-    fn read_totp_code(&mut self, _purpose: TotpPurpose) -> AccountsResult<String> {
+    fn read_totp_code(&mut self, _purpose: TotpPurpose) -> ente_accounts::Result<String> {
         self.totp_secret
             .as_deref()
             .map(current_totp)
-            .ok_or_else(|| AccountsError::InvalidInput("TOTP secret missing".into()))
+            .ok_or_else(|| ente_accounts::Error::InvalidInput("TOTP secret missing".into()))
     }
 
-    fn report_retryable_error(&mut self, _message: &str) -> AccountsResult<()> {
+    fn report_retryable_error(&mut self, _message: &str) -> ente_accounts::Result<()> {
         Ok(())
     }
 
     fn choose_second_factor(
         &mut self,
         _methods: &[SecondFactorMethod],
-    ) -> AccountsResult<SecondFactorMethod> {
+    ) -> ente_accounts::Result<SecondFactorMethod> {
         Ok(SecondFactorMethod::Totp)
     }
 
-    fn present_passkey_verification(&mut self, _url: &str) -> AccountsResult<()> {
-        Err(AccountsError::InvalidInput(
+    fn present_passkey_verification(&mut self, _url: &str) -> ente_accounts::Result<()> {
+        Err(ente_accounts::Error::InvalidInput(
             "Passkey flow not expected".into(),
         ))
     }
 
-    fn wait_for_passkey_verification(&mut self) -> AccountsResult<()> {
-        Err(AccountsError::InvalidInput(
+    fn wait_for_passkey_verification(&mut self) -> ente_accounts::Result<()> {
+        Err(ente_accounts::Error::InvalidInput(
             "Passkey flow not expected".into(),
         ))
     }
 
-    fn present_totp_secret(&mut self, secret_code: &str, _qr_code: &str) -> AccountsResult<()> {
+    fn present_totp_secret(
+        &mut self,
+        secret_code: &str,
+        _qr_code: &str,
+    ) -> ente_accounts::Result<()> {
         self.totp_secret = Some(secret_code.to_string());
         Ok(())
     }

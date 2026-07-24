@@ -3,7 +3,7 @@ use crate::api::client::AppClient;
 use crate::api::methods::ApiMethods;
 use crate::live_photo::extract_live_photo;
 use crate::models::file::RemoteFile;
-use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
+use ente_core::b64;
 use ente_core::crypto;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::collections::HashMap;
@@ -250,8 +250,8 @@ impl DownloadManager {
 
         // Decrypt file key using collection key (XSalsa20-Poly1305)
         let file_key = {
-            let key_bytes = BASE64.decode(&file.encrypted_key)?;
-            let nonce = BASE64.decode(&file.key_decryption_nonce)?;
+            let key_bytes = b64::decode(&file.encrypted_key)?;
+            let nonce = b64::decode(&file.key_decryption_nonce)?;
             crypto::secretbox::decrypt(
                 &key_bytes,
                 &crypto::Nonce::try_from_slice(&nonce)?,
@@ -260,7 +260,7 @@ impl DownloadManager {
         };
 
         // Decrypt file data using file key (Streaming XChaCha20-Poly1305)
-        let file_nonce = BASE64.decode(&file.file.decryption_header)?;
+        let file_nonce = b64::decode(&file.file.decryption_header)?;
         let decrypted = crypto::stream::decrypt_file_data(
             encrypted_data,
             &crypto::Header::try_from_slice(&file_nonce)?,

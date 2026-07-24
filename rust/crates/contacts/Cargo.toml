@@ -16,7 +16,6 @@ sha2 = "0.11"
 uuid = { version = "1", features = ["v4", "js"] }
 
 [dev-dependencies]
-base64 = "0.22"
 ente-test-support.workspace = true
 hmac = "0.13"
 mockito = "1.6"

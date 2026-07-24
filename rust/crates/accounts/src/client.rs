@@ -1,6 +1,6 @@
 //! Shared low-level account client.
 
-use base64::{Engine, engine::general_purpose::STANDARD};
+use ente_core::b64;
 use ente_core::{
     crypto::SecretVec,
     http::{self, Api, ApiConfig, Auth, Http},
@@ -103,7 +103,7 @@ impl AccountsClient {
     ) -> Result<(AuthResponse, SecretVec)> {
         let srp_attrs = self.get_srp_attributes(email).await?;
         let creds = auth::derive_srp_credentials(password, &srp_attrs)?;
-        let srp_salt = STANDARD.decode(&srp_attrs.srp_salt)?;
+        let srp_salt = b64::decode(&srp_attrs.srp_salt)?;
         let mut srp_session = SrpSession::new(
             &srp_attrs.srp_user_id.to_string(),
             &srp_salt,
@@ -115,14 +115,14 @@ impl AccountsClient {
             .create_srp_session(&srp_attrs.srp_user_id, &a_pub)
             .await?;
 
-        let server_b = STANDARD.decode(&session.srp_b)?;
+        let server_b = b64::decode(&session.srp_b)?;
         let proof = srp_session.compute_m1(&server_b)?;
         let auth_response = self
             .verify_srp_session(&srp_attrs.srp_user_id, &session.session_id, &proof)
             .await?;
 
         let srp_m2 = require_srp_m2(&auth_response)?;
-        let server_proof = STANDARD.decode(srp_m2)?;
+        let server_proof = b64::decode(srp_m2)?;
         srp_session.verify_m2(&server_proof).map_err(|_| {
             Error::AuthenticationFailed("Server proof verification failed".to_string())
         })?;
@@ -138,7 +138,7 @@ impl AccountsClient {
     ) -> Result<CreateSrpSessionResponse> {
         let request = CreateSrpSessionRequest {
             srp_user_id: srp_user_id.to_string(),
-            srp_a: STANDARD.encode(client_public),
+            srp_a: b64::encode(client_public),
         };
         Ok(http::retry(|| async {
             self.api
@@ -164,7 +164,7 @@ impl AccountsClient {
         let request = VerifySrpSessionRequest {
             srp_user_id: srp_user_id.to_string(),
             session_id: session_id.to_string(),
-            srp_m1: STANDARD.encode(client_proof),
+            srp_m1: b64::encode(client_proof),
         };
         Ok(self
             .api

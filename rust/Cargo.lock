@@ -2290,7 +2290,6 @@ dependencies = [
 name = "ente-accounts"
 version = "0.0.0"
 dependencies = [
- "base64 0.22.1",
  "bip39",
  "ente-core",
  "ente-test-support",
@@ -2325,7 +2324,6 @@ dependencies = [
 name = "ente-contacts"
 version = "0.0.0"
 dependencies = [
- "base64 0.22.1",
  "ente-accounts",
  "ente-core",
  "ente-test-support",
@@ -2486,7 +2484,6 @@ dependencies = [
 name = "ente-rs"
 version = "0.0.1"
 dependencies = [
- "base64 0.22.1",
  "chrono",
  "clap",
  "dialoguer",
@@ -2519,7 +2516,6 @@ dependencies = [
 name = "ente-space"
 version = "0.0.1"
 dependencies = [
- "base64 0.22.1",
  "ente-accounts",
  "ente-core",
  "ente-test-support",

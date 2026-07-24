@@ -24,7 +24,6 @@ tokio = { version = "1.41", features = ["full"] }
 futures = "0.3"
 
 # Cryptography - using ente-core pure Rust implementation
-base64 = "0.22"
 zeroize = { version = "1.8", features = ["derive"] }
 
 # Storage

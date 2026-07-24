@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use ente_photos::{
-    VideoIndex as CoreVideoIndex, extract_motion_video_file_from_path, extract_xmp_from_path,
-    get_motion_video_index_from_path,
+    extract_motion_video_file_from_path, extract_xmp_from_path, get_motion_video_index_from_path,
 };
 
 #[derive(Clone, Debug)]
@@ -11,10 +10,10 @@ pub struct VideoIndex {
     pub end: i64,
 }
 
-impl TryFrom<CoreVideoIndex> for VideoIndex {
+impl TryFrom<ente_photos::VideoIndex> for VideoIndex {
     type Error = String;
 
-    fn try_from(value: CoreVideoIndex) -> Result<Self, Self::Error> {
+    fn try_from(value: ente_photos::VideoIndex) -> Result<Self, Self::Error> {
         let start = i64::try_from(value.start)
             .map_err(|_| "video index start does not fit i64".to_string())?;
         let end =
@@ -23,7 +22,7 @@ impl TryFrom<CoreVideoIndex> for VideoIndex {
     }
 }
 
-impl TryFrom<VideoIndex> for CoreVideoIndex {
+impl TryFrom<VideoIndex> for ente_photos::VideoIndex {
     type Error = String;
 
     fn try_from(value: VideoIndex) -> Result<Self, Self::Error> {

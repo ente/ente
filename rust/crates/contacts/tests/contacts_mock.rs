@@ -1,7 +1,7 @@
 use ente_contacts::client::{ContactsCtx, OpenContactsCtxInput, RootKeySource};
 use ente_contacts::crypto as contacts_crypto;
 use ente_contacts::models::{AttachmentType, ContactData, WrappedRootContactKey};
-use ente_core::crypto::{Key, encode_b64};
+use ente_core::{b64, crypto::Key};
 use md5::Digest;
 use mockito::{Matcher, Server};
 
@@ -659,5 +659,5 @@ async fn get_diff_uses_cached_wrapped_root_contact_key_for_reads_without_fetchin
 #[test]
 fn root_key_md5_helper_is_base64_digest() {
     let digest = contacts_crypto::content_md5_base64(b"hello");
-    assert_eq!(digest, encode_b64(&md5::Md5::digest(b"hello")));
+    assert_eq!(digest, b64::encode(&md5::Md5::digest(b"hello")));
 }

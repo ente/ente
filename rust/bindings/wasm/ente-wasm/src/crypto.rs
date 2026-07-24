@@ -1,6 +1,7 @@
 //! WASM bindings for pure-Rust cryptography.
 
-use ente_core::crypto as core_crypto;
+use ente_core::b64;
+use ente_core::crypto;
 use md5::{Digest, Md5};
 use wasm_bindgen::prelude::*;
 
@@ -26,12 +27,11 @@ impl CryptoError {
     }
 }
 
-impl From<core_crypto::Error> for CryptoError {
-    fn from(e: core_crypto::Error) -> Self {
-        use core_crypto::Error as E;
+impl From<crypto::Error> for CryptoError {
+    fn from(e: crypto::Error) -> Self {
+        use crypto::Error as E;
 
         let code = match &e {
-            E::Base64Decode(_) => "base64_decode",
             E::InvalidKeyLength { .. } => "invalid_key_length",
             E::InvalidNonceLength { .. } => "invalid_nonce_length",
             E::InvalidSaltLength { .. } => "invalid_salt_length",
@@ -63,6 +63,15 @@ impl From<core_crypto::Error> for CryptoError {
     }
 }
 
+impl From<b64::DecodeError> for CryptoError {
+    fn from(e: b64::DecodeError) -> Self {
+        Self {
+            code: "base64_decode".to_string(),
+            message: e.to_string(),
+        }
+    }
+}
+
 /// No-op, kept only for binding compatibility.
 ///
 /// The pure-Rust crypto needs no initialization; existing web callers invoke
@@ -75,13 +84,13 @@ pub fn crypto_init() -> Result<(), CryptoError> {
 /// Generate a random 32-byte SecretBox key and return it as base64.
 #[wasm_bindgen]
 pub fn crypto_generate_key() -> String {
-    core_crypto::encode_b64(core_crypto::Key::generate().as_bytes())
+    b64::encode(crypto::Key::generate().as_bytes())
 }
 
 /// Generate a random 32-byte SecretStream key and return it as base64.
 #[wasm_bindgen]
 pub fn crypto_generate_stream_key() -> String {
-    core_crypto::encode_b64(core_crypto::Key::generate().as_bytes())
+    b64::encode(crypto::Key::generate().as_bytes())
 }
 
 /// Incremental chunk encryptor for large file uploads.
@@ -91,7 +100,7 @@ pub fn crypto_generate_stream_key() -> String {
 /// the caller to upload.
 #[wasm_bindgen]
 pub struct CryptoStreamEncryptor {
-    encryptor: core_crypto::stream::Encryptor,
+    encryptor: crypto::stream::Encryptor,
     key: String,
     decryption_header: String,
 }
@@ -100,13 +109,13 @@ pub struct CryptoStreamEncryptor {
 impl CryptoStreamEncryptor {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Result<CryptoStreamEncryptor, CryptoError> {
-        let key = core_crypto::Key::generate();
-        let encryptor = core_crypto::stream::Encryptor::new(&key);
-        let decryption_header = core_crypto::encode_b64(encryptor.header().as_bytes());
+        let key = crypto::Key::generate();
+        let encryptor = crypto::stream::Encryptor::new(&key);
+        let decryption_header = b64::encode(encryptor.header().as_bytes());
 
         Ok(Self {
             encryptor,
-            key: core_crypto::encode_b64(key.as_bytes()),
+            key: b64::encode(key.as_bytes()),
             decryption_header,
         })
     }
@@ -135,7 +144,7 @@ impl CryptoStreamEncryptor {
 /// Incremental chunk decryptor for large file downloads.
 #[wasm_bindgen]
 pub struct CryptoStreamDecryptor {
-    decryptor: core_crypto::stream::Decryptor,
+    decryptor: crypto::stream::Decryptor,
     finalized: bool,
 }
 
@@ -146,11 +155,11 @@ impl CryptoStreamDecryptor {
         decryption_header_b64: &str,
         key_b64: &str,
     ) -> Result<CryptoStreamDecryptor, CryptoError> {
-        let header = core_crypto::decode_b64(decryption_header_b64)?;
-        let key = core_crypto::decode_b64(key_b64)?;
-        let decryptor = core_crypto::stream::Decryptor::new(
-            &core_crypto::Header::try_from_slice(&header)?,
-            &core_crypto::Key::try_from_slice(&key)?,
+        let header = b64::decode(decryption_header_b64)?;
+        let key = b64::decode(key_b64)?;
+        let decryptor = crypto::stream::Decryptor::new(
+            &crypto::Header::try_from_slice(&header)?,
+            &crypto::Key::try_from_slice(&key)?,
         );
 
         Ok(Self {
@@ -161,7 +170,7 @@ impl CryptoStreamDecryptor {
 
     #[wasm_bindgen(getter)]
     pub fn decryption_chunk_size(&self) -> usize {
-        core_crypto::stream::DECRYPTION_CHUNK_SIZE
+        crypto::stream::DECRYPTION_CHUNK_SIZE
     }
 
     #[wasm_bindgen(getter)]
@@ -179,14 +188,14 @@ impl CryptoStreamDecryptor {
 /// Generate a random 16-byte salt and return it as base64.
 #[wasm_bindgen]
 pub fn crypto_generate_salt() -> String {
-    core_crypto::encode_b64(core_crypto::Salt::generate().as_bytes())
+    b64::encode(crypto::Salt::generate().as_bytes())
 }
 
 /// Compute the MD5 digest of the provided bytes and return it as base64.
 #[wasm_bindgen]
 pub fn crypto_md5_base64(data: Vec<u8>) -> String {
     let digest = Md5::digest(&data);
-    core_crypto::encode_b64(&digest)
+    b64::encode(&digest)
 }
 
 /// A X25519 public/secret keypair.
@@ -212,10 +221,10 @@ impl CryptoKeyPair {
 /// Generate a random X25519 keypair and return it as base64.
 #[wasm_bindgen]
 pub fn crypto_generate_keypair() -> CryptoKeyPair {
-    let secret_key = core_crypto::SecretKey::generate();
+    let secret_key = crypto::SecretKey::generate();
     CryptoKeyPair {
-        public_key: core_crypto::encode_b64(secret_key.public_key().as_bytes()),
-        secret_key: core_crypto::encode_b64(secret_key.as_bytes()),
+        public_key: b64::encode(secret_key.public_key().as_bytes()),
+        secret_key: b64::encode(secret_key.as_bytes()),
     }
 }
 
@@ -246,14 +255,14 @@ impl EncryptedBox {
 /// Returns ciphertext (`encrypted_data`) and nonce as base64.
 #[wasm_bindgen]
 pub fn crypto_encrypt_box(data_b64: &str, key_b64: &str) -> Result<EncryptedBox, CryptoError> {
-    let data = core_crypto::decode_b64(data_b64)?;
-    let key = core_crypto::decode_b64(key_b64)?;
+    let data = b64::decode(data_b64)?;
+    let key = b64::decode(key_b64)?;
 
-    let out = core_crypto::secretbox::encrypt(&data, &core_crypto::Key::try_from_slice(&key)?);
+    let out = crypto::secretbox::encrypt(&data, &crypto::Key::try_from_slice(&key)?);
 
     Ok(EncryptedBox {
-        encrypted_data: core_crypto::encode_b64(&out.encrypted_data),
-        nonce: core_crypto::encode_b64(out.nonce.as_bytes()),
+        encrypted_data: b64::encode(&out.encrypted_data),
+        nonce: b64::encode(out.nonce.as_bytes()),
     })
 }
 
@@ -266,16 +275,16 @@ pub fn crypto_decrypt_box(
     nonce_b64: &str,
     key_b64: &str,
 ) -> Result<String, CryptoError> {
-    let ciphertext = core_crypto::decode_b64(encrypted_data_b64)?;
-    let nonce = core_crypto::decode_b64(nonce_b64)?;
-    let key = core_crypto::decode_b64(key_b64)?;
+    let ciphertext = b64::decode(encrypted_data_b64)?;
+    let nonce = b64::decode(nonce_b64)?;
+    let key = b64::decode(key_b64)?;
 
-    let plaintext = core_crypto::secretbox::decrypt(
+    let plaintext = crypto::secretbox::decrypt(
         &ciphertext,
-        &core_crypto::Nonce::try_from_slice(&nonce)?,
-        &core_crypto::Key::try_from_slice(&key)?,
+        &crypto::Nonce::try_from_slice(&nonce)?,
+        &crypto::Key::try_from_slice(&key)?,
     )?;
-    Ok(core_crypto::encode_b64(&plaintext))
+    Ok(b64::encode(&plaintext))
 }
 
 /// A SecretStream (blob) encryption result.
@@ -301,13 +310,13 @@ impl EncryptedBlob {
 /// Encrypt `data_b64` using SecretStream (single-message blob) with `key_b64`.
 #[wasm_bindgen]
 pub fn crypto_encrypt_blob(data_b64: &str, key_b64: &str) -> Result<EncryptedBlob, CryptoError> {
-    let data = core_crypto::decode_b64(data_b64)?;
-    let key = core_crypto::decode_b64(key_b64)?;
+    let data = b64::decode(data_b64)?;
+    let key = b64::decode(key_b64)?;
 
-    let out = core_crypto::blob::encrypt(&data, &core_crypto::Key::try_from_slice(&key)?)?;
+    let out = crypto::blob::encrypt(&data, &crypto::Key::try_from_slice(&key)?)?;
     Ok(EncryptedBlob {
-        encrypted_data: core_crypto::encode_b64(&out.encrypted_data),
-        decryption_header: core_crypto::encode_b64(out.decryption_header.as_bytes()),
+        encrypted_data: b64::encode(&out.encrypted_data),
+        decryption_header: b64::encode(out.decryption_header.as_bytes()),
     })
 }
 
@@ -320,16 +329,16 @@ pub fn crypto_decrypt_blob(
     decryption_header_b64: &str,
     key_b64: &str,
 ) -> Result<String, CryptoError> {
-    let ciphertext = core_crypto::decode_b64(encrypted_data_b64)?;
-    let header = core_crypto::decode_b64(decryption_header_b64)?;
-    let key = core_crypto::decode_b64(key_b64)?;
+    let ciphertext = b64::decode(encrypted_data_b64)?;
+    let header = b64::decode(decryption_header_b64)?;
+    let key = b64::decode(key_b64)?;
 
-    let plaintext = core_crypto::blob::decrypt(
+    let plaintext = crypto::blob::decrypt(
         &ciphertext,
-        &core_crypto::Header::try_from_slice(&header)?,
-        &core_crypto::Key::try_from_slice(&key)?,
+        &crypto::Header::try_from_slice(&header)?,
+        &crypto::Key::try_from_slice(&key)?,
     )?;
-    Ok(core_crypto::encode_b64(&plaintext))
+    Ok(b64::encode(&plaintext))
 }
 
 /// Legacy decrypt for SecretStream (blob) ciphertext that may not carry
@@ -343,16 +352,16 @@ pub fn crypto_decrypt_blob_legacy(
     decryption_header_b64: &str,
     key_b64: &str,
 ) -> Result<String, CryptoError> {
-    let ciphertext = core_crypto::decode_b64(encrypted_data_b64)?;
-    let header = core_crypto::decode_b64(decryption_header_b64)?;
-    let key = core_crypto::decode_b64(key_b64)?;
+    let ciphertext = b64::decode(encrypted_data_b64)?;
+    let header = b64::decode(decryption_header_b64)?;
+    let key = b64::decode(key_b64)?;
 
-    let plaintext = core_crypto::blob::decrypt_legacy(
+    let plaintext = crypto::blob::decrypt_legacy(
         &ciphertext,
-        &core_crypto::Header::try_from_slice(&header)?,
-        &core_crypto::Key::try_from_slice(&key)?,
+        &crypto::Header::try_from_slice(&header)?,
+        &crypto::Key::try_from_slice(&key)?,
     )?;
-    Ok(core_crypto::encode_b64(&plaintext))
+    Ok(b64::encode(&plaintext))
 }
 
 /// Decrypt chunked SecretStream data (file content).
@@ -368,16 +377,16 @@ pub fn crypto_decrypt_stream(
     decryption_header_b64: &str,
     key_b64: &str,
 ) -> Result<String, CryptoError> {
-    let ciphertext = core_crypto::decode_b64(encrypted_data_b64)?;
-    let header = core_crypto::decode_b64(decryption_header_b64)?;
-    let key = core_crypto::decode_b64(key_b64)?;
+    let ciphertext = b64::decode(encrypted_data_b64)?;
+    let header = b64::decode(decryption_header_b64)?;
+    let key = b64::decode(key_b64)?;
 
-    let plaintext = core_crypto::stream::decrypt_file_data(
+    let plaintext = crypto::stream::decrypt_file_data(
         &ciphertext,
-        &core_crypto::Header::try_from_slice(&header)?,
-        &core_crypto::Key::try_from_slice(&key)?,
+        &crypto::Header::try_from_slice(&header)?,
+        &crypto::Key::try_from_slice(&key)?,
     )?;
-    Ok(core_crypto::encode_b64(&plaintext))
+    Ok(b64::encode(&plaintext))
 }
 
 /// Seal (anonymous public-key encrypt) `data_b64` for `recipient_public_key_b64`.
@@ -388,10 +397,10 @@ pub fn crypto_box_seal(
     data_b64: &str,
     recipient_public_key_b64: &str,
 ) -> Result<String, CryptoError> {
-    let data = core_crypto::decode_b64(data_b64)?;
-    let pk = core_crypto::decode_b64(recipient_public_key_b64)?;
-    let sealed = core_crypto::sealed::seal(&data, &core_crypto::PublicKey::try_from_slice(&pk)?)?;
-    Ok(core_crypto::encode_b64(&sealed))
+    let data = b64::decode(data_b64)?;
+    let pk = b64::decode(recipient_public_key_b64)?;
+    let sealed = crypto::sealed::seal(&data, &crypto::PublicKey::try_from_slice(&pk)?)?;
+    Ok(b64::encode(&sealed))
 }
 
 /// Open (decrypt) a sealed box.
@@ -403,15 +412,15 @@ pub fn crypto_box_seal_open(
     recipient_public_key_b64: &str,
     recipient_secret_key_b64: &str,
 ) -> Result<String, CryptoError> {
-    let sealed = core_crypto::decode_b64(sealed_b64)?;
-    let pk = core_crypto::decode_b64(recipient_public_key_b64)?;
-    let sk = core_crypto::decode_b64(recipient_secret_key_b64)?;
-    let opened = core_crypto::sealed::open(
+    let sealed = b64::decode(sealed_b64)?;
+    let pk = b64::decode(recipient_public_key_b64)?;
+    let sk = b64::decode(recipient_secret_key_b64)?;
+    let opened = crypto::sealed::open(
         &sealed,
-        &core_crypto::PublicKey::try_from_slice(&pk)?,
-        &core_crypto::SecretKey::try_from_slice(&sk)?,
+        &crypto::PublicKey::try_from_slice(&pk)?,
+        &crypto::SecretKey::try_from_slice(&sk)?,
     )?;
-    Ok(core_crypto::encode_b64(&opened))
+    Ok(b64::encode(&opened))
 }
 
 /// Derive a 32-byte key from `password` using Argon2id.
@@ -424,17 +433,17 @@ pub fn crypto_derive_key(
     mem_limit: u32,
     ops_limit: u32,
 ) -> Result<String, CryptoError> {
-    let salt = core_crypto::decode_b64(salt_b64)?;
-    let salt = core_crypto::Salt::try_from_slice(&salt)?;
-    let key = core_crypto::argon::derive_key(
+    let salt = b64::decode(salt_b64)?;
+    let salt = crypto::Salt::try_from_slice(&salt)?;
+    let key = crypto::argon::derive_key(
         password,
         &salt,
-        core_crypto::argon::Params {
+        crypto::argon::Params {
             mem_limit,
             ops_limit,
         },
     )?;
-    Ok(core_crypto::encode_b64(key.as_bytes()))
+    Ok(b64::encode(key.as_bytes()))
 }
 
 /// Derive a subkey using BLAKE2b KDF (libsodium compatible).
@@ -447,17 +456,17 @@ pub fn crypto_derive_subkey(
     subkey_id: u64,
     context: &str,
 ) -> Result<String, CryptoError> {
-    let key = core_crypto::decode_b64(key_b64)?;
+    let key = b64::decode(key_b64)?;
     let context: [u8; 8] = context.as_bytes().try_into().map_err(|_| {
-        core_crypto::Error::InvalidKeyDerivationParams("KDF context must be exactly 8 bytes".into())
+        crypto::Error::InvalidKeyDerivationParams("KDF context must be exactly 8 bytes".into())
     })?;
-    let subkey = core_crypto::kdf::derive_subkey(
-        &core_crypto::Key::try_from_slice(&key)?,
+    let subkey = crypto::kdf::derive_subkey(
+        &crypto::Key::try_from_slice(&key)?,
         subkey_len,
         subkey_id,
         &context,
     )?;
-    Ok(core_crypto::encode_b64(&subkey))
+    Ok(b64::encode(&subkey))
 }
 
 /// A chunked SecretStream encryption result (for file content).
@@ -512,20 +521,20 @@ impl EncryptedStreamResult {
 /// — all as base64 strings.
 #[wasm_bindgen]
 pub fn crypto_encrypt_stream(data_b64: &str) -> Result<EncryptedStreamResult, CryptoError> {
-    let plaintext = core_crypto::decode_b64(data_b64)?;
+    let plaintext = b64::decode(data_b64)?;
 
-    let key = core_crypto::Key::generate();
+    let key = crypto::Key::generate();
     let mut reader = std::io::Cursor::new(&plaintext);
     let mut writer = ente_core::io::Md5Writer::new(Vec::new());
 
-    let header = core_crypto::stream::encrypt_file(&mut reader, &mut writer, &key)?;
+    let header = crypto::stream::encrypt_file(&mut reader, &mut writer, &key)?;
     let (encrypted, md5) = writer.finalize();
 
     Ok(EncryptedStreamResult {
-        encrypted_data: core_crypto::encode_b64(&encrypted),
-        decryption_header: core_crypto::encode_b64(header.as_bytes()),
-        md5_hash: core_crypto::encode_b64(&md5),
-        key: core_crypto::encode_b64(key.as_bytes()),
+        encrypted_data: b64::encode(&encrypted),
+        decryption_header: b64::encode(header.as_bytes()),
+        md5_hash: b64::encode(&md5),
+        key: b64::encode(key.as_bytes()),
     })
 }
 
@@ -538,20 +547,20 @@ pub fn crypto_encrypt_stream_with_key(
     data_b64: &str,
     key_b64: &str,
 ) -> Result<EncryptedStreamResult, CryptoError> {
-    let plaintext = core_crypto::decode_b64(data_b64)?;
-    let key = core_crypto::Key::try_from_slice(&core_crypto::decode_b64(key_b64)?)?;
+    let plaintext = b64::decode(data_b64)?;
+    let key = crypto::Key::try_from_slice(&b64::decode(key_b64)?)?;
 
     let mut reader = std::io::Cursor::new(&plaintext);
     let mut writer = ente_core::io::Md5Writer::new(Vec::new());
 
-    let header = core_crypto::stream::encrypt_file(&mut reader, &mut writer, &key)?;
+    let header = crypto::stream::encrypt_file(&mut reader, &mut writer, &key)?;
     let (encrypted, md5) = writer.finalize();
 
     Ok(EncryptedStreamResult {
-        encrypted_data: core_crypto::encode_b64(&encrypted),
-        decryption_header: core_crypto::encode_b64(header.as_bytes()),
-        md5_hash: core_crypto::encode_b64(&md5),
-        key: core_crypto::encode_b64(key.as_bytes()),
+        encrypted_data: b64::encode(&encrypted),
+        decryption_header: b64::encode(header.as_bytes()),
+        md5_hash: b64::encode(&md5),
+        key: b64::encode(key.as_bytes()),
     })
 }
 
@@ -560,7 +569,7 @@ pub fn crypto_encrypt_stream_with_key(
 /// Returns the 16-byte login key as base64.
 #[wasm_bindgen]
 pub fn crypto_derive_login_key(master_key_b64: &str) -> Result<String, CryptoError> {
-    let key = core_crypto::decode_b64(master_key_b64)?;
-    let login_key = core_crypto::kdf::derive_login_key(&core_crypto::Key::try_from_slice(&key)?);
-    Ok(core_crypto::encode_b64(&login_key))
+    let key = b64::decode(master_key_b64)?;
+    let login_key = crypto::kdf::derive_login_key(&crypto::Key::try_from_slice(&key)?);
+    Ok(b64::encode(&login_key))
 }

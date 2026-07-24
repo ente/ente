@@ -9,7 +9,7 @@
 use super::AccountSpaceCtx;
 use crate::error::{Result, SpaceError};
 use crate::transport::{CreateEntityKeyRequest, EntityKeyPayload, EntityKeyResponse};
-use ente_core::crypto::{decode_b64, encode_b64};
+use ente_core::b64;
 
 const SPACE_ENTITY_KEY_HEADER_BYTES: usize = 24;
 
@@ -77,23 +77,23 @@ impl AccountSpaceCtx {
 }
 
 fn split_entity_key_payload(payload: &EntityKeyPayload) -> Result<(String, String)> {
-    let combined = decode_b64(&payload.encrypted_key)?;
+    let combined = b64::decode(&payload.encrypted_key)?;
     if combined.len() <= SPACE_ENTITY_KEY_HEADER_BYTES {
         return Err(SpaceError::InvalidInput(
             "entity key payload is missing header".into(),
         ));
     }
     Ok((
-        encode_b64(&combined[..SPACE_ENTITY_KEY_HEADER_BYTES]),
-        encode_b64(&combined[SPACE_ENTITY_KEY_HEADER_BYTES..]),
+        b64::encode(&combined[..SPACE_ENTITY_KEY_HEADER_BYTES]),
+        b64::encode(&combined[SPACE_ENTITY_KEY_HEADER_BYTES..]),
     ))
 }
 
 fn combine_entity_key_response(response: EntityKeyResponse) -> Result<EntityKeyPayload> {
-    let mut combined = decode_b64(&response.header)?;
-    let encrypted_key = decode_b64(&response.encrypted_key)?;
+    let mut combined = b64::decode(&response.header)?;
+    let encrypted_key = b64::decode(&response.encrypted_key)?;
     combined.extend_from_slice(&encrypted_key);
     Ok(EntityKeyPayload {
-        encrypted_key: encode_b64(&combined),
+        encrypted_key: b64::encode(&combined),
     })
 }
