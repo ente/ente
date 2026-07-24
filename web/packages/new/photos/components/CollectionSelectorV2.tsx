@@ -338,6 +338,7 @@ const gridSx = {
     p: "16px 20px 20px",
     display: "grid",
     gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gridAutoRows: "max-content",
     gap: "8px",
     alignContent: "start",
     overflowY: "auto",
