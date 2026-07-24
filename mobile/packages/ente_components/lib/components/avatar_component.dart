@@ -127,6 +127,20 @@ const List<AvatarComponentColor> avatarComponentIdentityPalette = [
   AvatarComponentColor.cyan,
 ];
 
+String avatarInitials(String name) {
+  final words = name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((word) => word.isNotEmpty)
+      .toList();
+  if (words.isEmpty) return '?';
+
+  final initials = words.length == 1
+      ? words.first.characters.first
+      : '${words.first.characters.first}${words.last.characters.first}';
+  return initials.toUpperCase().characters.take(2).join();
+}
+
 /// A stable FNV-1a seed for identity colors across processes and platforms.
 int avatarSeedForIdentity(String identityKey) {
   var hash = 0x811c9dc5;
@@ -278,11 +292,10 @@ class AvatarComponent extends StatelessWidget {
       );
     }
 
-    final text = initials.trim().isEmpty ? '?' : initials.trim().toUpperCase();
     return FittedBox(
       fit: BoxFit.scaleDown,
       child: Text(
-        text,
+        _displayInitials,
         maxLines: 1,
         textAlign: TextAlign.center,
         style: size.textStyle.copyWith(
@@ -306,7 +319,12 @@ class AvatarComponent extends StatelessWidget {
     if (image != null) return 'AvatarComponent image';
     if (icon != null) return 'Add avatar';
     if (initials.trim().isEmpty) return 'AvatarComponent';
-    return 'AvatarComponent $initials';
+    return 'AvatarComponent $_displayInitials';
+  }
+
+  String get _displayInitials {
+    final normalized = initials.trim().toUpperCase();
+    return normalized.isEmpty ? '?' : normalized.characters.take(2).join();
   }
 }
 

@@ -24,6 +24,33 @@ import "package:photos/ui/components/thumbnail_list_item.dart";
 import "package:photos/ui/viewer/gallery/collection_page.dart";
 import "package:photos/utils/dialog_util.dart";
 
+class AlbumGridLayout {
+  const AlbumGridLayout({
+    this.horizontalPadding = 8,
+    this.crossAxisSpacing = 8,
+    this.mainAxisSpacing = 24,
+    this.titleToSubtitleSpacing = 2,
+  });
+
+  static const standard = AlbumGridLayout();
+  static const dense = AlbumGridLayout(
+    horizontalPadding: 16,
+    crossAxisSpacing: 10,
+    mainAxisSpacing: 8,
+    titleToSubtitleSpacing: 4,
+  );
+
+  final double horizontalPadding;
+  final double crossAxisSpacing;
+  final double mainAxisSpacing;
+  final double titleToSubtitleSpacing;
+
+  double thumbnailSideFor({required double width, required int columnCount}) {
+    final totalSpacing = (columnCount - 1) * crossAxisSpacing;
+    return (width - horizontalPadding * 2 - totalSpacing) / columnCount;
+  }
+}
+
 class CollectionsFlexiGridViewWidget extends StatefulWidget {
   /*
   Aspect ratio 1:1
@@ -31,10 +58,7 @@ class CollectionsFlexiGridViewWidget extends StatefulWidget {
   */
 
   static const maxThumbnailWidth = 224.0;
-  static const crossAxisSpacing = 8.0;
-  static const horizontalPadding = 16.0;
   static const _thumbnailToTextSpacing = 8.0;
-  static const _titleToSubtitleSpacing = 2.0;
   final List<Collection>? collections;
 
   // If true, the GridView will shrink-wrap its contents.
@@ -46,9 +70,13 @@ class CollectionsFlexiGridViewWidget extends StatefulWidget {
   final bool shouldShowCreateAlbum;
   final SelectedAlbums? selectedAlbums;
   final bool onlyAllowSelection;
+  final ValueChanged<Collection>? onCollectionTap;
+  final bool Function(Collection)? isCollectionSelected;
+  final Widget? Function(BuildContext, Collection)? topLeftOverlayBuilder;
   final UISectionType? sectionType;
   final double topPadding;
   final double bottomPadding;
+  final AlbumGridLayout gridLayout;
 
   const CollectionsFlexiGridViewWidget(
     this.collections, {
@@ -60,9 +88,13 @@ class CollectionsFlexiGridViewWidget extends StatefulWidget {
     this.shouldShowCreateAlbum = false,
     this.selectedAlbums,
     this.onlyAllowSelection = false,
+    this.onCollectionTap,
+    this.isCollectionSelected,
+    this.topLeftOverlayBuilder,
     this.sectionType,
     this.topPadding = 16,
     this.bottomPadding = 200,
+    this.gridLayout = AlbumGridLayout.standard,
   });
 
   @override
@@ -98,6 +130,10 @@ class _CollectionsFlexiGridViewWidgetState
 
   Future<void> _toggleAlbumSelection(Collection c) async {
     await HapticFeedback.lightImpact();
+    if (widget.onCollectionTap != null) {
+      widget.onCollectionTap!(c);
+      return;
+    }
     widget.selectedAlbums!.toggleSelection(c);
     setState(() {
       isAnyAlbumSelected = widget.selectedAlbums!.albums.isNotEmpty;
@@ -147,14 +183,15 @@ class _CollectionsFlexiGridViewWidgetState
 
   @override
   Widget build(BuildContext context) {
+    final usesExternalSelection = widget.onCollectionTap != null;
     return PopScope(
-      canPop: !isAnyAlbumSelected,
+      canPop: usesExternalSelection || !isAnyAlbumSelected,
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop) {
+        if (didPop || usesExternalSelection) {
           return;
         }
         if (isAnyAlbumSelected) {
-          widget.selectedAlbums!.clearAll();
+          widget.selectedAlbums?.clearAll();
           setState(() {
             isAnyAlbumSelected = false;
           });
@@ -172,15 +209,10 @@ class _CollectionsFlexiGridViewWidgetState
       screenWidth ~/ CollectionsFlexiGridViewWidget.maxThumbnailWidth,
       3,
     );
-    final double totalCrossAxisSpacing =
-        (albumsCountInCrossAxis - 1) *
-        CollectionsFlexiGridViewWidget.crossAxisSpacing;
-
-    final double sideOfThumbnail =
-        (screenWidth -
-            totalCrossAxisSpacing -
-            CollectionsFlexiGridViewWidget.horizontalPadding) /
-        albumsCountInCrossAxis;
+    final double sideOfThumbnail = widget.gridLayout.thumbnailSideFor(
+      width: screenWidth,
+      columnCount: albumsCountInCrossAxis,
+    );
     final double gridItemTextHeight = _gridItemTextHeight(context);
     final int totalCollections = widget.collections!.length;
     final bool showCreateAlbum = widget.shouldShowCreateAlbum;
@@ -190,8 +222,8 @@ class _CollectionsFlexiGridViewWidgetState
       key: key,
       padding: EdgeInsets.only(
         top: widget.topPadding,
-        left: CollectionsFlexiGridViewWidget.horizontalPadding / 2,
-        right: CollectionsFlexiGridViewWidget.horizontalPadding / 2,
+        left: widget.gridLayout.horizontalPadding,
+        right: widget.gridLayout.horizontalPadding,
         bottom: widget.bottomPadding,
       ),
       sliver: SliverGrid(
@@ -212,6 +244,9 @@ class _CollectionsFlexiGridViewWidgetState
             ),
             tag: widget.tag,
             selectedAlbums: widget.selectedAlbums,
+            isSelected: widget.isCollectionSelected,
+            topLeftOverlayBuilder: widget.topLeftOverlayBuilder,
+            titleToSubtitleSpacing: widget.gridLayout.titleToSubtitleSpacing,
             onTapCallback: (c) {
               isAnyAlbumSelected || widget.onlyAllowSelection
                   ? _toggleAlbumSelection(c)
@@ -228,8 +263,8 @@ class _CollectionsFlexiGridViewWidgetState
         }, childCount: displayItemCount),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: albumsCountInCrossAxis,
-          mainAxisSpacing: 24,
-          crossAxisSpacing: CollectionsFlexiGridViewWidget.crossAxisSpacing,
+          mainAxisSpacing: widget.gridLayout.mainAxisSpacing,
+          crossAxisSpacing: widget.gridLayout.crossAxisSpacing,
           childAspectRatio:
               sideOfThumbnail / (sideOfThumbnail + gridItemTextHeight),
         ),
@@ -241,7 +276,7 @@ class _CollectionsFlexiGridViewWidgetState
     final textScaler = MediaQuery.textScalerOf(context);
     return (CollectionsFlexiGridViewWidget._thumbnailToTextSpacing +
             _scaledLineHeight(textScaler, TextStyles.body) +
-            CollectionsFlexiGridViewWidget._titleToSubtitleSpacing +
+            widget.gridLayout.titleToSubtitleSpacing +
             _scaledLineHeight(textScaler, TextStyles.mini))
         .ceilToDouble();
   }

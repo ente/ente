@@ -30,11 +30,13 @@ class AlbumRowItemWidget extends StatelessWidget {
   final void Function(Collection)? onTapCallback;
   final void Function(Collection)? onLongPressCallback;
   final SelectedAlbums? selectedAlbums;
+  final bool Function(Collection)? isSelected;
+  final Widget? Function(BuildContext, Collection)? topLeftOverlayBuilder;
+  final double titleToSubtitleSpacing;
   static const _cornerRadius = 20.0;
   static const _cornerSmoothing = 0.6;
   static const _overlayPadding = 8.0;
   static const _thumbnailToTextSpacing = 8.0;
-  static const _titleToSubtitleSpacing = 2.0;
   static const _sharePillPadding = EdgeInsets.all(1);
   static const _sharedAvatarStrokeWidth = 1.0;
 
@@ -48,6 +50,9 @@ class AlbumRowItemWidget extends StatelessWidget {
     this.onTapCallback,
     this.onLongPressCallback,
     this.selectedAlbums,
+    this.isSelected,
+    this.topLeftOverlayBuilder,
+    this.titleToSubtitleSpacing = 2,
   });
 
   @override
@@ -59,7 +64,10 @@ class AlbumRowItemWidget extends StatelessWidget {
         "_" +
         c.id.toString();
     final componentColors = context.componentColors;
-    final bool shouldShowSharePill = isOwner && (c.hasSharees || c.hasLink);
+    final externalSelection = isSelected?.call(c);
+    final bool shouldShowSharePill =
+        topLeftOverlayBuilder == null && isOwner && (c.hasSharees || c.hasLink);
+    final topLeftOverlay = topLeftOverlayBuilder?.call(context, c);
     final Widget? linkIcon = c.hasLink && isOwner
         ? HugeIcon(
             icon: HugeIcons.strokeRoundedLink02,
@@ -71,7 +79,7 @@ class AlbumRowItemWidget extends StatelessWidget {
           )
         : null;
 
-    return GestureDetector(
+    final row = GestureDetector(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -105,8 +113,10 @@ class AlbumRowItemWidget extends StatelessWidget {
                                   .getCoverCache(c);
                             }
                             if (thumbnail != null) {
-                              final bool isSelected =
-                                  selectedAlbums?.isAlbumSelected(c) ?? false;
+                              final bool isAlbumSelected =
+                                  externalSelection ??
+                                  selectedAlbums?.isAlbumSelected(c) ??
+                                  false;
                               final String heroTag = tagPrefix + thumbnail.tag;
                               final thumbnailWidget = ThumbnailWidget(
                                 thumbnail,
@@ -134,7 +144,7 @@ class AlbumRowItemWidget extends StatelessWidget {
                                     fit: StackFit.expand,
                                     children: [
                                       thumbnailWidget,
-                                      if (isSelected)
+                                      if (isAlbumSelected)
                                         Container(
                                           decoration: BoxDecoration(
                                             color: componentColors.specialScrim
@@ -156,7 +166,13 @@ class AlbumRowItemWidget extends StatelessWidget {
                             }
                           },
                         ),
-                        if (shouldShowSharePill)
+                        if (topLeftOverlay != null)
+                          Positioned(
+                            top: _overlayPadding,
+                            left: _overlayPadding,
+                            child: topLeftOverlay,
+                          )
+                        else if (shouldShowSharePill)
                           Positioned(
                             top: _overlayPadding,
                             left: _overlayPadding,
@@ -182,26 +198,21 @@ class AlbumRowItemWidget extends StatelessWidget {
                         Positioned(
                           top: _overlayPadding,
                           right: _overlayPadding,
-                          child: selectedAlbums == null
+                          child:
+                              selectedAlbums == null &&
+                                  externalSelection == null
                               ? const SizedBox.shrink()
+                              : externalSelection != null
+                              ? _selectionBadge(externalSelection)
                               : Hero(
                                   tag: tagPrefix + "_album_selection",
                                   transitionOnUserGestures: true,
                                   child: ListenableBuilder(
                                     listenable: selectedAlbums!,
                                     builder: (context, _) {
-                                      final bool isSelected = selectedAlbums!
+                                      final isAlbumSelected = selectedAlbums!
                                           .isAlbumSelected(c);
-                                      return AnimatedSwitcher(
-                                        duration: const Duration(
-                                          milliseconds: 200,
-                                        ),
-                                        switchInCurve: Curves.easeOut,
-                                        switchOutCurve: Curves.easeIn,
-                                        child: isSelected
-                                            ? const CollectionSelectedBadge()
-                                            : null,
-                                      );
+                                      return _selectionBadge(isAlbumSelected);
                                     },
                                   ),
                                 ),
@@ -292,7 +303,7 @@ class AlbumRowItemWidget extends StatelessWidget {
                                 softWrap: false,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: _titleToSubtitleSpacing),
+                              SizedBox(height: titleToSubtitleSpacing),
                               Text(
                                 textCount,
                                 style: TextStyles.mini.copyWith(
@@ -352,6 +363,16 @@ class AlbumRowItemWidget extends StatelessWidget {
           onLongPressCallback!(c);
         }
       },
+    );
+    return Semantics(button: true, selected: externalSelection, child: row);
+  }
+
+  Widget _selectionBadge(bool isSelected) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      child: isSelected ? const CollectionSelectedBadge() : null,
     );
   }
 

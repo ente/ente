@@ -60,6 +60,8 @@ class AppBarComponent extends StatefulWidget {
 
   final String title;
   final HeaderAppBarTitleBuilder? titleBuilder;
+
+  /// Vertical space reserved for [titleBuilder] in both header states.
   final double? titleBuilderHeight;
   final VoidCallback? onTitleTap;
   final VoidCallback? onTitleDoubleTap;
@@ -830,7 +832,7 @@ _HeaderAppBarMetrics _resolveHeaderAppBarMetrics(
     ),
   );
   final expandedTextBlockHeight =
-      expandedTitleLineHeight +
+      (titleBuilderHeight ?? expandedTitleLineHeight) +
       (subtitle == null ? 0 : _subtitleGap + subtitleHeight);
   final effectiveExpandedHeight = _maxDouble(
     expandedHeight ?? defaultExpandedHeight,

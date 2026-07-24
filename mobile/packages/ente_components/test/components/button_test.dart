@@ -491,6 +491,49 @@ void main() {
     expect(tester.getSize(find.byType(AnimatedContainer)).height, 52);
   });
 
+  testWidgets("Tertiary critical buttons retain the standard typography", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        ButtonComponent(
+          label: "Stop sharing",
+          variant: ButtonComponentVariant.tertiaryCritical,
+          size: ButtonComponentSize.small,
+          onTap: () {},
+        ),
+      ),
+    );
+
+    final style = tester.widget<Text>(find.text("Stop sharing")).style!;
+    expect(style.fontFamily, TextStyles.bodyBold.fontFamily);
+    expect(style.fontSize, 14);
+    expect(style.height, 20 / 14);
+    expect(style.fontWeight, TextStyles.bodyBold.fontWeight);
+    expect(style.decoration, TextDecoration.underline);
+    expect(style.color, ColorTokens.light.warning);
+  });
+
+  testWidgets("Compact tertiary critical buttons use Body Link typography", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        ButtonComponent(
+          label: "Stop sharing",
+          variant: ButtonComponentVariant.tertiaryCritical,
+          density: ButtonComponentDensity.compact,
+          onTap: () {},
+        ),
+      ),
+    );
+
+    final style = tester.widget<Text>(find.text("Stop sharing")).style!;
+    expect(style.fontFamily, TextStyles.body.fontFamily);
+    expect(style.fontWeight, TextStyles.body.fontWeight);
+    expect(style.decoration, TextDecoration.underline);
+  });
+
   testWidgets("Secondary button states follow Figma fill and text tokens", (
     tester,
   ) async {

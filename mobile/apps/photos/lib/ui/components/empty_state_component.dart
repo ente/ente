@@ -8,6 +8,7 @@ class EmptyStateComponent extends StatelessWidget {
     this.textWidth = 285,
     this.spacing = 20,
     this.padding = const EdgeInsets.all(24),
+    this.alignment = Alignment.center,
     super.key,
   });
 
@@ -17,10 +18,15 @@ class EmptyStateComponent extends StatelessWidget {
   final double spacing;
   final EdgeInsetsGeometry padding;
 
+  /// Allows fixed-format empty states to opt out of vertical centering.
+  /// Source: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=17186-38829&m=dev
+  final AlignmentGeometry alignment;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
-    return Center(
+    return Align(
+      alignment: alignment,
       child: Padding(
         padding: padding,
         child: Column(

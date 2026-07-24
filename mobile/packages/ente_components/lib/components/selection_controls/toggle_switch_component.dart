@@ -15,6 +15,7 @@ class ToggleSwitchComponent extends StatefulWidget {
     required this.selected,
     required this.onChanged,
     this.showStateIcon = false,
+    this.optimisticallyUpdate = true,
     this.loadingDelay = const Duration(milliseconds: 300),
     this.minimumFeedbackDuration = const Duration(milliseconds: 200),
     this.successDuration = const Duration(seconds: 2),
@@ -25,6 +26,7 @@ class ToggleSwitchComponent extends StatefulWidget {
     required ValueGetter<bool> value,
     required FutureOr<void> Function() onChanged,
     this.showStateIcon = true,
+    this.optimisticallyUpdate = true,
     this.loadingDelay = const Duration(milliseconds: 300),
     this.minimumFeedbackDuration = const Duration(milliseconds: 200),
     this.successDuration = const Duration(seconds: 2),
@@ -35,6 +37,11 @@ class ToggleSwitchComponent extends StatefulWidget {
   final bool selected;
   final FutureOr<void> Function(bool selected)? onChanged;
   final bool showStateIcon;
+
+  /// Whether the thumb moves before the owner confirms a new [selected] value.
+  /// Library sharing disables this while its enable action is a preview dialog.
+  /// Source: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=15782-102259&m=dev
+  final bool optimisticallyUpdate;
   final Duration loadingDelay;
   final Duration minimumFeedbackDuration;
   final Duration successDuration;
@@ -160,7 +167,9 @@ class _ToggleSwitchComponentState extends State<ToggleSwitchComponent> {
     _successTimer?.cancel();
     setState(() {
       _isUpdating = true;
-      _selected = nextValue;
+      if (widget.optimisticallyUpdate) {
+        _selected = nextValue;
+      }
       _executionState = _ToggleSwitchExecutionState.idle;
     });
 
@@ -198,22 +207,19 @@ class _ToggleSwitchComponentState extends State<ToggleSwitchComponent> {
 
     final confirmedValue = _currentValue();
     setState(() {
-      if (_selected == confirmedValue) {
-        if (_executionState == _ToggleSwitchExecutionState.inProgress) {
-          _executionState = _ToggleSwitchExecutionState.successful;
-          _successTimer = Timer(widget.successDuration, () {
-            if (!mounted) {
-              return;
-            }
-            setState(() {
-              _executionState = _ToggleSwitchExecutionState.idle;
-            });
+      _selected = confirmedValue;
+      if (confirmedValue == nextValue &&
+          _executionState == _ToggleSwitchExecutionState.inProgress) {
+        _executionState = _ToggleSwitchExecutionState.successful;
+        _successTimer = Timer(widget.successDuration, () {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _executionState = _ToggleSwitchExecutionState.idle;
           });
-        } else {
-          _executionState = _ToggleSwitchExecutionState.idle;
-        }
+        });
       } else {
-        _selected = confirmedValue;
         _executionState = _ToggleSwitchExecutionState.idle;
       }
       _isUpdating = false;

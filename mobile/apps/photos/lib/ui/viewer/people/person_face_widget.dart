@@ -576,7 +576,7 @@ class _EmptyPersonThumbnail extends StatelessWidget {
                       ? shortestSide * 0.42
                       : textTheme.h2.fontSize ?? 24;
                   return Text(
-                    identity!.initial,
+                    identity!.initials,
                     style: textTheme.h2Bold.copyWith(
                       color: Colors.white,
                       fontSize: fontSize,

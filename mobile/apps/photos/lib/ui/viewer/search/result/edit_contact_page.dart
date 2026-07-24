@@ -258,7 +258,7 @@ class _EditContactPageState extends State<EditContactPage> {
       backgroundColor: avatarBackgroundColor(context, identity),
       child: Center(
         child: Text(
-          identity.initial,
+          identity.initials,
           style: textTheme.h1Bold.copyWith(
             fontSize: 38.25,
             height: 47.813 / 38.25,

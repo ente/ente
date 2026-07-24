@@ -15,6 +15,7 @@ export 'components/selection_controls/checkbox_component.dart';
 export 'components/selection_controls/labeled_control_component.dart';
 export 'components/selection_controls/radio_component.dart';
 export 'components/selection_controls/toggle_switch_component.dart';
+export 'components/selection_summary_chip_component.dart';
 export 'components/slider_component.dart';
 export 'components/stepper_component.dart';
 export 'components/tag_chip_component.dart';
