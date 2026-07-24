@@ -136,6 +136,9 @@ Future<ShareResult> shareText(
   }
 }
 
+String formatMemoryShareText(String title, String shareUrl) =>
+    '$title: $shareUrl';
+
 /// Shares URL first with description below
 Future<ShareResult> shareLinkWithDescription(
   String url, {
