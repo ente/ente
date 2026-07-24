@@ -71,6 +71,15 @@ class AutoCastService {
   }
 
   Future<void> stop(Object device) async {
+    Object? stopError;
+    StackTrace? stopStackTrace;
+    try {
+      await _transport.stopCastingToDevice(device);
+    } catch (error, stackTrace) {
+      stopError = error;
+      stopStackTrace = stackTrace;
+    }
+
     Object? revokeError;
     StackTrace? revokeStackTrace;
     final deviceID = _serverDeviceIDs[device];
@@ -84,21 +93,29 @@ class AutoCastService {
       }
     }
 
-    try {
-      await _transport.stopCastingToDevice(device);
-    } catch (error, stackTrace) {
+    if (stopError != null) {
       if (revokeError == null) {
-        Error.throwWithStackTrace(error, stackTrace);
+        Error.throwWithStackTrace(stopError, stopStackTrace!);
       }
       _logger.warning(
         "Failed to disconnect the local Cast session",
-        error,
-        stackTrace,
+        stopError,
+        stopStackTrace,
       );
     }
 
     if (revokeError != null) {
       Error.throwWithStackTrace(revokeError, revokeStackTrace!);
     }
+  }
+
+  Future<void> stopServerSession(String deviceID) async {
+    for (final entry in _serverDeviceIDs.entries) {
+      if (entry.value == deviceID) {
+        await stop(entry.key);
+        return;
+      }
+    }
+    await _gateway.revokeSessionByID(deviceID);
   }
 }
