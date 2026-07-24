@@ -9,6 +9,7 @@ import {
     Box,
     Button,
     CircularProgress,
+    Snackbar,
     Stack,
     TextField,
     Typography,
@@ -17,6 +18,7 @@ import { isWeakPassword } from "ente-accounts-rs/utils/password";
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { ShowHidePasswordInputAdornment } from "ente-base/components/mui/PasswordInputAdornment";
+import { isDevBuild } from "ente-base/env";
 import log from "ente-base/log";
 import type { LegacyKitRecoveryHandle } from "ente-wasm";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -154,6 +156,7 @@ const Page: React.FC = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isKitInactive, setIsKitInactive] = useState(false);
     const [openError, setOpenError] = useState<string>();
+    const [showQRDecodeWarning, setShowQRDecodeWarning] = useState(false);
 
     const shares = useMemo<[LegacyKitShare, LegacyKitShare] | undefined>(() => {
         const firstShare = slots.first.share;
@@ -216,7 +219,11 @@ const Page: React.FC = () => {
                 share: undefined,
             });
 
-            void readLegacyKitCodeFromFile(file)
+            void readLegacyKitCodeFromFile(file, {
+                onQRDecodeFailure: isDevBuild
+                    ? () => setShowQRDecodeWarning(true)
+                    : undefined,
+            })
                 .then((rawCode) => {
                     const parsed = parseSlotCode(rawCode);
                     updateSlot(slotID, {
@@ -339,6 +346,8 @@ const Page: React.FC = () => {
                     onFile={handleFile}
                     onText={handleCodeChange}
                     onOpen={() => void openRecovery()}
+                    showQRDecodeWarning={showQRDecodeWarning}
+                    onCloseQRDecodeWarning={() => setShowQRDecodeWarning(false)}
                 />
             ) : session.status === "WAITING" ? (
                 <WaitingStep
@@ -532,10 +541,12 @@ interface UploadStepProps {
     canOpen: boolean;
     isOpening: boolean;
     onFile: (slotID: SlotID, file: File | undefined) => void;
+    onCloseQRDecodeWarning: () => void;
     onOpen: () => void;
     onText: (slotID: SlotID, value: string) => void;
     openError?: string;
     pairError?: string;
+    showQRDecodeWarning: boolean;
     slots: Record<SlotID, SheetSlot>;
 }
 
@@ -543,10 +554,12 @@ const UploadStep: React.FC<UploadStepProps> = ({
     canOpen,
     isOpening,
     onFile,
+    onCloseQRDecodeWarning,
     onOpen,
     onText,
     openError,
     pairError,
+    showQRDecodeWarning,
     slots,
 }) => (
     <Stack
@@ -632,6 +645,14 @@ const UploadStep: React.FC<UploadStepProps> = ({
                 Recover account
             </LoadingButton>
         </Stack>
+        {isDevBuild && (
+            <Snackbar
+                autoHideDuration={6000}
+                message="QR code parsing failed."
+                open={showQRDecodeWarning}
+                onClose={onCloseQRDecodeWarning}
+            />
+        )}
     </Stack>
 );
 
