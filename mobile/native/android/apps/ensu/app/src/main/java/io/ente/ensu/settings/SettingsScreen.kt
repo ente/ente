@@ -43,7 +43,7 @@ import io.ente.ensu.designsystem.EnsuSpacing
 import io.ente.ensu.designsystem.EnsuTypography
 import io.ente.ensu.designsystem.HugeIcons
 
-internal const val IS_ENSU_PACKS_ENABLED = false
+internal const val IS_ENSU_PACKS_ENABLED = true
 
 @Composable
 fun SettingsScreen(

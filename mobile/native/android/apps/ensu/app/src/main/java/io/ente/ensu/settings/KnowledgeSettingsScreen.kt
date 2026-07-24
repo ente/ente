@@ -21,6 +21,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -33,11 +34,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import io.ente.ensu.designsystem.EnsuColor
 import io.ente.ensu.designsystem.EnsuCornerRadius
 import io.ente.ensu.designsystem.EnsuSpacing
 import io.ente.ensu.designsystem.EnsuTypography
+import io.ente.ensu.designsystem.HugeIcons
 import io.ente.ensu.format.formatBytes
 import io.ente.ensu.bindings.KnowledgeDatasetConfig
 import io.ente.ensu.bindings.KnowledgeReconciliationStatus
@@ -117,18 +120,29 @@ private fun KnowledgePackCard(
 
         if (pack.isMutating) {
             Spacer(Modifier.height(EnsuSpacing.md.dp))
-            LinearProgressIndicator(
-                progress = { (pack.mutationProgress?.percentage ?: 0.0).coerceIn(0.0, 100.0).toFloat() / 100f },
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                color = EnsuColor.accent(),
-                trackColor = EnsuColor.border()
-            )
-            Text(
-                pack.mutationProgress?.label ?: "Downloading...",
-                style = EnsuTypography.small,
-                color = EnsuColor.textMuted()
-            )
-            TextButton(onClick = onCancel) { Text("Cancel") }
+                horizontalArrangement = Arrangement.spacedBy(EnsuSpacing.sm.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                LinearProgressIndicator(
+                    progress = { (pack.mutationProgress?.percentage ?: 0.0).coerceIn(0.0, 100.0).toFloat() / 100f },
+                    modifier = Modifier.weight(1f),
+                    color = EnsuColor.action(),
+                    trackColor = EnsuColor.border()
+                )
+                IconButton(
+                    onClick = onCancel,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(HugeIcons.Cancel01Icon),
+                        contentDescription = "Cancel download",
+                        modifier = Modifier.size(14.dp),
+                        tint = EnsuColor.textMuted()
+                    )
+                }
+            }
         } else if (
             packDownloadsAllowed &&
             pack.status == KnowledgeReconciliationStatus.UPDATE_AVAILABLE

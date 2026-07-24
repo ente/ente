@@ -62,6 +62,7 @@ struct KnowledgeSettingsView: View {
                         )
                     )
                     .labelsHidden()
+                    .tint(EnsuColor.accent)
                 } else if store.downloadsAllowed && pack.status == .download && !pack.isMutating {
                     Button {
                         store.downloadOrUpdate(stableId: pack.id)
@@ -77,13 +78,22 @@ struct KnowledgeSettingsView: View {
             }
 
             if pack.isMutating {
-                ProgressView(value: Double(pack.progressPercent ?? 0), total: 100)
-                    .tint(EnsuColor.action)
-                Text(pack.progressLabel ?? "Downloading...")
-                    .font(EnsuTypography.small)
-                    .foregroundStyle(EnsuColor.textMuted)
-                Button("Cancel") {
-                    store.cancel(stableId: pack.id)
+                HStack(spacing: EnsuSpacing.sm) {
+                    ProgressView(value: Double(pack.progressPercent ?? 0), total: 100)
+                        .tint(EnsuColor.action)
+                    Button {
+                        store.cancel(stableId: pack.id)
+                    } label: {
+                        Image("Cancel01Icon")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 12, height: 12)
+                            .foregroundStyle(EnsuColor.textMuted)
+                    }
+                    .buttonStyle(.plain)
+                    .frame(width: 32, height: 32)
+                    .contentShape(Rectangle())
+                    .accessibilityLabel("Cancel download")
                 }
             } else if store.downloadsAllowed && pack.status == .updateAvailable {
                 Button {

@@ -159,6 +159,7 @@ class KnowledgeStore(
         ownerScope.launch {
             val result = runCatching { provider.cancel(dataset) }.getOrNull()
             ownerJob?.join()
+            if (jobs[stableId]?.isActive == true) return@launch
             updatePack(stableId) { current ->
                 (result?.let { current.fromReconciliation(it, current.enabled) } ?: current).copy(
                     mutationProgress = null
