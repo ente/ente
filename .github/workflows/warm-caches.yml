@@ -55,6 +55,9 @@ jobs:
                   shared-key: rust-workspace
                   cache-directories: rust/.cache
 
+            - name: Reset ML test cache
+              run: rm -rf .cache
+
             - run: cargo clippy --locked --all-targets --features museum,ente-photos/ml-assets
 
             - run: cargo test --locked --features museum,ente-photos/ml-assets
