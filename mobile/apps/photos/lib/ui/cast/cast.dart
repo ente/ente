@@ -1,8 +1,6 @@
 import "dart:async";
-import "dart:io";
 
 import "package:ente_components/ente_components.dart";
-import "package:flutter/foundation.dart";
 import "package:flutter/widgets.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
@@ -21,7 +19,7 @@ Future<void> showCastSheet(BuildContext context, Collection collection) async {
   final l10n = AppLocalizations.of(context);
   final textStyle = getEnteTextTheme(context);
   final gw = CastGateway(NetworkClient.instance.enteDio);
-  final showAutoPair = Platform.isAndroid || kDebugMode;
+  final showAutoPair = castService.isSupported;
   if (!flagService.enableMultiCast) {
     if (castService.getActiveSessions().isNotEmpty) {
       await showChoiceDialog(
@@ -38,8 +36,6 @@ Future<void> showCastSheet(BuildContext context, Collection collection) async {
       return;
     }
     unawaited(gw.revokeAllTokens());
-  } else {
-    await castService.closeActiveCasts();
   }
   final logger = Logger("showCastSheet");
   List<CastInfo> sessions = [];

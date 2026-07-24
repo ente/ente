@@ -55,13 +55,13 @@ class CastGateway {
     return devices.map((session) => CastInfo.fromJson(session)).toList();
   }
 
-  Future<void> publishCastPayload(
+  Future<String?> publishCastPayload(
     String code,
     String castPayload,
     int collectionID,
     String castToken,
-  ) {
-    return _enteDio.post(
+  ) async {
+    final response = await _enteDio.post(
       "/cast/cast-data",
       data: {
         "deviceCode": code,
@@ -70,6 +70,9 @@ class CastGateway {
         "castToken": castToken,
       },
     );
+    final data = response.data;
+    final deviceID = data is Map ? data["deviceID"] : null;
+    return deviceID is String && deviceID.isNotEmpty ? deviceID : null;
   }
 
   Future<void> revokeAllTokens() async {
@@ -81,7 +84,11 @@ class CastGateway {
   }
 
   Future<void> revokeSession(CastInfo session) async {
-    await _enteDio.delete("/cast/device-info/${session.deviceID}");
+    await revokeSessionByID(session.deviceID);
+  }
+
+  Future<void> revokeSessionByID(String deviceID) async {
+    await _enteDio.delete("/cast/device-info/$deviceID");
   }
 }
 

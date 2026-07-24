@@ -314,15 +314,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.3.5+4"
-  cast:
-    dependency: transitive
-    description:
-      path: "."
-      ref: af6378574352884beab6cddec462c7fdfc9a8c35
-      resolved-ref: af6378574352884beab6cddec462c7fdfc9a8c35
-      url: "https://github.com/guyluz11/flutter_cast.git"
-    source: git
-    version: "2.0.9"
   characters:
     dependency: transitive
     description:
