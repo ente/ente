@@ -215,11 +215,7 @@ async fn run_legacy_reinvite_stage(pair: &legacy::LegacyPair) {
     );
 
     pair.owner_ctx
-        .legacy_add_contact(
-            &pair.trusted.email,
-            &contacts::to_core_key_attributes(&pair.owner.key_attributes),
-            Some(14),
-        )
+        .legacy_add_contact(&pair.trusted.email, &pair.owner.key_attributes, Some(14))
         .await
         .unwrap();
     pair.trusted_ctx
@@ -275,11 +271,7 @@ async fn run_legacy_reset_stage(endpoint: &str, pair: &mut legacy::LegacyPair) {
     let previous_password = pair.owner.password.clone();
     let new_password = support::unique_password("LegacyRecovered");
     pair.trusted_ctx
-        .legacy_change_password(
-            &recovery.id,
-            &contacts::to_core_key_attributes(&pair.trusted.key_attributes),
-            &new_password,
-        )
+        .legacy_change_password(&recovery.id, &pair.trusted.key_attributes, &new_password)
         .await
         .unwrap();
 
@@ -371,7 +363,7 @@ async fn run_legacy_kit_stage(endpoint: &str, owner: &mut legacy_kit::LegacyKitO
     let waiting_kit = owner
         .owner_ctx
         .legacy_kit_create(
-            &contacts::to_core_key_attributes(&owner.owner.key_attributes),
+            &owner.owner.key_attributes,
             ["North".into(), "East".into(), "West".into()],
             24,
         )
@@ -614,7 +606,7 @@ async fn run_legacy_kit_stage(endpoint: &str, owner: &mut legacy_kit::LegacyKitO
     let immediate_kit = owner
         .owner_ctx
         .legacy_kit_create(
-            &contacts::to_core_key_attributes(&owner.owner.key_attributes),
+            &owner.owner.key_attributes,
             ["Alpha".into(), "Bravo".into(), "Charlie".into()],
             0,
         )

@@ -4,7 +4,7 @@ version = "0.0.1"
 edition = "2024"
 
 [features]
-museum = ["ente-core/srp"]
+museum = []
 
 [dependencies]
 ente-core.workspace = true

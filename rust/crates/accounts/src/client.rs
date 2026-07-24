@@ -2,12 +2,12 @@
 
 use base64::{Engine, engine::general_purpose::STANDARD};
 use ente_core::{
-    auth::{SrpAttributes as CoreSrpAttributes, SrpSession},
     crypto::SecretVec,
     http::{self, Api, ApiConfig, Auth, Http},
 };
 
 use crate::{
+    auth::{self, SrpSession},
     error::{Error, Result},
     models::{
         AccountsTokenResponse, AuthResponse, CompleteSrpSetupRequest, CompleteSrpSetupResponse,
@@ -102,19 +102,13 @@ impl AccountsClient {
         password: &str,
     ) -> Result<(AuthResponse, SecretVec)> {
         let srp_attrs = self.get_srp_attributes(email).await?;
-        let core_attrs = CoreSrpAttributes {
-            srp_user_id: srp_attrs.srp_user_id.to_string(),
-            srp_salt: srp_attrs.srp_salt.clone(),
-            mem_limit: srp_attrs.mem_limit as u32,
-            ops_limit: srp_attrs.ops_limit as u32,
-            kek_salt: srp_attrs.kek_salt.clone(),
-            is_email_mfa_enabled: srp_attrs.is_email_mfa_enabled,
-        };
-
-        let creds = ente_core::auth::derive_srp_credentials(password, &core_attrs)?;
+        let creds = auth::derive_srp_credentials(password, &srp_attrs)?;
         let srp_salt = STANDARD.decode(&srp_attrs.srp_salt)?;
-        let mut srp_session =
-            SrpSession::new(&core_attrs.srp_user_id, &srp_salt, &creds.login_key)?;
+        let mut srp_session = SrpSession::new(
+            &srp_attrs.srp_user_id.to_string(),
+            &srp_salt,
+            &creds.login_key,
+        )?;
         let a_pub = pad_left(&srp_session.public_a(), SRP_A_LEN);
 
         let session = self

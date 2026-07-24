@@ -7,19 +7,16 @@ use base64::{
     Engine,
     engine::general_purpose::{STANDARD, URL_SAFE},
 };
-use ente_core::{
-    auth::{
-        self, DecryptedSecrets, GeneratedSrpSetup, KeyAttributes as CoreKeyAttributes,
-        KeyDerivationStrength, derive_kek, generate_keys_with_strength,
-        generate_srp_setup_with_login_key, get_recovery_key,
-    },
-    crypto::{self, SecretVec, secretbox},
-};
+use ente_core::crypto::{self, SecretVec, secretbox};
 use std::fmt;
 use uuid::Uuid;
 use zeroize::Zeroizing;
 
 use crate::{
+    auth::{
+        self, DecryptedSecrets, GeneratedSrpSetup, KeyDerivationStrength, derive_kek,
+        generate_keys_with_strength, generate_srp_setup_with_login_key, get_recovery_key,
+    },
     client::AccountsClient,
     error::{Error, Result},
     models::{
@@ -342,8 +339,8 @@ where
             let kek = derive_kek(
                 &params.password,
                 &srp_attrs.kek_salt,
-                srp_attrs.mem_limit as u32,
-                srp_attrs.ops_limit as u32,
+                srp_attrs.mem_limit,
+                srp_attrs.ops_limit,
             )?;
             (response, kek)
         } else {
@@ -378,8 +375,7 @@ where
         };
 
         let recovery_key =
-            get_recovery_key(&params.master_key, &to_core_key_attributes(&key_attributes))
-                .map_err(Error::from)?;
+            get_recovery_key(&params.master_key, &key_attributes).map_err(Error::from)?;
 
         let secret = self.client.setup_two_factor().await?;
         self.ui
@@ -420,15 +416,14 @@ where
         params: ChangePasswordParams,
         key_derivation_strength: KeyDerivationStrength,
     ) -> Result<ChangePasswordResult> {
-        let (updated_key_attributes_core, login_key) =
+        let (updated_key_attributes, login_key) =
             auth::generate_key_attributes_for_new_password_with_strength(
                 &params.master_key,
-                &to_core_key_attributes(&params.key_attributes),
+                &params.key_attributes,
                 &params.password,
                 key_derivation_strength,
             )?;
 
-        let updated_key_attributes = to_api_key_attributes(&updated_key_attributes_core);
         let updated_key_attr = UpdatedKeyAttr::from(&updated_key_attributes);
 
         let srp_user_id = Uuid::new_v4();
@@ -632,10 +627,9 @@ where
             .key_attributes
             .clone()
             .ok_or_else(|| Error::AuthenticationFailed("No key attributes".into()))?;
-        let core_key_attributes = to_core_key_attributes(&key_attributes);
-        let secrets = decrypt_auth_response(&auth_response, &core_key_attributes, kek)?;
+        let secrets = decrypt_auth_response(&auth_response, &key_attributes, kek)?;
         let public_key = crypto::decode_b64(&key_attributes.public_key)?;
-        let recovery_key = get_recovery_key(&secrets.master_key, &core_key_attributes).ok();
+        let recovery_key = get_recovery_key(&secrets.master_key, &key_attributes).ok();
 
         Ok(AuthenticatedAccount {
             user_id: auth_response.id,
@@ -699,7 +693,7 @@ where
         let srp_user_id = Uuid::new_v4();
         let srp_setup =
             generate_srp_setup_with_login_key(&key_gen_result.login_key, &srp_user_id.to_string())?;
-        let key_attributes = to_api_key_attributes(&key_gen_result.key_attributes);
+        let key_attributes = key_gen_result.key_attributes.clone();
 
         self.client
             .set_user_key_attributes(key_attributes.clone())
@@ -963,49 +957,6 @@ fn pad_left(data: &[u8], len: usize) -> Vec<u8> {
     padded
 }
 
-fn to_core_key_attributes(attributes: &KeyAttributes) -> CoreKeyAttributes {
-    CoreKeyAttributes {
-        kek_salt: attributes.kek_salt.clone(),
-        encrypted_key: attributes.encrypted_key.clone(),
-        key_decryption_nonce: attributes.key_decryption_nonce.clone(),
-        public_key: attributes.public_key.clone(),
-        encrypted_secret_key: attributes.encrypted_secret_key.clone(),
-        secret_key_decryption_nonce: attributes.secret_key_decryption_nonce.clone(),
-        mem_limit: Some(attributes.mem_limit as u32),
-        ops_limit: Some(attributes.ops_limit as u32),
-        master_key_encrypted_with_recovery_key: attributes
-            .master_key_encrypted_with_recovery_key
-            .clone(),
-        master_key_decryption_nonce: attributes.master_key_decryption_nonce.clone(),
-        recovery_key_encrypted_with_master_key: attributes
-            .recovery_key_encrypted_with_master_key
-            .clone(),
-        recovery_key_decryption_nonce: attributes.recovery_key_decryption_nonce.clone(),
-    }
-}
-
-fn to_api_key_attributes(attributes: &CoreKeyAttributes) -> KeyAttributes {
-    KeyAttributes {
-        kek_salt: attributes.kek_salt.clone(),
-        kek_hash: None,
-        encrypted_key: attributes.encrypted_key.clone(),
-        key_decryption_nonce: attributes.key_decryption_nonce.clone(),
-        public_key: attributes.public_key.clone(),
-        encrypted_secret_key: attributes.encrypted_secret_key.clone(),
-        secret_key_decryption_nonce: attributes.secret_key_decryption_nonce.clone(),
-        mem_limit: attributes.mem_limit.unwrap_or_default() as i32,
-        ops_limit: attributes.ops_limit.unwrap_or_default() as i32,
-        master_key_encrypted_with_recovery_key: attributes
-            .master_key_encrypted_with_recovery_key
-            .clone(),
-        master_key_decryption_nonce: attributes.master_key_decryption_nonce.clone(),
-        recovery_key_encrypted_with_master_key: attributes
-            .recovery_key_encrypted_with_master_key
-            .clone(),
-        recovery_key_decryption_nonce: attributes.recovery_key_decryption_nonce.clone(),
-    }
-}
-
 fn decode_plain_token(token: &str) -> Result<SecretVec> {
     let bytes = URL_SAFE
         .decode(token)
@@ -1016,7 +967,7 @@ fn decode_plain_token(token: &str) -> Result<SecretVec> {
 
 fn decrypt_auth_response(
     auth_response: &AuthResponse,
-    key_attributes: &CoreKeyAttributes,
+    key_attributes: &KeyAttributes,
     kek: &[u8],
 ) -> Result<DecryptedSecrets> {
     if let Some(encrypted_token) = auth_response.encrypted_token.as_deref() {
@@ -1073,7 +1024,8 @@ fn encrypt_two_factor_secret(
     recovery_key_hex: &str,
     code: &str,
 ) -> Result<EnableTwoFactorRequest> {
-    let recovery_key = crypto::decode_hex(recovery_key_hex)?;
+    let recovery_key =
+        hex::decode(recovery_key_hex).map_err(|e| Error::Crypto(format!("recovery_key: {e}")))?;
     let encrypted = secretbox::encrypt(
         secret_code.as_bytes(),
         &crypto::Key::try_from_slice(&recovery_key)?,
@@ -1256,7 +1208,7 @@ mod tests {
         let key_gen =
             auth::generate_keys_with_strength(password, auth::KeyDerivationStrength::Interactive)
                 .unwrap();
-        let key_attributes = to_api_key_attributes(&key_gen.key_attributes);
+        let key_attributes = key_gen.key_attributes.clone();
         let encrypted_token = {
             let public_key = crypto::decode_b64(&key_attributes.public_key).unwrap();
             let sealed = crypto::sealed::seal(
@@ -1370,7 +1322,7 @@ mod tests {
         let key_gen =
             auth::generate_keys_with_strength(password, auth::KeyDerivationStrength::Interactive)
                 .unwrap();
-        let key_attributes = to_api_key_attributes(&key_gen.key_attributes);
+        let key_attributes = key_gen.key_attributes.clone();
 
         let mut server = Server::new_async().await;
         let mut ui = ScriptedUi::new();
@@ -1445,7 +1397,7 @@ mod tests {
         let key_gen =
             auth::generate_keys_with_strength(password, auth::KeyDerivationStrength::Interactive)
                 .unwrap();
-        let key_attributes = to_api_key_attributes(&key_gen.key_attributes);
+        let key_attributes = key_gen.key_attributes.clone();
 
         let mut server = Server::new_async().await;
         let mut ui = ScriptedUi::new();
@@ -1531,7 +1483,7 @@ mod tests {
         let key_gen =
             auth::generate_keys_with_strength(password, auth::KeyDerivationStrength::Interactive)
                 .unwrap();
-        let key_attributes = to_api_key_attributes(&key_gen.key_attributes);
+        let key_attributes = key_gen.key_attributes.clone();
 
         let mut server = Server::new_async().await;
         let mut ui = ScriptedUi::new();
@@ -1623,7 +1575,7 @@ mod tests {
                 .unwrap();
         let recovery_key = key_gen.private_key_attributes.recovery_key.into_string();
         let master_key = crypto::decode_b64(&key_gen.private_key_attributes.key).unwrap();
-        let key_attributes = to_api_key_attributes(&key_gen.key_attributes);
+        let key_attributes = key_gen.key_attributes.clone();
 
         let mut server = Server::new_async().await;
         let mut ui = ScriptedUi::new();
@@ -1679,7 +1631,7 @@ mod tests {
             auth::generate_keys_with_strength("pw", auth::KeyDerivationStrength::Interactive)
                 .unwrap();
         let recovery_key_hex = key_gen.private_key_attributes.recovery_key.into_string();
-        let expected_recovery_key = crypto::decode_hex(&recovery_key_hex).unwrap();
+        let expected_recovery_key = hex::decode(&recovery_key_hex).unwrap();
 
         let mut server = Server::new_async().await;
         let configure = server
@@ -1722,7 +1674,7 @@ mod tests {
         let key_gen =
             auth::generate_keys_with_strength(password, auth::KeyDerivationStrength::Interactive)
                 .unwrap();
-        let key_attributes = to_api_key_attributes(&key_gen.key_attributes);
+        let key_attributes = key_gen.key_attributes.clone();
 
         let mut server = Server::new_async().await;
         let mut ui = ScriptedUi::new();
@@ -1870,8 +1822,8 @@ mod tests {
             .with_body_from_request(move |request| {
                 let payload: SetUserAttributesPayload = parse_request_body(request);
                 let key_attributes = payload.key_attributes;
-                let mem_limit = u64::try_from(key_attributes.mem_limit).unwrap();
-                let ops_limit = u64::try_from(key_attributes.ops_limit).unwrap();
+                let mem_limit = u64::from(key_attributes.mem_limit);
+                let ops_limit = u64::from(key_attributes.ops_limit);
 
                 assert_eq!(mem_limit * ops_limit, 4_294_967_296);
                 assert!(
@@ -2036,7 +1988,7 @@ mod tests {
             auth::KeyDerivationStrength::Interactive,
         )
         .unwrap();
-        let key_attributes = to_api_key_attributes(&original.key_attributes);
+        let key_attributes = original.key_attributes.clone();
         let master_key = crypto::decode_b64(&original.private_key_attributes.key).unwrap();
         let state = Arc::new(Mutex::new(MockSignupState::default()));
 

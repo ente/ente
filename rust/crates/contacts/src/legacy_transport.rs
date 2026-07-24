@@ -1,4 +1,4 @@
-use ente_core::auth::KeyAttributes;
+use ente_accounts::auth::KeyAttributes;
 use serde::{Deserialize, Serialize};
 
 use crate::legacy_models::{LegacyContactState, LegacyInfo};

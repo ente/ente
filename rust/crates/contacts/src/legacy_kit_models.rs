@@ -1,4 +1,5 @@
-use ente_core::{auth::KeyAttributes, crypto::SecretVec};
+use ente_accounts::auth::KeyAttributes;
+use ente_core::crypto::SecretVec;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 pub const LEGACY_KIT_PAYLOAD_VERSION: u8 = 1;

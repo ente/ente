@@ -6,7 +6,8 @@ edition = "2024"
 museum = []
 
 [dependencies]
-ente-core = { workspace = true, features = ["srp"] }
+ente-accounts.workspace = true
+ente-core.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
@@ -16,7 +17,6 @@ uuid = { version = "1", features = ["v4", "js"] }
 
 [dev-dependencies]
 base64 = "0.22"
-ente-accounts.workspace = true
 ente-test-support.workspace = true
 hmac = "0.13"
 mockito = "1.6"

@@ -1,8 +1,10 @@
 //! Shared error types for account flows.
 
 use base64::DecodeError;
-use ente_core::{auth::AuthError, crypto, http};
+use ente_core::{crypto, http};
 use thiserror::Error;
+
+use crate::auth::AuthError;
 
 /// Result alias for the shared account crate.
 pub type Result<T> = std::result::Result<T, Error>;

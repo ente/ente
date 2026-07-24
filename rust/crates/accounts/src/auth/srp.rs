@@ -4,7 +4,7 @@
 //! step ordering (e.g. calling set_b before compute_m1). Callers only need to
 //! exchange the public value and proofs with the server.
 
-use crate::crypto::SecretVec;
+use ente_core::crypto::SecretVec;
 use sha2::{Digest, Sha256};
 use srp::ClientG4096;
 use subtle::ConstantTimeEq;

@@ -32,7 +32,6 @@ impl From<core_crypto::Error> for CryptoError {
 
         let code = match &e {
             E::Base64Decode(_) => "base64_decode",
-            E::HexDecode(_) => "hex_decode",
             E::InvalidKeyLength { .. } => "invalid_key_length",
             E::InvalidNonceLength { .. } => "invalid_nonce_length",
             E::InvalidSaltLength { .. } => "invalid_salt_length",

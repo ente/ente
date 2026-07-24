@@ -14,7 +14,7 @@ museum = []
 # CLI
 clap = { version = "4.5", features = ["derive", "env"] }
 ente-accounts.workspace = true
-ente-core = { workspace = true, features = ["srp"] }
+ente-core.workspace = true
 ente-paste.workspace = true
 serde.workspace = true
 serde_json.workspace = true

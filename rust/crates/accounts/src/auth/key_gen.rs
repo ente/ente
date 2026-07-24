@@ -1,6 +1,6 @@
 //! Key generation for new account sign-up.
 
-use crate::crypto::{self, Key, SecretString, SecretVec, argon, kdf, secretbox};
+use ente_core::crypto::{self, Key, SecretString, SecretVec, argon, kdf, secretbox};
 
 use super::{KeyAttributes, KeyGenResult, PrivateKeyAttributes, Result};
 
@@ -24,15 +24,8 @@ fn encrypt_to_b64(plaintext: &[u8], key: &Key) -> Result<(String, String)> {
     ))
 }
 
-/// Generate all keys needed for a new account.
-///
-/// Uses sensitive (slow, secure) key derivation by default.
-/// For tests, use `generate_keys_with_strength` with `Interactive`.
-pub fn generate_keys(password: &str) -> Result<KeyGenResult> {
-    generate_keys_with_strength(password, KeyDerivationStrength::Sensitive)
-}
-
-/// Generate all keys with specified derivation strength.
+/// Generate all keys needed for a new account, with the specified derivation
+/// strength.
 pub fn generate_keys_with_strength(
     password: &str,
     strength: KeyDerivationStrength,
@@ -67,13 +60,14 @@ pub fn generate_keys_with_strength(
     // Build key attributes for server
     let key_attributes = KeyAttributes {
         kek_salt: crypto::encode_b64(derived.salt.as_bytes()),
+        kek_hash: None,
         encrypted_key: enc_key,
         key_decryption_nonce: key_nonce,
         public_key: crypto::encode_b64(public_key.as_bytes()),
         encrypted_secret_key: enc_secret_key,
         secret_key_decryption_nonce: secret_key_nonce,
-        mem_limit: Some(derived.params.mem_limit),
-        ops_limit: Some(derived.params.ops_limit),
+        mem_limit: derived.params.mem_limit,
+        ops_limit: derived.params.ops_limit,
         master_key_encrypted_with_recovery_key: Some(enc_master_with_recovery),
         master_key_decryption_nonce: Some(nonce_master_recovery),
         recovery_key_encrypted_with_master_key: Some(enc_recovery_with_master),
@@ -83,7 +77,7 @@ pub fn generate_keys_with_strength(
     // Build private key attributes for local storage
     let private_key_attributes = PrivateKeyAttributes {
         key: SecretString::new(crypto::encode_b64(master_key.as_bytes())),
-        recovery_key: SecretString::new(crypto::encode_hex(recovery_key.as_bytes())),
+        recovery_key: SecretString::new(hex::encode(recovery_key.as_bytes())),
         secret_key: SecretString::new(crypto::encode_b64(secret_key.as_bytes())),
     };
 
@@ -132,10 +126,11 @@ pub fn generate_key_attributes_for_new_password_with_strength(
 
     let key_attributes = KeyAttributes {
         kek_salt: crypto::encode_b64(derived.salt.as_bytes()),
+        kek_hash: None,
         encrypted_key: enc_key,
         key_decryption_nonce: key_nonce,
-        mem_limit: Some(derived.params.mem_limit),
-        ops_limit: Some(derived.params.ops_limit),
+        mem_limit: derived.params.mem_limit,
+        ops_limit: derived.params.ops_limit,
         public_key: existing_attributes.public_key.clone(),
         encrypted_secret_key: existing_attributes.encrypted_secret_key.clone(),
         secret_key_decryption_nonce: existing_attributes.secret_key_decryption_nonce.clone(),
@@ -164,7 +159,7 @@ pub fn create_new_recovery_key(
         encrypt_to_b64(recovery_key.as_bytes(), &master_key_typed)?;
 
     Ok((
-        crypto::encode_hex(recovery_key.as_bytes()),
+        hex::encode(recovery_key.as_bytes()),
         enc_master,
         nonce_master,
         enc_recovery,
@@ -175,7 +170,7 @@ pub fn create_new_recovery_key(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::Nonce;
+    use ente_core::crypto::Nonce;
 
     // Typed-decrypt helper for byte-slice test material.
     fn decrypt_raw(data: &[u8], nonce: &[u8], key: &[u8]) -> Vec<u8> {
@@ -236,7 +231,7 @@ mod tests {
     #[test]
     fn test_generate_keys_recovery_key_can_decrypt_master() {
         let result = generate_test_keys("password").unwrap();
-        let recovery_key = crypto::decode_hex(&result.private_key_attributes.recovery_key).unwrap();
+        let recovery_key = hex::decode(&*result.private_key_attributes.recovery_key).unwrap();
 
         let encrypted = crypto::decode_b64(
             result
@@ -283,7 +278,7 @@ mod tests {
         .unwrap();
         let decrypted = decrypt_raw(&encrypted, &nonce, &master_key);
 
-        let original = crypto::decode_hex(&result.private_key_attributes.recovery_key).unwrap();
+        let original = hex::decode(&*result.private_key_attributes.recovery_key).unwrap();
         assert_eq!(decrypted, original);
     }
 
@@ -310,8 +305,8 @@ mod tests {
             "new_password",
             &salt,
             argon::Params {
-                mem_limit: new_attrs.mem_limit.unwrap(),
-                ops_limit: new_attrs.ops_limit.unwrap(),
+                mem_limit: new_attrs.mem_limit,
+                ops_limit: new_attrs.ops_limit,
             },
         )
         .unwrap();
@@ -329,7 +324,7 @@ mod tests {
 
         assert_eq!(recovery_hex.len(), 64);
 
-        let recovery_key = crypto::decode_hex(&recovery_hex).unwrap();
+        let recovery_key = hex::decode(&recovery_hex).unwrap();
         let decrypted = decrypt_raw(
             &crypto::decode_b64(&enc_master).unwrap(),
             &crypto::decode_b64(&nonce_master).unwrap(),

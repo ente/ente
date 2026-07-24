@@ -1,6 +1,7 @@
 //! WASM bindings for authentication and account crypto.
 
-use ente_core::{auth as core_auth, crypto as core_crypto};
+use ente_accounts::auth as core_auth;
+use ente_core::crypto as core_crypto;
 use serde_wasm_bindgen as swb;
 use wasm_bindgen::prelude::*;
 

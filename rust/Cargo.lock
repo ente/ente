@@ -2291,15 +2291,20 @@ name = "ente-accounts"
 version = "0.0.0"
 dependencies = [
  "base64 0.22.1",
+ "bip39",
  "ente-core",
  "ente-test-support",
+ "getrandom 0.2.17",
+ "hex",
  "hmac 0.13.0",
  "mockito",
+ "rand_core 0.6.4",
  "serde",
  "serde_json",
  "sha1 0.11.0",
  "sha2 0.11.0",
  "srp",
+ "subtle",
  "thiserror 2.0.18",
  "tokio",
  "urlencoding",
@@ -2344,14 +2349,12 @@ version = "0.0.0"
 dependencies = [
  "argon2",
  "base64 0.22.1",
- "bip39",
  "blake2b_simd",
  "bytes",
  "crypto_secretstream",
  "futures-core",
  "getrandom 0.2.17",
  "gloo-timers",
- "hex",
  "log",
  "md-5 0.11.0",
  "mockito",
@@ -2360,8 +2363,6 @@ dependencies = [
  "salsa20",
  "serde",
  "serde_json",
- "sha2 0.11.0",
- "srp",
  "subtle",
  "thiserror 2.0.18",
  "tokio",
@@ -2560,6 +2561,7 @@ dependencies = [
 name = "ente-wasm"
 version = "0.0.0"
 dependencies = [
+ "ente-accounts",
  "ente-contacts",
  "ente-core",
  "js-sys",
@@ -2591,6 +2593,7 @@ dependencies = [
 name = "ente_rust"
 version = "0.0.0"
 dependencies = [
+ "ente-accounts",
  "ente-contacts",
  "ente-core",
  "flutter_rust_bridge",

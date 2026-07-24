@@ -3,8 +3,9 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-use crate::crypto::{SecretString, SecretVec};
+use ente_core::crypto::{SecretString, SecretVec};
 
 /// Attributes stored on server for key derivation and encrypted keys.
 #[derive(Clone, Serialize, Deserialize)]
@@ -12,6 +13,9 @@ use crate::crypto::{SecretString, SecretVec};
 pub struct KeyAttributes {
     /// Salt for deriving key-encryption-key from password (base64)
     pub kek_salt: String,
+    /// Legacy KEK hash, present only on old accounts (base64)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kek_hash: Option<String>,
     /// Master key encrypted with KEK (base64)
     pub encrypted_key: String,
     /// Nonce for master key decryption (base64)
@@ -23,11 +27,9 @@ pub struct KeyAttributes {
     /// Nonce for secret key decryption (base64)
     pub secret_key_decryption_nonce: String,
     /// Argon2 memory limit
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mem_limit: Option<u32>,
+    pub mem_limit: u32,
     /// Argon2 ops limit
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub ops_limit: Option<u32>,
+    pub ops_limit: u32,
     /// Master key encrypted with recovery key (base64)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub master_key_encrypted_with_recovery_key: Option<String>,
@@ -46,6 +48,7 @@ impl fmt::Debug for KeyAttributes {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("KeyAttributes")
             .field("kek_salt", &"[REDACTED]")
+            .field("kek_hash", &self.kek_hash.as_ref().map(|_| "[REDACTED]"))
             .field("encrypted_key", &"[REDACTED]")
             .field("key_decryption_nonce", &"[REDACTED]")
             .field("public_key", &"[REDACTED]")
@@ -128,40 +131,17 @@ impl fmt::Debug for KeyGenResult {
     }
 }
 
-/// Result of successful login/decryption.
-pub struct LoginResult {
-    /// Decrypted master key
-    pub master_key: SecretVec,
-    /// Decrypted X25519 secret key
-    pub secret_key: SecretVec,
-    /// Decrypted auth token
-    pub token: SecretVec,
-    /// Key-encryption-key (for SRP setup if needed)
-    pub key_encryption_key: SecretVec,
-}
-
-impl fmt::Debug for LoginResult {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("LoginResult")
-            .field("master_key", &"[REDACTED]")
-            .field("secret_key", &"[REDACTED]")
-            .field("token", &"[REDACTED]")
-            .field("key_encryption_key", &"[REDACTED]")
-            .finish()
-    }
-}
-
 fn default_email_mfa_enabled() -> bool {
     true
 }
 
-/// SRP attributes received from server.
+/// SRP attributes received from server (`/users/srp/attributes`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SrpAttributes {
-    /// SRP user ID (UUID)
+    /// SRP user ID
     #[serde(rename = "srpUserID")]
-    pub srp_user_id: String,
+    pub srp_user_id: Uuid,
     /// SRP salt (base64)
     pub srp_salt: String,
     /// Argon2 memory limit
@@ -200,7 +180,7 @@ pub enum AuthError {
 
     /// Underlying cryptographic operation failed.
     #[error("Crypto error: {0}")]
-    Crypto(#[from] crate::crypto::Error),
+    Crypto(#[from] ente_core::crypto::Error),
 
     /// Failed to decode base64 or hex data.
     #[error("Decode error: {0}")]
@@ -225,13 +205,14 @@ mod tests {
     fn sample_key_attributes() -> KeyAttributes {
         KeyAttributes {
             kek_salt: "server-kek-salt".to_string(),
+            kek_hash: Some("server-kek-hash".to_string()),
             encrypted_key: "server-encrypted-key".to_string(),
             key_decryption_nonce: "server-key-nonce".to_string(),
             public_key: "server-public-key".to_string(),
             encrypted_secret_key: "server-encrypted-secret-key".to_string(),
             secret_key_decryption_nonce: "server-secret-key-nonce".to_string(),
-            mem_limit: Some(1),
-            ops_limit: Some(2),
+            mem_limit: 1,
+            ops_limit: 2,
             master_key_encrypted_with_recovery_key: None,
             master_key_decryption_nonce: None,
             recovery_key_encrypted_with_master_key: None,
@@ -246,13 +227,14 @@ mod tests {
         let debug = format!("{attrs:?}");
         assert!(debug.contains("[REDACTED]"));
         assert!(!debug.contains("server-kek-salt"));
+        assert!(!debug.contains("server-kek-hash"));
         assert!(!debug.contains("server-encrypted-key"));
         assert!(!debug.contains("server-key-nonce"));
         assert!(!debug.contains("server-public-key"));
         assert!(!debug.contains("server-encrypted-secret-key"));
         assert!(!debug.contains("server-secret-key-nonce"));
-        assert!(debug.contains("Some(1)"));
-        assert!(debug.contains("Some(2)"));
+        assert!(debug.contains("mem_limit: 1"));
+        assert!(debug.contains("ops_limit: 2"));
     }
 
     #[test]
@@ -282,22 +264,5 @@ mod tests {
         assert!(!debug.contains("server-encrypted-secret-key"));
         assert!(!debug.contains("server-secret-key-nonce"));
         assert!(debug.contains("key_attributes"));
-    }
-
-    #[test]
-    fn test_login_result_debug_redacts_secret_material() {
-        let result = LoginResult {
-            master_key: SecretVec::new(vec![1, 2, 3]),
-            secret_key: SecretVec::new(vec![4, 5, 6]),
-            token: SecretVec::new(vec![7, 8, 9]),
-            key_encryption_key: SecretVec::new(vec![10, 11, 12]),
-        };
-
-        let debug = format!("{result:?}");
-        assert!(debug.contains("[REDACTED]"));
-        assert!(!debug.contains("[1, 2, 3]"));
-        assert!(!debug.contains("[4, 5, 6]"));
-        assert!(!debug.contains("[7, 8, 9]"));
-        assert!(!debug.contains("[10, 11, 12]"));
     }
 }

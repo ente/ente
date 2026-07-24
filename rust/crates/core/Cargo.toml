@@ -21,10 +21,6 @@ rand_core = { version = "0.6", features = ["getrandom"] }
 subtle = "2"
 md-5 = "0.11"
 
-# SRP authentication (optional; enable via the `srp` feature)
-srp = { version = "0.7.0-rc.3", default-features = false, optional = true }
-sha2 = { version = "0.11", optional = true }
-
 # Randomness
 #
 # We enable `getrandom`'s `js` feature so that the crate works on
@@ -34,9 +30,7 @@ getrandom = { version = "0.2", features = ["js"] }
 
 # Common dependencies
 base64 = "0.22"
-hex = "0.4"
 log = "0.4"
-bip39 = { version = "2", default-features = false, features = ["std"] }
 zeroize = { version = "1.8.2", features = ["derive"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
@@ -51,16 +45,6 @@ gloo-timers = { version = "0.3.0", features = ["futures"] }
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 mockito = "1.6"
-
-[features]
-default = []
-
-# Enable SRP (Secure Remote Password) client for password-based authentication.
-#
-# Without this feature, you can still derive KEK/login keys and decrypt secrets,
-# but cannot perform the SRP handshake (i.e. create/use `auth::SrpSession`).
-#
-srp = ["dep:srp", "dep:sha2"]
 
 [lints.rust]
 missing_docs = "warn"

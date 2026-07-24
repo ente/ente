@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use ente_accounts::auth::KeyAttributes as CoreKeyAttributes;
 use ente_contacts::{
     AttachmentType as CoreAttachmentType, ContactData as CoreContactData,
     ContactRecord as CoreContactRecord, ContactsCtx as CoreContactsCtx,
@@ -13,7 +14,6 @@ use ente_contacts::{
     LegacyKitVariant as CoreLegacyKitVariant, OpenContactsCtxInput as CoreOpenContactsCtxInput,
     RootKeySource as CoreRootKeySource, WrappedRootContactKey as CoreWrappedRootContactKey,
 };
-use ente_core::auth::KeyAttributes as CoreKeyAttributes;
 use flutter_rust_bridge::frb;
 
 #[frb]
@@ -97,9 +97,9 @@ pub struct AccountKeyAttributes {
     /// Nonce for secret key decryption (base64).
     pub secret_key_decryption_nonce: String,
     /// Argon2 memory limit.
-    pub mem_limit: Option<u32>,
+    pub mem_limit: u32,
     /// Argon2 ops limit.
-    pub ops_limit: Option<u32>,
+    pub ops_limit: u32,
     /// Master key encrypted with recovery key (base64).
     pub master_key_encrypted_with_recovery_key: Option<String>,
     /// Nonce for master key decryption with recovery key (base64).
@@ -114,6 +114,7 @@ impl From<AccountKeyAttributes> for CoreKeyAttributes {
     fn from(value: AccountKeyAttributes) -> Self {
         Self {
             kek_salt: value.kek_salt,
+            kek_hash: None,
             encrypted_key: value.encrypted_key,
             key_decryption_nonce: value.key_decryption_nonce,
             public_key: value.public_key,

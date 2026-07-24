@@ -1,9 +1,7 @@
-use ente_accounts::KeyAttributes as ApiKeyAttributes;
 use ente_contacts::{
     client::{ContactsCtx, OpenContactsCtxInput},
     legacy_models::{LegacyContactRecord, LegacyInfo, LegacyRecoverySession},
 };
-use ente_core::auth::KeyAttributes as CoreKeyAttributes;
 
 use crate::CLIENT_PACKAGE;
 use crate::support::auth::TestAccount;
@@ -34,7 +32,7 @@ pub async fn establish_legacy_contact(
     owner_ctx
         .legacy_add_contact(
             &trusted.email,
-            &to_core_key_attributes(&owner.key_attributes),
+            &owner.key_attributes,
             Some(recovery_notice_in_days),
         )
         .await
@@ -47,27 +45,6 @@ pub async fn establish_legacy_contact(
         )
         .await
         .unwrap();
-}
-
-pub fn to_core_key_attributes(attributes: &ApiKeyAttributes) -> CoreKeyAttributes {
-    CoreKeyAttributes {
-        kek_salt: attributes.kek_salt.clone(),
-        encrypted_key: attributes.encrypted_key.clone(),
-        key_decryption_nonce: attributes.key_decryption_nonce.clone(),
-        public_key: attributes.public_key.clone(),
-        encrypted_secret_key: attributes.encrypted_secret_key.clone(),
-        secret_key_decryption_nonce: attributes.secret_key_decryption_nonce.clone(),
-        mem_limit: Some(attributes.mem_limit as u32),
-        ops_limit: Some(attributes.ops_limit as u32),
-        master_key_encrypted_with_recovery_key: attributes
-            .master_key_encrypted_with_recovery_key
-            .clone(),
-        master_key_decryption_nonce: attributes.master_key_decryption_nonce.clone(),
-        recovery_key_encrypted_with_master_key: attributes
-            .recovery_key_encrypted_with_master_key
-            .clone(),
-        recovery_key_decryption_nonce: attributes.recovery_key_decryption_nonce.clone(),
-    }
 }
 
 pub fn owner_contact(

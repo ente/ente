@@ -52,7 +52,6 @@ impl From<CoreSpaceError> for WasmSpaceError {
             CoreSpaceError::Http(HttpError::Network(_)) => ("network", None),
             CoreSpaceError::Http(HttpError::Parse(_)) => ("parse", None),
             CoreSpaceError::Crypto(_) => ("crypto", None),
-            CoreSpaceError::Auth(_) => ("auth", None),
             CoreSpaceError::InvalidInput(_) => ("invalid_input", None),
             CoreSpaceError::MissingSecretKey => ("missing_secret_key", None),
             CoreSpaceError::MissingFriendSealedSpaceKey => {

@@ -1,10 +1,11 @@
 //! WASM bindings for contacts sync and attachment reads.
 
+use ente_accounts::auth::KeyAttributes;
 use ente_contacts::{
     ContactsCtx, ContactsError as CoreContactsError, LegacyContactState, OpenContactsCtxInput,
     RootKeySource, WrappedRootContactKey,
 };
-use ente_core::{auth::KeyAttributes, crypto};
+use ente_core::crypto;
 use js_sys::{Object, Reflect};
 use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen as swb;

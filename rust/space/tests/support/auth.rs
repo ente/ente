@@ -1,9 +1,10 @@
 use base64::{Engine, engine::general_purpose::STANDARD};
-use ente_accounts::{AccountsClient, AccountsClientConfig, KeyAttributes, models::SetupSrpRequest};
-use ente_core::{
+use ente_accounts::{
+    AccountsClient, AccountsClientConfig, KeyAttributes,
     auth::{SrpSession, generate_srp_setup_with_login_key},
-    crypto::{Key, SecretKey, decode_b64, encode_b64, kdf, secretbox},
+    models::SetupSrpRequest,
 };
+use ente_core::crypto::{Key, SecretKey, decode_b64, encode_b64, kdf, secretbox};
 use ente_test_support::{HARDCODED_OTT, HARDCODED_OTT_EMAIL_SUFFIX, account_fixture};
 use uuid::Uuid;
 

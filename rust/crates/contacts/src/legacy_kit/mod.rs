@@ -3,8 +3,8 @@ mod shares;
 
 use std::sync::Arc;
 
+use ente_accounts::auth::{self, KeyAttributes, SrpSession};
 use ente_core::{
-    auth::{self, KeyAttributes, SrpSession},
     crypto::{self, SecretString, SecretVec, kdf, sealed, secretbox},
     http::{Api, ApiConfig, Http},
 };
@@ -290,12 +290,8 @@ impl LegacyKitRecoveryHandle {
             kek_salt: updated_key_attrs.kek_salt.clone(),
             encrypted_key: updated_key_attrs.encrypted_key.clone(),
             key_decryption_nonce: updated_key_attrs.key_decryption_nonce.clone(),
-            mem_limit: updated_key_attrs.mem_limit.ok_or_else(|| {
-                ContactsError::InvalidInput("updated key attributes missing memLimit".into())
-            })?,
-            ops_limit: updated_key_attrs.ops_limit.ok_or_else(|| {
-                ContactsError::InvalidInput("updated key attributes missing opsLimit".into())
-            })?,
+            mem_limit: updated_key_attrs.mem_limit,
+            ops_limit: updated_key_attrs.ops_limit,
         };
         let change_response = self
             .api

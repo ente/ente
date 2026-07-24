@@ -13,10 +13,6 @@ pub enum Error {
     #[error("Base64 decode error: {0}")]
     Base64Decode(#[from] base64::DecodeError),
 
-    /// Hex decoding failed.
-    #[error("Hex decode error: {0}")]
-    HexDecode(#[from] hex::FromHexError),
-
     /// Invalid key length.
     #[error("Invalid key length: expected {expected}, got {actual}")]
     InvalidKeyLength {
@@ -133,7 +129,6 @@ impl Error {
     pub fn code(&self) -> &'static str {
         match self {
             Error::Base64Decode(_) => "base64_decode",
-            Error::HexDecode(_) => "hex_decode",
             Error::InvalidKeyLength { .. } => "invalid_key_length",
             Error::InvalidNonceLength { .. } => "invalid_nonce_length",
             Error::InvalidSaltLength { .. } => "invalid_salt_length",

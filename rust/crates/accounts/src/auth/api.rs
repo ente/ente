@@ -5,18 +5,11 @@
 
 use std::fmt;
 
-#[cfg(feature = "srp")]
-use crate::crypto::Salt;
-use crate::crypto::{self, SecretVec, argon, kdf, sealed, secretbox};
+use ente_core::crypto::{self, Salt, SecretVec, argon, kdf, sealed, secretbox};
+use sha2::Sha256;
+use srp::ClientG4096;
 
 use super::{AuthError, KeyAttributes, Result, SrpAttributes};
-
-#[cfg(feature = "srp")]
-use super::srp::SrpSession;
-#[cfg(feature = "srp")]
-use sha2::Sha256;
-#[cfg(feature = "srp")]
-use srp::ClientG4096;
 
 /// Credentials derived from password for SRP authentication.
 pub struct SrpCredentials {
@@ -79,7 +72,6 @@ impl fmt::Debug for GeneratedKek {
 }
 
 /// Attributes needed to register or update SRP for a user.
-#[cfg(feature = "srp")]
 pub struct GeneratedSrpSetup {
     /// SRP salt bytes.
     pub srp_salt: Vec<u8>,
@@ -89,7 +81,6 @@ pub struct GeneratedSrpSetup {
     pub login_sub_key: SecretVec,
 }
 
-#[cfg(feature = "srp")]
 impl fmt::Debug for GeneratedSrpSetup {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("GeneratedSrpSetup")
@@ -191,14 +182,12 @@ fn generated_kek(derived: argon::DerivedKey) -> GeneratedKek {
 }
 
 /// Generate the SRP setup payload for a given KEK and SRP user ID.
-#[cfg(feature = "srp")]
 pub fn generate_srp_setup(kek: &[u8], srp_user_id: &str) -> Result<GeneratedSrpSetup> {
     let login_sub_key = kdf::derive_login_key(&crypto::Key::try_from_slice(kek)?);
     generate_srp_setup_with_login_key(&login_sub_key, srp_user_id)
 }
 
 /// Generate the SRP setup payload from an already-derived login key.
-#[cfg(feature = "srp")]
 pub fn generate_srp_setup_with_login_key(
     login_key: &[u8],
     srp_user_id: &str,
@@ -296,34 +285,6 @@ pub fn decrypt_secrets(
     })
 }
 
-/// Start an SRP session for password authentication.
-///
-/// This is a convenience function that:
-/// 1. Derives credentials from password
-/// 2. Creates an SRP session ready for the protocol
-///
-/// # Arguments
-/// * `password` - User's password
-/// * `srp_attrs` - SRP attributes from the server
-///
-/// # Returns
-/// * Tuple of (SrpSession, kek) - use session for SRP, keep kek for later decryption
-#[cfg(feature = "srp")]
-#[cfg_attr(not(test), allow(dead_code))]
-pub(crate) fn start_srp_session(
-    password: &str,
-    srp_attrs: &SrpAttributes,
-) -> Result<(SrpSession, SecretVec)> {
-    let creds = derive_srp_credentials(password, srp_attrs)?;
-
-    let srp_salt = crypto::decode_b64(&srp_attrs.srp_salt)
-        .map_err(|e| AuthError::Decode(format!("srp_salt: {}", e)))?;
-
-    let session = SrpSession::new(&srp_attrs.srp_user_id, &srp_salt, &creds.login_key)?;
-
-    Ok((session, creds.kek))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -336,10 +297,10 @@ mod tests {
             generate_keys_with_strength(password, KeyDerivationStrength::Interactive).unwrap();
 
         let srp_attrs = SrpAttributes {
-            srp_user_id: "test-user".to_string(),
+            srp_user_id: uuid::Uuid::nil(),
             srp_salt: crypto::encode_b64(&[0u8; 16]),
-            mem_limit: gen_result.key_attributes.mem_limit.unwrap(),
-            ops_limit: gen_result.key_attributes.ops_limit.unwrap(),
+            mem_limit: gen_result.key_attributes.mem_limit,
+            ops_limit: gen_result.key_attributes.ops_limit,
             kek_salt: gen_result.key_attributes.kek_salt.clone(),
             is_email_mfa_enabled: false,
         };
@@ -371,8 +332,8 @@ mod tests {
         let kek = derive_kek(
             password,
             &gen_result.key_attributes.kek_salt,
-            gen_result.key_attributes.mem_limit.unwrap(),
-            gen_result.key_attributes.ops_limit.unwrap(),
+            gen_result.key_attributes.mem_limit,
+            gen_result.key_attributes.ops_limit,
         )
         .unwrap();
 
@@ -409,8 +370,8 @@ mod tests {
         let kek = derive_kek(
             "wrong_password",
             &gen_result.key_attributes.kek_salt,
-            gen_result.key_attributes.mem_limit.unwrap(),
-            gen_result.key_attributes.ops_limit.unwrap(),
+            gen_result.key_attributes.mem_limit,
+            gen_result.key_attributes.ops_limit,
         )
         .unwrap();
 
@@ -440,17 +401,10 @@ mod tests {
 
         assert_eq!(generated.key.len(), 32);
         assert_eq!(generated.salt.len(), 16);
-        assert_eq!(
-            generated.mem_limit,
-            crate::crypto::argon::Params::INTERACTIVE.mem_limit
-        );
-        assert_eq!(
-            generated.ops_limit,
-            crate::crypto::argon::Params::INTERACTIVE.ops_limit
-        );
+        assert_eq!(generated.mem_limit, argon::Params::INTERACTIVE.mem_limit);
+        assert_eq!(generated.ops_limit, argon::Params::INTERACTIVE.ops_limit);
     }
 
-    #[cfg(feature = "srp")]
     #[test]
     fn test_generate_srp_setup() {
         let srp_setup = generate_srp_setup(&[1; 32], "test-user-id").unwrap();
@@ -460,7 +414,6 @@ mod tests {
         assert!(!srp_setup.srp_verifier.is_empty());
     }
 
-    #[cfg(feature = "srp")]
     #[test]
     fn test_generate_srp_setup_with_login_key() {
         let login_key = [1u8; 16];
@@ -469,27 +422,5 @@ mod tests {
         assert_eq!(srp_setup.srp_salt.len(), 16);
         assert_eq!(srp_setup.login_sub_key.as_ref(), login_key);
         assert!(!srp_setup.srp_verifier.is_empty());
-    }
-
-    #[cfg(feature = "srp")]
-    #[test]
-    fn test_start_srp_session() {
-        let password = "test_password";
-        let gen_result =
-            generate_keys_with_strength(password, KeyDerivationStrength::Interactive).unwrap();
-
-        let srp_attrs = SrpAttributes {
-            srp_user_id: "test-user".to_string(),
-            srp_salt: crypto::encode_b64(&[0u8; 16]),
-            mem_limit: gen_result.key_attributes.mem_limit.unwrap(),
-            ops_limit: gen_result.key_attributes.ops_limit.unwrap(),
-            kek_salt: gen_result.key_attributes.kek_salt,
-            is_email_mfa_enabled: false,
-        };
-
-        let (session, kek) = start_srp_session(password, &srp_attrs).unwrap();
-
-        assert_eq!(kek.len(), 32);
-        assert!(!session.public_a().is_empty());
     }
 }

@@ -28,6 +28,6 @@ pub mod account_fixture {
     // Argon2id(PASSWORD, 16 × 0x4d, 256 MiB, 16 ops).
     pub const KEK: &str = "EwUWye3Qiu3bep2oujaO8oJvUgIdn0DSOk2g0oZ+AWs=";
     pub const KEK_SALT: &str = "TU1NTU1NTU1NTU1NTU1NTQ==";
-    pub const MEM_LIMIT: i32 = 268_435_456;
-    pub const OPS_LIMIT: i32 = 16;
+    pub const MEM_LIMIT: u32 = 268_435_456;
+    pub const OPS_LIMIT: u32 = 16;
 }

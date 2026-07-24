@@ -4,16 +4,14 @@ use base64::{
     Engine,
     engine::general_purpose::{STANDARD, URL_SAFE},
 };
+use ente_accounts::auth::{SrpSession, generate_srp_setup_with_login_key};
 use ente_accounts::{
     AccountsClient, AccountsClientConfig, AuthFlow, AuthFlowUi, AuthenticatedAccount,
     CreateAccountParams, Error as CliError, KeyAttributes, LoginParams, OtpPurpose,
     Result as CliResult, SecondFactorMethod, SetupTwoFactorParams, TotpPurpose,
     models::SetupSrpRequest,
 };
-use ente_core::{
-    auth::{SrpSession, generate_srp_setup_with_login_key},
-    crypto::{Key, SecretKey, SecretVec, decode_b64, encode_b64, kdf, secretbox},
-};
+use ente_core::crypto::{Key, SecretKey, SecretVec, decode_b64, encode_b64, kdf, secretbox};
 use ente_test_support::{HARDCODED_OTT, account_fixture};
 use hmac::{Hmac, KeyInit, Mac};
 use sha1::Sha1;
