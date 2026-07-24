@@ -147,7 +147,13 @@ class _DeviceFolderVerticalGridViewBodyState
     final deviceCollections = await FilesDB.instance.getDeviceCollections(
       includeCoverThumbnail: true,
     );
-    DeviceCollectionsCache.putIfCurrent(cacheGeneration, deviceCollections);
+    final didCache = DeviceCollectionsCache.putIfCurrent(
+      cacheGeneration,
+      deviceCollections,
+    );
+    if (!didCache) {
+      return const <DeviceCollection>[];
+    }
     return deviceCollections;
   }
 

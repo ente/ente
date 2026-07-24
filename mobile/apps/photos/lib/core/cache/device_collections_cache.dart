@@ -10,7 +10,7 @@ class DeviceCollectionsCache {
   static List<DeviceCollection>? get deviceCollections => _deviceCollections;
   static int get generation => _generation;
 
-  static void putIfCurrent(
+  static bool putIfCurrent(
     int generation,
     List<DeviceCollection> deviceCollections,
   ) {
@@ -18,12 +18,13 @@ class DeviceCollectionsCache {
       _logger.info(
         "[DeviceAlbumCache] Ignored stale cache update after logout",
       );
-      return;
+      return false;
     }
     _deviceCollections = deviceCollections;
     _logger.info(
       "[DeviceAlbumCache] Cached ${deviceCollections.length} device albums",
     );
+    return true;
   }
 
   static void clearAll() {
