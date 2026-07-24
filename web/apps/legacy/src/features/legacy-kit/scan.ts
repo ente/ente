@@ -411,6 +411,20 @@ const codeFromPDFMetadata = (bytes: Uint8Array) => {
     throw new Error("Choose individual Legacy Kit sheet PDFs.");
 };
 
+const codeFromPDFText = (text: string) => {
+    const sharePayload = markerPayload(text, legacyKitShareMetadataPrefix);
+    if (sharePayload) {
+        try {
+            const code = decodeBase64URLUTF8(sharePayload);
+            JSON.parse(code);
+            return code;
+        } catch {
+            // Incomplete hidden text should fall through to QR recovery.
+        }
+    }
+    return findJsonObject(text);
+};
+
 const loadImageFromFile = (file: File) =>
     new Promise<DrawableImage>((resolve, reject) => {
         const objectURL = URL.createObjectURL(file);
@@ -656,7 +670,7 @@ const decodeQrFromPDFBytes = async (bytes: Uint8Array) => {
     try {
         let textCode: string | undefined;
         try {
-            textCode = findJsonObject(await textFromPDF(pdf));
+            textCode = codeFromPDFText(await textFromPDF(pdf));
         } catch {
             // Text extraction is a fast path; scanned PDFs should still use QR rendering.
         }
