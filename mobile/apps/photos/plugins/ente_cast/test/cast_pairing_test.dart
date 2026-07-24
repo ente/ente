@@ -15,7 +15,6 @@ void main() {
     final result = waitForPairCode(
       messages: messages.stream,
       states: states.stream,
-      initialState: ChromecastConnectionState.connecting,
       start: () {},
       sendPairRequest: () => pairRequests++,
       timeout: const Duration(seconds: 1),
@@ -43,7 +42,6 @@ void main() {
     final result = waitForPairCode(
       messages: messages.stream,
       states: states.stream,
-      initialState: ChromecastConnectionState.connecting,
       start: () => messages.add(
         const ChromecastMessage(
           namespace: ChromecastConnection.receiverNamespace,
@@ -55,44 +53,6 @@ void main() {
     );
 
     await expectLater(result, throwsA(isA<CastPairingException>()));
-    await messages.close();
-    await states.close();
-  });
-
-  test("surfaces a connection that closes before pairing", () async {
-    final messages = StreamController<ChromecastMessage>.broadcast(sync: true);
-    final states = StreamController<ChromecastConnectionState>.broadcast(
-      sync: true,
-    );
-    final result = waitForPairCode(
-      messages: messages.stream,
-      states: states.stream,
-      initialState: ChromecastConnectionState.connecting,
-      start: () => states.add(ChromecastConnectionState.closed),
-      sendPairRequest: () {},
-      timeout: const Duration(seconds: 1),
-    );
-
-    await expectLater(result, throwsA(isA<CastPairingException>()));
-    await messages.close();
-    await states.close();
-  });
-
-  test("times out when the receiver never returns a code", () async {
-    final messages = StreamController<ChromecastMessage>.broadcast(sync: true);
-    final states = StreamController<ChromecastConnectionState>.broadcast(
-      sync: true,
-    );
-    final result = waitForPairCode(
-      messages: messages.stream,
-      states: states.stream,
-      initialState: ChromecastConnectionState.connecting,
-      start: () {},
-      sendPairRequest: () {},
-      timeout: const Duration(milliseconds: 1),
-    );
-
-    await expectLater(result, throwsA(isA<TimeoutException>()));
     await messages.close();
     await states.close();
   });

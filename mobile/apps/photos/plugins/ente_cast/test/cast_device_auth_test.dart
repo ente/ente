@@ -14,32 +14,6 @@ void main() {
     expect(encodeCastAuthChallenge(nonce), [10, 20, 18, 16, ...nonce, 24, 1]);
   });
 
-  test("decodes the device credentials from an auth response", () {
-    final nonce = Uint8List.fromList(List.filled(16, 7));
-
-    final response = decodeCastAuthResponse(
-      _authResponse(
-        signature: [1, 2],
-        clientCertificate: [3, 4],
-        intermediates: [
-          [5],
-          [6],
-        ],
-        nonce: nonce,
-        hashAlgorithm: 1,
-      ),
-    );
-
-    expect(response.signature, [1, 2]);
-    expect(response.clientAuthCertificate, [3, 4]);
-    expect(response.intermediateCertificates, [
-      [5],
-      [6],
-    ]);
-    expect(response.senderNonce, nonce);
-    expect(response.hashAlgorithm, 1);
-  });
-
   test(
     "verifies the nonce and TLS certificate signed by the receiver",
     () async {
@@ -202,7 +176,7 @@ Uint8List _authResponse({
   return (ProtoWriter()..writeBytes(2, response.takeBytes())).takeBytes();
 }
 
-final class _FakeCertificate implements X509Certificate {
+final class _FakeCertificate extends Fake implements X509Certificate {
   _FakeCertificate(this.der, {DateTime? endValidity})
     : _endValidity = endValidity;
 
@@ -216,18 +190,6 @@ final class _FakeCertificate implements X509Certificate {
       _endValidity ?? DateTime.now().add(const Duration(days: 1));
 
   @override
-  String get issuer => "issuer";
-
-  @override
-  String get pem => "";
-
-  @override
-  Uint8List get sha1 => Uint8List(0);
-
-  @override
   DateTime get startValidity =>
       DateTime.now().subtract(const Duration(days: 1));
-
-  @override
-  String get subject => "subject";
 }

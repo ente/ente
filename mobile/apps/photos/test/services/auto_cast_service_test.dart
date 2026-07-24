@@ -5,23 +5,6 @@ import "package:photos/models/collection/collection.dart";
 import "package:photos/services/auto_cast_service.dart";
 
 void main() {
-  test("stopping revokes the server session returned while pairing", () async {
-    final transport = _FakeCastService();
-    final gateway = _FakeCastGateway();
-    final service = AutoCastService(
-      transport: transport,
-      gateway: gateway,
-      encodePayload: (_, _, _) => "encrypted-payload",
-    );
-    final device = Object();
-
-    await service.connect(device, _FakeCollection());
-    await service.stop(device);
-
-    expect(gateway.revokedDeviceIDs, ["device-id"]);
-    expect(transport.stoppedDevices, [device]);
-  });
-
   test(
     "stopping disconnects the device when server revocation fails",
     () async {

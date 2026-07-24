@@ -141,7 +141,6 @@ class CastService {
       return await waitForPairCode(
         messages: connection.messages,
         states: connection.states,
-        initialState: connection.state,
         start: () => connection.launch(_appID),
         sendPairRequest: () => connection.send(castPairRequestNamespace, {
           "collectionID": ?collectionID,

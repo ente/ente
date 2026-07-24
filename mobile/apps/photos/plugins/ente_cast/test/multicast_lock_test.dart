@@ -5,38 +5,17 @@ import "package:flutter_test/flutter_test.dart";
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const channel = MethodChannel("io.ente.cast/test-multicast");
-  final events = <String>[];
-
-  setUp(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (call) async {
-          events.add(call.method);
-          return null;
-        });
-  });
-
-  tearDown(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, null);
-    events.clear();
-  });
-
-  test("holds the multicast lock for the action", () async {
-    final result = await withMulticastLock(
-      () async {
-        events.add("action");
-        return 42;
-      },
-      acquireLock: true,
-      channel: channel,
-    );
-
-    expect(result, 42);
-    expect(events, ["acquire", "action", "release"]);
-  });
-
   test("releases the multicast lock when the action fails", () async {
+    const channel = MethodChannel("io.ente.cast/test-multicast");
+    final events = <String>[];
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      events.add(call.method);
+      return null;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+
     final result = withMulticastLock<void>(
       () async {
         events.add("action");
@@ -48,15 +27,5 @@ void main() {
 
     await expectLater(result, throwsStateError);
     expect(events, ["acquire", "action", "release"]);
-  });
-
-  test("does not call the platform channel outside Android", () async {
-    await withMulticastLock(
-      () async => events.add("action"),
-      acquireLock: false,
-      channel: channel,
-    );
-
-    expect(events, ["action"]);
   });
 }

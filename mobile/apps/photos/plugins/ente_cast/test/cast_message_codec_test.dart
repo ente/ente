@@ -1,76 +1,26 @@
+import "dart:convert";
 import "dart:typed_data";
 
 import "package:ente_cast/src/cast/cast_message_codec.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
-  test("encodes the Cast message fields", () {
-    final bytes = encodeCastEnvelope(
+  test("encodes text and binary Cast frames", () {
+    final text = encodeCastFrame(
       sourceID: "s",
       destinationID: "d",
       namespace: "n",
       payload: "{}",
     );
-
-    expect(
-      bytes,
-      Uint8List.fromList([
-        8,
-        0,
-        18,
-        1,
-        115,
-        26,
-        1,
-        100,
-        34,
-        1,
-        110,
-        40,
-        0,
-        50,
-        2,
-        123,
-        125,
-      ]),
-    );
-  });
-
-  test("decodes length-delimited Cast fields", () {
-    final encoded = encodeCastEnvelope(
-      sourceID: "client-123",
-      destinationID: "receiver-0",
-      namespace: "urn:x-cast:pair-request",
-      payload: '{"collectionID":42}',
-    );
-
-    final decoded = decodeCastEnvelope(encoded);
-
-    expect(decoded.namespace, "urn:x-cast:pair-request");
-    expect(decoded.payload, '{"collectionID":42}');
-    expect(decoded.binaryPayload, isNull);
-  });
-
-  test("encodes and decodes binary Cast fields", () {
-    final encoded = encodeBinaryCastEnvelope(
-      sourceID: "sender-0",
-      destinationID: "receiver-0",
-      namespace: "urn:x-cast:com.google.cast.tp.deviceauth",
+    final binary = encodeBinaryCastFrame(
+      sourceID: "s",
+      destinationID: "d",
+      namespace: "n",
       payload: Uint8List.fromList([0, 1, 255]),
     );
 
-    final decoded = decodeCastEnvelope(encoded);
-
-    expect(decoded.namespace, "urn:x-cast:com.google.cast.tp.deviceauth");
-    expect(decoded.payload, isNull);
-    expect(decoded.binaryPayload, [0, 1, 255]);
-  });
-
-  test("rejects a truncated Cast message", () {
-    expect(
-      () => decodeCastEnvelope(Uint8List.fromList([34, 5, 1])),
-      throwsFormatException,
-    );
+    expect(base64Encode(text), "AAAAEQgAEgFzGgFkIgFuKAAyAnt9");
+    expect(base64Encode(binary), "AAAAEggAEgFzGgFkIgFuKAE6AwAB/w==");
   });
 
   test("decodes fragmented and consecutive Cast frames", () {

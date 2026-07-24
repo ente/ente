@@ -8,7 +8,6 @@ const castPairRequestNamespace = "urn:x-cast:pair-request";
 Future<String> waitForPairCode({
   required Stream<ChromecastMessage> messages,
   required Stream<ChromecastConnectionState> states,
-  required ChromecastConnectionState initialState,
   required void Function() start,
   required void Function() sendPairRequest,
   required Duration timeout,
@@ -84,9 +83,6 @@ Future<String> waitForPairCode({
     start();
   } catch (error, stackTrace) {
     completeError(error, stackTrace);
-  }
-  if (initialState == ChromecastConnectionState.connected) {
-    requestPairCode();
   }
 
   try {

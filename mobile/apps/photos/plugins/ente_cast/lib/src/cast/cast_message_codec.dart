@@ -17,49 +17,19 @@ final class CastEnvelope {
   });
 }
 
-Uint8List encodeCastEnvelope({
-  required String sourceID,
-  required String destinationID,
-  required String namespace,
-  required String payload,
-}) {
-  return _encodeCastEnvelope(
-    sourceID: sourceID,
-    destinationID: destinationID,
-    namespace: namespace,
-    payloadType: 0,
-    payloadField: 6,
-    payload: utf8.encode(payload),
-  );
-}
-
-Uint8List encodeBinaryCastEnvelope({
-  required String sourceID,
-  required String destinationID,
-  required String namespace,
-  required Uint8List payload,
-}) {
-  return _encodeCastEnvelope(
-    sourceID: sourceID,
-    destinationID: destinationID,
-    namespace: namespace,
-    payloadType: 1,
-    payloadField: 7,
-    payload: payload,
-  );
-}
-
 Uint8List encodeCastFrame({
   required String sourceID,
   required String destinationID,
   required String namespace,
   required String payload,
 }) {
-  final envelope = encodeCastEnvelope(
+  final envelope = _encodeCastEnvelope(
     sourceID: sourceID,
     destinationID: destinationID,
     namespace: namespace,
-    payload: payload,
+    payloadType: 0,
+    payloadField: 6,
+    payload: utf8.encode(payload),
   );
   return _frame(envelope);
 }
@@ -70,10 +40,12 @@ Uint8List encodeBinaryCastFrame({
   required String namespace,
   required Uint8List payload,
 }) {
-  final envelope = encodeBinaryCastEnvelope(
+  final envelope = _encodeCastEnvelope(
     sourceID: sourceID,
     destinationID: destinationID,
     namespace: namespace,
+    payloadType: 1,
+    payloadField: 7,
     payload: payload,
   );
   return _frame(envelope);
