@@ -1,17 +1,15 @@
 import "dart:io";
 
+import "package:ente_components/ente_components.dart";
 import "package:ente_lock_screen/lock_screen_settings.dart";
 import "package:ente_lock_screen/ui/custom_pin_keypad.dart";
 import "package:ente_lock_screen/ui/lock_screen_confirm_pin.dart";
 import "package:ente_lock_screen/ui/lock_screen_options.dart";
+import "package:ente_lock_screen/ui/lock_screen_pin_input.dart";
 import "package:ente_strings/ente_strings.dart";
-import "package:ente_ui/theme/colors.dart";
-import "package:ente_ui/theme/ente_theme.dart";
-import "package:ente_ui/theme/text_style.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
-import 'package:pinput/pinput.dart';
 
 /// [isChangingLockScreenSettings] Authentication required for changing lock screen settings.
 /// Set to true when the app requires the user to authenticate before allowing
@@ -132,19 +130,7 @@ class _LockScreenPinState extends State<LockScreenPin> {
 
   @override
   Widget build(BuildContext context) {
-    final colorTheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-
-    final pinPutDecoration = PinTheme(
-      height: 48,
-      width: 48,
-      padding: const EdgeInsets.only(top: 6.0),
-      decoration: BoxDecoration(
-        color: colorTheme.backgroundBase,
-        border: Border.all(color: colorTheme.fillMuted, width: 1),
-        borderRadius: BorderRadius.circular(15.0),
-      ),
-    );
+    final colorTheme = context.componentColors;
     return Scaffold(
       backgroundColor: colorTheme.backgroundBase,
       appBar: AppBar(
@@ -161,7 +147,7 @@ class _LockScreenPinState extends State<LockScreenPin> {
         title: SvgPicture.asset(
           LockScreenSettings.instance.appLogoAsset,
           height: LockScreenSettings.instance.appLogoHeight,
-          colorFilter: ColorFilter.mode(colorTheme.primary700, BlendMode.srcIn),
+          colorFilter: ColorFilter.mode(colorTheme.primary, BlendMode.srcIn),
         ),
       ),
       floatingActionButton: isPlatformDesktop
@@ -169,81 +155,16 @@ class _LockScreenPinState extends State<LockScreenPin> {
           : CustomPinKeypad(controller: _pinController),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       body: SingleChildScrollView(
-        child: _getBody(colorTheme, textTheme, pinPutDecoration),
-      ),
-    );
-  }
-
-  Widget _getBody(
-    EnteColorScheme colorTheme,
-    EnteTextTheme textTheme,
-    PinTheme pinPutDecoration,
-  ) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 40),
-            Image.asset('assets/lock_screen_icon.png', width: 129, height: 95),
-            const SizedBox(height: 24),
-            Text(
-              widget.isChangingLockScreenSettings
-                  ? context.strings.enterAppLockPin
-                  : context.strings.setNewPin,
-              style: textTheme.bodyBold,
-            ),
-            const Padding(padding: EdgeInsets.all(12)),
-            Pinput(
-              length: 4,
-              showCursor: false,
-              useNativeKeyboard: isPlatformDesktop,
-              controller: _pinController,
-              autofocus: true,
-              defaultPinTheme: pinPutDecoration.copyWith(
-                textStyle: textTheme.h3Bold,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15.0),
-                  border: Border.all(color: colorTheme.fillMuted),
-                ),
-              ),
-              submittedPinTheme: pinPutDecoration.copyWith(
-                textStyle: textTheme.h3Bold.copyWith(
-                  color: colorTheme.primary700,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15.0),
-                  border: Border.all(color: colorTheme.primary700),
-                ),
-              ),
-              followingPinTheme: pinPutDecoration.copyWith(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15.0),
-                  border: Border.all(color: colorTheme.fillMuted),
-                ),
-              ),
-              focusedPinTheme: pinPutDecoration.copyWith(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15.0),
-                  border: Border.all(color: colorTheme.fillBase),
-                ),
-              ),
-              errorPinTheme: pinPutDecoration.copyWith(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15.0),
-                  border: Border.all(color: colorTheme.warning400),
-                ),
-              ),
-              forceErrorState: isPinValid,
-              obscureText: true,
-              obscuringCharacter: '*',
-              errorText: '',
-              onCompleted: (value) async {
-                await _confirmPin(_pinController.text);
-              },
-            ),
-          ],
+        child: LockScreenPinInput(
+          title: widget.isChangingLockScreenSettings
+              ? context.strings.enterAppLockPin
+              : context.strings.setNewPin,
+          controller: _pinController,
+          useNativeKeyboard: isPlatformDesktop,
+          forceErrorState: isPinValid,
+          onCompleted: (_) async {
+            await _confirmPin(_pinController.text);
+          },
         ),
       ),
     );

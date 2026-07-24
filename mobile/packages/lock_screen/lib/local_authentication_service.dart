@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:ente_components/ente_components.dart';
 import 'package:ente_lock_screen/auth_util.dart';
 import 'package:ente_lock_screen/lock_screen_settings.dart';
 import 'package:ente_lock_screen/ui/app_lock.dart';
@@ -7,7 +8,6 @@ import 'package:ente_lock_screen/ui/local_authentication_unavailable_dialog.dart
 import 'package:ente_lock_screen/ui/lock_screen_password.dart';
 import 'package:ente_lock_screen/ui/lock_screen_pin.dart';
 import 'package:ente_strings/ente_strings.dart';
-import 'package:ente_ui/utils/dialog_util.dart';
 import 'package:ente_ui/utils/toast_util.dart';
 import 'package:ente_utils/platform_util.dart';
 import 'package:flutter/foundation.dart';
@@ -197,7 +197,13 @@ class LocalAuthenticationService {
     } else {
       if (context.mounted) {
         // ignore: unawaited_futures
-        showErrorDialog(context, errorDialogTitle, errorDialogContent);
+        showErrorBottomSheetComponent(
+          context: context,
+          title: errorDialogTitle.isEmpty
+              ? context.strings.error
+              : errorDialogTitle,
+          message: errorDialogContent,
+        );
       }
     }
     return false;
