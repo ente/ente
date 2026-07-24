@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ente_components/ente_components.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/library_sharing/library_sharing_recipient.dart';
@@ -37,17 +38,24 @@ class _LibrarySharingPageState extends State<LibrarySharingPage> {
       );
   late final bool _ownsController = widget.controller == null;
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey _selectionSheetKey = GlobalKey();
+  bool _isSelectionSheetExpanded = true;
+  bool _selectionSheetWasVisible = false;
+  double? _expandedSelectionSheetHeight;
 
   LibrarySharingRecipient get _recipient => _controller.recipient;
 
   @override
   void initState() {
     super.initState();
+    _selectionSheetWasVisible = _showSelectionSheet;
+    _controller.addListener(_handleControllerChange);
     unawaited(_controller.load());
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_handleControllerChange);
     _scrollController.dispose();
     if (_ownsController) {
       _controller.dispose();
@@ -70,17 +78,46 @@ class _LibrarySharingPageState extends State<LibrarySharingPage> {
         },
         child: Scaffold(
           backgroundColor: context.componentColors.backgroundBase,
-          body: _content(context),
-          bottomNavigationBar: _showSelectionSheet
-              ? LibrarySharingSelectionSheet(
-                  controller: _controller,
-                  onApply: _applySelection,
-                  onStopSharing: _stopSharing,
-                  onShowMixedRoles: () => unawaited(_showMixedRoles()),
-                )
-              : null,
+          body: _body(context),
         ),
       ),
+    );
+  }
+
+  Widget _body(BuildContext context) {
+    final showSelectionSheet = _showSelectionSheet;
+    if (showSelectionSheet && _isSelectionSheetExpanded) {
+      _scheduleSelectionSheetMeasurement();
+    }
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: NotificationListener<UserScrollNotification>(
+            onNotification: _handleUserScroll,
+            child: _content(context),
+          ),
+        ),
+        if (showSelectionSheet)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AnimatedSize(
+              duration: Motion.standard,
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.bottomCenter,
+              child: LibrarySharingSelectionSheet(
+                key: _selectionSheetKey,
+                controller: _controller,
+                isExpanded: _isSelectionSheetExpanded,
+                onExpandedChanged: _setSelectionSheetExpanded,
+                onApply: _applySelection,
+                onStopSharing: _stopSharing,
+                onShowMixedRoles: () => unawaited(_showMixedRoles()),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -171,7 +208,7 @@ class _LibrarySharingPageState extends State<LibrarySharingPage> {
     }
     final albums = _controller.visibleAlbums;
     final leadingSlivers = <Widget>[
-      if (!_controller.isAddingAlbums && !_controller.hasSelection)
+      if (!_controller.isAddingAlbums || _controller.isFirstTime)
         _librarySharingBanner(),
     ];
     if (albums.isEmpty) {
@@ -186,7 +223,7 @@ class _LibrarySharingPageState extends State<LibrarySharingPage> {
                 ? 'assets/ducky_full_library.png'
                 : 'assets/ducky_share.png',
             title: isSharingFullLibrary
-                ? LibrarySharingStrings.sharingFullLibrary
+                ? LibrarySharingStrings.allCurrentAlbumsShared
                 : LibrarySharingStrings.noAlbumsToShare,
             textWidth: isSharingFullLibrary ? 257 : 285,
             alignment: isSharingFullLibrary
@@ -214,7 +251,7 @@ class _LibrarySharingPageState extends State<LibrarySharingPage> {
         isCollectionSelected: _controller.isSelected,
         topLeftOverlayBuilder: _roleOverlay,
         topPadding: Spacing.sm,
-        bottomPadding: Spacing.xxl,
+        bottomPadding: _gridBottomPadding,
         gridLayout: AlbumGridLayout.dense,
       ),
     ];
@@ -260,6 +297,69 @@ class _LibrarySharingPageState extends State<LibrarySharingPage> {
       _controller.enterManageMode();
     }
     _controller.toggleSelection(album);
+  }
+
+  bool _handleUserScroll(UserScrollNotification notification) {
+    if (!_showSelectionSheet ||
+        _controller.isMutating ||
+        notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+    switch (notification.direction) {
+      case ScrollDirection.reverse:
+        _setSelectionSheetExpanded(false);
+      case ScrollDirection.forward:
+        _setSelectionSheetExpanded(true);
+      case ScrollDirection.idle:
+        break;
+    }
+    return false;
+  }
+
+  void _handleControllerChange() {
+    final isVisible = _showSelectionSheet;
+    if (isVisible && !_selectionSheetWasVisible) {
+      _isSelectionSheetExpanded = true;
+      _expandedSelectionSheetHeight = null;
+    }
+    _selectionSheetWasVisible = isVisible;
+  }
+
+  void _setSelectionSheetExpanded(bool isExpanded) {
+    if (!mounted ||
+        !_showSelectionSheet ||
+        _isSelectionSheetExpanded == isExpanded) {
+      return;
+    }
+    setState(() => _isSelectionSheetExpanded = isExpanded);
+  }
+
+  double get _gridBottomPadding {
+    if (!_showSelectionSheet) {
+      return Spacing.xxl;
+    }
+    return (_expandedSelectionSheetHeight ??
+            _estimatedExpandedSelectionSheetHeight) +
+        Spacing.md;
+  }
+
+  void _scheduleSelectionSheetMeasurement() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_showSelectionSheet || !_isSelectionSheetExpanded) {
+        return;
+      }
+      final renderObject = _selectionSheetKey.currentContext
+          ?.findRenderObject();
+      final height = renderObject is RenderBox
+          ? renderObject.size.height
+          : null;
+      if (height == null ||
+          (_expandedSelectionSheetHeight != null &&
+              (height - _expandedSelectionSheetHeight!).abs() < 0.5)) {
+        return;
+      }
+      setState(() => _expandedSelectionSheetHeight = height);
+    });
   }
 
   double _titleBuilderHeight(BuildContext context) {
@@ -336,3 +436,6 @@ final TextStyle _librarySharingEyebrowStyle = TextStyles.display2.copyWith(
   fontSize: 16,
   height: 2,
 );
+
+// Prevents the final grid row from jumping under the sheet before measurement.
+const double _estimatedExpandedSelectionSheetHeight = 320;

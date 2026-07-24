@@ -70,8 +70,10 @@ abstract final class LibrarySharingStrings {
   static String get retryLoading => pendingTranslation('Try again');
   static String get noAlbumsToShare =>
       pendingTranslation('No albums to share yet');
-  static String get sharingFullLibrary =>
-      pendingTranslation('You are sharing your full library!');
+  static String get allCurrentAlbumsShared =>
+      pendingTranslation('All your current albums are shared');
+  static String get albumSelectionControls =>
+      pendingTranslation('Album selection controls');
   static String get sharingFailed => pendingTranslation('Sharing failed');
   static String get sharingFailedMessage =>
       pendingTranslation('Could not update the selected albums.');

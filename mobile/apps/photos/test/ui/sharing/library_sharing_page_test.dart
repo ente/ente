@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:ente_components/ente_components.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
+import 'package:flutter/semantics.dart' show SemanticsAction, SemanticsFlag;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:photos/ente_theme_data.dart';
 import 'package:photos/generated/l10n.dart';
@@ -14,7 +16,7 @@ import 'package:photos/ui/sharing/library_sharing/library_sharing_sheets.dart';
 import 'library_sharing_test_helpers.dart';
 
 void main() {
-  testWidgets('empty first-time flow hides unavailable selection controls', (
+  testWidgets('empty first-time flow shows the library sharing banner', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(375, 812));
@@ -36,7 +38,8 @@ void main() {
 
     expect(find.byType(LibrarySharingSelectionSheet), findsNothing);
     expect(find.text('No albums to share yet'), findsOneWidget);
-    expect(find.byType(ToggleSwitchComponent), findsNothing);
+    expect(find.text('Library Sharing'), findsOneWidget);
+    expect(find.byType(ToggleSwitchComponent), findsOneWidget);
   });
 
   testWidgets('existing recipient add mode renders the Share with state', (
@@ -66,7 +69,8 @@ void main() {
 
     expect(find.text('Share with'), findsOneWidget);
     expect(find.text('Sharing with'), findsNothing);
-    expect(find.text('You are sharing your full library!'), findsOneWidget);
+    expect(find.text('All your current albums are shared'), findsOneWidget);
+    expect(find.text('Library Sharing'), findsNothing);
     expect(find.byType(LibrarySharingSelectionSheet), findsNothing);
     expect(find.byType(ToggleSwitchComponent), findsNothing);
   });
@@ -146,10 +150,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Share with'), findsOneWidget);
+    expect(find.text('Library Sharing'), findsOneWidget);
     expect(find.byType(LibrarySharingSelectionSheet), findsNothing);
 
     controller.selectAll();
     await tester.pumpAndSettle();
+    expect(find.text('Library Sharing'), findsOneWidget);
     expect(find.byType(LibrarySharingSelectionSheet), findsOneWidget);
 
     controller.clearSelection();
@@ -157,7 +163,7 @@ void main() {
     expect(find.byType(LibrarySharingSelectionSheet), findsNothing);
   });
 
-  testWidgets('hides the library sharing banner while albums are selected', (
+  testWidgets('keeps the library sharing banner while albums are selected', (
     tester,
   ) async {
     final controller = _LayoutTestLibrarySharingController();
@@ -178,7 +184,7 @@ void main() {
     controller.enterManageMode();
     controller.selectAll();
     await tester.pumpAndSettle();
-    expect(find.text('Library Sharing'), findsNothing);
+    expect(find.text('Library Sharing'), findsOneWidget);
     expect(find.byType(LibrarySharingSelectionSheet), findsOneWidget);
 
     controller.clearSelection();
@@ -430,7 +436,7 @@ void main() {
     expect(result, isTrue);
   });
 
-  testWidgets('keeps scrollable content above the selection sheet', (
+  testWidgets('supports sheet expansion controls over scrollable content', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(375, 812));
@@ -452,12 +458,96 @@ void main() {
 
     final scrollView = find.byType(CustomScrollView);
     final selectionSheet = find.byType(LibrarySharingSelectionSheet);
+    final selectionSheetAnimation = find.ancestor(
+      of: selectionSheet,
+      matching: find.byType(AnimatedSize),
+    );
     expect(scrollView, findsOneWidget);
     expect(selectionSheet, findsOneWidget);
+    expect(selectionSheetAnimation, findsOneWidget);
+    bool isExpanded() =>
+        tester.widget<LibrarySharingSelectionSheet>(selectionSheet).isExpanded;
+    expect(isExpanded(), isTrue);
+    final expandedHeight = tester.getSize(selectionSheet).height;
     expect(
       tester.getBottomLeft(scrollView).dy,
-      lessThanOrEqualTo(tester.getTopLeft(selectionSheet).dy),
+      greaterThan(tester.getTopLeft(selectionSheet).dy),
     );
+
+    await tester.drag(selectionSheet, const Offset(0, 100));
+    await tester.pumpAndSettle();
+    expect(isExpanded(), isFalse);
+    expect(find.text('Role'), findsNothing);
+    expect(find.text('Stop sharing'), findsNothing);
+    expect(find.text('Save'), findsOneWidget);
+
+    await tester.drag(selectionSheet, const Offset(0, -100));
+    await tester.pump();
+    expect(isExpanded(), isTrue);
+    expect(tester.getSize(selectionSheet).height, expandedHeight);
+    expect(
+      tester.getSize(selectionSheetAnimation).height,
+      lessThan(expandedHeight),
+    );
+    await tester.pumpAndSettle();
+
+    final gesture = await tester.startGesture(tester.getCenter(selectionSheet));
+    await gesture.moveBy(const Offset(0, 100));
+    await tester.pump();
+    expect(isExpanded(), isTrue);
+    await gesture.moveBy(const Offset(0, -10));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(isExpanded(), isFalse);
+
+    await tester.drag(selectionSheet, const Offset(0, -100));
+    await tester.pumpAndSettle();
+    expect(isExpanded(), isTrue);
+
+    final scrollContext = tester.element(scrollView);
+    final scrollPosition = tester
+        .state<ScrollableState>(
+          find.descendant(of: scrollView, matching: find.byType(Scrollable)),
+        )
+        .position;
+    UserScrollNotification(
+      metrics: scrollPosition,
+      context: scrollContext,
+      direction: ScrollDirection.reverse,
+    ).dispatch(scrollContext);
+    await tester.pumpAndSettle();
+    expect(isExpanded(), isFalse);
+
+    UserScrollNotification(
+      metrics: scrollPosition,
+      context: scrollContext,
+      direction: ScrollDirection.forward,
+    ).dispatch(scrollContext);
+    await tester.pumpAndSettle();
+    expect(isExpanded(), isTrue);
+
+    final semantics = tester.ensureSemantics();
+    final selectionControls = find.bySemanticsLabel('Album selection controls');
+    var semanticsData = tester
+        .getSemantics(selectionControls)
+        .getSemanticsData();
+    expect(semanticsData.hasFlag(SemanticsFlag.hasExpandedState), isTrue);
+    expect(semanticsData.hasFlag(SemanticsFlag.isExpanded), isTrue);
+    expect(semanticsData.hasAction(SemanticsAction.collapse), isTrue);
+    expect(semanticsData.hasAction(SemanticsAction.expand), isFalse);
+
+    final semanticsNode = tester.getSemantics(selectionControls);
+    semanticsNode.owner!.performAction(
+      semanticsNode.id,
+      SemanticsAction.collapse,
+    );
+    await tester.pumpAndSettle();
+    expect(isExpanded(), isFalse);
+    semanticsData = tester.getSemantics(selectionControls).getSemanticsData();
+    expect(semanticsData.hasFlag(SemanticsFlag.isExpanded), isFalse);
+    expect(semanticsData.hasAction(SemanticsAction.expand), isTrue);
+    expect(semanticsData.hasAction(SemanticsAction.collapse), isFalse);
+    semantics.dispose();
   });
 
   testWidgets('fits 2x accessibility text on a 320x568 viewport', (

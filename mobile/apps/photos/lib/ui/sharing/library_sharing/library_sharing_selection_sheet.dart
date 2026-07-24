@@ -14,6 +14,8 @@ class LibrarySharingSelectionSheet extends StatelessWidget {
     required this.onApply,
     required this.onStopSharing,
     required this.onShowMixedRoles,
+    this.isExpanded = true,
+    this.onExpandedChanged,
     super.key,
   });
 
@@ -21,20 +23,24 @@ class LibrarySharingSelectionSheet extends StatelessWidget {
   final Future<void> Function() onApply;
   final Future<void> Function() onStopSharing;
   final VoidCallback onShowMixedRoles;
+  final bool isExpanded;
+  final ValueChanged<bool>? onExpandedChanged;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
-    return BottomSheetComponent(
+    final sheet = BottomSheetComponent(
       showCloseButton: false,
       borderSide: BorderSide(color: colors.strokeDark),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _summary(context),
-          const SizedBox(height: Spacing.xl),
-          _roleControl(context),
-          const SizedBox(height: Spacing.md),
+          if (isExpanded) ...[
+            _summary(context),
+            const SizedBox(height: Spacing.xl),
+            _roleControl(context),
+            const SizedBox(height: Spacing.md),
+          ],
           ButtonComponent(
             label: controller.isAddingAlbums
                 ? LibrarySharingStrings.shareAlbumCount(
@@ -45,7 +51,7 @@ class LibrarySharingSelectionSheet extends StatelessWidget {
             isDisabled: !controller.canApply,
             onTap: onApply,
           ),
-          if (controller.canStopSharing) ...[
+          if (isExpanded && controller.canStopSharing) ...[
             const SizedBox(height: Spacing.md),
             ButtonComponent(
               label: LibrarySharingStrings.stopSharing,
@@ -56,6 +62,23 @@ class LibrarySharingSelectionSheet extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+    final onChanged = onExpandedChanged;
+    if (onChanged == null) {
+      return sheet;
+    }
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      label: LibrarySharingStrings.albumSelectionControls,
+      expanded: isExpanded,
+      onExpand: isExpanded ? null : () => onChanged(true),
+      onCollapse: isExpanded ? () => onChanged(false) : null,
+      child: _ExpansionGestureDetector(
+        isExpanded: isExpanded,
+        onExpandedChanged: onChanged,
+        child: sheet,
       ),
     );
   }
@@ -152,4 +175,51 @@ class LibrarySharingSelectionSheet extends StatelessWidget {
       ],
     );
   }
+}
+
+class _ExpansionGestureDetector extends StatefulWidget {
+  const _ExpansionGestureDetector({
+    required this.isExpanded,
+    required this.onExpandedChanged,
+    required this.child,
+  });
+
+  final bool isExpanded;
+  final ValueChanged<bool> onExpandedChanged;
+  final Widget child;
+
+  @override
+  State<_ExpansionGestureDetector> createState() =>
+      _ExpansionGestureDetectorState();
+}
+
+class _ExpansionGestureDetectorState extends State<_ExpansionGestureDetector> {
+  double _dragDelta = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      excludeFromSemantics: true,
+      onVerticalDragStart: (_) => _dragDelta = 0,
+      onVerticalDragUpdate: (details) {
+        _dragDelta += details.primaryDelta ?? 0;
+      },
+      onVerticalDragEnd: (_) => _finishDrag(),
+      onVerticalDragCancel: _resetDrag,
+      child: widget.child,
+    );
+  }
+
+  void _finishDrag() {
+    if (_dragDelta != 0) {
+      final shouldExpand = _dragDelta < 0;
+      if (shouldExpand != widget.isExpanded) {
+        widget.onExpandedChanged(shouldExpand);
+      }
+    }
+    _resetDrag();
+  }
+
+  void _resetDrag() => _dragDelta = 0;
 }
