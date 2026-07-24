@@ -106,15 +106,18 @@ fn migrate_flat_models(
 
 fn migrate_transcription(store: &AssetStore, legacy_dir: &Path) {
     const LEGACY_MODEL_DIR: &str = "parakeet-tdt-0.6b-v3-int8";
+    const LEGACY_MODEL_ID: &str = "parakeet-v3-int8";
     const LEGACY_VAD_FILE: &str = "silero_vad_v4.onnx";
+    const LEGACY_VAD_ID: &str = "silero-vad-v4";
     if !legacy_dir.exists() {
         return;
     }
     let mut complete = true;
+    let defaults = config::defaults();
 
     let model = model::transcription_model_asset();
     let model_destination = store.asset_dir(&model);
-    if !store.is_downloaded(&model) {
+    if defaults.transcription_model.id == LEGACY_MODEL_ID && !store.is_downloaded(&model) {
         let source = legacy_dir.join(LEGACY_MODEL_DIR);
         if source.is_dir() {
             if let Some(parent) = model_destination.parent() {
@@ -126,7 +129,7 @@ fn migrate_transcription(store: &AssetStore, legacy_dir: &Path) {
 
     let vad = model::voice_activity_model_asset();
     let vad_destination = model::voice_activity_model_path(store, &vad);
-    if !store.is_downloaded(&vad) {
+    if defaults.voice_activity_model.id == LEGACY_VAD_ID && !store.is_downloaded(&vad) {
         let source = legacy_dir.join(LEGACY_VAD_FILE);
         if is_non_empty_file(&source) {
             complete &= move_file(&source, &vad_destination);

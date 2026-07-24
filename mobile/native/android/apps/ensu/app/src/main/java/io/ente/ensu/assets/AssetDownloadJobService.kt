@@ -130,8 +130,6 @@ class AssetDownloadJobService : JobService() {
             val (job, params) = state
             if (job != null && params != null) {
                 job.jobFinished(params, false)
-            } else {
-                appContext.getSystemService(JobScheduler::class.java)?.cancel(JOB_ID)
             }
         }
 
