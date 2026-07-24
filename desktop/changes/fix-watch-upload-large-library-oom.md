@@ -1,0 +1,1 @@
+- Fix the desktop app crashing during folder-watch upload of large libraries by giving the renderer process V8 flags that avoid a young-generation garbage-collection OOM.
