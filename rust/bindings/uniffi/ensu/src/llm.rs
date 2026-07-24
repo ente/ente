@@ -1,6 +1,5 @@
 use ente_ensu::llm;
 
-use crate::download::DownloadError;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -20,8 +19,6 @@ pub enum LlmError {
     PromptTooLong { tokens: u64, context_size: u32 },
     #[error("{op}: {detail}")]
     Llama { op: String, detail: String },
-    #[error("download failed")]
-    Download { error: DownloadError },
 }
 
 impl From<llm::Error> for LlmError {

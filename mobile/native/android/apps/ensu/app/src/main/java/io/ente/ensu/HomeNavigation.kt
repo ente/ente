@@ -118,7 +118,7 @@ internal fun HomeNavigation(
                 ) {
                     ChatView(
                         chatState = appState.chat,
-                        modelDownloader = store.modelDownloader,
+                        assetStore = store.assetStore,
                         transcriber = store.transcriber,
                         isDrawerOpen = drawerState.currentValue == DrawerValue.Open,
                         onMessageChange = store::updateMessageText,

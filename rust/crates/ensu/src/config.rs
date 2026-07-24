@@ -209,6 +209,7 @@ mod tests {
                 preset.id
             );
         }
+        assert!(seen.insert(knowledge::knowledge_embedding_config().target_id));
     }
 
     #[test]

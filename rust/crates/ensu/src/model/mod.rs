@@ -2,22 +2,32 @@ pub mod migrations;
 
 use std::path::PathBuf;
 
-use ente_model_download::{ModelDownloader, ModelFile, ModelTarget};
+use ente_assets::{Asset, AssetFile, AssetStore, download::Progress};
 
 use crate::config::{self, ModelPreset};
 
+const MODELS: &str = "models";
 const LLM_MODEL_FILE: &str = "model.gguf";
 const LLM_MMPROJ_FILE: &str = "mmproj.gguf";
 const VOICE_ACTIVITY_MODEL_FILE: &str = "model.onnx";
 
 #[derive(Debug, thiserror::Error)]
-#[error("preset {id} pairs only half of the mmproj URL and checksum")]
+#[error("invalid preset {id}: {reason}")]
 pub struct InvalidPreset {
     pub id: String,
+    reason: String,
 }
 
-pub(crate) fn llm_target(preset: &ModelPreset) -> Result<ModelTarget, InvalidPreset> {
-    let mut files = vec![ModelFile {
+pub struct ModelDownloadProgress {
+    pub downloaded_bytes: u64,
+    pub total_bytes: Option<u64>,
+    pub percent: i32,
+    pub status: String,
+    pub log_line: Option<String>,
+}
+
+pub(crate) fn llm_asset(preset: &ModelPreset) -> Result<Asset, InvalidPreset> {
+    let mut files = vec![AssetFile {
         name: LLM_MODEL_FILE.to_string(),
         url: preset.url.clone(),
         sha256: preset.sha256.clone(),
@@ -26,89 +36,167 @@ pub(crate) fn llm_target(preset: &ModelPreset) -> Result<ModelTarget, InvalidPre
         trimmed(preset.mmproj_url.as_deref()),
         trimmed(preset.mmproj_sha256.as_deref()),
     ) {
-        (Some(url), Some(sha256)) => files.push(ModelFile {
+        (Some(url), Some(sha256)) => files.push(AssetFile {
             name: LLM_MMPROJ_FILE.to_string(),
             url: url.to_string(),
             sha256: sha256.to_string(),
         }),
         (None, None) => {}
         _ => {
-            return Err(InvalidPreset {
-                id: preset.id.clone(),
-            });
+            return Err(invalid_preset(
+                preset,
+                "mmproj URL and checksum must be paired",
+            ));
         }
     }
-    Ok(ModelTarget::Files {
-        id: preset.id.clone(),
-        files,
-    })
+    Asset::files(model_key(&preset.id), files)
+        .map_err(|error| invalid_preset(preset, error.to_string()))
 }
 
-pub fn mobile_llm_target(model_id: &str) -> Result<ModelTarget, InvalidPreset> {
+pub fn mobile_llm_asset(model_id: &str) -> Result<Asset, InvalidPreset> {
     let preset = config::llm_catalog()
         .into_iter()
         .find(|preset| preset.id == model_id)
         .unwrap_or_else(|| config::defaults().mobile_default_model);
-    llm_target(&preset)
+    llm_asset(&preset)
 }
 
-pub fn desktop_llm_target(model_id: &str) -> Result<ModelTarget, InvalidPreset> {
+pub fn desktop_llm_asset(model_id: &str) -> Result<Asset, InvalidPreset> {
     let preset = config::llm_catalog()
         .into_iter()
         .find(|preset| preset.id == model_id)
         .unwrap_or_else(|| config::defaults().desktop_default_model);
-    llm_target(&preset)
+    llm_asset(&preset)
 }
 
-pub fn transcription_target() -> ModelTarget {
+pub fn transcription_model_asset() -> Asset {
     let preset = config::defaults().transcription_model;
-    ModelTarget::TarGz {
-        id: preset.id,
-        url: preset.url,
-        sha256: preset.sha256,
-    }
+    Asset::tar_gz(model_key(&preset.id), preset.url, preset.sha256)
+        .expect("transcription asset config")
 }
 
-pub fn voice_activity_target() -> ModelTarget {
+pub fn voice_activity_model_asset() -> Asset {
     let preset = config::defaults().voice_activity_model;
-    ModelTarget::Files {
-        id: preset.id,
-        files: vec![ModelFile {
+    Asset::files(
+        model_key(&preset.id),
+        vec![AssetFile {
             name: VOICE_ACTIVITY_MODEL_FILE.to_string(),
             url: preset.url,
             sha256: preset.sha256,
         }],
-    }
+    )
+    .expect("voice activity asset config")
 }
 
-pub fn knowledge_embedding_target() -> ModelTarget {
+pub fn knowledge_embedding_model_asset() -> Asset {
     let embedding = config::knowledge_embedding_config();
-    ModelTarget::Files {
-        id: embedding.target_id,
-        files: vec![ModelFile {
+    Asset::files(
+        model_key(&embedding.target_id),
+        vec![AssetFile {
             name: LLM_MODEL_FILE.to_string(),
             url: embedding.model_url,
             sha256: embedding.model_sha256,
         }],
-    }
+    )
+    .expect("knowledge embedding asset config")
 }
 
-pub fn llm_model_path(downloader: &ModelDownloader, target: &ModelTarget) -> Option<PathBuf> {
-    downloader.file_path(target, LLM_MODEL_FILE)
+pub fn llm_model_path(store: &AssetStore, asset: &Asset) -> Option<PathBuf> {
+    store.file_path(asset, LLM_MODEL_FILE)
 }
 
-pub fn llm_mmproj_path(downloader: &ModelDownloader, target: &ModelTarget) -> Option<PathBuf> {
-    downloader.file_path(target, LLM_MMPROJ_FILE)
+pub fn llm_mmproj_path(store: &AssetStore, asset: &Asset) -> Option<PathBuf> {
+    store.file_path(asset, LLM_MMPROJ_FILE)
 }
 
-pub fn voice_activity_model_path(downloader: &ModelDownloader) -> PathBuf {
-    downloader
-        .model_dir(&voice_activity_target())
-        .join(VOICE_ACTIVITY_MODEL_FILE)
+pub fn voice_activity_model_path(store: &AssetStore, asset: &Asset) -> PathBuf {
+    store
+        .file_path(asset, VOICE_ACTIVITY_MODEL_FILE)
+        .expect("voice activity model file")
+}
+
+pub(crate) fn model_key(id: &str) -> Vec<String> {
+    vec![MODELS.to_string(), id.to_string()]
 }
 
 pub(crate) fn trimmed(value: Option<&str>) -> Option<&str> {
     value.map(str::trim).filter(|value| !value.is_empty())
+}
+
+pub fn display_progress(progress: Progress) -> ModelDownloadProgress {
+    let total = progress.total_bytes.filter(|total| *total > 0);
+    let percent = total
+        .map(|total| ((progress.downloaded_bytes * 100 / total) as i32).clamp(0, 99))
+        .unwrap_or(0);
+    let status = if let Some(total) = total {
+        format!(
+            "Downloading... {} / {}",
+            format_bytes(progress.downloaded_bytes),
+            format_bytes(total)
+        )
+    } else if progress.file_downloaded_bytes > 0 {
+        format!(
+            "Downloading {}... {}",
+            progress.label.to_lowercase(),
+            format_bytes(progress.file_downloaded_bytes)
+        )
+    } else {
+        format!("Downloading {}...", progress.label.to_lowercase())
+    };
+    let log_line = if progress.file_complete {
+        Some(format!(
+            "Asset download file complete label={} bytes={} elapsedMs={} rate={}/s retries={}",
+            progress.label,
+            progress.file_downloaded_bytes,
+            progress.file_elapsed_ms,
+            format_bytes(rate_bytes(progress.file_bytes_per_second)),
+            progress.file_retry_count
+        ))
+    } else if progress.complete {
+        Some(format!(
+            "Asset download complete bytes={} elapsedMs={} rate={}/s retries={}",
+            progress.downloaded_bytes,
+            progress.elapsed_ms,
+            format_bytes(rate_bytes(progress.bytes_per_second)),
+            progress.retry_count
+        ))
+    } else {
+        None
+    };
+
+    ModelDownloadProgress {
+        downloaded_bytes: progress.downloaded_bytes,
+        total_bytes: progress.total_bytes,
+        percent,
+        status,
+        log_line,
+    }
+}
+
+fn invalid_preset(preset: &ModelPreset, reason: impl Into<String>) -> InvalidPreset {
+    InvalidPreset {
+        id: preset.id.clone(),
+        reason: reason.into(),
+    }
+}
+
+fn rate_bytes(bytes_per_second: f64) -> u64 {
+    if bytes_per_second.is_finite() && bytes_per_second > 0.0 {
+        bytes_per_second as u64
+    } else {
+        0
+    }
+}
+
+fn format_bytes(bytes: u64) -> String {
+    const UNITS: [&str; 4] = ["B", "KB", "MB", "GB"];
+    let mut size = bytes as f64;
+    let mut unit = 0;
+    while size >= 1024.0 && unit < UNITS.len() - 1 {
+        size /= 1024.0;
+        unit += 1;
+    }
+    format!("{size:.1} {}", UNITS[unit])
 }
 
 #[cfg(test)]
@@ -127,82 +215,77 @@ mod tests {
     }
 
     #[test]
-    fn llm_target_names_model_and_mmproj_files() {
-        let target = llm_target(&preset(
+    fn llm_asset_names_model_and_mmproj_files() {
+        let asset = llm_asset(&preset(
             Some("https://example.org/mmproj.gguf"),
-            Some("abc"),
+            Some(&"a".repeat(64)),
         ))
         .expect("paired preset");
-        let downloader = ModelDownloader::new(std::env::temp_dir().join("ensu-models-test"));
+        let store = AssetStore::new(std::env::temp_dir().join("ensu-assets-test"));
         assert_eq!(
-            llm_model_path(&downloader, &target).unwrap(),
-            downloader.model_dir(&target).join("model.gguf")
+            llm_model_path(&store, &asset).unwrap(),
+            store.asset_dir(&asset).join("model.gguf")
         );
         assert_eq!(
-            llm_mmproj_path(&downloader, &target).unwrap(),
-            downloader.model_dir(&target).join("mmproj.gguf")
+            llm_mmproj_path(&store, &asset).unwrap(),
+            store.asset_dir(&asset).join("mmproj.gguf")
         );
     }
 
     #[test]
-    fn llm_target_without_mmproj_has_no_mmproj_path() {
-        let target = llm_target(&preset(None, None)).expect("model-only preset");
-        let downloader = ModelDownloader::new(std::env::temp_dir().join("ensu-models-test"));
-        assert!(llm_model_path(&downloader, &target).is_some());
-        assert!(llm_mmproj_path(&downloader, &target).is_none());
+    fn llm_asset_without_mmproj_has_no_mmproj_path() {
+        let asset = llm_asset(&preset(None, None)).expect("model-only preset");
+        let store = AssetStore::new(std::env::temp_dir().join("ensu-assets-test"));
+        assert!(llm_model_path(&store, &asset).is_some());
+        assert!(llm_mmproj_path(&store, &asset).is_none());
     }
 
     #[test]
-    fn llm_target_rejects_half_specified_mmproj() {
-        assert!(llm_target(&preset(Some("https://example.org/mmproj.gguf"), None)).is_err());
-        assert!(llm_target(&preset(None, Some("abc"))).is_err());
-        assert!(llm_target(&preset(Some(" "), Some("abc"))).is_err());
+    fn llm_asset_rejects_half_specified_mmproj() {
+        assert!(llm_asset(&preset(Some("https://example.org/mmproj.gguf"), None)).is_err());
+        assert!(llm_asset(&preset(None, Some(&"a".repeat(64)))).is_err());
+        assert!(llm_asset(&preset(Some(" "), Some(&"a".repeat(64)))).is_err());
     }
 
     #[test]
-    fn llm_targets_resolve_catalog_ids_or_fall_back_to_defaults() {
+    fn llm_assets_resolve_catalog_ids_or_fall_back_to_defaults() {
         let defaults = crate::config::defaults();
         for preset in crate::config::llm_catalog() {
             assert_eq!(
-                mobile_llm_target(&preset.id).unwrap(),
-                llm_target(&preset).unwrap(),
+                mobile_llm_asset(&preset.id).unwrap(),
+                llm_asset(&preset).unwrap(),
                 "{}",
                 preset.id
             );
             assert_eq!(
-                desktop_llm_target(&preset.id).unwrap(),
-                llm_target(&preset).unwrap(),
+                desktop_llm_asset(&preset.id).unwrap(),
+                llm_asset(&preset).unwrap(),
                 "{}",
                 preset.id
             );
         }
-        let mobile_default = llm_target(&defaults.mobile_default_model).unwrap();
-        assert_eq!(mobile_llm_target("").unwrap(), mobile_default);
-        assert_eq!(mobile_llm_target("no-such-model").unwrap(), mobile_default);
-        let desktop_default = llm_target(&defaults.desktop_default_model).unwrap();
-        assert_eq!(desktop_llm_target("").unwrap(), desktop_default);
-        assert_eq!(
-            desktop_llm_target("no-such-model").unwrap(),
-            desktop_default
-        );
+        let mobile_default = llm_asset(&defaults.mobile_default_model).unwrap();
+        assert_eq!(mobile_llm_asset("").unwrap(), mobile_default);
+        assert_eq!(mobile_llm_asset("no-such-model").unwrap(), mobile_default);
+        let desktop_default = llm_asset(&defaults.desktop_default_model).unwrap();
+        assert_eq!(desktop_llm_asset("").unwrap(), desktop_default);
+        assert_eq!(desktop_llm_asset("no-such-model").unwrap(), desktop_default);
     }
 
     #[test]
-    fn all_catalog_presets_produce_valid_targets() {
+    fn all_catalog_presets_produce_valid_assets() {
         for preset in crate::config::llm_catalog() {
-            llm_target(&preset).expect("catalog preset");
+            llm_asset(&preset).expect("catalog preset");
         }
     }
 
     #[test]
-    fn knowledge_embedding_target_is_checksum_backed() {
-        let target = knowledge_embedding_target();
-        let ModelTarget::Files { id, files } = target else {
-            panic!("embedding target must use files");
-        };
-        assert_eq!(id, "embeddinggemma-300m-q8-0");
-        assert_eq!(files.len(), 1);
-        assert_eq!(files[0].name, "model.gguf");
-        assert_eq!(files[0].sha256.len(), 64);
+    fn knowledge_embedding_asset_is_checksum_backed() {
+        let store = AssetStore::new(std::env::temp_dir().join("ensu-assets-test"));
+        let asset = knowledge_embedding_model_asset();
+        assert_eq!(
+            store.file_path(&asset, "model.gguf"),
+            Some(store.asset_dir(&asset).join("model.gguf"))
+        );
     }
 }

@@ -1,4 +1,4 @@
-package io.ente.ensu.llm
+package io.ente.ensu.assets
 
 import android.app.Notification
 import android.app.job.JobInfo
@@ -16,7 +16,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-class ModelDownloadJobService : JobService() {
+class AssetDownloadJobService : JobService() {
     override fun onStartJob(params: JobParameters): Boolean {
         synchronized(lock) {
             if (!downloadActive) return false
@@ -45,8 +45,8 @@ class ModelDownloadJobService : JobService() {
     }
 
     companion object {
-        private const val TAG = "ModelDownloadJob"
-        private const val CHANNEL_ID = "model-download"
+        private const val TAG = "AssetDownloadJob"
+        private const val CHANNEL_ID = "asset-download"
         private const val NOTIFICATION_ID = 1
         private const val JOB_ID = 1
         private const val NOTIFY_INTERVAL_MS = 1000L
@@ -56,7 +56,7 @@ class ModelDownloadJobService : JobService() {
         private var onCancel: (() -> Unit)? = null
         private var downloadActive = false
         private var lastNotifyMs = 0L
-        private var runningJob: ModelDownloadJobService? = null
+        private var runningJob: AssetDownloadJobService? = null
         private var runningParams: JobParameters? = null
 
         fun attach(context: Context) {
@@ -75,7 +75,7 @@ class ModelDownloadJobService : JobService() {
                 Log.w(TAG, "JobScheduler unavailable")
                 return
             }
-            val job = JobInfo.Builder(JOB_ID, ComponentName(appContext, ModelDownloadJobService::class.java))
+            val job = JobInfo.Builder(JOB_ID, ComponentName(appContext, AssetDownloadJobService::class.java))
                 .setUserInitiated(true)
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                 .build()
@@ -90,7 +90,7 @@ class ModelDownloadJobService : JobService() {
 
         fun update(percent: Int, indeterminate: Boolean) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
-            val job: ModelDownloadJobService
+            val job: AssetDownloadJobService
             val params: JobParameters
             synchronized(lock) {
                 if (!downloadActive) return
@@ -110,7 +110,7 @@ class ModelDownloadJobService : JobService() {
 
         fun end() {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
-            val job: ModelDownloadJobService?
+            val job: AssetDownloadJobService?
             val params: JobParameters?
             synchronized(lock) {
                 downloadActive = false
@@ -134,12 +134,12 @@ class ModelDownloadJobService : JobService() {
         ): Notification {
             NotificationManagerCompat.from(context).createNotificationChannel(
                 NotificationChannelCompat.Builder(CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_LOW)
-                    .setName("Model downloads")
+                    .setName("Asset downloads")
                     .build()
             )
             return NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.stat_sys_download)
-                .setContentTitle("Downloading model")
+                .setContentTitle("Downloading assets")
                 .setProgress(100, percent, indeterminate)
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)

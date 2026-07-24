@@ -11,7 +11,7 @@ import io.ente.ensu.bindings.Transcriber
 import io.ente.ensu.device.AndroidDeviceCapabilityProvider
 import io.ente.ensu.llm.DownloadPhase
 import io.ente.ensu.llm.LlmProvider
-import io.ente.ensu.llm.ModelDownloader
+import io.ente.ensu.assets.AssetStore
 import io.ente.ensu.logging.FileLogRepository
 import io.ente.ensu.chat.Attachment
 import io.ente.ensu.chat.ChatMessage
@@ -35,7 +35,7 @@ class AppStore(
     private val chatRepository: ChatRepository,
     private val llmProvider: LlmProvider,
     knowledgeProvider: KnowledgeProvider,
-    val modelDownloader: ModelDownloader,
+    val assetStore: AssetStore,
     val transcriber: Transcriber,
     private val deviceCapabilityProvider: AndroidDeviceCapabilityProvider,
     val configDefaults: ConfigDefaults,
@@ -55,14 +55,13 @@ class AppStore(
         logRepository = logRepository
     )
     private val modelSettingsActions =
-        ModelSettingsActions(_state, sessionPreferences, llmProvider, modelDownloader, logRepository, configDefaults)
+        ModelSettingsActions(_state, sessionPreferences, llmProvider, logRepository, configDefaults)
     private val chatActions = ChatStoreActions(
         state = _state,
         sessionPreferences = sessionPreferences,
         chatRepository = chatRepository,
         llmProvider = llmProvider,
         knowledgeProvider = knowledgeProvider,
-        modelDownloader = modelDownloader,
         clock = clock,
         logRepository = logRepository,
         messageStore = messageStore,

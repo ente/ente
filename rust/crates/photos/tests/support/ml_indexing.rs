@@ -1,11 +1,11 @@
 use std::{
     collections::{BTreeSet, HashMap, HashSet},
     fs,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
 };
 
 use anyhow::{Context, Result, bail};
-use ente_model_download::download;
+use ente_assets::{Asset, AssetFile, AssetStore, download};
 use ente_photos::ml::{
     error::MlError,
     indexing::{
@@ -24,17 +24,19 @@ const FACE_EMBEDDING_DIM: usize = 192;
 const FLOAT_TOLERANCE: f64 = 1e-8;
 const PRINT_STATS_ENV: &str = "ENTE_ML_INDEXING_PRINT_STATS";
 
-pub(crate) fn run_with_large_stack(name: &str, test: fn() -> Result<()>) {
+pub(crate) fn run_with_large_stack(
+    name: &str,
+    test: impl FnOnce() -> Result<()> + Send + 'static,
+) -> Result<()> {
     let result = std::thread::Builder::new()
         .name(name.to_string())
         .stack_size(64 * 1024 * 1024)
         .spawn(test)
-        .expect("spawn ML indexing test thread")
+        .with_context(|| format!("spawn {name} thread"))?
         .join();
 
     match result {
-        Ok(Ok(())) => {}
-        Ok(Err(error)) => panic!("{error:#}"),
+        Ok(result) => result,
         Err(panic) => std::panic::resume_unwind(panic),
     }
 }
@@ -163,73 +165,38 @@ fn should_print_stats() -> bool {
 
 pub(crate) struct MlIndexingTestContext {
     asset_lock: AssetLock,
-    cache_dir: PathBuf,
+    store: AssetStore,
     golden_results: HashMap<String, ComparableResult>,
     manifest: FixtureManifest,
     model_paths: ModelPaths,
 }
 
-struct AssetFetcher {
-    runtime: tokio::runtime::Runtime,
-    downloader: download::Downloader,
-}
-
-impl AssetFetcher {
-    fn new() -> Result<Self> {
-        Ok(Self {
-            runtime: tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .context("build download runtime")?,
-            downloader: download::Downloader::new().context("build downloader")?,
-        })
-    }
-
-    fn fetch(&self, targets: Vec<download::Target>) -> Result<()> {
-        self.runtime.block_on(self.downloader.download(
-            targets,
-            |_| {},
-            download::CancellationToken::default(),
-        ))?;
-        Ok(())
-    }
-}
-
 impl MlIndexingTestContext {
-    pub(crate) fn load() -> Result<Self> {
+    pub(crate) async fn load() -> Result<Self> {
         let repo_root = repo_root()?;
         let asset_lock = load_asset_lock(&repo_root)?;
         let cache_dir = cache_dir(&repo_root);
-        let fetcher = AssetFetcher::new()?;
+        let store = AssetStore::new(&cache_dir);
 
         let manifest_path =
-            resolve_document_asset(&fetcher, &cache_dir, "manifest", &asset_lock.manifest)?;
-        let golden_path = resolve_document_asset(
-            &fetcher,
-            &cache_dir,
-            "python-golden",
-            &asset_lock.python_golden,
-        )?;
+            resolve_document_asset(&store, "manifest", &asset_lock.manifest).await?;
+        let golden_path =
+            resolve_document_asset(&store, "python-golden", &asset_lock.python_golden).await?;
         let manifest = load_manifest(&manifest_path)?;
         let golden_results = load_golden_results(&golden_path)?;
-        fetch_fixtures(
-            &fetcher,
-            &cache_dir,
-            &asset_lock.fixture_base_url,
-            &manifest,
-        )?;
+        fetch_fixtures(&store, &asset_lock.fixture_base_url, &manifest).await?;
 
         let onnx_runtime_library =
-            resolve_onnx_runtime_library(&fetcher, &cache_dir, &asset_lock.onnx_runtime)?;
+            resolve_onnx_runtime_library(&store, &asset_lock.onnx_runtime).await?;
         let _ = ort::init_from(&onnx_runtime_library)
             .context("load ONNX Runtime dynamic library")?
             .commit();
 
-        let model_paths = resolve_model_paths(&fetcher, &cache_dir, &asset_lock.models)?;
+        let model_paths = resolve_model_paths(&store, &asset_lock.models).await?;
 
         Ok(Self {
             asset_lock,
-            cache_dir,
+            store,
             golden_results,
             manifest,
             model_paths,
@@ -368,7 +335,17 @@ impl MlIndexingTestContext {
     }
 
     fn resolve_fixture(&self, fixture: &FixtureFile) -> Result<PathBuf> {
-        cache_path_for(&self.cache_dir, "fixtures", &fixture.path, &fixture.sha256)
+        let label = file_id_for_manifest_path(&fixture.path)?;
+        let asset = file_asset(
+            "fixtures",
+            &label,
+            &fixture.path,
+            &fixture_url(&self.asset_lock.fixture_base_url, &fixture.path)?,
+            &fixture.sha256,
+        )?;
+        self.store
+            .file_path(&asset, &label)
+            .context("fixture asset has no declared file")
     }
 
     fn unsupported_decode_file_ids(&self) -> HashSet<String> {
@@ -401,37 +378,30 @@ pub(crate) struct GoldenTestAssets {
 
 #[allow(dead_code)]
 impl GoldenTestAssets {
-    pub(crate) fn load() -> Result<Self> {
+    pub(crate) async fn load() -> Result<Self> {
         let repo_root = repo_root()?;
         let asset_lock = load_asset_lock(&repo_root)?;
         let cache_dir = cache_dir(&repo_root);
-        let fetcher = AssetFetcher::new()?;
+        let store = AssetStore::new(&cache_dir);
 
         let onnx_runtime_library =
-            resolve_onnx_runtime_library(&fetcher, &cache_dir, &asset_lock.onnx_runtime)?;
+            resolve_onnx_runtime_library(&store, &asset_lock.onnx_runtime).await?;
         let _ = ort::init_from(&onnx_runtime_library)
             .context("load ONNX Runtime dynamic library")?
             .commit();
 
-        let golden_model = |label: &str, model: &ModelAsset| -> Result<GoldenModelAsset> {
-            Ok(GoldenModelAsset {
-                path: resolve_model_asset(&fetcher, &cache_dir, label, model)?,
-                sha256: model.sha256.clone(),
-            })
-        };
-
         let models = &asset_lock.models;
         Ok(Self {
-            face_detection: golden_model("face-detection", &models.face_detection)?,
-            face_embedding: golden_model("face-embedding", &models.face_embedding)?,
-            clip_image: golden_model("clip-image", &models.clip_image)?,
-            clip_text: golden_model("clip-text", &models.clip_text)?,
+            face_detection: golden_model(&store, "face-detection", &models.face_detection).await?,
+            face_embedding: golden_model(&store, "face-embedding", &models.face_embedding).await?,
+            clip_image: golden_model(&store, "clip-image", &models.clip_image).await?,
+            clip_text: golden_model(&store, "clip-text", &models.clip_text).await?,
             clip_text_vocab: resolve_model_asset(
-                &fetcher,
-                &cache_dir,
+                &store,
                 "clip-text-vocab",
                 &models.clip_text_vocab,
-            )?,
+            )
+            .await?,
         })
     }
 
@@ -562,7 +532,7 @@ fn repo_root() -> Result<PathBuf> {
 }
 
 fn cache_dir(repo_root: &Path) -> PathBuf {
-    repo_root.join("rust/.cache")
+    repo_root.join("rust/.cache/assets")
 }
 
 fn load_asset_lock(repo_root: &Path) -> Result<AssetLock> {
@@ -614,14 +584,21 @@ fn file_id_for_manifest_path(path: &str) -> Result<String> {
         .with_context(|| format!("derive file_id from manifest path '{path}'"))
 }
 
-fn resolve_document_asset(
-    fetcher: &AssetFetcher,
-    cache_dir: &Path,
+async fn resolve_document_asset(
+    store: &AssetStore,
     label: &str,
     asset: &DocumentAsset,
 ) -> Result<PathBuf> {
-    let target = cache_path_for(cache_dir, "documents", &asset.path, &asset.sha256)?;
-    ensure_remote_asset(fetcher, &asset.url, &asset.sha256, &target, label)
+    download_asset(
+        store,
+        "documents",
+        label,
+        &asset.path,
+        &asset.url,
+        &asset.sha256,
+        label,
+    )
+    .await
 }
 
 fn fixture_url(fixture_base_url: &str, path: &str) -> Result<String> {
@@ -632,30 +609,29 @@ fn fixture_url(fixture_base_url: &str, path: &str) -> Result<String> {
         .to_string())
 }
 
-fn fetch_fixtures(
-    fetcher: &AssetFetcher,
-    cache_dir: &Path,
+async fn fetch_fixtures(
+    store: &AssetStore,
     fixture_base_url: &str,
     manifest: &FixtureManifest,
 ) -> Result<()> {
-    let targets = manifest
-        .files
-        .iter()
-        .map(|fixture| {
-            Ok(download::Target {
-                label: file_id_for_manifest_path(&fixture.path)?,
-                url: fixture_url(fixture_base_url, &fixture.path)?,
-                sha256: normalize_sha256(&fixture.sha256),
-                destination: cache_path_for(cache_dir, "fixtures", &fixture.path, &fixture.sha256)?,
-            })
-        })
-        .collect::<Result<Vec<_>>>()?;
-    fetcher.fetch(targets).context("fetch fixtures")
+    for fixture in &manifest.files {
+        let label = file_id_for_manifest_path(&fixture.path)?;
+        download_asset(
+            store,
+            "fixtures",
+            &label,
+            &fixture.path,
+            &fixture_url(fixture_base_url, &fixture.path)?,
+            &fixture.sha256,
+            &label,
+        )
+        .await?;
+    }
+    Ok(())
 }
 
-fn resolve_onnx_runtime_library(
-    fetcher: &AssetFetcher,
-    cache_dir: &Path,
+async fn resolve_onnx_runtime_library(
+    store: &AssetStore,
     assets: &OnnxRuntimeAssets,
 ) -> Result<PathBuf> {
     let target_key = onnx_runtime_target_key()?;
@@ -672,44 +648,43 @@ fn resolve_onnx_runtime_library(
     })?;
 
     let archive_name = url_file_name(&archive.url)?;
-    let archive_path = cache_path_for(
-        cache_dir,
-        "onnx-runtime-archives",
-        &archive_name,
-        &archive.sha256,
-    )?;
-    let archive_path = ensure_remote_asset(
-        fetcher,
+    let archive_asset = file_asset(
+        "onnx-runtime",
+        &target_key,
+        &format!("{target_key}/{archive_name}"),
         &archive.url,
         &archive.sha256,
-        &archive_path,
-        "onnx-runtime-archive",
     )?;
+    store
+        .download(
+            &archive_asset,
+            |_| {},
+            download::CancellationToken::default(),
+        )
+        .await
+        .context("download ONNX Runtime archive")?;
+    let archive_path = store.asset_dir(&archive_asset).join(&archive_name);
 
     let library_name = file_id_for_manifest_path(&archive.library_path)?;
-    let library_cache_path = format!("{target_key}/{library_name}");
-    let library_target = cache_path_for(
-        cache_dir,
-        "onnx-runtime-libraries",
-        &library_cache_path,
-        &archive.library_sha256,
-    )?;
-    if library_target.is_file() {
-        verify_file_sha256(
+    let library_target = store.asset_dir(&archive_asset).join(library_name);
+    if library_target.is_file()
+        && verify_file_sha256(
             &library_target,
             &archive.library_sha256,
             "onnx-runtime-library",
-        )?;
+        )
+        .is_ok()
+    {
         return Ok(library_target);
     }
 
-    extract_tgz_member(&archive_path, &archive.library_path, &library_target)
-        .with_context(|| format!("extract ONNX Runtime library for {target_key}"))?;
-    verify_file_sha256(
+    extract_tgz_member(
+        &archive_path,
+        &archive.library_path,
         &library_target,
         &archive.library_sha256,
-        "onnx-runtime-library",
-    )?;
+    )
+    .with_context(|| format!("extract ONNX Runtime library for {target_key}"))?;
     Ok(library_target)
 }
 
@@ -736,9 +711,18 @@ fn url_file_name(url: &str) -> Result<String> {
         .with_context(|| format!("derive file name from URL '{url}'"))
 }
 
-fn extract_tgz_member(archive_path: &Path, member_path: &str, target: &Path) -> Result<()> {
+fn extract_tgz_member(
+    archive_path: &Path,
+    member_path: &str,
+    target: &Path,
+    expected_sha256: &str,
+) -> Result<()> {
     let expected_member = Path::new(member_path);
-    if expected_member.is_absolute() {
+    if expected_member.is_absolute()
+        || expected_member
+            .components()
+            .any(|component| !matches!(component, Component::CurDir | Component::Normal(_)))
+    {
         bail!("archive member path must be relative: {member_path}");
     }
 
@@ -758,9 +742,25 @@ fn extract_tgz_member(archive_path: &Path, member_path: &str, target: &Path) -> 
         if entry_path.as_ref() != expected_member {
             continue;
         }
-        entry
-            .unpack(target)
-            .with_context(|| format!("unpack {member_path} to {}", target.display()))?;
+        if !entry.header().entry_type().is_file() {
+            bail!("archive member is not a regular file: {member_path}");
+        }
+        let temporary = PathBuf::from(format!("{}.tmp", target.display()));
+        let _ = fs::remove_file(&temporary);
+        let result: Result<()> = (|| {
+            entry
+                .unpack(&temporary)
+                .with_context(|| format!("unpack {member_path} to {}", temporary.display()))?;
+            verify_file_sha256(&temporary, expected_sha256, "onnx-runtime-library")?;
+            let _ = fs::remove_file(target);
+            fs::rename(&temporary, target)
+                .with_context(|| format!("publish {}", target.display()))?;
+            Ok(())
+        })();
+        if result.is_err() {
+            let _ = fs::remove_file(temporary);
+        }
+        result?;
         return Ok(());
     }
 
@@ -770,16 +770,12 @@ fn extract_tgz_member(archive_path: &Path, member_path: &str, target: &Path) -> 
     );
 }
 
-fn resolve_model_paths(
-    fetcher: &AssetFetcher,
-    cache_dir: &Path,
-    models: &ModelAssets,
-) -> Result<ModelPaths> {
+async fn resolve_model_paths(store: &AssetStore, models: &ModelAssets) -> Result<ModelPaths> {
     let face_detection =
-        resolve_model_asset(fetcher, cache_dir, "face-detection", &models.face_detection)?;
+        resolve_model_asset(store, "face-detection", &models.face_detection).await?;
     let face_embedding =
-        resolve_model_asset(fetcher, cache_dir, "face-embedding", &models.face_embedding)?;
-    let clip_image = resolve_model_asset(fetcher, cache_dir, "clip-image", &models.clip_image)?;
+        resolve_model_asset(store, "face-embedding", &models.face_embedding).await?;
+    let clip_image = resolve_model_asset(store, "clip-image", &models.clip_image).await?;
 
     Ok(ModelPaths {
         face_detection: face_detection.to_string_lossy().into_owned(),
@@ -795,49 +791,94 @@ fn resolve_model_paths(
     })
 }
 
-fn resolve_model_asset(
-    fetcher: &AssetFetcher,
-    cache_dir: &Path,
+async fn golden_model(
+    store: &AssetStore,
+    label: &str,
+    model: &ModelAsset,
+) -> Result<GoldenModelAsset> {
+    Ok(GoldenModelAsset {
+        path: download_asset(
+            store,
+            "models",
+            label,
+            &model.file_name,
+            &model.url,
+            &model.sha256,
+            label,
+        )
+        .await?,
+        sha256: model.sha256.clone(),
+    })
+}
+
+async fn resolve_model_asset(
+    store: &AssetStore,
     label: &str,
     asset: &ModelAsset,
 ) -> Result<PathBuf> {
-    let target = cache_path_for(cache_dir, "models", &asset.file_name, &asset.sha256)?;
-    ensure_remote_asset(fetcher, &asset.url, &asset.sha256, &target, label)
+    download_asset(
+        store,
+        "models",
+        label,
+        &asset.file_name,
+        &asset.url,
+        &asset.sha256,
+        &asset.file_name,
+    )
+    .await
 }
 
-fn ensure_remote_asset(
-    fetcher: &AssetFetcher,
+async fn download_asset(
+    store: &AssetStore,
+    namespace: &str,
+    key: &str,
+    relative_path: &str,
     url: &str,
     expected_sha256: &str,
-    target: &Path,
     label: &str,
 ) -> Result<PathBuf> {
-    fetcher
-        .fetch(vec![download::Target {
-            label: label.to_string(),
-            url: url.to_string(),
-            sha256: normalize_sha256(expected_sha256),
-            destination: target.to_path_buf(),
-        }])
+    let asset = file_asset(namespace, key, relative_path, url, expected_sha256)?;
+    store
+        .download(&asset, |_| {}, download::CancellationToken::default())
+        .await
         .with_context(|| format!("download {label} from {url}"))?;
-    Ok(target.to_path_buf())
+    let name = Path::new(relative_path)
+        .file_name()
+        .with_context(|| format!("asset path has no file name: {relative_path}"))?;
+    Ok(store.asset_dir(&asset).join(name))
 }
 
-fn cache_path_for(
-    cache_dir: &Path,
+fn file_asset(
     namespace: &str,
+    key: &str,
     relative_path: &str,
+    url: &str,
     expected_sha256: &str,
-) -> Result<PathBuf> {
+) -> Result<Asset> {
     let relative = Path::new(relative_path);
     if relative.is_absolute() {
         bail!("asset path must be relative: {relative_path}");
     }
-    let sha = normalize_sha256(expected_sha256);
-    let prefix = sha
-        .get(..16)
-        .with_context(|| format!("SHA-256 is too short for {relative_path}"))?;
-    Ok(cache_dir.join(namespace).join(prefix).join(relative))
+    let sha256 = normalize_sha256(expected_sha256);
+    let name = relative
+        .file_name()
+        .and_then(|name| name.to_str())
+        .with_context(|| format!("asset path has no UTF-8 file name: {relative_path}"))?;
+    if relative
+        .components()
+        .any(|component| !matches!(component, Component::Normal(_)))
+    {
+        bail!("asset path contains an unsafe component: {relative_path}");
+    }
+    Asset::files(
+        vec![namespace.to_string(), key.to_string(), sha256.clone()],
+        vec![AssetFile {
+            name: name.to_string(),
+            url: url.to_string(),
+            sha256,
+        }],
+    )
+    .map_err(Into::into)
 }
 
 fn verify_file_sha256(path: &Path, expected_sha256: &str, label: &str) -> Result<()> {

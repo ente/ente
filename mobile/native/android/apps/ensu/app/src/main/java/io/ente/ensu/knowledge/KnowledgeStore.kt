@@ -5,10 +5,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import io.ente.ensu.AppState
-import io.ente.ensu.bindings.DownloadError
+import io.ente.ensu.bindings.AssetDownloadException
 import io.ente.ensu.bindings.KnowledgeDatasetConfig
-import io.ente.ensu.bindings.KnowledgeDownloadException
-import io.ente.ensu.bindings.KnowledgeDownloadProgress
 import io.ente.ensu.bindings.KnowledgeReconciliation
 import io.ente.ensu.bindings.KnowledgeReconciliationStatus
 import io.ente.ensu.device.isChatSupported
@@ -225,23 +223,22 @@ class KnowledgeStore(
     )
 
     private fun userFacingKnowledgeError(error: Throwable): String {
-        val downloadError = (error as? KnowledgeDownloadException.Download)?.error
-        return when (downloadError) {
-            DownloadError.Cancelled -> "Download cancelled"
-            DownloadError.StorageFull ->
+        return when (error) {
+            is AssetDownloadException.Cancelled -> "Download cancelled"
+            is AssetDownloadException.StorageFull ->
                 "Not enough storage space to download this knowledge pack."
-            is DownloadError.Network ->
+            is AssetDownloadException.Network ->
                 "Couldn't download the knowledge pack. Check your connection and try again."
-            is DownloadError.Http ->
+            is AssetDownloadException.Http ->
                 "The knowledge pack is currently unavailable. Please try again later."
-            is DownloadError.Validation,
-            is DownloadError.SizeMismatch,
-            is DownloadError.Protocol,
-            is DownloadError.InvalidTarget ->
+            is AssetDownloadException.Validation,
+            is AssetDownloadException.SizeMismatch,
+            is AssetDownloadException.Protocol,
+            is AssetDownloadException.InvalidTarget ->
                 "The knowledge pack couldn't be verified. Please try again."
-            is DownloadError.Io ->
+            is AssetDownloadException.Io ->
                 "Couldn't save the knowledge pack. Please try again."
-            null -> "Knowledge pack setup failed. Please try again."
+            else -> "Knowledge pack setup failed. Please try again."
         }
     }
 }

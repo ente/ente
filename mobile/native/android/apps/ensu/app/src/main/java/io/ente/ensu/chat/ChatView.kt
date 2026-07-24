@@ -46,7 +46,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import io.ente.ensu.bindings.Transcriber
-import io.ente.ensu.llm.ModelDownloader
+import io.ente.ensu.assets.AssetStore
 import io.ente.ensu.designsystem.EnsuColor
 import io.ente.ensu.designsystem.EnsuSpacing
 import io.ente.ensu.device.ChatDeviceCapability
@@ -59,7 +59,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun ChatView(
     chatState: ChatState,
-    modelDownloader: ModelDownloader,
+    assetStore: AssetStore,
     transcriber: Transcriber,
     isDrawerOpen: Boolean,
     onMessageChange: (String) -> Unit,
@@ -89,7 +89,7 @@ fun ChatView(
     val isChatUnsupported = unsupportedCapability != null
     var pendingVoiceSessionKey by remember { mutableStateOf<String?>(null) }
     val voiceController = rememberVoiceTranscriptionController(
-        modelDownloader = modelDownloader,
+        assetStore = assetStore,
         transcriber = transcriber,
         onTranscript = { transcript ->
             latestOnMessageChange(appendVoiceTranscript(latestMessageText, transcript))

@@ -1,5 +1,5 @@
 [package]
-name = "ente-model-download"
+name = "ente-assets"
 edition = "2024"
 
 [dependencies]
@@ -11,4 +11,7 @@ serde_json.workspace = true
 sha2 = "0.11.0"
 tar = "0.4.46"
 thiserror.workspace = true
-tokio = { version = "1", features = ["rt", "time"] }
+tokio = { version = "1", features = ["sync"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt"] }

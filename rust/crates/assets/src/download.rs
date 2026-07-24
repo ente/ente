@@ -1,10 +1,8 @@
-use std::cell::RefCell;
 use std::fs::{self, File, OpenOptions};
 use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use futures_util::future::try_join_all;
@@ -12,16 +10,13 @@ use reqwest::header::{ACCEPT_RANGES, CONTENT_RANGE, ETAG, IF_RANGE, LAST_MODIFIE
 use reqwest::{Client, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use tokio::runtime::Builder;
-use tokio::time::timeout;
 
 const MIN_RANGE_DOWNLOAD_BYTES: u64 = 1024 * 1024;
 const MAX_ATTEMPTS: usize = 3;
 const RANGE_DOWNLOAD_CONCURRENCY: usize = 4;
 const PROGRESS_INTERVAL: Duration = Duration::from_millis(250);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
-const RESPONSE_START_TIMEOUT: Duration = Duration::from_secs(30);
-const READ_STALL_TIMEOUT: Duration = Duration::from_secs(30);
+const READ_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -69,7 +64,7 @@ impl From<std::io::Error> for Error {
 }
 
 #[derive(Debug, Clone)]
-pub struct Target {
+pub struct DownloadTarget {
     pub label: String,
     pub url: String,
     pub sha256: String,
@@ -124,6 +119,7 @@ struct FileDownloadReport {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct PartialDownloadMetadata {
     url: String,
+    sha256: String,
     etag: Option<String>,
     last_modified: Option<String>,
 }
@@ -153,6 +149,7 @@ struct FileProgress {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct RangeDownloadMetadata {
     url: String,
+    sha256: String,
     size_bytes: u64,
     etag: Option<String>,
     last_modified: Option<String>,
@@ -192,13 +189,9 @@ impl Downloader {
         })
     }
 
-    pub(crate) fn client(&self) -> &Client {
-        &self.client
-    }
-
     pub async fn download(
         &self,
-        targets: Vec<Target>,
+        targets: Vec<DownloadTarget>,
         on_progress: impl FnMut(Progress) + Send,
         cancellation: CancellationToken,
     ) -> Result<(), Error> {
@@ -207,50 +200,43 @@ impl Downloader {
         })
         .await
     }
+
+    pub(crate) async fn estimated_download_size(&self, targets: &[DownloadTarget]) -> Option<u64> {
+        let mut remaining = 0u64;
+        for target in targets {
+            if target.destination.is_file() {
+                continue;
+            }
+            let probe = fetch_download_probe(&self.client, &target.url).await;
+            let total = probe.content_length?;
+            let downloaded =
+                existing_download_bytes(target, &target.destination, &probe, false).min(total);
+            remaining = remaining.saturating_add(total - downloaded);
+        }
+        Some(remaining)
+    }
 }
 
 fn build_client() -> Result<Client, Error> {
     Client::builder()
         .connect_timeout(CONNECT_TIMEOUT)
+        .read_timeout(READ_TIMEOUT)
         .build()
         .map_err(|err| Error::Network(err.to_string()))
 }
 
-pub(crate) fn fetch(
-    downloader: &Downloader,
-    targets: Vec<Target>,
-    on_progress: impl FnMut(Progress),
-    is_cancelled: impl Fn() -> bool,
-) -> Result<(), Error> {
-    let runtime = Builder::new_current_thread()
-        .enable_io()
-        .enable_time()
-        .build()?;
-    runtime.block_on(fetch_async(
-        &downloader.client,
-        targets,
-        on_progress,
-        is_cancelled,
-    ))
-}
-
 async fn fetch_async(
     client: &Client,
-    targets: Vec<Target>,
-    on_progress: impl FnMut(Progress),
-    is_cancelled: impl Fn() -> bool,
+    targets: Vec<DownloadTarget>,
+    mut on_progress: impl FnMut(Progress) + Send,
+    is_cancelled: impl Fn() -> bool + Sync,
 ) -> Result<(), Error> {
     if targets.is_empty() {
         return Ok(());
     }
 
     for target in &targets {
-        let sha256 = &target.sha256;
-        if sha256.len() != 64 || !sha256.chars().all(|c| c.is_ascii_hexdigit()) {
-            return Err(Error::InvalidTarget(format!(
-                "'{sha256}' is not a SHA-256 digest"
-            )));
-        }
+        validate_sha256(&target.sha256)?;
     }
 
     if is_cancelled() {
@@ -289,7 +275,7 @@ async fn fetch_async(
         None
     };
 
-    let file_states = targets
+    let mut file_states = targets
         .iter()
         .zip(&download_probes)
         .zip(&cached)
@@ -306,15 +292,12 @@ async fn fetch_async(
             }
         })
         .collect::<Vec<_>>();
-    let file_states = Rc::new(RefCell::new(file_states));
-    let on_progress = Rc::new(RefCell::new(on_progress));
-
     emit_progress(
         ProgressPhase::Preparing,
         Duration::ZERO,
         total_bytes,
         &file_states,
-        &on_progress,
+        &mut on_progress,
     );
 
     for (index, target) in targets.iter().enumerate() {
@@ -337,11 +320,8 @@ async fn fetch_async(
             &destination,
             &download_probe,
             |file_progress| {
-                {
-                    let mut states = file_states.borrow_mut();
-                    if let Some(state) = states.get_mut(index) {
-                        *state = file_progress;
-                    }
+                if let Some(state) = file_states.get_mut(index) {
+                    *state = file_progress;
                 }
                 emit_progress(
                     ProgressPhase::File {
@@ -352,7 +332,7 @@ async fn fetch_async(
                     download_started_at.elapsed(),
                     total_bytes,
                     &file_states,
-                    &on_progress,
+                    &mut on_progress,
                 );
             },
             &is_cancelled,
@@ -366,15 +346,12 @@ async fn fetch_async(
             },
         })?;
 
-        {
-            let mut states = file_states.borrow_mut();
-            if let Some(state) = states.get_mut(index) {
-                state.downloaded_bytes = file_report.final_size;
-                state.total_bytes = expected_file_total.or(Some(file_report.final_size));
-                state.network_downloaded_bytes = file_report.network_downloaded_bytes;
-                state.elapsed = file_report.elapsed;
-                state.retry_count = file_report.retry_count;
-            }
+        if let Some(state) = file_states.get_mut(index) {
+            state.downloaded_bytes = file_report.final_size;
+            state.total_bytes = expected_file_total.or(Some(file_report.final_size));
+            state.network_downloaded_bytes = file_report.network_downloaded_bytes;
+            state.elapsed = file_report.elapsed;
+            state.retry_count = file_report.retry_count;
         }
 
         emit_progress(
@@ -386,7 +363,7 @@ async fn fetch_async(
             download_started_at.elapsed(),
             total_bytes,
             &file_states,
-            &on_progress,
+            &mut on_progress,
         );
     }
     emit_progress(
@@ -394,19 +371,32 @@ async fn fetch_async(
         download_started_at.elapsed(),
         total_bytes,
         &file_states,
-        &on_progress,
+        &mut on_progress,
     );
 
     Ok(())
 }
 
+pub(crate) fn validate_sha256(sha256: &str) -> Result<(), Error> {
+    if sha256.len() == 64
+        && sha256
+            .chars()
+            .all(|character| character.is_ascii_hexdigit())
+    {
+        return Ok(());
+    }
+    Err(Error::InvalidTarget(format!(
+        "'{sha256}' is not a SHA-256 digest"
+    )))
+}
+
 async fn download_file(
     client: &Client,
-    target: &Target,
+    target: &DownloadTarget,
     destination: &Path,
     download_probe: &DownloadProbe,
-    mut on_progress: impl FnMut(FileProgress),
-    is_cancelled: &impl Fn() -> bool,
+    mut on_progress: impl FnMut(FileProgress) + Send,
+    is_cancelled: &(impl Fn() -> bool + Sync),
 ) -> Result<FileDownloadReport, Error> {
     let parent = destination
         .parent()
@@ -465,11 +455,11 @@ async fn download_file(
 
 async fn download_file_single(
     client: &Client,
-    target: &Target,
+    target: &DownloadTarget,
     destination: &Path,
     expected_file_total: Option<u64>,
-    on_progress: &mut dyn FnMut(FileProgress),
-    is_cancelled: &impl Fn() -> bool,
+    on_progress: &mut (dyn FnMut(FileProgress) + Send),
+    is_cancelled: &(impl Fn() -> bool + Sync),
 ) -> Result<FileDownloadReport, Error> {
     let tmp_path = tmp_path_for(destination);
     let partial_metadata_path = partial_metadata_path_for(destination);
@@ -484,7 +474,7 @@ async fn download_file_single(
 
         let tmp_size = file_size(&tmp_path).unwrap_or(0);
         let resume_validator = if tmp_size > 0 {
-            partial_download_validator(destination, &target.url)
+            partial_download_validator(destination, target)
         } else {
             None
         };
@@ -579,24 +569,12 @@ async fn download_file_single(
                 return Err(Error::Cancelled);
             }
 
-            let chunk = match timeout(READ_STALL_TIMEOUT, response.chunk()).await {
-                Ok(Ok(chunk)) => chunk,
-                Ok(Err(err)) => {
+            let chunk = match response.chunk().await {
+                Ok(chunk) => chunk,
+                Err(err) => {
                     file.flush().ok();
                     if attempt == MAX_ATTEMPTS {
                         return Err(Error::Network(err.to_string()));
-                    }
-                    retry_count = retry_count.saturating_add(1);
-                    retry_attempt = true;
-                    break;
-                }
-                Err(_) => {
-                    file.flush().ok();
-                    if attempt == MAX_ATTEMPTS {
-                        return Err(Error::Network(format!(
-                            "stalled for {} seconds",
-                            READ_STALL_TIMEOUT.as_secs()
-                        )));
                     }
                     retry_count = retry_count.saturating_add(1);
                     retry_attempt = true;
@@ -691,12 +669,12 @@ async fn download_file_single(
 
 async fn download_file_ranged(
     client: &Client,
-    target: &Target,
+    target: &DownloadTarget,
     destination: &Path,
     total: u64,
     response_metadata: Option<ResponseMetadata>,
-    on_progress: &mut dyn FnMut(FileProgress),
-    is_cancelled: &impl Fn() -> bool,
+    on_progress: &mut (dyn FnMut(FileProgress) + Send),
+    is_cancelled: &(impl Fn() -> bool + Sync),
 ) -> Result<FileDownloadReport, Error> {
     let tmp_path = tmp_path_for(destination);
     let range_metadata_path = range_metadata_path_for(destination);
@@ -711,7 +689,7 @@ async fn download_file_ranged(
         .truncate(false)
         .open(&tmp_path)?;
     file.set_len(total)?;
-    let file = Rc::new(file);
+    let file = Arc::new(file);
 
     let range_states = range_metadata
         .ranges
@@ -726,26 +704,26 @@ async fn download_file_ranged(
             retry_count: 0,
         })
         .collect::<Vec<_>>();
-    let range_states = Rc::new(RefCell::new(range_states));
-    let range_metadata = Rc::new(RefCell::new(range_metadata));
-    let on_progress = Rc::new(RefCell::new(on_progress));
+    let range_states = Arc::new(Mutex::new(range_states));
+    let range_metadata = Arc::new(Mutex::new(range_metadata));
+    let on_progress = Arc::new(Mutex::new(on_progress));
 
     emit_range_file_progress(total, file_started_at, &range_states, &on_progress);
 
     let mut downloads = Vec::new();
     {
-        let metadata = range_metadata.borrow();
+        let metadata = range_metadata.lock().expect("range metadata lock");
         for (part_index, range) in metadata.ranges.iter().copied().enumerate() {
             if range.complete {
                 continue;
             }
 
-            let file = Rc::clone(&file);
-            let range_states = Rc::clone(&range_states);
-            let range_metadata = Rc::clone(&range_metadata);
+            let file = Arc::clone(&file);
+            let range_states = Arc::clone(&range_states);
+            let range_metadata = Arc::clone(&range_metadata);
             let range_metadata_path = range_metadata_path.clone();
             let response_metadata = response_metadata.clone();
-            let on_progress = Rc::clone(&on_progress);
+            let on_progress = Arc::clone(&on_progress);
 
             downloads.push(async move {
                 download_range_part(
@@ -795,13 +773,12 @@ async fn download_file_ranged(
         });
     }
 
-    let network_downloaded_bytes = range_states
-        .borrow()
+    let states = range_states.lock().expect("range state lock");
+    let network_downloaded_bytes = states
         .iter()
         .map(|state| state.network_downloaded_bytes)
         .sum::<u64>();
-    let retry_count = range_states
-        .borrow()
+    let retry_count = states
         .iter()
         .map(|state| state.retry_count)
         .fold(0u32, u32::saturating_add);
@@ -817,18 +794,18 @@ async fn download_file_ranged(
 #[allow(clippy::too_many_arguments)]
 async fn download_range_part(
     client: &Client,
-    target: &Target,
-    file: Rc<File>,
+    target: &DownloadTarget,
+    file: Arc<File>,
     part_index: usize,
     range: RangeDownloadPartMetadata,
     total: u64,
     response_metadata: Option<ResponseMetadata>,
-    range_states: Rc<RefCell<Vec<RangePartState>>>,
-    range_metadata: Rc<RefCell<RangeDownloadMetadata>>,
+    range_states: Arc<Mutex<Vec<RangePartState>>>,
+    range_metadata: Arc<Mutex<RangeDownloadMetadata>>,
     range_metadata_path: PathBuf,
     file_started_at: Instant,
-    on_progress: Rc<RefCell<&mut dyn FnMut(FileProgress)>>,
-    is_cancelled: &impl Fn() -> bool,
+    on_progress: Arc<Mutex<&mut (dyn FnMut(FileProgress) + Send)>>,
+    is_cancelled: &(impl Fn() -> bool + Sync),
 ) -> Result<(), Error> {
     let range_len = range_download_len(range);
 
@@ -838,7 +815,7 @@ async fn download_range_part(
         }
 
         {
-            let mut states = range_states.borrow_mut();
+            let mut states = range_states.lock().expect("range state lock");
             if let Some(state) = states.get_mut(part_index) {
                 state.downloaded_bytes = 0;
             }
@@ -884,22 +861,11 @@ async fn download_range_part(
                 return Err(Error::Cancelled);
             }
 
-            let chunk = match timeout(READ_STALL_TIMEOUT, response.chunk()).await {
-                Ok(Ok(chunk)) => chunk,
-                Ok(Err(err)) => {
+            let chunk = match response.chunk().await {
+                Ok(chunk) => chunk,
+                Err(err) => {
                     if attempt == MAX_ATTEMPTS {
                         return Err(Error::Network(err.to_string()));
-                    }
-                    increment_range_retry(&range_states, part_index);
-                    retry_attempt = true;
-                    break;
-                }
-                Err(_) => {
-                    if attempt == MAX_ATTEMPTS {
-                        return Err(Error::Network(format!(
-                            "stalled for {} seconds",
-                            READ_STALL_TIMEOUT.as_secs()
-                        )));
                     }
                     increment_range_retry(&range_states, part_index);
                     retry_attempt = true;
@@ -925,7 +891,7 @@ async fn download_range_part(
             downloaded_in_range = downloaded_in_range.saturating_add(chunk_len);
 
             {
-                let mut states = range_states.borrow_mut();
+                let mut states = range_states.lock().expect("range state lock");
                 if let Some(state) = states.get_mut(part_index) {
                     state.downloaded_bytes = downloaded_in_range;
                     state.network_downloaded_bytes =
@@ -957,7 +923,7 @@ async fn download_range_part(
         }
 
         {
-            let mut states = range_states.borrow_mut();
+            let mut states = range_states.lock().expect("range state lock");
             if let Some(state) = states.get_mut(part_index) {
                 state.downloaded_bytes = range_len;
             }
@@ -984,14 +950,9 @@ async fn request_file(
             .header(RANGE, format!("bytes={resume_from}-"))
             .header(IF_RANGE, if_range);
     }
-    timeout(RESPONSE_START_TIMEOUT, request.send())
+    request
+        .send()
         .await
-        .map_err(|_| {
-            Error::Network(format!(
-                "request did not receive a response within {} seconds",
-                RESPONSE_START_TIMEOUT.as_secs()
-            ))
-        })?
         .map_err(|err| Error::Network(err.to_string()))
 }
 
@@ -1007,22 +968,14 @@ async fn request_model_range(
     if let Some(if_range) = if_range_header_value(response_metadata) {
         request = request.header(IF_RANGE, if_range);
     }
-    timeout(RESPONSE_START_TIMEOUT, request.send())
+    request
+        .send()
         .await
-        .map_err(|_| {
-            Error::Network(format!(
-                "request did not receive a response within {} seconds",
-                RESPONSE_START_TIMEOUT.as_secs()
-            ))
-        })?
         .map_err(|err| Error::Network(err.to_string()))
 }
 
 async fn fetch_download_probe(client: &Client, url: &str) -> DownloadProbe {
-    let response = timeout(RESPONSE_START_TIMEOUT, client.head(url).send())
-        .await
-        .ok()
-        .and_then(Result::ok);
+    let response = client.head(url).send().await.ok();
     let Some(response) = response else {
         return DownloadProbe::default();
     };
@@ -1054,16 +1007,12 @@ async fn fetch_download_probe(client: &Client, url: &str) -> DownloadProbe {
     }
 }
 
-pub(crate) async fn probe_content_length(client: &Client, url: &str) -> Option<u64> {
-    fetch_download_probe(client, url).await.content_length
-}
-
 fn should_use_range_download(total: u64, probe: &DownloadProbe) -> bool {
     total >= MIN_RANGE_DOWNLOAD_BYTES && probe.supports_ranges
 }
 
 fn prepare_range_download_metadata(
-    target: &Target,
+    target: &DownloadTarget,
     destination: &Path,
     total: u64,
     response_metadata: Option<ResponseMetadata>,
@@ -1088,6 +1037,7 @@ fn prepare_range_download_metadata(
     cleanup_range_download(destination);
     let metadata = RangeDownloadMetadata {
         url: target.url.clone(),
+        sha256: target.sha256.clone(),
         size_bytes: total,
         etag: response_metadata
             .as_ref()
@@ -1130,12 +1080,13 @@ fn range_download_parts(total: u64, concurrency: usize) -> Vec<RangeDownloadPart
 
 fn range_download_metadata_matches(
     metadata: &RangeDownloadMetadata,
-    target: &Target,
+    target: &DownloadTarget,
     total: u64,
     response_metadata: Option<&ResponseMetadata>,
     ranges: &[RangeDownloadPartMetadata],
 ) -> bool {
     metadata.url == target.url
+        && metadata.sha256.eq_ignore_ascii_case(&target.sha256)
         && metadata.size_bytes == total
         && range_download_validators_match(metadata, response_metadata)
         && metadata.ranges.len() == ranges.len()
@@ -1171,10 +1122,10 @@ fn range_download_len(range: RangeDownloadPartMetadata) -> u64 {
 fn emit_range_file_progress(
     total_bytes: u64,
     file_started_at: Instant,
-    range_states: &Rc<RefCell<Vec<RangePartState>>>,
-    on_progress: &Rc<RefCell<&mut dyn FnMut(FileProgress)>>,
+    range_states: &Arc<Mutex<Vec<RangePartState>>>,
+    on_progress: &Arc<Mutex<&mut (dyn FnMut(FileProgress) + Send)>>,
 ) {
-    let states = range_states.borrow();
+    let states = range_states.lock().expect("range state lock");
     let downloaded_bytes = states
         .iter()
         .map(|state| state.downloaded_bytes)
@@ -1190,7 +1141,7 @@ fn emit_range_file_progress(
         .fold(0u32, u32::saturating_add);
     drop(states);
 
-    let mut callback = on_progress.borrow_mut();
+    let mut callback = on_progress.lock().expect("progress lock");
     (**callback)(FileProgress {
         downloaded_bytes,
         total_bytes: Some(total_bytes),
@@ -1200,19 +1151,19 @@ fn emit_range_file_progress(
     });
 }
 
-fn increment_range_retry(range_states: &Rc<RefCell<Vec<RangePartState>>>, part_index: usize) {
-    let mut states = range_states.borrow_mut();
+fn increment_range_retry(range_states: &Arc<Mutex<Vec<RangePartState>>>, part_index: usize) {
+    let mut states = range_states.lock().expect("range state lock");
     if let Some(state) = states.get_mut(part_index) {
         state.retry_count = state.retry_count.saturating_add(1);
     }
 }
 
 fn mark_range_complete(
-    range_metadata: &Rc<RefCell<RangeDownloadMetadata>>,
+    range_metadata: &Arc<Mutex<RangeDownloadMetadata>>,
     range_metadata_path: &Path,
     part_index: usize,
 ) -> Result<(), Error> {
-    let mut metadata = range_metadata.borrow_mut();
+    let mut metadata = range_metadata.lock().expect("range metadata lock");
     if let Some(range) = metadata.ranges.get_mut(part_index) {
         range.complete = true;
     }
@@ -1330,37 +1281,35 @@ fn emit_progress<F: FnMut(Progress)>(
     phase: ProgressPhase,
     elapsed: Duration,
     total_bytes: Option<u64>,
-    file_states: &Rc<RefCell<Vec<FileProgress>>>,
-    on_progress: &Rc<RefCell<F>>,
+    file_states: &[FileProgress],
+    on_progress: &mut F,
 ) {
-    let states = file_states.borrow();
-    let downloaded_bytes = states
+    let downloaded_bytes = file_states
         .iter()
         .map(|state| state.downloaded_bytes)
         .sum::<u64>();
-    let network_downloaded_bytes = states
+    let network_downloaded_bytes = file_states
         .iter()
         .map(|state| state.network_downloaded_bytes)
         .sum::<u64>();
-    let retry_count = states
+    let retry_count = file_states
         .iter()
         .map(|state| state.retry_count)
         .fold(0u32, u32::saturating_add);
     let file_state = match &phase {
-        ProgressPhase::File { index, .. } => states.get(*index).copied(),
+        ProgressPhase::File { index, .. } => file_states.get(*index).copied(),
         _ => None,
     };
     let total_bytes = match phase {
         ProgressPhase::Complete => total_bytes.or(Some(downloaded_bytes)),
         _ => total_bytes.or_else(|| {
-            let total = states
+            let total = file_states
                 .iter()
                 .filter_map(|state| state.total_bytes)
                 .sum::<u64>();
             (total > 0).then_some(total)
         }),
     };
-    drop(states);
 
     let (label, file_complete, complete) = match phase {
         ProgressPhase::Preparing => ("Preparing downloads", false, false),
@@ -1377,7 +1326,7 @@ fn emit_progress<F: FnMut(Progress)>(
         .map(|state| (state.downloaded_bytes, state.total_bytes))
         .unwrap_or((0, None));
 
-    on_progress.borrow_mut()(Progress {
+    on_progress(Progress {
         label: label.to_string(),
         downloaded_bytes,
         total_bytes,
@@ -1412,7 +1361,7 @@ fn bytes_per_second(bytes: u64, elapsed: Duration) -> f64 {
     }
 }
 
-fn prepare_cached_download(target: &Target, destination: &Path) -> bool {
+fn prepare_cached_download(target: &DownloadTarget, destination: &Path) -> bool {
     if !destination.exists() || check_sha256(destination, &target.sha256, &target.label).is_err() {
         return false;
     }
@@ -1486,10 +1435,10 @@ fn partial_metadata_path_for(path: &Path) -> PathBuf {
     PathBuf::from(format!("{}.tmp.partial.json", path.display()))
 }
 
-fn partial_download_validator(destination: &Path, url: &str) -> Option<String> {
+fn partial_download_validator(destination: &Path, target: &DownloadTarget) -> Option<String> {
     let text = fs::read_to_string(partial_metadata_path_for(destination)).ok()?;
     let metadata: PartialDownloadMetadata = serde_json::from_str(&text).ok()?;
-    if metadata.url != url {
+    if metadata.url != target.url || !metadata.sha256.eq_ignore_ascii_case(&target.sha256) {
         return None;
     }
     metadata.etag.or(metadata.last_modified)
@@ -1497,11 +1446,12 @@ fn partial_download_validator(destination: &Path, url: &str) -> Option<String> {
 
 fn write_partial_download_metadata(
     destination: &Path,
-    target: &Target,
+    target: &DownloadTarget,
     response_metadata: &ResponseMetadata,
 ) -> Result<(), Error> {
     let metadata = PartialDownloadMetadata {
         url: target.url.clone(),
+        sha256: target.sha256.clone(),
         etag: response_metadata.etag.clone(),
         last_modified: response_metadata.last_modified.clone(),
     };
@@ -1526,7 +1476,7 @@ fn now_ms() -> u64 {
 }
 
 fn existing_download_bytes(
-    target: &Target,
+    target: &DownloadTarget,
     destination: &Path,
     probe: &DownloadProbe,
     cached: bool,
@@ -1562,7 +1512,9 @@ fn existing_download_bytes(
         return 0;
     }
 
-    0
+    partial_download_validator(destination, target)
+        .and_then(|_| file_size(&tmp_path_for(destination)))
+        .unwrap_or(0)
 }
 
 fn file_size(path: &Path) -> Option<u64> {
@@ -1628,6 +1580,20 @@ mod tests {
     use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use std::thread;
+
+    async fn download(
+        targets: Vec<DownloadTarget>,
+        on_progress: impl FnMut(Progress) + Send,
+        is_cancelled: bool,
+    ) -> Result<(), Error> {
+        let cancellation = CancellationToken::default();
+        if is_cancelled {
+            cancellation.cancel();
+        }
+        Downloader::new()?
+            .download(targets, on_progress, cancellation)
+            .await
+    }
 
     #[test]
     fn range_download_parts_split_file_into_four_ranges() {
@@ -1702,8 +1668,8 @@ mod tests {
         assert_eq!(parse_content_range("bytes 10-19/not-a-number"), None);
     }
 
-    #[test]
-    fn download_uses_four_ranges_when_server_supports_ranges() {
+    #[tokio::test]
+    async fn download_uses_four_ranges_when_server_supports_ranges() {
         let bytes = Arc::new(sample_bytes(MIN_RANGE_DOWNLOAD_BYTES as usize + 123));
         let head_count = Arc::new(AtomicUsize::new(0));
         let range_get_count = Arc::new(AtomicUsize::new(0));
@@ -1753,27 +1719,17 @@ mod tests {
         let destination = test_dir.join("model.bin");
         let url = format!("http://{address}/model.bin");
 
-        let probe_client = Client::builder().build().expect("build probe client");
-        let probe_runtime = Builder::new_current_thread()
-            .enable_io()
-            .enable_time()
-            .build()
-            .expect("build probe runtime");
-        let probe = probe_runtime.block_on(fetch_download_probe(&probe_client, &url));
-        assert_eq!(probe.content_length, Some(bytes.len() as u64));
-        assert!(probe.supports_ranges);
-
-        let result = fetch(
-            &Downloader::new().unwrap(),
-            vec![Target {
+        let result = download(
+            vec![DownloadTarget {
                 label: "Model".to_string(),
                 url,
                 destination: destination.clone(),
                 sha256: sha_hex(&bytes),
             }],
             |_| {},
-            || false,
-        );
+            false,
+        )
+        .await;
 
         running.store(false, Ordering::SeqCst);
         let _ = TcpStream::connect(address);
@@ -1784,7 +1740,7 @@ mod tests {
             fs::read(&destination).expect("read downloaded file"),
             *bytes
         );
-        assert_eq!(head_count.load(Ordering::SeqCst), 2);
+        assert_eq!(head_count.load(Ordering::SeqCst), 1);
         assert_eq!(
             range_get_count.load(Ordering::SeqCst),
             RANGE_DOWNLOAD_CONCURRENCY,
@@ -1797,8 +1753,8 @@ mod tests {
         let _ = fs::remove_dir_all(test_dir);
     }
 
-    #[test]
-    fn download_uses_single_stream_when_server_lacks_range_support() {
+    #[tokio::test]
+    async fn download_uses_single_stream_when_server_lacks_range_support() {
         let bytes = Arc::new(sample_bytes(MIN_RANGE_DOWNLOAD_BYTES as usize + 123));
         let get_count = Arc::new(AtomicUsize::new(0));
 
@@ -1813,17 +1769,17 @@ mod tests {
         let test_dir = scratch_dir("single-download");
         let destination = test_dir.join("model.bin");
 
-        let result = fetch(
-            &Downloader::new().unwrap(),
-            vec![Target {
+        let result = download(
+            vec![DownloadTarget {
                 label: "Model".to_string(),
                 url: server.url("/model.bin"),
                 destination: destination.clone(),
                 sha256: sha_hex(&bytes),
             }],
             |_| {},
-            || false,
-        );
+            false,
+        )
+        .await;
 
         result.expect("single-stream download succeeds");
         assert_eq!(
@@ -1835,8 +1791,8 @@ mod tests {
         let _ = fs::remove_dir_all(test_dir);
     }
 
-    #[test]
-    fn downloads_files_sequentially() {
+    #[tokio::test]
+    async fn downloads_files_sequentially() {
         let bytes = Arc::new(sample_bytes(512));
         let active = Arc::new(AtomicUsize::new(0));
         let max_active = Arc::new(AtomicUsize::new(0));
@@ -1859,27 +1815,23 @@ mod tests {
         };
 
         let test_dir = scratch_dir("sequential-downloads");
-        let targets = ["model", "projector"].map(|label| Target {
+        let targets = ["model", "projector"].map(|label| DownloadTarget {
             label: label.to_string(),
             url: server.url(&format!("/{label}.bin")),
             destination: test_dir.join(format!("{label}.bin")),
             sha256: sha_hex(&bytes),
         });
 
-        fetch(
-            &Downloader::new().unwrap(),
-            targets.into(),
-            |_| {},
-            || false,
-        )
-        .expect("downloads succeed");
+        download(targets.into(), |_| {}, false)
+            .await
+            .expect("downloads succeed");
         assert_eq!(max_active.load(Ordering::SeqCst), 1);
 
         let _ = fs::remove_dir_all(test_dir);
     }
 
-    #[test]
-    fn completed_download_is_served_from_cache() {
+    #[tokio::test]
+    async fn completed_download_is_served_from_cache() {
         let bytes = Arc::new(sample_bytes(MIN_RANGE_DOWNLOAD_BYTES as usize + 123));
         let head_count = Arc::new(AtomicUsize::new(0));
         let range_get_count = Arc::new(AtomicUsize::new(0));
@@ -1903,25 +1855,22 @@ mod tests {
 
         let test_dir = scratch_dir("cache-skip-download");
         let destination = test_dir.join("model.bin");
-        let target = Target {
+        let target = DownloadTarget {
             label: "Model".to_string(),
             url: server.url("/model.bin"),
             destination: destination.clone(),
             sha256: sha_hex(&bytes),
         };
 
-        fetch(
-            &Downloader::new().unwrap(),
-            vec![target.clone()],
-            |_| {},
-            || false,
-        )
-        .expect("first download succeeds");
+        download(vec![target.clone()], |_| {}, false)
+            .await
+            .expect("first download succeeds");
         let requests_after_first =
             head_count.load(Ordering::SeqCst) + range_get_count.load(Ordering::SeqCst);
         assert!(requests_after_first > 0);
 
-        fetch(&Downloader::new().unwrap(), vec![target], |_| {}, || false)
+        download(vec![target], |_| {}, false)
+            .await
             .expect("second download succeeds");
         assert_eq!(
             head_count.load(Ordering::SeqCst) + range_get_count.load(Ordering::SeqCst),
@@ -1933,8 +1882,8 @@ mod tests {
         let _ = fs::remove_dir_all(test_dir);
     }
 
-    #[test]
-    fn cache_hit_is_revalidated_and_reheals_on_corruption() {
+    #[tokio::test]
+    async fn cache_hit_is_revalidated_and_reheals_on_corruption() {
         let bytes = Arc::new(sample_bytes(512));
         let get_count = Arc::new(AtomicUsize::new(0));
 
@@ -1948,27 +1897,24 @@ mod tests {
 
         let test_dir = scratch_dir("revalidate-download");
         let destination = test_dir.join("model.bin");
-        let target = Target {
+        let target = DownloadTarget {
             label: "Model".to_string(),
             url: server.url("/model.bin"),
             destination: destination.clone(),
             sha256: sha_hex(&bytes),
         };
 
-        fetch(
-            &Downloader::new().unwrap(),
-            vec![target.clone()],
-            |_| {},
-            || false,
-        )
-        .expect("first download succeeds");
+        download(vec![target.clone()], |_| {}, false)
+            .await
+            .expect("first download succeeds");
         assert_eq!(get_count.load(Ordering::SeqCst), 1);
 
         let mut data = fs::read(&destination).expect("read cached file");
         data[0] = data[0].wrapping_add(1);
         fs::write(&destination, &data).expect("corrupt cached file");
 
-        fetch(&Downloader::new().unwrap(), vec![target], |_| {}, || false)
+        download(vec![target], |_| {}, false)
+            .await
             .expect("second download re-heals the corrupt cache");
         assert_eq!(
             get_count.load(Ordering::SeqCst),
@@ -1980,8 +1926,8 @@ mod tests {
         let _ = fs::remove_dir_all(test_dir);
     }
 
-    #[test]
-    fn existing_valid_file_without_sidecar_is_adopted() {
+    #[tokio::test]
+    async fn existing_valid_file_without_sidecar_is_adopted() {
         let bytes = Arc::new(sample_bytes(512));
         let get_count = Arc::new(AtomicUsize::new(0));
 
@@ -1997,14 +1943,15 @@ mod tests {
         let destination = test_dir.join("model.bin");
         fs::write(&destination, bytes.as_slice()).expect("place existing file");
 
-        let target = Target {
+        let target = DownloadTarget {
             label: "Model".to_string(),
             url: server.url("/model.bin"),
             destination: destination.clone(),
             sha256: sha_hex(&bytes),
         };
 
-        fetch(&Downloader::new().unwrap(), vec![target], |_| {}, || false)
+        download(vec![target], |_| {}, false)
+            .await
             .expect("fetch adopts existing file");
 
         assert_eq!(
@@ -2017,8 +1964,8 @@ mod tests {
         let _ = fs::remove_dir_all(test_dir);
     }
 
-    #[test]
-    fn single_stream_download_resumes_from_partial_tmp() {
+    #[tokio::test]
+    async fn single_stream_download_resumes_from_partial_tmp() {
         let bytes = Arc::new(sample_bytes(512));
         let head_count = Arc::new(AtomicUsize::new(0));
         let range_get_count = Arc::new(AtomicUsize::new(0));
@@ -2042,7 +1989,7 @@ mod tests {
 
         let test_dir = scratch_dir("resume-download");
         let destination = test_dir.join("model.bin");
-        let target = Target {
+        let target = DownloadTarget {
             label: "Model".to_string(),
             url: server.url("/model.bin"),
             destination: destination.clone(),
@@ -2059,7 +2006,8 @@ mod tests {
         )
         .expect("write partial sidecar");
 
-        fetch(&Downloader::new().unwrap(), vec![target], |_| {}, || false)
+        download(vec![target], |_| {}, false)
+            .await
             .expect("resume succeeds");
 
         assert_eq!(
@@ -2078,8 +2026,8 @@ mod tests {
         let _ = fs::remove_dir_all(test_dir);
     }
 
-    #[test]
-    fn single_stream_download_restarts_when_resume_validator_is_stale() {
+    #[tokio::test]
+    async fn single_stream_download_restarts_when_resume_validator_is_stale() {
         let bytes = Arc::new(sample_bytes(512));
         let head_count = Arc::new(AtomicUsize::new(0));
         let range_get_count = Arc::new(AtomicUsize::new(0));
@@ -2103,7 +2051,7 @@ mod tests {
 
         let test_dir = scratch_dir("stale-resume-download");
         let destination = test_dir.join("model.bin");
-        let target = Target {
+        let target = DownloadTarget {
             label: "Model".to_string(),
             url: server.url("/model.bin"),
             destination: destination.clone(),
@@ -2120,7 +2068,8 @@ mod tests {
         )
         .expect("write stale partial sidecar");
 
-        fetch(&Downloader::new().unwrap(), vec![target], |_| {}, || false)
+        download(vec![target], |_| {}, false)
+            .await
             .expect("restart succeeds");
 
         assert_eq!(
@@ -2137,8 +2086,8 @@ mod tests {
         let _ = fs::remove_dir_all(test_dir);
     }
 
-    #[test]
-    fn single_stream_download_ignores_partial_without_sidecar() {
+    #[tokio::test]
+    async fn single_stream_download_ignores_partial_without_sidecar() {
         let bytes = Arc::new(sample_bytes(512));
         let get_count = Arc::new(AtomicUsize::new(0));
 
@@ -2154,14 +2103,15 @@ mod tests {
         let destination = test_dir.join("model.bin");
         fs::write(tmp_path_for(&destination), &bytes[..256]).expect("place orphan tmp");
 
-        let target = Target {
+        let target = DownloadTarget {
             label: "Model".to_string(),
             url: server.url("/model.bin"),
             destination: destination.clone(),
             sha256: sha_hex(&bytes),
         };
 
-        fetch(&Downloader::new().unwrap(), vec![target], |_| {}, || false)
+        download(vec![target], |_| {}, false)
+            .await
             .expect("fresh download succeeds");
 
         assert_eq!(
@@ -2177,8 +2127,8 @@ mod tests {
         let _ = fs::remove_dir_all(test_dir);
     }
 
-    #[test]
-    fn single_stream_resume_restarts_when_server_resumes_from_wrong_offset() {
+    #[tokio::test]
+    async fn single_stream_resume_restarts_when_server_resumes_from_wrong_offset() {
         let bytes = Arc::new(sample_bytes(512));
         let bad_resume_count = Arc::new(AtomicUsize::new(0));
         let full_get_count = Arc::new(AtomicUsize::new(0));
@@ -2199,7 +2149,7 @@ mod tests {
 
         let test_dir = scratch_dir("wrong-offset-resume");
         let destination = test_dir.join("model.bin");
-        let target = Target {
+        let target = DownloadTarget {
             label: "Model".to_string(),
             url: server.url("/model.bin"),
             destination: destination.clone(),
@@ -2216,7 +2166,8 @@ mod tests {
         )
         .expect("write partial sidecar");
 
-        fetch(&Downloader::new().unwrap(), vec![target], |_| {}, || false)
+        download(vec![target], |_| {}, false)
+            .await
             .expect("restart after bad 206 succeeds");
 
         assert_eq!(
@@ -2287,30 +2238,30 @@ mod tests {
         }
     }
 
-    #[test]
-    fn cancelled_fetch_returns_the_cancelled_variant() {
+    #[tokio::test]
+    async fn cancelled_fetch_returns_the_cancelled_variant() {
         let test_dir = scratch_dir("cancel-download");
         let destination = test_dir.join("model.bin");
 
-        let result = fetch(
-            &Downloader::new().unwrap(),
-            vec![Target {
+        let result = download(
+            vec![DownloadTarget {
                 label: "Model".to_string(),
                 url: "http://127.0.0.1:1/model.bin".to_string(),
                 destination: destination.clone(),
                 sha256: "0".repeat(64),
             }],
             |_| {},
-            || true,
-        );
+            true,
+        )
+        .await;
 
         assert!(matches!(result, Err(Error::Cancelled)));
 
         let _ = fs::remove_dir_all(test_dir);
     }
 
-    #[test]
-    fn cached_download_adoption_removes_stale_partials() {
+    #[tokio::test]
+    async fn cached_download_adoption_removes_stale_partials() {
         let test_dir = scratch_dir("cached-adoption");
         let destination = test_dir.join("model.bin");
         fs::write(&destination, b"complete-model").expect("write model");
@@ -2318,17 +2269,17 @@ mod tests {
         fs::write(range_metadata_path_for(&destination), "{}").expect("write ranges sidecar");
         fs::write(partial_metadata_path_for(&destination), "{}").expect("write partial sidecar");
 
-        let result = fetch(
-            &Downloader::new().unwrap(),
-            vec![Target {
+        let result = download(
+            vec![DownloadTarget {
                 label: "Model".to_string(),
                 url: "http://127.0.0.1:1/model.bin".to_string(),
                 destination: destination.clone(),
                 sha256: sha_hex(b"complete-model"),
             }],
             |_| {},
-            || false,
-        );
+            false,
+        )
+        .await;
 
         assert!(result.is_ok());
         assert!(destination.exists());
@@ -2339,8 +2290,8 @@ mod tests {
         let _ = fs::remove_dir_all(test_dir);
     }
 
-    #[test]
-    fn sha_pinned_download_verifies_content() {
+    #[tokio::test]
+    async fn sha_pinned_download_verifies_content() {
         let bytes = Arc::new(sample_bytes(2048));
         let get_count = Arc::new(AtomicUsize::new(0));
         let server = {
@@ -2358,17 +2309,17 @@ mod tests {
             expected.push_str(&format!("{byte:02x}"));
         }
 
-        fetch(
-            &Downloader::new().unwrap(),
-            vec![Target {
+        download(
+            vec![DownloadTarget {
                 label: "Model".to_string(),
                 url: server.url("/model.bin"),
                 destination: destination.clone(),
                 sha256: expected,
             }],
             |_| {},
-            || false,
+            false,
         )
+        .await
         .expect("sha-pinned download succeeds");
         assert_eq!(
             fs::read(&destination).expect("read downloaded file"),
@@ -2378,8 +2329,8 @@ mod tests {
         let _ = fs::remove_dir_all(test_dir);
     }
 
-    #[test]
-    fn sha_mismatch_fails_immediately_without_installing() {
+    #[tokio::test]
+    async fn sha_mismatch_fails_immediately_without_installing() {
         let bytes = Arc::new(sample_bytes(2048));
         let get_count = Arc::new(AtomicUsize::new(0));
         let server = {
@@ -2393,17 +2344,17 @@ mod tests {
         let test_dir = scratch_dir("sha-mismatch");
         let destination = test_dir.join("model.bin");
 
-        let result = fetch(
-            &Downloader::new().unwrap(),
-            vec![Target {
+        let result = download(
+            vec![DownloadTarget {
                 label: "Model".to_string(),
                 url: server.url("/model.bin"),
                 destination: destination.clone(),
                 sha256: "0".repeat(64),
             }],
             |_| {},
-            || false,
-        );
+            false,
+        )
+        .await;
 
         assert!(result.is_err());
         assert!(!destination.exists());
@@ -2412,8 +2363,8 @@ mod tests {
         let _ = fs::remove_dir_all(test_dir);
     }
 
-    #[test]
-    fn ranged_sha_mismatch_fails_without_single_stream_fallback() {
+    #[tokio::test]
+    async fn ranged_sha_mismatch_fails_without_single_stream_fallback() {
         let bytes = Arc::new(sample_bytes(MIN_RANGE_DOWNLOAD_BYTES as usize + 123));
         let head_count = Arc::new(AtomicUsize::new(0));
         let range_get_count = Arc::new(AtomicUsize::new(0));
@@ -2437,17 +2388,17 @@ mod tests {
         let test_dir = scratch_dir("ranged-sha-mismatch");
         let destination = test_dir.join("model.bin");
 
-        let result = fetch(
-            &Downloader::new().unwrap(),
-            vec![Target {
+        let result = download(
+            vec![DownloadTarget {
                 label: "Model".to_string(),
                 url: server.url("/model.bin"),
                 destination: destination.clone(),
                 sha256: "0".repeat(64),
             }],
             |_| {},
-            || false,
-        );
+            false,
+        )
+        .await;
 
         assert!(result.is_err());
         assert!(!destination.exists());
@@ -2461,40 +2412,40 @@ mod tests {
         let _ = fs::remove_dir_all(test_dir);
     }
 
-    #[test]
-    fn sha_pinned_target_adopts_cached_file_regardless_of_url() {
+    #[tokio::test]
+    async fn sha_pinned_target_adopts_cached_file_regardless_of_url() {
         let test_dir = scratch_dir("sha-cached");
         let destination = test_dir.join("model.bin");
         fs::write(&destination, b"model-bytes").expect("write cached file");
         let sha = sha256_file(&destination).expect("hash cached file");
-        let old_target = Target {
+        let old_target = DownloadTarget {
             label: "Model".to_string(),
             url: "http://cache.example.org/old-location".to_string(),
             destination: destination.clone(),
             sha256: sha.clone(),
         };
 
-        fetch(
-            &Downloader::new().unwrap(),
-            vec![Target {
+        download(
+            vec![DownloadTarget {
                 url: "http://127.0.0.1:9/new-location".to_string(),
                 ..old_target.clone()
             }],
             |_| {},
-            || false,
+            false,
         )
+        .await
         .expect("cached file adopted by checksum despite changed URL");
 
         fs::write(&destination, b"corrupted").expect("corrupt cached file");
-        let result = fetch(
-            &Downloader::new().unwrap(),
-            vec![Target {
+        let result = download(
+            vec![DownloadTarget {
                 url: "http://127.0.0.1:9/new-location".to_string(),
                 ..old_target
             }],
             |_| {},
-            || false,
-        );
+            false,
+        )
+        .await;
         assert!(result.is_err());
 
         let _ = fs::remove_dir_all(test_dir);

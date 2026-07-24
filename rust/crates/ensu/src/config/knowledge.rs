@@ -183,6 +183,8 @@ pub(crate) fn is_path_safe_component(value: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::*;
 
     #[test]
@@ -204,6 +206,14 @@ mod tests {
         let embedding = knowledge_embedding_config();
 
         assert_eq!(datasets.len(), 2);
+        assert_eq!(
+            datasets
+                .iter()
+                .map(|dataset| dataset.stable_id.as_str())
+                .collect::<HashSet<_>>()
+                .len(),
+            datasets.len()
+        );
         assert_eq!(datasets[0].stable_id, "simplewiki");
         assert_eq!(datasets[1].stable_id, "wikibooks");
         assert!(

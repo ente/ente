@@ -5,6 +5,11 @@ struct KnowledgeSearchHit: Sendable {
     let hit: RetrievalHit
 }
 
+struct KnowledgeDownloadProgress: Sendable {
+    let label: String
+    let percentage: Double
+}
+
 private struct KnowledgePackValidationError: LocalizedError {
     var errorDescription: String? {
         "Downloaded knowledge pack failed current revision validation"
@@ -13,29 +18,25 @@ private struct KnowledgePackValidationError: LocalizedError {
 
 actor KnowledgeProvider {
     private final class Mutation: @unchecked Sendable {
-        let cancellation: CancellationToken
         let task: Task<Void, Error>
 
         init(
-            packRoot: URL,
+            assetStore: AssetStore,
             dataset: KnowledgeDatasetConfig,
             onProgress: @escaping @Sendable (KnowledgeDownloadProgress) -> Void
-        ) {
-            let cancellation = CancellationToken()
-            self.cancellation = cancellation
+        ) throws {
+            let asset = try knowledgePackAsset(stableId: dataset.stableId)
             task = Task.detached(priority: .utility) {
-                let callback = KnowledgeDownloadCallbackSink(onProgress: onProgress)
-                try downloadKnowledgePack(
-                    packRoot: packRoot.path,
-                    stableId: dataset.stableId,
-                    callback: callback,
-                    cancellation: cancellation
-                )
+                try await assetStore.download(assets: [asset]) {
+                    onProgress(KnowledgeDownloadProgress(
+                        label: $0.label,
+                        percentage: $0.percentage
+                    ))
+                }
             }
         }
 
         func cancel() {
-            cancellation.cancel()
             task.cancel()
         }
     }
@@ -45,22 +46,14 @@ actor KnowledgeProvider {
         let index: RetrievalIndex
     }
 
-    private let root: URL
+    private let assetStore: AssetStore
     private var mutations: [String: Mutation] = [:]
     private var lifecycleGates: [String: AsyncSerialGate] = [:]
     private var indexes: [String: OpenIndex] = [:]
     private let indexGate = AsyncSerialGate()
 
-    init(root: URL) {
-        self.root = root
-        try? FileManager.default.createDirectory(
-            at: root,
-            withIntermediateDirectories: true
-        )
-        var excludedRoot = root
-        var values = URLResourceValues()
-        values.isExcludedFromBackup = true
-        try? excludedRoot.setResourceValues(values)
+    init(assetStore: AssetStore) {
+        self.assetStore = assetStore
     }
 
     func reconcile(dataset: KnowledgeDatasetConfig) async throws -> KnowledgeReconciliation {
@@ -84,8 +77,8 @@ actor KnowledgeProvider {
             if let current = mutations[dataset.stableId] {
                 return current
             }
-            let created = Mutation(
-                packRoot: packRoot(dataset),
+            let created = try Mutation(
+                assetStore: assetStore,
                 dataset: dataset,
                 onProgress: onProgress
             )
@@ -99,9 +92,7 @@ actor KnowledgeProvider {
             if mutations[dataset.stableId] === mutation {
                 mutations.removeValue(forKey: dataset.stableId)
             }
-            _ = try? await withIndexGate {
-                try await reconcileAndActivateLocked(dataset: dataset, removeIncoming: true)
-            }
+            _ = try? await withIndexGate { try await reconcileAndActivateLocked(dataset: dataset) }
             throw error
         }
 
@@ -125,21 +116,12 @@ actor KnowledgeProvider {
     func cancel(dataset: KnowledgeDatasetConfig) async -> KnowledgeReconciliation? {
         let mutation = mutations[dataset.stableId]
         mutation?.cancel()
-        let transferFailed: Bool
-        do {
-            try await mutation?.task.value
-            transferFailed = false
-        } catch {
-            transferFailed = true
-        }
+        _ = try? await mutation?.task.value
         if let mutation, mutations[dataset.stableId] === mutation {
             mutations.removeValue(forKey: dataset.stableId)
         }
         return try? await withIndexGate {
-            try await reconcileAndActivateLocked(
-                dataset: dataset,
-                removeIncoming: transferFailed
-            )
+            try await reconcileAndActivateLocked(dataset: dataset)
         }
     }
 
@@ -190,30 +172,17 @@ actor KnowledgeProvider {
     }
 
     private func reconcileAndActivateLocked(
-        dataset: KnowledgeDatasetConfig,
-        removeIncoming: Bool = false
+        dataset: KnowledgeDatasetConfig
     ) async throws -> KnowledgeReconciliation {
-        let packRoot = packRoot(dataset)
+        let assetStore = assetStore
         let result = try await Task.detached(priority: .utility) {
-            if removeIncoming {
-                try? FileManager.default.removeItem(
-                    at: packRoot.appendingPathComponent(
-                        dataset.currentDownloadIdentity,
-                        isDirectory: true
-                    )
-                )
-            }
-            return try reconcileKnowledgePack(
-                packRoot: packRoot.path,
-                stableId: dataset.stableId
-            )
+            try assetStore.reconcileKnowledge(dataset.stableId)
         }.value
         try activate(result: result, dataset: dataset)
         if let activeIdentity = result.activeIdentity {
             _ = try? await Task.detached(priority: .utility) {
-                try cleanupObsoleteKnowledgePackRevisions(
-                    packRoot: packRoot.path,
-                    stableId: dataset.stableId,
+                try assetStore.cleanupKnowledgeRevisions(
+                    dataset.stableId,
                     activeIdentity: activeIdentity
                 )
             }.value
@@ -248,21 +217,5 @@ actor KnowledgeProvider {
         let gate = AsyncSerialGate()
         lifecycleGates[stableId] = gate
         return gate
-    }
-
-    private func packRoot(_ dataset: KnowledgeDatasetConfig) -> URL {
-        root.appendingPathComponent(dataset.stableId, isDirectory: true)
-    }
-}
-
-private final class KnowledgeDownloadCallbackSink: KnowledgeDownloadCallback, @unchecked Sendable {
-    private let onProgressHandler: @Sendable (KnowledgeDownloadProgress) -> Void
-
-    init(onProgress: @escaping @Sendable (KnowledgeDownloadProgress) -> Void) {
-        onProgressHandler = onProgress
-    }
-
-    func onProgress(progress: KnowledgeDownloadProgress) {
-        onProgressHandler(progress)
     }
 }

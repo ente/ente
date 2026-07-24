@@ -77,7 +77,6 @@ final class ChatViewModel: ObservableObject {
     let knowledgeStore: KnowledgeStore
 
     private let provider: LlmProvider
-    private let downloader: ModelDownloader
     private let knowledgeEmbedding: KnowledgeEmbeddingConfig
     private let knowledgeProvider: KnowledgeProvider
     private let voiceTranscriber: VoiceTranscriptionService
@@ -108,7 +107,7 @@ final class ChatViewModel: ObservableObject {
     private var pendingOverflow: PendingOverflow?
     private var overflowBypassMessageId: UUID?
 
-    init() {
+    init(assetStore: AssetStore) {
         logger.info("Initializing")
         let summaries = Self.loadSessionSummaries().reduce(into: [String: String]()) { result, item in
             result[item.key.lowercased()] = item.value
@@ -117,16 +116,17 @@ final class ChatViewModel: ObservableObject {
             ?? FileManager.default.temporaryDirectory
 
         let config = ConfigDefaults.shared
-        let downloader = ModelDownloader()
-        // Must initialize after the downloader migrates the persisted selection.
+        // Must initialize after the asset store migrates the persisted selection.
         self.modelSettings = ModelSettingsStore.shared
+        let transcription = transcriptionModelAsset()
+        let voiceActivity = voiceActivityModelAsset()
         let transcriber = Transcriber(
-            modelDir: downloader.modelDir(downloader.transcriptionTarget).path,
-            vadModelPath: downloader.voiceActivityModelPath().path
+            modelDir: assetStore.assetDir(transcription).path,
+            vadModelPath: assetStore.voiceActivityModelPath(voiceActivity).path
         )
-        let provider = LlmProvider(downloader: downloader, transcriber: transcriber, knowledgeEmbedding: config.knowledgeEmbedding)
-        let voiceTranscriber = VoiceTranscriptionService(transcriber: transcriber, downloader: downloader)
-        let knowledgeProvider = KnowledgeProvider(root: baseDir.appendingPathComponent("knowledge", isDirectory: true))
+        let provider = LlmProvider(assetStore: assetStore, transcriber: transcriber, knowledgeEmbedding: config.knowledgeEmbedding)
+        let voiceTranscriber = VoiceTranscriptionService(transcriber: transcriber, assetStore: assetStore)
+        let knowledgeProvider = KnowledgeProvider(assetStore: assetStore)
         let knowledgeStore = KnowledgeStore(datasets: config.knowledgeDatasets, provider: knowledgeProvider)
 
         // Chat DB + attachments.
@@ -166,7 +166,6 @@ final class ChatViewModel: ObservableObject {
 
         // Stored properties.
         self.provider = provider
-        self.downloader = downloader
         self.knowledgeEmbedding = config.knowledgeEmbedding
         self.knowledgeProvider = knowledgeProvider
         self.knowledgeStore = knowledgeStore
@@ -223,7 +222,6 @@ final class ChatViewModel: ObservableObject {
         editingMessageId = nil
         draftText = ""
         draftAttachments = []
-        downloader.cancel()
     }
 
     func dismissUnsupportedDeviceDialog() {
@@ -475,7 +473,7 @@ final class ChatViewModel: ObservableObject {
         guard !isGenerating && !isDownloading else { return }
         guard !isChatUnsupported else { return }
         let selection = modelSettings.currentSelection()
-        guard downloader.isDownloaded(selection.modelTarget) else { return }
+        guard provider.isChatModelReady(selection) else { return }
 
         Task { [weak self] in
             guard let self else { return }
@@ -766,7 +764,6 @@ final class ChatViewModel: ObservableObject {
 
         if let existingTask = sharedModelReadyTask, sharedModelReadyKey != modelKey {
             existingTask.cancel()
-            downloader.cancel()
             clearSharedModelReadyTask()
         }
 
@@ -905,7 +902,6 @@ final class ChatViewModel: ObservableObject {
         modelDownloadTask = nil
         sharedModelReadyTask?.cancel()
         clearSharedModelReadyTask()
-        downloader.cancel()
         if modelDownloadLoggedStart {
             logger.info("Model download cancelled")
             modelDownloadLoggedStart = false
@@ -1058,7 +1054,6 @@ final class ChatViewModel: ObservableObject {
             } catch {
                 if isCancellation(error) {
                     self.sharedModelReadyTask?.cancel()
-                    self.downloader.cancel()
                     self.clearSharedModelReadyTask()
                     if self.activeGenerationId == generationId {
                         isGenerating = false
@@ -1077,7 +1072,7 @@ final class ChatViewModel: ObservableObject {
                     downloadToast = DownloadToastState(
                         phase: .errorDownload,
                         percent: nil,
-                        status: self.userFacingModelReadyError(error, wasDownloaded: self.downloader.isDownloaded(selection.modelTarget)),
+                        status: self.userFacingModelReadyError(error, wasDownloaded: self.provider.isChatModelReady(selection)),
                         offerRetryDownload: true
                     )
                     activeGenerationId = nil
@@ -1887,6 +1882,7 @@ final class ChatViewModel: ObservableObject {
     private func isCancellation(_ error: Error) -> Bool {
         if error is CancellationError { return true }
         if case LlmError.Cancelled = error { return true }
+        if case AssetDownloadError.Cancelled = error { return true }
         return (error as? URLError)?.code == .cancelled
     }
 
@@ -1906,15 +1902,13 @@ final class ChatViewModel: ObservableObject {
             return false
         }
 
-        if case let LlmError.Download(inner) = error {
-            switch inner {
-            case .validation:
-                return false
-            case let .http(status):
-                if status == 401 || status == 403 || status == 404 { return false }
-            default:
-                break
-            }
+        switch error {
+        case AssetDownloadError.Validation:
+            return false
+        case let AssetDownloadError.Http(status):
+            if status == 401 || status == 403 || status == 404 { return false }
+        default:
+            break
         }
 
         return true
@@ -1938,7 +1932,7 @@ final class ChatViewModel: ObservableObject {
     }
 
     private func isOutOfStorageError(_ error: Error) -> Bool {
-        if case LlmError.Download(.storageFull) = error { return true }
+        if case AssetDownloadError.StorageFull = error { return true }
         return error.isOutOfDiskSpace
     }
 
