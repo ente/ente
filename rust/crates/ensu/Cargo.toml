@@ -3,9 +3,9 @@ name = "ente-ensu"
 edition = "2024"
 
 [dependencies]
+ente-assets.workspace = true
 ente-core.workspace = true
 ente-image.workspace = true
-ente-model-download.workspace = true
 memmap2 = "0.9.9"
 regex = { version = "1", optional = true }
 rubato = { version = "0.16", optional = true }
@@ -13,7 +13,6 @@ rusqlite = { version = "0.38", features = ["bundled"], optional = true }
 self_cell = "1"
 serde.workspace = true
 serde_json.workspace = true
-sha2 = "0.11.0"
 thiserror.workspace = true
 tokio = { version = "1", features = ["rt", "time"] }
 transcribe-rs = { version = "0.3.11", default-features = false, features = ["onnx", "vad-silero"], optional = true }

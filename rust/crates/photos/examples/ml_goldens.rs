@@ -16,7 +16,8 @@ use support::ml_indexing::{GoldenTestAssets, run_with_large_stack};
 
 const CLIP_TEXT_GOLDEN_PHRASE: &str = "a photo of a dog playing on a sunny beach";
 
-fn main() -> Result<()> {
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> Result<()> {
     let mut args = std::env::args().skip(1);
     let command = args.next();
     if args.next().is_some() {
@@ -24,13 +25,18 @@ fn main() -> Result<()> {
     }
 
     match command.as_deref() {
-        Some("generate") => run_with_large_stack("generate_goldens", generate),
+        Some("generate") => {
+            let assets = GoldenTestAssets::load().await?;
+            run_with_large_stack("generate_goldens", move || generate(assets))
+        }
         Some("validate-zero-separation") => {
-            run_with_large_stack("validate_zero_separation", validate_zero_separation)
+            let assets = GoldenTestAssets::load().await?;
+            run_with_large_stack("validate_zero_separation", move || {
+                validate_zero_separation(assets)
+            })
         }
         _ => bail!(usage()),
     }
-    Ok(())
 }
 
 fn usage() -> &'static str {
@@ -73,8 +79,7 @@ fn production_model_specs(assets: &GoldenTestAssets) -> Vec<GoldenModelSpec> {
     ]
 }
 
-fn generate() -> Result<()> {
-    let assets = GoldenTestAssets::load()?;
+fn generate(assets: GoldenTestAssets) -> Result<()> {
     let source = render_golden_data(&production_model_specs(&assets))
         .map_err(|error| anyhow::anyhow!("generating goldens: {error}"))?;
     let path = GoldenTestAssets::golden_data_path()?;
@@ -92,8 +97,7 @@ fn generate() -> Result<()> {
     Ok(())
 }
 
-fn validate_zero_separation() -> Result<()> {
-    let assets = GoldenTestAssets::load()?;
+fn validate_zero_separation(assets: GoldenTestAssets) -> Result<()> {
     for model_path in [
         &assets.face_detection.path,
         &assets.face_embedding.path,

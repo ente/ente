@@ -200,22 +200,24 @@ final class KnowledgeStore: ObservableObject {
     }
 
     private func userFacingKnowledgeError(_ error: Error) -> String {
-        guard case let KnowledgeDownloadError.Download(downloadError) = error else {
-            return "Knowledge pack setup failed. Please try again."
-        }
-        switch downloadError {
-        case .cancelled:
+        switch error {
+        case AssetDownloadError.Cancelled:
             return "Download cancelled"
-        case .storageFull:
+        case AssetDownloadError.StorageFull:
             return "Not enough storage space to download this knowledge pack."
-        case .network:
+        case AssetDownloadError.Network:
             return "Couldn't download the knowledge pack. Check your connection and try again."
-        case .http:
+        case AssetDownloadError.Http:
             return "The knowledge pack is currently unavailable. Please try again later."
-        case .validation, .sizeMismatch, .`protocol`, .invalidTarget:
+        case AssetDownloadError.Validation,
+             AssetDownloadError.SizeMismatch,
+             AssetDownloadError.Protocol,
+             AssetDownloadError.InvalidTarget:
             return "The knowledge pack couldn't be verified. Please try again."
-        case .io:
+        case AssetDownloadError.Io:
             return "Couldn't save the knowledge pack. Please try again."
+        default:
+            return "Knowledge pack setup failed. Please try again."
         }
     }
 }

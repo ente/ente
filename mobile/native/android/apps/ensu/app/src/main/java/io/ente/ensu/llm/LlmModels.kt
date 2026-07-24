@@ -1,10 +1,7 @@
 package io.ente.ensu.llm
 
-import io.ente.ensu.bindings.ModelTarget
-
 data class LlmModelSelection(
     val id: String,
-    val modelTarget: ModelTarget,
     val contextLength: Int? = null,
     val maxTokens: Int? = null
 )

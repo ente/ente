@@ -3,9 +3,8 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
+use ente_assets::{Asset, AssetStore, download};
 use ente_ensu::llm;
-use ente_model_download::download;
-use ente_model_download::{ModelDownloader, ModelTarget};
 use serde::Serialize;
 use tauri::async_runtime;
 use tauri::{AppHandle, Emitter, Manager, State as TauriState, WebviewWindow};
@@ -20,16 +19,19 @@ pub struct State {
 }
 
 pub struct ModelDownloadState {
-    downloader: Arc<ModelDownloader>,
-    models_dir: PathBuf,
+    store: Arc<AssetStore>,
+    assets_dir: PathBuf,
+    legacy_models_dir: PathBuf,
     active_token: Mutex<Option<download::CancellationToken>>,
 }
 
 impl ModelDownloadState {
-    pub fn new(models_dir: PathBuf) -> Self {
+    pub fn new(app_data_dir: PathBuf) -> Self {
+        let assets_dir = app_data_dir.join("assets");
         Self {
-            downloader: Arc::new(ModelDownloader::new(&models_dir)),
-            models_dir,
+            store: Arc::new(AssetStore::new(&assets_dir)),
+            assets_dir,
+            legacy_models_dir: app_data_dir.join("models"),
             active_token: Mutex::new(None),
         }
     }
@@ -94,8 +96,8 @@ fn fs_thread_error() -> ApiError {
     ApiError::new("io_thread", "FS task failed")
 }
 
-fn desktop_target(model_id: &str) -> Result<ModelTarget, ApiError> {
-    ente_ensu::model::desktop_llm_target(model_id)
+fn desktop_asset(model_id: &str) -> Result<Asset, ApiError> {
+    ente_ensu::model::desktop_llm_asset(model_id)
         .map_err(|err| ApiError::new("invalid_target", err.to_string()))
 }
 
@@ -245,14 +247,14 @@ pub fn llm_model_status(
     state: TauriState<'_, ModelDownloadState>,
     model_id: String,
 ) -> Result<ModelStatus, ApiError> {
-    let target = desktop_target(&model_id)?;
+    let asset = desktop_asset(&model_id)?;
     Ok(ModelStatus {
-        model_path: ente_ensu::model::llm_model_path(&state.downloader, &target)
+        model_path: ente_ensu::model::llm_model_path(&state.store, &asset)
             .map(|path| path.display().to_string())
             .unwrap_or_default(),
-        mmproj_path: ente_ensu::model::llm_mmproj_path(&state.downloader, &target)
+        mmproj_path: ente_ensu::model::llm_mmproj_path(&state.store, &asset)
             .map(|path| path.display().to_string()),
-        downloaded: state.downloader.is_downloaded(&target),
+        downloaded: state.store.is_downloaded(&asset),
     })
 }
 
@@ -262,12 +264,18 @@ pub async fn llm_migrate_models(
     legacy_model_url: Option<String>,
     legacy_mmproj_url: Option<String>,
 ) -> Result<Option<String>, ApiError> {
-    let models_dir = state.models_dir.clone();
+    let assets_dir = state.assets_dir.clone();
+    let legacy_models_dir = state.legacy_models_dir.clone();
     async_runtime::spawn_blocking(move || {
-        ente_ensu::model::migrations::migrate_desktop_models(
-            &models_dir,
-            legacy_model_url.as_deref(),
-            legacy_mmproj_url.as_deref(),
+        ente_ensu::model::migrations::migrate_ensu_assets(
+            &assets_dir,
+            ente_ensu::model::migrations::LegacyAssets {
+                llm_dir: None,
+                transcription_dir: None,
+                models_dir: Some(legacy_models_dir),
+                model_url: legacy_model_url,
+                mmproj_url: legacy_mmproj_url,
+            },
         )
     })
     .await
@@ -280,8 +288,8 @@ pub async fn llm_download_model(
     state: TauriState<'_, ModelDownloadState>,
     model_id: String,
 ) -> Result<(), ApiError> {
-    let downloader = Arc::clone(&state.downloader);
-    let target = desktop_target(&model_id)?;
+    let store = Arc::clone(&state.store);
+    let asset = desktop_asset(&model_id)?;
     let token = {
         let mut slot = state
             .active_token
@@ -297,35 +305,33 @@ pub async fn llm_download_model(
         *slot = Some(token.clone());
         token
     };
-    let result = async_runtime::spawn_blocking(move || {
-        downloader
-            .download(
-                std::slice::from_ref(&target),
-                |progress| {
-                    if let Some(line) = &progress.log_line {
-                        logging::log("LLMDownload", line.clone());
-                    }
-                    let _ = window.emit(
-                        "llm-download-progress",
-                        DownloadProgress {
-                            percent: progress.percent,
-                            status: progress.status,
-                            bytes_downloaded: progress.downloaded_bytes,
-                            total_bytes: progress.total_bytes,
-                        },
-                    );
-                },
-                &token,
-            )
-            .map_err(|err| ApiError::new(download_code(&err), err.to_string()))
-    })
-    .await
-    .map_err(|_| fs_thread_error());
+    let result = store
+        .download(
+            std::slice::from_ref(&asset),
+            |progress| {
+                let progress = ente_ensu::model::display_progress(&progress);
+                if let Some(line) = &progress.log_line {
+                    logging::log("LLMDownload", line.clone());
+                }
+                let _ = window.emit(
+                    "llm-download-progress",
+                    DownloadProgress {
+                        percent: progress.percent,
+                        status: progress.status,
+                        bytes_downloaded: progress.downloaded_bytes,
+                        total_bytes: progress.total_bytes,
+                    },
+                );
+            },
+            token,
+        )
+        .await
+        .map_err(|err| ApiError::new(download_code(&err), err.to_string()));
     *state
         .active_token
         .lock()
         .unwrap_or_else(PoisonError::into_inner) = None;
-    result?
+    result
 }
 
 #[tauri::command]

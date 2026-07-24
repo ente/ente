@@ -83,7 +83,8 @@ final class VoiceTranscriptionService {
     typealias TranscriptHandler = @MainActor @Sendable (String) -> Void
 
     private let transcriber: Transcriber
-    private let downloader: ModelDownloader
+    private let assetStore: AssetStore
+    private let modelAssets: [Asset]
     private var transcriptionTask: Task<Void, Never>?
     private var preloadTask: Task<Void, Never>?
     private var activeVoiceTaskId = UUID()
@@ -91,9 +92,10 @@ final class VoiceTranscriptionService {
 
     private let recorder = PcmAudioRecorder()
 
-    init(transcriber: Transcriber, downloader: ModelDownloader) {
+    init(transcriber: Transcriber, assetStore: AssetStore) {
         self.transcriber = transcriber
-        self.downloader = downloader
+        self.assetStore = assetStore
+        self.modelAssets = [transcriptionModelAsset(), voiceActivityModelAsset()]
     }
 
     func startRecording(
@@ -143,8 +145,6 @@ final class VoiceTranscriptionService {
         let taskId = beginVoiceTask()
         let downloadId = beginDownload(taskId: taskId)
         let transcriber = transcriber
-        let downloader = downloader
-        let targets = [downloader.transcriptionTarget, downloader.voiceActivityTarget]
         let sampleRate = recording.sampleRate
         let pcm = recording.pcm
 
@@ -188,6 +188,7 @@ final class VoiceTranscriptionService {
             } catch is CancellationError {
                 return
             } catch {
+                if case AssetDownloadError.Cancelled = error { return }
                 if case LlmError.Cancelled = error { return }
                 await MainActor.run { [weak self] in
                     self?.finishDownload(downloadId: downloadId)
@@ -239,6 +240,7 @@ final class VoiceTranscriptionService {
             } catch is CancellationError {
                 return
             } catch {
+                if case AssetDownloadError.Cancelled = error { return }
                 if case LlmError.Cancelled = error { return }
                 await MainActor.run { [weak self] in
                     self?.finishDownload(downloadId: downloadId)
@@ -254,17 +256,17 @@ final class VoiceTranscriptionService {
         downloadId: UUID,
         onState: @escaping StateHandler
     ) async throws {
-        let targets = await [downloader.transcriptionTarget, downloader.voiceActivityTarget]
-        let downloader = self.downloader
-        if targets.allSatisfy({ downloader.isDownloaded($0) }) {
+        let assets = await modelAssets
+        let assetStore = self.assetStore
+        if assets.allSatisfy({ assetStore.isDownloaded($0) }) {
             return
         }
         await MainActor.run { [weak self] in
             guard self?.isDownloadActive(taskId: taskId, downloadId: downloadId) == true else { return }
             onState(.downloading(percent: nil))
         }
-        try await downloader.download(targets: targets) { [weak self] progress in
-            let percent = progress.percent.map { min(max($0, 0), 100) }
+        try await assetStore.download(assets: assets) { [weak self] progress in
+            let percent = min(max(Int(progress.percentage), 0), 100)
             Task { @MainActor [weak self] in
                 guard self?.isDownloadActive(taskId: taskId, downloadId: downloadId) == true else { return }
                 onState(.downloading(percent: percent))

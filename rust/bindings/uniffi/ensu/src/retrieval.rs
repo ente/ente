@@ -3,8 +3,7 @@ use std::sync::Arc;
 use ente_ensu::retrieval as core;
 use thiserror::Error;
 
-use crate::download::DownloadError;
-use crate::model::CancellationToken;
+use crate::assets::{Asset, AssetStoreCore};
 
 #[derive(Debug, Error, uniffi::Error)]
 pub enum KnowledgeRetrievalError {
@@ -44,12 +43,6 @@ fn knowledge_dataset(
             detail: format!("unknown knowledge dataset ID: {stable_id}"),
         }
     })
-}
-
-#[derive(Debug, Error, uniffi::Error)]
-pub enum KnowledgeDownloadError {
-    #[error("knowledge download failed")]
-    Download { error: DownloadError },
 }
 
 #[derive(Debug, Clone, uniffi::Record)]
@@ -165,26 +158,34 @@ impl From<core::KnowledgeReconciliation> for KnowledgeReconciliation {
 
 #[uniffi::export]
 pub fn reconcile_knowledge_pack(
-    pack_root: String,
+    store: Arc<AssetStoreCore>,
     stable_id: String,
 ) -> Result<KnowledgeReconciliation, KnowledgeRetrievalError> {
-    core::reconcile_knowledge_pack(pack_root, &knowledge_dataset(&stable_id)?)
+    let dataset = knowledge_dataset(&stable_id)?;
+    let pack_root = core::knowledge_pack_root(store.store(), &dataset).map_err(|error| {
+        KnowledgeRetrievalError::InvalidInput {
+            detail: error.to_string(),
+        }
+    })?;
+    core::reconcile_knowledge_pack(pack_root, &dataset)
         .map(Into::into)
         .map_err(Into::into)
 }
 
 #[uniffi::export]
 pub fn cleanup_obsolete_knowledge_pack_revisions(
-    pack_root: String,
+    store: Arc<AssetStoreCore>,
     stable_id: String,
     active_identity: String,
 ) -> Result<(), KnowledgeRetrievalError> {
-    core::cleanup_obsolete_knowledge_pack_revisions(
-        pack_root,
-        &knowledge_dataset(&stable_id)?,
-        &active_identity,
-    )
-    .map_err(Into::into)
+    let dataset = knowledge_dataset(&stable_id)?;
+    let pack_root = core::knowledge_pack_root(store.store(), &dataset).map_err(|error| {
+        KnowledgeRetrievalError::InvalidInput {
+            detail: error.to_string(),
+        }
+    })?;
+    core::cleanup_obsolete_knowledge_pack_revisions(pack_root, &dataset, &active_identity)
+        .map_err(Into::into)
 }
 
 #[derive(Debug, Clone, uniffi::Record)]
@@ -289,47 +290,12 @@ pub fn clean_assistant_text(stored_text: String) -> String {
     core::clean_assistant_text(&stored_text)
 }
 
-#[derive(Debug, Clone, uniffi::Record)]
-pub struct KnowledgeDownloadProgress {
-    pub label: String,
-    pub percentage: f64,
-}
-
-impl From<ente_model_download::download::Progress> for KnowledgeDownloadProgress {
-    fn from(value: ente_model_download::download::Progress) -> Self {
-        Self {
-            label: value.label,
-            percentage: value.percentage,
-        }
-    }
-}
-
-#[uniffi::export(callback_interface)]
-pub trait KnowledgeDownloadCallback: Send + Sync {
-    fn on_progress(&self, progress: KnowledgeDownloadProgress);
-}
-
 #[uniffi::export]
-pub fn download_knowledge_pack(
-    pack_root: String,
-    stable_id: String,
-    callback: Box<dyn KnowledgeDownloadCallback>,
-    cancellation: Arc<CancellationToken>,
-) -> Result<(), KnowledgeDownloadError> {
-    let expected_dataset = ente_ensu::config::knowledge_dataset(&stable_id).ok_or_else(|| {
-        KnowledgeDownloadError::Download {
-            error: DownloadError::InvalidTarget {
-                message: format!("unknown knowledge dataset ID: {stable_id}"),
-            },
-        }
-    })?;
-    core::download_knowledge_pack(
-        pack_root,
-        &expected_dataset,
-        move |progress| callback.on_progress(progress.into()),
-        cancellation.inner.clone(),
-    )
-    .map_err(|error| KnowledgeDownloadError::Download {
-        error: error.into(),
-    })
+pub fn knowledge_pack_asset(stable_id: String) -> Result<Arc<Asset>, KnowledgeRetrievalError> {
+    let dataset = knowledge_dataset(&stable_id)?;
+    core::knowledge_asset(&dataset)
+        .map(Asset::new)
+        .map_err(|error| KnowledgeRetrievalError::InvalidInput {
+            detail: error.to_string(),
+        })
 }

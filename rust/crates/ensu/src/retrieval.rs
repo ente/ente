@@ -45,6 +45,7 @@ pub use citation::{
 pub use index::{RetrievalHit, RetrievalIndex};
 pub use pack::{
     KnowledgeReconciliation, KnowledgeReconciliationStatus,
-    cleanup_obsolete_knowledge_pack_revisions, download_knowledge_pack, reconcile_knowledge_pack,
+    cleanup_obsolete_knowledge_pack_revisions, knowledge_asset, knowledge_pack_root,
+    reconcile_knowledge_pack,
 };
 pub use prompt::{KnowledgePromptContext, KnowledgePromptHit, build_knowledge_prompt_context};

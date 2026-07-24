@@ -9,11 +9,11 @@ import io.ente.ensu.llm.DownloadPhase
 import io.ente.ensu.llm.LlmMessage
 import io.ente.ensu.llm.LlmMessageRole
 import io.ente.ensu.llm.LlmModelSelection
-import io.ente.ensu.llm.ModelDownloader
 import io.ente.ensu.llm.LlmProvider
 import io.ente.ensu.chat.Attachment
 import io.ente.ensu.chat.ChatMessage
 import io.ente.ensu.chat.ChatSession
+import io.ente.ensu.bindings.AssetDownloadException
 import io.ente.ensu.bindings.DbException
 import io.ente.ensu.bindings.LlmException
 import io.ente.ensu.bindings.ConfigDefaults
@@ -50,7 +50,6 @@ internal class ChatStoreActions(
     private val chatRepository: ChatRepository,
     private val llmProvider: LlmProvider,
     private val knowledgeProvider: KnowledgeProvider,
-    private val modelDownloader: ModelDownloader,
     private val clock: () -> Long,
     private val logRepository: FileLogRepository,
     private val messageStore: MutableMap<String, MutableList<ChatMessage>>,
@@ -533,7 +532,8 @@ internal class ChatStoreActions(
                 }
             } catch (err: Throwable) {
                 val cancelled = err is kotlinx.coroutines.CancellationException ||
-                    err is LlmException.Cancelled
+                    err is LlmException.Cancelled ||
+                    err is AssetDownloadException.Cancelled
                 if (!isActive()) return@launch
                 streamingParentId = null
                 state.update { appState ->
@@ -915,7 +915,7 @@ internal class ChatStoreActions(
         if (!state.value.chat.deviceCapability.isChatSupported()) {
             return sessionTitleFromText(fallback, fallback = fallback)
         }
-        if (!modelDownloader.isDownloaded(selection.modelTarget)) {
+        if (!llmProvider.isChatModelReady(selection)) {
             return sessionTitleFromText(fallback, fallback = fallback)
         }
         val cleanedInput = sanitizeTitleText(input)

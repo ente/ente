@@ -12,24 +12,24 @@ members = [
     "bindings/wasm/core",
     "bindings/wasm/space",
     "crates/accounts",
+    "crates/assets",
     "crates/contacts",
     "crates/core",
     "crates/ensu",
-    "crates/paste",
     "crates/image",
-    "crates/model-download",
+    "crates/paste",
     "crates/photos",
     "crates/test-support",
     "space",
 ]
 
 [workspace.dependencies]
-ente-ensu = { path = "crates/ensu" }
 ente-accounts = { path = "crates/accounts" }
+ente-assets = { path = "crates/assets" }
 ente-contacts = { path = "crates/contacts" }
 ente-core = { path = "crates/core" }
+ente-ensu = { path = "crates/ensu" }
 ente-image = { path = "crates/image" }
-ente-model-download = { path = "crates/model-download" }
 ente-paste = { path = "crates/paste" }
 ente-photos = { path = "crates/photos" }
 ente-rs = { path = "apps/cli" }
