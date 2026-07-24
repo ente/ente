@@ -2,6 +2,9 @@
 cmake_minimum_required(VERSION 3.14)
 project(auth LANGUAGES CXX)
 
+# Preserve the pre-Sentry 9 desktop crash-handling behavior.
+set(ENV{SENTRY_NATIVE_BACKEND} "none")
+
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
 set(BINARY_NAME "auth")

@@ -2,7 +2,7 @@ plugins {
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
-    id 'org.jetbrains.kotlin.plugin.serialization' version '2.1.10'
+    id 'org.jetbrains.kotlin.plugin.serialization' version '2.2.0'
 }
 
 def localProperties = new Properties()
@@ -194,7 +194,6 @@ flutter {
 }
 
 dependencies {
-    implementation 'io.sentry:sentry-android:2.0.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0'
     implementation 'com.android.support:multidex:1.0.3'
     implementation 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'

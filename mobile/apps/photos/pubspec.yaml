@@ -215,9 +215,9 @@ dependencies:
       ref: 2cea396843cd3ab1b5ec4334be4233864637874e
   rive: 0.14.0-dev.13
   scrollable_positioned_list: 0.3.8
-  sentry: 8.14.2
-  sentry_flutter: 8.14.2
-  share_plus: 11.1.0
+  sentry: 9.6.0
+  sentry_flutter: 9.6.0
+  share_plus: 12.0.0
   shared_preferences: 2.5.3
   sqflite: 2.4.2
   sqflite_migration: 0.3.0

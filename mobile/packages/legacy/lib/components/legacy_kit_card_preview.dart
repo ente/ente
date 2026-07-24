@@ -58,9 +58,9 @@ class LegacyKitCardPreview extends StatelessWidget {
                     const Text(
                       "Legacy Kit",
                       style: TextStyle(
-                        fontFamily: "Nunito",
-                        package: "ente_legacy",
-                        fontWeight: FontWeight.w800,
+                        fontFamily: TextStyles.outfitFontFamily,
+                        package: TextStyles.fontPackage,
+                        fontWeight: FontWeight.w700,
                         fontSize: 11,
                         color: Color(0xFF1C1C1C),
                       ),

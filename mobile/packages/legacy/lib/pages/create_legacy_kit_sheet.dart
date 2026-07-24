@@ -11,6 +11,8 @@ import "package:ente_ui/utils/toast_util.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 
+const _legacyKitPartNameMaxLength = 50;
+
 Future<void> showCreateLegacyKitPage(
   BuildContext context, {
   required String accountEmail,
@@ -101,6 +103,7 @@ class _CreateLegacyKitPageState extends State<CreateLegacyKitPage> {
                       controller: _controllers[index],
                       focusNode: _focusNodes[index],
                       hintText: context.strings.addTrustedPerson,
+                      maxLength: _legacyKitPartNameMaxLength,
                       textCapitalization: TextCapitalization.words,
                       textInputAction: index < _controllers.length - 1
                           ? TextInputAction.next
