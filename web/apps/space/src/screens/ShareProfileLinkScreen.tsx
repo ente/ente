@@ -7,9 +7,9 @@ import type { SetupProfile } from "screens/SetupProfileScreen";
 export const shareProfileLinkBackground = "#FAFAFA";
 
 const green = "#08C225";
-const textBase = "#000";
-const textMuted = "#666";
-const avatarSkeletonBackground = "#E6E6E6";
+const textBase = "var(--text-color)";
+const textMuted = "var(--text-muted)";
+const avatarSkeletonBackground = "var(--feed-skeleton-bg)";
 const headerHeight = 64;
 const headerSideWidth = 32;
 
@@ -96,7 +96,7 @@ export const ShareProfileLinkScreen: React.FC<ShareProfileLinkScreenProps> = ({
                             src="/images/space.svg"
                             sx={{
                                 display: "block",
-                                filter: "invert(1)",
+                                filter: "var(--space-logo-filter, invert(1))",
                                 height: 18,
                                 width: "auto",
                             }}
@@ -235,7 +235,7 @@ export const ShareProfileLinkScreen: React.FC<ShareProfileLinkScreenProps> = ({
                             onClick={onDone}
                             sx={{
                                 alignItems: "center",
-                                bgcolor: "#F2F2F2",
+                                bgcolor: "var(--feed-action-bg)",
                                 border: 0,
                                 borderRadius: "20px",
                                 color: textMuted,

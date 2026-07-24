@@ -71,6 +71,7 @@ export interface SpaceAppState {
     profileLoadStatus: SpaceProfileLoadStatus;
     skipNextHomeFeedSkeleton: boolean;
     signupEmail: string;
+    isDarkMode: boolean;
     refreshProfile: (
         options?: RefreshSpaceProfileOptions,
     ) => Promise<SetupProfile | null>;
@@ -101,6 +102,7 @@ export interface SpaceAppState {
     setProfile: (profile: SetupProfile | null) => void;
     setSkipNextHomeFeedSkeleton: React.Dispatch<React.SetStateAction<boolean>>;
     setSignupEmail: React.Dispatch<React.SetStateAction<string>>;
+    setIsDarkMode: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const initialFriends = (): FriendProfile[] => [];

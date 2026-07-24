@@ -5,6 +5,7 @@ import {
     CustomerSupportIcon,
     Image01Icon,
     Logout05Icon,
+    Moon02Icon,
     UserEdit01Icon,
     UserIcon,
 } from "@hugeicons/core-free-icons";
@@ -14,16 +15,18 @@ import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
 import type { SpaceActionPhase } from "components/SpaceActionFeedback";
 import { SpaceButtonSpinner } from "components/SpaceButtonSpinner";
 import React from "react";
+import { useSpaceAppState } from "state/spaceAppState";
 import { spaceTouchTargetSize } from "styles/touchTargets";
 
-export const settingsBackground = "#FAFAFA";
+export const settingsBackground = "var(--bg-color)";
 
 const green = "#08C225";
-const textBase = "#000";
-const rowBackground = "#FFFFFF";
-const dangerColor = "#F63A3A";
-const iconMuted = "#8C8C8C";
-const textLight = "#969696";
+const textBase = "var(--text-color)";
+const rowBackground = "var(--row-bg-color)";
+const rowHoverBackground = "var(--row-hover-bg-color)";
+const dangerColor = "var(--danger-color)";
+const iconMuted = "var(--text-muted)";
+const textLight = "var(--text-secondary)";
 const supportMailURL = "mailto:support@ente.com";
 const spaceLinks = [
     {
@@ -122,12 +125,12 @@ const SettingsRow: React.FC<SettingsRowProps> = ({
             textAlign: "left",
             transition: "background-color 120ms ease",
             width: "100%",
-            "&:active": { bgcolor: "rgba(0, 0, 0, 0.025)" },
+            "&:active": { bgcolor: rowHoverBackground },
             "&:focus-visible": {
                 outline: `2px solid ${green}`,
                 outlineOffset: 2,
             },
-            "&:hover": { bgcolor: "rgba(0, 0, 0, 0.025)" },
+            "&:hover": { bgcolor: rowHoverBackground },
         }}
     >
         <Box
@@ -216,11 +219,109 @@ const SpaceIcon: React.FC<SpaceIconProps> = ({ label, src, url }) => (
     </Box>
 );
 
+interface DarkModeToggleProps {
+    isDarkMode: boolean;
+    onToggle: () => void;
+}
+
+const DarkModeToggle: React.FC<DarkModeToggleProps> = ({
+    isDarkMode,
+    onToggle,
+}) => (
+    <Box
+        component="button"
+        type="button"
+        onClick={onToggle}
+        sx={{
+            alignItems: "center",
+            bgcolor: rowBackground,
+            border: 0,
+            borderRadius: "20px",
+            boxSizing: "border-box",
+            cursor: "pointer",
+            display: "flex",
+            justifyContent: "space-between",
+            minHeight: 56,
+            p: "8px",
+            width: "100%",
+            "&:active": { bgcolor: rowHoverBackground },
+            "&:focus-visible": {
+                borderRadius: "20px",
+                outline: `2px solid ${green}`,
+                outlineOffset: 2,
+            },
+            "&:hover": { bgcolor: rowHoverBackground },
+        }}
+    >
+        <Box
+            sx={{
+                alignItems: "center",
+                display: "flex",
+                gap: "4px",
+                minWidth: 0,
+            }}
+        >
+            <Box
+                sx={{
+                    alignItems: "center",
+                    borderRadius: "12px",
+                    color: iconMuted,
+                    display: "flex",
+                    flexShrink: 0,
+                    height: 40,
+                    justifyContent: "center",
+                    width: 40,
+                }}
+            >
+                <HugeiconsIcon icon={Moon02Icon} size={20} strokeWidth={1.6} />
+            </Box>
+            <Box
+                sx={{
+                    color: textBase,
+                    fontFamily: '"Inter Variable", Inter, sans-serif',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    lineHeight: "17px",
+                    minWidth: 0,
+                }}
+            >
+                Dark Mode
+            </Box>
+        </Box>
+        <Box
+            sx={{
+                bgcolor: isDarkMode ? green : "#D1D1D6",
+                borderRadius: "14px",
+                flexShrink: 0,
+                height: 28,
+                position: "relative",
+                transition: "background-color 200ms ease",
+                width: 48,
+            }}
+        >
+            <Box
+                sx={{
+                    bgcolor: "var(--text-color)",
+                    borderRadius: "50%",
+                    height: 24,
+                    left: isDarkMode ? 22 : 2,
+                    position: "absolute",
+                    top: 2,
+                    transition: "left 200ms ease",
+                    width: 24,
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                }}
+            />
+        </Box>
+    </Box>
+);
+
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     onLogout,
     onBack,
     onOpenProfile,
 }) => {
+    const { isDarkMode, setIsDarkMode } = useSpaceAppState();
     const [logoutSheetOpen, setLogoutSheetOpen] = React.useState(false);
     const [logoutActionPhase, setLogoutActionPhase] =
         React.useState<SpaceActionPhase | null>(null);
@@ -341,6 +442,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                         label="Profile"
                         onClick={onOpenProfile}
                     />
+                    <DarkModeToggle isDarkMode={isDarkMode} onToggle={() => setIsDarkMode(!isDarkMode)} />
                     <SettingsRow
                         href={supportMailURL}
                         icon={CustomerSupportIcon}

@@ -3,6 +3,7 @@ import "@fontsource/nunito/800.css";
 import { CssBaseline } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import { SpaceRouteTransitionBoundary } from "components/SpaceRouteTransitionBoundary";
+import { SpaceThemeManager } from "components/SpaceThemeManager";
 import "configureZod";
 import { CustomHead } from "ente-base/components/Head";
 import { useSetupLogs } from "ente-base/components/utils/hooks-app";
@@ -27,7 +28,7 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
                 title="Ente Space"
                 viewportContent="width=device-width, initial-scale=1, maximum-scale=1"
             >
-                <meta name="color-scheme" content="only light" />
+                <meta name="color-scheme" content="light dark" />
                 <meta name="application-name" content="Ente Space" />
                 <meta name="mobile-web-app-capable" content="yes" />
                 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -42,10 +43,12 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
                     href="/images/apple-touch-icon.png"
                 />
             </CustomHead>
-            <CssBaseline enableColorScheme />
+            <CssBaseline />
             <SpaceRouteTransitionBoundary>
                 <SpaceAppStateProvider>
-                    <Component {...pageProps} />
+                    <SpaceThemeManager>
+                        <Component {...pageProps} />
+                    </SpaceThemeManager>
                 </SpaceAppStateProvider>
             </SpaceRouteTransitionBoundary>
         </ThemeProvider>

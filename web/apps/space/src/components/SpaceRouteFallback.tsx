@@ -62,7 +62,7 @@ export const SpaceRouteFallback: React.FC<SpaceRouteFallbackProps> = ({
                     <Box
                         role="alert"
                         sx={{
-                            color: "#111111",
+                            color: "var(--text-color)",
                             fontFamily: '"Inter Variable", Inter, sans-serif',
                             fontSize: 14,
                             fontWeight: 600,

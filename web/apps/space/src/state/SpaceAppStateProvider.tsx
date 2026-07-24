@@ -58,6 +58,12 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
         useState<SpaceProfileLoadStatus>("loading");
     const [skipNextHomeFeedSkeleton, setSkipNextHomeFeedSkeleton] =
         useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        if (typeof window !== "undefined") {
+            return localStorage.getItem("space-dark-mode") === "true";
+        }
+        return false;
+    });
     const [signupEmail, setSignupEmail] = useState("");
     const avatarURLRef = useRef<string | null>(null);
     const coverURLRef = useRef<string | null>(null);
@@ -222,7 +228,22 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
         setSkipNextHomeFeedSkeleton(false);
         setLocalFeedPosts([]);
         setFriends(initialFriends());
+        setIsDarkMode(false); // auto reset dark mode on logout
     }, [applyProfile]);
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            localStorage.setItem("space-dark-mode", String(isDarkMode));
+        }
+    }, [isDarkMode]);
+
+    useEffect(() => {
+        if (isDarkMode) {
+            document.documentElement.classList.add("dark-mode");
+        } else {
+            document.documentElement.classList.remove("dark-mode");
+        }
+    }, [isDarkMode]);
 
     useEffect(() => {
         void refreshProfile();
@@ -274,6 +295,7 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
             profileLoadError,
             profileLoadStatus,
             skipNextHomeFeedSkeleton,
+            isDarkMode,
             refreshProfile,
             resetAfterLogout,
             setFriends,
@@ -287,8 +309,9 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
             setPendingCreateProfile,
             setProfile: applyProfile,
             setSkipNextHomeFeedSkeleton,
-            setSignupEmail,
+            setIsDarkMode,
             signupEmail,
+            setSignupEmail,
         }),
         [
             friends,
@@ -303,11 +326,24 @@ export const SpaceAppStateProvider: React.FC<React.PropsWithChildren> = ({
             profile,
             profileLoadError,
             profileLoadStatus,
-            skipNextHomeFeedSkeleton,
+            skipNextHomeFeedSkeleton, 
+            isDarkMode,
             refreshProfile,
             resetAfterLogout,
+            setFriends,
+            setIsLiveSignupVerification,
+            setLocalFeedPosts,
+            setOnboardingEntrySource,
+            setPendingLoginCredentials,
+            setPendingPasskeyVerification,
+            setPendingProfileAvatarFile,
+            setPendingProfileCoverFile,
+            setPendingCreateProfile,
+            setSkipNextHomeFeedSkeleton,
+            setIsDarkMode,
             signupEmail,
-            applyProfile,
+            setSignupEmail,
+            applyProfile, 
         ],
     );
 

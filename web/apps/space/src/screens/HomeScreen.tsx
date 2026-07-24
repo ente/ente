@@ -45,17 +45,17 @@ import {
 } from "utils/spacePostImage";
 import { thumbHashDataURLFromBase64 } from "utils/thumbhash";
 
-export const homeBackground = "#F5F5F7";
+export const homeBackground = "var(--home-bg-color)";
 
 const green = "#08C225";
 const paleGreen = "#E7F6E9";
-const feedCardBackground = "#FFFFFF";
-const feedActionBackground = "#F7F7F7";
-const feedActionBackgroundHover = "#EFEFEF";
-const feedSkeletonElementBackground = "#E6E6E6";
-const textBase = "#000";
-const textSecondary = "#6B6B6B";
-const dangerColor = "#F63A3A";
+const feedCardBackground = "var(--feed-card-bg)";
+const feedActionBackground = "var(--feed-action-bg)";
+const feedActionBackgroundHover = "var(--feed-action-hover-bg)";
+const feedSkeletonElementBackground = "var(--feed-skeleton-bg)";
+const textBase = "var(--text-color)";
+const textSecondary = "var(--text-secondary)";
+const dangerColor = "var(--danger-color)";
 const headerActionSize = spaceTouchTargetSize;
 const headerAvatarSize = 28;
 const feedAvatarSize = 38;
@@ -1146,7 +1146,7 @@ const AddedFriendToast: React.FC<AddedFriendToastProps> = ({
             aria-live="polite"
             sx={{
                 alignItems: "center",
-                bgcolor: "#FFFFFF",
+                bgcolor: "var(--feed-card-bg)",
                 borderRadius: "18px",
                 boxShadow: "0 12px 32px rgba(0, 0, 0, 0.18)",
                 boxSizing: "border-box",
@@ -1894,7 +1894,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                             src="/images/space.svg"
                             sx={{
                                 display: "block",
-                                filter: "invert(1)",
+                                filter: "var(--space-logo-filter, none)",
                                 height: 18,
                                 width: "auto",
                             }}
@@ -2094,6 +2094,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                                     display: "block",
                                     height: "auto",
                                     width: 220,
+                                    filter: "var(--ducky-filter, none)",
                                     "@media (max-width: 340px)": { width: 196 },
                                 }}
                             />
@@ -2126,7 +2127,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                                     onSharingChange={setIsInviteSharing}
                                     sx={{
                                         alignItems: "center",
-                                        bgcolor: "#E8E8E8",
+                                        bgcolor: "var(--feed-action-bg)",
                                         border: 0,
                                         borderRadius: "18px",
                                         color: textBase,
@@ -2153,7 +2154,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                                         },
                                         "&:hover":
                                             profileLink && !isInviteSharing
-                                                ? { bgcolor: "#DEDEDE" }
+                                                ? { bgcolor: "var(--feed-action-hover-bg)" }
                                                 : undefined,
                                     }}
                                 />

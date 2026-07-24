@@ -6,9 +6,9 @@ import Cropper, { type Area, type Point } from "react-easy-crop";
 import { spaceTouchTargetSize } from "styles/touchTargets";
 
 const green = "#08C225";
-const textBase = "#000";
-const textLight = "#969696";
-const warning = "#F63A3A";
+const textBase = "var(--text-color)";
+const textLight = "var(--text-muted)";
+const warning = "var(--danger-color)";
 
 export const spaceAppAvatarCropSize =
     "min(calc(100vw - 48px), calc(100dvh - 308px), 342px)";
@@ -101,10 +101,10 @@ const SpaceAvatarCropPageSecondaryAction: React.FC<{
         sx={{
             alignItems: "center",
             alignSelf: "center",
-            bgcolor: variant == "button" ? "#F2F2F2" : "transparent",
+            bgcolor: variant == "button" ? "var(--feed-action-bg)" : "transparent",
             border: 0,
             borderRadius: variant == "button" ? "20px" : 0,
-            color: "#666",
+            color: "var(--text-muted)",
             cursor: disabled ? "default" : "pointer",
             display: "flex",
             fontFamily: '"Inter Variable", Inter, sans-serif',
@@ -297,7 +297,7 @@ export const SpaceAvatarCropPage: React.FC<SpaceAvatarCropPageProps> = ({
                 <Box
                     sx={{
                         alignSelf: "center",
-                        bgcolor: isSquareCrop ? "#111" : "#FFFFFF",
+                        bgcolor: isSquareCrop ? "var(--feed-skeleton-bg)" : "var(--feed-card-bg)",
                         borderRadius: isSquareCrop
                             ? "50%"
                             : isCoverCrop

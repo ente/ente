@@ -3,9 +3,9 @@ import { SpaceBottomSheetTransition } from "components/SpaceBottomSheetTransitio
 import { SpaceShareInviteButton } from "components/SpaceShareInviteButton";
 import React from "react";
 
-const textBase = "#000";
-const textSoft = "#777777";
-const dangerColor = "#F63A3A";
+const textBase = "var(--text-color)";
+const textSoft = "var(--text-secondary)";
+const dangerColor = "var(--danger-color)";
 
 interface SpaceInviteFriendsDialogProps {
     open: boolean;
@@ -43,7 +43,7 @@ export const SpaceInviteFriendsDialog: React.FC<
                 backdrop: { sx: { backgroundColor: "rgba(0, 0, 0, 0.48)" } },
                 paper: {
                     sx: {
-                        bgcolor: "#FAFAFA",
+                        bgcolor: "var(--bg-color)",
                         borderRadius: "28px 28px 0 0",
                         bottom: 0,
                         boxShadow: "none",

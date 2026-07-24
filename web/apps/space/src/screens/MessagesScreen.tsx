@@ -31,25 +31,25 @@ import { spaceTouchTargetSize } from "styles/touchTargets";
 import { firstNameFrom } from "utils/spaceDisplay";
 import { clampSpaceMessageText } from "utils/spaceMessageLimits";
 
-export const messagesBackground = "#FFFFFF";
+export const messagesBackground = "var(--bg-color)";
 
 const green = "#08C225";
-const textBase = "#000000";
-const textSecondary = "#777777";
-const lightSurface = "#F2F2F2";
-const lightSurfaceHover = "#E8E8E8";
-const composerSurface = "#FFFFFF";
-const composerBorder = "#DEDEDE";
+const textBase = "var(--text-color)";
+const textSecondary = "var(--text-secondary)";
+const lightSurface = "var(--feed-action-bg)";
+const lightSurfaceHover = "var(--feed-action-hover-bg)";
+const composerSurface = "var(--row-bg-color)";
+const composerBorder = "var(--text-muted)";
 const outgoingBubble = "#0DAF35";
-const incomingBubble = lightSurface;
+const incomingBubble = "var(--feed-action-bg)";
 const outgoingMessageText = "#FFFFFF";
-const incomingMessageText = "#111111";
+const incomingMessageText = "var(--text-color)";
 const outgoingQuoteBubble = "#9EDFAE";
-const incomingQuoteBubble = "#FAFAFA";
-const incomingQuoteText = "#BDBDBD";
+const incomingQuoteBubble = "var(--row-bg-color)";
+const incomingQuoteText = "var(--text-muted)";
 const outgoingQuoteText = "#FFFFFF";
-const quoteRule = "#EEEEEE";
-const dangerColor = "#F63A3A";
+const quoteRule = "var(--text-muted)";
+const dangerColor = "var(--danger-color)";
 const composerHeight = 48;
 const composerMaxHeight = 112;
 const messageBubblePaddingX = "16px";
@@ -2579,20 +2579,19 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
                                             onSharingChange={setIsInviteSharing}
                                             sx={{
                                                 alignItems: "center",
-                                                bgcolor: "#F2F2F2",
+                                                bgcolor: "var(--feed-action-bg)",
                                                 border: 0,
                                                 borderRadius: "18px",
                                                 color: textBase,
                                                 cursor:
-                                                    profileLink &&
-                                                    !isInviteSharing
+                                                    profileLink && !isInviteSharing
                                                         ? "pointer"
                                                         : "default",
                                                 display: "inline-flex",
                                                 fontFamily:
                                                     '"Inter Variable", Inter, sans-serif',
                                                 fontSize: 13,
-                                                fontWeight: 600,
+                                                fontWeight: 650,
                                                 gap: "6px",
                                                 height: spaceTouchTargetSize,
                                                 justifyContent: "center",
@@ -2606,9 +2605,8 @@ export const MessagesScreen: React.FC<MessagesScreenProps> = ({
                                                     outlineOffset: 2,
                                                 },
                                                 "&:hover":
-                                                    profileLink &&
-                                                    !isInviteSharing
-                                                        ? { bgcolor: "#E8E8E8" }
+                                                    profileLink && !isInviteSharing
+                                                        ? { bgcolor: "var(--feed-action-hover-bg)" }
                                                         : undefined,
                                             }}
                                         />

@@ -7,8 +7,8 @@ import { SpaceBottomSheetTransition } from "components/SpaceBottomSheetTransitio
 import React from "react";
 
 const green = "#08C225";
-const dangerColor = "#F63A3A";
-const textBase = "#000";
+const dangerColor = "var(--danger-color)";
+const textBase = "var(--text-color)";
 
 interface ConfirmationActionSheetProps {
     appearance?: "light" | "dark";
@@ -80,7 +80,7 @@ export const ConfirmationActionSheet: React.FC<
                 },
                 paper: {
                     sx: {
-                        bgcolor: isDark ? "#1E1E1E" : "#FAFAFA",
+                        bgcolor: isDark ? "var(--feed-card-bg)" : "var(--bg-color)",
                         borderRadius: "28px 28px 0 0",
                         bottom: 0,
                         boxShadow: "none",
@@ -132,7 +132,7 @@ export const ConfirmationActionSheet: React.FC<
                 {description && (
                     <Box
                         sx={{
-                            color: isDark ? "#BDBDBD" : "#666666",
+                            color: isDark ? "var(--text-muted)" : "var(--text-secondary)",
                             fontFamily: '"Inter Variable", Inter, sans-serif',
                             fontSize: 13,
                             lineHeight: "18px",
@@ -162,8 +162,8 @@ export const ConfirmationActionSheet: React.FC<
                     />
                     <SheetButton
                         label={cancelLabel}
-                        backgroundColor={isDark ? "#333333" : "#F2F2F2"}
-                        color={isDark ? "#D8D8D8" : "#666666"}
+                        backgroundColor={isDark ? "var(--row-bg-color)" : "var(--feed-action-bg)"}
+                        color={isDark ? "var(--text-secondary)" : "var(--text-secondary)"}
                         disabled={cancelDisabled}
                         onClick={onCancel}
                     />

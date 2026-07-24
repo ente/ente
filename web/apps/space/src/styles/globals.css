@@ -1,6 +1,41 @@
-.green-bg {
-    background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAsTAAALEwEAmpwYAAABaWlDQ1BEaXNwbGF5IFAzAAB4nHWQvUvDUBTFT6tS0DqIDh0cMolD1NIKdnFoKxRFMFQFq1OafgltfCQpUnETVyn4H1jBWXCwiFRwcXAQRAcR3Zw6KbhoeN6XVNoi3sfl/Ticc7lcwBtQGSv2AijplpFMxKS11Lrke4OHnlOqZrKooiwK/v276/PR9d5PiFlNu3YQ2U9cl84ul3aeAlN//V3Vn8maGv3f1EGNGRbgkYmVbYsJ3iUeMWgp4qrgvMvHgtMunzuelWSc+JZY0gpqhrhJLKc79HwHl4plrbWD2N6f1VeXxRzqUcxhEyYYilBRgQQF4X/8044/ji1yV2BQLo8CLMpESRETssTz0KFhEjJxCEHqkLhz634PrfvJbW3vFZhtcM4v2tpCAzidoZPV29p4BBgaAG7qTDVUR+qh9uZywPsJMJgChu8os2HmwiF3e38M6Hvh/GMM8B0CdpXzryPO7RqFn4Er/QcXKWq8MSlPPgAAABBJREFUeAEBBQD6/wAIwiX/A7QB7/maltEAAAAASUVORK5CYII=")
-        repeat;
+.dark-mode {
+    --bg-color: #161616;
+    --home-bg-color: #161616;
+    --profile-bg-color: #161616;
+    --row-bg-color: #212121;
+    --row-hover-bg-color: #292929;
+    --feed-card-bg: #212121;
+    --feed-action-bg: #141414;
+    --feed-action-hover-bg: #292929;
+    --feed-skeleton-bg: #0A0A0A;
+    --text-color: #FFFFFF;
+    --text-secondary: #E5E5E5; 
+    --text-muted: #CCCCCC;
+    --danger-color: #F63A3A;
+    --ducky-filter: invert(1) brightness(0.9);
+    --space-logo-filter: invert(1);
+}
+
+:root {
+    --bg-color: #FAFAFA;
+    --home-bg-color: #F5F5F7;
+    --profile-bg-color: #FFFFFF;
+    --row-bg-color: #FFFFFF;
+    --row-hover-bg-color: rgba(0, 0, 0, 0.025);
+    --feed-card-bg: #FFFFFF;
+    --feed-action-bg: #F7F7F7;
+    --feed-action-hover-bg: #EFEFEF;
+    --feed-skeleton-bg: #E6E6E6;
+    --text-color: #000000;
+    --text-secondary: #6B6B6B;
+    --text-muted: #8E8E93;
+    --danger-color: #F63A3A;
+}
+
+html, body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 200ms ease, color 200ms ease;
 }
 
 :where(a, button, [role="button"]) {

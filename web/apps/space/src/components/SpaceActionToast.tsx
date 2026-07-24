@@ -6,7 +6,7 @@ import React from "react";
 import { spaceTouchTargetSize } from "styles/touchTargets";
 
 const green = "#08C225";
-const textBase = "#000";
+const textBase = "var(--text-color)";
 const toastHorizontalPadding = "16px";
 const toastEnter = keyframes`
     from {
@@ -64,11 +64,11 @@ export const SpaceActionToast: React.FC<SpaceActionToastProps> = ({
             aria-live="polite"
             sx={{
                 alignItems: "center",
-                bgcolor: "#FFFFFF",
+                bgcolor: "var(--feed-card-bg)",
                 borderRadius: "18px",
                 boxShadow: "0 12px 32px rgba(0, 0, 0, 0.18)",
                 boxSizing: "border-box",
-                color: textBase,
+                color: "var(--text-color)",
                 display: "flex",
                 fontFamily: '"Inter Variable", Inter, sans-serif',
                 fontSize: 14,
