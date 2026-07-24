@@ -827,7 +827,11 @@ async fn download_file(
     )
     .with_context(|| format!("define asset {namespace}/{key}/{name}"))?;
     store
-        .download(&asset, |_| {}, download::CancellationToken::default())
+        .download(
+            std::slice::from_ref(&asset),
+            |_| {},
+            download::CancellationToken::default(),
+        )
         .await
         .with_context(|| format!("download {name} from {url}"))?;
     store

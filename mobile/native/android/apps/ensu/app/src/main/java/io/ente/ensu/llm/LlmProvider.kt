@@ -22,6 +22,7 @@ import io.ente.ensu.device.AndroidDeviceCapabilityProvider
 import io.ente.ensu.device.requireChatSupported
 import io.ente.ensu.settings.IS_ENSU_PACKS_ENABLED
 import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -51,6 +52,7 @@ class LlmProvider(
     @Volatile private var currentJobId: Long? = null
     private var backendInitialized = false
     private val modelLoadMutex = Mutex()
+    private val activeDownloads = AtomicInteger()
     private val embeddingAsset = knowledgeEmbeddingModelAsset()
 
     class EmbeddingAssetInvalid : Exception("Embedding model asset is invalid")
@@ -68,7 +70,7 @@ class LlmProvider(
         assetStore.estimateDownloadSize(chatAsset(selection))
 
     val isDownloadActive: Boolean
-        get() = assetStore.isDownloadActive
+        get() = activeDownloads.get() > 0
 
     suspend fun ensureModelReady(
         selection: LlmModelSelection,
@@ -327,13 +329,18 @@ class LlmProvider(
         assets: List<Asset>,
         onProgress: (DownloadProgress) -> Unit
     ) {
-        assetStore.download(assets) { progress ->
-            onProgress(
-                DownloadProgress(
-                    progress.percentage.toInt().coerceIn(0, 99),
-                    progress.status
+        activeDownloads.incrementAndGet()
+        try {
+            assetStore.download(assets) { progress ->
+                onProgress(
+                    DownloadProgress(
+                        progress.percentage.toInt().coerceIn(0, 99),
+                        progress.status
+                    )
                 )
-            )
+            }
+        } finally {
+            activeDownloads.decrementAndGet()
         }
     }
 

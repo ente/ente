@@ -5,8 +5,6 @@ private let logger = EnsuLogging.shared.logger("AssetStore")
 
 final class AssetStore: @unchecked Sendable {
     private let core: AssetStoreCore
-    private let activeLock = NSLock()
-    private var downloadActive = false
 
     @MainActor
     init() {
@@ -93,27 +91,22 @@ final class AssetStore: @unchecked Sendable {
         onProgress: @escaping (AssetDownloadProgress) -> Void
     ) async throws {
         let token = CancellationToken()
-        let started = activeLock.withLock { () -> Bool in
-            if downloadActive { return false }
-            downloadActive = true
-            return true
-        }
-        guard started else { throw DownloadAlreadyActiveError() }
-        defer { activeLock.withLock { downloadActive = false } }
-
         if assets.allSatisfy({ self.core.isDownloaded(asset: $0) }) {
             return
         }
 
+        let leaseId: UUID?
         if #available(iOS 26.0, *) {
-            AssetDownloadBackgroundTask.begin {
+            leaseId = AssetDownloadBackgroundTask.begin {
                 token.cancel()
             }
+        } else {
+            leaseId = nil
         }
         var succeeded = false
         defer {
-            if #available(iOS 26.0, *) {
-                AssetDownloadBackgroundTask.end(success: succeeded)
+            if #available(iOS 26.0, *), let leaseId {
+                AssetDownloadBackgroundTask.end(id: leaseId, success: succeeded)
             }
         }
 
@@ -124,8 +117,9 @@ final class AssetStore: @unchecked Sendable {
                 if let line = progress.logLine {
                     logger.info(line)
                 }
-                if #available(iOS 26.0, *) {
+                if #available(iOS 26.0, *), let leaseId {
                     AssetDownloadBackgroundTask.update(
+                        id: leaseId,
                         downloadedBytes: progress.downloadedBytes,
                         totalBytes: progress.totalBytes
                     )
@@ -145,8 +139,6 @@ final class AssetStore: @unchecked Sendable {
     }
 }
 
-private struct DownloadAlreadyActiveError: Error {}
-
 private final class AssetDownloadCallbackSink: AssetDownloadCallback, @unchecked Sendable {
     private let onProgressHandler: (AssetDownloadProgress) -> Void
 
@@ -164,8 +156,8 @@ private enum AssetDownloadBackgroundTask {
     private static let identifier = "io.ente.ensu.asset-download"
     private static let lock = NSLock()
     private static var task: BGContinuedProcessingTask?
-    private static var onExpiration: (() -> Void)?
-    private static var downloadActive = false
+    private static var cancellations: [UUID: () -> Void] = [:]
+    private static var allSucceeded = true
 
     static func register() {
         BGTaskScheduler.shared.register(forTaskWithIdentifier: identifier, using: nil) { bgTask in
@@ -177,11 +169,15 @@ private enum AssetDownloadBackgroundTask {
         }
     }
 
-    static func begin(onExpiration: @escaping () -> Void) {
-        lock.lock()
-        downloadActive = true
-        Self.onExpiration = onExpiration
-        lock.unlock()
+    static func begin(onExpiration: @escaping () -> Void) -> UUID {
+        let id = UUID()
+        let first = lock.withLock {
+            let first = cancellations.isEmpty
+            if first { allSucceeded = true }
+            cancellations[id] = onExpiration
+            return first
+        }
+        guard first else { return id }
 
         let request = BGContinuedProcessingTaskRequest(
             identifier: identifier,
@@ -194,49 +190,61 @@ private enum AssetDownloadBackgroundTask {
         } catch {
             logger.warning("Background download task not scheduled", details: "\(error)")
         }
+        return id
     }
 
-    static func update(downloadedBytes: Int64, totalBytes: Int64?) {
-        lock.lock()
-        let task = task
-        lock.unlock()
-        guard let task, let totalBytes, totalBytes > 0 else { return }
+    static func update(id: UUID, downloadedBytes: Int64, totalBytes: Int64?) {
+        let state: (task: BGContinuedProcessingTask?, activeCount: Int)? = lock.withLock {
+            guard cancellations[id] != nil else { return nil }
+            return (task, cancellations.count)
+        }
+        guard let state, let task = state.task else { return }
+        guard state.activeCount == 1, let totalBytes, totalBytes > 0 else {
+            task.progress.totalUnitCount = -1
+            task.progress.completedUnitCount = 0
+            return
+        }
         task.progress.totalUnitCount = totalBytes
         task.progress.completedUnitCount = min(downloadedBytes, totalBytes)
     }
 
-    static func end(success: Bool) {
-        lock.lock()
-        downloadActive = false
-        onExpiration = nil
-        let task = task
-        Self.task = nil
-        lock.unlock()
-        task?.setTaskCompleted(success: success)
+    static func end(id: UUID, success: Bool) {
+        let completion: (BGContinuedProcessingTask?, Bool)? = lock.withLock {
+            guard cancellations.removeValue(forKey: id) != nil else { return nil }
+            allSucceeded = allSucceeded && success
+            guard cancellations.isEmpty else { return nil }
+            let completed = (task, allSucceeded)
+            task = nil
+            return completed
+        }
+        if let completion {
+            completion.0?.setTaskCompleted(success: completion.1)
+        }
     }
 
     private static func adopt(_ bgTask: BGContinuedProcessingTask) {
-        lock.lock()
-        guard downloadActive else {
-            lock.unlock()
+        let adopted = lock.withLock {
+            guard !cancellations.isEmpty else { return false }
+            task = bgTask
+            return true
+        }
+        guard adopted else {
             bgTask.setTaskCompleted(success: true)
             return
         }
-        task = bgTask
-        lock.unlock()
 
         bgTask.expirationHandler = {
-            lock.lock()
-            let expired = task === bgTask
-            let handler = onExpiration
-            if expired {
+            let callbacks = lock.withLock {
+                guard task === bgTask else { return [() -> Void]() }
                 task = nil
+                let callbacks = Array(cancellations.values)
+                cancellations.removeAll()
+                return callbacks
             }
-            lock.unlock()
-            if expired {
-                handler?()
-                bgTask.setTaskCompleted(success: false)
-            }
+            guard !callbacks.isEmpty else { return }
+            callbacks.forEach { $0() }
+            bgTask.setTaskCompleted(success: false)
         }
     }
+
 }

@@ -2,7 +2,7 @@ pub mod migrations;
 
 use std::path::PathBuf;
 
-use ente_assets::{Asset, AssetFile, AssetStore, download::Progress};
+use ente_assets::{Asset, AssetDownloadProgress, AssetFile, AssetStore};
 
 use crate::config::{self, ModelPreset};
 
@@ -123,7 +123,7 @@ pub(crate) fn trimmed(value: Option<&str>) -> Option<&str> {
     value.map(str::trim).filter(|value| !value.is_empty())
 }
 
-pub fn display_progress(progress: Progress) -> ModelDownloadProgress {
+pub fn display_progress(progress: &AssetDownloadProgress) -> ModelDownloadProgress {
     let total = progress.total_bytes.filter(|total| *total > 0);
     let percent = total
         .map(|total| ((progress.downloaded_bytes * 100 / total) as i32).clamp(0, 99))
@@ -134,31 +134,20 @@ pub fn display_progress(progress: Progress) -> ModelDownloadProgress {
             format_bytes(progress.downloaded_bytes),
             format_bytes(total)
         )
-    } else if progress.file_downloaded_bytes > 0 {
-        format!(
-            "Downloading {}... {}",
-            progress.label.to_lowercase(),
-            format_bytes(progress.file_downloaded_bytes)
-        )
+    } else if progress.downloaded_bytes > 0 {
+        format!("Downloading... {}", format_bytes(progress.downloaded_bytes))
     } else {
-        format!("Downloading {}...", progress.label.to_lowercase())
+        "Downloading...".to_string()
     };
-    let log_line = if progress.file_complete {
+    let asset = &progress.asset_progress;
+    let log_line = if asset.file_complete {
         Some(format!(
             "Asset download file complete label={} bytes={} elapsedMs={} rate={}/s retries={}",
-            progress.label,
-            progress.file_downloaded_bytes,
-            progress.file_elapsed_ms,
-            format_bytes(rate_bytes(progress.file_bytes_per_second)),
-            progress.file_retry_count
-        ))
-    } else if progress.complete {
-        Some(format!(
-            "Asset download complete bytes={} elapsedMs={} rate={}/s retries={}",
-            progress.downloaded_bytes,
-            progress.elapsed_ms,
-            format_bytes(rate_bytes(progress.bytes_per_second)),
-            progress.retry_count
+            asset.label,
+            asset.file_downloaded_bytes,
+            asset.file_elapsed_ms,
+            format_bytes(rate_bytes(asset.file_bytes_per_second)),
+            asset.file_retry_count
         ))
     } else {
         None

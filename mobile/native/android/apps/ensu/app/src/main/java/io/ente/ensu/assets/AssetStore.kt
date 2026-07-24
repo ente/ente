@@ -20,7 +20,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 
 class AssetStore(context: Context) {
@@ -29,7 +28,6 @@ class AssetStore(context: Context) {
     private val legacyLlmDir = appContext.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
         ?.let { File(it, "llm") }
     private val legacyTranscriptionDir = File(appContext.dataDir, "app_ensu_transcription_models")
-    private val downloadMutex = Mutex()
     private val core: AssetStoreCore
 
     init {
@@ -54,8 +52,6 @@ class AssetStore(context: Context) {
         modelUrl = modelUrl,
         mmprojUrl = mmprojUrl
     )
-
-    val isDownloadActive: Boolean get() = core.isDownloadActive()
 
     fun assetDir(asset: Asset): File = File(core.assetDir(asset))
 
@@ -85,22 +81,10 @@ class AssetStore(context: Context) {
         assets: List<Asset>,
         onProgress: (AssetDownloadProgress) -> Unit
     ): Unit = withContext(Dispatchers.IO) {
-        if (!downloadMutex.tryLock()) throw DownloadAlreadyActiveException()
-        try {
-            downloadLocked(assets, onProgress)
-        } finally {
-            downloadMutex.unlock()
-        }
-    }
-
-    private suspend fun downloadLocked(
-        assets: List<Asset>,
-        onProgress: (AssetDownloadProgress) -> Unit
-    ) {
-        if (assets.all { core.isDownloaded(it) }) return
+        if (assets.all { core.isDownloaded(it) }) return@withContext
 
         val token = CancellationToken()
-        AssetDownloadJobService.begin { token.cancel() }
+        val lease = AssetDownloadJobService.begin { token.cancel() }
         try {
             coroutineScope {
                 val download = async {
@@ -110,6 +94,7 @@ class AssetStore(context: Context) {
                             override fun onProgress(progress: AssetDownloadProgress) {
                                 progress.logLine?.let { Log.i("AssetStore", it) }
                                 AssetDownloadJobService.update(
+                                    lease,
                                     progress.percentage.toInt(),
                                     progress.totalBytes == null
                                 )
@@ -127,9 +112,7 @@ class AssetStore(context: Context) {
                 }
             }
         } finally {
-            AssetDownloadJobService.end()
+            AssetDownloadJobService.end(lease)
         }
     }
 }
-
-private class DownloadAlreadyActiveException : Exception("An asset download is already active")

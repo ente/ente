@@ -307,9 +307,9 @@ pub async fn llm_download_model(
     };
     let result = store
         .download(
-            &asset,
+            std::slice::from_ref(&asset),
             |progress| {
-                let progress = ente_ensu::model::display_progress(progress);
+                let progress = ente_ensu::model::display_progress(&progress);
                 if let Some(line) = &progress.log_line {
                     logging::log("LLMDownload", line.clone());
                 }

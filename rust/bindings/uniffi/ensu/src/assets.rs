@@ -1,17 +1,16 @@
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
 
-use ente_assets::{Asset as RustAsset, AssetStore as RustAssetStore, download};
+use ente_assets::download;
 use thiserror::Error;
 
 #[derive(uniffi::Object)]
 pub struct Asset {
-    pub(crate) inner: RustAsset,
+    pub(crate) inner: ente_assets::Asset,
 }
 
 impl Asset {
-    pub(crate) fn new(inner: RustAsset) -> Arc<Self> {
+    pub(crate) fn new(inner: ente_assets::Asset) -> Arc<Self> {
         Arc::new(Self { inner })
     }
 }
@@ -20,22 +19,22 @@ impl Asset {
 pub enum AssetDownloadError {
     #[error("download cancelled")]
     Cancelled,
-    #[error("{message}")]
-    Validation { message: String },
+    #[error("{detail}")]
+    Validation { detail: String },
     #[error("HTTP {status}")]
     Http { status: u16 },
-    #[error("network: {message}")]
-    Network { message: String },
+    #[error("network: {detail}")]
+    Network { detail: String },
     #[error("size mismatch: expected {expected} bytes, got {actual}")]
     SizeMismatch { expected: u64, actual: u64 },
-    #[error("range protocol violation: {message}")]
-    Protocol { message: String },
-    #[error("invalid download target: {message}")]
-    InvalidTarget { message: String },
+    #[error("range protocol violation: {detail}")]
+    Protocol { detail: String },
+    #[error("invalid download target: {detail}")]
+    InvalidTarget { detail: String },
     #[error("not enough storage space")]
     StorageFull,
-    #[error("{message}")]
-    Io { message: String },
+    #[error("{detail}")]
+    Io { detail: String },
 }
 
 impl From<download::Error> for AssetDownloadError {
@@ -44,20 +43,20 @@ impl From<download::Error> for AssetDownloadError {
             download::Error::Cancelled => Self::Cancelled,
             download::Error::Target { source, .. } => Self::from(*source),
             download::Error::Fallback { single, .. } => Self::from(*single),
-            download::Error::Validation(message) => Self::Validation { message },
+            download::Error::Validation(detail) => Self::Validation { detail },
             download::Error::Http(status) => Self::Http { status },
-            download::Error::Network(message) => Self::Network { message },
+            download::Error::Network(detail) => Self::Network { detail },
             download::Error::SizeMismatch { expected, actual } => {
                 Self::SizeMismatch { expected, actual }
             }
-            download::Error::Protocol(message) => Self::Protocol { message },
-            download::Error::InvalidTarget(message) => Self::InvalidTarget { message },
+            download::Error::Protocol(detail) => Self::Protocol { detail },
+            download::Error::InvalidTarget(detail) => Self::InvalidTarget { detail },
             download::Error::StorageFull => Self::StorageFull,
             download::Error::Io(error) => Self::Io {
-                message: error.to_string(),
+                detail: error.to_string(),
             },
             download::Error::Json(error) => Self::Io {
-                message: error.to_string(),
+                detail: error.to_string(),
             },
         }
     }
@@ -93,11 +92,11 @@ pub struct AssetDownloadProgress {
     pub log_line: Option<String>,
 }
 
-impl From<ente_assets::download::Progress> for AssetDownloadProgress {
-    fn from(value: ente_assets::download::Progress) -> Self {
-        let display = ente_ensu::model::display_progress(value.clone());
+impl From<ente_assets::AssetDownloadProgress> for AssetDownloadProgress {
+    fn from(value: ente_assets::AssetDownloadProgress) -> Self {
+        let display = ente_ensu::model::display_progress(&value);
         Self {
-            label: value.label,
+            label: value.asset_progress.label,
             downloaded_bytes: i64::try_from(value.downloaded_bytes).unwrap_or(i64::MAX),
             total_bytes: value
                 .total_bytes
@@ -149,9 +148,8 @@ pub fn migrate_ensu_assets(assets_dir: String, legacy: LegacyAssets) -> Option<S
 
 #[derive(uniffi::Object)]
 pub struct AssetStoreCore {
-    inner: RustAssetStore,
+    inner: ente_assets::AssetStore,
     runtime: OnceLock<tokio::runtime::Runtime>,
-    active_downloads: AtomicUsize,
 }
 
 #[uniffi::export]
@@ -159,9 +157,8 @@ impl AssetStoreCore {
     #[uniffi::constructor]
     pub fn new(assets_dir: String) -> Arc<Self> {
         Arc::new(Self {
-            inner: RustAssetStore::new(assets_dir),
+            inner: ente_assets::AssetStore::new(assets_dir),
             runtime: OnceLock::new(),
-            active_downloads: AtomicUsize::new(0),
         })
     }
 
@@ -189,14 +186,13 @@ impl AssetStoreCore {
         self.inner.is_downloaded(&asset.inner)
     }
 
-    pub fn is_download_active(&self) -> bool {
-        self.active_downloads.load(Ordering::SeqCst) > 0
-    }
-
     pub fn estimated_download_size(&self, asset: Arc<Asset>) -> Option<i64> {
         self.runtime()
             .ok()?
-            .block_on(self.inner.estimated_download_size(&asset.inner))
+            .block_on(
+                self.inner
+                    .estimated_download_size(std::slice::from_ref(&asset.inner)),
+            )
             .map(|size| i64::try_from(size).unwrap_or(i64::MAX))
     }
 
@@ -214,28 +210,25 @@ impl AssetStoreCore {
         callback: Box<dyn AssetDownloadCallback>,
         cancellation: Arc<CancellationToken>,
     ) -> Result<(), AssetDownloadError> {
-        self.active_downloads.fetch_add(1, Ordering::SeqCst);
-        let result = self.runtime().and_then(|runtime| {
-            runtime.block_on(async {
-                for asset in assets {
-                    self.inner
-                        .download(
-                            &asset.inner,
-                            |progress| callback.on_progress(progress.into()),
-                            cancellation.inner.clone(),
-                        )
-                        .await?;
-                }
-                Ok(())
-            })
-        });
-        self.active_downloads.fetch_sub(1, Ordering::SeqCst);
-        result.map_err(Into::into)
+        let assets = assets
+            .into_iter()
+            .map(|asset| asset.inner.clone())
+            .collect::<Vec<_>>();
+        match self.runtime() {
+            Ok(runtime) => runtime
+                .block_on(self.inner.download(
+                    &assets,
+                    |progress| callback.on_progress(progress.into()),
+                    cancellation.inner.clone(),
+                ))
+                .map_err(AssetDownloadError::from),
+            Err(error) => Err(AssetDownloadError::from(error)),
+        }
     }
 }
 
 impl AssetStoreCore {
-    pub(crate) fn store(&self) -> &RustAssetStore {
+    pub(crate) fn store(&self) -> &ente_assets::AssetStore {
         &self.inner
     }
 

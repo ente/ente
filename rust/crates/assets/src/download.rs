@@ -10,6 +10,7 @@ use reqwest::header::{ACCEPT_RANGES, CONTENT_RANGE, ETAG, IF_RANGE, LAST_MODIFIE
 use reqwest::{Client, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use tokio::sync::Notify;
 
 const MIN_RANGE_DOWNLOAD_BYTES: u64 = 1024 * 1024;
 const MAX_ATTEMPTS: usize = 3;
@@ -89,9 +90,15 @@ pub struct Progress {
     pub complete: bool,
 }
 
+#[derive(Default)]
+struct CancellationState {
+    cancelled: AtomicBool,
+    changed: Notify,
+}
+
 #[derive(Clone, Default)]
 pub struct CancellationToken {
-    cancelled: Arc<AtomicBool>,
+    state: Arc<CancellationState>,
 }
 
 impl CancellationToken {
@@ -100,11 +107,26 @@ impl CancellationToken {
     }
 
     pub fn cancel(&self) {
-        self.cancelled.store(true, Ordering::SeqCst);
+        if !self.state.cancelled.swap(true, Ordering::SeqCst) {
+            self.state.changed.notify_waiters();
+        }
     }
 
     pub fn is_cancelled(&self) -> bool {
-        self.cancelled.load(Ordering::SeqCst)
+        self.state.cancelled.load(Ordering::SeqCst)
+    }
+
+    pub(crate) async fn cancelled(&self) {
+        if self.is_cancelled() {
+            return;
+        }
+        let changed = self.state.changed.notified();
+        tokio::pin!(changed);
+        changed.as_mut().enable();
+        if self.is_cancelled() {
+            return;
+        }
+        changed.await;
     }
 }
 

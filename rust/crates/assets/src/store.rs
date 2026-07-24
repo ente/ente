@@ -1,9 +1,10 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
-use tokio::sync::Mutex;
+use futures_util::future::join_all;
+use tokio::sync::{Mutex, Semaphore};
 
 use crate::archive;
 use crate::download::{self, CancellationToken, DownloadTarget, Downloader, Error, Progress};
@@ -11,6 +12,7 @@ use crate::download::{self, CancellationToken, DownloadTarget, Downloader, Error
 const STAGING_DIR: &str = ".staging";
 const ARCHIVE_FILE: &str = ".archive.tar.gz";
 const EXTRACTION_DIR: &str = ".extracted";
+const ASSET_CONCURRENCY: usize = 2;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Asset {
@@ -29,6 +31,22 @@ pub struct AssetFile {
     pub name: String,
     pub url: String,
     pub sha256: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct AssetDownloadProgress {
+    pub asset_progress: Progress,
+    pub downloaded_bytes: u64,
+    pub total_bytes: Option<u64>,
+    pub percentage: f64,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum AssetStoreError {
+    #[error(transparent)]
+    Download(#[from] Error),
+    #[error("asset is busy")]
+    Busy,
 }
 
 impl Asset {
@@ -71,7 +89,8 @@ impl Asset {
 pub struct AssetStore {
     root: PathBuf,
     downloader: OnceLock<Downloader>,
-    mutation_gate: Mutex<()>,
+    asset_locks: std::sync::Mutex<HashMap<Vec<String>, Arc<Mutex<()>>>>,
+    asset_slots: Semaphore,
 }
 
 impl AssetStore {
@@ -79,7 +98,8 @@ impl AssetStore {
         Self {
             root: root.into(),
             downloader: OnceLock::new(),
-            mutation_gate: Mutex::new(()),
+            asset_locks: std::sync::Mutex::new(HashMap::new()),
+            asset_slots: Semaphore::new(ASSET_CONCURRENCY),
         }
     }
 
@@ -106,62 +126,134 @@ impl AssetStore {
         }
     }
 
-    pub async fn estimated_download_size(&self, asset: &Asset) -> Option<u64> {
-        if self.is_downloaded(asset) {
-            return Some(0);
+    pub async fn estimated_download_size(&self, assets: &[Asset]) -> Option<u64> {
+        let mut total = 0u64;
+        for asset in assets {
+            if self.is_downloaded(asset) {
+                continue;
+            }
+            total = total.checked_add(
+                self.downloader()
+                    .ok()?
+                    .estimated_download_size(&self.download_targets(asset))
+                    .await?,
+            )?;
         }
-        self.downloader()
-            .ok()?
-            .estimated_download_size(&self.download_targets(asset))
-            .await
+        Some(total)
     }
 
     pub async fn download(
         &self,
-        asset: &Asset,
-        mut on_progress: impl FnMut(Progress) + Send,
+        assets: &[Asset],
+        on_progress: impl FnMut(AssetDownloadProgress) + Send,
         cancellation: CancellationToken,
     ) -> Result<(), Error> {
-        let _guard = self.mutation_gate.lock().await;
-        if self.is_downloaded(asset) {
-            return Ok(());
-        }
         if cancellation.is_cancelled() {
             return Err(Error::Cancelled);
         }
 
-        let mut last_progress = None;
-        self.downloader()?
-            .download(
-                self.download_targets(asset),
-                |mut progress| {
-                    progress.complete = false;
-                    last_progress = Some(progress.clone());
-                    on_progress(progress);
-                },
-                cancellation.clone(),
-            )
-            .await?;
-
-        match &asset.kind {
-            AssetKind::Files(files) => self.publish_files(asset, files)?,
-            AssetKind::TarGz { .. } => self.publish_archive(asset, cancellation).await?,
+        let mut keys = HashSet::new();
+        for asset in assets {
+            if !keys.insert(&asset.components) {
+                return Err(Error::InvalidTarget(format!(
+                    "duplicate asset key {}",
+                    asset.components.join("/")
+                )));
+            }
         }
 
-        if let Some(mut progress) = last_progress {
-            progress.percentage = 100.0;
-            progress.file_complete = false;
-            progress.complete = true;
-            on_progress(progress);
+        let locks = assets
+            .iter()
+            .map(|asset| self.asset_lock(asset))
+            .collect::<Result<Vec<_>, _>>()?;
+        let progress = std::sync::Mutex::new(BatchProgress::new(assets.len(), on_progress));
+        let jobs = assets
+            .iter()
+            .zip(locks)
+            .enumerate()
+            .map(|(asset_index, (asset, lock))| {
+                self.download_asset(asset_index, asset, lock, &progress, cancellation.clone())
+            });
+        let results = join_all(jobs).await;
+        if cancellation.is_cancelled() {
+            return Err(Error::Cancelled);
+        }
+        if let Some(error) = results.into_iter().find_map(Result::err) {
+            return Err(error);
         }
         Ok(())
     }
 
-    pub async fn remove(&self, asset: &Asset) -> Result<(), Error> {
-        let _guard = self.mutation_gate.lock().await;
+    pub async fn remove(&self, asset: &Asset) -> Result<(), AssetStoreError> {
+        let lock = self.asset_lock(asset)?;
+        let _guard = lock.try_lock().map_err(|_| AssetStoreError::Busy)?;
         remove_path(&self.asset_dir(asset))?;
         remove_path(&self.staging_dir(asset))?;
         Ok(())
+    }
+
+    async fn download_asset<F>(
+        &self,
+        asset_index: usize,
+        asset: &Asset,
+        lock: Arc<Mutex<()>>,
+        progress: &std::sync::Mutex<BatchProgress<F>>,
+        cancellation: CancellationToken,
+    ) -> Result<(), Error>
+    where
+        F: FnMut(AssetDownloadProgress) + Send,
+    {
+        let _guard = tokio::select! {
+            guard = lock.lock() => guard,
+            _ = cancellation.cancelled() => return Err(Error::Cancelled),
+        };
+        if self.is_downloaded(asset) {
+            progress.lock().expect("progress lock").skip(asset_index);
+            return Ok(());
+        }
+        let _slot = tokio::select! {
+            slot = self.asset_slots.acquire() => slot.expect("asset semaphore closed"),
+            _ = cancellation.cancelled() => return Err(Error::Cancelled),
+        };
+
+        self.downloader()?
+            .download(
+                self.download_targets(asset),
+                |mut update| {
+                    update.complete = false;
+                    progress
+                        .lock()
+                        .expect("progress lock")
+                        .update(asset_index, update);
+                },
+                cancellation.clone(),
+            )
+            .await?;
+        match &asset.kind {
+            AssetKind::Files(files) => self.publish_files(asset, files)?,
+            AssetKind::TarGz { .. } => self.publish_archive(asset, cancellation).await?,
+        }
+        Ok(())
+    }
+
+    fn asset_lock(&self, asset: &Asset) -> Result<Arc<Mutex<()>>, Error> {
+        let mut locks = self.asset_locks.lock().expect("asset lock registry");
+        if let Some((key, lock)) = locks
+            .iter()
+            .find(|(key, _)| keys_overlap(key, &asset.components))
+        {
+            if *key == asset.components {
+                return Ok(Arc::clone(lock));
+            }
+            return Err(Error::InvalidTarget(format!(
+                "asset keys {} and {} overlap",
+                key.join("/"),
+                asset.components.join("/")
+            )));
+        }
+        let lock = Arc::new(Mutex::new(()));
+        locks.insert(asset.components.clone(), Arc::clone(&lock));
+        Ok(lock)
     }
 
     fn downloader(&self) -> Result<&Downloader, Error> {
@@ -271,6 +363,67 @@ impl AssetStore {
     }
 }
 
+struct BatchProgress<F> {
+    assets: Vec<Option<Progress>>,
+    pending: Vec<bool>,
+    callback: F,
+}
+
+impl<F> BatchProgress<F>
+where
+    F: FnMut(AssetDownloadProgress),
+{
+    fn new(asset_count: usize, callback: F) -> Self {
+        Self {
+            assets: vec![None; asset_count],
+            pending: vec![true; asset_count],
+            callback,
+        }
+    }
+
+    fn skip(&mut self, asset_index: usize) {
+        self.pending[asset_index] = false;
+    }
+
+    fn update(&mut self, asset_index: usize, asset_progress: Progress) {
+        self.pending[asset_index] = false;
+        self.assets[asset_index] = Some(asset_progress.clone());
+        self.emit(asset_progress);
+    }
+
+    fn emit(&mut self, asset_progress: Progress) {
+        let downloaded_bytes = self
+            .assets
+            .iter()
+            .flatten()
+            .map(|progress| progress.downloaded_bytes)
+            .sum();
+        let total_bytes = (!self.pending.iter().any(|pending| *pending))
+            .then(|| {
+                self.assets
+                    .iter()
+                    .flatten()
+                    .map(|progress| progress.total_bytes)
+                    .try_fold(0u64, |total, value| total.checked_add(value?))
+            })
+            .flatten();
+        let percentage = total_bytes
+            .filter(|total| *total > 0)
+            .map(|total| ((downloaded_bytes as f64 / total as f64) * 100.0).clamp(0.0, 100.0))
+            .unwrap_or(0.0);
+        (self.callback)(AssetDownloadProgress {
+            asset_progress,
+            downloaded_bytes,
+            total_bytes,
+            percentage,
+        });
+    }
+}
+
+fn keys_overlap(left: &[String], right: &[String]) -> bool {
+    left.starts_with(right) || right.starts_with(left)
+}
+
 fn validate_components(components: &[String]) -> Result<(), Error> {
     if components.is_empty() {
         return Err(Error::InvalidTarget(
@@ -355,8 +508,12 @@ mod tests {
         let store = AssetStore::new("assets");
         let asset =
             Asset::files(key(&["models", "clip"]), vec![file("model.onnx", b"model")]).unwrap();
-        assert_send(store.download(&asset, |_| {}, CancellationToken::default()));
-        assert_send(store.estimated_download_size(&asset));
+        assert_send(store.download(
+            std::slice::from_ref(&asset),
+            |_| {},
+            CancellationToken::default(),
+        ));
+        assert_send(store.estimated_download_size(std::slice::from_ref(&asset)));
         assert_send(store.remove(&asset));
     }
 
@@ -379,7 +536,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn publishes_all_files_before_reporting_completion() {
+    async fn publishes_all_files() {
         let root = scratch_dir("files");
         let store = AssetStore::new(&root);
         let asset = Asset::files(
@@ -394,25 +551,131 @@ mod tests {
         );
 
         let final_dir = store.asset_dir(&asset);
-        let mut completion_observed_after_publish = false;
         store
             .download(
-                &asset,
+                std::slice::from_ref(&asset),
+                |_| {},
+                CancellationToken::default(),
+            )
+            .await
+            .unwrap();
+
+        assert!(store.is_downloaded(&asset));
+        assert_eq!(fs::read(final_dir.join("model.onnx")).unwrap(), b"model");
+        assert_eq!(fs::read(final_dir.join("vocab.txt")).unwrap(), b"vocab");
+        assert!(!store.staging_dir(&asset).exists());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[tokio::test]
+    async fn aggregates_progress_across_assets() {
+        let root = scratch_dir("batch");
+        let store = AssetStore::new(&root);
+        let first = Asset::files(key(&["models", "first"]), vec![file("model", b"first")]).unwrap();
+        let second =
+            Asset::files(key(&["models", "second"]), vec![file("model", b"second")]).unwrap();
+        stage_files(&store, &first, &[("model", b"first")]);
+        stage_files(&store, &second, &[("model", b"second")]);
+        let mut latest_progress = None;
+
+        store
+            .download(
+                &[first.clone(), second.clone()],
                 |progress| {
-                    if progress.complete {
-                        completion_observed_after_publish = final_dir.is_dir();
-                    }
+                    latest_progress = Some((
+                        progress.downloaded_bytes,
+                        progress.total_bytes,
+                        progress.percentage,
+                    ));
                 },
                 CancellationToken::default(),
             )
             .await
             .unwrap();
 
-        assert!(completion_observed_after_publish);
+        assert!(store.is_downloaded(&first));
+        assert!(store.is_downloaded(&second));
+        assert_eq!(latest_progress, Some((11, Some(11), 100.0)));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[tokio::test]
+    async fn publishes_successful_assets_when_a_sibling_fails() {
+        let root = scratch_dir("batch-failure");
+        let store = AssetStore::new(&root);
+        let good = Asset::files(key(&["models", "good"]), vec![file("model", b"good")]).unwrap();
+        let mut bad_file = file("model", b"bad");
+        bad_file.url = ":".to_string();
+        let bad = Asset::files(key(&["models", "bad"]), vec![bad_file]).unwrap();
+        stage_files(&store, &good, &[("model", b"good")]);
+
+        store
+            .download(
+                &[good.clone(), bad.clone()],
+                |_| {},
+                CancellationToken::default(),
+            )
+            .await
+            .unwrap_err();
+
+        assert!(store.is_downloaded(&good));
+        assert!(!store.is_downloaded(&bad));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[tokio::test]
+    async fn asset_locks_are_keyed_and_cancellable() {
+        let root = scratch_dir("locks");
+        let store = Arc::new(AssetStore::new(&root));
+        let asset = Asset::files(key(&["models", "same"]), vec![file("model", b"model")]).unwrap();
+        assert!(matches!(
+            store
+                .download(
+                    &[asset.clone(), asset.clone()],
+                    |_| {},
+                    CancellationToken::default()
+                )
+                .await,
+            Err(Error::InvalidTarget(_))
+        ));
+        let lock = store.asset_lock(&asset).unwrap();
+        let guard = lock.lock().await;
+        assert!(matches!(
+            store.remove(&asset).await,
+            Err(AssetStoreError::Busy)
+        ));
+
+        let token = CancellationToken::new();
+        let cancellation = token.clone();
+        let waiting_store = Arc::clone(&store);
+        let waiting_asset = asset.clone();
+        let waiter = tokio::spawn(async move {
+            waiting_store
+                .download(&[waiting_asset], |_| {}, token)
+                .await
+        });
+        tokio::task::yield_now().await;
+        cancellation.cancel();
+        assert!(matches!(waiter.await.unwrap(), Err(Error::Cancelled)));
+        drop(guard);
+
+        stage_files(&store, &asset, &[("model", b"model")]);
+        let first_assets = [asset.clone()];
+        let second_assets = [asset.clone()];
+        let (first, second) = tokio::join!(
+            store.download(&first_assets, |_| {}, CancellationToken::default()),
+            store.download(&second_assets, |_| {}, CancellationToken::default())
+        );
+        first.unwrap();
+        second.unwrap();
         assert!(store.is_downloaded(&asset));
-        assert_eq!(fs::read(final_dir.join("model.onnx")).unwrap(), b"model");
-        assert_eq!(fs::read(final_dir.join("vocab.txt")).unwrap(), b"vocab");
-        assert!(!store.staging_dir(&asset).exists());
+
+        let nested = Asset::files(
+            key(&["models", "same", "nested"]),
+            vec![file("model", b"model")],
+        )
+        .unwrap();
+        assert!(store.asset_lock(&nested).is_err());
         let _ = fs::remove_dir_all(root);
     }
 
@@ -427,7 +690,11 @@ mod tests {
         .unwrap();
         stage_files(&store, &asset, &[("runtime.tgz", b"archive")]);
         store
-            .download(&asset, |_| {}, CancellationToken::default())
+            .download(
+                std::slice::from_ref(&asset),
+                |_| {},
+                CancellationToken::default(),
+            )
             .await
             .unwrap();
 
@@ -439,7 +706,11 @@ mod tests {
         assert!(!store.is_downloaded(&asset));
         stage_files(&store, &asset, &[("runtime.tgz", b"archive")]);
         store
-            .download(&asset, |_| {}, CancellationToken::default())
+            .download(
+                std::slice::from_ref(&asset),
+                |_| {},
+                CancellationToken::default(),
+            )
             .await
             .unwrap();
 
@@ -467,7 +738,11 @@ mod tests {
         fs::write(staging.join(ARCHIVE_FILE), archive).unwrap();
 
         store
-            .download(&asset, |_| {}, CancellationToken::default())
+            .download(
+                std::slice::from_ref(&asset),
+                |_| {},
+                CancellationToken::default(),
+            )
             .await
             .unwrap();
 
@@ -498,7 +773,11 @@ mod tests {
 
         assert!(
             store
-                .download(&asset, |_| {}, CancellationToken::default())
+                .download(
+                    std::slice::from_ref(&asset),
+                    |_| {},
+                    CancellationToken::default(),
+                )
                 .await
                 .is_err()
         );

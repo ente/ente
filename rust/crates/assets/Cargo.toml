@@ -11,7 +11,7 @@ serde_json.workspace = true
 sha2 = "0.11.0"
 tar = "0.4.46"
 thiserror.workspace = true
-tokio = { version = "1", features = ["sync"] }
+tokio = { version = "1", features = ["macros", "sync"] }
 
 [dev-dependencies]
-tokio = { version = "1", features = ["macros", "rt"] }
+tokio = { version = "1", features = ["rt"] }
