@@ -656,7 +656,10 @@ class _MemoryLanePageState extends State<MemoryLanePage>
                                 return;
                               }
                               await shareText(
-                                shareLinkData.$1,
+                                formatMemoryShareText(
+                                  l10n.facesTimelineAppBarTitle,
+                                  shareLinkData.$1,
+                                ),
                                 context: context,
                               );
                             },

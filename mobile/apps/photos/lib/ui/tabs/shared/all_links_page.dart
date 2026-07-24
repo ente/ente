@@ -142,10 +142,14 @@ class _AllLinksPageState extends State<AllLinksPage> {
   }
 
   Future<void> _openMemoryLink(MemoryShare share) async {
+    final title =
+        MemoryShareService.instance.getMemoryShareTitle(share) ??
+        AppLocalizations.of(context).memoryLink;
     final deleted = await showMemoryLinkDetailsSheet(
       context,
       shareUrl: share.url,
       shareId: share.id,
+      title: title,
     );
     if (deleted != true || !mounted) return;
     setState(() {
