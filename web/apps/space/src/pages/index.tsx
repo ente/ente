@@ -156,7 +156,7 @@ const PublicFriendRequestScreen: React.FC<PublicFriendRequestScreenProps> = ({
                     <Box
                         component="span"
                         sx={{
-                            bgcolor: { xs: "#CBE78F", sm: "white" },
+                            bgcolor: { xs: "var(--text-color)", sm: "var(--text-color)" },
                             display: "block",
                             height: 30,
                             mask: 'url("/images/space.svg") center / contain no-repeat',

@@ -405,7 +405,7 @@ export const SetupProfilePhotoScreen: React.FC<
                         onClick={() => void skipProfilePicture()}
                         sx={{
                             alignItems: "center",
-                            bgcolor: "#F2F2F2",
+                            bgcolor: "var(--feed-action-bg)",
                             border: 0,
                             borderRadius: "20px",
                             color: textMuted,

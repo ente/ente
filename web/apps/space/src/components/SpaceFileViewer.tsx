@@ -1635,12 +1635,12 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                             onClick={publishDraftPost}
                             sx={{
                                 alignItems: "center",
-                                bgcolor: "#FFFFFF",
+                                bgcolor: "var(--feed-card-bg)",
                                 border: 0,
                                 borderRadius: "24px",
                                 boxSizing: "border-box",
                                 boxShadow: "0 10px 28px rgba(0, 0, 0, 0.28)",
-                                color: "#111111",
+                                color: "var(--text-color)",
                                 cursor: isDraftPostPublishDisabled
                                     ? "default"
                                     : "pointer",
@@ -1663,8 +1663,8 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                                 },
                                 "&:hover": {
                                     bgcolor: isDraftPostPublishDisabled
-                                        ? "#FFFFFF"
-                                        : "#F0F0F0",
+                                        ? "var(--feed-card-bg)"
+                                        : "var(--feed-action-hover-bg)",
                                 },
                             }}
                         >
@@ -1774,19 +1774,19 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                             onClick={updateCaption}
                             sx={{
                                 alignItems: "center",
-                                bgcolor: "#FFFFFF",
+                                bgcolor: "var(--feed-card-bg)",
                                 border: 0,
                                 borderRadius: "24px",
                                 boxSizing: "border-box",
                                 boxShadow: "0 10px 28px rgba(0, 0, 0, 0.28)",
-                                color: "#111111",
+                                color: "var(--text-color)",
                                 cursor: isCaptionUpdateDisabled
                                     ? "default"
                                     : "pointer",
                                 display: "flex",
                                 flexShrink: 0,
                                 fontFamily:
-                                    '"Inter Variable", Inter, sans-serif',
+                                '"Inter Variable", Inter, sans-serif',
                                 fontSize: 14,
                                 fontWeight: 750,
                                 height: replyInputMinHeight,
@@ -1806,8 +1806,8 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                                 },
                                 "&:hover": {
                                     bgcolor: isCaptionUpdateDisabled
-                                        ? "#FFFFFF"
-                                        : "#F0F0F0",
+                                        ? "var(--feed-card-bg)"
+                                        : "var(--feed-action-hover-bg)",
                                 },
                             }}
                         >
@@ -2034,37 +2034,37 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                                         : undefined
                                 }
                                 sx={{
-                                    ...viewerActionButtonSx,
-                                    animation: isPhotoLikePopping
-                                        ? `${spacePostLikeButtonPop} ${spacePostLikePopDurationMs}ms ${spacePostLikePopTiming} both`
-                                        : undefined,
-                                    bgcolor:
-                                        isReplyMode && canSendReply
-                                            ? "#FFFFFF"
-                                            : controlBackground,
-                                    color:
-                                        isReplyMode && canSendReply
-                                            ? "#111111"
-                                            : controlIcon,
-                                    cursor:
-                                        isReplyMode && !canSendReply
-                                            ? "default"
-                                            : "pointer",
-                                    touchAction: "manipulation",
-                                    userSelect: "none",
-                                    WebkitTouchCallout: "none",
-                                    WebkitUserSelect: "none",
-                                    "&:hover": {
-                                        bgcolor: isReplyMode
-                                            ? canSendReply
-                                                ? "#F0F0F0"
-                                                : controlBackground
-                                            : controlBackgroundHover,
-                                    },
-                                    "@media (prefers-reduced-motion: reduce)": {
-                                        animation: "none",
-                                    },
-                                }}
+                                ...viewerActionButtonSx,
+                                animation: isPhotoLikePopping
+                                    ? `${spacePostLikeButtonPop} ${spacePostLikePopDurationMs}ms ${spacePostLikePopTiming} both`
+                                    : undefined,
+                                bgcolor:
+                                    isReplyMode && canSendReply
+                                        ? "var(--feed-card-bg)"
+                                        : controlBackground,
+                                color:
+                                    isReplyMode && canSendReply
+                                        ? "var(--text-color)"
+                                        : controlIcon,
+                                cursor:
+                                    isReplyMode && !canSendReply
+                                        ? "default"
+                                        : "pointer",
+                                touchAction: "manipulation",
+                                userSelect: "none",
+                                WebkitTouchCallout: "none",
+                                WebkitUserSelect: "none",
+                                "&:hover": {
+                                    bgcolor: isReplyMode
+                                        ? canSendReply
+                                            ? "var(--feed-action-hover-bg)"
+                                            : controlBackground
+                                        : controlBackgroundHover,
+                                },
+                                "@media (prefers-reduced-motion: reduce)": {
+                                    animation: "none",
+                                },
+                            }}
                             >
                                 {isReplyMode ? (
                                     replyActionPhase == "busy" ? (

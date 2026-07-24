@@ -14,8 +14,8 @@ import { useSpacePWAInstallPrompt } from "hooks/useSpacePWAInstallPrompt";
 import React from "react";
 
 const green = "#08C225";
-const textBase = "#000";
-const textSoft = "#777777";
+const textBase = "var(--text-color)";
+const textSoft = "var(--text-secondary)";
 
 interface SpacePWAInstallPromptProps {
     enabled: boolean;
@@ -220,7 +220,7 @@ const SpacePWAInstallInstructions: React.FC<
                 backdrop: { sx: { backgroundColor: "rgba(0, 0, 0, 0.56)" } },
                 paper: {
                     sx: {
-                        bgcolor: "#FFFFFF",
+                        bgcolor: "var(--bg-color)",
                         borderRadius: "28px 28px 0 0",
                         bottom: 0,
                         boxShadow: "0 -18px 44px rgba(0, 0, 0, 0.18)",
@@ -320,7 +320,7 @@ const InstallInstructionStep: React.FC<InstallStep> = ({ icon, text }) => (
     <Box
         sx={{
             alignItems: "center",
-            bgcolor: "#FAFAFA",
+            bgcolor: "var(--feed-action-bg)",
             borderRadius: "18px",
             color: textSoft,
             display: "flex",

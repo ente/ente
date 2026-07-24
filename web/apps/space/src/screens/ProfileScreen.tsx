@@ -41,18 +41,18 @@ import {
 } from "utils/spacePostImage";
 import { thumbHashDataURLFromBase64 } from "utils/thumbhash";
 
-export const profileBackground = "#FFFFFF";
+export const profileBackground = "var(--profile-bg-color)";
 
 const green = "#08C225";
-const dangerColor = "#F63A3A";
-const textBase = "#000";
-const textStrong = "#303030";
-const textSoft = "#777777";
+const dangerColor = "var(--danger-color)";
+const textBase = "var(--text-color)";
+const textStrong = "var(--text-color)";
+const textSoft = "var(--text-secondary)";
 const coverForeground = "#FFFFFF";
-const profileCoverBackground = "#1F1F1F";
+const profileCoverBackground = "var(--profile-bg-color)";
 const profileCoverTopShadow =
     "linear-gradient(180deg, rgba(0, 0, 0, 0.26) 0%, rgba(0, 0, 0, 0.18) 36%, rgba(0, 0, 0, 0.08) 72%, rgba(0, 0, 0, 0) 100%)";
-const profileCoverSkeletonBackground = "#E6E6E6";
+const profileCoverSkeletonBackground = "var(--feed-skeleton-bg)";
 const profileHeaderHeight = 56;
 const profileAvatarTopOffset = 54;
 const profileAvatarSize = 120;
@@ -60,7 +60,7 @@ const profileCoverHeight =
     profileHeaderHeight + profileAvatarTopOffset + profileAvatarSize / 2;
 const photoMasonryGap = "3px";
 const profileHorizontalPadding = "16px";
-const photoMasonryPlaceholderBackground = "#F2F2F2";
+const photoMasonryPlaceholderBackground = "var(--feed-action-bg)";
 const photoMasonryRadius = "12px";
 const photoMasonryLoadRootMargin = "800px 0px";
 const profileToastTransition = "opacity 160ms ease, transform 160ms ease";
@@ -455,7 +455,7 @@ const ProfileToast: React.FC<ProfileToastProps> = ({
             aria-live="polite"
             sx={{
                 alignItems: "center",
-                bgcolor: "#FFFFFF",
+                bgcolor: "var(--feed-card-bg)",
                 borderRadius: "18px",
                 boxShadow: "0 12px 32px rgba(0, 0, 0, 0.18)",
                 boxSizing: "border-box",
@@ -1561,7 +1561,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                                     slotProps={{
                                         paper: {
                                             sx: {
-                                                bgcolor: "#FFFFFF",
+                                                bgcolor: "var(--feed-card-bg)",
                                                 borderRadius: "14px",
                                                 boxShadow:
                                                     "0 14px 40px rgba(0, 0, 0, 0.16)",

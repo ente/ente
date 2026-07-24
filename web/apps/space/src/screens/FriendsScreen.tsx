@@ -23,14 +23,14 @@ import React, { useState } from "react";
 import type { SpaceFriendRequest } from "services/space";
 import { spaceTouchTargetSize } from "styles/touchTargets";
 
-export const friendsBackground = "#FFFFFF";
+export const friendsBackground = "var(--bg-color)";
 
 const green = "#08C225";
-const avatarSkeletonBackground = "#E6E6E6";
-const textBase = "#000";
-const textStrong = "#303030";
-const textSoft = "#777777";
-const dangerColor = "#F63A3A";
+const avatarSkeletonBackground = "var(--feed-skeleton-bg)";
+const textBase = "var(--text-color)";
+const textStrong = "var(--text-color)";
+const textSoft = "var(--text-secondary)";
+const dangerColor = "var(--danger-color)";
 const friendAvatarLoadRootMargin = "800px 0px";
 
 const friendAvatarCacheKey = (friend: FriendProfile) =>
@@ -556,7 +556,7 @@ const FriendRequestRow: React.FC<FriendRequestRowProps> = ({
                         onClick={() => runAction("delete", onDelete)}
                         sx={{
                             alignItems: "center",
-                            bgcolor: "#F2F2F2",
+                            bgcolor: "var(--feed-action-bg)",
                             border: 0,
                             borderRadius: "12px",
                             color: textBase,
@@ -576,7 +576,7 @@ const FriendRequestRow: React.FC<FriendRequestRowProps> = ({
                             },
                             "&:hover": isBusy
                                 ? undefined
-                                : { bgcolor: "#E8E8E8" },
+                                : { bgcolor: "var(--feed-action-hover-bg)" },
                         }}
                     >
                         {action == "delete" ? (
@@ -897,7 +897,7 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                             onSharingChange={setIsInviteSharing}
                             sx={{
                                 alignItems: "center",
-                                bgcolor: "#E8E8E8",
+                                bgcolor: "var(--feed-action-bg)",
                                 border: 0,
                                 borderRadius: "18px",
                                 color: textBase,
@@ -925,7 +925,7 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({
                                 },
                                 "&:hover":
                                     profileLink && !isInviteSharing
-                                        ? { bgcolor: "#DEDEDE" }
+                                        ? { bgcolor: "var(--feed-action-hover-bg)" }
                                         : undefined,
                             }}
                         />

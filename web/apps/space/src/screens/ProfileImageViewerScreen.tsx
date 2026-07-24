@@ -15,10 +15,10 @@ import {
 
 const green = "#08C225";
 const textBase = "#000";
-const profileBackground = "#FFFFFF";
-const profileCoverBackground = "#1F1F1F";
-const profileAvatarSkeletonBackground = "#E6E6E6";
-export const friendProfileImageViewerBackground = "#000000";
+const profileBackground = "var(--profile-bg-color)";
+const profileCoverBackground = "var(--profile-bg-color)";
+const profileAvatarSkeletonBackground = "var(--feed-skeleton-bg)";
+export const friendProfileImageViewerBackground = "var(--profile-bg-color)";
 
 interface FriendProfileImageViewerScreenProps {
     displayName: string;

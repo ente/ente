@@ -20,8 +20,8 @@ import {
 } from "utils/spacePostImage";
 
 const green = "#08C225";
-const textBase = "#000";
-const warning = "#F63A3A";
+const textBase = "var(--text-color)";
+const warning = "var(--danger-color)";
 
 interface AvatarCropImage {
     file: File;

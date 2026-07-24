@@ -19,11 +19,11 @@ export const SpaceMobileBestToast: React.FC = () => {
             aria-live="polite"
             sx={{
                 alignItems: "center",
-                bgcolor: "#FFFFFF",
+                bgcolor: "var(--feed-card-bg)",
                 borderRadius: "18px",
                 boxShadow: "0 12px 32px rgba(0, 0, 0, 0.18)",
                 boxSizing: "border-box",
-                color: "#000000",
+                color: "var(--text-color)",
                 display: { xs: "none", sm: "flex" },
                 fontFamily: '"Inter Variable", Inter, sans-serif',
                 fontSize: 14,
@@ -72,7 +72,7 @@ export const SpaceMobileBestToast: React.FC = () => {
                     appearance: "none",
                     bgcolor: "transparent",
                     border: 0,
-                    color: "#000000",
+                    color: "var(--text-color)",
                     cursor: "pointer",
                     display: "flex",
                     flexShrink: 0,

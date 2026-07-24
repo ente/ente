@@ -15,7 +15,7 @@ export const SpaceFriendRequestCanceledToast: React.FC<
         closeLabel="Dismiss canceled friend request"
         icon={
             <HugeiconsIcon
-                color="#000000"
+                color="var(--text-color)"
                 icon={UserRemove01Icon}
                 size={20}
                 strokeWidth={2}
