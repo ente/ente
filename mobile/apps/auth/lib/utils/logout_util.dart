@@ -47,12 +47,15 @@ Future<void> completeLogout(
     } else {
       await Configuration.instance.logout();
     }
+    await ProfileService.instance.removeActive();
   } catch (_) {
-    // The account is still signed in, so leave its profile alone.
+    // A failure before the account was cleared leaves it signed in, so its
+    // profile is left alone; one after it leaves the record for reconcile()
+    // to drop on the next start. Either way the dialog has to come down, or
+    // the user is stranded under a modal spinner.
     await dialog.hide();
     rethrow;
   }
-  await ProfileService.instance.removeActive();
   // Hide before navigating: the always-false predicate below would otherwise
   // take the dialog's route with it.
   await dialog.hide();

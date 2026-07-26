@@ -194,7 +194,13 @@ Future<void> _init(bool bool, {String? via}) async {
   ], scope: activeScope);
   await cleanupPickedImagesOnStartup(logger: _logger);
   await Network.instance.init(Configuration.instance);
-  await UserService.instance.init(Configuration.instance, const HomePage());
+  await UserService.instance.init(
+    Configuration.instance,
+    const HomePage(),
+    // The sign in flow can clear an account on its own; without this its
+    // profile would outlive its data until the next start.
+    onAccountCleared: ProfileService.instance.handleExternalLogout,
+  );
   await AuthenticatorService.instance.init();
   await BillingService.instance.init();
   await NotificationService.instance.init();
@@ -204,9 +210,11 @@ Future<void> _init(bool bool, {String? via}) async {
     Configuration.instance,
     hasOptedForOfflineMode: Configuration.instance.hasOptedForOfflineMode(),
     hideAppContentDefault: true,
-    // The lock guards the app, not any one vault.
+    // The lock guards the app, not any one vault, so it goes only with the
+    // last account. Asked of the scope signing out rather than of the profile
+    // count, which an in flight add would answer wrongly.
     shouldClearAppLockOnSignOut: () =>
-        !ProfileService.instance.hasMultipleProfiles,
+        ProfileService.instance.isLastProfile(Configuration.instance.scope),
   );
   if (shouldAllowAuthScreenCapture) {
     await LockScreenSettings.instance.setHideAppContent(false, persist: false);

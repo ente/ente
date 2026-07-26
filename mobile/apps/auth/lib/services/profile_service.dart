@@ -66,6 +66,15 @@ class ProfileService {
 
   bool get hasMultipleProfiles => _profiles.length > 1;
 
+  // Whether no account other than [scope] is left for the app lock to guard.
+  //
+  // Not "is there a single profile": a profile being added is unregistered
+  // until commitAdd, so during an add the sole registered profile is another
+  // account that is still signed in, and reading that as the last sign out
+  // would take the app lock down with the aborted add.
+  bool isLastProfile(String scope) =>
+      _profiles.every((profile) => profile.scope == scope);
+
   bool get canAddProfile => _profiles.length < maxProfiles;
 
   Profile? get activeProfile =>
@@ -327,7 +336,25 @@ class ProfileService {
     final scope = await _allocateScope();
     _logger.info("Beginning add of a profile at '$scope'");
     _pendingAddReturnScope = _activeScope;
-    await _applyScope(scope);
+    // Undone on failure for the same reason as in switchTo(): a half applied
+    // scope leaves the registry naming one profile while the databases are
+    // open on another, and nothing here has been registered to abort against.
+    try {
+      await _applyScope(scope);
+    } catch (e, s) {
+      _logger.severe(
+        "Failed to apply '$scope', restoring '$_activeScope'",
+        e,
+        s,
+      );
+      _pendingAddReturnScope = null;
+      try {
+        await _applyScope(_activeScope);
+      } catch (e2, s2) {
+        _logger.severe("Failed to restore '$_activeScope'", e2, s2);
+      }
+      rethrow;
+    }
     // The sign in flow navigates on its own across several pages, so watch for
     // it completing rather than awaiting it.
     await _pendingAddSubscription?.cancel();
@@ -428,6 +455,23 @@ class ProfileService {
     await _applyScope(_activeScope);
     await discard(scope);
     return _profiles.isNotEmpty;
+  }
+
+  // A sign out that cleared the account without going through
+  // completeLogout(), namely the sign in flow's own "change email" paths.
+  // Drops the record for the scope that was cleared and re-points everything
+  // at a surviving profile, so the registry cannot outlive the account's data.
+  Future<void> handleExternalLogout() async {
+    final scope = Configuration.instance.scope;
+    // An unregistered scope is a profile mid add: the add flow hands it back
+    // through abortAdd, and removeActive() would drop the wrong profile since
+    // _activeScope still names the one the user was on.
+    if (scope != _activeScope ||
+        !_profiles.any((profile) => profile.scope == scope)) {
+      return;
+    }
+    _logger.info("Dropping '$scope' after a sign out taken outside the app");
+    await removeActive();
   }
 
   // Erases the preferences, keychain entries and database files [scope] owns.

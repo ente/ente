@@ -328,7 +328,9 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
                                 context.strings.pleaseWait,
                               );
                               await dialog.show();
-                              await widget.config.logout();
+                              await UserService.instance.clearAccount(
+                                widget.config,
+                              );
                               await dialog.hide();
                               if (mounted) {
                                 Navigator.of(

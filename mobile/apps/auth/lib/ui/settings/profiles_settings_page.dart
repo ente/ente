@@ -138,7 +138,19 @@ class _ProfilesSettingsPageState extends State<ProfilesSettingsPage> {
     setState(() => _isBusy = true);
     final navigator = Navigator.of(context, rootNavigator: true);
     final service = ProfileService.instance;
-    final scope = await service.beginAdd();
+    final String scope;
+    try {
+      scope = await service.beginAdd();
+    } catch (e, s) {
+      // beginAdd() restores the previous profile itself, so there is nothing
+      // to hand back here; without this the row would stay disabled for good.
+      _logger.severe("Failed to begin adding a profile", e, s);
+      if (mounted) {
+        setState(() => _isBusy = false);
+        await showGenericErrorDialog(context: context, error: e);
+      }
+      return;
+    }
     if (!mounted) {
       // Disposed while beginAdd() was re-pointing the databases. Nothing has
       // signed in, so hand the scope back rather than leaving the app on a

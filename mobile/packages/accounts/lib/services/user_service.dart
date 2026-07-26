@@ -61,21 +61,36 @@ class UserService {
   late BaseConfiguration _config;
   late BaseHomePage _homePage;
   InstallSourceHandler? _installSourceHandler;
+  Future<void> Function()? _onAccountCleared;
 
   UserService._privateConstructor();
 
   static final UserService instance = UserService._privateConstructor();
 
+  // Apps that hold state of their own alongside the configuration (the auth
+  // app's profile registry) pass [onAccountCleared], so that the sign in
+  // flow's own start-over paths cannot clear an account behind its back.
   Future<void> init(
     BaseConfiguration config,
     BaseHomePage homePage, {
     InstallSourceHandler? installSourceHandler,
+    Future<void> Function()? onAccountCleared,
   }) async {
     _config = config;
     _homePage = homePage;
     _installSourceHandler = installSourceHandler;
+    _onAccountCleared = onAccountCleared;
     emailValueNotifier = ValueNotifier<String?>(config.getEmail());
     _preferences = await SharedPreferences.getInstance();
+  }
+
+  // Clears the account without a server side sign out, for the sign in flow's
+  // "change email" paths. Prefer this over config.logout() so that the app's
+  // own account state goes with it; a no-op beyond the logout when no handler
+  // was installed, which is how single-account apps behave.
+  Future<void> clearAccount(BaseConfiguration config) async {
+    await config.logout();
+    await _onAccountCleared?.call();
   }
 
   Future<void> sendOtt(
@@ -333,7 +348,8 @@ class UserService {
     }
   }
 
-  Future<void> _logoutLocally(BuildContext? context, {
+  Future<void> _logoutLocally(
+    BuildContext? context, {
     bool navigate = true,
   }) async {
     await _config.logout();
