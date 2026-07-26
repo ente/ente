@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:ente_account_deletion/account_deletion.dart';
+import 'package:ente_auth/core/app_wide_preferences.dart';
 import 'package:ente_base/models/database.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import 'package:ente_crypto_api/ente_crypto_api.dart';
@@ -83,12 +84,15 @@ class Configuration extends BaseConfiguration
   @override
   // The pre-existing profile stores its keys unprefixed, so its logout clears
   // preferences wholesale. These must survive it: other profiles' data, the
-  // profile registry, and the app wide lock screen state.
+  // profile registry, the app wide lock screen state, and every app wide
+  // setting (theme, language, local backup configuration) which is likewise
+  // stored unprefixed and would otherwise be reset for the surviving profile.
   List<String> get logoutPreservedKeyPrefixes => const [
     "acct_",
     "profiles",
     "ls_",
     "should_show_lock_screen",
+    ...kAppWidePreferenceKeys,
   ];
 
   // Only for prefixed scopes: the unprefixed profile's entries are cleared by

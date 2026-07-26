@@ -1,0 +1,47 @@
+import 'package:ente_auth/services/auth_theme_preferences.dart';
+import 'package:ente_auth/services/preference_service.dart';
+
+// Preference keys that belong to the app rather than to any one account.
+//
+// They are stored unprefixed, so a logout of the pre-existing (unscoped)
+// profile would otherwise delete them along with that account's keys, silently
+// resetting the surviving profile's theme, language and backup configuration.
+// Configuration.logoutPreservedKeyPrefixes spares everything listed here.
+//
+// Add a key here whenever a new setting is app wide. Account owned settings
+// must NOT be listed: they would then survive a logout and leak into the next
+// session.
+const kAppWidePreferenceKeys = <String>[
+  // Language.
+  localePreferenceKey,
+  // Appearance. ("theme_mode" is a field inside the adaptive blob below, not a
+  // preference key of its own, so it needs no entry here.)
+  AuthThemePreferences.authThemeModeKey,
+  AuthThemePreferences.adaptiveThemePrefKey,
+  // General app preferences.
+  PreferenceService.kHasShownCoachMarkKey,
+  PreferenceService.kLocalTimeOffsetKey,
+  PreferenceService.kShouldShowLargeIconsKey,
+  PreferenceService.kShouldHideCodesKey,
+  PreferenceService.kShouldAutoFocusOnSearchBar,
+  PreferenceService.kShouldMinimizeOnCopy,
+  PreferenceService.kShouldMinimizeToTrayOnClose,
+  PreferenceService.kCompactMode,
+  PreferenceService.kAppInstallTime,
+  PreferenceService.kCodeSortKey,
+  // Local backup destination and schedule. The backup password is account
+  // scoped (Configuration.autoBackupPasswordKey) and deliberately not here.
+  kAutoBackupEnabledKey,
+  kAutoBackupPathKey,
+  kAutoBackupTreeUriKey,
+  kAutoBackupIosBookmarkKey,
+  kLastBackupDayKey,
+];
+
+const localePreferenceKey = 'locale';
+
+const kAutoBackupEnabledKey = 'isAutoBackupEnabled';
+const kAutoBackupPathKey = 'autoBackupPath';
+const kAutoBackupTreeUriKey = 'autoBackupTreeUri';
+const kAutoBackupIosBookmarkKey = 'autoBackupIosBookmark';
+const kLastBackupDayKey = 'lastBackupDay';

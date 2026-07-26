@@ -1,3 +1,4 @@
+import 'package:ente_auth/core/app_wide_preferences.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -67,7 +68,7 @@ Locale localResolutionCallBack(
 
 Future<Locale?> getLocale({bool noFallback = false}) async {
   final String? savedValue = (await SharedPreferences.getInstance()).getString(
-    'locale',
+    localePreferenceKey,
   );
   // if savedLocale is not null and is supported by the app, return it
   if (savedValue != null) {
@@ -101,7 +102,7 @@ Future<void> setLocale(Locale locale) async {
     out.write(locale.countryCode);
   }
   await (await SharedPreferences.getInstance()).setString(
-    'locale',
+    localePreferenceKey,
     out.toString(),
   );
 }

@@ -5,6 +5,7 @@ import 'package:ente_accounts/pages/change_email_dialog.dart';
 import 'package:ente_accounts/pages/password_entry_page.dart';
 import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/l10n/l10n.dart';
+import 'package:ente_auth/services/profile_service.dart';
 import 'package:ente_auth/ui/components/recovery_key_sheet.dart';
 import 'package:ente_auth/ui/home_page.dart';
 import 'package:ente_auth/ui/settings/components/auth_settings_item.dart';
@@ -126,10 +127,13 @@ class AccountSettingsPage extends StatelessWidget {
     final deleted = await Navigator.of(
       context,
     ).push<bool>(MaterialPageRoute(builder: (_) => const DeleteAccountPage()));
-    if (deleted == true && context.mounted) {
-      unawaited(
-        Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false),
-      );
-    }
+    if (deleted != true) return;
+    // The deletion cleared this account's data but left its profile registered,
+    // so drop it before navigating: removeActive() re-points everything at the
+    // surviving profile and erases what this scope owned. Without it '/' would
+    // evaluate against the emptied scope and show onboarding.
+    await ProfileService.instance.removeActive();
+    if (!context.mounted) return;
+    unawaited(Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false));
   }
 }

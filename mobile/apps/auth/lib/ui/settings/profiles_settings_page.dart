@@ -139,7 +139,13 @@ class _ProfilesSettingsPageState extends State<ProfilesSettingsPage> {
     final navigator = Navigator.of(context, rootNavigator: true);
     final service = ProfileService.instance;
     final scope = await service.beginAdd();
-    if (!mounted) return;
+    if (!mounted) {
+      // Disposed while beginAdd() was re-pointing the databases. Nothing has
+      // signed in, so hand the scope back rather than leaving the app on a
+      // blank, unregistered vault.
+      await service.abortAdd(scope);
+      return;
+    }
     // The sign in flow navigates to the home page itself once it completes,
     // and ProfileService commits the new profile when it sees the sign in.
     final signedIn = await Navigator.of(
@@ -164,14 +170,31 @@ class _ProfilesSettingsPageState extends State<ProfilesSettingsPage> {
       if (mounted) setState(() {});
       return;
     }
-    if (!mounted) return;
-    setState(() => _isBusy = false);
+    if (mounted) setState(() => _isBusy = false);
+    // Deliberately not gated on mounted: a successful sign in unmounts this
+    // page, and skipping the decision below would leave the allocated scope
+    // neither committed nor rolled back.
+    await _finishAdd(scope, signedIn: signedIn == true, navigator: navigator);
+  }
+
+  // Commits the scope [beginAdd] allocated, or hands it back if the user never
+  // completed the sign in. The navigator is passed in because this runs after
+  // the sign in flow may have unmounted the page.
+  Future<void> _finishAdd(
+    String scope, {
+    required bool signedIn,
+    required NavigatorState navigator,
+  }) async {
+    final service = ProfileService.instance;
+    // The sign in listener inside beginAdd() may have committed already, in
+    // which case aborting here would delete the account that was just added.
+    if (service.profiles.any((profile) => profile.scope == scope)) return;
     final config = Configuration.instance;
     // An offline vault is a completed add even though nobody signed in, so it
     // must not fall through to the abort below.
     final wentOffline =
         !config.hasConfiguredAccount() && config.hasOptedForOfflineMode();
-    if (signedIn == true || config.hasConfiguredAccount() || wentOffline) {
+    if (signedIn || config.hasConfiguredAccount() || wentOffline) {
       await service.commitAdd(scope);
       if (wentOffline) {
         // The offline flow only pushes over this page, unlike the sign in flow

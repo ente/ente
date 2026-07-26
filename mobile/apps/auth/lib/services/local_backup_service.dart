@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:ente_auth/core/app_wide_preferences.dart';
 import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/models/export/ente.dart';
 import 'package:ente_auth/store/code_store.dart';
@@ -22,8 +23,8 @@ class LocalBackupService {
   static final LocalBackupService instance = LocalBackupService._();
 
   static const int _maxBackups = 5;
-  static const _lastBackupDayKey = 'lastBackupDay';
-  static const _iosBookmarkKey = 'autoBackupIosBookmark';
+  static const _lastBackupDayKey = kLastBackupDayKey;
+  static const _iosBookmarkKey = kAutoBackupIosBookmarkKey;
 
   StreamSubscription<SignedOutEvent>? _signedOutSubscription;
 
@@ -282,11 +283,11 @@ class LocalBackupService {
   }
 
   bool _isBackupEnabled(SharedPreferences prefs) =>
-      prefs.getBool('isAutoBackupEnabled') ?? false;
+      prefs.getBool(kAutoBackupEnabledKey) ?? false;
 
   _BackupTarget? _resolveTarget(SharedPreferences prefs) {
-    final path = prefs.getString('autoBackupPath');
-    final treeUri = prefs.getString('autoBackupTreeUri');
+    final path = prefs.getString(kAutoBackupPathKey);
+    final treeUri = prefs.getString(kAutoBackupTreeUriKey);
     final iosBookmark = prefs.getString(_iosBookmarkKey);
 
     if (treeUri != null && treeUri.isNotEmpty) {

@@ -28,6 +28,7 @@ class PreferenceService {
       "should_minimize_to_tray_on_close";
   static const kCompactMode = "vi.compactMode";
   static const kAppInstallTime = "appInstallTime";
+  static const kCodeSortKey = "codeSortKey";
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -45,12 +46,12 @@ class PreferenceService {
   }
 
   CodeSortKey codeSortKey() {
-    return CodeSortKey.values[_prefs.getInt("codeSortKey") ??
+    return CodeSortKey.values[_prefs.getInt(kCodeSortKey) ??
         CodeSortKey.issuerName.index];
   }
 
   Future<void> setCodeSortKey(CodeSortKey key) async {
-    await _prefs.setInt("codeSortKey", key.index);
+    await _prefs.setInt(kCodeSortKey, key.index);
   }
 
   Future<void> setHasShownCoachMark(bool value) {

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:ente_auth/core/app_wide_preferences.dart';
 import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/services/local_backup_service.dart';
@@ -72,8 +73,8 @@ class LocalBackupExperienceController {
 
 class _LocalBackupExperienceState extends State<LocalBackupExperience> {
   static const _locationConfiguredKey = 'hasConfiguredBackupLocation';
-  static const _treeUriKey = 'autoBackupTreeUri';
-  static const _iosBookmarkKey = 'autoBackupIosBookmark';
+  static const _treeUriKey = kAutoBackupTreeUriKey;
+  static const _iosBookmarkKey = kAutoBackupIosBookmarkKey;
   final _logger = Logger('LocalBackupExperience');
 
   bool _isBackupEnabled = false;
@@ -100,11 +101,11 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    final storedPath = prefs.getString('autoBackupPath');
+    final storedPath = prefs.getString(kAutoBackupPathKey);
     final storedTreeUri = prefs.getString(_treeUriKey);
     if (!mounted) return;
     setState(() {
-      _isBackupEnabled = prefs.getBool('isAutoBackupEnabled') ?? false;
+      _isBackupEnabled = prefs.getBool(kAutoBackupEnabledKey) ?? false;
       _backupPath = storedPath;
       _backupTreeUri = storedTreeUri;
       _hasLoaded = true;
@@ -120,7 +121,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
         }
       } else {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isAutoBackupEnabled', false);
+        await prefs.setBool(kAutoBackupEnabledKey, false);
         if (!mounted) return;
         setState(() {
           _isBackupEnabled = false;
@@ -149,7 +150,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
     }
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isAutoBackupEnabled', true);
+    await prefs.setBool(kAutoBackupEnabledKey, true);
     if (!mounted) return false;
     setState(() {
       _isBackupEnabled = true;
@@ -193,7 +194,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
             _showSnackBar(context.l10n.selectFolderToContinue);
           }
           // Clear the path and prompt user to re-select
-          await prefs.remove('autoBackupPath');
+          await prefs.remove(kAutoBackupPathKey);
           if (mounted) {
             setState(() {
               _backupPath = null;
@@ -401,7 +402,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
       return false;
     }
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('autoBackupPath');
+    await prefs.remove(kAutoBackupPathKey);
     await prefs.remove(_treeUriKey);
     await prefs.remove(_iosBookmarkKey);
     await prefs.remove(_locationConfiguredKey);
@@ -821,7 +822,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
         await dirUtils.stopAccess(pickedDir);
       }
 
-      await prefs.setString('autoBackupPath', path);
+      await prefs.setString(kAutoBackupPathKey, path);
       await prefs.setString(_iosBookmarkKey, bookmark);
       await prefs.remove(_treeUriKey);
       await prefs.setBool(_locationConfiguredKey, true);
@@ -860,7 +861,7 @@ class _LocalBackupExperienceState extends State<LocalBackupExperience> {
         } else {
           // Non-iOS: just save the path directly
           await Directory(target).create(recursive: true);
-          await prefs.setString('autoBackupPath', target);
+          await prefs.setString(kAutoBackupPathKey, target);
           await prefs.remove(_treeUriKey);
           await prefs.setBool(_locationConfiguredKey, true);
           if (!mounted) return false;

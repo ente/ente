@@ -1,3 +1,4 @@
+import 'package:ente_auth/core/app_wide_preferences.dart';
 import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -39,5 +40,59 @@ void main() {
       Configuration.instance.logoutPreservedKeyPrefixes,
       containsAll(["acct_", "profiles", "ls_", "should_show_lock_screen"]),
     );
+  });
+
+  group('app wide settings', () {
+    // The legacy profile's keys carry no prefix, so its logout clears by
+    // exclusion. Anything app wide left off the list is silently reset for
+    // whichever profile survives the logout.
+    test('every app wide key survives a legacy logout', () {
+      final cleared = BaseConfiguration.keysToClearOnLogout(
+        kAppWidePreferenceKeys.toSet(),
+        Configuration.instance.logoutPreservedKeyPrefixes,
+      );
+
+      expect(cleared, isEmpty);
+    });
+
+    test('covers theme, language and local backup', () {
+      // Spelled out so that renaming a constant without updating the list
+      // fails here rather than in the field.
+      expect(
+        kAppWidePreferenceKeys,
+        containsAll([
+          'locale',
+          'ente_auth_theme_mode',
+          'adaptive_theme_preferences',
+          'isAutoBackupEnabled',
+          'autoBackupPath',
+          'autoBackupTreeUri',
+          'autoBackupIosBookmark',
+          'lastBackupDay',
+          'codeSortKey',
+        ]),
+      );
+    });
+
+    test('account owned keys are still cleared', () {
+      // The mirror of the above: preserving one of these would leak the
+      // previous account's state into the next session.
+      final accountKeys = {
+        BaseConfiguration.tokenKey,
+        BaseConfiguration.encryptedTokenKey,
+        BaseConfiguration.userIDKey,
+        BaseConfiguration.emailKey,
+        BaseConfiguration.keyAttributesKey,
+        Configuration.hasOptedForOfflineModeKey,
+        Configuration.autoBackupPasswordKey,
+      };
+
+      final cleared = BaseConfiguration.keysToClearOnLogout(
+        accountKeys,
+        Configuration.instance.logoutPreservedKeyPrefixes,
+      );
+
+      expect(cleared, accountKeys);
+    });
   });
 }
