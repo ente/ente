@@ -47,6 +47,7 @@ class ProfileService {
   StreamSubscription<SignedInEvent>? _pendingAddSubscription;
   StreamSubscription<SignedInEvent>? _signedInSubscription;
   StreamSubscription<UserDetailsChangedEvent>? _userDetailsSubscription;
+  Future<Profile?>? _commitInFlight;
   bool _rejectedDuplicateAdd = false;
 
   // The registry is read at build time by the home app bar, the settings
@@ -124,8 +125,13 @@ class ProfileService {
     );
   }
 
+  // Matches reconcile()'s notion of an account that still has data. The
+  // encrypted token counts: an account waiting on password re-entry has one
+  // but no token yet, and seeding it as nothing would hide the account row
+  // (and with it the switcher) for good.
   bool _hasLegacyAccountData() {
     return _prefs.containsKey(BaseConfiguration.tokenKey) ||
+        _prefs.containsKey(BaseConfiguration.encryptedTokenKey) ||
         (_prefs.getBool(Configuration.hasOptedForOfflineModeKey) ?? false);
   }
 
@@ -198,7 +204,10 @@ class ProfileService {
   // preferences, secure storage entries or database files need to move.
   Future<void> _seedFromLegacyState() async {
     _activeScope = "";
-    final hasToken = _prefs.containsKey(BaseConfiguration.tokenKey);
+    // The encrypted token counts too; see _hasLegacyAccountData.
+    final hasToken =
+        _prefs.containsKey(BaseConfiguration.tokenKey) ||
+        _prefs.containsKey(BaseConfiguration.encryptedTokenKey);
     final hasOfflineVault =
         _prefs.getBool(Configuration.hasOptedForOfflineModeKey) ?? false;
     if (hasToken) {
@@ -368,7 +377,19 @@ class ProfileService {
 
   // Returns the profile already signed in as this user, if any, in which case
   // nothing is added and the caller should switch to it instead.
-  Future<Profile?> commitAdd(String scope) async {
+  //
+  // The sign in listener in beginAdd() and the add page both commit, and the
+  // page's "is it registered yet" check can run while the listener's commit is
+  // still mid flight. Sharing the one future keeps the two from each running
+  // the duplicate check against a registry that does not hold the scope yet,
+  // which would abort the account just added.
+  Future<Profile?> commitAdd(String scope) {
+    return _commitInFlight ??= _commitAdd(
+      scope,
+    ).whenComplete(() => _commitInFlight = null);
+  }
+
+  Future<Profile?> _commitAdd(String scope) async {
     await _pendingAddSubscription?.cancel();
     _pendingAddSubscription = null;
     // Idempotent: the online path commits from the sign in listener and the
@@ -388,6 +409,10 @@ class ProfileService {
     if (existing != null) {
       _logger.info("$existing is already signed in, discarding '$scope'");
       _rejectedDuplicateAdd = true;
+      // The sign in that got us here was a real one, so the server issued a
+      // session for it. Throwing the token away locally would leave that
+      // session live and listed under the account's active sessions.
+      await _endSessionForRejectedAdd();
       await abortAdd(scope);
       return existing;
     }
@@ -405,6 +430,16 @@ class ProfileService {
     return null;
   }
 
+  // Best effort: the account is unreachable from the app either way, so a
+  // failure here must not stop the scope from being handed back.
+  Future<void> _endSessionForRejectedAdd() async {
+    try {
+      await Network.instance.enteDio.post("/users/logout");
+    } catch (e, s) {
+      _logger.warning("Failed to end the rejected add's session", e, s);
+    }
+  }
+
   Future<void> abortAdd(String scope) async {
     _logger.info("Aborting add of '$scope'");
     await _pendingAddSubscription?.cancel();
@@ -416,9 +451,14 @@ class ProfileService {
     await _persist();
     // Re-point everything at the surviving profile before erasing. The
     // databases are singletons, so deleting first leaves a window where a sync
-    // or a page load reopens the file that was just removed.
-    await _applyScope(returnScope);
-    await discard(scope);
+    // or a page load reopens the file that was just removed. Erasing happens
+    // even if that fails: the record is already gone, so nothing would ever
+    // come back for this scope's keys and database files.
+    try {
+      await _applyScope(returnScope);
+    } finally {
+      await discard(scope);
+    }
   }
 
   // Returns false when that was the last profile, so the caller knows to send
@@ -452,26 +492,40 @@ class ProfileService {
       await LockScreenSettings.instance.clearAppLockOnSignOut();
     }
     // Re-point before erasing; see the note in abortAdd.
-    await _applyScope(_activeScope);
-    await discard(scope);
+    try {
+      await _applyScope(_activeScope);
+    } finally {
+      await discard(scope);
+    }
     return _profiles.isNotEmpty;
   }
 
   // A sign out that cleared the account without going through
   // completeLogout(), namely the sign in flow's own "change email" paths.
-  // Drops the record for the scope that was cleared and re-points everything
-  // at a surviving profile, so the registry cannot outlive the account's data.
+  // Drops the record for the scope that was cleared, so the registry cannot
+  // outlive the account's data.
+  //
+  // Deliberately not removeActive(): the caller is a sign in flow that means
+  // to carry on and sign in again, and switching to a surviving profile would
+  // drop the user into someone else's vault instead of the email screen they
+  // asked for. The scope stays active but unregistered, exactly as during an
+  // add, so signing back in lands here and re-registers it; backing out
+  // instead leaves an unknown active scope, which init() falls back from.
+  //
+  // Configuration.logout() has already erased this scope's preferences, keys
+  // and entities, so there is nothing further to discard.
   Future<void> handleExternalLogout() async {
     final scope = Configuration.instance.scope;
     // An unregistered scope is a profile mid add: the add flow hands it back
-    // through abortAdd, and removeActive() would drop the wrong profile since
-    // _activeScope still names the one the user was on.
+    // through abortAdd, and dropping a record here would target the wrong
+    // profile since _activeScope still names the one the user was on.
     if (scope != _activeScope ||
         !_profiles.any((profile) => profile.scope == scope)) {
       return;
     }
     _logger.info("Dropping '$scope' after a sign out taken outside the app");
-    await removeActive();
+    _profiles = _profiles.where((profile) => profile.scope != scope).toList();
+    await _persist();
   }
 
   // Erases the preferences, keychain entries and database files [scope] owns.

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:ente_auth/core/app_wide_preferences.dart';
 import 'package:ente_auth/services/preference_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tray_manager/tray_manager.dart';
@@ -42,7 +43,7 @@ class WindowListenerService with WindowListener, TrayListener {
   }
 
   bool getIsMaximized() {
-    return _preferences.getBool('is_maximized') ?? initialIsMaximized;
+    return _preferences.getBool(kIsWindowMaximizedKey) ?? initialIsMaximized;
   }
 
   @override
@@ -59,12 +60,12 @@ class WindowListenerService with WindowListener, TrayListener {
 
   @override
   void onWindowMaximize() {
-    unawaited(_preferences.setBool('is_maximized', true));
+    unawaited(_preferences.setBool(kIsWindowMaximizedKey, true));
   }
 
   @override
   void onWindowUnmaximize() {
-    unawaited(_preferences.setBool('is_maximized', false));
+    unawaited(_preferences.setBool(kIsWindowMaximizedKey, false));
   }
 
   @override

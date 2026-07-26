@@ -1,5 +1,6 @@
 import 'package:ente_auth/services/auth_theme_preferences.dart';
 import 'package:ente_auth/services/preference_service.dart';
+import 'package:ente_auth/services/update_service.dart';
 
 // Preference keys that belong to the app rather than to any one account.
 //
@@ -29,6 +30,10 @@ const kAppWidePreferenceKeys = <String>[
   PreferenceService.kCompactMode,
   PreferenceService.kAppInstallTime,
   PreferenceService.kCodeSortKey,
+  // Update prompts and desktop window state, neither of which belongs to an
+  // account.
+  UpdateService.kUpdateAvailableShownTimeKey,
+  kIsWindowMaximizedKey,
   // Local backup destination and schedule. The backup password
   // (Configuration.autoBackupPasswordKey) and the last backup day
   // (kLastBackupDayKey) are account scoped and deliberately not here: each
@@ -38,12 +43,16 @@ const kAppWidePreferenceKeys = <String>[
   kAutoBackupPathKey,
   kAutoBackupTreeUriKey,
   kAutoBackupIosBookmarkKey,
+  kBackupLocationConfiguredKey,
 ];
 
 const localePreferenceKey = 'locale';
+
+const kIsWindowMaximizedKey = 'is_maximized';
 
 const kAutoBackupEnabledKey = 'isAutoBackupEnabled';
 const kAutoBackupPathKey = 'autoBackupPath';
 const kAutoBackupTreeUriKey = 'autoBackupTreeUri';
 const kAutoBackupIosBookmarkKey = 'autoBackupIosBookmark';
+const kBackupLocationConfiguredKey = 'hasConfiguredBackupLocation';
 const kLastBackupDayKey = 'lastBackupDay';

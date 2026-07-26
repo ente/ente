@@ -72,7 +72,7 @@ class LocalBackupExperienceController {
 }
 
 class _LocalBackupExperienceState extends State<LocalBackupExperience> {
-  static const _locationConfiguredKey = 'hasConfiguredBackupLocation';
+  static const _locationConfiguredKey = kBackupLocationConfiguredKey;
   static const _treeUriKey = kAutoBackupTreeUriKey;
   static const _iosBookmarkKey = kAutoBackupIosBookmarkKey;
   final _logger = Logger('LocalBackupExperience');
