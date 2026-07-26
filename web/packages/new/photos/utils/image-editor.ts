@@ -20,20 +20,24 @@ export const computeInscribedCrop = (
 
     if (sinT === 0) return { width, height };
 
-    const wide = Math.min(width, height);
-    const long = Math.max(width, height);
+    // A crop rectangle sharing the original aspect ratio, centered at the
+    // origin, has half-width a and half-height a*(height/width). Rotating
+    // its corners by -angleDegrees into the original (unrotated) rectangle's
+    // frame gives two constraints on how large a can be before a corner
+    // pokes outside the original width/height bounds:
+    //   a*cosT + a*(height/width)*sinT <= width/2   (stay within width)
+    //   a*sinT + a*(height/width)*cosT <= height/2  (stay within height)
+    // Solving each for the maximum a, and taking the tighter (smaller) one,
+    // gives the largest inscribed rectangle. This also guarantees the result
+    // keeps the original aspect ratio, since both bounds were derived from a
+    // crop rectangle whose height was defined as a*(height/width) already.
+    const maxAFromWidthBound =
+        (width * width) / (2 * (width * cosT + height * sinT));
+    const maxAFromHeightBound =
+        (width * height) / (2 * (width * sinT + height * cosT));
+    const a = Math.min(maxAFromWidthBound, maxAFromHeightBound);
 
-    if (wide <= 2 * sinT * cosT * long) {
-        const x = wide / 2;
-        const cropW = x / sinT;
-        const cropH = x / cosT;
-        return width <= height
-            ? { width: cropW, height: cropH }
-            : { width: cropH, height: cropW };
-    }
-
-    const d = cosT * cosT - sinT * sinT;
-    const cropW = (width * cosT - height * sinT) / d;
-    const cropH = (height * cosT - width * sinT) / d;
+    const cropW = 2 * a;
+    const cropH = cropW * (height / width);
     return { width: cropW, height: cropH };
 };

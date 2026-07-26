@@ -62,6 +62,7 @@ import React, {
     type RefObject,
 } from "react";
 import { savedCollections } from "../services/photos-fdb";
+import { computeInscribedCrop } from "../utils/image-editor";
 
 export type ImageEditorOverlayProps = ModalVisibilityProps & {
     /**
@@ -123,6 +124,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
     const [currentRotationAngle, setCurrentRotationAngle] = useState(0);
 
     const [straightenAngle, setStraightenAngle] = useState(0);
+    const [isStraightenDragging, setIsStraightenDragging] = useState(false);
 
     const [currentTab, setCurrentTab] = useState<OperationTab>("transform");
 
@@ -526,7 +528,32 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
         setCurrentTab,
         straightenAngle,
         setStraightenAngle,
+        setIsStraightenDragging,
     };
+
+    const isTransformTab = currentTab === "transform";
+
+    // How much to scale the canvas up, in addition to rotating it, so the
+    // image fully covers a fixed-size frame at the current straighten angle.
+    const straightenZoomScale =
+        isTransformTab && straightenAngle !== 0 && canvasRef.current
+            ? canvasRef.current.width /
+              computeInscribedCrop(
+                  canvasRef.current.width,
+                  canvasRef.current.height,
+                  straightenAngle,
+              ).width
+            : 1;
+
+    // The canvas is centered within parentRef by flexbox, so the straighten
+    // overlay must be offset to the canvas's on-screen position, not (0,0).
+    const straightenOverlayOffsets =
+        isTransformTab &&
+        isStraightenDragging &&
+        canvasRef.current &&
+        parentRef.current
+            ? getCanvasBoundsOffsets()
+            : null;
 
     return (
         <Backdrop
@@ -614,6 +641,10 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                                             ? "none"
                                             : "block",
                                     position: "absolute",
+                                    transform:
+                                        isTransformTab && straightenAngle !== 0
+                                            ? `rotate(${straightenAngle}deg) scale(${straightenZoomScale})`
+                                            : undefined,
                                 }}
                             />
                             <canvas
@@ -626,6 +657,15 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                                     cropBox={cropBox}
                                     ref={cropBoxRef}
                                     setIsDragging={setIsDragging}
+                                />
+                            )}
+
+                            {straightenOverlayOffsets && canvasRef.current && (
+                                <StraightenOverlay
+                                    canvasWidth={canvasRef.current.width}
+                                    canvasHeight={canvasRef.current.height}
+                                    offsetX={straightenOverlayOffsets.offsetX}
+                                    offsetY={straightenOverlayOffsets.offsetY}
                                 />
                             )}
                         </Stack>
@@ -806,6 +846,7 @@ interface CommonMenuProps {
     setCurrentTab: (tab: OperationTab) => void;
     straightenAngle: number;
     setStraightenAngle: (v: number) => void;
+    setIsStraightenDragging: (v: boolean) => void;
 }
 
 type CropMenuProps = CommonMenuProps & {
@@ -1054,6 +1095,7 @@ const TransformMenu: React.FC<CommonMenuProps> = ({
     setTransformationPerformed,
     straightenAngle,
     setStraightenAngle,
+    setIsStraightenDragging,
 }) => {
     // Crops the canvas according to originalHeight and originalWidth without compounding
     const cropCanvas = (
@@ -1318,6 +1360,7 @@ const TransformMenu: React.FC<CommonMenuProps> = ({
                     marks={[{ value: 0, label: "0°" }]}
                     disabled={canvasLoading}
                     onChange={(_, value) => {
+                        setIsStraightenDragging(true);
                         setStraightenAngle(value as number);
                     }}
                 />
@@ -1343,6 +1386,66 @@ const TransformMenu: React.FC<CommonMenuProps> = ({
         </>
     );
 };
+
+interface StraightenOverlayProps {
+    canvasWidth: number;
+    canvasHeight: number;
+    offsetX: number;
+    offsetY: number;
+}
+
+// A rule-of-thirds grid, fixed to the canvas's on-screen bounds and never
+// rotating itself, so it represents "level" while the image rotates (and
+// zooms to keep covering it) underneath.
+const StraightenOverlay: React.FC<StraightenOverlayProps> = ({
+    canvasWidth,
+    canvasHeight,
+    offsetX,
+    offsetY,
+}) => (
+    <svg
+        width={canvasWidth}
+        height={canvasHeight}
+        style={{
+            position: "absolute",
+            top: offsetY,
+            left: offsetX,
+            pointerEvents: "none",
+        }}
+    >
+        {[1, 2].map((i) => (
+            <line
+                key={`v${i}`}
+                x1={(canvasWidth * i) / 3}
+                y1={0}
+                x2={(canvasWidth * i) / 3}
+                y2={canvasHeight}
+                stroke="rgba(255, 255, 255, 0.6)"
+                strokeWidth={1}
+            />
+        ))}
+        {[1, 2].map((i) => (
+            <line
+                key={`h${i}`}
+                x1={0}
+                y1={(canvasHeight * i) / 3}
+                x2={canvasWidth}
+                y2={(canvasHeight * i) / 3}
+                stroke="rgba(255, 255, 255, 0.6)"
+                strokeWidth={1}
+            />
+        ))}
+        <rect
+            x={0}
+            y={0}
+            width={canvasWidth}
+            height={canvasHeight}
+            fill="none"
+            stroke="white"
+            strokeWidth={1}
+        />
+    </svg>
+);
 
 interface ColoursMenuProps {
     brightness: number;

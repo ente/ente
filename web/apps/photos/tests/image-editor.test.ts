@@ -1,6 +1,56 @@
 import { computeInscribedCrop } from "ente-new/photos/utils/image-editor";
 import { describe, expect, test } from "vitest";
 
+/**
+ * Independently verify a computed crop rectangle by rotating its corners
+ * back into the original (unrotated) rectangle's frame and checking they
+ * lie within its bounds — this checks the actual geometry, rather than
+ * re-deriving the same closed-form formula the code under test uses.
+ */
+const cropFitsWithinOriginal = (
+    originalWidth: number,
+    originalHeight: number,
+    angleDegrees: number,
+    crop: { width: number; height: number },
+    tolerance = 1e-6,
+) => {
+    const radians = (angleDegrees * Math.PI) / 180;
+    const sin = Math.sin(radians);
+    const cos = Math.cos(radians);
+    const a = crop.width / 2;
+    const b = crop.height / 2;
+
+    // The four corners of the crop rectangle, rotated by -angleDegrees
+    // (undoing the rotation) into the original rectangle's frame.
+    const corners = [
+        [a, b],
+        [a, -b],
+        [-a, b],
+        [-a, -b],
+    ].map(([x, y]) => ({
+        x: x! * cos + y! * sin,
+        y: -x! * sin + y! * cos,
+    }));
+
+    return corners.every(
+        (c) =>
+            Math.abs(c.x) <= originalWidth / 2 + tolerance &&
+            Math.abs(c.y) <= originalHeight / 2 + tolerance,
+    );
+};
+
+/** The crop is "tight" if scaling it up even slightly no longer fits. */
+const cropIsTight = (
+    originalWidth: number,
+    originalHeight: number,
+    angleDegrees: number,
+    crop: { width: number; height: number },
+) =>
+    !cropFitsWithinOriginal(originalWidth, originalHeight, angleDegrees, {
+        width: crop.width * 1.001,
+        height: crop.height * 1.001,
+    });
+
 describe("computeInscribedCrop", () => {
     test("0 degrees returns the input dimensions unchanged", () => {
         expect(computeInscribedCrop(1000, 600, 0)).toEqual({
@@ -9,73 +59,55 @@ describe("computeInscribedCrop", () => {
         });
     });
 
-    test("square image, 45 degrees", () => {
-        // wide = long = 1000, sinT = cosT = sqrt(2)/2
-        // wide <= 2*sinT*cosT*long -> 1000 <= 1000, so first branch
-        // x = 500, cropW = 500 / (sqrt(2)/2), cropH = same
-        const result = computeInscribedCrop(1000, 1000, 45);
-        expect(result.width).toBeCloseTo(707.10678, 4);
-        expect(result.height).toBeCloseTo(707.10678, 4);
-    });
+    const cases: [string, number, number, number][] = [
+        ["square, 1 degree", 1000, 1000, 1],
+        ["square, 45 degrees", 1000, 1000, 45],
+        ["landscape, 5 degrees", 1000, 600, 5],
+        ["landscape, 15 degrees", 1000, 600, 15],
+        ["landscape, 30 degrees", 1000, 600, 30],
+        ["landscape, 45 degrees", 1000, 600, 45],
+        ["portrait, 5 degrees", 600, 1000, 5],
+        ["portrait, 15 degrees", 600, 1000, 15],
+        ["portrait, 45 degrees", 600, 1000, 45],
+        ["portrait, -15 degrees", 600, 1000, -15],
+        ["very wide, 45 degrees", 2000, 400, 45],
+        ["very wide, 10 degrees", 2000, 400, 10],
+    ];
 
-    test("landscape image, small angle uses the second branch", () => {
-        // W=1000, H=600, angle=5deg
-        const result = computeInscribedCrop(1000, 600, 5);
-        const radians = (5 * Math.PI) / 180;
-        const sinT = Math.abs(Math.sin(radians));
-        const cosT = Math.abs(Math.cos(radians));
-        const d = cosT * cosT - sinT * sinT;
-        const expectedW = (1000 * cosT - 600 * sinT) / d;
-        const expectedH = (600 * cosT - 1000 * sinT) / d;
-        expect(result.width).toBeCloseTo(expectedW, 4);
-        expect(result.height).toBeCloseTo(expectedH, 4);
-    });
+    for (const [label, width, height, angle] of cases) {
+        test(`${label}: fits within the original bounds, preserves aspect ratio, and is tight`, () => {
+            const crop = computeInscribedCrop(width, height, angle);
 
-    test("portrait image, 15 degrees", () => {
-        const result = computeInscribedCrop(600, 1000, 15);
-        const radians = (15 * Math.PI) / 180;
-        const sinT = Math.abs(Math.sin(radians));
-        const cosT = Math.abs(Math.cos(radians));
-        // wide = 600, long = 1000
-        const wide = 600;
-        const long = 1000;
-        if (wide <= 2 * sinT * cosT * long) {
-            const x = wide / 2;
-            expect(result.width).toBeCloseTo(x / sinT, 4);
-            expect(result.height).toBeCloseTo(x / cosT, 4);
-        } else {
-            const d = cosT * cosT - sinT * sinT;
-            expect(result.width).toBeCloseTo((600 * cosT - 1000 * sinT) / d, 4);
-            expect(result.height).toBeCloseTo(
-                (1000 * cosT - 600 * sinT) / d,
-                4,
-            );
-        }
-    });
+            expect(
+                cropFitsWithinOriginal(width, height, angle, crop),
+            ).toBe(true);
 
-    test("negative angle uses the absolute value (symmetric result)", () => {
+            expect(crop.width / crop.height).toBeCloseTo(width / height, 6);
+
+            expect(cropIsTight(width, height, angle, crop)).toBe(true);
+        });
+    }
+
+    test("negative angle produces the same result as its positive counterpart", () => {
         const positive = computeInscribedCrop(1000, 600, 30);
         const negative = computeInscribedCrop(1000, 600, -30);
         expect(negative).toEqual(positive);
     });
 
     test("composing with a prior edit uses the current (already-cropped) dimensions, not original", () => {
-        // A second call using the output of a first call as its input must
-        // recompute from those dimensions, not reference anything global.
         const first = computeInscribedCrop(1000, 600, 20);
         const second = computeInscribedCrop(first.width, first.height, 10);
         const direct = computeInscribedCrop(first.width, first.height, 10);
         expect(second).toEqual(direct);
     });
 
-    test("45 degree cap on a very wide image uses the first branch", () => {
-        const result = computeInscribedCrop(2000, 400, 45);
-        // wide=400, long=2000, sinT=cosT=sqrt(2)/2
-        // 2*sinT*cosT*long = 2000, wide(400) <= 2000 -> first branch
-        const x = 200;
-        const sinT = Math.sqrt(2) / 2;
-        const cosT = Math.sqrt(2) / 2;
-        expect(result.width).toBeCloseTo(x / sinT, 4);
-        expect(result.height).toBeCloseTo(x / cosT, 4);
+    test("shrinks monotonically as the angle increases from 0 to 45", () => {
+        const angles = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45];
+        const widths = angles.map(
+            (a) => computeInscribedCrop(1000, 600, a).width,
+        );
+        for (let i = 1; i < widths.length; i++) {
+            expect(widths[i]).toBeLessThan(widths[i - 1]!);
+        }
     });
 });
