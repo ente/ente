@@ -15,7 +15,14 @@ import 'package:logging/logging.dart';
 
 class SessionsPage extends StatefulWidget {
   final BaseConfiguration config;
-  const SessionsPage(this.config, {super.key});
+
+  // Replaces the plain UserService.logout() run when the terminated session is
+  // this device's. Apps that hold state of their own alongside the
+  // configuration (the auth app's profile registry) pass a handler here so
+  // that this sign out is not the one path that leaves it stale.
+  final Future<void> Function(BuildContext context)? onLogoutThisDevice;
+
+  const SessionsPage(this.config, {this.onLogoutThisDevice, super.key});
 
   @override
   State<SessionsPage> createState() => _SessionsPageState();
@@ -180,7 +187,11 @@ class _SessionsPageState extends State<SessionsPage> {
               onTap: () async {
                 Navigator.of(context).pop();
                 if (isLoggingOutFromThisDevice) {
-                  await UserService.instance.logout(context);
+                  if (widget.onLogoutThisDevice != null) {
+                    await widget.onLogoutThisDevice!(context);
+                  } else {
+                    await UserService.instance.logout(context);
+                  }
                 } else {
                   await _terminateSession(session);
                 }

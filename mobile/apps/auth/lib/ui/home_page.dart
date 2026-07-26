@@ -12,6 +12,7 @@ import 'package:ente_auth/events/multi_select_action_requested_event.dart';
 import 'package:ente_auth/events/trigger_logout_event.dart';
 import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/models/code.dart';
+import 'package:ente_auth/models/profile.dart';
 import 'package:ente_auth/onboarding/model/tag_enums.dart';
 import 'package:ente_auth/onboarding/view/common/tag_chip.dart';
 import 'package:ente_auth/onboarding/view/setup_enter_secret_key_page.dart';
@@ -1446,25 +1447,30 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildTitle(EnteColorScheme colorScheme) {
-    final profileService = ProfileService.instance;
-    if (!profileService.hasMultipleProfiles) {
-      return const AuthLogoWidget(height: 18);
-    }
-    final profile = profileService.activeProfile;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const AuthLogoWidget(height: 18),
-        const SizedBox(height: 2),
-        Text(
-          profile?.displayName(context.l10n.offlineVault) ??
-              context.l10n.offlineVault,
-          style: getEnteTextTheme(
-            context,
-          ).miniMuted.copyWith(color: colorScheme.textMuted),
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+    // Listened to rather than read once, so that a rename or an email change
+    // shows up without waiting for the next rebuild of the page.
+    return ValueListenableBuilder<Profile?>(
+      valueListenable: ProfileService.instance.activeProfileNotifier,
+      builder: (context, profile, _) {
+        if (!ProfileService.instance.hasMultipleProfiles) {
+          return const AuthLogoWidget(height: 18);
+        }
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const AuthLogoWidget(height: 18),
+            const SizedBox(height: 2),
+            Text(
+              profile?.displayName(context.l10n.offlineVault) ??
+                  context.l10n.offlineVault,
+              style: getEnteTextTheme(
+                context,
+              ).miniMuted.copyWith(color: colorScheme.textMuted),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        );
+      },
     );
   }
 

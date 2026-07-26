@@ -12,6 +12,7 @@ import 'package:ente_auth/ui/components/models/button_result.dart';
 import 'package:ente_auth/ui/settings/components/auth_settings_item.dart';
 import 'package:ente_auth/ui/settings/components/auth_settings_page_scaffold.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
+import 'package:ente_auth/utils/logout_util.dart';
 import 'package:ente_auth/utils/toast_util.dart';
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_crypto_api/ente_crypto_api.dart';
@@ -134,7 +135,14 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
         );
     if (!hasAuthenticated || !mounted) return;
     await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => SessionsPage(Configuration.instance)),
+      MaterialPageRoute(
+        // Terminating this device's session signs the active profile out, so
+        // its record has to go with it.
+        builder: (_) => SessionsPage(
+          Configuration.instance,
+          onLogoutThisDevice: completeLogout,
+        ),
+      ),
     );
   }
 

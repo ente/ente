@@ -22,10 +22,17 @@ class LockScreen extends StatefulWidget {
 
   final Future<void> Function(BuildContext context)? onLogout;
 
+  // Replaces the plain config.logout() the app is signed out with after too
+  // many invalid attempts. Apps that hold state of their own alongside the
+  // configuration (the auth app's profile registry) pass a handler here so
+  // that this sign out is not the one path that leaves it stale.
+  final Future<void> Function(BuildContext context)? onAutoLogout;
+
   const LockScreen(
     this.config, {
     this.authReasonBuilder,
     this.onLogout,
+    this.onAutoLogout,
     super.key,
   });
 
@@ -309,6 +316,12 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
     _logger.info("Auto logout on max invalid attempts");
     Navigator.of(context, rootNavigator: true).pop('dialog');
     Navigator.of(context).popUntil((route) => route.isFirst);
+    if (widget.onAutoLogout != null) {
+      // The handler shows its own progress dialog: it may route away, which
+      // would take ours with it while it is still on the stack.
+      await widget.onAutoLogout!(context);
+      return;
+    }
     final dialog = createProgressDialog(context, context.strings.loggingOut);
     await dialog.show();
     await widget.config.logout();

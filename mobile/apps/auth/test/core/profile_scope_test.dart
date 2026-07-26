@@ -114,18 +114,21 @@ void main() {
       expect(profiles.single.userID, 7);
     });
 
-    test('an empty list with an unregistered offline vault is healed', () async {
-      SharedPreferences.setMockInitialValues({
-        "profilesV1": <String>[],
-        "profilesActiveScope": "",
-        Configuration.hasOptedForOfflineModeKey: true,
-      });
-      await ProfileService.instance.init();
+    test(
+      'an empty list with an unregistered offline vault is healed',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          "profilesV1": <String>[],
+          "profilesActiveScope": "",
+          Configuration.hasOptedForOfflineModeKey: true,
+        });
+        await ProfileService.instance.init();
 
-      final profiles = ProfileService.instance.profiles;
-      expect(profiles, hasLength(1));
-      expect(profiles.single.kind, ProfileKind.offline);
-    });
+        final profiles = ProfileService.instance.profiles;
+        expect(profiles, hasLength(1));
+        expect(profiles.single.kind, ProfileKind.offline);
+      },
+    );
 
     test('an empty list with no account data stays empty', () async {
       SharedPreferences.setMockInitialValues({
@@ -259,6 +262,33 @@ void main() {
       expect(profile.label, "Work laptop");
       expect(profile.kind, ProfileKind.online);
       expect(profile.userID, 3);
+    });
+
+    // What keeps the settings header, the home app bar and the switcher from
+    // showing the address the account was registered with after an email
+    // change: the app re-registers the active profile on the change event.
+    test('a changed email updates the record and its listeners', () async {
+      final notifier = ProfileService.instance.activeProfileNotifier;
+      await ProfileService.instance.registerProfileSnapshot(
+        scope: "",
+        userID: 7,
+        email: "old@example.org",
+        isOnline: true,
+      );
+      final seen = <String?>[];
+      void listener() => seen.add(notifier.value?.email);
+      notifier.addListener(listener);
+      addTearDown(() => notifier.removeListener(listener));
+
+      await ProfileService.instance.registerProfileSnapshot(
+        scope: "",
+        userID: 7,
+        email: "new@example.org",
+        isOnline: true,
+      );
+
+      expect(ProfileService.instance.profiles.single.email, "new@example.org");
+      expect(seen, ["new@example.org"]);
     });
   });
 

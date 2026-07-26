@@ -29,13 +29,15 @@ const kAppWidePreferenceKeys = <String>[
   PreferenceService.kCompactMode,
   PreferenceService.kAppInstallTime,
   PreferenceService.kCodeSortKey,
-  // Local backup destination and schedule. The backup password is account
-  // scoped (Configuration.autoBackupPasswordKey) and deliberately not here.
+  // Local backup destination and schedule. The backup password
+  // (Configuration.autoBackupPasswordKey) and the last backup day
+  // (kLastBackupDayKey) are account scoped and deliberately not here: each
+  // vault has to back up on its own, so one vault's backup must not count as
+  // the day's backup for the rest.
   kAutoBackupEnabledKey,
   kAutoBackupPathKey,
   kAutoBackupTreeUriKey,
   kAutoBackupIosBookmarkKey,
-  kLastBackupDayKey,
 ];
 
 const localePreferenceKey = 'locale';

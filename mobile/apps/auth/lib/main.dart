@@ -27,6 +27,7 @@ import 'package:ente_auth/ui/utils/icon_utils.dart';
 import 'package:ente_auth/utils/debug_build_flags.dart';
 import 'package:ente_auth/utils/directory_utils.dart' as auth_dir_utils;
 import 'package:ente_auth/utils/gallery_import_util.dart';
+import 'package:ente_auth/utils/logout_util.dart';
 import 'package:ente_auth/utils/window_protocol_handler.dart';
 import 'package:ente_components/ente_components.dart' as components;
 import 'package:ente_crypto_api/ente_crypto_api.dart';
@@ -124,7 +125,13 @@ Future<void> _runInForeground() async {
       AppLock(
         builder: (args) => App(locale: locale, savedThemeMode: savedThemeMode),
         debugShowCheckedModeBanner: false,
-        lockScreen: LockScreen(configuration),
+        // Without this the too many attempts sign out would clear the account
+        // but leave its profile registered, stranding the surviving vault.
+        lockScreen: LockScreen(
+          configuration,
+          onAutoLogout: (context) =>
+              completeLogout(context, serverSideLogout: false, navigate: false),
+        ),
         enabled: await LockScreenSettings.instance.shouldShowLockScreen(),
         locale: locale,
         lightTheme: lightThemeData,

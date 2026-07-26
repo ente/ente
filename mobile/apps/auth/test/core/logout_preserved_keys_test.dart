@@ -68,7 +68,6 @@ void main() {
           'autoBackupPath',
           'autoBackupTreeUri',
           'autoBackupIosBookmark',
-          'lastBackupDay',
           'codeSortKey',
         ]),
       );
@@ -85,6 +84,9 @@ void main() {
         BaseConfiguration.keyAttributesKey,
         Configuration.hasOptedForOfflineModeKey,
         Configuration.autoBackupPasswordKey,
+        // Each vault backs up on its own schedule, so the marker is account
+        // owned: a fresh account at this scope must not inherit it.
+        kLastBackupDayKey,
       };
 
       final cleared = BaseConfiguration.keysToClearOnLogout(

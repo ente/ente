@@ -16,6 +16,39 @@ import 'package:path/path.dart' as p;
 import 'package:scoped_dir_access/scoped_dir_access.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+const _backupFileNamePrefixes = <String>[
+  'ente-auth-daily-backup-',
+  'ente-auth-manual-backup-',
+  'ente-auth-auto-backup-',
+];
+
+// Every profile backs up to the same destination, so each file carries the
+// scope that wrote it and retention is applied per profile. The legacy scope
+// uses an empty segment, leaving its filenames exactly as they were.
+String backupFileScopeSegment(String scope) =>
+    scope.endsWith('.') ? scope.substring(0, scope.length - 1) : scope;
+
+bool isBackupFileName(String fileName) =>
+    _backupFileNamePrefixes.any(fileName.startsWith);
+
+// Whether [fileName] was written by [scope], so that pruning one profile's
+// backups never deletes another's.
+bool backupFileBelongsToScope(String fileName, String scope) {
+  final prefix = _backupFileNamePrefixes.firstWhere(
+    fileName.startsWith,
+    orElse: () => '',
+  );
+  if (prefix.isEmpty) return false;
+  final remainder = fileName.substring(prefix.length);
+  final segment = backupFileScopeSegment(scope);
+  if (segment.isEmpty) {
+    // Files written before profiles existed carry no segment either, which is
+    // correct: they belong to the account that kept the legacy scope.
+    return !remainder.startsWith('acct_');
+  }
+  return remainder.startsWith('$segment-');
+}
+
 class LocalBackupService {
   LocalBackupService._();
 
@@ -191,8 +224,12 @@ class LocalBackupService {
     try {
       final dirUtils = DirUtils.instance;
       final files = await dirUtils.listFiles(dir);
+      final scope = Configuration.instance.scope;
       final backupFiles = files
-          .where((file) => !file.isDirectory && _isBackupFile(file.name))
+          .where(
+            (file) =>
+                !file.isDirectory && backupFileBelongsToScope(file.name, scope),
+          )
           .toList();
 
       backupFiles.sort((a, b) {
@@ -214,9 +251,10 @@ class LocalBackupService {
     try {
       final directory = Directory(backupPath);
       final entities = await directory.list().toList();
+      final scope = Configuration.instance.scope;
       final files = entities
           .whereType<File>()
-          .where((f) => _isBackupFile(p.basename(f.path)))
+          .where((f) => backupFileBelongsToScope(p.basename(f.path), scope))
           .toList();
 
       // Sort by mtime async
@@ -250,9 +288,11 @@ class LocalBackupService {
         }
 
         final entities = await backupDir.list().toList();
+        // Every profile's, not just the active one's: the destination is app
+        // wide, so changing it moves the backups of all of them.
         final files = entities
             .whereType<File>()
-            .where((f) => _isBackupFile(p.basename(f.path)))
+            .where((f) => isBackupFileName(p.basename(f.path)))
             .toList();
 
         if (files.isEmpty) {
@@ -358,26 +398,27 @@ class LocalBackupService {
   String _buildFileName(DateTime now, {required bool isManual}) {
     final formatter = DateFormat('yyyy-MM-dd_HH-mm-ss');
     final formattedDate = formatter.format(now);
+    final segment = backupFileScopeSegment(Configuration.instance.scope);
+    final owner = segment.isEmpty ? '' : '$segment-';
     return isManual
-        ? 'ente-auth-manual-backup-$formattedDate.json'
-        : 'ente-auth-daily-backup-$formattedDate.json';
+        ? 'ente-auth-manual-backup-$owner$formattedDate.json'
+        : 'ente-auth-daily-backup-$owner$formattedDate.json';
   }
+
+  // Scoped, so that a backup of one vault does not count as the day's backup
+  // for the others. The legacy scope resolves to the original unprefixed key.
+  String get _scopedLastBackupDayKey =>
+      Configuration.instance.scopedKey(_lastBackupDayKey);
 
   bool _hasBackedUpToday(SharedPreferences prefs) {
     final todayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final last = prefs.getString(_lastBackupDayKey);
+    final last = prefs.getString(_scopedLastBackupDayKey);
     return last == todayKey;
   }
 
   Future<void> _recordBackupDay(SharedPreferences prefs, DateTime now) async {
     final dayKey = DateFormat('yyyy-MM-dd').format(now);
-    await prefs.setString(_lastBackupDayKey, dayKey);
-  }
-
-  bool _isBackupFile(String fileName) {
-    return fileName.startsWith('ente-auth-daily-backup-') ||
-        fileName.startsWith('ente-auth-manual-backup-') ||
-        fileName.startsWith('ente-auth-auto-backup-');
+    await prefs.setString(_scopedLastBackupDayKey, dayKey);
   }
 }
 

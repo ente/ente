@@ -26,6 +26,7 @@ import 'package:ente_auth/ui/settings/social_icons_row.dart';
 import 'package:ente_auth/ui/settings/support_settings_page.dart';
 import 'package:ente_auth/ui/settings/theme_settings_page.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
+import 'package:ente_auth/utils/logout_util.dart';
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_lock_screen/local_authentication_service.dart';
 import 'package:ente_strings/ente_strings.dart';
@@ -77,14 +78,19 @@ class SettingsPage extends StatelessWidget {
     }
     return ValueListenableBuilder<String?>(
       valueListenable: emailNotifier,
-      builder: (context, email, _) => _buildSettings(
-        context,
-        hasLoggedIn: hasLoggedIn,
-        email: settingsSubtitle(
-          profile: ProfileService.instance.activeProfile,
-          email: email,
+      builder: (context, email, _) => ValueListenableBuilder<Profile?>(
+        // The profile is what is shown; the notifier only matters before one
+        // is registered. Both are listened to so that either changing repaints.
+        valueListenable: ProfileService.instance.activeProfileNotifier,
+        builder: (context, profile, _) => _buildSettings(
+          context,
           hasLoggedIn: hasLoggedIn,
-          offlineFallback: context.l10n.offlineVault,
+          email: settingsSubtitle(
+            profile: profile,
+            email: email,
+            hasLoggedIn: hasLoggedIn,
+            offlineFallback: context.l10n.offlineVault,
+          ),
         ),
       ),
     );
@@ -293,8 +299,6 @@ class SettingsPage extends StatelessWidget {
 
   Future<void> _logout(BuildContext context) {
     final l10n = context.l10n;
-    // Captured up front: the logout tears down this page and its drawer.
-    final navigator = Navigator.of(context, rootNavigator: true);
     return showChoiceActionSheet(
       context,
       title: l10n.logout,
@@ -302,13 +306,7 @@ class SettingsPage extends StatelessWidget {
       firstButtonLabel: l10n.yesLogout,
       secondButtonLabel: l10n.cancel,
       isCritical: true,
-      firstButtonOnTap: () async {
-        // Navigation is ours: only once the profile record is gone does '/'
-        // resolve to the next profile's home, or to onboarding if none remain.
-        await UserService.instance.logout(context, navigate: false);
-        await ProfileService.instance.removeActive();
-        unawaited(navigator.pushNamedAndRemoveUntil('/', (route) => false));
-      },
+      firstButtonOnTap: () => completeLogout(context),
     );
   }
 }

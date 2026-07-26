@@ -15,7 +15,9 @@ import 'package:ente_auth/utils/directory_utils.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import 'package:ente_events/event_bus.dart';
 import 'package:ente_events/models/signed_in_event.dart';
+import 'package:ente_events/models/user_details_changed_event.dart';
 import 'package:ente_network/network.dart';
+import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -43,7 +45,13 @@ class ProfileService {
   String? _pendingAddReturnScope;
   StreamSubscription<SignedInEvent>? _pendingAddSubscription;
   StreamSubscription<SignedInEvent>? _signedInSubscription;
+  StreamSubscription<UserDetailsChangedEvent>? _userDetailsSubscription;
   bool _rejectedDuplicateAdd = false;
+
+  // The registry is read at build time by the home app bar, the settings
+  // header and the switcher, none of which are rebuilt by a change to a
+  // profile's own details (an email change, a rename).
+  final ValueNotifier<Profile?> activeProfileNotifier = ValueNotifier(null);
 
   bool consumeRejectedDuplicateAdd() {
     final rejected = _rejectedDuplicateAdd;
@@ -77,7 +85,7 @@ class ProfileService {
         _logger.warning("Unregistered legacy account found, re-seeding");
         await _seedFromLegacyState();
       }
-      await _reconcile();
+      await reconcile();
       if (_profiles.isNotEmpty && activeProfile == null) {
         _logger.warning(
           "Active scope '$_activeScope' is unknown, falling back to the first "
@@ -92,6 +100,15 @@ class ProfileService {
     _signedInSubscription ??= Bus.instance.on<SignedInEvent>().listen((event) {
       unawaited(ensureActiveProfileRegistered());
     });
+    // The account's own details can change while it is signed in, and the
+    // profile keeps a copy of the email to show. Without this it would keep
+    // showing the address the account was registered with.
+    _userDetailsSubscription ??= Bus.instance
+        .on<UserDetailsChangedEvent>()
+        .listen((event) {
+          unawaited(ensureActiveProfileRegistered());
+        });
+    _notifyActiveProfile();
     _logger.info(
       "Loaded ${_profiles.length} profile(s), active '$_activeScope'",
     );
@@ -102,10 +119,11 @@ class ProfileService {
         (_prefs.getBool(Configuration.hasOptedForOfflineModeKey) ?? false);
   }
 
-  // Logout paths in shared packages (the lock screen's too-many-attempts
-  // logout, the revoked-session logout) clear an account's data without
-  // knowing about profiles, leaving records for vaults that can't be opened.
-  Future<void> _reconcile() async {
+  // Drops records for vaults that have no data left to open. Every logout the
+  // app knows about goes through completeLogout(), which removes the record
+  // itself; this is the backstop for a path that clears an account without
+  // knowing about profiles, so that such a record cannot outlive a restart.
+  Future<void> reconcile() async {
     bool hasAccountData(Profile profile) {
       final scope = profile.scope;
       return _prefs.containsKey("$scope${BaseConfiguration.tokenKey}") ||
@@ -197,6 +215,11 @@ class ProfileService {
       _profiles.map((profile) => json.encode(profile.toMap())).toList(),
     );
     await _prefs.setString(_activeScopeKey, _activeScope);
+    _notifyActiveProfile();
+  }
+
+  void _notifyActiveProfile() {
+    activeProfileNotifier.value = activeProfile;
   }
 
   // Ids are never reused, so a removed profile's leftover keys can never be

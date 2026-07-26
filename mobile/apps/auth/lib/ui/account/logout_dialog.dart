@@ -1,10 +1,7 @@
-import 'dart:async';
-
-import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/l10n/l10n.dart';
-import 'package:ente_auth/services/profile_service.dart';
 import 'package:ente_auth/store/authenticator_db.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
+import 'package:ente_auth/utils/logout_util.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
@@ -40,28 +37,16 @@ Future<void> autoLogoutAlert(BuildContext context) async {
         firstButtonLabel: context.l10n.yesLogout,
         isCritical: true,
         firstButtonOnTap: () async {
-          await _logout(context, l10n);
+          // The session is already gone, so sign out locally.
+          await completeLogout(context, serverSideLogout: false);
         },
       );
     } else {
-      await _logout(context, l10n);
+      await completeLogout(context, serverSideLogout: false);
     }
   } catch (e) {
     Logger("LogoutDialog").severe('failed to process sign out action', e);
   } finally {
     showingLogoutDialog = false;
   }
-}
-
-Future<void> _logout(BuildContext context, AppLocalizations l10n) async {
-  final navigator = Navigator.of(context, rootNavigator: true);
-  final dialog = createProgressDialog(context, l10n.loggingOut);
-  await dialog.show();
-  await Configuration.instance.logout();
-  // '/' then lands on the next profile's home, or onboarding if none remain.
-  await ProfileService.instance.removeActive();
-  // Hide before navigating: the always-false predicate below would otherwise
-  // take the dialog's route with it.
-  await dialog.hide();
-  unawaited(navigator.pushNamedAndRemoveUntil('/', (route) => false));
 }
