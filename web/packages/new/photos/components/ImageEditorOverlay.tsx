@@ -507,18 +507,23 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
             cropBoxRef.current,
             canvasRef.current,
         );
-        setCanvasLoading(true);
-        setTransformationPerformed(true);
-        await cropRegionOfCanvas(canvasRef.current, x1, y1, x2, y2);
-        await cropRegionOfCanvas(
-            originalSizeCanvasRef.current!,
-            x1 / previewCanvasScale,
-            y1 / previewCanvasScale,
-            x2 / previewCanvasScale,
-            y2 / previewCanvasScale,
-        );
-        resetCropBox();
-        setCanvasLoading(false);
+        try {
+            setCanvasLoading(true);
+            setTransformationPerformed(true);
+            await cropRegionOfCanvas(canvasRef.current, x1, y1, x2, y2);
+            await cropRegionOfCanvas(
+                originalSizeCanvasRef.current!,
+                x1 / previewCanvasScale,
+                y1 / previewCanvasScale,
+                x2 / previewCanvasScale,
+                y2 / previewCanvasScale,
+            );
+            resetCropBox();
+        } catch (e) {
+            log.error("apply crop failed", e);
+        } finally {
+            setCanvasLoading(false);
+        }
 
         setCurrentTab("transform");
     };
@@ -781,14 +786,20 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                 <RowButtonGroupTitle>{t("export_data")}</RowButtonGroupTitle>
                 <RowButtonGroup>
                     <RowButton
-                        disabled={!transformationPerformed && !coloursAdjusted}
+                        disabled={
+                            canvasLoading ||
+                            (!transformationPerformed && !coloursAdjusted)
+                        }
                         startIcon={<DownloadIcon />}
                         label={t("download_edited")}
                         onClick={downloadEditedPhoto}
                     />
                     <RowButtonDivider />
                     <RowButton
-                        disabled={!transformationPerformed && !coloursAdjusted}
+                        disabled={
+                            canvasLoading ||
+                            (!transformationPerformed && !coloursAdjusted)
+                        }
                         startIcon={<CloudUploadIcon />}
                         label={t("save_a_copy_to_ente")}
                         onClick={saveCopyToEnte}
@@ -906,24 +917,29 @@ const CropMenu: React.FC<CropMenuProps> = (props) => {
                             props.cropBoxRef.current,
                             canvasRef.current,
                         );
-                        setCanvasLoading(true);
-                        setTransformationPerformed(true);
-                        await cropRegionOfCanvas(
-                            canvasRef.current,
-                            x1,
-                            y1,
-                            x2,
-                            y2,
-                        );
-                        await cropRegionOfCanvas(
-                            originalSizeCanvasRef.current!,
-                            x1 / props.previewScale,
-                            y1 / props.previewScale,
-                            x2 / props.previewScale,
-                            y2 / props.previewScale,
-                        );
-                        props.resetCropBox();
-                        setCanvasLoading(false);
+                        try {
+                            setCanvasLoading(true);
+                            setTransformationPerformed(true);
+                            await cropRegionOfCanvas(
+                                canvasRef.current,
+                                x1,
+                                y1,
+                                x2,
+                                y2,
+                            );
+                            await cropRegionOfCanvas(
+                                originalSizeCanvasRef.current!,
+                                x1 / props.previewScale,
+                                y1 / props.previewScale,
+                                x2 / props.previewScale,
+                                y2 / props.previewScale,
+                            );
+                            props.resetCropBox();
+                        } catch (e) {
+                            log.error("apply crop failed", e);
+                        } finally {
+                            setCanvasLoading(false);
+                        }
 
                         setCurrentTab("transform");
                     }}
@@ -1204,10 +1220,11 @@ const TransformMenu: React.FC<CommonMenuProps> = ({
                 originalSizeCanvasRef.current!,
                 rotation == "left" ? -90 : 90,
             );
-            setCanvasLoading(false);
             setTransformationPerformed(true);
         } catch (e) {
             log.error(`rotation handler (${rotation}) failed`, e);
+        } finally {
+            setCanvasLoading(false);
         }
     };
 

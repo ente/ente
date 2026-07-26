@@ -97,6 +97,8 @@ export const rotateCanvas = (
                 reject(e instanceof Error ? e : new Error(String(e)));
             }
         };
+        image.onerror = () =>
+            reject(new Error("Failed to load canvas image data for rotate"));
         image.src = canvas.toDataURL();
     });
 };
@@ -147,6 +149,8 @@ export const cropRegionOfCanvas = (
                 reject(e instanceof Error ? e : new Error(String(e)));
             }
         };
+        img.onerror = () =>
+            reject(new Error("Failed to load canvas image data for crop"));
         img.src = canvas.toDataURL();
     });
 };
