@@ -15,11 +15,13 @@ import 'package:ente_auth/services/billing_service.dart';
 import 'package:ente_auth/services/local_backup_service.dart';
 import 'package:ente_auth/services/notification_service.dart';
 import 'package:ente_auth/services/preference_service.dart';
+import 'package:ente_auth/services/profile_service.dart';
 import 'package:ente_auth/services/update_service.dart';
 import 'package:ente_auth/services/window_listener_service.dart';
 import 'package:ente_auth/store/authenticator_db.dart';
 import 'package:ente_auth/store/code_display_store.dart';
 import 'package:ente_auth/store/code_store.dart';
+import 'package:ente_auth/store/offline_authenticator_db.dart';
 import 'package:ente_auth/ui/home_page.dart';
 import 'package:ente_auth/ui/utils/icon_utils.dart';
 import 'package:ente_auth/utils/debug_build_flags.dart';
@@ -176,7 +178,13 @@ Future<void> _init(bool bool, {String? via}) async {
   await PreferenceService.instance.init();
   await CodeStore.instance.init();
   await CodeDisplayStore.instance.init();
-  await Configuration.instance.init([AuthenticatorDB.instance]);
+  await ProfileService.instance.init();
+  final activeScope = ProfileService.instance.activeScope;
+  await AuthenticatorDB.instance.setScope(activeScope);
+  await OfflineAuthenticatorDB.instance.setScope(activeScope);
+  await Configuration.instance.init([
+    AuthenticatorDB.instance,
+  ], scope: activeScope);
   await cleanupPickedImagesOnStartup(logger: _logger);
   await Network.instance.init(Configuration.instance);
   await UserService.instance.init(Configuration.instance, const HomePage());
@@ -189,6 +197,9 @@ Future<void> _init(bool bool, {String? via}) async {
     Configuration.instance,
     hasOptedForOfflineMode: Configuration.instance.hasOptedForOfflineMode(),
     hideAppContentDefault: true,
+    // The lock guards the app, not any one vault.
+    shouldClearAppLockOnSignOut: () =>
+        !ProfileService.instance.hasMultipleProfiles,
   );
   if (shouldAllowAuthScreenCapture) {
     await LockScreenSettings.instance.setHideAppContent(false, persist: false);

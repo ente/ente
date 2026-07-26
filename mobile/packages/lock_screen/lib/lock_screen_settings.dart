@@ -55,6 +55,7 @@ class LockScreenSettings {
     bool hideAppContentDefault = false,
     String appLogoAsset = 'assets/svg/app-logo.svg',
     double? appLogoHeight,
+    bool Function()? shouldClearAppLockOnSignOut,
   }) async {
     _config = config;
     _useLegacyHashFallback = useLegacyHashFallback;
@@ -73,7 +74,13 @@ class LockScreenSettings {
 
     await _clearLsDataInKeychainIfFreshInstall(hasOptedForOfflineMode);
 
+    // Lets multi-account apps keep the app wide lock while other accounts
+    // remain signed in.
     Bus.instance.on<SignedOutEvent>().listen((event) {
+      if (shouldClearAppLockOnSignOut != null &&
+          !shouldClearAppLockOnSignOut()) {
+        return;
+      }
       removePinAndPassword();
     });
   }

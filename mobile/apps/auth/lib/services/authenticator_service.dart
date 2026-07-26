@@ -35,9 +35,14 @@ class AuthenticatorService {
   late AuthenticatorGateway _gateway;
   late AuthenticatorDB _db;
   late OfflineAuthenticatorDB _offlineDb;
-  final String _lastEntitySyncTime = "lastEntitySyncTime";
+  // Scoped, so switching profiles does not carry one account's sync cursor
+  // over to another's and silently skip its entities.
+  String get _lastEntitySyncTime => _config.scopedKey("lastEntitySyncTime");
   Future<bool>? _onlineSyncInFlight;
   bool _onlineSyncRerunRequested = false;
+  bool _syncSuspended = false;
+  bool _syncRequestedWhileSuspended = false;
+  StreamSubscription<SignedInEvent>? _signedInSubscription;
 
   AuthenticatorService._privateConstructor();
 
@@ -51,6 +56,8 @@ class AuthenticatorService {
         : AccountMode.online;
   }
 
+  // Safe to call again when the active profile changes; the listener is only
+  // registered once, so switching cannot stack up duplicates.
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     _db = AuthenticatorDB.instance;
@@ -59,7 +66,7 @@ class AuthenticatorService {
     if (Configuration.instance.hasConfiguredAccount()) {
       unawaited(onlineSync());
     }
-    Bus.instance.on<SignedInEvent>().listen((event) {
+    _signedInSubscription ??= Bus.instance.on<SignedInEvent>().listen((event) {
       unawaited(onlineSync());
     });
   }
@@ -161,7 +168,27 @@ class AuthenticatorService {
     }
   }
 
+  // Blocks new syncs and waits for the one underway to settle. A sync
+  // requested while suspended runs on resume.
+  Future<void> suspendSync() async {
+    _syncSuspended = true;
+    _syncRequestedWhileSuspended = false;
+    await _onlineSyncInFlight;
+  }
+
+  void resumeSync() {
+    _syncSuspended = false;
+    if (_syncRequestedWhileSuspended) {
+      _syncRequestedWhileSuspended = false;
+      unawaited(onlineSync());
+    }
+  }
+
   Future<bool> onlineSync() {
+    if (_syncSuspended) {
+      _syncRequestedWhileSuspended = true;
+      return Future.value(false);
+    }
     final inFlightSync = _onlineSyncInFlight;
     if (inFlightSync != null) {
       _onlineSyncRerunRequested = true;

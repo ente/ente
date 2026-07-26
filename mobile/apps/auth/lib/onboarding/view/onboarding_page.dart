@@ -11,6 +11,7 @@ import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/events/trigger_logout_event.dart';
 import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/locale.dart';
+import 'package:ente_auth/services/profile_service.dart';
 import 'package:ente_auth/theme/colors.dart';
 import 'package:ente_auth/theme/ente_theme.dart';
 import 'package:ente_auth/ui/account/logout_dialog.dart';
@@ -270,6 +271,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
         result?.action == ButtonAction.first) {
       if (!context.mounted) return;
       await Configuration.instance.optForOfflineMode();
+      // Or this vault can never be reached from the switcher once another
+      // account is added.
+      await ProfileService.instance.ensureActiveProfileRegistered();
       if (!mounted) return;
       unawaited(
         Navigator.of(context).pushReplacement(
