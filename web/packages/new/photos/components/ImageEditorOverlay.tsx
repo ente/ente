@@ -122,6 +122,8 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
 
     const [currentRotationAngle, setCurrentRotationAngle] = useState(0);
 
+    const [straightenAngle, setStraightenAngle] = useState(0);
+
     const [currentTab, setCurrentTab] = useState<OperationTab>("transform");
 
     const [brightness, setBrightness] = useState(
@@ -522,6 +524,8 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
         canvasLoading,
         setTransformationPerformed,
         setCurrentTab,
+        straightenAngle,
+        setStraightenAngle,
     };
 
     return (
@@ -800,6 +804,8 @@ interface CommonMenuProps {
     canvasLoading: boolean;
     setCanvasLoading: (v: boolean) => void;
     setCurrentTab: (tab: OperationTab) => void;
+    straightenAngle: number;
+    setStraightenAngle: (v: number) => void;
 }
 
 type CropMenuProps = CommonMenuProps & {
@@ -1046,6 +1052,8 @@ const TransformMenu: React.FC<CommonMenuProps> = ({
     canvasLoading,
     setCanvasLoading,
     setTransformationPerformed,
+    straightenAngle,
+    setStraightenAngle,
 }) => {
     // Crops the canvas according to originalHeight and originalWidth without compounding
     const cropCanvas = (
@@ -1298,6 +1306,22 @@ const TransformMenu: React.FC<CommonMenuProps> = ({
                     onClick={createRotationHandler("right")}
                 />
             </RowButtonGroup>
+            <RowButtonGroupTitle>{t("straighten")}</RowButtonGroupTitle>
+            <Box sx={{ px: "8px", mb: "1rem" }}>
+                <Slider
+                    min={-45}
+                    max={45}
+                    step={1}
+                    value={straightenAngle}
+                    valueLabelDisplay="auto"
+                    valueLabelFormat={(v) => `${v}°`}
+                    marks={[{ value: 0, label: "0°" }]}
+                    disabled={canvasLoading}
+                    onChange={(_, value) => {
+                        setStraightenAngle(value as number);
+                    }}
+                />
+            </Box>
             <RowButtonGroupTitle>{t("flip")}</RowButtonGroupTitle>
             <RowButtonGroup sx={{ mb: "1rem" }}>
                 <RowButton
