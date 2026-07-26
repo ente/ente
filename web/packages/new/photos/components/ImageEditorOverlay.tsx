@@ -492,7 +492,7 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
         }
     };
 
-    const applyCrop = () => {
+    const applyCrop = async () => {
         if (!cropBoxRef.current || !canvasRef.current) return;
 
         const { x1, x2, y1, y2 } = getCropRegionArgs(
@@ -501,8 +501,8 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
         );
         setCanvasLoading(true);
         setTransformationPerformed(true);
-        cropRegionOfCanvas(canvasRef.current, x1, y1, x2, y2);
-        cropRegionOfCanvas(
+        await cropRegionOfCanvas(canvasRef.current, x1, y1, x2, y2);
+        await cropRegionOfCanvas(
             originalSizeCanvasRef.current!,
             x1 / previewCanvasScale,
             y1 / previewCanvasScale,
@@ -827,7 +827,7 @@ const CropMenu: React.FC<CropMenuProps> = (props) => {
                     disabled={canvasLoading}
                     startIcon={<CropIcon />}
                     label={t("apply_crop")}
-                    onClick={() => {
+                    onClick={async () => {
                         if (!props.cropBoxRef.current || !canvasRef.current)
                             return;
 
@@ -837,8 +837,8 @@ const CropMenu: React.FC<CropMenuProps> = (props) => {
                         );
                         setCanvasLoading(true);
                         setTransformationPerformed(true);
-                        cropRegionOfCanvas(canvasRef.current, x1, y1, x2, y2);
-                        cropRegionOfCanvas(
+                        await cropRegionOfCanvas(canvasRef.current, x1, y1, x2, y2);
+                        await cropRegionOfCanvas(
                             originalSizeCanvasRef.current!,
                             x1 / props.previewScale,
                             y1 / props.previewScale,
@@ -863,9 +863,9 @@ const cropRegionOfCanvas = (
     bottomRightX: number,
     bottomRightY: number,
     scale = 1,
-) => {
+): Promise<void> => {
     const context = canvas.getContext("2d");
-    if (!context || !canvas) return;
+    if (!context || !canvas) return Promise.resolve();
     context.imageSmoothingEnabled = false;
 
     const width = (bottomRightX - topLeftX) * scale;
@@ -873,24 +873,31 @@ const cropRegionOfCanvas = (
 
     const img = new Image();
     img.src = canvas.toDataURL();
-    img.onload = () => {
-        context.clearRect(0, 0, canvas.width, canvas.height);
+    return new Promise((resolve, reject) => {
+        img.onload = () => {
+            try {
+                context.clearRect(0, 0, canvas.width, canvas.height);
 
-        canvas.width = width;
-        canvas.height = height;
+                canvas.width = width;
+                canvas.height = height;
 
-        context.drawImage(
-            img,
-            topLeftX,
-            topLeftY,
-            width,
-            height,
-            0,
-            0,
-            width,
-            height,
-        );
-    };
+                context.drawImage(
+                    img,
+                    topLeftX,
+                    topLeftY,
+                    width,
+                    height,
+                    0,
+                    0,
+                    width,
+                    height,
+                );
+                resolve();
+            } catch (e) {
+                reject(e instanceof Error ? e : new Error(String(e)));
+            }
+        };
+    });
 };
 
 const getCropRegionArgs = (
@@ -1055,6 +1062,10 @@ const TransformMenu: React.FC<CommonMenuProps> = ({
 
         const img = new Image();
         img.src = canvas.toDataURL();
+        // Mutates canvas.width/height inside img.onload (async) — chaining
+        // this with another canvas op immediately after will race and read
+        // stale dimensions. See rotateCanvas/cropRegionOfCanvas for the
+        // awaitable version if you need to chain.
         img.onload = () => {
             const sourceWidth = img.width;
             const sourceHeight = img.height;
@@ -1101,6 +1112,10 @@ const TransformMenu: React.FC<CommonMenuProps> = ({
         const img = new Image();
         img.src = canvas.toDataURL();
 
+        // Mutates canvas.width/height inside img.onload (async) — chaining
+        // this with another canvas op immediately after will race and read
+        // stale dimensions. See rotateCanvas/cropRegionOfCanvas for the
+        // awaitable version if you need to chain.
         img.onload = () => {
             context.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -1120,43 +1135,53 @@ const TransformMenu: React.FC<CommonMenuProps> = ({
         };
     };
 
-    const rotateCanvas = (canvas: HTMLCanvasElement, angle: number) => {
+    const rotateCanvas = (
+        canvas: HTMLCanvasElement,
+        angle: number,
+    ): Promise<void> => {
         const context = canvas?.getContext("2d");
-        if (!context || !canvas) return;
+        if (!context || !canvas) return Promise.resolve();
         context.imageSmoothingEnabled = false;
 
         const image = new Image();
         image.src = canvas.toDataURL();
 
-        image.onload = () => {
-            context.clearRect(0, 0, canvas.width, canvas.height);
+        return new Promise((resolve, reject) => {
+            image.onload = () => {
+                try {
+                    context.clearRect(0, 0, canvas.width, canvas.height);
 
-            context.save();
+                    context.save();
 
-            const radians = (angle * Math.PI) / 180;
-            const sin = Math.sin(radians);
-            const cos = Math.cos(radians);
-            const newWidth =
-                Math.abs(image.width * cos) + Math.abs(image.height * sin);
-            const newHeight =
-                Math.abs(image.width * sin) + Math.abs(image.height * cos);
+                    const radians = (angle * Math.PI) / 180;
+                    const sin = Math.sin(radians);
+                    const cos = Math.cos(radians);
+                    const newWidth =
+                        Math.abs(image.width * cos) + Math.abs(image.height * sin);
+                    const newHeight =
+                        Math.abs(image.width * sin) + Math.abs(image.height * cos);
 
-            canvas.width = newWidth;
-            canvas.height = newHeight;
+                    canvas.width = newWidth;
+                    canvas.height = newHeight;
 
-            context.translate(canvas.width / 2, canvas.height / 2);
-            context.rotate(radians);
+                    context.translate(canvas.width / 2, canvas.height / 2);
+                    context.rotate(radians);
 
-            context.drawImage(
-                image,
-                -image.width / 2,
-                -image.height / 2,
-                image.width,
-                image.height,
-            );
+                    context.drawImage(
+                        image,
+                        -image.width / 2,
+                        -image.height / 2,
+                        image.width,
+                        image.height,
+                    );
 
-            context.restore();
-        };
+                    context.restore();
+                    resolve();
+                } catch (e) {
+                    reject(e instanceof Error ? e : new Error(String(e)));
+                }
+            };
+        });
     };
 
     const createCropHandler =
@@ -1181,11 +1206,11 @@ const TransformMenu: React.FC<CommonMenuProps> = ({
                 );
             }
         };
-    const createRotationHandler = (rotation: "left" | "right") => () => {
+    const createRotationHandler = (rotation: "left" | "right") => async () => {
         try {
             setCanvasLoading(true);
-            rotateCanvas(canvasRef.current!, rotation == "left" ? -90 : 90);
-            rotateCanvas(
+            await rotateCanvas(canvasRef.current!, rotation == "left" ? -90 : 90);
+            await rotateCanvas(
                 originalSizeCanvasRef.current!,
                 rotation == "left" ? -90 : 90,
             );
