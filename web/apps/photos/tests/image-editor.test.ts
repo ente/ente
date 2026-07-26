@@ -27,10 +27,7 @@ const cropFitsWithinOriginal = (
         [a, -b],
         [-a, b],
         [-a, -b],
-    ].map(([x, y]) => ({
-        x: x! * cos + y! * sin,
-        y: -x! * sin + y! * cos,
-    }));
+    ].map(([x, y]) => ({ x: x! * cos + y! * sin, y: -x! * sin + y! * cos }));
 
     return corners.every(
         (c) =>
@@ -78,9 +75,9 @@ describe("computeInscribedCrop", () => {
         test(`${label}: fits within the original bounds, preserves aspect ratio, and is tight`, () => {
             const crop = computeInscribedCrop(width, height, angle);
 
-            expect(
-                cropFitsWithinOriginal(width, height, angle, crop),
-            ).toBe(true);
+            expect(cropFitsWithinOriginal(width, height, angle, crop)).toBe(
+                true,
+            );
 
             expect(crop.width / crop.height).toBeCloseTo(width / height, 6);
 

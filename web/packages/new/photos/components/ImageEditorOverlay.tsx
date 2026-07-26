@@ -896,7 +896,13 @@ const CropMenu: React.FC<CropMenuProps> = (props) => {
                         );
                         setCanvasLoading(true);
                         setTransformationPerformed(true);
-                        await cropRegionOfCanvas(canvasRef.current, x1, y1, x2, y2);
+                        await cropRegionOfCanvas(
+                            canvasRef.current,
+                            x1,
+                            y1,
+                            x2,
+                            y2,
+                        );
                         await cropRegionOfCanvas(
                             originalSizeCanvasRef.current!,
                             x1 / props.previewScale,
@@ -1178,7 +1184,10 @@ const TransformMenu: React.FC<CommonMenuProps> = ({
     const createRotationHandler = (rotation: "left" | "right") => async () => {
         try {
             setCanvasLoading(true);
-            await rotateCanvas(canvasRef.current!, rotation == "left" ? -90 : 90);
+            await rotateCanvas(
+                canvasRef.current!,
+                rotation == "left" ? -90 : 90,
+            );
             await rotateCanvas(
                 originalSizeCanvasRef.current!,
                 rotation == "left" ? -90 : 90,
