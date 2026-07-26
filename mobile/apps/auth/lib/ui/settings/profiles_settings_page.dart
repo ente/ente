@@ -157,6 +157,11 @@ class _ProfilesSettingsPageState extends State<ProfilesSettingsPage> {
     if (service.consumeRejectedDuplicateAdd()) {
       if (mounted) setState(() => _isBusy = false);
       if (!navigator.mounted) return;
+      // The sign in flow has already pushed its own home page for the scope
+      // abortAdd just erased, so send the user back to the profile they were
+      // on before reporting. Not awaited: the route only completes once it is
+      // popped.
+      unawaited(navigator.pushNamedAndRemoveUntil('/', (route) => false));
       // The root navigator outlives this page, which the sign in flow has
       // usually unmounted by now.
       // ignore: use_build_context_synchronously

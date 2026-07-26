@@ -16,6 +16,7 @@ import 'package:ente_configuration/base_configuration.dart';
 import 'package:ente_events/event_bus.dart';
 import 'package:ente_events/models/signed_in_event.dart';
 import 'package:ente_events/models/user_details_changed_event.dart';
+import 'package:ente_lock_screen/lock_screen_settings.dart';
 import 'package:ente_network/network.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
@@ -270,7 +271,21 @@ class ProfileService {
     _logger.info("Switching to '$scope'");
     // Persist only once the services point at the new profile, so a failed
     // switch does not leave the stored scope disagreeing with what is read.
-    await _applyScope(scope);
+    // _applyScope re-points several singletons in turn, so a failure partway
+    // has to be undone as well, or the registry would still name the old
+    // profile while its databases were open on the new one.
+    final previous = _activeScope;
+    try {
+      await _applyScope(scope);
+    } catch (e, s) {
+      _logger.severe("Failed to apply '$scope', restoring '$previous'", e, s);
+      try {
+        await _applyScope(previous);
+      } catch (e2, s2) {
+        _logger.severe("Failed to restore '$previous'", e2, s2);
+      }
+      rethrow;
+    }
     _activeScope = scope;
     await _persist();
   }
@@ -388,6 +403,11 @@ class ProfileService {
     // profile as an offline one.
     if (activeProfile?.isOffline ?? false) {
       await Configuration.instance.clearOfflineAccount();
+      // Removing a vault fires no SignedOutEvent, so the listener that
+      // normally clears this never runs. discard() would cover a prefixed
+      // scope, but the legacy scope's keys carry no prefix to match on, so it
+      // would otherwise be inherited by the next account at that scope.
+      await Configuration.instance.clearBackupPassword();
       if (scope.isEmpty) {
         // discard() cannot delete the legacy scope's database files, since a
         // future account at the same scope would reuse those names, so empty
@@ -398,6 +418,12 @@ class ProfileService {
     _profiles = _profiles.where((profile) => profile.scope != scope).toList();
     _activeScope = _profiles.isEmpty ? "" : _profiles.first.scope;
     await _persist();
+    if (_profiles.isEmpty) {
+      // The lock guards the app, so it only goes once nothing is left to
+      // guard. Idempotent for an online logout, where the SignedOutEvent
+      // listener has already done this; the offline path has no such event.
+      await LockScreenSettings.instance.clearAppLockOnSignOut();
+    }
     // Re-point before erasing; see the note in abortAdd.
     await _applyScope(_activeScope);
     await discard(scope);

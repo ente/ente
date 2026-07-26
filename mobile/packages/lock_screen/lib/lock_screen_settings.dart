@@ -31,6 +31,17 @@ class LockScreenSettings {
   static const keyShouldShowLockScreen = "should_show_lock_screen";
   static const String kIsLightMode = "is_light_mode";
 
+  // The preference half of the app lock, cleared only on sign out. Swapping
+  // one lock method for another must not touch these, which is why they are
+  // not folded into removePinAndPassword().
+  static const appLockStateKeys = <String>[
+    keyAppLockSet,
+    keyShouldShowLockScreen,
+    keyInvalidAttempts,
+    lastInvalidAttemptTime,
+    autoLockTime,
+  ];
+
   final List<Duration> autoLockDurations = const [
     Duration(milliseconds: 650),
     Duration(seconds: 5),
@@ -81,7 +92,7 @@ class LockScreenSettings {
           !shouldClearAppLockOnSignOut()) {
         return;
       }
-      removePinAndPassword();
+      clearAppLockOnSignOut();
     });
   }
 
@@ -288,6 +299,16 @@ class LockScreenSettings {
     await _secureStorage.delete(key: saltKey);
     await _secureStorage.delete(key: pin);
     await _secureStorage.delete(key: password);
+  }
+
+  // Tears the app lock down completely. The credentials alone are not enough:
+  // shouldShowLockScreen() also consults keyShouldShowLockScreen, so leaving
+  // the preferences behind keeps locking an app that has no account left.
+  Future<void> clearAppLockOnSignOut() async {
+    await removePinAndPassword();
+    for (final key in appLockStateKeys) {
+      await _preferences.remove(key);
+    }
   }
 
   Future<bool> isPinSet() async {

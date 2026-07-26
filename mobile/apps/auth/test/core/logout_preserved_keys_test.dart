@@ -1,6 +1,7 @@
 import 'package:ente_auth/core/app_wide_preferences.dart';
 import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_configuration/base_configuration.dart';
+import 'package:ente_lock_screen/lock_screen_settings.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -40,6 +41,46 @@ void main() {
       Configuration.instance.logoutPreservedKeyPrefixes,
       containsAll(["acct_", "profiles", "ls_", "should_show_lock_screen"]),
     );
+  });
+
+  group('the app lock', () {
+    // The lock guards the app, not any one vault, so a logout preserves its
+    // keys while another profile is still signed in. This is the premise that
+    // makes clearAppLockOnSignOut() necessary: nothing in the logout path will
+    // ever remove these, so the final sign out has to do it explicitly.
+    test('every app lock key survives a logout', () {
+      final spared = BaseConfiguration.keysToClearOnLogout(
+        LockScreenSettings.appLockStateKeys.toSet(),
+        Configuration.instance.logoutPreservedKeyPrefixes,
+      );
+
+      expect(spared, isEmpty);
+    });
+
+    test('covers the keys that actually decide whether to lock', () {
+      // Spelled out so that renaming a constant without updating the list
+      // fails here rather than in the field. shouldShowLockScreen() consults
+      // should_show_lock_screen, and the settings toggle reads
+      // ls_is_app_lock_set; leaving either behind locks an app that has no
+      // account left, or reports a lock with no credential behind it.
+      expect(
+        LockScreenSettings.appLockStateKeys,
+        containsAll(['should_show_lock_screen', 'ls_is_app_lock_set']),
+      );
+    });
+  });
+
+  group('the local backup password', () {
+    // It is deliberately absent from secureStorageKeys, so resetSecureStorage()
+    // leaves it alone and LocalBackupService's SignedOutEvent listener is what
+    // normally clears it. Removing an offline vault fires no such event, which
+    // is why ProfileService.removeActive() has to clear it by hand.
+    test('is not cleared by resetSecureStorage', () {
+      expect(
+        Configuration.instance.secureStorageKeys,
+        isNot(contains(Configuration.autoBackupPasswordKey)),
+      );
+    });
   });
 
   group('app wide settings', () {

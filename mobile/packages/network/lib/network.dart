@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -18,7 +17,7 @@ class Network {
   late Dio _enteDio;
   bool _initialized = false;
   BaseConfiguration? _configuration;
-  StreamSubscription<EndpointUpdatedEvent>? _endpointSubscription;
+  bool _endpointListenerRegistered = false;
 
   // Safe to call again when the active account changes. The Dio instances are
   // created once and mutated in place, since many services capture them in
@@ -97,14 +96,17 @@ class Network {
 
     _setupInterceptors(configuration);
 
-    _endpointSubscription ??= Bus.instance.on<EndpointUpdatedEvent>().listen((
-      event,
-    ) {
-      final config = _configuration;
-      if (config == null) return;
-      _enteDio.options.baseUrl = config.getHttpEndpoint();
-      _setupInterceptors(config);
-    });
+    // Registered once and left for the lifetime of the process, so switching
+    // accounts cannot stack up duplicate listeners.
+    if (!_endpointListenerRegistered) {
+      _endpointListenerRegistered = true;
+      Bus.instance.on<EndpointUpdatedEvent>().listen((event) {
+        final config = _configuration;
+        if (config == null) return;
+        _enteDio.options.baseUrl = config.getHttpEndpoint();
+        _setupInterceptors(config);
+      });
+    }
   }
 
   Network._privateConstructor();
