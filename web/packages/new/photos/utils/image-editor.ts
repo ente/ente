@@ -41,3 +41,112 @@ export const computeInscribedCrop = (
     const cropH = cropW * (height / width);
     return { width: cropW, height: cropH };
 };
+
+/**
+ * Rotate the contents of `canvas` by `angle` degrees around its center,
+ * resizing the canvas to the new rotated bounding box. Resolves once the
+ * rotated pixels have actually been drawn — callers that need to read the
+ * canvas's post-rotation dimensions (e.g. to crop it next) must await this
+ * before doing so.
+ */
+export const rotateCanvas = (
+    canvas: HTMLCanvasElement,
+    angle: number,
+): Promise<void> => {
+    const context = canvas.getContext("2d");
+    if (!context) return Promise.resolve();
+    context.imageSmoothingEnabled = false;
+
+    const image = new Image();
+
+    return new Promise((resolve, reject) => {
+        // onload must be attached before src is set: some environments
+        // (e.g. server-side canvas implementations used in tests) decode
+        // already-available image data synchronously during assignment.
+        image.onload = () => {
+            try {
+                context.clearRect(0, 0, canvas.width, canvas.height);
+
+                context.save();
+
+                const radians = (angle * Math.PI) / 180;
+                const sin = Math.sin(radians);
+                const cos = Math.cos(radians);
+                const newWidth =
+                    Math.abs(image.width * cos) + Math.abs(image.height * sin);
+                const newHeight =
+                    Math.abs(image.width * sin) + Math.abs(image.height * cos);
+
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+
+                context.translate(canvas.width / 2, canvas.height / 2);
+                context.rotate(radians);
+
+                context.drawImage(
+                    image,
+                    -image.width / 2,
+                    -image.height / 2,
+                    image.width,
+                    image.height,
+                );
+
+                context.restore();
+                resolve();
+            } catch (e) {
+                reject(e instanceof Error ? e : new Error(String(e)));
+            }
+        };
+        image.src = canvas.toDataURL();
+    });
+};
+
+/**
+ * Crop `canvas` to the region between (topLeftX, topLeftY) and
+ * (bottomRightX, bottomRightY) (in the canvas's current coordinate space,
+ * scaled by `scale`), resizing the canvas to the cropped region's size.
+ * Resolves once the cropped pixels have actually been drawn.
+ */
+export const cropRegionOfCanvas = (
+    canvas: HTMLCanvasElement,
+    topLeftX: number,
+    topLeftY: number,
+    bottomRightX: number,
+    bottomRightY: number,
+    scale = 1,
+): Promise<void> => {
+    const context = canvas.getContext("2d");
+    if (!context) return Promise.resolve();
+    context.imageSmoothingEnabled = false;
+
+    const width = (bottomRightX - topLeftX) * scale;
+    const height = (bottomRightY - topLeftY) * scale;
+
+    const img = new Image();
+    return new Promise((resolve, reject) => {
+        img.onload = () => {
+            try {
+                context.clearRect(0, 0, canvas.width, canvas.height);
+
+                canvas.width = width;
+                canvas.height = height;
+
+                context.drawImage(
+                    img,
+                    topLeftX,
+                    topLeftY,
+                    width,
+                    height,
+                    0,
+                    0,
+                    width,
+                    height,
+                );
+                resolve();
+            } catch (e) {
+                reject(e instanceof Error ? e : new Error(String(e)));
+            }
+        };
+        img.src = canvas.toDataURL();
+    });
+};

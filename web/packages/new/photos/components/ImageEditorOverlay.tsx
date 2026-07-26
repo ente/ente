@@ -62,7 +62,11 @@ import React, {
     type RefObject,
 } from "react";
 import { savedCollections } from "../services/photos-fdb";
-import { computeInscribedCrop } from "../utils/image-editor";
+import {
+    computeInscribedCrop,
+    cropRegionOfCanvas,
+    rotateCanvas,
+} from "../utils/image-editor";
 
 export type ImageEditorOverlayProps = ModalVisibilityProps & {
     /**
@@ -911,50 +915,6 @@ const CropMenu: React.FC<CropMenuProps> = (props) => {
     );
 };
 
-const cropRegionOfCanvas = (
-    canvas: HTMLCanvasElement,
-    topLeftX: number,
-    topLeftY: number,
-    bottomRightX: number,
-    bottomRightY: number,
-    scale = 1,
-): Promise<void> => {
-    const context = canvas.getContext("2d");
-    if (!context || !canvas) return Promise.resolve();
-    context.imageSmoothingEnabled = false;
-
-    const width = (bottomRightX - topLeftX) * scale;
-    const height = (bottomRightY - topLeftY) * scale;
-
-    const img = new Image();
-    img.src = canvas.toDataURL();
-    return new Promise((resolve, reject) => {
-        img.onload = () => {
-            try {
-                context.clearRect(0, 0, canvas.width, canvas.height);
-
-                canvas.width = width;
-                canvas.height = height;
-
-                context.drawImage(
-                    img,
-                    topLeftX,
-                    topLeftY,
-                    width,
-                    height,
-                    0,
-                    0,
-                    width,
-                    height,
-                );
-                resolve();
-            } catch (e) {
-                reject(e instanceof Error ? e : new Error(String(e)));
-            }
-        };
-    });
-};
-
 const getCropRegionArgs = (
     cropBoxEle: HTMLDivElement,
     canvasEle: HTMLCanvasElement,
@@ -1191,55 +1151,6 @@ const TransformMenu: React.FC<CommonMenuProps> = ({
 
             context.restore();
         };
-    };
-
-    const rotateCanvas = (
-        canvas: HTMLCanvasElement,
-        angle: number,
-    ): Promise<void> => {
-        const context = canvas?.getContext("2d");
-        if (!context || !canvas) return Promise.resolve();
-        context.imageSmoothingEnabled = false;
-
-        const image = new Image();
-        image.src = canvas.toDataURL();
-
-        return new Promise((resolve, reject) => {
-            image.onload = () => {
-                try {
-                    context.clearRect(0, 0, canvas.width, canvas.height);
-
-                    context.save();
-
-                    const radians = (angle * Math.PI) / 180;
-                    const sin = Math.sin(radians);
-                    const cos = Math.cos(radians);
-                    const newWidth =
-                        Math.abs(image.width * cos) + Math.abs(image.height * sin);
-                    const newHeight =
-                        Math.abs(image.width * sin) + Math.abs(image.height * cos);
-
-                    canvas.width = newWidth;
-                    canvas.height = newHeight;
-
-                    context.translate(canvas.width / 2, canvas.height / 2);
-                    context.rotate(radians);
-
-                    context.drawImage(
-                        image,
-                        -image.width / 2,
-                        -image.height / 2,
-                        image.width,
-                        image.height,
-                    );
-
-                    context.restore();
-                    resolve();
-                } catch (e) {
-                    reject(e instanceof Error ? e : new Error(String(e)));
-                }
-            };
-        });
     };
 
     const createCropHandler =
