@@ -54,6 +54,7 @@ Future<void> initSystemTray() async {
       ? 'assets/icons/auth-icon-monochrome-padded.png'
       : _linuxTrayIconPath();
   await trayManager.setIcon(path, isTemplate: true);
+  await trayManager.setToolTip('ente Auth');
   Menu menu = Menu(
     items: [
       MenuItem(key: 'hide_window', label: 'Hide Window'),
