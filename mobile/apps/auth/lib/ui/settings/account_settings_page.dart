@@ -66,6 +66,18 @@ class AccountSettingsPage extends StatelessWidget {
             onTap: () => _deleteAccount(context),
           ),
         ],
+        // An offline vault has neither a session to log out of nor an account
+        // to delete, so without this there is no way to get rid of one.
+        if (ProfileService.instance.activeProfile?.isOffline ?? false) ...[
+          const SizedBox(height: Spacing.sm),
+          AuthSettingsItem(
+            title: l10n.removeVault,
+            icon: HugeIcons.strokeRoundedDelete02,
+            semanticsIdentifier: 'auth_settings_remove_vault',
+            isDestructive: true,
+            onTap: () => _removeVault(context),
+          ),
+        ],
       ],
     );
   }
@@ -115,6 +127,28 @@ class AccountSettingsPage extends StatelessWidget {
       if (!context.mounted) return;
       unawaited(showGenericErrorDialog(context: context, error: error));
     }
+  }
+
+  // The offline counterpart of logging out: the codes live only on this
+  // device, so removing the vault is what erases them.
+  Future<void> _removeVault(BuildContext context) async {
+    final l10n = context.l10n;
+    // Captured up front: the removal tears down this page and its drawer.
+    final navigator = Navigator.of(context, rootNavigator: true);
+    await showChoiceActionSheet(
+      context,
+      title: l10n.removeVault,
+      body: l10n.removeVaultWarning,
+      firstButtonLabel: l10n.yesRemoveVault,
+      secondButtonLabel: l10n.cancel,
+      isCritical: true,
+      firstButtonOnTap: () async {
+        // Navigation is ours: only once the profile record is gone does '/'
+        // resolve to the next profile's home, or to onboarding if none remain.
+        await ProfileService.instance.removeActive();
+        unawaited(navigator.pushNamedAndRemoveUntil('/', (route) => false));
+      },
+    );
   }
 
   Future<void> _deleteAccount(BuildContext context) async {

@@ -365,6 +365,12 @@ class ProfileService {
     // profile as an offline one.
     if (activeProfile?.isOffline ?? false) {
       await Configuration.instance.clearOfflineAccount();
+      if (scope.isEmpty) {
+        // discard() cannot delete the legacy scope's database files, since a
+        // future account at the same scope would reuse those names, so empty
+        // the codes out instead of leaving them for it to find.
+        await OfflineAuthenticatorDB.instance.clearTable();
+      }
     }
     _profiles = _profiles.where((profile) => profile.scope != scope).toList();
     _activeScope = _profiles.isEmpty ? "" : _profiles.first.scope;

@@ -73,6 +73,32 @@ void main() {
     expect(find.byType(ProfilesSettingsPage), findsOneWidget);
   });
 
+  testWidgets('an offline vault can be removed from the account page', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      "profilesV1": ['{"scope":"","kind":"offline"}'],
+      "profilesActiveScope": "",
+      "has_opted_for_offline_mode": true,
+    });
+    await ProfileService.instance.init();
+
+    await _pumpAccountPage(tester, hasAccount: false);
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.text(l10n.removeVault), findsOneWidget);
+  });
+
+  testWidgets('an online account has no remove vault row', (tester) async {
+    // Logging out is what removes an online account; two ways to drop the
+    // same profile would be two ways to get the teardown wrong.
+    await _pumpAccountPage(tester);
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.text(l10n.removeVault), findsNothing);
+    expect(find.text(l10n.deleteAccount), findsOneWidget);
+  });
+
   testWidgets('the add row is disabled once the profile cap is reached', (
     tester,
   ) async {
