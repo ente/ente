@@ -8,7 +8,9 @@ import 'package:ente_auth/l10n/l10n.dart';
 import 'package:ente_auth/ui/components/recovery_key_sheet.dart';
 import 'package:ente_auth/ui/home_page.dart';
 import 'package:ente_auth/ui/settings/components/auth_settings_item.dart';
+import 'package:ente_auth/ui/settings/components/auth_settings_navigation.dart';
 import 'package:ente_auth/ui/settings/components/auth_settings_page_scaffold.dart';
+import 'package:ente_auth/ui/settings/profiles_settings_page.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_crypto_api/ente_crypto_api.dart';
@@ -17,7 +19,11 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 class AccountSettingsPage extends StatelessWidget {
-  const AccountSettingsPage({super.key});
+  const AccountSettingsPage({super.key, required this.hasAccount});
+
+  // An offline vault has no account behind it, so the items below the switcher
+  // would be meaningless and reading its recovery key would throw.
+  final bool hasAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -26,29 +32,39 @@ class AccountSettingsPage extends StatelessWidget {
       title: l10n.account,
       children: [
         AuthSettingsItem(
-          title: l10n.changeEmail,
-          icon: HugeIcons.strokeRoundedMailEdit01,
-          onTap: () => _changeEmail(context),
+          title: l10n.switchAccount,
+          icon: HugeIcons.strokeRoundedUserSwitch,
+          semanticsIdentifier: 'auth_settings_switch_account',
+          onTap: () =>
+              pushAuthSettingsPage(context, const ProfilesSettingsPage()),
         ),
-        const SizedBox(height: Spacing.sm),
-        AuthSettingsItem(
-          title: l10n.changePassword,
-          icon: HugeIcons.strokeRoundedLockPassword,
-          onTap: () => _changePassword(context),
-        ),
-        const SizedBox(height: Spacing.sm),
-        AuthSettingsItem(
-          title: l10n.recoveryKey,
-          icon: HugeIcons.strokeRoundedKey01,
-          onTap: () => _showRecoveryKey(context),
-        ),
-        const SizedBox(height: Spacing.sm),
-        AuthSettingsItem(
-          title: l10n.deleteAccount,
-          icon: HugeIcons.strokeRoundedDelete02,
-          isDestructive: true,
-          onTap: () => _deleteAccount(context),
-        ),
+        if (hasAccount) ...[
+          const SizedBox(height: Spacing.sm),
+          AuthSettingsItem(
+            title: l10n.changeEmail,
+            icon: HugeIcons.strokeRoundedMailEdit01,
+            onTap: () => _changeEmail(context),
+          ),
+          const SizedBox(height: Spacing.sm),
+          AuthSettingsItem(
+            title: l10n.changePassword,
+            icon: HugeIcons.strokeRoundedLockPassword,
+            onTap: () => _changePassword(context),
+          ),
+          const SizedBox(height: Spacing.sm),
+          AuthSettingsItem(
+            title: l10n.recoveryKey,
+            icon: HugeIcons.strokeRoundedKey01,
+            onTap: () => _showRecoveryKey(context),
+          ),
+          const SizedBox(height: Spacing.sm),
+          AuthSettingsItem(
+            title: l10n.deleteAccount,
+            icon: HugeIcons.strokeRoundedDelete02,
+            isDestructive: true,
+            onTap: () => _deleteAccount(context),
+          ),
+        ],
       ],
     );
   }

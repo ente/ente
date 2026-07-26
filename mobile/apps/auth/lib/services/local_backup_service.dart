@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -24,10 +25,16 @@ class LocalBackupService {
   static const _lastBackupDayKey = 'lastBackupDay';
   static const _iosBookmarkKey = 'autoBackupIosBookmark';
 
+  StreamSubscription<SignedOutEvent>? _signedOutSubscription;
+
+  // Safe to call again when the active profile changes; the listener is only
+  // registered once, so switching cannot stack up duplicates.
   Future<void> init({bool hasOptedForOfflineMode = false}) async {
     await _clearBackupPasswordIfFreshInstall(hasOptedForOfflineMode);
 
-    Bus.instance.on<SignedOutEvent>().listen((event) {
+    _signedOutSubscription ??= Bus.instance.on<SignedOutEvent>().listen((
+      event,
+    ) {
       _clearBackupPassword();
     });
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -15,7 +16,13 @@ int kConnectTimeout = 15000;
 class Network {
   late Dio _dio;
   late Dio _enteDio;
+  bool _initialized = false;
+  BaseConfiguration? _configuration;
+  StreamSubscription<EndpointUpdatedEvent>? _endpointSubscription;
 
+  // Safe to call again when the active account changes. The Dio instances are
+  // created once and mutated in place, since many services capture them in
+  // final fields at construction.
   Future<void> init(BaseConfiguration configuration) async {
     final bool isMobile = Platform.isAndroid || Platform.isIOS;
     String? ua;
@@ -50,44 +57,53 @@ class Network {
     }
 
     final endpoint = configuration.getHttpEndpoint();
+    _configuration = configuration;
 
-    _dio = Dio(
-      BaseOptions(
-        connectTimeout: Duration(milliseconds: kConnectTimeout),
-        headers: {
-          HttpHeaders.userAgentHeader: isMobile
-              ? ua!
-              : Platform.operatingSystem,
-          'X-Client-Version': version,
-          'X-Client-Package': packageName,
-        },
-      ),
-    );
+    if (!_initialized) {
+      _initialized = true;
+      _dio = Dio(
+        BaseOptions(
+          connectTimeout: Duration(milliseconds: kConnectTimeout),
+          headers: {
+            HttpHeaders.userAgentHeader: isMobile
+                ? ua!
+                : Platform.operatingSystem,
+            'X-Client-Version': version,
+            'X-Client-Package': packageName,
+          },
+        ),
+      );
 
-    _enteDio = Dio(
-      BaseOptions(
-        baseUrl: endpoint,
-        connectTimeout: Duration(milliseconds: kConnectTimeout),
-        headers: {
-          if (isMobile)
-            HttpHeaders.userAgentHeader: ua!
-          else
-            HttpHeaders.userAgentHeader: Platform.operatingSystem,
-          'X-Client-Version': version,
-          'X-Client-Package': packageName,
-        },
-      ),
-    );
+      _enteDio = Dio(
+        BaseOptions(
+          baseUrl: endpoint,
+          connectTimeout: Duration(milliseconds: kConnectTimeout),
+          headers: {
+            if (isMobile)
+              HttpHeaders.userAgentHeader: ua!
+            else
+              HttpHeaders.userAgentHeader: Platform.operatingSystem,
+            'X-Client-Version': version,
+            'X-Client-Package': packageName,
+          },
+        ),
+      );
 
-    _dio.httpClientAdapter = NativeAdapter();
-    _enteDio.httpClientAdapter = NativeAdapter();
+      _dio.httpClientAdapter = NativeAdapter();
+      _enteDio.httpClientAdapter = NativeAdapter();
+    } else {
+      _enteDio.options.baseUrl = endpoint;
+    }
 
     _setupInterceptors(configuration);
 
-    Bus.instance.on<EndpointUpdatedEvent>().listen((event) {
-      final endpoint = configuration.getHttpEndpoint();
-      _enteDio.options.baseUrl = endpoint;
-      _setupInterceptors(configuration);
+    _endpointSubscription ??= Bus.instance.on<EndpointUpdatedEvent>().listen((
+      event,
+    ) {
+      final config = _configuration;
+      if (config == null) return;
+      _enteDio.options.baseUrl = config.getHttpEndpoint();
+      _setupInterceptors(config);
     });
   }
 

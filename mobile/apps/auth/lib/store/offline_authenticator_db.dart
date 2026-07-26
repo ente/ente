@@ -10,7 +10,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class OfflineAuthenticatorDB {
-  static const _databaseName = "ente.offline_authenticator.db";
   static const _databaseVersion = 1;
 
   static const entityTable = 'entities';
@@ -20,6 +19,27 @@ class OfflineAuthenticatorDB {
       OfflineAuthenticatorDB._privateConstructor();
 
   static Future<Database>? _dbFuture;
+  static String _scope = "";
+
+  // The empty scope keeps the original name, so existing installs open the
+  // file they always have.
+  static String databaseNameForScope(String scope) =>
+      "ente.${scope}offline_authenticator.db";
+
+  // Closes the open database, so the next access reopens the new scope's file.
+  Future<void> setScope(String scope) async {
+    if (_scope == scope) return;
+    await close();
+    _scope = scope;
+  }
+
+  Future<void> close() async {
+    final dbFuture = _dbFuture;
+    _dbFuture = null;
+    if (dbFuture != null) {
+      await (await dbFuture).close();
+    }
+  }
 
   Future<Database> get database async {
     _dbFuture ??= _initDatabase();
@@ -27,10 +47,11 @@ class OfflineAuthenticatorDB {
   }
 
   Future<Database> _initDatabase() async {
+    final String databaseName = databaseNameForScope(_scope);
     if (Platform.isWindows || Platform.isLinux) {
       var databaseFactory = databaseFactoryFfi;
       return await databaseFactory.openDatabase(
-        await DirectoryUtils.getDatabasePath(_databaseName),
+        await DirectoryUtils.getDatabasePath(databaseName),
         options: OpenDatabaseOptions(
           version: _databaseVersion,
           onCreate: _onCreate,
@@ -40,7 +61,7 @@ class OfflineAuthenticatorDB {
     final Directory documentsDirectory = Platform.isMacOS
         ? await getApplicationSupportDirectory()
         : await getApplicationDocumentsDirectory();
-    final String path = join(documentsDirectory.path, _databaseName);
+    final String path = join(documentsDirectory.path, databaseName);
     debugPrint(path);
     return await openDatabase(
       path,

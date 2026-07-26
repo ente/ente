@@ -18,8 +18,10 @@ import 'package:ente_auth/onboarding/view/setup_enter_secret_key_page.dart';
 import 'package:ente_auth/services/authenticator_service.dart';
 import 'package:ente_auth/services/local_backup_service.dart';
 import 'package:ente_auth/services/preference_service.dart';
+import 'package:ente_auth/services/profile_service.dart';
 import 'package:ente_auth/store/code_display_store.dart';
 import 'package:ente_auth/store/code_store.dart';
+import 'package:ente_auth/theme/colors.dart';
 import 'package:ente_auth/theme/ente_theme.dart';
 import 'package:ente_auth/ui/account/logout_dialog.dart';
 import 'package:ente_auth/ui/code_error_widget.dart';
@@ -1443,6 +1445,29 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildTitle(EnteColorScheme colorScheme) {
+    final profileService = ProfileService.instance;
+    if (!profileService.hasMultipleProfiles) {
+      return const AuthLogoWidget(height: 18);
+    }
+    final profile = profileService.activeProfile;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const AuthLogoWidget(height: 18),
+        const SizedBox(height: 2),
+        Text(
+          profile?.displayName(context.l10n.offlineVault) ??
+              context.l10n.offlineVault,
+          style: getEnteTextTheme(
+            context,
+          ).miniMuted.copyWith(color: colorScheme.textMuted),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
   PreferredSizeWidget _buildStandardAppBar(
     AppLocalizations l10n,
     bool isDesktop,
@@ -1466,7 +1491,7 @@ class _HomePageState extends State<HomePage> {
         },
       ),
       title: !_showSearchBox
-          ? const AuthLogoWidget(height: 18)
+          ? _buildTitle(colorScheme)
           : AndroidTextInputAutofocus(
               enabled: _autoFocusSearch,
               focusNode: searchBoxFocusNode,

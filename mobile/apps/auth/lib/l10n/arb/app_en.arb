@@ -1,5 +1,22 @@
 {
   "account": "Account",
+  "accounts": "Accounts",
+  "addAccount": "Add account",
+  "maxAccountsReached": "You can be signed in to up to {count} accounts",
+  "@maxAccountsReached": {
+    "placeholders": {
+      "count": {
+        "description": "The maximum number of accounts that can be added",
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "offlineVault": "Offline vault",
+  "renameVault": "Rename vault",
+  "vaultNameHint": "Vault name",
+  "switchAccount": "Switch account",
+  "alreadySignedInToAccount": "You are already signed in to this account",
   "unlock": "Unlock",
   "recoveryKey": "Recovery key",
   "counterAppBarTitle": "Counter",

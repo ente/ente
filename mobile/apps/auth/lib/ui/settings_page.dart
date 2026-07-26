@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:ente_accounts/services/user_service.dart';
 import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/l10n/l10n.dart';
+import 'package:ente_auth/models/profile.dart';
 import 'package:ente_auth/onboarding/view/onboarding_page.dart';
+import 'package:ente_auth/services/profile_service.dart';
 import 'package:ente_auth/store/code_store.dart';
 import 'package:ente_auth/ui/components/buttons/button_widget.dart';
 import 'package:ente_auth/ui/settings/about_settings_page.dart';
@@ -31,6 +34,31 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+// The active profile is the source of truth, as it is for the home app bar.
+// [email] comes from a process wide notifier the sign in flow writes as soon
+// as an address is typed, so on its own it can show an address that was never
+// signed in to.
+String? settingsSubtitle({
+  required Profile? profile,
+  required String? email,
+  required bool hasLoggedIn,
+  required String offlineFallback,
+}) {
+  if (profile != null) {
+    return profile.displayName(offlineFallback);
+  }
+  return hasLoggedIn ? email : null;
+}
+
+// Any registered profile is enough. An offline-only user is not logged in but
+// still needs this row to reach the switcher and add an account.
+bool showAccountSection({
+  required bool hasLoggedIn,
+  required int profileCount,
+}) {
+  return hasLoggedIn || profileCount > 0;
+}
+
 class SettingsPage extends StatelessWidget {
   const SettingsPage({
     super.key,
@@ -52,7 +80,12 @@ class SettingsPage extends StatelessWidget {
       builder: (context, email, _) => _buildSettings(
         context,
         hasLoggedIn: hasLoggedIn,
-        email: hasLoggedIn ? email : null,
+        email: settingsSubtitle(
+          profile: ProfileService.instance.activeProfile,
+          email: email,
+          hasLoggedIn: hasLoggedIn,
+          offlineFallback: context.l10n.offlineVault,
+        ),
       ),
     );
   }
@@ -64,18 +97,27 @@ class SettingsPage extends StatelessWidget {
   }) {
     final l10n = context.l10n;
     final contents = <Widget>[];
-    if (hasLoggedIn) {
+    final showAccount = showAccountSection(
+      hasLoggedIn: hasLoggedIn,
+      profileCount: ProfileService.instance.profiles.length,
+    );
+    if (showAccount) {
       contents.add(
         AuthSettingsItem(
           title: l10n.account,
           icon: HugeIcons.strokeRoundedUser,
           semanticsIdentifier: 'auth_settings_account',
-          onTap: () =>
-              pushAuthSettingsPage(context, const AccountSettingsPage()),
+          onTap: () => pushAuthSettingsPage(
+            context,
+            AccountSettingsPage(
+              hasAccount: Configuration.instance.hasConfiguredAccount(),
+            ),
+          ),
         ),
       );
       contents.add(const SizedBox(height: Spacing.sm));
-    } else {
+    }
+    if (!hasLoggedIn) {
       contents.add(
         BannerComponent(
           title: l10n.signInToBackup,
@@ -251,6 +293,8 @@ class SettingsPage extends StatelessWidget {
 
   Future<void> _logout(BuildContext context) {
     final l10n = context.l10n;
+    // Captured up front: the logout tears down this page and its drawer.
+    final navigator = Navigator.of(context, rootNavigator: true);
     return showChoiceActionSheet(
       context,
       title: l10n.logout,
@@ -258,7 +302,13 @@ class SettingsPage extends StatelessWidget {
       firstButtonLabel: l10n.yesLogout,
       secondButtonLabel: l10n.cancel,
       isCritical: true,
-      firstButtonOnTap: () => UserService.instance.logout(context),
+      firstButtonOnTap: () async {
+        // Navigation is ours: only once the profile record is gone does '/'
+        // resolve to the next profile's home, or to onboarding if none remain.
+        await UserService.instance.logout(context, navigate: false);
+        await ProfileService.instance.removeActive();
+        unawaited(navigator.pushNamedAndRemoveUntil('/', (route) => false));
+      },
     );
   }
 }

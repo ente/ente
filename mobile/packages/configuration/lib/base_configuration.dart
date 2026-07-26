@@ -54,12 +54,51 @@ abstract class BaseConfiguration {
 
   String? _volatilePassword;
 
+  // Prefix applied to every account scoped preference and secure storage key.
+  // The default empty scope leaves keys unprefixed, which is how
+  // single-account apps continue to read and write their data.
+  String _scope = "";
+
   EnteAppIdentity get appIdentity;
 
   List<String> get secureStorageKeys;
 
-  Future<void> init(List<EnteBaseDatabase> dbs) async {
+  // Preference key prefixes that survive an unscoped logout. Empty by
+  // default, which wipes every preference as it always has.
+  List<String> get logoutPreservedKeyPrefixes => const [];
+
+  static Set<String> keysToClearOnLogout(
+    Set<String> keys,
+    List<String> preservedPrefixes,
+  ) {
+    if (preservedPrefixes.isEmpty) {
+      return keys;
+    }
+    return keys
+        .where((key) => !preservedPrefixes.any(key.startsWith))
+        .toSet();
+  }
+
+  String get scope => _scope;
+
+  String scopedKey(String key) => _scope.isEmpty ? key : "$_scope$key";
+
+  // Callers must tear down anything holding the previous account's data
+  // (databases, caches) before switching.
+  Future<void> setScope(String scope) async {
+    if (_scope == scope) return;
+    _logger.info("Switching scope from '$_scope' to '$scope'");
+    _scope = scope;
+    _key = null;
+    _secretKey = null;
+    _cachedToken = null;
+    _volatilePassword = null;
+    await _setupKeys();
+  }
+
+  Future<void> init(List<EnteBaseDatabase> dbs, {String scope = ""}) async {
     _databases = dbs;
+    _scope = scope;
     _tempDocumentsDirPath =
         "${p.join((await getTemporaryDirectory()).path, "temp")}${p.separator}";
     _preferences = await SharedPreferences.getInstance();
@@ -77,7 +116,7 @@ abstract class BaseConfiguration {
 
   Future<void> logout({bool autoLogout = false}) async {
     await _clearTempFolderOnLogout();
-    await _preferences.clear();
+    await _clearPreferences();
     await resetSecureStorage();
     for (final db in _databases) {
       await db.clearTable();
@@ -86,6 +125,29 @@ abstract class BaseConfiguration {
     _cachedToken = null;
     _secretKey = null;
     Bus.instance.fire(SignedOutEvent());
+  }
+
+  // With a scope only that account's keys are touched, so that other accounts
+  // and app wide preferences survive the logout.
+  Future<void> _clearPreferences() async {
+    if (_scope.isEmpty) {
+      final preserved = logoutPreservedKeyPrefixes;
+      if (preserved.isEmpty) {
+        await _preferences.clear();
+        return;
+      }
+      for (final key in keysToClearOnLogout(_preferences.getKeys(), preserved)) {
+        await _preferences.remove(key);
+      }
+      return;
+    }
+    final scopedKeys = _preferences
+        .getKeys()
+        .where((key) => key.startsWith(_scope))
+        .toList();
+    for (final key in scopedKeys) {
+      await _preferences.remove(key);
+    }
   }
 
   Future<void> _clearTempFolderOnLogout() async {
@@ -107,7 +169,7 @@ abstract class BaseConfiguration {
       'secureStorageKeys must not be empty. Apps must explicitly define which keys to clear.',
     );
     for (final key in secureStorageKeys.toSet()) {
-      await _secureStorage.delete(key: key);
+      await _secureStorage.delete(key: scopedKey(key));
     }
   }
 
@@ -296,7 +358,8 @@ abstract class BaseConfiguration {
   }
 
   String getHttpEndpoint() {
-    final savedEndpoint = _preferences.getString(endPointKey) ?? endpoint;
+    final savedEndpoint =
+        _preferences.getString(scopedKey(endPointKey)) ?? endpoint;
     if (savedEndpoint == kLegacyProductionEndpoint) {
       return kDefaultProductionEndpoint;
     }
@@ -311,12 +374,12 @@ abstract class BaseConfiguration {
   }
 
   Future<void> setHttpEndpoint(String endpoint) async {
-    await _preferences.setString(endPointKey, endpoint);
+    await _preferences.setString(scopedKey(endPointKey), endpoint);
     Bus.instance.fire(EndpointUpdatedEvent());
   }
 
   String? getToken() {
-    _cachedToken ??= _preferences.getString(tokenKey);
+    _cachedToken ??= _preferences.getString(scopedKey(tokenKey));
     return _cachedToken;
   }
 
@@ -326,40 +389,43 @@ abstract class BaseConfiguration {
 
   Future<void> setToken(String token) async {
     _cachedToken = token;
-    await _preferences.setString(tokenKey, token);
+    await _preferences.setString(scopedKey(tokenKey), token);
     Bus.instance.fire(SignedInEvent());
   }
 
   Future<void> setEncryptedToken(String encryptedToken) async {
-    await _preferences.setString(encryptedTokenKey, encryptedToken);
+    await _preferences.setString(scopedKey(encryptedTokenKey), encryptedToken);
   }
 
   String? getEncryptedToken() {
-    return _preferences.getString(encryptedTokenKey);
+    return _preferences.getString(scopedKey(encryptedTokenKey));
   }
 
   String? getEmail() {
-    return _preferences.getString(emailKey);
+    return _preferences.getString(scopedKey(emailKey));
   }
 
   Future<void> setEmail(String email) async {
-    await _preferences.setString(emailKey, email);
+    await _preferences.setString(scopedKey(emailKey), email);
   }
 
   int? getUserID() {
-    return _preferences.getInt(userIDKey);
+    return _preferences.getInt(scopedKey(userIDKey));
   }
 
   Future<void> setUserID(int userID) async {
-    await _preferences.setInt(userIDKey, userID);
+    await _preferences.setInt(scopedKey(userIDKey), userID);
   }
 
   Future<void> setKeyAttributes(KeyAttributes attributes) async {
-    await _preferences.setString(keyAttributesKey, attributes.toJson());
+    await _preferences.setString(
+      scopedKey(keyAttributesKey),
+      attributes.toJson(),
+    );
   }
 
   KeyAttributes? getKeyAttributes() {
-    final jsonValue = _preferences.getString(keyAttributesKey);
+    final jsonValue = _preferences.getString(scopedKey(keyAttributesKey));
     if (jsonValue == null) {
       return null;
     } else {
@@ -369,12 +435,12 @@ abstract class BaseConfiguration {
 
   Future<void> setKey(String key) async {
     _key = key;
-    await _secureStorage.write(key: keyKey, value: key);
+    await _secureStorage.write(key: scopedKey(keyKey), value: key);
   }
 
   Future<void> setSecretKey(String? secretKey) async {
     _secretKey = secretKey;
-    await _secureStorage.write(key: secretKeyKey, value: secretKey);
+    await _secureStorage.write(key: scopedKey(secretKeyKey), value: secretKey);
   }
 
   Uint8List? getKey() {
@@ -430,16 +496,16 @@ abstract class BaseConfiguration {
 
   Future<void> _setupKeys() async {
     try {
-      if (!_preferences.containsKey(tokenKey)) {
+      if (!_preferences.containsKey(scopedKey(tokenKey))) {
         await resetSecureStorage();
         return;
       }
-      _key = await _secureStorage.read(key: keyKey);
+      _key = await _secureStorage.read(key: scopedKey(keyKey));
       if (_key == null) {
         _logger.warning("No key found in secure storage");
         await logout(autoLogout: true);
       }
-      _secretKey = await _secureStorage.read(key: secretKeyKey);
+      _secretKey = await _secureStorage.read(key: scopedKey(secretKeyKey));
     } catch (e, s) {
       _logger.severe("Configuration init failed", e, s);
       /*
@@ -464,6 +530,7 @@ abstract class BaseConfiguration {
   Future<void> _setupFolders() async {
     final tempDirectory = io.Directory(_tempDocumentsDirPath);
     try {
+      // Unscoped: the temp folder is shared by every account.
       final currentTime = DateTime.now().microsecondsSinceEpoch;
       if (tempDirectory.existsSync() &&
           (_preferences.getInt(lastTempFolderClearTimeKey) ?? 0) <

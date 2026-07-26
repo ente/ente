@@ -219,14 +219,17 @@ class UserService {
       );
       final userDetails = UserDetails.fromMap(response.data);
       if (shouldCache) {
-        await _preferences.setString(keyUserDetails, userDetails.toJson());
+        await _preferences.setString(
+          _config.scopedKey(keyUserDetails),
+          userDetails.toJson(),
+        );
         if (userDetails.profileData != null) {
           await _preferences.setBool(
-            kIsEmailMFAEnabled,
+            _config.scopedKey(kIsEmailMFAEnabled),
             userDetails.profileData!.isEmailMFAEnabled,
           );
           await _preferences.setBool(
-            kCanDisableEmailMFA,
+            _config.scopedKey(kCanDisableEmailMFA),
             userDetails.profileData!.canDisableEmailMFA,
           );
         }
@@ -247,8 +250,9 @@ class UserService {
   }
 
   UserDetails? getCachedUserDetails() {
-    if (_preferences.containsKey(keyUserDetails)) {
-      return UserDetails.fromJson(_preferences.getString(keyUserDetails)!);
+    final key = _config.scopedKey(keyUserDetails);
+    if (_preferences.containsKey(key)) {
+      return UserDetails.fromJson(_preferences.getString(key)!);
     }
     return null;
   }
@@ -284,11 +288,16 @@ class UserService {
     }
   }
 
-  Future<void> logout(BuildContext context) async {
+  // Multi-account apps pass navigate: false and handle navigation themselves,
+  // once they know which of the remaining accounts to land on.
+  Future<void> logout(BuildContext context, {bool navigate = true}) async {
     try {
       final response = await _enteDio.post("/users/logout");
       if (response.statusCode == 200) {
-        await _logoutLocally(context.mounted ? context : null);
+        await _logoutLocally(
+          context.mounted ? context : null,
+          navigate: navigate,
+        );
       } else {
         throw Exception("Log out action failed");
       }
@@ -305,7 +314,10 @@ class UserService {
         } else {
           _logger.info("Token already invalid, proceeding with local logout");
         }
-        await _logoutLocally(context.mounted ? context : null);
+        await _logoutLocally(
+          context.mounted ? context : null,
+          navigate: navigate,
+        );
         return;
       }
 
@@ -321,9 +333,11 @@ class UserService {
     }
   }
 
-  Future<void> _logoutLocally(BuildContext? context) async {
+  Future<void> _logoutLocally(BuildContext? context, {
+    bool navigate = true,
+  }) async {
     await _config.logout();
-    if (context == null || !context.mounted) {
+    if (!navigate || context == null || !context.mounted) {
       return;
     }
     unawaited(
@@ -1154,17 +1168,20 @@ class UserService {
   }
 
   bool? canDisableEmailMFA() {
-    return _preferences.getBool(kCanDisableEmailMFA);
+    return _preferences.getBool(_config.scopedKey(kCanDisableEmailMFA));
   }
 
   bool hasEmailMFAEnabled() {
-    return _preferences.getBool(kIsEmailMFAEnabled) ?? false;
+    return _preferences.getBool(_config.scopedKey(kIsEmailMFAEnabled)) ?? false;
   }
 
   Future<void> updateEmailMFA(bool isEnabled) async {
     try {
       await _enteDio.put("/users/email-mfa", data: {"isEnabled": isEnabled});
-      await _preferences.setBool(kIsEmailMFAEnabled, isEnabled);
+      await _preferences.setBool(
+        _config.scopedKey(kIsEmailMFAEnabled),
+        isEnabled,
+      );
     } catch (e) {
       _logger.severe("Failed to update email mfa", e);
       rethrow;
@@ -1172,10 +1189,10 @@ class UserService {
   }
 
   Future<void> setRefSource(String refSource) async {
-    await _preferences.setString(kReferralSource, refSource);
+    await _preferences.setString(_config.scopedKey(kReferralSource), refSource);
   }
 
   String _getRefSource() {
-    return _preferences.getString(kReferralSource) ?? "";
+    return _preferences.getString(_config.scopedKey(kReferralSource)) ?? "";
   }
 }
