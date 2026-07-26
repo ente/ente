@@ -712,12 +712,20 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                             setCurrentTab(value);
                         }}
                     >
-                        <Tab label={t("crop")} value="crop" />
-                        <Tab label={t("transform")} value="transform" />
+                        <Tab
+                            label={t("crop")}
+                            value="crop"
+                            disabled={canvasLoading}
+                        />
+                        <Tab
+                            label={t("transform")}
+                            value="transform"
+                            disabled={canvasLoading}
+                        />
                         <Tab
                             label={t("colors")}
                             value="colors"
-                            disabled={transformationPerformed}
+                            disabled={canvasLoading || transformationPerformed}
                         />
                     </Tabs>
                 </Stack>
@@ -1271,6 +1279,62 @@ const TransformMenu: React.FC<CommonMenuProps> = ({
         }
     };
 
+    const commitStraighten = async (angle: number) => {
+        if (angle === 0) {
+            setIsStraightenDragging(false);
+            return;
+        }
+        try {
+            setCanvasLoading(true);
+            setIsStraightenDragging(false);
+
+            const canvas = canvasRef.current!;
+            const fullResCanvas = originalSizeCanvasRef.current!;
+
+            // computeInscribedCrop expects the pre-rotation dimensions (it
+            // accounts for the rotation itself); it must be called before
+            // rotateCanvas resizes the canvas to the (larger) rotated
+            // bounding box.
+            const previewCrop = computeInscribedCrop(
+                canvas.width,
+                canvas.height,
+                angle,
+            );
+            const fullResCrop = computeInscribedCrop(
+                fullResCanvas.width,
+                fullResCanvas.height,
+                angle,
+            );
+
+            await rotateCanvas(canvas, angle);
+            await rotateCanvas(fullResCanvas, angle);
+
+            await cropRegionOfCanvas(
+                canvas,
+                (canvas.width - previewCrop.width) / 2,
+                (canvas.height - previewCrop.height) / 2,
+                (canvas.width - previewCrop.width) / 2 + previewCrop.width,
+                (canvas.height - previewCrop.height) / 2 + previewCrop.height,
+            );
+            await cropRegionOfCanvas(
+                fullResCanvas,
+                (fullResCanvas.width - fullResCrop.width) / 2,
+                (fullResCanvas.height - fullResCrop.height) / 2,
+                (fullResCanvas.width - fullResCrop.width) / 2 +
+                    fullResCrop.width,
+                (fullResCanvas.height - fullResCrop.height) / 2 +
+                    fullResCrop.height,
+            );
+
+            setStraightenAngle(0);
+            setTransformationPerformed(true);
+        } catch (e) {
+            log.error("straighten commit failed", e);
+        } finally {
+            setCanvasLoading(false);
+        }
+    };
+
     const createFlipCanvasHandler =
         (direction: "vertical" | "horizontal") => () => {
             try {
@@ -1362,6 +1426,9 @@ const TransformMenu: React.FC<CommonMenuProps> = ({
                     onChange={(_, value) => {
                         setIsStraightenDragging(true);
                         setStraightenAngle(value as number);
+                    }}
+                    onChangeCommitted={(_, value) => {
+                        void commitStraighten(value as number);
                     }}
                 />
             </Box>
