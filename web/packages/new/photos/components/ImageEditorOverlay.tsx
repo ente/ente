@@ -582,6 +582,11 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                     sx={{
                         justifyContent: "space-between",
                         alignItems: "center",
+                        // Sits above the straighten preview area, which can
+                        // paint outside its own box (a zoomed, rotated
+                        // canvas overhanging its frame) while dragging.
+                        position: "relative",
+                        zIndex: 1,
                     }}
                 >
                     <Typography
@@ -607,7 +612,12 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                     sx={{
                         width: "100%",
                         height: "100%",
-                        overflow: "hidden",
+                        // While straightening, the canvas is zoomed beyond
+                        // its box so it always fully covers the alignment
+                        // frame — its rotated corners overhang the box.
+                        // Allow that overhang to paint so it can be dimmed
+                        // by StraightenOverlay instead of silently clipped.
+                        overflow: isStraightenDragging ? "visible" : "hidden",
                         boxSizing: "border-box",
                         alignItems: "center",
                         justifyContent: "center",
@@ -670,6 +680,8 @@ export const ImageEditorOverlay: React.FC<ImageEditorOverlayProps> = ({
                                     canvasHeight={canvasRef.current.height}
                                     offsetX={straightenOverlayOffsets.offsetX}
                                     offsetY={straightenOverlayOffsets.offsetY}
+                                    straightenAngle={straightenAngle}
+                                    zoomScale={straightenZoomScale}
                                 />
                             )}
                         </Stack>
@@ -1379,28 +1391,73 @@ interface StraightenOverlayProps {
     canvasHeight: number;
     offsetX: number;
     offsetY: number;
+    straightenAngle: number;
+    zoomScale: number;
 }
 
 // A rule-of-thirds grid, fixed to the canvas's on-screen bounds and never
 // rotating itself, so it represents "level" while the image rotates (and
-// zooms to keep covering it) underneath.
+// zooms to keep covering it) underneath. Also dims the part of the rotated,
+// zoomed image that overhangs past the frame — content that will be cropped
+// away — which would otherwise be invisible (clipped by the container) or
+// just blend in as if it were part of the kept image.
 const StraightenOverlay: React.FC<StraightenOverlayProps> = ({
     canvasWidth,
     canvasHeight,
     offsetX,
     offsetY,
-}) => (
-    <svg
-        width={canvasWidth}
-        height={canvasHeight}
-        style={{
-            position: "absolute",
-            top: offsetY,
-            left: offsetX,
-            pointerEvents: "none",
-        }}
-    >
-        {[1, 2].map((i) => (
+    straightenAngle,
+    zoomScale,
+}) => {
+    const radians = (straightenAngle * Math.PI) / 180;
+    // The on-screen size of the full rotated canvas, before cropping, once
+    // scaled by zoomScale — same bounding-box math as rotateCanvas uses,
+    // scaled up to match what's actually painted on screen right now.
+    const overhangWidth =
+        (Math.abs(canvasWidth * Math.cos(radians)) +
+            Math.abs(canvasHeight * Math.sin(radians))) *
+        zoomScale;
+    const overhangHeight =
+        (Math.abs(canvasWidth * Math.sin(radians)) +
+            Math.abs(canvasHeight * Math.cos(radians))) *
+        zoomScale;
+    // The frame sits centered within that overhanging area.
+    const frameX = (overhangWidth - canvasWidth) / 2;
+    const frameY = (overhangHeight - canvasHeight) / 2;
+
+    return (
+        <>
+            <svg
+                width={overhangWidth}
+                height={overhangHeight}
+                style={{
+                    position: "absolute",
+                    top: offsetY - frameY,
+                    left: offsetX - frameX,
+                    pointerEvents: "none",
+                }}
+            >
+                {/* A single even-odd path: the full overhang rect plus the
+                    frame rect. The overlap (the frame's interior, which
+                    survives the crop) is left unfilled. */}
+                <path
+                    d={`M0,0 H${overhangWidth} V${overhangHeight} H0 Z
+                        M${frameX},${frameY} H${frameX + canvasWidth} V${frameY + canvasHeight} H${frameX} Z`}
+                    fillRule="evenodd"
+                    fill="rgba(0, 0, 0, 0.6)"
+                />
+            </svg>
+            <svg
+                width={canvasWidth}
+                height={canvasHeight}
+                style={{
+                    position: "absolute",
+                    top: offsetY,
+                    left: offsetX,
+                    pointerEvents: "none",
+                }}
+            >
+                {[1, 2].map((i) => (
             <line
                 key={`v${i}`}
                 x1={(canvasWidth * i) / 3}
@@ -1431,8 +1488,10 @@ const StraightenOverlay: React.FC<StraightenOverlayProps> = ({
             stroke="white"
             strokeWidth={1}
         />
-    </svg>
-);
+            </svg>
+        </>
+    );
+};
 
 interface ColoursMenuProps {
     brightness: number;
