@@ -52,18 +52,21 @@ class TrashPage extends StatelessWidget {
           // Insert local only trash entries
           final localTrashAssets = (await Future.wait(
             localTrash.map((item) => AssetEntity.fromId(item.localID)),
-          )).whereType<AssetEntity>().toList();
+          )).toList();
           for (var i = 0; i < localTrash.length; i++) {
+            if (localTrashAssets[i] == null) continue;
             final file = TrashFile.fromEnteFile(
-              fileFromAsset('Unknown Folder', localTrashAssets[i]),
+              fileFromAsset('Unknown Folder', localTrashAssets[i]!),
               createdAt: 0,
               updateAt: 0,
               deleteBy: localTrash[i].deleteBy,
+              isTrashedOnDevice: true,
             );
-            for (var j = 0; j < remoteTrash.files.length; j++) {
-              if (remoteTrash.files[j] is TrashFile &&
-                  (remoteTrash.files[j] as TrashFile).deleteBy <
-                      localTrash[i].deleteBy) {
+            for (var j = 0; j <= remoteTrash.files.length; j++) {
+              if (j == remoteTrash.files.length ||
+                  (remoteTrash.files[j] is TrashFile &&
+                      (remoteTrash.files[j] as TrashFile).deleteBy <
+                          localTrash[i].deleteBy)) {
                 remoteTrash.files.insert(j, file);
                 break;
               }
