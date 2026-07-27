@@ -16,6 +16,7 @@ import "package:photos/generated/l10n.dart";
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/collection/collection_items.dart';
 import "package:photos/models/file/file_type.dart";
+import "package:photos/models/file/trash_file.dart";
 import 'package:photos/models/selected_files.dart';
 import "package:photos/service_locator.dart";
 import 'package:photos/services/collections_service.dart';
@@ -596,9 +597,11 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
         !await isAndroidSDKVersionLowerThan(android11SDKINT)) {
       final assets = files
           .map(
-            (file) => file.localID == null
-                ? null
-                : AssetEntity(
+            (file) =>
+                file.localID != null &&
+                    file is TrashFile &&
+                    file.isTrashedOnDevice
+                ? AssetEntity(
                     id: file.localID!,
                     typeInt: switch (file.fileType) {
                       FileType.other => 0,
@@ -607,7 +610,8 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
                     },
                     width: 0,
                     height: 0,
-                  ),
+                  )
+                : null,
           )
           .whereType<AssetEntity>()
           .toList();
