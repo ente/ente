@@ -1,6 +1,16 @@
 import 'package:photos/models/file/file.dart';
 
 class TrashFile extends EnteFile {
+  TrashFile();
+
+  TrashFile.fromEnteFile(
+    super.file, {
+    required this.createdAt,
+    required this.updateAt,
+    required this.deleteBy,
+    this.isTrashedOnDevice = false,
+  }) : super.from();
+
   // Keep the deleting device's localID when it moves the asset to system trash,
   // instead of replacing it with the upload-time localID from server metadata.
   bool isTrashedOnDevice = false;

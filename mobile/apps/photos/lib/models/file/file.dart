@@ -79,6 +79,40 @@ class EnteFile {
 
   EnteFile();
 
+  EnteFile.from(EnteFile file) {
+    generatedID = file.generatedID;
+    uploadedFileID = file.uploadedFileID;
+    ownerID = file.ownerID;
+    collectionID = file.collectionID;
+    localID = file.localID;
+    title = file.title;
+    deviceFolder = file.deviceFolder;
+    creationTime = file.creationTime;
+    modificationTime = file.modificationTime;
+    updationTime = file.updationTime;
+    addedTime = file.addedTime;
+    location = file.location;
+    fileType = file.fileType;
+    fileSubType = file.fileSubType;
+    duration = file.duration;
+    exif = file.exif;
+    hash = file.hash;
+    metadataVersion = file.metadataVersion;
+    encryptedKey = file.encryptedKey;
+    keyDecryptionNonce = file.keyDecryptionNonce;
+    fileDecryptionHeader = file.fileDecryptionHeader;
+    thumbnailDecryptionHeader = file.thumbnailDecryptionHeader;
+    metadataDecryptionHeader = file.metadataDecryptionHeader;
+    fileSize = file.fileSize;
+    mMdEncodedJson = file.mMdEncodedJson;
+    mMdVersion = file.mMdVersion;
+    magicMetadata = file.magicMetadata;
+    pubMmdEncodedJson = file.pubMmdEncodedJson;
+    pubMmdVersion = file.pubMmdVersion;
+    pubMagicMetadata = file.pubMagicMetadata;
+    debugCaption = file.debugCaption;
+  }
+
   Future<AssetEntity?> get getAsset {
     if (localID == null) {
       return Future.value(null);

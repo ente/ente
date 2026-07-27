@@ -5,6 +5,7 @@ import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import "package:photos/models/file/file.dart";
 import 'package:photos/models/file/trash_file.dart';
 import 'package:photos/models/file_load_result.dart';
 import 'package:sqflite/sqflite.dart';
@@ -217,14 +218,14 @@ class TrashDB {
     final results = await db.query(
       tableName,
       where: '$columnTrashDeleteBy != -1',
-      orderBy: '$columnTrashDeleteBy ASC',
+      orderBy: '$columnTrashDeleteBy DESC',
     );
     final files = _convertToFiles(results);
     return FileLoadResult(files, false);
   }
 
-  List<TrashFile> _convertToFiles(List<Map<String, dynamic>> results) {
-    final List<TrashFile> trashedFiles = [];
+  List<EnteFile> _convertToFiles(List<Map<String, dynamic>> results) {
+    final List<EnteFile> trashedFiles = [];
     for (final result in results) {
       trashedFiles.add(_getTrashFromRow(result));
     }
