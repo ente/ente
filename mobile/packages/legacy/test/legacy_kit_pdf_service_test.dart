@@ -106,7 +106,7 @@ void main() {
         fonts,
         containsAll([
           "Outfit-SemiBold",
-          "Inter-Regular",
+          "Outfit-Medium",
           "Inter-Medium",
           "Inter-Bold",
         ]),

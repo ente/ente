@@ -14,9 +14,12 @@ class LegacyKitPdfService {
       "$_assetRoot/legacy_kit_sheet_ente_logo_black.svg";
   static const String _enteComBadgeAsset =
       "$_assetRoot/legacy_kit_sheet_ente_com_badge.svg";
+  static const String _keyRoundAsset =
+      "$_assetRoot/legacy_kit_sheet_key_round.svg";
   static const String _interRegularAsset = "$_fontRoot/Inter-Regular.ttf";
   static const String _interMediumAsset = "$_fontRoot/Inter-Medium.ttf";
   static const String _interBoldAsset = "$_fontRoot/Inter-Bold.ttf";
+  static const String _outfitMediumAsset = "$_fontRoot/Outfit-Medium.ttf";
   static const String _outfitSemiBoldAsset = "$_fontRoot/Outfit-SemiBold.ttf";
 
   static const String _supportEmail = "support@ente.com";
@@ -67,14 +70,16 @@ class LegacyKitPdfService {
     final interRegular = await _loadFont(_interRegularAsset);
     final interMedium = await _loadFont(_interMediumAsset);
     final interBold = await _loadFont(_interBoldAsset);
+    final outfitMedium = await _loadFont(_outfitMediumAsset);
     final outfitSemiBold = await _loadFont(_outfitSemiBoldAsset);
     final baseFont = interMedium ?? interRegular;
 
     return _SheetAssets(
       enteLogoBlackSvg: await _loadSvg(_enteLogoBlackAsset),
       enteComBadgeSvg: await _loadSvg(_enteComBadgeAsset),
+      keyRoundSvg: await _loadSvg(_keyRoundAsset),
+      outfitMedium: outfitMedium,
       outfitSemiBold: outfitSemiBold,
-      interRegular: interRegular ?? baseFont,
       theme: baseFont == null && interBold == null
           ? null
           : pw.ThemeData.withFont(base: baseFont, bold: interBold ?? baseFont),
@@ -247,31 +252,20 @@ class LegacyKitPdfService {
               ),
             ),
             pw.Positioned(left: 92.6, top: 533, child: _qrCard(qrPayload)),
+            // Keep the marker-prefixed copy code available to PDF.js text
+            // extraction, underneath the visible recovery-key card.
             pw.Positioned(
-              left: 92.6,
-              top: 791,
-              child: pw.SizedBox(
-                width: 242.5,
-                child: pw.Text(
-                  strings.legacyKitSheetScanAt(displayRecoveryUrl(recoveryUrl)),
-                  textAlign: pw.TextAlign.center,
-                  style: pw.TextStyle(
-                    color: _black,
-                    fontSize: 14,
-                    font: assets.interRegular,
-                  ),
-                ),
-              ),
-            ),
-            // PDF.js can recover this existing copy code without rendering the
-            // QR. Matching the card color keeps it out of the visual design.
-            pw.Positioned(
-              left: 360,
-              top: 533,
-              child: _copyCodeText(
+              left: 380,
+              top: 560,
+              child: _shareTextMarker(
                 // Terminate the base64url value before adjacent PDF text.
                 "$_shareTextPrefix${share.toCopyCode()}:",
               ),
+            ),
+            pw.Positioned(
+              left: 360,
+              top: 533,
+              child: _recoveryKeyCard(share.toCopyCode(), assets),
             ),
             pw.Positioned(
               left: 0,
@@ -349,6 +343,75 @@ class LegacyKitPdfService {
         barcode: pw.Barcode.qrCode(),
         data: qrPayload,
         drawText: false,
+      ),
+    );
+  }
+
+  pw.Widget _recoveryKeyCard(String copyCode, _SheetAssets assets) {
+    final keyRoundSvg = assets.keyRoundSvg;
+    return pw.Container(
+      width: 247,
+      height: 242.5,
+      decoration: const pw.BoxDecoration(
+        color: _white,
+        borderRadius: pw.BorderRadius.all(pw.Radius.circular(24)),
+      ),
+      child: pw.Stack(
+        children: [
+          pw.Positioned(
+            top: 20,
+            left: 107.7,
+            child: pw.Container(
+              width: 31.6,
+              height: 31.6,
+              padding: const pw.EdgeInsets.all(5),
+              decoration: const pw.BoxDecoration(
+                color: _black,
+                shape: pw.BoxShape.circle,
+              ),
+              child: keyRoundSvg == null
+                  ? pw.SizedBox()
+                  : pw.SvgImage(svg: keyRoundSvg),
+            ),
+          ),
+          pw.Positioned(
+            left: 20,
+            top: 68,
+            child: pw.SizedBox(
+              width: 207,
+              height: 155,
+              child: pw.FittedBox(
+                fit: pw.BoxFit.scaleDown,
+                child: pw.SizedBox(
+                  width: 207,
+                  child: pw.Column(
+                    mainAxisSize: pw.MainAxisSize.min,
+                    children: _displayCopyCodeLines(copyCode)
+                        .map(
+                          (line) => pw.SizedBox(
+                            height: 22,
+                            child: pw.Center(
+                              child: pw.Text(
+                                line,
+                                textAlign: pw.TextAlign.center,
+                                softWrap: false,
+                                maxLines: 1,
+                                style: pw.TextStyle(
+                                  color: _black,
+                                  fontSize: 12,
+                                  font: assets.outfitMedium,
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -559,24 +622,37 @@ class LegacyKitPdfService {
     );
   }
 
-  pw.Widget _copyCodeText(String copyCode) {
+  pw.Widget _shareTextMarker(String marker) {
     return pw.SizedBox(
       width: 226,
       height: 11,
       child: pw.FittedBox(
         fit: pw.BoxFit.scaleDown,
         child: pw.Text(
-          copyCode,
+          marker,
           softWrap: false,
           maxLines: 1,
           style: pw.TextStyle(
-            color: _card,
+            color: _white,
             fontSize: 7,
             fontWeight: pw.FontWeight.bold,
           ),
         ),
       ),
     );
+  }
+
+  List<String> _displayCopyCodeLines(String copyCode) {
+    const chunkSize = 28;
+    return [
+      for (var index = 0; index < copyCode.length; index += chunkSize)
+        copyCode.substring(
+          index,
+          index + chunkSize > copyCode.length
+              ? copyCode.length
+              : index + chunkSize,
+        ),
+    ];
   }
 
   List<LegacyKitShare> _sortedShares(List<LegacyKitShare> shares) {
@@ -588,15 +664,17 @@ class LegacyKitPdfService {
 class _SheetAssets {
   final String? enteLogoBlackSvg;
   final String? enteComBadgeSvg;
+  final String? keyRoundSvg;
+  final pw.Font? outfitMedium;
   final pw.Font? outfitSemiBold;
-  final pw.Font? interRegular;
   final pw.ThemeData? theme;
 
   const _SheetAssets({
     required this.enteLogoBlackSvg,
     required this.enteComBadgeSvg,
+    required this.keyRoundSvg,
+    required this.outfitMedium,
     required this.outfitSemiBold,
-    required this.interRegular,
     required this.theme,
   });
 }
