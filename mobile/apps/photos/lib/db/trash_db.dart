@@ -172,13 +172,13 @@ class TrashDB {
     );
   }
 
-  Future<int> update(TrashFile file) async {
+  Future<int> unsetLocalIDForFile(int? uploadedFileID) async {
     final db = await instance.database;
     return await db.update(
       tableName,
-      _getRowForTrash(file),
-      where: '$columnUploadedFileID = ?',
-      whereArgs: [file.uploadedFileID],
+      {columnLocalID: null},
+      where: '$columnUploadedFileID = ? AND $columnIsTrashedOnDevice = 0',
+      whereArgs: [uploadedFileID],
     );
   }
 

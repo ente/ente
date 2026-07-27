@@ -340,7 +340,11 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
               if (widget.file is TrashFile) {
                 if (!(widget.file as TrashFile).isTrashedOnDevice) {
                   widget.file.localID = null;
-                  unawaited(TrashDB.instance.update(widget.file as TrashFile));
+                  unawaited(
+                    TrashDB.instance.unsetLocalIDForFile(
+                      widget.file.uploadedFileID!,
+                    ),
+                  );
                 }
               } else {
                 widget.file.localID = null;
