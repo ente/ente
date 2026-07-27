@@ -204,7 +204,9 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_photo.isRemoteOnlyFile) {
+    if (_photo.isRemoteOnlyFile ||
+        (_photo is TrashFile && (_photo as TrashFile).isTrashedOnDevice) &&
+            _photo.uploadedFileID != null) {
       _loadNetworkImage();
     } else {
       _loadLocalImage(context);
