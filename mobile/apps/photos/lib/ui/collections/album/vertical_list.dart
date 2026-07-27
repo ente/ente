@@ -1,18 +1,23 @@
 import "dart:async";
+import "dart:io";
 
 import "package:ente_components/ente_components.dart";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import "package:flutter/services.dart";
 import 'package:logging/logging.dart';
+import "package:photo_manager/photo_manager.dart";
 import 'package:photos/core/configuration.dart';
+import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/create_new_album_event.dart";
 import "package:photos/events/tab_changed_event.dart";
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/collection/collection.dart';
 import 'package:photos/models/collection/collection_items.dart';
+import "package:photos/models/file/file_type.dart";
 import 'package:photos/models/selected_files.dart';
+import "package:photos/service_locator.dart";
 import 'package:photos/services/collections_service.dart';
 import "package:photos/services/hidden_service.dart";
 import 'package:photos/services/sync/remote_sync_service.dart';
@@ -25,6 +30,7 @@ import 'package:photos/ui/notification/toast.dart';
 import "package:photos/ui/sharing/share_collection_page.dart";
 import 'package:photos/ui/viewer/gallery/collection_page.dart';
 import "package:photos/ui/viewer/gallery/empty_state.dart";
+import "package:photos/utils/device_info.dart";
 import 'package:photos/utils/dialog_util.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
@@ -579,17 +585,45 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
     BuildContext context,
     int toCollectionID,
   ) async {
+    final files = widget.selectedFiles!.files.toList();
     final dialog = createProgressDialog(
       context,
       AppLocalizations.of(context).restoringFiles,
       isDismissible: true,
     );
+    if (flagService.internalUser &&
+        Platform.isAndroid &&
+        !await isAndroidSDKVersionLowerThan(android11SDKINT)) {
+      final assets = files
+          .map(
+            (file) => file.localID == null
+                ? null
+                : AssetEntity(
+                    id: file.localID!,
+                    typeInt: switch (file.fileType) {
+                      FileType.other => 0,
+                      FileType.image || FileType.livePhoto => 1,
+                      FileType.video => 2,
+                    },
+                    width: 0,
+                    height: 0,
+                  ),
+          )
+          .whereType<AssetEntity>()
+          .toList();
+      try {
+        await PhotoManager.editor.android.restoreFromTrash(assets);
+      } catch (e, s) {
+        _logger.warning(
+          "Failed to restore local file for remote trashed file",
+          e,
+          s,
+        );
+      }
+    }
     await dialog.show();
     try {
-      await CollectionsService.instance.restore(
-        toCollectionID,
-        widget.selectedFiles!.files.toList(),
-      );
+      await CollectionsService.instance.restore(toCollectionID, files);
       CollectionsService.instance.recordCollectionUsage(toCollectionID);
       unawaited(RemoteSyncService.instance.sync(silently: true));
       widget.selectedFiles?.clearAll();
