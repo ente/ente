@@ -40,13 +40,10 @@ class TrashPage extends StatelessWidget {
 
     final gallery = Gallery(
       appBar: appBar,
-      asyncLoader: (creationStartTime, creationEndTime, {limit, asc}) {
-        return TrashDB.instance.getTrashedFiles(
-          creationStartTime,
-          creationEndTime,
-          limit: limit,
-          asc: asc,
-        );
+      asyncLoader: (creationStartTime, creationEndTime, {limit, asc}) async {
+        final remoteTrash = await TrashDB.instance.getTrashedFiles();
+
+        return remoteTrash;
       },
       reloadEvent: Bus.instance.on<FilesUpdatedEvent>().where(
         (event) =>
