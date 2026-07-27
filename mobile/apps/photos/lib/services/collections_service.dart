@@ -2293,7 +2293,11 @@ class CollectionsService {
     }
   }
 
-  Future<void> restore(int toCollectionID, List<EnteFile> files) async {
+  Future<void> restore(
+    int toCollectionID,
+    List<EnteFile> files,
+    List<String> restoredLocally,
+  ) async {
     final toCollectionKey = getCollectionKey(toCollectionID);
     final int ownerID = Configuration.instance.getUserID()!;
     final Set<String> existingLocalIDS = await FilesDB.instance
@@ -2308,7 +2312,9 @@ class CollectionsService {
         file.collectionID = toCollectionID;
         // During restore, if trash file local ID is not present in currently
         // imported files, treat the file as deleted from device
-        if (file.localID != null && !existingLocalIDS.contains(file.localID)) {
+        if (file.localID != null &&
+            !(existingLocalIDS.contains(file.localID) ||
+                restoredLocally.contains(file.localID))) {
           file.localID = null;
         }
         final encryptedKeyData = CryptoUtil.encryptSync(

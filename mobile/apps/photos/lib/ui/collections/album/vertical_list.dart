@@ -592,6 +592,7 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
       AppLocalizations.of(context).restoringFiles,
       isDismissible: true,
     );
+    List<String> restoredLocally = [];
     if (flagService.internalUser &&
         Platform.isAndroid &&
         !await isAndroidSDKVersionLowerThan(android11SDKINT)) {
@@ -615,8 +616,11 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
           )
           .whereType<AssetEntity>()
           .toList();
+
       try {
-        await PhotoManager.editor.android.restoreFromTrash(assets);
+        restoredLocally = await PhotoManager.editor.android.restoreFromTrash(
+          assets,
+        );
       } catch (e, s) {
         _logger.warning(
           "Failed to restore local file for remote trashed file",
@@ -627,7 +631,11 @@ class _AlbumVerticalListWidgetState extends State<AlbumVerticalListWidget> {
     }
     await dialog.show();
     try {
-      await CollectionsService.instance.restore(toCollectionID, files);
+      await CollectionsService.instance.restore(
+        toCollectionID,
+        files,
+        restoredLocally,
+      );
       CollectionsService.instance.recordCollectionUsage(toCollectionID);
       unawaited(RemoteSyncService.instance.sync(silently: true));
       widget.selectedFiles?.clearAll();
