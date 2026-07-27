@@ -40,6 +40,7 @@ class TrashPage extends StatelessWidget {
 
     final gallery = Gallery(
       appBar: appBar,
+      enableFileGrouping: false,
       asyncLoader: (creationStartTime, creationEndTime, {limit, asc}) async {
         final remoteTrash = await TrashDB.instance.getTrashedFiles();
         if (flagService.internalUser && Platform.isAndroid) {
