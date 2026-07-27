@@ -2,6 +2,7 @@ import "dart:io";
 
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:flutter/material.dart';
+import "package:logging/logging.dart";
 import "package:photo_manager/photo_manager.dart";
 import 'package:photos/core/event_bus.dart';
 import 'package:photos/db/trash_db.dart';
@@ -42,7 +43,12 @@ class TrashPage extends StatelessWidget {
       asyncLoader: (creationStartTime, creationEndTime, {limit, asc}) async {
         final remoteTrash = await TrashDB.instance.getTrashedFiles();
         if (flagService.internalUser && Platform.isAndroid) {
-          final localTrash = await NativeService.getTrash();
+          var localTrash = [];
+          try {
+            localTrash = await NativeService.getTrash();
+          } catch (e, s) {
+            Logger("trash_page").warning("failed to get trash files: ", e, s);
+          }
           // Merge remote+local trash entries
           for (final file in remoteTrash.files) {
             if (file is TrashFile && file.isTrashedOnDevice) {
