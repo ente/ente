@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/file/file_type.dart";
+import "package:photos/models/file/trash_file.dart";
 import "package:photos/models/location/location.dart";
 import "package:photos/models/metadata/file_magic.dart";
 import 'package:photos/module/download/file.dart';
@@ -42,12 +43,14 @@ Future<Map<String, IfdTag>> getExif(EnteFile file) async {
     if (!shouldReadExif(file)) {
       return <String, IfdTag>{};
     }
+    final isRemoteTrashFile =
+        (file is TrashFile && file.uploadedFileID != null);
     final File? originFile = await getFile(file, isOrigin: true);
     if (originFile == null) {
       throw Exception("Failed to fetch origin file");
     }
     final exif = await readExifAsync(originFile);
-    if (!file.isRemoteOnlyFile && Platform.isIOS) {
+    if (!(file.isRemoteOnlyFile || isRemoteTrashFile) && Platform.isIOS) {
       await originFile.delete();
     }
     return exif;
