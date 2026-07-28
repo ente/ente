@@ -1788,7 +1788,8 @@
     },
     {
       "title": "PSNProfiles",
-      "slug": "psnprofiles"
+      "slug": "psnprofiles",
+      "hex": "000000"
     },
     {
       "title": "Plus Crypto",
