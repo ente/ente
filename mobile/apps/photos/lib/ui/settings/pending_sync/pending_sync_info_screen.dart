@@ -1,3 +1,4 @@
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/generated/l10n.dart";
@@ -136,22 +137,19 @@ class _PendingSyncInfoScreenState extends State<PendingSyncInfoScreen> {
                         MenuSectionTitle(
                           title: AppLocalizations.of(context).cachedData,
                         ),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          padding: const EdgeInsets.all(0),
-                          physics: const ScrollPhysics(),
-                          // to disable GridView's scrolling
-                          itemBuilder: (context, index) {
-                            final path = paths[index];
-                            return PathInfoStorageViewer(
-                              path,
-                              removeTopRadius: index > 0,
-                              removeBottomRadius: index < paths.length - 1,
-                              enableDoubleTapClear: internalUser,
-                              key: ValueKey("$index-$_refreshCounterKey"),
-                            );
-                          },
-                          itemCount: paths.length,
+                        MenuGroupComponent(
+                          items: [
+                            for (
+                              var pathIndex = 0;
+                              pathIndex < paths.length;
+                              pathIndex++
+                            )
+                              PathInfoStorageViewer(
+                                paths[pathIndex],
+                                enableDoubleTapClear: internalUser,
+                                key: ValueKey("$pathIndex-$_refreshCounterKey"),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 24),
                       ],
