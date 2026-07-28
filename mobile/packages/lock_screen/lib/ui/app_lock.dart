@@ -106,6 +106,15 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
       return;
     }
 
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      if (LockScreenSettings.instance.getShouldHideAppContent()) {
+        unawaited(
+          LockScreenSettings.instance.setHideAppContent(true, persist: false),
+        );
+      }
+    }
+
     if (state == AppLifecycleState.paused &&
         (!this._isLocked && this._didUnlockForAppLaunch)) {
       this._backgroundedAt = DateTime.now().millisecondsSinceEpoch;

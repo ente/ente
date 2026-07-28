@@ -349,7 +349,10 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
       _isShowingLockScreen = false;
       if (result) {
         lastAuthenticatingTime = DateTime.now().millisecondsSinceEpoch;
-        AppLock.of(context)?.didUnlock();
+        final appLock = AppLock.of(context);
+        await LockScreenSettings.instance
+            .setHideAppContent(false, persist: false);
+        appLock?.didUnlock();
         await _lockscreenSetting.setInvalidAttemptCount(0);
         setState(() {
           lockedTimeInSeconds = 15;
