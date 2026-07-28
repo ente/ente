@@ -9,6 +9,7 @@ import {
     Box,
     Button,
     CircularProgress,
+    Snackbar,
     Stack,
     TextField,
     Typography,
@@ -17,6 +18,7 @@ import { isWeakPassword } from "ente-accounts-rs/utils/password";
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { ShowHidePasswordInputAdornment } from "ente-base/components/mui/PasswordInputAdornment";
+import { isDevBuild } from "ente-base/env";
 import log from "ente-base/log";
 import type { LegacyKitRecoveryHandle } from "ente-wasm";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -26,7 +28,10 @@ import {
     refreshLegacyKitRecoverySession,
     type LegacyKitRecoverySession,
 } from "../features/legacy-kit/recovery";
-import { readLegacyKitCodeFromFile } from "../features/legacy-kit/scan";
+import {
+    LegacyKitQRDecodeError,
+    readLegacyKitCodeFromFile,
+} from "../features/legacy-kit/scan";
 import {
     parseLegacyKitShare,
     validateLegacyKitSharePair,
@@ -154,6 +159,7 @@ const Page: React.FC = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isKitInactive, setIsKitInactive] = useState(false);
     const [openError, setOpenError] = useState<string>();
+    const [showQRDecodeWarning, setShowQRDecodeWarning] = useState(false);
 
     const shares = useMemo<[LegacyKitShare, LegacyKitShare] | undefined>(() => {
         const firstShare = slots.first.share;
@@ -229,6 +235,9 @@ const Page: React.FC = () => {
                 })
                 .catch((error: unknown) => {
                     log.error("Could not read legacy kit sheet", error);
+                    if (isDevBuild && error instanceof LegacyKitQRDecodeError) {
+                        setShowQRDecodeWarning(true);
+                    }
                     updateSlot(slotID, {
                         error: getErrorMessage(error),
                         isReading: false,
@@ -350,6 +359,14 @@ const Page: React.FC = () => {
                 <ResetPasswordStep onSubmit={handlePasswordSubmit} />
             ) : (
                 <TerminalStatusStep session={session} />
+            )}
+            {isDevBuild && (
+                <Snackbar
+                    autoHideDuration={6000}
+                    message="QR code parsing failed."
+                    open={showQRDecodeWarning}
+                    onClose={() => setShowQRDecodeWarning(false)}
+                />
             )}
         </LegacyShell>
     );
