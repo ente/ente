@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:convert";
 import "dart:io";
 
@@ -123,12 +124,42 @@ void main() {
     },
   );
 
+  test("renders Cyrillic holder names without missing glyphs", () async {
+    final printedMessages = <String>[];
+    final shares = [_share(1, "Мама"), _share(2, "Alex")];
+
+    final sheet = await runZoned(
+      () => const LegacyKitPdfService().buildRecoverySheet(
+        accountEmail: "john@example.com",
+        recoveryUrl: "https://legacy.ente.com",
+        share: shares.first,
+        allShares: shares,
+        strings: _strings,
+      ),
+      zoneSpecification: ZoneSpecification(
+        print: (_, _, _, message) => printedMessages.add(message),
+      ),
+    );
+
+    expect(String.fromCharCodes(sheet.take(4)), "%PDF");
+    expect(
+      printedMessages.where(
+        (message) => message.contains("Unable to find a font to draw"),
+      ),
+      isEmpty,
+    );
+  });
+
   test(
     "writes recovery sheets to LEGACY_PDF_OUT for manual review",
     () async {
       final outputDir = Directory(Platform.environment["LEGACY_PDF_OUT"]!)
         ..createSync(recursive: true);
-      final shares = [_share(1, "Mom"), _share(2, "Alex"), _share(3, "Lawyer")];
+      final shares = [
+        _share(1, "Мама"),
+        _share(2, "Alex"),
+        _share(3, "Lawyer"),
+      ];
       const service = LegacyKitPdfService();
       for (final share in shares) {
         final sheet = await service.buildRecoverySheet(

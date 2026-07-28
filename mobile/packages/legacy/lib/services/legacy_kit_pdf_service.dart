@@ -7,7 +7,6 @@ import "package:pdf/widgets.dart" as pw;
 class LegacyKitPdfService {
   const LegacyKitPdfService();
 
-  static const String _shareTextPrefix = "ente-legacy-kit-share-v1:";
   static const String _assetRoot = "packages/ente_legacy/assets";
   static const String _fontRoot = "packages/ente_components/fonts";
   static const String _enteLogoBlackAsset =
@@ -78,6 +77,7 @@ class LegacyKitPdfService {
       enteLogoBlackSvg: await _loadSvg(_enteLogoBlackAsset),
       enteComBadgeSvg: await _loadSvg(_enteComBadgeAsset),
       keyRoundSvg: await _loadSvg(_keyRoundAsset),
+      interBold: interBold,
       outfitMedium: outfitMedium,
       outfitSemiBold: outfitSemiBold,
       theme: baseFont == null && interBold == null
@@ -252,16 +252,6 @@ class LegacyKitPdfService {
               ),
             ),
             pw.Positioned(left: 92.6, top: 533, child: _qrCard(qrPayload)),
-            // Keep the marker-prefixed copy code available to PDF.js text
-            // extraction, underneath the visible recovery-key card.
-            pw.Positioned(
-              left: 380,
-              top: 560,
-              child: _shareTextMarker(
-                // Terminate the base64url value before adjacent PDF text.
-                "$_shareTextPrefix${share.toCopyCode()}:",
-              ),
-            ),
             pw.Positioned(
               left: 360,
               top: 533,
@@ -323,6 +313,9 @@ class LegacyKitPdfService {
             color: _black,
             fontSize: 32.2,
             font: assets.outfitSemiBold,
+            fontFallback: assets.interBold == null
+                ? const []
+                : [assets.interBold!],
             fontWeight: pw.FontWeight.bold,
           ),
         ),
@@ -622,26 +615,6 @@ class LegacyKitPdfService {
     );
   }
 
-  pw.Widget _shareTextMarker(String marker) {
-    return pw.SizedBox(
-      width: 226,
-      height: 11,
-      child: pw.FittedBox(
-        fit: pw.BoxFit.scaleDown,
-        child: pw.Text(
-          marker,
-          softWrap: false,
-          maxLines: 1,
-          style: pw.TextStyle(
-            color: _white,
-            fontSize: 7,
-            fontWeight: pw.FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
   List<String> _displayCopyCodeLines(String copyCode) {
     const chunkSize = 28;
     return [
@@ -665,6 +638,7 @@ class _SheetAssets {
   final String? enteLogoBlackSvg;
   final String? enteComBadgeSvg;
   final String? keyRoundSvg;
+  final pw.Font? interBold;
   final pw.Font? outfitMedium;
   final pw.Font? outfitSemiBold;
   final pw.ThemeData? theme;
@@ -673,6 +647,7 @@ class _SheetAssets {
     required this.enteLogoBlackSvg,
     required this.enteComBadgeSvg,
     required this.keyRoundSvg,
+    required this.interBold,
     required this.outfitMedium,
     required this.outfitSemiBold,
     required this.theme,
