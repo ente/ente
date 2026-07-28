@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
@@ -12,8 +13,6 @@ import "package:photos/services/machine_learning/face_ml/person/person_service.d
 import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
-import "package:photos/ui/components/captioned_text_widget.dart";
-import "package:photos/ui/components/menu_item_widget/menu_item_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
 import "package:photos/ui/components/settings/settings_grouped_card.dart";
 import "package:photos/ui/components/title_bar_title_widget.dart";
@@ -80,7 +79,6 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
     return Scaffold(
       body: CustomScrollView(
         primary: false,
@@ -127,12 +125,9 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
                         ? const SizedBox(height: 24)
                         : const SizedBox(),
                     widget.mlIsEnabled
-                        ? MenuItemWidget(
-                            captionedTextWidget: const CaptionedTextWidget(
-                              title: "Remote fetch",
-                            ),
-                            menuItemColor: colorScheme.fillFaint,
-                            trailingWidget: ToggleSwitchWidget(
+                        ? MenuComponent(
+                            title: "Remote fetch",
+                            trailing: ToggleSwitchComponent.async(
                               value: () => localSettings.remoteFetchEnabled,
                               onChanged: () async {
                                 try {
@@ -157,22 +152,15 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
                                 }
                               },
                             ),
-                            singleBorderRadius: 8,
-                            alignCaptionedTextToLeft: true,
-                            isBottomBorderRadiusRemoved: true,
-                            isGestureDetectorDisabled: true,
                           )
                         : const SizedBox(),
                     widget.mlIsEnabled
                         ? const SizedBox(height: 24)
                         : const SizedBox.shrink(),
                     widget.mlIsEnabled
-                        ? MenuItemWidget(
-                            captionedTextWidget: const CaptionedTextWidget(
-                              title: "Run ML on interactions",
-                            ),
-                            menuItemColor: colorScheme.fillFaint,
-                            trailingWidget: ToggleSwitchWidget(
+                        ? MenuComponent(
+                            title: "Run ML on interactions",
+                            trailing: ToggleSwitchComponent.async(
                               value: () =>
                                   localSettings.runMLDuringInteractionOverride,
                               onChanged: () async {
@@ -203,10 +191,6 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
                                 }
                               },
                             ),
-                            singleBorderRadius: 8,
-                            alignCaptionedTextToLeft: true,
-                            isBottomBorderRadiusRemoved: true,
-                            isGestureDetectorDisabled: true,
                           )
                         : const SizedBox.shrink(),
                     widget.mlIsEnabled
