@@ -18,6 +18,7 @@ import "package:photos/events/video_mute_changed_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/models/file/trash_file.dart";
 import "package:photos/models/preview/playlist_data.dart";
 import "package:photos/module/download/file.dart";
 import "package:photos/module/download/task.dart";
@@ -215,7 +216,10 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
       }
     } else {
       await widget.file.getAsset.then((asset) async {
-        if (asset == null || !(await asset.exists)) {
+        if (asset == null ||
+            !(await asset.exists ||
+                (widget.file is TrashFile &&
+                    (widget.file as TrashFile).systemTrashID != null))) {
           if (widget.file.uploadedFileID != null) {
             _loadNetworkVideo(update);
           }
