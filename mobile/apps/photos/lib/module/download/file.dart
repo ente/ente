@@ -15,6 +15,7 @@ import 'package:photos/core/constants.dart';
 import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
+import "package:photos/models/file/trash_file.dart";
 import 'package:photos/module/download/decrypt.dart';
 import 'package:photos/module/live_photo/download.dart';
 
@@ -87,7 +88,9 @@ Future<File?> _getLocalDiskFile(
     return Motionphoto.getLivePhotoFile(file.localID!);
   } else {
     return file.getAsset.then((asset) async {
-      if (asset == null || !(await asset.exists)) {
+      if (asset == null ||
+          !(await asset.exists ||
+              (file is TrashFile && file.systemTrashID != null))) {
         if (isOrigin && file.isVideo) {
           _logger.warning(
             "Failed to get file for assetID: ${file.localID}, is asset null: ${asset == null}",
