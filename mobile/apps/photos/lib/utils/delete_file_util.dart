@@ -887,7 +887,9 @@ Future<void> showDeleteSheet(
       return;
     }
     var didDelete = false;
-    if (Platform.isAndroid && await PhotoManager.canManageMedia()) {
+    if (Platform.isAndroid &&
+        (await isAndroidSDKVersionLowerThan(android11SDKINT) ||
+            await PhotoManager.canManageMedia())) {
       if (!context.mounted) return;
       didDelete =
           await showBottomSheetComponent<bool>(
