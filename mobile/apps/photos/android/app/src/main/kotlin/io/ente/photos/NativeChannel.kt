@@ -58,6 +58,10 @@ object NativeChannel {
                     "(${MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE}, " +
                     "${MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO})",
             )
+            putString(
+                ContentResolver.QUERY_ARG_SQL_SORT_ORDER,
+                "${MediaStore.Files.FileColumns.DATE_EXPIRES} DESC",
+            )
         }
 
         contentResolver.query(
