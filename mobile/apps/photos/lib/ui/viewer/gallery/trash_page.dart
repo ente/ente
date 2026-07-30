@@ -71,13 +71,15 @@ class _TrashPageState extends State<TrashPage> {
       duration: const Duration(milliseconds: 150),
       child: Gallery(
         key: ValueKey(_isOnEnteTrash ? 'ente_trash_page' : 'device_trash_page'),
-        header: header,
+        enableFileGrouping: false,
         appBar: GalleryAppBarWidget.sliverConfig(
           GalleryType.trash,
           l10n.trash,
           _selectedFiles,
           subtitle:
               l10n.itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion,
+          bottom: header,
+          bottomPreferredHeight: header == null ? null : 8 + 44 + 8,
         ),
         asyncLoader: _asyncLoader,
         reloadEvent: Bus.instance.on<FilesUpdatedEvent>().where(
