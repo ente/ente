@@ -23,8 +23,9 @@ class TrashFile extends EnteFile {
   // will go down
   late int deleteBy;
 
-  // is only from system trash, not on ente trash
+  // This file is not present on Ente's trash because it was never uploaded, systemTrashID will not not null.
   bool isSystemOnly = false;
 
+  // The local file ID of this file if there is a corresponding entry in the system trash on this device, this may be != localID
   int? systemTrashID;
 }
