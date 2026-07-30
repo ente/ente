@@ -1,1 +1,0 @@
-- Improved QR code detection when importing from low-resolution gallery images.

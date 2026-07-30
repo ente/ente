@@ -6,102 +6,131 @@ import "package:photos/services/notification_service.dart";
 import "package:photos/ui/settings/components/settings_item.dart";
 import "package:photos/ui/settings/components/settings_page_scaffold.dart";
 
-class NotificationSettingsScreen extends StatelessWidget {
+class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
+
+  @override
+  State<NotificationSettingsScreen> createState() =>
+      _NotificationSettingsScreenState();
+}
+
+class _NotificationSettingsScreenState
+    extends State<NotificationSettingsScreen> {
+  bool _hasPermission = false;
+
+  @override
+  void initState() {
+    super.initState();
+    NotificationService.instance.hasGrantedPermissions().then((granted) {
+      if (mounted && _hasPermission != granted) {
+        setState(() => _hasPermission = granted);
+      }
+    });
+  }
+
+  Future<void> _toggleWithPermission(
+    bool Function() getValue,
+    Future<void> Function(bool value) setValue,
+  ) async {
+    final oldValue = _hasPermission && getValue();
+
+    if (_hasPermission) {
+      await setValue(!oldValue);
+      if (mounted) setState(() {});
+      return;
+    }
+
+    final granted = await NotificationService.instance.requestPermissions(
+      context,
+    );
+
+    if (!granted) {
+      return;
+    }
+
+    _hasPermission = true;
+    await setValue(true);
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final service = NotificationService.instance;
     final showOnlyOnThisDay = isLocalGalleryMode;
 
     return SettingsPageScaffold(
       title: l10n.notifications,
       children: [
         if (!showOnlyOnThisDay) ...[
-          _buildNotificationToggleItem(
-            context,
+          SettingsItem(
             title: l10n.sharedPhotoNotifications,
             subtitle: l10n.sharedPhotoNotificationsExplanation,
-            value: () =>
-                NotificationService.instance.hasGrantedPermissions() &&
-                NotificationService.instance
-                    .shouldShowNotificationsForSharedPhotosAndAlbums(),
-            onChanged: () async {
-              await NotificationService.instance.requestPermissions();
-              await NotificationService.instance
-                  .setShouldShowNotificationsForSharedPhotosAndAlbums(
-                    !NotificationService.instance
-                        .shouldShowNotificationsForSharedPhotosAndAlbums(),
-                  );
-            },
+            subtitleMaxLines: 2,
+            showChevron: false,
+            trailing: ToggleSwitchComponent.async(
+              value: () =>
+                  _hasPermission &&
+                  service.shouldShowNotificationsForSharedPhotosAndAlbums(),
+              onChanged: () => _toggleWithPermission(
+                service.shouldShowNotificationsForSharedPhotosAndAlbums,
+                service.setShouldShowNotificationsForSharedPhotosAndAlbums,
+              ).ignore(),
+              showStateIcon: false,
+            ),
           ),
           const SizedBox(height: 8),
-          _buildNotificationToggleItem(
-            context,
+          SettingsItem(
             title: l10n.socialNotifications,
             subtitle: l10n.socialNotificationsExplanation,
-            value: () =>
-                NotificationService.instance.hasGrantedPermissions() &&
-                NotificationService.instance.shouldShowSocialNotifications(),
-            onChanged: () async {
-              await NotificationService.instance.requestPermissions();
-              await NotificationService.instance
-                  .setShouldShowSocialNotifications(
-                    !NotificationService.instance
-                        .shouldShowSocialNotifications(),
-                  );
-            },
+            subtitleMaxLines: 2,
+            showChevron: false,
+            trailing: ToggleSwitchComponent.async(
+              value: () =>
+                  _hasPermission && service.shouldShowSocialNotifications(),
+              onChanged: () => _toggleWithPermission(
+                service.shouldShowSocialNotifications,
+                service.setShouldShowSocialNotifications,
+              ).ignore(),
+              showStateIcon: false,
+            ),
           ),
           const SizedBox(height: 8),
         ],
-        _buildNotificationToggleItem(
-          context,
+        SettingsItem(
           title: l10n.onThisDayMemories,
           subtitle: l10n.onThisDayNotificationExplanation,
-          value: () =>
-              NotificationService.instance.hasGrantedPermissions() &&
-              localSettings.isOnThisDayNotificationsEnabled,
-          onChanged: () async {
-            await NotificationService.instance.requestPermissions();
-            await memoriesCacheService.toggleOnThisDayNotifications();
-          },
+          subtitleMaxLines: 2,
+          showChevron: false,
+          trailing: ToggleSwitchComponent.async(
+            value: () =>
+                _hasPermission && localSettings.isOnThisDayNotificationsEnabled,
+            onChanged: () => _toggleWithPermission(
+              () => localSettings.isOnThisDayNotificationsEnabled,
+              memoriesCacheService.setOnThisDayNotifications,
+            ).ignore(),
+            showStateIcon: false,
+          ),
         ),
         if (!showOnlyOnThisDay) ...[
           const SizedBox(height: 8),
-          _buildNotificationToggleItem(
-            context,
+          SettingsItem(
             title: l10n.birthdays,
             subtitle: l10n.receiveRemindersOnBirthdays,
-            value: () =>
-                NotificationService.instance.hasGrantedPermissions() &&
-                localSettings.birthdayNotificationsEnabled,
-            onChanged: () async {
-              await NotificationService.instance.requestPermissions();
-              await memoriesCacheService.toggleBirthdayNotifications();
-            },
+            subtitleMaxLines: 2,
+            showChevron: false,
+            trailing: ToggleSwitchComponent.async(
+              value: () =>
+                  _hasPermission && localSettings.birthdayNotificationsEnabled,
+              onChanged: () => _toggleWithPermission(
+                () => localSettings.birthdayNotificationsEnabled,
+                memoriesCacheService.setBirthdayNotifications,
+              ).ignore(),
+              showStateIcon: false,
+            ),
           ),
         ],
       ],
-    );
-  }
-
-  SettingsItem _buildNotificationToggleItem(
-    BuildContext context, {
-    required String title,
-    required String subtitle,
-    required bool Function() value,
-    required Future<void> Function() onChanged,
-  }) {
-    return SettingsItem(
-      title: title,
-      subtitle: subtitle,
-      subtitleMaxLines: 2,
-      showChevron: false,
-      trailing: ToggleSwitchComponent.async(
-        value: value,
-        onChanged: onChanged,
-        showStateIcon: false,
-      ),
     );
   }
 }

@@ -37,7 +37,7 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
               with:
                   ref: ${{ github.ref_name }}
 
@@ -54,17 +54,18 @@ jobs:
                   fi
 
                   release_version="$(node .github/scripts/flutter-version.mjs auth get)"
-                  build_number_base="$(node .github/scripts/flutter-version.mjs auth get-build-base)"
-                  build_number=$((build_number_base + GITHUB_RUN_NUMBER))
 
                   if [[ "${GITHUB_REF_NAME}" == release/auth-v* ]]; then
                       if [[ "${GITHUB_REF_NAME}" != "release/auth-v${release_version}" ]]; then
                           echo "::error::Branch ${GITHUB_REF_NAME} does not match Auth version ${release_version}"
                           exit 1
                       fi
+                      build_number="$(node .github/scripts/flutter-version.mjs auth get-build-base)"
                       release_tag="auth-v${release_version}-rc"
                       release_title="🔒 Auth release candidate - ${release_version} (build ${build_number})"
                   else
+                      build_number_base="$(node .github/scripts/flutter-version.mjs auth get-build-base)"
+                      build_number=$((build_number_base + GITHUB_RUN_NUMBER))
                       release_tag="auth-v${release_version}-beta"
                       release_title="🔒 Auth nightly - ${release_version} (build ${build_number})"
                   fi
@@ -102,13 +103,13 @@ jobs:
 
         steps:
             - name: Checkout code and submodules
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
               with:
                   ref: ${{ needs.build-metadata.outputs.commit_sha }}
                   submodules: recursive
 
             - name: Setup JDK 17
-              uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+              uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
               with:
                   distribution: "temurin"
                   java-version: "17"
@@ -116,15 +117,10 @@ jobs:
             - name: Install Flutter
               uses: ./.github/actions/setup-flutter
 
-            - name: Generate strings localizations
-              run: flutter gen-l10n
-              working-directory: mobile/packages/strings
-
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
 
-            - name: Resolve dependencies with lockfile enforcement
-              run: flutter pub get --enforce-lockfile
+            - run: flutter pub get --enforce-lockfile
 
             - name: Prepare whatsnew
               run: |
@@ -233,7 +229,7 @@ jobs:
 
         steps:
             - name: Checkout code and submodules
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
               with:
                   ref: ${{ needs.build-metadata.outputs.commit_sha }}
                   submodules: recursive
@@ -241,15 +237,10 @@ jobs:
             - name: Install Flutter
               uses: ./.github/actions/setup-flutter
 
-            - name: Generate strings localizations
-              run: flutter gen-l10n
-              working-directory: mobile/packages/strings
-
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
 
-            - name: Resolve dependencies with lockfile enforcement
-              run: flutter pub get --enforce-lockfile
+            - run: flutter pub get --enforce-lockfile
 
             - name: Create artifacts directory
               run: mkdir artifacts
@@ -258,7 +249,7 @@ jobs:
               run: |
                   sudo apt-get update
                   sudo apt-get install -y libsecret-1-dev libsodium-dev libfuse2 ninja-build libgtk-3-dev dpkg-dev pkg-config rpm patchelf libsqlite3-dev locate libayatana-appindicator3-dev libffi-dev libtiff5 xz-utils libarchive-tools libcurl4-openssl-dev
-                  sudo updatedb --localpaths='/usr/lib/x86_64-linux-gnu'
+                  sudo updatedb --localpaths='/usr/lib/x86_64-linux-gnu /lib/x86_64-linux-gnu'
 
             - name: Install fpm for RPM packaging
               run: sudo gem install fpm
@@ -275,7 +266,7 @@ jobs:
                   flutter build linux --release
                   ./linux/packaging/build_rpm.sh
                   mv dist/*/*.rpm "artifacts/${ARTIFACT_STEM}-x86_64.rpm"
-                  dart pub global activate --source git https://github.com/ente-io/fastforgefork --git-ref 3e94e0555db45d0f969307cfc1ca41a2c7c9d2a5 --git-path packages/fastforge
+                  dart pub global activate --source git https://github.com/ente/fastforgefork --git-ref 3e94e0555db45d0f969307cfc1ca41a2c7c9d2a5 --git-path packages/fastforge
                   dart pub global run fastforge:main package --platform=linux --targets=appimage --skip-clean
                   appimage_path="$(find dist -name '*-*-linux.AppImage' -print -quit)"
                   ./linux/packaging/post_process_appimage.sh "$appimage_path"
@@ -349,7 +340,7 @@ jobs:
 
         steps:
             - name: Checkout code and submodules
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
               with:
                   ref: ${{ needs.build-metadata.outputs.commit_sha }}
                   submodules: recursive
@@ -357,16 +348,16 @@ jobs:
             - name: Install Flutter
               uses: ./.github/actions/setup-flutter
 
-            - name: Generate strings localizations
-              run: flutter gen-l10n
-              working-directory: mobile/packages/strings
-
             - name: Set build version
               shell: bash
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
 
-            - name: Resolve dependencies with lockfile enforcement
-              run: flutter pub get --enforce-lockfile
+            # Needed for Pub to checkout flutter/packages on Windows.
+            # https://github.com/dart-lang/pub/issues/3803
+            - name: Enable Git long paths
+              run: git config --global core.longpaths true
+
+            - run: flutter pub get --enforce-lockfile
 
             - name: Create artifacts directory
               run: mkdir artifacts
@@ -513,7 +504,7 @@ jobs:
 
         steps:
             - name: Checkout code and submodules
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
               with:
                   ref: ${{ needs.build-metadata.outputs.commit_sha }}
                   submodules: recursive
@@ -521,15 +512,10 @@ jobs:
             - name: Install Flutter
               uses: ./.github/actions/setup-flutter
 
-            - name: Generate strings localizations
-              run: flutter gen-l10n
-              working-directory: mobile/packages/strings
-
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
 
-            - name: Resolve dependencies with lockfile enforcement
-              run: flutter pub get --enforce-lockfile
+            - run: flutter pub get --enforce-lockfile
 
             - name: Install code signing dependencies
               run: pip3 install codemagic-cli-tools --break-system-packages
@@ -649,7 +635,7 @@ jobs:
 
         steps:
             - name: Checkout code and submodules
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
               with:
                   ref: ${{ needs.build-metadata.outputs.commit_sha }}
                   submodules: recursive
@@ -657,15 +643,10 @@ jobs:
             - name: Install Flutter
               uses: ./.github/actions/setup-flutter
 
-            - name: Generate strings localizations
-              run: flutter gen-l10n
-              working-directory: mobile/packages/strings
-
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs auth set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
 
-            - name: Resolve dependencies with lockfile enforcement
-              run: flutter pub get --enforce-lockfile
+            - run: flutter pub get --enforce-lockfile
 
             - name: Install iOS pods
               run: pod install --deployment
@@ -720,7 +701,7 @@ jobs:
 
         steps:
             - name: Checkout built commit
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
               with:
                   ref: ${{ needs.build-metadata.outputs.commit_sha }}
 
@@ -755,7 +736,7 @@ jobs:
               env:
                   GH_TOKEN: ${{ steps.nightly_token.outputs.token }}
                   RELEASE_TAG: ${{ needs.build-metadata.outputs.release_tag }}
-              run: gh release upload "${RELEASE_TAG}" SHA256SUMS --clobber --repo ente-io/nightly
+              run: gh release upload "${RELEASE_TAG}" SHA256SUMS --clobber --repo ente/nightly
 
             - name: Upload checksum to RC draft
               if: startsWith(github.ref_name, 'release/')

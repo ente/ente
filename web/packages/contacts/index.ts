@@ -100,6 +100,13 @@ interface ContactsReadyInput {
     masterKeyB64: string;
 }
 
+type ContactsSessionInput = ContactsReadyInput & {
+    sessionKey: string;
+    baseURL: string;
+    authToken: string;
+    generation: number;
+};
+
 type RootKeySource = "cache" | "unresolved";
 
 interface OpenedContactsCtx {
@@ -338,7 +345,13 @@ const loadLocalSessionState = async (sessionKey: string) => {
     }
 
     emitSnapshot(true);
+    return generation;
 };
+
+const ensureSessionLoaded = async (sessionKey: string) =>
+    state.currentSessionKey === sessionKey
+        ? state.sessionGeneration
+        : loadLocalSessionState(sessionKey);
 
 const ensureContactsCtxOpen = async ({
     sessionKey,
@@ -346,13 +359,13 @@ const ensureContactsCtxOpen = async ({
     authToken,
     userID,
     masterKeyB64,
-}: ContactsReadyInput & {
-    sessionKey: string;
-    baseURL: string;
-    authToken: string;
-}) => {
+    generation,
+}: ContactsSessionInput) => {
+    if (!isCurrentSession(sessionKey, generation)) {
+        return;
+    }
+
     let ctx = state.ctx;
-    const generation = state.sessionGeneration;
 
     if (!ctx) {
         const cachedWrappedRootContactKey =
@@ -402,22 +415,19 @@ const syncContacts = async ({
     authToken,
     userID,
     masterKeyB64,
-}: ContactsReadyInput & {
-    sessionKey: string;
-    baseURL: string;
-    authToken: string;
-}) => {
+    generation,
+}: ContactsSessionInput) => {
     const ctx = await ensureContactsCtxOpen({
         sessionKey,
         baseURL,
         authToken,
         userID,
         masterKeyB64,
+        generation,
     });
     if (!ctx) {
         return;
     }
-    const generation = state.sessionGeneration;
 
     let sinceTime = (await savedContactsSinceTime(sessionKey)) ?? 0;
     let didChange = false;
@@ -483,8 +493,9 @@ export const ensureContactsReady = async ({
     const baseURL = await apiOrigin();
     const sessionKey = buildSessionKey(baseURL, userID);
 
-    if (state.currentSessionKey !== sessionKey) {
-        await loadLocalSessionState(sessionKey);
+    const generation = await ensureSessionLoaded(sessionKey);
+    if (generation === undefined) {
+        return;
     }
 
     if (state.readyPromise) {
@@ -499,6 +510,7 @@ export const ensureContactsReady = async ({
                 authToken,
                 userID,
                 masterKeyB64,
+                generation,
             }),
         { retryProfile: "background" },
     ).finally(() => {
@@ -524,8 +536,9 @@ const ensureCurrentLegacyCtx = async () => {
     const user = ensureLocalUser();
     const baseURL = await apiOrigin();
     const sessionKey = buildSessionKey(baseURL, user.id);
-    if (state.currentSessionKey !== sessionKey) {
-        await loadLocalSessionState(sessionKey);
+    const generation = await ensureSessionLoaded(sessionKey);
+    if (generation === undefined) {
+        throw new Error("Contacts context not available");
     }
     const ctx = await ensureContactsCtxOpen({
         sessionKey,
@@ -533,6 +546,7 @@ const ensureCurrentLegacyCtx = async () => {
         authToken,
         userID: user.id,
         masterKeyB64,
+        generation,
     });
     if (!ctx) {
         throw new Error("Contacts context not available");

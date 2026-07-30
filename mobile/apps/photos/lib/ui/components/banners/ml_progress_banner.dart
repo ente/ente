@@ -155,7 +155,7 @@ class _MLProgressBannerState extends State<MLProgressBanner> {
     );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.only(top: 8, bottom: 20),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
@@ -163,8 +163,8 @@ class _MLProgressBannerState extends State<MLProgressBanner> {
         },
         child: Container(
           decoration: BoxDecoration(
-            color: colorScheme.backgroundColour,
-            borderRadius: BorderRadius.circular(14),
+            color: colorScheme.backgroundElevated2,
+            borderRadius: BorderRadius.circular(20),
           ),
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -205,7 +205,7 @@ class _MLProgressBannerState extends State<MLProgressBanner> {
                 borderRadius: BorderRadius.circular(2.5),
                 child: LinearProgressIndicator(
                   value: showModelDownloadPhase ? 0.0 : progress,
-                  minHeight: 5,
+                  minHeight: 4,
                   backgroundColor: colorScheme.fillFaint,
                   valueColor: AlwaysStoppedAnimation<Color>(
                     colorScheme.greenBase,

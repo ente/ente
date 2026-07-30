@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/ente/storagebonus"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/storagebonus"
 )
 
 func (r *Repository) InsertAddOnBonus(ctx context.Context, bonusType storagebonus.BonusType, userID int64, validTill int64, storage int64) error {

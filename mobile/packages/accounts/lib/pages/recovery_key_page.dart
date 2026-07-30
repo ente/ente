@@ -73,10 +73,12 @@ class _RecoveryKeyPageState extends State<RecoveryKeyPage> {
 
     Future<void> copy() async {
       await Clipboard.setData(ClipboardData(text: recoveryKey));
-      showShortToast(context, context.strings.recoveryKeyCopiedToClipboard);
-      setState(() {
-        _hasTriedToSave = true;
-      });
+      if (context.mounted) {
+        showShortToast(context, context.strings.recoveryKeyCopiedToClipboard);
+        setState(() {
+          _hasTriedToSave = true;
+        });
+      }
     }
 
     return Scaffold(
@@ -296,7 +298,7 @@ class _RecoveryKeyPageState extends State<RecoveryKeyPage> {
     _recoveryKeyFile.writeAsStringSync(recoveryKey);
     await shareFiles([
       XFile(_recoveryKeyFile.path, mimeType: 'text/plain'),
-    ], context: context);
+    ], context: mounted ? context : null);
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() {

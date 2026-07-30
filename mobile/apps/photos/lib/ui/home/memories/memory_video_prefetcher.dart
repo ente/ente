@@ -2,11 +2,12 @@ import "dart:async";
 import "dart:collection";
 
 import "package:logging/logging.dart";
+import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/service_locator.dart" show isLocalGalleryMode;
 import "package:photos/services/video_preview_service.dart";
-import "package:photos/utils/file_util.dart";
 import "package:photos/utils/network_util.dart";
 
 const int kMemoryVideoLookaheadCap = 20;
@@ -58,7 +59,7 @@ class MemoryVideoPrefetcher {
   }
 
   void _enqueue(EnteFile file, bool Function()? stillActive) {
-    if (file.fileType != FileType.video || !file.isRemoteFile) return;
+    if (file.fileType != FileType.video || !file.isRemoteOnlyFile) return;
     final uploadedFileID = file.uploadedFileID;
     if (uploadedFileID == null) return;
     if (_attemptedIDs.contains(uploadedFileID) ||
@@ -161,6 +162,9 @@ class MemoryVideoPrefetcher {
     required int uploadedFileID,
     bool Function()? stillActive,
   }) async {
+    if (!file.isOwner) {
+      return _OriginalPrefetchResult.ineligible;
+    }
     final fileSize = file.fileSize;
     final duration = file.duration;
     if (fileSize == null ||

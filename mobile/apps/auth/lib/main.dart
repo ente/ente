@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:ente_account_deletion/account_deletion.dart';
 import 'package:ente_accounts/services/user_service.dart';
 import 'package:ente_auth/app/view/app.dart';
 import 'package:ente_auth/core/configuration.dart';
@@ -21,9 +22,11 @@ import 'package:ente_auth/store/code_display_store.dart';
 import 'package:ente_auth/store/code_store.dart';
 import 'package:ente_auth/ui/home_page.dart';
 import 'package:ente_auth/ui/utils/icon_utils.dart';
+import 'package:ente_auth/utils/debug_build_flags.dart';
 import 'package:ente_auth/utils/directory_utils.dart' as auth_dir_utils;
 import 'package:ente_auth/utils/gallery_import_util.dart';
 import 'package:ente_auth/utils/window_protocol_handler.dart';
+import 'package:ente_components/ente_components.dart' as components;
 import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_crypto_dart_adapter/ente_crypto_dart_adapter.dart';
 import 'package:ente_lock_screen/lock_screen_settings.dart';
@@ -51,6 +54,9 @@ Future<void> initSystemTray() async {
       ? 'assets/icons/auth-icon-monochrome-padded.png'
       : _linuxTrayIconPath();
   await trayManager.setIcon(path, isTemplate: true);
+  if (Platform.isWindows) {
+    await trayManager.setToolTip("Ente Auth");
+  }
   Menu menu = Menu(
     items: [
       MenuItem(key: 'hide_window', label: 'Hide Window'),
@@ -102,6 +108,7 @@ void main() async {
 
 Future<void> _runInForeground() async {
   AppThemeConfig.initialize(EnteApp.auth);
+  components.ComponentTheme.configure(app: components.ComponentApp.auth);
   final savedThemeMode = await AuthThemePreferences.getThemeMode();
   final configuration = Configuration.instance;
   return await _runWithLogs(() async {
@@ -117,6 +124,7 @@ Future<void> _runInForeground() async {
     runApp(
       AppLock(
         builder: (args) => App(locale: locale, savedThemeMode: savedThemeMode),
+        debugShowCheckedModeBanner: false,
         lockScreen: LockScreen(configuration),
         enabled: await LockScreenSettings.instance.shouldShowLockScreen(),
         locale: locale,
@@ -183,6 +191,14 @@ Future<void> _init(bool bool, {String? via}) async {
   await LockScreenSettings.instance.init(
     Configuration.instance,
     hasOptedForOfflineMode: Configuration.instance.hasOptedForOfflineMode(),
+    hideAppContentDefault: true,
+  );
+  if (shouldAllowAuthScreenCapture) {
+    await LockScreenSettings.instance.setHideAppContent(false, persist: false);
+  }
+  AccountDeletionSettings.instance.init(
+    host: Configuration.instance,
+    enteDio: Network.instance.enteDio,
   );
   await LocalBackupService.instance.init(
     hasOptedForOfflineMode: Configuration.instance.hasOptedForOfflineMode(),

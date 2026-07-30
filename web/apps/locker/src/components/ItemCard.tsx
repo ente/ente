@@ -8,7 +8,7 @@ import { getItemTitle, hasDownloadableObject } from "@/types";
 import { CircleArrowDownLeftIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
@@ -403,7 +403,7 @@ const ItemOverflowMenu: React.FC<{
         )}
         {onDelete ? (
             <OverflowMenuOption
-                startIcon={<DeleteOutlineIcon />}
+                startIcon={<DeleteOutlinedIcon />}
                 color="critical"
                 onClick={() => onDelete(item)}
             >
@@ -412,7 +412,7 @@ const ItemOverflowMenu: React.FC<{
         ) : (
             deleteDisabledHint && (
                 <OverflowMenuOption
-                    startIcon={<DeleteOutlineIcon />}
+                    startIcon={<DeleteOutlinedIcon />}
                     color="critical"
                     disabled
                     onClick={() => undefined}
@@ -456,7 +456,7 @@ const TrashActions: React.FC<{
                     onClick={() => onPermanentlyDelete([item])}
                     sx={{ color: "critical.main" }}
                 >
-                    <DeleteOutlineIcon sx={{ fontSize: 20 }} />
+                    <DeleteOutlinedIcon sx={{ fontSize: 20 }} />
                 </IconButton>
             </Tooltip>
         )}

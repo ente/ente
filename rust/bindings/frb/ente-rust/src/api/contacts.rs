@@ -2,93 +2,41 @@
 
 use std::sync::Arc;
 
-use ente_contacts::{
-    AttachmentType as CoreAttachmentType, ContactData as CoreContactData,
-    ContactRecord as CoreContactRecord, ContactsCtx as CoreContactsCtx,
-    ContactsError as CoreContactsError, LegacyKit as CoreLegacyKit,
-    LegacyKitCreateResult as CoreLegacyKitCreateResult, LegacyKitMetadata as CoreLegacyKitMetadata,
-    LegacyKitOwnerRecoverySession, LegacyKitPart as CoreLegacyKitPart, LegacyKitRecoveryInitiator,
-    LegacyKitRecoverySession as CoreLegacyKitRecoverySession,
-    LegacyKitRecoveryStatus as CoreLegacyKitRecoveryStatus, LegacyKitShare as CoreLegacyKitShare,
-    LegacyKitVariant as CoreLegacyKitVariant, OpenContactsCtxInput as CoreOpenContactsCtxInput,
-    RootKeySource as CoreRootKeySource, WrappedRootContactKey as CoreWrappedRootContactKey,
-};
-use ente_core::auth::KeyAttributes as CoreKeyAttributes;
+use ente_contacts::{LegacyKitOwnerRecoverySession, LegacyKitRecoveryInitiator};
 use flutter_rust_bridge::frb;
 
 #[frb]
-/// Contact API errors exposed over Flutter Rust Bridge.
 pub enum ContactsError {
-    /// API HTTP error with status and message.
-    Http {
-        /// Error response body or summary message.
-        message: String,
-        /// HTTP status code returned by the API.
-        status: u16,
-    },
-    /// Network transport error.
-    Network {
-        /// Underlying network error description.
-        message: String,
-    },
-    /// Response or payload parse error.
-    Parse {
-        /// Parse failure description.
-        message: String,
-    },
-    /// Invalid request or base URL error.
-    InvalidUrl {
-        /// Invalid URL description.
-        message: String,
-    },
-    /// Cryptographic operation failed.
-    Crypto {
-        /// Cryptographic error description.
-        message: String,
-    },
-    /// Authentication or recovery crypto operation failed.
-    Auth {
-        /// Authentication error description.
-        message: String,
-    },
-    /// Input validation failed.
-    InvalidInput {
-        /// Validation failure description.
-        message: String,
-    },
-    /// Missing encrypted contact payload on a live contact response.
-    MissingEncryptedData,
-    /// Missing encrypted contact key on a live contact response.
-    MissingEncryptedKey,
-    /// Contact profile picture does not exist.
-    ProfilePictureNotFound,
+    Network { message: String },
+    Http { status: u16, message: String },
+    Parse { message: String },
+    Crypto { message: String },
+    Auth { message: String },
+    InvalidInput { message: String },
+    MissingEncryptedData { message: String },
+    MissingEncryptedKey { message: String },
+    ProfilePictureNotFound { message: String },
+    ActiveRecoverySession { message: String },
 }
 
-impl From<CoreContactsError> for ContactsError {
-    fn from(value: CoreContactsError) -> Self {
-        match value {
-            CoreContactsError::Http(ente_core::http::Error::Http {
-                status, message, ..
-            }) => ContactsError::Http { message, status },
-            CoreContactsError::Http(ente_core::http::Error::Network(message)) => {
-                ContactsError::Network { message }
-            }
-            CoreContactsError::Http(ente_core::http::Error::Parse(message)) => {
-                ContactsError::Parse { message }
-            }
-            CoreContactsError::Http(ente_core::http::Error::InvalidUrl(message)) => {
-                ContactsError::InvalidUrl { message }
-            }
-            CoreContactsError::Crypto(message) => ContactsError::Crypto {
-                message: message.to_string(),
+impl From<ente_contacts::ContactsError> for ContactsError {
+    fn from(e: ente_contacts::ContactsError) -> Self {
+        use ente_contacts::ErrorKind as K;
+        let message = ente_core::error::chain(&e);
+        match e.kind() {
+            K::Network => Self::Network { message },
+            K::Http => Self::Http {
+                status: e.status().unwrap_or_default(),
+                message,
             },
-            CoreContactsError::Auth(message) => ContactsError::Auth {
-                message: message.to_string(),
-            },
-            CoreContactsError::InvalidInput(message) => ContactsError::InvalidInput { message },
-            CoreContactsError::MissingEncryptedData => ContactsError::MissingEncryptedData,
-            CoreContactsError::MissingEncryptedKey => ContactsError::MissingEncryptedKey,
-            CoreContactsError::ProfilePictureNotFound => ContactsError::ProfilePictureNotFound,
+            K::Parse => Self::Parse { message },
+            K::Crypto => Self::Crypto { message },
+            K::Auth => Self::Auth { message },
+            K::InvalidInput => Self::InvalidInput { message },
+            K::MissingEncryptedData => Self::MissingEncryptedData { message },
+            K::MissingEncryptedKey => Self::MissingEncryptedKey { message },
+            K::ProfilePictureNotFound => Self::ProfilePictureNotFound { message },
+            K::ActiveRecoverySession => Self::ActiveRecoverySession { message },
         }
     }
 }
@@ -103,8 +51,8 @@ pub struct WrappedRootContactKey {
     pub header: String,
 }
 
-impl From<CoreWrappedRootContactKey> for WrappedRootContactKey {
-    fn from(value: CoreWrappedRootContactKey) -> Self {
+impl From<ente_contacts::WrappedRootContactKey> for WrappedRootContactKey {
+    fn from(value: ente_contacts::WrappedRootContactKey) -> Self {
         Self {
             encrypted_key: value.encrypted_key,
             header: value.header,
@@ -112,7 +60,7 @@ impl From<CoreWrappedRootContactKey> for WrappedRootContactKey {
     }
 }
 
-impl From<WrappedRootContactKey> for CoreWrappedRootContactKey {
+impl From<WrappedRootContactKey> for ente_contacts::WrappedRootContactKey {
     fn from(value: WrappedRootContactKey) -> Self {
         Self {
             encrypted_key: value.encrypted_key,
@@ -138,9 +86,9 @@ pub struct AccountKeyAttributes {
     /// Nonce for secret key decryption (base64).
     pub secret_key_decryption_nonce: String,
     /// Argon2 memory limit.
-    pub mem_limit: Option<u32>,
+    pub mem_limit: u32,
     /// Argon2 ops limit.
-    pub ops_limit: Option<u32>,
+    pub ops_limit: u32,
     /// Master key encrypted with recovery key (base64).
     pub master_key_encrypted_with_recovery_key: Option<String>,
     /// Nonce for master key decryption with recovery key (base64).
@@ -151,10 +99,11 @@ pub struct AccountKeyAttributes {
     pub recovery_key_decryption_nonce: Option<String>,
 }
 
-impl From<AccountKeyAttributes> for CoreKeyAttributes {
+impl From<AccountKeyAttributes> for ente_accounts::auth::KeyAttributes {
     fn from(value: AccountKeyAttributes) -> Self {
         Self {
             kek_salt: value.kek_salt,
+            kek_hash: None,
             encrypted_key: value.encrypted_key,
             key_decryption_nonce: value.key_decryption_nonce,
             public_key: value.public_key,
@@ -178,16 +127,13 @@ pub struct ContactData {
     pub contact_user_id: i64,
     /// User-chosen display name for the contact.
     pub name: String,
-    /// Optional birthday in `yyyy-MM-dd` format.
-    pub birth_date: Option<String>,
 }
 
-impl From<ContactData> for CoreContactData {
+impl From<ContactData> for ente_contacts::ContactData {
     fn from(value: ContactData) -> Self {
         Self {
             contact_user_id: value.contact_user_id,
             name: value.name,
-            birth_date: value.birth_date,
         }
     }
 }
@@ -204,8 +150,6 @@ pub struct ContactRecord {
     pub email: Option<String>,
     /// Client-managed display name from the encrypted payload.
     pub name: Option<String>,
-    /// Optional birthday from the encrypted payload.
-    pub birth_date: Option<String>,
     /// Current profile picture attachment id, if any.
     pub profile_picture_attachment_id: Option<String>,
     /// Whether this record is a tombstone.
@@ -216,14 +160,13 @@ pub struct ContactRecord {
     pub updated_at: i64,
 }
 
-impl From<CoreContactRecord> for ContactRecord {
-    fn from(value: CoreContactRecord) -> Self {
+impl From<ente_contacts::ContactRecord> for ContactRecord {
+    fn from(value: ente_contacts::ContactRecord) -> Self {
         Self {
             id: value.id,
             contact_user_id: value.contact_user_id,
             email: value.email,
             name: value.name,
-            birth_date: value.birth_date,
             profile_picture_attachment_id: value.profile_picture_attachment_id,
             is_deleted: value.is_deleted,
             created_at: value.created_at,
@@ -240,10 +183,10 @@ pub enum LegacyKitVariant {
     TwoOfThree,
 }
 
-impl From<CoreLegacyKitVariant> for LegacyKitVariant {
-    fn from(value: CoreLegacyKitVariant) -> Self {
+impl From<ente_contacts::LegacyKitVariant> for LegacyKitVariant {
+    fn from(value: ente_contacts::LegacyKitVariant) -> Self {
         match value {
-            CoreLegacyKitVariant::TwoOfThree => Self::TwoOfThree,
+            ente_contacts::LegacyKitVariant::TwoOfThree => Self::TwoOfThree,
         }
     }
 }
@@ -264,14 +207,14 @@ pub enum LegacyKitRecoveryStatus {
     Recovered,
 }
 
-impl From<CoreLegacyKitRecoveryStatus> for LegacyKitRecoveryStatus {
-    fn from(value: CoreLegacyKitRecoveryStatus) -> Self {
+impl From<ente_contacts::LegacyKitRecoveryStatus> for LegacyKitRecoveryStatus {
+    fn from(value: ente_contacts::LegacyKitRecoveryStatus) -> Self {
         match value {
-            CoreLegacyKitRecoveryStatus::Waiting => Self::Waiting,
-            CoreLegacyKitRecoveryStatus::Ready => Self::Ready,
-            CoreLegacyKitRecoveryStatus::Blocked => Self::Blocked,
-            CoreLegacyKitRecoveryStatus::Cancelled => Self::Cancelled,
-            CoreLegacyKitRecoveryStatus::Recovered => Self::Recovered,
+            ente_contacts::LegacyKitRecoveryStatus::Waiting => Self::Waiting,
+            ente_contacts::LegacyKitRecoveryStatus::Ready => Self::Ready,
+            ente_contacts::LegacyKitRecoveryStatus::Blocked => Self::Blocked,
+            ente_contacts::LegacyKitRecoveryStatus::Cancelled => Self::Cancelled,
+            ente_contacts::LegacyKitRecoveryStatus::Recovered => Self::Recovered,
         }
     }
 }
@@ -292,8 +235,8 @@ pub struct LegacyKitRecoverySession {
     pub created_at: i64,
 }
 
-impl From<CoreLegacyKitRecoverySession> for LegacyKitRecoverySession {
-    fn from(value: CoreLegacyKitRecoverySession) -> Self {
+impl From<ente_contacts::LegacyKitRecoverySession> for LegacyKitRecoverySession {
+    fn from(value: ente_contacts::LegacyKitRecoverySession) -> Self {
         Self {
             id: value.id,
             kit_id: value.kit_id,
@@ -355,8 +298,8 @@ pub struct LegacyKitPart {
     pub name: String,
 }
 
-impl From<CoreLegacyKitPart> for LegacyKitPart {
-    fn from(value: CoreLegacyKitPart) -> Self {
+impl From<ente_contacts::LegacyKitPart> for LegacyKitPart {
+    fn from(value: ente_contacts::LegacyKitPart) -> Self {
         Self {
             index: value.index,
             name: value.name,
@@ -372,8 +315,8 @@ pub struct LegacyKitMetadata {
     pub parts: Vec<LegacyKitPart>,
 }
 
-impl From<CoreLegacyKitMetadata> for LegacyKitMetadata {
-    fn from(value: CoreLegacyKitMetadata) -> Self {
+impl From<ente_contacts::LegacyKitMetadata> for LegacyKitMetadata {
+    fn from(value: ente_contacts::LegacyKitMetadata) -> Self {
         Self {
             parts: value.parts.into_iter().map(Into::into).collect(),
         }
@@ -402,8 +345,8 @@ pub struct LegacyKit {
     pub active_recovery_session: Option<LegacyKitRecoverySession>,
 }
 
-impl From<CoreLegacyKit> for LegacyKit {
-    fn from(value: CoreLegacyKit) -> Self {
+impl From<ente_contacts::LegacyKit> for LegacyKit {
+    fn from(value: ente_contacts::LegacyKit) -> Self {
         Self {
             id: value.id,
             variant: value.variant.into(),
@@ -437,8 +380,8 @@ pub struct LegacyKitShare {
     pub part_name: String,
 }
 
-impl From<CoreLegacyKitShare> for LegacyKitShare {
-    fn from(value: CoreLegacyKitShare) -> Self {
+impl From<ente_contacts::LegacyKitShare> for LegacyKitShare {
+    fn from(value: ente_contacts::LegacyKitShare) -> Self {
         Self {
             payload_version: value.payload_version,
             variant: value.variant.into(),
@@ -461,8 +404,8 @@ pub struct LegacyKitCreateResult {
     pub shares: Vec<LegacyKitShare>,
 }
 
-impl From<CoreLegacyKitCreateResult> for LegacyKitCreateResult {
-    fn from(value: CoreLegacyKitCreateResult) -> Self {
+impl From<ente_contacts::LegacyKitCreateResult> for LegacyKitCreateResult {
+    fn from(value: ente_contacts::LegacyKitCreateResult) -> Self {
         Self {
             kit: value.kit.into(),
             shares: value.shares.into_iter().map(Into::into).collect(),
@@ -480,11 +423,11 @@ pub enum RootKeySource {
     Unresolved,
 }
 
-impl From<CoreRootKeySource> for RootKeySource {
-    fn from(value: CoreRootKeySource) -> Self {
+impl From<ente_contacts::RootKeySource> for RootKeySource {
+    fn from(value: ente_contacts::RootKeySource) -> Self {
         match value {
-            CoreRootKeySource::Cache => RootKeySource::Cache,
-            CoreRootKeySource::Unresolved => RootKeySource::Unresolved,
+            ente_contacts::RootKeySource::Cache => RootKeySource::Cache,
+            ente_contacts::RootKeySource::Unresolved => RootKeySource::Unresolved,
         }
     }
 }
@@ -497,10 +440,10 @@ pub enum AttachmentType {
     ProfilePicture,
 }
 
-impl From<AttachmentType> for CoreAttachmentType {
+impl From<AttachmentType> for ente_contacts::AttachmentType {
     fn from(value: AttachmentType) -> Self {
         match value {
-            AttachmentType::ProfilePicture => CoreAttachmentType::ProfilePicture,
+            AttachmentType::ProfilePicture => ente_contacts::AttachmentType::ProfilePicture,
         }
     }
 }
@@ -541,7 +484,7 @@ pub struct OpenContactsCtxResult {
 #[derive(Clone)]
 /// Opaque account-scoped contacts context exposed to Flutter.
 pub struct ContactsCtx {
-    inner: Arc<CoreContactsCtx>,
+    inner: Arc<ente_contacts::ContactsCtx>,
 }
 
 #[frb]
@@ -549,7 +492,7 @@ pub struct ContactsCtx {
 pub async fn open_contacts_ctx(
     input: OpenContactsCtxInput,
 ) -> Result<OpenContactsCtxResult, ContactsError> {
-    let opened = CoreContactsCtx::open(CoreOpenContactsCtxInput {
+    let opened = ente_contacts::ContactsCtx::open(ente_contacts::OpenContactsCtxInput {
         base_url: input.base_url,
         auth_token: input.auth_token,
         user_id: input.user_id,

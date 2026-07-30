@@ -1,3 +1,4 @@
+import type { NotificationAttributes } from "ente-base/components/Notification";
 import type { SingleInputFormProps } from "ente-base/components/SingleInputForm";
 import {
     HTTPError,
@@ -7,7 +8,6 @@ import {
 import { apiOrigin } from "ente-base/origins";
 import { extractCollectionKeyFromShareURL } from "ente-gallery/services/share";
 import type { PublicURL } from "ente-media/collection";
-import type { NotificationAttributes } from "ente-new/photos/components/Notification";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {

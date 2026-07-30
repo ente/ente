@@ -1,4 +1,4 @@
-import { type LocalUser } from "ente-accounts/services/user";
+import type { LocalUser } from "ente-accounts/services/user";
 import {
     groupFilesByCollectionID,
     sortFiles,
@@ -7,6 +7,7 @@ import {
 import {
     CollectionOrder,
     collectionTypes,
+    findUserUncategorizedCollection,
     type Collection,
 } from "ente-media/collection";
 import type { EnteFile } from "ente-media/file";
@@ -47,7 +48,11 @@ import type { FamilyData, UserDetails } from "../../services/user-details";
  * TODO: Deprecated(?). Use GalleryView instead. Deprecated if it can be used in
  * all cases where the bar mode was in use.
  */
-export type GalleryBarMode = "albums" | "hidden-albums" | "people";
+export type GalleryBarMode =
+    | "albums"
+    | "hidden-albums"
+    | "archive-albums"
+    | "people";
 
 /**
  * Specifies what the gallery is currently displaying.
@@ -57,17 +62,16 @@ export type GalleryBarMode = "albums" | "hidden-albums" | "people";
 export type GalleryView =
     | {
           /**
-           * We're either in the "Albums" or "Hidden albums" section.
+           * We're in the Albums, Hidden albums, or Archive section.
            */
-          type: "albums" | "hidden-albums";
+          type: "albums" | "hidden-albums" | "archive-albums";
           activeCollectionSummaryID: number;
           /**
            * If the active collection ID is for a collection and not a
            * pseudo-collection, this property will be set to the corresponding
            * {@link Collection}.
            *
-           * It is guaranteed that this will be one of the {@link collections}
-           * or {@link hiddenCollections}.
+           * It is guaranteed that this will be one of the {@link collections}.
            */
           activeCollection: Collection | undefined;
           /**
@@ -285,6 +289,11 @@ export interface GalleryState {
      * collections.
      */
     hiddenCollectionSummaries: Map<number, CollectionSummary>;
+    /**
+     * A variant of {@link normalCollectionSummaries}, but for archived
+     * collections and the archive section entry.
+     */
+    archivedCollectionSummaries: Map<number, CollectionSummary>;
     /**
      * The ID of the collection summary that should be shown when the user
      * navigates to the uncategorized section.
@@ -526,6 +535,7 @@ const initialGalleryState: GalleryState = {
     shareSuggestionEmails: [],
     normalCollectionSummaries: new Map(),
     hiddenCollectionSummaries: new Map(),
+    archivedCollectionSummaries: new Map(),
     uncategorizedCollectionSummaryID:
         PseudoCollectionID.uncategorizedPlaceholder,
     tempDeletedFileIDs: new Set(),
@@ -592,6 +602,13 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 action.user,
                 collectionFiles,
             );
+            const archivedCollectionSummaries =
+                deriveArchivedCollectionSummaries(
+                    normalCollections,
+                    action.user,
+                    collectionFiles,
+                    hiddenFileIDs,
+                );
 
             const view = {
                 type: "albums" as const,
@@ -637,8 +654,12 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 ),
                 normalCollectionSummaries,
                 hiddenCollectionSummaries,
+                archivedCollectionSummaries,
                 uncategorizedCollectionSummaryID:
-                    deriveUncategorizedCollectionSummaryID(normalCollections),
+                    deriveUncategorizedCollectionSummaryID(
+                        normalCollections,
+                        user.id,
+                    ),
                 view,
             });
         }
@@ -700,6 +721,13 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 state.user!,
                 state.collectionFiles,
             );
+            const archivedCollectionSummaries =
+                deriveArchivedCollectionSummaries(
+                    normalCollections,
+                    state.user!,
+                    state.collectionFiles,
+                    hiddenFileIDs,
+                );
 
             // Revalidate the active view if needed.
             let view = state.view;
@@ -718,6 +746,13 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                         collections,
                         hiddenCollectionIDs,
                         hiddenCollectionSummaries,
+                        selectedCollectionSummaryID,
+                    ));
+            } else if (state.view?.type == "archive-albums") {
+                ({ view, selectedCollectionSummaryID } =
+                    deriveArchiveAlbumsViewAndSelectedID(
+                        collections,
+                        archivedCollectionSummaries,
                         selectedCollectionSummaryID,
                     ));
             }
@@ -753,8 +788,12 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                 ),
                 normalCollectionSummaries,
                 hiddenCollectionSummaries,
+                archivedCollectionSummaries,
                 uncategorizedCollectionSummaryID:
-                    deriveUncategorizedCollectionSummaryID(normalCollections),
+                    deriveUncategorizedCollectionSummaryID(
+                        normalCollections,
+                        state.user!.id,
+                    ),
                 selectedCollectionSummaryID,
                 pendingSearchSuggestions:
                     enqueuePendingSearchSuggestionsIfNeeded(
@@ -1084,6 +1123,25 @@ const galleryReducer: React.Reducer<GalleryState, GalleryAction> = (
                     activeCollection,
                     activeCollectionSummary:
                         state.hiddenCollectionSummaries.get(
+                            activeCollectionSummaryID,
+                        )!,
+                };
+            } else if (
+                selectedCollectionSummaryID !== undefined &&
+                state.archivedCollectionSummaries.has(
+                    selectedCollectionSummaryID,
+                ) &&
+                (state.view?.type == "archive-albums" ||
+                    selectedCollectionSummaryID ==
+                        PseudoCollectionID.archiveItems)
+            ) {
+                const activeCollectionSummaryID = selectedCollectionSummaryID;
+                view = {
+                    type: "archive-albums",
+                    activeCollectionSummaryID,
+                    activeCollection,
+                    activeCollectionSummary:
+                        state.archivedCollectionSummaries.get(
                             activeCollectionSummaryID,
                         )!,
                 };
@@ -1490,8 +1548,9 @@ const deriveNormalCollectionSummaries = (
         collectionFiles,
     );
 
-    const uncategorizedCollection = normalCollections.find(
-        ({ type }) => type == "uncategorized",
+    const uncategorizedCollection = findUserUncategorizedCollection(
+        normalCollections,
+        user.id,
     );
     if (!uncategorizedCollection) {
         const id = PseudoCollectionID.uncategorizedPlaceholder;
@@ -1515,10 +1574,9 @@ const deriveNormalCollectionSummaries = (
         ),
     );
 
-    const archiveItemsFiles = uniqueFilesByID(
-        collectionFiles.filter(
-            (f) => !hiddenFileIDs.has(f.id) && isArchivedFile(f),
-        ),
+    const archiveItemsFiles = deriveArchiveItemsFiles(
+        collectionFiles,
+        hiddenFileIDs,
     );
 
     normalCollectionSummaries.set(PseudoCollectionID.all, {
@@ -1573,6 +1631,16 @@ const pseudoCollectionOptionsForLatestFileAndCount = (
     updationTime: file?.updationTime,
 });
 
+const deriveArchiveItemsFiles = (
+    collectionFiles: GalleryState["collectionFiles"],
+    hiddenFileIDs: GalleryState["hiddenFileIDs"],
+) =>
+    uniqueFilesByID(
+        collectionFiles.filter(
+            (file) => !hiddenFileIDs.has(file.id) && isArchivedFile(file),
+        ),
+    );
+
 /**
  * Compute hidden collection summaries from their dependencies.
  */
@@ -1604,13 +1672,43 @@ const deriveHiddenCollectionSummaries = (
 };
 
 /**
+ * Compute archived collection summaries from their dependencies.
+ */
+const deriveArchivedCollectionSummaries = (
+    normalCollections: Collection[],
+    user: LocalUser,
+    collectionFiles: GalleryState["collectionFiles"],
+    hiddenFileIDs: GalleryState["hiddenFileIDs"],
+) => {
+    const archivedCollectionSummaries = createCollectionSummaries(
+        user,
+        normalCollections.filter(isArchivedCollection),
+        collectionFiles,
+    );
+
+    archivedCollectionSummaries.set(PseudoCollectionID.archiveItems, {
+        ...pseudoCollectionOptionsForFiles(
+            deriveArchiveItemsFiles(collectionFiles, hiddenFileIDs),
+        ),
+        id: PseudoCollectionID.archiveItems,
+        name: t("section_archive"),
+        type: "archiveItems",
+        attributes: new Set(["archiveItems", "system"]),
+        sortPriority: CollectionSummarySortPriority.system,
+    });
+
+    return archivedCollectionSummaries;
+};
+
+/**
  * Return the ID of the collection summary that should be shown when the user
  * navigates to the uncategorized section.
  */
 const deriveUncategorizedCollectionSummaryID = (
     normalCollections: Collection[],
+    userID: number,
 ) =>
-    normalCollections.find(({ type }) => type == "uncategorized")?.id ??
+    findUserUncategorizedCollection(normalCollections, userID)?.id ??
     PseudoCollectionID.uncategorizedPlaceholder;
 
 const createCollectionSummaries = (
@@ -1808,9 +1906,15 @@ const deriveAlbumsViewAndSelectedID = (
     selectedCollectionSummaryID: GalleryState["selectedCollectionSummaryID"],
 ) => {
     // Make sure that the last selected ID is still valid by searching for it.
-    const selectedCollectionSummary = selectedCollectionSummaryID
+    const candidateCollectionSummary = selectedCollectionSummaryID
         ? collectionSummaries.get(selectedCollectionSummaryID)
         : undefined;
+    const selectedCollectionSummary =
+        candidateCollectionSummary &&
+        !candidateCollectionSummary.attributes.has("archiveItems") &&
+        !candidateCollectionSummary.attributes.has("archived")
+            ? candidateCollectionSummary
+            : undefined;
 
     const activeCollectionSummaryID =
         selectedCollectionSummary?.id ?? PseudoCollectionID.all;
@@ -1862,6 +1966,41 @@ const deriveHiddenAlbumsViewAndSelectedID = (
         selectedCollectionSummaryID: activeCollectionSummaryID,
         view: {
             type: "hidden-albums" as const,
+            activeCollectionSummaryID,
+            activeCollection,
+            activeCollectionSummary,
+        },
+    };
+};
+
+/**
+ * Sibling of {@link deriveAlbumsViewAndSelectedID} for when we're in the
+ * archive albums section.
+ */
+const deriveArchiveAlbumsViewAndSelectedID = (
+    collections: GalleryState["collections"],
+    archivedCollectionSummaries: GalleryState["archivedCollectionSummaries"],
+    selectedCollectionSummaryID: GalleryState["selectedCollectionSummaryID"],
+) => {
+    // Make sure that the last selected ID is still valid by searching for it.
+    const selectedCollectionSummary = selectedCollectionSummaryID
+        ? archivedCollectionSummaries.get(selectedCollectionSummaryID)
+        : undefined;
+
+    const activeCollectionSummaryID =
+        selectedCollectionSummary?.id ?? PseudoCollectionID.archiveItems;
+    const activeCollectionSummary = archivedCollectionSummaries.get(
+        activeCollectionSummaryID,
+    )!;
+    const activeCollection =
+        selectedCollectionSummary &&
+        activeCollectionSummaryID != PseudoCollectionID.archiveItems
+            ? collections.find(({ id }) => id == activeCollectionSummaryID)
+            : undefined;
+    return {
+        selectedCollectionSummaryID: activeCollectionSummaryID,
+        view: {
+            type: "archive-albums" as const,
             activeCollectionSummaryID,
             activeCollection,
             activeCollectionSummary,
@@ -1957,18 +2096,26 @@ const stateForUpdatedCollectionFiles = (
     state: GalleryState,
     collectionFiles: GalleryState["collectionFiles"],
 ): GalleryState => {
+    const normalCollections = state.collections.filter(
+        (c) => !state.hiddenCollectionIDs.has(c.id),
+    );
+    const hiddenCollections = state.collections.filter((c) =>
+        state.hiddenCollectionIDs.has(c.id),
+    );
     const hiddenFileIDs = deriveHiddenFileIDs(
         collectionFiles,
         state.hiddenCollectionIDs,
     );
+    const archivedFileIDs = deriveArchivedFileIDs(
+        state.archivedCollectionIDs,
+        collectionFiles,
+    );
+
     return {
         ...state,
         collectionFiles,
         hiddenFileIDs,
-        archivedFileIDs: deriveArchivedFileIDs(
-            state.archivedCollectionIDs,
-            collectionFiles,
-        ),
+        archivedFileIDs,
         favoriteFileIDs: deriveFavoriteFileIDs(
             state.user!,
             state.collections,
@@ -1980,21 +2127,23 @@ const stateForUpdatedCollectionFiles = (
             state.hiddenCollectionIDs,
         ),
         normalCollectionSummaries: deriveNormalCollectionSummaries(
-            state.collections.filter(
-                (c) => !state.hiddenCollectionIDs.has(c.id),
-            ),
+            normalCollections,
             state.user!,
             state.trashItems,
             collectionFiles,
             hiddenFileIDs,
-            state.archivedFileIDs,
+            archivedFileIDs,
         ),
         hiddenCollectionSummaries: deriveHiddenCollectionSummaries(
-            state.collections.filter((c) =>
-                state.hiddenCollectionIDs.has(c.id),
-            ),
+            hiddenCollections,
             state.user!,
             collectionFiles,
+        ),
+        archivedCollectionSummaries: deriveArchivedCollectionSummaries(
+            normalCollections,
+            state.user!,
+            collectionFiles,
+            hiddenFileIDs,
         ),
         pendingSearchSuggestions: enqueuePendingSearchSuggestionsIfNeeded(
             state.searchSuggestion,
@@ -2028,7 +2177,9 @@ const stateByUpdatingFilteredFiles = (state: GalleryState) => {
         const visibleSearchFiles = suppressSharedFilesSavedByUser(
             searchFiles,
             state.user?.id,
-            state.view?.type == "albums" || state.view?.type == "hidden-albums"
+            state.view?.type == "albums" ||
+                state.view?.type == "hidden-albums" ||
+                state.view?.type == "archive-albums"
                 ? state.view.activeCollection
                 : undefined,
         );
@@ -2041,7 +2192,8 @@ const stateByUpdatingFilteredFiles = (state: GalleryState) => {
         return { ...state, filteredFiles };
     } else if (
         state.view?.type == "albums" ||
-        state.view?.type == "hidden-albums"
+        state.view?.type == "hidden-albums" ||
+        state.view?.type == "archive-albums"
     ) {
         const filteredFiles = deriveAlbumsOrHiddenAlbumsFilteredFiles(
             state.trashItems,
@@ -2071,7 +2223,7 @@ const stateByUpdatingFilteredFiles = (state: GalleryState) => {
 
 /**
  * Compute the sorted list of files to show when we're in the "albums" or
- * "hidden-albums" view and the dependencies change.
+ * "hidden-albums", or "archive-albums" view and the dependencies change.
  */
 const deriveAlbumsOrHiddenAlbumsFilteredFiles = (
     trashItems: GalleryState["trashItems"],
@@ -2082,7 +2234,10 @@ const deriveAlbumsOrHiddenAlbumsFilteredFiles = (
     archivedFileIDs: GalleryState["archivedFileIDs"],
     tempDeletedFileIDs: GalleryState["tempDeletedFileIDs"],
     tempHiddenFileIDs: GalleryState["tempHiddenFileIDs"],
-    view: Extract<GalleryView, { type: "albums" | "hidden-albums" }>,
+    view: Extract<
+        GalleryView,
+        { type: "albums" | "hidden-albums" | "archive-albums" }
+    >,
     currentUserID: number | undefined,
 ) => {
     const activeCollectionSummaryID = view.activeCollectionSummaryID;

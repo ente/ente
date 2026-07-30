@@ -1,11 +1,8 @@
 import "dart:async";
 
+import 'package:ente_components/ente_components.dart';
 import "package:ente_events/event_bus.dart";
 import 'package:ente_ui/components/buttons/button_widget.dart';
-import "package:ente_ui/components/title_bar_title_widget.dart";
-import "package:ente_ui/theme/colors.dart";
-import 'package:ente_ui/theme/ente_theme.dart';
-import "package:ente_ui/theme/text_style.dart";
 import 'package:ente_ui/utils/dialog_util.dart';
 import 'package:ente_ui/utils/toast_util.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +16,8 @@ import 'package:locker/services/trash/trash_service.dart';
 import "package:locker/ui/components/delete_confirmation_sheet.dart";
 import 'package:locker/ui/components/item_list_view.dart';
 import "package:locker/ui/viewer/actions/file_selection_overlay_bar.dart";
+import "package:locker/utils/bottom_sheet_illustration.dart";
+import "package:locker/utils/error_sheet.dart";
 
 class TrashPage extends StatefulWidget {
   final List<TrashFile> trashFiles;
@@ -70,29 +69,34 @@ class _TrashPageState extends State<TrashPage> {
       title: context.l10n.emptyTrash,
       body: context.l10n.emptyTrashConfirmation,
       deleteButtonLabel: context.l10n.emptyTrash,
-      assetPath: "assets/collection_delete_icon.png",
+      illustration: LockerBottomSheetIllustration.collectionDelete,
     );
 
-    if (result?.buttonResult.action == ButtonAction.first && mounted) {
+    if (result?.buttonResult.action == ButtonAction.first) {
       await _performEmptyTrash();
     }
   }
 
   Future<void> _performEmptyTrash() async {
     if (_trashFiles.isEmpty) {
-      showToast(context, context.l10n.trashIsEmpty);
+      if (mounted) {
+        showToast(context, context.l10n.trashIsEmpty);
+      }
       return;
     }
 
-    final dialog = createProgressDialog(
-      context,
-      context.l10n.clearingTrash,
-      isDismissible: false,
-    );
-    await dialog.show();
+    final dialog = mounted
+        ? createProgressDialog(
+            context,
+            context.l10n.clearingTrash,
+            isDismissible: false,
+          )
+        : null;
+    await dialog?.show();
     try {
       await TrashService.instance.emptyTrash();
-      await dialog.hide();
+      await dialog?.hide();
+      if (!mounted) return;
       _selectedFiles.clearAll();
       setState(() {
         _trashFiles.clear();
@@ -100,35 +104,43 @@ class _TrashPageState extends State<TrashPage> {
       showToast(context, context.l10n.trashClearedSuccessfully);
       Navigator.of(context).pop();
     } catch (error) {
-      await dialog.hide();
+      await dialog?.hide();
       if (mounted) {
-        await showGenericErrorBottomSheet(context: context, error: error);
+        await showLockerErrorSheet(context, error);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
+    final hasTrashFiles = _trashFiles.isNotEmpty;
 
     return Scaffold(
-      backgroundColor: colorScheme.backgroundBase,
-      appBar: AppBar(
-        backgroundColor: colorScheme.backgroundBase,
-        surfaceTintColor: Colors.transparent,
-        toolbarHeight: 48,
-        leadingWidth: 48,
-        leading: GestureDetector(
-          onTap: () {
-            Navigator.pop(context);
-          },
-          child: const Icon(Icons.arrow_back_outlined, semanticLabel: "Back"),
-        ),
-      ),
+      backgroundColor: colors.backgroundBase,
       body: Stack(
         children: [
-          _buildBody(context, colorScheme, textTheme),
+          AppBarComponent(
+            title: context.l10n.trash,
+            subtitle: hasTrashFiles
+                ? context.l10n.items(_trashFiles.length)
+                : null,
+            actions: hasTrashFiles
+                ? [
+                    IconButtonComponent(
+                      icon: HugeIcon(
+                        icon: HugeIcons.strokeRoundedDelete02,
+                        color: colors.warning,
+                      ),
+                      variant: IconButtonComponentVariant.primary,
+                      shouldSurfaceExecutionStates: false,
+                      onTap: _emptyTrash,
+                    ),
+                  ]
+                : const [],
+            controller: _scrollController,
+            slivers: _buildSlivers(context),
+          ),
           FileSelectionOverlayBar(
             selectedFiles: _selectedFiles,
             files: _trashFiles.cast<EnteFile>(),
@@ -140,53 +152,30 @@ class _TrashPageState extends State<TrashPage> {
     );
   }
 
-  Widget _buildBody(
-    BuildContext context,
-    EnteColorScheme colorScheme,
-    EnteTextTheme textTheme,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TitleBarTitleWidget(
-            title: context.l10n.trash,
-            trailingWidgets: [
-              if (_trashFiles.isNotEmpty)
-                GestureDetector(
-                  onTap: _emptyTrash,
-                  child: Container(
-                    height: 44,
-                    width: 44,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: colorScheme.backdropBase,
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    child: HugeIcon(
-                      icon: HugeIcons.strokeRoundedDelete02,
-                      color: colorScheme.textBase,
-                    ),
-                  ),
-                ),
-            ],
+  List<Widget> _buildSlivers(BuildContext context) {
+    if (_trashFiles.isEmpty) {
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: _TrashEmptyState(title: context.l10n.yourTrashIsEmpty),
+        ),
+      ];
+    }
+
+    final safeBottomInset = MediaQuery.of(context).padding.bottom;
+    final bottomPadding = safeBottomInset + 24.0;
+    return [
+      SliverPadding(
+        padding: EdgeInsets.fromLTRB(16.0, 0, 16.0, bottomPadding),
+        sliver: SliverToBoxAdapter(
+          child: ItemListView(
+            files: _trashFiles.cast<EnteFile>(),
+            selectedFiles: _selectedFiles,
+            selectionEnabled: true,
           ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: _trashFiles.isEmpty
-                ? _TrashEmptyState(title: context.l10n.yourTrashIsEmpty)
-                : ItemListView(
-                    files: _trashFiles.cast<EnteFile>(),
-                    physics: const BouncingScrollPhysics(),
-                    scrollController: _scrollController,
-                    selectedFiles: _selectedFiles,
-                    selectionEnabled: true,
-                  ),
-          ),
-        ],
+        ),
       ),
-    );
+    ];
   }
 }
 
@@ -197,9 +186,6 @@ class _TrashEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -208,11 +194,7 @@ class _TrashEmptyState extends StatelessWidget {
           children: [
             Image.asset('assets/empty_state.png', height: 112),
             const SizedBox(height: 20),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: textTheme.largeBold.copyWith(color: colorScheme.textBase),
-            ),
+            Text(title, textAlign: TextAlign.center, style: TextStyles.large),
           ],
         ),
       ),

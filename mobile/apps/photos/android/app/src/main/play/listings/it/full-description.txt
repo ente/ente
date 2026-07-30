@@ -27,7 +27,7 @@ CARATTERISTICHE
 - e molto altro ancora!
 
 PERMESSI
-ente richiede alcune autorizzazioni per servire lo scopo di un provider di storage fotografico, che può essere esaminato qui: https://github.com/ente-io/ente/blob/f-droid/mobile/android/permissions.md
+ente richiede alcune autorizzazioni per servire lo scopo di un provider di storage fotografico, che può essere esaminato qui: https://github.com/ente/ente/blob/f-droid/mobile/android/permissions.md
 
 PREZZO
 Non offriamo piani gratuiti per sempre, perché per noi è importante rimanere sostenibili e resistere alla prova del tempo. Offriamo invece piani accessibili che si possono condividere liberamente con la propria famiglia. Puoi trovare maggiori informazioni su ente.com.

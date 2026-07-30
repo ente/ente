@@ -6,8 +6,8 @@
         "@emotion/react": "11.14.0",
         "@emotion/styled": "11.14.1",
         "@fontsource-variable/inter": "5.2.8",
-        "@mui/icons-material": "7.3.11",
-        "@mui/material": "7.3.11",
+        "@mui/icons-material": "9.2.0",
+        "@mui/material": "9.2.0",
         "comlink": "4.4.2",
         "ente-utils": "*",
         "formik": "2.4.9",
@@ -17,10 +17,11 @@
         "idb": "8.0.3",
         "libsodium-wrappers-sumo": "0.7.15",
         "nanoid": "5.1.11",
-        "next": "16.2.7",
+        "next": "16.2.11",
         "react": "19.2.7",
         "react-dom": "19.2.7",
         "react-i18next": "16.6.6",
+        "react-top-loading-bar": "3.0.2",
         "zod": "4.4.3"
     },
     "devDependencies": {

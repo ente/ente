@@ -8,7 +8,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 )
 
 func MakeDirectoryIfNotExists(path string) error {
@@ -53,12 +53,12 @@ func EnsureSufficientSpace(size int64) error {
 
 	gb := uint64(1024) * 1024 * 1024
 	bufferSpace := 2 * gb
-	
+
 	// Check for potential overflow before addition
 	if uint64(size) > (^uint64(0) - bufferSpace) {
 		return fmt.Errorf("file size too large: %d bytes", size)
 	}
-	
+
 	need := uint64(size) + bufferSpace
 	if free < need {
 		return fmt.Errorf("insufficient space on disk (need %d bytes, free %d bytes)", need, free)

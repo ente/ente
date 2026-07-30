@@ -53,13 +53,7 @@ As a brief overview, this directory contains the following apps:
 - `apps/albums`: The public albums web app used for shared album and file links.
 - `apps/auth`: A view only client for Ente Auth. Currently you can only view your 2FA codes using this web app. For adding and editing your 2FA codes, please use the Ente Auth [mobile/desktop app](../auth/README.md) instead.
 
-These are the primary public facing apps. There are other parts of the code which are accessed as features within the main apps, but in terms of code are independently maintained and deployed:
-
-- `apps/accounts`: Passkey support.
-- `apps/cast`: Browser and Chromecast casting support.
-- `apps/payments`: Handle subscription payments.
-
-> Apart from these, we also have the manage family portal whose code is currently in a separate repository (https://github.com/ente-io/families) and still needs to be brought here.
+Apart from these primary apps there are other smaller ones too (see `apps/` for the full list).
 
 The apps take use various `packages/` to share code amongst themselves.
 
@@ -67,7 +61,7 @@ You might also find this [overview of dependencies](docs/dependencies.md) useful
 
 ## Docker images
 
-A Docker image containing the self-hosting web apps is available from `ghcr.io/ente-io/web`. See [docs/docker.md](docs/docker.md) for more details.
+A Docker image containing the self-hosting web apps is available from `ghcr.io/ente/web`. See [docs/docker.md](docs/docker.md) for more details.
 
 ## Attributions
 
@@ -79,7 +73,7 @@ City coordinates from [Simple Maps](https://simplemaps.com/data/world-cities)
 
 If you're interested in helping out with translation, please visit our [Crowdin project](https://crowdin.com/project/ente-photos-web) to get started. Thank you for your support.
 
-If your language is not listed for translation, please [create a GitHub issue](https://github.com/ente-io/ente/issues/new?title=Request+for+New+Language+Translation&body=Language+name%3A) to have it added.
+If your language is not listed for translation, please [create a GitHub issue](https://github.com/ente/ente/issues/new?title=Request+for+New+Language+Translation&body=Language+name%3A) to have it added.
 
 ## 💚 Contribute
 

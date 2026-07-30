@@ -405,8 +405,7 @@ class WasmInference implements InferenceBackend {
         this.abortControllers.set(jobId, controller);
 
         let generatedTokens = 0;
-        let errorMessage: string | null = null;
-        let promptTokens: number | null = null;
+        let promptTokens: number | null;
 
         try {
             try {
@@ -452,18 +451,12 @@ class WasmInference implements InferenceBackend {
                 }
             }
         } catch (error) {
-            if (!(error instanceof WllamaAbortError)) {
-                errorMessage =
-                    error instanceof Error ? error.message : String(error);
-            } else {
-                errorMessage = "Generation aborted";
+            if (error instanceof WllamaAbortError) {
+                throw new Error("Generation cancelled", { cause: error });
             }
+            throw error instanceof Error ? error : new Error(String(error));
         } finally {
             this.abortControllers.delete(jobId);
-        }
-
-        if (errorMessage && onEvent) {
-            onEvent({ type: "error", job_id: jobId, message: errorMessage });
         }
 
         const summary = {
@@ -537,24 +530,30 @@ class TauriInference implements InferenceBackend {
     }
 
     async isModelAvailable(modelPath: string): Promise<boolean> {
-        const { exists } = await import("@tauri-apps/plugin-fs");
-        if (!(await exists(modelPath))) return false;
+        const { exists, open, stat } = await import("@tauri-apps/plugin-fs");
         try {
-            const size = await invoke<number | null>("fs_file_size", {
-                path: modelPath,
-            });
-            if (size !== null && size < MIN_GGUF_BYTES) {
+            if (!(await exists(modelPath))) return false;
+            const { size } = await stat(modelPath);
+            if (size < MIN_GGUF_BYTES) {
                 return false;
             }
-            const head = await invoke<number[]>("fs_read_head", {
-                path: modelPath,
-                length: 4,
-            });
-            if (!isGgufHeader(new Uint8Array(head))) {
-                return false;
+            const file = await open(modelPath, { read: true });
+            try {
+                const head = new Uint8Array(4);
+                let offset = 0;
+                while (offset < head.length) {
+                    const bytesRead = await file.read(head.subarray(offset));
+                    if (bytesRead === null) break;
+                    offset += bytesRead;
+                }
+                if (!isGgufHeader(head.subarray(0, offset))) {
+                    return false;
+                }
+            } finally {
+                await file.close().catch(() => undefined);
             }
         } catch {
-            // ignore validation failures
+            return false;
         }
         return true;
     }
@@ -629,19 +628,12 @@ class TauriInference implements InferenceBackend {
         request: GenerateChatRequest,
         onEvent?: (event: GenerateEvent) => void,
     ): Promise<GenerateSummary> {
-        const panicJobId = 0;
         let resolvedJobId: number | null = null;
-        let errorMessage: string | null = null;
 
-        let resolveSummary!: (summary: GenerateSummary) => void;
-        let rejectSummary!: (error: Error) => void;
-
-        const summaryPromise = new Promise<GenerateSummary>(
-            (resolve, reject) => {
-                resolveSummary = resolve;
-                rejectSummary = reject;
-            },
-        );
+        let resolveDone!: () => void;
+        const done = new Promise<void>((resolve) => {
+            resolveDone = resolve;
+        });
 
         const unlisten = await listen<GenerateEvent>("llm-event", (event) => {
             const payload = event.payload;
@@ -658,24 +650,7 @@ class TauriInference implements InferenceBackend {
                 onEvent(payload);
             }
 
-            if (payload.type === "error") {
-                if (payload.job_id === panicJobId) {
-                    rejectSummary(new Error(payload.message));
-                    void unlisten();
-                    return;
-                }
-                errorMessage = payload.message;
-            }
-
-            if (payload.type === "done") {
-                if (errorMessage) {
-                    // still resolve summary; error is emitted separately
-                    resolveSummary(payload.summary);
-                } else {
-                    resolveSummary(payload.summary);
-                }
-                void unlisten();
-            }
+            if (payload.type === "done") resolveDone();
         });
 
         try {
@@ -683,20 +658,19 @@ class TauriInference implements InferenceBackend {
                 messageCount: request.messages.length,
                 maxTokens: request.maxTokens ?? null,
             });
-            await invoke("llm_generate_chat_stream", {
-                request: buildGenerateChatRequest(request),
-            });
-        } catch (error) {
-            void unlisten();
-            const err = normalizeInvokeError(
-                error,
-                "Failed to start generation",
+            const summary = await invoke<GenerateSummary>(
+                "llm_generate_chat_stream",
+                { request: buildGenerateChatRequest(request) },
             );
+            await done;
+            return summary;
+        } catch (error) {
+            const err = normalizeInvokeError(error, "Generation failed");
             log.error("LLM tauri generate failed", err);
-            rejectSummary(err);
+            throw err;
+        } finally {
+            void unlisten();
         }
-
-        return summaryPromise;
     }
 
     cancel(jobId: number) {

@@ -1,8 +1,3 @@
-import {
-    tagNumericValue,
-    type RawExifTags,
-} from "@/public-album/media/metadata/exif";
-import { formattedByteSize } from "@/shared/utils/byte-size";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import CameraOutlinedIcon from "@mui/icons-material/CameraOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
@@ -30,6 +25,9 @@ import {
 } from "ente-base/components/utils/modal";
 import { formattedDate, formattedTime } from "ente-base/i18n-date";
 import type { Location } from "ente-base/types";
+import { CopyButton } from "ente-gallery/components/FileInfoComponents";
+import { tagNumericValue, type RawExifTags } from "ente-gallery/services/exif";
+import { formattedByteSize } from "ente-gallery/utils/units";
 import type { EnteFile } from "ente-media/file";
 import {
     fileCreationPhotoDate,
@@ -40,7 +38,6 @@ import {
 import { FileType } from "ente-media/file-type";
 import { t } from "i18next";
 import React, { useMemo } from "react";
-import { CopyButton } from "./FileInfoComponents";
 
 export interface FileInfoExif {
     tags: RawExifTags | undefined;
@@ -370,6 +367,7 @@ const RawExif: React.FC<RawExifProps> = ({
                 onRootClose={handleRootClose}
                 title={t("exif")}
                 caption={fileName}
+                showRootCloseButton={false}
                 actionButton={
                     <CopyButton size="small" text={JSON.stringify(tags)} />
                 }

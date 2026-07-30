@@ -1,0 +1,1 @@
+- Refreshes the device cache settings screen.

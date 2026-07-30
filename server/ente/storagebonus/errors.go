@@ -3,7 +3,7 @@ package storagebonus
 import (
 	"net/http"
 
-	"github.com/ente-io/museum/ente"
+	"github.com/ente/museum/ente"
 )
 
 const (

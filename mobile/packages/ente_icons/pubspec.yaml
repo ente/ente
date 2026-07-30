@@ -1,8 +1,7 @@
 name: ente_icons
 description: Custom icon font package for Ente apps
-version: 1.0.0
-publish_to: none
 
+resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
   flutter: ">=1.17.0"

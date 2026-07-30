@@ -8,15 +8,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ente-io/museum/pkg/repo/passkey"
-	storageBonusRepo "github.com/ente-io/museum/pkg/repo/storagebonus"
-	emailUtil "github.com/ente-io/museum/pkg/utils/email"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/repo/passkey"
+	storageBonusRepo "github.com/ente/museum/pkg/repo/storagebonus"
+	emailUtil "github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/crypto"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/crypto"
+	"github.com/ente/museum/pkg/utils/time"
 )
 
 const (
@@ -39,6 +39,10 @@ type UserRepository struct {
 type UserInactivityCandidate struct {
 	UserID       int64
 	LastActivity int64
+}
+
+type userMutationExecutor interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
 }
 
 // Get returns a user indicated by the userID
@@ -94,8 +98,20 @@ func (repo *UserRepository) IsLikelySelfHosted() bool {
 // Delete removes the email_hash and encrypted email information for the user. It replaces email_hash with placeholder value
 // based on DELETED_EMAIL_HASH_FORMAT
 func (repo *UserRepository) Delete(userID int64) error {
-	emailHash := fmt.Sprintf(DELETED_EMAIL_HASH_FORMAT, userID)
-	_, err := repo.DB.Exec(`UPDATE users SET encrypted_email = null, email_decryption_nonce = null, email_hash = $1 WHERE user_id = $2`, emailHash, userID)
+	return deleteUser(context.Background(), repo.DB, userID)
+}
+
+func (repo *UserRepository) DeleteTx(ctx context.Context, tx *sql.Tx, userID int64) (string, error) {
+	var emailHash string
+	if err := tx.QueryRowContext(ctx, `SELECT email_hash FROM users WHERE user_id = $1 FOR UPDATE`, userID).Scan(&emailHash); err != nil {
+		return "", stacktrace.Propagate(err, "failed to read email hash")
+	}
+	return emailHash, deleteUser(ctx, tx, userID)
+}
+
+func deleteUser(ctx context.Context, executor userMutationExecutor, userID int64) error {
+	deletedEmailHash := fmt.Sprintf(DELETED_EMAIL_HASH_FORMAT, userID)
+	_, err := executor.ExecContext(ctx, `UPDATE users SET encrypted_email = null, email_decryption_nonce = null, email_hash = $1 WHERE user_id = $2`, deletedEmailHash, userID)
 	return stacktrace.Propagate(err, "")
 }
 
@@ -148,10 +164,9 @@ func (repo *UserRepository) GetAll(sinceTime int64, tillTime int64) ([]ente.User
 }
 
 // GetActiveUsersByLastActivityBefore returns active users whose effective last
-// activity is older than or equal to beforeTime. Effective activity uses latest
-// token activity when present, otherwise falls back to max(users.creation_time,
-// authenticator_entity.updated_at, collections.updation_time). Paging is done
-// by user_id.
+// activity is older than or equal to beforeTime. Effective activity is the
+// latest of token activity, users.creation_time, authenticator_entity.updated_at,
+// and collections.updation_time. Paging is done by user_id.
 func (repo *UserRepository) GetActiveUsersByLastActivityBefore(beforeTime int64, afterUserID int64, limit int) ([]UserInactivityCandidate, error) {
 	rows, err := repo.DB.Query(`
 		SELECT
@@ -160,13 +175,11 @@ func (repo *UserRepository) GetActiveUsersByLastActivityBefore(beforeTime int64,
 		FROM (
 			SELECT
 				u.user_id,
-				COALESCE(
-					t.last_token_activity,
-					GREATEST(
-						u.creation_time,
-						COALESCE(a.last_auth_activity, 0),
-						COALESCE(c.last_collection_activity, 0)
-					)
+				GREATEST(
+					u.creation_time,
+					COALESCE(t.last_token_activity, 0),
+					COALESCE(a.last_auth_activity, 0),
+					COALESCE(c.last_collection_activity, 0)
 				) AS last_activity
 			FROM users u
 			LEFT JOIN LATERAL (
@@ -222,13 +235,11 @@ func (repo *UserRepository) GetLatestActivity(userID int64) (int64, bool, error)
 	var lastActivity int64
 	err := repo.DB.QueryRow(`
 		SELECT
-			COALESCE(
-				t.last_token_activity,
-				GREATEST(
-					u.creation_time,
-					COALESCE(a.last_auth_activity, 0),
-					COALESCE(c.last_collection_activity, 0)
-				)
+			GREATEST(
+				u.creation_time,
+				COALESCE(t.last_token_activity, 0),
+				COALESCE(a.last_auth_activity, 0),
+				COALESCE(c.last_collection_activity, 0)
 			) AS last_activity
 		FROM users u
 		LEFT JOIN LATERAL (
@@ -324,12 +335,22 @@ func (repo *UserRepository) UpdateDeleteFeedback(userID int64, feedback map[stri
 
 // UpdateEmail updates the email address of a user
 func (repo *UserRepository) UpdateEmail(userID int64, encryptedEmail ente.EncryptionResult, emailHash string) error {
-	_, err := repo.DB.Exec(`UPDATE users SET encrypted_email = $1, email_decryption_nonce = $2, email_hash = $3 WHERE user_id = $4`, encryptedEmail.Cipher, encryptedEmail.Nonce, emailHash, userID)
+	return updateEmail(context.Background(), repo.DB, userID, encryptedEmail, emailHash)
+}
+
+func (repo *UserRepository) UpdateEmailTx(ctx context.Context, tx *sql.Tx, userID int64, encryptedEmail ente.EncryptionResult, emailHash string) error {
+	return updateEmail(ctx, tx, userID, encryptedEmail, emailHash)
+}
+
+func updateEmail(ctx context.Context, executor userMutationExecutor, userID int64, encryptedEmail ente.EncryptionResult, emailHash string) error {
+	_, err := executor.ExecContext(ctx, `UPDATE users SET encrypted_email = $1, email_decryption_nonce = $2, email_hash = $3 WHERE user_id = $4`, encryptedEmail.Cipher, encryptedEmail.Nonce, emailHash, userID)
 	return stacktrace.Propagate(err, "")
 }
 
-// GetUserIDWithEmail returns the userID associated with a provided email
-func (repo *UserRepository) GetUserIDWithEmail(email string) (int64, error) {
+// GetUserIDWithEmailUnrestricted returns the user ID associated with an email.
+// It bypasses authenticated discovery limits and is only for trusted,
+// non-disclosing flows. User-facing discovery must use controller.UserLookup.
+func (repo *UserRepository) GetUserIDWithEmailUnrestricted(email string) (int64, error) {
 	sanitizedEmail := emailUtil.NormalizeEmail(email)
 	emailHash, err := crypto.GetHash(sanitizedEmail, repo.HashingKey)
 	if err != nil {

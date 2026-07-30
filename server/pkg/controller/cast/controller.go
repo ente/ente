@@ -3,12 +3,14 @@ package cast
 import (
 	"context"
 
-	"github.com/ente-io/museum/ente/cast"
-	"github.com/ente-io/museum/pkg/controller/access"
-	castRepo "github.com/ente-io/museum/pkg/repo/cast"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/network"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/cast"
+	"github.com/ente/museum/pkg/controller/access"
+	castRepo "github.com/ente/museum/pkg/repo/cast"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/network"
+	"github.com/ente/museum/pkg/utils/ua"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -18,6 +20,8 @@ type Controller struct {
 	CastRepo   *castRepo.Repository
 	AccessCtrl access.Controller
 }
+
+const maxRegisterDeviceUserAgentBytes = 1000
 
 func NewController(castRepo *castRepo.Repository,
 	accessCtrl access.Controller,
@@ -29,7 +33,21 @@ func NewController(castRepo *castRepo.Repository,
 }
 
 func (c *Controller) RegisterDevice(ctx *gin.Context, request *cast.RegisterDeviceRequest) (string, error) {
-	return c.CastRepo.AddCode(ctx, request.PublicKey, network.GetClientIP(ctx))
+	ipAddress := network.GetClientIP(ctx)
+	userAgent := ctx.GetHeader("User-Agent")
+	if len(userAgent) > maxRegisterDeviceUserAgentBytes {
+		return "", ente.NewInternalError("user agent too long")
+	}
+	deviceName, err := ua.GetDeviceType(userAgent)
+	if deviceName == "" || err != nil {
+		logrus.WithFields(logrus.Fields{
+			"userAgent": userAgent,
+			"ip":        ipAddress,
+			"err":       err,
+		}).Warn("RegisterDevice: failed to get device type")
+		deviceName = ipAddress
+	}
+	return c.CastRepo.AddCode(ctx, request.PublicKey, ipAddress, deviceName)
 }
 
 func (c *Controller) GetAllDevices(ctx *gin.Context, userID int64) ([]cast.CastInfo, error) {
@@ -59,14 +77,14 @@ func (c *Controller) GetEncCastData(ctx context.Context, deviceCode string) (*st
 	return c.CastRepo.GetEncCastData(ctx, deviceCode)
 }
 
-func (c *Controller) InsertCastData(ctx *gin.Context, request *cast.CastRequest) error {
+func (c *Controller) InsertCastData(ctx *gin.Context, request *cast.CastRequest) (uuid.UUID, error) {
 	userID := auth.GetUserID(ctx.Request.Header)
 	devices, err := c.CastRepo.GetAllDevices(ctx, userID)
 	if err != nil {
-		return stacktrace.Propagate(err, "failed to get existing devices")
+		return uuid.Nil, stacktrace.Propagate(err, "failed to get existing devices")
 	}
 	if len(devices) >= 50 {
-		return stacktrace.NewError("device limit reached")
+		return uuid.Nil, stacktrace.NewError("device limit reached")
 	}
 	return c.CastRepo.InsertCastData(ctx, userID, request.DeviceCode, request.CollectionID, request.CastToken, request.EncPayload)
 }

@@ -43,7 +43,7 @@ Yes. Ensu is completely free to use with no usage limits. It is currently an Ent
 
 ### Is Ensu open source? {#open-source}
 
-Yes. Ensu is fully open source, just like all other Ente products. The code lives in the same [GitHub repository](https://github.com/ente-io/ente) as Ente Photos, Auth, and Locker. The core inference logic is written in Rust, with native apps for mobile (Swift/Kotlin) and desktop (Tauri).
+Yes. Ensu is fully open source, just like all other Ente products. The code lives in the same [GitHub repository](https://github.com/ente/ente) as Ente Photos, Auth, and Locker. The core inference logic is written in Rust, with native apps for mobile (Swift/Kotlin) and desktop (Tauri).
 
 ## Privacy and Security
 
@@ -178,11 +178,11 @@ We would love to hear from you. The future direction of Ensu is still taking sha
 
 - **Discord**: Join the `#ensu` channel on [Discord](https://ente.com/discord).
 - **Email**: Write to [team@ente.com](mailto:team@ente.com).
-- **GitHub**: Open an issue or discussion on [GitHub](https://github.com/ente-io/ente).
+- **GitHub**: Open an issue or discussion on [GitHub](https://github.com/ente/ente).
 
 ### Where can I report bugs? {#bug-reports}
 
-You can report bugs on [GitHub](https://github.com/ente-io/ente/issues) or by emailing [team@ente.com](mailto:team@ente.com). If possible, include your device model, OS version, and any logs exported from the app settings.
+You can report bugs on [GitHub](https://github.com/ente/ente/issues) or by emailing [team@ente.com](mailto:team@ente.com). If possible, include your device model, OS version, and any logs exported from the app settings.
 
 ---
 

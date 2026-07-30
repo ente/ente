@@ -1,14 +1,15 @@
 name: ente_auth
 description: ente two-factor authenticator
-version: 4.4.24+1007
+version: 4.4.26+1007
 publish_to: none
 
+resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
 
 dependencies:
   app_links: 6.4.1
-  archive: 4.0.7
+  archive: 4.0.9
   auto_size_text: 3.0.0
   backup_exclusion:
     path: ../../packages/backup_exclusion
@@ -24,10 +25,14 @@ dependencies:
   dotted_border: 3.1.0
   dropdown_button2: 2.3.9
   email_validator: 3.0.0
+  ente_account_deletion:
+    path: ../../packages/account_deletion
   ente_accounts:
     path: ../../packages/accounts
   ente_base:
     path: ../../packages/base
+  ente_components:
+    path: ../../packages/ente_components
   ente_configuration:
     path: ../../packages/configuration
   ente_crypto_api:
@@ -81,12 +86,12 @@ dependencies:
   flutter_secure_storage: 9.0.0
   flutter_speed_dial: 7.0.0
   flutter_staggered_grid_view: 0.7.0
-  flutter_svg: 2.2.3
+  flutter_svg: 2.3.0
   fluttertoast: 8.2.14
   gradient_borders: 1.0.1
   http: 1.6.0
   hugeicons: 1.1.7
-  image: 4.5.4
+  image: 4.7.0
   intl: 0.20.2
   io: 1.0.5
   json_annotation: 4.9.0
@@ -98,7 +103,7 @@ dependencies:
   modal_bottom_sheet: 3.0.0
   move_to_background: # no updates in git, replace package
     git:
-      url: https://github.com/ente-io/move_to_background.git
+      url: https://github.com/ente/move_to_background.git
       ref: 0cdfeed654d79636eff0c57110f3f6ad5801ba2f
   native_dio_adapter: 1.5.1
   otp: 3.2.0
@@ -108,16 +113,15 @@ dependencies:
   path_provider: 2.1.5
   pinput: 5.0.2
   pointycastle: 3.9.1
-  privacy_screen: 0.0.8
-  protobuf: 4.1.0
+  protobuf: 4.2.0
   qr_flutter: 4.1.0
   saf_stream: 2.0.0
   saf_util: 2.0.0
   scoped_dir_access:
     path: ../../packages/scoped_dir_access
-  sentry: 8.14.2
-  sentry_flutter: 8.14.2
-  share_plus: 11.1.0
+  sentry: 9.6.0
+  sentry_flutter: 9.6.0
+  share_plus: 12.0.0
   shared_preferences: 2.5.3
   sqflite: 2.4.2
   sqflite_common_ffi: 2.3.7+1
@@ -129,9 +133,9 @@ dependencies:
   tray_manager: 0.5.2
   tuple: 2.0.2
   url_launcher: 6.3.2
-  url_launcher_ios: 6.3.4
-  uuid: 4.5.2
-  win32: 5.13.0
+  url_launcher_ios: 6.4.1
+  uuid: 4.5.3
+  win32: 5.15.0
   window_manager: 0.5.1
   xdg_directories: 1.1.0
 
@@ -139,6 +143,7 @@ dev_dependencies:
   flutter_lints: 6.0.0
   flutter_test:
     sdk: flutter
+  qr: 3.0.2
   shared_preferences_platform_interface: 2.4.2
 
 # The following section is specific to Flutter.
@@ -159,6 +164,9 @@ flutter:
     - assets/svg/
 
   fonts:
+    - family: Gochi Hand
+      fonts:
+        - asset: fonts/GochiHand-Regular.ttf
     - family: Inter
       fonts:
         - asset: fonts/Inter-Regular.ttf

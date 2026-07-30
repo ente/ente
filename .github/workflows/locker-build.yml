@@ -37,7 +37,7 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
               with:
                   ref: ${{ github.ref_name }}
 
@@ -54,17 +54,18 @@ jobs:
                   fi
 
                   release_version="$(node .github/scripts/flutter-version.mjs locker get)"
-                  build_number_base="$(node .github/scripts/flutter-version.mjs locker get-build-base)"
-                  build_number=$((build_number_base + GITHUB_RUN_NUMBER))
 
                   if [[ "${GITHUB_REF_NAME}" == release/locker-v* ]]; then
                       if [[ "${GITHUB_REF_NAME}" != "release/locker-v${release_version}" ]]; then
                           echo "::error::Branch ${GITHUB_REF_NAME} does not match Locker version ${release_version}"
                           exit 1
                       fi
+                      build_number="$(node .github/scripts/flutter-version.mjs locker get-build-base)"
                       release_tag="locker-v${release_version}-rc"
                       release_title="🗄️ Locker release candidate - ${release_version} (build ${build_number})"
                   else
+                      build_number_base="$(node .github/scripts/flutter-version.mjs locker get-build-base)"
+                      build_number=$((build_number_base + GITHUB_RUN_NUMBER))
                       release_tag="locker-v${release_version}-beta"
                       release_title="🗄️ Locker nightly - ${release_version} (build ${build_number})"
                   fi
@@ -102,12 +103,12 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
               with:
                   ref: ${{ needs.build-metadata.outputs.commit_sha }}
 
             - name: Setup JDK 17
-              uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+              uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5.3.0
               with:
                   distribution: "temurin"
                   java-version: "17"
@@ -115,15 +116,10 @@ jobs:
             - name: Install Flutter
               uses: ./.github/actions/setup-flutter
 
-            - name: Generate strings localizations
-              run: flutter gen-l10n
-              working-directory: mobile/packages/strings
-
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs locker set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
 
-            - name: Resolve dependencies with lockfile enforcement
-              run: flutter pub get --enforce-lockfile
+            - run: flutter pub get --enforce-lockfile
 
             - run: cargo codegen frb shared
               working-directory: rust
@@ -230,22 +226,20 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
               with:
                   ref: ${{ needs.build-metadata.outputs.commit_sha }}
 
             - name: Install Flutter
               uses: ./.github/actions/setup-flutter
 
-            - name: Generate strings localizations
-              run: flutter gen-l10n
-              working-directory: mobile/packages/strings
-
             - name: Set build version
               run: node ../../../.github/scripts/flutter-version.mjs locker set-build "${RELEASE_VERSION}" "${BUILD_NUMBER}"
 
-            - name: Resolve dependencies with lockfile enforcement
-              run: flutter pub get --enforce-lockfile
+            - run: flutter pub get --enforce-lockfile
+
+            - name: Set up Rive iOS binaries
+              run: dart run rive_native:setup --clean --platform ios
 
             - run: cargo codegen frb shared
               working-directory: rust
@@ -306,7 +300,7 @@ jobs:
 
         steps:
             - name: Checkout built commit
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
               with:
                   ref: ${{ needs.build-metadata.outputs.commit_sha }}
 
@@ -341,7 +335,7 @@ jobs:
               env:
                   GH_TOKEN: ${{ steps.nightly_token.outputs.token }}
                   RELEASE_TAG: ${{ needs.build-metadata.outputs.release_tag }}
-              run: gh release upload "${RELEASE_TAG}" SHA256SUMS --clobber --repo ente-io/nightly
+              run: gh release upload "${RELEASE_TAG}" SHA256SUMS --clobber --repo ente/nightly
 
             - name: Upload checksum to RC draft
               if: startsWith(github.ref_name, 'release/')

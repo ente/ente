@@ -77,6 +77,7 @@ class _SharedPublicCollectionPageState
       firstButtonLabel: context.l10n.join,
     );
     if (result != null && result.action == ButtonAction.first) {
+      if (!mounted) return;
       final dialog = createProgressDialog(
         context,
         context.l10n.pleaseWait,
@@ -84,6 +85,7 @@ class _SharedPublicCollectionPageState
       );
       await dialog.show();
       try {
+        if (!mounted) return;
         await RemoteSyncService.instance.joinAndSyncCollection(
           context,
           widget.c.collection.id,
@@ -92,7 +94,9 @@ class _SharedPublicCollectionPageState
           widget.c.collection.id,
         );
         await dialog.hide();
+        if (!mounted) return;
         Navigator.of(context).pop();
+        if (!mounted) return;
         await routeToPage(
           context,
           CollectionPage(CollectionWithThumbnail(c!, null)),
@@ -100,6 +104,7 @@ class _SharedPublicCollectionPageState
       } catch (e, s) {
         logger.severe("Failed to join public album", e, s);
         await dialog.hide();
+        if (!mounted) return;
         await showGenericErrorDialog(context: context, error: e);
       }
     }
@@ -219,6 +224,7 @@ class _SharedPublicCollectionPageState
       firstButtonLabel: context.l10n.join,
     );
     if (result != null && result.action == ButtonAction.first) {
+      if (!mounted) return;
       final dialog = createProgressDialog(
         context,
         AppLocalizations.of(context).pleaseWait,
@@ -226,6 +232,7 @@ class _SharedPublicCollectionPageState
       );
       await dialog.show();
       try {
+        if (!mounted) return;
         await RemoteSyncService.instance.joinAndSyncCollection(
           context,
           widget.c.collection.id,
@@ -234,7 +241,9 @@ class _SharedPublicCollectionPageState
           widget.c.collection.id,
         );
         await dialog.hide();
+        if (!mounted) return;
         Navigator.of(context).pop();
+        if (!mounted) return;
         await routeToPage(
           context,
           CollectionPage(CollectionWithThumbnail(c!, null)),
@@ -242,6 +251,7 @@ class _SharedPublicCollectionPageState
       } catch (e, s) {
         logger.severe("Failed to join collection", e, s);
         await dialog.hide();
+        if (!mounted) return;
         showToast(context, AppLocalizations.of(context).somethingWentWrong);
       }
     }

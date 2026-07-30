@@ -1,17 +1,15 @@
 use crate::ml::{
-    clip::{
-        image::run_clip_image, text::run_clip_text_query,
-        tokenizer::tokenize_clip_text as tokenize_clip_text_impl,
-    },
+    clip::{run_clip_image, run_clip_text_query, tokenize_clip_text as tokenize_clip_text_impl},
     error::{MlError, MlResult},
-    face::{align::run_face_alignment, detect::run_face_detection, embed::run_face_embedding},
+    face::{run_face_alignment, run_face_detection, run_face_embedding},
     pet::{
-        align::run_pet_face_alignment,
-        detect::{run_pet_body_detection, run_pet_face_detection},
-        embed::{run_pet_body_embedding, run_pet_face_embedding},
+        run_pet_body_detection, run_pet_body_embedding, run_pet_face_alignment,
+        run_pet_face_detection, run_pet_face_embedding,
     },
-    runtime::{self, ExecutionProviderPolicy, MlRuntimeConfig, ModelPaths},
+    preprocess,
+    runtime::{self, ModelPaths},
     types::{self, ClipResult, Dimensions, FaceResult, PetBodyResult, PetFaceResult},
+    webgpu,
 };
 use ente_image::decode::decode_image_from_path;
 
@@ -22,7 +20,7 @@ pub struct AnalyzeImageRequest {
     pub run_faces: bool,
     pub run_clip: bool,
     pub run_pets: bool,
-    pub runtime_config: MlRuntimeConfig,
+    pub model_paths: ModelPaths,
 }
 
 #[derive(Clone, Debug)]
@@ -33,6 +31,10 @@ pub struct AnalyzeImageResult {
     pub clip: Option<ClipResult>,
     pub pet_faces: Option<Vec<PetFaceResult>>,
     pub pet_bodies: Option<Vec<PetBodyResult>>,
+    /// True when any model that contributed to this result ran on the
+    /// respective accelerated execution provider.
+    pub used_coreml: bool,
+    pub used_webgpu: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -40,7 +42,6 @@ pub struct RunClipTextRequest {
     pub text: String,
     pub model_path: String,
     pub vocab_path: String,
-    pub provider_policy: ExecutionProviderPolicy,
 }
 
 #[derive(Clone, Debug)]
@@ -48,12 +49,22 @@ pub struct RunClipTextResult {
     pub embedding: Vec<f32>,
 }
 
-pub fn init_ml_runtime(config: MlRuntimeConfig) -> MlResult<()> {
-    runtime::prepare_runtime(&config)
+/// Configures process-wide ML execution behavior. Must be called before the
+/// first session is created to take effect for that session.
+///
+/// `enable_webgpu` is the app-side eligibility decision for Android. Rust
+/// additionally applies its durable crash canary before attempting the WebGPU
+/// execution provider. It has no effect on other platforms.
+pub fn set_ml_execution_config(enable_webgpu: bool) {
+    webgpu::set_enabled(enable_webgpu);
 }
 
-pub fn release_ml_runtime() -> MlResult<()> {
-    runtime::release_runtime()
+pub fn init_ml_runtime(model_paths: ModelPaths) {
+    runtime::prepare_runtime(&model_paths);
+}
+
+pub fn release_ml_runtime() {
+    runtime::release_runtime();
 }
 
 pub fn analyze_image(req: AnalyzeImageRequest) -> MlResult<AnalyzeImageResult> {
@@ -65,21 +76,29 @@ pub fn analyze_image(req: AnalyzeImageRequest) -> MlResult<AnalyzeImageResult> {
         run_faces,
         run_clip,
         run_pets,
-        runtime_config,
+        model_paths,
     } = req;
 
-    runtime::with_runtime(&runtime_config, |runtime| {
-        let decoded = decode_image_from_path(&image_path)?;
+    runtime::with_runtime(&model_paths, |runtime| {
+        let mut decoded = decode_image_from_path(&image_path)?;
         let dims = decoded.dimensions.clone();
+        let detector_input = (run_faces || run_pets)
+            .then(|| preprocess::preprocess_yolo(&decoded))
+            .transpose()?;
 
         let faces = if run_faces {
-            let detections = run_face_detection(runtime, &decoded)?;
+            let detections = run_face_detection(
+                runtime,
+                detector_input
+                    .as_ref()
+                    .expect("detector input is prepared when face indexing is enabled"),
+            )?;
             if detections.is_empty() {
                 Some(Vec::new())
             } else {
                 let (aligned, mut face_results) =
-                    run_face_alignment(file_id, &decoded, detections)?;
-                run_face_embedding(runtime, &aligned, &mut face_results)?;
+                    run_face_alignment(file_id, &mut decoded, detections)?;
+                run_face_embedding(runtime, aligned, &mut face_results)?;
                 Some(face_results)
             }
         } else {
@@ -93,13 +112,16 @@ pub fn analyze_image(req: AnalyzeImageRequest) -> MlResult<AnalyzeImageResult> {
         };
 
         let (pet_faces, pet_bodies) = if run_pets {
-            let pet_face_detections = run_pet_face_detection(runtime, &decoded)?;
-            let body_detections = run_pet_body_detection(runtime, &decoded)?;
+            let detector_input = detector_input
+                .as_ref()
+                .expect("detector input is prepared when pet indexing is enabled");
+            let pet_face_detections = run_pet_face_detection(runtime, detector_input)?;
+            let body_detections = run_pet_body_detection(runtime, detector_input)?;
 
             let pet_face_results = if !pet_face_detections.is_empty() {
                 let (aligned, mut pet_results) =
-                    run_pet_face_alignment(file_id, &decoded, &pet_face_detections)?;
-                run_pet_face_embedding(runtime, &aligned, &mut pet_results)?;
+                    run_pet_face_alignment(file_id, &decoded, pet_face_detections)?;
+                run_pet_face_embedding(runtime, aligned, &mut pet_results)?;
                 pet_results
             } else {
                 Vec::new()
@@ -127,6 +149,7 @@ pub fn analyze_image(req: AnalyzeImageRequest) -> MlResult<AnalyzeImageResult> {
             (None, None)
         };
 
+        let used_providers = runtime.used_providers();
         Ok(AnalyzeImageResult {
             file_id,
             decoded_image_size: dims,
@@ -134,6 +157,8 @@ pub fn analyze_image(req: AnalyzeImageRequest) -> MlResult<AnalyzeImageResult> {
             clip,
             pet_faces,
             pet_bodies,
+            used_coreml: used_providers.coreml,
+            used_webgpu: used_providers.webgpu,
         })
     })
 }
@@ -143,7 +168,6 @@ pub fn run_clip_text(req: RunClipTextRequest) -> MlResult<RunClipTextResult> {
         text,
         model_path,
         vocab_path,
-        provider_policy,
     } = req;
 
     if model_path.trim().is_empty() {
@@ -157,23 +181,20 @@ pub fn run_clip_text(req: RunClipTextRequest) -> MlResult<RunClipTextResult> {
         ));
     }
 
-    let runtime_config = MlRuntimeConfig {
-        model_paths: ModelPaths {
-            face_detection: String::new(),
-            face_embedding: String::new(),
-            clip_image: String::new(),
-            clip_text: model_path,
-            pet_face_detection: String::new(),
-            pet_face_embedding_dog: String::new(),
-            pet_face_embedding_cat: String::new(),
-            pet_body_detection: String::new(),
-            pet_body_embedding_dog: String::new(),
-            pet_body_embedding_cat: String::new(),
-        },
-        provider_policy,
+    let model_paths = ModelPaths {
+        face_detection: String::new(),
+        face_embedding: String::new(),
+        clip_image: String::new(),
+        clip_text: model_path,
+        pet_face_detection: String::new(),
+        pet_face_embedding_dog: String::new(),
+        pet_face_embedding_cat: String::new(),
+        pet_body_detection: String::new(),
+        pet_body_embedding_dog: String::new(),
+        pet_body_embedding_cat: String::new(),
     };
 
-    runtime::with_runtime(&runtime_config, |runtime| {
+    runtime::with_runtime(&model_paths, |runtime| {
         let clip = run_clip_text_query(runtime, &text, &vocab_path)?;
         Ok(RunClipTextResult {
             embedding: clip.embedding,
@@ -191,7 +212,7 @@ pub fn tokenize_clip_text(text: &str, vocab_path: &str) -> MlResult<Vec<i32>> {
 }
 
 fn validate_request_model_paths(req: &AnalyzeImageRequest) -> MlResult<()> {
-    let model_paths = &req.runtime_config.model_paths;
+    let model_paths = &req.model_paths;
 
     let mut missing = Vec::new();
     if req.run_faces {

@@ -283,7 +283,7 @@ const LoadFailed: React.FC = () => (
 
 const NoLargeFilesFound: React.FC = () => (
     <CenteredFill>
-        <Typography color="text.muted" sx={{ textAlign: "center" }}>
+        <Typography sx={{ color: "text.muted", textAlign: "center" }}>
             {t("no_large_files")}
         </Typography>
     </CenteredFill>
@@ -701,8 +701,7 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
                         {t("delete_files_button", { count: selectedCount })}
                     </Typography>
                     <Typography
-                        sx={{ fontSize: "inherit" }}
-                        fontWeight="regular"
+                        sx={{ fontSize: "inherit", fontWeight: "regular" }}
                     >
                         ({formattedByteSize(selectedSize)})
                     </Typography>

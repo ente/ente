@@ -135,7 +135,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "Selectionne au moins une collection",
   "unknownItemType": "Type d'element inconnu",
   "fileDeletedSuccessfully": "Element supprime avec succes",
   "failedToDeleteFile": "Echec de la suppression de l'element : {error}",
@@ -255,7 +254,6 @@
   "fileTitle": "Titre de l'element",
   "optionalNote": "Note optionnelle",
   "upload": "Charger",
-  "searchHint": "Rechercher...",
   "searchEmptyTitle": "Aucun resultat trouve",
   "searchEmptyDescription": "Essaie de rechercher autre chose.",
   "searchEverywhereTitle": "Rechercher \"{query}\" partout",

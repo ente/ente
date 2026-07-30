@@ -149,6 +149,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
                           );
                           if (mounted) {
                             _fetchData().ignore();
+                            if (!context.mounted) return;
                             await showAlertBottomSheet(
                               context,
                               title: context.l10n.recoveryInitiated,
@@ -160,6 +161,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
                             );
                           }
                         } catch (e) {
+                          if (!context.mounted) return;
                           showGenericErrorBottomSheet(
                             context: context,
                             error: e,
@@ -263,6 +265,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
           _fetchData().ignore();
         }
       } catch (e) {
+        if (!mounted) return;
         showGenericErrorBottomSheet(context: context, error: e).ignore();
       }
     }
@@ -293,6 +296,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
           Navigator.of(context).pop();
         }
       } catch (e) {
+        if (!mounted) return;
         showGenericErrorBottomSheet(context: context, error: e).ignore();
       }
     }

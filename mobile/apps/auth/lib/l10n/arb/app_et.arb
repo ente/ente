@@ -159,7 +159,6 @@
   "deleteAccountQuery": "Meil on kahju, et soovid lahkuda. Kas sul tekkis mõni viga või probleem?",
   "yesSendFeedbackAction": "Jah, saadan tagasisidet",
   "noDeleteAccountAction": "Ei, kustuta kasutajakonto",
-  "initiateAccountDeleteTitle": "Kasutajakonto kustutamiseks palun tuvasta end",
   "sendEmail": "Saada e-kiri",
   "createNewAccount": "Loo uus kasutajakonto",
   "weakStrength": "Nõrk",

@@ -1,1 +1,0 @@
-- Preserved draft comments when closing and reopening the photo comment panel.

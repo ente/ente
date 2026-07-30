@@ -5,19 +5,19 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/controller/access"
-	"github.com/ente-io/museum/pkg/controller/email"
-	"github.com/ente-io/museum/pkg/controller/public"
-	"github.com/ente-io/museum/pkg/repo/cast"
-	socialrepo "github.com/ente-io/museum/pkg/repo/social"
-	"github.com/ente-io/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/controller/access"
+	"github.com/ente/museum/pkg/controller/email"
+	"github.com/ente/museum/pkg/controller/public"
+	"github.com/ente/museum/pkg/repo/cast"
+	socialrepo "github.com/ente/museum/pkg/repo/social"
+	"github.com/ente/museum/pkg/utils/auth"
 	"github.com/gin-gonic/gin"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,6 +31,7 @@ type CollectionController struct {
 	EmailCtrl             *email.EmailNotificationController
 	AccessCtrl            access.Controller
 	BillingCtrl           *controller.BillingController
+	UserLookup            controller.UserLookup
 	CollectionRepo        *repo.CollectionRepository
 	UserRepo              *repo.UserRepository
 	FileRepo              *repo.FileRepository
@@ -57,7 +58,7 @@ func (c *CollectionController) Create(collection ente.Collection, ownerID int64)
 	collection.Owner.ID = ownerID
 	collection.UpdationTime = time.Microseconds()
 	// [20th Dec 2022] Patch on server side untill majority of the existing mobile clients upgrade to a version higher > 0.7.0
-	// https://github.com/ente-io/photos-app/pull/725
+	// https://github.com/ente/photos-app/pull/725
 	if collection.Type == "CollectionType.album" {
 		collection.Type = "album"
 	}

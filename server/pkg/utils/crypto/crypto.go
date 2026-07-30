@@ -4,8 +4,8 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/stacktrace"
 	"golang.org/x/crypto/curve25519"
 )
 

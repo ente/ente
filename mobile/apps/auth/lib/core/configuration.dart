@@ -1,14 +1,17 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:ente_account_deletion/account_deletion.dart';
 import 'package:ente_base/models/database.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import 'package:ente_crypto_api/ente_crypto_api.dart';
+import 'package:ente_lock_screen/lock_screen_host.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-class Configuration extends BaseConfiguration {
+class Configuration extends BaseConfiguration
+    implements LockScreenHost, AccountDeletionHost {
   Configuration._privateConstructor();
 
   static final Configuration instance = Configuration._privateConstructor();

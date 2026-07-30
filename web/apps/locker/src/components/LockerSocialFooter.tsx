@@ -25,7 +25,7 @@ const socialLinks = [
     {
         icon: GitHubIcon,
         label: "GitHub",
-        url: "https://github.com/ente-io",
+        url: "https://github.com/ente",
         buttonSize: 36,
     },
     {

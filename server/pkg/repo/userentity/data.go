@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/ente-io/museum/ente"
-	model "github.com/ente-io/museum/ente/userentity"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	model "github.com/ente/museum/ente/userentity"
+	"github.com/ente/stacktrace"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,6 +23,9 @@ func (r *Repository) Create(ctx context.Context, userID int64, entry model.Entit
 		}
 		id = *idPrt
 	}
+	if entry.Type.CanRestoreDeletedData() {
+		return r.createOrRestoreDeleted(ctx, userID, id, entry)
+	}
 	err := r.DB.QueryRow(`INSERT into entity_data(
                          id,
                          user_id,
@@ -37,6 +40,36 @@ func (r *Repository) Create(ctx context.Context, userID int64, entry model.Entit
 		Scan(&id)
 	if err != nil {
 		return id, stacktrace.Propagate(err, "failed to create enity data")
+	}
+	return id, nil
+}
+
+func (r *Repository) createOrRestoreDeleted(ctx context.Context, userID int64, id string, entry model.EntityDataRequest) (string, error) {
+	err := r.DB.QueryRowContext(ctx, `INSERT into entity_data(
+                         id,
+                         user_id,
+                         type,
+                         encrypted_data,
+                         header) VALUES ($1,$2,$3,$4,$5)
+                         ON CONFLICT (id) DO UPDATE SET
+                         encrypted_data = EXCLUDED.encrypted_data,
+                         header = EXCLUDED.header,
+                         is_deleted = FALSE
+                         WHERE entity_data.user_id = EXCLUDED.user_id
+                         AND entity_data.type = EXCLUDED.type
+                         AND entity_data.is_deleted = TRUE
+                         RETURNING id`,
+		id,
+		userID,
+		entry.Type,
+		entry.EncryptedData,
+		entry.Header).
+		Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return id, ente.NewAlreadyExistsError("Entity already exists")
+	}
+	if err != nil {
+		return id, stacktrace.Propagate(err, "failed to create entity data")
 	}
 	return id, nil
 }

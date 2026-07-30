@@ -1,1 +1,0 @@
-- Fixed backup album selection to keep album order stable and show the selected badge inside album thumbnails.

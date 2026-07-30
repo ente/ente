@@ -1527,6 +1527,9 @@ class ClusterFeedbackService<T> {
     final allClusterIdsToCountMap = await mlDataDB.clusterIdToFaceCount();
     final ignoredClusters = await mlDataDB.getPersonIgnoredClusters(p.remoteID);
     final personClusters = await mlDataDB.getPersonClusterIDs(p.remoteID);
+    if (personClusters.isEmpty) {
+      return [];
+    }
     final personFaceIDs = await mlDataDB.getFaceIDsForPerson(p.remoteID);
     final personFileIDs = personFaceIDs.map(getFileIdFromFaceId<int>).toSet();
     w?.log(

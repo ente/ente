@@ -2,7 +2,7 @@
 
 The sweetness of Ente Photos, right on your computer. Linux, Windows and macOS.
 
-You can [**download** a pre-built binary from releases](https://github.com/ente-io/photos-desktop/releases/latest).
+You can [**download** a pre-built binary from releases](https://github.com/ente/photos-desktop/releases/latest).
 
 To know more about Ente, see [our main README](../README.md) or visit [ente.com](https://ente.com).
 
@@ -11,7 +11,7 @@ To know more about Ente, see [our main README](../README.md) or visit [ente.com]
 Clone this repository
 
 ```sh
-git clone https://github.com/ente-io/ente
+git clone https://github.com/ente/ente
 cd ente
 ```
 

@@ -4,12 +4,12 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/internal/testutil"
-	"github.com/ente-io/museum/pkg/controller/lock"
-	"github.com/ente-io/museum/pkg/repo"
-	storageBonusRepo "github.com/ente-io/museum/pkg/repo/storagebonus"
-	timeutil "github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/internal/testutil"
+	"github.com/ente/museum/pkg/controller/lock"
+	"github.com/ente/museum/pkg/repo"
+	storageBonusRepo "github.com/ente/museum/pkg/repo/storagebonus"
+	timeutil "github.com/ente/museum/pkg/utils/time"
 )
 
 const storageWarningIntegrationTestGiB = int64(1 << 30)

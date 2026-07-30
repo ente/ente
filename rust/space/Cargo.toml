@@ -1,0 +1,25 @@
+[package]
+name = "ente-space"
+version = "0.0.1"
+edition = "2024"
+
+[features]
+museum = []
+
+[dependencies]
+ente-core.workspace = true
+futures-util = "0.3.32"
+md-5.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+urlencoding.workspace = true
+zeroize.workspace = true
+
+[dev-dependencies]
+ente-accounts.workspace = true
+ente-test-support.workspace = true
+mockito.workspace = true
+reqwest = { version = "0.12", features = ["json", "rustls-tls-native-roots"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+uuid = { version = "1.11", features = ["v4"] }

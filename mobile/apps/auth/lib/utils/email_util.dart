@@ -82,21 +82,23 @@ Future<void> sendLogs(
         labelText: l10n.exportLogs,
         buttonAction: ButtonAction.third,
         onTap: () async {
-          Future.delayed(
-            const Duration(milliseconds: 200),
-            () => auth_share.shareDialog(
+          Future.delayed(const Duration(milliseconds: 200), () {
+            if (!context.mounted) return;
+            auth_share.shareDialog(
               context,
               title,
               saveAction: () async {
                 final zipFilePath = await getZippedLogsFile(context);
+                if (!context.mounted) return;
                 await exportLogs(context, zipFilePath);
               },
               sendAction: () async {
                 final zipFilePath = await getZippedLogsFile(context);
+                if (!context.mounted) return;
                 await exportLogs(context, zipFilePath, true);
               },
-            ),
-          );
+            );
+          });
         },
       ),
       ButtonWidget(
@@ -110,11 +112,9 @@ Future<void> sendLogs(
 }
 
 Future<void> openSupportPage(String? subject, String? body) async {
-  final baseSupportUri = Uri.https(
-    "github.com",
-    "/ente-io/ente/discussions/new",
-    {"category": "q-a"},
-  );
+  final baseSupportUri = Uri.https("github.com", "/ente/ente/discussions/new", {
+    "category": "q-a",
+  });
   final queryParameters = Map<String, String>.from(
     baseSupportUri.queryParameters,
   );
@@ -198,21 +198,24 @@ Future<void> shareLogs(
     ],
   );
   if (result?.action != null && result!.action == ButtonAction.second) {
-    Future.delayed(
-      const Duration(milliseconds: 200),
-      () => auth_share.shareDialog(
+    if (!context.mounted) return;
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (!context.mounted) return;
+      auth_share.shareDialog(
         context,
         context.l10n.exportLogs,
         saveAction: () async {
           final zipFilePath = await getZippedLogsFile(context);
+          if (!context.mounted) return;
           await exportLogs(context, zipFilePath);
         },
         sendAction: () async {
           final zipFilePath = await getZippedLogsFile(context);
+          if (!context.mounted) return;
           await exportLogs(context, zipFilePath, true);
         },
-      ),
-    );
+      );
+    });
   }
 }
 
@@ -247,6 +250,7 @@ Future<void> sendEmail(
   String? body,
 }) async {
   try {
+    if (!context.mounted) return;
     final String clientDebugInfo = await _clientInfo();
     final String subject0 = subject ?? '[Support]';
     final String body0 = (body ?? '') + clientDebugInfo;
@@ -259,12 +263,8 @@ Future<void> sendEmail(
     // );
     if (Platform.isAndroid) {
       // Special handling due to issue in proton mail android client
-      // https://github.com/ente-io/frame/pull/253
-      final Uri params = Uri(
-        scheme: 'mailto',
-        path: to,
-        query: 'subject=$subject0&body=$body0',
-      );
+      // https://github.com/ente/photos-app/pull/253
+      final params = buildMailtoUri(to: to, subject: subject0, body: body0);
       if (await canLaunchUrl(params)) {
         await launchUrl(params);
       } else {
@@ -272,10 +272,12 @@ Future<void> sendEmail(
         throw Exception('Could not launch ${params.toString()}');
       }
     } else {
+      if (!context.mounted) return;
       _showNoMailAppsDialog(context, to);
     }
   } catch (e) {
     _logger.severe("Failed to send email to $to", e);
+    if (!context.mounted) return;
     _showNoMailAppsDialog(context, to);
   }
 }
@@ -301,6 +303,7 @@ void _showNoMailAppsDialog(BuildContext context, String toEmail) {
     secondButtonLabel: l10n.ok,
     firstButtonOnTap: () async {
       await Clipboard.setData(ClipboardData(text: toEmail));
+      if (!context.mounted) return;
       showShortToast(context, l10n.copied);
     },
   );

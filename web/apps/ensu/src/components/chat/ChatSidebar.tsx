@@ -20,7 +20,6 @@ import {
     Typography,
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
-import { savedLocalUser } from "ente-accounts/services/accounts-db";
 import React, { memo } from "react";
 
 type IconProps = { size: number; strokeWidth: number };
@@ -44,7 +43,6 @@ export interface ChatSidebarProps {
     currentSessionId?: string;
     handleSelectSession: (sessionId: string) => void;
     requestDeleteSession: (sessionId: string) => void;
-    isLoggedIn: boolean;
     openSettingsModal: () => void;
 }
 
@@ -68,7 +66,6 @@ export const ChatSidebar = memo(
         currentSessionId,
         handleSelectSession,
         requestDeleteSession,
-        isLoggedIn,
         openSettingsModal,
     }: ChatSidebarProps) => (
         <Stack
@@ -394,9 +391,7 @@ export const ChatSidebar = memo(
                             variant="small"
                             sx={{ flex: 1, fontWeight: 600 }}
                         >
-                            {isLoggedIn
-                                ? (savedLocalUser()?.email ?? "Account")
-                                : "Settings"}
+                            Settings
                         </Typography>
                         <HugeiconsIcon
                             icon={ArrowRight01Icon}

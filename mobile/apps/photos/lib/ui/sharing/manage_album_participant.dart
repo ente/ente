@@ -111,6 +111,7 @@ class _ManageIndividualParticipantState
                       if (actionResult?.action != null) {
                         if (actionResult!.action == ButtonAction.first) {
                           try {
+                            if (!context.mounted) return;
                             isConvertToViewSuccess = await collectionActions
                                 .addEmailToCollection(
                                   context,
@@ -119,6 +120,7 @@ class _ManageIndividualParticipantState
                                   CollectionParticipantRole.viewer,
                                 );
                           } catch (e) {
+                            if (!context.mounted) return;
                             await showGenericErrorDialog(
                               context: context,
                               error: e,
@@ -157,6 +159,7 @@ class _ManageIndividualParticipantState
                 );
 
                 if ((result) && mounted) {
+                  if (!context.mounted) return;
                   Navigator.of(context).pop(true);
                 }
               },

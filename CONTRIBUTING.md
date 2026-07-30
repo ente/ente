@@ -18,7 +18,7 @@ Just hang around, enjoy the vibe. The Ente community — the people who are buil
 - [Discord](https://ente.com/discord)
 - [Mastodon](https://fosstodon.org/@ente)
 - [X / Twitter](https://twitter.com/enteio)
-- [Github Discussions](https://github.com/ente-io/ente/discussions)
+- [Github Discussions](https://github.com/ente/ente/discussions)
 
 Just being around might seem a small thing, but it provides us energy. Knowing that there is a community of people who care for what we are building, **who want us to do better**.
 
@@ -33,7 +33,7 @@ Visit our Crowdin projects to help with translations:
 | [Photos](https://crowdin.com/project/ente-photos-app)               | [![Crowdin](https://badges.crowdin.net/ente-photos-app/localized.svg)](https://crowdin.com/project/ente-photos-app)               |
 | [Photos Web / Desktop](https://crowdin.com/project/ente-photos-web) | [![Crowdin](https://badges.crowdin.net/ente-photos-web/localized.svg)](https://crowdin.com/project/ente-photos-web)               |
 
-If your language is not listed for translation, please [create a GitHub issue](https://github.com/ente-io/ente/issues/new?title=Request+for+New+Language+Translation&body=Language+name%3A+%0AProject%3A+auth%2Flocker%2Fphotos%2Fweb) to have it added. It is okay to have partial translations. Once ~90% of the strings in a language get translated, we will start surfacing it in the apps.
+If your language is not listed for translation, please [create a GitHub issue](https://github.com/ente/ente/issues/new?title=Request+for+New+Language+Translation&body=Language+name%3A+%0AProject%3A+auth%2Flocker%2Fphotos%2Fweb) to have it added. It is okay to have partial translations. Once ~90% of the strings in a language get translated, we will start surfacing it in the apps.
 
 ## Document
 
@@ -43,12 +43,18 @@ See [docs/](docs/README.md) for how to edit these documents.
 
 ## Code contributions
 
-If you'd like to contribute code, it is best to start small. Consider some well-scoped changes, say like adding more [custom icons to auth](mobile/apps/auth/docs/adding-icons.md), or fixing a specific bug. There is a (possibly outdated) list of tasks with the ["help wanted" or "good first issue"](<https://github.com/ente-io/ente/issues?q=state%3Aopen%20(label%3A%22good%20first%20issue%22%20OR%20label%3A%22help%20wanted%22%20)>) label too.
+Consider contributing in ways other than code. Our problem is not a lack of code.
 
-In your PR, please include before / after screenshots, and clearly indicate the tests that you performed.
+If you do contribute code, keep changes small and well-scoped: for example, fixing a specific bug or adding more [custom icons to auth](mobile/apps/auth/docs/adding-icons.md).
 
-Code that changes the behaviour of the product might not get merged, at least not initially. The PR can serve as a discussion bed, but you might find it easier to just start a discussion instead, or post your perspective in the (likely) existing thread about the behaviour change or new feature you wish for.
+For anything that changes UX, however small, please talk to us (on [GitHub](https://github.com/ente/ente/discussions) or [Discord](https://ente.com/discord)) before writing code. Whether a change fits the product is not something a diff can show, and we don't want you to spend effort on something we then cannot merge.
+
+Please don't open PRs with big product changes. These will not get merged. If you wish for a new feature or a behaviour change, start a discussion, or add your perspective to the (likely) existing thread about it.
+
+On agents: LLM-generated code is not a problem in itself, but writing code is not the bottleneck; verifying it is. What makes your contribution valuable is the testing and judgement that you add.
+
+**Ensure that you test everything that you touch.** In your PR, include before / after screenshots, and clearly indicate the tests that you performed.
 
 ## Leave a review or star
 
-If you haven't already done so, consider [starring this repository](https://github.com/ente-io/ente/stargazers) or leaving a review on [PlayStore](https://play.google.com/store/apps/details?id=io.ente.auth), [AppStore](https://apps.apple.com/us/app/ente-authenticator/id6444121398) or [AlternativeTo](https://alternativeto.net/software/ente-authenticator/).
+If you haven't already done so, consider [starring this repository](https://github.com/ente/ente/stargazers) or leaving a review on [PlayStore](https://play.google.com/store/apps/details?id=io.ente.auth), [AppStore](https://apps.apple.com/us/app/ente-authenticator/id6444121398) or [AlternativeTo](https://alternativeto.net/software/ente-authenticator/).

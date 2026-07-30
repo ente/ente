@@ -3,6 +3,9 @@ import "dart:typed_data";
 
 import "package:ente_components/ente_components.dart";
 import "package:ente_crypto/ente_crypto.dart";
+import "package:ente_lock_screen/auth_util.dart";
+import "package:ente_lock_screen/local_authentication_service.dart";
+import "package:ente_lock_screen/ui/lock_screen_options.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
@@ -18,14 +21,11 @@ import "package:photos/models/user_details.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/account/passkey_service.dart";
 import "package:photos/services/account/user_service.dart";
-import "package:photos/services/local_authentication_service.dart";
 import "package:photos/ui/account/request_pwd_verification_page.dart";
 import "package:photos/ui/account/sessions_page.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/settings/components/settings_item.dart";
 import "package:photos/ui/settings/components/settings_page_scaffold.dart";
-import "package:photos/ui/settings/lock_screen/lock_screen_options.dart";
-import "package:photos/utils/auth_util.dart";
 import "package:photos/utils/dialog_util.dart";
 
 class SecuritySettingsPage extends StatefulWidget {
@@ -155,6 +155,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
         await _disableTwoFactor();
         completer.isCompleted ? null : completer.complete();
       } else {
+        if (!context.mounted) return;
         await UserService.instance.setupTwoFactor(context, completer);
       }
       return completer.future;
@@ -203,6 +204,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
         memoryCount: false,
       );
       if ((details.profileData?.canDisableEmailMFA ?? false) == false) {
+        if (!mounted) return;
         await routeToPage(
           context,
           RequestPasswordVerificationPage(
@@ -217,6 +219,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
       }
       await UserService.instance.updateEmailMFA(isEnabled);
     } catch (e) {
+      if (!mounted) return;
       showToast(context, AppLocalizations.of(context).somethingWentWrong);
     }
   }
@@ -227,7 +230,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
           context,
           AppLocalizations.of(context).authToViewPasskey,
         );
-    if (hasAuthenticated) {
+    if (hasAuthenticated && mounted && context.mounted) {
       await _handlePasskeyClick(context);
     }
   }
@@ -236,9 +239,10 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
     try {
       final isPassKeyResetEnabled = await PasskeyService.instance
           .isPasskeyRecoveryEnabled();
+      if (!mounted || !buildContext.mounted) return;
       if (!isPassKeyResetEnabled) {
         final Uint8List recoveryKey = await UserService.instance
-            .getOrCreateRecoveryKey(context);
+            .getOrCreateRecoveryKey(buildContext);
         final resetKey = CryptoUtil.generateKey();
         final resetKeyBase64 = CryptoUtil.bin2base64(resetKey);
         final encryptionResult = CryptoUtil.encryptSync(resetKey, recoveryKey);
@@ -248,20 +252,25 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
           CryptoUtil.bin2base64(encryptionResult.nonce!),
         );
       }
+      if (!mounted || !buildContext.mounted) return;
       PasskeyService.instance.openPasskeyPage(buildContext).ignore();
     } catch (e, s) {
       _logger.severe("failed to open passkey page", e, s);
-      await showGenericErrorDialog(context: context, error: e);
+      if (buildContext.mounted) {
+        await showGenericErrorDialog(context: buildContext, error: e);
+      }
     }
   }
 
   Future<void> _onAppLockTap(BuildContext context) async {
     if (await LocalAuthentication().isDeviceSupported()) {
+      if (!context.mounted) return;
       final bool result = await requestAuthentication(
         context,
         AppLocalizations.of(context).authToChangeLockscreenSetting,
       );
       if (result) {
+        if (!context.mounted) return;
         await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (BuildContext context) {
@@ -271,6 +280,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
         );
       }
     } else {
+      if (!context.mounted) return;
       await showErrorDialog(
         context,
         AppLocalizations.of(context).noSystemLockFound,
@@ -288,6 +298,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
           AppLocalizations.of(context).authToViewYourActiveSessions,
         );
     if (hasAuthenticated) {
+      if (!context.mounted) return;
       unawaited(
         Navigator.of(context).push(
           MaterialPageRoute(

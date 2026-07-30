@@ -1,7 +1,7 @@
 import "package:collection/collection.dart";
 import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/search_constants.dart";
-import "package:photos/utils/local_settings.dart";
+import "package:photos/settings/local_settings.dart";
 
 class PeopleSortConfig {
   final PeopleSortKey sortKey;

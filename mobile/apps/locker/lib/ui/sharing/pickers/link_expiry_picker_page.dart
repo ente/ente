@@ -1,16 +1,10 @@
-import "package:ente_ui/components/captioned_text_widget_v2.dart";
-import "package:ente_ui/components/divider_widget.dart";
-import "package:ente_ui/components/menu_item_widget_v2.dart";
-import "package:ente_ui/components/separators.dart";
-import "package:ente_ui/components/title_bar_title_widget.dart";
-import "package:ente_ui/components/title_bar_widget.dart";
-import "package:ente_ui/theme/ente_theme.dart";
-import "package:ente_ui/utils/dialog_util.dart";
+import 'package:ente_components/ente_components.dart';
 import 'package:flutter/material.dart';
 import "package:locker/l10n/l10n.dart";
 import "package:locker/services/collections/collections_api_client.dart";
 import "package:locker/services/collections/models/collection.dart";
 import "package:locker/ui/viewer/date/date_time_picker.dart";
+import "package:locker/utils/error_sheet.dart";
 import "package:tuple/tuple.dart";
 
 class LinkExpiryPickerPage extends StatelessWidget {
@@ -20,34 +14,19 @@ class LinkExpiryPickerPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: CustomScrollView(
-        primary: false,
-        slivers: <Widget>[
-          TitleBarWidget(
-            flexibleSpaceTitle: TitleBarTitleWidget(
-              title: context.l10n.linkExpiry,
+      backgroundColor: context.componentColors.backgroundBase,
+      body: AppBarComponent(
+        title: context.l10n.linkExpiry,
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.lg,
+              Spacing.xl,
+              Spacing.lg,
+              Spacing.xl,
             ),
+            sliver: SliverToBoxAdapter(child: ItemsWidget(collection)),
           ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 20,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.all(Radius.circular(8)),
-                      child: ItemsWidget(collection),
-                    ),
-                  ],
-                ),
-              );
-            }, childCount: 1),
-          ),
-          const SliverPadding(padding: EdgeInsets.symmetric(vertical: 12)),
         ],
       ),
     );
@@ -77,45 +56,25 @@ class _ItemsWidgetState extends State<ItemsWidget> {
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> items = [];
-    for (int index = 0; index < _expiryOptions.length; index++) {
-      final expiryOpiton = _expiryOptions[index];
-      items.add(
-        _menuItemForPicker(
-          context,
-          expiryOpiton,
-          isFirst: index == 0,
-          isLast: index == _expiryOptions.length - 1,
-        ),
-      );
-    }
-    items = addSeparators(
-      items,
-      DividerWidget(
-        dividerType: DividerType.menuNoIcon,
-        bgColor: getEnteColorScheme(context).fillFaint,
-      ),
+    return MenuGroupComponent(
+      items: [
+        for (final expiryOption in _expiryOptions)
+          _menuItemForPicker(context, expiryOption),
+      ],
     );
-    return Column(mainAxisSize: MainAxisSize.min, children: items);
   }
 
   Widget _menuItemForPicker(
     BuildContext context,
-    Tuple2<String, int> expiryOpiton, {
-    required bool isFirst,
-    required bool isLast,
-  }) {
-    return MenuItemWidgetV2(
-      menuItemColor: getEnteColorScheme(context).fillFaint,
-      captionedTextWidget: CaptionedTextWidgetV2(title: expiryOpiton.item1),
-      alignCaptionedTextToLeft: true,
-      isTopBorderRadiusRemoved: !isFirst,
-      isBottomBorderRadiusRemoved: !isLast,
-      alwaysShowSuccessState: true,
-      surfaceExecutionStates: expiryOpiton.item2 == -1 ? false : true,
+    Tuple2<String, int> expiryOption,
+  ) {
+    return MenuComponent(
+      title: expiryOption.item1,
+      shouldSurfaceExecutionStates: expiryOption.item2 != -1,
+      shouldShowSuccessConfirmation: expiryOption.item2 != -1,
       onTap: () async {
         int newValidTill = -1;
-        final int expireAfterInMicroseconds = expiryOpiton.item2;
+        final int expireAfterInMicroseconds = expiryOption.item2;
         // need to manually select time
         if (expireAfterInMicroseconds < 0) {
           final now = DateTime.now();
@@ -139,18 +98,18 @@ class _ItemsWidgetState extends State<ItemsWidget> {
           debugPrint(
             "Setting expire date to  ${DateTime.fromMicrosecondsSinceEpoch(newValidTill)}",
           );
-          await updateTime(newValidTill, context);
+          await updateTime(newValidTill, context.mounted ? context : null);
         }
       },
     );
   }
 
-  Future<void> updateTime(int newValidTill, BuildContext context) async {
+  Future<void> updateTime(int newValidTill, BuildContext? context) async {
     await _updateUrlSettings(context, {'validTill': newValidTill});
   }
 
   Future<void> _updateUrlSettings(
-    BuildContext context,
+    BuildContext? context,
     Map<String, dynamic> prop,
   ) async {
     try {
@@ -159,7 +118,9 @@ class _ItemsWidgetState extends State<ItemsWidget> {
         prop,
       );
     } catch (e) {
-      await showGenericErrorBottomSheet(context: context, error: e);
+      if (context != null && context.mounted) {
+        await showLockerErrorSheet(context, e);
+      }
       rethrow;
     }
   }

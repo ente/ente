@@ -19,7 +19,6 @@ import "package:photos/services/machine_learning/face_ml/person/person_service.d
 import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/actions/collection/collection_sharing_actions.dart';
 import "package:photos/ui/components/buttons/button_widget.dart";
-import "package:photos/ui/components/popup_menu/ente_popup_menu_button.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_actions.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_config.dart";
@@ -27,9 +26,10 @@ import "package:photos/ui/viewer/gallery/hooks/pick_person_avatar.dart";
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
 import "package:photos/ui/viewer/hierarchicial_search/app_bar_filter_chips.dart";
 import "package:photos/ui/viewer/people/person_cluster_suggestion.dart";
-import "package:photos/ui/viewer/people/person_selection_action_widgets.dart";
+import "package:photos/ui/viewer/people/reassign_me_selection_page.dart";
 import "package:photos/ui/viewer/people/save_or_edit_person.dart";
 import "package:photos/utils/dialog_util.dart";
+import "package:photos/utils/person_contact_linking_util.dart";
 
 const kShowUnnamedIgnoredPersonEventSource =
     "_AppBarWidgetState._showPersonUnnamedDelete";
@@ -126,7 +126,10 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
     required PersonEntity sourcePerson,
     required String? title,
   }) {
-    if (sourcePerson.data.email == Configuration.instance.getEmail()) {
+    if (isCurrentUserContactLink(
+      email: sourcePerson.data.email,
+      userID: sourcePerson.data.userID,
+    )) {
       if (title == null) {
         return context.l10n.me;
       }
@@ -165,8 +168,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
               if (event.person != null &&
                   event.type == PeopleEventType.saveOrEditPerson &&
                   widget.person.remoteID == event.person!.remoteID &&
-                  (event.source == "linkEmailToPerson" ||
-                      event.source == "reassignMe")) {
+                  event.source == "reassignMe") {
                 person = event.person!;
 
                 _appBarTitle = _resolveAppBarTitle(
@@ -186,7 +188,8 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
     if (oldWidget.title != widget.title ||
         oldWidget.person.remoteID != widget.person.remoteID ||
         oldWidget.person.data.name != widget.person.data.name ||
-        oldWidget.person.data.email != widget.person.data.email) {
+        oldWidget.person.data.email != widget.person.data.email ||
+        oldWidget.person.data.userID != widget.person.data.userID) {
       person = widget.person;
       _appBarTitle = _resolveAppBarTitle(
         sourcePerson: person,
@@ -251,14 +254,14 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
   }
 
   Future<dynamic> _editPerson(BuildContext context) async {
+    final clusterID = person.data.assigned.isEmpty
+        ? null
+        : person.data.assigned.first.id;
     final result = await routeToPage(
       context,
-      SaveOrEditPerson(
-        person.data.assigned.first.id,
-        person: person,
-        isEditing: true,
-      ),
+      SaveOrEditPerson(clusterID, person: person, isEditing: true),
     );
+    if (!mounted) return;
     if (result is PersonEntity) {
       _appBarTitle = result.data.name;
       person = result;
@@ -271,6 +274,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
     final bool isIgnored = person.data.isIgnored;
     final bool isPinned = person.data.isPinned;
     final bool hideFromMemories = person.data.hideFromMemories;
+    final bool hasAssignedCluster = person.data.assigned.isNotEmpty;
     final List<Widget> actions = <Widget>[];
     // If the user has selected files, don't show any actions
     if (widget.selectedFiles.files.isNotEmpty ||
@@ -304,22 +308,24 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
             iconColor,
           ),
         ),
-        EntePopupMenuOption(
-          value: PeoplePopupAction.reviewSuggestions,
-          label: AppLocalizations.of(context).review,
-          leadingWidget: galleryAppBarMenuIcon(
-            HugeIcons.strokeRoundedSearch01,
-            iconColor,
+        if (hasAssignedCluster)
+          EntePopupMenuOption(
+            value: PeoplePopupAction.reviewSuggestions,
+            label: AppLocalizations.of(context).review,
+            leadingWidget: galleryAppBarMenuIcon(
+              HugeIcons.strokeRoundedSearch01,
+              iconColor,
+            ),
           ),
-        ),
-        EntePopupMenuOption(
-          value: PeoplePopupAction.setCover,
-          label: AppLocalizations.of(context).setCover,
-          leadingWidget: galleryAppBarMenuIcon(
-            HugeIcons.strokeRoundedImage01,
-            iconColor,
+        if (hasAssignedCluster)
+          EntePopupMenuOption(
+            value: PeoplePopupAction.setCover,
+            label: AppLocalizations.of(context).setCover,
+            leadingWidget: galleryAppBarMenuIcon(
+              HugeIcons.strokeRoundedImage01,
+              iconColor,
+            ),
           ),
-        ),
         EntePopupMenuOption(
           value: PeoplePopupAction.pinPerson,
           label: isPinned ? context.l10n.unpinPerson : context.l10n.pinPerson,
@@ -342,8 +348,10 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
             iconColor,
           ),
         ),
-        if (person.data.email != null &&
-            (person.data.email == Configuration.instance.getEmail()))
+        if (isCurrentUserContactLink(
+          email: person.data.email,
+          userID: person.data.userID,
+        ))
           EntePopupMenuOption(
             value: PeoplePopupAction.reassignMe,
             label: context.l10n.reassignMe,
@@ -379,14 +387,15 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
             iconColor,
           ),
         ),
-        EntePopupMenuOption(
-          value: PeoplePopupAction.reviewSuggestions,
-          label: AppLocalizations.of(context).review,
-          leadingWidget: galleryAppBarMenuIcon(
-            HugeIcons.strokeRoundedSearch01,
-            iconColor,
+        if (hasAssignedCluster)
+          EntePopupMenuOption(
+            value: PeoplePopupAction.reviewSuggestions,
+            label: AppLocalizations.of(context).review,
+            leadingWidget: galleryAppBarMenuIcon(
+              HugeIcons.strokeRoundedSearch01,
+              iconColor,
+            ),
           ),
-        ),
         EntePopupMenuOption(
           value: PeoplePopupAction.unignore,
           label: AppLocalizations.of(context).showPerson,
@@ -470,9 +479,11 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
         person.remoteID,
         hideFromMemories: shouldHideFromMemories,
       );
-      setState(() {
-        person = updatedPerson;
-      });
+      if (mounted) {
+        setState(() {
+          person = updatedPerson;
+        });
+      }
       Bus.instance.fire(
         PeopleChangedEvent(
           type: PeopleEventType.saveOrEditPerson,
@@ -494,6 +505,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
       firstButtonOnTap: () async {
         try {
           await PersonService.instance.deletePerson(person.remoteID);
+          if (!context.mounted) return;
           Navigator.of(context).pop();
         } catch (e, s) {
           _logger.severe('Resetting person failed', e, s);
@@ -540,6 +552,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
     if (!mounted || result?.action != ButtonAction.error) {
       return;
     }
+    if (!context.mounted) return;
     showShortToast(
       context,
       AppLocalizations.of(context).somethingWentWrongPleaseTryAgain,
@@ -597,6 +610,7 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
         !shouldCloseDetailPage) {
       return;
     }
+    if (!context.mounted) return;
     await Navigator.of(context).maybePop();
   }
 
@@ -604,9 +618,6 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
     final result = await showPersonAvatarPhotoSheet(context, person);
     if (result != null) {
       _logger.info('Person avatar updated');
-      setState(() {
-        person = result;
-      });
       Bus.instance.fire(
         PeopleChangedEvent(
           type: PeopleEventType.saveOrEditPerson,
@@ -614,6 +625,10 @@ class _AppBarWidgetState extends State<PeopleAppBar> {
           person: result,
         ),
       );
+      if (!mounted) return;
+      setState(() {
+        person = result;
+      });
     }
   }
 

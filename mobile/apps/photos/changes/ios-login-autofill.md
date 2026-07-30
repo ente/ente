@@ -1,1 +1,0 @@
-- Improved iOS Password AutoFill detection on Photos login and sign-up screens.

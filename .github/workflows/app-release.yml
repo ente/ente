@@ -28,6 +28,7 @@ on:
                 type: string
 
 permissions:
+    actions: read
     contents: write
     pull-requests: write
 
@@ -45,15 +46,23 @@ jobs:
             VERSION: ${{ inputs.version }}
 
         steps:
+            - name: Validate version input
+              shell: bash
+              run: |
+                  if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                      echo "::error::version must be x.y.z"
+                      exit 1
+                  fi
+
             - name: Checkout main
               if: inputs.action == 'start'
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
               with:
                   ref: main
 
             - name: Checkout release branch
               if: inputs.action == 'promote'
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
               with:
                   ref: release/${{ inputs.app }}-v${{ inputs.version }}
 
@@ -67,32 +76,31 @@ jobs:
                   permission-contents: write
                   permission-pull-requests: write
 
-            - name: Start release
-              if: inputs.action == 'start'
+            - name: Configure git identity
               env:
                   GH_TOKEN: ${{ steps.app_token.outputs.token }}
                   APP_SLUG: ${{ steps.app_token.outputs.app-slug }}
               run: |
+                  bot_id="$(gh api "/users/${APP_SLUG}[bot]" --jq .id)"
+                  git config --global user.name "${APP_SLUG}[bot]"
+                  git config --global user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
+
+            - name: Start release
+              if: inputs.action == 'start'
+              env:
+                  GH_TOKEN: ${{ steps.app_token.outputs.token }}
+                  RUNS_TOKEN: ${{ github.token }}
+              run: |
                   set -euo pipefail
 
                   app_version() {
-                      if [ "${APP}" = "ensu" ]; then
-                          node .github/scripts/ensu-version.mjs "$@"
-                      elif [ "${APP}" = "photos-desktop" ]; then
-                          node .github/scripts/photos-desktop-version.mjs "$@"
-                      else
-                          node .github/scripts/flutter-version.mjs "${APP}" "$@"
-                      fi
+                      node .github/scripts/app-version.mjs "${APP}" "$@"
                   }
 
                   git_push_release_branch() {
                       git -c http.https://github.com/.extraheader= push \
                           "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$@"
                   }
-
-                  bot_id="$(gh api "/users/${APP_SLUG}[bot]" --jq .id)"
-                  git config user.name "${APP_SLUG}[bot]"
-                  git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
 
                   release_branch="release/${APP}-v${VERSION}"
                   beta_tag="${APP}-v${VERSION}-beta"
@@ -112,13 +120,17 @@ jobs:
                   fi
 
                   git switch -c "${release_branch}"
-                  if [ "${APP}" = "ensu" ] || [ "${APP}" = "photos-desktop" ]; then
+                  if [ "${APP}" = "photos-desktop" ]; then
                       app_version set "${VERSION}"
                       git commit -am "${APP^} v${VERSION}"
+                  else
+                      build_base="$(app_version get-build-base)"
+                      last_run="$(GH_TOKEN="${RUNS_TOKEN}" gh api "/repos/${GITHUB_REPOSITORY}/actions/workflows/${APP}-build.yml/runs?per_page=1" --jq '.workflow_runs[0].run_number // 0')"
+                      app_version set-build-and-commit "${VERSION}" "$((build_base + last_run + 1))"
                   fi
                   git_push_release_branch "${release_branch}"
 
-                  gh release delete "${beta_tag}" --yes --cleanup-tag --repo ente-io/nightly || true
+                  gh release delete "${beta_tag}" --yes --cleanup-tag --repo ente/nightly || true
                   git push origin ":refs/tags/${beta_tag}" || true
 
                   git switch -c "${next_branch}" main
@@ -143,13 +155,7 @@ jobs:
                   set -euo pipefail
 
                   app_version() {
-                      if [ "${APP}" = "ensu" ]; then
-                          node .github/scripts/ensu-version.mjs "$@"
-                      elif [ "${APP}" = "photos-desktop" ]; then
-                          node .github/scripts/photos-desktop-version.mjs "$@"
-                      else
-                          node .github/scripts/flutter-version.mjs "${APP}" "$@"
-                      fi
+                      node .github/scripts/app-version.mjs "${APP}" "$@"
                   }
 
                   git_push_release_branch() {
@@ -160,7 +166,7 @@ jobs:
                   release_branch="release/${APP}-v${VERSION}"
 
                   if [ "${APP}" = "photos-desktop" ]; then
-                      if ! draft="$(gh release view "v${VERSION}" --repo ente-io/photos-desktop --json isDraft --jq .isDraft 2>/dev/null)" || [ "${draft}" != "true" ]; then
+                      if ! draft="$(gh release view "v${VERSION}" --repo ente/photos-desktop --json isDraft --jq .isDraft 2>/dev/null)" || [ "${draft}" != "true" ]; then
                           echo "::error::v${VERSION} draft release does not exist in photos-desktop"
                           exit 1
                       fi
@@ -179,8 +185,12 @@ jobs:
                       git tag "photos-desktop-v${VERSION}" "${release_sha}"
                       git push origin "refs/tags/photos-desktop-v${VERSION}"
 
-                      gh release edit "v${VERSION}" --repo ente-io/photos-desktop --draft=false --prerelease=false --latest
-                      gh release delete "photos-desktop-v${VERSION}-rc" --yes --cleanup-tag --repo ente-io/nightly || true
+                      git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/ente/photos-desktop.git" photos-desktop
+                      git -C photos-desktop commit --allow-empty -m "v${VERSION}"
+                      git -C photos-desktop push
+
+                      gh release edit "v${VERSION}" --repo ente/photos-desktop --draft=false --prerelease=false --latest
+                      gh release delete "photos-desktop-v${VERSION}-rc" --yes --cleanup-tag --repo ente/nightly || true
                       git_push_release_branch ":refs/heads/${release_branch}"
                       git push origin ":refs/tags/photos-desktop-v${VERSION}-rc" || true
                       exit 0
@@ -213,7 +223,7 @@ jobs:
                   gh release edit "${rc_tag}" --tag "${final_tag}" --title "${final_tag}" --target "${release_sha}" --draft=false --prerelease=false --verify-tag
 
                   git push origin ":refs/tags/${rc_tag}" || true
-                  gh release delete "${rc_tag}" --yes --cleanup-tag --repo ente-io/nightly || true
+                  gh release delete "${rc_tag}" --yes --cleanup-tag --repo ente/nightly || true
                   git_push_release_branch ":refs/heads/${release_branch}"
 
     sync-docs:
@@ -225,7 +235,7 @@ jobs:
 
         steps:
             - name: Checkout main
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
               with:
                   ref: main
 
@@ -258,7 +268,7 @@ jobs:
                   git config user.email "${bot_id}+${APP_SLUG}[bot]@users.noreply.github.com"
 
                   if [ "${APP}" = "photos-desktop" ]; then
-                      RELEASE_BODY="$(gh release view "v${VERSION}" --repo ente-io/photos-desktop --json body --jq .body)"
+                      RELEASE_BODY="$(gh release view "v${VERSION}" --repo ente/photos-desktop --json body --jq .body)"
                   else
                       RELEASE_BODY="$(gh release view "${APP}-v${VERSION}" --json body --jq .body)"
                   fi

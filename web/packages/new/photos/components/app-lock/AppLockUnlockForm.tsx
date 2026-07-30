@@ -376,13 +376,12 @@ const PinUnlockContent = ({
     }
 
     return (
-        <Stack spacing={0} useFlexGap alignItems="center">
+        <Stack spacing={0} useFlexGap sx={{ alignItems: "center" }}>
             <AppLockCard closeAction={closeAction}>
                 <Stack
                     spacing={0}
                     useFlexGap
-                    alignItems="center"
-                    sx={appLockModalContentSx}
+                    sx={[{ alignItems: "center" }, appLockModalContentSx]}
                 >
                     <AppLockFormHeader
                         title={
@@ -398,9 +397,8 @@ const PinUnlockContent = ({
                     <Stack
                         direction="row"
                         spacing={1.25}
-                        justifyContent="center"
                         onClick={focusFirstEmptyPinInput}
-                        sx={{ mb: 0, width: "100%" }}
+                        sx={{ justifyContent: "center", mb: 0, width: "100%" }}
                     >
                         {pin.map((digit, i) => (
                             <TextField
@@ -520,15 +518,14 @@ const PasswordUnlockContent = ({
     }
 
     return (
-        <Stack spacing={0} useFlexGap alignItems="center">
+        <Stack spacing={0} useFlexGap sx={{ alignItems: "center" }}>
             <AppLockCard closeAction={closeAction}>
                 <Stack
                     component="form"
                     onSubmit={(e: React.SubmitEvent) => void handleSubmit(e)}
                     spacing={0}
                     useFlexGap
-                    alignItems="center"
-                    sx={appLockModalContentSx}
+                    sx={[{ alignItems: "center" }, appLockModalContentSx]}
                 >
                     <AppLockFormHeader
                         title={
@@ -676,13 +673,12 @@ const DeviceLockUnlockContent = ({
     }, [handleDeviceLockUnlock]);
 
     return (
-        <Stack spacing={0} useFlexGap alignItems="center">
+        <Stack spacing={0} useFlexGap sx={{ alignItems: "center" }}>
             <AppLockCard closeAction={closeAction}>
                 <Stack
                     spacing={0}
                     useFlexGap
-                    alignItems="center"
-                    sx={appLockModalContentSx}
+                    sx={[{ alignItems: "center" }, appLockModalContentSx]}
                 >
                     <AppLockFormHeader
                         title={

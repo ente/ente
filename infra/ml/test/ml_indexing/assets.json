@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "dataset": "ml-indexing/v1",
+  "fixture_base_url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/",
+  "manifest": {
+    "path": "manifest.json",
+    "url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/manifest.json",
+    "sha256": "fa4a2dcd1787825a77b85343aace954572e0f4d9080e4cb3031179159af9011c"
+  },
+  "python_golden": {
+    "path": "goldens/python/results.json",
+    "url": "https://raw.githubusercontent.com/ente/test-fixtures/13c7cf83717140be20b32e6fbb178d5f15ea09ea/ml/indexing/v1/goldens/python/results.json",
+    "sha256": "2def6506e098234abc2e6e10febd820b8e3e66d6ad4c9525cb4f1cec3418f9b6"
+  },
+  "onnx_runtime": {
+    "version": "1.27.0",
+    "archives": {
+      "aarch64-apple-darwin": {
+        "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.27.0/onnxruntime-osx-arm64-1.27.0.tgz",
+        "sha256": "545e81c58152353acb0d1e8bd6ce4b62f830c0961f5b3acfedc790ffd76e477a",
+        "library_path": "./onnxruntime-osx-arm64-1.27.0/lib/libonnxruntime.dylib",
+        "library_sha256": "2ebb057c654ef6422b28bc84bfcc69591b4eccea7814a3bd84677607c36096de"
+      },
+      "x86_64-unknown-linux-gnu": {
+        "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.27.0/onnxruntime-linux-x64-1.27.0.tgz",
+        "sha256": "547e40a48f1fe73e3f812d7c88a948612c23f896b91e4e2ee1e232d7b468246f",
+        "library_path": "onnxruntime-linux-x64-1.27.0/lib/libonnxruntime.so.1.27.0",
+        "library_sha256": "4061866361d9a8d2872f5f419c5515ce35a830a0c5c77ce1723320ac0dbabfc7"
+      },
+      "aarch64-unknown-linux-gnu": {
+        "url": "https://github.com/microsoft/onnxruntime/releases/download/v1.27.0/onnxruntime-linux-aarch64-1.27.0.tgz",
+        "sha256": "3e4d83ac06924a32a07b6d7f91ce6f852876153fc0bbdf931bf517a140bfbe48",
+        "library_path": "onnxruntime-linux-aarch64-1.27.0/lib/libonnxruntime.so.1.27.0",
+        "library_sha256": "c36bc200e7e6c093b8abb0b34590fbdd8c52fd3fb5e33795b9523ffdde2fce0f"
+      }
+    }
+  },
+  "models": {
+    "face_detection": {
+      "file_name": "yolov5s_face_640_640_static_b1.onnx",
+      "url": "https://models.ente.com/yolov5s_face_640_640_static_b1.onnx",
+      "sha256": "e047647409403d52696035ecd445792173e50d7fbdcccac97b958a585db9aa3d"
+    },
+    "face_embedding": {
+      "file_name": "mobilefacenet_portable_static_b1.onnx",
+      "url": "https://models.ente.com/mobilefacenet_portable_static_b1.onnx",
+      "sha256": "0763fc33f54e138476194da95987e133b3e976075a6b1d3e1b2caedb251b1a36"
+    },
+    "clip_image": {
+      "file_name": "mobileclip_s2_image_gelu_opset20.onnx",
+      "url": "https://models.ente.com/mobileclip_s2_image_gelu_opset20.onnx",
+      "sha256": "205a430af825e501c5138e5bb9abea942482a7a4fd4a680e98e47cf0830dce7e"
+    },
+    "clip_text": {
+      "file_name": "mobileclip_s2_text_opset18_quant.onnx",
+      "url": "https://models.ente.com/mobileclip_s2_text_opset18_quant.onnx",
+      "sha256": "d92f33dfcff83077fc2e0d3414250710efbb51795dfd89767bdbefb5fdc47322"
+    },
+    "clip_text_vocab": {
+      "file_name": "bpe_simple_vocab_16e6.txt",
+      "url": "https://models.ente.com/bpe_simple_vocab_16e6.txt",
+      "sha256": "67603cfda2e032ad77b5f8808af37789d590db664b26df8705d2bf8b3c553fc8"
+    }
+  },
+  "expected_unsupported_decode_file_ids": ["IMG_8905.CR2"],
+  "thresholds": {
+    "clip_cosine_distance": 0.015,
+    "face_embedding_cosine_distance": 0.015,
+    "box_iou": 0.8,
+    "face_duplicate_iou": 0.8,
+    "face_match_iou_floor": 0.05,
+    "landmark_error": 0.01,
+    "score_delta": 0.01,
+    "min_face_score_for_comparison": 0.8,
+    "embedding_norm_tolerance": 0.001
+  }
+}

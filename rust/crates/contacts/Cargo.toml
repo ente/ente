@@ -2,15 +2,24 @@
 name = "ente-contacts"
 edition = "2024"
 
+[features]
+museum = []
+
 [dependencies]
-ente-core = { workspace = true, features = ["srp"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-thiserror = "2"
-md-5 = "0.11"
-sha2 = "0.11"
+ente-accounts.workspace = true
+ente-core.workspace = true
+md-5.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
 uuid = { version = "1", features = ["v4", "js"] }
 
 [dev-dependencies]
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-mockito = "1.6"
+ente-test-support.workspace = true
+hmac = "0.13"
+mockito.workspace = true
+reqwest = { version = "0.12", features = ["json", "rustls-tls-native-roots"] }
+sha1 = "0.11"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
+zeroize.workspace = true

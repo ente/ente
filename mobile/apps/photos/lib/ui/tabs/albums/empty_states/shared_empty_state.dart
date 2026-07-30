@@ -41,14 +41,7 @@ class SharedEmptyState extends StatelessWidget {
                   Text(
                     strings.albumsSharedEmptyTitle,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: "Nunito",
-                      fontWeight: FontWeight.w800,
-                      fontSize: 24,
-                      height: 28 / 24,
-                      letterSpacing: 0,
-                      color: colors.textBase,
-                    ),
+                    style: TextStyles.display2.copyWith(color: colors.textBase),
                   ),
                   const SizedBox(height: 24),
                   SizedBox(
@@ -70,12 +63,10 @@ class SharedEmptyState extends StatelessWidget {
             ButtonComponent(
               label: strings.shareAnAlbum,
               shouldSurfaceExecutionStates: false,
-              onTap: () async {
-                showCollectionActionSheet(
-                  context,
-                  actionType: CollectionActionType.shareCollection,
-                );
-              },
+              onTap: () => showCollectionActionSheet(
+                context,
+                actionType: CollectionActionType.shareCollection,
+              ),
             ),
           ],
         ),

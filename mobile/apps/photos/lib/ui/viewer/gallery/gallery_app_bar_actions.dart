@@ -3,7 +3,6 @@ import "dart:async";
 import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
-import "package:photos/ui/components/popup_menu/ente_popup_menu_button.dart";
 
 /// Shared trailing-action surface for the gallery / people / cluster app bars.
 class GalleryAppBarIconButtonSurface extends StatelessWidget {

@@ -1,5 +1,5 @@
-import { type Collection } from "ente-media/collection";
-import { type EnteFile } from "ente-media/file";
+import type { Collection } from "ente-media/collection";
+import type { EnteFile } from "ente-media/file";
 import { useEffect } from "react";
 
 import type { JourneyPoint } from "../types";

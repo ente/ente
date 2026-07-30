@@ -47,7 +47,7 @@ Future<String> generateQRImageBase64(String data) async {
   return base64Encode(pngBytes);
 }
 
-Future<String> generateOTPEntryHtml(Code code, BuildContext context) async {
+Future<String> generateOTPEntryHtml(Code code) async {
   // Capitalize algorithm for Google Authenticator compatibility in QR codes
   final qrData = code.rawData
       .replaceAll('algorithm=Algorithm.', 'algorithm=')
@@ -60,6 +60,7 @@ Future<String> generateOTPEntryHtml(Code code, BuildContext context) async {
     notes = '<p class="group">Note: <b>$notes</b></p>';
   }
   return '''
+    <section class="otp-entry-card">
     <table class="otp-entry">
       <tr>
         <td>
@@ -76,9 +77,8 @@ Future<String> generateOTPEntryHtml(Code code, BuildContext context) async {
         </td>
       </tr>
     </table>
-    <br/>
     <hr class="red-separator" />
-    <br/>
+    </section>
   ''';
 }
 
@@ -90,7 +90,7 @@ Future<String> generateHtml(BuildContext context) async {
 
   for (final code in allCodes) {
     if (code.hasError) continue;
-    final entry = await generateOTPEntryHtml(code, context);
+    final entry = await generateOTPEntryHtml(code);
     enteries.add(entry);
   }
 
@@ -193,10 +193,17 @@ Future<String> generateHtml(BuildContext context) async {
     width: 24px !important;
   }
 
+  .otp-entry-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
   .otp-entry {
     width: 100%;
     table-layout: fixed;
     border-collapse: collapse;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .otp-entry td {
@@ -222,6 +229,8 @@ Future<String> generateHtml(BuildContext context) async {
     width: 30%;
     text-align: center;
     vertical-align: middle;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .otp-entry p {
@@ -237,6 +246,22 @@ Future<String> generateHtml(BuildContext context) async {
     height: 1px;
     background-color: rgb(173, 0, 255);
   }
+
+  @media print {
+    body {
+      background-color: #fff;
+    }
+
+    .otp-entry-card,
+    .otp-entry,
+    .otp-entry tr,
+    .otp-entry td,
+    .otp-qr,
+    .otp-qr img {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+  }
 </style>
   </head>
   <body>
@@ -248,9 +273,7 @@ Future<String> generateHtml(BuildContext context) async {
             30px 30px 30px; max-width: 700px; margin: 0 auto; border-radius: 5px;
             font-size: 16px; ">
       <main>
-        <p>
-          ${enteries.join('')}
-        </p>
+        ${enteries.join('')}
       </main>
     </div>
     <br />  
@@ -258,7 +281,7 @@ Future<String> generateHtml(BuildContext context) async {
   <div class="footer" style="text-align: center; font-size: 12px; color:
     rgb(136, 136, 136)">
     <div>
-      <a href="https://ente.com" target="_blank"><img src="https://email-assets.ente.com/ente-green.png" style="width: 100px;
+      <a href="https://ente.com" target="_blank"><img src="https://email-assets.ente.com/ente-2026-green.png" style="width: 100px;
         padding: 24px" title="Ente" alt="Ente" /></a>
     </div>
     <div>
@@ -268,7 +291,7 @@ Future<String> generateHtml(BuildContext context) async {
           class="footer-icons" style="width: 24px; padding: 4px" title="Twitter" alt="Twitter" /></a>
       <a href="https://ente.com/discord" target="_blank"><img src="https://email-assets.ente.com/discord-icon.png"
           class="footer-icons" style="width: 24px; padding: 4px" title="Discord" alt="Discord" /></a>
-      <a href="https://github.com/ente-io" target="_blank"><img src="https://email-assets.ente.com/github-icon.png"
+      <a href="https://github.com/ente" target="_blank"><img src="https://email-assets.ente.com/github-icon.png"
           class="footer-icons" style="width: 24px; padding: 4px" title="GitHub" alt="GitHub" /></a>
     </div>
     <p>

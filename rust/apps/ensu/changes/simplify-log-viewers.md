@@ -1,0 +1,1 @@
+- Simplified log parsing and polished the log viewers.

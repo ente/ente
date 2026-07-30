@@ -1,5 +1,6 @@
 use std::{
     fs,
+    future::Future,
     path::{Path, PathBuf},
 };
 
@@ -8,6 +9,7 @@ use uuid::Uuid;
 use crate::{
     TestResult,
     net::{LOCAL_HOST, free_port},
+    object_store::ObjectStore,
     postgres,
     process::ChildProcess,
     server,
@@ -21,6 +23,7 @@ use crate::{
 pub struct Museum {
     _server: ChildProcess,
     _postgres: postgres::Postgres,
+    _object_store: ObjectStore,
     temp_dir: TempDir,
     endpoint: String,
 }
@@ -45,6 +48,15 @@ impl Museum {
         }
     }
 
+    /// Boot a Museum and run an asynchronous test on a Tokio runtime.
+    pub fn run_async<F, Fut>(test: F) -> TestResult
+    where
+        F: FnOnce(String) -> Fut,
+        Fut: Future<Output = TestResult>,
+    {
+        Self::run(|museum| tokio::runtime::Runtime::new()?.block_on(test(museum.endpoint.clone())))
+    }
+
     fn start() -> TestResult<Self> {
         let server_dir = server_dir()?;
         let mut temp_dir = TempDir::new("ente-test")?;
@@ -55,7 +67,8 @@ impl Museum {
         let museum_bin = temp_dir.path().join("museum");
 
         let result = (|| {
-            server::write_config(&museum_config_file)?;
+            let object_store = ObjectStore::start()?;
+            server::write_config(&museum_config_file, &object_store.endpoint())?;
             let postgres = postgres::start()?;
             let server = server::start(
                 &server_dir,
@@ -65,10 +78,10 @@ impl Museum {
                 &museum_bin,
                 &postgres,
             )?;
-            Ok((postgres, server))
+            Ok((postgres, object_store, server))
         })();
 
-        let (postgres, server) = match result {
+        let (postgres, object_store, server) = match result {
             Ok(processes) => processes,
             Err(error) => {
                 temp_dir.retain();
@@ -79,6 +92,7 @@ impl Museum {
         Ok(Self {
             _server: server,
             _postgres: postgres,
+            _object_store: object_store,
             temp_dir,
             endpoint,
         })

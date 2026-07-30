@@ -7,33 +7,33 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ente-io/museum/pkg/controller/emergency"
-	"github.com/ente-io/museum/pkg/controller/remotestore"
-	"github.com/ente-io/museum/pkg/repo/authenticator"
+	"github.com/ente/museum/pkg/controller/emergency"
+	"github.com/ente/museum/pkg/controller/remotestore"
+	"github.com/ente/museum/pkg/repo/authenticator"
 
-	"github.com/ente-io/museum/pkg/controller/family"
+	"github.com/ente/museum/pkg/controller/family"
 
-	bonusEntity "github.com/ente-io/museum/ente/storagebonus"
-	"github.com/ente-io/museum/pkg/repo/storagebonus"
+	bonusEntity "github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/museum/pkg/repo/storagebonus"
 
 	gTime "time"
 
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/controller/discord"
-	storagebonusCtrl "github.com/ente-io/museum/pkg/controller/storagebonus"
-	"github.com/ente-io/museum/pkg/controller/user"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	emailUtil "github.com/ente-io/museum/pkg/utils/email"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/controller/discord"
+	storagebonusCtrl "github.com/ente/museum/pkg/controller/storagebonus"
+	"github.com/ente/museum/pkg/controller/user"
+	"github.com/ente/museum/pkg/utils/auth"
+	emailUtil "github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/museum/pkg/utils/time"
 	"github.com/gin-contrib/requestid"
 	"github.com/sirupsen/logrus"
 
-	"github.com/ente-io/museum/pkg/utils/crypto"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/utils/crypto"
+	"github.com/ente/stacktrace"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/handler"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/handler"
 	"github.com/gin-gonic/gin"
 )
 
@@ -64,7 +64,7 @@ const AdminTokenValidityInMinutes = 10
 
 func (h *AdminHandler) SendMail(c *gin.Context) {
 	var req ente.SendEmailRequest
-	err := c.ShouldBindJSON(&req)
+	err := handler.BindJSON(c, &req)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
@@ -154,6 +154,15 @@ func (h *AdminHandler) GetUser(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+func (h *AdminHandler) GetScheduledDeletions(c *gin.Context) {
+	items, err := h.UserController.GetScheduledDeletions(c, c.Query("email"))
+	if err != nil {
+		handler.Error(c, stacktrace.Propagate(err, ""))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"scheduledDeletions": items})
+}
+
 func (h *AdminHandler) DeleteUser(c *gin.Context) {
 	err := h.isFreshAdminToken(c)
 	if err != nil {
@@ -221,8 +230,8 @@ func (h *AdminHandler) DisableTwoFactor(c *gin.Context) {
 		return
 	}
 	var request ente.DisableTwoFactorRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "Bad request"))
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
 		return
 	}
 
@@ -247,8 +256,8 @@ func (h *AdminHandler) DisableTwoFactor(c *gin.Context) {
 
 func (h *AdminHandler) UpdateReferral(c *gin.Context) {
 	var request ente.UpdateReferralCodeRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "Bad request %s", err.Error()))
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
 		return
 	}
 	adminID := auth.GetUserID(c.Request.Header)
@@ -267,8 +276,8 @@ func (h *AdminHandler) UpdateReferral(c *gin.Context) {
 // BY DEFAULT, IF THE USER HAS TOTP BASED 2FA ENABLED, REMOVING PASSKEYS WILL NOT DISABLE TOTP 2FA.
 func (h *AdminHandler) RemovePasskeys(c *gin.Context) {
 	var request ente.AdminOpsForUserRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "Bad request"))
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
 		return
 	}
 
@@ -293,8 +302,8 @@ func (h *AdminHandler) RemovePasskeys(c *gin.Context) {
 
 func (h *AdminHandler) UpdateEmailMFA(c *gin.Context) {
 	var request ente.AdminOpsForUserRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "Bad request"))
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
 		return
 	}
 	if request.EmailMFA == nil {
@@ -323,8 +332,8 @@ func (h *AdminHandler) UpdateEmailMFA(c *gin.Context) {
 
 func (h *AdminHandler) UnblockStorageWarningLogin(c *gin.Context) {
 	var request ente.AdminOpsForUserRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "Bad request"))
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
 		return
 	}
 
@@ -349,8 +358,8 @@ func (h *AdminHandler) UnblockStorageWarningLogin(c *gin.Context) {
 
 func (h *AdminHandler) AddOtt(c *gin.Context) {
 	var request ente.AdminOttReq
-	if err := c.ShouldBindJSON(&request); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "Bad request"))
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
 		return
 	}
 	if err := request.Validate(); err != nil {
@@ -380,8 +389,8 @@ func (h *AdminHandler) AddOtt(c *gin.Context) {
 
 func (h *AdminHandler) TerminateSession(c *gin.Context) {
 	var request ente.LogoutSessionReq
-	if err := c.ShouldBindJSON(&request); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "Bad request"))
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
 		return
 	}
 	adminID := auth.GetUserID(c.Request.Header)
@@ -396,8 +405,8 @@ func (h *AdminHandler) TerminateSession(c *gin.Context) {
 
 func (h *AdminHandler) UpdateFeatureFlag(c *gin.Context) {
 	var request ente.AdminUpdateKeyValueRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "Bad request"))
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
 		return
 	}
 	adminID := auth.GetUserID(c.Request.Header)
@@ -423,8 +432,8 @@ func (h *AdminHandler) UpdateFeatureFlag(c *gin.Context) {
 func (h *AdminHandler) CloseFamily(c *gin.Context) {
 
 	var request ente.AdminOpsForUserRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "Bad request"))
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
 		return
 	}
 
@@ -449,8 +458,8 @@ func (h *AdminHandler) CloseFamily(c *gin.Context) {
 
 func (h *AdminHandler) UpdateSubscription(c *gin.Context) {
 	var r ente.UpdateSubscriptionRequest
-	if err := c.ShouldBindJSON(&r); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "Bad request"))
+	if err := handler.BindJSON(c, &r); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
 		return
 	}
 	r.AdminID = auth.GetUserID(c.Request.Header)
@@ -467,8 +476,8 @@ func (h *AdminHandler) UpdateSubscription(c *gin.Context) {
 
 func (h *AdminHandler) ChangeEmail(c *gin.Context) {
 	var r ente.ChangeEmailRequest
-	if err := c.ShouldBindJSON(&r); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "Bad request"))
+	if err := handler.BindJSON(c, &r); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
 		return
 	}
 	adminID := auth.GetUserID(c.Request.Header)
@@ -485,8 +494,8 @@ func (h *AdminHandler) ChangeEmail(c *gin.Context) {
 
 func (h *AdminHandler) ReQueueItem(c *gin.Context) {
 	var r ente.ReQueueItemRequest
-	if err := c.ShouldBindJSON(&r); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "Bad request"))
+	if err := handler.BindJSON(c, &r); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
 		return
 	}
 	adminID := auth.GetUserID(c.Request.Header)
@@ -502,8 +511,8 @@ func (h *AdminHandler) ReQueueItem(c *gin.Context) {
 
 func (h *AdminHandler) UpdateBonus(c *gin.Context) {
 	var r ente.SupportUpdateBonus
-	if err := c.ShouldBindJSON(&r); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "Bad request"))
+	if err := handler.BindJSON(c, &r); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
 		return
 	}
 	if err := r.Validate(); err != nil {
@@ -540,7 +549,7 @@ func (h *AdminHandler) UpdateBonus(c *gin.Context) {
 func (h *AdminHandler) RecoverAccount(c *gin.Context) {
 
 	var request ente.RecoverAccountRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "Bad request"))
 		return
 	}
@@ -581,7 +590,7 @@ func (h *AdminHandler) GetEmailHash(c *gin.Context) {
 
 func (h *AdminHandler) GetEmailsFromHashes(c *gin.Context) {
 	var request ente.GetEmailsFromHashesRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}

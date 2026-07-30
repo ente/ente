@@ -153,7 +153,7 @@ mod tests {
     #[test]
     fn test_secret_vec_zeroize_clears_buffer() {
         // Verify that calling zeroize() (which Drop invokes) zeroes the
-        // buffer while we still own the memory — no UB from reading freed
+        // buffer while we still own the memory; no UB from reading freed
         // allocations.
         let mut secret = SecretVec::new(vec![0xABu8; 64]);
         assert!(secret.iter().any(|&b| b != 0), "precondition: non-zero");
@@ -175,7 +175,7 @@ mod tests {
     #[test]
     fn test_secret_vec_into_vec_leaves_empty_inner() {
         // After into_vec(), the SecretVec's inner buffer is empty, so
-        // Drop won't zeroize the extracted data — that's the caller's
+        // Drop won't zeroize the extracted data; that's the caller's
         // responsibility now.
         let secret = SecretVec::new(vec![0xEFu8; 16]);
         let vec = secret.into_vec();

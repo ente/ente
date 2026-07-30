@@ -1,2 +1,0 @@
-- Reduce desktop app package size by excluding unused ONNX Runtime native binaries.
-- Sign shipped Windows native modules and DLLs.

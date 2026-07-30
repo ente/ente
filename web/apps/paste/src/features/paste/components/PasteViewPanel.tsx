@@ -74,8 +74,8 @@ export const PasteViewPanel = ({
                         component="form"
                         onSubmit={handlePasswordSubmit}
                         spacing={1.4}
-                        alignItems="center"
                         sx={{
+                            alignItems: "center",
                             width: "100%",
                             pt: { xs: 1.5, md: 2 },
                             pb: { xs: 0.5, md: 1 },
@@ -174,8 +174,8 @@ export const PasteViewPanel = ({
             {consuming && (
                 <Stack
                     spacing={1.1}
-                    alignItems="center"
                     sx={{
+                        alignItems: "center",
                         width: "100%",
                         pt: { xs: 1.5, md: 2 },
                         pb: { xs: 0.5, md: 1 },
@@ -217,8 +217,8 @@ export const PasteViewPanel = ({
             {consumeError && (
                 <Stack
                     spacing={1.25}
-                    alignItems="center"
                     sx={{
+                        alignItems: "center",
                         width: "100%",
                         pt: { xs: 1.5, md: 2 },
                         pb: { xs: 0.5, md: 1 },
@@ -230,7 +230,10 @@ export const PasteViewPanel = ({
                         strokeWidth={2}
                         style={{ color: tokens.status.errorIcon }}
                     />
-                    <Stack spacing={{ xs: 2.2, md: 2.6 }} alignItems="center">
+                    <Stack
+                        spacing={{ xs: 2.2, md: 2.6 }}
+                        sx={{ alignItems: "center" }}
+                    >
                         <Typography
                             sx={{
                                 maxWidth: 560,

@@ -451,6 +451,7 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
     }
     if (executionState == ExecutionState.inProgress ||
         executionState == ExecutionState.error) {
+      if (!mounted) return;
       if (executionState == ExecutionState.inProgress) {
         if (mounted) {
           setState(() {
@@ -462,6 +463,7 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
                     : 0,
               ),
               () {
+                if (!mounted) return;
                 widget.isInAlert
                     ? _popWithButtonAction(
                         context,
@@ -482,14 +484,14 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
         setState(() {
           executionState = ExecutionState.idle;
           widget.isInAlert
-              ? Future.delayed(
-                  const Duration(seconds: 0),
-                  () => _popWithButtonAction(
+              ? Future.delayed(const Duration(seconds: 0), () {
+                  if (!mounted) return;
+                  _popWithButtonAction(
                     context,
                     buttonAction: ButtonAction.error,
                     exception: _exception,
-                  ),
-                )
+                  );
+                })
               : null;
         });
       }
@@ -497,8 +499,10 @@ class _ButtonChildWidgetState extends State<ButtonChildWidget> {
       if (widget.isInAlert) {
         Future.delayed(
           Duration(seconds: widget.shouldShowSuccessConfirmation ? 1 : 0),
-          () =>
-              _popWithButtonAction(context, buttonAction: widget.buttonAction),
+          () {
+            if (!mounted) return;
+            _popWithButtonAction(context, buttonAction: widget.buttonAction);
+          },
         );
       }
     }

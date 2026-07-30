@@ -6,13 +6,13 @@ import (
 	"strconv"
 
 	"github.com/avct/uasurfer"
-	"github.com/ente-io/museum/ente"
-	discordCtrl "github.com/ente-io/museum/pkg/controller/discord"
-	"github.com/ente-io/museum/pkg/controller/lock"
-	"github.com/ente-io/museum/pkg/repo"
-	storageBonusRepo "github.com/ente-io/museum/pkg/repo/storagebonus"
-	"github.com/ente-io/museum/pkg/utils/email"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	discordCtrl "github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/controller/lock"
+	"github.com/ente/museum/pkg/repo"
+	storageBonusRepo "github.com/ente/museum/pkg/repo/storagebonus"
+	"github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/museum/pkg/utils/time"
 	log "github.com/sirupsen/logrus"
 )
 

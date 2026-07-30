@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/ente/base"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/base"
 )
 
 type AttachmentType string

@@ -8,47 +8,13 @@ import json
 from pathlib import Path
 import re
 import subprocess
-import sys
 from typing import Any
 
 from PIL import Image
 
-ML_DIR = Path(__file__).resolve().parents[1]
-if str(ML_DIR) not in sys.path:
-    sys.path.insert(0, str(ML_DIR))
+from _paths import ML_DIR, repo_root, resolve_ml_relative, resolve_repo_relative
 
 from ground_truth._runtime import EXIF_ORIENTATION_TAG, decode_image_rgb
-
-
-def _repo_root(ml_dir: Path) -> Path:
-    try:
-        completed = subprocess.run(
-            ["git", "-C", str(ml_dir), "rev-parse", "--show-toplevel"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-    except (subprocess.SubprocessError, FileNotFoundError):
-        return ml_dir.parents[2]
-
-    root = completed.stdout.strip()
-    if not root:
-        return ml_dir.parents[2]
-    return Path(root)
-
-
-def _resolve_repo_relative(path_value: str, *, repo_root: Path) -> Path:
-    path = Path(path_value)
-    if path.is_absolute():
-        return path
-    return repo_root / path
-
-
-def _resolve_ml_relative(path_value: str, *, ml_dir: Path) -> Path:
-    path = Path(path_value)
-    if path.is_absolute():
-        return path
-    return ml_dir / path
 
 
 def _sanitize_file_name(name: str) -> str:
@@ -174,7 +140,6 @@ def _build_html(records: list[dict[str, Any]]) -> str:
 def _decode_all(
     *,
     manifest_items: list[dict[str, Any]],
-    ml_dir: Path,
     output_dir: Path,
 ) -> list[dict[str, Any]]:
     decoded_dir = output_dir / "decoded"
@@ -184,7 +149,7 @@ def _decode_all(
     for index, item in enumerate(manifest_items, start=1):
         file_id = str(item.get("file_id", ""))
         source_value = str(item.get("source", ""))
-        source_path = _resolve_ml_relative(source_value, ml_dir=ml_dir)
+        source_path = resolve_ml_relative(source_value)
         if not source_path.exists():
             raise FileNotFoundError(
                 f"Source file missing for manifest item '{file_id}': {source_path}"
@@ -208,7 +173,7 @@ def _decode_all(
         records.append(
             {
                 "file_id": file_id,
-                "source": str(source_path.relative_to(ml_dir)),
+                "source": str(source_path.relative_to(ML_DIR)),
                 "source_size": source_size,
                 "decoded_size": decoded_size,
                 "decoded_png_rel": str(output_png.relative_to(output_dir)),
@@ -245,9 +210,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    repo_root = _repo_root(ML_DIR)
-    manifest_path = _resolve_repo_relative(args.manifest, repo_root=repo_root)
-    output_dir = _resolve_repo_relative(args.output_dir, repo_root=repo_root)
+    root = repo_root()
+    manifest_path = resolve_repo_relative(args.manifest, repo_root=root)
+    output_dir = resolve_repo_relative(args.output_dir, repo_root=root)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     manifest_payload = json.loads(manifest_path.read_text())
@@ -257,7 +222,6 @@ def main() -> int:
 
     records = _decode_all(
         manifest_items=items,
-        ml_dir=ML_DIR,
         output_dir=output_dir,
     )
 

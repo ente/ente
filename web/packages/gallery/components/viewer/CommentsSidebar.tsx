@@ -12,7 +12,7 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
-import { type ModalVisibilityProps } from "ente-base/components/utils/modal";
+import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import log from "ente-base/log";
 import {
     useResolvedContactAvatar,
@@ -32,7 +32,7 @@ import {
     addCommentReaction,
     deleteReaction,
 } from "ente-new/photos/services/reaction";
-import { type UnifiedReaction } from "ente-new/photos/services/social";
+import type { UnifiedReaction } from "ente-new/photos/services/social";
 import i18n, { t } from "i18next";
 import React, {
     useCallback,

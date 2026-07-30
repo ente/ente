@@ -7,14 +7,14 @@ import (
 )
 
 const (
-	pasteKdfSaltBytes             = 16
-	pasteKdfNonceMaxLength        = 64
-	pasteKdfMemLimitInteractive   = 64 * 1024 * 1024
-	pasteKdfOpsLimitInteractive   = 2
-	pasteKdfMemLimitModerate      = 256 * 1024 * 1024
-	pasteKdfOpsLimitModerate      = 3
-	pasteDecryptionHeaderMaxLength = 128
-	pasteEncryptedPasteKeyMaxLength = 256
+	pasteKdfSaltBytes                    = 16
+	pasteKdfNonceMaxLength               = 64
+	pasteKdfMemLimitInteractive          = 64 * 1024 * 1024
+	pasteKdfOpsLimitInteractive          = 2
+	pasteKdfMemLimitModerate             = 256 * 1024 * 1024
+	pasteKdfOpsLimitModerate             = 3
+	pasteDecryptionHeaderMaxLength       = 128
+	pasteEncryptedPasteKeyMaxLength      = 256
 	pasteEncryptedPasteKeyNonceMaxLength = 128
 )
 

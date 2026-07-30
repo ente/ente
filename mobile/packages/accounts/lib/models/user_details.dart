@@ -167,6 +167,7 @@ class FamilyMember {
   final String email;
   final int usage;
   final String id;
+  final int? userID;
   final bool isAdmin;
   final int? storageLimit;
 
@@ -174,6 +175,7 @@ class FamilyMember {
     this.email,
     this.usage,
     this.id,
+    this.userID,
     this.isAdmin,
     this.storageLimit,
   );
@@ -183,6 +185,7 @@ class FamilyMember {
       (map['email'] ?? '') as String,
       map['usage'] as int,
       map['id'] as String,
+      map['userID'] as int?,
       map['isAdmin'] as bool,
       map['storageLimit'] as int?,
     );
@@ -193,6 +196,7 @@ class FamilyMember {
       'email': email,
       'usage': usage,
       'id': id,
+      'userID': userID,
       'isAdmin': isAdmin,
       'storageLimit': storageLimit,
     };

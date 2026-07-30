@@ -18,7 +18,7 @@ enum ChangeLogAction { skip, consumeWithoutShowing, show }
 class UpdateService {
   static const kUpdateAvailableShownTimeKey = "update_available_shown_time_key";
   static const changeLogVersionKey = "update_change_log_key";
-  static const currentChangeLogVersion = 55;
+  static const currentChangeLogVersion = 57;
 
   LatestVersionInfo? _latestVersion;
   final _logger = Logger("UpdateService");
@@ -66,10 +66,6 @@ class UpdateService {
 
   Future<bool> hideChangeLog() async {
     return _prefs.setInt(changeLogVersionKey, currentChangeLogVersion);
-  }
-
-  Future<bool> resetChangeLog() async {
-    return _prefs.remove(changeLogVersionKey);
   }
 
   Future<bool> shouldUpdate() async {

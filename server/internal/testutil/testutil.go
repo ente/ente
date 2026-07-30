@@ -10,8 +10,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/crypto"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/crypto"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"

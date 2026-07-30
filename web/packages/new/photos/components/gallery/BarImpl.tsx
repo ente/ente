@@ -63,7 +63,7 @@ export interface GalleryBarImplProps {
     /**
      * The ID of the currently active collection (if any).
      *
-     * Required if mode is not "albums" or "hidden-albums".
+     * Required if mode is not "people".
      */
     activeCollectionID: number | undefined;
     /**
@@ -198,6 +198,7 @@ export const GalleryBarImpl: React.FC<GalleryBarImplProps> = ({
         switch (mode) {
             case "albums":
             case "hidden-albums":
+            case "archive-albums":
                 i = collectionSummaries.findIndex(
                     ({ id }) => id == activeCollectionID,
                 );
@@ -211,7 +212,9 @@ export const GalleryBarImpl: React.FC<GalleryBarImplProps> = ({
 
     const itemData = useMemo<ItemData>(
         () =>
-            mode == "albums" || mode == "hidden-albums"
+            mode == "albums" ||
+            mode == "hidden-albums" ||
+            mode == "archive-albums"
                 ? {
                       type: "collections",
                       collectionSummaries,
@@ -357,9 +360,12 @@ export const Row2 = styled("div")`
 const ModeIndicator: React.FC<
     Pick<GalleryBarImplProps, "mode" | "onChangeMode">
 > = ({ mode, onChangeMode }) => {
-    // Mode switcher is not shown in the hidden albums section.
+    // Mode switcher is not shown in section-specific album views.
     if (mode == "hidden-albums") {
         return <Typography>{t("hidden_albums")}</Typography>;
+    }
+    if (mode == "archive-albums") {
+        return <Typography>{t("section_archive")}</Typography>;
     }
 
     // Show the static mode indicator with only the "Albums" title if ML is not

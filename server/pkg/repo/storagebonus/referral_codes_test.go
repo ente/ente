@@ -7,8 +7,8 @@ import (
 	"errors"
 	"testing"
 
-	entity "github.com/ente-io/museum/ente/storagebonus"
-	"github.com/ente-io/museum/internal/testutil"
+	entity "github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/museum/internal/testutil"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 
 	"github.com/stretchr/testify/assert"

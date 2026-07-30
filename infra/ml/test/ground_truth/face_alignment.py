@@ -4,6 +4,7 @@ from time import perf_counter
 
 import cv2
 import numpy as np
+from skimage import transform as trans
 
 from ._runtime import DEFAULT_PADDING_RGB
 from .face_detection import FaceDetection
@@ -35,14 +36,13 @@ def _landmarks_to_absolute(
 
 
 def _estimate_similarity_transform(src_landmarks: np.ndarray) -> np.ndarray:
-    matrix, _ = cv2.estimateAffinePartial2D(
+    transform = trans.SimilarityTransform.from_estimate(
         src_landmarks,
         MOBILEFACENET_IDEAL_LANDMARKS,
-        method=cv2.LMEDS,
     )
-    if matrix is None:
-        raise ValueError("OpenCV could not estimate a similarity transform for face landmarks")
-    return matrix.astype(np.float32)
+    if not transform:
+        raise ValueError(f"scikit-image could not estimate a similarity transform: {transform}")
+    return transform.params[:2, :].astype(np.float32)
 
 
 def align_faces_for_mobilefacenet(

@@ -132,7 +132,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "Vui long chon it nhat mot bo suu tap",
   "unknownItemType": "Loai muc khong xac dinh",
   "fileDeletedSuccessfully": "Xoa muc thanh cong",
   "failedToDeleteFile": "Khong the xoa muc: {error}",
@@ -254,7 +253,6 @@
   "optionalNote": "Ghi chu tuy chon",
   "upload": "Tai len",
   "documentsHint": "Tai lieu",
-  "searchHint": "Tìm kiếm...",
   "searchEmptyTitle": "Khong tim thay ket qua",
   "searchEmptyDescription": "Thu tim kiem noi dung khac.",
   "searchEverywhereTitle": "Tim kiem moi noi cho \"{query}\"",

@@ -262,6 +262,7 @@ class _AddLocationSheetState extends State<AddLocationSheet> {
       coordinates,
       radius,
     );
+    if (!mounted) return;
     Navigator.pop(context);
   }
 

@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
     - name: Enhacements, feature requests, feedback and questions
-      url: https://github.com/ente-io/ente/discussions
+      url: https://github.com/ente/ente/discussions
       about: Please use Discussions for everything apart from the above.

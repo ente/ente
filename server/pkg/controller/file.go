@@ -9,32 +9,32 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ente-io/museum/pkg/controller/access"
+	"github.com/ente/museum/pkg/controller/access"
 	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
 	gTime "time"
 
-	"github.com/ente-io/museum/pkg/controller/discord"
-	"github.com/ente-io/museum/pkg/utils/network"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/utils/network"
 
-	"github.com/ente-io/museum/pkg/controller/email"
-	"github.com/ente-io/museum/pkg/controller/lock"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/file"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/controller/email"
+	"github.com/ente/museum/pkg/controller/lock"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/file"
+	"github.com/ente/stacktrace"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/repo"
-	enteArray "github.com/ente-io/museum/pkg/utils/array"
-	"github.com/ente-io/museum/pkg/utils/s3config"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/repo"
+	enteArray "github.com/ente/museum/pkg/utils/array"
+	"github.com/ente/museum/pkg/utils/s3config"
+	"github.com/ente/museum/pkg/utils/time"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -57,6 +57,8 @@ type FileController struct {
 	DiscordController     *discord.DiscordController
 	HostName              string
 	cleanupCronRunning    bool
+	outdatedCronRunning   bool
+	outdatedQueueDisabled bool
 }
 
 // StorageOverflowAboveSubscriptionLimit is the amount (50 MB) by which user can go beyond their storage limit
@@ -405,9 +407,8 @@ func (c *FileController) GetThumbnailURLForOwner(ctx *gin.Context, ownerID int64
 	return c.getSignedURLForOwnedObject(ctx, ownerID, fileID, ente.THUMBNAIL)
 }
 
-func (c *FileController) CleanUpStaleCollectionFiles(userID int64, fileID int64) {
+func (c *FileController) CleanUpStaleCollectionFiles(fileID int64) {
 	logger := log.WithFields(log.Fields{
-		"userID": userID,
 		"fileID": fileID,
 		"action": "CleanUpStaleCollectionFiles",
 	})
@@ -417,19 +418,17 @@ func (c *FileController) CleanUpStaleCollectionFiles(userID int64, fileID int64)
 			logger.Error("Recovered from panic", r)
 		}
 	}()
-	fileIDs := make([]int64, 0)
-	fileIDs = append(fileIDs, fileID)
 
-	// verify file ownership
-	err := c.FileRepo.VerifyFileOwner(context.Background(), fileIDs, userID, logger)
-
+	ownerID, err := c.FileRepo.GetOwnerID(fileID)
 	if err != nil {
-		logger.Warning("Failed to verify file ownership", err)
+		logger.WithError(err).Warning("Failed to get file owner")
 		return
 	}
-	err = c.TrashRepository.CleanUpDeletedFilesFromCollection(context.Background(), fileIDs, userID)
+
+	fileIDs := []int64{fileID}
+	err = c.TrashRepository.CleanUpDeletedFilesFromCollection(context.Background(), fileIDs, ownerID)
 	if err != nil {
-		logger.WithError(err).Error("Failed to clean up stale files from collection")
+		logger.WithError(err).WithField("ownerID", ownerID).Error("Failed to clean up stale files from collection")
 	}
 
 }
@@ -440,11 +439,11 @@ func (c *FileController) GetPublicOrCastFileURL(ctx *gin.Context, fileID int64, 
 }
 
 func (c *FileController) DoesFileExistInCollection(ctx *gin.Context, fileID int64, collectionID int64) error {
-	accessible, err := c.CollectionRepo.DoesFileExistInCollections(fileID, []int64{collectionID})
+	state, err := c.CollectionRepo.GetCollectionFileState(ctx, collectionID, fileID)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	if !accessible {
+	if state != repo.CollectionFileActive {
 		return stacktrace.Propagate(ente.ErrPermissionDenied, "")
 	}
 	return nil
@@ -481,7 +480,7 @@ func (c *FileController) getSignedURLForAccessibleObject(ctx *gin.Context, userI
 	}
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			go c.CleanUpStaleCollectionFiles(userID, fileID)
+			go c.CleanUpStaleCollectionFiles(fileID)
 		}
 		return "", stacktrace.Propagate(err, "")
 	}
@@ -507,7 +506,7 @@ func (c *FileController) getSignedURLForOwnedObject(ctx *gin.Context, ownerID in
 	}
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			go c.CleanUpStaleCollectionFiles(ownerID, fileID)
+			go c.CleanUpStaleCollectionFiles(fileID)
 		}
 		return "", stacktrace.Propagate(err, "")
 	}
@@ -693,15 +692,6 @@ func (c *FileController) GetDuplicates(userID int64) ([]ente.DuplicateFiles, err
 		return nil, stacktrace.Propagate(err, "")
 	}
 	return dupes, nil
-}
-
-// GetLargeThumbnailFiles returns the list of files whose thumbnail size is larger than threshold size
-func (c *FileController) GetLargeThumbnailFiles(userID int64, threshold int64) ([]int64, error) {
-	largeThumbnailFiles, err := c.FileRepo.GetLargeThumbnailFiles(userID, threshold)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-	}
-	return largeThumbnailFiles, nil
 }
 
 // UpdateMagicMetadata updates the magic metadata for list of files

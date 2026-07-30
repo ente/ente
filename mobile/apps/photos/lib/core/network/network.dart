@@ -11,6 +11,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import "package:photos/core/event_bus.dart";
 import "package:photos/core/network/endpoint_config.dart";
 import 'package:photos/core/network/ente_interceptor.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import "package:shared_preferences/shared_preferences.dart";
 import "package:ua_client_hints/ua_client_hints.dart";
 
@@ -36,9 +37,12 @@ class NetworkClient {
     _enteDio = Dio(_newBaseOptions(ua, packageInfo, baseUrl: endpoint));
 
     _dio.httpClientAdapter = _newAdaptiveHttpClientAdapter(_connectTimeout);
-    _downloadDio.httpClientAdapter = NativeAdapter();
+    _downloadDio.httpClientAdapter = _newDownloadHttpClientAdapter(
+      _connectTimeout,
+    );
     _enteDio.httpClientAdapter = _newAdaptiveHttpClientAdapter(_connectTimeout);
 
+    _dio.interceptors.add(_StringResponseBreadcrumbInterceptor());
     _setupInterceptors(endpoint);
 
     if (_endpointUpdatedSubscription != null) {
@@ -55,6 +59,7 @@ class NetworkClient {
   void _setupInterceptors(String endpoint) {
     _enteDio.interceptors.clear();
     _enteDio.interceptors.add(EnteRequestInterceptor(endpoint));
+    _enteDio.interceptors.add(_StringResponseBreadcrumbInterceptor());
   }
 
   BaseOptions _newBaseOptions(
@@ -97,6 +102,13 @@ class NetworkClient {
     );
   }
 
+  HttpClientAdapter _newDownloadHttpClientAdapter(Duration connectTimeout) {
+    return _HttpSchemeFallbackAdapter(
+      primaryAdapter: NativeAdapter(),
+      fallbackAdapter: _newAdaptiveHttpClientAdapter(connectTimeout),
+    );
+  }
+
   NetworkClient._privateConstructor();
 
   static NetworkClient instance = NetworkClient._privateConstructor();
@@ -106,6 +118,80 @@ class NetworkClient {
   Dio get downloadDio => _downloadDio;
 
   Dio get enteDio => _enteDio;
+}
+
+class _StringResponseBreadcrumbInterceptor extends Interceptor {
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    _addBreadcrumb(response);
+    handler.next(response);
+  }
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    final response = err.response;
+    if (response != null) {
+      _addBreadcrumb(response);
+    }
+    handler.next(err);
+  }
+
+  void _addBreadcrumb(Response response) {
+    final responseData = response.data;
+    if (responseData is! String || responseData.isEmpty) {
+      return;
+    }
+
+    final uri = response.requestOptions.uri;
+    unawaited(
+      Sentry.addBreadcrumb(
+        Breadcrumb(
+          category: "http",
+          type: "http",
+          message: "String API response",
+          data: {
+            "method": response.requestOptions.method,
+            "host": uri.host,
+            "status_code": response.statusCode,
+            "content_type": response.headers.value(Headers.contentTypeHeader),
+            "server_header": response.headers.value(HttpHeaders.serverHeader),
+            "cf_ray": response.headers.value("cf-ray"),
+            "cf_cache_status": response.headers.value("cf-cache-status"),
+            "body_length": responseData.length,
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _HttpSchemeFallbackAdapter implements HttpClientAdapter {
+  _HttpSchemeFallbackAdapter({
+    required HttpClientAdapter primaryAdapter,
+    required HttpClientAdapter fallbackAdapter,
+  }) : _primaryAdapter = primaryAdapter,
+       _fallbackAdapter = fallbackAdapter;
+
+  final HttpClientAdapter _primaryAdapter;
+  final HttpClientAdapter _fallbackAdapter;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) {
+    final adapter = options.uri.scheme.toLowerCase() == "http"
+        ? _fallbackAdapter
+        : _primaryAdapter;
+    return adapter.fetch(options, requestStream, cancelFuture);
+  }
+
+  @override
+  void close({bool force = false}) {
+    _primaryAdapter.close(force: force);
+    _fallbackAdapter.close(force: force);
+  }
 }
 
 class _AdaptiveHttpClientAdapter implements HttpClientAdapter {

@@ -13,9 +13,9 @@ import "package:photos/generated/l10n.dart";
 import "package:photos/models/backup/backup_item.dart";
 import "package:photos/models/backup/backup_item_status.dart";
 import "package:photos/models/file/extensions/file_props.dart";
+import "package:photos/module/upload/service/file_uploader.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/ui/settings/backup/backup_item_card.dart";
-import "package:photos/utils/file_uploader.dart";
 
 class BackupStatusScreen extends StatefulWidget {
   const BackupStatusScreen({super.key});
@@ -25,7 +25,7 @@ class BackupStatusScreen extends StatefulWidget {
 }
 
 class _BackupStatusScreenState extends State<BackupStatusScreen> {
-  LinkedHashMap<String, BackupItem> items = FileUploader.instance.allBackups;
+  final LinkedHashMap<String, BackupItem> _items = LinkedHashMap();
   List<BackupItem>? result;
   StreamSubscription? _fileUploadedSubscription;
   StreamSubscription? _backupUpdatedSubscription;
@@ -34,6 +34,7 @@ class _BackupStatusScreenState extends State<BackupStatusScreen> {
   void initState() {
     super.initState();
 
+    _items.addAll(FileUploader.instance.allBackups);
     checkBackupUpdatedEvent();
     getAllFiles();
   }
@@ -46,7 +47,6 @@ class _BackupStatusScreenState extends State<BackupStatusScreen> {
             status: BackupItemStatus.uploaded,
             file: e,
             collectionID: e.collectionID ?? 0,
-            completer: null,
           );
         })
         .sorted(
@@ -62,7 +62,6 @@ class _BackupStatusScreenState extends State<BackupStatusScreen> {
           status: BackupItemStatus.uploaded,
           file: event.file,
           collectionID: event.file.collectionID ?? 0,
-          completer: null,
         ),
       );
       safeSetState();
@@ -74,7 +73,10 @@ class _BackupStatusScreenState extends State<BackupStatusScreen> {
     _backupUpdatedSubscription = Bus.instance.on<BackupUpdatedEvent>().listen((
       event,
     ) {
-      items = event.items;
+      for (final localID in event.removedLocalIDs) {
+        _items.remove(localID);
+      }
+      _items.addAll(event.upserts);
       safeSetState();
     });
   }
@@ -94,7 +96,7 @@ class _BackupStatusScreenState extends State<BackupStatusScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<BackupItem> items = this.items.values.toList().sorted(
+    final List<BackupItem> items = _items.values.toList().sorted(
       (a, b) => a.status.index.compareTo(b.status.index),
     );
 
@@ -118,9 +120,16 @@ class _BackupStatusScreenState extends State<BackupStatusScreen> {
               padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
               sliver: SliverList.builder(
                 itemBuilder: (context, index) {
+                  final file = allItems[index].file;
                   return BackupItemCard(
                     item: allItems[index],
-                    key: ValueKey(allItems[index].file.uploadedFileID),
+                    key: ValueKey(
+                      file.uploadedFileID != null
+                          ? ("uploaded", file.uploadedFileID)
+                          : file.localID != null
+                          ? ("local", file.localID)
+                          : ("generated", file.generatedID),
+                    ),
                   );
                 },
                 itemCount: allItems.length,

@@ -103,11 +103,13 @@ class DiffFetcher {
       return sharedFiles;
     } catch (e, s) {
       _logger.severe("Failed to decrypt collection ", e, s);
-      await showErrorDialog(
-        context,
-        AppLocalizations.of(context).somethingWentWrong,
-        e.toString(),
-      );
+      if (context.mounted) {
+        await showErrorDialog(
+          context,
+          AppLocalizations.of(context).somethingWentWrong,
+          e.toString(),
+        );
+      }
       rethrow;
     }
   }

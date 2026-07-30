@@ -115,10 +115,14 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
         password,
         widget.config.getKeyAttributes()!,
       );
+      unawaited(UserService.instance.autoAttributePendingSource());
       _registerSRPForExistingUsers(kek).ignore();
     } on KeyDerivationError catch (e, s) {
       _logger.severe("Password verification failed", e, s);
       await dialog.hide();
+      if (!mounted) {
+        return;
+      }
 
       final result = await showAlertBottomSheet<bool>(
         context,
@@ -134,7 +138,7 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
           ),
         ],
       );
-      if (result == true) {
+      if (result == true && mounted) {
         // ignore: unawaited_futures
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -148,6 +152,9 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
     } catch (e, s) {
       _logger.severe("Password verification failed", e, s);
       await dialog.hide();
+      if (!mounted) {
+        return;
+      }
 
       final result = await showAlertBottomSheet<bool>(
         context,
@@ -163,23 +170,25 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
           ),
         ],
       );
-      if (result == true) {
+      if (result == true && mounted) {
         await sendLogs(context, "support@ente.com", postShare: () {});
       }
       return;
     }
     widget.config.resetVolatilePassword();
     await dialog.hide();
-    unawaited(
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return widget.homePage;
-          },
+    if (mounted) {
+      unawaited(
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return widget.homePage;
+            },
+          ),
+          (route) => false,
         ),
-        (route) => false,
-      ),
-    );
+      );
+    }
   }
 
   Future<void> _registerSRPForExistingUsers(Uint8List key) async {
@@ -321,9 +330,11 @@ class _PasswordReentryPageState extends State<PasswordReentryPage> {
                               await dialog.show();
                               await widget.config.logout();
                               await dialog.hide();
-                              Navigator.of(
-                                context,
-                              ).popUntil((route) => route.isFirst);
+                              if (mounted) {
+                                Navigator.of(
+                                  context,
+                                ).popUntil((route) => route.isFirst);
+                              }
                             },
                             child: Text(
                               context.strings.changeEmail,

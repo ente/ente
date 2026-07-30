@@ -168,7 +168,7 @@ Now `cd docker/ente` and run `sudo nano docker-compose.yaml` and populate it wit
 ```
 services:
   museum:
-    image: ghcr.io/ente-io/server
+    image: ghcr.io/ente/server
     ports:
       - 9080:8080 # 9080 because tsdproxy is running on 8080:8080
       # - 2112:2112 # Prometheus metrics

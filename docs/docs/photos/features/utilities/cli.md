@@ -28,16 +28,16 @@ The CLI is particularly useful for:
 
 ## Installation
 
-Ente's CLI is distributed directly over [GitHub](https://github.com/ente-io/ente/releases?q=tag%3Acli-v0).
+Ente's CLI is distributed directly over [GitHub](https://github.com/ente/ente/releases?q=tag%3Acli-v0).
 
 **Steps:**
 
-1. Go to the [CLI releases page](https://github.com/ente-io/ente/releases?q=tag%3Acli-v0)
+1. Go to the [CLI releases page](https://github.com/ente/ente/releases?q=tag%3Acli-v0)
 2. Download the appropriate version for your platform:
     - Linux (x64, ARM64)
     - macOS (Intel, Apple Silicon)
     - Windows (x64)
-3. Follow the installation instructions in the [CLI README](https://github.com/ente-io/ente/tree/main/cli#readme)
+3. Follow the installation instructions in the [CLI README](https://github.com/ente/ente/tree/main/cli#readme)
 
 ## Basic usage
 
@@ -73,7 +73,7 @@ ente export --albums "Album Name","Another Album"
 - Safe to stop and restart without re-downloading
 - Preserves album structure and metadata
 
-For complete command documentation, see the [CLI README](https://github.com/ente-io/ente/tree/main/cli#readme).
+For complete command documentation, see the [CLI README](https://github.com/ente/ente/tree/main/cli#readme).
 
 ## Automated exports
 
@@ -167,9 +167,9 @@ Learn more in the [Export feature guide](/photos/features/backup-and-sync/export
 
 The CLI is open source and part of the Ente project:
 
-- **Source code**: [GitHub](https://github.com/ente-io/ente/tree/main/cli)
-- **Documentation**: [CLI README](https://github.com/ente-io/ente/tree/main/cli#readme)
-- **Report issues**: [GitHub Issues](https://github.com/ente-io/ente/issues)
+- **Source code**: [GitHub](https://github.com/ente/ente/tree/main/cli)
+- **Documentation**: [CLI README](https://github.com/ente/ente/tree/main/cli#readme)
+- **Report issues**: [GitHub Issues](https://github.com/ente/ente/issues)
 
 You can review, contribute to, or extend the CLI for your specific needs.
 

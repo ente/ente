@@ -133,11 +133,13 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage> {
       }
 
       if (context.mounted) {
+        if (!mounted) return;
         Navigator.of(context).pop(true);
       }
     } catch (e, s) {
       _logger.severe("Failed to updated backup folder", e, s);
       await dialog.hide();
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }
@@ -184,6 +186,7 @@ class _BackupFolderSelectionPageState extends State<BackupFolderSelectionPage> {
       return false;
     }
     if (result == _OnlyNewWarningAction.updateSettings) {
+      if (!mounted) return false;
       await routeToPage(context, const BackupSettingsScreen());
       return false;
     }

@@ -7,10 +7,12 @@ import {
     RemoteEnteFile,
     type EnteFile,
 } from "ente-media/file";
-import { gunzip } from "ente-new/photos/utils/gzip";
+import { gunzipWithLimit } from "ente-new/photos/utils/gzip";
 import { z } from "zod";
 
 export type { PublicMemoryCredentials } from "ente-base/public-memory";
+
+const maxMemoryShareMetadataBytes = 1024 * 1024; // 1 MiB
 
 /**
  * Information about a public memory share fetched from remote.
@@ -166,12 +168,21 @@ const decryptMemoryShareMetadataJSON = async (
         { encryptedData: metadataCipher, nonce: metadataNonce },
         shareKey,
     );
+    // These bytes are decrypted but not decompressed: plain JSON for regular
+    // memories and gzip input for lanes. Bound them before parsing or
+    // decompression; gunzipWithLimit separately caps expanded lane metadata.
+    if (metadataBytes.byteLength > maxMemoryShareMetadataBytes) {
+        throw new Error("Memory share metadata exceeds the allowed size");
+    }
     let metadataJson: string;
     try {
         metadataJson = new TextDecoder().decode(metadataBytes);
         JSON.parse(metadataJson);
     } catch {
-        metadataJson = await gunzip(metadataBytes);
+        metadataJson = await gunzipWithLimit(
+            metadataBytes,
+            maxMemoryShareMetadataBytes,
+        );
     }
     return metadataJson;
 };

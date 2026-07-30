@@ -28,7 +28,7 @@ export const WhatsNewDialog: React.FC<WhatsNewDialogProps> = ({
                 {entries.map((entry, index) => (
                     <Stack key={`${entry.title}-${index}`} spacing={1}>
                         <Typography variant="h6">{entry.title}</Typography>
-                        <Typography color="text.muted">
+                        <Typography sx={{ color: "text.muted" }}>
                             {entry.description}
                         </Typography>
                     </Stack>

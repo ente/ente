@@ -1,19 +1,21 @@
 import { AlbumsAppContext } from "@/app/context/albums-app-context";
-import { useNotification } from "@/app/hooks/useNotification";
 import {
     LazyAttributedMiniDialog,
     LazyNotification,
 } from "@/app/lazy/global-ui";
-import { useLoadingBar } from "@/shared/hooks/useLoadingBar";
-import { ThemedLoadingBar } from "@/shared/ui/feedback/ThemedLoadingBar";
 import { CssBaseline } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import { staticAppTitle } from "ente-base/app";
 import { CustomHeadAlbums } from "ente-base/components/Head";
 import { LoadingIndicator } from "ente-base/components/loaders";
+import { ThemedLoadingBar } from "ente-base/components/ThemedLoadingBar";
 import { useAttributedMiniDialog } from "ente-base/components/utils/dialog";
-import { useSetupI18n } from "ente-base/components/utils/hooks-app";
+import {
+    useNotification,
+    useSetupI18n,
+} from "ente-base/components/utils/hooks-app";
 import { photosTheme } from "ente-base/components/utils/theme";
+import { useLoadingBar } from "ente-base/components/utils/use-loading-bar";
 import { BaseContext, deriveBaseContext } from "ente-base/context";
 import { t } from "i18next";
 import { useCallback, useMemo, type PropsWithChildren } from "react";

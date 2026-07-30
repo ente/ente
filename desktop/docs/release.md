@@ -2,7 +2,7 @@
 
 Photos desktop uses the shared [app release process](../../.github/docs/app-release.md) as the app `photos-desktop`.
 
-The main difference is that stable releases live in [ente-io/photos-desktop](https://github.com/ente-io/photos-desktop), not here, because electron-builder's auto updater doesn't work within a monorepo.
+The main difference is that stable releases live in [ente/photos-desktop](https://github.com/ente/photos-desktop), not here, because electron-builder's auto updater doesn't work within a monorepo.
 
 Currently the electron-updater feed, the website and the `brew cask` track that repository's latest release.
 
@@ -14,7 +14,7 @@ Apart from that, it is mostly as documented in the [app release process](../../.
 
 Nightly builds of `main` are published by a scheduled workflow automatically, and can also be triggered by manually triggering the `photos-desktop-build.yml` workflow.
 
-Nightly and RC builds go to [ente-io/nightly](https://github.com/ente-io/nightly) like the other apps.
+Nightly and RC builds go to [ente/nightly](https://github.com/ente/nightly) like the other apps.
 
 ## In-app "What's new"
 
@@ -34,13 +34,13 @@ Cherry-pick fixes to the release branch to rebuild the candidate.
 
 > [!IMPORTANT]
 >
-> Edit the release notes for the `v1.7.25` draft release in `ente-io/photos-desktop` into the final user-facing changelog before promoting.
+> Edit the release notes for the `v1.7.25` draft release in `ente/photos-desktop` into the final user-facing changelog before promoting.
 
 ```sh
 gh workflow run app-release.yml -f action=promote -f app=photos-desktop -f version=1.7.25
 ```
 
-Publishes the `v1.7.25` draft in `ente-io/photos-desktop` as the latest release, pushes the `photos-desktop-v1.7.25` source tag, removes the `photos-desktop-v1.7.25-rc` pre-release from `ente-io/nightly`, and deletes the release branch. The website and the brew cask pick up the new latest release automatically.
+Publishes the `v1.7.25` draft in `ente/photos-desktop` as the latest release, pushes the `photos-desktop-v1.7.25` source tag, removes the `photos-desktop-v1.7.25-rc` pre-release from `ente/nightly`, and deletes the release branch. The website and the brew cask pick up the new latest release automatically.
 
 It also opens a PR for updating the changelog in the docs.
 
@@ -48,4 +48,4 @@ It also opens a PR for updating the changelog in the docs.
 
 The build runs on Windows, Linux and macOS, producing the artifacts configured in [electron-builder.yml](../electron-builder.yml): an NSIS installer (Windows), an AppImage and `.rpm`/`.deb`/`.pacman` packages (Linux), and a universal DMG (macOS). The macOS DMG is notarized and signed; Windows is signed via Azure Trusted Signing.
 
-The Windows `exe`, the Linux AppImage, and the macOS DMG check `ente-io/photos-desktop`'s latest release for auto updates; the other formats don't auto update yet.
+The Windows `exe`, the Linux AppImage, and the macOS DMG check `ente/photos-desktop`'s latest release for auto updates; the other formats don't auto update yet.

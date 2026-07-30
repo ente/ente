@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/file/file.dart';
+import 'package:photos/module/metadata/exif.dart';
 import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/common/loading_widget.dart';
-import 'package:photos/utils/exif_util.dart';
 
 class ExifInfoDialog extends StatelessWidget {
   final EnteFile file;
@@ -48,7 +48,7 @@ class ExifInfoDialog extends StatelessWidget {
               .map((entry) => "${entry.key}: ${entry.value}")
               .join("\n");
           if (data.isEmpty) {
-            data = "no exif data found";
+            data = AppLocalizations.of(context).noExifData;
           }
           return Container(
             padding: const EdgeInsets.all(2),

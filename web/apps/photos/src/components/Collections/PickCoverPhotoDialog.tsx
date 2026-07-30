@@ -1,4 +1,4 @@
-import { type SelectedState } from "@/utils/file";
+import type { SelectedState } from "@/utils/file";
 import CloseIcon from "@mui/icons-material/Close";
 import {
     Box,

@@ -60,7 +60,9 @@ export const EmbedFileListWithViewer: React.FC<
 
     const header = useMemo(
         () => (
-            <GalleryItemsHeaderAdapter>
+            <GalleryItemsHeaderAdapter
+                sx={{ boxSizing: "border-box", p: "12px", pb: "4px", mb: 0 }}
+            >
                 <SpacedRow>
                     <GalleryItemsSummary
                         name={publicCollection.name}
@@ -100,22 +102,21 @@ export const EmbedFileListWithViewer: React.FC<
         [publicCollection.name, files.length],
     );
 
-    const footer = null;
-
     return (
         <Container>
-            <AutoSizer>
-                {({ height, width }) => (
-                    <EmbedFileList
-                        width={width}
-                        height={height}
-                        annotatedFiles={annotatedFiles}
-                        onItemClick={handleThumbnailClick}
-                        header={header}
-                        footer={footer}
-                    />
-                )}
-            </AutoSizer>
+            {header}
+            <ListArea>
+                <AutoSizer>
+                    {({ height, width }) => (
+                        <EmbedFileList
+                            width={width}
+                            height={height}
+                            annotatedFiles={annotatedFiles}
+                            onItemClick={handleThumbnailClick}
+                        />
+                    )}
+                </AutoSizer>
+            </ListArea>
             {openFileViewer && (
                 <FileViewer
                     open={openFileViewer}
@@ -135,7 +136,15 @@ export const EmbedFileListWithViewer: React.FC<
     );
 };
 
-const Container = styled("div")({ flex: 1, width: "100%" });
+const Container = styled("div")({
+    display: "flex",
+    flex: 1,
+    flexDirection: "column",
+    minHeight: 0,
+    width: "100%",
+});
+
+const ListArea = styled("div")({ flex: 1, minHeight: 0 });
 
 const fileTimelineDateString = (file: EnteFile) => {
     const date = fileCreationPhotoDate(file);

@@ -132,7 +132,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "컬렉션을 하나 이상 선택해 주세요",
   "unknownItemType": "알 수 없는 항목 유형",
   "fileDeletedSuccessfully": "항목이 성공적으로 삭제되었습니다",
   "failedToDeleteFile": "항목 삭제 실패: {error}",
@@ -253,7 +252,6 @@
   "optionalNote": "선택적 메모",
   "upload": "업로드",
   "documentsHint": "문서",
-  "searchHint": "검색...",
   "searchEmptyTitle": "일치하는 항목이 없습니다",
   "searchEmptyDescription": "다른 검색어를 시도해 보세요.",
   "searchEverywhereTitle": "\"{query}\" 전체 검색",

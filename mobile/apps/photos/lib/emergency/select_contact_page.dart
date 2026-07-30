@@ -194,6 +194,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
   }
 
   Future<void> _onAddContactTap() async {
+    final sheetContext = context;
     final emailsToAdd = _emailsToAdd;
     if (emailsToAdd.isEmpty) {
       return;
@@ -210,11 +211,20 @@ class _AddContactSheetState extends State<AddContactSheet> {
     var hasSuccess = false;
     for (final email in emailsToAdd) {
       try {
-        final success = await EmergencyContactService.instance.addContact(
-          context,
-          email,
-          recoveryNoticeInDays: _selectedRecoveryDays,
-        );
+        late final bool success;
+        if (sheetContext.mounted) {
+          success = await EmergencyContactService.instance.addContact(
+            sheetContext,
+            email,
+            recoveryNoticeInDays: _selectedRecoveryDays,
+          );
+        } else {
+          success = await EmergencyContactService.instance.addContact(
+            null,
+            email,
+            recoveryNoticeInDays: _selectedRecoveryDays,
+          );
+        }
         if (success) {
           hasSuccess = true;
         } else {
@@ -280,12 +290,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
       return;
     }
 
-    await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return VerifyIdentifyDialog(self: false, email: emailToAdd);
-      },
-    );
+    await showVerifyIdentitySheet(context, self: false, email: emailToAdd);
   }
 
   List<User> _getSuggestedUser() {

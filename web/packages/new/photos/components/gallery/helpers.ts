@@ -12,9 +12,9 @@
 
 import { getUserRecoveryKey } from "ente-accounts/services/recovery-key";
 import log from "ente-base/log";
-import { type Collection } from "ente-media/collection";
-import { type EnteFile } from "ente-media/file";
-import { type CollectionOp } from "ente-new/photos/components/SelectedFileOptions";
+import type { Collection } from "ente-media/collection";
+import type { EnteFile } from "ente-media/file";
+import type { CollectionOp } from "ente-new/photos/components/SelectedFileOptions";
 import {
     addOrCopyToCollection,
     moveFromCollection,

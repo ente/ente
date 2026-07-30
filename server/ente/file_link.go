@@ -2,7 +2,7 @@ package ente
 
 import (
 	"fmt"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/pkg/utils/time"
 )
 
 // CreateFileUrl represents an encrypted file in the system

@@ -3,9 +3,12 @@ import "dart:io";
 
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
+import "package:logging/logging.dart";
 import "package:panorama/panorama.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/src/rust/api/motion_photo_api.dart";
+
+final _logger = Logger("PanoramaViewerScreen");
 
 class PanoramaViewerScreen extends StatefulWidget {
   const PanoramaViewerScreen({
@@ -38,12 +41,16 @@ class _PanoramaViewerScreenState extends State<PanoramaViewerScreen> {
 
   @override
   void dispose() {
+    timer?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
   void initTimer() {
     timer = Timer(const Duration(seconds: 5), () {
+      if (!mounted) {
+        return;
+      }
       setState(() {
         isVisible = false;
       });
@@ -53,7 +60,13 @@ class _PanoramaViewerScreenState extends State<PanoramaViewerScreen> {
   }
 
   Future<void> init() async {
-    final data = await extractXmp(filePath: widget.file.path);
+    final Map<String, String> data;
+    try {
+      data = await extractXmp(filePath: widget.file.path);
+    } catch (e, s) {
+      _logger.warning("Failed to extract panorama XMP", e, s);
+      return;
+    }
     if (!mounted) {
       return;
     }

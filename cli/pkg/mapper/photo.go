@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ente-io/cli/internal/api"
-	eCrypto "github.com/ente-io/cli/internal/crypto"
-	"github.com/ente-io/cli/pkg/model"
-	"github.com/ente-io/cli/pkg/model/export"
-	"github.com/ente-io/cli/pkg/secrets"
-	"github.com/ente-io/cli/utils/encoding"
+	"github.com/ente/cli/internal/api"
+	eCrypto "github.com/ente/cli/internal/crypto"
+	"github.com/ente/cli/pkg/model"
+	"github.com/ente/cli/pkg/model/export"
+	"github.com/ente/cli/pkg/secrets"
+	"github.com/ente/cli/utils/encoding"
 	"log"
 )
 

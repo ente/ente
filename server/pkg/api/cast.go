@@ -5,14 +5,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ente-io/museum/ente"
-	entity "github.com/ente-io/museum/ente/cast"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/controller/cast"
-	"github.com/ente-io/museum/pkg/controller/collections"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/handler"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	entity "github.com/ente/museum/ente/cast"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/controller/cast"
+	"github.com/ente/museum/pkg/controller/collections"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/handler"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -26,7 +26,7 @@ type CastHandler struct {
 
 func (h *CastHandler) RegisterDevice(c *gin.Context) {
 	var request entity.RegisterDeviceRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "failed to bind"))
 		return
 	}
@@ -84,16 +84,18 @@ func (h *CastHandler) DeleteDevice(c *gin.Context) {
 
 func (h *CastHandler) InsertCastData(c *gin.Context) {
 	var request entity.CastRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "failed to bind"))
 		return
 	}
-	err := h.Ctrl.InsertCastData(c, &request)
+	deviceID, err := h.Ctrl.InsertCastData(c, &request)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "failed to start cast"))
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{})
+	c.JSON(http.StatusOK, gin.H{
+		"deviceID": deviceID.String(),
+	})
 }
 
 // RevokeAllToken disable all active cast token for a user

@@ -5,6 +5,7 @@ on:
         paths:
             - ".github/workflows/mobile-lint.yml"
             - "mobile/**"
+            - "!mobile/native/**"
             - "rust/apps/codegen/**"
             - "rust/bindings/frb/**"
             - "rust/Cargo.lock"
@@ -18,12 +19,15 @@ on:
 permissions:
     contents: read
 
+env:
+    RUSTFLAGS: -D warnings
+
 jobs:
     lint:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code and submodules
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
               with:
                   submodules: recursive
 
@@ -76,45 +80,37 @@ jobs:
             - run: cargo codegen frb
               working-directory: rust
 
-            - run: cargo clippy -p ente_photos_rust --features flutter --all-targets --locked -- -D warnings
+            - run: cargo clippy -p ente_photos_rust --features flutter --all-targets --locked
               working-directory: rust
 
-            - run: cargo clippy -p ente_rust --features flutter --all-targets --locked -- -D warnings
+            - run: cargo clippy -p ente_rust --features flutter --all-targets --locked
               working-directory: rust
 
-            - name: Generate strings localizations
-              run: flutter gen-l10n
-              working-directory: mobile/packages/strings
+            - run: flutter pub get --enforce-lockfile
+              working-directory: mobile
 
-            - name: Lint packages
-              run: |
-                  for pubspec in mobile/packages/*/pubspec.yaml; do
-                      package_dir=${pubspec%/pubspec.yaml}
-                      package=${package_dir##*/}
-                      echo "Linting $package"
-                      (
-                          cd "$package_dir"
-                          flutter pub get --enforce-lockfile
-                          dart format --output=none --set-exit-if-changed .
-                          flutter analyze
-                          if [[ -d test ]]; then
-                              flutter test
-                          fi
-                      )
-                  done
+            - run: dart format --output=none --set-exit-if-changed .
+              working-directory: mobile
 
-            - name: Lint apps
+            - run: flutter analyze --no-pub
+              working-directory: mobile
+
+            - name: Test
+              working-directory: mobile
               run: |
-                  for app in photos auth locker; do
-                      echo "Linting $app"
-                      (
-                          cd "mobile/apps/$app"
-                          flutter pub get --enforce-lockfile
-                          if [[ "$app" != "photos" ]]; then
-                              flutter gen-l10n
+                  test_package() (
+                      member=${1#"$PWD/"}
+                      echo "Testing $member"
+                      cd "$member"
+                      flutter test --no-pub
+                  )
+                  export -f test_package
+
+                  dart pub workspace list --json |
+                      jq -r '.packages[] | select(.name != "ente_workspace") | .path' |
+                      while IFS= read -r member; do
+                          if [[ -d "$member/test" ]]; then
+                              printf '%s\n' "$member"
                           fi
-                          dart format --output=none --set-exit-if-changed .
-                          flutter analyze
-                          flutter test
-                      )
-                  done
+                      done |
+                      xargs -P4 -n1 bash -e -c 'test_package "$1"' _

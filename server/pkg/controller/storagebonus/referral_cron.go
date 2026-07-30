@@ -3,7 +3,7 @@ package storagebonus
 import (
 	"context"
 
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/pkg/utils/time"
 	"github.com/sirupsen/logrus"
 )
 

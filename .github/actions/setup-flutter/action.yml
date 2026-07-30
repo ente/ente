@@ -6,16 +6,34 @@ runs:
     steps:
         - shell: bash
           env:
+              # Remember to change the archive SHAs below when changing the version.
+              #
+              # https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json
+              # https://storage.googleapis.com/flutter_infra_release/releases/releases_macos.json
+              # https://storage.googleapis.com/flutter_infra_release/releases/releases_windows.json
+              #
               FLUTTER_VERSION: "3.38.10"
           run: |
               set -euo pipefail
 
               base_url="https://storage.googleapis.com/flutter_infra_release/releases"
               case "$RUNNER_OS-$RUNNER_ARCH" in
-              Linux-X64) archive="stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz" ;;
-              macOS-X64) archive="stable/macos/flutter_macos_${FLUTTER_VERSION}-stable.zip" ;;
-              macOS-ARM64) archive="stable/macos/flutter_macos_arm64_${FLUTTER_VERSION}-stable.zip" ;;
-              Windows-X64) archive="stable/windows/flutter_windows_${FLUTTER_VERSION}-stable.zip" ;;
+              Linux-X64)
+                  archive="stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
+                  archive_sha256="385e2629a0a585a835f351ca1605d2c7996377ce2fa16e68296e8fc9a78ccf7a"
+                  ;;
+              macOS-X64)
+                  archive="stable/macos/flutter_macos_${FLUTTER_VERSION}-stable.zip"
+                  archive_sha256="b7056ba00082b9b814415e7516287bb94633c1108838bfe10f8f665307b99afa"
+                  ;;
+              macOS-ARM64)
+                  archive="stable/macos/flutter_macos_arm64_${FLUTTER_VERSION}-stable.zip"
+                  archive_sha256="b3a8c004385273bfd9b9b901a72e3eb93ecaa65f4a7ca801ab22588aa05c490c"
+                  ;;
+              Windows-X64)
+                  archive="stable/windows/flutter_windows_${FLUTTER_VERSION}-stable.zip"
+                  archive_sha256="97e560d028f1b0b414e5f19ac2c4ebf079c001e8a18563a0e940c4d84700d334"
+                  ;;
               *) echo "Unsupported runner: $RUNNER_OS-$RUNNER_ARCH" >&2; exit 1 ;;
               esac
 
@@ -33,6 +51,11 @@ runs:
               archive_path="$temp_dir/$archive_name"
 
               curl --retry 3 --retry-all-errors -fsSL "$base_url/$archive" -o "$archive_path"
+              if [ "$RUNNER_OS" = macOS ]; then
+                  printf '%s  %s\n' "$archive_sha256" "$archive_path" | shasum -a 256 -c -
+              else
+                  printf '%s  %s\n' "$archive_sha256" "$archive_path" | sha256sum -c -
+              fi
               mkdir -p "$install_root"
               case "$archive_name" in
               *.zip) unzip -q -o "$archive_path" -d "$install_root" ;;

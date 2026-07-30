@@ -1,4 +1,4 @@
-import "package:ente_ui/theme/ente_theme.dart";
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 
 class SelectionActionButton extends StatelessWidget {
@@ -22,16 +22,15 @@ class SelectionActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final color = isDestructive ? colorScheme.warning500 : colorScheme.textBase;
+    final colors = context.componentColors;
+    final color = isDestructive ? colors.warning : colors.textBase;
     final iconWidget = hugeIcon ?? Icon(icon!, color: color, size: 24);
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: colorScheme.backgroundElevated2,
+          color: colors.fillLight,
           borderRadius: BorderRadius.circular(24.0),
         ),
         padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -43,7 +42,7 @@ class SelectionActionButton extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               label,
-              style: textTheme.small.copyWith(color: color),
+              style: TextStyles.body.copyWith(color: color),
               textAlign: TextAlign.center,
             ),
           ],

@@ -15,7 +15,7 @@ This document describes these different approaches (you can choose any one), and
 ## Run using pre-built Docker images
 
 ```sh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ente-io/ente/main/server/quickstart.sh)"
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ente/ente/main/server/quickstart.sh)"
 ```
 
 For more details, see [docs/quickstart.md](docs/quickstart.md).
@@ -91,18 +91,18 @@ Each time museum gets rebuilt from source, a new image gets created but the old 
 
 ## server
 
-If you have setup the database and object storage externally and only want to run Ente's server, you can just pull and run the image from **`ghcr.io/ente-io/server`**.
+If you have setup the database and object storage externally and only want to run Ente's server, you can just pull and run the image from **`ghcr.io/ente/server`**.
 
 ```sh
-docker pull ghcr.io/ente-io/server
+docker pull ghcr.io/ente/server
 ```
 
 ## web
 
-Similarly, there is a pre-built Docker image containing all the web apps which you can just pull and run the from **`ghcr.io/ente-io/web`**.
+Similarly, there is a pre-built Docker image containing all the web apps which you can just pull and run the from **`ghcr.io/ente/web`**.
 
 ```sh
-docker pull ghcr.io/ente-io/web
+docker pull ghcr.io/ente/web
 ```
 
 For details about configuring the web image, see [web/docs/docker.md](../web/docs/docker.md).

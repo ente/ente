@@ -10,7 +10,7 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/compute_control_event.dart";
 import "package:photos/events/device_health_changed_event.dart";
 import "package:photos/main.dart";
-import "package:photos/utils/local_settings.dart";
+import "package:photos/settings/local_settings.dart";
 import "package:thermal/thermal.dart";
 
 enum ComputeRunState { idle, runningML, generatingStream }
@@ -209,8 +209,8 @@ class ComputeController {
     if (ml) {
       if (_currentRunState == ComputeRunState.runningML) {
         _currentRunState = ComputeRunState.idle;
+        _waitingToRunML = false;
       }
-      _waitingToRunML = false;
     } else if (stream) {
       if (_currentRunState == ComputeRunState.generatingStream) {
         _currentRunState = ComputeRunState.idle;

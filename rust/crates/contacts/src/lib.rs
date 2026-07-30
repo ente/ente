@@ -10,7 +10,7 @@ pub mod models;
 pub mod transport;
 
 pub use client::{ContactsCtx, OpenContactsCtxInput, OpenContactsCtxResult, RootKeySource};
-pub use error::{ContactsError, Result};
+pub use error::{ContactsError, ErrorKind, Result};
 pub use legacy_kit::{LegacyKitRecoveryClient, LegacyKitRecoveryHandle};
 pub use legacy_kit_models::{
     LEGACY_KIT_PAYLOAD_VERSION, LegacyKit, LegacyKitCreateResult, LegacyKitMetadata,

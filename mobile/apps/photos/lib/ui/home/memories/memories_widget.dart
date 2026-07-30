@@ -1,4 +1,5 @@
 import "dart:async";
+import "dart:math";
 
 import 'package:flutter/material.dart';
 import "package:flutter_animate/flutter_animate.dart";
@@ -6,9 +7,10 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/events/memories_changed_event.dart";
 import "package:photos/events/memories_setting_changed.dart";
 import "package:photos/events/memory_seen_event.dart";
-import 'package:photos/models/memories/memory.dart';
 import "package:photos/models/memories/smart_memory.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/services/notification_service.dart";
+import "package:photos/ui/home/memories/craft_memories.dart";
 import "package:photos/ui/home/memories/memory_cover_util.dart";
 import 'package:photos/ui/home/memories/memory_cover_widget.dart';
 import "package:photos/ui/home/memories/memory_video_prefetcher.dart";
@@ -34,10 +36,12 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
   int _warmGeneration = 0;
   String? _lastWarmSignature;
   final _videoPrefetcher = MemoryVideoPrefetcher();
+  late Future<bool> _hasNotificationsPermissions;
 
   @override
   void initState() {
     super.initState();
+    _refreshNotificationsPermissions();
     _memoriesSettingSubscription = Bus.instance
         .on<MemoriesSettingChanged>()
         .listen((event) {
@@ -61,14 +65,29 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
     });
   }
 
+  void _refreshNotificationsPermissions() {
+    _hasNotificationsPermissions = NotificationService.instance
+        .hasGrantedPermissions();
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final screenWidth = MediaQuery.sizeOf(context).width;
-    //factor will be 2 for most phones in portrait mode
-    final factor = (screenWidth / 220).ceil();
-    _memoryWidth = screenWidth / (factor * 2);
-    _memoryheight = _memoryWidth / MemoryCoverWidget.aspectRatio;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    if (screenWidth < screenHeight) {
+      _memoryWidth = min(
+        screenWidth * (MemoryCoverWidget.defaultWidth / 376.0),
+        MemoryCoverWidget.defaultWidth * 1.5,
+      );
+      _memoryheight = _memoryWidth * MemoryCoverWidget.aspectRatio;
+    } else {
+      _memoryWidth = min(
+        screenHeight * .3,
+        MemoryCoverWidget.defaultWidth * 1.5,
+      );
+      _memoryheight = _memoryWidth * MemoryCoverWidget.aspectRatio;
+    }
   }
 
   @override
@@ -103,14 +122,14 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
           _cancelPendingWarm();
           return const SizedBox.shrink();
         }
-        final collated = _collateForStrip(snapshot.data!);
-        _scheduleWarmCovers(collated);
+        final orderedMemories = _orderForStrip(snapshot.data!);
+        _scheduleWarmCovers(orderedMemories);
         return Column(
           key: ValueKey(identityHashCode(snapshot.data)),
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 12),
-            _buildMemories(collated),
+            _buildMemories(orderedMemories),
             const SizedBox(height: 10),
           ],
         ).animate().fadeIn(
@@ -121,26 +140,25 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
     );
   }
 
-  // Groups the memories into the order the strip renders: unseen first, then
-  // seen. Shared between the prefetch pass and the UI so they agree on which
-  // memory occupies each visual slot.
-  List<(List<Memory>, String)> _collateForStrip(List<SmartMemory> memories) {
-    final List<(List<Memory>, String)> collated = [];
+  // Orders the memories for the strip: unseen first, then seen. Shared between
+  // the prefetch pass and the UI so they agree on each visual slot.
+  List<SmartMemory> _orderForStrip(List<SmartMemory> memories) {
+    final List<SmartMemory> orderedMemories = [];
     final List<SmartMemory> seen = [];
     for (final memory in memories) {
       final allSeen = memory.memories.every((element) => element.isSeen());
       if (allSeen) {
         seen.add(memory);
       } else {
-        collated.add((memory.memories, memory.title));
+        orderedMemories.add(memory);
       }
     }
-    collated.addAll(seen.map((e) => (e.memories, e.title)));
-    return collated;
+    orderedMemories.addAll(seen);
+    return orderedMemories;
   }
 
-  void _scheduleWarmCovers(List<(List<Memory>, String)> collated) {
-    final warmSignature = _warmSignature(collated);
+  void _scheduleWarmCovers(List<SmartMemory> memories) {
+    final warmSignature = _warmSignature(memories);
     if (warmSignature == _lastWarmSignature) return;
     _lastWarmSignature = warmSignature;
     _warmGeneration++;
@@ -148,7 +166,9 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
     _warmTimer?.cancel();
     _warmTimer = Timer(const Duration(seconds: 5), () {
       if (!mounted || gen != _warmGeneration) return;
-      final memoryLists = collated.map((e) => e.$1).toList(growable: false);
+      final memoryLists = memories
+          .map((e) => e.memories)
+          .toList(growable: false);
       _videoPrefetcher.prefetchFiles(
         memoryLists
             .take(kMemoryCoverWarmCap)
@@ -166,9 +186,9 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
     });
   }
 
-  String _warmSignature(List<(List<Memory>, String)> collated) {
-    return collated
-        .map((e) => e.$1)
+  String _warmSignature(List<SmartMemory> memories) {
+    return memories
+        .map((e) => e.memories)
         .take(kMemoryCoverWarmCap)
         .where((memories) => memories.isNotEmpty)
         .map((memories) {
@@ -194,27 +214,50 @@ class _MemoriesWidgetState extends State<MemoriesWidget> {
     _videoPrefetcher.clearPending();
   }
 
-  Widget _buildMemories(List<(List<Memory>, String)> collated) {
-    return SizedBox(
-      height: _memoryheight + MemoryCoverWidget.outerStrokeWidth * 2,
-      child: ListView.builder(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
-        scrollDirection: Axis.horizontal,
-        itemCount: collated.length,
-        itemBuilder: (context, itemIndex) {
-          return MemoryCoverWidget(
-            memories: collated[itemIndex].$1,
-            allMemories: collated.map((e) => e.$1).toList(),
-            height: _memoryheight,
-            width: _memoryWidth,
-            title: collated[itemIndex].$2,
-            allTitle: collated.map((e) => e.$2).toList(),
-            currentMemoryIndex: itemIndex,
-          );
-        },
-      ),
+  Widget _buildMemories(List<SmartMemory> memories) {
+    return FutureBuilder<bool>(
+      future: _hasNotificationsPermissions,
+      builder: (context, snapshot) {
+        final hasNotificationsPermissions = snapshot.data ?? true;
+        return SizedBox(
+          height: _memoryheight + MemoryCoverWidget.outerStrokeWidth * 2,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(
+              horizontal: MemoryCoverWidget.gap / 2.0,
+            ),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            scrollDirection: Axis.horizontal,
+            itemCount:
+                (hasNotificationsPermissions == false ? 1 : 0) +
+                memories.length,
+            itemBuilder: (context, itemIndex) {
+              if (hasNotificationsPermissions == false && itemIndex == 0) {
+                return CraftMemories(
+                  width: _memoryWidth * 0.75,
+                  height: _memoryheight,
+                  onNotificationsPermissionGranted: () {
+                    if (!mounted) return;
+                    setState(() {
+                      _refreshNotificationsPermissions();
+                    });
+                  },
+                );
+              }
+              final memoryIndex =
+                  itemIndex - (hasNotificationsPermissions == false ? 1 : 0);
+              return MemoryCoverWidget(
+                smartMemory: memories[memoryIndex],
+                allMemories: memories,
+                height: _memoryheight,
+                width: _memoryWidth,
+                currentMemoryIndex: memoryIndex,
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

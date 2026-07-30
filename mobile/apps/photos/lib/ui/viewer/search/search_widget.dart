@@ -8,17 +8,22 @@ import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/clear_and_unfocus_search_bar_event.dart";
 import "package:photos/events/tab_changed_event.dart";
-import "package:photos/generated/l10n.dart";
 import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/index_of_indexed_stack.dart";
 import "package:photos/models/search/search_result.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/ui/viewer/search/search_suffix_icon_widget.dart";
+import "package:photos/utils/pending_translation.dart";
 
 class SearchWidget extends StatefulWidget {
-  const SearchWidget({super.key, this.shouldConsumeBackNotifier});
+  const SearchWidget({
+    super.key,
+    this.shouldConsumeBackNotifier,
+    this.onSearchInputActiveChanged,
+  });
 
   final ValueNotifier<bool>? shouldConsumeBackNotifier;
+  final ValueChanged<bool>? onSearchInputActiveChanged;
 
   @override
   State<SearchWidget> createState() => SearchWidgetState();
@@ -35,11 +40,13 @@ class SearchWidgetState extends State<SearchWidget> {
   //Debouncing + querying
   static final isLoading = ValueNotifier(false);
   final _searchService = SearchService.instance;
-  final _debouncer = Debouncer(const Duration(milliseconds: 200));
+  final _debouncer = Debouncer(const Duration(milliseconds: 314));
   late FocusNode focusNode;
   StreamSubscription<TabChangedEvent>? _tabChangedEvent;
   StreamSubscription<TabDoubleTapEvent>? _tabDoubleTapEvent;
   TextEditingController textController = TextEditingController();
+  String? _lastRequestedQuery;
+  bool? _lastReportedSearchInputActive;
   late final StreamSubscription<ClearAndUnfocusSearchBar>
   _clearAndUnfocusSearchBar;
   late final Logger _logger = Logger("SearchWidgetState");
@@ -49,10 +56,12 @@ class SearchWidgetState extends State<SearchWidget> {
     super.initState();
     focusNode = FocusNode();
     focusNode.addListener(() {
-      _syncSearchBackNotifier();
-      if (mounted) {
-        setState(() {});
+      if (!mounted) {
+        return;
       }
+      _syncSearchBackNotifier();
+      _notifySearchInputActiveChanged();
+      setState(() {});
     });
     _tabChangedEvent = Bus.instance.on<TabChangedEvent>().listen((event) async {
       if (!mounted) {
@@ -81,9 +90,13 @@ class SearchWidgetState extends State<SearchWidget> {
     _clearAndUnfocusSearchBar = Bus.instance
         .on<ClearAndUnfocusSearchBar>()
         .listen((event) {
+          if (!mounted) {
+            return;
+          }
           textController.clear();
           focusNode.unfocus();
           _syncSearchBackNotifier(false);
+          _notifySearchInputActiveChanged();
         });
   }
 
@@ -126,10 +139,16 @@ class SearchWidgetState extends State<SearchWidget> {
 
   Future<void> textControllerListener() async {
     _syncSearchBackNotifier();
+    _notifySearchInputActiveChanged();
+    final nextQuery = textController.text.trim();
+    if (nextQuery == _lastRequestedQuery) {
+      return;
+    }
+    _lastRequestedQuery = nextQuery;
     isLoading.value = true;
     _debouncer.run(() async {
       if (mounted) {
-        query = textController.text.trim();
+        query = nextQuery;
         IndexOfStackNotifier().isSearchQueryEmpty = query.isEmpty;
         searchResultsStreamNotifier.value = _getSearchResultsStream(
           context,
@@ -137,6 +156,16 @@ class SearchWidgetState extends State<SearchWidget> {
         );
       }
     });
+  }
+
+  void _notifySearchInputActiveChanged() {
+    final isSearchInputActive =
+        focusNode.hasFocus || textController.text.trim().isNotEmpty;
+    if (_lastReportedSearchInputActive == isSearchInputActive) {
+      return;
+    }
+    _lastReportedSearchInputActive = isSearchInputActive;
+    widget.onSearchInputActiveChanged?.call(isSearchInputActive);
   }
 
   @override
@@ -147,27 +176,24 @@ class SearchWidgetState extends State<SearchWidget> {
         MediaQuery.viewInsetsOf(context).bottom > 0 ||
         textController.text.trim().isNotEmpty;
     return RepaintBoundary(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: TextInputComponent(
-          controller: textController,
-          focusNode: focusNode,
-          hintText: AppLocalizations.of(context).search,
-          shouldUnfocusOnClearOrSubmit: true,
-          prefix: HugeIcon(
-            icon: HugeIcons.strokeRoundedSearch01,
-            size: 18,
-            color: componentColors.textLight,
-          ),
-          suffix: ValueListenableBuilder(
-            valueListenable: isLoading,
-            builder: (BuildContext context, bool isSearching, Widget? child) {
-              return SearchSuffixIcon(
-                isSearching,
-                showClearButton: shouldShowClearButton,
-              );
-            },
-          ),
+      child: TextInputComponent(
+        controller: textController,
+        focusNode: focusNode,
+        hintText: pendingTranslation("Search photos, people, places..."),
+        shouldUnfocusOnClearOrSubmit: true,
+        prefix: HugeIcon(
+          icon: HugeIcons.strokeRoundedSearch01,
+          size: 18,
+          color: componentColors.textLight,
+        ),
+        suffix: ValueListenableBuilder(
+          valueListenable: isLoading,
+          builder: (BuildContext context, bool isSearching, Widget? child) {
+            return SearchSuffixIcon(
+              isSearching,
+              showClearButton: shouldShowClearButton,
+            );
+          },
         ),
       ),
     );

@@ -19,7 +19,7 @@ A telltale sign of this is that in the museum logs you can see `403 Forbidden` e
 
 This could be because
 
-1.  The bucket CORS rules do not allow museum to access these objects. For uploading files from the browser, you will need to set `allowedOrigins` to `*`, and allow the `X-Auth-Token`, `X-Client-Package`, `X-Client-Version`, `UPLOAD-URL`, and `Content-MD5` headers configuration too. The new checksum header is required by recent builds to verify uploads. [Here is an example of a working configuration](https://github.com/ente-io/ente/discussions/1764#discussioncomment-9478204).
+1.  The bucket CORS rules do not allow museum to access these objects. For uploading files from the browser, you will need to set `allowedOrigins` to `*`, and allow the `X-Auth-Token`, `X-Client-Package`, `X-Client-Version`, `UPLOAD-URL`, and `Content-MD5` headers configuration too. The new checksum header is required by recent builds to verify uploads. [Here is an example of a working configuration](https://github.com/ente/ente/discussions/1764#discussioncomment-9478204).
 
 2.  The credentials are not being picked up (you might be setting the correct credentials, but not in the place where museum reads them from).
 

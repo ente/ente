@@ -13,22 +13,7 @@
   "validEmailAddress": "Platná e-mailová adresa",
   "enterValidEmail": "Prosím, zadejte platnou e-mailovou adresu.",
   "deleteAccount": "Smazat účet",
-  "deleteAccountWarning": "Tímto smažete Váš účet Ente Auth, Ente Photos a Ente Locker.",
-  "askDeleteReason": "Jaký je Váš hlavní důvod, proč mažete svůj účet?",
-  "deleteAccountFeedbackPrompt": "Je nám líto, že nás opouštíte. Prosím, dejte nám zpětnou vazbu, ať se můžeme zlepšit.",
-  "feedback": "Zpětná vazba",
-  "kindlyHelpUsWithThisInformation": "Pomozte nám s těmito informacemi",
-  "confirmDeletePrompt": "Ano, chci trvale smazat tento účet a jeho data napříč všemi aplikacemi.",
-  "confirmAccountDeletion": "Potvrdit smazání účtu",
-  "deleteAccountPermanentlyButton": "Trvale smazat účet",
-  "yourAccountHasBeenDeleted": "Váš účet byl smazán",
-  "selectReason": "Vyberte důvod",
-  "deleteReason1": "Chybí klíčová funkce, kterou potřebuji",
-  "deleteReason2": "Aplikace nebo určitá funkce se nechová tak, jak si myslím, že by měla",
-  "deleteReason3": "Našel jsem jinou službu, která se mi líbí více",
-  "deleteReason4": "Můj důvod není uveden",
   "sendEmail": "Odeslat e-mail",
-  "deleteRequestSLAText": "Váš požadavek bude zpracován do 72 hodin.",
   "entePhotosPerm": "Ente <i>potřebuje oprávnění</i> k uchovávání vašich fotek",
   "ok": "Ok",
   "createAccount": "Vytvořit účet",
@@ -334,7 +319,6 @@
   "theyAlsoGetXGb": "Získají také {storageAmountInGB} GB",
   "referralStorageForBoth": "{storageAmountInGB} GB pro ně + {storageAmountInGB} GB pro Vás když zvýší svůj tarif.",
   "freeStorageOnReferralSuccess": "{storageAmountInGB} GB pokaždé, když se někdo zaregistruje do placeného plánu a použije Váš kód",
-  "shareTextReferralCode": "Ente Photos je soukromý a bezpečný domov pro Vaše fotografie\n* Stáhněte si Ente Photos z https://ente.com/app\n* Založte si účet\n* Použijte referenční kód {referralCode} v Nastavení->Doporučení\n* Získejte {referralStorageInGB}GB zdarma, když přejdete na placený tarif",
   "claimFreeStorage": "Získat úložiště zdarma",
   "inviteYourFriends": "Pozvěte své přátele",
   "earnFreeStorage": "Získat úložiště zdarma",
@@ -419,9 +403,6 @@
   "videoSmallCase": "video",
   "photoSmallCase": "fotografie",
   "singleFileDeleteHighlight": "Bude odstraněno ze všech alb.",
-  "singleFileInBothLocalAndRemote": "{fileType} se nachází jak v Ente, tak ve Vašem zařízení.",
-  "singleFileInRemoteOnly": "Tento {fileType} bude odstraněn z Ente.",
-  "singleFileDeleteFromDevice": "Tento {fileType} bude odstraněn z Vašeho zařízení.",
   "deleteFromEnte": "Odstranit z Ente",
   "yesDelete": "Ano, smazat",
   "movedToTrash": "Přesunuto do koše",
@@ -584,7 +565,6 @@
   "authToChangeEmailVerificationSetting": "Pro změnu ověření pomocí e-mailu se prosím ověřte",
   "exportYourData": "Exportujte svá data",
   "logout": "Odhlásit se",
-  "authToInitiateAccountDeletion": "Pro zahájení smazání účtu se prosím ověřte",
   "areYouSureYouWantToLogout": "Opravdu se chcete odhlásit?",
   "yesLogout": "Ano, odhlásit se",
   "aNewVersionOfEnteIsAvailable": "Je dostupná nová verze Ente.",
@@ -953,7 +933,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "Předplatné PlayStore",
   "appstoreSubscription": "Předplatné AppStore",
-  "subAlreadyLinkedErrMessage": "Vaše {id} je již propojeno s jiným účtem Ente.\nPokud chcete použít své {id} s tímto účtem, kontaktujte prosím naši podporu",
   "visitWebToManage": "Pro správu předplatného navštivte prosím {webUrl}",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
@@ -1162,10 +1141,7 @@
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Fotografie, které jste přidali, budou z alba odstraněny",
   "youveNoFilesInThisAlbumThatCanBeDeleted": "V tomto albu nemáte žádné soubory, které by mohly být odstraněny",
   "youDontHaveAnyArchivedItems": "Nemáte žádné archivované položky.",
-  "ignoredFolderUploadReason": "Některé soubory v tomto albu jsou při nahrávání ignorovány, protože byly dříve odstraněny z Ente.",
   "resetIgnoredFiles": "Resetovat ignorované soubory",
-  "deviceFilesAutoUploading": "Soubory přidané do tohoto alba v zařízení se automaticky nahrají do Ente.",
-  "turnOnBackupForAutoUpload": "Zapněte zálohování, aby se soubory přidané do této složky zařízení automaticky nahrávaly do Ente.",
   "noHiddenPhotosOrVideos": "Žádné skryté fotografie ani videa",
   "toHideAPhotoOrVideo": "Pro skrytí fotografie nebo videa",
   "openTheItem": "• Otevřete položku",
@@ -1417,10 +1393,6 @@
   "@searchResultPerson": {
     "description": "Search result subtitle label for person results"
   },
-  "searchResultShared": "Sdíleno",
-  "@searchResultShared": {
-    "description": "Search result subtitle label for shared-with-you results"
-  },
   "searchResultUploadedBy": "Nahráno uživatelem",
   "@searchResultUploadedBy": {
     "description": "Search result subtitle label for uploader results"
@@ -1513,10 +1485,6 @@
     "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
   },
   "setRadius": "Nastavit poloměr",
-  "androidBiometricHint": "Ověřte svou identitu",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
   "androidBiometricNotRecognized": "Nerozpoznáno. Zkuste to znovu.",
   "@androidBiometricNotRecognized": {
     "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
@@ -1524,14 +1492,6 @@
   "androidBiometricSuccess": "Úspěch",
   "@androidBiometricSuccess": {
     "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Zrušit",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Je požadováno ověření",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
   "androidBiometricRequiredTitle": "Je požadováno biometrické ověření",
   "@androidBiometricRequiredTitle": {
@@ -1545,25 +1505,13 @@
   "@androidDeviceCredentialsSetupDescription": {
     "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
   },
-  "goToSettings": "Přejít do nastavení",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
   "androidGoToSettingsDescription": "Biometrické ověřování není na Vašem zařízení nastaveno. Přejděte do \"Nastavení\" > \"Zabezpečení\" a přidejte biometrické ověřování.",
   "@androidGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
   },
-  "iOSLockOut": "Biometrické ověřování je deaktivováno. Chcete-li jej aktivovat, uzamkněte a odemkněte obrazovku.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
   "iOSGoToSettingsDescription": "Biometrické ověřování není na Vašem zařízení nastaveno. Povolte prosím Touch ID nebo Face ID na svém telefonu.",
   "@iOSGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure Biometrics for their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "OK",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
   },
   "openstreetmapContributors": "Přispěvatelé OpenStreetMap",
   "hostedAtOsmFrance": "Hostováno na OSM France",
@@ -1596,7 +1544,6 @@
   "nothingSharedWithYouYet": "Zatím s Vámi nebylo nic sdíleno",
   "noAlbumsSharedByYouYet": "Zatím nemáte žádná sdílená alba",
   "sharedWithYou": "Sdíleno se mnou",
-  "sharedByYou": "Sdíleno mnou",
   "inviteYourFriendsToEnte": "Pozvěte své přátelé do Ente",
   "failedToDownloadVideo": "Stahování videa se nezdařilo",
   "hiding": "Skrývání...",
@@ -1608,7 +1555,6 @@
   "addToHiddenAlbum": "Přidat do skrytého alba",
   "moveToHiddenAlbum": "Přesunout do skrytého alba",
   "fileTypes": "Typy souborů",
-  "deleteConfirmDialogBody": "Tento účet je propojen s dalšími aplikacemi Ente, pokud je používáte. Vaše nahraná data ve všech aplikacích Ente budou naplánována k odstranění a Váš účet bude trvale smazán.",
   "hearUsWhereTitle": "Jak jste se dozvěděli o Ente?",
   "hearUsExplanation": "Nesledujeme instalace aplikace. Pomůže nám, když nám sdělíte, kde jste nás našli!",
   "viewAddOnButton": "Zobrazit doplňky",
@@ -1669,16 +1615,6 @@
   "playOnTv": "Přehrát album na televizi",
   "pair": "Spárovat",
   "deviceNotFound": "Zařízení nebylo nalezeno",
-  "castInstruction": "Navštivte stránku {castUrl} na zařízení, které chcete spárovat.\n\nZadejte níže uvedený kód a album se přehraje na Vaší televizi.",
-  "@castInstruction": {
-    "description": "Instructions shown when pairing a device to play an album on TV.",
-    "placeholders": {
-      "castUrl": {
-        "type": "String",
-        "example": "https://cast.ente.com"
-      }
-    }
-  },
   "deviceCodeHint": "Zadejte kód",
   "joinDiscord": "Připojte se na Discord",
   "locations": "Lokality",
@@ -1717,8 +1653,6 @@
   "removePersonLabel": "Odebrat označení osoby",
   "removePersonTag": "Odebrat štítek osoby",
   "areYouSureRemoveThisPersonTag": "Opravdu chcete odebrat štítek této osoby?",
-  "autoPairDesc": "Funkce automatického párování funguje pouze se zařízeními, která podporují Chromecast.",
-  "manualPairDesc": "Funkce \"Párovat s PINem\" funguje s jakoukoli obrazovkou, na které si chcete prohlížet své album.",
   "connectToDevice": "Připojit k zařízení",
   "autoCastDialogBody": "Zde uvidíte dostupná zařízení pro přenos.",
   "autoCastiOSPermission": "V nastavení se ujistěte, že jsou pro aplikaci Ente Photos zapnutá oprávnění pro místní síť.",
@@ -1730,7 +1664,6 @@
   "pairingComplete": "Párování dokončeno",
   "savingEdits": "Ukládání úprav...",
   "autoPair": "Automatické párování",
-  "pairWithPin": "Párovat s PINem",
   "faceRecognition": "Rozpoznání obličeje",
   "foundFaces": "Nalezené obličeje",
   "clusteringProgress": "Průběh seskupování",
@@ -1759,21 +1692,14 @@
   "enableMLIndexingDesc": "Ente podporuje strojové učení na zařízení pro rozpoznávání obličejů, magické vyhledávání a další pokročilé vyhledávací funkce",
   "magicSearchHint": "Magické vyhledávání umožňuje vyhledávat fotografie podle jejich obsahu, např. „květina“, „červené auto“, „doklady totožnosti“",
   "panorama": "Panorama",
-  "reenterPassword": "Zadejte heslo znovu",
-  "reenterPin": "Zadejte PIN znovu",
   "deviceLock": "Zámek zařízení",
   "pinLock": "Zámek PIN",
   "next": "Další",
-  "setNewPassword": "Nastavit nové heslo",
-  "enterPin": "Zadejte PIN",
-  "setNewPin": "Nastavit nový PIN",
   "appLock": "Zámek aplikace",
   "lockScreenType": "Typ zámku",
   "noSystemLockFound": "Zámek systému nenalezen",
-  "tapToUnlock": "Klepnutím odemknete",
   "tooManyIncorrectAttempts": "Příliš mnoho neúspěšných pokusů",
   "videoInfo": "Informace o videu",
-  "autoLock": "Automatické zamykání",
   "immediately": "Okamžitě",
   "autoLockFeatureDescription": "Čas, po kterém se aplikace zamkne po přesunutí na pozadí",
   "hideContent": "Skrýt obsah",
@@ -2867,7 +2793,6 @@
   "deleteHiddenFilesFromDeviceDescription": "Odstranit místní kopie skrytých souborů z vašeho zařízení",
   "deleteOnDeviceFiles": "Odstranit soubory ze zařízení",
   "noHiddenFilesOnDevice": "Na zařízení nejsou žádné skryté soubory",
-  "welcome": "Vítejte",
   "grantGalleryPermissionDesc": "Udělte oprávnění k přístupu a organizaci fotek s rozpoznáváním obličeje. Všechno zpracování se děje na Vašem zařízení.",
   "grantPermission": "Udělit oprávnění",
   "privateAI": "Soukromá AI",
@@ -2892,12 +2817,6 @@
   "alreadyHaveAnAccount": "Už máte účet?",
   "dontHaveAnAccount": "Ještě nemáte účet?",
   "loginToEnte": "Přihlásit se do Ente",
-  "searchAndDiscover": "Hledejte a Objevujte",
-  "searchAndDiscoverDesc": "Vyhledávejte fotografie a objevujte vzpomínky pomocí strojového učení prováděného na zařízení",
-  "shareYourMemories": "Sdílejte své vzpomínky",
-  "shareYourMemoriesDesc": "Sdílejte alba, sbírejte fotografie a shromažďujte komentáře s veřejnými odkazy",
-  "privateAndSecureBackups": "Zálohujte s ochranou soukromí",
-  "privateAndSecureBackupsDesc": "Koncově šifrovaný, nezávisle auditovaný a plně open source",
   "mlProgressBannerTitle": "Vydržte!",
   "mlProgressBannerDescription": "Vaše fotografie se zpracovávají v zařízení za účelem detekce obličejů, objektů a dalších prvků.",
   "mlProgressBannerStatus": "{indexed} z {total} fotografií zpracováno",

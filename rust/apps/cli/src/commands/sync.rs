@@ -1,10 +1,10 @@
 use crate::Result;
-use crate::api::client::ApiClient;
+use crate::api::AppClient;
 use crate::api::methods::ApiMethods;
 use crate::models::{account::Account, metadata::FileMetadata};
 use crate::storage::Storage;
 use crate::sync::{SyncEngine, SyncStats, download::DownloadManager};
-use base64::Engine;
+use ente_core::b64;
 use ente_core::crypto;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -73,12 +73,11 @@ async fn sync_account(
         .ok_or_else(|| crate::Error::NotFound("Account secrets not found".into()))?;
 
     // Create API client with account's endpoint
-    let api_client =
-        ApiClient::new_with_client_package(Some(account.endpoint.clone()), account.app.client_package())?;
+    let api_client = AppClient::new(Some(account.endpoint.clone()), account.app)?;
 
     // Store token for this account
-    let token = base64::engine::general_purpose::URL_SAFE.encode(&secrets.token);
-    api_client.add_token(&account.email, &token);
+    let token = b64::encode_url_safe(&secrets.token);
+    api_client.set_token(&token);
 
     // Clear sync state if full sync requested
     if full_sync {
@@ -92,9 +91,8 @@ async fn sync_account(
         .ok_or_else(|| crate::Error::Generic("Database path not available".into()))?;
 
     // Create API client for sync engine
-    let sync_api_client =
-        ApiClient::new_with_client_package(Some(account.endpoint.clone()), account.app.client_package())?;
-    sync_api_client.add_token(&account.email, &token);
+    let sync_api_client = AppClient::new(Some(account.endpoint.clone()), account.app)?;
+    sync_api_client.set_token(&token);
 
     let sync_storage = Storage::new(db_path)?;
     let sync_engine = SyncEngine::new(sync_api_client, sync_storage, account.clone());
@@ -117,7 +115,7 @@ async fn sync_account(
             // Get collections to decrypt collection keys
             // Need to fetch from API to get the api::models::Collection type with encrypted_key
             let api = ApiMethods::new(&api_client);
-            let api_collections = api.get_collections(&account.email, 0).await?;
+            let api_collections = api.get_collections(0).await?;
 
             // Decrypt collection keys
             let collection_keys = decrypt_collection_keys(
@@ -128,11 +126,9 @@ async fn sync_account(
 
             // Create download manager
             // Create a new API client for the download manager
-            let download_api_client = ApiClient::new_with_client_package(
-                Some(account.endpoint.clone()),
-                account.app.client_package(),
-            )?;
-            download_api_client.add_token(&account.email, &token);
+            let download_api_client =
+                AppClient::new(Some(account.endpoint.clone()), account.app)?;
+            download_api_client.set_token(&token);
 
             let mut download_manager = DownloadManager::new(download_api_client)?;
             download_manager.set_collection_keys(collection_keys);
@@ -177,9 +173,7 @@ async fn sync_account(
                 println!("📥 Downloading {} new files", to_download.len());
 
                 // Download files with progress bar
-                let download_stats = download_manager
-                    .download_files(&account.email, to_download)
-                    .await?;
+                let download_stats = download_manager.download_files(to_download).await?;
 
                 // Update local paths in database for newly downloaded files
                 for (file, path) in &download_stats.successful_downloads {
@@ -241,7 +235,6 @@ fn decrypt_collection_keys(
     master_key: &[u8],
     _secret_key: &[u8],
 ) -> Result<HashMap<i64, Vec<u8>>> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
 
     let mut keys = HashMap::new();
 
@@ -251,8 +244,8 @@ fn decrypt_collection_keys(
         }
 
         // Decrypt collection key
-        let encrypted_bytes = BASE64.decode(&collection.encrypted_key)?;
-        let nonce_bytes = BASE64.decode(&collection.key_decryption_nonce)?;
+        let encrypted_bytes = b64::decode(&collection.encrypted_key)?;
+        let nonce_bytes = b64::decode(&collection.key_decryption_nonce)?;
 
         let decrypted = crypto::Nonce::try_from_slice(&nonce_bytes).and_then(|nonce| {
             crypto::secretbox::decrypt(
@@ -299,7 +292,6 @@ async fn prepare_download_tasks(
     collections: &[crate::api::models::Collection],
     download_manager: &DownloadManager,
 ) -> Result<Vec<(crate::models::file::RemoteFile, PathBuf)>> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
     use chrono::{TimeZone, Utc};
 
     let mut tasks = Vec::new();
@@ -319,8 +311,8 @@ async fn prepare_download_tasks(
         {
             // Decrypt file key first
             let file_key = {
-                let key_bytes = BASE64.decode(&file.encrypted_key)?;
-                let nonce = BASE64.decode(&file.key_decryption_nonce)?;
+                let key_bytes = b64::decode(&file.encrypted_key)?;
+                let nonce = b64::decode(&file.key_decryption_nonce)?;
                 crypto::secretbox::decrypt(
                     &key_bytes,
                     &crypto::Nonce::try_from_slice(&nonce)?,
@@ -331,8 +323,8 @@ async fn prepare_download_tasks(
             // Decrypt regular metadata
             let regular_meta = if !file.metadata.encrypted_data.is_empty() {
                 if !file.metadata.decryption_header.is_empty() {
-                    let encrypted_bytes = BASE64.decode(&file.metadata.encrypted_data)?;
-                    let header_bytes = BASE64.decode(&file.metadata.decryption_header)?;
+                    let encrypted_bytes = b64::decode(&file.metadata.encrypted_data)?;
+                    let header_bytes = b64::decode(&file.metadata.decryption_header)?;
 
                     let decrypted =
                         crypto::Header::try_from_slice(&header_bytes).and_then(|header| {
@@ -359,8 +351,8 @@ async fn prepare_download_tasks(
             // Decrypt public magic metadata if available
             let pub_meta = if let Some(ref magic) = file.pub_magic_metadata {
                 if !magic.data.is_empty() && !magic.header.is_empty() {
-                    let encrypted_bytes = BASE64.decode(&magic.data)?;
-                    let header_bytes = BASE64.decode(&magic.header)?;
+                    let encrypted_bytes = b64::decode(&magic.data)?;
+                    let header_bytes = b64::decode(&magic.header)?;
 
                     let decrypted =
                         crypto::Header::try_from_slice(&header_bytes).and_then(|header| {

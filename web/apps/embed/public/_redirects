@@ -1,0 +1,6 @@
+/_next/*    /_next/:splat    200
+/fonts/*    /fonts/:splat    200
+/images/*    /images/:splat    200
+/.well-known/*    /.well-known/:splat    200
+/robots.txt    /robots.txt    200
+/:token    /    200

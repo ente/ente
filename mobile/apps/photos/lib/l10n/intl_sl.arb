@@ -104,10 +104,6 @@
   "dayYesterday": "Včeraj",
   "storageBreakupFamily": "Družina",
   "editLocationTagTitle": "Uredi lokacijo",
-  "goToSettings": "Pojdi v nastavitve",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
   "quickLinks": "Hitre povezave",
   "addSelected": "Dodaj izbrane",
   "faces": "Obrazi",
@@ -136,8 +132,5 @@
       }
     }
   },
-  "setNewPassword": "Nastavi novo geslo",
-  "enterPin": "Vnesi PIN",
-  "setNewPin": "Nastavi nov PIN",
   "sort": "Razvrsti"
 }

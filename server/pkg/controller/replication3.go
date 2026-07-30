@@ -15,11 +15,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/ente-io/museum/pkg/controller/discord"
-	"github.com/ente-io/museum/pkg/repo"
-	fileutil "github.com/ente-io/museum/pkg/utils/file"
-	"github.com/ente-io/museum/pkg/utils/s3config"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/repo"
+	fileutil "github.com/ente/museum/pkg/utils/file"
+	"github.com/ente/museum/pkg/utils/s3config"
+	"github.com/ente/stacktrace"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
@@ -350,7 +350,6 @@ func (c *ReplicationController3) tryReplicate() error {
 	}
 	return done(err)
 }
-
 
 // Download the object for objectKey from B2 hot storage, writing it into file.
 //

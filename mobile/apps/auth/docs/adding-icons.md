@@ -17,4 +17,4 @@ This JSON file contains the following attributes:
 | `hex`      | Color code for the icon                                                                | No       |
 | `altNames` | If the same service goes by different names or has different instances (e.g. Mastodon) | No       |
 
-Here is an [example PR](https://github.com/ente-io/ente/pull/9121).
+Here is an [example PR](https://github.com/ente/ente/pull/9121).

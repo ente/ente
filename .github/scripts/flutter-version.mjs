@@ -13,6 +13,7 @@ function usage() {
   node .github/scripts/flutter-version.mjs auth get-build-base
   node .github/scripts/flutter-version.mjs auth set 4.4.23
   node .github/scripts/flutter-version.mjs auth set-build 4.4.23 1007
+  node .github/scripts/flutter-version.mjs auth bump-build
 
 Valid apps: photos, auth, locker`);
 }
@@ -61,6 +62,9 @@ try {
         if (!/^\d+\.\d+\.\d+$/.test(args[0])) throw new Error(`Invalid ${app} release version: ${args[0]}`);
         if (!/^\d+$/.test(args[1])) throw new Error(`Invalid ${app} build number: ${args[1]}`);
         setPubspecVersion(`${args[0]}+${args[1]}`);
+    } else if (command === "bump-build") {
+        const { source, buildBase } = pubspecVersion();
+        setPubspecVersion(`${source}+${Number(buildBase) + 1}`);
     } else {
         usage();
         process.exit(2);

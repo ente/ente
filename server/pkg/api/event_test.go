@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ente-io/museum/internal/testutil"
-	"github.com/ente-io/museum/pkg/repo"
+	"github.com/ente/museum/internal/testutil"
+	"github.com/ente/museum/pkg/repo"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )

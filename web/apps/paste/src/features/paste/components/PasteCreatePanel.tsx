@@ -517,7 +517,9 @@ export const PasteCreatePanel = ({
             </Box>
 
             {createError && (
-                <Typography color="error">{createError}</Typography>
+                <Typography sx={{ color: "error.main" }}>
+                    {createError}
+                </Typography>
             )}
 
             {createdLink && (

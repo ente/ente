@@ -1,5 +1,5 @@
+import type { NotificationAttributes } from "ente-base/components/Notification";
 import { apiOrigin } from "ente-base/origins";
-import type { NotificationAttributes } from "ente-new/photos/components/Notification";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import {

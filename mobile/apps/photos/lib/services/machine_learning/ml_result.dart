@@ -3,6 +3,7 @@ import "dart:convert" show jsonEncode, jsonDecode;
 import "package:logging/logging.dart";
 import "package:photos/models/ml/face/dimension.dart";
 import 'package:photos/models/ml/ml_typedefs.dart';
+import "package:photos/models/ml/ml_versions.dart";
 import 'package:photos/services/machine_learning/face_ml/face_alignment/alignment_result.dart';
 import 'package:photos/services/machine_learning/face_ml/face_detection/detection.dart';
 import 'package:photos/services/machine_learning/face_ml/face_filtering/face_filtering_constants.dart';
@@ -15,11 +16,11 @@ class MLResult {
   List<PetFaceResult>? petFaces;
   List<PetBodyResult>? petBodies;
 
-  Dimensions decodedImageSize;
+  /// Bitmask attached to the remotely stored embeddings, describing the
+  /// runtime and execution providers used to produce this result.
+  int remoteFlags;
 
-  /// Which runtime actually produced this result. Stamped by the caller of
-  /// the indexing isolate; not serialized to/from the isolate JSON payload.
-  bool usedRustMl = false;
+  Dimensions decodedImageSize;
 
   bool get ranML => facesRan || clipRan || petsRan;
   bool get facesRan => faces != null;
@@ -32,11 +33,13 @@ class MLResult {
     this.clip,
     this.petFaces,
     this.petBodies,
+    this.remoteFlags = mlIndexFlagRuntimeRust,
     this.decodedImageSize = const Dimensions(width: -1, height: -1),
   });
 
   MLResult.fromEnteFileID(
     int fileID, {
+    this.remoteFlags = mlIndexFlagRuntimeRust,
     this.decodedImageSize = const Dimensions(width: -1, height: -1),
   }) : fileId = fileID;
 
@@ -46,6 +49,7 @@ class MLResult {
     'clip': clip?.toJson(),
     'petFaces': petFaces?.map((pf) => pf.toJson()).toList(),
     'petBodies': petBodies?.map((obj) => obj.toJson()).toList(),
+    'remoteFlags': remoteFlags,
     'decodedImageSize': {
       'width': decodedImageSize.width,
       'height': decodedImageSize.height,
@@ -83,6 +87,7 @@ class MLResult {
                 )
                 .toList()
           : null,
+      remoteFlags: json['remoteFlags'] as int? ?? mlIndexFlagRuntimeRust,
       decodedImageSize: json['decodedImageSize'] != null
           ? Dimensions(
               width: json['decodedImageSize']['width'],

@@ -4,7 +4,7 @@ import { CenteredFill, Overlay } from "ente-base/components/containers";
 import type { ButtonishProps } from "ente-base/components/mui";
 import log from "ente-base/log";
 import { downloadManager } from "ente-gallery/services/download";
-import { type EnteFile } from "ente-media/file";
+import type { EnteFile } from "ente-media/file";
 import {
     LoadingThumbnail,
     StaticThumbnail,

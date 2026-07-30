@@ -45,7 +45,7 @@ Share collections with other Ente users, or create public links for individual i
 
 ### Open source
 
-Like all Ente products, Locker is fully open source. Anyone can inspect our code to verify our security claims. View our code on [GitHub](https://github.com/ente-io/ente).
+Like all Ente products, Locker is fully open source. Anyone can inspect our code to verify our security claims. View our code on [GitHub](https://github.com/ente/ente).
 
 ## How Locker works with your other tools
 
@@ -93,6 +93,6 @@ If you need assistance with Ente Locker, multiple support channels are available
 1. **Documentation**: Browse the [Getting Started](/locker/getting-started/) guide, explore [Features](/locker/features/information-types/) including [Legacy](/locker/features/legacy/), and check the [FAQ](/locker/faq/) sections
 2. **Discord community**: Join our [Discord server](https://ente.com/discord) for community support and discussions
 3. **Email support**: Contact us at [support@ente.com](mailto:support@ente.com) for personalized help
-4. **GitHub**: Report bugs or request features on [GitHub](https://github.com/ente-io/ente/issues)
+4. **GitHub**: Report bugs or request features on [GitHub](https://github.com/ente/ente/issues)
 
 For security vulnerabilities, please email [security@ente.com](mailto:security@ente.com) directly.

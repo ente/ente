@@ -147,7 +147,7 @@ class _OtherContactPageState extends State<OtherContactPage> {
                           try {
                             await EmergencyContactService.instance
                                 .startRecovery(widget.contact);
-                            if (mounted) {
+                            if (context.mounted) {
                               _fetchData().ignore();
                               await showAlertBottomSheet(
                                 context,
@@ -160,10 +160,12 @@ class _OtherContactPageState extends State<OtherContactPage> {
                               );
                             }
                           } catch (e) {
-                            showGenericErrorDialog(
-                              context: context,
-                              error: e,
-                            ).ignore();
+                            if (context.mounted) {
+                              showGenericErrorDialog(
+                                context: context,
+                                error: e,
+                              ).ignore();
+                            }
                           }
                         }
                       },
@@ -180,12 +182,20 @@ class _OtherContactPageState extends State<OtherContactPage> {
                     ) = await EmergencyContactService.instance.getRecoveryInfo(
                       recoverySession!,
                     );
+                    if (!context.mounted) {
+                      return;
+                    }
                     routeToPage(
                       context,
                       RecoverOthersAccount(key, attributes, recoverySession!),
                     ).ignore();
                   } catch (e) {
-                    showGenericErrorDialog(context: context, error: e).ignore();
+                    if (context.mounted) {
+                      showGenericErrorDialog(
+                        context: context,
+                        error: e,
+                      ).ignore();
+                    }
                   }
                 },
               ),
@@ -283,7 +293,9 @@ class _OtherContactPageState extends State<OtherContactPage> {
           _fetchData().ignore();
         }
       } catch (e) {
-        showGenericErrorDialog(context: context, error: e).ignore();
+        if (mounted) {
+          showGenericErrorDialog(context: context, error: e).ignore();
+        }
       }
     }
   }
@@ -317,7 +329,9 @@ class _OtherContactPageState extends State<OtherContactPage> {
           Navigator.of(context).pop();
         }
       } catch (e) {
-        showGenericErrorDialog(context: context, error: e).ignore();
+        if (mounted) {
+          showGenericErrorDialog(context: context, error: e).ignore();
+        }
       }
     }
   }

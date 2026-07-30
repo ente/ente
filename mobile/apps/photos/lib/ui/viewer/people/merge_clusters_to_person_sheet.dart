@@ -18,6 +18,7 @@ import "package:photos/models/search/search_constants.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/face_ml/face_filtering/face_filtering_constants.dart";
 import "package:photos/services/search_service.dart";
+import "package:photos/settings/local_settings.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/theme/text_style.dart";
@@ -27,7 +28,6 @@ import "package:photos/ui/components/searchable_appbar.dart";
 import "package:photos/ui/viewer/people/face_thumbnail_squircle.dart";
 import "package:photos/ui/viewer/people/person_face_widget.dart";
 import "package:photos/ui/viewer/people/save_or_edit_person.dart";
-import "package:photos/utils/local_settings.dart";
 import "package:photos/utils/people_sort_util.dart";
 
 class MergePersonSelectionResult {
@@ -54,6 +54,19 @@ Future<MergePersonSelectionResult?> showMergeClustersToPersonPage(
       seedClusterId: seedClusterId,
     ),
   );
+}
+
+Future<List<GenericSearchResult>> loadMergeablePersons() async {
+  final results = await SearchService.instance.getAllFace(
+    null,
+    minClusterSize: kMinimumClusterSizeAllFaces,
+  );
+  return results
+      .where(
+        (result) =>
+            (result.params[kPersonParamID] as String?)?.isNotEmpty ?? false,
+      )
+      .toList();
 }
 
 class MergeClustersToPersonPage extends StatefulWidget {
@@ -102,26 +115,13 @@ class _MergeClustersToPersonPageState extends State<MergeClustersToPersonPage> {
     _photosSortAscending = settings.peoplePhotosSortAscending;
     _personsFuture = widget.initialPersons != null
         ? Future.value(widget.initialPersons!)
-        : _loadNamedPersons();
+        : loadMergeablePersons();
     if (_canUseSimilaritySort) {
       _personsFuture = _personsFuture.then((persons) async {
         _personToMaxSimilarity = await _calculateSimilarityWithPersons(persons);
         return persons;
       });
     }
-  }
-
-  static Future<List<GenericSearchResult>> _loadNamedPersons() async {
-    final results = await SearchService.instance.getAllFace(
-      null,
-      minClusterSize: kMinimumClusterSizeAllFaces,
-    );
-    return results
-        .where(
-          (result) =>
-              (result.params[kPersonParamID] as String?)?.isNotEmpty ?? false,
-        )
-        .toList();
   }
 
   List<GenericSearchResult> _filterPersons(List<GenericSearchResult> persons) {

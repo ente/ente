@@ -1,0 +1,1 @@
+- Added a mute button to the video player that remembers your preference.

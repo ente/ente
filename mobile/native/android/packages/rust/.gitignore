@@ -1,4 +1,0 @@
-src/main/kotlin/io/ente/labs/inference_rs/inference.kt
-src/main/kotlin/io/ente/labs/ensu_db/db.kt
-src/main/kotlin/io/ente/labs/ensu_sync/sync.kt
-src/main/kotlin/io/ente/labs/ensu_transcription/transcription.kt

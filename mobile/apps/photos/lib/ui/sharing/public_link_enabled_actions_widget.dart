@@ -51,6 +51,7 @@ class PublicLinkEnabledActionsWidget extends StatelessWidget {
           showOnlyLoadingState: true,
           onTap: () async {
             await Clipboard.setData(ClipboardData(text: url));
+            if (!context.mounted) return;
             showShortToast(
               context,
               AppLocalizations.of(context).linkCopiedToClipboard,

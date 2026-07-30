@@ -21,7 +21,7 @@ class TunneledTransport implements Transport {
   TunneledTransport._(this._tunnel, this._options)
     : _dsn = _options.dsn != null ? Dsn.parse(_options.dsn!) : null,
       _headers = _buildHeaders(
-        _options.platformChecker.isWeb,
+        _options.platform.isWeb,
         _options.sentryClientName,
       ) {
     _credentialBuilder = _CredentialBuilder(
@@ -43,7 +43,7 @@ class TunneledTransport implements Transport {
       // body guard to not log the error as it has performance impact to allocate
       // the body String.
       if (_options.debug) {
-        _options.logger(
+        _options.log(
           SentryLevel.error,
           'API returned an error, statusCode = ${response.statusCode}, '
           'body = ${response.body}',
@@ -51,7 +51,7 @@ class TunneledTransport implements Transport {
       }
       return const SentryId.empty();
     } else {
-      _options.logger(
+      _options.log(
         SentryLevel.debug,
         'Envelope ${envelope.header.eventId ?? "--"} was sent successfully.',
       );

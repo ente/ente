@@ -68,12 +68,15 @@ abstract class BaseConfiguration {
         accessibility: KeychainAccessibility.first_unlock_this_device,
       ),
     );
-    await _setupKeys();
+    // Set up folders before keys so the cache directory is initialized before
+    // _setupKeys() can trigger an auto-logout whose cleanup needs it.
     await _setupFolders();
+    await _setupKeys();
     _logger.info("User ID: ${getUserID()}");
   }
 
   Future<void> logout({bool autoLogout = false}) async {
+    await _clearTempFolderOnLogout();
     await _preferences.clear();
     await resetSecureStorage();
     for (final db in _databases) {
@@ -83,6 +86,19 @@ abstract class BaseConfiguration {
     _cachedToken = null;
     _secretKey = null;
     Bus.instance.fire(SignedOutEvent());
+  }
+
+  Future<void> _clearTempFolderOnLogout() async {
+    final tempDirectory = io.Directory(_tempDocumentsDirPath);
+    try {
+      if (await tempDirectory.exists()) {
+        await tempDirectory.delete(recursive: true);
+      }
+      await tempDirectory.create(recursive: true);
+      _logger.info("Cleared temp folder on logout");
+    } catch (e, s) {
+      _logger.warning("Failed to clear temp folder on logout", e, s);
+    }
   }
 
   Future<void> resetSecureStorage() async {
@@ -367,6 +383,15 @@ abstract class BaseConfiguration {
 
   Uint8List? getSecretKey() {
     return _secretKey == null ? null : CryptoUtil.base642bin(_secretKey!);
+  }
+
+  String decryptDeleteChallenge(String encryptedChallenge) {
+    final challenge = CryptoUtil.openSealSync(
+      CryptoUtil.base642bin(encryptedChallenge),
+      CryptoUtil.base642bin(getKeyAttributes()!.publicKey),
+      getSecretKey()!,
+    );
+    return utf8.decode(challenge);
   }
 
   Uint8List getRecoveryKey() {

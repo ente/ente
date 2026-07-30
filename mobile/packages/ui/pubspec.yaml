@@ -1,8 +1,7 @@
 name: ente_ui
 description: A Flutter package containing shared UI components, themes, and utilities for Ente apps
-version: 1.0.0
-publish_to: none
 
+resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
   flutter: ">=1.17.0"
@@ -11,8 +10,6 @@ dependencies:
   dio: 5.9.2
   ente_base:
     path: ../../packages/base
-  ente_configuration:
-    path: ../../packages/configuration
   ente_logging:
     path: ../../packages/logging
   ente_pure_utils:
@@ -24,7 +21,6 @@ dependencies:
   expandable: 5.0.1
   flutter:
     sdk: flutter
-  flutter_animate: 4.5.2
   fluttertoast: 8.2.14
   hugeicons: 1.1.7
   modal_bottom_sheet: 3.0.0

@@ -21,7 +21,7 @@ const hasDraggedFiles = (
     return false;
 };
 
-interface FullScreenDropZoneProps {
+export interface FullScreenDropZoneProps {
     /**
      * Optional override to the message show to the user when a drag is in
      * progress.

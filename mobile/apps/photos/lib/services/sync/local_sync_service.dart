@@ -67,6 +67,9 @@ class LocalSyncService {
       _permissionGrantedSubscription = Bus.instance
           .on<PermissionGrantedEvent>()
           .listen((event) async {
+            if (!permissionService.hasGrantedPermissions()) {
+              return;
+            }
             _registerChangeCallback();
             if (isLocalGalleryMode) {
               // Local gallery onboarding grants permission without explicitly
@@ -93,6 +96,7 @@ class LocalSyncService {
         return;
       }
     }
+    _registerChangeCallback();
     if (_existingSync != null) {
       _logger.warning("Sync already in progress, skipping.");
       return _existingSync!.future;
@@ -102,7 +106,7 @@ class LocalSyncService {
 
     // We use a lock to prevent synchronisation to occur while it is downloading
     // as this introduces wrong entry in FilesDB due to race condition
-    // This is a fix for https://github.com/ente-io/ente/issues/4296
+    // This is a fix for https://github.com/ente/ente/issues/4296
     await _lock.synchronized(() async {
       final existingLocalFileIDs = await _db.getExistingLocalFileIDs(ownerID);
       _logger.info("${existingLocalFileIDs.length} localIDs were discovered");
@@ -140,8 +144,16 @@ class LocalSyncService {
           toTime: syncStartTime,
         );
       }
-      if (!hasCompletedFirstImport()) {
+      final hasCompletedInitialImport = hasCompletedFirstImport();
+      final shouldCompleteLocalGalleryHandoff =
+          !isLocalGalleryMode && localSettings.isFromLocalGalleryToEnte;
+      if (!hasCompletedInitialImport || shouldCompleteLocalGalleryHandoff) {
         await _prefs.setBool(kHasCompletedFirstImportKey, true);
+        if (isLocalGalleryMode) {
+          await localSettings.setIsFromLocalGalleryToEnte(true);
+        } else if (shouldCompleteLocalGalleryHandoff) {
+          await localSettings.setIsFromLocalGalleryToEnte(false);
+        }
         if (backupPreferenceService.hasSkippedOnboardingPermission) {
           await backupPreferenceService.setOnboardingPermissionSkipped(false);
         }
@@ -313,26 +325,16 @@ class LocalSyncService {
   /// bypass it (e.g., onboarding skipped or only-new backup). Falls back to the
   /// stored completion value otherwise.
   bool hasCompletedFirstImportOrBypassed() {
+    if (!isLocalGalleryMode &&
+        Configuration.instance.hasConfiguredAccount() &&
+        localSettings.isFromLocalGalleryToEnte) {
+      return false;
+    }
     if (hasCompletedFirstImport()) {
       return true;
     }
     return backupPreferenceService.hasSkippedOnboardingPermission ||
         backupPreferenceService.isOnlyNewBackupEnabled;
-  }
-
-  // Warning: resetLocalSync should only be used for testing imported related
-  // changes
-  Future<void> resetLocalSync() async {
-    assert(kDebugMode, "only available in debug mode");
-    await FilesDB.instance.deleteDB();
-    for (var element in [
-      kHasCompletedFirstImportKey,
-      kDbUpdationTimeKey,
-      "has_synced_edit_time",
-      "has_selected_all_folders_for_backup",
-    ]) {
-      await _prefs.remove(element);
-    }
   }
 
   Future<void> _loadAndStoreDiff(

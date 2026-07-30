@@ -49,7 +49,7 @@ Some of the common configuration that can be done at top-level are:
 >
 > Replication works only if all 3 storage buckets are configured (2 hot and 1 cold storage).
 >
-> For more information, check [this discussion](https://github.com/ente-io/ente/discussions/3167#discussioncomment-10585970) and our article on ensuring [reliability](https://ente.com/reliability/).
+> For more information, check [this discussion](https://github.com/ente/ente/discussions/3167#discussioncomment-10585970) and our article on ensuring [reliability](https://ente.com/reliability/).
 
 Replication is disabled by default in self-hosted instance. Only the first bucket (`b2-eu-cen`) is used.
 
@@ -57,7 +57,7 @@ Only the names are specifically fixed, you can put any other keys in configurati
 
 Use the `s3.hot_storage.primary` option if you'd like to set one of the other pre-defined buckets as the primary bucket.
 
-To enable replication after configuring all 3 storage buckets, set `replication.enabled` to `true` in [museum.yaml](https://github.com/ente-io/ente/blob/main/server/configurations/local.yaml):
+To enable replication after configuring all 3 storage buckets, set `replication.enabled` to `true` in [museum.yaml](https://github.com/ente/ente/blob/main/server/configurations/local.yaml):
 
 ```yaml
 replication:

@@ -90,6 +90,7 @@ class _MapScreenState extends State<MapScreen> {
     final List<ImageMarker> tempMarkers = result.$2;
 
     if (tempMarkers.isEmpty) {
+      if (!mounted) return;
       showShortToast(
         context,
         AppLocalizations.of(context).noImagesWithLocation,
@@ -153,6 +154,9 @@ class _MapScreenState extends State<MapScreen> {
     _mapMoveSubscription = receivePort.listen((dynamic message) async {
       if (message is List<EnteFile>) {
         if (!message.equals(prevMessage ?? [])) {
+          if (visibleImages.isClosed) {
+            return;
+          }
           visibleImages.sink.add(message);
         }
 

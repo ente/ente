@@ -1296,6 +1296,7 @@ class MemoriesCacheService {
         );
         return;
       }
+      if (context != null && !context.mounted) return;
       await _routeToPage(
         DetailPage(DetailPageConfiguration([file], 0, "memorywidget-fallback")),
         context: context,
@@ -1303,10 +1304,10 @@ class MemoriesCacheService {
       );
       return;
     }
+    if (context != null && !context.mounted) return;
     await _routeToPage(
       AllMemoriesPage(
-        allMemories: _cachedMemories!.map((e) => e.memories).toList(),
-        allTitles: _cachedMemories!.map((e) => e.title).toList(),
+        allMemories: _cachedMemories!,
         initialPageIndex: memoryIdx,
         inititalFileIndex: fileIdx,
         isFromWidgetOrNotifications: true,
@@ -1333,10 +1334,10 @@ class MemoriesCacheService {
       _logger.warning("Could not find onThisDay memory");
       return;
     }
+    if (context != null && !context.mounted) return;
     await _routeToPage(
       AllMemoriesPage(
-        allMemories: allMemories.map((e) => e.memories).toList(),
-        allTitles: allMemories.map((e) => e.title).toList(),
+        allMemories: allMemories,
         initialPageIndex: memoryIdx,
         inititalFileIndex: 0,
         isFromWidgetOrNotifications: true,
@@ -1385,6 +1386,7 @@ class MemoriesCacheService {
         _logger.severe("Person with ID $personID not found");
         return;
       }
+      if (context != null && !context.mounted) return;
       await _routeToPage(
         PeoplePage(person: person, searchResult: null),
         context: context,
@@ -1392,6 +1394,7 @@ class MemoriesCacheService {
       );
       return;
     }
+    if (context != null && !context.mounted) return;
     await _routeToPage(
       FullScreenMemoryDataUpdater(
         initialIndex: 0,
@@ -1428,25 +1431,25 @@ class MemoriesCacheService {
     );
   }
 
-  Future<void> toggleOnThisDayNotifications() async {
-    final oldValue = localSettings.isOnThisDayNotificationsEnabled;
-    await localSettings.setOnThisDayNotificationsEnabled(!oldValue);
-    _logger.info("Turning onThisDayNotifications ${oldValue ? "off" : "on"}");
-    if (oldValue) {
-      await _clearAllScheduledOnThisDayNotifications();
-    } else {
+  Future<void> setOnThisDayNotifications(bool value) async {
+    if (localSettings.isOnThisDayNotificationsEnabled == value) return;
+    await localSettings.setOnThisDayNotificationsEnabled(value);
+    _logger.info("Turning onThisDayNotifications ${value ? "on" : "off"}");
+    if (value) {
       queueUpdateCache();
+    } else {
+      await _clearAllScheduledOnThisDayNotifications();
     }
   }
 
-  Future<void> toggleBirthdayNotifications() async {
-    final oldValue = localSettings.birthdayNotificationsEnabled;
-    await localSettings.setBirthdayNotificationsEnabled(!oldValue);
-    _logger.info("Turning birhtdayNotifications ${oldValue ? "off" : "on"}");
-    if (oldValue) {
-      await _clearAllScheduledBirthdayNotifications();
-    } else {
+  Future<void> setBirthdayNotifications(bool value) async {
+    if (localSettings.birthdayNotificationsEnabled == value) return;
+    await localSettings.setBirthdayNotificationsEnabled(value);
+    _logger.info("Turning birthdayNotifications ${value ? "on" : "off"}");
+    if (value) {
       queueUpdateCache();
+    } else {
+      await _clearAllScheduledBirthdayNotifications();
     }
   }
 

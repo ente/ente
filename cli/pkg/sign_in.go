@@ -3,12 +3,12 @@ package pkg
 import (
 	"context"
 	"fmt"
-	"github.com/ente-io/cli/internal"
-	"github.com/ente-io/cli/internal/api"
-	eCrypto "github.com/ente-io/cli/internal/crypto"
-	"github.com/ente-io/cli/pkg/model"
-	"github.com/ente-io/cli/utils/browser"
-	"github.com/ente-io/cli/utils/encoding"
+	"github.com/ente/cli/internal"
+	"github.com/ente/cli/internal/api"
+	eCrypto "github.com/ente/cli/internal/crypto"
+	"github.com/ente/cli/pkg/model"
+	"github.com/ente/cli/utils/browser"
+	"github.com/ente/cli/utils/encoding"
 	"log"
 
 	"github.com/kong/go-srp"

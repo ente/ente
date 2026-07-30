@@ -3,15 +3,15 @@ package social
 import (
 	"strings"
 
-	"github.com/ente-io/museum/ente"
+	"github.com/ente/museum/ente"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 )
 
 const (
-	commentIDPrefix     = "cmt_"
-	reactionIDPrefix    = "rct_"
-	anonIDPrefix        = "anon_"
-	nanoidSuffixLength  = 21
+	commentIDPrefix    = "cmt_"
+	reactionIDPrefix   = "rct_"
+	anonIDPrefix       = "anon_"
+	nanoidSuffixLength = 21
 )
 
 // NormalizeCommentID optionally generates or validates a comment ID.

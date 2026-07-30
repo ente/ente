@@ -2,37 +2,43 @@ package user
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
-	enteJWT "github.com/ente-io/museum/ente/jwt"
-	"github.com/ente-io/museum/pkg/controller/collections"
-	"github.com/ente-io/museum/pkg/repo/two_factor_recovery"
-	util "github.com/ente-io/museum/pkg/utils"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/pkg/controller/collections"
+	"github.com/ente/museum/pkg/repo/two_factor_recovery"
+	util "github.com/ente/museum/pkg/utils"
 	"github.com/ulule/limiter/v3"
-	"strings"
 
-	cache2 "github.com/ente-io/museum/ente/cache"
-	"github.com/ente-io/museum/pkg/controller/discord"
-	"github.com/ente-io/museum/pkg/controller/usercache"
+	cache2 "github.com/ente/museum/ente/cache"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/controller/usercache"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/controller/family"
-	"github.com/ente-io/museum/pkg/repo"
-	contactrepo "github.com/ente-io/museum/pkg/repo/contact"
-	"github.com/ente-io/museum/pkg/repo/datacleanup"
-	"github.com/ente-io/museum/pkg/repo/passkey"
-	storageBonusRepo "github.com/ente-io/museum/pkg/repo/storagebonus"
-	"github.com/ente-io/museum/pkg/utils/billing"
-	"github.com/ente-io/museum/pkg/utils/crypto"
-	"github.com/ente-io/museum/pkg/utils/email"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/controller/family"
+	"github.com/ente/museum/pkg/repo"
+	authenticatorRepo "github.com/ente/museum/pkg/repo/authenticator"
+	contactrepo "github.com/ente/museum/pkg/repo/contact"
+	"github.com/ente/museum/pkg/repo/datacleanup"
+	"github.com/ente/museum/pkg/repo/passkey"
+	storageBonusRepo "github.com/ente/museum/pkg/repo/storagebonus"
+	"github.com/ente/museum/pkg/utils/billing"
+	"github.com/ente/museum/pkg/utils/crypto"
+	"github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 )
+
+type SpaceAccessResetter interface {
+	ResetUserAccess(ctx context.Context, userID int64) error
+	RevokeBrowserSessions(ctx context.Context, userID int64) error
+}
+
+type SpaceAccountDeletionAccessResetter interface {
+	ResetAccountDeletionAccess(ctx context.Context, userID int64) error
+}
 
 // UserController exposes request handlers for all user related requests
 type UserController struct {
@@ -40,9 +46,11 @@ type UserController struct {
 	TwoFactorRecoveryRepo   *two_factor_recovery.Repository
 	UsageRepo               *repo.UsageRepository
 	UserAuthRepo            *repo.UserAuthRepository
+	UserLookup              controller.UserLookup
 	TwoFactorRepo           *repo.TwoFactorRepository
 	PasskeyRepo             *passkey.Repository
 	StorageBonusRepo        *storageBonusRepo.Repository
+	AuthenticatorRepo       *authenticatorRepo.Repository
 	FileRepo                *repo.FileRepository
 	CollectionRepo          *repo.CollectionRepository
 	DataCleanupRepo         *datacleanup.Repository
@@ -54,6 +62,7 @@ type UserController struct {
 	DiscordController       *discord.DiscordController
 	MailingListsController  *controller.MailingListsController
 	PushController          *controller.PushController
+	SpaceAccessResetter     SpaceAccessResetter
 	ContactRepo             *contactrepo.Repository
 	HashingKey              []byte
 	SecretEncryptionKey     []byte
@@ -64,6 +73,7 @@ type UserController struct {
 	UserCacheController     *usercache.Controller
 	SRPLimiter              *limiter.Limiter
 	OTTLimiter              *limiter.Limiter
+	OTTSendLimiter          *OTTSendLimiter
 }
 
 const (
@@ -102,8 +112,6 @@ const (
 	AccountDeletedEmailTemplate                       = "account_deleted.html"
 	AccountDeletedWithActiveSubscriptionEmailTemplate = "account_deleted_active_sub.html"
 	AccountDeletedEmailSubject                        = "Your Ente account has been deleted"
-	accountRecoveryLinkHost                           = "https://api.ente.com"
-	accountRecoveryLinkValidityDays                   = 7
 )
 
 func NewUserController(
@@ -113,6 +121,7 @@ func NewUserController(
 	twoFactorRepo *repo.TwoFactorRepository,
 	twoFactorRecoveryRepo *two_factor_recovery.Repository,
 	passkeyRepo *passkey.Repository,
+	authenticatorRepo *authenticatorRepo.Repository,
 	storageBonusRepo *storageBonusRepo.Repository,
 	fileRepo *repo.FileRepository,
 	collectionController *collections.CollectionController,
@@ -127,6 +136,7 @@ func NewUserController(
 	billingController *controller.BillingController,
 	familyController *family.Controller,
 	discordController *discord.DiscordController,
+	userLookup controller.UserLookup,
 	mailingListsController *controller.MailingListsController,
 	pushController *controller.PushController,
 	userCache *cache2.UserCache,
@@ -135,13 +145,16 @@ func NewUserController(
 ) *UserController {
 	srpLimiter := util.NewRateLimiter("100-H")
 	ottLimiter := util.NewRateLimiter("100-H")
+	ottSendLimiter := NewOTTSendLimiter()
 	return &UserController{
 		UserRepo:                userRepo,
 		UsageRepo:               usageRepo,
 		TwoFactorRecoveryRepo:   twoFactorRecoveryRepo,
 		UserAuthRepo:            userAuthRepo,
+		UserLookup:              userLookup,
 		StorageBonusRepo:        storageBonusRepo,
 		TwoFactorRepo:           twoFactorRepo,
+		AuthenticatorRepo:       authenticatorRepo,
 		PasskeyRepo:             passkeyRepo,
 		FileRepo:                fileRepo,
 		CollectionCtrl:          collectionController,
@@ -164,6 +177,7 @@ func NewUserController(
 		UserCacheController:     userCacheController,
 		SRPLimiter:              srpLimiter,
 		OTTLimiter:              ottLimiter,
+		OTTSendLimiter:          ottSendLimiter,
 	}
 }
 
@@ -223,8 +237,8 @@ func (c *UserController) SetRecoveryKey(userID int64, request ente.SetRecoveryKe
 }
 
 // GetPublicKey returns the public key of a user
-func (c *UserController) GetPublicKey(email string) (string, error) {
-	userID, err := c.UserRepo.GetUserIDWithEmail(email)
+func (c *UserController) GetPublicKey(requesterUserID int64, email string) (string, error) {
+	userID, err := c.UserLookup.LookupUserID(requesterUserID, email)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
@@ -253,6 +267,31 @@ func (c *UserController) HandleAutomatedAccountDeletion(ctx context.Context, use
 }
 
 func (c *UserController) ResetUserAccess(ctx context.Context, userID int64, logger *logrus.Entry) error {
+	return c.resetUserAccess(ctx, userID, logger, false)
+}
+
+func (c *UserController) resetAccountDeletionAccess(ctx context.Context, userID int64, logger *logrus.Entry) error {
+	return c.resetUserAccess(ctx, userID, logger, true)
+}
+
+func (c *UserController) resetUserAccess(ctx context.Context, userID int64, logger *logrus.Entry, accountDeletion bool) error {
+	if c.SpaceAccessResetter != nil {
+		logger.Info("reset space access for user")
+		var err error
+		if accountDeletion {
+			if resetter, ok := c.SpaceAccessResetter.(SpaceAccountDeletionAccessResetter); ok {
+				err = resetter.ResetAccountDeletionAccess(ctx, userID)
+			} else {
+				err = c.SpaceAccessResetter.ResetUserAccess(ctx, userID)
+			}
+		} else {
+			err = c.SpaceAccessResetter.ResetUserAccess(ctx, userID)
+		}
+		if err != nil {
+			return stacktrace.Propagate(err, "")
+		}
+	}
+
 	logger.Info("remove locker and photos tokens for user")
 	if err := c.RemoveTokensForApps(userID, []ente.App{ente.Locker, ente.Photos}); err != nil {
 		return stacktrace.Propagate(err, "")
@@ -279,7 +318,7 @@ func (c *UserController) handleAccountDeletion(
 		return nil, stacktrace.Propagate(err, "")
 	}
 
-	err = c.ResetUserAccess(ctx, userID, logger)
+	err = c.resetAccountDeletionAccess(ctx, userID, logger)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
@@ -309,15 +348,8 @@ func (c *UserController) handleAccountDeletion(
 		}
 	}()
 
-	logger.Info("mark user as deleted")
-	err = c.UserRepo.Delete(userID)
-	if err != nil {
-		return nil, stacktrace.Propagate(err, "")
-	}
-
-	logger.Info("schedule data deletion")
-	err = c.DataCleanupRepo.Insert(ctx, userID)
-	if err != nil {
+	logger.Info("mark user as deleted and schedule data deletion")
+	if err := c.markAccountDeletedAndScheduleCleanup(ctx, userID); err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
 
@@ -330,6 +362,23 @@ func (c *UserController) handleAccountDeletion(
 		UserID:                  userID,
 	}, nil
 
+}
+
+func (c *UserController) markAccountDeletedAndScheduleCleanup(ctx context.Context, userID int64) error {
+	transaction, err := c.UserRepo.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to start account deletion transaction")
+	}
+	defer transaction.Rollback()
+
+	emailHash, err := c.UserRepo.DeleteTx(ctx, transaction, userID)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	if err := c.DataCleanupRepo.InsertTx(ctx, transaction, userID, emailHash); err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	return stacktrace.Propagate(transaction.Commit(), "failed to commit account deletion")
 }
 
 func (c *UserController) NotifyAccountDeletion(userID int64, userEmail string, isSubscriptionCancelled bool) {
@@ -350,93 +399,6 @@ func (c *UserController) NotifyAccountDeletion(userID int64, userEmail string, i
 	if err != nil {
 		logrus.WithError(err).Errorf("Failed to send the account deletion email to %s", userEmail)
 	}
-}
-
-func (c *UserController) getAccountRecoveryLink(userID int64, userEmail string) (string, error) {
-	recoverToken, err := c.GetJWTTokenForClaim(&enteJWT.WebCommonJWTClaim{
-		UserID:     userID,
-		ExpiryTime: time.MicrosecondsAfterDays(accountRecoveryLinkValidityDays),
-		ClaimScope: enteJWT.RestoreAccount.Ptr(),
-		Email:      userEmail,
-	})
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%s/users/recover-account?token=%s", accountRecoveryLinkHost, recoverToken), nil
-}
-
-func (c *UserController) HandleSelfAccountRecovery(ctx *gin.Context, token string) error {
-	jwtToken, err := c.ValidateJWTToken(token, enteJWT.RestoreAccount)
-	if err != nil {
-		return stacktrace.Propagate(ente.NewPermissionDeniedError("invalid token"), "failed to validate jwt token: %s", err.Error())
-	}
-	if jwtToken.UserID == 0 || jwtToken.Email == "" {
-		return stacktrace.Propagate(ente.NewBadRequestError(&ente.ApiErrorParams{
-			Message: "Invalid token",
-		}), "userID or email is empty")
-	}
-	if jwtToken.ExpiryTime < time.Microseconds() {
-		return stacktrace.Propagate(ente.NewBadRequestError(&ente.ApiErrorParams{
-			Message: "Token expired",
-		}), "")
-	}
-	// check if account is already recovered
-	if user, userErr := c.UserRepo.Get(jwtToken.UserID); userErr == nil {
-		if strings.EqualFold(user.Email, jwtToken.Email) {
-			logrus.WithField("userID", jwtToken.UserID).Error("account is already recovered")
-			return nil
-		}
-	}
-	return c.HandleAccountRecovery(ctx, ente.RecoverAccountRequest{
-		UserID:  jwtToken.UserID,
-		EmailID: jwtToken.Email,
-	})
-}
-
-func (c *UserController) HandleAccountRecovery(ctx *gin.Context, req ente.RecoverAccountRequest) error {
-	logger := logrus.WithFields(logrus.Fields{
-		"req_id":  ctx.GetString("req_id"),
-		"req_ctx": "account_recovery",
-		"email":   req.EmailID,
-		"userID":  req.UserID,
-	})
-	logger.Info("initiating account recovery")
-	_, err := c.UserRepo.Get(req.UserID)
-	if err == nil {
-		return stacktrace.Propagate(ente.NewBadRequestError(&ente.ApiErrorParams{
-			Message: "account is already recovered or userID is linked to another active account",
-		}), "")
-	}
-	if !errors.Is(err, ente.ErrUserDeleted) {
-		return stacktrace.Propagate(err, "error while getting the user")
-	}
-	// check if the user keyAttributes are still available
-	if _, keyErr := c.UserRepo.GetKeyAttributes(req.UserID); keyErr != nil {
-		if errors.Is(keyErr, sql.ErrNoRows) {
-			return stacktrace.Propagate(ente.NewBadRequestWithMessage("account can not be recovered now"), "")
-		}
-		return stacktrace.Propagate(keyErr, "keyAttributes missing? Account can not be recovered")
-	}
-	email := email.NormalizeEmail(req.EmailID)
-	encryptedEmail, err := crypto.Encrypt(email, c.SecretEncryptionKey)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	emailHash, err := crypto.GetHash(email, c.HashingKey)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	err = c.UserRepo.UpdateEmail(req.UserID, encryptedEmail, emailHash)
-	if err != nil {
-		return stacktrace.Propagate(err, "failed to update email")
-	}
-	c.touchContactsAfterEmailUpdate(ctx, req.UserID)
-	err = c.DataCleanupRepo.RemoveScheduledDelete(ctx, req.UserID)
-	if err != nil {
-		logrus.WithError(err).Error("failed to remove scheduled delete")
-		return stacktrace.Propagate(err, "")
-	}
-	return stacktrace.Propagate(err, "")
 }
 
 func (c *UserController) attachFreeSubscription(userID int64) (ente.Subscription, error) {

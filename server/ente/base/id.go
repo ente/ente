@@ -7,7 +7,7 @@ import (
 	"github.com/matoous/go-nanoid/v2"
 )
 
-// Ref https://github.com/ente-io/ente/blob/main/web/packages/base/id.ts#L4
+// Ref https://github.com/ente/ente/blob/main/web/packages/base/id.ts#L4
 const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 // NewID generates a new random identifier with the given prefix.

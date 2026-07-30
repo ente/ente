@@ -3,12 +3,13 @@ import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/search/generic_search_result.dart";
-import "package:photos/service_locator.dart" show flagService;
 import "package:photos/services/contacts/contact_identity_resolver.dart";
+import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/photos_contacts_service.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/ui/viewer/search/result/contact_result_page.dart";
 import "package:photos/ui/viewer/search/result/edit_contact_page.dart";
+import "package:photos/utils/person_contact_linking_util.dart";
 
 final _logger = Logger("SocialActorContactNavigation");
 
@@ -16,9 +17,6 @@ bool canOpenSocialActorContactDestination(
   User user, {
   required int currentUserID,
 }) {
-  if (!flagService.enableContact) {
-    return false;
-  }
   final userId = user.id;
   if (userId == null || userId <= 0 || userId == currentUserID) {
     return false;
@@ -71,7 +69,7 @@ Future<Widget?> _buildDestination(
   required String email,
 }) async {
   final contactsService = PhotosContactsService.instance;
-  final cachedContact = contactsService.getCachedContactByUserId(userId);
+  final cachedContact = contactsService.getCachedContact(contactUserId: userId);
   if (cachedContact != null) {
     return _contactResultPageForUser(user);
   }
@@ -88,9 +86,19 @@ Future<Widget?> _buildDestination(
     }
   }
 
-  final savedContact = contactsService.getCachedContactByUserId(userId);
+  final savedContact = contactsService.getCachedContact(contactUserId: userId);
   if (savedContact != null) {
     return _contactResultPageForUser(user);
+  }
+
+  if (PersonService.isInitialized) {
+    final person = await findPersonLinkedToContact(
+      contactUserId: userId,
+      email: email,
+    );
+    if (person != null && !person.data.isIgnored && person.data.hasAvatar()) {
+      return _contactResultPageForUser(user);
+    }
   }
 
   return EditContactPage(

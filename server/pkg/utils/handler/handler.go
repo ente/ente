@@ -7,14 +7,39 @@ import (
 	"net/http"
 	"syscall"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/stacktrace"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 )
+
+var errBindJSON = errors.New("bind json")
+
+type bindJSONError struct {
+	err error
+}
+
+func (e bindJSONError) Error() string {
+	return e.err.Error()
+}
+
+func (e bindJSONError) Unwrap() error {
+	return e.err
+}
+
+func (e bindJSONError) Is(target error) bool {
+	return target == errBindJSON
+}
+
+func BindJSON(c *gin.Context, obj any) error {
+	if err := c.ShouldBindJSON(obj); err != nil {
+		return bindJSONError{err: err}
+	}
+	return nil
+}
 
 // Error parses the error, translates it into an HTTP response and aborts
 // the request
@@ -60,6 +85,7 @@ func requestFailureLogLevel(err error, apiErr *ente.ApiError) *log.Level {
 		errors.Is(err, ente.ErrAuthenticationRequired) ||
 		errors.Is(err, ente.ErrUserDeleted) ||
 		errors.Is(err, sql.ErrNoRows) ||
+		errors.Is(err, errBindJSON) ||
 		isRequestIOError(err) ||
 		(apiErr != nil && apiErr.HttpStatusCode >= 400 && apiErr.HttpStatusCode < 500) {
 		return logLevel(log.WarnLevel)
@@ -89,7 +115,8 @@ func httpStatusCode(err error) int {
 		return http.StatusNotFound
 	case errors.Is(err, ente.ErrBadRequest) ||
 		errors.Is(err, ente.ErrCannotDowngrade) ||
-		errors.Is(err, ente.ErrCannotSwitchPaymentProvider):
+		errors.Is(err, ente.ErrCannotSwitchPaymentProvider) ||
+		errors.Is(err, errBindJSON):
 		return http.StatusBadRequest
 	case errors.Is(err, ente.ErrTooManyBadRequest):
 		return http.StatusTooManyRequests

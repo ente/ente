@@ -6,9 +6,9 @@ body:
       attributes:
           value: |
               **Checklist**
-              1. You've searched existing [issues](https://github.com/search?q=repo%3Aente-io%2Fente+&type=issues) and [discussions](https://github.com/search?q=repo%3Aente-io%2Fente+&type=discussions)
-              2. It was working earlier (otherwise use [enhancements](https://github.com/ente-io/ente/discussions/categories/enhancements))
-              3. It is not about self hosting (for those use [this](https://github.com/ente-io/ente/discussions/categories/q-a))
+              1. You've searched existing [issues](https://github.com/search?q=repo%3Aente%2Fente+&type=issues) and [discussions](https://github.com/search?q=repo%3Aente%2Fente+&type=discussions)
+              2. It was working earlier (otherwise use [enhancements](https://github.com/ente/ente/discussions/categories/enhancements))
+              3. It is not about self hosting (for those use [this](https://github.com/ente/ente/discussions/categories/q-a))
     - type: textarea
       attributes:
           label: Description

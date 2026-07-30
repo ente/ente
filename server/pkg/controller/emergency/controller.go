@@ -2,14 +2,14 @@ package emergency
 
 import (
 	"fmt"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/controller/lock"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/controller/lock"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller/user"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/repo/emergency"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller/user"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo/emergency"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,6 +17,7 @@ import (
 type Controller struct {
 	Repo                  *emergency.Repository
 	UserRepo              *repo.UserRepository
+	UserLookup            controller.UserLookup
 	UserCtrl              *user.UserController
 	PasskeyController     *controller.PasskeyController
 	LockCtrl              *lock.LockController

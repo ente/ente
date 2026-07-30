@@ -1,4 +1,3 @@
-import 'package:ente_feature_flag/ente_feature_flag.dart';
 import 'package:logging/logging.dart';
 import 'package:photos/db/device_files_db.dart';
 import 'package:photos/db/files_db.dart';
@@ -7,7 +6,7 @@ import 'package:photos/services/sync/remote_sync_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BackupPreferenceService {
-  BackupPreferenceService(this._prefs, this._flagService);
+  BackupPreferenceService(this._prefs);
 
   static const String _keyHasSelectedAnyBackupFolder =
       "has_selected_any_folder_for_backup";
@@ -20,7 +19,6 @@ class BackupPreferenceService {
   static const String _keyOnlyNewSinceEpoch = "backup_only_new_since_epoch";
 
   final SharedPreferences _prefs;
-  final FlagService _flagService;
 
   final Logger _logger = Logger('BackupPreferenceService');
 
@@ -45,30 +43,16 @@ class BackupPreferenceService {
     await _prefs.setBool(_keyShouldAutoSelectFolders, value);
   }
 
-  bool get hasSkippedOnboardingPermission {
-    if (!_flagService.enableOnlyBackupFuturePhotos) {
-      return false;
-    }
-    return _prefs.getBool(_keyOnboardingPermissionSkipped) ?? false;
-  }
+  bool get hasSkippedOnboardingPermission =>
+      _prefs.getBool(_keyOnboardingPermissionSkipped) ?? false;
 
   Future<void> setOnboardingPermissionSkipped(bool value) async {
     await _prefs.setBool(_keyOnboardingPermissionSkipped, value);
   }
 
-  int? get onlyNewSinceEpoch {
-    if (!_flagService.enableOnlyBackupFuturePhotos) {
-      return null;
-    }
-    return _prefs.getInt(_keyOnlyNewSinceEpoch);
-  }
+  int? get onlyNewSinceEpoch => _prefs.getInt(_keyOnlyNewSinceEpoch);
 
-  bool get isOnlyNewBackupEnabled {
-    if (!_flagService.enableOnlyBackupFuturePhotos) {
-      return false;
-    }
-    return _prefs.containsKey(_keyOnlyNewSinceEpoch);
-  }
+  bool get isOnlyNewBackupEnabled => _prefs.containsKey(_keyOnlyNewSinceEpoch);
 
   Future<void> setOnlyNewSinceEpoch(int timestamp) async {
     await _prefs.setInt(_keyOnlyNewSinceEpoch, timestamp);

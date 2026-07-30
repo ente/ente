@@ -4,37 +4,57 @@ members = [
     "apps/cli",
     "apps/codegen",
     "apps/ensu/src-tauri",
-    "bindings/ffi/crypto",
     "bindings/frb/ente-rust",
     "bindings/frb/photos",
-    "bindings/uniffi/core",
-    "bindings/uniffi/ensu/db",
-    "bindings/uniffi/ensu/inference",
-    "bindings/uniffi/ensu/sync",
-    "bindings/uniffi/ensu/transcription",
+    "bindings/uniffi/cast",
+    "bindings/uniffi/ensu",
     "bindings/wasm/ente-wasm",
+    "bindings/wasm/core",
+    "bindings/wasm/space",
     "crates/accounts",
+    "crates/assets",
     "crates/contacts",
     "crates/core",
-    "crates/ensu/db",
-    "crates/ensu/inference",
-    "crates/ensu/sync",
-    "crates/ensu/transcription",
+    "crates/ensu",
     "crates/image",
+    "crates/paste",
     "crates/photos",
     "crates/test-support",
-    "e2e",
+    "space",
 ]
 
 [workspace.dependencies]
-ensu-db = { path = "crates/ensu/db" }
-ensu-sync = { path = "crates/ensu/sync" }
-ensu-transcription = { path = "crates/ensu/transcription" }
 ente-accounts = { path = "crates/accounts" }
+ente-assets = { path = "crates/assets" }
 ente-contacts = { path = "crates/contacts" }
 ente-core = { path = "crates/core" }
-ente-rs = { path = "apps/cli" }
+ente-ensu = { path = "crates/ensu" }
+ente-image = { path = "crates/image" }
+ente-paste = { path = "crates/paste" }
+ente-photos = { path = "crates/photos" }
+ente-space = { path = "space" }
 ente-test-support = { path = "crates/test-support" }
-ente_image = { path = "crates/image" }
-ente_photos = { path = "crates/photos" }
-inference_rs = { path = "crates/ensu/inference" }
+flutter_rust_bridge = "=2.12.0"
+flutter_rust_bridge_codegen = "=2.12.0"
+md-5 = "0.11.0"
+mockito = "1.7.2"
+ort = { git = "https://github.com/pykeio/ort.git", rev = "31c8f1443bb579bfddb82705288347697e468fb3", default-features = false }
+ort-sys = { git = "https://github.com/pykeio/ort.git", rev = "31c8f1443bb579bfddb82705288347697e468fb3", default-features = false }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+sha2 = "0.11.0"
+thiserror = "2.0.18"
+uniffi = { version = "=0.31.0" }
+uniffi_bindgen = { version = "=0.31.0", default-features = false, features = ["cargo-metadata"] }
+url = "2.5.8"
+urlencoding = "2.1.3"
+wasm-bindgen = "0.2.125"
+zeroize = { version = "1.8.2", features = ["derive"] }
+
+# Unoptimized Argon2 makes production-strength derivations dominate test runtime.
+[profile.dev.package.argon2]
+opt-level = 3
+
+# Keep transitive ORT users (notably transcribe-rs) on the same revision as direct ORT dependencies.
+[patch.crates-io]
+ort = { git = "https://github.com/pykeio/ort.git", rev = "31c8f1443bb579bfddb82705288347697e468fb3" }

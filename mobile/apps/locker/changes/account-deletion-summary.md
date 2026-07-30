@@ -1,0 +1,1 @@
+- Update the account deletion flow with clearer deletion impact details and confirmation.

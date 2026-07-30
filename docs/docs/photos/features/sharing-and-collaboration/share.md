@@ -55,7 +55,7 @@ When you perform these operations, Ente will create a hard copy of these items, 
 
 We understand there are use cases where this approach will consume extra space (for eg. if you are organizing photos of a family member). We chose hard copies as a first version to avoid complexities regarding the ownership of shared items, in case the original owner were to delete it from their own library.
 
-We plan to tackle these complexities in the future, by copying a reference to the item that was shared, instead of the actual file, so that your storage will only get consumed if the original owner deletes it from their library. If this sounds useful to you, please participate in [this discussion](https://github.com/ente-io/ente/discussions/790).
+We plan to tackle these complexities in the future, by copying a reference to the item that was shared, instead of the actual file, so that your storage will only get consumed if the original owner deletes it from their library. If this sounds useful to you, please participate in [this discussion](https://github.com/ente/ente/discussions/790).
 
 ## Technical details
 

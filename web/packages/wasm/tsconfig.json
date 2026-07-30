@@ -1,1 +1,5 @@
-{ "extends": "ente-build-config/tsconfig-typecheck.json", "include": ["."] }
+{
+    "extends": "ente-build-config/tsconfig-typecheck.json",
+    "include": ["."],
+    "exclude": ["space"]
+}

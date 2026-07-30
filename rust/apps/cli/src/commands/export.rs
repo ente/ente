@@ -1,6 +1,7 @@
 use crate::Result;
-use crate::api::client::ApiClient;
+use crate::api::AppClient;
 use crate::api::methods::ApiMethods;
+use crate::live_photo::extract_live_photo;
 use crate::models::{
     account::Account,
     export_metadata::{AlbumMetadata, DiskFileMetadata},
@@ -9,10 +10,9 @@ use crate::models::{
 };
 use crate::storage::Storage;
 use crate::sync::SyncEngine;
-use base64::Engine;
+use ente_core::b64;
 use ente_core::crypto;
 use std::collections::HashMap;
-use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
@@ -80,8 +80,9 @@ async fn load_album_metadata(
 
         // Check if the actual file exists
         for filename in &disk_metadata.info.file_names {
+            let filename = validate_stored_file_name(filename)?;
             let file_path = export_path.join(album_name).join(filename);
-            if file_path.exists() {
+            if file_path.try_exists()? {
                 existing_files.insert(
                     disk_metadata.info.id,
                     ExistingFile {
@@ -158,6 +159,7 @@ pub async fn run_export(account_email: Option<String>, filter: ExportFilter) -> 
     }
 
     // Export each account
+    let mut failures = 0;
     for account in accounts_to_export {
         println!("\n=== Exporting account: {} ===", account.email);
 
@@ -166,6 +168,7 @@ pub async fn run_export(account_email: Option<String>, filter: ExportFilter) -> 
         if let Err(e) = sync_account_before_export(&storage, &account).await {
             log::error!("Failed to sync account {}: {}", account.email, e);
             println!("❌ Sync failed: {e}");
+            failures += 1;
             continue;
         }
         println!("✅ Sync completed!");
@@ -173,11 +176,17 @@ pub async fn run_export(account_email: Option<String>, filter: ExportFilter) -> 
         if let Err(e) = export_account(&storage, &account, &filter).await {
             log::error!("Failed to export account {}: {}", account.email, e);
             println!("❌ Export failed: {e}");
+            failures += 1;
         } else {
             println!("✅ Export completed successfully!");
         }
     }
 
+    if failures > 0 {
+        return Err(crate::Error::Generic(format!(
+            "export failed for {failures} account(s)"
+        )));
+    }
     Ok(())
 }
 
@@ -189,14 +198,11 @@ async fn sync_account_before_export(storage: &Storage, account: &Account) -> Res
         .ok_or_else(|| crate::Error::NotFound("Account secrets not found".into()))?;
 
     // Create API client with account's endpoint
-    let api_client = ApiClient::new_with_client_package(
-        Some(account.endpoint.clone()),
-        account.app.client_package(),
-    )?;
+    let api_client = AppClient::new(Some(account.endpoint.clone()), account.app)?;
 
     // Store token for this account
-    let token = base64::engine::general_purpose::URL_SAFE.encode(&secrets.token);
-    api_client.add_token(&account.email, &token);
+    let token = b64::encode_url_safe(&secrets.token);
+    api_client.set_token(&token);
 
     // Get the database path to create a new Storage instance
     let db_path = storage
@@ -253,16 +259,13 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
         .ok_or_else(|| crate::Error::NotFound("Account secrets not found".into()))?;
 
     // Create API client with account's endpoint
-    let api_client = ApiClient::new_with_client_package(
-        Some(account.endpoint.clone()),
-        account.app.client_package(),
-    )?;
+    let api_client = AppClient::new(Some(account.endpoint.clone()), account.app)?;
 
     // Store token for this account
     // Token is stored as raw bytes from sealed_box_open
     // The Go CLI encodes it as base64 URL-encoded string WITH padding for the API
-    let token = base64::engine::general_purpose::URL_SAFE.encode(&secrets.token);
-    api_client.add_token(&account.email, &token);
+    let token = b64::encode_url_safe(&secrets.token);
+    api_client.set_token(&token);
 
     let api = ApiMethods::new(&api_client);
 
@@ -275,7 +278,7 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
 
     // Step 1: Fetch all collections and create a map of collection IDs to collections
     println!("\nFetching collections...");
-    let collections = api.get_collections(&account.email, 0).await?;
+    let collections = api.get_collections(0).await?;
     println!("Found {} collections", collections.len());
 
     // Create collection ID to collection map and decrypt collection keys
@@ -382,9 +385,7 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
         let mut since_time = 0i64;
 
         while has_more {
-            let (files, more) = api
-                .get_collection_files(&account.email, *collection_id, since_time)
-                .await?;
+            let (files, more) = api.get_collection_files(*collection_id, since_time).await?;
             has_more = more;
 
             if files.is_empty() {
@@ -695,12 +696,10 @@ async fn export_account(storage: &Storage, account: &Account, filter: &ExportFil
             }
 
             // Download encrypted file
-            let encrypted_data = api.download_file(&account.email, file.id).await?;
+            let encrypted_data = api.download_file(file.id).await?;
 
             // The file nonce/header is stored separately in the API response
-            let file_nonce = match base64::engine::general_purpose::STANDARD
-                .decode(&file.file.decryption_header)
-            {
+            let file_nonce = match b64::decode(&file.file.decryption_header) {
                 Ok(nonce) => nonce,
                 Err(e) => {
                     log::error!("Failed to decode file nonce for file {}: {}", file.id, e);
@@ -955,10 +954,8 @@ fn decrypt_collection_key(
     master_key: &[u8],
     _secret_key: &[u8],
 ) -> Result<Vec<u8>> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
-
-    let encrypted_bytes = BASE64.decode(encrypted_key)?;
-    let nonce_bytes = BASE64.decode(nonce)?;
+    let encrypted_bytes = b64::decode(encrypted_key)?;
+    let nonce_bytes = b64::decode(nonce)?;
 
     // Collection keys are encrypted with secret_box (XSalsa20-Poly1305) using master key
     Ok(crypto::secretbox::decrypt(
@@ -974,9 +971,7 @@ fn decrypt_shared_collection_key(
     public_key: &[u8],
     secret_key: &[u8],
 ) -> Result<Vec<u8>> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
-
-    let encrypted_bytes = BASE64.decode(encrypted_key)?;
+    let encrypted_bytes = b64::decode(encrypted_key)?;
 
     // Shared collection keys are encrypted with sealed_box (crypto_box_seal)
     // which uses the recipient's public key and an ephemeral keypair
@@ -993,10 +988,8 @@ fn decrypt_collection_name(
     nonce: &str,
     collection_key: &[u8],
 ) -> Result<String> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
-
-    let encrypted_bytes = BASE64.decode(encrypted_name)?;
-    let nonce_bytes = BASE64.decode(nonce)?;
+    let encrypted_bytes = b64::decode(encrypted_name)?;
+    let nonce_bytes = b64::decode(nonce)?;
 
     // Collection names are encrypted with secret_box using the collection key
     let decrypted = crypto::secretbox::decrypt(
@@ -1012,10 +1005,8 @@ fn decrypt_collection_name(
 
 /// Decrypt a file key using the collection key
 fn decrypt_file_key(encrypted_key: &str, nonce: &str, collection_key: &[u8]) -> Result<Vec<u8>> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
-
-    let encrypted_bytes = BASE64.decode(encrypted_key)?;
-    let nonce_bytes = BASE64.decode(nonce)?;
+    let encrypted_bytes = b64::decode(encrypted_key)?;
+    let nonce_bytes = b64::decode(nonce)?;
 
     // File keys are encrypted with secret_box (XSalsa20-Poly1305) using collection key
     Ok(crypto::secretbox::decrypt(
@@ -1027,31 +1018,53 @@ fn decrypt_file_key(encrypted_key: &str, nonce: &str, collection_key: &[u8]) -> 
 
 // Removed generate_fallback_filename - Go CLI panics if no title, we return error instead
 
+/// Reduce a sanitized name to a single path component, never `.`, `..`, or empty.
+fn safe_path_component(name: String) -> String {
+    let trimmed = name.trim();
+    if trimmed.is_empty() || trimmed == "." || trimmed == ".." {
+        "_".to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
+fn validate_stored_file_name(name: &str) -> Result<&str> {
+    let path = Path::new(name);
+    if path.file_name() == Some(path.as_os_str()) {
+        Ok(name)
+    } else {
+        Err(crate::Error::Generic(format!(
+            "Unsafe filename in export metadata: {name:?}"
+        )))
+    }
+}
+
 /// Sanitize a filename for the filesystem
 fn sanitize_filename(name: &str) -> String {
-    name.chars()
+    let sanitized = name
+        .chars()
         .map(|c| match c {
             '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => '_',
             '\0' => '_',
             c if c.is_control() => '_',
             c => c,
         })
-        .collect::<String>()
-        .trim()
-        .to_string()
+        .collect::<String>();
+    safe_path_component(sanitized)
 }
 
-/// Sanitize an album/collection name for filesystem (matching Go CLI's logic)
+/// Sanitize an album/collection name into a safe single path component
 fn sanitize_album_name(name: &str) -> String {
-    // Go CLI replaces : and / with _ in album names
-    name.chars()
+    let sanitized = name
+        .chars()
         .map(|c| match c {
-            ':' | '/' => '_',
+            '/' | '\\' | ':' => '_',
+            '\0' => '_',
+            c if c.is_control() => '_',
             c => c,
         })
-        .collect::<String>()
-        .trim()
-        .to_string()
+        .collect::<String>();
+    safe_path_component(sanitized)
 }
 
 /// Decrypt file metadata
@@ -1059,16 +1072,14 @@ fn decrypt_file_metadata(
     file: &crate::api::models::File,
     file_key: &[u8],
 ) -> Result<Option<FileMetadata>> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
-
     // Check if metadata exists
     if file.metadata.encrypted_data.is_none() || file.metadata.decryption_header.is_empty() {
         return Ok(None);
     }
 
     let encrypted_data = file.metadata.encrypted_data.as_ref().unwrap();
-    let encrypted_bytes = BASE64.decode(encrypted_data)?;
-    let header_bytes = BASE64.decode(&file.metadata.decryption_header)?;
+    let encrypted_bytes = b64::decode(encrypted_data)?;
+    let header_bytes = b64::decode(&file.metadata.decryption_header)?;
 
     // Decrypt the metadata using streaming XChaCha20-Poly1305
     let decrypted = crypto::blob::decrypt(
@@ -1087,15 +1098,13 @@ fn decrypt_magic_metadata(
     magic_metadata: &crate::api::models::MagicMetadata,
     file_key: &[u8],
 ) -> Result<Option<serde_json::Value>> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
-
     // Check if data exists
     if magic_metadata.data.is_empty() || magic_metadata.header.is_empty() {
         return Ok(None);
     }
 
-    let encrypted_bytes = BASE64.decode(&magic_metadata.data)?;
-    let header_bytes = BASE64.decode(&magic_metadata.header)?;
+    let encrypted_bytes = b64::decode(&magic_metadata.data)?;
+    let header_bytes = b64::decode(&magic_metadata.header)?;
 
     // Decrypt the metadata using streaming XChaCha20-Poly1305
     let decrypted = crypto::blob::decrypt(
@@ -1107,79 +1116,6 @@ fn decrypt_magic_metadata(
     // Parse as generic JSON since magic metadata structure can vary
     let metadata: serde_json::Value = serde_json::from_slice(&decrypted)?;
     Ok(Some(metadata))
-}
-
-/// Extract live photo components from a ZIP file
-async fn extract_live_photo(zip_data: &[u8], output_path: &Path) -> Result<()> {
-    use zip::ZipArchive;
-
-    // Parse the ZIP archive
-    let cursor = Cursor::new(zip_data);
-    let mut archive = ZipArchive::new(cursor)?;
-
-    // Get the parent directory and base name
-    let parent_dir = output_path
-        .parent()
-        .ok_or_else(|| crate::Error::Generic("Invalid output path".into()))?;
-
-    let base_name = output_path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .ok_or_else(|| crate::Error::Generic("Invalid filename".into()))?;
-
-    // Extract each file from the ZIP
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i)?;
-        let file_name = file.name().to_string();
-
-        // Determine the output filename preserving original extension
-        // Following Go CLI's approach: use the actual extension from the file in the ZIP
-        let output_file_path = if file_name.to_lowercase().contains("image") {
-            // Image component - preserve its original extension
-            let ext = std::path::Path::new(&file_name)
-                .extension()
-                .and_then(|e| e.to_str())
-                .ok_or_else(|| {
-                    crate::Error::Generic(format!(
-                        "Live photo image component has no extension: {}",
-                        file_name
-                    ))
-                })?;
-            parent_dir.join(format!("{}.{}", base_name, ext))
-        } else if file_name.to_lowercase().contains("video") {
-            // Video component - preserve its original extension
-            let ext = std::path::Path::new(&file_name)
-                .extension()
-                .and_then(|e| e.to_str())
-                .ok_or_else(|| {
-                    crate::Error::Generic(format!(
-                        "Live photo video component has no extension: {}",
-                        file_name
-                    ))
-                })?;
-            parent_dir.join(format!("{}.{}", base_name, ext))
-        } else {
-            // Go CLI returns error for unexpected files in live photo ZIP
-            return Err(crate::Error::Generic(format!(
-                "Unexpected file in live photo ZIP: {}",
-                file_name
-            )));
-        };
-
-        // Read the file contents
-        let mut contents = Vec::new();
-        use std::io::Read;
-        file.read_to_end(&mut contents)?;
-
-        // Write to disk
-        let mut output_file = fs::File::create(&output_file_path).await?;
-        output_file.write_all(&contents).await?;
-        output_file.sync_all().await?;
-
-        log::debug!("Extracted live photo component: {:?}", output_file_path);
-    }
-
-    Ok(())
 }
 
 /// Check if a collection is hidden based on its metadata
@@ -1269,4 +1205,25 @@ async fn write_file_metadata(
     fs::write(&meta_path, json).await?;
 
     Ok(meta_path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_stored_file_name;
+
+    #[test]
+    fn validates_stored_file_names_without_rewriting() {
+        assert_eq!(validate_stored_file_name("a*b.jpg").unwrap(), "a*b.jpg");
+
+        for name in [
+            "",
+            ".",
+            "..",
+            "../photo.jpg",
+            "album/photo.jpg",
+            "/photo.jpg",
+        ] {
+            assert!(validate_stored_file_name(name).is_err());
+        }
+    }
 }

@@ -1,41 +1,9 @@
 import 'dart:ui';
 
 class ChangeLogStrings {
-  final String title1;
-  final String desc1;
-  final String desc1Item1;
-  final String desc1Item2;
-  final String title2;
-  final String desc2;
-  final String title3;
-  final String desc3;
-  final String title4;
-  final String desc4;
+  final List<ChangeLogEntryStrings> entries;
 
-  const ChangeLogStrings({
-    required this.title1,
-    required this.desc1,
-    this.desc1Item1 = '',
-    this.desc1Item2 = '',
-    this.title2 = '',
-    this.desc2 = '',
-    this.title3 = '',
-    this.desc3 = '',
-    this.title4 = '',
-    this.desc4 = '',
-  });
-
-  bool get hasVisibleEntries =>
-      title1.trim().isNotEmpty ||
-      desc1.trim().isNotEmpty ||
-      desc1Item1.trim().isNotEmpty ||
-      desc1Item2.trim().isNotEmpty ||
-      title2.trim().isNotEmpty ||
-      desc2.trim().isNotEmpty ||
-      title3.trim().isNotEmpty ||
-      desc3.trim().isNotEmpty ||
-      title4.trim().isNotEmpty ||
-      desc4.trim().isNotEmpty;
+  const ChangeLogStrings({required this.entries});
 
   static ChangeLogStrings? maybeForLocale(
     Locale locale, {
@@ -44,16 +12,21 @@ class ChangeLogStrings {
     final key = locale.countryCode != null && locale.countryCode!.isNotEmpty
         ? '${locale.languageCode}_${locale.countryCode}'
         : locale.languageCode;
-    final translations = isLocalGallery ? _offlineTranslations : _translations;
     final strings =
-        translations[key] ??
-        translations[locale.languageCode] ??
-        translations['en'];
+        _translations[key] ??
+        _translations[locale.languageCode] ??
+        _translations['en'];
 
-    if (strings == null || !strings.hasVisibleEntries) {
+    if (strings == null) {
       return null;
     }
-    return strings;
+
+    final entries = isLocalGallery
+        ? strings.entries
+              .where((entry) => !entry.isOnlineOnly)
+              .toList(growable: false)
+        : strings.entries;
+    return entries.isEmpty ? null : ChangeLogStrings(entries: entries);
   }
 
   static bool hasContentForLocale(
@@ -65,292 +38,709 @@ class ChangeLogStrings {
 
   static const Map<String, ChangeLogStrings> _translations = {
     'en': ChangeLogStrings(
-      title1: 'A fresh new look',
-      desc1:
-          "We've given the app a fresh look, with new fonts, colors, spacing, and buttons throughout. Plus, feed gets its own tab in the bottom navigation.",
-      title2: 'Albums, all in one place',
-      desc2:
-          'All your albums (backed up, shared, and on-device) now live on a single page. Search, switch between grid and list view, and order them based on your preferences.',
-      title3: 'A bunch of improvements',
-      desc3:
-          "Photos download much faster, face thumbnail generation is quicker, and the text recognition animation feels smoother. You can also now bulk ignore faces straight from a photo's info panel. Plus a whole lot of squashed bugs.",
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Comments and reactions in memories',
+          description:
+              "Talk about shared memories with your loved ones, as you're reliving them.",
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Share memories, your way',
+          description:
+              'Choose exactly which photos and videos go into a memory before you share.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Photo viewer, polished',
+          description:
+              'The photo viewer and info sheet have been redesigned. Cleaner, nicer, easier to read.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Text in photos, sharper',
+          description:
+              'Copying text from photos is now faster and more reliable. Long press to start selecting.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Smarter caching',
+          description:
+              'Your photos stay quick to open while taking up less space on your device.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'and more!',
+          description:
+              'Faster and more reliable backups, smoother gallery browsing, better thumbnail loading and download reliability, improved text detection in photos, better avatar colors, fixes for crashes during background work, and lots of smaller polish across the app.',
+          isOnlineOnly: true,
+        ),
+      ],
+    ),
+    'ca': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Comentaris i reaccions als records',
+          description:
+              'Parla dels records compartits amb les persones que estimes mentre els torneu a viure.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Comparteix els records a la teva manera',
+          description:
+              "Tria exactament quines fotos i vídeos formaran part d'un record abans de compartir-lo.",
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Visualitzador de fotos, renovat',
+          description:
+              "El visualitzador de fotos i el full d'informació s'han redissenyat. Més nets, agradables i fàcils de llegir.",
+        ),
+        ChangeLogEntryStrings(
+          title: 'Text més nítid a les fotos',
+          description:
+              'Copiar text de les fotos ara és més ràpid i fiable. Mantén premut per començar a seleccionar.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Memòria cau més intel·ligent',
+          description:
+              'Les fotos es continuen obrint ràpidament i ocupen menys espai al dispositiu.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'i molt més!',
+          description:
+              "Còpies de seguretat més ràpides i fiables, navegació més fluida per la galeria, millor càrrega de miniatures i baixades més fiables, detecció de text millorada a les fotos, millors colors d'avatar, correccions d'errors durant les tasques en segon pla i molts petits retocs a tota l'aplicació.",
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'cs': ChangeLogStrings(
-      title1: 'Zcela nový vzhled',
-      desc1:
-          'Dali jsme aplikaci svěží vzhled s novými fonty, barvami, rozestupy a tlačítky napříč celou aplikací. Feed má navíc vlastní kartu ve spodní navigaci.',
-      title2: 'Alba, všechna na jednom místě',
-      desc2:
-          'Všechna vaše alba (zálohovaná, sdílená i v zařízení) teď najdete na jedné stránce. Můžete vyhledávat, přepínat mezi mřížkou a seznamem a řadit je podle svých preferencí.',
-      title3: 'Spousta vylepšení',
-      desc3:
-          'Fotky se stahují mnohem rychleji, generování miniatur obličejů je rychlejší a animace rozpoznávání textu je plynulejší. Nově také můžete hromadně ignorovat obličeje přímo z informačního panelu fotky. A opravili jsme spoustu chyb.',
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Komentáře a reakce ve vzpomínkách',
+          description:
+              'Povídejte si o sdílených vzpomínkách se svými blízkými, zatímco je znovu prožíváte.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Sdílejte vzpomínky po svém',
+          description:
+              'Před sdílením si přesně vyberte, které fotky a videa budou ve vzpomínce.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Vyladěný prohlížeč fotek',
+          description:
+              'Prohlížeč fotek a informační panel jsme přepracovali. Jsou přehlednější, hezčí a lépe se čtou.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Ostřejší text ve fotkách',
+          description:
+              'Kopírování textu z fotek je nyní rychlejší a spolehlivější. Dlouhým stisknutím zahájíte výběr.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Chytřejší ukládání do mezipaměti',
+          description:
+              'Fotky se otevírají rychle a zabírají v zařízení méně místa.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'a ještě víc!',
+          description:
+              'Rychlejší a spolehlivější zálohování, plynulejší procházení galerie, lepší načítání náhledů a spolehlivější stahování, lepší rozpoznávání textu ve fotkách, lepší barvy avatarů, opravy pádů během práce na pozadí a spousta dalších drobných vylepšení v celé aplikaci.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'de': ChangeLogStrings(
-      title1: 'Ein frischer neuer Look',
-      desc1:
-          'Wir haben der App einen frischen Look gegeben, mit neuen Schriften, Farben, Abständen und Buttons überall. Außerdem bekommt der Feed einen eigenen Tab in der unteren Navigation.',
-      title2: 'Alben, alle an einem Ort',
-      desc2:
-          'Alle deine Alben (gesichert, geteilt und auf dem Gerät) befinden sich jetzt auf einer einzigen Seite. Suche, wechsle zwischen Raster- und Listenansicht und sortiere sie nach deinen Vorlieben.',
-      title3: 'Viele Verbesserungen',
-      desc3:
-          'Fotos werden viel schneller heruntergeladen, Gesichtsvorschaubilder werden schneller erstellt und die Texterkennungsanimation wirkt flüssiger. Du kannst jetzt außerdem Gesichter direkt im Infobereich eines Fotos gesammelt ignorieren. Dazu kommen viele behobene Fehler.',
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Kommentare und Reaktionen in Erinnerungen',
+          description:
+              'Unterhalte dich mit deinen Liebsten über geteilte Erinnerungen, während ihr sie gemeinsam noch einmal erlebt.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Erinnerungen teilen, wie du möchtest',
+          description:
+              'Wähle vor dem Teilen genau aus, welche Fotos und Videos in einer Erinnerung enthalten sind.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Fotoanzeige, jetzt noch besser',
+          description:
+              'Die Fotoanzeige und das Infoblatt wurden neu gestaltet. Aufgeräumter, schöner und leichter zu lesen.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Text in Fotos, klarer',
+          description:
+              'Das Kopieren von Text aus Fotos ist jetzt schneller und zuverlässiger. Halte zum Auswählen länger gedrückt.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Intelligenteres Caching',
+          description:
+              'Deine Fotos lassen sich weiterhin schnell öffnen und belegen dabei weniger Speicherplatz auf deinem Gerät.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'und vieles mehr!',
+          description:
+              'Schnellere und zuverlässigere Backups, flüssigeres Durchsuchen der Galerie, besseres Laden von Miniaturansichten und zuverlässigere Downloads, verbesserte Texterkennung in Fotos, bessere Avatarfarben, Korrekturen für Abstürze bei Hintergrundaufgaben und viele kleinere Verbesserungen in der gesamten App.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'es': ChangeLogStrings(
-      title1: 'Un nuevo aspecto renovado',
-      desc1:
-          'Le hemos dado a la app un aspecto renovado, con nuevas fuentes, colores, espaciado y botones en toda la aplicación. Además, el feed ahora tiene su propia pestaña en la navegación inferior.',
-      title2: 'Álbumes, todos en un solo lugar',
-      desc2:
-          'Todos tus álbumes (respaldados, compartidos y del dispositivo) ahora viven en una sola página. Busca, cambia entre vista de cuadrícula y lista, y ordénalos según tus preferencias.',
-      title3: 'Un montón de mejoras',
-      desc3:
-          'Las fotos se descargan mucho más rápido, la generación de miniaturas de rostros es más veloz y la animación de reconocimiento de texto se siente más fluida. También puedes ignorar rostros en bloque directamente desde el panel de información de una foto. Además de muchos errores corregidos.',
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Comentarios y reacciones en los recuerdos',
+          description:
+              'Habla sobre los recuerdos compartidos con tus seres queridos mientras los revives.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Comparte recuerdos a tu manera',
+          description:
+              'Elige exactamente qué fotos y vídeos incluir en un recuerdo antes de compartirlo.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Visor de fotos, renovado',
+          description:
+              'Se han rediseñado el visor de fotos y la hoja de información. Más limpios, agradables y fáciles de leer.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Texto más nítido en las fotos',
+          description:
+              'Copiar texto de las fotos ahora es más rápido y fiable. Mantén pulsado para empezar a seleccionar.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Caché más inteligente',
+          description:
+              'Tus fotos siguen abriéndose rápidamente y ocupan menos espacio en el dispositivo.',
+        ),
+        ChangeLogEntryStrings(
+          title: '¡y mucho más!',
+          description:
+              'Copias de seguridad más rápidas y fiables, navegación más fluida por la galería, mejor carga de miniaturas y descargas más fiables, detección de texto mejorada en las fotos, mejores colores de avatar, correcciones de fallos durante tareas en segundo plano y muchos pequeños retoques en toda la app.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'fr': ChangeLogStrings(
-      title1: 'Un tout nouveau style',
-      desc1:
-          "Nous avons donné un nouveau souffle à l'app, avec de nouvelles polices, couleurs, espacements et de nouveaux boutons partout. Le fil dispose aussi de son propre onglet dans la navigation du bas.",
-      title2: 'Tous vos albums au même endroit',
-      desc2:
-          'Tous vos albums (sauvegardés, partagés et présents sur l’appareil) sont maintenant réunis sur une seule page. Recherchez, passez de la grille à la liste, et triez-les selon vos préférences.',
-      title3: 'De nombreuses améliorations',
-      desc3:
-          "Les photos se téléchargent beaucoup plus vite, la génération des vignettes de visages est plus rapide et l'animation de reconnaissance de texte est plus fluide. Vous pouvez aussi ignorer plusieurs visages à la fois directement depuis le panneau d'informations d'une photo. Sans oublier de nombreux bugs corrigés.",
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Commentaires et réactions dans les souvenirs',
+          description:
+              'Discutez des souvenirs partagés avec vos proches tout en les revivant.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Partagez vos souvenirs à votre façon',
+          description:
+              'Choisissez précisément les photos et vidéos à inclure dans un souvenir avant de le partager.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Visionneuse de photos peaufinée',
+          description:
+              'La visionneuse de photos et la fiche d’informations ont été repensées. Plus claires, plus agréables et plus faciles à lire.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Texte plus net dans les photos',
+          description:
+              'La copie de texte depuis les photos est désormais plus rapide et plus fiable. Appuyez longuement pour commencer la sélection.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Mise en cache plus intelligente',
+          description:
+              'Vos photos restent rapides à ouvrir tout en occupant moins d’espace sur votre appareil.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'et bien plus encore !',
+          description:
+              'Des sauvegardes plus rapides et plus fiables, une navigation plus fluide dans la galerie, un meilleur chargement des miniatures et des téléchargements plus fiables, une meilleure détection du texte dans les photos, de meilleures couleurs d’avatar, des correctifs pour les plantages pendant les tâches en arrière-plan et de nombreuses petites améliorations dans toute l’app.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'it': ChangeLogStrings(
-      title1: 'Un nuovo look fresco',
-      desc1:
-          "Abbiamo dato all'app un look più fresco, con nuovi font, colori, spaziature e pulsanti in tutta l'esperienza. Inoltre, il feed ha una scheda dedicata nella navigazione inferiore.",
-      title2: 'Album, tutti in un unico posto',
-      desc2:
-          'Tutti i tuoi album (sottoposti a backup, condivisi e sul dispositivo) ora si trovano in un’unica pagina. Cerca, passa dalla vista griglia alla lista e ordinali in base alle tue preferenze.',
-      title3: 'Tanti miglioramenti',
-      desc3:
-          'Le foto si scaricano molto più velocemente, la generazione delle miniature dei volti è più rapida e l’animazione del riconoscimento del testo è più fluida. Ora puoi anche ignorare più volti in blocco direttamente dal pannello informazioni di una foto. E abbiamo risolto molti bug.',
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Commenti e reazioni nei ricordi',
+          description:
+              'Parla dei ricordi condivisi con le persone che ami mentre li rivivi.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Condividi i ricordi a modo tuo',
+          description:
+              'Scegli esattamente quali foto e video inserire in un ricordo prima di condividerlo.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Visualizzatore di foto perfezionato',
+          description:
+              'Il visualizzatore di foto e la scheda delle informazioni sono stati riprogettati. Più ordinati, gradevoli e facili da leggere.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Testo nelle foto più nitido',
+          description:
+              'Copiare il testo dalle foto ora è più veloce e affidabile. Tieni premuto per iniziare la selezione.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Cache più intelligente',
+          description:
+              'Le tue foto restano rapide da aprire e occupano meno spazio sul dispositivo.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'e molto altro!',
+          description:
+              'Backup più veloci e affidabili, navigazione più fluida nella galleria, caricamento migliore delle miniature e download più affidabili, rilevamento del testo nelle foto migliorato, colori degli avatar migliori, correzioni per gli arresti anomali durante le attività in background e tanti piccoli miglioramenti in tutta l’app.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'ja': ChangeLogStrings(
-      title1: '新しくなった見た目',
-      desc1:
-          'アプリ全体のフォント、色、余白、ボタンを見直し、より新鮮な見た目にしました。さらに、フィードが下部ナビゲーションの専用タブになりました。',
-      title2: 'すべてのアルバムを一か所に',
-      desc2:
-          'バックアップ済み、共有中、端末上のすべてのアルバムが1つのページにまとまりました。検索、グリッド表示とリスト表示の切り替え、好みに合わせた並べ替えができます。',
-      title3: 'たくさんの改善',
-      desc3:
-          '写真のダウンロードが大幅に速くなり、顔サムネイルの生成も高速化され、テキスト認識のアニメーションもよりスムーズになりました。写真の情報パネルから複数の顔をまとめて無視できるようにもなりました。その他、多くのバグも修正しています。',
+      entries: [
+        ChangeLogEntryStrings(
+          title: '思い出でのコメントとリアクション',
+          description: '大切な人と共有した思い出を振り返りながら、会話を楽しめます。',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '思い出を自分らしく共有',
+          description: '共有する前に、思い出に含める写真や動画を自由に選べます。',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '写真ビューアーをさらに使いやすく',
+          description: '写真ビューアーと情報シートを再設計しました。よりすっきり、美しく、読みやすくなりました。',
+        ),
+        ChangeLogEntryStrings(
+          title: '写真内のテキストをより鮮明に',
+          description: '写真からのテキストコピーが、より高速で確実になりました。長押しして選択を開始できます。',
+        ),
+        ChangeLogEntryStrings(
+          title: 'よりスマートなキャッシュ',
+          description: '写真をすばやく開ける快適さはそのままに、デバイスの使用容量を抑えます。',
+        ),
+        ChangeLogEntryStrings(
+          title: 'さらに多くの改善！',
+          description:
+              'バックアップの高速化と信頼性向上、ギャラリー閲覧のなめらかさ向上、サムネイル読み込みとダウンロードの信頼性向上、写真内のテキスト検出の改善、アバターの色の改善、バックグラウンド処理中のクラッシュ修正など、アプリ全体に多くの細かな改善を加えました。',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'nl': ChangeLogStrings(
-      title1: 'Een frisse nieuwe look',
-      desc1:
-          'We hebben de app een frisse look gegeven, met nieuwe lettertypen, kleuren, ruimte en knoppen overal. Bovendien heeft de feed nu een eigen tab in de navigatie onderaan.',
-      title2: 'Albums, allemaal op één plek',
-      desc2:
-          'Al je albums (geback-upt, gedeeld en op je apparaat) staan nu op één pagina. Zoek, wissel tussen raster- en lijstweergave en sorteer ze zoals jij wilt.',
-      title3: 'Een heleboel verbeteringen',
-      desc3:
-          'Foto’s downloaden veel sneller, gezichtminiaturen worden sneller gegenereerd en de animatie voor tekstherkenning voelt vloeiender. Je kunt nu ook meerdere gezichten tegelijk negeren vanuit het infopaneel van een foto. En we hebben heel wat bugs opgelost.',
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Opmerkingen en reacties in herinneringen',
+          description:
+              'Praat met je dierbaren over gedeelde herinneringen terwijl jullie ze opnieuw beleven.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Deel herinneringen op jouw manier',
+          description:
+              "Kies precies welke foto's en video's in een herinnering komen voordat je deze deelt.",
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Fotoviewer, verfijnd',
+          description:
+              'De fotoviewer en het informatieblad zijn opnieuw ontworpen. Rustiger, mooier en makkelijker te lezen.',
+        ),
+        ChangeLogEntryStrings(
+          title: "Tekst in foto's, scherper",
+          description:
+              "Tekst uit foto's kopiëren is nu sneller en betrouwbaarder. Houd ingedrukt om te beginnen met selecteren.",
+        ),
+        ChangeLogEntryStrings(
+          title: 'Slimmere caching',
+          description:
+              "Je foto's blijven snel openen en nemen minder ruimte in op je apparaat.",
+        ),
+        ChangeLogEntryStrings(
+          title: 'en meer!',
+          description:
+              "Snellere en betrouwbaardere back-ups, soepeler bladeren door de galerij, beter laden van miniaturen en betrouwbaardere downloads, verbeterde tekstherkenning in foto's, betere avatarkleuren, oplossingen voor crashes tijdens achtergrondtaken en veel kleinere verbeteringen in de hele app.",
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'no': ChangeLogStrings(
-      title1: 'Et friskt nytt utseende',
-      desc1:
-          'Vi har gitt appen et friskt utseende, med nye skrifter, farger, avstand og knapper overalt. I tillegg får feeden sin egen fane i bunnavigasjonen.',
-      title2: 'Album, samlet på ett sted',
-      desc2:
-          'Alle albumene dine (sikkerhetskopierte, delte og på enheten) finnes nå på én side. Søk, bytt mellom rutenett- og listevisning, og sorter dem slik du foretrekker.',
-      title3: 'Mange forbedringer',
-      desc3:
-          'Bilder lastes ned mye raskere, generering av ansiktsminiatyrer går raskere, og animasjonen for tekstgjenkjenning føles jevnere. Du kan også ignorere flere ansikter samtidig direkte fra infopanelet til et bilde. I tillegg har vi fikset en hel del feil.',
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Kommentarer og reaksjoner i minner',
+          description:
+              'Snakk om delte minner med dem du er glad i, mens dere opplever dem på nytt.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Del minner på din måte',
+          description:
+              'Velg nøyaktig hvilke bilder og videoer som skal være med i et minne før du deler det.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'En mer polert bildevisning',
+          description:
+              'Bildevisningen og informasjonsarket har fått ny design. Renere, finere og enklere å lese.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Skarpere tekst i bilder',
+          description:
+              'Kopiering av tekst fra bilder er nå raskere og mer pålitelig. Trykk og hold for å begynne å velge.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Smartere hurtigbufring',
+          description:
+              'Bildene dine åpnes fortsatt raskt, samtidig som de tar mindre plass på enheten.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'og mer!',
+          description:
+              'Raskere og mer pålitelige sikkerhetskopier, jevnere galleriblaing, bedre innlasting av miniatyrbilder og mer pålitelige nedlastinger, forbedret tekstgjenkjenning i bilder, bedre avatarfarger, rettelser for krasj under bakgrunnsarbeid og mange små forbedringer i hele appen.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'pl': ChangeLogStrings(
-      title1: 'Świeży, nowy wygląd',
-      desc1:
-          'Odświeżyliśmy wygląd aplikacji, wprowadzając nowe fonty, kolory, odstępy i przyciski w całej aplikacji. Dodatkowo feed ma teraz własną kartę w dolnej nawigacji.',
-      title2: 'Albumy w jednym miejscu',
-      desc2:
-          'Wszystkie Twoje albumy (z kopią zapasową, udostępnione i z urządzenia) znajdują się teraz na jednej stronie. Możesz je wyszukiwać, przełączać widok siatki i listy oraz sortować według własnych preferencji.',
-      title3: 'Mnóstwo usprawnień',
-      desc3:
-          'Zdjęcia pobierają się znacznie szybciej, miniatury twarzy generują się szybciej, a animacja rozpoznawania tekstu jest płynniejsza. Możesz też zbiorczo ignorować twarze bezpośrednio z panelu informacji o zdjęciu. Do tego naprawiliśmy wiele błędów.',
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Komentarze i reakcje we wspomnieniach',
+          description:
+              'Rozmawiaj z bliskimi o udostępnionych wspomnieniach, przeżywając je ponownie.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Udostępniaj wspomnienia po swojemu',
+          description:
+              'Przed udostępnieniem wybierz dokładnie, które zdjęcia i filmy znajdą się we wspomnieniu.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Dopracowana przeglądarka zdjęć',
+          description:
+              'Przeglądarka zdjęć i panel informacji zostały przeprojektowane. Są przejrzystsze, ładniejsze i łatwiejsze do odczytania.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Wyraźniejszy tekst na zdjęciach',
+          description:
+              'Kopiowanie tekstu ze zdjęć jest teraz szybsze i bardziej niezawodne. Naciśnij i przytrzymaj, aby rozpocząć zaznaczanie.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Inteligentniejsze buforowanie',
+          description:
+              'Zdjęcia nadal otwierają się szybko, zajmując mniej miejsca na urządzeniu.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'i wiele więcej!',
+          description:
+              'Szybsze i bardziej niezawodne kopie zapasowe, płynniejsze przeglądanie galerii, lepsze wczytywanie miniatur i bardziej niezawodne pobieranie, ulepszone wykrywanie tekstu na zdjęciach, lepsze kolory awatarów, poprawki awarii podczas pracy w tle oraz wiele drobnych ulepszeń w całej aplikacji.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'pt_BR': ChangeLogStrings(
-      title1: 'Um visual renovado',
-      desc1:
-          'Demos ao app um visual renovado, com novas fontes, cores, espaçamentos e botões por toda parte. Além disso, o feed agora tem sua própria aba na navegação inferior.',
-      title2: 'Álbuns, todos em um só lugar',
-      desc2:
-          'Todos os seus álbuns (com backup, compartilhados e no dispositivo) agora ficam em uma única página. Pesquise, alterne entre visualização em grade e lista, e ordene tudo conforme suas preferências.',
-      title3: 'Várias melhorias',
-      desc3:
-          'As fotos baixam muito mais rápido, a geração de miniaturas de rostos ficou mais ágil e a animação de reconhecimento de texto está mais suave. Agora você também pode ignorar rostos em massa diretamente pelo painel de informações de uma foto. E corrigimos muitos bugs.',
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Comentários e reações nas memórias',
+          description:
+              'Converse sobre memórias compartilhadas com quem você ama enquanto vocês as revivem.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Compartilhe memórias do seu jeito',
+          description:
+              'Escolha exatamente quais fotos e vídeos entram em uma memória antes de compartilhá-la.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Visualizador de fotos aprimorado',
+          description:
+              'O visualizador de fotos e a tela de informações foram redesenhados. Mais limpos, bonitos e fáceis de ler.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Texto mais nítido nas fotos',
+          description:
+              'Copiar texto das fotos agora está mais rápido e confiável. Toque e segure para começar a selecionar.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Cache mais inteligente',
+          description:
+              'Suas fotos continuam abrindo rapidamente e ocupam menos espaço no dispositivo.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'e muito mais!',
+          description:
+              'Backups mais rápidos e confiáveis, navegação mais fluida na galeria, melhor carregamento de miniaturas e downloads mais confiáveis, melhor detecção de texto nas fotos, melhores cores de avatar, correções de falhas durante tarefas em segundo plano e muitos pequenos aprimoramentos em todo o app.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'pt_PT': ChangeLogStrings(
-      title1: 'Um novo visual renovado',
-      desc1:
-          'Demos à app um visual renovado, com novas fontes, cores, espaçamentos e botões em toda a experiência. Além disso, o feed passa a ter o seu próprio separador na navegação inferior.',
-      title2: 'Álbuns, todos num só lugar',
-      desc2:
-          'Todos os seus álbuns (com cópia de segurança, partilhados e no dispositivo) estão agora numa única página. Pesquise, alterne entre grelha e lista, e ordene-os de acordo com as suas preferências.',
-      title3: 'Muitas melhorias',
-      desc3:
-          'As fotografias são descarregadas muito mais depressa, a geração de miniaturas de rostos é mais rápida e a animação de reconhecimento de texto está mais suave. Agora também pode ignorar rostos em massa diretamente a partir do painel de informações de uma fotografia. E corrigimos muitos bugs.',
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Comentários e reações nas memórias',
+          description:
+              'Converse sobre memórias partilhadas com quem mais gosta enquanto as revive.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Partilhe memórias à sua maneira',
+          description:
+              'Escolha exatamente quais fotografias e vídeos entram numa memória antes de a partilhar.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Visualizador de fotografias aperfeiçoado',
+          description:
+              'O visualizador de fotografias e a folha de informações foram redesenhados. Mais simples, agradáveis e fáceis de ler.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Texto mais nítido nas fotografias',
+          description:
+              'Copiar texto das fotografias é agora mais rápido e fiável. Toque sem soltar para começar a selecionar.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Armazenamento em cache mais inteligente',
+          description:
+              'As suas fotografias continuam a abrir rapidamente e ocupam menos espaço no dispositivo.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'e muito mais!',
+          description:
+              'Cópias de segurança mais rápidas e fiáveis, navegação mais fluida na galeria, melhor carregamento de miniaturas e transferências mais fiáveis, melhor deteção de texto nas fotografias, melhores cores de avatar, correções de falhas durante tarefas em segundo plano e muitos pequenos aperfeiçoamentos em toda a aplicação.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'ro': ChangeLogStrings(
-      title1: 'Un aspect nou și proaspăt',
-      desc1:
-          'Am oferit aplicației un aspect nou, cu fonturi, culori, spațieri și butoane noi peste tot. În plus, feedul are acum propria filă în navigarea de jos.',
-      title2: 'Albume, toate într-un singur loc',
-      desc2:
-          'Toate albumele tale (cu backup, partajate și de pe dispozitiv) se află acum pe o singură pagină. Caută, comută între vizualizarea grilă și listă și sortează-le după preferințe.',
-      title3: 'O mulțime de îmbunătățiri',
-      desc3:
-          'Fotografiile se descarcă mult mai rapid, generarea miniaturilor pentru fețe este mai rapidă, iar animația de recunoaștere a textului este mai fluidă. Acum poți ignora în bloc fețe direct din panoul de informații al unei fotografii. Plus multe buguri remediate.',
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Comentarii și reacții în amintiri',
+          description:
+              'Vorbește despre amintirile partajate cu cei dragi, în timp ce le retrăiți.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Partajează amintirile în felul tău',
+          description:
+              'Alege exact ce fotografii și videoclipuri intră într-o amintire înainte de a o partaja.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Vizualizator de fotografii îmbunătățit',
+          description:
+              'Vizualizatorul de fotografii și panoul de informații au fost reproiectate. Mai clare, mai plăcute și mai ușor de citit.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Text mai clar în fotografii',
+          description:
+              'Copierea textului din fotografii este acum mai rapidă și mai fiabilă. Apasă lung pentru a începe selectarea.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Stocare în cache mai inteligentă',
+          description:
+              'Fotografiile se deschid în continuare rapid și ocupă mai puțin spațiu pe dispozitiv.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'și multe altele!',
+          description:
+              'Copii de siguranță mai rapide și mai fiabile, navigare mai fluidă în galerie, încărcare mai bună a miniaturilor și descărcări mai fiabile, detectare îmbunătățită a textului din fotografii, culori mai bune pentru avatare, remedieri pentru blocări în timpul activităților din fundal și multe mici îmbunătățiri în întreaga aplicație.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'ru': ChangeLogStrings(
-      title1: 'Свежий новый вид',
-      desc1:
-          'Мы обновили внешний вид приложения: новые шрифты, цвета, отступы и кнопки по всему интерфейсу. Кроме того, лента получила отдельную вкладку в нижней навигации.',
-      title2: 'Все альбомы в одном месте',
-      desc2:
-          'Все ваши альбомы (с резервной копией, общие и на устройстве) теперь находятся на одной странице. Ищите, переключайтесь между сеткой и списком и сортируйте их как вам удобно.',
-      title3: 'Много улучшений',
-      desc3:
-          'Фотографии скачиваются гораздо быстрее, миниатюры лиц создаются быстрее, а анимация распознавания текста стала плавнее. Теперь также можно массово игнорировать лица прямо из панели информации о фотографии. И, конечно, мы исправили множество ошибок.',
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Комментарии и реакции в воспоминаниях',
+          description:
+              'Обсуждайте общие воспоминания с близкими, заново переживая их вместе.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Делитесь воспоминаниями по-своему',
+          description:
+              'Перед публикацией выберите, какие именно фото и видео войдут в воспоминание.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Обновлённый просмотр фото',
+          description:
+              'Мы переработали просмотр фото и панель сведений. Они стали чище, приятнее и удобнее для чтения.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Более чёткий текст на фото',
+          description:
+              'Копировать текст с фотографий теперь быстрее и надёжнее. Нажмите и удерживайте, чтобы начать выделение.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Умнее кэширование',
+          description:
+              'Фотографии по-прежнему быстро открываются, занимая меньше места на устройстве.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'и не только!',
+          description:
+              'Более быстрое и надёжное резервное копирование, плавный просмотр галереи, улучшенная загрузка миниатюр и надёжность скачивания, более точное распознавание текста на фото, улучшенные цвета аватаров, исправления сбоев во время фоновой работы и множество небольших улучшений во всём приложении.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'tr': ChangeLogStrings(
-      title1: 'Yepyeni ve ferah bir görünüm',
-      desc1:
-          'Uygulamaya baştan sona yeni yazı tipleri, renkler, boşluklar ve düğmelerle ferah bir görünüm kazandırdık. Ayrıca akış artık alt gezinti çubuğunda kendi sekmesine sahip.',
-      title2: 'Albümler, hepsi tek yerde',
-      desc2:
-          'Tüm albümleriniz (yedeklenen, paylaşılan ve cihazdaki) artık tek bir sayfada. Arama yapabilir, ızgara ve liste görünümü arasında geçiş yapabilir ve tercihlerinize göre sıralayabilirsiniz.',
-      title3: 'Bir sürü iyileştirme',
-      desc3:
-          'Fotoğraflar çok daha hızlı indiriliyor, yüz küçük resimleri daha hızlı oluşturuluyor ve metin tanıma animasyonu daha akıcı hissettiriyor. Ayrıca artık bir fotoğrafın bilgi panelinden yüzleri toplu olarak yok sayabilirsiniz. Birçok hata da giderildi.',
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Anılarda yorumlar ve tepkiler',
+          description:
+              'Paylaşılan anıları yeniden yaşarken sevdiklerinizle onlar hakkında konuşun.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Anıları istediğiniz gibi paylaşın',
+          description:
+              'Paylaşmadan önce bir anıya hangi fotoğraf ve videoların ekleneceğini tam olarak seçin.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Daha şık fotoğraf görüntüleyici',
+          description:
+              'Fotoğraf görüntüleyici ve bilgi sayfası yeniden tasarlandı. Daha sade, güzel ve okunması kolay.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Fotoğraflardaki metin artık daha net',
+          description:
+              'Fotoğraflardan metin kopyalamak artık daha hızlı ve güvenilir. Seçmeye başlamak için basılı tutun.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Daha akıllı önbellekleme',
+          description:
+              'Fotoğraflarınız hızlı açılmaya devam ederken cihazınızda daha az yer kaplar.',
+        ),
+        ChangeLogEntryStrings(
+          title: 've daha fazlası!',
+          description:
+              'Daha hızlı ve güvenilir yedeklemeler, daha akıcı galeri gezintisi, daha iyi küçük resim yükleme ve indirme güvenilirliği, fotoğraflarda geliştirilmiş metin algılama, daha iyi avatar renkleri, arka plan çalışmaları sırasında oluşan çökmeler için düzeltmeler ve uygulama genelinde birçok küçük iyileştirme.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'uk': ChangeLogStrings(
-      title1: 'Свіжий новий вигляд',
-      desc1:
-          'Ми оновили вигляд застосунку: нові шрифти, кольори, відступи й кнопки по всьому інтерфейсу. Крім того, стрічка отримала власну вкладку в нижній навігації.',
-      title2: 'Усі альбоми в одному місці',
-      desc2:
-          'Усі ваші альбоми (з резервною копією, спільні та на пристрої) тепер на одній сторінці. Шукайте, перемикайтеся між сіткою та списком і впорядковуйте їх за власними вподобаннями.',
-      title3: 'Багато покращень',
-      desc3:
-          'Фотографії завантажуються значно швидше, мініатюри облич створюються швидше, а анімація розпізнавання тексту стала плавнішою. Тепер також можна масово ігнорувати обличчя прямо з панелі інформації про фото. І ми виправили багато помилок.',
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Коментарі та реакції у спогадах',
+          description:
+              'Обговорюйте спільні спогади з близькими, переживаючи їх знову.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Діліться спогадами по-своєму',
+          description:
+              'Перед публікацією виберіть, які саме фото й відео увійдуть до спогаду.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Оновлений переглядач фото',
+          description:
+              'Ми оновили переглядач фото та інформаційну панель. Вони стали охайнішими, приємнішими й легшими для читання.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Чіткіший текст на фото',
+          description:
+              'Копіювати текст із фотографій тепер швидше й надійніше. Натисніть і утримуйте, щоб почати виділення.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Розумніше кешування',
+          description:
+              'Фотографії, як і раніше, відкриваються швидко, займаючи менше місця на пристрої.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'і не тільки!',
+          description:
+              'Швидше та надійніше резервне копіювання, плавніший перегляд галереї, краще завантаження мініатюр і надійніше завантаження файлів, покращене розпізнавання тексту на фото, кращі кольори аватарів, виправлення збоїв під час фонової роботи та багато невеликих покращень у всьому застосунку.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'vi': ChangeLogStrings(
-      title1: 'Diện mạo mới mẻ',
-      desc1:
-          'Chúng tôi đã làm mới giao diện ứng dụng với phông chữ, màu sắc, khoảng cách và nút mới trên toàn bộ ứng dụng. Ngoài ra, bảng tin giờ có tab riêng ở thanh điều hướng dưới cùng.',
-      title2: 'Tất cả album ở một nơi',
-      desc2:
-          'Tất cả album của bạn (đã sao lưu, được chia sẻ và trên thiết bị) giờ nằm trên một trang duy nhất. Tìm kiếm, chuyển giữa chế độ lưới và danh sách, rồi sắp xếp theo ý bạn.',
-      title3: 'Rất nhiều cải tiến',
-      desc3:
-          'Ảnh tải xuống nhanh hơn nhiều, việc tạo ảnh thu nhỏ khuôn mặt nhanh hơn và hoạt ảnh nhận dạng văn bản mượt hơn. Giờ bạn cũng có thể bỏ qua hàng loạt khuôn mặt ngay từ bảng thông tin của ảnh. Cùng với rất nhiều lỗi đã được sửa.',
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Bình luận và cảm xúc trong kỷ niệm',
+          description:
+              'Trò chuyện về những kỷ niệm đã chia sẻ với người thân yêu khi cùng nhau sống lại những khoảnh khắc ấy.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Chia sẻ kỷ niệm theo cách của bạn',
+          description:
+              'Chọn chính xác ảnh và video sẽ có trong một kỷ niệm trước khi chia sẻ.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Trình xem ảnh được trau chuốt',
+          description:
+              'Trình xem ảnh và bảng thông tin đã được thiết kế lại. Gọn gàng, đẹp mắt và dễ đọc hơn.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Văn bản trong ảnh rõ nét hơn',
+          description:
+              'Sao chép văn bản từ ảnh giờ nhanh hơn và đáng tin cậy hơn. Nhấn giữ để bắt đầu chọn.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Bộ nhớ đệm thông minh hơn',
+          description:
+              'Ảnh vẫn mở nhanh trong khi chiếm ít dung lượng hơn trên thiết bị.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'và nhiều hơn nữa!',
+          description:
+              'Sao lưu nhanh và đáng tin cậy hơn, duyệt thư viện mượt mà hơn, tải hình thu nhỏ tốt hơn và tải xuống đáng tin cậy hơn, cải thiện khả năng phát hiện văn bản trong ảnh, màu hình đại diện đẹp hơn, sửa lỗi treo ứng dụng khi chạy tác vụ nền cùng nhiều cải tiến nhỏ khác trong toàn bộ ứng dụng.',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
     'zh_CN': ChangeLogStrings(
-      title1: '焕然一新的外观',
-      desc1: '我们为应用带来了全新的外观，整体更新了字体、颜色、间距和按钮。另外，动态现在在底部导航中拥有自己的标签页。',
-      title2: '所有相册，集中一处',
-      desc2: '你的所有相册（已备份、已共享和设备上的相册）现在都集中在一个页面。你可以搜索、在网格和列表视图之间切换，并按自己的偏好排序。',
-      title3: '一系列改进',
-      desc3:
-          '照片下载速度大幅提升，人脸缩略图生成更快，文字识别动画也更流畅。现在你还可以直接从照片信息面板批量忽略人脸。此外，我们还修复了大量问题。',
+      entries: [
+        ChangeLogEntryStrings(
+          title: '回忆中的评论和回应',
+          description: '与亲友一起重温共享回忆，边看边聊。',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '按你的方式分享回忆',
+          description: '分享前，精确选择要加入回忆的照片和视频。',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '更精致的照片查看器',
+          description: '照片查看器和信息面板已重新设计。界面更简洁、更美观，也更易读。',
+        ),
+        ChangeLogEntryStrings(
+          title: '照片中的文字更清晰',
+          description: '现在，从照片中复制文字更快、更可靠。长按即可开始选择。',
+        ),
+        ChangeLogEntryStrings(
+          title: '更智能的缓存',
+          description: '照片依然能快速打开，同时占用更少的设备空间。',
+        ),
+        ChangeLogEntryStrings(
+          title: '还有更多！',
+          description:
+              '备份更快、更可靠，浏览图库更流畅，缩略图加载更好，下载更可靠，照片文字检测更准确，头像颜色更协调，修复后台任务期间的崩溃问题，以及贯穿整个应用的众多细节优化。',
+          isOnlineOnly: true,
+        ),
+      ],
     ),
   };
+}
 
-  static const Map<String, ChangeLogStrings> _offlineTranslations = {
-    'en': ChangeLogStrings(
-      title1: 'A fresh new look',
-      desc1:
-          "We've given the app a fresh look, with new fonts, colors, spacing, and buttons throughout. Albums has also been redesigned for easier browsing.",
-    ),
-    'cs': ChangeLogStrings(
-      title1: 'Zcela nový vzhled',
-      desc1:
-          'Dali jsme aplikaci svěží vzhled s novými fonty, barvami, rozestupy a tlačítky napříč celou aplikací. Alba jsme také přepracovali pro snazší procházení.',
-    ),
-    'de': ChangeLogStrings(
-      title1: 'Ein frischer neuer Look',
-      desc1:
-          'Wir haben der App einen frischen Look gegeben, mit neuen Schriften, Farben, Abständen und Buttons überall. Alben wurden außerdem für einfacheres Stöbern neu gestaltet.',
-    ),
-    'es': ChangeLogStrings(
-      title1: 'Un nuevo aspecto renovado',
-      desc1:
-          'Le hemos dado a la app un aspecto renovado, con nuevas fuentes, colores, espaciado y botones en toda la aplicación. Álbumes también se ha rediseñado para que sea más fácil explorarlos.',
-    ),
-    'fr': ChangeLogStrings(
-      title1: 'Un tout nouveau style',
-      desc1:
-          "Nous avons donné un nouveau souffle à l'app, avec de nouvelles polices, couleurs, espacements et de nouveaux boutons partout. Les albums ont aussi été repensés pour une navigation plus simple.",
-    ),
-    'it': ChangeLogStrings(
-      title1: 'Un nuovo look fresco',
-      desc1:
-          "Abbiamo dato all'app un look più fresco, con nuovi font, colori, spaziature e pulsanti in tutta l'esperienza. Anche Album è stato ridisegnato per una navigazione più semplice.",
-    ),
-    'ja': ChangeLogStrings(
-      title1: '新しくなった見た目',
-      desc1:
-          'アプリ全体のフォント、色、余白、ボタンを見直し、より新鮮な見た目にしました。アルバムもより見つけやすく閲覧しやすいように再設計しました。',
-    ),
-    'nl': ChangeLogStrings(
-      title1: 'Een frisse nieuwe look',
-      desc1:
-          'We hebben de app een frisse look gegeven, met nieuwe lettertypen, kleuren, ruimte en knoppen overal. Albums is ook opnieuw ontworpen zodat je er makkelijker doorheen bladert.',
-    ),
-    'no': ChangeLogStrings(
-      title1: 'Et friskt nytt utseende',
-      desc1:
-          'Vi har gitt appen et friskt utseende, med nye skrifter, farger, avstand og knapper overalt. Album er også redesignet for enklere blaing.',
-    ),
-    'pl': ChangeLogStrings(
-      title1: 'Świeży, nowy wygląd',
-      desc1:
-          'Odświeżyliśmy wygląd aplikacji, wprowadzając nowe fonty, kolory, odstępy i przyciski w całej aplikacji. Albumy zostały też przeprojektowane, aby łatwiej było je przeglądać.',
-    ),
-    'pt_BR': ChangeLogStrings(
-      title1: 'Um visual renovado',
-      desc1:
-          'Demos ao app um visual renovado, com novas fontes, cores, espaçamentos e botões por toda parte. Álbuns também foi redesenhado para facilitar a navegação.',
-    ),
-    'pt_PT': ChangeLogStrings(
-      title1: 'Um novo visual renovado',
-      desc1:
-          'Demos à app um visual renovado, com novas fontes, cores, espaçamentos e botões em toda a experiência. Os álbuns também foram redesenhados para facilitar a navegação.',
-    ),
-    'ro': ChangeLogStrings(
-      title1: 'Un aspect nou și proaspăt',
-      desc1:
-          'Am oferit aplicației un aspect nou, cu fonturi, culori, spațieri și butoane noi peste tot. Albumele au fost și ele redesenate pentru o navigare mai ușoară.',
-    ),
-    'ru': ChangeLogStrings(
-      title1: 'Свежий новый вид',
-      desc1:
-          'Мы обновили внешний вид приложения: новые шрифты, цвета, отступы и кнопки по всему интерфейсу. Альбомы тоже были переработаны, чтобы их было удобнее просматривать.',
-    ),
-    'tr': ChangeLogStrings(
-      title1: 'Yepyeni ve ferah bir görünüm',
-      desc1:
-          'Uygulamaya baştan sona yeni yazı tipleri, renkler, boşluklar ve düğmelerle ferah bir görünüm kazandırdık. Albümler de daha kolay gezinme için yeniden tasarlandı.',
-    ),
-    'uk': ChangeLogStrings(
-      title1: 'Свіжий новий вигляд',
-      desc1:
-          'Ми оновили вигляд застосунку: нові шрифти, кольори, відступи й кнопки по всьому інтерфейсу. Альбоми також перероблено для зручнішого перегляду.',
-    ),
-    'vi': ChangeLogStrings(
-      title1: 'Diện mạo mới mẻ',
-      desc1:
-          'Chúng tôi đã làm mới giao diện ứng dụng với phông chữ, màu sắc, khoảng cách và nút mới trên toàn bộ ứng dụng. Album cũng được thiết kế lại để duyệt dễ hơn.',
-    ),
-    'zh_CN': ChangeLogStrings(
-      title1: '焕然一新的外观',
-      desc1: '我们为应用带来了全新的外观，整体更新了字体、颜色、间距和按钮。相册也经过重新设计，浏览起来更轻松。',
-    ),
-  };
+class ChangeLogEntryStrings {
+  final String title;
+  final String description;
+  final bool isOnlineOnly;
+
+  const ChangeLogEntryStrings({
+    required this.title,
+    required this.description,
+    this.isOnlineOnly = false,
+  });
 }

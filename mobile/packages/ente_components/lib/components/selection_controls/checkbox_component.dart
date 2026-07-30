@@ -11,19 +11,24 @@ class CheckboxComponent extends StatelessWidget {
     super.key,
     required this.selected,
     required this.onChanged,
+    this.selectedColor,
   });
 
   final bool selected;
   final ValueChanged<bool>? onChanged;
+
+  /// Fill and border color when [selected] and enabled.
+  /// Defaults to the theme's primary color.
+  final Color? selectedColor;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
     final enabled = onChanged != null;
     final fill = selected
-        ? (enabled ? colors.primary : colors.fillDarkest)
+        ? (enabled ? (selectedColor ?? colors.primary) : colors.fillDarkest)
         : Colors.transparent;
-    final stroke = enabled ? colors.strokeDark : colors.strokeFaint;
+    final stroke = enabled ? colors.textLight : colors.strokeFaint;
 
     return InkWell(
       onTap: enabled ? () => onChanged!(!selected) : null,

@@ -119,6 +119,12 @@ If photos already uploaded without the right album assignment, Ente can't recons
 2. Re-arrange the extracted Takeout contents into a single merged folder as shown above.
 3. Re-upload through the desktop app.
 
+### Why are "Photos from 20XX" yearly albums appearing on migration from Google photos? {#yearly-albums-recreated}
+
+These albums come from Google Takeout, which sorts any photos that weren't in a specific album into "Photos from 2020", "Photos from 2021", and so on. When you imported, Ente created one album per Takeout folder.
+
+New photos you back up afterwards (for example, from your phone's camera) go to their normal device-folder albums, not into yearly albums. Changing a photo's date also does not move it into a yearly album. These yearly albums are a one-time import artifact - they won't regenerate or grow on their own.
+
 ### Why is my storage usage in Ente higher than what Google Photos showed? {#ente-storage-higher-than-google}
 
 Google Photos and Ente count storage differently:

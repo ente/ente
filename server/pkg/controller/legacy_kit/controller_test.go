@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ente-io/museum/ente"
-	legacykitrepo "github.com/ente-io/museum/pkg/repo/legacy_kit"
-	timeutil "github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	legacykitrepo "github.com/ente/museum/pkg/repo/legacy_kit"
+	timeutil "github.com/ente/museum/pkg/utils/time"
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"

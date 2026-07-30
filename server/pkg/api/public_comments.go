@@ -3,11 +3,11 @@ package api
 import (
 	"net/http"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller/public"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/handler"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller/public"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/handler"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
@@ -67,7 +67,7 @@ type publicAnonIdentityPayload struct {
 
 func (h *PublicCommentsHandler) CreateComment(c *gin.Context) {
 	var payload publicCommentPayload
-	if err := c.ShouldBindJSON(&payload); err != nil {
+	if err := handler.BindJSON(c, &payload); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -98,7 +98,7 @@ func (h *PublicCommentsHandler) CreateComment(c *gin.Context) {
 
 func (h *PublicCommentsHandler) UpdateComment(c *gin.Context) {
 	var payload publicCommentEditPayload
-	if err := c.ShouldBindJSON(&payload); err != nil {
+	if err := handler.BindJSON(c, &payload); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -130,7 +130,7 @@ func (h *PublicCommentsHandler) UpdateComment(c *gin.Context) {
 
 func (h *PublicCommentsHandler) DeleteComment(c *gin.Context) {
 	var payload publicAnonPayload
-	if err := c.ShouldBindJSON(&payload); err != nil {
+	if err := handler.BindJSON(c, &payload); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -184,7 +184,7 @@ func (h *PublicCommentsHandler) CommentDiff(c *gin.Context) {
 
 func (h *PublicCommentsHandler) CreateReaction(c *gin.Context) {
 	var payload publicReactionPayload
-	if err := c.ShouldBindJSON(&payload); err != nil {
+	if err := handler.BindJSON(c, &payload); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -248,7 +248,7 @@ func (h *PublicCommentsHandler) ReactionDiff(c *gin.Context) {
 
 func (h *PublicCommentsHandler) DeleteReaction(c *gin.Context) {
 	var payload publicReactionDeletePayload
-	if err := c.ShouldBindJSON(&payload); err != nil {
+	if err := handler.BindJSON(c, &payload); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -288,7 +288,7 @@ func (h *PublicCommentsHandler) Participants(c *gin.Context) {
 
 func (h *PublicCommentsHandler) CreateAnonIdentity(c *gin.Context) {
 	var payload publicAnonIdentityPayload
-	if err := c.ShouldBindJSON(&payload); err != nil {
+	if err := handler.BindJSON(c, &payload); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}

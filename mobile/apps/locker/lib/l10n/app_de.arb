@@ -131,7 +131,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "Bitte wähle mindestens eine Sammlung aus",
   "unknownItemType": "Unbekannter Elementtyp",
   "fileDeletedSuccessfully": "Element erfolgreich gelöscht",
   "failedToDeleteFile": "Element konnte nicht gelöscht werden: {error}",
@@ -252,7 +251,6 @@
   "optionalNote": "Optionale Notiz",
   "upload": "Hochladen",
   "documentsHint": "Dokumente",
-  "searchHint": "Suchen...",
   "searchEmptyTitle": "Keine Treffer gefunden",
   "searchEmptyDescription": "Versuche, nach etwas anderem zu suchen.",
   "searchEverywhereTitle": "Überall nach \"{query}\" suchen",

@@ -1,0 +1,1 @@
+- Improved app lock screens and fixed password setup edge cases.

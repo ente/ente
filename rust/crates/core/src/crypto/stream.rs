@@ -1,14 +1,26 @@
-//! XChaCha20-Poly1305 secretstream implementation.
+//! Chunked authenticated encryption with XChaCha20-Poly1305.
 //!
-//! Uses the `crypto_secretstream` crate which provides a pure Rust
-//! implementation of libsodium's crypto_secretstream_xchacha20poly1305 API.
-//! This is the chunked encryption used for file contents; for single-message
-//! payloads see [`super::blob`].
+//! This is the encryption used for file contents: the plaintext is split into
+//! fixed-size chunks ([`ENCRYPTION_CHUNK_SIZE`]) and each chunk is encrypted as
+//! one secretstream message, so an arbitrarily large file can be processed
+//! without holding it all in memory. For a single bounded value that fits in
+//! memory, use [`blob`](super::blob) instead.
 //!
-//! # Wire Format
-//! - Header: 24 bytes
-//! - Each message: plaintext length + [`ABYTES`] bytes (an encrypted tag
-//!   byte, the ciphertext, and a trailing 16-byte MAC)
+//! The chunks are chained, so a decryptor detects any truncation, reordering,
+//! or modification. The last chunk is tagged final, and reaching that tag is
+//! what proves the stream is complete rather than cut short (see
+//! [`Decryptor::finish`]).
+//!
+//! The construction is libsodium's secretstream
+//! (`crypto_secretstream_xchacha20poly1305`); the implementation here wraps the
+//! pure-Rust `crypto_secretstream` crate and is wire-compatible.
+//!
+//! # Wire format
+//!
+//! A 24-byte header (produced when encryption starts, stored or sent
+//! separately), followed by one secretstream message per chunk. Each message is
+//! [`ABYTES`] bytes longer than its plaintext: a one-byte encrypted tag, the
+//! ciphertext, and a 16-byte Poly1305 MAC.
 
 use crypto_secretstream::{
     Header as UpstreamHeader, Key as UpstreamKey, PullStream, PushStream, Stream, Tag,
@@ -16,7 +28,7 @@ use crypto_secretstream::{
 use rand_core::OsRng;
 use std::io::{Read, Write};
 
-use crate::crypto::{CryptoError, Header, Key, Result};
+use crate::crypto::{Error, Header, Key, Result};
 
 // The typed Key/Header sizes must match the upstream secretstream sizes; the
 // conversions below rely on it.
@@ -29,8 +41,8 @@ pub const HEADER_BYTES: usize = Header::BYTES;
 /// Size of the encryption key in bytes.
 pub const KEY_BYTES: usize = Key::BYTES;
 
-/// Overhead (MAC + tag) added to each message (from upstream
-/// crypto_secretstream).
+/// Per-message overhead secretstream adds to the plaintext: a one-byte
+/// encrypted tag and a 16-byte Poly1305 MAC.
 pub const ABYTES: usize = Stream::ABYTES;
 
 /// Plaintext chunk size for streaming file encryption (4 MB).
@@ -43,17 +55,19 @@ fn upstream_key(key: &Key) -> UpstreamKey {
     UpstreamKey::from(*key.as_bytes())
 }
 
-/// Stateful chunk-by-chunk encryptor.
+/// Stateful chunk-by-chunk stream encryptor.
 ///
-/// Encrypt each chunk with [`push`](Self::push), marking the last one with
-/// `is_final`. The [`header`](Self::header) must be preserved for decryption.
+/// Feed the plaintext one chunk at a time to [`push`](Self::push), marking the
+/// last chunk with `is_final`. The [`header`](Self::header) must be kept and
+/// handed to the [`Decryptor`]. This is the low-level building block; for
+/// reader/writer plumbing see [`encrypt_file`] and [`StreamingEncryptor`].
 pub struct Encryptor {
     stream: PushStream,
     header: Header,
 }
 
 impl Encryptor {
-    /// Create a new encryptor with a random header.
+    /// Create an encryptor with `key`, generating a fresh random header.
     pub fn new(key: &Key) -> Self {
         let (header, stream) = PushStream::init(OsRng, &upstream_key(key));
         Self {
@@ -81,23 +95,25 @@ impl Encryptor {
         let tag = if is_final { Tag::Final } else { Tag::Message };
         self.stream
             .push(buffer, &[], tag)
-            .map_err(|_| CryptoError::StreamPushFailed)
+            .map_err(|_| Error::StreamPushFailed)
     }
 }
 
-/// Stateful chunk-by-chunk decryptor.
+/// Stateful chunk-by-chunk stream decryptor.
 ///
-/// Decrypt each chunk with [`pull`](Self::pull). After the last chunk, call
-/// [`finish`](Self::finish) — it fails if the stream's final tag was never
-/// seen, which is how truncation at a chunk boundary is detected.
+/// Decrypt each chunk with [`pull`](Self::pull), in the order they were
+/// produced. After the last chunk, call [`finish`](Self::finish): it fails if
+/// the final tag was never seen, which is how truncation at a chunk boundary is
+/// caught. This is the low-level building block; for reader/writer plumbing see
+/// [`decrypt_file`] and [`StreamingDecryptor`].
 pub struct Decryptor {
     stream: PullStream,
     seen_final: bool,
 }
 
 impl Decryptor {
-    /// Create a new decryptor from the header that was produced during
-    /// encryption.
+    /// Create a decryptor from the `header` produced during encryption and the
+    /// same `key`.
     pub fn new(header: &Header, key: &Key) -> Self {
         let header = UpstreamHeader::from(*header.as_bytes());
         let stream = PullStream::init(header, &upstream_key(key));
@@ -107,9 +123,16 @@ impl Decryptor {
         }
     }
 
-    /// Decrypt a chunk.
+    /// Decrypt the next chunk, returning its plaintext and whether it was the
+    /// final chunk.
     ///
-    /// Returns the plaintext and whether this was the final chunk.
+    /// Chunks must be pulled in the order they were pushed; a wrong key or
+    /// header, or out-of-order, modified, or reordered chunks, all fail the MAC.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StreamPullFailed`](Error::StreamPullFailed) if the chunk
+    /// is shorter than the per-message overhead or its MAC does not verify.
     pub fn pull(&mut self, data: &[u8]) -> Result<(Vec<u8>, bool)> {
         let mut buffer = data.to_vec();
         let is_final = self.pull_in_place(&mut buffer)?;
@@ -121,13 +144,13 @@ impl Decryptor {
     /// final chunk.
     fn pull_in_place(&mut self, buffer: &mut Vec<u8>) -> Result<bool> {
         if buffer.len() < ABYTES {
-            return Err(CryptoError::StreamPullFailed);
+            return Err(Error::StreamPullFailed);
         }
 
         let tag = self
             .stream
             .pull(buffer, &[])
-            .map_err(|_| CryptoError::StreamPullFailed)?;
+            .map_err(|_| Error::StreamPullFailed)?;
 
         let is_final = matches!(tag, Tag::Final);
         if is_final {
@@ -136,27 +159,31 @@ impl Decryptor {
         Ok(is_final)
     }
 
-    /// Verify that the stream was complete.
+    /// Confirm the stream was complete, consuming the decryptor.
     ///
-    /// Returns `CryptoError::StreamTruncated` if no final-tagged chunk was
-    /// pulled, which means the ciphertext was truncated at a chunk boundary.
+    /// Call this after the last [`pull`](Self::pull). Without it, a stream cut
+    /// short exactly at a chunk boundary is indistinguishable from a complete
+    /// one, since each chunk on its own is valid.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StreamTruncated`](Error::StreamTruncated) if no
+    /// final-tagged chunk was ever pulled.
     pub fn finish(self) -> Result<()> {
         if self.seen_final {
             Ok(())
         } else {
-            Err(CryptoError::StreamTruncated)
+            Err(Error::StreamTruncated)
         }
     }
 }
 
-/// Estimate ciphertext size (excluding header) for chunked secretstream
-/// encryption.
+/// Predict the ciphertext size, excluding the header, for encrypting
+/// `plaintext_len` bytes.
 ///
-/// The stream is split into `ENCRYPTION_CHUNK_SIZE` chunks. The last chunk is
-/// tagged FINAL; if the plaintext is empty, a single empty FINAL chunk is
-/// emitted.
-///
-/// If the calculation overflows `usize`, this returns `usize::MAX`.
+/// The plaintext is split into [`ENCRYPTION_CHUNK_SIZE`] chunks, each gaining
+/// [`ABYTES`] of overhead; an empty plaintext still emits one empty final
+/// chunk. Saturates to `usize::MAX` rather than overflowing.
 #[inline]
 pub fn estimate_encrypted_size(plaintext_len: usize) -> usize {
     if plaintext_len == 0 {
@@ -185,13 +212,12 @@ pub fn estimate_encrypted_size(plaintext_len: usize) -> usize {
     }
 }
 
-/// Validate that plaintext and ciphertext sizes match chunked secretstream
-/// encryption.
+/// Check that `ciphertext_len` is what encrypting `plaintext_len` bytes would
+/// produce.
 ///
-/// Returns `true` if the ciphertext size matches what
-/// [`estimate_encrypted_size`] would produce for the given plaintext size.
-///
-/// **Note**: This validates ciphertext size only, NOT including the header.
+/// Returns `true` when `ciphertext_len` equals [`estimate_encrypted_size`] for
+/// the given plaintext. This compares sizes only and excludes the header; it is
+/// a cheap sanity check, not an integrity check (decryption provides that).
 #[inline]
 pub fn validate_sizes(plaintext_len: usize, ciphertext_len: usize) -> bool {
     let estimated = estimate_encrypted_size(plaintext_len);
@@ -201,10 +227,16 @@ pub fn validate_sizes(plaintext_len: usize, ciphertext_len: usize) -> bool {
     estimated == ciphertext_len
 }
 
-/// Streaming file encryptor that writes encrypted chunks to a writer.
+/// Encrypt a stream of writes to an underlying writer, chunk by chunk.
 ///
-/// Keeps the last full plaintext chunk in memory so it can be tagged FINAL
-/// without emitting an extra empty FINAL chunk on exact chunk boundaries.
+/// Feed plaintext with [`write`](Self::write) and end with
+/// [`finish`](Self::finish); the header is written to the writer up front. Use
+/// this when plaintext arrives incrementally. When you already have a reader,
+/// [`encrypt_file`] is simpler.
+///
+/// It holds back the last full chunk so that chunk can be tagged final, which
+/// avoids emitting an extra empty final chunk when the plaintext is an exact
+/// multiple of [`ENCRYPTION_CHUNK_SIZE`].
 pub struct StreamingEncryptor<W: Write> {
     encryptor: Encryptor,
     writer: W,
@@ -216,9 +248,8 @@ pub struct StreamingEncryptor<W: Write> {
 }
 
 impl<W: Write> StreamingEncryptor<W> {
-    /// Create a new streaming encryptor.
-    ///
-    /// The decryption header is written to the writer before any ciphertext.
+    /// Create a streaming encryptor with `key`, writing the decryption header
+    /// to `writer` before any ciphertext.
     pub fn new(key: &Key, mut writer: W) -> Result<Self> {
         let encryptor = Encryptor::new(key);
         writer.write_all(encryptor.header().as_bytes())?;
@@ -251,7 +282,10 @@ impl<W: Write> StreamingEncryptor<W> {
         Ok(())
     }
 
-    /// Write plaintext data to the stream.
+    /// Buffer and encrypt plaintext, writing completed chunks to the writer.
+    ///
+    /// Bytes accumulate until a full chunk is available; call
+    /// [`finish`](Self::finish) to flush the remainder as the final chunk.
     pub fn write(&mut self, data: &[u8]) -> Result<()> {
         let mut input_pos = 0;
 
@@ -283,7 +317,7 @@ impl<W: Write> StreamingEncryptor<W> {
         Ok(())
     }
 
-    /// Finish encryption, writing the final chunk.
+    /// Flush the buffered remainder as the final chunk and return the writer.
     pub fn finish(mut self) -> Result<W> {
         if !self.pending.is_empty() {
             if !self.buffer.is_empty() {
@@ -300,15 +334,16 @@ impl<W: Write> StreamingEncryptor<W> {
     }
 }
 
-/// Streaming file decryptor that reads encrypted chunks from a reader.
+/// Decrypt a stream from an underlying reader, chunk by chunk.
 ///
-/// Uses a single-buffer strategy to minimize memory copies:
-/// - Ciphertext is read directly into the buffer
-/// - Decryption happens in-place (buffer shrinks by ABYTES)
-/// - Plaintext is served via indices into the same buffer
+/// Read plaintext with [`read`](Self::read) or
+/// [`read_to_end`](Self::read_to_end); the header is read from the reader
+/// first. Like [`decrypt_file`] it detects truncation: reaching EOF without the
+/// final tag is an error, as is trailing data after it. Use this when you want
+/// to consume plaintext incrementally.
 ///
-/// This eliminates the extra copies that would occur with separate
-/// read/decrypt/output buffers.
+/// Decryption happens in place in a single reused buffer, avoiding the copies
+/// that separate read, decrypt, and output buffers would incur.
 pub struct StreamingDecryptor<R: Read> {
     decryptor: Decryptor,
     reader: R,
@@ -328,7 +363,7 @@ fn ensure_reader_exhausted<R: Read>(reader: &mut R) -> Result<()> {
     loop {
         match reader.read(&mut extra) {
             Ok(0) => return Ok(()),
-            Ok(_) => return Err(CryptoError::StreamTrailingData),
+            Ok(_) => return Err(Error::StreamTrailingData),
             Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
             Err(e) => return Err(e.into()),
         }
@@ -336,9 +371,8 @@ fn ensure_reader_exhausted<R: Read>(reader: &mut R) -> Result<()> {
 }
 
 impl<R: Read> StreamingDecryptor<R> {
-    /// Create a new streaming decryptor.
-    ///
-    /// The decryption header is read from the reader before any ciphertext.
+    /// Create a streaming decryptor with `key`, reading the decryption header
+    /// from `reader` before any ciphertext.
     pub fn new(key: &Key, mut reader: R) -> Result<Self> {
         let mut header = [0u8; Header::BYTES];
         reader.read_exact(&mut header)?;
@@ -353,8 +387,16 @@ impl<R: Read> StreamingDecryptor<R> {
         })
     }
 
-    /// Read and decrypt data into the provided buffer.
-    /// Returns the number of bytes read, or 0 if EOF.
+    /// Decrypt into `buf`, returning the number of bytes written, or 0 at the
+    /// end of the stream.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StreamTruncated`](Error::StreamTruncated) if the stream
+    /// ends before the final tag,
+    /// [`StreamTrailingData`](Error::StreamTrailingData) if bytes follow
+    /// the final chunk, or [`StreamPullFailed`](Error::StreamPullFailed)
+    /// if a chunk fails to decrypt.
     pub fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         // If we have buffered plaintext, return it first (O(1) via index)
         // This must be checked BEFORE the finished flag, since we may have
@@ -402,7 +444,7 @@ impl<R: Read> StreamingDecryptor<R> {
             // EOF reached - verify we saw the final tag (truncation detection)
             self.buffer.clear();
             if !self.seen_final {
-                return Err(CryptoError::StreamTruncated);
+                return Err(Error::StreamTruncated);
             }
             self.finished = true;
             return Ok(0);
@@ -434,7 +476,9 @@ impl<R: Read> StreamingDecryptor<R> {
         Ok(to_copy)
     }
 
-    /// Read all remaining data into a Vec.
+    /// Decrypt the entire remaining stream into a new `Vec`.
+    ///
+    /// Convenience over repeated [`read`](Self::read); the same errors apply.
     pub fn read_to_end(&mut self) -> Result<Vec<u8>> {
         let mut result = Vec::new();
         let mut buf = [0u8; 8192];
@@ -450,24 +494,16 @@ impl<R: Read> StreamingDecryptor<R> {
     }
 }
 
-/// Encrypt a file from a reader to a writer.
+/// Encrypt everything from `reader` to `writer`, returning the decryption
+/// header.
 ///
-/// Returns the decryption header. The header is NOT written to the writer;
-/// it travels separately (e.g. as part of the file's server-side metadata).
+/// The header is not written to the `writer` but is returned; store or send
+/// it separately (for instance, in the file's server-side metadata). Only the
+/// encrypted chunks are written, and you can predict their total length with
+/// [`estimate_encrypted_size`].
 ///
-/// # Output Format
-///
-/// This function produces output consistent with [`StreamingEncryptor`]:
-/// - Full chunks are encrypted with MESSAGE tags
-/// - The last chunk is tagged FINAL (empty FINAL chunk only for empty
-///   plaintext)
-///
-/// Use [`estimate_encrypted_size`] to predict the ciphertext size (excluding
-/// header).
-///
-/// This function uses reusable buffers and in-place encryption to avoid
-/// allocating fresh memory per chunk. Memory usage is bounded to ~2x chunk
-/// size.
+/// Reuses buffers and encrypts in place, so memory stays bounded to about twice
+/// the chunk size regardless of file size.
 pub fn encrypt_file<R: Read, W: Write>(
     reader: &mut R,
     writer: &mut W,
@@ -535,20 +571,19 @@ pub fn encrypt_file<R: Read, W: Write>(
     Ok(header)
 }
 
-/// Decrypt a file from a reader to a writer.
+/// Decrypt the chunk stream in `reader` to `writer`, using `header` and `key`.
 ///
-/// The reader should contain encrypted data (without the header). The header
-/// and key are provided separately.
-///
-/// This function uses reusable buffers and in-place decryption to avoid
-/// allocating fresh memory per chunk. Memory usage is bounded to ~2x chunk
-/// size.
+/// `reader` holds the ciphertext only; the header travels separately. Like
+/// [`encrypt_file`] it reuses buffers and decrypts in place, so memory stays
+/// bounded to about twice the chunk size.
 ///
 /// # Errors
-/// Returns `CryptoError::StreamTruncated` if EOF is reached without seeing the
-/// final tag. This prevents silent truncation attacks at chunk boundaries.
-/// Returns `CryptoError::StreamTrailingData` if bytes remain after the final
-/// chunk.
+///
+/// Returns [`StreamTruncated`](Error::StreamTruncated) if EOF is reached
+/// without the final tag (the truncation check), or
+/// [`StreamTrailingData`](Error::StreamTrailingData) if bytes remain after
+/// the final chunk. A chunk that fails to decrypt yields
+/// [`StreamPullFailed`](Error::StreamPullFailed).
 pub fn decrypt_file<R: Read, W: Write>(
     reader: &mut R,
     writer: &mut W,
@@ -592,10 +627,10 @@ pub fn decrypt_file<R: Read, W: Write>(
     }
 }
 
-/// Decrypt file data that's already in memory.
+/// Decrypt an in-memory chunk stream, using `header` and `key`.
 ///
-/// This is a convenience function for when you have the entire encrypted file
-/// in a buffer. The header and key must be provided separately.
+/// Convenience over [`decrypt_file`] for when the whole ciphertext is already
+/// in a buffer; the same truncation and trailing-data checks apply.
 pub fn decrypt_file_data(encrypted_data: &[u8], header: &Header, key: &Key) -> Result<Vec<u8>> {
     use std::io::Cursor;
 
@@ -651,7 +686,7 @@ mod tests {
         let result = decryptor.read_to_end();
 
         assert!(
-            matches!(result, Err(CryptoError::StreamTruncated)),
+            matches!(result, Err(Error::StreamTruncated)),
             "Expected StreamTruncated error, got {:?}",
             result
         );
@@ -674,7 +709,7 @@ mod tests {
         let result = decryptor.read_to_end();
 
         assert!(
-            matches!(result, Err(CryptoError::StreamTruncated)),
+            matches!(result, Err(Error::StreamTruncated)),
             "Expected StreamTruncated error, got {:?}",
             result
         );
@@ -716,10 +751,7 @@ mod tests {
         assert_eq!(pt2, b"chunk two");
         assert!(!is_final1 && !is_final2);
 
-        assert!(matches!(
-            decryptor.finish(),
-            Err(CryptoError::StreamTruncated)
-        ));
+        assert!(matches!(decryptor.finish(), Err(Error::StreamTruncated)));
     }
 
     #[test]
@@ -986,7 +1018,7 @@ mod tests {
         let result = decryptor.pull(&ciphertext);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamPullFailed)),
+            matches!(result, Err(Error::StreamPullFailed)),
             "Expected StreamPullFailed error on tampered ciphertext, got {:?}",
             result
         );
@@ -1009,7 +1041,7 @@ mod tests {
         let result = decryptor.pull(&ciphertext);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamPullFailed)),
+            matches!(result, Err(Error::StreamPullFailed)),
             "Expected StreamPullFailed error on tampered header, got {:?}",
             result
         );
@@ -1032,7 +1064,7 @@ mod tests {
         let result = decryptor.pull(&ciphertext);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamPullFailed)),
+            matches!(result, Err(Error::StreamPullFailed)),
             "Expected StreamPullFailed error on tampered MAC, got {:?}",
             result
         );
@@ -1052,7 +1084,7 @@ mod tests {
         let result = decryptor.pull(&ciphertext);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamPullFailed)),
+            matches!(result, Err(Error::StreamPullFailed)),
             "Expected StreamPullFailed error with wrong key, got {:?}",
             result
         );
@@ -1104,7 +1136,7 @@ mod tests {
         let result = decryptor.pull(&[0u8; ABYTES - 1]);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamPullFailed)),
+            matches!(result, Err(Error::StreamPullFailed)),
             "Expected StreamPullFailed for short ciphertext, got {:?}",
             result
         );
@@ -1232,7 +1264,7 @@ mod tests {
         let result = decrypt_file(&mut reader, &mut output, &header, &key);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamTruncated)),
+            matches!(result, Err(Error::StreamTruncated)),
             "Expected StreamTruncated for empty ciphertext, got {:?}",
             result
         );
@@ -1256,7 +1288,7 @@ mod tests {
         let result = decrypt_file(&mut reader, &mut output, &header, &key);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamTruncated)),
+            matches!(result, Err(Error::StreamTruncated)),
             "Expected StreamTruncated at chunk boundary, got {:?}",
             result
         );
@@ -1322,7 +1354,7 @@ mod tests {
         let result = decrypt_file(&mut reader, &mut output, &header, &key);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamTrailingData)),
+            matches!(result, Err(Error::StreamTrailingData)),
             "Expected StreamTrailingData for trailing bytes after FINAL, got {:?}",
             result
         );
@@ -1359,7 +1391,7 @@ mod tests {
         let result = decrypt_file_data(&encrypted_chunk, &header, &key);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamTruncated)),
+            matches!(result, Err(Error::StreamTruncated)),
             "Expected StreamTruncated from decrypt_file_data, got {:?}",
             result
         );
@@ -1378,7 +1410,7 @@ mod tests {
         let result = decrypt_file_data(&ciphertext, &header, &key);
 
         assert!(
-            matches!(result, Err(CryptoError::StreamTrailingData)),
+            matches!(result, Err(Error::StreamTrailingData)),
             "Expected StreamTrailingData from decrypt_file_data, got {:?}",
             result
         );
@@ -1401,7 +1433,7 @@ mod tests {
         let result = decryptor.read_to_end();
 
         assert!(
-            matches!(result, Err(CryptoError::StreamTrailingData)),
+            matches!(result, Err(Error::StreamTrailingData)),
             "Expected StreamTrailingData from StreamingDecryptor, got {:?}",
             result
         );

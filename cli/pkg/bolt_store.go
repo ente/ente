@@ -3,8 +3,8 @@ package pkg
 import (
 	"context"
 	"fmt"
-	"github.com/ente-io/cli/pkg/model"
-	"github.com/ente-io/cli/utils/encoding"
+	"github.com/ente/cli/pkg/model"
+	"github.com/ente/cli/utils/encoding"
 )
 
 func boltAEKey(entry *model.AlbumFileEntry) []byte {

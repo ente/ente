@@ -1,7 +1,7 @@
 name: ente_logging
 description: A Flutter package for logging functionality across ente apps
-version: 1.0.0
 
+resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
   flutter: ">=1.17.0"
@@ -16,10 +16,10 @@ dependencies:
   package_info_plus: 8.3.1
   path: 1.9.1
   path_provider: 2.1.5
-  sentry: 8.14.2
-  sentry_flutter: 8.14.2
+  sentry: 9.6.0
+  sentry_flutter: 9.6.0
   shared_preferences: 2.5.3
-  uuid: 4.5.2
+  uuid: 4.5.3
 
 dev_dependencies:
   flutter_lints: 6.0.0

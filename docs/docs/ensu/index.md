@@ -31,12 +31,12 @@ When you first launch Ensu, it downloads a small language model and runs it loca
 
 Download Ensu from [ente.com/ensu](https://ente.com/ensu) or pick a platform below.
 
-| Platform                | Where to get it                                                                                                                                |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| iOS                     | [App Store](https://apps.apple.com/app/ensu-entes-local-llm/id6758197006)                                                                      |
-| Android                 | [Google Play](https://play.google.com/store/apps/details?id=io.ente.ensu) / [GitHub releases](https://github.com/ente-io/ente/releases?q=ensu) |
-| macOS / Windows / Linux | [GitHub releases](https://github.com/ente-io/ente/releases?q=ensu)                                                                             |
-| Web                     | [ensu.ente.com](https://ensu.ente.com) (experimental)                                                                                          |
+| Platform                | Where to get it                                                                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| iOS                     | [App Store](https://apps.apple.com/app/ensu-entes-local-llm/id6758197006)                                                                   |
+| Android                 | [Google Play](https://play.google.com/store/apps/details?id=io.ente.ensu) / [GitHub releases](https://github.com/ente/ente/releases?q=ensu) |
+| macOS / Windows / Linux | [GitHub releases](https://github.com/ente/ente/releases?q=ensu)                                                                             |
+| Web                     | [ensu.ente.com](https://ensu.ente.com) (experimental)                                                                                       |
 
 If you install the Android APK directly from GitHub releases, verify it against the published signing certificate. Learn more in [Verify the Ensu Android APK](/ensu/faq/android-apk-signature).
 
@@ -80,4 +80,4 @@ For recent updates, see the [Changelog](/ensu/changelog).
 
 - **Discord**: join the `#ensu` channel on [Discord](https://ente.com/discord).
 - **Email**: write to [team@ente.com](mailto:team@ente.com) with feedback or questions.
-- **GitHub**: report bugs or request features on [GitHub](https://github.com/ente-io/ente/issues).
+- **GitHub**: report bugs or request features on [GitHub](https://github.com/ente/ente/issues).

@@ -1,0 +1,14 @@
+[package]
+name = "ente-space-wasm"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ente-core.workspace = true
+ente-space.workspace = true
+serde.workspace = true
+serde-wasm-bindgen = "0.6"
+wasm-bindgen.workspace = true
+wasm-bindgen-futures = "0.4"

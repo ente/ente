@@ -40,6 +40,7 @@ import type {
     CollectionSummary,
 } from "ente-new/photos/services/collection-summary";
 import { usePhotosAppContext } from "ente-new/photos/types/context";
+import { enableV2 } from "ente-new/photos/utils/feature-flags";
 import { t } from "i18next";
 import memoize from "memoize-one";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -58,6 +59,7 @@ interface AllAlbums {
     collectionsSortBy: CollectionsSortBy;
     onChangeCollectionsSortBy: (by: CollectionsSortBy) => void;
     isInHiddenSection: boolean;
+    canCreateAlbum: boolean;
     onRemotePull: () => Promise<void>;
 }
 
@@ -72,6 +74,7 @@ export const AllAlbums: React.FC<AllAlbums> = ({
     collectionsSortBy,
     onChangeCollectionsSortBy,
     isInHiddenSection,
+    canCreateAlbum,
     onRemotePull,
 }) => {
     const fullScreen = useMediaQuery("(max-width: 428px)");
@@ -130,13 +133,14 @@ export const AllAlbums: React.FC<AllAlbums> = ({
     }, [collectionSummaries, searchTerm]);
 
     const showCreateButton = useMemo(() => {
+        if (!canCreateAlbum) return false;
         if (!searchTerm.trim()) {
             return true;
         }
         const searchLower = searchTerm.toLowerCase();
         const createText = t("new_album").toLowerCase();
         return createText.includes(searchLower);
-    }, [searchTerm]);
+    }, [canCreateAlbum, searchTerm]);
 
     return (
         <>
@@ -169,6 +173,7 @@ export const AllAlbums: React.FC<AllAlbums> = ({
             </AllAlbumsDialog>
             <SingleInputDialog
                 {...albumNameInputVisibilityProps}
+                variant={enableV2 ? "v2" : "default"}
                 title={t("new_album")}
                 label={t("album_name")}
                 submitButtonTitle={t("create")}
@@ -551,7 +556,7 @@ const AllAlbumsContent: React.FC<AllAlbumsContentProps> = ({
                         height: "100%",
                     }}
                 >
-                    <Typography color="text.muted">
+                    <Typography sx={{ color: "text.muted" }}>
                         {t("no_results")}
                     </Typography>
                 </Box>

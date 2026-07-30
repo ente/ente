@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/internal/testutil"
-	usercontroller "github.com/ente-io/museum/pkg/controller/user"
-	"github.com/ente-io/museum/pkg/repo"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/internal/testutil"
+	usercontroller "github.com/ente/museum/pkg/controller/user"
+	"github.com/ente/museum/pkg/repo"
 	"github.com/gin-gonic/gin"
 )
 

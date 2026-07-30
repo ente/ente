@@ -1,1 +1,0 @@
-- Fixed QR scanner black screens when adding codes.

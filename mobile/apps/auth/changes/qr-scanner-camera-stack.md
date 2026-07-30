@@ -1,1 +1,0 @@
-- Improved QR scanner camera focusing and device compatibility.

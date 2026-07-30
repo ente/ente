@@ -16,6 +16,7 @@ void showToast(
 }) async {
   if (Platform.isAndroid) {
     await Fluttertoast.cancel();
+    if (!context.mounted) return;
     unawaited(
       Fluttertoast.showToast(
         msg: message,

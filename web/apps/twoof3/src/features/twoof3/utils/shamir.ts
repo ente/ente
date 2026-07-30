@@ -1,6 +1,9 @@
 const GF_POLY = 0x11b;
-const VERSION = 1;
-const HEADER_LENGTH = 14;
+const VERSION = 2;
+const HEADER_LENGTH = 10;
+const LEGACY_HEADER_LENGTH = 14;
+const CHECKSUM_LENGTH = 4;
+const SHARE_OVERHEAD = HEADER_LENGTH + CHECKSUM_LENGTH;
 const ID_LENGTH = 6;
 const MAX_SECRET_BYTES = 2048;
 export const SHARE_PREFIX = "2of3-";
@@ -104,16 +107,17 @@ export interface SplitShare {
 }
 
 export interface ParsedShare {
-    checksum: Uint8Array;
+    checksum: Uint8Array | null;
     data: Uint8Array;
     encoded: string;
     id: string;
     index: 1 | 2 | 3;
     length: number;
+    version: 1 | 2;
 }
 
 export const encodedShareLengthForSecretBytes = (secretByteLength: number) =>
-    SHARE_PREFIX.length + base64UrlLength(HEADER_LENGTH + secretByteLength);
+    SHARE_PREFIX.length + base64UrlLength(SHARE_OVERHEAD + secretByteLength);
 
 export const maxSecretBytesForEncodedShareLength = (maxShareLength: number) => {
     let best = 0;
@@ -146,18 +150,18 @@ export const splitSecret = (secret: string): SplitShare[] => {
     }
 
     const randomId = crypto.getRandomValues(new Uint8Array(ID_LENGTH));
-    const checksum = checksumBytes(secretBytes);
+    const protectedBytes = joinBytes(secretBytes, checksumBytes(secretBytes));
     const coefficients = crypto.getRandomValues(
-        new Uint8Array(secretBytes.length),
+        new Uint8Array(protectedBytes.length),
     );
     const shares = [
-        new Uint8Array(secretBytes.length),
-        new Uint8Array(secretBytes.length),
-        new Uint8Array(secretBytes.length),
+        new Uint8Array(protectedBytes.length),
+        new Uint8Array(protectedBytes.length),
+        new Uint8Array(protectedBytes.length),
     ];
 
-    for (let index = 0; index < secretBytes.length; index++) {
-        const secretByte = secretBytes[index]!;
+    for (let index = 0; index < protectedBytes.length; index++) {
+        const secretByte = protectedBytes[index]!;
         const coefficient = coefficients[index]!;
         shares[0]![index] = secretByte ^ coefficient;
         shares[1]![index] = secretByte ^ gfMul(coefficient, 2);
@@ -173,7 +177,7 @@ export const splitSecret = (secret: string): SplitShare[] => {
             secretBytes.length & 0xff,
         ]);
 
-        const payload = joinBytes(header, randomId, checksum, shareBytes);
+        const payload = joinBytes(header, randomId, shareBytes);
         return { encoded: `${SHARE_PREFIX}${base64UrlEncode(payload)}`, index };
     });
 };
@@ -185,7 +189,7 @@ export const parseShare = (input: string): ParsedShare => {
     }
 
     const payload = base64UrlDecode(encoded.slice(SHARE_PREFIX.length));
-    if (payload.length <= HEADER_LENGTH) {
+    if (payload.length <= SHARE_OVERHEAD) {
         throw new Error("That share looks incomplete.");
     }
 
@@ -193,21 +197,23 @@ export const parseShare = (input: string): ParsedShare => {
     const index = payload[1];
     const length = ((payload[2] ?? 0) << 8) | (payload[3] ?? 0);
 
-    if (version !== VERSION) {
-        throw new Error("This share was created by a newer format.");
+    if (version !== 1 && version !== VERSION) {
+        throw new Error("This share uses an unsupported format version.");
     }
 
     if (index !== 1 && index !== 2 && index !== 3) {
         throw new Error("This share number is invalid.");
     }
 
-    if (payload.length !== HEADER_LENGTH + length) {
+    const headerLength = version === 1 ? LEGACY_HEADER_LENGTH : HEADER_LENGTH;
+    const dataLength = length + (version === 1 ? 0 : CHECKSUM_LENGTH);
+    if (payload.length !== headerLength + dataLength) {
         throw new Error("This share was cut off.");
     }
 
     const idBytes = payload.slice(4, 10);
-    const checksum = payload.slice(10, 14);
-    const data = payload.slice(14);
+    const checksum = version === 1 ? payload.slice(10, 14) : null;
+    const data = payload.slice(headerLength);
 
     return {
         checksum,
@@ -216,12 +222,17 @@ export const parseShare = (input: string): ParsedShare => {
         id: base64UrlEncode(idBytes),
         index,
         length,
+        version,
     };
 };
 
 export const combineShares = (firstInput: string, secondInput: string) => {
     const first = parseShare(firstInput);
     const second = parseShare(secondInput);
+
+    if (first.version !== second.version) {
+        throw new Error("These two cards use different formats.");
+    }
 
     if (first.id !== second.id || first.length !== second.length) {
         throw new Error(
@@ -233,10 +244,10 @@ export const combineShares = (firstInput: string, secondInput: string) => {
         throw new Error("Use two different cards from the same set.");
     }
 
-    const output = new Uint8Array(first.length);
+    const output = new Uint8Array(first.data.length);
     const denominator = first.index ^ second.index;
 
-    for (let index = 0; index < first.length; index++) {
+    for (let index = 0; index < output.length; index++) {
         const left = gfMul(
             first.data[index]!,
             gfDiv(second.index, denominator),
@@ -248,19 +259,24 @@ export const combineShares = (firstInput: string, secondInput: string) => {
         output[index] = left ^ right;
     }
 
-    const expectedChecksum = checksumBytes(output);
-    if (
-        expectedChecksum.some(
-            (byte, index) =>
-                byte !== first.checksum[index] ||
-                byte !== second.checksum[index],
-        )
-    ) {
+    const secretBytes = output.slice(0, first.length);
+    const expectedChecksum = checksumBytes(secretBytes);
+    const checksumMatches =
+        first.version === 1
+            ? expectedChecksum.every(
+                  (byte, index) =>
+                      byte === first.checksum![index] &&
+                      byte === second.checksum![index],
+              )
+            : expectedChecksum.every(
+                  (byte, index) => byte === output[first.length + index],
+              );
+    if (!checksumMatches) {
         throw new Error("These shares did not reconstruct a valid secret.");
     }
 
     try {
-        return new TextDecoder("utf-8", { fatal: true }).decode(output);
+        return new TextDecoder("utf-8", { fatal: true }).decode(secretBytes);
     } catch {
         throw new Error("These shares did not reconstruct readable text.");
     }

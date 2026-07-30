@@ -1,7 +1,7 @@
 name: ente_events
-description: A Flutter package for event management using event_bus, extracted from the surprise app
-version: 1.0.0
+description: A Flutter package for event management using event_bus
 
+resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
   flutter: ">=1.17.0"

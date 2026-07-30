@@ -3,7 +3,7 @@ package passkey
 import (
 	"time"
 
-	"github.com/ente-io/museum/ente"
+	"github.com/ente/museum/ente"
 	"github.com/google/uuid"
 )
 

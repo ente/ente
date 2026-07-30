@@ -24,8 +24,23 @@ class SocialDataProvider {
     return _db.getCommentsForFile(fileID);
   }
 
-  Future<int> getCommentCountForFile(int fileID) {
-    return _db.getCommentCountForFile(fileID);
+  /// [candidateCollectionIDs] narrows the indexed lookup to collections the
+  /// caller already knows are eligible.
+  Future<Comment?> getLatestCommentForFile(
+    int fileID, {
+    required List<int> candidateCollectionIDs,
+  }) {
+    return _db.getLatestCommentForFile(
+      fileID,
+      candidateCollectionIDs: candidateCollectionIDs,
+    );
+  }
+
+  Future<int> getCommentCountForFileInCollections(
+    int fileID,
+    List<int> collectionIDs,
+  ) {
+    return _db.getCommentCountForFileInCollections(fileID, collectionIDs);
   }
 
   Future<int> getCommentCountForFileInCollection(int fileID, int collectionID) {
@@ -34,6 +49,14 @@ class SocialDataProvider {
 
   Future<List<Reaction>> getReactionsForFile(int fileID) {
     return _db.getReactionsForFile(fileID);
+  }
+
+  Future<bool> hasUserReactedToFileInCollections(
+    int fileID,
+    int userID,
+    List<int> collectionIDs,
+  ) {
+    return _db.hasUserReactedToFileInCollections(fileID, userID, collectionIDs);
   }
 
   Future<List<Reaction>> getReactionsForFileInCollection(

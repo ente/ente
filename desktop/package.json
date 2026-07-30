@@ -1,9 +1,9 @@
 {
     "name": "ente",
-    "version": "1.7.25-beta",
+    "version": "1.7.28-beta",
     "private": true,
     "description": "Desktop client for Ente Photos",
-    "repository": "github:ente-io/photos-desktop",
+    "repository": "github:ente/photos-desktop",
     "author": "Ente <code@ente.com>",
     "main": "app/main.js",
     "scripts": {
@@ -21,9 +21,6 @@
         "postinstall": "node scripts/postinstall.mjs",
         "lint": "prettier --check --log-level warn . && eslint && tsc",
         "lint:fix": "prettier --write --log-level warn . && eslint && tsc"
-    },
-    "overrides": {
-        "yauzl": "3.3.1"
     },
     "dependencies": {
         "any-shell-escape": "0.1.1",
@@ -47,9 +44,9 @@
         "@types/auto-launch": "5.0.5",
         "@types/node": "24.13.0",
         "ajv": "8.20.0",
-        "concurrently": "10.0.3",
+        "concurrently": "10.0.4",
         "cross-env": "10.1.0",
-        "electron": "42.3.3",
+        "electron": "42.5.0",
         "electron-builder": "26.8.1",
         "eslint": "10.4.1",
         "prettier": "3.8.3",

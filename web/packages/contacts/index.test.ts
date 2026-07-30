@@ -92,7 +92,7 @@ const setupContactsModule = async (options: SetupOptions = {}) => {
         return typeof value === "number" ? value : undefined;
     });
 
-    const savedAuthToken = vi.fn(() => "auth-token-secret");
+    const savedAuthToken = vi.fn((): string | undefined => "auth-token-secret");
     const apiOrigin = vi.fn(() => "https://api.example");
     const info = vi.fn();
     const warn = vi.fn();
@@ -186,6 +186,8 @@ const setupContactsModule = async (options: SetupOptions = {}) => {
     return {
         contacts,
         setKV,
+        savedAuthToken,
+        update_auth_token,
         get_diff,
         get_profile_picture,
         legacy_get_info,
@@ -354,6 +356,45 @@ describe("retry after warm-up failure", () => {
         expect(get_diff).toHaveBeenCalledTimes(4);
         await vi.advanceTimersByTimeAsync(300_000);
         expect(get_diff).toHaveBeenCalledTimes(4);
+    });
+
+    test("stale retry does not update a newer generation context token", async () => {
+        vi.useFakeTimers();
+        const { contacts, savedAuthToken, update_auth_token, get_diff } =
+            await setupContactsModule();
+        savedAuthToken
+            .mockReturnValueOnce("old-token")
+            .mockReturnValueOnce(undefined)
+            .mockReturnValue("new-token");
+        get_diff.mockReset();
+        get_diff
+            .mockRejectedValueOnce(new Error("transient"))
+            .mockResolvedValueOnce([])
+            .mockResolvedValueOnce([]);
+
+        const staleReady = contacts.ensureContactsReady({
+            userID: 101,
+            masterKeyB64: "old-master-key",
+        });
+        await vi.advanceTimersByTimeAsync(0);
+        expect(get_diff).toHaveBeenCalledTimes(1);
+
+        await contacts.ensureContactsReady({
+            userID: 101,
+            masterKeyB64: "clearing-master-key",
+        });
+        expect(get_diff).toHaveBeenCalledTimes(1);
+
+        await contacts.ensureContactsReady({
+            userID: 101,
+            masterKeyB64: "new-master-key",
+        });
+        expect(get_diff).toHaveBeenCalledTimes(2);
+
+        await vi.advanceTimersByTimeAsync(10_001);
+        await expect(staleReady).resolves.toBeUndefined();
+        expect(update_auth_token).not.toHaveBeenCalled();
+        expect(get_diff).toHaveBeenCalledTimes(2);
     });
 });
 

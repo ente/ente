@@ -57,7 +57,7 @@ As mentioned above, the auth data is encrypted using a key that's derived by usi
 
 ## Automated backups
 
-You can use [Ente's CLI](https://github.com/ente-io/ente/tree/main/cli#readme) to automatically backup your Auth codes.
+You can use [Ente's CLI](https://github.com/ente/ente/tree/main/cli#readme) to automatically backup your Auth codes.
 
 To export your data, add an account using `ente account add` command. In the first step, specify `auth` as the app name. At a later point, CLI will also ask you specify the path where it should write the exported codes.
 
@@ -97,7 +97,7 @@ You can trigger a manual backup at any time using the **Create backup now** butt
 
     > Settings -> Data -> Import Codes -> Ente Encrypted export.
 
-- **Decrypt using Ente CLI** : Download the latest version of [Ente CLI](https://github.com/ente-io/ente/releases?q=tag%3Acli-v0), and run the following command
+- **Decrypt using Ente CLI** : Download the latest version of [Ente CLI](https://github.com/ente/ente/releases?q=tag%3Acli-v0), and run the following command
 
 ```
   ./ente auth decrypt <export_file> <output_file>

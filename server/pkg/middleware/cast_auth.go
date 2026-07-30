@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"fmt"
-	castCtrl "github.com/ente-io/museum/pkg/controller/cast"
-	"github.com/ente-io/museum/pkg/utils/auth"
+	castCtrl "github.com/ente/museum/pkg/controller/cast"
+	"github.com/ente/museum/pkg/utils/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
 	"net/http"

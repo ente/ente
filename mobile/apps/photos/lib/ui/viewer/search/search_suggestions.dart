@@ -17,7 +17,7 @@ import "package:photos/services/collections_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/thumbnail_list_item.dart";
 import "package:photos/ui/viewer/gallery/collection_page.dart";
-import "package:photos/ui/viewer/gallery/device_folder_page.dart";
+import "package:photos/ui/viewer/gallery/device/device_folder_page.dart";
 import "package:photos/ui/viewer/search/result/search_result_widget.dart";
 import "package:photos/ui/viewer/search/search_widget.dart";
 
@@ -130,17 +130,12 @@ class _SearchSuggestionsWidgetState extends State<SearchSuggestionsWidget> {
         ? colorScheme.backgroundColour
         : colorScheme.backgroundElevated2;
     final sectionWidgets = _buildSectionWidgets(context);
-    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-    final defaultBottomPadding = (MediaQuery.sizeOf(context).height / 2) + 50.0;
-    final keyboardBottomPadding = keyboardInset + 50.0;
-    final bottomPadding = keyboardBottomPadding > defaultBottomPadding
-        ? keyboardBottomPadding
-        : defaultBottomPadding;
+    const bottomPadding = 124.0;
     if (_resultsCount > 0) {
       sectionWidgets.insert(
         0,
         Padding(
-          padding: const EdgeInsets.fromLTRB(4, 4, 4, 12),
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
           child: Text(
             AppLocalizations.of(
               context,
@@ -153,14 +148,14 @@ class _SearchSuggestionsWidgetState extends State<SearchSuggestionsWidget> {
     return Scaffold(
       backgroundColor: resultsBackground,
       body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: ListView(
                 physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.only(bottom: bottomPadding),
+                padding: const EdgeInsets.only(bottom: bottomPadding),
                 children: sectionWidgets,
               ),
             ),
@@ -315,7 +310,7 @@ String _sectionTitle(BuildContext context, _SearchResultsSection section) {
     case _SearchResultsSection.people:
       return AppLocalizations.of(context).people;
     case _SearchResultsSection.shared:
-      return AppLocalizations.of(context).searchResultShared;
+      return AppLocalizations.of(context).shared;
     case _SearchResultsSection.albums:
       return AppLocalizations.of(context).albums;
     case _SearchResultsSection.magic:

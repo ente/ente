@@ -31,7 +31,7 @@ Ensu is built on a shared **Rust core** that handles model loading, prompting, a
 
 The underlying inference engine is based on [llama.cpp](https://github.com/ggerganov/llama.cpp) on native platforms and a WebAssembly build of it in the browser. Ensu wraps that engine so the chat UI, model downloads, and settings work the same way on every platform.
 
-All of this is open source. The full source lives in [Ente's monorepo on GitHub](https://github.com/ente-io/ente), alongside Photos, Auth, Locker, and the other Ente apps.
+All of this is open source. The full source lives in [Ente's monorepo on GitHub](https://github.com/ente/ente), alongside Photos, Auth, Locker, and the other Ente apps.
 
 ## The model file
 
@@ -98,11 +98,11 @@ What Ensu does not do:
 What is sent over the network at all:
 
 - The chat model download from Hugging Face on first launch (and when you switch models or update Ensu and a model version changes).
-- On iOS and Android, the Parakeet transcription model and Silero VAD model download from `models.ente.io` the first time voice input is used, unless they are already cached.
+- On iOS and Android, the Parakeet transcription model and Silero VAD model download from `models.ente.com` the first time voice input is used, unless they are already cached.
 - Software update checks, which the platform's app store or the desktop auto-updater handles.
 - If you sign in for the future sync feature (see below), the standard authentication exchange.
 
-You can confirm any of this by running Ensu offline once the required models are downloaded, or by inspecting [the source](https://github.com/ente-io/ente).
+You can confirm any of this by running Ensu offline once the required models are downloaded, or by inspecting [the source](https://github.com/ente/ente).
 
 ## Sync and backup (in development)
 
@@ -138,4 +138,4 @@ For the privacy guarantees of future cloud sync, see [Sync and backup](#sync-and
 - [Introduction](/ensu/): install, send your first message, and prompts to try.
 - [Features](/ensu/features/): everything Ensu can do, organized by feature.
 - [FAQ](/ensu/faq/): privacy, models, sync, and troubleshooting.
-- [Source code on GitHub](https://github.com/ente-io/ente): the full Ensu source, including the Rust core, the platform UIs, and the web app.
+- [Source code on GitHub](https://github.com/ente/ente): the full Ensu source, including the Rust core, the platform UIs, and the web app.

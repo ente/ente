@@ -3,8 +3,8 @@ package user
 import (
 	stdtime "time"
 
-	"github.com/ente-io/museum/pkg/repo"
-	emailUtil "github.com/ente-io/museum/pkg/utils/email"
+	"github.com/ente/museum/pkg/repo"
+	emailUtil "github.com/ente/museum/pkg/utils/email"
 	"github.com/sirupsen/logrus"
 )
 

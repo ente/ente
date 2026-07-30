@@ -1,10 +1,9 @@
 import "package:dio/dio.dart";
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/service_locator.dart";
-import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/components/base_bottom_sheet.dart";
 import "package:photos/utils/dialog_util.dart";
 
 Future<bool?> showChangeReferralCodeSheet(
@@ -12,13 +11,15 @@ Future<bool?> showChangeReferralCodeSheet(
   required String currentCode,
   required VoidCallback onCodeChanged,
 }) {
-  return showBaseBottomSheet<bool>(
-    context,
-    title: AppLocalizations.of(context).changeYourReferralCode,
-    headerSpacing: 20,
-    child: _ChangeReferralCodeContent(
-      currentCode: currentCode,
-      onCodeChanged: onCodeChanged,
+  return showBottomSheetComponent<bool>(
+    context: context,
+    builder: (_) => BottomSheetComponent(
+      title: AppLocalizations.of(context).changeYourReferralCode,
+      isKeyboardAware: true,
+      content: _ChangeReferralCodeContent(
+        currentCode: currentCode,
+        onCodeChanged: onCodeChanged,
+      ),
     ),
   );
 }
@@ -118,84 +119,28 @@ class _ChangeReferralCodeContentState
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    final inputBackgroundColor = isDarkMode
-        ? const Color(0xFF1C1C1C)
-        : const Color(0xFFFAFAFA);
-
-    const greenColor = Color(0xFF08C225);
-    const warningRedColor = Color(0xFFF63A3A);
-    final helperTextColor = _errorMessage != null
-        ? warningRedColor
-        : colorScheme.textMuted;
+    final l10n = AppLocalizations.of(context);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Text input field
-        Container(
-          decoration: BoxDecoration(
-            color: inputBackgroundColor,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: TextField(
-            controller: _controller,
-            textCapitalization: TextCapitalization.characters,
-            style: textTheme.body,
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 20,
-              ),
-              hintText: AppLocalizations.of(context).enterCode,
-              hintStyle: textTheme.body.copyWith(color: colorScheme.textMuted),
-            ),
-          ),
+        TextInputComponent(
+          controller: _controller,
+          textCapitalization: TextCapitalization.characters,
+          hintText: l10n.enterCode,
+          message: _errorMessage ?? l10n.referralCodeHint,
+          messageType: _errorMessage == null
+              ? TextInputComponentMessageType.helper
+              : TextInputComponentMessageType.error,
+          autocorrect: false,
         ),
-        const SizedBox(height: 9),
-        // Warning/helper text
-        Text(
-          _errorMessage ?? AppLocalizations.of(context).referralCodeHint,
-          style: textTheme.mini.copyWith(color: helperTextColor),
-        ),
-        const SizedBox(height: 20),
-        // Save button
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton(
-            onPressed: _isLoading || !_hasChanges ? null : _saveCode,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _hasChanges ? greenColor : colorScheme.fillMuted,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: colorScheme.fillMuted,
-              disabledForegroundColor: colorScheme.textMuted,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              elevation: 0,
-            ),
-            child: _isLoading
-                ? SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: colorScheme.textMuted,
-                    ),
-                  )
-                : Text(
-                    AppLocalizations.of(context).saveCode,
-                    style: textTheme.bodyBold.copyWith(
-                      color: _hasChanges ? Colors.white : colorScheme.textMuted,
-                    ),
-                  ),
-          ),
+        const SizedBox(height: Spacing.lg),
+        ButtonComponent(
+          label: l10n.saveCode,
+          isDisabled: _isLoading || !_hasChanges,
+          shouldShowSuccessState: false,
+          onTap: _saveCode,
         ),
       ],
     );

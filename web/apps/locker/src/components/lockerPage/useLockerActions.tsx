@@ -555,13 +555,14 @@ export const useLockerActions = ({
                 message: (
                     <Trans
                         i18nKey="deleteFileConfirmation"
-                        values={{ fileName: getItemTitle(item) }}
                         components={{
-                            strong: (
+                            fileName: (
                                 <Box
                                     component="span"
                                     sx={{ fontWeight: 700, color: "text.base" }}
-                                />
+                                >
+                                    {getItemTitle(item)}
+                                </Box>
                             ),
                         }}
                     />

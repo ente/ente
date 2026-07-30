@@ -15,13 +15,15 @@ fn main() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .manage(commands::SrpState::default())
-        .manage(commands::LlmState::default())
-        .manage(commands::LlmModelDownloadState::default())
-        .manage(commands::ChatDbState::default())
+        .manage(commands::llm::State::default())
+        .manage(commands::chat_db::ChatDbState::default())
         .setup(|app| {
             logging::init_logging(app.handle());
             logging::log("App", "setup started");
+
+            app.manage(commands::llm::ModelDownloadState::new(
+                app.path().app_data_dir()?,
+            ));
 
             // Show the main window after setup is complete
             if let Some(window) = app.get_webview_window("main")
@@ -34,62 +36,41 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::crypto_init,
-            commands::crypto_generate_key,
-            commands::crypto_encrypt_box,
-            commands::crypto_decrypt_box,
-            commands::crypto_encrypt_blob,
-            commands::crypto_decrypt_blob,
-            commands::secure_storage_get,
-            commands::secure_storage_set,
-            commands::secure_storage_delete,
-            commands::auth_derive_srp_credentials,
-            commands::auth_decrypt_secrets,
-            commands::auth_decrypt_keys_only,
-            commands::srp_session_new,
-            commands::srp_session_public_a,
-            commands::srp_session_compute_m1,
-            commands::srp_session_verify_m2,
-            commands::chat_db_list_sessions,
-            commands::chat_db_list_sessions_with_preview,
-            commands::chat_db_get_session,
-            commands::chat_db_get_message,
-            commands::chat_db_create_session,
-            commands::chat_db_update_session_title,
-            commands::chat_db_delete_session,
-            commands::chat_db_get_messages,
-            commands::chat_db_get_messages_for_sync,
-            commands::chat_db_insert_message,
-            commands::chat_db_update_message_text,
-            commands::chat_db_list_sessions_for_sync,
-            commands::chat_db_upsert_session,
-            commands::chat_db_insert_message_with_uuid,
-            commands::chat_db_mark_session_synced,
-            commands::chat_db_mark_session_deleted,
-            commands::chat_db_mark_message_deleted,
-            commands::chat_db_mark_attachment_uploaded,
-            commands::chat_db_compress_attachment_image,
-            commands::chat_db_compress_attachment_image_file,
-            commands::chat_db_get_pending_deletions,
-            commands::chat_db_hard_delete,
-            commands::chat_db_reset,
-            commands::chat_db_migrate_legacy,
-            commands::chat_sync,
-            commands::llm_init_backend,
-            commands::llm_load_model,
-            commands::llm_create_context,
-            commands::llm_free_context,
-            commands::llm_free_model,
-            commands::llm_prewarm_multimodal_context,
-            commands::llm_generate_chat_stream,
-            commands::llm_cancel,
-            commands::system_info,
-            commands::get_ensu_defaults,
-            commands::llm_download_model_files,
-            commands::llm_cancel_model_download,
-            commands::fs_file_size,
-            commands::fs_read_head,
-            commands::fs_append_bytes,
+            commands::crypto::crypto_init,
+            commands::crypto::crypto_generate_key,
+            commands::crypto::crypto_encrypt_blob,
+            commands::crypto::crypto_decrypt_blob,
+            commands::secure_storage::secure_storage_get,
+            commands::secure_storage::secure_storage_set,
+            commands::secure_storage::secure_storage_delete,
+            commands::chat_db::chat_db_list_sessions,
+            commands::chat_db::chat_db_list_sessions_with_preview,
+            commands::chat_db::chat_db_get_session,
+            commands::chat_db::chat_db_create_session,
+            commands::chat_db::chat_db_update_session_title,
+            commands::chat_db::chat_db_delete_session,
+            commands::chat_db::chat_db_get_messages,
+            commands::chat_db::chat_db_insert_message,
+            commands::chat_db::chat_db_update_message_text,
+            commands::chat_db::chat_db_upsert_session,
+            commands::chat_db::chat_db_insert_message_with_uuid,
+            commands::chat_db::chat_db_compress_attachment_image_file,
+            commands::chat_db::chat_db_open,
+            commands::chat_db::chat_db_has_existing_store,
+            commands::llm::llm_init_backend,
+            commands::llm::llm_load_model,
+            commands::llm::llm_create_context,
+            commands::llm::llm_free_context,
+            commands::llm::llm_free_model,
+            commands::llm::llm_prewarm_multimodal_context,
+            commands::llm::llm_generate_chat_stream,
+            commands::llm::llm_cancel,
+            commands::system::system_info,
+            commands::config::config_defaults,
+            commands::llm::llm_model_status,
+            commands::llm::llm_migrate_models,
+            commands::llm::llm_download_model,
+            commands::llm::llm_cancel_model_download,
         ])
         .build(tauri::generate_context!())
         .unwrap_or_else(|err| {

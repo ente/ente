@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import "package:flutter/services.dart";
 import "package:flutter_image_compress/flutter_image_compress.dart";
 import "package:hugeicons/hugeicons.dart";
+import 'package:image/image.dart' as img;
 import "package:logging/logging.dart";
 import 'package:path/path.dart' as path;
 import "package:photo_manager/photo_manager.dart";
@@ -18,6 +19,8 @@ import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/generated/l10n.dart";
 import 'package:photos/models/file/file.dart' as ente;
 import "package:photos/models/location/location.dart";
+import "package:photos/module/metadata/local_file.dart";
+import "package:photos/service_locator.dart";
 import "package:photos/services/sync/sync_service.dart";
 import "package:photos/ui/components/action_sheet_widget.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
@@ -33,6 +36,8 @@ import "package:photos/ui/tools/editor/image_editor/image_editor_text_bar.dart";
 import "package:photos/ui/tools/editor/image_editor/image_editor_tune_bar.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/utils/dialog_util.dart";
+import "package:photos/utils/image_util.dart";
+import "package:photos/utils/lossless_edits.dart";
 import 'package:pro_image_editor/pro_image_editor.dart';
 
 class ImageEditorPage extends StatefulWidget {
@@ -56,31 +61,53 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   final editorKey = GlobalKey<ProImageEditorState>();
   final _logger = Logger("ImageEditor");
 
-  Future<void> saveImage(Uint8List? bytes) async {
-    if (bytes == null) return;
-
-    final dialog = createProgressDialog(
-      context,
-      AppLocalizations.of(context).saving,
+  Future<Uint8List> compressImage(Uint8List bytes) async {
+    final ui.Image decodedResult = await decodeImageFromList(bytes);
+    var result = await FlutterImageCompress.compressWithList(
+      bytes,
+      minWidth: decodedResult.width,
+      minHeight: decodedResult.height,
+      quality: 95,
+      format: CompressFormat.jpeg,
     );
+    if (flagService.internalUser) {
+      try {
+        final image = img.decodePng(bytes);
+        if (image != null) {
+          await copyEXIF(
+            widget.originalFile,
+            image,
+            copyRenderingFields: false,
+          );
+          result = img.encodeJpg(image, quality: 95);
+        }
+      } catch (e, s) {
+        _logger.warning("Image Editor: copyEXIF failed", e, s);
+      }
+    }
+    return result;
+  }
+
+  Future<void> saveImage(ProImageEditorState editorState) async {
+    final l10n = AppLocalizations.of(context);
+    final dialog = createProgressDialog(context, l10n.saving);
     await dialog.show();
 
-    debugPrint("Image saved with size: ${bytes.length} bytes");
-    final DateTime start = DateTime.now();
     bool hasStoppedChangeNotify = false;
 
     try {
-      final ui.Image decodedResult = await decodeImageFromList(bytes);
-      final result = await FlutterImageCompress.compressWithList(
-        bytes,
-        minWidth: decodedResult.width,
-        minHeight: decodedResult.height,
-        quality: 95,
-        format: CompressFormat.jpeg,
-      );
-      _logger.info('Size after compression = ${result.length}');
-      final Duration diff = DateTime.now().difference(start);
-      _logger.info('image_editor time : $diff');
+      final losslessTransform = flagService.internalUser
+          ? getLosslessTransform(editorState)
+          : null;
+      final losslessBytes = losslessTransform == null
+          ? null
+          : await tryTransformFileLossless(
+              widget.originalFile,
+              losslessTransform,
+            );
+      final bytes =
+          losslessBytes ??
+          await compressImage(await editorState.captureEditorImage());
 
       final fileName =
           path.basenameWithoutExtension(widget.originalFile.title!) +
@@ -92,10 +119,10 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       await PhotoManager.stopChangeNotify();
       hasStoppedChangeNotify = true;
       final AssetEntity newAsset = await (PhotoManager.editor.saveImage(
-        result,
+        bytes,
         filename: fileName,
       ));
-      final newFile = await ente.EnteFile.fromAsset(
+      final newFile = fileFromAsset(
         widget.originalFile.deviceFolder ?? '',
         newAsset,
       );
@@ -108,15 +135,19 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         if (assetEntity != null) {
           final latLong = await assetEntity.latlngAsync();
           newFile.location = Location(
-            latitude: latLong.latitude,
-            longitude: latLong.longitude,
+            latitude: latLong?.latitude,
+            longitude: latLong?.longitude,
           );
         }
       }
       newFile.generatedID = await FilesDB.instance.insertAndGetId(newFile);
       Bus.instance.fire(LocalPhotosUpdatedEvent([newFile], source: "editSave"));
       unawaited(SyncService.instance.sync());
-      showShortToast(context, AppLocalizations.of(context).editsSaved);
+      if (!mounted) {
+        await dialog.hide();
+        return;
+      }
+      showShortToast(context, l10n.editsSaved);
       _logger.info("Original file " + widget.originalFile.toString());
       _logger.info("Saved edits to file " + newFile.toString());
       final files = widget.detailPageConfig.files;
@@ -131,6 +162,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         selectionIndex = files.length - 1;
       }
       await dialog.hide();
+      if (!mounted) return;
       replacePage(
         context,
         DetailPage(
@@ -142,7 +174,9 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
       );
     } catch (e, s) {
       await dialog.hide();
-      showToast(context, AppLocalizations.of(context).oopsCouldNotSaveEdits);
+      if (mounted) {
+        showToast(context, l10n.oopsCouldNotSaveEdits);
+      }
       _logger.severe("Failed to save image edits", e, s);
     } finally {
       if (hasStoppedChangeNotify) {
@@ -152,12 +186,13 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   }
 
   Future<void> _showExitConfirmationDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final actionResult = await showActionSheet(
       context: context,
-      title: AppLocalizations.of(context).discardEditsQuestion,
+      title: l10n.discardEditsQuestion,
       buttons: [
         ButtonWidget(
-          labelText: AppLocalizations.of(context).yesDiscardChanges,
+          labelText: l10n.yesDiscardChanges,
           buttonType: ButtonType.critical,
           buttonSize: ButtonSize.large,
           shouldStickToDarkTheme: true,
@@ -165,7 +200,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           isInAlert: true,
         ),
         ButtonWidget(
-          labelText: AppLocalizations.of(context).no,
+          labelText: l10n.no,
           buttonType: ButtonType.secondary,
           buttonSize: ButtonSize.large,
           buttonAction: ButtonAction.second,
@@ -173,9 +208,10 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           isInAlert: true,
         ),
       ],
-      body: AppLocalizations.of(context).doYouWantToDiscardTheEditsYouHaveMade,
+      body: l10n.doYouWantToDiscardTheEditsYouHaveMade,
       actionSheetType: ActionSheetType.defaultActionSheet,
     );
+    if (!context.mounted) return;
     if (actionResult?.action != null &&
         actionResult!.action == ButtonAction.first) {
       replacePage(context, DetailPage(widget.detailPageConfig));
@@ -323,9 +359,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                         undo: () => editor.undoAction(),
                         configs: editor.configs,
                         done: () async {
-                          final Uint8List bytes = await editorKey.currentState!
-                              .captureEditorImage();
-                          await saveImage(bytes);
+                          await saveImage(editorKey.currentState!);
                         },
                         close: () {
                           _showExitConfirmationDialog(context);

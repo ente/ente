@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/internal/testutil"
-	timeutil "github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/internal/testutil"
+	timeutil "github.com/ente/museum/pkg/utils/time"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )

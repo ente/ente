@@ -27,7 +27,7 @@ Here is a list of all the deployments, whether or not they are production deploy
 
 Apart from this, there are also some other deployments:
 
-- `family.ente.io` is currently in a separate repository (Enhancement: bring it in here).
+- `family.ente.io` serves the legacy family portal from a [separate repository](https://github.com/ente/families) for older clients (Current clients manage families directly in their Photos UI).
 - `accounts.ente.io` remains the legacy Passkey RP origin during the `accounts.ente.com` dual-RP migration.
 
 ---

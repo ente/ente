@@ -69,7 +69,7 @@ class _RecoveryKeySheetState extends State<RecoveryKeySheet> {
         const SizedBox(height: 24),
         Container(
           decoration: BoxDecoration(
-            color: colors.primaryDarker,
+            color: colors.primary,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Stack(
@@ -110,7 +110,7 @@ class _RecoveryKeySheetState extends State<RecoveryKeySheet> {
         const SizedBox(height: 16),
         Text(
           context.strings.recoveryKeySaveDescription,
-          style: TextStyles.mini.copyWith(color: colors.textLight),
+          style: TextStyles.body.copyWith(color: colors.textLight),
         ),
         const SizedBox(height: 24),
         ButtonComponent(

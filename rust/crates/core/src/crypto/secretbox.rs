@@ -1,45 +1,70 @@
-//! SecretBox (XSalsa20-Poly1305) authenticated encryption.
+//! Authenticated encryption with XSalsa20-Poly1305.
 //!
-//! This module provides authenticated encryption using XSalsa20-Poly1305,
-//! byte-for-byte compatible with libsodium's `crypto_secretbox_easy`.
+//! SecretBox encrypts and authenticates a single, self-contained value with a
+//! 256-bit key. It suits small, independent pieces of data such as a wrapped
+//! key or a short field. Ente uses [`blob`](super::blob) for data attached to
+//! an object (file or collection metadata and the like), and
+//! [`stream`](super::stream) for file contents, which are encrypted in chunks.
 //!
-//! Two payload shapes are supported:
+//! The name comes from libsodium, which exposes this same construction as
+//! `crypto_secretbox`; the implementation here is pure Rust but wire-compatible
+//! (recorded per function below).
+//!
+//! Every message uses a 192-bit nonce, generated fresh on each call. It is not
+//! secret, but it is needed to decrypt.
+//!
+//! Two payload shapes are offered, differing only in how the nonce travels:
 //!
 //! - Split ([`encrypt`] / [`decrypt`]): the ciphertext (`MAC ‖ ct`) and the
-//!   nonce travel separately. This matches the server's wire format, where
-//!   encrypted fields are stored alongside their nonces.
+//!   nonce are returned separately.
 //!
-//! - Combined ([`encrypt_combined`] / [`decrypt_combined`]): a single
-//!   self-contained buffer (`nonce ‖ MAC ‖ ct`).
+//! - Combined ([`encrypt_combined`] / [`decrypt_combined`]): the nonce is
+//!   prepended to the ciphertext to form one self-contained buffer
+//!   (`nonce ‖ MAC ‖ ct`).
 
 use xsalsa20poly1305::XSalsa20Poly1305;
 use xsalsa20poly1305::aead::generic_array::GenericArray;
 use xsalsa20poly1305::aead::{Aead, KeyInit};
 
-use crate::crypto::{CryptoError, Key, Nonce, Result};
+use crate::crypto::{Error, Key, Nonce, Result};
 
-/// Size of the authentication tag in bytes.
+/// Size in bytes of the Poly1305 authentication tag that prefixes every
+/// ciphertext.
+///
+/// Same as libsodium's `crypto_secretbox_MACBYTES`.
 pub const MAC_BYTES: usize = 16;
 
-/// The result of SecretBox encryption: ciphertext and nonce, separate.
+/// A secretbox ciphertext together with the nonce needed to open it, as
+/// returned by [`encrypt`].
+///
+/// This is the split shape, with the nonce held separately from the ciphertext;
+/// see the module docs for the combined alternative.
 #[derive(Debug, Clone, PartialEq)]
 pub struct EncryptedBox {
-    /// The encrypted data: `MAC (16 bytes) ‖ ciphertext`.
+    /// The Poly1305 tag followed by the ciphertext: `MAC (16 bytes) ‖ ciphertext`.
     pub encrypted_data: Vec<u8>,
-    /// The nonce used during encryption. Required for decryption; not secret.
+    /// The nonce that encrypted [`encrypted_data`](Self::encrypted_data). Needed
+    /// to decrypt, and not secret, but never reused with the same key.
     pub nonce: Nonce,
 }
 
 impl EncryptedBox {
-    /// Decrypt this box.
+    /// Decrypt this box with `key`, returning the plaintext.
+    ///
+    /// A convenience wrapper over [`decrypt`] using the stored ciphertext and
+    /// nonce; see it for the error cases.
     pub fn decrypt(&self, key: &Key) -> Result<Vec<u8>> {
         decrypt(&self.encrypted_data, &self.nonce, key)
     }
 }
 
-/// Encrypt the given data with a randomly generated nonce.
+/// Encrypt `data` with `key` and a freshly generated random nonce.
 ///
-/// Use [`decrypt`] or [`EncryptedBox::decrypt`] to decrypt the result.
+/// Returns the ciphertext and the nonce; decrypt with [`decrypt`] or
+/// [`EncryptedBox::decrypt`]. The plaintext is not padded, so the ciphertext
+/// length reveals the exact plaintext length.
+///
+/// Wire-compatible with libsodium's `crypto_secretbox_easy`.
 pub fn encrypt(data: &[u8], key: &Key) -> EncryptedBox {
     let nonce = Nonce::generate();
     let encrypted_data = encrypt_with_nonce(data, &nonce, key);
@@ -49,11 +74,10 @@ pub fn encrypt(data: &[u8], key: &Key) -> EncryptedBox {
     }
 }
 
-/// Encrypt the given data with the provided nonce.
-///
-/// Returns `MAC (16 bytes) ‖ ciphertext` (libsodium `crypto_secretbox_easy`
-/// format).
-pub fn encrypt_with_nonce(data: &[u8], nonce: &Nonce, key: &Key) -> Vec<u8> {
+/// Shared back end for [`encrypt`] and [`encrypt_combined`]: encrypts `data`
+/// with `key` and the given `nonce`, returning `MAC ‖ ciphertext`. Both
+/// callers generate a fresh nonce, so a (key, nonce) pair is never reused.
+fn encrypt_with_nonce(data: &[u8], nonce: &Nonce, key: &Key) -> Vec<u8> {
     let cipher = XSalsa20Poly1305::new(GenericArray::from_slice(key.as_bytes()));
     let nonce_ga = GenericArray::from_slice(nonce.as_bytes());
 
@@ -64,12 +88,24 @@ pub fn encrypt_with_nonce(data: &[u8], nonce: &Nonce, key: &Key) -> Vec<u8> {
         .expect("XSalsa20-Poly1305 encryption cannot fail for in-memory plaintexts")
 }
 
-/// Decrypt data encrypted with [`encrypt`] or [`encrypt_with_nonce`].
+/// Decrypt a ciphertext produced by [`encrypt`].
 ///
-/// `data` is `MAC (16 bytes) ‖ ciphertext`.
+/// Pass the same `nonce` and `key` that encrypted it. `data` is
+/// `MAC (16 bytes) ‖ ciphertext`. The Poly1305 tag is verified before any
+/// plaintext is returned, so a successful result is also proof that the
+/// ciphertext was not altered.
+///
+/// # Errors
+///
+/// Returns [`CiphertextTooShort`](Error::CiphertextTooShort) if `data` is
+/// smaller than the tag, or [`DecryptionFailed`](Error::DecryptionFailed)
+/// if the tag does not verify, which is the case whenever the key, nonce, or
+/// ciphertext is wrong or the data was tampered with.
+///
+/// Wire-compatible with libsodium's `crypto_secretbox_open_easy`.
 pub fn decrypt(data: &[u8], nonce: &Nonce, key: &Key) -> Result<Vec<u8>> {
     if data.len() < MAC_BYTES {
-        return Err(CryptoError::CiphertextTooShort {
+        return Err(Error::CiphertextTooShort {
             minimum: MAC_BYTES,
             actual: data.len(),
         });
@@ -80,14 +116,20 @@ pub fn decrypt(data: &[u8], nonce: &Nonce, key: &Key) -> Result<Vec<u8>> {
 
     cipher
         .decrypt(nonce_ga, data)
-        .map_err(|_| CryptoError::DecryptionFailed)
+        .map_err(|_| Error::DecryptionFailed)
 }
 
-/// Encrypt the given data into a single self-contained buffer.
+/// Encrypt `data` with `key` into one self-contained buffer.
 ///
-/// Returns `nonce (24 bytes) ‖ MAC (16 bytes) ‖ ciphertext`. Everything needed
-/// for decryption except the key is in the returned buffer; use
-/// [`decrypt_combined`] to decrypt it.
+/// Like [`encrypt`], but prepends a random nonce to the ciphertext,
+/// returning `nonce (24 bytes) ‖ MAC (16 bytes) ‖ ciphertext`: everything
+/// needed to decrypt except the key. Prefer this when a single opaque blob is
+/// easier to store or pass around than a separate ciphertext and nonce. Decrypt
+/// with [`decrypt_combined`].
+///
+/// The `MAC ‖ ciphertext` body is wire-compatible with libsodium's
+/// `crypto_secretbox_easy`; prepending the nonce is an Ente convention, not part
+/// of libsodium itself.
 pub fn encrypt_combined(data: &[u8], key: &Key) -> Vec<u8> {
     let nonce = Nonce::generate();
     let encrypted = encrypt_with_nonce(data, &nonce, key);
@@ -98,11 +140,21 @@ pub fn encrypt_combined(data: &[u8], key: &Key) -> Vec<u8> {
     combined
 }
 
-/// Decrypt a combined `nonce ‖ MAC ‖ ciphertext` buffer produced by
-/// [`encrypt_combined`].
+/// Decrypt a combined buffer produced by [`encrypt_combined`].
+///
+/// Splits the leading nonce from the `MAC ‖ ciphertext` body, then verifies the
+/// tag and decrypts as [`decrypt`] does.
+///
+/// # Errors
+///
+/// Returns [`CiphertextTooShort`](Error::CiphertextTooShort) if `data` is
+/// too short to hold a nonce and tag, otherwise the same errors as [`decrypt`].
+///
+/// The body is wire-compatible with libsodium's `crypto_secretbox_open_easy`;
+/// the leading nonce is an Ente convention.
 pub fn decrypt_combined(data: &[u8], key: &Key) -> Result<Vec<u8>> {
     if data.len() < Nonce::BYTES + MAC_BYTES {
-        return Err(CryptoError::CiphertextTooShort {
+        return Err(Error::CiphertextTooShort {
             minimum: Nonce::BYTES + MAC_BYTES,
             actual: data.len(),
         });
@@ -202,7 +254,7 @@ mod tests {
 
         assert!(matches!(
             encrypted.decrypt(&key),
-            Err(CryptoError::DecryptionFailed)
+            Err(Error::DecryptionFailed)
         ));
     }
 
@@ -212,11 +264,11 @@ mod tests {
 
         assert!(matches!(
             decrypt(&[0u8; 10], &Nonce::generate(), &key),
-            Err(CryptoError::CiphertextTooShort { .. })
+            Err(Error::CiphertextTooShort { .. })
         ));
         assert!(matches!(
             decrypt_combined(&[0u8; 30], &key),
-            Err(CryptoError::CiphertextTooShort { .. })
+            Err(Error::CiphertextTooShort { .. })
         ));
     }
 

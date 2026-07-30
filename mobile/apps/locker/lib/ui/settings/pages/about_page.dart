@@ -60,7 +60,7 @@ class AboutPage extends StatelessWidget {
   }
 
   Future<void> _onOpenSourceTapped() async {
-    await launchUrl(Uri.parse("https://github.com/ente-io/ente"));
+    await launchUrl(Uri.parse("https://github.com/ente/ente"));
   }
 
   Future<void> _onBlogTapped(BuildContext context) async {

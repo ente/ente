@@ -8,7 +8,7 @@ export interface EncryptedChatPayload {
 
 const CHAT_FIELD_PREFIX = "enc:v1";
 
-/** Encrypt a JSON payload for storage/sync using the chat key (base64). */
+/** Encrypt a JSON payload for storage using the chat key (base64). */
 export const encryptChatPayload = async (
     payload: unknown,
     chatKeyB64: string,

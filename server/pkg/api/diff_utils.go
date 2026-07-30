@@ -3,7 +3,7 @@ package api
 import (
 	"strconv"
 
-	"github.com/ente-io/museum/ente"
+	"github.com/ente/museum/ente"
 )
 
 const (

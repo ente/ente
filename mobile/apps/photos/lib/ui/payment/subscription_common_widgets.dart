@@ -1,3 +1,4 @@
+import "package:ente_components/theme/theme.dart";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:flutter/material.dart';
 import "package:intl/intl.dart";
@@ -162,7 +163,7 @@ class _SubscriptionToggleState extends State<SubscriptionToggle> {
     const borderPadding = 2.5;
     const spaceBetweenButtons = 4.0;
     final textTheme = getEnteTextTheme(context);
-    final colorScheme = getEnteColorScheme(context);
+    final componentColors = context.componentColors;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
       child: LayoutBuilder(
@@ -174,7 +175,7 @@ class _SubscriptionToggleState extends State<SubscriptionToggle> {
               2;
           return Container(
             decoration: BoxDecoration(
-              color: colorScheme.fillBaseGrey,
+              color: componentColors.strokeFaint,
               borderRadius: BorderRadius.circular(50),
             ),
             padding: const EdgeInsets.symmetric(
@@ -197,7 +198,7 @@ class _SubscriptionToggleState extends State<SubscriptionToggle> {
                         child: Center(
                           child: Text(
                             AppLocalizations.of(context).yearly,
-                            style: textTheme.bodyFaint,
+                            style: textTheme.bodyMuted,
                           ),
                         ),
                       ),
@@ -214,7 +215,7 @@ class _SubscriptionToggleState extends State<SubscriptionToggle> {
                         child: Center(
                           child: Text(
                             AppLocalizations.of(context).monthly,
-                            style: textTheme.bodyFaint,
+                            style: textTheme.bodyMuted,
                           ),
                         ),
                       ),
@@ -229,7 +230,7 @@ class _SubscriptionToggleState extends State<SubscriptionToggle> {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     width: widthOfButton,
                     decoration: BoxDecoration(
-                      color: colorScheme.backgroundColour,
+                      color: componentColors.fillLight,
                       borderRadius: BorderRadius.circular(50),
                     ),
                     child: AnimatedSwitcher(

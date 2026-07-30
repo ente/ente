@@ -66,6 +66,9 @@ class LogViewer {
     if (!_initialized) {
       await initialize();
     }
+    if (!context.mounted) {
+      return;
+    }
 
     await Navigator.push(
       context,

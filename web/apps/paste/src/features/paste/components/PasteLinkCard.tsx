@@ -412,9 +412,9 @@ export const PasteLinkCard = ({
                     <Stack
                         direction={{ xs: "column", sm: "row" }}
                         spacing={{ xs: 1.45, sm: 3.6 }}
-                        alignItems="center"
-                        justifyContent="center"
                         sx={{
+                            alignItems: "center",
+                            justifyContent: "center",
                             position: "relative",
                             zIndex: 2,
                             width: "fit-content",
@@ -663,8 +663,11 @@ export const PasteLinkCard = ({
                     <Stack
                         direction="row"
                         spacing={1.1}
-                        justifyContent="center"
-                        sx={{ mt: 2.2, width: "100%" }}
+                        sx={{
+                            justifyContent: "center",
+                            mt: 2.2,
+                            width: "100%",
+                        }}
                     >
                         <Button
                             onClick={handleCopyFromConfirm}

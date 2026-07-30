@@ -283,6 +283,7 @@ extension HiddenService on CollectionsService {
       await dialog.hide();
     } on AssertionError catch (e) {
       await dialog.hide();
+      if (!context.mounted) return false;
       unawaited(
         showErrorDialog(
           context,
@@ -294,6 +295,7 @@ extension HiddenService on CollectionsService {
     } catch (e, s) {
       _logger.severe("Could not hide", e, s);
       await dialog.hide();
+      if (!context.mounted) return false;
       await showGenericErrorDialog(context: context, error: e);
       return false;
     } finally {
@@ -603,10 +605,12 @@ extension HiddenService on CollectionsService {
       }
 
       await dialog.hide();
+      if (!context.mounted) return;
       showShortToast(context, AppLocalizations.of(context).cleanupComplete);
     } catch (e, s) {
       _logger.severe("Failed to cleanup hidden files", e, s);
       await dialog.hide();
+      if (!context.mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }

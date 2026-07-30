@@ -1,0 +1,14 @@
+[package]
+name = "ente-ensu-uniffi"
+edition = "2024"
+
+[lib]
+name = "ensu"
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+ente-assets.workspace = true
+ente-ensu = { workspace = true, features = ["transcription"] }
+thiserror.workspace = true
+uniffi = { workspace = true, features = ["tokio"] }
+uuid = { version = "1" }

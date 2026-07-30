@@ -4,6 +4,7 @@ import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:locker/l10n/l10n.dart";
 import "package:locker/services/update_service.dart";
+import "package:locker/utils/bottom_sheet_illustration.dart";
 import "package:url_launcher/url_launcher_string.dart";
 
 Future<void> showAppUpdateBottomSheet(
@@ -27,7 +28,7 @@ Future<void> showAppUpdateBottomSheet(
     builder: (_) => BottomSheetComponent(
       title: title,
       message: updateMessage,
-      illustration: Image.asset("assets/warning-blue.png"),
+      illustration: LockerBottomSheetIllustration.warningBlue,
       showCloseButton: !shouldForceUpdate,
       actions: [
         ButtonComponent(

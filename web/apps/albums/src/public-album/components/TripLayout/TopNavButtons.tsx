@@ -25,8 +25,6 @@ export const TopNavButtons: React.FC<TopNavButtonsProps> = ({
     downloadAllFiles,
     enableDownload,
     onShowFeed,
-    enableJoin,
-    onJoinAlbum,
 }) => {
     const iconStrokeWidth = 1.8;
     const [showCopiedMessage, setShowCopiedMessage] = useState(false);
@@ -68,15 +66,9 @@ export const TopNavButtons: React.FC<TopNavButtonsProps> = ({
                 )}
 
                 <SignUpButton
-                    onClick={() => {
-                        if (enableJoin) {
-                            onJoinAlbum?.();
-                        } else {
-                            window.location.href = getEnteURL();
-                        }
-                    }}
+                    onClick={() => (window.location.href = getEnteURL())}
                 >
-                    {enableJoin ? t("join_album") : t("get_ente_photos")}
+                    {t("join_ente")}
                 </SignUpButton>
             </ButtonContainer>
 

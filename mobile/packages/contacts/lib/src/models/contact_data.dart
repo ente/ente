@@ -3,25 +3,18 @@ import 'dart:convert';
 class ContactData {
   final int contactUserId;
   final String name;
-  final String? birthDate;
 
-  const ContactData({
-    required this.contactUserId,
-    required this.name,
-    this.birthDate,
-  });
+  const ContactData({required this.contactUserId, required this.name});
 
   Map<String, dynamic> toJson() => {
     'contactUserId': contactUserId,
     'name': name,
-    if (birthDate != null) 'birthDate': birthDate,
   };
 
   factory ContactData.fromJson(Map<String, dynamic> json) {
     return ContactData(
       contactUserId: json['contactUserId'] as int,
       name: json['name'] as String,
-      birthDate: json['birthDate'] as String?,
     );
   }
 

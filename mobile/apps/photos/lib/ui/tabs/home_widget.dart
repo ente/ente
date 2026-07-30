@@ -3,6 +3,7 @@ import "dart:convert";
 import "dart:io";
 
 import "package:app_links/app_links.dart";
+import "package:ente_components/ente_components.dart";
 import "package:ente_crypto/ente_crypto.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
@@ -11,7 +12,6 @@ import "package:flutter/services.dart";
 import "package:flutter_local_notifications/flutter_local_notifications.dart";
 import "package:logging/logging.dart";
 import "package:media_extension/media_extension_action_types.dart";
-import "package:modal_bottom_sheet/modal_bottom_sheet.dart";
 import "package:move_to_background/move_to_background.dart";
 import "package:package_info_plus/package_info_plus.dart";
 import "package:photos/core/configuration.dart";
@@ -56,7 +56,6 @@ import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/services/sync/remote_sync_service.dart";
 import "package:photos/services/update_service.dart";
 import "package:photos/states/user_details_state.dart";
-import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/collections/collection_action_sheet.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
@@ -92,9 +91,7 @@ import "package:photos/utils/intent_util.dart";
 import "package:receive_sharing_intent/receive_sharing_intent.dart";
 
 class HomeWidget extends StatefulWidget {
-  const HomeWidget({super.key, this.startWithoutAccount = false});
-
-  final bool startWithoutAccount;
+  const HomeWidget({super.key});
 
   @override
   State<StatefulWidget> createState() => _HomeWidgetState();
@@ -124,6 +121,7 @@ class _HomeWidgetState extends State<HomeWidget> {
   bool _personSyncTriggered = false;
   bool _collectionsSyncTriggered = false;
   bool _isShowingChangeLog = false;
+  bool _startWithoutAccount = false;
   final isOnSearchTabNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<bool> _isAlbumsSearchActiveNotifier = ValueNotifier<bool>(
     false,
@@ -153,6 +151,12 @@ class _HomeWidgetState extends State<HomeWidget> {
   late StreamSubscription<AppModeChangedEvent> _appModeChangedEventSubscription;
 
   final DiffFetcher _diffFetcher = DiffFetcher();
+
+  void _startWithoutAccountFlow() {
+    setState(() {
+      _startWithoutAccount = true;
+    });
+  }
 
   @override
   void initState() {
@@ -188,8 +192,8 @@ class _HomeWidgetState extends State<HomeWidget> {
           if (pageDelta <= 1) {
             _pageController.animateToPage(
               event.selectedIndex,
-              duration: const Duration(milliseconds: 100),
-              curve: Curves.easeIn,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
             );
           } else {
             _pageController.jumpToPage(event.selectedIndex);
@@ -205,6 +209,7 @@ class _HomeWidgetState extends State<HomeWidget> {
     _accountConfiguredEvent = Bus.instance.on<AccountConfiguredEvent>().listen((
       event,
     ) {
+      _startWithoutAccount = false;
       setState(() {});
       // fetch user flags on login
       if (!isLocalGalleryMode) {
@@ -220,6 +225,7 @@ class _HomeWidgetState extends State<HomeWidget> {
       _logger.info('logged out, selectTab index to 0');
       _selectedTabIndex = 0;
       _selectedTabIndexNotifier.value = 0;
+      _startWithoutAccount = false;
       if (mounted) {
         setState(() {});
       }
@@ -254,13 +260,6 @@ class _HomeWidgetState extends State<HomeWidget> {
           if (mounted) {
             setState(() {});
             syncWidget();
-            if (!NotificationService.instance.hasGrantedPermissions() &&
-                isLocalGalleryMode &&
-                !Configuration.instance.hasConfiguredAccount()) {
-              Future.delayed(const Duration(seconds: 2), () {
-                NotificationService.instance.requestPermissions().ignore();
-              });
-            }
           }
         });
       }
@@ -276,6 +275,7 @@ class _HomeWidgetState extends State<HomeWidget> {
     updateService.shouldShowUpdateNotification().then((value) {
       Future.delayed(Duration.zero, () {
         if (value) {
+          if (!mounted) return;
           showDialog(
             useRootNavigator: false,
             context: context,
@@ -374,6 +374,9 @@ class _HomeWidgetState extends State<HomeWidget> {
 
       final Collection? collection = await CollectionsService.instance
           .getCollectionFromPublicLink(context, uri);
+      if (!mounted) {
+        return;
+      }
       if (collection == null) {
         return;
       }
@@ -425,6 +428,7 @@ class _HomeWidgetState extends State<HomeWidget> {
                 publicUrl.opsLimit!,
               );
 
+              if (!mounted) return;
               unawaited(
                 CollectionsService.instance
                     .verifyPublicCollectionPassword(
@@ -436,6 +440,7 @@ class _HomeWidgetState extends State<HomeWidget> {
                       if (result) {
                         await dialog.show();
 
+                        if (!mounted) return;
                         final List<EnteFile> sharedFiles = await _diffFetcher
                             .getPublicFiles(
                               context,
@@ -443,8 +448,10 @@ class _HomeWidgetState extends State<HomeWidget> {
                               collection.pubMagicMetadata.asc ?? false,
                             );
                         await dialog.hide();
+                        if (!mounted) return;
                         Navigator.of(context).pop();
 
+                        if (!mounted) return;
                         await routeToPage(
                           context,
                           SharedPublicCollectionPage(
@@ -458,6 +465,7 @@ class _HomeWidgetState extends State<HomeWidget> {
               );
             } catch (e, s) {
               _logger.severe("Failed to decrypt password for album", e, s);
+              if (!mounted) return;
               await showGenericErrorDialog(context: context, error: e);
               return;
             }
@@ -466,6 +474,7 @@ class _HomeWidgetState extends State<HomeWidget> {
       } else {
         await dialog.show();
 
+        if (!mounted) return;
         final List<EnteFile> sharedFiles = await _diffFetcher.getPublicFiles(
           context,
           collection.id,
@@ -473,6 +482,7 @@ class _HomeWidgetState extends State<HomeWidget> {
         );
         await dialog.hide();
 
+        if (!mounted) return;
         await routeToPage(
           context,
           SharedPublicCollectionPage(
@@ -482,6 +492,7 @@ class _HomeWidgetState extends State<HomeWidget> {
           ),
         );
         if (sharedFiles.length == 1) {
+          if (!mounted) return;
           await routeToPage(
             context,
             DetailPage(
@@ -822,11 +833,13 @@ class _HomeWidgetState extends State<HomeWidget> {
         onPopInvokedWithResult: (didPop, _) async {
           if (didPop) return;
           final isStartWithoutAccountFlow =
-              widget.startWithoutAccount &&
+              _startWithoutAccount &&
               !Configuration.instance.hasConfiguredAccount() &&
               !localSettings.isAppModeSet;
           if (isStartWithoutAccountFlow) {
-            Navigator.pop(context);
+            setState(() {
+              _startWithoutAccount = false;
+            });
             return;
           }
           if (_selectedTabIndex == 0) {
@@ -949,7 +962,7 @@ class _HomeWidgetState extends State<HomeWidget> {
                           final isOnLandingPage =
                               !Configuration.instance.hasConfiguredAccount() &&
                               !isLocalGalleryMode &&
-                              !widget.startWithoutAccount;
+                              !_startWithoutAccount;
                           final isOnOnlineGrantPermissionScreen =
                               Configuration.instance.hasConfiguredAccount() &&
                               !isLocalGalleryMode &&
@@ -979,14 +992,14 @@ class _HomeWidgetState extends State<HomeWidget> {
     if (!Configuration.instance.hasConfiguredAccount()) {
       _closeDrawerIfOpen();
       final shouldBootstrapLocalGalleryEntryFlow =
-          widget.startWithoutAccount && !localGalleryMode;
+          _startWithoutAccount && !localGalleryMode;
       final hasPersistedLocalGalleryMode =
           localSettings.isAppModeSet && localGalleryMode;
       final canResumePersistedLocalGalleryMode =
           hasPersistedLocalGalleryMode &&
           permissionService.hasGrantedPermissions();
       final shouldUseLocalGalleryEntryFlow =
-          widget.startWithoutAccount || canResumePersistedLocalGalleryMode;
+          _startWithoutAccount || canResumePersistedLocalGalleryMode;
 
       if (shouldBootstrapLocalGalleryEntryFlow) {
         return const GrantPermissionsWidget(startWithoutAccount: true);
@@ -995,13 +1008,13 @@ class _HomeWidgetState extends State<HomeWidget> {
         return const GrantPermissionsWidget(startWithoutAccount: true);
       }
       if (!shouldUseLocalGalleryEntryFlow) {
-        return const LandingPageWidget();
+        return LandingPageWidget(
+          onStartWithoutAccount: _startWithoutAccountFlow,
+        );
       }
     }
-    if (flagService.enableOnlyBackupFuturePhotos) {
-      _ensurePersonSync();
-      _ensureCollectionsSync();
-    }
+    _ensurePersonSync();
+    _ensureCollectionsSync();
     if (_shouldShowPermissionWidget()) {
       _ensurePersonSync();
       return const GrantPermissionsWidget();
@@ -1018,6 +1031,7 @@ class _HomeWidgetState extends State<HomeWidget> {
       _shouldRenderCreateCollectionSheet = false;
       ReceiveSharingIntent.instance.reset();
       Future.delayed(const Duration(milliseconds: 10), () {
+        if (!context.mounted) return;
         showCollectionActionSheet(
           context,
           sharedFiles: _sharedFiles,
@@ -1169,6 +1183,7 @@ class _HomeWidgetState extends State<HomeWidget> {
       // but keep in mind it could be `null`.
       if (initialLink != null) {
         _logger.info("Initial link received: host ${initialLink.host}");
+        if (!mounted) return false;
         _getCredentials(context, initialLink);
         return true;
       } else {
@@ -1184,6 +1199,7 @@ class _HomeWidgetState extends State<HomeWidget> {
     _authDeepLinkSubscription = appLinks.uriLinkStream.listen(
       (link) {
         _logger.info("Link received: host ${link.host}");
+        if (!mounted) return;
         _getCredentials(context, link);
       },
       onError: (err) {
@@ -1223,27 +1239,10 @@ class _HomeWidgetState extends State<HomeWidget> {
         updateService.hideChangeLog().ignore();
         return;
       }
-      final colorScheme = getEnteColorScheme(context);
-      final sheetAction = await showBarModalBottomSheet<ChangeLogPageAction>(
-        topControl: const SizedBox.shrink(),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(5),
-            topRight: Radius.circular(5),
-          ),
-        ),
-        backgroundColor: colorScheme.backgroundElevated,
-        enableDrag: false,
-        barrierColor: backdropFaintDark,
+      if (!context.mounted) return;
+      final sheetAction = await showBottomSheetComponent<ChangeLogPageAction>(
         context: context,
-        builder: (BuildContext context) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: const ChangeLogPage(),
-          );
-        },
+        builder: (context) => const ChangeLogPage(),
       );
       // Do not show change dialog again
       await updateService.hideChangeLog();
@@ -1251,6 +1250,7 @@ class _HomeWidgetState extends State<HomeWidget> {
         return;
       }
       if (sheetAction == ChangeLogPageAction.openReferrals) {
+        if (!context.mounted) return;
         await routeToPage(context, const ReferralScreen());
       }
     } finally {
@@ -1340,26 +1340,20 @@ class _HomeWidgetState extends State<HomeWidget> {
   }
 
   bool _shouldShowPermissionWidget() {
-    if (flagService.enableOnlyBackupFuturePhotos) {
-      return !permissionService.hasGrantedPermissions() &&
-          !backupPreferenceService.hasSkippedOnboardingPermission;
-    } else {
-      return !permissionService.hasGrantedPermissions();
-    }
+    return !permissionService.hasGrantedPermissions() &&
+        !backupPreferenceService.hasSkippedOnboardingPermission;
   }
 
   bool _shouldShowLoadingWidget() {
     if (isLocalGalleryMode) {
       return false;
     }
-    if (flagService.enableOnlyBackupFuturePhotos) {
-      if (!permissionService.hasGrantedPermissions()) {
-        return false;
-      }
-      return !LocalSyncService.instance.hasCompletedFirstImportOrBypassed();
-    } else {
-      return !LocalSyncService.instance.hasCompletedFirstImport();
+    if (!permissionService.hasGrantedPermissions()) {
+      return false;
     }
+    final isFirstImportCompletedOrBypassed = LocalSyncService.instance
+        .hasCompletedFirstImportOrBypassed();
+    return !isFirstImportCompletedOrBypassed;
   }
 
   void _ensurePersonSync() {
@@ -1386,6 +1380,9 @@ class _HomeWidgetState extends State<HomeWidget> {
         backupPreferenceService.isOnlyNewBackupEnabled)) {
       return;
     }
+    // When first import is bypassed by skipped onboarding or only-new backup,
+    // trigger collection sync here instead of waiting for the
+    // completedFirstGalleryImport refresh path.
     _collectionsSyncTriggered = true;
     CollectionsService.instance.sync().then((_) {
       if (mounted) {

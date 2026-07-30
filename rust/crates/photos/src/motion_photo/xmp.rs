@@ -19,8 +19,8 @@ fn extract_xmp_bounds(source: &[u8]) -> Option<(usize, usize)> {
 }
 
 fn parse_xmp_attributes(xml_bytes: &[u8]) -> Result<HashMap<String, String>, MotionPhotoError> {
-    use quick_xml::Reader;
     use quick_xml::events::Event;
+    use quick_xml::{Reader, XmlVersion};
 
     let xml_buffer = String::from_utf8_lossy(xml_bytes);
     let mut reader = Reader::from_str(&xml_buffer);
@@ -43,7 +43,7 @@ fn parse_xmp_attributes(xml_bytes: &[u8]) -> Result<HashMap<String, String>, Mot
                     }
 
                     let value = attribute
-                        .decode_and_unescape_value(reader.decoder())
+                        .decoded_and_normalized_value(XmlVersion::Implicit1_0, reader.decoder())
                         .map_err(|err| MotionPhotoError::Xml(format!("invalid value: {err}")))?
                         .to_string();
                     result.insert(key, value);

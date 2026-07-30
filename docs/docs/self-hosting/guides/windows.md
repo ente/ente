@@ -23,7 +23,7 @@ You will need Docker Desktop or Docker Engine. Follow the installation instructi
 
 ## Architecture
 
-To troubleshoot, you'll need an understanding of the components at play. Start by memorizing the diagram here (there will be a quiz): https://github.com/ente-io/ente/tree/main/server/README.md
+To troubleshoot, you'll need an understanding of the components at play. Start by memorizing the diagram here (there will be a quiz): https://github.com/ente/ente/tree/main/server/README.md
 
 We have four primary components:
 
@@ -146,7 +146,7 @@ secrets:
 
 services:
   museum:
-    image: ghcr.io/ente-io/server
+    image: ghcr.io/ente/server
     ports:
       - 8080:8080
     extra_hosts:
@@ -175,7 +175,7 @@ services:
       start_period: 120s  # First time bootstrapping will take longer, so tell the container environment to ignore the first 120s of failed health checks.
 
   web:
-    image: ghcr.io/ente-io/web
+    image: ghcr.io/ente/web
     ports:
       - 3000:3000  # Photos
       - 3002:3002  # Albums

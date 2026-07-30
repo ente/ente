@@ -20,6 +20,10 @@ Once you select which albums to backup in your mobile app settings, Ente automat
 
 Learn more in the [Backup feature guide](/photos/features/backup-and-sync/).
 
+### Will Ente recognize my existing backup if I switch phones? {#switch-phone-recognizes-backup}
+
+Yes. Your photos live in your Ente account, not on any single device. Install Ente on your new phone and sign in with the same account - your library downloads and syncs normally. New photos on your new phone are compared by content hash against what's already in your account, so anything already backed up won't be re-uploaded.
+
 ### How do I select which albums to back up? {#select-albums}
 
 **On mobile:**
@@ -27,6 +31,17 @@ Learn more in the [Backup feature guide](/photos/features/backup-and-sync/).
 Open `Settings > Backup > Backed up folders` and select the albums you want to automatically backup.
 
 Once configured, new photos added to these albums will automatically sync in the background.
+
+### What does the slashed cloud icon mean, and how do I back that photo up? {#slashed-cloud-icon}
+
+A slashed cloud icon on a photo means it isn't backed up to Ente - usually because it's in a folder you haven't selected for backup, or because you deleted it from Ente while keeping it on your device.
+
+To back it up:
+
+- Long-press the photo and choose **Add to album**, or
+- Open the photo and tap the upward-facing arrow in the top-right corner (**Upload to Ente**)
+
+You can also open `Settings > Backup > Backup status` to check whether any photos in folders chosen for backup haven't uploaded yet.
 
 ### Can I backup only new photos without uploading my existing library? {#backup-only-new-photos}
 
@@ -234,6 +249,17 @@ Live Photos behave differently depending on how you share them:
 - **Using "Download"**: Downloads the complete Live Photo (image + video)
 - **Using "Share" button to save/download**: Only saves the still image
 
+### How do I stop Live Photos from autoplaying as I scroll through an album? {#live-photo-autoplay-album}
+
+On web and desktop, opening a Live Photo plays its motion once automatically. In an album full of iOS Live Photos, this means each one animates as you scroll to it. (The mobile app is different - there, Live Photos only play when you long-press them.)
+
+There isn't a permanent "always off" setting yet, but you can stop the autoplay for the rest of a viewing session:
+
+1. Open any Live Photo in the album.
+2. As it plays its one-time motion, click the live icon (circle with dot) on the photo to pause it.
+
+Pausing during that initial playback tells Ente you don't want autoplay, and every other Live Photo stays still for the rest of that session as you scroll through the album. If you fully close and reopen the viewer, repeat the step once to set it again.
+
 ### How do I restore Live Photos from Ente? {#restore-live-photos}
 
 If you backed up your Live Photos to Ente and deleted them from your iPhone and iCloud, you can restore them as proper Live Photos (not as two separate files) using either of the methods below.
@@ -284,6 +310,20 @@ iCloud Shared Albums store compressed copies, not the original files. Because of
 
 Ente reads photos through Apple's photo library APIs, which don't always return every item shown in the Photos app. In particular, some burst frames and certain shared or synced assets are excluded from third-party app queries by iOS itself. This can make Ente's Recents count in the on-device section slightly lower than iOS's.
 
+### On iOS, which album should I back up to capture everything? {#ios-which-album-to-backup}
+
+On iOS, the photo library is split into several system albums (Recents, Live Photos, Portraits, Screenshots, and so on) that you cannot reorganize. If you're coming from an Android camera roll and want everything in one place, back up **Recents**.
+
+Recents is the smart album that shows every photo and video in your library, sorted by date added, regardless of where it came from (camera, screenshots, WhatsApp, AirDrop, browser downloads, etc.). It's the closest equivalent to the single Camera Roll in an Android gallery.
+
+**On iOS:**
+
+Open `Settings > Backup > Backed up folders`, enable backup for **Recents**, and disable the others (Live Photos, Portraits, and so on). Their photos are already included in Recents, so nothing is missed.
+
+> [!NOTE]
+>
+> iOS does not let any third-party app replace the native Photos app, so Ente cannot back up to a single custom album the way a default gallery would. See [Can Ente replace my default Photos or Camera gallery?](#ente-as-default-gallery).
+
 ### Why aren't photos from my Samsung "Gallery" folder backing up? {#samsung-gallery-folder}
 
 Ente backs up the folders you select under `Settings > Backup > Backed up folders`. On Samsung devices, photos restored by Samsung Cloud often land in a folder called **Gallery**, which is separate from the standard **Camera** folder.
@@ -304,6 +344,10 @@ A few details to keep in mind:
 - Ente returns the files you select to that app for sending or attaching.
 - The picker shows the photos and videos available in your Ente gallery on that device.
 - On iPhone, iOS does not currently let Ente plug into other apps' photo pickers in the same way.
+
+### Can Ente be my Android cloud media provider (system gallery source for photo picker)? {#android-cloud-media-provider}
+
+Not currently. Android's cloud media provider program, which lets an app supply photos into the system Photo Picker as a cloud source, is only open to apps nominated by device manufacturers (OEMs).
 
 ### Can Ente replace my default Photos or Camera gallery? {#ente-as-default-gallery}
 
@@ -356,9 +400,9 @@ Background sync allows Ente to automatically back up your photos without needing
 
 - Use [watch folders](/photos/faq/backup-and-sync#what-are-watch-folders) to automatically sync specific directories
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> On iOS, large videos may not upload in background - they'll sync when you open the app.
+> Background sync isn't currently consistent on iOS and on certain Android devices. We're actively working on a fix.
 
 Learn more in the [Background sync feature guide](/photos/features/backup-and-sync/#background-sync).
 
@@ -383,7 +427,7 @@ If photos aren't automatically backing up in the background, try these solutions
 
 > [!NOTE]
 >
-> On iOS, videos may not upload in the background due to size - they'll sync when you next open the app.
+> Background sync isn't currently consistent on iOS and on certain Android devices. We're actively working on a fix.
 
 Learn more in the [Background sync guide](/photos/features/backup-and-sync/#background-sync).
 
@@ -649,6 +693,28 @@ Yes! You can use Ente on as many devices as you want simultaneously. All your de
 
 The sync happens automatically in the background when devices are connected to the internet.
 
+### What is "Faster uploads"? {#what-is-faster-uploads}
+
+"Faster uploads" routes your uploads through Cloudflare's network (`uploader.ente.com`) instead of sending them directly to Ente's storage backend.
+
+Normally, your encrypted files are uploaded straight to the object storage server. With this option enabled, they go to the nearest Cloudflare edge node first, and Cloudflare's backbone network handles the final leg to storage. For most users - especially those geographically far from Ente's storage origin - this results in noticeably faster upload speeds, because the public internet leg of the journey is shorter.
+
+A few things to note:
+
+- It's available only on the production app, not on self-hosted instances.
+- Your files stay end-to-end encrypted throughout - Cloudflare only relays the already-encrypted data.
+- If you're having upload issues or slowness, turning it off is a useful troubleshooting step, since Cloudflare occasionally has routing issues that can slow things down for certain regions.
+
+**On desktop/web:**
+
+Toggle it under `Settings > Preferences > Advanced`.
+
+**On mobile:**
+
+Toggle it under `Settings > Backup > Backup settings`.
+
+Learn more about [why uploads might fail on desktop or web](/photos/faq/troubleshooting#faster-uploads).
+
 ### Why is my mobile app and desktop app not syncing? {#mobile-desktop-not-syncing}
 
 This usually occurs due to a network connectivity issue:
@@ -707,7 +773,7 @@ If you are sure you no longer need those files, manually delete them from the lo
 
 Ente supports all files that have a mime type of `image/*` or `video/*` regardless of their specific format.
 
-However, we only have limited support for RAW currently. We are working towards adding full support, and you can watch this [thread](https://github.com/ente-io/ente/discussions/625) for updates.
+However, we only have limited support for RAW currently. We are working towards adding full support, and you can watch this [thread](https://github.com/ente/ente/discussions/625) for updates.
 
 If you find an issue with ente's ability to parse a certain file type, please write to [support@ente.com](mailto:support@ente.com) with details of the unsupported file format and we will do our best to help you out.
 
@@ -732,3 +798,20 @@ Ente does not apply compression to uploaded photos. The file size of your photos
 If the app finds exact duplicates, it will show them in the manual deduplication tool. When you confirm removal, the app keeps one copy and creates symlinks for the duplicates in all albums. This helps save storage space while maintaining your album structure.
 
 Learn more about [manually removing duplicates](/photos/features/albums-and-organization/storage-optimization) and [automatic duplicate detection during backup](/photos/features/backup-and-sync/duplicate-detection).
+
+### Why do two exact duplicate files show different thumbnails? {#duplicate-thumbnails-differ}
+
+Deduplication is based on the file's content hash, not on its thumbnail. Thumbnails are generated independently for each file, so two identical files can still show different previews. This can happen because:
+
+- **Different upload clients**: If the same file was uploaded from the iOS app, Android app, and desktop, each client may have generated its thumbnail separately, using different methods, codecs, or frame-extraction logic - resulting in a different preview frame (common with videos and Live Photos).
+- **Different upload times**: Older versions of Ente may have used different thumbnail generation code than newer versions.
+
+The differing thumbnails don't affect deduplication. Ente still recognizes the files as exact duplicates and keeps a single underlying copy.
+
+### Which copy does Ente keep during deduplication? {#dedup-which-copy-kept}
+
+When Ente finds the same photo across, say, three albums, it keeps just one underlying copy of the file and replaces the others with symlinks (references) pointing back to that copy. All three albums still show the photo, and you can scroll through any of them and see it there. The only thing that changes is that your storage quota goes down, since Ente is no longer storing three full copies of the same file.
+
+Deduplication isn't an album cleanup tool - if your goal is to have a photo appear in only one album instead of three, deduplication won't do that. It only makes storage more efficient while keeping every album looking the same. To remove a photo from a specific album, remove it from that album manually.
+
+If you later export your library, the file shows up in every album folder it belonged to - the symlinks become real copies again in your exported folders.

@@ -3,57 +3,41 @@ name = "ente-core"
 edition = "2024"
 
 [dependencies]
-reqwest = { version = "0.12", default-features = false, features = ["http2", "charset", "system-proxy", "json", "rustls-tls-native-roots", "rustls-tls-webpki-roots"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-thiserror = "2"
-
-# Pure Rust Cryptography
-xsalsa20poly1305 = "0.9"
-crypto_secretstream = "=0.2.0"
-x25519-dalek = { version = "2.0", features = ["static_secrets"] }
-salsa20 = "0.10"
 # Keep argon2 on stable 0.5.x for now. This retains a second digest 0.10
 # chain (via blake2 0.10) until argon2 0.6 reaches stable.
 argon2 = "0.5"
+base64 = "0.22"
 blake2b_simd = "1.0"
-rand_core = { version = "0.6", features = ["getrandom"] }
-subtle = "2"
-md-5 = "0.11"
-
-# SRP authentication (optional; enable via the `srp` feature)
-# Pinned to upstream commit that includes the padded-u interop fix for
-# leading-zero A/B wire values (fixes sporadic SRP verify-session failures
-# against our Go SRP server path): https://github.com/RustCrypto/PAKEs/pull/285
-srp = { git = "https://github.com/RustCrypto/PAKEs", package = "srp", rev = "5b3bd1f3a9d51121a698ffe5d6ecc33cafcd6413", default-features = false, optional = true }
-sha2 = { version = "0.11", optional = true }
-
-# Randomness
-#
+crypto_secretstream = "=0.2.0"
 # We enable `getrandom`'s `js` feature so that the crate works on
 # `wasm32-unknown-unknown` (it uses the browser's `crypto.getRandomValues`).
 # This also enables `rand_core::OsRng` on WASM.
 getrandom = { version = "0.2", features = ["js"] }
+log = "0.4"
+md-5.workspace = true
+rand_core = { version = "0.6", features = ["getrandom"] }
+reqwest = { version = "0.12", default-features = false, features = ["http2", "charset", "system-proxy", "json", "rustls-tls-native-roots", "rustls-tls-webpki-roots"] }
+salsa20 = "0.10"
+serde.workspace = true
+serde_json.workspace = true
+subtle = "2"
+thiserror.workspace = true
+x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+xsalsa20poly1305 = "0.9"
+zeroize.workspace = true
 
-# Common dependencies
-base64 = "0.22"
-hex = "0.4"
-bip39 = { version = "2", default-features = false, features = ["std"] }
-zeroize = { version = "1.8.2", features = ["derive"] }
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["stream"] }
+bytes = "1.11.1"
+futures-core = "0.3.32"
+tokio = { version = "1", features = ["time"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+gloo-timers = { version = "0.3.0", features = ["futures"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
-mockito = "1.6"
-
-[features]
-default = []
-
-# Enable SRP (Secure Remote Password) client for password-based authentication.
-#
-# Without this feature, you can still derive KEK/login keys and decrypt secrets,
-# but cannot perform the SRP handshake (i.e. create/use `auth::SrpSession`).
-#
-srp = ["dep:srp", "dep:sha2"]
+mockito.workspace = true
 
 [lints.rust]
 missing_docs = "warn"

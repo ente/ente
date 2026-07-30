@@ -943,8 +943,10 @@ export const createCollection = async (
 };
 
 const ensureUncategorizedCollection = async (masterKey: string) => {
+    const currentUserID = ensureLocalUser().id;
     return ensureUncategorizedCollectionWithDeps(masterKey, {
-        findCollectionByType,
+        findCollectionByType: (type) =>
+            findCollectionByType(type, currentUserID),
         refetchCollections: async (masterKey) => {
             await fetchLockerData(masterKey);
         },
@@ -952,8 +954,10 @@ const ensureUncategorizedCollection = async (masterKey: string) => {
 };
 
 const ensureFavoritesCollection = async (masterKey: string) => {
+    const currentUserID = ensureLocalUser().id;
     return ensureFavoritesCollectionWithDeps(masterKey, {
-        findCollectionByType,
+        findCollectionByType: (type) =>
+            findCollectionByType(type, currentUserID),
         refetchCollections: async (resolvedMasterKey) => {
             await fetchLockerData(resolvedMasterKey);
         },
@@ -1063,12 +1067,16 @@ export const setItemImportant = async (
     shouldBeImportant: boolean,
     masterKey: string,
 ): Promise<boolean> => {
+    const currentUserID = ensureLocalUser().id;
     const currentCollectionIDs = getCollectionIDsForFile(fileID);
     if (currentCollectionIDs.length === 0) {
         throw new Error(`File ${fileID} not found in cache`);
     }
 
-    const favoritesCollection = findCollectionByType("favorites");
+    const favoritesCollection = findCollectionByType(
+        "favorites",
+        currentUserID,
+    );
     if (!shouldBeImportant && !favoritesCollection) {
         return false;
     }
@@ -1092,7 +1100,7 @@ export const setItemImportant = async (
     }
 
     await updateItemCollectionsWithDeps(fileID, nextCollectionIDs, {
-        currentUserID: ensureLocalUser().id,
+        currentUserID,
         masterKey,
         deps: createCollectionMutationDeps(),
     });

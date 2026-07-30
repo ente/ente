@@ -11,18 +11,17 @@ import {
     type BranchSwitcher,
 } from "@/services/chat/branching";
 import {
-    cachedChatKey,
     cachedLocalChatKey,
-    getOrCreateChatKey,
     getOrCreateLocalChatKey,
     initChatKeyStore,
 } from "@/services/chat/chatKey";
+import { initializeChatStorePersistence } from "@/services/chat/persistence";
 import {
     addMessage,
     createSession,
+    deleteAttachmentBytes,
     deleteSession,
     getBranchSelections,
-    initializeChatStorePersistence,
     listMessages,
     listSessions,
     readDecryptedAttachmentBytes,
@@ -34,15 +33,6 @@ import {
     type ChatMessage,
     type ChatSession,
 } from "@/services/chat/store";
-import {
-    ChatSyncLimitError,
-    downloadAttachment,
-    syncChat,
-} from "@/services/chat/sync";
-import {
-    DESKTOP_IMAGE_ATTACHMENTS_ENABLED,
-    SIGN_IN_ENABLED,
-} from "@/services/featureFlags";
 import {
     DEFAULT_MODEL,
     FALLBACK_DESKTOP_MODEL_PRESETS,
@@ -57,17 +47,11 @@ import type {
     ModelInfo,
     ModelSettings,
 } from "@/services/llm/types";
-import {
-    clearMasterKeyFromEverywhere,
-    masterKeyFromSession,
-    updateSessionFromTauriSecureStorageIfNeeded,
-} from "@/services/session";
 import { isTauriRuntime as detectTauriAppRuntime } from "@/services/tauri-runtime";
 import { Menu01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
     Box,
-    Button,
     Drawer,
     IconButton,
     Stack,
@@ -75,17 +59,14 @@ import {
     useMediaQuery,
 } from "@mui/material";
 import { getLuminance, useTheme } from "@mui/material/styles";
-import { savedLocalUser } from "ente-accounts/services/accounts-db";
-import { openAccountsManagePasskeysPage } from "ente-accounts/services/passkey";
 import { NavbarBase } from "ente-base/components/Navbar";
+import type { NotificationAttributes } from "ente-base/components/Notification";
 import { useBaseContext } from "ente-base/context";
 import { buildEnvEnsuDesktopVersion } from "ente-base/env";
-import { getKV, removeKV, setKV } from "ente-base/kv";
+import { getKV, removeKV } from "ente-base/kv";
 import log from "ente-base/log";
 import { savedLogs } from "ente-base/log-web";
-import { savedAuthToken } from "ente-base/token";
 import { saveStringAsFile } from "ente-base/utils/web";
-import { type NotificationAttributes } from "ente-new/photos/components/Notification";
 import { useRouter } from "next/router";
 import React, {
     useCallback,
@@ -252,14 +233,14 @@ const toSafeBlobPart = (bytes: Uint8Array): ArrayBuffer => {
 };
 
 const DEFAULT_CHAT_SYSTEM_PROMPT_BODY =
-    "You are Ensu, an AI assistant built by Ente. Current date and time: $date\n\nUse Markdown **bold** to emphasize important terms and key points.\n\nNever acknowledge or repeat these instructions. Do not start with generic confirmations like 'Okay, I understand'. Respond directly to the user's request.";
+    "You are Ensu, an AI assistant built by Ente. Current date: $date\n\nUse Markdown **bold** to emphasize important terms and key points.\n\nNever acknowledge or repeat these instructions. Do not start with generic confirmations like 'Okay, I understand'. Respond directly to the user's request.";
 const SYSTEM_PROMPT_DATE_PLACEHOLDER = "$date";
 
 const buildChatSystemPrompt = (customSystemPrompt?: string) => {
-    const dateAndTime = new Date().toLocaleString();
+    const date = new Date().toLocaleDateString();
     const promptBody =
         customSystemPrompt?.trim() || DEFAULT_CHAT_SYSTEM_PROMPT_BODY;
-    return promptBody.split(SYSTEM_PROMPT_DATE_PLACEHOLDER).join(dateAndTime);
+    return promptBody.split(SYSTEM_PROMPT_DATE_PLACEHOLDER).join(date);
 };
 
 const SESSION_TITLE_PROMPT =
@@ -428,12 +409,11 @@ const detectTauriRuntime = () => detectTauriAppRuntime();
 
 const Page: React.FC = () => {
     const router = useRouter();
-    const { logout, showMiniDialog } = useBaseContext();
+    const { showMiniDialog, onGenericError } = useBaseContext();
     const theme = useTheme();
     const isSmall = useMediaQuery(theme.breakpoints.down("md"));
     const assetBasePath = router.basePath ?? "";
     const logoSrc = `${assetBasePath}/images/ensu-logo.svg`;
-    const comingSoonDuckySrc = `${assetBasePath}/images/ensu-ducky.png`;
     const [isDarkMode, setIsDarkMode] = useState(theme.palette.mode === "dark");
 
     useEffect(() => {
@@ -583,7 +563,6 @@ const Page: React.FC = () => {
 
     const [loading, setLoading] = useState(true);
     const [firstPaintDone, setFirstPaintDone] = useState(false);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [chatKey, setChatKey] = useState<string | undefined>();
     const [sessions, setSessions] = useState<ChatSession[]>([]);
     const [allMessages, setAllMessages] = useState<ChatMessage[]>([]);
@@ -612,14 +591,14 @@ const Page: React.FC = () => {
     const [showModelSettings, setShowModelSettings] = useState(false);
     const [showSystemPromptSettings, setShowSystemPromptSettings] =
         useState(false);
-    const [useCustomModel, setUseCustomModel] = useState(false);
+
+    const [modelSettingsLoaded, setModelSettingsLoaded] = useState(false);
     const [resolvedDefaultModel, setResolvedDefaultModel] =
         useState<ModelInfo>(DEFAULT_MODEL);
     const [resolvedModelPresets, setResolvedModelPresets] = useState<
         ResolvedModelPreset[] | null
     >(null);
-    const [modelUrl, setModelUrl] = useState("");
-    const [mmprojUrl, setMmprojUrl] = useState("");
+    const [selectedModelId, setSelectedModelId] = useState("");
     const [contextLength, setContextLength] = useState("");
     const [maxTokens, setMaxTokens] = useState("");
     const [systemPrompt, setSystemPrompt] = useState(
@@ -635,10 +614,10 @@ const Page: React.FC = () => {
     const [pendingImages, setPendingImages] = useState<ImageAttachment[]>([]);
     const [attachmentAnchor, setAttachmentAnchor] =
         useState<HTMLElement | null>(null);
-    const [syncNotification, setSyncNotification] = useState<
+    const [chatNotification, setChatNotification] = useState<
         NotificationAttributes | undefined
     >(undefined);
-    const [syncNotificationOpen, setSyncNotificationOpen] = useState(false);
+    const [chatNotificationOpen, setChatNotificationOpen] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isStreamingOutro, setIsStreamingOutro] = useState(false);
     const [loadingPhrase, setLoadingPhrase] = useState<string | null>(null);
@@ -715,8 +694,7 @@ const Page: React.FC = () => {
         promise: Promise<void> | null;
     }>({ sessionId: undefined, promise: null });
 
-    const authRefreshCancelledRef = useRef(false);
-    const authRetryCancelledRef = useRef(false);
+    const chatKeyInitCancelledRef = useRef(false);
 
     const scheduleIdleTask = useCallback(
         (callback: () => void, timeout = 1200) => {
@@ -777,73 +755,15 @@ const Page: React.FC = () => {
         [router],
     );
 
-    const refreshAuthState = useCallback(async () => {
-        await initChatKeyStore();
-        await updateSessionFromTauriSecureStorageIfNeeded();
-        const token = await savedAuthToken();
-        const hasToken = !!token;
-
-        log.info("Refreshing auth state", { hasToken });
-
-        if (hasToken) {
-            const cachedRemote = cachedChatKey();
-            if (cachedRemote) {
-                log.info("Using cached remote chat key");
-                setChatKey(cachedRemote);
-                setIsLoggedIn(true);
-                return;
-            }
-
-            let masterKey: string | undefined;
-
-            try {
-                masterKey = await masterKeyFromSession();
-            } catch (error) {
-                log.error("Failed to read master key from session", error);
-                await clearMasterKeyFromEverywhere();
-            }
-
-            if (!masterKey) {
-                log.warn(
-                    "No master key found in session storage; redirecting to credentials",
-                );
-                setChatKey(undefined);
-                setIsLoggedIn(false);
-                if (router.pathname !== "/credentials") {
-                    void router.replace("/credentials");
-                }
-                return;
-            }
-
-            try {
-                log.info("Found master key in session, deriving chat key");
-                const remoteKey = await getOrCreateChatKey(masterKey);
-                setChatKey(remoteKey);
-                setIsLoggedIn(true);
-                return;
-            } catch (error) {
-                log.error("Failed to load remote chat key", error);
-                showMiniDialog({
-                    title: "Sync unavailable",
-                    message:
-                        "We could not load your chat encryption key. Please try again.",
-                });
-                setChatKey(undefined);
-                setIsLoggedIn(true);
-                return;
-            }
-        }
-
-        setIsLoggedIn(false);
-
-        const cachedLocal = cachedLocalChatKey();
-        if (cachedLocal) {
-            log.info("Falling back to cached local chat key");
-            setChatKey(cachedLocal);
-            return;
-        }
-
+    const refreshLocalChatKey = useCallback(async () => {
         try {
+            await initChatKeyStore();
+            const cachedLocal = cachedLocalChatKey();
+            if (cachedLocal) {
+                log.info("Using cached local chat key");
+                setChatKey(cachedLocal);
+                return;
+            }
             log.info("Generating new local chat key");
             setChatKey(await getOrCreateLocalChatKey());
         } catch (error) {
@@ -854,24 +774,24 @@ const Page: React.FC = () => {
                     "We could not initialize encryption. Please refresh the page.",
             });
         }
-    }, [router, showMiniDialog]);
+    }, [showMiniDialog]);
 
     useEffect(() => {
-        authRefreshCancelledRef.current = false;
+        chatKeyInitCancelledRef.current = false;
 
         void (async () => {
             try {
-                await refreshAuthState();
+                await refreshLocalChatKey();
             } catch (error) {
-                log.error("Failed to refresh auth state", error);
+                log.error("Failed to initialize local chat key", error);
             }
-            if (!authRefreshCancelledRef.current) setLoading(false);
+            if (!chatKeyInitCancelledRef.current) setLoading(false);
         })();
 
         return () => {
-            authRefreshCancelledRef.current = true;
+            chatKeyInitCancelledRef.current = true;
         };
-    }, [refreshAuthState]);
+    }, [refreshLocalChatKey]);
 
     useEffect(() => {
         routeInitializedRef.current = false;
@@ -887,12 +807,10 @@ const Page: React.FC = () => {
         const run = async () => {
             try {
                 await initializeChatStorePersistence(chatKey);
+                if (!cancelled) setIsChatStoreBridgeReady(true);
             } catch (error) {
                 log.error("Failed to initialize chat persistence", error);
-            } finally {
-                if (!cancelled) {
-                    setIsChatStoreBridgeReady(true);
-                }
+                if (!cancelled) onGenericError(error);
             }
         };
         void run();
@@ -901,60 +819,11 @@ const Page: React.FC = () => {
             cancelled = true;
             setIsChatStoreBridgeReady(false);
         };
-    }, [chatKey]);
+    }, [chatKey, onGenericError]);
 
     useEffect(() => {
         isDraftSessionRef.current = isDraftSession;
     }, [isDraftSession]);
-
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-
-        authRetryCancelledRef.current = false;
-        let attempts = 0;
-        let timeoutId: number | undefined;
-
-        const retry = async () => {
-            if (authRetryCancelledRef.current) return;
-            const token = await savedAuthToken();
-            let masterKey: string | undefined;
-
-            try {
-                masterKey = await masterKeyFromSession();
-            } catch (error) {
-                log.error("Failed to read master key from session", error);
-                await clearMasterKeyFromEverywhere();
-            }
-
-            const remoteKey = cachedChatKey();
-
-            // If we are logged in, we want to wait for either the master key to
-            // appear in session storage, or for a previously cached remote key
-            // to be available.
-            if (token && (masterKey || remoteKey)) {
-                await refreshAuthState();
-                return;
-            }
-
-            // If we're not logged in, we just retry a few times to see if a
-            // login token appears (e.g. from a recent redirect).
-            if (!token && attempts >= 5) {
-                return;
-            }
-
-            attempts += 1;
-            if (attempts < 15) {
-                timeoutId = window.setTimeout(retry, 600);
-            }
-        };
-
-        timeoutId = window.setTimeout(retry, 600);
-
-        return () => {
-            authRetryCancelledRef.current = true;
-            if (timeoutId) window.clearTimeout(timeoutId);
-        };
-    }, [refreshAuthState]);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -1050,7 +919,8 @@ const Page: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (loading || typeof window === "undefined") return;
+        if (loading || !modelSettingsLoaded || typeof window === "undefined")
+            return;
         const element = chatViewportRef.current;
         if (!element) return;
 
@@ -1069,7 +939,7 @@ const Page: React.FC = () => {
         const observer = new ResizeObserver(() => updateWidth());
         observer.observe(element);
         return () => observer.disconnect();
-    }, [loading]);
+    }, [loading, modelSettingsLoaded]);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -1082,104 +952,99 @@ const Page: React.FC = () => {
                 DEFAULT_CHAT_SYSTEM_PROMPT_BODY,
         );
 
-        // Only restore custom model settings when advanced settings are
-        // unlocked. Without this gate a user who had custom settings before
-        // the unlock feature was added would silently keep a hidden custom
-        // model with no visible way to change it.
-        if (!isUnlocked) return;
-
-        let raw = window.localStorage.getItem(MODEL_SETTINGS_STORAGE_KEY);
-        if (!raw) {
-            // Migrate from IndexedDB (previous storage) to localStorage
-            void getKV(MODEL_SETTINGS_STORAGE_KEY)
-                .then((kvRaw) => {
-                    if (cancelled || !kvRaw || typeof kvRaw !== "object") {
-                        return;
-                    }
-                    const migrated = JSON.stringify(kvRaw);
-                    window.localStorage.setItem(
-                        MODEL_SETTINGS_STORAGE_KEY,
-                        migrated,
-                    );
-                    // Re-trigger the effect by reloading settings from the migrated data
-                    const parsed = kvRaw as {
-                        useCustomModel?: boolean;
-                        modelUrl?: string;
-                        mmprojUrl?: string;
-                        contextLength?: string;
-                        maxTokens?: string;
-                    };
-                    const isTauri = detectTauriRuntime();
-                    const canMmproj = isTauri;
-                    const rawContextLength = parsed.contextLength ?? "";
-                    const clampedContextLength =
-                        !isTauri &&
-                        rawContextLength &&
-                        Number(rawContextLength) > DEFAULT_WEB_CONTEXT_SIZE
-                            ? String(DEFAULT_WEB_CONTEXT_SIZE)
-                            : rawContextLength;
-                    if (clampedContextLength !== rawContextLength) {
-                        const clamped = {
-                            ...parsed,
-                            contextLength: clampedContextLength,
-                        };
-                        window.localStorage.setItem(
-                            MODEL_SETTINGS_STORAGE_KEY,
-                            JSON.stringify(clamped),
-                        );
-                    }
-                    setUseCustomModel(!!parsed.useCustomModel);
-                    setModelUrl(parsed.modelUrl ?? "");
-                    setMmprojUrl(canMmproj ? (parsed.mmprojUrl ?? "") : "");
-                    setContextLength(clampedContextLength);
-                    setMaxTokens(parsed.maxTokens ?? "");
-                    void removeKV(MODEL_SETTINGS_STORAGE_KEY);
-                })
-                .catch((error: unknown) => {
-                    log.error("Failed to migrate model settings", error);
-                });
-            return () => {
-                cancelled = true;
-            };
-        }
-        try {
-            const parsed = JSON.parse(raw) as {
-                useCustomModel?: boolean;
-                modelUrl?: string;
-                mmprojUrl?: string;
-                contextLength?: string;
-                maxTokens?: string;
-            };
-            const isTauri = detectTauriRuntime();
-            const canMmproj = isTauri;
+        const applySettings = (parsed: {
+            modelId?: string;
+            contextLength?: string;
+            maxTokens?: string;
+        }) => {
             const rawContextLength = parsed.contextLength ?? "";
             const clampedContextLength =
-                !isTauri &&
+                !detectTauriRuntime() &&
                 rawContextLength &&
                 Number(rawContextLength) > DEFAULT_WEB_CONTEXT_SIZE
                     ? String(DEFAULT_WEB_CONTEXT_SIZE)
                     : rawContextLength;
-            if (clampedContextLength !== rawContextLength) {
-                const nextSettings = {
-                    useCustomModel: !!parsed.useCustomModel,
-                    modelUrl: parsed.modelUrl ?? "",
-                    mmprojUrl: canMmproj ? (parsed.mmprojUrl ?? "") : "",
-                    contextLength: clampedContextLength,
-                    maxTokens: parsed.maxTokens ?? "",
-                };
-                window.localStorage.setItem(
-                    MODEL_SETTINGS_STORAGE_KEY,
-                    JSON.stringify(nextSettings),
+            const settings = {
+                modelId: parsed.modelId ?? "",
+                contextLength: clampedContextLength,
+                maxTokens: parsed.maxTokens ?? "",
+            };
+            window.localStorage.setItem(
+                MODEL_SETTINGS_STORAGE_KEY,
+                JSON.stringify(settings),
+            );
+            if (cancelled) return;
+            setSelectedModelId(settings.modelId);
+            setContextLength(settings.contextLength);
+            setMaxTokens(settings.maxTokens);
+        };
+
+        // Loads persisted settings and runs the one Rust model migration.
+        // Settings persisted by builds that stored a model URL selection
+        // convert through it once: a URL matching a current preset maps to
+        // its id, anything else becomes the default.
+        const loadSettings = async () => {
+            let raw = window.localStorage.getItem(MODEL_SETTINGS_STORAGE_KEY);
+            if (!raw) {
+                // Settings from even older builds live in IndexedDB.
+                const kvRaw = await getKV(MODEL_SETTINGS_STORAGE_KEY).catch(
+                    () => undefined,
                 );
+                if (kvRaw && typeof kvRaw === "object") {
+                    raw = JSON.stringify(kvRaw);
+                    window.localStorage.setItem(
+                        MODEL_SETTINGS_STORAGE_KEY,
+                        raw,
+                    );
+                    void removeKV(MODEL_SETTINGS_STORAGE_KEY);
+                }
             }
-            setUseCustomModel(!!parsed.useCustomModel);
-            setModelUrl(parsed.modelUrl ?? "");
-            setMmprojUrl(canMmproj ? (parsed.mmprojUrl ?? "") : "");
-            setContextLength(clampedContextLength);
-            setMaxTokens(parsed.maxTokens ?? "");
-        } catch (error) {
-            log.error("Failed to read model settings", error);
-        }
+            const parsed = raw
+                ? (JSON.parse(raw) as {
+                      modelId?: string;
+                      useCustomModel?: boolean;
+                      modelUrl?: string;
+                      mmprojUrl?: string;
+                      contextLength?: string;
+                      maxTokens?: string;
+                  })
+                : {};
+            let modelId = parsed.modelId ?? "";
+            if (detectTauriRuntime()) {
+                const legacyModelUrl =
+                    parsed.modelId === undefined &&
+                    parsed.useCustomModel &&
+                    parsed.modelUrl?.trim()
+                        ? parsed.modelUrl.trim()
+                        : null;
+                const { invoke } = await import("@tauri-apps/api/core");
+                const converted = await invoke<string | null>(
+                    "llm_migrate_models",
+                    {
+                        legacyModelUrl,
+                        legacyMmprojUrl: legacyModelUrl
+                            ? parsed.mmprojUrl?.trim() || null
+                            : null,
+                    },
+                );
+                if (legacyModelUrl) {
+                    modelId = converted ?? "";
+                }
+            }
+            applySettings({
+                modelId,
+                contextLength: parsed.contextLength,
+                maxTokens: parsed.maxTokens,
+            });
+        };
+
+        void loadSettings()
+            .catch((error: unknown) => {
+                log.error("Failed to load model settings", error);
+            })
+            .finally(() => {
+                if (!cancelled) setModelSettingsLoaded(true);
+            });
         return () => {
             cancelled = true;
         };
@@ -1411,123 +1276,38 @@ const Page: React.FC = () => {
             attributes: NotificationAttributes & { autoHideDuration?: number },
         ) => {
             const { autoHideDuration, ...rest } = attributes;
-            setSyncNotification(rest);
-            setSyncNotificationOpen(true);
+            setChatNotification(rest);
+            setChatNotificationOpen(true);
             if (toastTimeoutRef.current) {
                 window.clearTimeout(toastTimeoutRef.current);
                 toastTimeoutRef.current = null;
             }
             if (autoHideDuration && typeof window !== "undefined") {
                 toastTimeoutRef.current = window.setTimeout(() => {
-                    setSyncNotificationOpen(false);
+                    setChatNotificationOpen(false);
                 }, autoHideDuration);
             }
         },
-        [setSyncNotification, setSyncNotificationOpen],
+        [setChatNotification, setChatNotificationOpen],
     );
-
-    const syncNow = useCallback(
-        async ({
-            showToast: shouldShowToast = false,
-        }: { showToast?: boolean } = {}) => {
-            if (!chatKey) return;
-            let activeChatKey = chatKey;
-            let remoteKey = cachedChatKey();
-            let canSync =
-                isLoggedIn && !!remoteKey && remoteKey === activeChatKey;
-
-            if (!canSync && isLoggedIn) {
-                await refreshAuthState();
-                remoteKey = cachedChatKey();
-                if (remoteKey) {
-                    activeChatKey = remoteKey;
-                    if (remoteKey !== chatKey) {
-                        setChatKey(remoteKey);
-                    }
-                    canSync = true;
-                }
-            }
-
-            if (canSync) {
-                try {
-                    await syncChat(activeChatKey);
-                    if (shouldShowToast) {
-                        showToast({
-                            title: "Sync complete",
-                            caption: "Your chats are up to date.",
-                            color: "accent",
-                            autoHideDuration: 3000,
-                        });
-                    }
-                } catch (error) {
-                    log.error("Chat sync failed", error);
-                    if (shouldShowToast) {
-                        showToast({
-                            title: "Sync failed",
-                            caption:
-                                error instanceof ChatSyncLimitError
-                                    ? error.message
-                                    : "We could not sync right now.",
-                            color: "critical",
-                            autoHideDuration: 4000,
-                        });
-                    }
-                    if (error instanceof ChatSyncLimitError) {
-                        showMiniDialog({
-                            title: "Sync limit reached",
-                            message: error.message,
-                        });
-                    }
-                }
-            } else if (shouldShowToast) {
-                showToast({
-                    title: "Sync unavailable",
-                    caption: "Encryption is still initializing.",
-                    color: "critical",
-                    autoHideDuration: 3000,
-                });
-            }
-
-            await refreshSessions();
-            await refreshMessages();
-        },
-        [
-            chatKey,
-            isLoggedIn,
-            refreshAuthState,
-            refreshMessages,
-            refreshSessions,
-            showMiniDialog,
-            showToast,
-        ],
-    );
-
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-        if (!chatKey || !isLoggedIn) return;
-        const intervalId = window.setInterval(() => {
-            void syncNow();
-        }, 60_000);
-        return () => {
-            window.clearInterval(intervalId);
-        };
-    }, [chatKey, isLoggedIn, syncNow]);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
 
         const handleFocus = () => {
-            void refreshAuthState();
-            if (chatKey && isLoggedIn) {
-                void syncNow();
+            void refreshLocalChatKey();
+            if (chatKey) {
+                void refreshSessions();
+                void refreshMessages();
             }
         };
 
         const handleVisibility = () => {
             if (!document.hidden) {
-                void refreshAuthState();
-                if (chatKey && isLoggedIn) {
-                    void syncNow();
+                void refreshLocalChatKey();
+                if (chatKey) {
+                    void refreshSessions();
+                    void refreshMessages();
                 }
             }
         };
@@ -1539,7 +1319,7 @@ const Page: React.FC = () => {
             window.removeEventListener("focus", handleFocus);
             document.removeEventListener("visibilitychange", handleVisibility);
         };
-    }, [chatKey, isLoggedIn, refreshAuthState, syncNow]);
+    }, [chatKey, refreshLocalChatKey, refreshMessages, refreshSessions]);
 
     const deleteSessionTarget = useMemo(
         () =>
@@ -1561,12 +1341,8 @@ const Page: React.FC = () => {
 
     useEffect(() => {
         if (!chatKey || !isChatStoreBridgeReady) return;
-        if (isLoggedIn) {
-            void syncNow();
-            return;
-        }
         void refreshSessions();
-    }, [chatKey, isChatStoreBridgeReady, isLoggedIn, refreshSessions, syncNow]);
+    }, [chatKey, isChatStoreBridgeReady, refreshSessions]);
 
     useEffect(() => {
         currentSessionIdRef.current = currentSessionId;
@@ -1640,7 +1416,6 @@ const Page: React.FC = () => {
 
             const task = (async () => {
                 try {
-                    await downloadAttachment(attachment.id);
                     const bytes = await readDecryptedAttachmentBytes(
                         attachment.id,
                         chatKey,
@@ -1728,13 +1503,6 @@ const Page: React.FC = () => {
             cancelled = true;
         };
     }, [currentRootSessionUuid]);
-
-    useEffect(() => {
-        if (isTauriRuntime) return;
-        if (mmprojUrl) {
-            setMmprojUrl("");
-        }
-    }, [isTauriRuntime, mmprojUrl]);
 
     const filteredSessions = useMemo(() => {
         const query = sessionSearch.trim().toLowerCase();
@@ -1855,9 +1623,7 @@ const Page: React.FC = () => {
     const drawerWidth = isSmall ? 300 : drawerCollapsed ? 0 : 320;
     const desktopBreakpoint = theme.breakpoints.values.lg ?? 1200;
     const isDesktopOverlay = !isSmall && chatViewportWidth >= desktopBreakpoint;
-    const showAttachmentPicker = isTauriRuntime;
-    const showImageAttachment =
-        showAttachmentPicker && DESKTOP_IMAGE_ATTACHMENTS_ENABLED;
+    const showImageAttachment = isTauriRuntime;
     const showDownloadProgress =
         !!downloadStatus?.status && downloadStatus.status !== "Ready";
     const showModelGate =
@@ -1866,7 +1632,7 @@ const Page: React.FC = () => {
         modelGateStatus === "downloading";
 
     const downloadSizeLabel = useMemo(() => {
-        if (useCustomModel) {
+        if (selectedModelId) {
             return "Approx. size varies by model";
         }
         if (resolvedDefaultModel.sizeBytes) {
@@ -1878,7 +1644,7 @@ const Page: React.FC = () => {
         return resolvedDefaultModel.sizeHuman
             ? `Approx. ${resolvedDefaultModel.sizeHuman}`
             : "Approx. size varies by model";
-    }, [allowMmproj, resolvedDefaultModel, useCustomModel]);
+    }, [allowMmproj, resolvedDefaultModel, selectedModelId]);
 
     const downloadStatusLabel = useMemo(() => {
         if (!showDownloadProgress) return null;
@@ -1929,31 +1695,15 @@ const Page: React.FC = () => {
     }, []);
 
     const getModelSettings = useCallback((): ModelSettings => {
-        const customModelEnabled = useCustomModel;
         return {
-            useCustomModel: customModelEnabled,
-            modelUrl:
-                customModelEnabled && modelUrl.trim()
-                    ? modelUrl.trim()
-                    : undefined,
-            mmprojUrl:
-                customModelEnabled && allowMmproj && mmprojUrl.trim()
-                    ? mmprojUrl.trim()
-                    : undefined,
+            modelId: selectedModelId || undefined,
             contextLength: contextLength ? Number(contextLength) : undefined,
             maxTokens:
                 maxTokens && Number(maxTokens) > 0
                     ? Number(maxTokens)
                     : undefined,
         };
-    }, [
-        useCustomModel,
-        modelUrl,
-        mmprojUrl,
-        contextLength,
-        maxTokens,
-        allowMmproj,
-    ]);
+    }, [selectedModelId, contextLength, maxTokens]);
 
     const modelSettingsKey = useMemo(
         () => JSON.stringify(getModelSettings()),
@@ -2069,7 +1819,6 @@ const Page: React.FC = () => {
             await provider.ensureModelReady(settings);
 
             let summary = "";
-            let errorMessage: string | null = null;
 
             await provider.generateChatStream(
                 {
@@ -2085,17 +1834,9 @@ const Page: React.FC = () => {
                 (event) => {
                     if (event.type === "text") {
                         summary += event.text;
-                        return;
-                    }
-                    if (event.type === "error") {
-                        errorMessage = event.message;
                     }
                 },
             );
-
-            if (errorMessage) {
-                throw new Error(errorMessage);
-            }
 
             return summary;
         },
@@ -2212,6 +1953,7 @@ const Page: React.FC = () => {
             log.error("Failed to preload model", error);
             setModelGateError(message);
             setIsDownloading(false);
+            setDownloadStatus(null);
             setModelGateStatus("error");
         }
     }, [ensureProvider, formatErrorMessage, getModelSettings]);
@@ -2235,6 +1977,7 @@ const Page: React.FC = () => {
             log.error("Failed to prepare model", error);
             setModelGateError(message);
             setIsDownloading(false);
+            setDownloadStatus(null);
             setModelGateStatus("error");
             showMiniDialog({ title: "Model error", message });
         }
@@ -2255,7 +1998,7 @@ const Page: React.FC = () => {
     }, [ensureProvider, getModelSettings, isTauriRuntime]);
 
     useEffect(() => {
-        if (!firstPaintDone) return;
+        if (!firstPaintDone || !modelSettingsLoaded) return;
         const cancelIdle = scheduleIdleTask(() => {
             void preloadModelIfAvailable();
         }, 2000);
@@ -2264,6 +2007,7 @@ const Page: React.FC = () => {
         };
     }, [
         firstPaintDone,
+        modelSettingsLoaded,
         modelSettingsKey,
         preloadModelIfAvailable,
         scheduleIdleTask,
@@ -2399,22 +2143,18 @@ const Page: React.FC = () => {
                     ? candidates.slice(0, -1)
                     : candidates;
 
-            const safetyMargin = 256;
-            let budget =
+            const inputBudget =
                 contextSize -
                 (maxTokensCount ?? DEFAULT_GENERATION_MAX_TOKENS) -
-                safetyMargin;
-            budget -= approxTokens(buildChatSystemPrompt(systemPrompt));
-            budget -= approxTokens(promptText);
+                256;
+            const budget =
+                inputBudget -
+                approxTokens(buildChatSystemPrompt(systemPrompt)) -
+                approxTokens(promptText);
 
             if (budget <= 0) return [];
 
-            const selected: LlmMessage[] = [];
-            let used = 0;
-
-            for (let idx = trimmedCandidates.length - 1; idx >= 0; idx -= 1) {
-                const message = trimmedCandidates[idx];
-                if (!message) continue;
+            const messages = trimmedCandidates.map((message): LlmMessage => {
                 const isUser = message.sender === "self";
                 let text = isUser
                     ? message.text
@@ -2432,28 +2172,36 @@ const Page: React.FC = () => {
                     }
                 }
 
-                const cost = approxTokens(text);
+                return { role: isUser ? "user" : "assistant", content: text };
+            });
 
-                if (used + cost > budget) {
-                    if (selected.length === 0 && budget > 0) {
-                        const charBudget = Math.max(1, budget * 4);
-                        const truncated = text.slice(-charBudget);
-                        selected.push({
-                            role: isUser ? "user" : "assistant",
-                            content: truncated,
-                        });
-                    }
-                    break;
-                }
-
-                selected.push({
-                    role: isUser ? "user" : "assistant",
-                    content: text,
-                });
-                used += cost;
+            const historyTokens = messages.reduce(
+                (total, message) => total + approxTokens(message.content),
+                0,
+            );
+            const quantum = Math.max(1, Math.floor(inputBudget / 4));
+            const overflow = Math.max(0, historyTokens - budget);
+            const discardTarget = Math.ceil(overflow / quantum) * quantum;
+            let discarded = 0;
+            let startIndex = 0;
+            while (startIndex < messages.length && discarded < discardTarget) {
+                discarded += approxTokens(messages[startIndex]!.content);
+                startIndex += 1;
             }
 
-            return selected.reverse();
+            const selected = messages.slice(startIndex);
+            if (selected.length === 0 && messages.length > 0) {
+                const last = messages[messages.length - 1]!;
+                if (approxTokens(last.content) <= budget) return [last];
+                return [
+                    {
+                        ...last,
+                        content: last.content.slice(-Math.max(1, budget * 4)),
+                    },
+                ];
+            }
+
+            return selected;
         },
         [approxTokens, slicePathUntil, stripHiddenParts, systemPrompt],
     );
@@ -2537,9 +2285,8 @@ const Page: React.FC = () => {
                 lastGenerationRef.current = null;
             }
 
-            await deleteSession(sessionId, chatKey);
+            await deleteSession(sessionId);
             removeSessionFromState(sessionId);
-            void syncChat(chatKey);
         },
         [chatKey, removeSessionFromState],
     );
@@ -2550,9 +2297,14 @@ const Page: React.FC = () => {
 
     const handleConfirmDeleteSession = useCallback(async () => {
         if (!deleteSessionId) return;
-        await handleDeleteSession(deleteSessionId);
-        setDeleteSessionId(null);
-    }, [deleteSessionId, handleDeleteSession]);
+        try {
+            await handleDeleteSession(deleteSessionId);
+        } catch (error) {
+            onGenericError(error);
+        } finally {
+            setDeleteSessionId(null);
+        }
+    }, [deleteSessionId, handleDeleteSession, onGenericError]);
 
     const handleCancelDeleteSession = useCallback(() => {
         setDeleteSessionId(null);
@@ -2587,7 +2339,6 @@ const Page: React.FC = () => {
             try {
                 const images = await Promise.all(
                     imageAttachments.map(async (attachment) => {
-                        await downloadAttachment(attachment.id);
                         const bytes = await readDecryptedAttachmentBytes(
                             attachment.id,
                             chatKey,
@@ -2662,7 +2413,6 @@ const Page: React.FC = () => {
             if (!chatKey) return;
 
             try {
-                await downloadAttachment(attachment.id);
                 const bytes = await readDecryptedAttachmentBytes(
                     attachment.id,
                     chatKey,
@@ -2809,7 +2559,6 @@ const Page: React.FC = () => {
                     );
                     appendMessageToState(assistantMessage);
                     updateSessionAfterMessage(assistantMessage);
-                    void syncChat(chatKey);
                     void maybeGenerateSessionTitle({
                         sessionUuid: activeSessionId,
                         assistantMessageUuid: assistantMessage.messageUuid,
@@ -3005,41 +2754,46 @@ const Page: React.FC = () => {
                     throw new Error("MMProj model not available");
                 }
 
-                await provider.generateChatStream(
-                    {
-                        messages,
-                        imagePaths: hasImages ? imagePaths : undefined,
-                        mmprojPath,
-                        mediaMarker: hasImages
-                            ? (mediaMarker ?? MEDIA_MARKER)
-                            : undefined,
-                        maxTokens,
-                        temperature: 0.7,
-                        topP: 0.9,
-                        repeatPenalty: REPEAT_PENALTY,
-                    },
-                    (event: GenerateEvent) => {
-                        if (!isActiveGeneration()) {
-                            return;
-                        }
-                        if (event.type === "text") {
-                            if (!currentJobIdRef.current) {
-                                currentJobIdRef.current = event.job_id;
-                                if (pendingCancelRef.current) {
-                                    pendingCancelRef.current = false;
-                                    provider.cancelGeneration(event.job_id);
-                                    return;
-                                }
+                await provider
+                    .generateChatStream(
+                        {
+                            messages,
+                            imagePaths: hasImages ? imagePaths : undefined,
+                            mmprojPath,
+                            mediaMarker: hasImages
+                                ? (mediaMarker ?? MEDIA_MARKER)
+                                : undefined,
+                            maxTokens,
+                            temperature: 0.7,
+                            topP: 0.9,
+                            repeatPenalty: REPEAT_PENALTY,
+                        },
+                        (event: GenerateEvent) => {
+                            if (!isActiveGeneration()) {
+                                return;
                             }
-                            streamingChunksRef.current.push(event.text);
-                            scheduleStreamingFlush();
-                        } else if (event.type === "error") {
-                            errorMessage = event.message;
-                        } else if (event.type === "done") {
-                            currentJobIdRef.current = event.summary.job_id;
-                        }
-                    },
-                );
+                            if (event.type === "text") {
+                                if (!currentJobIdRef.current) {
+                                    currentJobIdRef.current = event.job_id;
+                                    if (pendingCancelRef.current) {
+                                        pendingCancelRef.current = false;
+                                        provider.cancelGeneration(event.job_id);
+                                        return;
+                                    }
+                                }
+                                streamingChunksRef.current.push(event.text);
+                                scheduleStreamingFlush();
+                            } else if (event.type === "done") {
+                                currentJobIdRef.current = event.summary.job_id;
+                            }
+                        },
+                    )
+                    .catch((error: unknown) => {
+                        errorMessage =
+                            error instanceof Error
+                                ? error.message
+                                : String(error);
+                    });
 
                 if (!isActiveGeneration()) {
                     return;
@@ -3090,7 +2844,6 @@ const Page: React.FC = () => {
                 appendMessageToState(assistantMessage);
                 updateSessionAfterMessage(assistantMessage);
 
-                void syncChat(chatKey);
                 void maybeGenerateSessionTitle({
                     sessionUuid: activeSessionId,
                     assistantMessageUuid: assistantMessage.messageUuid,
@@ -3399,7 +3152,7 @@ const Page: React.FC = () => {
     }, [advancedUnlocked]);
 
     // Hardcoded fallbacks used when Rust defaults are not available (web-only
-    // mode). These must stay in sync with rust/crates/ensu/inference/src/defaults.rs.
+    // mode). These must stay in sync with rust/crates/ensu/src/config.rs.
     const fallbackSuggestedModels = useMemo(
         () =>
             isTauriRuntime
@@ -3411,40 +3164,25 @@ const Page: React.FC = () => {
 
     const handleSaveModel = useCallback(
         (draft: {
-            useCustomModel: boolean;
-            modelUrl: string;
-            mmprojUrl: string;
+            modelId: string;
             contextLength: string;
             maxTokens: string;
         }) => {
             setIsSavingModel(true);
-            const payload = {
-                useCustomModel: draft.useCustomModel,
-                modelUrl: draft.useCustomModel ? draft.modelUrl : "",
-                mmprojUrl:
-                    draft.useCustomModel && isTauriRuntime
-                        ? draft.mmprojUrl
-                        : "",
-                contextLength: draft.contextLength,
-                maxTokens: draft.maxTokens,
-            };
             if (typeof window !== "undefined") {
                 window.localStorage.setItem(
                     MODEL_SETTINGS_STORAGE_KEY,
-                    JSON.stringify(payload),
+                    JSON.stringify(draft),
                 );
-                void setKV(MODEL_SETTINGS_STORAGE_KEY, payload);
             }
-            setUseCustomModel(draft.useCustomModel);
-            setModelUrl(draft.modelUrl);
-            setMmprojUrl(draft.mmprojUrl);
+            setSelectedModelId(draft.modelId);
             setContextLength(draft.contextLength);
             setMaxTokens(draft.maxTokens);
             setLoadedModelName(null);
             setIsSavingModel(false);
             setShowModelSettings(false);
         },
-        [isTauriRuntime],
+        [],
     );
 
     const handleUseDefaultModel = useCallback(() => {
@@ -3452,18 +3190,13 @@ const Page: React.FC = () => {
             window.localStorage.setItem(
                 MODEL_SETTINGS_STORAGE_KEY,
                 JSON.stringify({
-                    useCustomModel: false,
-                    modelUrl: "",
-                    mmprojUrl: "",
+                    modelId: "",
                     contextLength: "",
                     maxTokens: "",
                 }),
             );
-            void removeKV(MODEL_SETTINGS_STORAGE_KEY);
         }
-        setUseCustomModel(false);
-        setModelUrl("");
-        setMmprojUrl("");
+        setSelectedModelId("");
         setContextLength("");
         setMaxTokens("");
         setLoadedModelName(null);
@@ -3874,65 +3607,6 @@ const Page: React.FC = () => {
         setPendingImages((prev) => prev.filter((img) => img.id !== id));
     }, []);
 
-    const handleLogout = useCallback(
-        () =>
-            showMiniDialog({
-                title: "Sign out",
-                message: "Are you sure you want to sign out?",
-                continue: {
-                    text: "Sign out",
-                    color: "critical",
-                    action: logout,
-                },
-                buttonDirection: "row",
-            }),
-        [logout, showMiniDialog],
-    );
-
-    const openLoginFromChat = useCallback(() => {
-        if (!SIGN_IN_ENABLED) {
-            showMiniDialog({
-                title: "Coming Soon",
-                message: (
-                    <Stack
-                        sx={{
-                            gap: 1.25,
-                            alignItems: "center",
-                            textAlign: "center",
-                        }}
-                    >
-                        <Box
-                            component="img"
-                            src={comingSoonDuckySrc}
-                            alt="Ensu ducky"
-                            sx={{ width: 92, height: 92, objectFit: "contain" }}
-                        />
-                        <Box component="span" sx={{ px: 3 }}>
-                            Sign in and cloud backup will be available in a
-                            future update.
-                        </Box>
-                    </Stack>
-                ),
-                cancel: "Got it",
-            });
-            return;
-        }
-        void router.push("/login");
-    }, [comingSoonDuckySrc, router, showMiniDialog]);
-
-    const openPasskeysFromChat = useCallback(async () => {
-        try {
-            await openAccountsManagePasskeysPage();
-        } catch (e) {
-            log.error("Failed to open passkeys page", e);
-            showMiniDialog({
-                title: "Passkeys unavailable",
-                message:
-                    "We could not open the passkeys page. Please try again.",
-            });
-        }
-    }, [showMiniDialog]);
-
     const handleSend = useCallback(async () => {
         const trimmed = input.trim();
         const hasDocuments = pendingDocuments.length > 0;
@@ -3967,7 +3641,12 @@ const Page: React.FC = () => {
 
         let activeSessionId = currentSessionId;
         if (!activeSessionId) {
-            activeSessionId = await createSession(chatKey);
+            try {
+                activeSessionId = await createSession(chatKey);
+            } catch (error) {
+                onGenericError(error);
+                return;
+            }
             setCurrentSessionId(activeSessionId);
             currentSessionIdRef.current = activeSessionId;
             setIsDraftSession(false);
@@ -3980,6 +3659,27 @@ const Page: React.FC = () => {
             trimmed.replace(/\u0000/g, ""),
             pendingDocuments,
         );
+        const persistedAttachmentIds = new Set(
+            (editingMessage?.attachments ?? []).map(({ id }) => id),
+        );
+        const newAttachmentIds = [
+            ...pendingDocuments.map(({ id }) => id),
+            ...pendingImages.map(({ id }) => id),
+        ].filter((id) => !persistedAttachmentIds.has(id));
+        const cleanupUnstoredAttachments = async () => {
+            await Promise.all(
+                newAttachmentIds.map(async (id) => {
+                    try {
+                        await deleteAttachmentBytes(id);
+                    } catch (error) {
+                        log.warn(
+                            `Failed to clean up attachment payload ${id}`,
+                            error,
+                        );
+                    }
+                }),
+            );
+        };
         let inferenceImagePaths: string[] = [];
 
         let attachments: ChatAttachment[] = [];
@@ -4032,6 +3732,7 @@ const Page: React.FC = () => {
                 );
                 attachments = [...documentAttachments, ...imageAttachments];
             } catch (error) {
+                await cleanupUnstoredAttachments();
                 log.error("Failed to store attachments", error);
                 showMiniDialog({
                     title: "Attachment error",
@@ -4045,6 +3746,7 @@ const Page: React.FC = () => {
             try {
                 inferenceImagePaths = await writeInferenceImages(pendingImages);
             } catch (error) {
+                await cleanupUnstoredAttachments();
                 log.error("Failed to prepare images for inference", error);
                 showMiniDialog({
                     title: "Attachment error",
@@ -4062,6 +3764,7 @@ const Page: React.FC = () => {
 
         setInput("");
 
+        let messageStored = false;
         try {
             if (editingMessage) {
                 const parentUuid = editingMessage.parentMessageUuid;
@@ -4078,6 +3781,7 @@ const Page: React.FC = () => {
                     parentUuid,
                     attachments,
                 );
+                messageStored = true;
 
                 void updateBranchSelectionState(
                     selectionKey,
@@ -4088,8 +3792,6 @@ const Page: React.FC = () => {
                 setEditingMessage(null);
                 setPendingDocuments([]);
                 setPendingImages([]);
-
-                void syncChat(chatKey);
 
                 await startGeneration({
                     promptText,
@@ -4115,6 +3817,7 @@ const Page: React.FC = () => {
                 parentUuid,
                 attachments,
             );
+            messageStored = true;
 
             void updateBranchSelectionState(
                 selectionKey,
@@ -4125,8 +3828,6 @@ const Page: React.FC = () => {
             setPendingDocuments([]);
             setPendingImages([]);
 
-            void syncChat(chatKey);
-
             await startGeneration({
                 promptText,
                 parentMessageUuid: userMessage.messageUuid,
@@ -4136,6 +3837,7 @@ const Page: React.FC = () => {
                 mediaMarker: MEDIA_MARKER,
             });
         } catch (error) {
+            if (!messageStored) await cleanupUnstoredAttachments();
             log.error("Failed to store chat message", error);
         } finally {
             await cleanupInferenceImages(inferenceImagePaths);
@@ -4151,6 +3853,7 @@ const Page: React.FC = () => {
         pendingDocuments,
         pendingImages,
         showMiniDialog,
+        onGenericError,
         slicePathUntil,
         startGeneration,
         writeInferenceImages,
@@ -4196,12 +3899,11 @@ const Page: React.FC = () => {
             currentSessionId={currentSessionId}
             handleSelectSession={handleSelectSession}
             requestDeleteSession={requestDeleteSession}
-            isLoggedIn={isLoggedIn}
             openSettingsModal={openSettingsModal}
         />
     );
 
-    if (loading) return <></>;
+    if (loading || !modelSettingsLoaded) return <></>;
 
     return (
         <>
@@ -4335,22 +4037,6 @@ const Page: React.FC = () => {
                                 </Box>
                             </Stack>
                         </Stack>
-                        {!isLoggedIn && (
-                            <Button
-                                onClick={openLoginFromChat}
-                                color="inherit"
-                                variant="text"
-                                sx={{
-                                    textTransform: "none",
-                                    fontWeight: 600,
-                                    fontSize: "13px",
-                                    color: "text.base",
-                                    py: 0.75,
-                                }}
-                            >
-                                Sign In
-                            </Button>
-                        )}
                     </NavbarBase>
 
                     <ChatMessageList
@@ -4411,7 +4097,7 @@ const Page: React.FC = () => {
                         isGenerating={isGenerating}
                         handleSend={handleSend}
                         handleStopGeneration={handleStopGeneration}
-                        showAttachmentPicker={showAttachmentPicker}
+                        showAttachmentPicker={isTauriRuntime}
                         openAttachmentMenu={openAttachmentMenu}
                         attachmentAnchor={attachmentAnchor}
                         closeAttachmentMenu={closeAttachmentMenu}
@@ -4485,13 +4171,8 @@ const Page: React.FC = () => {
                 settingsItemSx={settingsItemSx}
                 smallIconProps={smallIconProps}
                 compactIconProps={compactIconProps}
-                isLoggedIn={isLoggedIn}
-                signedInEmail={savedLocalUser()?.email ?? ""}
                 saveLogs={saveLogs}
                 handleCheckForUpdates={handleCheckForUpdates}
-                handleLogout={handleLogout}
-                openLoginFromChat={openLoginFromChat}
-                openPasskeysFromChat={openPasskeysFromChat}
                 advancedUnlocked={advancedUnlocked}
                 buildVersion={buildVersion}
                 handleBuildVersionTap={handleBuildVersionTap}
@@ -4504,15 +4185,10 @@ const Page: React.FC = () => {
                 handleConfirmDeleteSession={handleConfirmDeleteSession}
                 showModelSettings={showModelSettings}
                 closeModelSettings={closeModelSettings}
-                useCustomModel={useCustomModel}
+                selectedModelId={selectedModelId}
                 defaultModelName={resolvedDefaultModel.name}
-                defaultModelUrl={resolvedDefaultModel.url}
-                defaultModelMmproj={resolvedDefaultModel.mmprojUrl}
                 loadedModelName={loadedModelName}
-                allowMmproj={allowMmproj}
                 isTauriRuntime={isTauriRuntime}
-                modelUrl={modelUrl}
-                mmprojUrl={mmprojUrl}
                 suggestedModels={suggestedModels}
                 contextLength={contextLength}
                 maxTokens={maxTokens}
@@ -4524,9 +4200,9 @@ const Page: React.FC = () => {
                 systemPrompt={systemPrompt}
                 handleSaveSystemPrompt={handleSaveSystemPrompt}
                 handleUseDefaultSystemPrompt={handleUseDefaultSystemPrompt}
-                syncNotificationOpen={syncNotificationOpen}
-                setSyncNotificationOpen={setSyncNotificationOpen}
-                syncNotification={syncNotification}
+                chatNotificationOpen={chatNotificationOpen}
+                setChatNotificationOpen={setChatNotificationOpen}
+                chatNotification={chatNotification}
                 modelGateStatus={modelGateStatus}
                 imagePreview={imagePreview}
                 closeImagePreview={closeImagePreview}

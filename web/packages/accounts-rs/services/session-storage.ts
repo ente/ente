@@ -72,11 +72,14 @@ export const updateSessionFromElectronSafeStorageIfNeeded = async () => {
 export const stashKeyEncryptionKeyInSessionStore = (kek: string) =>
     saveKeyInSessionStore("keyEncryptionKey", kek);
 
+export const clearStashedKeyEncryptionKeyFromSession = () =>
+    sessionStorage.removeItem("keyEncryptionKey");
+
 export const unstashKeyEncryptionKeyFromSession = async () => {
     const value = sessionStorage.getItem("keyEncryptionKey");
     if (!value) return undefined;
 
-    sessionStorage.removeItem("keyEncryptionKey");
+    clearStashedKeyEncryptionKeyFromSession();
 
     const { encryptedData, key, nonce } = SessionKeyData.parse(
         JSON.parse(value),

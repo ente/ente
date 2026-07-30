@@ -3,7 +3,7 @@ package recover
 import (
 	"fmt"
 
-	stacktrace "github.com/ente-io/stacktrace"
+	stacktrace "github.com/ente/stacktrace"
 )
 
 type Int64ToInt64DataFn func(userID int64) (int64, error)

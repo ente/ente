@@ -3,11 +3,11 @@ package api
 import (
 	"net/http"
 
-	"github.com/ente-io/museum/ente"
-	contactmodel "github.com/ente-io/museum/ente/contact"
-	contactcontroller "github.com/ente-io/museum/pkg/controller/contact"
-	"github.com/ente-io/museum/pkg/utils/handler"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	contactmodel "github.com/ente/museum/ente/contact"
+	contactcontroller "github.com/ente/museum/pkg/controller/contact"
+	"github.com/ente/museum/pkg/utils/handler"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,8 +17,8 @@ type ContactHandler struct {
 
 func (h *ContactHandler) Create(c *gin.Context) {
 	var request contactmodel.CreateRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "request binding failed %s", err))
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "request binding failed"))
 		return
 	}
 	resp, err := h.Controller.Create(c, request)
@@ -54,8 +54,8 @@ func (h *ContactHandler) GetDiff(c *gin.Context) {
 
 func (h *ContactHandler) Update(c *gin.Context) {
 	var request contactmodel.UpdateRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "request binding failed %s", err))
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "request binding failed"))
 		return
 	}
 	resp, err := h.Controller.Update(c, c.Param("id"), request)
@@ -76,8 +76,8 @@ func (h *ContactHandler) Delete(c *gin.Context) {
 
 func (h *ContactHandler) GetAttachmentUploadURL(c *gin.Context) {
 	var request contactmodel.AttachmentUploadURLRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "request binding failed %s", err))
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "request binding failed"))
 		return
 	}
 	resp, err := h.Controller.GetAttachmentUploadURL(c, c.Param("type"), request)
@@ -95,8 +95,8 @@ func (h *ContactHandler) GetProfilePictureUploadURL(c *gin.Context) {
 
 func (h *ContactHandler) AttachContactAttachment(c *gin.Context) {
 	var request contactmodel.CommitAttachmentRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, "request binding failed %s", err))
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "request binding failed"))
 		return
 	}
 	resp, err := h.Controller.AttachContactAttachment(c, c.Param("id"), c.Param("type"), request)

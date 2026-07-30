@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	"github.com/ente-io/cli/utils/constants"
+	"github.com/ente/cli/utils/constants"
 	"github.com/spf13/viper"
 	"strconv"
 	"strings"

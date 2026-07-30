@@ -6,7 +6,7 @@ import type {
 } from "@/public-album/upload/pipeline";
 import { nameAndExtension } from "ente-base/file-name";
 import log from "ente-base/log";
-import { type Location } from "ente-base/types";
+import type { Location } from "ente-base/types";
 
 /**
  * The data we read from the JSON metadata sidecar files.

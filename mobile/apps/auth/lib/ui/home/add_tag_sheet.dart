@@ -7,11 +7,10 @@ import 'package:ente_auth/onboarding/view/common/tag_chip.dart';
 import 'package:ente_auth/services/authenticator_service.dart';
 import 'package:ente_auth/store/code_display_store.dart';
 import 'package:ente_auth/store/code_store.dart';
-import 'package:ente_auth/theme/ente_theme.dart';
-import 'package:ente_auth/ui/components/buttons/button_widget.dart';
 import 'package:ente_auth/ui/components/horizontal_scroll_area.dart';
-import 'package:ente_auth/ui/components/models/button_type.dart';
 import 'package:ente_auth/ui/utils/icon_utils.dart';
+import 'package:ente_auth/utils/dialog_util.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:flutter/material.dart';
 
 class AddTagSheet extends StatefulWidget {
@@ -86,198 +85,140 @@ class _AddTagSheetState extends State<AddTagSheet> {
   }
 
   Future<void> _showCreateTagDialog() async {
-    final textController = TextEditingController();
-    final newTag = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text(context.l10n.createNewTag),
-              content: TextField(
-                controller: textController,
-                autofocus: true,
-                onChanged: (_) => setState(() {}),
-              ),
-              actions: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: ButtonWidget(
-                        buttonType: ButtonType.secondary,
-                        labelText: context.l10n.cancel,
-                        onTap: () async => Navigator.of(context).pop(),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ButtonWidget(
-                        buttonType: ButtonType.primary,
-                        labelText: context.l10n.create,
-                        isDisabled: textController.text.trim().isEmpty,
-                        onTap: () async => Navigator.of(
-                          context,
-                        ).pop(textController.text.trim()),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            );
-          },
-        );
-      },
+    String? newTag;
+    await showTextInputDialog(
+      context,
+      title: context.l10n.createNewTag,
+      submitButtonLabel: context.l10n.create,
+      useRootNavigator: true,
+      onSubmit: (value) async => newTag = value.trim(),
     );
 
-    if (newTag != null && newTag.isNotEmpty) {
+    if (newTag?.isNotEmpty == true) {
       setState(() {
-        if (!_allTags.contains(newTag)) {
-          _allTags.add(newTag);
+        if (!_allTags.contains(newTag!)) {
+          _allTags.add(newTag!);
           _allTags.sort();
         }
-        _selectedTagsInSheet.add(newTag);
+        _selectedTagsInSheet.add(newTag!);
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final colors = context.componentColors;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${widget.selectedCodes.length} ${context.l10n.selected}',
-                style: textTheme.large,
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.of(context).pop(),
-                style: IconButton.styleFrom(
-                  backgroundColor: colorScheme.fillFaint.withValues(
-                    alpha: 0.025,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 80,
-            child: HorizontalScrollArea(
-              builder: (context, scrollController) => ListView.separated(
-                controller: scrollController,
-                scrollDirection: Axis.horizontal,
-                itemCount: widget.selectedCodes.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 16),
-                itemBuilder: (context, index) {
-                  final code = widget.selectedCodes[index];
-                  final iconData = code.display.isCustomIcon
-                      ? code.display.iconID
-                      : code.issuer;
+    return Semantics(
+      identifier: 'auth_add_tag_sheet',
+      child: BottomSheetComponent(
+        title: '${widget.selectedCodes.length} ${context.l10n.selected}',
+        closeTooltip: context.l10n.close,
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 80,
+              child: HorizontalScrollArea(
+                builder: (context, scrollController) => ListView.separated(
+                  controller: scrollController,
+                  scrollDirection: Axis.horizontal,
+                  itemCount: widget.selectedCodes.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: Spacing.lg),
+                  itemBuilder: (context, index) {
+                    final code = widget.selectedCodes[index];
+                    final iconData = code.display.isCustomIcon
+                        ? code.display.iconID
+                        : code.issuer;
 
-                  return SizedBox(
-                    width: 60,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: colorScheme.fillFaint.withValues(
-                              alpha: 0.02,
+                    return SizedBox(
+                      width: 60,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: colors.fillLight,
+                              borderRadius: BorderRadius.circular(Radii.md),
                             ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Center(
-                            child: IconUtils.instance.getIcon(
-                              context,
-                              iconData.trim(),
-                              width: 28,
+                            child: Center(
+                              child: IconUtils.instance.getIcon(
+                                context,
+                                iconData.trim(),
+                                width: 28,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          code.issuer,
-                          overflow: TextOverflow.ellipsis,
-                          style: textTheme.mini.copyWith(
-                            color: colorScheme.textMuted,
+                          const SizedBox(height: Spacing.sm),
+                          Text(
+                            code.issuer,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyles.mini.copyWith(
+                              color: colors.textLight,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(context.l10n.tags, style: textTheme.body),
-          const SizedBox(height: 12),
-          Flexible(
-            child: SingleChildScrollView(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : Wrap(
-                      spacing: 8.0,
-                      runSpacing: 4.0,
-                      children: [
-                        ..._allTags.map((tag) {
-                          final isSelected = _selectedTagsInSheet.contains(tag);
-                          return TagChip(
-                            label: tag,
-                            action: TagChipAction.check,
-                            state: isSelected
-                                ? TagChipState.selected
-                                : TagChipState.unselected,
-                            onTap: () {
-                              setState(() {
-                                if (isSelected) {
-                                  _selectedTagsInSheet.remove(tag);
-                                } else {
-                                  _selectedTagsInSheet.add(tag);
-                                }
-                              });
-                            },
-                          );
-                        }),
-                        TagChip(
-                          label: context.l10n.addNew,
-                          iconData: Icons.add,
-                          state: TagChipState.unselected,
-                          onTap: _showCreateTagDialog,
-                        ),
-                      ],
-                    ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.fillBase,
-                foregroundColor: colorScheme.backgroundBase,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
-              onPressed: _onDonePressed,
-              child: Text(context.l10n.done),
             ),
-          ),
+            const SizedBox(height: Spacing.xl),
+            Text(
+              context.l10n.tags,
+              style: TextStyles.bodyBold.copyWith(color: colors.textBase),
+            ),
+            const SizedBox(height: Spacing.md),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.25,
+              ),
+              child: SingleChildScrollView(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : Wrap(
+                        spacing: Spacing.sm,
+                        runSpacing: Spacing.sm,
+                        children: [
+                          ..._allTags.map((tag) {
+                            final isSelected = _selectedTagsInSheet.contains(
+                              tag,
+                            );
+                            return TagChip(
+                              label: tag,
+                              action: TagChipAction.check,
+                              state: isSelected
+                                  ? TagChipState.selected
+                                  : TagChipState.unselected,
+                              onTap: () {
+                                setState(() {
+                                  if (isSelected) {
+                                    _selectedTagsInSheet.remove(tag);
+                                  } else {
+                                    _selectedTagsInSheet.add(tag);
+                                  }
+                                });
+                              },
+                            );
+                          }),
+                          TagChip(
+                            label: context.l10n.addNew,
+                            iconData: Icons.add,
+                            state: TagChipState.unselected,
+                            onTap: _showCreateTagDialog,
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ButtonComponent(label: context.l10n.done, onTap: _onDonePressed),
         ],
       ),
     );

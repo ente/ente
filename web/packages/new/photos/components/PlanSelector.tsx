@@ -41,7 +41,6 @@ import type {
 import {
     activateStripeSubscription,
     cancelStripeSubscription,
-    getFamilyPortalRedirectURL,
     getPlansData,
     isSubscriptionActive,
     isSubscriptionActivePaid,
@@ -54,19 +53,20 @@ import {
     redirectToPaymentsApp,
     userDetailsAddOnBonuses,
 } from "ente-new/photos/services/user-details";
-import { openURL } from "ente-new/photos/utils/web";
 import { t } from "i18next";
 import React, { useCallback, useEffect, useState } from "react";
 import { Trans } from "react-i18next";
 
 type PlanSelectorProps = ModalVisibilityProps & {
     setLoading: (loading: boolean) => void;
+    onManageFamily: () => void;
 };
 
 export const PlanSelector: React.FC<PlanSelectorProps> = ({
     open,
     onClose,
     setLoading,
+    onManageFamily,
 }) => {
     const fullScreen = useMediaQuery(useTheme().breakpoints.down("sm"));
 
@@ -99,16 +99,20 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
                 backdrop: { sx: { backdropFilter: "blur(30px) opacity(95%)" } },
             }}
         >
-            <PlanSelectorCard {...{ onClose, setLoading }} />
+            <PlanSelectorCard {...{ onClose, setLoading, onManageFamily }} />
         </Dialog>
     );
 };
 
-type PlanSelectorCardProps = Pick<PlanSelectorProps, "onClose" | "setLoading">;
+type PlanSelectorCardProps = Pick<
+    PlanSelectorProps,
+    "onClose" | "setLoading" | "onManageFamily"
+>;
 
 const PlanSelectorCard: React.FC<PlanSelectorCardProps> = ({
     onClose,
     setLoading,
+    onManageFamily,
 }) => {
     const { showMiniDialog } = useBaseContext();
 
@@ -224,7 +228,7 @@ const PlanSelectorCard: React.FC<PlanSelectorCardProps> = ({
 
     const commonCardData = {
         onClose,
-        setLoading,
+        onManageFamily,
         addOnBonuses,
         planPeriod,
         togglePeriod,
@@ -301,7 +305,7 @@ const planSelectionOutcome = (subscription: Subscription | undefined) => {
 
 type FreeSubscriptionPlanSelectorCardProps = Pick<
     PlanSelectorProps,
-    "onClose" | "setLoading"
+    "onClose" | "onManageFamily"
 > & {
     subscription: Subscription | undefined;
     addOnBonuses: Bonus[];
@@ -313,7 +317,7 @@ const FreeSubscriptionPlanSelectorCard: React.FC<
     React.PropsWithChildren<FreeSubscriptionPlanSelectorCardProps>
 > = ({
     onClose,
-    setLoading,
+    onManageFamily,
     subscription,
     addOnBonuses,
     planPeriod,
@@ -347,7 +351,7 @@ const FreeSubscriptionPlanSelectorCard: React.FC<
                         <AddOnBonusRows addOnBonuses={addOnBonuses} />
                     </Stack>
                     <ManageSubscription
-                        {...{ onClose, setLoading, subscription }}
+                        {...{ onClose, onManageFamily, subscription }}
                         hasAddOnBonus={true}
                     />
                 </Stack>
@@ -365,7 +369,7 @@ const PaidSubscriptionPlanSelectorCard: React.FC<
     React.PropsWithChildren<PaidSubscriptionPlanSelectorCardProps>
 > = ({
     onClose,
-    setLoading,
+    onManageFamily,
     subscription,
     addOnBonuses,
     planPeriod,
@@ -446,9 +450,7 @@ const PaidSubscriptionPlanSelectorCard: React.FC<
         </Box>
 
         <ManageSubscription
-            onClose={onClose}
-            setLoading={setLoading}
-            subscription={subscription}
+            {...{ onClose, onManageFamily, subscription }}
             hasAddOnBonus={addOnBonuses.length > 0}
         />
     </>
@@ -667,25 +669,18 @@ const AddOnBonusRows: React.FC<AddOnBonusRowsProps> = ({ addOnBonuses }) => (
 
 type ManageSubscriptionProps = Pick<
     PlanSelectorProps,
-    "onClose" | "setLoading"
+    "onClose" | "onManageFamily"
 > & { subscription: Subscription; hasAddOnBonus: boolean };
 
 function ManageSubscription({
     onClose,
-    setLoading,
+    onManageFamily,
     subscription,
     hasAddOnBonus,
 }: ManageSubscriptionProps) {
-    const { onGenericError } = useBaseContext();
-
-    const openFamilyPortal = async () => {
-        setLoading(true);
-        try {
-            openURL(await getFamilyPortalRedirectURL());
-        } catch (e) {
-            onGenericError(e);
-        }
-        setLoading(false);
+    const manageFamily = () => {
+        onClose();
+        onManageFamily();
     };
 
     return (
@@ -695,7 +690,7 @@ function ManageSubscription({
                     {...{ onClose, subscription, hasAddOnBonus }}
                 />
             )}
-            <ManageSubscriptionButton onClick={openFamilyPortal}>
+            <ManageSubscriptionButton onClick={manageFamily}>
                 {t("manage_family")}
             </ManageSubscriptionButton>
         </Stack>

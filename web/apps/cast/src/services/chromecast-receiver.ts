@@ -138,13 +138,17 @@ const advertiseCode = (cast: Cast) => {
         const pairedCollectionID = castReceiver.collectionID?.();
 
         // The collection ID in the request (if any).
-        const collectionID =
-            data &&
+
+        let collectionID: string | null = null;
+        if (
             typeof data == "object" &&
+            data !== null &&
             "collectionID" in data &&
-            typeof data.collectionID == "string"
-                ? data.collectionID
-                : undefined;
+            (typeof data.collectionID == "string" ||
+                typeof data.collectionID == "number")
+        ) {
+            collectionID = data.collectionID.toString();
+        }
 
         // If the request does not have a collectionID (or if we're not showing
         // anything currently), forego this check.

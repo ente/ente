@@ -3,8 +3,8 @@ package authenticator
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ente-io/cli/internal"
-	eCrypto "github.com/ente-io/cli/internal/crypto"
+	"github.com/ente/cli/internal"
+	eCrypto "github.com/ente/cli/internal/crypto"
 	"os"
 )
 

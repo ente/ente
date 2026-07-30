@@ -3,8 +3,8 @@ package filedata
 import (
 	"fmt"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/ente/base"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/base"
 )
 
 // BasePrefix returns the base prefix for all objects related to a file. To check if the file data is deleted,

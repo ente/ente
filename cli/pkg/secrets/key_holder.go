@@ -3,11 +3,11 @@ package secrets
 import (
 	"context"
 	"fmt"
-	"github.com/ente-io/cli/internal/api"
-	"github.com/ente-io/cli/internal/api/models"
-	eCrypto "github.com/ente-io/cli/internal/crypto"
-	"github.com/ente-io/cli/pkg/model"
-	"github.com/ente-io/cli/utils/encoding"
+	"github.com/ente/cli/internal/api"
+	"github.com/ente/cli/internal/api/models"
+	eCrypto "github.com/ente/cli/internal/crypto"
+	"github.com/ente/cli/pkg/model"
+	"github.com/ente/cli/utils/encoding"
 )
 
 type KeyHolder struct {

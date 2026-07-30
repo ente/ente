@@ -3,11 +3,11 @@ import 'dart:io';
 
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:ente_accounts/services/user_service.dart';
+import 'package:ente_components/ente_components.dart' as components;
 import 'package:ente_events/event_bus.dart';
 import 'package:ente_events/models/signed_in_event.dart';
 import 'package:ente_events/models/signed_out_event.dart';
 import 'package:ente_strings/l10n/strings_localizations.dart';
-import "package:ente_ui/theme/ente_theme_data.dart";
 import 'package:ente_ui/utils/window_listener_service.dart';
 import "package:flutter/material.dart";
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -152,8 +152,14 @@ class _AppState extends State<App>
   Widget build(BuildContext context) {
     Widget buildApp() {
       return AdaptiveTheme(
-        light: lightThemeData,
-        dark: darkThemeData,
+        light: components.ComponentTheme.themeForApp(
+          components.ComponentApp.locker,
+          brightness: Brightness.light,
+        ),
+        dark: components.ComponentTheme.themeForApp(
+          components.ComponentApp.locker,
+          brightness: Brightness.dark,
+        ),
         initial: widget.savedThemeMode ?? AdaptiveThemeMode.system,
         builder: (lightTheme, dartTheme) => MaterialApp(
           title: "ente",

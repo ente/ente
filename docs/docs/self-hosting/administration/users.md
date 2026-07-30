@@ -13,6 +13,10 @@ This document covers the details on how you can administer users on your server.
 
 The administrator users have to be explicitly whitelisted in `museum.yaml`. You can achieve this the following steps:
 
+> [!NOTE]
+>
+> To make getting started easier, the first registered user is automatically treated as an admin until you whitelist one explicitly. If your instance is publicly reachable, register your own account first so the admin account is yours.
+
 1.  Connect to `ente_db` (the database used for storing data related to Ente).
 
     ```shell

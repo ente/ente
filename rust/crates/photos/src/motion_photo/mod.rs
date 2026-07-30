@@ -5,7 +5,7 @@ use ftyp::find_largest_ftyp_segment;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 const ITEM_LENGTH_OFFSET_KEY: &str = "Item:Length";
 const GCAMERA_MOTION_PHOTO: &str = "GCamera:MotionPhoto";
@@ -23,6 +23,7 @@ pub enum MotionPhotoError {
     Io(std::io::Error),
     Xml(String),
     InvalidIndex,
+    InvalidFileName,
     VideoNotFound,
 }
 
@@ -32,6 +33,7 @@ impl Display for MotionPhotoError {
             Self::Io(err) => write!(f, "io error: {err}"),
             Self::Xml(err) => write!(f, "xmp parse error: {err}"),
             Self::InvalidIndex => write!(f, "invalid video index"),
+            Self::InvalidFileName => write!(f, "invalid output file name"),
             Self::VideoNotFound => write!(f, "unable to find video index"),
         }
     }
@@ -91,6 +93,8 @@ pub fn extract_motion_video_file_from_path<P: AsRef<Path>, Q: AsRef<Path>>(
     file_name: &str,
     index: Option<VideoIndex>,
 ) -> Result<Option<PathBuf>, MotionPhotoError> {
+    validate_output_file_name(file_name)?;
+
     let video = match extract_motion_video_from_path(file_path, index)? {
         Some(data) => data,
         None => return Ok(None),
@@ -99,6 +103,18 @@ pub fn extract_motion_video_file_from_path<P: AsRef<Path>, Q: AsRef<Path>>(
     let output = destination_directory.as_ref().join(file_name);
     fs::write(&output, video)?;
     Ok(Some(output))
+}
+
+fn validate_output_file_name(file_name: &str) -> Result<(), MotionPhotoError> {
+    if file_name.is_empty() || file_name.contains('/') || file_name.contains('\\') {
+        return Err(MotionPhotoError::InvalidFileName);
+    }
+
+    let mut components = Path::new(file_name).components();
+    match (components.next(), components.next()) {
+        (Some(Component::Normal(name)), None) if name.to_str() == Some(file_name) => Ok(()),
+        _ => Err(MotionPhotoError::InvalidFileName),
+    }
 }
 
 pub fn extract_xmp_from_path<P: AsRef<Path>>(
@@ -327,6 +343,54 @@ mod tests {
         let video = extract_motion_video(&bytes, None).expect("video bytes should extract");
         assert_eq!(video.len(), 20);
         assert!(video.iter().all(|byte| *byte == 0xAB));
+    }
+
+    #[test]
+    fn extracts_video_file_to_output_basename() {
+        let temp = tempdir().expect("temp dir");
+        let image = temp.path().join("motion.jpg");
+        let output_dir = temp.path().join("out");
+        fs::write(
+            &image,
+            bytes_with_xmp_and_video(20, "GCamera:MotionPhoto=\"1\""),
+        )
+        .expect("write motion photo");
+
+        let output = extract_motion_video_file_from_path(&image, &output_dir, "clip.mp4", None)
+            .expect("extract motion video")
+            .expect("motion video exists");
+
+        assert_eq!(output, output_dir.join("clip.mp4"));
+        assert_eq!(fs::read(output).expect("read output").len(), 20);
+    }
+
+    #[test]
+    fn rejects_output_file_names_that_are_not_basenames() {
+        let temp = tempdir().expect("temp dir");
+        let image = temp.path().join("motion.jpg");
+        let output_dir = temp.path().join("out");
+        fs::write(
+            &image,
+            bytes_with_xmp_and_video(20, "GCamera:MotionPhoto=\"1\""),
+        )
+        .expect("write motion photo");
+
+        for file_name in [
+            "",
+            ".",
+            "..",
+            "../escaped.mp4",
+            "nested/escaped.mp4",
+            "nested\\escaped.mp4",
+            "/tmp/escaped.mp4",
+        ] {
+            let err = extract_motion_video_file_from_path(&image, &output_dir, file_name, None)
+                .expect_err("invalid output file name should fail");
+            assert!(matches!(err, MotionPhotoError::InvalidFileName));
+        }
+
+        assert!(!temp.path().join("escaped.mp4").exists());
+        assert!(!output_dir.join("nested").exists());
     }
 
     #[test]

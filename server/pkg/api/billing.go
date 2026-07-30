@@ -8,20 +8,20 @@ import (
 
 	"net/http"
 
-	"github.com/ente-io/museum/pkg/utils/billing"
-	"github.com/ente-io/museum/pkg/utils/network"
+	"github.com/ente/museum/pkg/utils/billing"
+	"github.com/ente/museum/pkg/utils/network"
 	"github.com/gin-contrib/requestid"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/awa/go-iap/appstore"
 	"github.com/awa/go-iap/playstore"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/handler"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/handler"
 	"github.com/gin-gonic/gin"
 )
 
@@ -113,7 +113,7 @@ func (h *BillingHandler) GetSubscription(c *gin.Context) {
 func (h *BillingHandler) VerifySubscription(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	var request ente.SubscriptionVerificationRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -131,7 +131,7 @@ func (h *BillingHandler) VerifySubscription(c *gin.Context) {
 // AndroidNotificationHandler handles the notifications from PlayStore
 func (h *BillingHandler) AndroidNotificationHandler(c *gin.Context) {
 	var request ente.AndroidNotification
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -162,7 +162,7 @@ func (h *BillingHandler) AndroidNotificationHandler(c *gin.Context) {
 // IOSNotificationHandler handles the notifications from AppStore
 func (h *BillingHandler) IOSNotificationHandler(c *gin.Context) {
 	var notification appstore.SubscriptionNotification
-	if err := c.ShouldBindJSON(&notification); err != nil {
+	if err := handler.BindJSON(c, &notification); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -231,7 +231,7 @@ func (h *BillingHandler) StripeUSNotificationHandler(c *gin.Context) {
 func (h *BillingHandler) StripeUpdateSubscription(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	var request ente.StripeUpdateRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}

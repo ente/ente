@@ -1,1 +1,0 @@
-- Fix link icon visibility for albums shared with people and a public link. By @yashs33244.

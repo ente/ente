@@ -1,36 +1,38 @@
-import "dart:async";
-
 import "package:photos/models/backup/backup_item_status.dart";
 import "package:photos/models/file/file.dart";
 
+class _PreserveError {
+  const _PreserveError();
+}
+
 class BackupItem {
+  static const _preserveError = _PreserveError();
+
   final BackupItemStatus status;
   final EnteFile file;
   final int collectionID;
-  final Completer<EnteFile>? completer;
   final Object? error;
 
   BackupItem({
     required this.status,
     required this.file,
     required this.collectionID,
-    required this.completer,
-    this.error,
-  });
+    Object? error,
+  }) : error = status == BackupItemStatus.retry ? error : null;
 
   BackupItem copyWith({
     BackupItemStatus? status,
     EnteFile? file,
     int? collectionID,
-    Completer<EnteFile>? completer,
-    Object? error,
+    Object? error = _preserveError,
   }) {
+    final nextStatus = status ?? this.status;
+    final nextError = identical(error, _preserveError) ? this.error : error;
     return BackupItem(
-      status: status ?? this.status,
+      status: nextStatus,
       file: file ?? this.file,
       collectionID: collectionID ?? this.collectionID,
-      completer: completer ?? this.completer,
-      error: error ?? this.error,
+      error: nextStatus == BackupItemStatus.retry ? nextError : null,
     );
   }
 
@@ -46,7 +48,6 @@ class BackupItem {
     return other.status == status &&
         other.file == file &&
         other.collectionID == collectionID &&
-        other.completer == completer &&
         other.error == error;
   }
 
@@ -55,6 +56,6 @@ class BackupItem {
     return status.hashCode ^
         file.hashCode ^
         collectionID.hashCode ^
-        completer.hashCode;
+        error.hashCode;
   }
 }

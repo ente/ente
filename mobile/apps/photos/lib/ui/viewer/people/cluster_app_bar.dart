@@ -23,7 +23,6 @@ import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/actions/collection/collection_sharing_actions.dart';
 import 'package:photos/ui/components/buttons/button_widget.dart';
-import "package:photos/ui/components/popup_menu/ente_popup_menu_button.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_actions.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_config.dart";
 import "package:photos/ui/viewer/people/cluster_breakup_page.dart";
@@ -205,6 +204,7 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
       return;
     }
 
+    if (!context.mounted) return;
     Navigator.of(context).pop(ClusterPageResult.ignoredPerson);
   }
 
@@ -263,17 +263,20 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
       },
     );
     if (userConfirmed) {
+      Bus.instance.fire(PeopleChangedEvent());
+
       // Close the old cluster page
+      if (!context.mounted) return;
       Navigator.of(context).pop();
 
       // Push the new cluster page
+      if (!context.mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) =>
               ClusterPage(biggestClusterFiles, clusterID: biggestClusterID),
         ),
       );
-      Bus.instance.fire(PeopleChangedEvent());
     }
   }
 
@@ -303,6 +306,7 @@ class _AppBarWidgetState extends State<ClusterAppBar> {
       ),
     );
 
+    if (!context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => ClusterBreakupPage(

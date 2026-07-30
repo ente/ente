@@ -21,6 +21,7 @@ export interface SidebarActionContext {
         isHidden?: boolean,
     ) => Promise<void>;
     showAccount: () => void;
+    showReferrals: () => void;
     showPreferences: () => void;
     showHelp: () => void;
     showFreeUpSpace: () => void;
@@ -86,6 +87,18 @@ const sidebarActions = (): SidebarAction[] => {
             label: t("account"),
             path: [preferencesCategory, t("account")],
             keywords: ["profile", "user"],
+        },
+        {
+            id: "utility.referrals",
+            label: t("referrals"),
+            path: [preferencesCategory, t("referrals")],
+            keywords: [
+                "referral",
+                "invite",
+                "code",
+                "free storage",
+                "earn storage",
+            ],
         },
         {
             id: "utility.watchFolders",
@@ -340,6 +353,10 @@ export const performSidebarAction = async (
 
         case "utility.account":
             ctx.showAccount();
+            return Promise.resolve();
+
+        case "utility.referrals":
+            ctx.showReferrals();
             return Promise.resolve();
 
         case "utility.watchFolders":

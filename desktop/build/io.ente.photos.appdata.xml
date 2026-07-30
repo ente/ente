@@ -22,13 +22,13 @@
 
   <content_rating type="oars-1.0" />
 
-  <url type="bugtracker">https://github.com/ente-io/ente/issues</url>
+  <url type="bugtracker">https://github.com/ente/ente/issues</url>
   <url type="homepage">https://ente.com</url>
-  <url type="vcs-browser">https://github.com/ente-io/ente</url>
+  <url type="vcs-browser">https://github.com/ente/ente</url>
 
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/ente-io/ente/main/.github/assets/photos.png</image>
+      <image>https://raw.githubusercontent.com/ente/ente/main/.github/assets/photos.png</image>
       <caption>Browse and search your encrypted photo library across desktop and mobile devices</caption>
     </screenshot>
   </screenshots>
@@ -40,7 +40,7 @@
 
   <releases>
     <release version="1.7" date="2025-01-13">
-      <url type="details">https://github.com/ente-io/photos-desktop/releases</url>
+      <url type="details">https://github.com/ente/photos-desktop/releases</url>
     </release>
   </releases>
 </component>

@@ -217,7 +217,7 @@ void main() {
         "special/white": Color.fromRGBO(255, 255, 255, 1),
         "special/white-overlay": Color.fromRGBO(255, 255, 255, 0.14),
         "stroke/dark": Color.fromRGBO(62, 62, 62, 1),
-        "stroke/faint": Color.fromRGBO(33, 33, 33, 1),
+        "stroke/faint": Color.fromRGBO(42, 42, 42, 1),
         "text/base": Color.fromRGBO(255, 255, 255, 1),
         "text/dark": Color.fromRGBO(229, 229, 229, 1),
         "text/darker": Color.fromRGBO(204, 204, 204, 1),

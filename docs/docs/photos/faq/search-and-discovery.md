@@ -168,6 +168,18 @@ Try these steps first:
 
 If the People section is still empty, please [send logs](/photos/faq/troubleshooting#sharing-logs) from your desktop app so we can investigate further.
 
+### Why do some people in my People section show letters instead of face thumbnails? {#face-thumbnails-show-letters}
+
+The letter placeholders are a fallback the app shows when it can't load the face thumbnail for someone yet. This often happens after adding new photos, when the app still needs to generate the thumbnails and download the original photos it needs.
+
+Try the following:
+
+1. Force-quit and reopen the Ente app.
+2. Open the People section and leave it on screen for a few minutes, with the app in the foreground and your device on WiFi. This gives the app a chance to generate the thumbnails and download the originals.
+3. If the thumbnails are still letters after 10-15 minutes, force-quit and reopen once more.
+
+The faces should gradually reappear as the app catches up.
+
 ### How do I enable face recognition? {#enable-face-recognition}
 
 Face recognition requires enabling **Machine Learning** first:
@@ -307,6 +319,28 @@ You can help improve face grouping by reviewing and confirming suggestions:
 4. Confirm or reject the suggested faces
 
 This helps the app learn and improve grouping accuracy for the specific person over time.
+
+### Will indexing on desktop download a fresh copy of my library even if I'm using watched folders? {#indexing-watched-folders}
+
+The desktop app may still download or cache items from your Ente account during ML indexing, depending on what's available locally. Expect some temporary local storage and network use during the initial indexing run.
+
+### Once indexing is done, will my phone storage be affected? {#indexing-phone-storage}
+
+No. ML results sync to your account and are available on your phone without re-running the work. Your phone may still cache thumbnails and any files you open, but it does not duplicate the full desktop processing cache.
+
+### Can I reset the machine learning database and re-run face detection from scratch? {#reset-ml-database}
+
+Not currently. There is no built-in option to reset the ML database and detected faces.
+
+### Does Ente adapt as I name people and clean up duplicate face clusters? {#ml-adapts-to-corrections}
+
+Yes. Naming a person triggers automatic merging of the closest matching clusters. Beyond that, Ente surfaces less-confident matches as suggestions for you to accept or reject, and rejected clusters won't be suggested again. All corrections sync across devices.
+
+The fastest way through a large cluster list is to name the people who appear most often in your library first, then accept or reject the follow-up suggestions.
+
+### What happens if I enable Machine Learning but turn off local indexing? {#ml-without-local-indexing}
+
+Local indexing lets your device do the ML work itself — downloading photos, running the models, and building the indexes locally. If you turn it off, the device skips that work and pulls in indexes already built by another of your devices (such as desktop). This is useful for phones with limited RAM.
 
 ## Magic Search
 

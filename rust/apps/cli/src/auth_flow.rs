@@ -1,12 +1,12 @@
 use crate::{
-    api::{ApiClient, client::USER_AGENT, models::KeyAttributes},
+    api::{AppClient, client::USER_AGENT, models::KeyAttributes},
     models::{
-        account::{AccountSecrets, App},
+        account::AccountSecrets,
         error::{Error, Result},
     },
 };
-use base64::{Engine, engine::general_purpose::URL_SAFE};
-use ente_accounts as shared;
+
+use ente_core::b64;
 use ente_core::crypto::SecretVec;
 use serde::{Serialize, de::DeserializeOwned};
 use std::fmt;
@@ -21,47 +21,37 @@ where
 }
 
 fn shared_client(
-    api_client: &ApiClient,
-    app: App,
-    account_id: Option<&str>,
-) -> Result<shared::AccountsClient> {
-    let mut config = shared::AccountsClientConfig::new(app.client_package())
-        .with_base_url(api_client.base_url().to_string())
+    app_client: &AppClient,
+    authenticated: bool,
+) -> Result<ente_accounts::AccountsClient> {
+    let mut config = ente_accounts::AccountsClientConfig::new(app_client.app().client_package())
+        .with_origin(app_client.origin().to_string())
         .with_user_agent(USER_AGENT);
-    if let Some(token) = account_id.and_then(|id| api_client.get_token(id)) {
+    if let Some(token) = authenticated.then(|| app_client.token()).flatten() {
         config = config.with_auth_token(token);
     }
-    shared::AccountsClient::new(config).map_err(Error::from)
+    ente_accounts::AccountsClient::new(config).map_err(Error::from)
 }
 
-fn to_shared_error(error: Error) -> shared::Error {
+fn to_shared_error(error: Error) -> ente_accounts::Error {
     match error {
-        Error::Io(source) => shared::Error::Generic(source.to_string()),
-        Error::Network(source) => shared::Error::Generic(source.to_string()),
-        Error::Serialization(source) => shared::Error::Serialization(source),
-        Error::Database(source) => shared::Error::Generic(source.to_string()),
-        Error::Crypto(message) => shared::Error::Crypto(message),
-        Error::AuthenticationFailed(message) => shared::Error::AuthenticationFailed(message),
-        Error::InvalidConfig(message) => shared::Error::Generic(message),
-        Error::NotFound(message) => shared::Error::Generic(message),
-        Error::InvalidInput(message) => shared::Error::InvalidInput(message),
-        Error::Srp(message) => shared::Error::Srp(message),
-        Error::Base64Decode(source) => shared::Error::Base64Decode(source),
-        Error::Zip(source) => shared::Error::Generic(source.to_string()),
-        Error::ApiError {
-            status,
-            code,
-            message,
-        } => shared::Error::from(ente_core::http::Error::Http {
-            status,
-            code,
-            message,
-        }),
-        Error::Generic(message) => shared::Error::Generic(message),
+        Error::Io(source) => ente_accounts::Error::Generic(source.to_string()),
+        Error::Serialization(source) => ente_accounts::Error::Serialization(source),
+        Error::Database(source) => ente_accounts::Error::Generic(source.to_string()),
+        Error::Crypto(message) => ente_accounts::Error::Crypto(message),
+        Error::AuthenticationFailed(message) => ente_accounts::Error::AuthenticationFailed(message),
+        Error::InvalidConfig(message) => ente_accounts::Error::Generic(message),
+        Error::NotFound(message) => ente_accounts::Error::Generic(message),
+        Error::InvalidInput(message) => ente_accounts::Error::InvalidInput(message),
+        Error::Srp(message) => ente_accounts::Error::Srp(message),
+        Error::Base64Decode(source) => ente_accounts::Error::Base64Decode(source),
+        Error::Zip(source) => ente_accounts::Error::Generic(source.to_string()),
+        Error::Http(source) => ente_accounts::Error::Http(source),
+        Error::Generic(message) => ente_accounts::Error::Generic(message),
     }
 }
 
-pub use shared::{OtpPurpose, SecondFactorMethod, TotpPurpose};
+pub use ente_accounts::{OtpPurpose, SecondFactorMethod, TotpPurpose};
 
 pub trait AuthFlowUi {
     fn read_email_otp(&mut self, email: &str, purpose: OtpPurpose, resent: bool) -> Result<String>;
@@ -80,23 +70,23 @@ struct UiAdapter<'a, U> {
     inner: &'a mut U,
 }
 
-impl<U: AuthFlowUi> shared::AuthFlowUi for UiAdapter<'_, U> {
+impl<U: AuthFlowUi> ente_accounts::AuthFlowUi for UiAdapter<'_, U> {
     fn read_email_otp(
         &mut self,
         email: &str,
         purpose: OtpPurpose,
         resent: bool,
-    ) -> shared::Result<String> {
+    ) -> ente_accounts::Result<String> {
         self.inner
             .read_email_otp(email, purpose, resent)
             .map_err(to_shared_error)
     }
 
-    fn read_totp_code(&mut self, purpose: TotpPurpose) -> shared::Result<String> {
+    fn read_totp_code(&mut self, purpose: TotpPurpose) -> ente_accounts::Result<String> {
         self.inner.read_totp_code(purpose).map_err(to_shared_error)
     }
 
-    fn report_retryable_error(&mut self, message: &str) -> shared::Result<()> {
+    fn report_retryable_error(&mut self, message: &str) -> ente_accounts::Result<()> {
         self.inner
             .report_retryable_error(message)
             .map_err(to_shared_error)
@@ -105,25 +95,29 @@ impl<U: AuthFlowUi> shared::AuthFlowUi for UiAdapter<'_, U> {
     fn choose_second_factor(
         &mut self,
         methods: &[SecondFactorMethod],
-    ) -> shared::Result<SecondFactorMethod> {
+    ) -> ente_accounts::Result<SecondFactorMethod> {
         self.inner
             .choose_second_factor(methods)
             .map_err(to_shared_error)
     }
 
-    fn present_passkey_verification(&mut self, url: &str) -> shared::Result<()> {
+    fn present_passkey_verification(&mut self, url: &str) -> ente_accounts::Result<()> {
         self.inner
             .present_passkey_verification(url)
             .map_err(to_shared_error)
     }
 
-    fn wait_for_passkey_verification(&mut self) -> shared::Result<()> {
+    fn wait_for_passkey_verification(&mut self) -> ente_accounts::Result<()> {
         self.inner
             .wait_for_passkey_verification()
             .map_err(to_shared_error)
     }
 
-    fn present_totp_secret(&mut self, secret_code: &str, qr_code: &str) -> shared::Result<()> {
+    fn present_totp_secret(
+        &mut self,
+        secret_code: &str,
+        qr_code: &str,
+    ) -> ente_accounts::Result<()> {
         self.inner
             .present_totp_secret(secret_code, qr_code)
             .map_err(to_shared_error)
@@ -210,7 +204,9 @@ impl fmt::Debug for SetupTwoFactorResult {
     }
 }
 
-fn from_shared_account(account: shared::AuthenticatedAccount) -> Result<AuthenticatedAccount> {
+fn from_shared_account(
+    account: ente_accounts::AuthenticatedAccount,
+) -> Result<AuthenticatedAccount> {
     Ok(AuthenticatedAccount {
         user_id: account.user_id,
         key_attributes: convert(account.key_attributes)?,
@@ -225,8 +221,7 @@ fn from_shared_account(account: shared::AuthenticatedAccount) -> Result<Authenti
 }
 
 pub struct AuthFlow<'a, U> {
-    api_client: &'a ApiClient,
-    app: App,
+    app_client: &'a AppClient,
     ui: &'a mut U,
 }
 
@@ -234,24 +229,19 @@ impl<'a, U> AuthFlow<'a, U>
 where
     U: AuthFlowUi,
 {
-    pub fn new(api_client: &'a ApiClient, app: App, ui: &'a mut U) -> Self {
-        Self {
-            api_client,
-            app,
-            ui,
-        }
+    pub fn new(app_client: &'a AppClient, ui: &'a mut U) -> Self {
+        Self { app_client, ui }
     }
 
     pub async fn create_account(
         &mut self,
         params: CreateAccountParams,
     ) -> Result<AuthenticatedAccount> {
-        let email = params.email.clone();
-        let client = shared_client(self.api_client, self.app, None)?;
+        let client = shared_client(self.app_client, false)?;
         let mut ui = UiAdapter { inner: self.ui };
-        let mut flow = shared::AuthFlow::new(&client, &mut ui);
+        let mut flow = ente_accounts::AuthFlow::new(&client, &mut ui);
         let account = from_shared_account(
-            flow.create_account(shared::CreateAccountParams {
+            flow.create_account(ente_accounts::CreateAccountParams {
                 email: params.email,
                 password: params.password,
                 source: params.source,
@@ -259,17 +249,17 @@ where
             .await
             .map_err(Error::from)?,
         )?;
-        self.api_client
-            .add_token(&email, &URL_SAFE.encode(&account.secrets.token));
+        self.app_client
+            .set_token(&b64::encode_url_safe(&account.secrets.token));
         Ok(account)
     }
 
     pub async fn login(&mut self, params: LoginParams) -> Result<AuthenticatedAccount> {
-        let client = shared_client(self.api_client, self.app, None)?;
+        let client = shared_client(self.app_client, false)?;
         let mut ui = UiAdapter { inner: self.ui };
-        let mut flow = shared::AuthFlow::new(&client, &mut ui);
+        let mut flow = ente_accounts::AuthFlow::new(&client, &mut ui);
         from_shared_account(
-            flow.login(shared::LoginParams {
+            flow.login(ente_accounts::LoginParams {
                 email: params.email,
                 password: params.password,
             })
@@ -282,11 +272,11 @@ where
         &mut self,
         params: SetupTwoFactorParams,
     ) -> Result<SetupTwoFactorResult> {
-        let client = shared_client(self.api_client, self.app, Some(&params.account_id))?;
+        let client = shared_client(self.app_client, true)?;
         let mut ui = UiAdapter { inner: self.ui };
-        let mut flow = shared::AuthFlow::new(&client, &mut ui);
+        let mut flow = ente_accounts::AuthFlow::new(&client, &mut ui);
         let result = flow
-            .setup_two_factor(shared::SetupTwoFactorParams {
+            .setup_two_factor(ente_accounts::SetupTwoFactorParams {
                 master_key: params.master_key,
                 key_attributes: params.key_attributes.map(convert).transpose()?,
             })
@@ -303,6 +293,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::account::App;
     use mockito::{Matcher, Server};
     use serde::{Deserialize, de::DeserializeOwned};
     use sha2::{Digest, Sha256};
@@ -318,7 +309,7 @@ mod tests {
     #[derive(Default)]
     struct MockSignupState {
         uploaded_key_attributes: Option<KeyAttributes>,
-        remote_srp_attributes: Option<shared::models::SrpAttributes>,
+        remote_srp_attributes: Option<ente_accounts::models::SrpAttributes>,
         pending_setup_id: Option<Uuid>,
         pending_client_proof: Option<Vec<u8>>,
         pending_server_proof: Option<Vec<u8>>,
@@ -431,7 +422,7 @@ mod tests {
         let email = "fresh-user@example.org";
         let encoded_email = urlencoding::encode(email).into_owned();
         let signup_token_bytes = b"signup-session-token";
-        let signup_token = URL_SAFE.encode(signup_token_bytes);
+        let signup_token = b64::encode_url_safe(signup_token_bytes);
         let signup_state = Arc::new(Mutex::new(MockSignupState::default()));
 
         let mut server = Server::new_async().await;
@@ -504,15 +495,9 @@ mod tests {
             .with_body_from_request(move |request| {
                 let payload: SetupSrpPayload = parse_request_body(request);
                 let srp_user_id = Uuid::parse_str(&payload.srp_user_id).unwrap();
-                let srp_salt = base64::engine::general_purpose::STANDARD
-                    .decode(&payload.srp_salt)
-                    .unwrap();
-                let srp_verifier = base64::engine::general_purpose::STANDARD
-                    .decode(&payload.srp_verifier)
-                    .unwrap();
-                let srp_a = base64::engine::general_purpose::STANDARD
-                    .decode(&payload.srp_a)
-                    .unwrap();
+                let srp_salt = b64::decode(&payload.srp_salt).unwrap();
+                let srp_verifier = b64::decode(&payload.srp_verifier).unwrap();
+                let srp_a = b64::decode(&payload.srp_a).unwrap();
                 let server = ServerG4096::<Sha256>::new();
                 let b_private = [0x33u8; 64];
                 let srp_b = pad_left(
@@ -547,7 +532,7 @@ mod tests {
 
                 let mut state = state.lock().unwrap();
                 let uploaded_key_attributes = state.uploaded_key_attributes.clone().unwrap();
-                state.remote_srp_attributes = Some(shared::models::SrpAttributes {
+                state.remote_srp_attributes = Some(ente_accounts::models::SrpAttributes {
                     srp_user_id,
                     srp_salt: payload.srp_salt,
                     mem_limit: uploaded_key_attributes.mem_limit,
@@ -561,7 +546,7 @@ mod tests {
 
                 serde_json::json!({
                     "setupID": setup_id,
-                    "srpB": base64::engine::general_purpose::STANDARD.encode(&srp_b),
+                    "srpB": b64::encode(&srp_b),
                 })
                 .to_string()
                 .into_bytes()
@@ -578,9 +563,7 @@ mod tests {
             .with_body_from_request(move |request| {
                 let payload: CompleteSrpSetupPayload = parse_request_body(request);
                 let setup_id = Uuid::parse_str(&payload.setup_id).unwrap();
-                let srp_m1 = base64::engine::general_purpose::STANDARD
-                    .decode(&payload.srp_m1)
-                    .unwrap();
+                let srp_m1 = b64::decode(&payload.srp_m1).unwrap();
 
                 let mut state = state.lock().unwrap();
                 assert_eq!(state.pending_setup_id, Some(setup_id));
@@ -588,8 +571,7 @@ mod tests {
 
                 serde_json::json!({
                     "setupID": setup_id,
-                    "srpM2": base64::engine::general_purpose::STANDARD
-                        .encode(state.pending_server_proof.take().unwrap()),
+                    "srpM2": b64::encode(&state.pending_server_proof.take().unwrap()),
                 })
                 .to_string()
                 .into_bytes()
@@ -640,8 +622,8 @@ mod tests {
             .create_async()
             .await;
 
-        let api_client = ApiClient::new(Some(server.url())).unwrap();
-        let mut flow = AuthFlow::new(&api_client, App::Photos, &mut ui);
+        let app_client = AppClient::new(Some(server.url()), App::Photos).unwrap();
+        let mut flow = AuthFlow::new(&app_client, &mut ui);
 
         let created = flow
             .create_account(CreateAccountParams {
@@ -652,10 +634,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(
-            api_client.get_token(email).as_deref(),
-            Some(signup_token.as_str())
-        );
+        assert_eq!(app_client.token().as_deref(), Some(signup_token.as_str()));
 
         let (uploaded_key_attributes, remote_srp_attributes) = {
             let state = signup_state.lock().unwrap();

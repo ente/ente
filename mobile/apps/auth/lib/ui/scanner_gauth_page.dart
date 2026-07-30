@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:ente_auth/l10n/l10n.dart';
-import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/theme/ente_theme.dart';
 import 'package:ente_auth/ui/components/scanner_camera_view.dart';
 import 'package:ente_auth/ui/settings/data/import/google_auth_import.dart';
@@ -76,14 +75,14 @@ class ScannerGoogleAuthPageState extends State<ScannerGoogleAuthPage> {
     }
 
     try {
-      final codes = parseGoogleAuth(qrCode);
-      _completeWithCodes(codes);
+      final migration = parseGoogleAuthMigration(qrCode);
+      _completeWithMigration(migration);
     } catch (e) {
       _completeWithError(e);
     }
   }
 
-  void _completeWithCodes(List<Code> codes) {
+  void _completeWithMigration(GoogleAuthMigration migration) {
     if (_hasCompletedScan) {
       return;
     }
@@ -92,7 +91,7 @@ class ScannerGoogleAuthPageState extends State<ScannerGoogleAuthPage> {
     if (!mounted) {
       return;
     }
-    Navigator.of(context).pop(codes);
+    Navigator.of(context).pop(migration);
   }
 
   void _completeWithError(Object error) {

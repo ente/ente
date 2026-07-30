@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -127,6 +127,24 @@ func (repo *Repository) UpdateRecoveryStatusForID(ctx context.Context, sessionID
 		result, err = repo.DB.ExecContext(ctx, `UPDATE emergency_recovery SET status=$1, wait_till=$2 WHERE id=$3 and status = ANY($4)`, status, time.Microseconds(), sessionID, pq.Array(validPrevStatus))
 	} else {
 		result, err = repo.DB.ExecContext(ctx, `UPDATE emergency_recovery SET status=$1 WHERE id=$2 and status = ANY($3)`, status, sessionID, pq.Array(validPrevStatus))
+	}
+	if err != nil {
+		return false, stacktrace.Propagate(err, "")
+	}
+	rows, _ := result.RowsAffected()
+	return rows > 0, nil
+}
+
+func (repo *Repository) UpdateRecoveryStatusForSession(ctx context.Context, sessionID uuid.UUID, userID, emergencyContactID int64, status ente.RecoveryStatus) (bool, error) {
+	validPrevStatus := validPreviousStatus(status)
+	var result sql.Result
+	var err error
+	if status == ente.RecoveryStatusReady {
+		result, err = repo.DB.ExecContext(ctx, `UPDATE emergency_recovery SET status=$1, wait_till=$2 WHERE id=$3 and user_id=$4 and emergency_contact_id=$5 and status = ANY($6)`,
+			status, time.Microseconds(), sessionID, userID, emergencyContactID, pq.Array(validPrevStatus))
+	} else {
+		result, err = repo.DB.ExecContext(ctx, `UPDATE emergency_recovery SET status=$1 WHERE id=$2 and user_id=$3 and emergency_contact_id=$4 and status = ANY($5)`,
+			status, sessionID, userID, emergencyContactID, pq.Array(validPrevStatus))
 	}
 	if err != nil {
 		return false, stacktrace.Propagate(err, "")

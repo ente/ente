@@ -54,7 +54,7 @@ class BannerWidget extends StatelessWidget {
         break;
 
       case BannerType.starUs:
-        url = Uri.parse("https://github.com/ente-io/ente");
+        url = Uri.parse("https://github.com/ente/ente");
         imagePath = "assets/star_us.png";
         dashColor = const Color.fromRGBO(233, 233, 233, 1);
         boxShadow = [

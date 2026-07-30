@@ -132,7 +132,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "يرجى اختيار مجموعة واحدة على الأقل",
   "unknownItemType": "نوع عنصر غير معروف",
   "fileDeletedSuccessfully": "تم حذف العنصر بنجاح",
   "failedToDeleteFile": "فشل في حذف العنصر: {error}",
@@ -253,7 +252,6 @@
   "optionalNote": "ملاحظة اختيارية",
   "upload": "رفع",
   "documentsHint": "المستندات",
-  "searchHint": "بحث...",
   "searchEmptyTitle": "لم يتم العثور على نتائج",
   "searchEmptyDescription": "حاول البحث عن شيء آخر.",
   "searchEverywhereTitle": "البحث في كل مكان عن \"{query}\"",

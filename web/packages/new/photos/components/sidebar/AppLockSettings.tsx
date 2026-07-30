@@ -149,7 +149,7 @@ export const AppLockSettings: React.FC<NestedSidebarDrawerVisibilityProps> = ({
                 continue: {
                     text: t("disable"),
                     color: "critical",
-                    action: () => void disableAppLock(),
+                    action: disableAppLock,
                 },
             });
             return;

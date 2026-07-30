@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ente-io/museum/pkg/external/listmonk"
+	"github.com/ente/museum/pkg/external/listmonk"
 )
 
 func TestListmonkUnsubscribeDoesNotNotifyWhenSubscriberIsMissing(t *testing.T) {

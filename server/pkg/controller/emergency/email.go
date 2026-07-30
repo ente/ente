@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ente-io/museum/ente"
-	emailUtil "github.com/ente-io/museum/pkg/utils/email"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	emailUtil "github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 )
 

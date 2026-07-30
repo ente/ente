@@ -287,6 +287,40 @@ void main() {
     );
     expect(animatedPadding.padding, const EdgeInsets.only(bottom: 120));
   });
+
+  testWidgets('BottomSheetComponent passes initial scrollable size', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        const BottomSheetComponent(
+          content: SizedBox(key: ValueKey('scrollable-content')),
+          isScrollable: true,
+          initialChildSize: 0.7,
+        ),
+      ),
+    );
+    final sheet = tester.widget<DraggableScrollableSheet>(
+      find.byType(DraggableScrollableSheet),
+    );
+    expect(sheet.initialChildSize, 0.7);
+  });
+
+  testWidgets('BottomSheetComponent keeps default layout non-scrollable', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        const BottomSheetComponent(
+          content: SizedBox(key: ValueKey('plain-content')),
+          initialChildSize: 0.7,
+        ),
+      ),
+    );
+    expect(find.byType(DraggableScrollableSheet), findsNothing);
+    expect(find.byType(Padding), findsWidgets);
+    expect(find.byKey(const ValueKey('plain-content')), findsOneWidget);
+  });
 }
 
 Widget _wrap(Widget child) {

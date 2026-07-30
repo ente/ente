@@ -12,6 +12,7 @@ metainfo: linux/packaging/enteauth.appdata.xml
 
 dependencies:
   - sqlite
+  - libsodium
   - libsecret
   - libappindicator-gtk3
   - polkit

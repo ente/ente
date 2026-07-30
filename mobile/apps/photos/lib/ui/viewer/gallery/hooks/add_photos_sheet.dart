@@ -152,6 +152,7 @@ class AddPhotosPhotoWidget extends StatelessWidget {
                                   false,
                                   selectedFiles: selectedFile.toList(),
                                 );
+                                if (!context.mounted) return;
                                 Navigator.pop(context, selectedFile);
                               },
                             ),
@@ -180,6 +181,7 @@ class AddPhotosPhotoWidget extends StatelessWidget {
   Future<void> _onPickFromDeviceClicked(BuildContext context) async {
     try {
       final assetPickerTextDelegate = await _getAssetPickerTextDelegate();
+      if (!context.mounted) return;
       final List<AssetEntity>? result = await AssetPicker.pickAssets(
         context,
         pickerConfig: AssetPickerConfig(
@@ -192,12 +194,14 @@ class AddPhotosPhotoWidget extends StatelessWidget {
       );
       if (result != null && result.isNotEmpty) {
         final ca = CollectionActions(CollectionsService.instance);
+        if (!context.mounted) return;
         await ca.addToCollection(
           context,
           collection.id,
           false,
           picketAssets: result,
         );
+        if (!context.mounted) return;
         Navigator.of(context).pop();
       }
     } catch (e) {
@@ -205,6 +209,7 @@ class AddPhotosPhotoWidget extends StatelessWidget {
         final PermissionState ps = await permissionService
             .requestPhotoMangerPermissions();
         if (ps != PermissionState.authorized && ps != PermissionState.limited) {
+          if (!context.mounted) return;
           await showChoiceDialog(
             context,
             title: context.l10n.grantPermission,
@@ -216,6 +221,7 @@ class AddPhotosPhotoWidget extends StatelessWidget {
             },
           );
         } else {
+          if (!context.mounted) return;
           await showErrorDialog(
             context,
             context.l10n.oops,

@@ -127,13 +127,9 @@ class SupportPage extends StatelessWidget {
   }
 
   Widget _sectionTitle(BuildContext context, String title) {
-    final colors = context.componentColors;
     return Padding(
       padding: const EdgeInsets.only(left: Spacing.sm, top: 6, bottom: 6),
-      child: Text(
-        title,
-        style: TextStyles.large.copyWith(color: colors.textBase),
-      ),
+      child: Text(title, style: TextStyles.large),
     );
   }
 
