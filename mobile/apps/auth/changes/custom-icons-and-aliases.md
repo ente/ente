@@ -1,1 +1,0 @@
-- Added custom icons and aliases for more services.

@@ -1,1 +1,0 @@
-- Improved app-lock privacy when returning to Auth.

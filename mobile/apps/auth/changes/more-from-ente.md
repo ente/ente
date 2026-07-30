@@ -1,1 +1,0 @@
-- Added quick links to discover other Ente apps.

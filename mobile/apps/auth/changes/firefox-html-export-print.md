@@ -1,1 +1,0 @@
-- Fixed the HTML export print layout on Firefox.
