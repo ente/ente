@@ -42,7 +42,7 @@ extension FilePropsExtn on EnteFile {
 
   bool get canEditMetaInfo => isUploaded && isOwner;
 
-  bool get isTrash => this is TrashFile;
+  TrashFile? get asTrashFile => (this is TrashFile) ? this as TrashFile : null;
 
   // Return true if the file was uploaded via collect photos workflow
   bool get isCollect => uploaderName != null;
