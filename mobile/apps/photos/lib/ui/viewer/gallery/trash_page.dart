@@ -67,6 +67,14 @@ class _TrashPageState extends State<TrashPage> {
               ],
             ),
           );
+    final appBarBottom = header == null
+        ? null
+        : PreferredSize(
+            preferredSize: Size.fromHeight(
+              2 * Spacing.sm + TagChipComponent.preferredHeight(context),
+            ),
+            child: header,
+          );
     final gallery = AnimatedSwitcher(
       duration: const Duration(milliseconds: 150),
       child: Gallery(
@@ -78,8 +86,7 @@ class _TrashPageState extends State<TrashPage> {
           _selectedFiles,
           subtitle:
               l10n.itemsShowTheNumberOfDaysRemainingBeforePermanentDeletion,
-          bottom: header,
-          bottomPreferredHeight: header == null ? null : 8 + 44 + 8,
+          bottom: appBarBottom,
         ),
         asyncLoader: _asyncLoader,
         reloadEvent: Bus.instance.on<FilesUpdatedEvent>().where(

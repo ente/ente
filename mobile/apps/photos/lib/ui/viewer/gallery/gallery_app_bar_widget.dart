@@ -72,8 +72,7 @@ class GalleryAppBarWidget extends StatefulWidget {
     Future<void> Function()? onDisableDeviceFolderBackup,
     Collection? collection,
     List<EnteFile>? files,
-    Widget? bottom,
-    double? bottomPreferredHeight,
+    PreferredSizeWidget? bottom,
   }) {
     return GalleryAppBarConfig(
       sliverBuilder: (_) => GalleryAppBarWidget._(
@@ -87,25 +86,30 @@ class GalleryAppBarWidget extends StatefulWidget {
         collection: collection,
         files: files,
         bottom: bottom,
-        bottomPreferredHeight: bottomPreferredHeight,
       ),
-      geometryBuilder: (context) =>
-          _resolveSliverGeometry(context, subtitle: subtitle),
+      geometryBuilder: (context) => _resolveSliverGeometry(
+        context,
+        subtitle: subtitle,
+        customBottomHeight: bottom?.preferredSize.height,
+      ),
     );
   }
 
   static HeaderAppBarGeometry _resolveSliverGeometry(
     BuildContext context, {
     String? subtitle,
+    double? customBottomHeight,
   }) {
     final inheritedSearchFilterData = InheritedSearchFilterData.maybeOf(
       context,
     );
     final isHierarchicalSearchable =
         inheritedSearchFilterData?.isHierarchicalSearchable ?? false;
-    final bottomHeight = isHierarchicalSearchable
-        ? AppBarFilterChips.preferredHeight(context)
-        : 0.0;
+    final bottomHeight =
+        customBottomHeight ??
+        (isHierarchicalSearchable
+            ? AppBarFilterChips.preferredHeight(context)
+            : 0.0);
     return SliverAppBarComponent.resolveGeometry(
       context,
       subtitle: subtitle,
@@ -125,8 +129,7 @@ class GalleryAppBarWidget extends StatefulWidget {
   final Future<void> Function()? onDisableDeviceFolderBackup;
   final Collection? collection;
   final List<EnteFile>? files;
-  final Widget? bottom;
-  final double? bottomPreferredHeight;
+  final PreferredSizeWidget? bottom;
 
   const GalleryAppBarWidget._(
     this.type,
@@ -139,7 +142,6 @@ class GalleryAppBarWidget extends StatefulWidget {
     this.collection,
     this.files,
     this.bottom,
-    this.bottomPreferredHeight,
   });
 
   @override
@@ -266,14 +268,11 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
         title: _appBarTitle,
         subtitle: widget.subtitle,
         actions: _getDefaultActions(context),
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(widget.bottomPreferredHeight!),
-          child: widget.bottom!,
-        ),
+        bottom: widget.bottom,
       );
     }
 
-    if (!isHierarchicalSearchable && widget.bottom == null) {
+    if (!isHierarchicalSearchable) {
       return _GallerySliverAppBar(
         title: _appBarTitle,
         subtitle: widget.subtitle,
