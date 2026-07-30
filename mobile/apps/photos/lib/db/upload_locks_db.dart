@@ -174,17 +174,27 @@ class UploadLocksDB {
     await db.delete(_streamQueueTable.table);
   }
 
-  Future<void> acquireLock(String id, String owner, int time) async {
+  Future<bool> tryAcquireLock(String id, String owner, int time) async {
     final db = await database;
     final row = <String, dynamic>{};
     row[_uploadLocksTable.columnID] = id;
     row[_uploadLocksTable.columnOwner] = owner;
     row[_uploadLocksTable.columnTime] = time;
-    await db.insert(
-      _uploadLocksTable.table,
-      row,
-      conflictAlgorithm: ConflictAlgorithm.fail,
-    );
+    try {
+      await db.insert(
+        _uploadLocksTable.table,
+        row,
+        conflictAlgorithm: ConflictAlgorithm.fail,
+      );
+      return true;
+    } on DatabaseException catch (e) {
+      final lockIDColumn =
+          '${_uploadLocksTable.table}.${_uploadLocksTable.columnID}';
+      if (e.isUniqueConstraintError(lockIDColumn)) {
+        return false;
+      }
+      rethrow;
+    }
   }
 
   Future<String> getLockData(String id) async {

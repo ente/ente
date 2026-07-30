@@ -14,6 +14,18 @@ const (
 
 var spaceSlugPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._]*$`)
 var reservedSpaceSlugs = newReservedSpaceSlugSet()
+var reservedSpaceSlugSuffixes = []string{
+	".css",
+	".htm",
+	".html",
+	".js",
+	".json",
+	".map",
+	".mjs",
+	".txt",
+	".webmanifest",
+	".xml",
+}
 
 func newReservedSpaceSlugSet() map[string]struct{} {
 	slugs := make(map[string]struct{}, len(reservedSpaceSlugList))
@@ -55,5 +67,13 @@ func isReservedSpaceSlug(slug string) bool {
 	if strings.HasPrefix(slug, "ente") {
 		return true
 	}
-	return strings.HasSuffix(slug, ".ente") || strings.HasSuffix(slug, "-ente") || strings.HasSuffix(slug, "_ente")
+	if strings.HasSuffix(slug, ".ente") || strings.HasSuffix(slug, "-ente") || strings.HasSuffix(slug, "_ente") {
+		return true
+	}
+	for _, suffix := range reservedSpaceSlugSuffixes {
+		if strings.HasSuffix(slug, suffix) {
+			return true
+		}
+	}
+	return false
 }

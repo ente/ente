@@ -31,9 +31,9 @@ import {
     JoinNowButton,
     type MemoryViewerProps,
     MOBILE_LAYOUT_BREAKPOINT_PX,
-    MobileJoinNowButton,
     PhotoContainer,
     readViewport,
+    ViewerFooterBar,
     ViewerRoot,
 } from "./PublicMemoryViewerShared";
 
@@ -51,24 +51,30 @@ const DESKTOP_MEDIA_MAX_WIDTH_CSS = `min(${DESKTOP_MEDIA_MAX_WIDTH_PX}px, calc(1
 const DESKTOP_MEDIA_MAX_HEIGHT_CSS = `calc(min(100vh, 100dvh) - ${DESKTOP_MEDIA_VERTICAL_RESERVED_PX}px)`;
 const DESKTOP_BACKGROUND_IMAGE_PATH = "/images/memory-lane-bg-desktop.svg";
 const MOBILE_BACKGROUND_IMAGE_PATH = "/images/memory-lane-bg-mobile.svg";
+const shareHeaderJoinNowButtonSx = {
+    borderRadius: "999px",
+    fontSize: "16px",
+    fontWeight: 700,
+    lineHeight: "14px",
+    paddingBlock: "18px",
+    paddingInline: "32px",
+};
 const compactShareHeaderJoinNowButtonSx = {
-    borderRadius: "14px",
+    ...shareHeaderJoinNowButtonSx,
     fontSize: "15px",
-    lineHeight: 1.1,
-    minHeight: "42px",
-    paddingBlock: "10px",
-    paddingInline: "20px",
+    paddingBlock: "13px",
+    paddingInline: "24px",
 };
 
 interface SharedMemoryHeaderProps {
     title: string;
+    date?: string;
     total: number;
     current: number;
     paused: boolean;
     duration: number;
     onComplete: () => void;
     isVideo: boolean;
-    showTitle?: boolean;
 }
 
 /**
@@ -77,13 +83,13 @@ interface SharedMemoryHeaderProps {
  */
 function SharedMemoryHeader({
     title,
+    date,
     total,
     current,
     paused,
     duration,
     onComplete,
     isVideo,
-    showTitle = true,
 }: SharedMemoryHeaderProps) {
     const progressIndicator = (
         <ProgressIndicator
@@ -99,54 +105,11 @@ function SharedMemoryHeader({
 
     return (
         <HeaderSection>
-            {showTitle && <MemoryTitle variant="h6">{title}</MemoryTitle>}
+            <HeaderMeta>
+                <MemoryTitle variant="h6">{title}</MemoryTitle>
+                {!!date && <MemoryDate variant="body">{date}</MemoryDate>}
+            </HeaderMeta>
             {progressIndicator}
-        </HeaderSection>
-    );
-}
-
-interface MobileProgressHeaderProps {
-    title: string;
-    date?: string;
-    total: number;
-    current: number;
-    paused: boolean;
-    duration: number;
-    onComplete: () => void;
-    isVideo: boolean;
-}
-
-function MobileProgressHeader({
-    title,
-    date,
-    total,
-    current,
-    paused,
-    duration,
-    onComplete,
-    isVideo,
-}: MobileProgressHeaderProps) {
-    return (
-        <HeaderSection>
-            <MobileFooterMeta>
-                <MobileFooterPrimaryLine variant="h6">
-                    {title}
-                </MobileFooterPrimaryLine>
-                {!!date && (
-                    <MobileFooterSecondaryLine variant="body">
-                        {date}
-                    </MobileFooterSecondaryLine>
-                )}
-            </MobileFooterMeta>
-            <ProgressIndicator
-                total={total}
-                current={current}
-                paused={paused}
-                duration={duration}
-                onComplete={onComplete}
-                isVideo={isVideo}
-                minimal
-            />
         </HeaderSection>
     );
 }
@@ -407,21 +370,9 @@ export function MemoryViewer({
         }
     }, [currentFile]);
 
-    const headerTitle = useMemo(() => {
-        if (memoryName && currentFileDate) {
-            return `${memoryName} • ${currentFileDate}`;
-        }
-        return memoryName || currentFileDate || "Memory";
-    }, [currentFileDate, memoryName]);
-
-    const mobileFooterTitle = useMemo(
-        () => memoryName || currentFileDate || "Memory",
-        [currentFileDate, memoryName],
-    );
-    const mobileFooterDate = useMemo(
-        () => (memoryName && currentFileDate ? currentFileDate : undefined),
-        [currentFileDate, memoryName],
-    );
+    const headerTitle = memoryName || currentFileDate || "Memory";
+    const headerDate =
+        memoryName && currentFileDate ? currentFileDate : undefined;
 
     const handleRestartPlayback = useCallback(() => {
         if (currentIndex > 0) {
@@ -590,9 +541,10 @@ export function MemoryViewer({
         paused || !fileLoaded || (isVideo && !videoDurationKnown);
     const showPlaybackOverlay = paused;
 
-    const sharedHeader = (
+    const header = (
         <SharedMemoryHeader
             title={headerTitle}
+            date={headerDate}
             total={files.length}
             current={currentIndex}
             paused={isProgressPaused}
@@ -602,17 +554,22 @@ export function MemoryViewer({
         />
     );
 
-    const mobileProgressHeader = (
-        <MobileProgressHeader
-            title={mobileFooterTitle}
-            date={mobileFooterDate}
-            total={files.length}
-            current={currentIndex}
-            paused={isProgressPaused}
-            duration={progressDuration}
-            onComplete={handleAdvanceOrFinish}
-            isVideo={isVideo}
-        />
+    const joinEnteButton = (
+        <JoinNowButton
+            variant="contained"
+            color="accent"
+            disableElevation
+            href="https://ente.com/try"
+            target="_blank"
+            rel="noopener"
+            sx={
+                isTabletShareLayout
+                    ? compactShareHeaderJoinNowButtonSx
+                    : shareHeaderJoinNowButtonSx
+            }
+        >
+            Join Ente
+        </JoinNowButton>
     );
 
     const mediaLayers = (
@@ -689,30 +646,7 @@ export function MemoryViewer({
                 }
             >
                 {isMobileLayout ? (
-                    <MobileTopActions>
-                        <BrandLink
-                            href="https://ente.com"
-                            target="_blank"
-                            rel="noopener"
-                            data-memory-control="true"
-                        >
-                            <EnteBrandTagImage
-                                src={ENTE_BRAND_TAG_IMAGE_PATH}
-                                alt="Ente Photos"
-                            />
-                        </BrandLink>
-                        <MobileHeaderSpacer aria-hidden="true" />
-                        <MobileJoinNowButton
-                            variant="contained"
-                            color="accent"
-                            disableElevation
-                            href="https://ente.com/try"
-                            target="_blank"
-                            rel="noopener"
-                        >
-                            Get Ente Photos
-                        </MobileJoinNowButton>
-                    </MobileTopActions>
+                    header
                 ) : (
                     <TopControls>
                         <TopLeftBrandLink
@@ -727,25 +661,9 @@ export function MemoryViewer({
                             />
                         </TopLeftBrandLink>
 
-                        {sharedHeader}
+                        {header}
 
-                        <TopRightActions>
-                            <JoinNowButton
-                                variant="contained"
-                                color="accent"
-                                disableElevation
-                                href="https://ente.com/try"
-                                target="_blank"
-                                rel="noopener"
-                                sx={
-                                    isTabletShareLayout
-                                        ? compactShareHeaderJoinNowButtonSx
-                                        : undefined
-                                }
-                            >
-                                Get Ente Photos
-                            </JoinNowButton>
-                        </TopRightActions>
+                        <TopRightActions>{joinEnteButton}</TopRightActions>
                     </TopControls>
                 )}
 
@@ -779,7 +697,22 @@ export function MemoryViewer({
                     </MediaFrame>
                 </PhotoContainer>
 
-                {isMobileLayout && mobileProgressHeader}
+                {isMobileLayout && (
+                    <ViewerFooterBar style={{ gap: "24px" }}>
+                        <BrandLink
+                            href="https://ente.com"
+                            target="_blank"
+                            rel="noopener"
+                            data-memory-control="true"
+                        >
+                            <EnteBrandTagImage
+                                src={ENTE_BRAND_TAG_IMAGE_PATH}
+                                alt="Ente Photos"
+                            />
+                        </BrandLink>
+                        {joinEnteButton}
+                    </ViewerFooterBar>
+                )}
             </ContentContainer>
         </ViewerRoot>
     );
@@ -875,65 +808,51 @@ const HeaderSection = styled("div")({
     },
 });
 
-const MemoryTitle = styled(Typography)({
-    color: "rgba(255, 255, 255, 0.84)",
-    fontWeight: 600,
-    fontSize: "16px",
-    lineHeight: 1.15,
-    letterSpacing: "-0.01em",
-    textAlign: "center",
-    whiteSpace: "normal",
-    overflowWrap: "anywhere",
-    maxWidth: "100%",
-    "@media (max-width: 900px)": { fontSize: "15px" },
-    "@media (max-width: 700px)": { fontSize: "14px", lineHeight: 1.2 },
-});
-
-const MobileTopActions = styled("div")({
-    width: "100%",
-    display: "grid",
-    gridTemplateColumns: "auto minmax(0, 1fr) auto",
-    alignItems: "center",
-    gap: "12px",
-    padding: "0 24px",
-    boxSizing: "border-box",
-});
-
-const MobileHeaderSpacer = styled("div")({ minWidth: 0 });
-
-const MobileFooterMeta = styled("div")({
+const HeaderMeta = styled("div")({
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    gap: "5px",
+    gap: "6px",
     width: "100%",
-    transform: "translateY(-8px)",
+    [`@media (max-width: ${MOBILE_LAYOUT_BREAKPOINT_PX}px)`]: { gap: "5px" },
 });
 
-const MobileFooterPrimaryLine = styled(Typography)({
-    color: "rgba(255, 255, 255, 0.9)",
-    fontWeight: 600,
-    fontSize: "19px",
-    lineHeight: 1.08,
-    letterSpacing: "-0.01em",
-    textAlign: "center",
-    whiteSpace: "nowrap",
-    maxWidth: "100%",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-});
-
-const MobileFooterSecondaryLine = styled(Typography)({
+const MemoryDate = styled(Typography)({
     color: "rgba(255, 255, 255, 0.72)",
     fontWeight: 500,
-    fontSize: "14px",
-    lineHeight: 1.18,
+    fontSize: "15px",
+    lineHeight: 1.2,
     letterSpacing: "0.01em",
     textAlign: "center",
     whiteSpace: "nowrap",
     maxWidth: "100%",
     overflow: "hidden",
     textOverflow: "ellipsis",
+    "@media (max-width: 700px)": { fontSize: "14px" },
+    [`@media (max-width: ${MOBILE_LAYOUT_BREAKPOINT_PX}px)`]: {
+        lineHeight: 1.18,
+    },
+});
+
+const MemoryTitle = styled(Typography)({
+    color: "#fff",
+    fontFamily: "'Outfit Variable', sans-serif",
+    fontWeight: 800,
+    fontSize: "28px",
+    lineHeight: 1.15,
+    textAlign: "center",
+    whiteSpace: "normal",
+    overflowWrap: "anywhere",
+    maxWidth: "100%",
+    "@media (max-width: 900px)": { fontSize: "24px" },
+    "@media (max-width: 700px)": { fontSize: "20px", lineHeight: 1.2 },
+    [`@media (max-width: ${MOBILE_LAYOUT_BREAKPOINT_PX}px)`]: {
+        fontSize: "28px",
+        lineHeight: 1.08,
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+    },
 });
 
 const TopLeftBrandLink = styled(BrandLink)({

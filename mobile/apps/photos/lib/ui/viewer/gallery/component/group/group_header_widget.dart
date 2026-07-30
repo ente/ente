@@ -226,9 +226,8 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
   }
 
   void _showLayoutSettingsOverflowMenu(BuildContext context) {
-    showModalBottomSheet(
+    components.showBottomSheetComponent<void>(
       context: context,
-      backgroundColor: getEnteColorScheme(context).backgroundElevated,
       builder: (BuildContext context) {
         return const GalleryLayoutSettings();
       },

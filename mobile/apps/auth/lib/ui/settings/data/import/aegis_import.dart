@@ -115,8 +115,9 @@ Future<int?> _processAegisExportFile(
         }
       }
     }
-    Code code = Code.fromOTPAuthUrl(
-      buildImportOtpUri(
+    Code code = parseImportOtpCode(
+      item,
+      () => buildImportOtpUri(
         kind: kind,
         issuer: issuer,
         account: account,

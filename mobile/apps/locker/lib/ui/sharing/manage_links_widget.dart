@@ -4,10 +4,6 @@ import "dart:convert";
 import 'package:ente_components/ente_components.dart';
 import "package:ente_crypto_api/ente_crypto_api.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
-import "package:ente_ui/components/captioned_text_widget_v2.dart";
-import "package:ente_ui/components/divider_widget.dart";
-import "package:ente_ui/components/menu_item_widget_v2.dart";
-import "package:ente_ui/components/toggle_switch_widget.dart";
 import "package:ente_ui/utils/dialog_util.dart";
 import "package:ente_ui/utils/toast_util.dart";
 import "package:ente_utils/share_utils.dart";
@@ -50,222 +46,202 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
       widget.collection!,
     );
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        centerTitle: false,
-        title: Text(context.l10n.manageLink),
-      ),
-      body: SingleChildScrollView(
-        child: ListBody(
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      backgroundColor: colors.backgroundBase,
+      body: AppBarComponent(
+        title: context.l10n.manageLink,
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.lg,
+              Spacing.md,
+              Spacing.lg,
+              Spacing.md,
+            ),
+            sliver: SliverToBoxAdapter(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  MenuItemWidgetV2(
-                    alignCaptionedTextToLeft: true,
-                    captionedTextWidget: CaptionedTextWidgetV2(
-                      title: context.l10n.linkExpiry,
-                      subTitle: url.hasExpiry
-                          ? (url.isExpired
-                                ? context.l10n.linkExpired
-                                : getFormattedTime(
-                                    DateTime.fromMicrosecondsSinceEpoch(
-                                      url.validTill,
-                                    ),
-                                  ))
-                          : context.l10n.never,
-                      subTitleColor: url.isExpired ? colors.warning : null,
-                    ),
-                    trailingWidget: HugeIcon(
-                      icon: HugeIcons.strokeRoundedArrowRight01,
-                      color: colors.textLight,
-                      size: 20,
-                    ),
-                    menuItemColor: colors.fillLight,
-                    surfaceExecutionStates: false,
-                    onTap: () async {
-                      unawaited(
-                        routeToPage(
-                          context,
-                          LinkExpiryPickerPage(widget.collection!),
-                        ).then((value) {
-                          if (mounted) {
-                            setState(() {});
-                          }
-                        }),
-                      );
-                    },
-                  ),
-                  const Padding(padding: EdgeInsets.only(top: 24)),
-                  MenuItemWidgetV2(
-                    captionedTextWidget: CaptionedTextWidgetV2(
-                      title: context.l10n.linkDeviceLimit,
-                      subTitle: url.deviceLimit == 0
-                          ? context.l10n.noDeviceLimit
-                          : "${url.deviceLimit}",
-                    ),
-                    trailingWidget: HugeIcon(
-                      icon: HugeIcons.strokeRoundedArrowRight01,
-                      color: colors.textLight,
-                      size: 20,
-                    ),
-                    menuItemColor: colors.fillLight,
-                    alignCaptionedTextToLeft: true,
-                    isBottomBorderRadiusRemoved: true,
-                    onTap: () async {
-                      unawaited(
-                        routeToPage(
-                          context,
-                          DeviceLimitPickerPage(widget.collection!),
-                        ).then((value) {
-                          if (mounted) {
-                            setState(() {});
-                          }
-                        }),
-                      );
-                    },
-                    surfaceExecutionStates: false,
-                  ),
-                  DividerWidget(
-                    dividerType: DividerType.menu,
-                    bgColor: colors.fillLight,
-                  ),
-                  MenuItemWidgetV2(
-                    key: ValueKey("Password lock ${url.passwordEnabled}"),
-                    captionedTextWidget: CaptionedTextWidgetV2(
-                      title: context.l10n.passwordLock,
-                    ),
-                    alignCaptionedTextToLeft: true,
-                    isTopBorderRadiusRemoved: true,
-                    menuItemColor: colors.fillLight,
-                    trailingWidget: ToggleSwitchWidget(
-                      value: () => url.passwordEnabled,
-                      onChanged: () async {
-                        if (!url.passwordEnabled) {
-                          await showTextInputSheet(
-                            context,
-                            title: context.l10n.setAPassword,
-                            submitButtonLabel: context.l10n.lockButtonLabel,
-                            hintText: context.l10n.enterPassword,
-                            onSubmit: (String password) async {
-                              if (password.trim().isEmpty) {
-                                return;
+                  MenuGroupComponent(
+                    items: [
+                      MenuComponent(
+                        title: context.l10n.linkExpiry,
+                        subtitle: url.hasExpiry
+                            ? (url.isExpired
+                                  ? context.l10n.linkExpired
+                                  : getFormattedTime(
+                                      DateTime.fromMicrosecondsSinceEpoch(
+                                        url.validTill,
+                                      ),
+                                    ))
+                            : context.l10n.never,
+                        subtitleColor: url.isExpired ? colors.warning : null,
+                        trailing: HugeIcon(
+                          icon: HugeIcons.strokeRoundedArrowRight01,
+                          color: colors.textLight,
+                          size: 20,
+                        ),
+                        onTap: () async {
+                          unawaited(
+                            routeToPage(
+                              context,
+                              LinkExpiryPickerPage(widget.collection!),
+                            ).then((value) {
+                              if (mounted) {
+                                setState(() {});
                               }
-                              final propToUpdate = await _getEncryptedPassword(
-                                password,
-                              );
-                              await _updateUrlSettings(
-                                context.mounted ? context : null,
-                                propToUpdate,
-                                showProgressDialog: false,
-                              );
-                            },
-                            isPasswordInput: true,
-                            textCapitalization: TextCapitalization.none,
-                            maxLength: 256,
+                            }),
                           );
-                        } else {
-                          await _updateUrlSettings(context, {
-                            'disablePassword': true,
-                          });
-                        }
-                      },
-                    ),
+                        },
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 24),
-                  if (url.isExpired)
-                    MenuItemWidgetV2(
-                      captionedTextWidget: CaptionedTextWidgetV2(
-                        title: context.l10n.linkExpired,
-                        textColor: colors.warning,
+                  const SizedBox(height: Spacing.xxl),
+                  MenuGroupComponent(
+                    items: [
+                      MenuComponent(
+                        title: context.l10n.linkDeviceLimit,
+                        subtitle: url.deviceLimit == 0
+                            ? context.l10n.noDeviceLimit
+                            : "${url.deviceLimit}",
+                        trailing: HugeIcon(
+                          icon: HugeIcons.strokeRoundedArrowRight01,
+                          color: colors.textLight,
+                          size: 20,
+                        ),
+                        onTap: () async {
+                          unawaited(
+                            routeToPage(
+                              context,
+                              DeviceLimitPickerPage(widget.collection!),
+                            ).then((value) {
+                              if (mounted) {
+                                setState(() {});
+                              }
+                            }),
+                          );
+                        },
                       ),
-                      leadingIcon: Icons.error_outline,
-                      leadingIconColor: colors.warning,
-                      menuItemColor: colors.fillLight,
-                    ),
-                  if (!url.isExpired)
-                    MenuItemWidgetV2(
-                      captionedTextWidget: CaptionedTextWidgetV2(
-                        title: context.l10n.copyLink,
-                        makeTextBold: true,
+                      MenuComponent(
+                        key: ValueKey("Password lock ${url.passwordEnabled}"),
+                        title: context.l10n.passwordLock,
+                        trailing: ToggleSwitchComponent.async(
+                          value: () => url.passwordEnabled,
+                          onChanged: () async {
+                            if (!url.passwordEnabled) {
+                              await showTextInputSheet(
+                                context,
+                                title: context.l10n.setAPassword,
+                                submitButtonLabel: context.l10n.lockButtonLabel,
+                                hintText: context.l10n.enterPassword,
+                                onSubmit: (String password) async {
+                                  if (password.trim().isEmpty) {
+                                    return;
+                                  }
+                                  final propToUpdate =
+                                      await _getEncryptedPassword(password);
+                                  await _updateUrlSettings(
+                                    context.mounted ? context : null,
+                                    propToUpdate,
+                                    showProgressDialog: false,
+                                  );
+                                },
+                                isPasswordInput: true,
+                                textCapitalization: TextCapitalization.none,
+                                maxLength: 256,
+                              );
+                            } else {
+                              await _updateUrlSettings(context, {
+                                'disablePassword': true,
+                              });
+                            }
+                          },
+                        ),
                       ),
-                      leadingIconWidget: HugeIcon(
-                        icon: HugeIcons.strokeRoundedCopy01,
-                        color: colors.textBase,
-                        size: 20,
+                    ],
+                  ),
+                  const SizedBox(height: Spacing.xxl),
+                  MenuGroupComponent(
+                    items: [
+                      if (url.isExpired)
+                        MenuComponent(
+                          title: context.l10n.linkExpired,
+                          titleColor: colors.warning,
+                          iconColor: colors.warning,
+                          leading: const Icon(Icons.error_outline),
+                        ),
+                      if (!url.isExpired)
+                        MenuComponent(
+                          title: context.l10n.copyLink,
+                          titleBold: true,
+                          leading: HugeIcon(
+                            icon: HugeIcons.strokeRoundedCopy01,
+                            color: colors.textBase,
+                            size: 20,
+                          ),
+                          showOnlyLoadingState: true,
+                          onTap: () async {
+                            await Clipboard.setData(
+                              ClipboardData(text: urlValue),
+                            );
+                            if (!context.mounted) {
+                              return;
+                            }
+                            showShortToast(
+                              context,
+                              context.l10n.linkCopiedToClipboard,
+                            );
+                          },
+                        ),
+                      if (!url.isExpired)
+                        MenuComponent(
+                          key: sendLinkButtonKey,
+                          title: context.l10n.sendLink,
+                          titleBold: true,
+                          leading: HugeIcon(
+                            icon: HugeIcons.strokeRoundedShare08,
+                            color: colors.textBase,
+                            size: 20,
+                          ),
+                          onTap: () async {
+                            unawaited(shareText(urlValue, context: context));
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: Spacing.xxl),
+                  MenuGroupComponent(
+                    items: [
+                      MenuComponent(
+                        title: context.l10n.removeLink,
+                        titleBold: true,
+                        titleColor: colors.warning,
+                        iconColor: colors.warning,
+                        leading: HugeIcon(
+                          icon: HugeIcons.strokeRoundedDelete02,
+                          color: colors.warning,
+                          size: 20,
+                        ),
+                        onTap: () async {
+                          final bool result =
+                              await CollectionActions.disableUrl(
+                                context,
+                                widget.collection!,
+                              );
+                          if (!context.mounted || !result) {
+                            return;
+                          }
+                          Navigator.of(context).pop();
+                          if (widget.collection!.isQuickLinkCollection()) {
+                            Navigator.of(context).pop();
+                          }
+                        },
                       ),
-                      menuItemColor: colors.fillLight,
-                      showOnlyLoadingState: true,
-                      onTap: () async {
-                        await Clipboard.setData(ClipboardData(text: urlValue));
-                        if (!context.mounted) {
-                          return;
-                        }
-                        showShortToast(
-                          context,
-                          context.l10n.linkCopiedToClipboard,
-                        );
-                      },
-                      isBottomBorderRadiusRemoved: true,
-                    ),
-                  if (!url.isExpired)
-                    DividerWidget(
-                      dividerType: DividerType.menu,
-                      bgColor: colors.fillLight,
-                    ),
-                  if (!url.isExpired)
-                    MenuItemWidgetV2(
-                      key: sendLinkButtonKey,
-                      captionedTextWidget: CaptionedTextWidgetV2(
-                        title: context.l10n.sendLink,
-                        makeTextBold: true,
-                      ),
-                      leadingIconWidget: HugeIcon(
-                        icon: HugeIcons.strokeRoundedShare08,
-                        color: colors.textBase,
-                        size: 20,
-                      ),
-                      menuItemColor: colors.fillLight,
-                      onTap: () async {
-                        unawaited(shareText(urlValue, context: context));
-                      },
-                      isTopBorderRadiusRemoved: true,
-                    ),
-                  const SizedBox(height: 24),
-                  MenuItemWidgetV2(
-                    captionedTextWidget: CaptionedTextWidgetV2(
-                      title: context.l10n.removeLink,
-                      textColor: colors.warning,
-                      makeTextBold: true,
-                    ),
-                    leadingIconWidget: HugeIcon(
-                      icon: HugeIcons.strokeRoundedDelete02,
-                      color: colors.warning,
-                      size: 20,
-                    ),
-                    menuItemColor: colors.fillLight,
-                    surfaceExecutionStates: false,
-                    onTap: () async {
-                      final bool result = await CollectionActions.disableUrl(
-                        context,
-                        widget.collection!,
-                      );
-                      if (!context.mounted || !result) {
-                        return;
-                      }
-                      Navigator.of(context).pop();
-                      if (widget.collection!.isQuickLinkCollection()) {
-                        Navigator.of(context).pop();
-                      }
-                    },
+                    ],
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

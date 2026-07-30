@@ -25,6 +25,7 @@ Future<void> handleExportClick(BuildContext context) async {
     context: context,
     title: context.l10n.selectExportFormat,
     body: context.l10n.exportDialogDesc,
+    alwaysShowCloseButton: true,
     buttons: [
       ButtonWidget(
         buttonType: ButtonType.primary,

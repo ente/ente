@@ -14,6 +14,7 @@ import path from "node:path";
 import type { UtilityProcessType } from "../../types/ipc";
 import log, { processUtilityProcessLogMessage } from "../log";
 import { messagePortMainEndpoint } from "../utils/comlink";
+import { mlNativePaths } from "./ml-native";
 
 /**
  * Terminate any existing utility processes if they're running.
@@ -157,7 +158,10 @@ export const triggerCreateMLUtilityProcess = (window: BrowserWindow) => {
 
     const child = forkWatchedUtilityProcess("ml-worker.js", "[ml-worker]");
     const userDataPath = app.getPath("userData");
-    child.postMessage(/* MLWorkerInitData */ { userDataPath }, [port1]);
+    child.postMessage(
+        /* MLWorkerInitData */ { userDataPath, mlNativePaths: mlNativePaths() },
+        [port1],
+    );
 
     window.webContents.postMessage("utilityProcessPort/ml", undefined, [port2]);
 

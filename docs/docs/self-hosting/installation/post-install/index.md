@@ -89,15 +89,12 @@ If running Museum without Docker, the code should be visible in the terminal (st
 
 You may wish to access some of the applications such as Albums, Share, Paste, Cast, Accounts via your instance's endpoints through the application instead of our production instances.
 
-Configure every web app you deploy in the `apps` section of `museum.yaml`.
+You can do so by editing the `apps` section in `museum.yaml` to use the base endpoints of the corresponding web applications.
 
 ```yaml
 # Replace yourdomain.tld with actual domain
 apps:
-    photos: https://photos.ente.yourdomain.tld
     public-albums: https://albums.ente.yourdomain.tld
-    auth: https://auth.ente.yourdomain.tld
-    locker: https://locker.ente.yourdomain.tld
     public-locker: https://share.ente.yourdomain.tld
     public-paste: https://paste.ente.yourdomain.tld
     public-memories: https://memories.ente.yourdomain.tld
@@ -106,8 +103,6 @@ apps:
     accounts: https://accounts.ente.yourdomain.tld
     legacy: https://legacy.ente.yourdomain.tld
 ```
-
-When you set these keys, Museum rejects browser requests from origins that are not in the list. List every web app that you deploy. A web app that is not in the list will get 403 errors in the browser.
 
 If you are using quickstart, note that only Photos and Albums are exposed by default in `compose.yaml`. Uncomment the port mappings of the other apps there, or deploy them separately, before pointing their `apps.*` keys to those URLs.
 

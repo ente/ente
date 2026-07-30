@@ -15,6 +15,18 @@ const MaxPostsPerSpace = 250
 
 var ErrSpacePostLimitReached = errors.New("space post limit reached")
 
+func (r *PostsRepository) CountPosts(ctx context.Context, spaceID string) (int64, error) {
+	var count int64
+	if err := r.DB.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM space_posts
+		WHERE space_id = $1 AND is_deleted = FALSE
+	`, spaceID).Scan(&count); err != nil {
+		return 0, stacktrace.Propagate(err, "")
+	}
+	return count, nil
+}
+
 func postRecordSelectSQL(viewerLikedExpr string) string {
 	return `
 		SELECT p.post_id, p.space_id, w.space_slug, w.owner_id,

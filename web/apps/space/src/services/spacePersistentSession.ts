@@ -27,12 +27,33 @@ import {
 import { z } from "zod";
 
 const spaceBrowserSessionStorageKey = "spaceBrowserSession";
-const spaceSessionTokenHeader = "X-Space-Session-Token";
+export const spaceSessionTokenHeader = "X-Space-Session-Token";
+
+const OwnedSpace = z.object({
+    spaceId: z.string(),
+    spaceSlug: z.string(),
+    rootWrappedSpaceKey: z.string(),
+    publicKey: z.string().default(""),
+    encryptedSecretKey: z.string().default(""),
+    encryptedProfile: z.string().default(""),
+    keyVersion: z.number(),
+});
+const OwnedSpaces = OwnedSpace.array();
+export type OwnedSpace = z.infer<typeof OwnedSpace>;
+
+const SpaceProfileAvatar = z.object({
+    keyVersion: z.number(),
+    objectID: z.string(),
+    spaceId: z.string(),
+});
+export type SpaceProfileAvatar = z.infer<typeof SpaceProfileAvatar>;
 
 const PersistedSpaceBrowserSession = z.object({
     encryptedSpaceRootKey: z.string(),
     email: z.string(),
     nonce: z.string(),
+    ownedSpaces: OwnedSpaces.optional(),
+    profileAvatar: SpaceProfileAvatar.optional(),
     sessionToken: z.string(),
     userId: z.number(),
 });
@@ -129,6 +150,38 @@ export const logoutRevokedSpaceSession = async () => {
 
 export const savedSpaceSessionToken = () =>
     savedPersistedSession()?.sessionToken;
+
+export const savedSpaceOwnedSpaces = () => savedPersistedSession()?.ownedSpaces;
+
+export const savedSpaceProfileAvatar = () =>
+    savedPersistedSession()?.profileAvatar;
+
+export const saveSpaceOwnedSpaces = (
+    sessionToken: string,
+    ownedSpaces: OwnedSpace[],
+) => {
+    const persisted = savedPersistedSession();
+    if (persisted?.sessionToken != sessionToken) return;
+    localStorage.setItem(
+        spaceBrowserSessionStorageKey,
+        JSON.stringify({
+            ...persisted,
+            ownedSpaces: ownedSpaces.length ? ownedSpaces : undefined,
+        }),
+    );
+};
+
+export const saveSpaceProfileAvatar = (
+    sessionToken: string,
+    profileAvatar: SpaceProfileAvatar | undefined,
+) => {
+    const persisted = savedPersistedSession();
+    if (persisted?.sessionToken != sessionToken) return;
+    localStorage.setItem(
+        spaceBrowserSessionStorageKey,
+        JSON.stringify({ ...persisted, profileAvatar }),
+    );
+};
 
 const forgetBootstrapToken = async () => {
     const user = savedPartialLocalUser();

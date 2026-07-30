@@ -1,0 +1,1 @@
+- Fixed uploading photos to multiple albums at once. Thanks @nuit-dhiver!

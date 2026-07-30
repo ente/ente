@@ -340,7 +340,6 @@
   "theyAlsoGetXGb": "Họ cũng nhận được {storageAmountInGB} GB",
   "referralStorageForBoth": "{storageAmountInGB} GB cho họ + {storageAmountInGB} GB cho bạn khi nâng cấp.",
   "freeStorageOnReferralSuccess": "{storageAmountInGB} GB mỗi khi ai đó đăng ký gói trả phí và áp dụng mã của bạn",
-  "shareTextReferralCode": "Ente Photos là nơi lưu trữ ảnh riêng tư và an toàn của bạn\n* Tải xuống Ente Photos từ https://ente.com/app\n* Tạo tài khoản\n* Áp mã giới thiệu {referralCode} trong Cài đặt->Giới thiệu bạn bè\n* Nhận {referralStorageInGB}GB thêm khi nâng cấp gói trả phí",
   "claimFreeStorage": "Nhận thêm dung lượng",
   "inviteYourFriends": "Mời bạn bè của bạn",
   "earnFreeStorage": "Nhận thêm dung lượng",

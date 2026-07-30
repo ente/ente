@@ -1,1 +1,0 @@
-- Show hidden album presence in the File Info panel.

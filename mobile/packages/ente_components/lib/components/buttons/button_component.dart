@@ -23,13 +23,7 @@ enum ButtonComponentVariant {
 
 enum ButtonComponentSize { small, large }
 
-enum ButtonComponentDensity {
-  regular,
-
-  /// Opt-in 48px Button Large treatment used by the Memory sharing sheet.
-  /// Source: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=18629-312441&m=dev
-  compact,
-}
+enum ButtonComponentDensity { regular, compact }
 
 /// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2207-41578&m=dev
 /// Section: Buttons / Button Small

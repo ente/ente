@@ -89,10 +89,6 @@ http:
 
 # Specify the base endpoints for various apps
 apps:
-    # Default is https://photos.ente.com
-    #
-    # Set this to the URL where your photos web app is running.
-    photos:
     # Default is https://albums.ente.com
     #
     # If you're running a self hosted instance and wish to serve public links for photos,
@@ -102,14 +98,6 @@ apps:
     #
     # For self-hosted instances, set this to the URL where your embed app is running.
     embed-albums:
-    # Default is https://auth.ente.com
-    #
-    # Set this to the URL where your auth web app is running.
-    auth:
-    # Default is https://locker.ente.com
-    #
-    # Set this to the URL where your locker web app is running.
-    locker:
     # Default is https://share.ente.com
     #
     # If you're running a self-hosted instance and wish to serve public links for locker,
@@ -134,8 +122,6 @@ apps:
     #
     # Default is https://accounts.ente.io
     accounts-legacy:
-    # Default is https://payments.ente.com
-    payments:
     # Default is https://family.ente.io
     family:
     # Default is https://ente.space
@@ -152,16 +138,6 @@ apps:
     # If you're running a self-hosted instance and wish to serve legacy kit recovery,
     # set this to the URL where your legacy recovery web app is running.
     legacy:
-    # Additional trusted browser origins not represented by an app above.
-    #
-    # Default is a list of Ente domains: ente.com and older production aliases.
-    extra-origins:
-    # Default is true if none of photos, auth, locker or extra-origins above
-    # are set, and false otherwise.
-    #
-    # When false, museum rejects browser requests from origins not listed in
-    # this section. When true, it only logs them.
-    cors-report-only:
     custom-domain:
         # Default is my.ente.com
         cname:

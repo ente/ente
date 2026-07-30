@@ -186,7 +186,9 @@ export const CollectionShare: React.FC<CollectionShareProps> = ({
     const isSharedIncoming = collectionSummary?.type == "sharedIncoming";
     const showEmailSection = !isSharedIncoming || canManageParticipants;
     const hasPublicLink = collection?.publicURLs.length > 0;
-    const showPublicShare = isOwner || (isSharedIncoming && hasPublicLink);
+    const showPublicShare =
+        collection?.type != "uncategorized" &&
+        (isOwner || (isSharedIncoming && hasPublicLink));
 
     // Use a ref to track if we've already fetched for this dialog session
     const hasFetchedForSession = useRef(false);
@@ -206,6 +208,7 @@ export const CollectionShare: React.FC<CollectionShareProps> = ({
             const shouldFetch =
                 open &&
                 collection &&
+                collection.type != "uncategorized" &&
                 !isOwner &&
                 isSharedIncoming &&
                 !hasPublicLink &&

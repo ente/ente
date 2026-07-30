@@ -1,6 +1,5 @@
 import "dart:math" as math;
 
-import "package:ente_components/components/chip_surface.dart";
 import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
@@ -115,7 +114,7 @@ class _MemoryShareSelectionSheetState
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: Spacing.xl),
-                  child: _buildSelectionControls(context, l10n),
+                  child: _buildSelectionControls(l10n),
                 ),
                 const SizedBox(height: Spacing.lg),
                 Expanded(child: _buildGrid()),
@@ -162,74 +161,33 @@ class _MemoryShareSelectionSheetState
     );
   }
 
-  Widget _buildSelectionControls(BuildContext context, AppLocalizations l10n) {
+  Widget _buildSelectionControls(AppLocalizations l10n) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildSelectionChip(
+        SelectionSummaryChipComponent(
           key: const ValueKey("memory-share-select-all"),
           label: l10n.selectAll,
-          icon: HugeIcons.strokeRoundedTick02,
+          icon: const HugeIcon(
+            icon: HugeIcons.strokeRoundedTick02,
+            size: IconSizes.small,
+          ),
           semanticLabel: l10n.selectAll,
-          selected: _areAllSelected,
+          isSelected: _areAllSelected,
           onTap: _areAllSelected ? null : _selectAll,
         ),
-        _buildSelectionChip(
+        SelectionSummaryChipComponent(
           key: const ValueKey("memory-share-selected-count"),
           label: l10n.selectedPhotos(count: _selectedFiles.files.length),
-          icon: HugeIcons.strokeRoundedCancel01,
+          icon: const HugeIcon(
+            icon: HugeIcons.strokeRoundedCancel01,
+            size: IconSizes.small,
+          ),
           semanticLabel: l10n.clearSelection,
-          selected: _hasSelection,
+          isSelected: _hasSelection,
           onTap: _hasSelection ? _clearSelection : null,
         ),
       ],
-    );
-  }
-
-  Widget _buildSelectionChip({
-    required Key key,
-    required String label,
-    required List<List<dynamic>> icon,
-    required String semanticLabel,
-    required bool selected,
-    required VoidCallback? onTap,
-  }) {
-    final colors = context.componentColors;
-    final foreground = onTap == null ? colors.textLighter : colors.textBase;
-    return ChipSurface(
-      key: key,
-      surfaceKey: ValueKey("$key-surface"),
-      enabled: onTap != null,
-      selected: selected,
-      semanticLabel: semanticLabel,
-      minWidth: 104,
-      minHeight: 36,
-      padding: const EdgeInsets.fromLTRB(Spacing.sm, 8, Spacing.md, 8),
-      background: colors.fillLight,
-      borderRadius: BorderRadius.circular(100),
-      onTap: onTap,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 66,
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: TextStyles.mini.copyWith(color: foreground),
-            ),
-          ),
-          const SizedBox(width: Spacing.xs),
-          ChipIconSlot(
-            color: foreground,
-            size: 12,
-            slotSize: 14,
-            child: HugeIcon(icon: icon),
-          ),
-        ],
-      ),
     );
   }
 

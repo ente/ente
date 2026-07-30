@@ -342,6 +342,10 @@ pub struct RotateSpaceKeyRequest {
     pub key_version: i32,
     pub wrapped_prev_key: String,
     pub encrypted_profile: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expected_link_id: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub link_encrypted_space_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -351,6 +355,81 @@ pub struct SpaceKeyVersionResponse {
     #[serde(default)]
     pub wrapped_prev_key: String,
     pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpaceLinkWriteRequest {
+    pub auth_key: String,
+    pub kdf_salt: String,
+    pub kdf_mem_limit: u32,
+    pub kdf_ops_limit: u32,
+    pub key_version: i32,
+    pub encrypted_space_key: String,
+    pub encrypted_access_key: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpaceLinkStatusResponse {
+    #[serde(default)]
+    pub link_id: i64,
+    pub space_id: String,
+    pub space_slug: String,
+    pub active: bool,
+    #[serde(default)]
+    pub kdf_salt: String,
+    #[serde(default)]
+    pub kdf_mem_limit: u32,
+    #[serde(default)]
+    pub kdf_ops_limit: u32,
+    #[serde(default)]
+    pub key_version: i32,
+    #[serde(default)]
+    pub encrypted_access_key: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpaceLinkBootstrapResponse {
+    pub kdf_salt: String,
+    pub kdf_mem_limit: u32,
+    pub kdf_ops_limit: u32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpaceLinkProfileResponse {
+    pub encrypted_space_key: String,
+    pub key_version: i32,
+    pub posts: i64,
+    pub profile: SpaceProfileResponse,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct WebPushSubscriptionKeys {
+    pub(crate) p256dh: String,
+    pub(crate) auth: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct WebPushSubscriptionRequest {
+    pub(crate) endpoint: String,
+    pub(crate) keys: WebPushSubscriptionKeys,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct WebPushUnsubscriptionRequest {
+    pub(crate) endpoint: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct WebPushTargetResponse {
+    pub(crate) target_id: String,
 }
 
 #[cfg(test)]
@@ -528,6 +607,14 @@ pub struct SpaceFriendResponse {
 pub struct SpaceFriendRequestResponse {
     pub request_id: i64,
     pub requester: SpaceActorResponse,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpaceSentFriendRequestResponse {
+    pub request_id: i64,
+    pub target: SpaceActorResponse,
     pub created_at: String,
 }
 

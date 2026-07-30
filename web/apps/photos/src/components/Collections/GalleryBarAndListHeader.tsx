@@ -319,7 +319,9 @@ export const GalleryBarAndListHeader: React.FC<
                 onShowAllAlbums={showAllAlbums}
                 onShowAllPeople={showAllPeople}
                 collectionSummaries={sortedCollectionSummaries.filter(
-                    (cs) => !cs.attributes.has("hideFromCollectionBar"),
+                    (cs) =>
+                        !cs.attributes.has("hideFromCollectionBar") &&
+                        (mode != "albums" || !cs.attributes.has("archived")),
                 )}
             />
 

@@ -3,13 +3,13 @@ package io.ente.ensu.llm
 import android.system.ErrnoException
 import android.system.OsConstants
 import io.ente.ensu.AppState
+import io.ente.ensu.bindings.AssetDownloadException
 import io.ente.ensu.bindings.ConfigDefaults
-import io.ente.ensu.bindings.DownloadError
 import io.ente.ensu.bindings.LlmException
-import io.ente.ensu.bindings.mobileLlmTarget
 import io.ente.ensu.device.isChatSupported
 import io.ente.ensu.logging.FileLogRepository
 import io.ente.ensu.logging.LogLevel
+import io.ente.ensu.settings.IS_ENSU_PACKS_ENABLED
 import io.ente.ensu.settings.SessionPreferencesDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -22,7 +22,6 @@ internal class ModelSettingsActions(
     private val state: MutableStateFlow<AppState>,
     private val sessionPreferences: SessionPreferencesDataStore,
     private val llmProvider: LlmProvider,
-    private val modelDownloader: ModelDownloader,
     private val logRepository: FileLogRepository,
     private val configDefaults: ConfigDefaults
 ) {
@@ -79,7 +78,9 @@ internal class ModelSettingsActions(
             return
         }
         val selection = resolveSelection(state.value.modelSettings)
-        val isDownloaded = modelDownloader.isDownloaded(selection.modelTarget)
+        val chatReady = llmProvider.isChatModelReady(selection)
+        val embeddingReady = llmProvider.isEmbeddingModelReady()
+        val isDownloaded = chatReady && (!IS_ENSU_PACKS_ENABLED || embeddingReady)
         if (isDownloaded) {
             persistModelDownloadRequested(false)
         }
@@ -101,7 +102,7 @@ internal class ModelSettingsActions(
 
         val scope = scope ?: return
         scope.launch {
-            if (!modelDownloader.isDownloadActive && modelDownloadJob?.isActive != true) {
+            if (!llmProvider.isDownloadActive && modelDownloadJob?.isActive != true) {
                 persistModelDownloadRequested(false)
                 state.update { appState ->
                     appState.copy(
@@ -116,7 +117,17 @@ internal class ModelSettingsActions(
                 }
             }
 
-            val size = modelDownloader.estimateDownloadSize(selection.modelTarget)
+            val chatSize = if (chatReady) 0L else llmProvider.estimateChatModelDownloadSize(selection)
+            val embeddingSize = if (!IS_ENSU_PACKS_ENABLED || embeddingReady) {
+                0L
+            } else {
+                llmProvider.estimateEmbeddingDownloadSize()
+            }
+            val size = if (chatSize == null || embeddingSize == null) {
+                null
+            } else {
+                chatSize + embeddingSize
+            }
             state.update { appState ->
                 appState.copy(
                     chat = appState.chat.copy(
@@ -136,7 +147,8 @@ internal class ModelSettingsActions(
         if (!userInitiated && !currentState.chat.hasRequestedModelDownload) return
 
         val selection = resolveSelection(currentState.modelSettings)
-        val isDownloaded = modelDownloader.isDownloaded(selection.modelTarget)
+        val isDownloaded = llmProvider.isChatModelReady(selection) &&
+            (!IS_ENSU_PACKS_ENABLED || llmProvider.isEmbeddingModelReady())
         if (isDownloaded) {
             state.update { appState ->
                 appState.copy(
@@ -181,7 +193,7 @@ internal class ModelSettingsActions(
                 var retryCount = 0
                 while (true) {
                     try {
-                        llmProvider.ensureModelReady(selection) { progress ->
+                        llmProvider.ensureRequiredModelsReady(selection) { progress ->
                             val resolvedProgress = progressTracker.resolve(progress)
                             if (!isDownloaded && resolvedProgress.isFinished && !loggedComplete) {
                                 loggedComplete = true
@@ -217,7 +229,8 @@ internal class ModelSettingsActions(
                 }
             } catch (err: Throwable) {
                 val cancelled = err is kotlinx.coroutines.CancellationException ||
-                    err is LlmException.Cancelled
+                    err is LlmException.Cancelled ||
+                    err is AssetDownloadException.Cancelled
                 val failureMessage = if (cancelled) {
                     "Download cancelled"
                 } else {
@@ -262,7 +275,7 @@ internal class ModelSettingsActions(
         if (!currentState.chat.deviceCapability.isChatSupported()) return
 
         val selection = resolveSelection(currentState.modelSettings)
-        if (!modelDownloader.isDownloaded(selection.modelTarget)) return
+        if (!llmProvider.isChatModelReady(selection)) return
 
         scope.launch {
             try {
@@ -321,7 +334,6 @@ internal class ModelSettingsActions(
 
         return LlmModelSelection(
             id = preset.id,
-            modelTarget = mobileLlmTarget(preset.id),
             contextLength = contextLength,
             maxTokens = maxTokens
         )
@@ -352,13 +364,14 @@ internal class ModelSettingsActions(
         if (retryCount >= MAX_DOWNLOAD_RETRIES) return false
         if (err is kotlinx.coroutines.CancellationException) return false
         if (err is LlmException.Cancelled) return false
+        if (err is AssetDownloadException.Cancelled) return false
         if (isOutOfStorageError(err)) return false
-        if (err is LlmException.Download) {
-            when (val error = err.error) {
-                is DownloadError.Validation -> return false
-                is DownloadError.Http -> if (error.status.toInt() in NON_RETRYABLE_HTTP) return false
-                else -> {}
-            }
+        if (err is RequiredModelValidationError) return false
+        when (err) {
+            is AssetDownloadException.Validation -> return false
+            is AssetDownloadException.Http ->
+                if (err.status.toInt() in NON_RETRYABLE_HTTP) return false
+            else -> {}
         }
         return true
     }
@@ -378,7 +391,7 @@ internal class ModelSettingsActions(
     private fun isOutOfStorageError(err: Throwable): Boolean {
         var current: Throwable? = err
         while (current != null) {
-            if (current is LlmException.Download && current.error is DownloadError.StorageFull) {
+            if (current is AssetDownloadException.StorageFull) {
                 return true
             }
             if (current is ErrnoException && current.errno == OsConstants.ENOSPC) return true

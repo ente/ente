@@ -15,6 +15,7 @@ import { groupFilesByCollectionID } from "ente-gallery/utils/file";
 import {
     CollectionSubType,
     decryptRemoteCollection,
+    findUserUncategorizedCollection,
     RemoteCollection,
     RemotePublicURL,
     type Collection,
@@ -1017,10 +1018,7 @@ export const copyFiles = async (
  */
 const savedUserUncategorizedCollection = async () => {
     const userID = ensureLocalUser().id;
-    return (await savedCollections()).find(
-        (collection) =>
-            collection.type == "uncategorized" && collection.owner.id == userID,
-    );
+    return findUserUncategorizedCollection(await savedCollections(), userID);
 };
 
 /**
@@ -1492,7 +1490,7 @@ const removeOwnFilesFromOwnCollection = async (
     const remainingFiles = filesToRemove.filter(pendingRemove);
     if (remainingFiles.length) {
         const uncategorizedCollection =
-            collections.find((c) => c.type == "uncategorized") ??
+            findUserUncategorizedCollection(collections, userID) ??
             (await createUncategorizedCollection());
 
         await moveFromCollection(
@@ -2447,6 +2445,7 @@ export const fetchPendingRemovalActions = async (): Promise<
 export const movePendingRemovalActionsToUncategorized = async (
     collections: Collection[],
 ) => {
+    const userID = ensureLocalUser().id;
     const pendingActions = await fetchPendingRemovalActions();
     if (!pendingActions.length) return;
 
@@ -2510,7 +2509,7 @@ export const movePendingRemovalActionsToUncategorized = async (
             // Move files from normal collections to uncategorized
             if (!uncategorizedCollection) {
                 uncategorizedCollection =
-                    collections.find((c) => c.type == "uncategorized") ??
+                    findUserUncategorizedCollection(collections, userID) ??
                     (await createUncategorizedCollection());
             }
             targetCollection = uncategorizedCollection;

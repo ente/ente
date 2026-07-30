@@ -338,7 +338,6 @@
   "theyAlsoGetXGb": "انہیں بھی {storageAmountInGB} جی بی ملتا ہے",
   "referralStorageForBoth": "ان کے لیے {storageAmountInGB} جی بی + آپ کے لیے {storageAmountInGB} جی بی جب وہ اپ گریڈ کریں.",
   "freeStorageOnReferralSuccess": "ہر بار جب کوئی معاوضہ پلان کے لیے سائن اپ کرتا ہے اور آپ کا کوڈ لگاتا ہے تو {storageAmountInGB} جی بی",
-  "shareTextReferralCode": "Ente Photos آپ کی تصاویر کے لیے ایک نجی اور محفوظ گھر ہے\n* https://ente.com/app سے Ente Photos ڈاؤن لوڈ کریں\n* اکاؤنٹ بنائیں\n* سیٹنگز → Referral میں ریفرل کوڈ {referralCode} لگائیں\n* پولی پلان پر اپ گریڈ کرتے وقت {referralStorageInGB}GB مفت حاصل کریں",
   "claimFreeStorage": "مفت اسٹوریج کا دعویٰ کریں",
   "inviteYourFriends": "اپنے دوستوں کو مدعو کریں",
   "earnFreeStorage": "مفت اسٹوریج کمائیں",

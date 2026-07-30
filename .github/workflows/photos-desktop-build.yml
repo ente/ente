@@ -109,6 +109,12 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
+            - name: Setup Rust cache
+              uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+              with:
+                  workspaces: rust
+                  shared-key: rust-desktop
+
             - name: Fetch binary dependencies and rebuild native modules
               run: npm run postinstall
 

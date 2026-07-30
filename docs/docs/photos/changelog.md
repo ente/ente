@@ -7,6 +7,25 @@ description: Release notes of recent updates to Ente Photos mobile and desktop a
 
 A short summary list of changes to the Ente Photos mobile and desktop apps. For a more descriptive list with screenshots and blog post links, see the [news](https://ente.com/news).
 
+## v1.3.59 (mobile) - Jul 2026
+
+- Comment and react to shared memories.
+- Choose which photos and videos are included before creating a shared memory link.
+- Redesigned the photo viewer and info sheet for a cleaner, more readable experience.
+- Added support for saving contact names and profile photos.
+- Removed indirect connections from Contacts.
+- Redesigned the Family plan dashboard.
+- Improved backup reliability and progress updates.
+- Improved thumbnail and file download reliability.
+- Reduced background processing while browsing photos for smoother swiping.
+- Improved handling of photos and videos with incomplete metadata.
+- Reduced cache buildup by clearing caches more effectively during ML indexing.
+- Improved text detection and text selection reliability and performance.
+- Fixed app bar titles being truncated when **Bold Text** is enabled.
+- Fixed syncing edited iOS photos after local gallery changes.
+- Fixed the **"No text detected"** message appearing unexpectedly when opening some photos.
+- Fixed crashes when leaving screens, closing dialogs, or switching app state during background work.
+
 ## v1.3.58 (mobile) - Jul 2026
 
 * Added support for casting albums to multiple screens and managing active cast sessions.

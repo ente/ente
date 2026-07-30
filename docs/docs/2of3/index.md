@@ -1,11 +1,11 @@
 ---
 title: 2of3
-description: Split one important secret into 3 recovery cards. Any 2 cards bring it back. One card alone reveals nothing.
+description: Split one important secret into 3 recovery cards. Any 2 cards bring it back. One card alone cannot reconstruct it.
 ---
 
 # 2of3
 
-2of3 turns one important secret into three recovery cards. Any two of the three cards can reconstruct the secret. A single card by itself reveals nothing.
+2of3 turns one important secret into three recovery cards. Any two of the three cards can reconstruct the secret. A single card cannot reconstruct it.
 
 It is a free, end-to-end private web app from Ente. Open it at [2of3.ente.com](https://2of3.ente.com). There is no account, nothing to install, and your secret never leaves your browser.
 
@@ -44,7 +44,7 @@ When you enter a secret, 2of3 generates three cards in your browser. Each card c
 
 The cards from one secret all share the same ID. The ID is how recovery tells "two cards from the same set" apart from "two cards that happen to look similar". The card number lets the recovery code know which two of the three you are using.
 
-A single card is mathematically harmless on its own. It looks like random data, because that is exactly what it is. Knowing one card gives the same information about the original secret as knowing zero cards: none. You need any two of the three before the secret can be put back together.
+A single card is mathematically harmless on its own. Its share data looks random, because that is exactly what it is. It reveals the secret's byte length, but nothing about its contents. You need any two of the three before the secret can be put back together.
 
 ## What you do with the cards
 

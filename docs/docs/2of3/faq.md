@@ -75,6 +75,10 @@ Open 2of3 at [2of3.ente.com](https://2of3.ente.com), or use the offline recovery
 
 The full walkthrough lives in [Getting started](/2of3/getting-started#recover-the-secret).
 
+### The recovery page says "This share was created by a newer format". {#2of3-old-recovery-page}
+
+Your saved `2of3-recovery.html` is older than the cards you are recovering. Recover on [2of3.ente.com](https://2of3.ente.com) instead. Learn more in [Format compatibility](/2of3/how-it-works#format-compatibility).
+
 ### Can I recover from a photo of a printed card? {#2of3-recover-from-photo}
 
 Yes. 2of3's QR reader tries several crops automatically, so a phone photo with the whole card in frame usually decodes on the first try. If a particular photo does not decode, take another with even lighting, no glare on the QR, and the whole card clearly in frame, or try a tighter crop on the QR.
@@ -103,7 +107,7 @@ The two cards you uploaded share the same card number. You probably uploaded the
 
 ### The recovery flow says "These shares did not reconstruct a valid secret". {#2of3-bad-reconstruct}
 
-Both cards parsed fine but combined into bytes that did not match the checksum stored on each card. This usually means at least one card has been corrupted: a misread QR, a transcribed text code with a typo, or a faint print where the decoder picked up wrong bits.
+Both cards parsed fine but combined into bytes that did not match the checksum recovered with the secret. This usually means at least one card has been corrupted: a misread QR, a transcribed text code with a typo, or a faint print where the decoder picked up wrong bits.
 
 Try a different pair of cards. With three cards in a set there are three possible pairs (1+2, 1+3, 2+3); if exactly one card is bad, the pair that avoids the bad card will still recover the secret.
 
@@ -121,7 +125,7 @@ No. Your secret is split and recovered in your browser. There is no account, no 
 
 ### Can one card alone reveal my secret? {#2of3-one-card-leak}
 
-No. A single card is mathematically harmless on its own. It looks like random data because that is what it is: the secret XOR-ed with a uniformly random byte (per byte). Knowing one card gives the same information about the original secret as knowing zero cards: none.
+No. A single card's share data is mathematically harmless on its own. It looks random because that is what it is: the protected data XOR-ed with a uniformly random byte (per byte). The card reveals the secret's byte length, but nothing about its contents.
 
 You need any two of the three before the secret can be reconstructed.
 
@@ -149,7 +153,7 @@ Yes. 2of3 is part of [Ente's open source repository](https://github.com/ente/ent
 - Share 2: secret byte XOR (r × 2 in GF(256))
 - Share 3: secret byte XOR (r × 3 in GF(256))
 
-GF(256) multiplication uses the AES polynomial (`0x11b`). Any two shares plus their share numbers (1, 2, or 3) recover the secret byte by byte; one share alone is a uniformly random byte from the attacker's point of view.
+GF(256) multiplication uses the AES polynomial (`0x11b`). Any two shares plus their share numbers (1, 2, or 3) recover the secret byte by byte; the data in one share is uniformly random from the attacker's point of view.
 
 The full walkthrough lives in [How it works](/2of3/how-it-works#shamir-secret-sharing-briefly).
 

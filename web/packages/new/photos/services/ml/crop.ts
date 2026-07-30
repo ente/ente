@@ -36,6 +36,36 @@ export const regenerateFaceCrops = async (
 };
 
 /**
+ * Locally save the face crops that the native ML pipeline generated while
+ * indexing an image.
+ *
+ * @param faceCrops JPEG blobs of the face crops, index-aligned with the faces
+ * in {@link faceIndex}. Faces whose crop the native side could not generate
+ * have a `null` in their slot, and are skipped.
+ *
+ * @param faceIndex The {@link FaceIndex} containing information about the
+ * faces detected in the given image.
+ *
+ * The face crops are saved in a local cache and can subsequently be retrieved
+ * from the {@link BlobCache} named "face-crops".
+ */
+export const saveFaceCropBlobs = async (
+    faceCrops: (Uint8Array<ArrayBuffer> | null)[],
+    faceIndex: FaceIndex,
+) => {
+    const cache = await blobCache("face-crops");
+
+    return Promise.all(
+        faceIndex.faces.flatMap(({ faceID }, i) => {
+            const crop = faceCrops[i];
+            return crop
+                ? [cache.put(faceID, new Blob([crop], { type: "image/jpeg" }))]
+                : [];
+        }),
+    );
+};
+
+/**
  * Extract and locally save the face crops (the rectangle of the original image
  * that contain the detected face) for each of the faces detected in an image.
  *

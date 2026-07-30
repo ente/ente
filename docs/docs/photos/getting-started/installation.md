@@ -28,6 +28,10 @@ Ente Photos is available across all desktop operating systems:
 - [Windows](https://ente.com/download/desktop)
 - [Linux](https://ente.com/download/desktop)
 
+> [!NOTE]
+>
+> Ente Photos for macOS requires macOS 13.3 or later.
+
 Open the installer and follow the instructions to install it on your desktop device.
 
 ## Web browser

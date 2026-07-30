@@ -361,6 +361,10 @@ class MLService {
       return;
     }
     try {
+      if (!hasGrantedMLConsent) {
+        _logger.info("runAllML called without ML consent, skipping");
+        return;
+      }
       final MLMode mode = isLocalGalleryMode
           ? MLMode.localGallery
           : MLMode.enteGallery;
@@ -778,7 +782,6 @@ class MLService {
       actuallyRanML = result.ranML;
       if (!actuallyRanML) return actuallyRanML;
       final bool isLocalGallery = instruction.isLocalGallery;
-      const int remoteFlags = mlIndexFlagRuntimeRust;
       // Prepare storing data on remote (online mode only)
       final FileDataEntity? dataEntity = isLocalGallery
           ? null
@@ -812,7 +815,7 @@ class MLService {
               client: client,
               height: result.decodedImageSize.height,
               width: result.decodedImageSize.width,
-              flags: remoteFlags,
+              flags: result.remoteFlags,
             ),
           );
         }
@@ -825,7 +828,7 @@ class MLService {
               result.clip!.embedding,
               version: clipMlVersion,
               client: client,
-              flags: remoteFlags,
+              flags: result.remoteFlags,
             ),
           );
         }

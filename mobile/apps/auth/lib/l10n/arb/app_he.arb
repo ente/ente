@@ -124,6 +124,7 @@
   "import2FasGuide": "השתמשו באפשרות \"הגדרות->גיבוי -ייצוא\" ב-2FAS.\n\nאם הגיבוי שלכם מוצפן, תידרשו להזין את הסיסמה לפענוח הגיבוי",
   "importLastpassGuide": "השתמשו באפשרות \"העברת חשבונות\" הכלולה בהגדרות של Lastpass Authenticator וביחרו באפשרות \"ייצוא חשבונות לקובץ\". ייבאו את קובץ ה-JSON שהורדתם.",
   "importProtonAuthGuide": "השתמשו באפשרות \"ייצוא\" בהגדרות Proton Authenticator לייצוא הקודים שלכם.\n\nאם הייצוא שלכם מגון בסיסמה, תידרשו להזין את הסיסמה לפענוחו.",
+  "importOtpAuthGuide": "בצעו ייצוא של גיבוי מוצפן ממאמת OTP, ואז ביחרו בקובץ .otpauthdb או .otpauthdp. ייצוא .otpauth של חשבון-יחיד גם נתמך.",
   "invalidProtonExportTitle": "ייצוא Proton בלתי תקין",
   "invalidProtonExportMessage": "הקובץ שנבחר אינו קובץ ייצוא תקין של Proton Authenticator.",
   "exportCodes": "ייצא קודים",
@@ -237,6 +238,7 @@
   "save": "שמור",
   "send": "שלח",
   "saveOrSendDescription": "האם ברצונך לשמור זאת באחסון שלך (תיקיית ההורדות כברירת מחדל) או לשלוח ליישומים אחרים?",
+  "saveOnlyDescription": "האם ברצונך לשמור זאת באחסון שלך (תיקיית ההורדות כברירת מחדל)?",
   "back": "חזרה",
   "createAccount": "צור חשבון",
   "passwordStrength": "חוזק הסיסמא: {passwordStrengthValue}",
@@ -276,6 +278,10 @@
   "areYouSureYouWantToLogout": "האם את/ה בטוח/ה שאת/ה רוצה לצאת?",
   "yesLogout": "כן, התנתק",
   "exit": "יציאה",
+  "theme": "ערכת נושא",
+  "lightTheme": "בהיר",
+  "darkTheme": "כהה",
+  "systemTheme": "מערכת",
   "verifyingRecoveryKey": "מוודא את מפתח השחזור...",
   "recoveryKeyVerified": "מפתח השחזור אומת",
   "recoveryKeySuccessBody": "נהדר! מפתח השחזור תקין. אנחנו מודים לך על האימות.\n\nאנא תזכור לגבות את מפתח השחזור שלך באופן בטוח.",
@@ -295,6 +301,8 @@
   "exportLogs": "ייצוא לוגים",
   "enterYourRecoveryKey": "הזן את מפתח השחזור שלך",
   "tempErrorContactSupportIfPersists": "נראה שמשהו לא פעל כשורה. אנא נסה שוב אחרי כמה זמן. אם הבעיה ממשיכה, אנא צור קשר עם צוות התמיכה שלנו.",
+  "networkHostLookUpErr": "לא ניתן להתחבר ל-Ente, אנא בידקו את הגדרות הרשת שלכם וצרו קשר עם התמיכה אם השגיאה נמשכת.",
+  "networkConnectionRefusedErr": "לא ניתן להתחבר ל-Ente, אנא נסו בשנית מאוחר יותר. אם השגיאה נמשכת, אנא צרו קשר עם התמיכה.",
   "itLooksLikeSomethingWentWrongPleaseRetryAfterSome": "נראה שמשהו לא פעל כשורה. אנא נסה שוב אחרי כמה זמן. אם הבעיה ממשיכה, אנא צור קשר עם צוות התמיכה שלנו.",
   "about": "אודות",
   "weAreOpenSource": "הקוד שלנו פתוח!",
@@ -309,6 +317,7 @@
   "checking": "בודק...",
   "youAreOnTheLatestVersion": "אתה על הגרסא הכי עדכנית",
   "warning": "אזהרה",
+  "note": "הערה",
   "exportWarningDesc": "הקובץ שייוצא מכיל מידע רגיש. אנא שמור אותו מאובטח.",
   "iUnderStand": "אני מבין",
   "@iUnderStand": {
@@ -323,6 +332,16 @@
         "description": "The number of codes imported",
         "type": "int",
         "example": "1"
+      }
+    }
+  },
+  "importGoogleAuthConfirmation": "{codeCount, plural, one{לייבא קוד 1 מ-Google Authenticator?} two {לייבא {codeCount} קודים מ-Google Authenticator?} many {לייבא {codeCount} קודים מ-Google Authenticator?} other{לייבא {codeCount} קודים מ-Google Authenticator?}}",
+  "@importGoogleAuthConfirmation": {
+    "placeholders": {
+      "codeCount": {
+        "description": "The number of Google Authenticator codes to import",
+        "type": "int",
+        "example": "2"
       }
     }
   },
@@ -343,6 +362,10 @@
       }
     }
   },
+  "manualSort": "מותאם",
+  "editOrder": "עריכת הסידור",
+  "mostFrequentlyUsed": "בשימוש תדיר",
+  "mostRecentlyUsed": "בשימוש לאחרונה",
   "activeSessions": "חיבורים פעילים",
   "somethingWentWrongPleaseTryAgain": "משהו השתבש, אנא נסה שנית",
   "thisWillLogYouOutOfThisDevice": "זה ינתק אותך במכשיר זה!",
@@ -372,18 +395,94 @@
   "useOffline": "השתמש בלי גיבוי",
   "signInToBackup": "אנא התחבר כדי לבצע גיבוי לקודים שלך",
   "singIn": "התחברות",
+  "sigInBackupReminder": "Ente תבצע אוטומטית גיבוי הקודים לאחר כניסה רשומה.\n\nאנו בכל זאת ממליצים לייצא קודים כגיבוי נוסף.",
   "offlineModeWarning": "בחרת להמשיך ללא גיבויים. אנא בצע גיבויים ידניים כדי לוודא שהקודים שלך בטוחים.",
   "showLargeIcons": "הצג סמלים גדולים",
+  "compactMode": "מצב מצומצם",
   "shouldHideCode": "הסתר קודים",
+  "doubleTapToViewHiddenCode": "באפשרותך לצפות בקוד של רשומה ע\"י לחיצה כפולה",
   "focusOnSearchBar": "התמקד בחיפוש בהתחלת האפליקציה",
+  "minimizeToTrayOnClose": "מיזעור למגש המערכת בעת הסגירה",
   "confirmUpdatingkey": "האם אתה בטוח שברצונך לעדכן את המפתח הסודי?",
   "minimizeAppOnCopy": "מזער אפליקציה בהעתקה",
   "editCodeAuthMessage": "אמת כדי לערוך קוד",
   "deleteCodeAuthMessage": "אמת כדי למחוק קוד",
   "showQRAuthMessage": "אמת כדי להראות קוד QR",
   "confirmAccountDeleteTitle": "אישור מחיקת חשבון",
+  "confirmAccountDeleteMessage": "חשבון זה מקושר ליישומי Ente נוספים, אם יש כאלה בשימושך.\n\nהנתונים שהעלית, מכל יישומי Ente, יהיו מתוזמנים למחיקה, והחשבון שלך יימחק לצמיתות.",
+  "androidBiometricHint": "אימות זהותך",
+  "@androidBiometricHint": {
+    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
+  },
+  "androidBiometricNotRecognized": "לא זוהית. נא לנסות שוב.",
+  "@androidBiometricNotRecognized": {
+    "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
+  },
+  "androidBiometricSuccess": "הצלחה",
+  "@androidBiometricSuccess": {
+    "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
+  },
+  "androidCancelButton": "ביטול",
+  "@androidCancelButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
+  },
+  "androidSignInTitle": "נדרש אימות",
+  "@androidSignInTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
+  },
+  "androidBiometricRequiredTitle": "נדרש זיהוי ביומטרי",
+  "@androidBiometricRequiredTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user has not set up biometric authentication on their device. It is used on Android side. Maximum 60 characters."
+  },
+  "androidDeviceCredentialsRequiredTitle": "נדרשים אישורי המכשיר",
+  "@androidDeviceCredentialsRequiredTitle": {
+    "description": "Message showed as a title in a dialog which indicates the user has not set up credentials authentication on their device. It is used on Android side. Maximum 60 characters."
+  },
+  "androidDeviceCredentialsSetupDescription": "נדרשים אישורי המכשיר",
+  "@androidDeviceCredentialsSetupDescription": {
+    "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
+  },
+  "goToSettings": "מעבר להגדרות",
+  "@goToSettings": {
+    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
+  },
+  "androidGoToSettingsDescription": "זיהוי ביומטרי אינו מוגדר במכשיר שלך. יש לעבור ל'הגדרות -> אבטחה' להוספת זיהוי ביומטרי.",
+  "@androidGoToSettingsDescription": {
+    "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
+  },
+  "iOSLockOut": "הזיהוי הביומטרי מושבת. יש לנעול את המכשיר ולפתוח אותו מחדש להפעלתו.",
+  "@iOSLockOut": {
+    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
+  },
+  "iOSGoToSettingsDescription": "זיהוי ביומטרי אינו מוגדר במכשיר שלך. נא לבחור באפשרות טביעת אצבע או זיהוי פנים במכשיר שלך.",
+  "@iOSGoToSettingsDescription": {
+    "description": "Message advising the user to go to the settings and configure Biometrics for their device. It shows in a dialog on iOS side."
+  },
+  "iOSOkButton": "אישור",
+  "@iOSOkButton": {
+    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
+  },
   "noInternetConnection": "אין חיבור לאינטרנט",
   "pleaseCheckYourInternetConnectionAndTryAgain": "אנא בדוק את חיבור האינטרנט שלך ונסה שוב.",
+  "signOutFromOtherDevices": "יציאה מהחשבון במכשירים אחרים",
+  "signOutOtherBody": "אם יש לך חשד שסיסמתך ידועה למישהו, באפשרותך לכפות על כל המכשירים האחרים המחוברים לחשבונך להתנתק ממנו.",
+  "signOutOtherDevices": "יציאה מהחשבון במכשירים אחרים",
+  "doNotSignOut": "לא לצאת מהחשבון",
+  "hearUsWhereTitle": "איך שמעת על Ente? (אופציונלי)",
+  "hearUsExplanation": "אנו איננו עוקבים אחר התקנות היישומים. יעזור לנו אם תאמרו לנו איפה מצאתם אותנו!",
+  "recoveryKeySaved": "מפתח השחזור נשמר בתיקיית ההורדות!",
+  "waitingForBrowserRequest": "בהמתנה לבקשת דפדפן...",
+  "waitingForVerification": "בהמתנה לאימות...",
+  "passkey": "מפתח גישה",
+  "passKeyPendingVerification": "האימות עדיין בהמתנה",
+  "loginSessionExpired": "פג תוקף ההפעלה",
+  "loginSessionExpiredDetails": "פג תוקף ההפעלה שלך. נא להתחבר שוב.",
+  "developerSettingsWarning": "האם אתם בטוחים שברצונכם לשנות הגדרות מפתחים?",
+  "developerSettings": "הגדרות מפתחים",
+  "serverEndpoint": "נקודת-קצה של שרת",
+  "invalidEndpoint": "נקודת-קצה בלתי תקינה",
+  "invalidEndpointMessage": "מצטערים, נוקדת-הקצה שהזנת איננה תקינה. נא להזין נקודת-קצה תקינה ולנסות שוב.",
+  "endpointUpdatedMessage": "נקודת-הקצה עודכנה בהצלחה",
   "customEndpoint": "מחובר ל{endpoint}",
   "pinText": "הצמדה",
   "unpinText": "ביטול הצמדה",
@@ -398,5 +497,44 @@
   "deleteTagTitle": "למחוק את התגית?",
   "deleteTagMessage": "האם אתם בטוחים שברצונכם למחוק את התגית הזו? פעולה זו היא בלתי הפיכה.",
   "somethingWentWrongParsingCode": "לא הצלחנו לנתח {x} קודים.",
-  "updateNotAvailable": "אין עדכון זמין"
+  "updateNotAvailable": "אין עדכון זמין",
+  "viewRawCodes": "הצגת קודים גולמיים",
+  "parsingError": "שגיאת ניתוח",
+  "deleteUnparseableCodeTitle": "למחוק קוד שאינו ניתן לניתוח?",
+  "deleteUnparseableCodeMessage": "בכך יימחק הקוד מ-Auth לצמיתות. הוא לא יועבר לאשפה.",
+  "rawCodes": "קודים גולמיים",
+  "rawCodeData": "נתוני קוד גולמיים",
+  "appLock": "נעילת יישומים",
+  "noSystemLockFound": "לא נמצאה נעילת מערכת",
+  "toEnableAppLockPleaseSetupDevicePasscodeOrScreen": "כדי לאפשר את מסך הנעילה, נא להגדיר קוד גישה למכשיר או נעילת מסך בהגדרות המערכת שלך.",
+  "autoLock": "נעילה אוטומטית",
+  "immediately": "מיידית",
+  "reEnterPassword": "נא להזין את הסיסמה בשנית",
+  "reEnterPin": "נא להזין את קוד הגישה בשנית",
+  "next": "הבא",
+  "tooManyIncorrectAttempts": "יותר מדי ניסיונות שגויים",
+  "tapToUnlock": "ליחצו כדי לפתוח",
+  "setNewPassword": "הגדרת סיסמה חדשה",
+  "deviceLock": "נעילת המכשיר",
+  "hideContent": "הסתרת התוכן",
+  "hideContentDescriptionAndroid": "הסתרת תוכן היישום במעבר יישומים ומניעת צילומי מסך",
+  "hideContentDescriptioniOS": "הסתרת תוכן היישום במעבר יישומים",
+  "autoLockFeatureDescription": "משך הזמן לנעילת היישום לאחר שהיישום הועבר לרקע",
+  "appLockDescription": "בחירה בין מסך הנעילה ברירת המחדל של המכשיר שלך לבין מסך נעילה מותאם עם קוד גישה (PIN) או סיסמה.",
+  "pinLock": "נעילת קוד גישה (PIN)",
+  "enterPin": "הזינו קוד גישה (PIN)",
+  "setNewPin": "הגדרת קוד גישה (PIN) חדש",
+  "importFailureDesc": "לא ניתן לנתח את הקובץ שבחרת.",
+  "appLockNotEnabled": "נעילת יישום אינה מופעלת",
+  "appLockNotEnabledDescription": "אנא הפעילו נעילת יישום מאבטחה > נעילת יישום",
+  "authToViewPasskey": "אנא אמתו על מנת לצפות במפתח הגישה",
+  "appLockOfflineModeWarning": "בחרתם להמשיך מבלי ליצור גיבויים. אם תשכחו את נעילת היישומים, לא תהיה לכם גישה לנתונים שלכם.",
+  "duplicateCodes": "שכפול קודים",
+  "selectBackupFolder": "נא לבחור תיקיית גיבוי",
+  "setBackupFolder": "הגדרת תיקיית גיבוי",
+  "backupFolderLabel": "תיקיית גיבוי:",
+  "backupPasswordHint": "הגיבוי שלך יהיה מוצפן באמצעות סיסמה זו.",
+  "authToUpdateBackupPassword": "יש לאמת על-מנת לעדכן את סיסמת הגיבוי",
+  "authToSetBackupPassword": "יש לאמת על-מנת להגדיר את סיסמת הגיבוי",
+  "backupPasswordCleared": "סיסמת הגיבוי נמחקה"
 }

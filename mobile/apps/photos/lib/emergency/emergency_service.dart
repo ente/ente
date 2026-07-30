@@ -235,7 +235,7 @@ class EmergencyContactService {
         srpUserID: username,
         srpSalt: base64Encode(salt),
         srpVerifier: base64Encode(SRP6Util.encodeBigInt(v)),
-        srpA: base64Encode(SRP6Util.encodeBigInt(A!)),
+        srpA: base64Encode(SRP6Util.getPadded(A!, 512)),
         isUpdate: false,
       );
       final setupSRPResponse = await _gateway.initPasswordChange(
@@ -252,7 +252,7 @@ class EmergencyContactService {
       await _gateway.changePassword(
         recoveryID: recoverySessions.id,
         setupID: setupSRPResponse.setupID,
-        srpM1: base64Encode(SRP6Util.encodeBigInt(clientM!)),
+        srpM1: base64Encode(SRP6Util.getPadded(clientM!, 32)),
         updatedKeyAttr: setKeysRequest.toMap(),
       );
     } catch (e, s) {

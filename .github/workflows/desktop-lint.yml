@@ -5,6 +5,12 @@ on:
         paths:
             - ".github/workflows/desktop-lint.yml"
             - "desktop/**"
+            - "rust/bindings/napi/**"
+            - "rust/crates/photos/**"
+            - "rust/crates/image/**"
+            - "rust/apps/codegen/**"
+            - "rust/Cargo.toml"
+            - "rust/Cargo.lock"
 
 permissions:
     contents: read
@@ -27,5 +33,20 @@ jobs:
                   cache-dependency-path: "desktop/package-lock.json"
 
             - run: npm ci
+
+            # Restore-only; primed on main by warm-caches.yml.
+            - name: Restore Rust cache
+              uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+              with:
+                  workspaces: rust
+                  shared-key: ensu-android-photos-desktop
+                  save-if: false
+
+            # tsc typechecks against the generated rust-bindings/index.d.ts.
+            # This generates only the declarations (via cargo check); it does
+            # not build the addon.
+            - name: Generate N-API rust bindings
+              working-directory: rust
+              run: cargo codegen napi
 
             - run: npm run lint

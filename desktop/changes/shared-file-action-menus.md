@@ -1,1 +1,0 @@
-- Fix shared file action menus to show only available actions.

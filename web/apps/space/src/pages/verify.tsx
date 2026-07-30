@@ -1,6 +1,7 @@
 import { SpacePageMeta } from "components/SpacePageMeta";
 import { SpaceRouteFallback } from "components/SpaceRouteFallback";
 import { isHTTPErrorWithStatus } from "ente-base/http";
+import log from "ente-base/log";
 import React, { useEffect, useState } from "react";
 import {
     VerifyEmailScreen,
@@ -142,7 +143,7 @@ const Page: React.FC = () => {
             void router.push(spaceRoutes.createProfile());
         } catch (error) {
             if (!isExpectedVerificationError(error)) {
-                console.error("Space signup verification failed", error);
+                log.error("Space signup verification failed", error);
             }
             if (isHTTPErrorWithStatus(error, 401)) {
                 setCodeResetKey((key) => key + 1);
@@ -167,7 +168,7 @@ const Page: React.FC = () => {
             );
         } catch (error) {
             if (!isExpectedVerificationError(error)) {
-                console.error("Space login email verification failed", error);
+                log.error("Space login email verification failed", error);
             }
             if (isHTTPErrorWithStatus(error, 401)) {
                 setCodeResetKey((key) => key + 1);
@@ -193,7 +194,7 @@ const Page: React.FC = () => {
             if (isLoginVerification) await resendSpaceLoginCode(email);
             else await resendSpaceSignupCode(email);
         } catch (error) {
-            console.error("Space verification resend failed", error);
+            log.error("Space verification resend failed", error);
             setVerificationError(
                 error instanceof Error
                     ? error.message

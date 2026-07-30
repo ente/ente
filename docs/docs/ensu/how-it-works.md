@@ -98,7 +98,7 @@ What Ensu does not do:
 What is sent over the network at all:
 
 - The chat model download from Hugging Face on first launch (and when you switch models or update Ensu and a model version changes).
-- On iOS and Android, the Parakeet transcription model and Silero VAD model download from `models.ente.io` the first time voice input is used, unless they are already cached.
+- On iOS and Android, the Parakeet transcription model and Silero VAD model download from `models.ente.com` the first time voice input is used, unless they are already cached.
 - Software update checks, which the platform's app store or the desktop auto-updater handles.
 - If you sign in for the future sync feature (see below), the standard authentication exchange.
 

@@ -1,4 +1,5 @@
 mod context;
+mod embed;
 mod event;
 mod generate;
 mod model;
@@ -9,7 +10,7 @@ pub use generate::*;
 pub use model::*;
 
 use llama_cpp_2::llama_backend::LlamaBackend;
-use std::sync::OnceLock;
+use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -30,6 +31,10 @@ pub enum Error {
 }
 
 static BACKEND: OnceLock<Result<LlamaBackend, String>> = OnceLock::new();
+
+fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    mutex.lock().unwrap_or_else(PoisonError::into_inner)
+}
 
 fn backend() -> Result<&'static LlamaBackend, Error> {
     match BACKEND.get_or_init(|| LlamaBackend::init().map_err(|err| err.to_string())) {

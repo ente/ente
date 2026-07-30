@@ -20,6 +20,10 @@ Once you select which albums to backup in your mobile app settings, Ente automat
 
 Learn more in the [Backup feature guide](/photos/features/backup-and-sync/).
 
+### Will Ente recognize my existing backup if I switch phones? {#switch-phone-recognizes-backup}
+
+Yes. Your photos live in your Ente account, not on any single device. Install Ente on your new phone and sign in with the same account - your library downloads and syncs normally. New photos on your new phone are compared by content hash against what's already in your account, so anything already backed up won't be re-uploaded.
+
 ### How do I select which albums to back up? {#select-albums}
 
 **On mobile:**
@@ -27,6 +31,17 @@ Learn more in the [Backup feature guide](/photos/features/backup-and-sync/).
 Open `Settings > Backup > Backed up folders` and select the albums you want to automatically backup.
 
 Once configured, new photos added to these albums will automatically sync in the background.
+
+### What does the slashed cloud icon mean, and how do I back that photo up? {#slashed-cloud-icon}
+
+A slashed cloud icon on a photo means it isn't backed up to Ente - usually because it's in a folder you haven't selected for backup, or because you deleted it from Ente while keeping it on your device.
+
+To back it up:
+
+- Long-press the photo and choose **Add to album**, or
+- Open the photo and tap the upward-facing arrow in the top-right corner (**Upload to Ente**)
+
+You can also open `Settings > Backup > Backup status` to check whether any photos in folders chosen for backup haven't uploaded yet.
 
 ### Can I backup only new photos without uploading my existing library? {#backup-only-new-photos}
 
@@ -234,6 +249,17 @@ Live Photos behave differently depending on how you share them:
 - **Using "Download"**: Downloads the complete Live Photo (image + video)
 - **Using "Share" button to save/download**: Only saves the still image
 
+### How do I stop Live Photos from autoplaying as I scroll through an album? {#live-photo-autoplay-album}
+
+On web and desktop, opening a Live Photo plays its motion once automatically. In an album full of iOS Live Photos, this means each one animates as you scroll to it. (The mobile app is different - there, Live Photos only play when you long-press them.)
+
+There isn't a permanent "always off" setting yet, but you can stop the autoplay for the rest of a viewing session:
+
+1. Open any Live Photo in the album.
+2. As it plays its one-time motion, click the live icon (circle with dot) on the photo to pause it.
+
+Pausing during that initial playback tells Ente you don't want autoplay, and every other Live Photo stays still for the rest of that session as you scroll through the album. If you fully close and reopen the viewer, repeat the step once to set it again.
+
 ### How do I restore Live Photos from Ente? {#restore-live-photos}
 
 If you backed up your Live Photos to Ente and deleted them from your iPhone and iCloud, you can restore them as proper Live Photos (not as two separate files) using either of the methods below.
@@ -318,6 +344,10 @@ A few details to keep in mind:
 - Ente returns the files you select to that app for sending or attaching.
 - The picker shows the photos and videos available in your Ente gallery on that device.
 - On iPhone, iOS does not currently let Ente plug into other apps' photo pickers in the same way.
+
+### Can Ente be my Android cloud media provider (system gallery source for photo picker)? {#android-cloud-media-provider}
+
+Not currently. Android's cloud media provider program, which lets an app supply photos into the system Photo Picker as a cloud source, is only open to apps nominated by device manufacturers (OEMs).
 
 ### Can Ente replace my default Photos or Camera gallery? {#ente-as-default-gallery}
 
@@ -777,3 +807,11 @@ Deduplication is based on the file's content hash, not on its thumbnail. Thumbna
 - **Different upload times**: Older versions of Ente may have used different thumbnail generation code than newer versions.
 
 The differing thumbnails don't affect deduplication. Ente still recognizes the files as exact duplicates and keeps a single underlying copy.
+
+### Which copy does Ente keep during deduplication? {#dedup-which-copy-kept}
+
+When Ente finds the same photo across, say, three albums, it keeps just one underlying copy of the file and replaces the others with symlinks (references) pointing back to that copy. All three albums still show the photo, and you can scroll through any of them and see it there. The only thing that changes is that your storage quota goes down, since Ente is no longer storing three full copies of the same file.
+
+Deduplication isn't an album cleanup tool - if your goal is to have a photo appear in only one album instead of three, deduplication won't do that. It only makes storage more efficient while keeping every album looking the same. To remove a photo from a specific album, remove it from that album manually.
+
+If you later export your library, the file shows up in every album folder it belonged to - the symlinks become real copies again in your exported folders.

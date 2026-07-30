@@ -6,6 +6,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { Box, IconButton, Link, Stack, Typography } from "@mui/material";
 import { isDesktop } from "ente-base/app";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
+import { t } from "i18next";
 import React from "react";
 
 interface TakeoutOptionsV2Props {
@@ -29,7 +30,7 @@ export function TakeoutOptionsV2({
             >
                 <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
                     <IconButton
-                        aria-label="Back"
+                        aria-label={t("go_back")}
                         onClick={onBack}
                         sx={{
                             width: "38px",
@@ -47,11 +48,11 @@ export function TakeoutOptionsV2({
                             lineHeight: "32px",
                         }}
                     >
-                        Import from Google Photos
+                        {t("import_from_google_photos")}
                     </Typography>
                 </Stack>
                 <IconButton
-                    aria-label="Close"
+                    aria-label={t("close")}
                     onClick={onClose}
                     sx={(theme) => ({
                         width: "38px",
@@ -71,17 +72,15 @@ export function TakeoutOptionsV2({
                 <Stack sx={{ gap: 1 }}>
                     <TakeoutOptionButton
                         icon={<HugeiconsIcon icon={Folder01Icon} size={18} />}
-                        label="Unzipped folder"
-                        description="Unzip everything into one folder, then select it"
+                        label={t("unzipped_folder")}
+                        description={t("unzipped_folder_hint")}
                         onClick={onSelectFolder}
                     />
                     <TakeoutOptionButton
                         icon={<HugeiconsIcon icon={FileZipIcon} size={18} />}
-                        label="ZIP files"
+                        label={t("zip_files")}
                         description={
-                            isDesktop
-                                ? "Select your ZIPs, we'll unzip them for you"
-                                : "Desktop only"
+                            isDesktop ? t("zip_files_hint") : t("desktop_only")
                         }
                         disabled={!isDesktop}
                         onClick={onSelectZips}
@@ -97,7 +96,7 @@ export function TakeoutOptionsV2({
                     }}
                 >
                     <span style={{ opacity: 0.7 }}>
-                        Still have confusions?{" "}
+                        {t("takeout_help_prompt")}{" "}
                     </span>
                     <Link
                         href="https://ente.com/help/photos/migration/from-google-photos/"
@@ -109,7 +108,7 @@ export function TakeoutOptionsV2({
                             textDecoration: "underline",
                         }}
                     >
-                        We&apos;re here to help
+                        {t("takeout_help_action")}
                     </Link>
                 </Typography>
             </Stack>

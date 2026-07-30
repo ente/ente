@@ -1009,7 +1009,7 @@ class _MemoryTopOverlay extends StatelessWidget {
           );
           if (safeIndex == null) return const SizedBox.shrink();
           final currentFile = inheritedData.memories[safeIndex].file;
-          final showFavorite = currentFile.isOwner && !isLocalGalleryMode;
+          final showFavorite = currentFile.isUploaded && !isLocalGalleryMode;
           return Padding(
             padding: EdgeInsets.only(top: max(safePadding.top, 40)),
             child: Column(
@@ -1408,7 +1408,14 @@ Future<void> _shareMemory(
       if (!context.mounted || shareLinkData == null) {
         return;
       }
-      await shareText(shareLinkData.$1, context: context);
+      final title = memoryTitle.trim();
+      await shareText(
+        formatMemoryShareText(
+          title.isNotEmpty ? title : AppLocalizations.of(context).memories,
+          shareLinkData.$1,
+        ),
+        context: context,
+      );
       return;
     case MemoryShareSheetAction.shareItems:
       await share(context, Memory.filesFromMemories(result.selectedMemories));

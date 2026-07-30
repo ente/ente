@@ -1,1 +1,0 @@
-- Reduced background processing while browsing photos for smoother swiping.

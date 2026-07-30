@@ -11,6 +11,7 @@ import {
     Typography,
     type Theme,
 } from "@mui/material";
+import { t } from "i18next";
 import { useEffect, useRef } from "react";
 import { VariableSizeList } from "react-window";
 import { uploadStatColors } from "../uploadProgressStats";
@@ -120,7 +121,9 @@ export function UploadProgressRow({
                     value={progress}
                     sx={rowProgressSx}
                 />
-                <Typography sx={rowProgressLabelSx}>{progress}%</Typography>
+                <Typography sx={rowProgressLabelSx}>
+                    {t("percent_complete", { percent: progress })}
+                </Typography>
             </Stack>
         </Box>
     );

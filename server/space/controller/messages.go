@@ -27,13 +27,13 @@ const (
 )
 
 type MessagesController struct {
-	MessagesRepo    *repo.MessagesRepository
-	PostsRepo       *repo.PostsRepository
-	SpacesRepo      *repo.SpacesRepository
-	FriendsRepo     *repo.FriendsRepository
-	ReadMarkersRepo *repo.ReadMarkersRepository
-	EmailNotifier   SpaceEmailNotifier
-	auth            authDeps
+	MessagesRepo     *repo.MessagesRepository
+	PostsRepo        *repo.PostsRepository
+	SpacesRepo       *repo.SpacesRepository
+	FriendsRepo      *repo.FriendsRepository
+	ReadMarkersRepo  *repo.ReadMarkersRepository
+	ActivityNotifier SpaceActivityNotifier
+	auth             authDeps
 }
 
 func (c *MessagesController) Create(ctx context.Context, senderSpace *repo.SpaceRecord, targetSpaceID string, req models.CreateMessageRequest) (*models.MessageResponse, error) {
@@ -69,6 +69,7 @@ func (c *MessagesController) Create(ctx context.Context, senderSpace *repo.Space
 		}
 		return nil, err
 	}
+	go c.ActivityNotifier.OnSpaceMessageSent(spaceActivityActor(senderSpace), recipientSpace.OwnerID)
 	return toMessageResponse(*message), nil
 }
 
@@ -118,9 +119,7 @@ func (c *MessagesController) ReplyToPost(ctx context.Context, senderSpace *repo.
 		}
 		return nil, err
 	}
-	if c.EmailNotifier != nil {
-		go c.EmailNotifier.OnSpacePostReplied(senderSpace.OwnerID, senderSpace.SpaceSlug, recipientSpace.OwnerID)
-	}
+	go c.ActivityNotifier.OnSpacePostReplied(spaceActivityActor(senderSpace), recipientSpace.OwnerID)
 	return toMessageResponse(*message), nil
 }
 
@@ -220,8 +219,20 @@ func (c *MessagesController) SetLike(ctx context.Context, actorSpace *repo.Space
 		}
 		return nil, err
 	}
-	if err := c.MessagesRepo.SetLike(ctx, messageID, actorSpace.SpaceID, like); err != nil {
+	var recipientUserID int64
+	if like {
+		otherSpace, err := c.SpacesRepo.GetSpaceByID(ctx, otherSpaceID)
+		if err != nil {
+			return nil, err
+		}
+		recipientUserID = otherSpace.OwnerID
+	}
+	changed, err := c.MessagesRepo.SetLikeWithChanged(ctx, messageID, actorSpace.SpaceID, like)
+	if err != nil {
 		return nil, err
+	}
+	if like && changed {
+		go c.ActivityNotifier.OnSpaceMessageLiked(spaceActivityActor(actorSpace), recipientUserID)
 	}
 	return &models.LikeMessageResponse{Liked: like}, nil
 }

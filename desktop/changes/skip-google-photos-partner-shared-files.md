@@ -1,1 +1,0 @@
-- Skip partner-shared files when importing from Google Photos.

@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import { EnteSwitch } from "ente-base/components/EnteSwitch";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
+import { t } from "i18next";
 import type { ChangeEvent, ReactElement } from "react";
 
 interface UploadConfirmationDialogProps {
@@ -64,12 +65,12 @@ export function UploadConfirmationDialog({
                 <Stack direction="row" sx={headerSx}>
                     <Typography sx={displayTitleSx}>
                         {isTakeout
-                            ? "Import from Google Photos"
-                            : "Upload to Ente"}
+                            ? t("import_from_google_photos")
+                            : t("upload_to_ente")}
                     </Typography>
                     <Stack direction="row" sx={headerActionsSx}>
                         <IconButton
-                            aria-label="Close"
+                            aria-label={t("close")}
                             onClick={onCancel}
                             sx={headerButtonSx}
                         >
@@ -96,24 +97,31 @@ export function UploadConfirmationDialog({
                                 sx={displayTitleSx}
                             >
                                 {isTakeout
-                                    ? "Ready to import!"
-                                    : "Ready to upload!"}
+                                    ? t("ready_to_import")
+                                    : t("ready_to_upload")}
                             </Typography>
                         </Stack>
 
                         <Stack direction="row" sx={statsSx}>
                             <StatCard
                                 value={fileCount}
-                                label="photos and videos found"
+                                label={t("preupload_media_found", {
+                                    count: fileCount,
+                                })}
                             />
-                            <StatCard value={albumCount} label="albums found" />
+                            <StatCard
+                                value={albumCount}
+                                label={t("preupload_album_found", {
+                                    count: albumCount,
+                                })}
+                            />
                         </Stack>
                     </Stack>
 
                     {isTakeout && (
                         <Stack sx={{ gap: "20px" }}>
                             <Typography component="h3" sx={sectionTitleSx}>
-                                More options
+                                {t("more_options")}
                             </Typography>
                             <Stack direction="row" sx={optionSx}>
                                 <Box sx={optionIconSx}>
@@ -121,11 +129,10 @@ export function UploadConfirmationDialog({
                                 </Box>
                                 <Stack sx={optionTextSx}>
                                     <Typography sx={bodySx}>
-                                        Favourites
+                                        {t("favorites")}
                                     </Typography>
                                     <Typography sx={captionSx}>
-                                        Carry over your favourites from Google
-                                        Photos
+                                        {t("import_favorites_hint")}
                                     </Typography>
                                 </Stack>
                                 <EnteSwitch
@@ -133,7 +140,7 @@ export function UploadConfirmationDialog({
                                     checked={importFavorites}
                                     onChange={onImportFavoritesChange}
                                     slotProps={{
-                                        input: { "aria-label": "Favourites" },
+                                        input: { "aria-label": t("favorites") },
                                     }}
                                     sx={switchSx}
                                 />
@@ -147,11 +154,10 @@ export function UploadConfirmationDialog({
                                 </Box>
                                 <Stack sx={optionTextSx}>
                                     <Typography sx={bodySx}>
-                                        Partner shared photos
+                                        {t("partner_shared_photos")}
                                     </Typography>
                                     <Typography sx={captionSx}>
-                                        Import photos that were shared by your
-                                        partner on Google Photos
+                                        {t("import_partner_shared_photos_hint")}
                                     </Typography>
                                 </Stack>
                                 <EnteSwitch
@@ -160,8 +166,9 @@ export function UploadConfirmationDialog({
                                     onChange={onIncludePartnerSharedFilesChange}
                                     slotProps={{
                                         input: {
-                                            "aria-label":
-                                                "Partner shared photos",
+                                            "aria-label": t(
+                                                "partner_shared_photos",
+                                            ),
                                         },
                                     }}
                                     sx={switchSx}
@@ -177,7 +184,7 @@ export function UploadConfirmationDialog({
                     onClick={onConfirm}
                     sx={confirmButtonSx}
                 >
-                    {isTakeout ? "Start import" : "Start upload"}
+                    {t(isTakeout ? "start_import" : "start_upload")}
                 </FocusVisibleButton>
             </Stack>
         </Dialog>

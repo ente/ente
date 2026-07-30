@@ -1,6 +1,6 @@
 # ML Indexing Parity Test Suite
 
-This directory contains the ML indexing parity framework for Android, iOS, desktop, and Python ground truth.
+This directory contains the ML indexing parity framework for desktop, Android, iOS, and Python ground truth. (The desktop runner is a smoke test of the desktop-specific addon path — the napi bindings and the pinned ONNX Runtime library — since deep validation of the shared Rust pipeline itself lives in the `ente-photos` crate's `ml_indexing` integration test.)
 
 ## Layout
 
@@ -13,7 +13,7 @@ This directory contains the ML indexing parity framework for Android, iOS, deskt
 ## Prerequisites
 
 - Python + `uv`
-- Node/npm (desktop parity)
+- Node + the desktop build artifacts (`npm ci && npm run postinstall && node scripts/napi.js build` in `desktop/`) when running desktop parity
 - Flutter SDK (Android/iOS parity)
 - Android emulator/device and iOS simulator/device when running mobile parity
 

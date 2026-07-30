@@ -36,7 +36,10 @@ func (failingUserTokenTerminator) TerminateSession(int64, string) error {
 	return errors.New("cache eviction failed")
 }
 
-func setupSpaceSessionAPITest(t *testing.T) (*Handlers, *spacerepo.Module, int64) {
+func setupSpaceSessionAPITest(
+	t *testing.T,
+	webPushConfig *controller.SpaceWebPushConfig,
+) (*Handlers, *spacerepo.Module, int64) {
 	t.Helper()
 	testutil.WithServerRoot(t)
 	db := testutil.RequireTestDB(t)
@@ -57,11 +60,16 @@ func setupSpaceSessionAPITest(t *testing.T) (*Handlers, *spacerepo.Module, int64
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`, userID, "salt", []byte{1, 2, 3}, "encrypted-key", "nonce", "public-key", "encrypted-secret-key", "secret-nonce")
 	require.NoError(t, err)
-	return NewHandlers(controller.NewModule(repos, &baserepo.UserAuthRepository{DB: db})), repos, userID
+	return NewHandlers(controller.NewModule(
+		repos,
+		&baserepo.UserAuthRepository{DB: db},
+		controller.NewSpaceWebPushSender(repos.WebPush, webPushConfig),
+		webPushConfig,
+	)), repos, userID
 }
 
 func TestCreateSpaceBrowserSessionReturnsTokenWhenCacheEvictionFails(t *testing.T) {
-	handlers, repos, userID := setupSpaceSessionAPITest(t)
+	handlers, repos, userID := setupSpaceSessionAPITest(t, nil)
 	handlers.Module.UserTokens = failingUserTokenTerminator{}
 	authToken := "space-bootstrap-token"
 	require.NoError(t, (&baserepo.UserAuthRepository{DB: repos.Sessions.DB}).AddToken(userID, ente.Photos, authToken, "127.0.0.1", "space-test"))
@@ -88,7 +96,7 @@ func TestCreateSpaceBrowserSessionReturnsTokenWhenCacheEvictionFails(t *testing.
 }
 
 func TestCreateSpaceBrowserSessionRejectsInvalidWrapKey(t *testing.T) {
-	handlers, repos, userID := setupSpaceSessionAPITest(t)
+	handlers, repos, userID := setupSpaceSessionAPITest(t, nil)
 	router := gin.New()
 	router.POST("/account/space/sessions", setTestAuthenticatedApp, handlers.CreateBrowserSession)
 
@@ -117,7 +125,7 @@ func TestCreateSpaceBrowserSessionRejectsInvalidWrapKey(t *testing.T) {
 }
 
 func TestRegisteredTokenSessionRoutesEnforceAppPolicy(t *testing.T) {
-	handlers, repos, userID := setupSpaceSessionAPITest(t)
+	handlers, repos, userID := setupSpaceSessionAPITest(t, nil)
 	authToken := "space-route-bootstrap-token"
 	require.NoError(t, (&baserepo.UserAuthRepository{DB: repos.Sessions.DB}).AddToken(userID, ente.Photos, authToken, "127.0.0.1", "space-test"))
 	router := gin.New()
@@ -165,7 +173,7 @@ func TestRegisteredTokenSessionRoutesEnforceAppPolicy(t *testing.T) {
 }
 
 func TestRequireSpaceBrowserSessionAcceptsValidHeader(t *testing.T) {
-	handlers, repos, userID := setupSpaceSessionAPITest(t)
+	handlers, repos, userID := setupSpaceSessionAPITest(t, nil)
 	token := "valid-space-session-token"
 	tokenHash := sha256.Sum256([]byte(token))
 	require.NoError(t, repos.Sessions.CreateBrowserSession(context.Background(), tokenHash[:], userID, "session-wrap-key", timeutil.NDaysFromNow(1)))
@@ -186,7 +194,7 @@ func TestRequireSpaceBrowserSessionAcceptsValidHeader(t *testing.T) {
 }
 
 func TestValidateSpaceBrowserSessionCoalescesLastUsedAtUpdates(t *testing.T) {
-	handlers, repos, userID := setupSpaceSessionAPITest(t)
+	handlers, repos, userID := setupSpaceSessionAPITest(t, nil)
 	token := "space-session-touch-token"
 	tokenHash := sha256.Sum256([]byte(token))
 	require.NoError(t, repos.Sessions.CreateBrowserSession(context.Background(), tokenHash[:], userID, "session-wrap-key", timeutil.NDaysFromNow(1)))
@@ -214,7 +222,7 @@ func TestValidateSpaceBrowserSessionCoalescesLastUsedAtUpdates(t *testing.T) {
 }
 
 func TestRequireSpaceBrowserSessionRejectsInvalidHeader(t *testing.T) {
-	handlers, _, _ := setupSpaceSessionAPITest(t)
+	handlers, _, _ := setupSpaceSessionAPITest(t, nil)
 	router := gin.New()
 	router.GET("/space", handlers.RequireSpaceBrowserSession(), func(c *gin.Context) {
 		c.Status(http.StatusOK)
@@ -230,7 +238,7 @@ func TestRequireSpaceBrowserSessionRejectsInvalidHeader(t *testing.T) {
 }
 
 func TestBootstrapBrowserSessionAcceptsHeader(t *testing.T) {
-	handlers, repos, userID := setupSpaceSessionAPITest(t)
+	handlers, repos, userID := setupSpaceSessionAPITest(t, nil)
 	token := "valid-space-session-token"
 	tokenHash := sha256.Sum256([]byte(token))
 	require.NoError(t, repos.Sessions.CreateBrowserSession(context.Background(), tokenHash[:], userID, "session-wrap-key", timeutil.NDaysFromNow(1)))
@@ -247,7 +255,7 @@ func TestBootstrapBrowserSessionAcceptsHeader(t *testing.T) {
 }
 
 func TestDeleteBrowserSessionRevokesAllUserSessions(t *testing.T) {
-	handlers, repos, userID := setupSpaceSessionAPITest(t)
+	handlers, repos, userID := setupSpaceSessionAPITest(t, nil)
 	otherUserID := testutil.InsertUser(t, repos.Sessions.DB, testutil.UserFixture{
 		Email:        "other-space-session@example.com",
 		CreationTime: timeutil.Microseconds(),
@@ -276,7 +284,7 @@ func TestDeleteBrowserSessionRevokesAllUserSessions(t *testing.T) {
 }
 
 func TestDeleteBrowserSessionDoesNotAcceptExpiredSession(t *testing.T) {
-	handlers, repos, userID := setupSpaceSessionAPITest(t)
+	handlers, repos, userID := setupSpaceSessionAPITest(t, nil)
 	expiredToken := "expired-space-session-token"
 	expiredHash := sha256.Sum256([]byte(expiredToken))
 	require.NoError(t, repos.Sessions.CreateBrowserSession(context.Background(), expiredHash[:], userID, "expired-wrap-key", timeutil.Microseconds()-1))

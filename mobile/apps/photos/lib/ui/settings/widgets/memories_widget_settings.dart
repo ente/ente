@@ -1,3 +1,4 @@
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
@@ -9,13 +10,6 @@ import "package:photos/services/home_widget_service.dart";
 import "package:photos/services/memory_home_widget_service.dart";
 import "package:photos/settings/local_settings.dart";
 import 'package:photos/theme/ente_theme.dart';
-import 'package:photos/ui/components/buttons/icon_button_widget.dart';
-import "package:photos/ui/components/captioned_text_widget.dart";
-import "package:photos/ui/components/menu_item_widget/menu_item_widget.dart";
-import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
-import 'package:photos/ui/components/title_bar_title_widget.dart';
-import 'package:photos/ui/components/title_bar_widget.dart';
-import "package:photos/ui/components/toggle_switch_widget.dart";
 
 class MemoriesWidgetSettings extends StatefulWidget {
   const MemoriesWidgetSettings({super.key});
@@ -107,30 +101,12 @@ class _MemoriesWidgetSettingsState extends State<MemoriesWidgetSettings> {
 
     return Scaffold(
       backgroundColor: colorScheme.backgroundColour,
-      body: CustomScrollView(
-        primary: false,
+      body: AppBarComponent(
+        title: AppLocalizations.of(context).memories,
+        subtitle: hasInstalledAny
+            ? AppLocalizations.of(context).memoriesWidgetDesc
+            : context.l10n.addMemoriesWidgetPrompt,
         slivers: <Widget>[
-          TitleBarWidget(
-            backgroundColor: colorScheme.backgroundColour,
-            flexibleSpaceTitle: TitleBarTitleWidget(
-              title: AppLocalizations.of(context).memories,
-            ),
-            expandedHeight: MediaQuery.textScalerOf(context).scale(136),
-            flexibleSpaceCaption: hasInstalledAny
-                ? AppLocalizations.of(context).memoriesWidgetDesc
-                : context.l10n.addMemoriesWidgetPrompt,
-            actionIcons: [
-              IconButtonWidget(
-                icon: Icons.close_outlined,
-                iconButtonType: IconButtonType.secondary,
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
           if (!hasInstalledAny)
             SliverToBoxAdapter(
               child: Padding(
@@ -154,23 +130,22 @@ class _MemoriesWidgetSettingsState extends State<MemoriesWidgetSettings> {
             SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const SizedBox(height: 18),
                       if (kDebugMode) ...[
-                        MenuItemWidgetNew(
+                        MenuComponent(
                           title: AppLocalizations.of(context).showTextOnWidget,
-                          trailingWidget: ToggleSwitchWidget(
-                            value: () => _showText,
-                            onChanged: () async {
-                              final next = !_showText;
-                              setState(() => _showText = next);
+                          trailing: ToggleSwitchComponent(
+                            selected: _showText,
+                            onChanged: (showText) async {
+                              setState(() => _showText = showText);
                               await localSettings.setWidgetTextHidden(
                                 WidgetHideTextFlag.memory,
-                                !next,
+                                !showText,
                               );
                               await HomeWidgetService.instance.updateWidget(
                                 androidClass:
@@ -183,86 +158,72 @@ class _MemoriesWidgetSettingsState extends State<MemoriesWidgetSettings> {
                         ),
                         const SizedBox(height: 8),
                       ],
-                      MenuItemWidget(
-                        captionedTextWidget: CaptionedTextWidget(
-                          title: AppLocalizations.of(context).pastYearsMemories,
-                        ),
-                        leadingIconWidget: SvgPicture.asset(
-                          "assets/icons/past-year-memory-icon.svg",
-                          colorFilter: ColorFilter.mode(
-                            colorScheme.textBase,
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                        menuItemColor: colorScheme.fillFaint,
-                        trailingWidget: ToggleSwitchWidget(
-                          value: () => isYearlyMemoriesEnabled ?? true,
-                          onChanged: () async {
-                            setState(() {
-                              isYearlyMemoriesEnabled =
-                                  !isYearlyMemoriesEnabled!;
-                            });
-                            updateVariables().ignore();
-                          },
-                        ),
-                        singleBorderRadius: 8,
-                        isGestureDetectorDisabled: true,
-                      ),
-                      const SizedBox(height: 4),
-                      MenuItemWidget(
-                        captionedTextWidget: CaptionedTextWidget(
-                          title: AppLocalizations.of(context).onThisDayMemories,
-                        ),
-                        leadingIconWidget: SvgPicture.asset(
-                          "assets/icons/memories-widget-icon.svg",
-                          colorFilter: ColorFilter.mode(
-                            colorScheme.textBase,
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                        menuItemColor: colorScheme.fillFaint,
-                        trailingWidget: ToggleSwitchWidget(
-                          value: () => isOnThisDayMemoriesEnabled!,
-                          onChanged: () async {
-                            setState(() {
-                              isOnThisDayMemoriesEnabled =
-                                  !isOnThisDayMemoriesEnabled!;
-                            });
-                            updateVariables().ignore();
-                          },
-                        ),
-                        singleBorderRadius: 8,
-                        isGestureDetectorDisabled: true,
-                      ),
-                      if (isMLEnabled) ...[
-                        const SizedBox(height: 4),
-                        MenuItemWidget(
-                          captionedTextWidget: CaptionedTextWidget(
-                            title: AppLocalizations.of(context).smartMemories,
-                          ),
-                          leadingIconWidget: SvgPicture.asset(
-                            "assets/icons/smart-memory-icon.svg",
-                            colorFilter: ColorFilter.mode(
-                              colorScheme.textBase,
-                              BlendMode.srcIn,
+                      MenuGroupComponent(
+                        items: [
+                          MenuComponent(
+                            title: AppLocalizations.of(
+                              context,
+                            ).pastYearsMemories,
+                            leading: SvgPicture.asset(
+                              "assets/icons/past-year-memory-icon.svg",
+                              colorFilter: ColorFilter.mode(
+                                colorScheme.textBase,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                            trailing: ToggleSwitchComponent(
+                              selected: isYearlyMemoriesEnabled ?? true,
+                              onChanged: (selected) {
+                                setState(
+                                  () => isYearlyMemoriesEnabled = selected,
+                                );
+                                updateVariables().ignore();
+                              },
                             ),
                           ),
-                          menuItemColor: colorScheme.fillFaint,
-                          trailingWidget: ToggleSwitchWidget(
-                            value: () => isSmartMemoriesEnabled!,
-                            onChanged: () async {
-                              setState(() {
-                                isSmartMemoriesEnabled =
-                                    !isSmartMemoriesEnabled!;
-                              });
-
-                              updateVariables().ignore();
-                            },
+                          MenuComponent(
+                            title: AppLocalizations.of(
+                              context,
+                            ).onThisDayMemories,
+                            leading: SvgPicture.asset(
+                              "assets/icons/memories-widget-icon.svg",
+                              colorFilter: ColorFilter.mode(
+                                colorScheme.textBase,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                            trailing: ToggleSwitchComponent(
+                              selected: isOnThisDayMemoriesEnabled!,
+                              onChanged: (selected) {
+                                setState(
+                                  () => isOnThisDayMemoriesEnabled = selected,
+                                );
+                                updateVariables().ignore();
+                              },
+                            ),
                           ),
-                          singleBorderRadius: 8,
-                          isGestureDetectorDisabled: true,
-                        ),
-                      ],
+                          if (isMLEnabled)
+                            MenuComponent(
+                              title: AppLocalizations.of(context).smartMemories,
+                              leading: SvgPicture.asset(
+                                "assets/icons/smart-memory-icon.svg",
+                                colorFilter: ColorFilter.mode(
+                                  colorScheme.textBase,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
+                              trailing: ToggleSwitchComponent(
+                                selected: isSmartMemoriesEnabled!,
+                                onChanged: (selected) {
+                                  setState(
+                                    () => isSmartMemoriesEnabled = selected,
+                                  );
+                                  updateVariables().ignore();
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 );

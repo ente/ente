@@ -8,7 +8,6 @@ import "package:ente_pure_utils/ente_pure_utils.dart"
 import "package:exif_reader/exif_reader.dart";
 import 'package:logging/logging.dart';
 import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:photos/core/constants.dart';
 import 'package:photos/core/errors.dart';
@@ -28,7 +27,6 @@ import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/src/rust/api/motion_photo_api.dart";
 import "package:photos/utils/apple_photos_errors.dart";
 import "package:photos/utils/image_util.dart";
-import 'package:video_thumbnail/video_thumbnail.dart';
 
 final _logger = Logger("UploadData");
 
@@ -271,13 +269,14 @@ Future<void> _decorateEnteFileData(
   Map<String, IfdTag>? exifData,
 ) async {
   // h4ck to fetch location data if missing (thank you Android Q+) lazily only during uploads
-  if (file.location == null ||
-      (file.location!.latitude == 0 && file.location!.longitude == 0)) {
+  if (!file.hasLocation) {
     final latLong = await asset.latlngAsync();
-    file.location = Location(
-      latitude: latLong.latitude,
-      longitude: latLong.longitude,
-    );
+    if (latLong != null) {
+      file.location = Location(
+        latitude: latLong.latitude,
+        longitude: latLong.longitude,
+      );
+    }
   }
   await updateLocationFromEmbeddedMetadata(file, sourceFile, exifData);
   if (Platform.isIOS) {
@@ -328,13 +327,11 @@ Future<MediaUploadData> _getMediaUploadDataFromAppCache(EnteFile file) async {
   } else if (thumbnailData != null) {
     // The thumbnail null check ensures that video thumbnail generation worked.
     // Use it without a max dimension to obtain the video's aspect ratio.
-    final thumbnailFilePath = await VideoThumbnail.thumbnailFile(
-      video: localPath,
-      imageFormat: ImageFormat.JPEG,
-      thumbnailPath: (await getTemporaryDirectory()).path,
+    dimensions = await withTemporaryVideoThumbnail<({int width, int height})>(
+      videoPath: localPath,
       quality: 10,
+      use: (thumbnailFile) => getImageDimensions(imagePath: thumbnailFile.path),
     );
-    dimensions = await getImageDimensions(imagePath: thumbnailFilePath);
   }
 
   if (!file.hasLocation && file.isVideo && Platform.isAndroid) {

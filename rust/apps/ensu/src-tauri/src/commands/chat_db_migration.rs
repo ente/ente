@@ -1,7 +1,7 @@
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 
-use ente_ensu::db::{ChatDb, Error as DbError};
+use ente_ensu::db::{self, ChatDb};
 
 use super::common::ApiError;
 
@@ -56,16 +56,16 @@ fn select_source_key(path: &Path, keys: &[Vec<u8>]) -> Result<Vec<u8>, ApiError>
     for key in keys {
         let db = match ChatDb::open_sqlite_with_defaults(path, key.clone()) {
             Ok(db) => db,
-            Err(DbError::InvalidKeyLength { .. }) => continue,
+            Err(db::Error::InvalidKeyLength { .. }) => continue,
             Err(error) => return Err(ApiError::from(error)),
         };
         match db.list_sessions() {
             Ok(_) => return Ok(key.clone()),
             Err(
-                DbError::Crypto(_)
-                | DbError::InvalidBlobLength { .. }
-                | DbError::InvalidEncryptedField
-                | DbError::Utf8(_),
+                db::Error::Crypto(_)
+                | db::Error::InvalidBlobLength { .. }
+                | db::Error::InvalidEncryptedField
+                | db::Error::Utf8(_),
             ) => {}
             Err(error) => return Err(ApiError::from(error)),
         }

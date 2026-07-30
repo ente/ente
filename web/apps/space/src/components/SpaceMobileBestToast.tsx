@@ -7,9 +7,14 @@ import { Box } from "@mui/material";
 import React from "react";
 
 const green = "#08C225";
+const dismissedKey = "spaceMobileBestToastDismissed";
 
 export const SpaceMobileBestToast: React.FC = () => {
-    const [open, setOpen] = React.useState(true);
+    const [open, setOpen] = React.useState(false);
+
+    React.useEffect(() => {
+        setOpen(localStorage.getItem(dismissedKey) != "1");
+    }, []);
 
     if (!open) return null;
 
@@ -66,7 +71,10 @@ export const SpaceMobileBestToast: React.FC = () => {
                 component="button"
                 type="button"
                 aria-label="Close"
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                    setOpen(false);
+                    localStorage.setItem(dismissedKey, "1");
+                }}
                 sx={{
                     alignItems: "center",
                     appearance: "none",

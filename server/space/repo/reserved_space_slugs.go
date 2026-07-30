@@ -262,6 +262,7 @@ var reservedSpaceSlugList = []string{
 	"support",
 	"support-team",
 	"support_team",
+	"sw.js",
 	"system",
 	"take-control",
 	"talks",

@@ -1,0 +1,3 @@
+- New "Crafting memories" memory card that asks for notification permission when tapped.
+- Made notification permission requests open the settings app on Android and iOS, with a toast explaining what to do if the OS refuses to show the permission dialog.
+- Fixed the no-op when a user tries to enable notifications from Settings → Notifications after denying permission.

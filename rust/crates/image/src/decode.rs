@@ -1,7 +1,7 @@
 use std::{
     ffi::OsStr,
     fs::File,
-    io::{BufRead, BufReader, Cursor, Seek},
+    io::{BufRead, BufReader, Cursor, Read, Seek},
     path::Path,
     sync::Once,
 };
@@ -16,6 +16,7 @@ use ente_heic::{
 use exif::{In, Reader as ExifReader, Tag as ExifTag};
 use image::{
     DynamicImage, ImageDecoder, ImageFormat, ImageReader, Limits, hooks::decoding_hook_registered,
+    metadata::Orientation,
 };
 use jxl_oxide::integration::register_image_decoding_hook as register_jxl_decoding_hook;
 use tiff::{
@@ -35,17 +36,22 @@ static IMAGE_DECODER_HOOKS_INIT: Once = Once::new();
 struct DecodedDynamicImage {
     image: DynamicImage,
     icc_profile: Option<Vec<u8>>,
+    orientation: Option<Orientation>,
 }
 
 impl DecodedDynamicImage {
-    fn into_srgb(self) -> DynamicImage {
-        apply_icc_profile_to_srgb(self.image, self.icc_profile.as_deref())
+    fn into_srgb(self) -> (DynamicImage, Option<Orientation>) {
+        (
+            apply_icc_profile_to_srgb(self.image, self.icc_profile.as_deref()),
+            self.orientation,
+        )
     }
 }
 
 pub fn decode_image_from_path(image_path: &str) -> ImageResult<DecodedImage> {
     let decoded_dynamic = decode_with_image_crate(image_path)?;
-    let oriented = orient_decoded_image(decoded_dynamic, image_path).into_rgb8();
+    let (decoded_dynamic, orientation) = decoded_dynamic.into_srgb();
+    let oriented = orient_decoded_image(decoded_dynamic, image_path, orientation).into_rgb8();
 
     Ok(DecodedImage {
         dimensions: Dimensions {
@@ -58,7 +64,9 @@ pub fn decode_image_from_path(image_path: &str) -> ImageResult<DecodedImage> {
 
 pub fn decode_image_from_bytes(image_bytes: &[u8]) -> ImageResult<DecodedImage> {
     let decoded_dynamic = decode_bytes_with_image_crate(image_bytes)?;
-    let oriented = orient_decoded_image_from_bytes(decoded_dynamic, image_bytes).into_rgb8();
+    let (decoded_dynamic, orientation) = decoded_dynamic.into_srgb();
+    let oriented =
+        orient_decoded_image_from_bytes(decoded_dynamic, image_bytes, orientation).into_rgb8();
 
     Ok(DecodedImage {
         dimensions: Dimensions {
@@ -69,7 +77,7 @@ pub fn decode_image_from_bytes(image_bytes: &[u8]) -> ImageResult<DecodedImage> 
     })
 }
 
-fn decode_with_image_crate(image_path: &str) -> ImageResult<DynamicImage> {
+fn decode_with_image_crate(image_path: &str) -> ImageResult<DecodedDynamicImage> {
     init_image_decoders();
 
     let reader = ImageReader::open(image_path)
@@ -79,7 +87,7 @@ fn decode_with_image_crate(image_path: &str) -> ImageResult<DynamicImage> {
     let guessed_format = reader.format();
 
     match decode_reader_with_image_crate(reader) {
-        Ok(decoded) => Ok(decoded.into_srgb()),
+        Ok(decoded) => Ok(decoded),
         Err(primary_error) if should_attempt_tiff_fallback(guessed_format) => {
             eprintln!(
                 "[ml][decode] image crate TIFF decode failed for '{}': {}. Retrying with tiff crate fallback",
@@ -87,7 +95,7 @@ fn decode_with_image_crate(image_path: &str) -> ImageResult<DynamicImage> {
             );
 
             match decode_with_tiff_crate(image_path) {
-                Ok(decoded) => Ok(decoded.into_srgb()),
+                Ok(decoded) => Ok(decoded),
                 Err(ImageError::Decode(fallback_error)) => Err(ImageError::Decode(format!(
                     "failed to decode TIFF with image crate: {primary_error}; fallback with tiff crate also failed: {fallback_error}"
                 ))),
@@ -98,7 +106,7 @@ fn decode_with_image_crate(image_path: &str) -> ImageResult<DynamicImage> {
     }
 }
 
-fn decode_bytes_with_image_crate(image_bytes: &[u8]) -> ImageResult<DynamicImage> {
+fn decode_bytes_with_image_crate(image_bytes: &[u8]) -> ImageResult<DecodedDynamicImage> {
     init_image_decoders();
 
     let reader = ImageReader::new(Cursor::new(image_bytes))
@@ -107,10 +115,10 @@ fn decode_bytes_with_image_crate(image_bytes: &[u8]) -> ImageResult<DynamicImage
     let guessed_format = reader.format();
 
     match decode_reader_with_image_crate(reader) {
-        Ok(decoded) => Ok(decoded.into_srgb()),
+        Ok(decoded) => Ok(decoded),
         Err(primary_error) if should_attempt_tiff_fallback(guessed_format) => {
             match decode_tiff_from_bytes(image_bytes) {
-                Ok(decoded) => Ok(decoded.into_srgb()),
+                Ok(decoded) => Ok(decoded),
                 Err(ImageError::Decode(fallback_error)) => Err(ImageError::Decode(format!(
                     "failed to decode TIFF with image crate: {primary_error}; fallback with tiff crate also failed: {fallback_error}"
                 ))),
@@ -138,6 +146,13 @@ where
             None
         }
     };
+    let orientation = match decoder.orientation() {
+        Ok(orientation) => Some(orientation),
+        Err(err) => {
+            eprintln!("[ml][decode] failed to read image orientation from decoder: {err}");
+            None
+        }
+    };
 
     let mut limits = Limits::default();
     limits.reserve(decoder.total_bytes())?;
@@ -146,6 +161,7 @@ where
     Ok(DecodedDynamicImage {
         image: DynamicImage::from_decoder(decoder)?,
         icc_profile,
+        orientation,
     })
 }
 
@@ -165,6 +181,12 @@ fn decode_with_tiff_crate(image_path: &str) -> ImageResult<DecodedDynamicImage> 
         .colortype()
         .map_err(|e| ImageError::Decode(format!("failed to read TIFF color type: {e}")))?;
     let icc_profile = decoder.get_tag_u8_vec(TiffTag::IccProfile).ok();
+    let orientation = decoder
+        .find_tag_unsigned::<u16>(TiffTag::Orientation)
+        .ok()
+        .flatten()
+        .and_then(|value| u8::try_from(value).ok())
+        .and_then(Orientation::from_exif);
     let decoded = decoder
         .read_image()
         .map_err(|e| ImageError::Decode(format!("failed to decode TIFF image data: {e}")))?;
@@ -172,6 +194,7 @@ fn decode_with_tiff_crate(image_path: &str) -> ImageResult<DecodedDynamicImage> 
     Ok(DecodedDynamicImage {
         image: dynamic_image_from_tiff(image_path, width, height, color_type, decoded)?,
         icc_profile,
+        orientation,
     })
 }
 
@@ -185,6 +208,12 @@ fn decode_tiff_from_bytes(image_bytes: &[u8]) -> ImageResult<DecodedDynamicImage
         .colortype()
         .map_err(|e| ImageError::Decode(format!("failed to read TIFF color type: {e}")))?;
     let icc_profile = decoder.get_tag_u8_vec(TiffTag::IccProfile).ok();
+    let orientation = decoder
+        .find_tag_unsigned::<u16>(TiffTag::Orientation)
+        .ok()
+        .flatten()
+        .and_then(|value| u8::try_from(value).ok())
+        .and_then(Orientation::from_exif);
     let decoded = decoder
         .read_image()
         .map_err(|e| ImageError::Decode(format!("failed to decode TIFF image data: {e}")))?;
@@ -192,6 +221,7 @@ fn decode_tiff_from_bytes(image_bytes: &[u8]) -> ImageResult<DecodedDynamicImage
     Ok(DecodedDynamicImage {
         image: dynamic_image_from_tiff("<bytes>", width, height, color_type, decoded)?,
         icc_profile,
+        orientation,
     })
 }
 
@@ -323,21 +353,41 @@ fn init_image_decoders() {
     });
 }
 
-fn orient_decoded_image(image: DynamicImage, image_path: &str) -> DynamicImage {
+fn orient_decoded_image(
+    image: DynamicImage,
+    image_path: &str,
+    decoder_orientation: Option<Orientation>,
+) -> DynamicImage {
     let path = Path::new(image_path);
     if path_extension_is_heif(path) {
         return apply_heif_exif_orientation_hint(image, path);
     }
+    if file_looks_like_jxl(path) {
+        return image;
+    }
 
-    apply_standard_exif_orientation(image, image_path)
+    match decoder_orientation {
+        Some(orientation) => apply_exif_orientation_dynamic(image, orientation.to_exif()),
+        None => apply_standard_exif_orientation(image, image_path),
+    }
 }
 
-fn orient_decoded_image_from_bytes(image: DynamicImage, image_bytes: &[u8]) -> DynamicImage {
+fn orient_decoded_image_from_bytes(
+    image: DynamicImage,
+    image_bytes: &[u8],
+    decoder_orientation: Option<Orientation>,
+) -> DynamicImage {
     if bytes_look_like_heif(image_bytes) {
         return apply_heif_exif_orientation_hint_from_bytes(image, image_bytes);
     }
+    if bytes_look_like_jxl(image_bytes) {
+        return image;
+    }
 
-    apply_standard_exif_orientation_from_bytes(image, image_bytes)
+    match decoder_orientation {
+        Some(orientation) => apply_exif_orientation_dynamic(image, orientation.to_exif()),
+        None => apply_standard_exif_orientation_from_bytes(image, image_bytes),
+    }
 }
 
 fn apply_heif_exif_orientation_hint(image: DynamicImage, image_path: &Path) -> DynamicImage {
@@ -409,6 +459,30 @@ fn read_exif_orientation_from_bytes(image_bytes: &[u8]) -> Option<u8> {
         .and_then(|field| field.value.get_uint(0))
         .and_then(|value| u8::try_from(value).ok())
         .filter(|value| (1..=8).contains(value))
+}
+
+/// JPEG XL must never have an EXIF-derived orientation applied: jxl-oxide
+/// already applies the authoritative codestream orientation (ISO/IEC
+/// 18181-2), and encoders keep a redundant EXIF tag in the container.
+fn bytes_look_like_jxl(image_bytes: &[u8]) -> bool {
+    const BARE_CODESTREAM_SIGNATURE: [u8; 2] = [0xFF, 0x0A];
+    const CONTAINER_SIGNATURE: [u8; 12] = [
+        0x00, 0x00, 0x00, 0x0C, b'J', b'X', b'L', b' ', 0x0D, 0x0A, 0x87, 0x0A,
+    ];
+
+    image_bytes.starts_with(&BARE_CODESTREAM_SIGNATURE)
+        || image_bytes.starts_with(&CONTAINER_SIGNATURE)
+}
+
+fn file_looks_like_jxl(path: &Path) -> bool {
+    let Ok(file) = File::open(path) else {
+        return false;
+    };
+    let mut signature = Vec::with_capacity(12);
+    if file.take(12).read_to_end(&mut signature).is_err() {
+        return false;
+    }
+    bytes_look_like_jxl(&signature)
 }
 
 fn bytes_look_like_heif(image_bytes: &[u8]) -> bool {
@@ -512,6 +586,31 @@ mod tests {
         assert_eq!(decoded.rgb, vec![128, 64, 32]);
     }
 
+    #[test]
+    fn detects_jxl_signatures() {
+        assert!(super::bytes_look_like_jxl(&[0xFF, 0x0A, 0x00]));
+        assert!(super::bytes_look_like_jxl(&[
+            0x00, 0x00, 0x00, 0x0C, b'J', b'X', b'L', b' ', 0x0D, 0x0A, 0x87, 0x0A, 0x00
+        ]));
+        assert!(!super::bytes_look_like_jxl(b"not an image"));
+    }
+
+    #[test]
+    fn decode_applies_orientation_reported_by_png_decoder() {
+        let mut encoded = Vec::new();
+        let mut encoder = PngEncoder::new(&mut encoded);
+        encoder.set_exif_metadata(exif_orientation(6)).unwrap();
+        encoder
+            .write_image(&[255, 0, 0, 0, 255, 0], 2, 1, ColorType::Rgb8.into())
+            .unwrap();
+
+        let decoded = decode_image_from_bytes(&encoded).unwrap();
+
+        assert_eq!(decoded.dimensions.width, 1);
+        assert_eq!(decoded.dimensions.height, 2);
+        assert_eq!(decoded.rgb, vec![255, 0, 0, 0, 255, 0]);
+    }
+
     fn encode_rgb8_png_with_icc(pixel: &[u8; 3], icc_profile: Vec<u8>) -> Vec<u8> {
         let mut encoded = Vec::new();
         let mut encoder = PngEncoder::new(&mut encoded);
@@ -520,5 +619,19 @@ mod tests {
             .write_image(pixel, 1, 1, ColorType::Rgb8.into())
             .unwrap();
         encoded
+    }
+
+    fn exif_orientation(orientation: u16) -> Vec<u8> {
+        let mut exif = vec![
+            b'I', b'I', 42, 0, 8, 0, 0, 0, // Little-endian TIFF header and IFD offset.
+            1, 0, // One IFD entry.
+            0x12, 0x01, // Orientation tag.
+            3, 0, // SHORT.
+            1, 0, 0, 0, // One value.
+            0, 0, 0, 0, // Inline value, filled below.
+            0, 0, 0, 0, // No next IFD.
+        ];
+        exif[18..20].copy_from_slice(&orientation.to_le_bytes());
+        exif
     }
 }

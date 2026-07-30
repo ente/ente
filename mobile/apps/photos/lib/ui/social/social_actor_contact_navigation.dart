@@ -4,10 +4,12 @@ import "package:logging/logging.dart";
 import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/services/contacts/contact_identity_resolver.dart";
+import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/photos_contacts_service.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/ui/viewer/search/result/contact_result_page.dart";
 import "package:photos/ui/viewer/search/result/edit_contact_page.dart";
+import "package:photos/utils/person_contact_linking_util.dart";
 
 final _logger = Logger("SocialActorContactNavigation");
 
@@ -87,6 +89,16 @@ Future<Widget?> _buildDestination(
   final savedContact = contactsService.getCachedContact(contactUserId: userId);
   if (savedContact != null) {
     return _contactResultPageForUser(user);
+  }
+
+  if (PersonService.isInitialized) {
+    final person = await findPersonLinkedToContact(
+      contactUserId: userId,
+      email: email,
+    );
+    if (person != null && !person.data.isIgnored && person.data.hasAvatar()) {
+      return _contactResultPageForUser(user);
+    }
   }
 
   return EditContactPage(

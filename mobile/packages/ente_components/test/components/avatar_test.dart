@@ -30,6 +30,16 @@ void main() {
     ]);
   });
 
+  test(
+    'avatar initials use the first and last words with a two-letter cap',
+    () {
+      expect(avatarInitials('Sachin Jain'), 'SJ');
+      expect(avatarInitials('Sachin Kumar Jain'), 'SJ');
+      expect(avatarInitials('Sachin'), 'S');
+      expect(avatarInitials('  '), '?');
+    },
+  );
+
   testWidgets('AvatarComponent renders the Figma sizes', (tester) async {
     await tester.pumpWidget(
       _wrap(
@@ -98,6 +108,21 @@ void main() {
       expect((cyanAvatar.decoration as BoxDecoration).color, avatarCyan);
     },
   );
+
+  testWidgets('AvatarComponent renders at most two supplied initials', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(_wrap(const AvatarComponent(initials: 'SJK')));
+
+    expect(find.text('SJ'), findsOneWidget);
+    expect(find.text('SJK'), findsNothing);
+    expect(
+      tester.getSemantics(find.byType(AvatarComponent)).label,
+      contains('AvatarComponent SJ'),
+    );
+    semantics.dispose();
+  });
 }
 
 Widget _wrap(Widget child) {

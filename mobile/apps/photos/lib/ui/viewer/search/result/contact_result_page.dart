@@ -21,6 +21,7 @@ import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/search_constants.dart";
 import "package:photos/models/search/search_result.dart";
 import "package:photos/models/selected_files.dart";
+import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/photos_contacts_service.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -40,6 +41,7 @@ import "package:photos/ui/viewer/gallery/state/selection_state.dart";
 import "package:photos/ui/viewer/hierarchicial_search/app_bar_filter_chips.dart";
 import "package:photos/ui/viewer/search/contact_avatar_widget.dart";
 import "package:photos/ui/viewer/search/result/edit_contact_page.dart";
+import "package:photos/utils/person_contact_linking_util.dart";
 
 class ContactResultPage extends StatefulWidget {
   final SearchResult searchResult;
@@ -71,6 +73,7 @@ class _ContactResultPageState extends State<ContactResultPage> {
   late final int _contactUserId;
   late final SearchFilterDataProvider _searchFilterDataProvider;
   contacts.ContactRecord? _savedContact;
+  String? _personId;
   bool _resolvedSavedContact = false;
 
   @override
@@ -82,6 +85,7 @@ class _ContactResultPageState extends State<ContactResultPage> {
     _searchResultName = widget.searchResult.name();
     _contactEmail = params[kContactEmail] as String? ?? _searchResultName;
     _contactUserId = params[kContactUserId] as int;
+    _personId = params[kPersonParamID] as String?;
     _filesUpdatedEvent = Bus.instance.on<LocalPhotosUpdatedEvent>().listen((
       event,
     ) {
@@ -262,14 +266,34 @@ class _ContactResultPageState extends State<ContactResultPage> {
       collections.isEmpty;
 
   Future<void> _refreshSavedContact() async {
-    final saved = await PhotosContactsService.instance.getContact(
+    var saved = await PhotosContactsService.instance.getContact(
       contactUserId: _contactUserId,
     );
+    String? resolvedPersonID;
+    if (saved == null && PersonService.isInitialized) {
+      final personID = _personId;
+      final person = personID == null
+          ? await findPersonLinkedToContact(
+              contactUserId: _contactUserId,
+              email: _contactEmail,
+            )
+          : await PersonService.instance.getPerson(personID);
+      if (person != null) {
+        resolvedPersonID = person.remoteID;
+        saved = await PersonService.instance
+            .tryAutoCreateContactForLinkedPerson(
+              person: person,
+              contactUserId: _contactUserId,
+              email: _contactEmail,
+            );
+      }
+    }
     if (!mounted) {
       return;
     }
     setState(() {
       _savedContact = saved;
+      _personId ??= resolvedPersonID;
       _resolvedSavedContact = true;
     });
   }
@@ -284,15 +308,16 @@ class _ContactResultPageState extends State<ContactResultPage> {
       ),
     );
     if (updated is contacts.ContactRecord && mounted) {
+      final personData = PersonService.instance.getCachedPartialPersonData(
+        userID: _contactUserId,
+        email: _contactEmail,
+      );
       setState(() {
         _savedContact = updated;
+        _personId = personData?[PersonService.kPersonIDKey];
       });
     }
   }
-
-  String? get _personId =>
-      (widget.searchResult as GenericSearchResult).params[kPersonParamID]
-          as String?;
 
   String get _savedContactDisplayName {
     final savedName = _savedContact?.data?.name.trim();

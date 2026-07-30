@@ -7,6 +7,7 @@ import "package:ente_contacts/contacts.dart" as contacts;
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart";
 import "package:logging/logging.dart";
+import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/ml/db.dart";
 import "package:photos/events/people_changed_event.dart";
@@ -21,6 +22,7 @@ import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/photos_contacts_service.dart";
 import "package:photos/settings/local_settings.dart";
 import "package:photos/utils/contact_photo_util.dart";
+import "package:photos/utils/contact_string_util.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
@@ -40,15 +42,25 @@ class PersonService {
   final MLDataDB faceMLDataDB;
   final SharedPreferences prefs;
   final PhotosContactsService _contactsService;
+  final Future<Uint8List?> Function(PersonEntity) _contactPhotoBuilder;
+  final int? Function() _currentUserIDProvider;
   final _emailToPartialPersonDataMapCache = <String, Map<String, String>>{};
   final _userIdToPartialPersonDataMapCache = <int, Map<String, String>>{};
+  final _autoContactCreationsByUserId =
+      <int, Future<contacts.ContactRecord?>>{};
 
   PersonService(
     this.entityService,
     this.faceMLDataDB,
     this.prefs, {
     PhotosContactsService? contactsService,
-  }) : _contactsService = contactsService ?? PhotosContactsService.instance;
+    Future<Uint8List?> Function(PersonEntity)? contactPhotoBuilder,
+    int? Function()? currentUserIDProvider,
+  }) : _contactsService = contactsService ?? PhotosContactsService.instance,
+       _contactPhotoBuilder =
+           contactPhotoBuilder ?? buildContactPhotoAttachmentBytesFromPerson,
+       _currentUserIDProvider =
+           currentUserIDProvider ?? Configuration.instance.getUserID;
 
   // instance
   static PersonService? _instance;
@@ -742,6 +754,69 @@ class PersonService {
       contactUserId: contact.contactUserId,
       name: name,
     );
+  }
+
+  Future<contacts.ContactRecord?> tryAutoCreateContactForLinkedPerson({
+    required PersonEntity person,
+    required int contactUserId,
+    required String email,
+  }) {
+    return _autoContactCreationsByUserId.putIfAbsent(contactUserId, () {
+      final creation = _tryAutoCreateContactForLinkedPerson(
+        person: person,
+        contactUserId: contactUserId,
+        email: email,
+      );
+      return creation.whenComplete(() {
+        _autoContactCreationsByUserId.remove(contactUserId);
+      });
+    });
+  }
+
+  Future<contacts.ContactRecord?> _tryAutoCreateContactForLinkedPerson({
+    required PersonEntity person,
+    required int contactUserId,
+    required String email,
+  }) async {
+    final ownerUserID = _currentUserIDProvider();
+    if (ownerUserID == null ||
+        contactUserId <= 0 ||
+        contactUserId == ownerUserID) {
+      return null;
+    }
+
+    final personUserID = person.data.userID;
+    final personEmail = normalizeContactLinkEmail(person.data.email);
+    final matchesContact = personUserID != null
+        ? personUserID == contactUserId
+        : personEmail != null &&
+              personEmail == normalizeContactLinkEmail(email);
+    final name = person.data.name.trim();
+    if (!matchesContact ||
+        person.data.isIgnored ||
+        !person.data.hasAvatar() ||
+        name.isEmpty) {
+      return null;
+    }
+
+    try {
+      final bytes = await _contactPhotoBuilder(person);
+      if (bytes == null || _currentUserIDProvider() != ownerUserID) {
+        return null;
+      }
+      return await _contactsService.createContactWithProfilePictureIfAbsent(
+        contactUserId: contactUserId,
+        name: name,
+        bytes: bytes,
+      );
+    } catch (e, s) {
+      logger.warning(
+        "Failed to auto-create contact for linked person ${person.remoteID}",
+        e,
+        s,
+      );
+      return null;
+    }
   }
 
   Future<contacts.ContactRecord?> _getLinkedContact(PersonEntity person) =>

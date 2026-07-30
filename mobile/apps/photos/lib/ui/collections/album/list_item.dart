@@ -76,7 +76,7 @@ class AlbumListItemWidget extends StatelessWidget {
       onLongPress: onLongPressCallback == null
           ? null
           : () => onLongPressCallback!(collection),
-      leading: _AlbumListItemCover(collection: collection),
+      leading: AlbumListItemCover(collection: collection),
       title: _buildTitle(
         context,
         showSharingIndicator: showSharingIndicator,
@@ -267,48 +267,44 @@ class AlbumListItemWidget extends StatelessWidget {
   }
 }
 
-class _AlbumListItemCover extends StatelessWidget {
-  final Collection collection;
+class AlbumListItemCover extends StatelessWidget {
+  const AlbumListItemCover({
+    required this.collection,
+    this.borderRadius = ThumbnailListItem.defaultLeadingRadius,
+    super.key,
+  });
 
-  const _AlbumListItemCover({required this.collection});
+  final Collection collection;
+  final double borderRadius;
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(
-            ThumbnailListItem.defaultLeadingRadius,
-          ),
-          child: SizedBox.expand(
-            child: FutureBuilder<EnteFile?>(
-              future: CollectionsService.instance.getCover(collection),
-              initialData: CollectionsService.instance.getCoverCache(
-                collection,
-              ),
-              builder: (context, snapshot) {
-                final thumbnail =
-                    snapshot.data ??
-                    CollectionsService.instance.getCoverCache(collection);
-                if (thumbnail != null) {
-                  return ThumbnailWidget(
-                    thumbnail,
-                    shouldShowFavoriteIcon: false,
-                    shouldShowOwnerAvatar: false,
-                    shouldShowSyncStatus: false,
-                    key: Key("album_list:${collection.id}:${thumbnail.tag}"),
-                  );
-                }
-                return const NoThumbnailWidget(
-                  borderRadius: ThumbnailListItem.defaultLeadingRadius,
-                  addBorder: false,
-                );
-              },
-            ),
-          ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: SizedBox.expand(
+        child: FutureBuilder<EnteFile?>(
+          future: CollectionsService.instance.getCover(collection),
+          initialData: CollectionsService.instance.getCoverCache(collection),
+          builder: (context, snapshot) {
+            final thumbnail =
+                snapshot.data ??
+                CollectionsService.instance.getCoverCache(collection);
+            if (thumbnail == null) {
+              return NoThumbnailWidget(
+                borderRadius: borderRadius,
+                addBorder: false,
+              );
+            }
+            return ThumbnailWidget(
+              thumbnail,
+              shouldShowFavoriteIcon: false,
+              shouldShowOwnerAvatar: false,
+              shouldShowSyncStatus: false,
+              key: Key("album_list:${collection.id}:${thumbnail.tag}"),
+            );
+          },
         ),
-      ],
+      ),
     );
   }
 }

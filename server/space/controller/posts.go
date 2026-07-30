@@ -12,7 +12,6 @@ import (
 	"github.com/ente/museum/space/repo"
 	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 )
 
 const spacePostLimitWarningThreshold = 200
@@ -22,13 +21,12 @@ type SpaceAbuseNotifier interface {
 }
 
 type PostsController struct {
-	PostsRepo     *repo.PostsRepository
-	SpacesRepo    *repo.SpacesRepository
-	FriendsRepo   *repo.FriendsRepository
-	AssetsRepo    *repo.AssetsRepository
-	EmailNotifier SpaceEmailNotifier
-	AbuseNotifier SpaceAbuseNotifier
-	auth          authDeps
+	PostsRepo        *repo.PostsRepository
+	SpacesRepo       *repo.SpacesRepository
+	AssetsRepo       *repo.AssetsRepository
+	ActivityNotifier SpaceActivityNotifier
+	AbuseNotifier    SpaceAbuseNotifier
+	auth             authDeps
 }
 
 func (c *PostsController) Create(ctx context.Context, space *repo.SpaceRecord, req models.CreatePostRequest) (*models.CreatePostResponse, error) {
@@ -92,25 +90,12 @@ func (c *PostsController) Create(ctx context.Context, space *repo.SpaceRecord, r
 			space.SpaceID, space.OwnerID, postCount, repo.MaxPostsPerSpace,
 		))
 	}
-	c.notifyFriendsOfNewPost(space.OwnerID, space.SpaceID, space.SpaceSlug)
+	c.notifyFriendsOfNewPost(spaceActivityActor(space))
 	return &models.CreatePostResponse{PostID: postID}, nil
 }
 
-func (c *PostsController) notifyFriendsOfNewPost(ownerID int64, spaceID, spaceSlug string) {
-	if c.EmailNotifier == nil || c.FriendsRepo == nil {
-		return
-	}
-	go func() {
-		recipientUserIDs, err := c.FriendsRepo.ListFriendOwnerIDsForSpace(context.Background(), spaceID)
-		if err != nil {
-			log.WithField("space_id", spaceID).WithError(err).Error("Failed to list friends for space post email")
-			return
-		}
-		if len(recipientUserIDs) == 0 {
-			return
-		}
-		c.EmailNotifier.OnSpacePostCreated(ownerID, spaceSlug, recipientUserIDs)
-	}()
+func (c *PostsController) notifyFriendsOfNewPost(actor SpaceActivityActor) {
+	go c.ActivityNotifier.OnSpacePostCreated(actor)
 }
 
 func (c *PostsController) postResponses(ctx context.Context, posts []repo.SpacePostRecord, includeAuthor bool) ([]models.PostResponse, error) {
@@ -242,8 +227,8 @@ func (c *PostsController) SetLike(ctx context.Context, actorSpace *repo.SpaceRec
 	if err != nil {
 		return nil, err
 	}
-	if like && created && c.EmailNotifier != nil {
-		go c.EmailNotifier.OnSpacePostLiked(actorSpace.OwnerID, actorSpace.SpaceSlug, post.OwnerID)
+	if like && created {
+		go c.ActivityNotifier.OnSpacePostLiked(spaceActivityActor(actorSpace), post.OwnerID)
 	}
 	return &models.LikePostResponse{Liked: like}, nil
 }

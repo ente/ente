@@ -4,6 +4,7 @@ on:
     pull_request:
         paths:
             - "mobile/native/apple/apps/ensu/**"
+            - "mobile/native/apple/packages/EnteOnnxRuntime/**"
             - "rust/apps/codegen/**"
             - "rust/crates/core/**"
             - "rust/crates/ensu/**"

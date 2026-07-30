@@ -100,13 +100,13 @@ class _FilePropertiesItemWidgetState extends State<FilePropertiesItemWidget> {
       subSectionWidgets.add(Text(dimString.toString(), style: textStyle));
     }
 
-    int fileSize;
-    if (widget.file.fileSize != null) {
-      fileSize = widget.file.fileSize!;
-    } else {
-      fileSize = await getFile(widget.file).then((f) => f!.length());
+    final fileSize =
+        widget.file.fileSize ??
+        await getFile(widget.file).then((f) => f?.length());
+
+    if (fileSize != null) {
+      subSectionWidgets.add(Text(formatBytes(fileSize), style: textStyle));
     }
-    subSectionWidgets.add(Text(formatBytes(fileSize), style: textStyle));
 
     if ((widget.file.fileType == FileType.video) &&
         (widget.file.localID != null || widget.file.duration != 0)) {

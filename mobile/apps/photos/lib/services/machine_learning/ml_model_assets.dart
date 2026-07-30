@@ -1,9 +1,9 @@
 import "package:photos/services/machine_learning/ml_model.dart";
 
 class FaceDetectionModel extends MlModelAsset {
-  static const remoteFileName = "yolov5s_face_640_640_dynamic.onnx";
+  static const remoteFileName = "yolov5s_face_640_640_static_b1.onnx";
   static const _sha256 =
-      "71a008707283b03db4881449a24f4da197f9dbd9ddaca5c91fcdb363fbf7e06f";
+      "e047647409403d52696035ecd445792173e50d7fbdcccac97b958a585db9aa3d";
 
   FaceDetectionModel._();
   static final instance = FaceDetectionModel._();
@@ -16,9 +16,9 @@ class FaceDetectionModel extends MlModelAsset {
 }
 
 class FaceEmbeddingModel extends MlModelAsset {
-  static const remoteFileName = "mobilefacenet_opset15.onnx";
+  static const remoteFileName = "mobilefacenet_portable_static_b1.onnx";
   static const _sha256 =
-      "472a0f7e24d0b070cbbdc031b085bc2a06c70655b3bdefb87dbd69bc98662f45";
+      "0763fc33f54e138476194da95987e133b3e976075a6b1d3e1b2caedb251b1a36";
 
   FaceEmbeddingModel._();
   static final instance = FaceEmbeddingModel._();
@@ -31,9 +31,9 @@ class FaceEmbeddingModel extends MlModelAsset {
 }
 
 class ClipImageModel extends MlModelAsset {
-  static const remoteFileName = "mobileclip_s2_image.onnx";
+  static const remoteFileName = "mobileclip_s2_image_gelu_opset20.onnx";
   static const _sha256 =
-      "ef54ec66c687603eb4dd303e20d9b67e81069d3133b1c69a70028c76718b7752";
+      "205a430af825e501c5138e5bb9abea942482a7a4fd4a680e98e47cf0830dce7e";
 
   ClipImageModel._();
   static final instance = ClipImageModel._();

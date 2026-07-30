@@ -123,6 +123,10 @@ extension CollectionFileActions on CollectionActions {
           }
 
           if (currentFile.uploadedFileID == null) {
+            if (currentFile.collectionID != null &&
+                currentFile.collectionID != collection.id) {
+              currentFile.generatedID = null;
+            }
             currentFile.collectionID = collection.id;
             filesPendingUpload.add(currentFile);
           } else {

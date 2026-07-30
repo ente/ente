@@ -144,6 +144,7 @@ Future<int?> _processAndOTPFile(
       parsedCodes.add(code);
     } catch (e, s) {
       _logger.warning('Failed to parse andOTP entry: $displayName', e, s);
+      throwImportEntryParseError(item, e);
     }
   }
 

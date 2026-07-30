@@ -171,11 +171,27 @@ export const collectionTypes = [
  *   corresponding operation moves the file to the user's special
  *   "uncategorized" collection, creating it if needed.
  *
- *   Similar to "favorites", the user can have only one "uncategorized"
- *   collection. However, unlike "favorites", the "uncategorized" collection
- *   cannot be shared.
+ *   Similar to "favorites", the user can own only one "uncategorized"
+ *   collection. Shared collections of this type can also be present locally,
+ *   so callers must include the owner when resolving the user's collection.
  */
 export type CollectionType = (typeof collectionTypes)[number];
+
+interface CollectionTypeAndOwner {
+    type: string;
+    owner: { id: number };
+}
+
+export const findUserUncategorizedCollection = <
+    T extends CollectionTypeAndOwner,
+>(
+    collections: readonly T[],
+    userID: number,
+) =>
+    collections.find(
+        (collection) =>
+            collection.type == "uncategorized" && collection.owner.id == userID,
+    );
 
 /**
  * The privilege level of a participant associated with a collection.
@@ -283,15 +299,15 @@ export interface PublicURL {
     /**
      * A URL that can be used access the shared collection.
      *
-     * This will be of the form "https://<public-albums-app>/?t=<token>", e.g.,
-     * "https://albums.ente.com/?t=xxxxxx".
+     * This will be of the form "https://<public-albums-app>/<token>", e.g.,
+     * "https://albums.ente.com/xxxxxx".
      *
      * In particular, this URL does not contain the URL fragment (the part after
      * the "#"). URL fragments are client side only, and not sent to remote.
      * They contain the decryption key.
      *
-     * The client can use this field to form the fully usable URL (e.g.
-     * "https://albums.ente.com/?t=xxxxxx#yyy...yyy") and provide it to the user
+     * The client can use this field to form the fully usable URL, e.g.
+     * "https://albums.ente.com/xxxxxx#yyy...yyy", and provide it to the user
      * for sharing.
      */
     url: string;

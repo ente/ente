@@ -1,0 +1,16 @@
+[package]
+name = "ente_photos_napi"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# usearch requires a newer GCC than napi-cli provides.
+ente-photos.workspace = true
+napi = { version = "3", default-features = false, features = ["napi8"] }
+napi-derive = "3"
+ort = { workspace = true, features = ["load-dynamic"] }
+
+[build-dependencies]
+napi-build = "2"

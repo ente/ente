@@ -1,1 +1,0 @@
-- Fixed crashes when leaving screens, closing dialogs, or switching app state during background work.

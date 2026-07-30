@@ -7,9 +7,12 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,13 +35,16 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -54,6 +60,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -84,6 +91,8 @@ import java.util.Locale
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import io.ente.ensu.llm.DownloadPhase
+import io.ente.ensu.bindings.SourceCitation
+import io.ente.ensu.bindings.parseAssistantText
 
 @Composable
 internal fun MessageList(
@@ -107,27 +116,27 @@ internal fun MessageList(
     onOpenAttachment: (Attachment) -> Unit,
     onStartDownload: (Boolean) -> Unit
 ) {
+    if (isModelStateKnown && !isModelDownloaded && !isChatUnsupported) {
+        DownloadOnboarding(
+            modifier = modifier,
+            isDownloading = isDownloading,
+            downloadPercent = downloadPercent,
+            downloadStatus = downloadStatus,
+            downloadPhase = downloadPhase,
+            modelDownloadSizeBytes = modelDownloadSizeBytes,
+            onDownload = { onStartDownload(true) }
+        )
+        return
+    }
     if (messages.isEmpty() && !isGenerating) {
         if (!isModelStateKnown) {
             return
         }
-        if (!isModelDownloaded && !isChatUnsupported) {
-            DownloadOnboarding(
-                modifier = modifier,
-                isDownloading = isDownloading,
-                downloadPercent = downloadPercent,
-                downloadStatus = downloadStatus,
-                downloadPhase = downloadPhase,
-                modelDownloadSizeBytes = modelDownloadSizeBytes,
-                onDownload = { onStartDownload(true) }
-            )
-        } else {
-            EmptyState(
-                modifier = modifier,
-                title = "Welcome",
-                subtitle = "Type a message to start chatting"
-            )
-        }
+        EmptyState(
+            modifier = modifier,
+            title = "Welcome",
+            subtitle = "Type a message to start chatting"
+        )
         return
     }
 
@@ -623,8 +632,10 @@ private fun AssistantMessageBubble(
     showsMetadata: Boolean
 ) {
     val clipboard = LocalClipboardManager.current
+    val parsed = remember(message.text) { parseAssistantText(message.text) }
     val haptic = rememberHaptics()
     var showMenu by remember { mutableStateOf(false) }
+    var showSources by remember { mutableStateOf(false) }
     var pressOffset by remember { mutableStateOf(Offset.Zero) }
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -634,7 +645,7 @@ private fun AssistantMessageBubble(
             if (!message.isSynthetic) {
                 add(MessageAction("Copy", HugeIcons.Copy01Icon) {
                     haptic.perform(HapticFeedbackType.TextHandleMove)
-                    clipboard.setText(AnnotatedString(stripHiddenMessageParts(message.text)))
+                    clipboard.setText(AnnotatedString(stripHiddenMessageParts(parsed.text)))
                 })
             }
             if (!message.isSynthetic || isLastMessage) {
@@ -662,9 +673,28 @@ private fun AssistantMessageBubble(
                     .padding(horizontal = EnsuSpacing.sm.dp, vertical = EnsuSpacing.md.dp)
             ) {
                 MarkdownView(
-                    markdown = stripHiddenMessageParts(message.text),
+                    markdown = stripHiddenMessageParts(parsed.text),
                     enableSelection = false
                 )
+
+                parsed.sourceLabel?.let { label ->
+                    Spacer(modifier = Modifier.height(EnsuSpacing.sm.dp))
+                    Surface(
+                        color = EnsuColor.fillFaint(),
+                        shape = RoundedCornerShape(EnsuCornerRadius.button.dp),
+                        modifier = Modifier.clickable { showSources = true }
+                    ) {
+                        Text(
+                            text = label,
+                            style = EnsuTypography.small,
+                            color = EnsuColor.textPrimary(),
+                            modifier = Modifier.padding(
+                                horizontal = EnsuSpacing.md.dp,
+                                vertical = EnsuSpacing.sm.dp
+                            )
+                        )
+                    }
+                }
 
                 if (message.isInterrupted) {
                     Spacer(modifier = Modifier.height(EnsuSpacing.xs.dp))
@@ -710,7 +740,101 @@ private fun AssistantMessageBubble(
                 }
             }
         }
+
+        if (showSources) {
+            KnowledgeSourcesDialog(
+                citations = parsed.citations,
+                onDismiss = { showSources = false }
+            )
+        }
     }
+}
+
+@Composable
+private fun KnowledgeSourcesDialog(
+    citations: List<SourceCitation>,
+    onDismiss: () -> Unit
+) {
+    val uriHandler = LocalUriHandler.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Sources", style = EnsuTypography.h3) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(EnsuSpacing.lg.dp)
+            ) {
+                Text(
+                    text = if (citations.size == 1) {
+                        "1 source used in this response"
+                    } else {
+                        "${citations.size} sources used in this response"
+                    },
+                    style = EnsuTypography.small,
+                    color = EnsuColor.textMuted()
+                )
+
+                citations.forEachIndexed { index, citation ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                EnsuColor.fillFaint(),
+                                RoundedCornerShape(EnsuCornerRadius.card.dp)
+                            )
+                            .padding(EnsuSpacing.md.dp),
+                        verticalArrangement = Arrangement.spacedBy(EnsuSpacing.sm.dp)
+                    ) {
+                        Text(
+                            text = "SOURCE ${index + 1} · ${citation.datasetLabel.uppercase()}",
+                            style = EnsuTypography.mini,
+                            color = EnsuColor.textMuted()
+                        )
+                        Text(
+                            text = citation.title,
+                            style = EnsuTypography.large,
+                            color = EnsuColor.textPrimary()
+                        )
+                        HorizontalDivider(color = EnsuColor.border())
+                        Text(
+                            text = "Attribution",
+                            style = EnsuTypography.mini,
+                            color = EnsuColor.textMuted()
+                        )
+                        Text(
+                            citation.credit,
+                            style = EnsuTypography.small,
+                            color = EnsuColor.textPrimary()
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(EnsuSpacing.lg.dp)) {
+                            SourceAttributionLink("Open source ↗") {
+                                uriHandler.openUri(citation.sourceUrl)
+                            }
+                            SourceAttributionLink("${citation.licenseLabel} ↗") {
+                                uriHandler.openUri(citation.licenseUrl)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Done") }
+        },
+        containerColor = EnsuColor.backgroundBase()
+    )
+}
+
+@Composable
+private fun SourceAttributionLink(label: String, onClick: () -> Unit) {
+    Text(
+        text = label,
+        style = EnsuTypography.small,
+        color = EnsuColor.accent(),
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(vertical = EnsuSpacing.xs.dp)
+    )
 }
 
 private data class MessageAction(

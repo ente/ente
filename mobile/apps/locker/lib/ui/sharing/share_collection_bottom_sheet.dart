@@ -194,27 +194,29 @@ class _ShareCollectionSheetState extends State<ShareCollectionSheet> {
             );
           },
         ),
-        const SizedBox(width: 16),
-        _ShareActionOption(
-          icon: HugeIcons.strokeRoundedLink02,
-          label: _hasPublicLink
-              ? context.l10n.manageLink
-              : context.l10n.linkLabel,
-          onTap: () async {
-            if (!_hasPublicLink) {
-              await _createAndSharePublicLink();
-              return;
-            }
+        if (widget.collection.type != CollectionType.uncategorized) ...[
+          const SizedBox(width: 16),
+          _ShareActionOption(
+            icon: HugeIcons.strokeRoundedLink02,
+            label: _hasPublicLink
+                ? context.l10n.manageLink
+                : context.l10n.linkLabel,
+            onTap: () async {
+              if (!_hasPublicLink) {
+                await _createAndSharePublicLink();
+                return;
+              }
 
-            await routeToPage(
-              context,
-              ManageSharedLinkWidget(collection: widget.collection),
-            );
-            if (mounted) {
-              setState(() {});
-            }
-          },
-        ),
+              await routeToPage(
+                context,
+                ManageSharedLinkWidget(collection: widget.collection),
+              );
+              if (mounted) {
+                setState(() {});
+              }
+            },
+          ),
+        ],
       ],
     );
   }

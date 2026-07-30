@@ -12,7 +12,7 @@ description: ente photos application
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 
-version: 1.3.59+2158
+version: 1.3.60+2158
 publish_to: none
 
 resolution: workspace
@@ -201,7 +201,7 @@ dependencies:
   path_provider: 2.1.5
   path_provider_foundation: 2.6.0
   permission_handler: 12.0.1
-  photo_manager: 3.7.1
+  photo_manager: 3.11.0
   photo_manager_image_provider: 2.2.0
   photo_view: 0.15.0
   pinput: 5.0.2
@@ -215,9 +215,9 @@ dependencies:
       ref: 2cea396843cd3ab1b5ec4334be4233864637874e
   rive: 0.14.0-dev.13
   scrollable_positioned_list: 0.3.8
-  sentry: 8.14.2
-  sentry_flutter: 8.14.2
-  share_plus: 11.1.0
+  sentry: 9.6.0
+  sentry_flutter: 9.6.0
+  share_plus: 12.0.0
   shared_preferences: 2.5.3
   sqflite: 2.4.2
   sqflite_migration: 0.3.0

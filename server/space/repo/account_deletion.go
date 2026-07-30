@@ -98,6 +98,9 @@ func resetSpaceAccessTx(ctx context.Context, tx *sql.Tx, userID int64, spaceIDs 
 	if err := resetAccountDeletionAccessTx(ctx, tx, userID, spaceIDs); err != nil {
 		return err
 	}
+	if err := deactivateSpaceLinksTx(ctx, tx, spaceIDs); err != nil {
+		return err
+	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM space_friend_shares WHERE space_id = ANY($1) OR friend_space_id = ANY($1)`, spaceIDArray); err != nil {
 		return stacktrace.Propagate(err, "failed to delete space friend shares")
 	}

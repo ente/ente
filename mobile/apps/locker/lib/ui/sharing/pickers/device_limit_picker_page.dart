@@ -1,10 +1,4 @@
 import 'package:ente_components/ente_components.dart';
-import "package:ente_ui/components/captioned_text_widget_v2.dart";
-import "package:ente_ui/components/divider_widget.dart";
-import "package:ente_ui/components/menu_item_widget_v2.dart";
-import "package:ente_ui/components/separators.dart";
-import "package:ente_ui/components/title_bar_title_widget.dart";
-import "package:ente_ui/components/title_bar_widget.dart";
 import 'package:flutter/material.dart';
 import "package:locker/core/constants.dart";
 import "package:locker/l10n/l10n.dart";
@@ -19,34 +13,19 @@ class DeviceLimitPickerPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: CustomScrollView(
-        primary: false,
-        slivers: <Widget>[
-          TitleBarWidget(
-            flexibleSpaceTitle: TitleBarTitleWidget(
-              title: context.l10n.linkDeviceLimit,
+      backgroundColor: context.componentColors.backgroundBase,
+      body: AppBarComponent(
+        title: context.l10n.linkDeviceLimit,
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.lg,
+              Spacing.xl,
+              Spacing.lg,
+              Spacing.xl,
             ),
+            sliver: SliverToBoxAdapter(child: ItemsWidget(collection)),
           ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 20,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.all(Radius.circular(8)),
-                      child: ItemsWidget(collection),
-                    ),
-                  ],
-                ),
-              );
-            }, childCount: 1),
-          ),
-          const SliverPadding(padding: EdgeInsets.symmetric(vertical: 12)),
         ],
       ),
     );
@@ -64,7 +43,6 @@ class ItemsWidget extends StatefulWidget {
 class _ItemsWidgetState extends State<ItemsWidget> {
   late int currentDeviceLimit;
   late int initialDeviceLimit;
-  List<Widget> items = [];
   bool isCustomLimit = false;
   @override
   void initState() {
@@ -78,51 +56,23 @@ class _ItemsWidgetState extends State<ItemsWidget> {
 
   @override
   Widget build(BuildContext context) {
-    items.clear();
+    final items = <Widget>[];
     if (isCustomLimit) {
-      items.add(
-        _menuItemForPicker(
-          initialDeviceLimit,
-          isFirst: true,
-          isLast: publicLinkDeviceLimits.isEmpty,
-        ),
-      );
+      items.add(_menuItemForPicker(initialDeviceLimit));
     }
-    for (int index = 0; index < publicLinkDeviceLimits.length; index++) {
-      final deviceLimit = publicLinkDeviceLimits[index];
-      items.add(
-        _menuItemForPicker(
-          deviceLimit,
-          isFirst: !isCustomLimit && index == 0,
-          isLast: index == publicLinkDeviceLimits.length - 1,
-        ),
-      );
+    for (final deviceLimit in publicLinkDeviceLimits) {
+      items.add(_menuItemForPicker(deviceLimit));
     }
-    items = addSeparators(
-      items,
-      DividerWidget(
-        dividerType: DividerType.menuNoIcon,
-        bgColor: context.componentColors.fillLight,
-      ),
-    );
-    return Column(mainAxisSize: MainAxisSize.min, children: items);
+    return MenuGroupComponent(items: items);
   }
 
-  Widget _menuItemForPicker(
-    int deviceLimit, {
-    required bool isFirst,
-    required bool isLast,
-  }) {
-    return MenuItemWidgetV2(
+  Widget _menuItemForPicker(int deviceLimit) {
+    return MenuComponent(
       key: ValueKey(deviceLimit),
-      menuItemColor: context.componentColors.fillLight,
-      captionedTextWidget: CaptionedTextWidgetV2(
-        title: deviceLimit == 0 ? context.l10n.noDeviceLimit : "$deviceLimit",
-      ),
-      trailingIcon: currentDeviceLimit == deviceLimit ? Icons.check : null,
-      alignCaptionedTextToLeft: true,
-      isTopBorderRadiusRemoved: !isFirst,
-      isBottomBorderRadiusRemoved: !isLast,
+      title: deviceLimit == 0 ? context.l10n.noDeviceLimit : "$deviceLimit",
+      trailing: currentDeviceLimit == deviceLimit
+          ? Icon(Icons.check, color: context.componentColors.primary)
+          : null,
       showOnlyLoadingState: true,
       onTap: () async {
         await _updateUrlSettings(context, {'deviceLimit': deviceLimit});

@@ -1,28 +1,41 @@
 use crate::ml::{
     error::{MlError, MlResult},
-    onnx, preprocess,
+    onnx,
+    preprocess::{YOLO_INPUT_SIZE, YoloInput},
     runtime::MlRuntimeView,
-    types::{DecodedImage, FaceDetection},
+    types::FaceDetection,
 };
 
-const INPUT_WIDTH: f32 = 640.0;
-const INPUT_HEIGHT: f32 = 640.0;
 const IOU_THRESHOLD: f32 = 0.4;
 const MIN_SCORE_THRESHOLD: f32 = 0.5;
 
-pub fn run_face_detection(
+pub(crate) fn run_face_detection(
     runtime: &MlRuntimeView<'_>,
-    decoded: &DecodedImage,
+    input: &YoloInput,
 ) -> MlResult<Vec<FaceDetection>> {
-    let (input, scaled_width, scaled_height, pad_left, pad_top) =
-        preprocess::preprocess_yolo(decoded)?;
     let mut face_detection = runtime.face_detection_session()?;
-    let output_data = onnx::run_f32_data(
+    onnx::with_prepared_float_output(
         &mut face_detection,
-        input,
-        [1, 3, INPUT_HEIGHT as i64, INPUT_WIDTH as i64],
-    )?;
+        &input.tensor,
+        [1, 3, YOLO_INPUT_SIZE as i64, YOLO_INPUT_SIZE as i64],
+        |_output_shape, output_data| postprocess_face_detections(output_data, input),
+    )
+}
 
+fn postprocess_face_detections(
+    output_data: onnx::BorrowedFloatTensor<'_>,
+    input: &YoloInput,
+) -> MlResult<Vec<FaceDetection>> {
+    match output_data {
+        onnx::BorrowedFloatTensor::F32(data) => postprocess_face_tensor(data, input),
+        onnx::BorrowedFloatTensor::F16(data) => postprocess_face_tensor(data, input),
+    }
+}
+
+fn postprocess_face_tensor<T: onnx::FloatTensorData>(
+    output_data: T,
+    input: &YoloInput,
+) -> MlResult<Vec<FaceDetection>> {
     let row_len = 16usize;
     if output_data.len() < row_len {
         return Err(MlError::Postprocess(
@@ -31,42 +44,53 @@ pub fn run_face_detection(
     }
 
     let detection_rows = output_data.len() / row_len;
-    let mut detections = Vec::with_capacity(detection_rows);
+    let mut detections = Vec::new();
     for i in 0..detection_rows {
         let start = i * row_len;
-        let row = &output_data[start..(start + row_len)];
-        let score = row[4];
+        let score = output_data.value(start + 4);
         if score < MIN_SCORE_THRESHOLD {
             continue;
         }
 
-        let x_min_abs = row[0] - row[2] / 2.0;
-        let y_min_abs = row[1] - row[3] / 2.0;
-        let x_max_abs = row[0] + row[2] / 2.0;
-        let y_max_abs = row[1] + row[3] / 2.0;
+        let x = output_data.value(start);
+        let y = output_data.value(start + 1);
+        let width = output_data.value(start + 2);
+        let height = output_data.value(start + 3);
+        let x_min_abs = x - width / 2.0;
+        let y_min_abs = y - height / 2.0;
+        let x_max_abs = x + width / 2.0;
+        let y_max_abs = y + height / 2.0;
 
         let mut box_xyxy = [
-            x_min_abs / INPUT_WIDTH,
-            y_min_abs / INPUT_HEIGHT,
-            x_max_abs / INPUT_WIDTH,
-            y_max_abs / INPUT_HEIGHT,
+            x_min_abs / YOLO_INPUT_SIZE as f32,
+            y_min_abs / YOLO_INPUT_SIZE as f32,
+            x_max_abs / YOLO_INPUT_SIZE as f32,
+            y_max_abs / YOLO_INPUT_SIZE as f32,
         ];
         let mut keypoints = [
-            [row[5] / INPUT_WIDTH, row[6] / INPUT_HEIGHT],
-            [row[7] / INPUT_WIDTH, row[8] / INPUT_HEIGHT],
-            [row[9] / INPUT_WIDTH, row[10] / INPUT_HEIGHT],
-            [row[11] / INPUT_WIDTH, row[12] / INPUT_HEIGHT],
-            [row[13] / INPUT_WIDTH, row[14] / INPUT_HEIGHT],
+            [
+                output_data.value(start + 5) / YOLO_INPUT_SIZE as f32,
+                output_data.value(start + 6) / YOLO_INPUT_SIZE as f32,
+            ],
+            [
+                output_data.value(start + 7) / YOLO_INPUT_SIZE as f32,
+                output_data.value(start + 8) / YOLO_INPUT_SIZE as f32,
+            ],
+            [
+                output_data.value(start + 9) / YOLO_INPUT_SIZE as f32,
+                output_data.value(start + 10) / YOLO_INPUT_SIZE as f32,
+            ],
+            [
+                output_data.value(start + 11) / YOLO_INPUT_SIZE as f32,
+                output_data.value(start + 12) / YOLO_INPUT_SIZE as f32,
+            ],
+            [
+                output_data.value(start + 13) / YOLO_INPUT_SIZE as f32,
+                output_data.value(start + 14) / YOLO_INPUT_SIZE as f32,
+            ],
         ];
 
-        correct_for_maintained_aspect_ratio(
-            &mut box_xyxy,
-            &mut keypoints,
-            scaled_width,
-            scaled_height,
-            pad_left,
-            pad_top,
-        );
+        input.correct_box_and_keypoints(&mut box_xyxy, &mut keypoints);
 
         detections.push(FaceDetection {
             score,
@@ -76,43 +100,6 @@ pub fn run_face_detection(
     }
 
     Ok(naive_non_max_suppression(detections, IOU_THRESHOLD))
-}
-
-fn correct_for_maintained_aspect_ratio(
-    box_xyxy: &mut [f32; 4],
-    keypoints: &mut [[f32; 2]; 5],
-    scaled_width: usize,
-    scaled_height: usize,
-    pad_left: usize,
-    pad_top: usize,
-) {
-    if scaled_width == INPUT_WIDTH as usize
-        && scaled_height == INPUT_HEIGHT as usize
-        && pad_left == 0
-        && pad_top == 0
-    {
-        return;
-    }
-
-    let scaled_width = scaled_width as f32;
-    let scaled_height = scaled_height as f32;
-    let pad_left = pad_left as f32;
-    let pad_top = pad_top as f32;
-
-    let transform_x =
-        |x: f32| -> f32 { ((x * INPUT_WIDTH - pad_left) / scaled_width).clamp(0.0, 1.0) };
-    let transform_y =
-        |y: f32| -> f32 { ((y * INPUT_HEIGHT - pad_top) / scaled_height).clamp(0.0, 1.0) };
-
-    box_xyxy[0] = transform_x(box_xyxy[0]);
-    box_xyxy[1] = transform_y(box_xyxy[1]);
-    box_xyxy[2] = transform_x(box_xyxy[2]);
-    box_xyxy[3] = transform_y(box_xyxy[3]);
-
-    for point in keypoints.iter_mut() {
-        point[0] = transform_x(point[0]);
-        point[1] = transform_y(point[1]);
-    }
 }
 
 fn naive_non_max_suppression(

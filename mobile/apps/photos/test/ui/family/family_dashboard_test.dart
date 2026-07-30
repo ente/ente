@@ -106,6 +106,7 @@ void main() {
             isCurrentUser: false,
             member: _member(status: FamilyMemberStatus.invited, userID: 42),
             hasSavedContact: true,
+            librarySharingEnabled: true,
           ),
           [
             FamilyMemberAction.editContact,
@@ -119,6 +120,7 @@ void main() {
             isCurrentUser: false,
             member: _member(status: FamilyMemberStatus.invited),
             hasSavedContact: false,
+            librarySharingEnabled: true,
           ),
           [FamilyMemberAction.resendInvite, FamilyMemberAction.revokeInvite],
         );
@@ -153,7 +155,7 @@ void main() {
   });
 
   testWidgets(
-    'renders saved contacts and no shared-album content at 375 pixels',
+    'renders saved contacts and their shared-album counts at 375 pixels',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(375, 812));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -196,6 +198,8 @@ void main() {
                     1: 'Person current user',
                     42: 'Person saved member',
                   },
+                  librarySharingEnabled: true,
+                  sharedAlbumCountsByUserId: const {42: 5},
                   onMemberTap: (member, _) => selectedMember = member,
                   onAddMember: () {},
                   remainingSlots: 2,
@@ -210,10 +214,7 @@ void main() {
       expect(find.text('Current user'), findsWidgets);
       expect(find.text('Saved member'), findsNWidgets(2));
       expect(find.text('pending@example.com'), findsOneWidget);
-      expect(
-        find.textContaining(RegExp('shared album', caseSensitive: false)),
-        findsNothing,
-      );
+      expect(find.textContaining('5 albums shared'), findsOneWidget);
       final avatars = tester
           .widgetList<AvatarComponent>(find.byType(AvatarComponent))
           .where((avatar) => avatar.image == null)
@@ -242,6 +243,7 @@ void main() {
       final savedMemberAvatar = avatars.singleWhere(
         (avatar) => avatar.semanticLabel == 'Saved member',
       );
+      expect(savedMemberAvatar.initials, 'SM');
       expect(
         savedMemberAvatar.color,
         avatarComponentColorForIdentity(
@@ -302,9 +304,72 @@ void main() {
       find.byType(PersonFaceWidget),
     );
     expect(personAvatar.personId, 'person-42');
+    final ringFinder = find.ancestor(
+      of: find.byType(PersonFaceWidget),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is DecoratedBox &&
+            widget.position == DecorationPosition.foreground &&
+            widget.decoration is BoxDecoration &&
+            (widget.decoration as BoxDecoration).shape == BoxShape.circle,
+      ),
+    );
+    expect(ringFinder, findsOneWidget);
+    final ring = tester.widget<DecoratedBox>(ringFinder);
+    final border = (ring.decoration as BoxDecoration).border! as Border;
+    expect(
+      border.top.color,
+      avatarComponentColorValue(
+        tester.element(find.byType(PersonFaceWidget)),
+        familyMemberAvatarComponentColor(member),
+      ),
+    );
 
     await tester.tap(find.byType(MenuComponent));
     expect(selectedDisplayName, 'Current person');
+  });
+
+  testWidgets('does not report zero shared albums before counts are known', (
+    tester,
+  ) async {
+    final currentUser = _member(
+      email: 'admin@example.com',
+      userID: 1,
+      isAdmin: true,
+      status: FamilyMemberStatus.self,
+    );
+    final otherMember = _member(email: 'member@example.com', userID: 42);
+    final members = [currentUser, otherMember];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: lightThemeData,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: FamilyDashboard(
+            userDetails: _userDetails(members),
+            members: members,
+            isAdmin: true,
+            contactsByUserId: const {},
+            profilePictureBytesByUserId: const {},
+            linkedPersonIdsByUserId: const {},
+            linkedPersonNamesByUserId: const {},
+            librarySharingEnabled: true,
+            onMemberTap: (_, _) {},
+            onAddMember: () {},
+            remainingSlots: 3,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('No albums shared'), findsNothing);
+    expect(
+      find.textContaining(RegExp('used', caseSensitive: false)),
+      findsWidgets,
+    );
   });
 
   testWidgets('sorts other members by their displayed name or email', (

@@ -9,12 +9,13 @@ pub use client::{
     MAX_SPACE_COVER_PLAINTEXT_BYTES, MAX_SPACE_COVER_UPLOAD_BYTES,
     MAX_SPACE_MESSAGE_CIPHER_DECODED_BYTES, MAX_SPACE_MESSAGE_PAYLOAD_BYTES,
     MAX_SPACE_MESSAGE_TEXT_BYTES, MAX_SPACE_MESSAGE_TEXT_CHARS, MAX_SPACE_POST_PLAINTEXT_BYTES,
-    MAX_SPACE_POST_UPLOAD_BYTES, PostPhotoAssetOptions,
+    MAX_SPACE_POST_UPLOAD_BYTES, PostPhotoAssetOptions, SpaceLinkCtx,
 };
 pub use error::{Result, SpaceError};
 pub use models::{
-    CreatedSpace, DecryptedFriendShare, DecryptedMessage, DecryptedPost, DecryptedSpaceProfile,
-    FeedItem, FeedPage, HydratedKeys, MessagePayload, OpenAccountSpaceCtxInput, PostObjectMetadata,
+    CreatedSpace, CreatedSpaceLink, DecryptedFriendShare, DecryptedMessage, DecryptedPost,
+    DecryptedSpaceProfile, FeedItem, FeedPage, HydratedKeys, MessagePayload,
+    OpenAccountSpaceCtxInput, OpenSpaceLinkCtxInput, PostObjectMetadata,
 };
 pub use transport::{
     ConversationChatSummaryResponse, ConversationsResponse, EntityKeyPayload,
@@ -23,5 +24,5 @@ pub use transport::{
     PostPage, PostResponse, PresignUploadResponse, ProfileAvatarPayload, ProfileAvatarResponse,
     ProfileCoverPayload, ProfileCoverResponse, SpaceActorResponse, SpaceFriendRequestResponse,
     SpaceFriendResponse, SpaceKeyResponse, SpaceKeyVersionResponse, SpaceLookupResponse,
-    SpaceProfileResponse, SpaceUnreadStatusResponse,
+    SpaceProfileResponse, SpaceSentFriendRequestResponse, SpaceUnreadStatusResponse,
 };

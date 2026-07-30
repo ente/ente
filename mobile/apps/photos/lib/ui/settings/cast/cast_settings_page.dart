@@ -8,6 +8,7 @@ import "package:logging/logging.dart";
 import "package:photos/core/network/network.dart";
 import "package:photos/gateways/cast/cast_gateway.dart";
 import "package:photos/generated/l10n.dart";
+import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/common/loading_widget.dart";
@@ -127,7 +128,6 @@ class _CastSessionsListState extends State<CastSessionsList> {
 
   Future<void> _revokeSession(CastInfo session, Logger logger) async {
     final l10n = AppLocalizations.of(context);
-    final gw = CastGateway(NetworkClient.instance.enteDio);
     await showBottomSheetComponent<void>(
       context: context,
       builder: (sheetContext) => BottomSheetComponent(
@@ -141,7 +141,7 @@ class _CastSessionsListState extends State<CastSessionsList> {
             onTap: () async {
               Navigator.of(sheetContext).pop();
               try {
-                await gw.revokeSession(session);
+                await autoCastService.stopServerSession(session.deviceID);
               } catch (e, s) {
                 logger.severe('Failed to revoke cast session: ', e, s);
                 if (!mounted) return;

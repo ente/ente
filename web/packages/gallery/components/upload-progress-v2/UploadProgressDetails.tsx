@@ -12,12 +12,12 @@ import {
 import { useUploadProgressContext } from "./context";
 import {
     doneStatConfigs,
-    finishedTypeReasonHints,
-    finishedTypeReasons,
+    finishedTypeReasonHintKeys,
+    finishedTypeReasonKeys,
     normalizePercent,
-    preUploadSkippedFileReasons,
+    preUploadSkippedFileReasonKeys,
     statConfigs,
-    statEmptyMessages,
+    statEmptyMessageKeys,
 } from "./helpers";
 import {
     EmptyUploadRows,
@@ -26,14 +26,13 @@ import {
     type ListedFile,
 } from "./UploadFileList";
 
-export function UploadProgressDetails({ closeOnly }: { closeOnly: boolean }) {
+export function UploadProgressDetails() {
     const {
         finishedUploads,
         hasLivePhotos,
         inProgressUploads,
         retryFailed,
         preUploadSkippedFiles,
-        uploadCounter,
         uploadFileNames,
         uploadPhase,
         onClose,
@@ -45,15 +44,21 @@ export function UploadProgressDetails({ closeOnly }: { closeOnly: boolean }) {
 
     const statCounts = uploadProgressStatCounts({
         uploadPhase,
-        uploadCounter,
         inProgressUploads,
         finishedUploads,
         preUploadSkippedFiles,
     });
+    const skippedCount = statCounts.skipped;
     const failedCount = statCounts.failed;
     const activeStat =
         selectedStat ??
-        (isDone ? (failedCount > 0 ? "failed" : "completed") : "inProgress");
+        (isDone
+            ? failedCount > 0
+                ? "failed"
+                : skippedCount > 0
+                  ? "skipped"
+                  : "completed"
+            : "inProgress");
 
     const handleSelectStat = (kind: UploadStatKind) => {
         setSelectedStat(kind);
@@ -66,11 +71,12 @@ export function UploadProgressDetails({ closeOnly }: { closeOnly: boolean }) {
             ? []
             : [
                   ...statFinishedTypes[activeStat].flatMap((type) => {
-                      const reason =
-                          type == "uploadedWithStaticThumbnail"
-                              ? t("thumbnail_generation_failed")
-                              : finishedTypeReasons[type];
-                      const reasonHint = finishedTypeReasonHints[type];
+                      const reasonKey = finishedTypeReasonKeys[type];
+                      const reasonHintKey = finishedTypeReasonHintKeys[type];
+                      const reason = reasonKey ? t(reasonKey) : undefined;
+                      const reasonHint = reasonHintKey
+                          ? t(reasonHintKey)
+                          : undefined;
                       return (finishedUploads.get(type) ?? []).map((id) => ({
                           name: uploadFileNames.get(id) ?? t("file"),
                           reason,
@@ -81,7 +87,9 @@ export function UploadProgressDetails({ closeOnly }: { closeOnly: boolean }) {
                       ? preUploadSkippedFiles.map((file) => ({
                             name: basename(file.name),
                             title: file.name,
-                            reason: preUploadSkippedFileReasons[file.type],
+                            reason: t(
+                                preUploadSkippedFileReasonKeys[file.type],
+                            ),
                         }))
                       : []),
               ];
@@ -121,13 +129,13 @@ export function UploadProgressDetails({ closeOnly }: { closeOnly: boolean }) {
             )}
             <Box sx={detailsCardSx}>
                 <Box sx={statsGridSx(isDone)}>
-                    {visibleStatConfigs.map(({ kind, color, label }) => (
+                    {visibleStatConfigs.map(({ kind, color, labelKey }) => (
                         <UploadStat
                             key={kind}
                             active={activeStat == kind}
                             color={color}
                             kind={kind}
-                            label={label}
+                            label={t(labelKey)}
                             value={statCounts[kind]}
                             onSelect={handleSelectStat}
                         />
@@ -180,23 +188,23 @@ export function UploadProgressDetails({ closeOnly }: { closeOnly: boolean }) {
                         />
                     ) : (
                         <EmptyUploadRows
-                            message={statEmptyMessages[activeStat]}
+                            message={t(statEmptyMessageKeys[activeStat])}
                         />
                     )}
                 </Box>
-                {hasLivePhotos && (
+                {uploadPhase == "uploading" && hasLivePhotos && (
                     <Typography sx={livePhotosTextSx}>
                         {t("live_photos_detected")}
                     </Typography>
                 )}
             </Box>
-            {isDone && (closeOnly || failedCount > 0) && (
+            {isDone && (
                 <Button
                     fullWidth
-                    onClick={closeOnly ? onClose : retryFailed}
+                    onClick={failedCount > 0 ? retryFailed : onClose}
                     sx={retryButtonSx}
                 >
-                    {t(closeOnly ? "close" : "retry_failed_uploads")}
+                    {t(failedCount > 0 ? "retry_failed_uploads" : "close")}
                 </Button>
             )}
         </Stack>

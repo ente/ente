@@ -12,7 +12,7 @@ import io.ente.ensu.settings.SessionPreferencesDataStore
 import io.ente.ensu.chat.ChatRepository
 import io.ente.ensu.config.loadConfigDefaults
 import io.ente.ensu.llm.LlmProvider
-import io.ente.ensu.llm.ModelDownloader
+import io.ente.ensu.assets.AssetStore
 import io.ente.ensu.llm.ModelSettingsState
 import io.ente.ensu.logging.FileLogRepository
 import io.ente.ensu.storage.CredentialStore
@@ -34,24 +34,28 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val appVersion = runCatching { getAppVersion(application) }.getOrDefault("unknown")
     private val deviceCapabilityProvider = AndroidDeviceCapabilityProvider(application)
     private val transcriber = (application as EnsuApplication).transcriber
-
-    val logRepository = FileLogRepository(application)
-    private val modelDownloader = (application as EnsuApplication).modelDownloader
-    private val _isReady = MutableStateFlow(!modelDownloader.needsMigration())
-    val isReady = _isReady.asStateFlow()
-    private val llmProvider = LlmProvider(
-        downloader = modelDownloader,
-        transcriber = transcriber,
-        deviceCapabilityProvider = deviceCapabilityProvider
-    )
-    private val chatRepository = ChatRepository(application, credentialStore)
     val configDefaults = loadConfigDefaults()
 
+    val logRepository = FileLogRepository(application)
+    private val assetStore = (application as EnsuApplication).assetStore
+    private val _isReady = MutableStateFlow(!assetStore.needsMigration())
+    val isReady = _isReady.asStateFlow()
+    private val llmProvider = LlmProvider(
+        assetStore = assetStore,
+        transcriber = transcriber,
+        deviceCapabilityProvider = deviceCapabilityProvider,
+        knowledgeEmbedding = configDefaults.knowledgeEmbedding
+    )
+    private val chatRepository = ChatRepository(application, credentialStore)
+    private val knowledgeProvider = (application as EnsuApplication).knowledgeProvider
+
     val store = AppStore(
+        context = application,
         sessionPreferences = sessionPreferences,
         chatRepository = chatRepository,
         llmProvider = llmProvider,
-        modelDownloader = modelDownloader,
+        knowledgeProvider = knowledgeProvider,
+        assetStore = assetStore,
         transcriber = transcriber,
         deviceCapabilityProvider = deviceCapabilityProvider,
         configDefaults = configDefaults,
@@ -65,7 +69,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             runCatching {
                 advancedSettingsDataStore.migrateLegacyModelSelection { url, mmproj ->
                     withContext(Dispatchers.IO) {
-                        modelDownloader.migrate(url, mmproj)
+                        assetStore.migrate(url, mmproj)
                     }
                 }
             }

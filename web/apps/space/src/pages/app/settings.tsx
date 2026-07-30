@@ -32,8 +32,14 @@ const Page: React.FC = () => {
             <SpacePageMeta themeColor={settingsBackground} />
             <SettingsScreen
                 onBack={() => void router.push(spaceRoutes.profile)}
-                onOpenProfile={() =>
-                    void router.push(spaceRoutes.settingsProfile)
+                onChangeCoverImage={() =>
+                    void router.push(spaceRoutes.profileCoverFrom("settings"))
+                }
+                onChangeName={() =>
+                    void router.push(spaceRoutes.settingsProfileName)
+                }
+                onChangeProfilePicture={() =>
+                    void router.push(spaceRoutes.profilePhotoFrom("settings"))
                 }
                 onLogout={async () => {
                     await spaceLogout();

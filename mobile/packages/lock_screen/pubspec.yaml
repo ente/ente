@@ -9,6 +9,8 @@ environment:
 dependencies:
   ente_accounts:
     path: ../accounts
+  ente_components:
+    path: ../ente_components
   ente_configuration:
     path: ../configuration
   ente_crypto_api:

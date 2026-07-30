@@ -31,6 +31,9 @@ pub enum Error {
     Crypto(#[from] ente_core::crypto::Error),
 
     #[error(transparent)]
+    Base64Decode(#[from] ente_core::b64::DecodeError),
+
+    #[error(transparent)]
     SerdeJson(#[from] serde_json::Error),
 
     #[error(transparent)]

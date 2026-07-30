@@ -10,8 +10,6 @@ dependencies:
   dio: 5.9.2
   ente_base:
     path: ../../packages/base
-  ente_configuration:
-    path: ../../packages/configuration
   ente_logging:
     path: ../../packages/logging
   ente_pure_utils:
@@ -23,7 +21,6 @@ dependencies:
   expandable: 5.0.1
   flutter:
     sdk: flutter
-  flutter_animate: 4.5.2
   fluttertoast: 8.2.14
   hugeicons: 1.1.7
   modal_bottom_sheet: 3.0.0

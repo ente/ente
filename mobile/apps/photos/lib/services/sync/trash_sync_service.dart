@@ -170,6 +170,7 @@ class TrashSyncService {
         trash.uploadedFileID = item["file"]["id"];
         trash.collectionID = item["file"]["collectionID"];
         trash.updationTime = item["file"]["updationTime"];
+        trash.fileSize = item['file']['info']?['fileSize'];
         trash.ownerID = item["file"]["ownerID"];
         trash.encryptedKey = item["file"]["encryptedKey"];
         trash.keyDecryptionNonce = item["file"]["keyDecryptionNonce"];

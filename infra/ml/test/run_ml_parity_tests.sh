@@ -8,6 +8,7 @@ ROOT_DIR="$(
 ML_DIR="$ROOT_DIR/infra/ml/test"
 UV_PROJECT_DIR="$ROOT_DIR/infra/ml"
 MANIFEST_PATH="$ROOT_DIR/infra/ml/test/ground_truth/manifest.json"
+ASSET_LOCK_PATH="$ML_DIR/ml_indexing/assets.json"
 TEST_DATA_DIR="$ML_DIR/test_data/ml-indexing/v1"
 PARITY_HELPERS="$ML_DIR/tools/parity_shell_helpers.py"
 
@@ -184,31 +185,46 @@ prepare_local_model_mirror_cache() {
   local downloaded=0
   local reused=0
   local failed=0
-  local -a model_files=(
-    "yolov5s_face_640_640_dynamic.onnx"
-    "mobilefacenet_opset15.onnx"
-    "mobileclip_s2_image.onnx"
-  )
+  local model_file model_url model_sha target_path tmp_path actual_sha
 
   mkdir -p "$model_dir"
 
-  for model_file in "${model_files[@]}"; do
-    local target_path="$model_dir/$model_file"
-    if [[ -f "$target_path" ]]; then
-      reused=$((reused + 1))
+  while IFS=$'\t' read -r model_file model_url model_sha; do
+    if [[ -z "$model_file" || -z "$model_url" || -z "$model_sha" ]]; then
+      echo "Local model mirror: invalid model entry in $ASSET_LOCK_PATH" >&2
+      failed=$((failed + 1))
       continue
     fi
 
-    local tmp_path="$target_path.tmp"
-    if curl -fsSL --retry 3 --retry-delay 1 "https://models.ente.io/$model_file" -o "$tmp_path"; then
-      mv "$tmp_path" "$target_path"
-      downloaded=$((downloaded + 1))
+    target_path="$model_dir/$model_file"
+    if [[ -f "$target_path" ]]; then
+      actual_sha="$(sha256_file "$target_path")"
+      if [[ "$actual_sha" == "$model_sha" ]]; then
+        reused=$((reused + 1))
+        continue
+      fi
+      rm -f "$target_path"
+    fi
+
+    tmp_path="$target_path.tmp"
+    if curl -fsSL --retry 3 --retry-delay 1 "$model_url" -o "$tmp_path"; then
+      actual_sha="$(sha256_file "$tmp_path")"
+      if [[ "$actual_sha" == "$model_sha" ]]; then
+        mv "$tmp_path" "$target_path"
+        downloaded=$((downloaded + 1))
+      else
+        rm -f "$tmp_path"
+        failed=$((failed + 1))
+        echo "Local model mirror: SHA-256 mismatch for $model_file"
+      fi
     else
       rm -f "$tmp_path"
       failed=$((failed + 1))
       echo "Local model mirror: failed to download $model_file (runner will fall back to direct model download)."
     fi
-  done
+  done < <(
+    python3 "$PARITY_HELPERS" model-assets "$ASSET_LOCK_PATH"
+  )
 
   echo "Local model mirror cache: downloaded=$downloaded reused=$reused failed=$failed dir=$model_dir"
 }
@@ -549,9 +565,6 @@ ensure_selected_mobile_devices_running() {
 }
 
 run_preflight_checks() {
-  local desktop_dir="$ROOT_DIR/desktop"
-  local web_dir="$ROOT_DIR/web"
-  local runner_path="$desktop_dir/scripts/ml_parity_runner.ts"
   local mobile_dir="$ROOT_DIR/mobile/apps/photos"
   local driver_path="$mobile_dir/test_driver/ml_parity_driver.dart"
   local -a preflight_errors=()
@@ -560,20 +573,14 @@ run_preflight_checks() {
   for platform in "${selected_platforms[@]}"; do
     case "$platform" in
       desktop)
-        if [[ ! -f "$runner_path" ]]; then
-          preflight_errors+=("desktop parity runner not found at $runner_path")
+        if ! command -v node >/dev/null 2>&1; then
+          preflight_errors+=("node is required for desktop parity")
         fi
-        if [[ ! -d "$desktop_dir/node_modules" ]]; then
-          preflight_errors+=("desktop dependencies missing: $desktop_dir/node_modules")
+        if ! compgen -G "$ROOT_DIR/desktop/rust-bindings/index.*.node" >/dev/null; then
+          preflight_errors+=("desktop ML addon not found under desktop/rust-bindings (run 'npm ci && npm run postinstall && node scripts/napi.js build' in desktop/)")
         fi
-        if [[ ! -d "$web_dir/node_modules" ]]; then
-          preflight_errors+=("web dependencies missing: $web_dir/node_modules")
-        fi
-        if ! command -v npx >/dev/null 2>&1; then
-          preflight_errors+=("npx is required for desktop parity")
-        fi
-        if ! command -v npm >/dev/null 2>&1; then
-          preflight_errors+=("npm is required for desktop parity compilation")
+        if [[ ! -d "$ROOT_DIR/desktop/build/onnxruntime" ]]; then
+          preflight_errors+=("ONNX Runtime library not found under desktop/build/onnxruntime (run 'npm run postinstall' in desktop/)")
         fi
         ;;
       android|ios)
@@ -748,8 +755,11 @@ for platform in "${selected_platforms[@]}"; do
   esac
 done
 
+# Every platform runner uses the local model cache; only the mobile runners
+# additionally need it served over HTTP (the desktop runner reads the files
+# directly).
+prepare_local_model_mirror_cache "$LOCAL_MODEL_MIRROR_DIR"
 if $has_mobile_platform; then
-  prepare_local_model_mirror_cache "$LOCAL_MODEL_MIRROR_DIR"
   if ! start_local_mirror_server "$ML_DIR" "$LOCAL_MIRROR_LOG"; then
     echo "Proceeding without local parity mirror."
   fi
@@ -782,32 +792,6 @@ for platform in "${selected_platforms[@]}"; do
   rm -rf "$platform_dir"
   mkdir -p "$platform_dir"
 done
-
-run_desktop_runner() {
-  local desktop_dir="$ROOT_DIR/desktop"
-  local web_dir="$ROOT_DIR/web"
-  local runner_path="$desktop_dir/scripts/ml_parity_runner.ts"
-  local platform_output_dir="$OUTPUT_DIR/desktop"
-
-  echo "Compiling desktop TypeScript sources"
-  if ! (cd "$desktop_dir" && npm exec -- tsc); then
-    echo "Desktop TypeScript compilation failed; desktop parity output not generated."
-    return 1
-  fi
-
-  echo "Running desktop parity runner"
-  if ! (
-    cd "$web_dir"
-    isDesktop=1 appName=photos desktopAppVersion=parity npx --yes tsx "$runner_path" \
-      --manifest "$MANIFEST_PATH" \
-      --output-dir "$platform_output_dir"
-  ); then
-    echo "Desktop parity runner failed; desktop parity output not generated."
-    return 1
-  fi
-
-  return 0
-}
 
 run_mobile_runner() {
   local platform="$1"
@@ -974,6 +958,30 @@ run_mobile_runner() {
 
   if [[ ! -f "$output_path" ]]; then
     echo "$platform parity runner finished without output at $output_path."
+    return 1
+  fi
+
+  return 0
+}
+
+run_desktop_runner() {
+  local platform_output_dir="$OUTPUT_DIR/desktop"
+  local output_path="$platform_output_dir/results.json"
+
+  echo "Running desktop parity runner"
+  if ! node "$ML_DIR/tools/desktop_parity_runner.js" \
+    --manifest "$MANIFEST_PATH" \
+    --ml-dir "$ML_DIR" \
+    --models-dir "$LOCAL_MODEL_MIRROR_DIR" \
+    --asset-lock "$ASSET_LOCK_PATH" \
+    --code-revision "$CODE_REVISION" \
+    --output "$output_path"; then
+    echo "Desktop parity runner failed; desktop parity output not generated."
+    return 1
+  fi
+
+  if [[ ! -f "$output_path" ]]; then
+    echo "Desktop parity runner finished without output at $output_path."
     return 1
   fi
 

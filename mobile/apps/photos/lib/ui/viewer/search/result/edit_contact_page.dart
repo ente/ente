@@ -224,6 +224,8 @@ class _EditContactPageState extends State<EditContactPage> {
   Widget _buildAvatar(BuildContext context, {required double size}) {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
+    final cachedPixelWidth = (size * MediaQuery.devicePixelRatioOf(context))
+        .round();
     final trimmedName = _nameController.text.trim();
     final identity = AvatarIdentity.account(
       label: trimmedName.isNotEmpty ? trimmedName : widget.email,
@@ -243,7 +245,11 @@ class _EditContactPageState extends State<EditContactPage> {
     if (_draftPhotoBytes != null) {
       return _ContactThumbnailShell(
         size: size,
-        child: Image.memory(_draftPhotoBytes!, fit: BoxFit.cover),
+        child: Image.memory(
+          _draftPhotoBytes!,
+          fit: BoxFit.cover,
+          cacheWidth: cachedPixelWidth,
+        ),
       );
     }
 
@@ -252,7 +258,7 @@ class _EditContactPageState extends State<EditContactPage> {
       backgroundColor: avatarBackgroundColor(context, identity),
       child: Center(
         child: Text(
-          identity.initial,
+          identity.initials,
           style: textTheme.h1Bold.copyWith(
             fontSize: 38.25,
             height: 47.813 / 38.25,
@@ -328,7 +334,7 @@ class _EditContactPageState extends State<EditContactPage> {
         minClusterSize: kMinimumClusterSizeAllFaces,
       );
       candidates = buildContactPersonPickerCandidates(
-        faceResultParams: faceResults.map((result) => result.params),
+        faceResults: faceResults,
         persons: await PersonService.instance.getPersons(),
       );
     } catch (e, s) {

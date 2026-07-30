@@ -42,7 +42,7 @@ dependencies:
   password_strength: 0.2.0
   pinput: 5.0.2
   pointycastle: 3.9.1
-  share_plus: 11.1.0
+  share_plus: 12.0.0
   shared_preferences: 2.5.3
   styled_text: 8.1.0
   url_launcher: 6.3.2

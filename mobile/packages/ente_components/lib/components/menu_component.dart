@@ -41,6 +41,8 @@ class MenuComponent extends StatefulWidget {
     this.titleMaxLines = 2,
     this.subtitleMaxLines = 2,
     this.titleColor,
+    this.subtitleColor,
+    this.titleBold = false,
     this.iconColor,
   });
 
@@ -59,6 +61,8 @@ class MenuComponent extends StatefulWidget {
   final int titleMaxLines;
   final int subtitleMaxLines;
   final Color? titleColor;
+  final Color? subtitleColor;
+  final bool titleBold;
   final Color? iconColor;
 
   @override
@@ -89,7 +93,7 @@ class _MenuComponentState extends State<MenuComponent> {
         child: MouseRegion(
           cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
           onEnter: enabled ? (_) => _setHovered(true) : null,
-          onExit: enabled ? (_) => _setHovered(false) : null,
+          onExit: (_) => _setHovered(false),
           child: InkWell(
             onTap: enabled && widget.onTap != null ? _handleTap : null,
             onDoubleTap: enabled && widget.onDoubleTap != null
@@ -157,9 +161,15 @@ class _MenuComponentState extends State<MenuComponent> {
                                   widget.title,
                                   maxLines: titleMaxLines,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyles.body.copyWith(
-                                    color: widget.titleColor ?? colors.textBase,
-                                  ),
+                                  style:
+                                      (widget.titleBold
+                                              ? TextStyles.bodyBold
+                                              : TextStyles.body)
+                                          .copyWith(
+                                            color:
+                                                widget.titleColor ??
+                                                colors.textBase,
+                                          ),
                                 ),
                                 if (widget.subtitle != null) ...[
                                   const SizedBox(height: Spacing.xs),
@@ -168,7 +178,9 @@ class _MenuComponentState extends State<MenuComponent> {
                                     maxLines: subtitleMaxLines,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyles.mini.copyWith(
-                                      color: colors.textLight,
+                                      color:
+                                          widget.subtitleColor ??
+                                          colors.textLight,
                                     ),
                                   ),
                                 ],
@@ -381,6 +393,7 @@ class _MenuComponentState extends State<MenuComponent> {
     _loadingTimer?.cancel();
     setState(() {
       _executionState = ComponentExecutionState.inProgress;
+      _isHovered = false;
       _loadingVisible = false;
     });
     _loadingTimer = Timer(_loadingDelay, () {

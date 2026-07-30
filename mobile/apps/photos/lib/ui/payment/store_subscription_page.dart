@@ -405,7 +405,7 @@ class _StoreSubscriptionPageState extends State<StoreSubscriptionPage> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: MenuItemWidgetNew(
             title: _isFreePlanUser()
-                ? AppLocalizations.of(context).familyPlans
+                ? AppLocalizations.of(context).family
                 : AppLocalizations.of(context).manageFamily,
             menuItemColor: colorScheme.fillFaint,
             pressedColor: colorScheme.fillFaintPressed,

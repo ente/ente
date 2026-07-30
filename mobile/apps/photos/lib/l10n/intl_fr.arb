@@ -340,7 +340,6 @@
   "theyAlsoGetXGb": "Ils obtiennent aussi {storageAmountInGB} Go",
   "referralStorageForBoth": "{storageAmountInGB} GB pour eux + {storageAmountInGB} GB pour vous lorsqu'ils mettront à niveau leur compte.",
   "freeStorageOnReferralSuccess": "{storageAmountInGB} Go chaque fois que quelqu'un s'inscrit à un abonnement payant et applique votre code",
-  "shareTextReferralCode": "Ente Photos est un endroit privé et sécurisé pour vos photos\n* Téléchargez des photos Ente à partir de https://ente.com/app\n* Créez un compte\n* Appliquez le code de parrainage {referralCode} dans Paramètres->Parrainage\n* Obtennez {referralStorageInGB}Go gratuitement lorsque vous passez à un abonnement payant",
   "claimFreeStorage": "Obtenez du stockage gratuit",
   "inviteYourFriends": "Parrainez vos ami·e·s",
   "earnFreeStorage": "Obtenez du stockage gratuit",

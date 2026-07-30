@@ -2,11 +2,12 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use ente_core::crypto;
-use ente_ensu::db::{self, ChatDb, Error as DbError, SqliteBackend};
+use ente_core::b64;
+use ente_ensu::db::{self, ChatDb, SqliteBackend};
 use serde::{Deserialize, Serialize};
 use tauri::async_runtime;
 use tauri::{AppHandle, Manager, State};
+use tauri_plugin_fs::FsExt;
 use uuid::Uuid;
 
 use crate::commands::chat_db_migration;
@@ -33,8 +34,8 @@ fn image_thread_error() -> ApiError {
     ApiError::new("image_thread", "Image task failed")
 }
 
-impl From<DbError> for ApiError {
-    fn from(error: DbError) -> Self {
+impl From<db::Error> for ApiError {
+    fn from(error: db::Error) -> Self {
         use db::Error as E;
 
         let code = match &error {
@@ -46,6 +47,7 @@ impl From<DbError> for ApiError {
             E::InvalidSender(_) => "db_invalid_sender",
             E::NotFound { .. } => "db_not_found",
             E::Crypto(_) => "db_crypto",
+            E::Base64Decode(_) => "db_base64_decode",
             E::SerdeJson(_) => "db_serde_json",
             E::Uuid(_) => "db_uuid",
             E::Utf8(_) => "db_utf8",
@@ -399,11 +401,11 @@ pub async fn chat_db_open(
         let root = app_data_dir(&app)?;
         let path = chat_db_path(&app)?;
         let attachments = attachments_dir_path(&app)?;
-        let key = crypto::decode_b64(&input.key_b64).map_err(ApiError::from)?;
+        let key = b64::decode(&input.key_b64).map_err(ApiError::from)?;
         let recovery_keys = input
             .recovery_keys_b64
             .iter()
-            .filter_map(|value| crypto::decode_b64(value).ok())
+            .filter_map(|value| b64::decode(value).ok())
             .collect::<Vec<_>>();
         let migrated =
             chat_db_migration::prepare(&root, &path, &attachments, key.clone(), recovery_keys)?;
@@ -442,9 +444,26 @@ pub fn chat_db_has_existing_store(app: AppHandle) -> Result<bool, ApiError> {
 }
 
 #[tauri::command]
-pub async fn chat_db_compress_attachment_image_file(path: String) -> Result<Vec<u8>, ApiError> {
+pub async fn chat_db_compress_attachment_image_file(
+    app: AppHandle,
+    path: String,
+) -> Result<Vec<u8>, ApiError> {
+    let scope = app.fs_scope();
     async_runtime::spawn_blocking(move || {
-        let data = fs::read(&path).map_err(|error| {
+        // Resolve relative symlinks from the link's parent, then read the exact path checked here.
+        let canonical_path = fs::canonicalize(&path).map_err(|_| {
+            ApiError::new(
+                "io_scope",
+                "image file is outside the allowed filesystem scope",
+            )
+        })?;
+        if !scope.is_allowed(&canonical_path) {
+            return Err(ApiError::new(
+                "io_scope",
+                "image file is outside the allowed filesystem scope",
+            ));
+        }
+        let data = fs::read(canonical_path).map_err(|error| {
             ApiError::new("io", format!("failed to read image file '{path}': {error}"))
         })?;
         ente_ensu::image::compress_attachment_image(&data)
@@ -514,7 +533,7 @@ fn open_chat_db(
 
 fn with_chat_db<T, F>(inner: &Arc<Mutex<Option<ChatDbHolder>>>, operation: F) -> Result<T, ApiError>
 where
-    F: FnOnce(&ChatDb<SqliteBackend>) -> Result<T, DbError>,
+    F: FnOnce(&ChatDb<SqliteBackend>) -> Result<T, db::Error>,
 {
     let db = inner
         .lock()
@@ -529,7 +548,7 @@ where
 async fn with_chat_db_async<T, F>(state: &ChatDbState, operation: F) -> Result<T, ApiError>
 where
     T: Send + 'static,
-    F: FnOnce(&ChatDb<SqliteBackend>) -> Result<T, DbError> + Send + 'static,
+    F: FnOnce(&ChatDb<SqliteBackend>) -> Result<T, db::Error> + Send + 'static,
 {
     let inner = state.inner.clone();
     async_runtime::spawn_blocking(move || with_chat_db(&inner, operation))

@@ -100,7 +100,6 @@ final class ModelSettingsStore: ObservableObject {
         let preset = presets.first(where: { $0.id == modelId }) ?? defaultModel
         return LlmModelSelection(
             id: preset.id,
-            modelTarget: try! mobileLlmTarget(modelId: preset.id),
             contextLength: Int(contextLength),
             maxTokens: Int(maxTokens).flatMap { $0 > 0 ? $0 : nil }
         )

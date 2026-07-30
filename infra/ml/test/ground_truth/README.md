@@ -48,7 +48,7 @@ uv run --project infra/ml python infra/ml/test/tools/generate_goldens.py \
 ```sh
 uv run --project infra/ml python infra/ml/test/tools/compare_parity_outputs.py \
   --ground-truth infra/ml/test/out/parity/python/results.json \
+  --platform-result desktop=infra/ml/test/out/parity/desktop/results.json \
   --platform-result android=infra/ml/test/out/parity/android/results.json \
-  --platform-result ios=infra/ml/test/out/parity/ios/results.json \
-  --platform-result desktop=infra/ml/test/out/parity/desktop/results.json
+  --platform-result ios=infra/ml/test/out/parity/ios/results.json
 ```

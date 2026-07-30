@@ -17,6 +17,7 @@ Future<ButtonResult?> showDialogWidget({
   required List<ButtonWidget> buttons,
   IconData? icon,
   bool isDismissible = true,
+  bool alwaysShowCloseButton = false,
   bool useRootNavigator = false,
 }) {
   return showBottomSheetComponent<ButtonResult>(
@@ -30,6 +31,7 @@ Future<ButtonResult?> showDialogWidget({
         body: body,
         buttons: buttons,
         icon: icon,
+        alwaysShowCloseButton: alwaysShowCloseButton,
       );
     },
   );
@@ -40,11 +42,13 @@ class DialogWidget extends StatelessWidget {
   final String? body;
   final List<ButtonWidget> buttons;
   final IconData? icon;
+  final bool alwaysShowCloseButton;
   const DialogWidget({
     required this.title,
     this.body,
     required this.buttons,
     this.icon,
+    this.alwaysShowCloseButton = false,
     super.key,
   });
 
@@ -63,7 +67,7 @@ class DialogWidget extends StatelessWidget {
           : Icon(icon, size: 48, color: colors.iconColor),
       content: hasBody ? _DialogBody(body!) : null,
       actions: sheetButtons.actions,
-      showCloseButton: sheetButtons.showCloseButton,
+      showCloseButton: alwaysShowCloseButton || sheetButtons.showCloseButton,
       closeTooltip: context.l10n.close,
       closeResult: sheetButtons.closeResult,
       onClose: sheetButtons.onClose(context),

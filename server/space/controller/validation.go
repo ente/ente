@@ -20,6 +20,8 @@ const (
 	maxSpacePostObjects                  = 1
 	maxSpaceFriendSharesPerRefresh       = 500
 	maxSpaceObjectKeyBytes               = 512
+	maxSpaceLinkKDFSaltEncodedBytes      = 128
+	maxSpaceLinkKDFSaltDecodedBytes      = 64
 )
 
 func validateSpaceSlug(input string) (string, error) {

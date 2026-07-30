@@ -6,6 +6,8 @@ import 'package:ente_components/ente_components.dart';
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 
+enum _TagAction { edit, delete }
+
 class TagChip extends StatefulWidget {
   final String label;
   final VoidCallback? onTap;
@@ -138,14 +140,15 @@ class _TagChipState extends State<TagChip> {
     );
   }
 
-  Future<void> _showTagActions(BuildContext context) {
+  Future<void> _showTagActions(BuildContext context) async {
     final l10n = context.l10n;
-    return showBottomSheetComponent<void>(
+    final tag = widget.label;
+    final action = await showBottomSheetComponent<_TagAction>(
       context: context,
       builder: (sheetContext) => Semantics(
         identifier: 'auth_tag_actions_sheet',
         child: BottomSheetComponent(
-          title: widget.label,
+          title: tag,
           closeTooltip: l10n.close,
           content: MenuGroupComponent(
             showDividers: true,
@@ -153,31 +156,27 @@ class _TagChipState extends State<TagChip> {
               MenuComponent(
                 title: l10n.edit,
                 leading: const Icon(Icons.edit_outlined),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  CodeDisplayStore.instance.showEditDialog(
-                    context,
-                    widget.label,
-                  );
-                },
+                onTap: () => Navigator.of(sheetContext).pop(_TagAction.edit),
               ),
               MenuComponent(
                 title: l10n.delete,
-                titleColor: context.componentColors.warning,
-                iconColor: context.componentColors.warning,
+                titleColor: sheetContext.componentColors.warning,
+                iconColor: sheetContext.componentColors.warning,
                 leading: const Icon(Icons.delete_outline),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  CodeDisplayStore.instance.showDeleteTagDialog(
-                    context,
-                    widget.label,
-                  );
-                },
+                onTap: () => Navigator.of(sheetContext).pop(_TagAction.delete),
               ),
             ],
           ),
         ),
       ),
     );
+    if (!context.mounted || action == null) return;
+
+    switch (action) {
+      case _TagAction.edit:
+        await CodeDisplayStore.instance.showEditDialog(context, tag);
+      case _TagAction.delete:
+        await CodeDisplayStore.instance.showDeleteTagDialog(context, tag);
+    }
   }
 }

@@ -5,14 +5,24 @@ import {
     CustomerSupportIcon,
     Image01Icon,
     Logout05Icon,
+    Notification02Icon,
+    ScreenAddToHomeIcon,
     UserEdit01Icon,
-    UserIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import { Box } from "@mui/material";
 import { ConfirmationActionSheet } from "components/ConfirmationActionSheet";
 import type { SpaceActionPhase } from "components/SpaceActionFeedback";
 import { SpaceButtonSpinner } from "components/SpaceButtonSpinner";
+import { SpaceNotificationPermissionInstructions } from "components/SpaceNotificationPermissionInstructions";
+import { SpacePWAInstallInstructions } from "components/SpacePWAInstallPrompt";
+import log from "ente-base/log";
+import {
+    isSpaceIOS,
+    isSpaceStandalone,
+    useSpacePWAInstallPrompt,
+} from "hooks/useSpacePWAInstallPrompt";
+import { useSpaceWebPushPrompt } from "hooks/useSpaceWebPushPrompt";
 import React from "react";
 import { spaceTouchTargetSize } from "styles/touchTargets";
 
@@ -61,7 +71,9 @@ const spaceLinks = [
 interface SettingsScreenProps {
     onLogout: () => Promise<void>;
     onBack?: () => void;
-    onOpenProfile: () => void;
+    onChangeCoverImage: () => void;
+    onChangeName: () => void;
+    onChangeProfilePicture: () => void;
 }
 
 interface SettingsRowProps {
@@ -70,19 +82,14 @@ interface SettingsRowProps {
     icon: IconSvgElement;
     label: string;
     onClick?: () => void;
+    trailingOnClick?: () => void;
+    toggleState?: boolean | null;
 }
 
 interface SpaceIconProps {
     label: string;
     src: string;
     url: string;
-}
-
-interface ProfileSettingsScreenProps {
-    onBack: () => void;
-    onChangeCoverImage: () => void;
-    onChangeName: () => void;
-    onChangeProfilePicture: () => void;
 }
 
 interface ChangeNameSettingsScreenProps {
@@ -99,75 +106,11 @@ const SettingsRow: React.FC<SettingsRowProps> = ({
     icon,
     label,
     onClick,
-}) => (
-    <Box
-        component={href ? "a" : "button"}
-        href={href}
-        rel={href?.startsWith("http") ? "noopener noreferrer" : undefined}
-        target={href?.startsWith("http") ? "_blank" : undefined}
-        type={href ? undefined : "button"}
-        onClick={onClick}
-        sx={{
-            alignItems: "center",
-            bgcolor: rowBackground,
-            border: 0,
-            borderRadius: "20px",
-            boxSizing: "border-box",
-            cursor: "pointer",
-            display: "flex",
-            justifyContent: "space-between",
-            minHeight: 56,
-            p: "8px",
-            textDecoration: "none",
-            textAlign: "left",
-            transition: "background-color 120ms ease",
-            width: "100%",
-            "&:active": { bgcolor: "rgba(0, 0, 0, 0.025)" },
-            "&:focus-visible": {
-                outline: `2px solid ${green}`,
-                outlineOffset: 2,
-            },
-            "&:hover": { bgcolor: "rgba(0, 0, 0, 0.025)" },
-        }}
-    >
-        <Box
-            sx={{
-                alignItems: "center",
-                display: "flex",
-                gap: "4px",
-                minWidth: 0,
-            }}
-        >
-            <Box
-                sx={{
-                    alignItems: "center",
-                    borderRadius: "12px",
-                    color: danger ? dangerColor : iconMuted,
-                    display: "flex",
-                    flexShrink: 0,
-                    height: 40,
-                    justifyContent: "center",
-                    width: 40,
-                }}
-            >
-                <HugeiconsIcon icon={icon} size={20} strokeWidth={1.6} />
-            </Box>
-            <Box
-                sx={{
-                    color: danger ? dangerColor : textBase,
-                    fontFamily: '"Inter Variable", Inter, sans-serif',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    lineHeight: "17px",
-                    minWidth: 0,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                }}
-            >
-                {label}
-            </Box>
-        </Box>
+    trailingOnClick,
+    toggleState,
+}) => {
+    const rowInteractive = Boolean(href || onClick);
+    const chevron = (
         <HugeiconsIcon
             aria-hidden
             icon={ChevronRightIcon}
@@ -175,8 +118,165 @@ const SettingsRow: React.FC<SettingsRowProps> = ({
             strokeWidth={1.8}
             style={{ color: textBase, flexShrink: 0 }}
         />
-    </Box>
-);
+    );
+
+    return (
+        <Box
+            component={href ? "a" : onClick ? "button" : "div"}
+            href={href}
+            rel={href?.startsWith("http") ? "noopener noreferrer" : undefined}
+            target={href?.startsWith("http") ? "_blank" : undefined}
+            type={onClick ? "button" : undefined}
+            onClick={onClick}
+            sx={{
+                alignItems: "center",
+                bgcolor: rowBackground,
+                border: 0,
+                borderRadius: "20px",
+                boxSizing: "border-box",
+                cursor: rowInteractive ? "pointer" : "default",
+                display: "flex",
+                justifyContent: "space-between",
+                minHeight: 56,
+                p: "8px",
+                textDecoration: "none",
+                textAlign: "left",
+                transition: "background-color 120ms ease",
+                width: "100%",
+                ...(rowInteractive && {
+                    "&:active": { bgcolor: "rgba(0, 0, 0, 0.025)" },
+                    "&:focus-visible": {
+                        outline: `2px solid ${green}`,
+                        outlineOffset: 2,
+                    },
+                    "&:hover": { bgcolor: "rgba(0, 0, 0, 0.025)" },
+                }),
+            }}
+        >
+            <Box
+                sx={{
+                    alignItems: "center",
+                    display: "flex",
+                    gap: "4px",
+                    minWidth: 0,
+                }}
+            >
+                <Box
+                    sx={{
+                        alignItems: "center",
+                        borderRadius: "12px",
+                        color: danger ? dangerColor : iconMuted,
+                        display: "flex",
+                        flexShrink: 0,
+                        height: 40,
+                        justifyContent: "center",
+                        width: 40,
+                    }}
+                >
+                    <HugeiconsIcon icon={icon} size={20} strokeWidth={1.6} />
+                </Box>
+                <Box
+                    sx={{
+                        color: danger ? dangerColor : textBase,
+                        fontFamily: '"Inter Variable", Inter, sans-serif',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        lineHeight: "17px",
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                    }}
+                >
+                    {label}
+                </Box>
+            </Box>
+            {toggleState === undefined ? (
+                trailingOnClick ? (
+                    <Box
+                        component="button"
+                        type="button"
+                        aria-label={label}
+                        onClick={trailingOnClick}
+                        sx={{
+                            alignItems: "center",
+                            bgcolor: "transparent",
+                            border: 0,
+                            borderRadius: "50%",
+                            cursor: "pointer",
+                            display: "flex",
+                            height: 40,
+                            justifyContent: "center",
+                            width: 40,
+                            "&:focus-visible": {
+                                outline: `2px solid ${green}`,
+                                outlineOffset: 1,
+                            },
+                        }}
+                    >
+                        {chevron}
+                    </Box>
+                ) : (
+                    chevron
+                )
+            ) : toggleState === null ? null : (
+                <Box
+                    component="button"
+                    type="button"
+                    aria-checked={toggleState}
+                    aria-label={label}
+                    disabled={!trailingOnClick}
+                    onClick={trailingOnClick}
+                    role="switch"
+                    sx={{
+                        alignItems: "center",
+                        bgcolor: "transparent",
+                        border: 0,
+                        borderRadius: "12px",
+                        cursor: trailingOnClick ? "pointer" : "default",
+                        display: "flex",
+                        flexShrink: 0,
+                        height: 40,
+                        justifyContent: "center",
+                        mr: "2px",
+                        p: 0,
+                        width: 52,
+                        "&:focus-visible": {
+                            outline: `2px solid ${green}`,
+                            outlineOffset: 1,
+                        },
+                    }}
+                >
+                    <Box
+                        aria-hidden
+                        sx={{
+                            bgcolor: toggleState ? green : "#D6D6D6",
+                            borderRadius: "999px",
+                            height: 24,
+                            p: "2px",
+                            transition: "background-color 160ms ease",
+                            width: 42,
+                        }}
+                    >
+                        <Box
+                            sx={{
+                                bgcolor: "#FFFFFF",
+                                borderRadius: "50%",
+                                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.24)",
+                                height: 20,
+                                transform: toggleState
+                                    ? "translateX(18px)"
+                                    : "translateX(0)",
+                                transition: "transform 160ms ease",
+                                width: 20,
+                            }}
+                        />
+                    </Box>
+                </Box>
+            )}
+        </Box>
+    );
+};
 
 const SpaceIcon: React.FC<SpaceIconProps> = ({ label, src, url }) => (
     <Box
@@ -216,11 +316,40 @@ const SpaceIcon: React.FC<SpaceIconProps> = ({ label, src, url }) => (
     </Box>
 );
 
+const SettingsEyebrow: React.FC<{ children: React.ReactNode }> = ({
+    children,
+}) => (
+    <Box
+        component="h2"
+        sx={{
+            color: textLight,
+            fontFamily: '"Inter Variable", Inter, sans-serif',
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.8px",
+            lineHeight: "16px",
+            m: 0,
+            px: "8px",
+            "&:not(:first-of-type)": { mt: "16px" },
+        }}
+    >
+        {children}
+    </Box>
+);
+
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     onLogout,
     onBack,
-    onOpenProfile,
+    onChangeCoverImage,
+    onChangeName,
+    onChangeProfilePicture,
 }) => {
+    const installPrompt = useSpacePWAInstallPrompt();
+    const webPushPrompt = useSpaceWebPushPrompt();
+    const [installInstructionsPurpose, setInstallInstructionsPurpose] =
+        React.useState<"install" | "notifications" | null>(null);
+    const [notificationInstructionsOpen, setNotificationInstructionsOpen] =
+        React.useState(false);
     const [logoutSheetOpen, setLogoutSheetOpen] = React.useState(false);
     const [logoutActionPhase, setLogoutActionPhase] =
         React.useState<SpaceActionPhase | null>(null);
@@ -228,12 +357,13 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         string | null
     >(null);
     const isLogoutRunning = logoutActionPhase != null;
+    const requiresIOSInstall = isSpaceIOS() && !isSpaceStandalone();
 
     const handleConfirmLogout = () => {
         setLogoutErrorMessage(null);
         setLogoutActionPhase("busy");
         void onLogout().catch((error: unknown) => {
-            console.error("Failed to log out Space sessions", error);
+            log.error("Failed to log out Space sessions", error);
             setLogoutActionPhase(null);
             setLogoutErrorMessage("Couldn't log out. Please try again.");
         });
@@ -243,6 +373,30 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         setLogoutSheetOpen(false);
         setLogoutErrorMessage(null);
     };
+
+    const addToHomeScreen = () => {
+        if (installPrompt.mode == "native") {
+            void installPrompt.install();
+        } else {
+            setInstallInstructionsPurpose("install");
+        }
+    };
+
+    const toggleNotifications = () => {
+        if (requiresIOSInstall) {
+            setInstallInstructionsPurpose("notifications");
+        } else if (webPushPrompt.permissionDenied) {
+            setNotificationInstructionsOpen(true);
+        } else {
+            void webPushPrompt.toggle();
+        }
+    };
+
+    React.useEffect(() => {
+        if (webPushPrompt.needsBravePushMessaging) {
+            setNotificationInstructionsOpen(true);
+        }
+    }, [webPushPrompt.needsBravePushMessaging]);
 
     return (
         <Box
@@ -336,11 +490,60 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                         width: "100%",
                     }}
                 >
+                    <SettingsEyebrow>PROFILE</SettingsEyebrow>
                     <SettingsRow
-                        icon={UserIcon}
-                        label="Profile"
-                        onClick={onOpenProfile}
+                        icon={UserEdit01Icon}
+                        label="Change name"
+                        onClick={onChangeName}
                     />
+                    <SettingsRow
+                        icon={Camera01Icon}
+                        label="Change profile picture"
+                        onClick={onChangeProfilePicture}
+                    />
+                    <SettingsRow
+                        icon={Image01Icon}
+                        label="Change cover image"
+                        onClick={onChangeCoverImage}
+                    />
+                    {(webPushPrompt.isPilotEligible ||
+                        installPrompt.canInstall) && (
+                        <SettingsEyebrow>PREFERENCES</SettingsEyebrow>
+                    )}
+                    {webPushPrompt.isPilotEligible && (
+                        <SettingsRow
+                            icon={Notification02Icon}
+                            label="Notifications"
+                            onClick={
+                                requiresIOSInstall
+                                    ? toggleNotifications
+                                    : undefined
+                            }
+                            trailingOnClick={
+                                webPushPrompt.isResolved &&
+                                !webPushPrompt.isEnabling &&
+                                webPushPrompt.isAvailable
+                                    ? toggleNotifications
+                                    : undefined
+                            }
+                            toggleState={
+                                requiresIOSInstall
+                                    ? undefined
+                                    : webPushPrompt.isResolved &&
+                                        webPushPrompt.isAvailable
+                                      ? Boolean(webPushPrompt.isSubscribed)
+                                      : null
+                            }
+                        />
+                    )}
+                    {installPrompt.canInstall && (
+                        <SettingsRow
+                            icon={ScreenAddToHomeIcon}
+                            label="Add to home screen"
+                            onClick={addToHomeScreen}
+                        />
+                    )}
+                    <SettingsEyebrow>GENERAL</SettingsEyebrow>
                     <SettingsRow
                         href={supportMailURL}
                         icon={CustomerSupportIcon}
@@ -393,126 +596,28 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 onCancel={cancelLogout}
                 onConfirm={handleConfirmLogout}
             />
+            <SpacePWAInstallInstructions
+                mode={installPrompt.mode}
+                open={installInstructionsPurpose != null}
+                onClose={() => setInstallInstructionsPurpose(null)}
+                onDismiss={() => setInstallInstructionsPurpose(null)}
+                purpose={installInstructionsPurpose ?? "install"}
+            />
+            <SpaceNotificationPermissionInstructions
+                mode={
+                    webPushPrompt.needsBravePushMessaging
+                        ? "brave-push"
+                        : "permission"
+                }
+                open={notificationInstructionsOpen}
+                onClose={() => {
+                    setNotificationInstructionsOpen(false);
+                    webPushPrompt.clearBravePushMessagingError();
+                }}
+            />
         </Box>
     );
 };
-
-export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
-    onBack,
-    onChangeCoverImage,
-    onChangeName,
-    onChangeProfilePicture,
-}) => (
-    <Box
-        component="main"
-        sx={{
-            bgcolor: settingsBackground,
-            color: textBase,
-            display: "grid",
-            minHeight: "100svh",
-            overflowX: "hidden",
-            placeItems: { xs: "stretch", sm: "start center" },
-        }}
-    >
-        <Box
-            sx={{
-                bgcolor: settingsBackground,
-                boxSizing: "border-box",
-                display: "flex",
-                flexDirection: "column",
-                minHeight: "100svh",
-                mx: "auto",
-                width: "100%",
-                "@media (min-width: 600px)": { maxWidth: 390 },
-            }}
-        >
-            <Box
-                component="header"
-                sx={{
-                    alignItems: "center",
-                    display: "grid",
-                    gridTemplateColumns: `${spaceTouchTargetSize}px 1fr ${spaceTouchTargetSize}px`,
-                    height: 56,
-                    px: 2,
-                    width: "100%",
-                }}
-            >
-                <Box
-                    component="button"
-                    type="button"
-                    aria-label="Back to settings"
-                    onClick={onBack}
-                    sx={{
-                        alignItems: "center",
-                        bgcolor: "transparent",
-                        border: 0,
-                        color: textBase,
-                        cursor: "pointer",
-                        display: "flex",
-                        height: spaceTouchTargetSize,
-                        justifyContent: "flex-start",
-                        ml: "-2px",
-                        p: 0,
-                        width: spaceTouchTargetSize,
-                        "&:focus-visible": {
-                            borderRadius: "50%",
-                            outline: `2px solid ${green}`,
-                            outlineOffset: 2,
-                        },
-                    }}
-                >
-                    <HugeiconsIcon
-                        icon={ArrowLeft02Icon}
-                        size={24}
-                        strokeWidth={1.8}
-                    />
-                </Box>
-                <Box
-                    component="h1"
-                    sx={{
-                        color: textBase,
-                        fontFamily: '"Inter Variable", Inter, sans-serif',
-                        fontSize: 18,
-                        fontWeight: 700,
-                        justifySelf: "center",
-                        lineHeight: "24px",
-                        m: 0,
-                    }}
-                >
-                    Profile
-                </Box>
-            </Box>
-
-            <Box
-                component="section"
-                sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                    mt: "24px",
-                    px: "14px",
-                    width: "100%",
-                }}
-            >
-                <SettingsRow
-                    icon={UserEdit01Icon}
-                    label="Change name"
-                    onClick={onChangeName}
-                />
-                <SettingsRow
-                    icon={Camera01Icon}
-                    label="Change profile picture"
-                    onClick={onChangeProfilePicture}
-                />
-                <SettingsRow
-                    icon={Image01Icon}
-                    label="Change cover image"
-                    onClick={onChangeCoverImage}
-                />
-            </Box>
-        </Box>
-    </Box>
-);
 
 export const ChangeNameSettingsScreen: React.FC<
     ChangeNameSettingsScreenProps

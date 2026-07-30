@@ -9,7 +9,7 @@ This page explains what is actually happening when 2of3 splits a secret into thr
 
 ## Shamir secret sharing, briefly
 
-2of3 is built on **Shamir secret sharing**, a classic cryptographic scheme from 1979. The version 2of3 uses is the simplest interesting case: split a secret into three shares such that any two shares reconstruct the original, and any one share alone leaks nothing.
+2of3 is built on **Shamir secret sharing**, a classic cryptographic scheme from 1979. The version 2of3 uses is the simplest interesting case: split a secret into three shares such that any two shares reconstruct the original, while one share reveals nothing about its contents beyond its byte length.
 
 > [!TIP]
 >
@@ -47,27 +47,32 @@ Each card carries one share, encoded as a short text code (and rendered as a QR 
 
 The `2of3-` prefix is there so a reader can recognize the code at a glance and so 2of3 itself can reject pasted text that is not a share with a clear error message ("That code does not look like a 2of3 share.").
 
-Everything after the prefix is a base64url-encoded byte payload. The payload has a 14-byte header followed by the share bytes.
+Everything after the prefix is a base64url-encoded byte payload. The payload has a 10-byte header followed by the share bytes.
 
 ### Share format
 
 Reading from the start, the payload is:
 
-| Bytes | Field      | What it means                                                                                                            |
-| ----- | ---------- | ------------------------------------------------------------------------------------------------------------------------ |
-| 0     | Version    | Always `1` in the current format. Future versions can use a different number to introduce a breaking change.             |
-| 1     | Card index | `1`, `2`, or `3`. This is the "x value" used during recovery to combine shares.                                          |
-| 2-3   | Length     | A 16-bit big-endian length of the secret in bytes. Both shares in a recovery must agree on this.                         |
-| 4-9   | Random ID  | 6 bytes of `crypto.getRandomValues` output, generated fresh for each set. All three cards from one secret share this ID. |
-| 10-13 | Checksum   | A 32-bit checksum of the original secret bytes, computed before splitting.                                               |
-| 14+   | Share data | The share bytes themselves. The same length as the original secret.                                                      |
+| Bytes | Field      | What it means                                                                                                                      |
+| ----- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Version    | Always `2` in the current format. Recovery also supports cards created with version 1.                                             |
+| 1     | Card index | `1`, `2`, or `3`. This is the "x value" used during recovery to combine shares.                                                    |
+| 2-3   | Length     | A 16-bit big-endian length of the secret in bytes. Both shares in a recovery must agree on this.                                   |
+| 4-9   | Random ID  | 6 bytes of `crypto.getRandomValues` output, generated fresh for each set. All three cards from one secret share this ID.           |
+| 10+   | Share data | A share of the secret bytes followed by a 4-byte checksum. The checksum is protected by the same two-card threshold as the secret. |
 
-The ID and checksum are what let recovery be safe and helpful:
+The ID and protected checksum are what let recovery be safe and helpful:
 
 - The **random ID** is used to detect mismatched cards. If you try to combine a card from one set with a card from a different set, both cards parse fine but their IDs disagree, and 2of3 stops with "These two cards are from different sets. Match the ID on both cards." The card's UI shows the first 8 characters of the base64url-encoded ID as the human-readable fingerprint (for example, `ID A1B2C3D4`) so you can match cards by eye too.
-- The **checksum** is used to detect corrupted cards. After combining, 2of3 recomputes the checksum of the recovered bytes and compares it against the checksum stored on each card. If they disagree, you get "These shares did not reconstruct a valid secret." instead of silently returning garbage. The checksum is a simple FNV-1a 32-bit hash, not a cryptographic MAC, because the ID and the share data are not secret and there is no one for an attacker to lie to. The checksum is there to catch accidents like a misread QR or a transcription error.
+- The **checksum** is used to detect corrupted cards. Before splitting, 2of3 appends a 32-bit FNV-1a checksum to the secret. After combining two cards, it recomputes the checksum and compares it with the recovered value. If they disagree, you get "These shares did not reconstruct a valid secret." instead of silently returning garbage. The checksum is protected by the split, so one card cannot use it to test guesses about the secret.
 
 The maximum secret size 2of3 will accept is 2048 bytes in principle, but the practical limit is whatever still fits as a readable QR plus four lines of printed text on a card, currently about 200 bytes of text. The byte counter under the **Secret** field in the UI shows the live limit.
+
+### Format compatibility
+
+Earlier releases created version 1 cards, which stored the checksum openly and allowed one card to confirm guesses of a low-entropy secret. Version 2 protects the checksum behind the two-card threshold.
+
+Recovery supports both versions (if you have an older offline recovery page, generate a new set to get a current one, or recover on [2of3.ente.com](https://2of3.ente.com)). If a version 1 card may have been exposed and the secret is guessable, rotate the secret before creating new cards.
 
 ## Offline recovery file
 

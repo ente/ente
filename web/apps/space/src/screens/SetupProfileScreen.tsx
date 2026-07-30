@@ -297,7 +297,7 @@ export const SetupProfileScreen: React.FC<SetupProfileScreenProps> = ({
                             whiteSpace: "nowrap",
                         }}
                     >
-                        Create your profile
+                        Setup profile
                     </Box>
                     <Box />
                 </Box>
@@ -321,7 +321,7 @@ export const SetupProfileScreen: React.FC<SetupProfileScreenProps> = ({
                             <UsernameStatusIcon status={usernameStatus} />
                         }
                         id="space-setup-profile-username"
-                        label="Username"
+                        label="Choose a username"
                         onChange={handleUsernameChange}
                         placeholder="username"
                         required
@@ -339,16 +339,16 @@ export const SetupProfileScreen: React.FC<SetupProfileScreenProps> = ({
                                     lineHeight: "20px",
                                 }}
                             >
-                                ente.space/
+                                @
                             </Box>
                         }
                         value={username}
                     />
                     <TextInput
                         id="space-setup-profile-name"
-                        label="Name"
+                        label="Enter your name"
                         onChange={setFullName}
-                        placeholder="Enter your name"
+                        placeholder="Name"
                         required
                         value={fullName}
                     />

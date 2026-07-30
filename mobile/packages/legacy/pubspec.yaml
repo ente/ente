@@ -46,7 +46,7 @@ dependencies:
   pdf: 3.12.0
   pointycastle: 3.9.1
   rive: 0.14.0-dev.13
-  share_plus: 11.1.0
+  share_plus: 12.0.0
   shared_preferences: 2.5.3
   uuid: 4.5.3
 
@@ -58,6 +58,5 @@ dev_dependencies:
 flutter:
   assets:
     - assets/
-    - assets/fonts/
 
 # This package is not meant to be published

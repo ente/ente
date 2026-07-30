@@ -7,19 +7,19 @@ edition = "2024"
 tauri-build = { version = "2.6.2", features = [] }
 
 [dependencies]
+ente-assets.workspace = true
+ente-core.workspace = true
+ente-ensu.workspace = true
+keyring = { version = "3", default-features = false, features = ["apple-native", "windows-native", "linux-native-sync-persistent", "crypto-rust"] }
+serde.workspace = true
+serde_json.workspace = true
 tauri = { version = "2.11.2", features = [] }
 tauri-plugin-dialog = "2.7.1"
 tauri-plugin-fs = "2.5.1"
 tauri-plugin-opener = "2.5.4"
 tauri-plugin-process = "2.3.1"
 tauri-plugin-updater = "2.10.1"
-serde.workspace = true
-serde_json.workspace = true
-ente-ensu.workspace = true
-ente-model-download.workspace = true
-ente-core.workspace = true
 uuid = { version = "1", features = ["v4"] }
-keyring = { version = "3", default-features = false, features = ["apple-native", "windows-native", "linux-native-sync-persistent", "crypto-rust"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

@@ -11,9 +11,9 @@ use crate::error::{Result, SpaceError};
 use crate::transport::{
     AddFriendPayload, ConfirmFriendRequestPayload, FriendRelationshipResponse,
     FriendStatusResponse, FriendTargetPayload, RefreshFriendSharesRequest, ShareUpdatePayload,
-    SpaceFriendRequestResponse, SpaceFriendResponse,
+    SpaceFriendRequestResponse, SpaceFriendResponse, SpaceSentFriendRequestResponse,
 };
-use ente_core::crypto::{decode_b64, encode_b64};
+use ente_core::b64;
 
 impl AccountSpaceCtx {
     async fn request_friend_with_target(
@@ -38,7 +38,7 @@ impl AccountSpaceCtx {
         let payload = AddFriendPayload {
             target_space_id: Some(target_space_id.to_owned()),
             target_username: None,
-            requester_friend_sealed_space_key: encode_b64(&requester_share),
+            requester_friend_sealed_space_key: b64::encode(&requester_share),
             requester_key_version: requester_space.key_version,
         };
         let path = format!("/spaces/{}/friends/add", requester_space.space_id);
@@ -63,7 +63,7 @@ impl AccountSpaceCtx {
         username: &str,
     ) -> Result<FriendStatusResponse> {
         let target = self.lookup_space_by_slug(username).await?;
-        let target_public_key = decode_b64(&target.public_key)?;
+        let target_public_key = b64::decode(&target.public_key)?;
         self.request_friend_with_target(space_id, &target.space_id, &target_public_key)
             .await
     }
@@ -73,6 +73,21 @@ impl AccountSpaceCtx {
         space_id: &str,
     ) -> Result<Vec<SpaceFriendRequestResponse>> {
         let path = format!("/spaces/{space_id}/friends/requests");
+        Ok(self
+            .api()
+            .get(&path)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?)
+    }
+
+    pub async fn list_sent_friend_requests(
+        &self,
+        space_id: &str,
+    ) -> Result<Vec<SpaceSentFriendRequestResponse>> {
+        let path = format!("/spaces/{space_id}/friends/requests/sent");
         Ok(self
             .api()
             .get(&path)
@@ -104,11 +119,11 @@ impl AccountSpaceCtx {
                 "requester public key is required".into(),
             ));
         }
-        let requester_public_key = decode_b64(&request.requester.public_key)?;
+        let requester_public_key = b64::decode(&request.requester.public_key)?;
         let (target_space, target_space_key) = self.profile_space_access(space_id).await?;
         let target_share = seal_with_public_key(&target_space_key, &requester_public_key)?;
         let payload = ConfirmFriendRequestPayload {
-            target_friend_sealed_space_key: encode_b64(&target_share),
+            target_friend_sealed_space_key: b64::encode(&target_share),
             target_key_version: target_space.key_version,
         };
         let path = format!(
@@ -214,11 +229,11 @@ impl AccountSpaceCtx {
             if friend.share_key_version == access.key_version {
                 continue;
             }
-            let public_key = decode_b64(&friend.friend.public_key)?;
+            let public_key = b64::decode(&friend.friend.public_key)?;
             let sealed_share = seal_with_public_key(&access.space_key, &public_key)?;
             updates.push(ShareUpdatePayload {
                 friend_space_id: friend.friend.space_id,
-                friend_sealed_space_key: encode_b64(&sealed_share),
+                friend_sealed_space_key: b64::encode(&sealed_share),
             });
         }
         if updates.is_empty() {

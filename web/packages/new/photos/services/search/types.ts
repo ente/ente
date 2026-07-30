@@ -29,6 +29,7 @@ export type SidebarActionID =
     | "shortcuts.hidden"
     | "shortcuts.trash"
     | "utility.account"
+    | "utility.referrals"
     | "utility.watchFolders"
     | "utility.freeUpSpace"
     | "utility.preferences"

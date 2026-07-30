@@ -74,6 +74,7 @@ import { DropdownInput } from "ente-new/photos/components/DropdownInput";
 import { ShapeIcon } from "ente-new/photos/components/icons/ShapeIcon";
 import { AppLockSettings } from "ente-new/photos/components/sidebar/AppLockSettings";
 import { MLSettings } from "ente-new/photos/components/sidebar/MLSettings";
+import { ReferralSettings } from "ente-new/photos/components/sidebar/ReferralSettings";
 import { SessionsSettings } from "ente-new/photos/components/sidebar/SessionsSettings";
 import { TwoFactorSettings } from "ente-new/photos/components/sidebar/TwoFactorSettings";
 import { downloadAppDialogAttributes } from "ente-new/photos/components/utils/download";
@@ -261,6 +262,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const { show: showHelp, props: helpVisibilityProps } = useModalVisibility();
     const { show: showAccount, props: accountVisibilityProps } =
         useModalVisibility();
+    const { show: showReferrals, props: referralsVisibilityProps } =
+        useModalVisibility();
     const { show: showPreferences, props: preferencesVisibilityProps } =
         useModalVisibility();
     const { show: showFreeUpSpace, props: freeUpSpaceVisibilityProps } =
@@ -323,6 +326,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onShowCollectionSummary,
                 onShowPlanSelector,
                 showAccount,
+                showReferrals,
                 showPreferences,
                 showHelp,
                 showFreeUpSpace,
@@ -359,6 +363,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             showFreeUpSpace,
             showHelp,
             showPreferences,
+            showReferrals,
             uncategorizedCollectionSummaryID,
         ],
     );
@@ -407,6 +412,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         onShowPlanSelector,
                         showAccount,
                         accountVisibilityProps,
+                        showReferrals,
+                        referralsVisibilityProps,
                         showPreferences,
                         preferencesVisibilityProps,
                         showHelp,
@@ -806,6 +813,8 @@ type UtilitySectionProps = SectionProps &
     > & {
         showAccount: () => void;
         accountVisibilityProps: ModalVisibilityProps;
+        showReferrals: () => void;
+        referralsVisibilityProps: ModalVisibilityProps;
         showPreferences: () => void;
         preferencesVisibilityProps: ModalVisibilityProps;
         showHelp: () => void;
@@ -832,6 +841,8 @@ const UtilitySection: React.FC<UtilitySectionProps> = ({
     onShowPlanSelector,
     showAccount,
     accountVisibilityProps,
+    showReferrals,
+    referralsVisibilityProps,
     showPreferences,
     preferencesVisibilityProps,
     showHelp,
@@ -856,6 +867,11 @@ const UtilitySection: React.FC<UtilitySectionProps> = ({
                 variant="secondary"
                 label={t("account")}
                 onClick={showAccount}
+            />
+            <RowButton
+                variant="secondary"
+                label={t("referrals")}
+                onClick={showReferrals}
             />
             {isDesktop && (
                 <RowButton
@@ -907,6 +923,10 @@ const UtilitySection: React.FC<UtilitySectionProps> = ({
                 pendingAction={pendingAccountAction}
                 onActionHandled={onAccountActionHandled}
                 {...{ onAuthenticateUser, onShowPlanSelector }}
+            />
+            <ReferralSettings
+                {...referralsVisibilityProps}
+                onRootClose={onCloseSidebar}
             />
             <Preferences
                 {...preferencesVisibilityProps}

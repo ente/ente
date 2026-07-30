@@ -590,7 +590,7 @@ class UserService {
         srpUserID: username,
         srpSalt: base64Encode(salt),
         srpVerifier: base64Encode(SRP6Util.encodeBigInt(v)),
-        srpA: base64Encode(SRP6Util.encodeBigInt(A!)),
+        srpA: base64Encode(SRP6Util.getPadded(A!, 512)),
         isUpdate: false,
       );
       final setupSRPResponse = await _gateway.setupSrp(request);
@@ -603,12 +603,12 @@ class UserService {
       if (setKeysRequest == null) {
         await _gateway.completeSrp(
           setupID: setupSRPResponse.setupID,
-          srpM1: base64Encode(SRP6Util.encodeBigInt(clientM!)),
+          srpM1: base64Encode(SRP6Util.getPadded(clientM!, 32)),
         );
       } else {
         await _gateway.updateSrp(
           setupID: setupSRPResponse.setupID,
-          srpM1: base64Encode(SRP6Util.encodeBigInt(clientM!)),
+          srpM1: base64Encode(SRP6Util.getPadded(clientM!, 32)),
           updatedKeyAttr: setKeysRequest.toMap(),
           logOutOtherDevices: logOutOtherDevices,
         );

@@ -52,7 +52,7 @@
         "base-x": "5.0.1"
     },
     "devDependencies": {
-        "concurrently": "10.0.3",
+        "concurrently": "10.0.4",
         "eslint": "10.4.1",
         "prettier": "3.8.3",
         "typescript": "6.0.3"

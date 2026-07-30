@@ -1,1 +1,0 @@
-- Fix app bar titles being truncated when Bold Text is enabled.

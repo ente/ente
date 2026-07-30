@@ -877,6 +877,7 @@
   "leaveFamilyConfirmBody": "You will lose access to shared storage.",
   "referrals": "Referrals",
   "notifications": "Notifications",
+  "notifyMe": "Notify me",
   "sharedPhotoNotifications": "New shared photos and albums",
   "sharedPhotoNotificationsExplanation": "New photos and albums you are in or shared with you",
   "socialNotifications": "Likes and comments",
@@ -1236,6 +1237,8 @@
   "shareThisVideo": "Share this video",
   "shareLink": "Share link",
   "memoryShareLinkDescription": "This link will automatically expire in 7 days.",
+  "craftingMemoriesFirstHalf": "Crafting",
+  "craftingMemoriesSecondHalf": "memories",
   "deleteLink": "Delete link",
   "deleteLinkQuestion": "Delete link?",
   "deleteMemoryLinkMessage": "People you shared this link with will lose access once it is deleted.",
@@ -1423,6 +1426,44 @@
   "authToViewYourMemories": "Please authenticate to view your memories",
   "unlock": "Unlock",
   "freeUpSpace": "Free up space",
+  "reclaimSpace": "Reclaim {sizeInMBorGB}",
+  "@reclaimSpace": {
+    "description": "Heading that shows how much device storage can be reclaimed",
+    "placeholders": {
+      "sizeInMBorGB": {
+        "example": "2.28 GB",
+        "type": "String"
+      }
+    }
+  },
+  "filesSafelyOnEnte": "{count, plural, one {This item is backed up to Ente, delete the device copy to free space without losing it.} other {All {formattedNumber} items are backed up to Ente, delete device copies to free space without losing them.}}",
+  "@filesSafelyOnEnte": {
+    "description": "Explains that device copies can be deleted because the files are stored on Ente",
+    "placeholders": {
+      "count": {
+        "example": "395",
+        "type": "int"
+      },
+      "formattedNumber": {
+        "example": "395",
+        "type": "String"
+      }
+    }
+  },
+  "filesInAlbumSafelyOnEnte": "{count, plural, one {This item in the album is backed up to Ente, delete the device copy to free space without losing it.} other {All {formattedNumber} items in the album are backed up to Ente, delete device copies to free space without losing them.}}",
+  "@filesInAlbumSafelyOnEnte": {
+    "description": "Explains that device copies for files in an album can be deleted because the files are stored on Ente",
+    "placeholders": {
+      "count": {
+        "example": "395",
+        "type": "int"
+      },
+      "formattedNumber": {
+        "example": "395",
+        "type": "String"
+      }
+    }
+  },
   "freeUpSpaceSaving": "{count, plural, one {It can be deleted from the device to free up {formattedSize}} other {They can be deleted from the device to free up {formattedSize}}}",
   "filesBackedUpInAlbum": "{count, plural, one {{formattedNumber} file} other {{formattedNumber} files}} in this album has been backed up safely",
   "@filesBackedUpInAlbum": {
@@ -1789,6 +1830,9 @@
   "photos": "Photos",
   "videos": "Videos",
   "camera": "Camera",
+  "cameraPermissionRequired": "Camera access is required to take photos.",
+  "cameraPermissionSettings": "Camera access is turned off. Enable it in Settings to continue.",
+  "cameraPermissionRestricted": "Camera access is restricted on this device.",
   "livePhotos": "Live Photos",
   "searchHint1": "Fast, on-device search",
   "searchHint2": "Photo dates, descriptions",
@@ -2871,7 +2915,7 @@
   "ritualShareUnavailable": "Unable to share right now. Please try again.",
   "ritualNotificationMessage": "Take a photo now",
   "ritualCameraNotFound": "No camera found on this device.",
-  "ritualCameraStartError": "Unable to start camera. Please check permissions.",
+  "ritualCameraStartError": "Unable to start the camera. Please try again.",
   "ritualCaptureError": "Unable to capture photo. Please try again.",
   "ritualPhotoLimit": "You can add up to {maxPhotos, plural, one {# photo.} other {# photos.}}",
   "@ritualPhotoLimit": {

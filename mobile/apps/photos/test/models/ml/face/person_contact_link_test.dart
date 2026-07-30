@@ -1,4 +1,6 @@
+import "dart:async";
 import "dart:convert";
+import "dart:typed_data";
 
 import "package:ente_contacts/contacts.dart" as contacts;
 import "package:flutter_test/flutter_test.dart";
@@ -46,9 +48,13 @@ void main() {
     late _FakeEntityService entityService;
     late _FakePhotosContactsService contactsService;
     late PersonService personService;
+    late Future<Uint8List?> Function(PersonEntity) contactPhotoBuilder;
+    int? currentUserID;
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
+      contactPhotoBuilder = (_) async => null;
+      currentUserID = 1;
       entityService = _FakeEntityService()
         ..seed(
           PersonEntity(
@@ -74,6 +80,8 @@ void main() {
         _FakeMLDataDB(),
         await SharedPreferences.getInstance(),
         contactsService: contactsService,
+        contactPhotoBuilder: (person) => contactPhotoBuilder(person),
+        currentUserIDProvider: () => currentUserID,
       );
     });
 
@@ -142,6 +150,104 @@ void main() {
       expect(updated.data.name, "Alex R");
       expect(contactsService.createOrUpdateCalls, 0);
       expect(contactsService.lastUpdatedName, isNull);
+    });
+
+    test(
+      "does not auto-create a contact without a configured person avatar",
+      () async {
+        final person = PersonEntity(
+          "person-1",
+          PersonData(name: "Alex", email: "alex@example.com", userID: 7),
+        );
+        var photoBuilds = 0;
+        contactsService.contact = null;
+        contactPhotoBuilder = (_) async {
+          photoBuilds++;
+          return Uint8List.fromList([1, 2, 3]);
+        };
+
+        final contact = await personService.tryAutoCreateContactForLinkedPerson(
+          person: person,
+          contactUserId: 7,
+          email: "alex@example.com",
+        );
+
+        expect(contact, isNull);
+        expect(photoBuilds, 0);
+        expect(contactsService.autoCreateCalls, 0);
+      },
+    );
+
+    test("coalesces automatic contact creation for a linked person", () async {
+      final person = PersonEntity(
+        "person-1",
+        PersonData(
+          name: "Alex",
+          avatarFaceID: "face-1",
+          email: "alex@example.com",
+          userID: 7,
+        ),
+      );
+      final photoBuildStarted = Completer<void>();
+      final releasePhotoBuild = Completer<void>();
+      var photoBuilds = 0;
+      contactsService.contact = null;
+      contactPhotoBuilder = (_) async {
+        photoBuilds++;
+        photoBuildStarted.complete();
+        await releasePhotoBuild.future;
+        return Uint8List.fromList([1, 2, 3]);
+      };
+
+      final first = personService.tryAutoCreateContactForLinkedPerson(
+        person: person,
+        contactUserId: 7,
+        email: "alex@example.com",
+      );
+      await photoBuildStarted.future;
+      final second = personService.tryAutoCreateContactForLinkedPerson(
+        person: person,
+        contactUserId: 7,
+        email: "alex@example.com",
+      );
+      releasePhotoBuild.complete();
+      final contacts = await Future.wait([first, second]);
+
+      expect(contacts.every((contact) => contact?.contactUserId == 7), isTrue);
+      expect(photoBuilds, 1);
+      expect(contactsService.autoCreateCalls, 1);
+    });
+
+    test("does not auto-create after the account changes", () async {
+      final person = PersonEntity(
+        "person-1",
+        PersonData(
+          name: "Alex",
+          avatarFaceID: "face-1",
+          email: "alex@example.com",
+          userID: 7,
+        ),
+      );
+      final photoBuildStarted = Completer<void>();
+      final releasePhotoBuild = Completer<void>();
+      contactsService.contact = null;
+      contactPhotoBuilder = (_) async {
+        photoBuildStarted.complete();
+        await releasePhotoBuild.future;
+        return Uint8List.fromList([1, 2, 3]);
+      };
+
+      final contact = personService.tryAutoCreateContactForLinkedPerson(
+        person: person,
+        contactUserId: 7,
+        email: "alex@example.com",
+      );
+      await photoBuildStarted.future;
+      currentUserID = 2;
+      releasePhotoBuild.complete();
+
+      expect(await contact, isNull);
+      expect(contactsService.autoCreateCalls, 0);
     });
   });
 
@@ -214,6 +320,8 @@ class _TestPersonService extends PersonService {
     super.faceMLDataDB,
     super.prefs, {
     super.contactsService,
+    super.contactPhotoBuilder,
+    super.currentUserIDProvider,
   });
 
   @override
@@ -228,6 +336,7 @@ class _FakePhotosContactsService implements PhotosContactsService {
   int createOrUpdateCalls = 0;
   int? lastUpdatedContactUserId;
   String? lastUpdatedName;
+  int autoCreateCalls = 0;
 
   void seed(contacts.ContactRecord value) {
     contact = value;
@@ -273,6 +382,29 @@ class _FakePhotosContactsService implements PhotosContactsService {
       isDeleted: false,
       createdAt: saved?.createdAt ?? 1,
       updatedAt: (saved?.updatedAt ?? 1) + 1,
+    );
+  }
+
+  @override
+  Future<contacts.ContactRecord?> createContactWithProfilePictureIfAbsent({
+    required int contactUserId,
+    required String name,
+    required Uint8List bytes,
+  }) async {
+    autoCreateCalls++;
+    final existing = contact;
+    if (existing != null) {
+      return existing;
+    }
+    return contact = contacts.ContactRecord(
+      id: "contact-$contactUserId",
+      contactUserId: contactUserId,
+      email: "alex@example.com",
+      data: contacts.ContactData(contactUserId: contactUserId, name: name),
+      profilePictureAttachmentId: "attachment-$contactUserId",
+      isDeleted: false,
+      createdAt: 1,
+      updatedAt: 2,
     );
   }
 

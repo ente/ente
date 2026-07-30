@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:ente_components/ente_components.dart";
 import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import "package:photos/generated/l10n.dart";
@@ -10,13 +11,6 @@ import "package:photos/services/home_widget_service.dart";
 import "package:photos/services/people_home_widget_service.dart";
 import "package:photos/settings/local_settings.dart";
 import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/components/buttons/button_widget.dart";
-import 'package:photos/ui/components/buttons/icon_button_widget.dart';
-import "package:photos/ui/components/menu_item_widget/menu_item_widget_new.dart";
-import "package:photos/ui/components/models/button_type.dart";
-import 'package:photos/ui/components/title_bar_title_widget.dart';
-import 'package:photos/ui/components/title_bar_widget.dart';
-import "package:photos/ui/components/toggle_switch_widget.dart";
 import "package:photos/ui/viewer/search/result/people_section_all_page.dart";
 
 class PeopleWidgetSettings extends StatefulWidget {
@@ -77,10 +71,8 @@ class _PeopleWidgetSettingsState extends State<PeopleWidgetSettings> {
                         )
                       : _selectedPeople.personIds.isNotEmpty;
 
-                  return ButtonWidget(
-                    buttonType: ButtonType.primary,
-                    buttonSize: ButtonSize.large,
-                    labelText: AppLocalizations.of(context).save,
+                  return ButtonComponent(
+                    label: AppLocalizations.of(context).save,
                     shouldSurfaceExecutionStates: false,
                     isDisabled: !areIdsChanged,
                     onTap: areIdsChanged
@@ -99,30 +91,12 @@ class _PeopleWidgetSettingsState extends State<PeopleWidgetSettings> {
               ),
             )
           : null,
-      body: CustomScrollView(
-        primary: false,
+      body: AppBarComponent(
+        title: AppLocalizations.of(context).people,
+        subtitle: hasInstalledAny
+            ? AppLocalizations.of(context).peopleWidgetDesc
+            : context.l10n.addPeopleWidgetPrompt,
         slivers: <Widget>[
-          TitleBarWidget(
-            backgroundColor: colorScheme.backgroundColour,
-            flexibleSpaceTitle: TitleBarTitleWidget(
-              title: AppLocalizations.of(context).people,
-            ),
-            expandedHeight: MediaQuery.textScalerOf(context).scale(136),
-            flexibleSpaceCaption: hasInstalledAny
-                ? AppLocalizations.of(context).peopleWidgetDesc
-                : context.l10n.addPeopleWidgetPrompt,
-            actionIcons: [
-              IconButtonWidget(
-                icon: Icons.close_outlined,
-                iconButtonType: IconButtonType.secondary,
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
           if (!hasInstalledAny)
             SliverToBoxAdapter(
               child: Padding(
@@ -143,17 +117,16 @@ class _PeopleWidgetSettingsState extends State<PeopleWidgetSettings> {
             if (kDebugMode)
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(6, 18, 6, 8),
-                  child: MenuItemWidgetNew(
+                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+                  child: MenuComponent(
                     title: AppLocalizations.of(context).showTextOnWidget,
-                    trailingWidget: ToggleSwitchWidget(
-                      value: () => _showText,
-                      onChanged: () async {
-                        final next = !_showText;
-                        setState(() => _showText = next);
+                    trailing: ToggleSwitchComponent(
+                      selected: _showText,
+                      onChanged: (showText) async {
+                        setState(() => _showText = showText);
                         await localSettings.setWidgetTextHidden(
                           WidgetHideTextFlag.people,
-                          !next,
+                          !showText,
                         );
                         await HomeWidgetService.instance.updateWidget(
                           androidClass:

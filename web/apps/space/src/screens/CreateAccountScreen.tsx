@@ -562,7 +562,9 @@ export const CreateAccountScreen: React.FC<CreateAccountScreenProps> = ({
                             I accept the{" "}
                             <Box
                                 component="a"
-                                href="https://ente.io/terms"
+                                href="https://ente.com/terms"
+                                rel="noopener noreferrer"
+                                target="_blank"
                                 sx={{
                                     color: "inherit",
                                     textDecoration: "underline",
@@ -573,7 +575,9 @@ export const CreateAccountScreen: React.FC<CreateAccountScreenProps> = ({
                             and{" "}
                             <Box
                                 component="a"
-                                href="https://ente.io/privacy"
+                                href="https://ente.com/privacy"
+                                rel="noopener noreferrer"
+                                target="_blank"
                                 sx={{
                                     color: "inherit",
                                     textDecoration: "underline",

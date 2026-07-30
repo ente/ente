@@ -35,51 +35,65 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
     children,
     onClose,
     actions,
-}) => (
-    <Dialog
-        open={open}
-        onClose={onClose}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
-        PaperComponent={Paper}
-        sx={{
-            width: 499,
-            height: 286,
-            margin: "auto",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-        }}
-        slotProps={{
-            backdrop: {
-                style: { backgroundColor: "rgba(255, 255, 255, 0.9)" },
-            },
-        }}
-    >
-        <DialogTitle id="alert-dialog-title">{title}</DialogTitle>
-        <DialogContent>
-            <DialogContentText id="alert-dialog-description">
-                {children}
-            </DialogContentText>
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: "center" }}>
-            <Button onClick={onClose} sx={cancelButtonSx}>
-                Cancel
-            </Button>
-            {actions.map(({ label, loadingLabel, loading, tone, onClick }) => (
+}) => {
+    const isLoading = actions.some(({ loading }) => loading);
+
+    return (
+        <Dialog
+            open={open}
+            onClose={() => {
+                if (!isLoading) onClose();
+            }}
+            aria-labelledby="alert-dialog-title"
+            aria-describedby="alert-dialog-description"
+            PaperComponent={Paper}
+            sx={{
+                width: 499,
+                height: 286,
+                margin: "auto",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+            }}
+            slotProps={{
+                backdrop: {
+                    style: { backgroundColor: "rgba(255, 255, 255, 0.9)" },
+                },
+            }}
+        >
+            <DialogTitle id="alert-dialog-title">{title}</DialogTitle>
+            <DialogContent>
+                <DialogContentText id="alert-dialog-description">
+                    {children}
+                </DialogContentText>
+            </DialogContent>
+            <DialogActions sx={{ justifyContent: "center" }}>
                 <Button
-                    key={label}
-                    onClick={onClick}
-                    sx={actionButtonSx[tone ?? "danger"]}
-                    disabled={loading}
+                    disabled={isLoading}
+                    onClick={onClose}
+                    sx={cancelButtonSx}
+                    type="button"
                 >
-                    {loading && loadingLabel ? loadingLabel : label}
+                    Cancel
                 </Button>
-            ))}
-        </DialogActions>
-    </Dialog>
-);
+                {actions.map(
+                    ({ label, loadingLabel, loading, tone, onClick }) => (
+                        <Button
+                            key={label}
+                            onClick={onClick}
+                            sx={actionButtonSx[tone ?? "danger"]}
+                            disabled={isLoading}
+                            type="button"
+                        >
+                            {loading && loadingLabel ? loadingLabel : label}
+                        </Button>
+                    ),
+                )}
+            </DialogActions>
+        </Dialog>
+    );
+};
 
 const cancelButtonSx: SxProps<Theme> = {
     bgcolor: "white",

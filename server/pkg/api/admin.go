@@ -154,6 +154,15 @@ func (h *AdminHandler) GetUser(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+func (h *AdminHandler) GetScheduledDeletions(c *gin.Context) {
+	items, err := h.UserController.GetScheduledDeletions(c, c.Query("email"))
+	if err != nil {
+		handler.Error(c, stacktrace.Propagate(err, ""))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"scheduledDeletions": items})
+}
+
 func (h *AdminHandler) DeleteUser(c *gin.Context) {
 	err := h.isFreshAdminToken(c)
 	if err != nil {

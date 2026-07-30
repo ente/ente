@@ -14,6 +14,7 @@ import io.ente.ensu.bindings.DbAttachmentMeta
 import io.ente.ensu.bindings.DbSender
 import io.ente.ensu.bindings.EnsuDb
 import io.ente.ensu.bindings.DbException
+import io.ente.ensu.bindings.cleanAssistantText
 import java.io.File
 
 class ChatRepository(
@@ -35,8 +36,12 @@ class ChatRepository(
         val sessions = db.listSessions()
         sessions.map { session ->
             val messages = runCatching { db.getMessages(session.uuid) }.getOrNull().orEmpty()
-            val firstMessage = messages.firstOrNull()?.text.orEmpty()
-            val lastMessage = messages.lastOrNull()?.text
+            val firstMessage = messages.firstOrNull()?.let { message ->
+                if (message.sender == DbSender.OTHER) cleanAssistantText(message.text) else message.text
+            }.orEmpty()
+            val lastMessage = messages.lastOrNull()?.let { message ->
+                if (message.sender == DbSender.OTHER) cleanAssistantText(message.text) else message.text
+            }
             val isPlaceholder = session.title.isBlank() || session.title.equals("New Chat", ignoreCase = true)
             val seedTitle = if (isPlaceholder) firstMessage else session.title
             ChatSession(

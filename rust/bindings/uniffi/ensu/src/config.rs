@@ -11,6 +11,32 @@ pub struct ConfigModelPreset {
 }
 
 #[derive(Debug, Clone, uniffi::Record)]
+pub struct KnowledgeEmbeddingConfig {
+    pub target_id: String,
+    pub max_hits: u32,
+    pub max_context_utf8_bytes: u32,
+}
+
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct AttributionConfig {
+    pub credit: String,
+    pub license_label: String,
+    pub license_url: String,
+    pub public_pack_url: String,
+    pub modification_notice: String,
+}
+
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct KnowledgeDatasetConfig {
+    pub stable_id: String,
+    pub label: String,
+    pub current_download_identity: String,
+    pub download_size_bytes: i64,
+    pub relevance_threshold: f32,
+    pub attribution: AttributionConfig,
+}
+
+#[derive(Debug, Clone, uniffi::Record)]
 pub struct ConfigDefaults {
     pub mobile_system_prompt_body: String,
     pub desktop_system_prompt_body: String,
@@ -22,6 +48,8 @@ pub struct ConfigDefaults {
     pub desktop_model_presets: Vec<ConfigModelPreset>,
     pub transcription_model: ConfigModelPreset,
     pub voice_activity_model: ConfigModelPreset,
+    pub knowledge_embedding: KnowledgeEmbeddingConfig,
+    pub knowledge_datasets: Vec<KnowledgeDatasetConfig>,
 }
 
 impl From<config::ModelPreset> for ConfigModelPreset {
@@ -33,6 +61,41 @@ impl From<config::ModelPreset> for ConfigModelPreset {
             sha256: value.sha256,
             mmproj_url: value.mmproj_url,
             mmproj_sha256: value.mmproj_sha256,
+        }
+    }
+}
+
+impl From<config::KnowledgeEmbeddingConfig> for KnowledgeEmbeddingConfig {
+    fn from(value: config::KnowledgeEmbeddingConfig) -> Self {
+        Self {
+            target_id: value.target_id,
+            max_hits: value.max_hits,
+            max_context_utf8_bytes: value.max_context_utf8_bytes,
+        }
+    }
+}
+
+impl From<config::AttributionConfig> for AttributionConfig {
+    fn from(value: config::AttributionConfig) -> Self {
+        Self {
+            credit: value.credit,
+            license_label: value.license_label,
+            license_url: value.license_url,
+            public_pack_url: value.public_pack_url,
+            modification_notice: value.modification_notice,
+        }
+    }
+}
+
+impl From<config::KnowledgeDatasetConfig> for KnowledgeDatasetConfig {
+    fn from(value: config::KnowledgeDatasetConfig) -> Self {
+        Self {
+            stable_id: value.stable_id,
+            label: value.label,
+            current_download_identity: value.current_download_identity,
+            download_size_bytes: value.download_size_bytes,
+            relevance_threshold: value.relevance_threshold,
+            attribution: value.attribution.into(),
         }
     }
 }
@@ -58,6 +121,12 @@ impl From<config::Defaults> for ConfigDefaults {
                 .collect(),
             transcription_model: value.transcription_model.into(),
             voice_activity_model: value.voice_activity_model.into(),
+            knowledge_embedding: value.knowledge_embedding.into(),
+            knowledge_datasets: value
+                .knowledge_datasets
+                .into_iter()
+                .map(Into::into)
+                .collect(),
         }
     }
 }

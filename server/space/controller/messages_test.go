@@ -25,7 +25,7 @@ func setupMessagesControllerTest(t *testing.T) (*MessagesController, *spacerepo.
 	})
 	gin.SetMode(gin.TestMode)
 	repos := spacerepo.NewModule(db, nil)
-	return NewModule(repos, nil).Messages, repos, context.Background()
+	return NewModule(repos, nil, noopSpaceActivityNotifier{}, nil).Messages, repos, context.Background()
 }
 
 func TestMessageReplyValidation(t *testing.T) {

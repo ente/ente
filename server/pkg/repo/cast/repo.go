@@ -50,11 +50,20 @@ func (r *Repository) GetAllDevices(ctx context.Context, userID int64) ([]cast.Ca
 	return devices, nil
 }
 
-// InsertCastData insert collection_id, cast_user, token and encrypted_payload for given code if collection_id is not null
-func (r *Repository) InsertCastData(ctx context.Context, castUserID int64, code string, collectionID int64, castToken string, encryptedPayload string) error {
+// InsertCastData inserts the cast payload and returns the paired device ID.
+func (r *Repository) InsertCastData(ctx context.Context, castUserID int64, code string, collectionID int64, castToken string, encryptedPayload string) (uuid.UUID, error) {
 	code = strings.ToUpper(code)
-	_, err := r.DB.ExecContext(ctx, "UPDATE casting SET collection_id = $1, cast_user = $2, token = $3, encrypted_payload = $4 WHERE code = $5 and is_deleted=false", collectionID, castUserID, castToken, encryptedPayload, code)
-	return err
+	var deviceID uuid.UUID
+	err := r.DB.QueryRowContext(
+		ctx,
+		"UPDATE casting SET collection_id = $1, cast_user = $2, token = $3, encrypted_payload = $4 WHERE code = $5 and is_deleted=false RETURNING id",
+		collectionID,
+		castUserID,
+		castToken,
+		encryptedPayload,
+		code,
+	).Scan(&deviceID)
+	return deviceID, err
 }
 
 func (r *Repository) GetPubKeyAndIp(ctx context.Context, code string) (string, string, error) {

@@ -6,6 +6,7 @@
         "build:post": "rm -f out/404.html"
     },
     "dependencies": {
+        "@fontsource-variable/outfit": "5.2.8",
         "@fontsource/itim": "5.2.7",
         "ente-base": "*",
         "ente-gallery": "*",

@@ -1,6 +1,5 @@
 /app    /app    200
 /app/friends    /app/friends    200
-/app/friends/*    /app/friends/[spaceId]    200
 /app/messages    /app/messages    200
 /app/messages/*    /app/messages/[spaceId]    200
 /app/posts/*    /app/posts/[spaceId]/[postId]    200
@@ -10,11 +9,11 @@
 /app/profile/photo    /app/profile/photo    200
 /app/profile/photo-edit    /app/profile/photo-edit    200
 /app/settings    /app/settings    200
-/app/settings/profile    /app/settings/profile    200
 /app/settings/profile/name    /app/settings/profile/name    200
-/invite    /invite    200
 /login    /login    200
 /manifest.webmanifest    /manifest.webmanifest    200
+/manifest-public.webmanifest    /manifest-public.webmanifest    200
+/sw.js    /sw.js    200
 /passkeys/finish    /passkeys/finish    200
 /passkeys/verify    /passkeys/verify    200
 /create-profile    /create-profile    200

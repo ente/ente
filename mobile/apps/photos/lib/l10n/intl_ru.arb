@@ -344,7 +344,6 @@
   "theyAlsoGetXGb": "Они тоже получат {storageAmountInGB} ГБ",
   "referralStorageForBoth": "{storageAmountInGB} ГБ для них + {storageAmountInGB} ГБ для вас при переходе на платный тариф.",
   "freeStorageOnReferralSuccess": "{storageAmountInGB} ГБ каждый раз, когда кто-то подписывается на платный тариф и применяет ваш код",
-  "shareTextReferralCode": "Ente Photos — это безопасное и защищённое хранилище для ваших фотографий\n* Скачайте Ente Photos — https://ente.com/app\n* Создайте аккаунт\n* Примените реферальный код {referralCode} в Настройки -> Рефералы -> Применить код\n* Получите {referralStorageInGB} ГБ бесплатно при переходе на платный тариф",
   "claimFreeStorage": "Получить бесплатное хранилище",
   "inviteYourFriends": "Пригласите своих друзей",
   "earnFreeStorage": "Заработайте бесплатное место в хранилище",

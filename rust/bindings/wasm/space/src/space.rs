@@ -2,12 +2,12 @@
 
 use std::collections::BTreeMap;
 
-use ente_core::{crypto::decode_b64, http::Error as HttpError};
+use ente_core::{b64, http};
 use ente_space::{
     AccountSpaceCtx, CreatedSpace, DecryptedMessage, DecryptedPost, DecryptedSpaceProfile,
-    MessageConversationActivity, MessageResponse, OpenAccountSpaceCtxInput, PostPhotoAssetOptions,
-    PostResponse, ProfileAvatarResponse, ProfileCoverResponse, SpaceActorResponse,
-    SpaceError as CoreSpaceError,
+    MessageConversationActivity, MessageResponse, OpenAccountSpaceCtxInput, OpenSpaceLinkCtxInput,
+    PostPhotoAssetOptions, PostResponse, ProfileAvatarResponse, ProfileCoverResponse,
+    SpaceActorResponse, SpaceKeyResponse, SpaceLinkCtx,
 };
 use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen as swb;
@@ -42,23 +42,25 @@ impl WasmSpaceError {
     }
 }
 
-impl From<CoreSpaceError> for WasmSpaceError {
-    fn from(e: CoreSpaceError) -> Self {
+impl From<ente_space::SpaceError> for WasmSpaceError {
+    fn from(e: ente_space::SpaceError) -> Self {
         let (code, status) = match &e {
-            CoreSpaceError::Http(HttpError::Http { status, .. }) => ("http", Some(*status)),
-            CoreSpaceError::Http(HttpError::Api { status, code, .. }) => {
+            ente_space::SpaceError::Http(http::Error::Http { status, .. }) => {
+                ("http", Some(*status))
+            }
+            ente_space::SpaceError::Http(http::Error::Api { status, code, .. }) => {
                 (code.as_str(), Some(*status))
             }
-            CoreSpaceError::Http(HttpError::Network(_)) => ("network", None),
-            CoreSpaceError::Http(HttpError::Parse(_)) => ("parse", None),
-            CoreSpaceError::Crypto(_) => ("crypto", None),
-            CoreSpaceError::Auth(_) => ("auth", None),
-            CoreSpaceError::InvalidInput(_) => ("invalid_input", None),
-            CoreSpaceError::MissingSecretKey => ("missing_secret_key", None),
-            CoreSpaceError::MissingFriendSealedSpaceKey => {
+            ente_space::SpaceError::Http(http::Error::Network(_)) => ("network", None),
+            ente_space::SpaceError::Http(http::Error::Parse(_)) => ("parse", None),
+            ente_space::SpaceError::Crypto(_) => ("crypto", None),
+            ente_space::SpaceError::Base64Decode(_) => ("base64_decode", None),
+            ente_space::SpaceError::InvalidInput(_) => ("invalid_input", None),
+            ente_space::SpaceError::MissingSecretKey => ("missing_secret_key", None),
+            ente_space::SpaceError::MissingFriendSealedSpaceKey => {
                 ("missing_friend_sealed_space_key", None)
             }
-            CoreSpaceError::EntityKeyConflict => ("entity_key_conflict", None),
+            ente_space::SpaceError::EntityKeyConflict => ("entity_key_conflict", None),
         };
         Self {
             code: code.to_owned(),
@@ -84,6 +86,19 @@ struct OpenAccountSpaceCtxJsInput {
     base_url: String,
     space_session_token: Option<String>,
     space_root_key_b64: String,
+    #[serde(default)]
+    owned_spaces: Option<Vec<SpaceKeyResponse>>,
+    user_agent: Option<String>,
+    client_package: Option<String>,
+    client_version: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct OpenSpaceLinkCtxJsInput {
+    base_url: String,
+    space_username: String,
+    access_key: String,
     user_agent: Option<String>,
     client_package: Option<String>,
     client_version: Option<String>,
@@ -98,11 +113,21 @@ struct CreatedSpaceJs {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+struct CreatedSpaceLinkJs {
+    space_id: String,
+    space_slug: String,
+    access_key: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct SpaceProfileJs {
     space_id: String,
     space_slug: String,
     version: i32,
     friends: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    posts: Option<i64>,
     profile: String,
     avatar: Option<ProfileAvatarResponse>,
     cover: Option<ProfileCoverResponse>,
@@ -233,15 +258,24 @@ struct FriendRequestJs {
     created_at: String,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SentFriendRequestJs {
+    request_id: i64,
+    target: ActorJs,
+    created_at: String,
+}
+
 fn decode_b64_field(value: &str) -> Result<Vec<u8>, WasmSpaceError> {
-    decode_b64(value)
-        .map_err(CoreSpaceError::from)
+    b64::decode(value)
+        .map_err(ente_space::SpaceError::from)
         .map_err(Into::into)
 }
 
 fn utf8_field(bytes: Vec<u8>, field: &str) -> Result<String, WasmSpaceError> {
-    String::from_utf8(bytes)
-        .map_err(|err| CoreSpaceError::InvalidInput(format!("invalid {field} utf8: {err}")).into())
+    String::from_utf8(bytes).map_err(|err| {
+        ente_space::SpaceError::InvalidInput(format!("invalid {field} utf8: {err}")).into()
+    })
 }
 
 fn optional_utf8_field(
@@ -265,6 +299,7 @@ fn profile_to_js(value: DecryptedSpaceProfile) -> SpaceProfileJs {
         space_slug: value.space_slug,
         version: value.version,
         friends: value.friends,
+        posts: None,
         profile,
         avatar: value.avatar,
         cover: value.cover,
@@ -376,6 +411,21 @@ async fn account_post_page_to_js(
     Ok(PostPageJs {
         items,
         next_cursor: page.next_cursor,
+    })
+}
+
+fn link_post_to_js(post: PostResponse, decrypted: DecryptedPost) -> Result<PostJs, WasmSpaceError> {
+    Ok(PostJs {
+        post_id: post.post_id,
+        space_id: post.space_id,
+        space_slug: post.space_slug,
+        author: public_actor_to_js(post.author)?,
+        caption: optional_utf8_field(decrypted.caption_plaintext, "caption").unwrap_or(None),
+        encrypted_post_key: post.encrypted_post_key,
+        key_version: post.key_version,
+        objects: post_objects_to_js(Some(&decrypted.post_key), post.objects),
+        created_at: post.created_at,
+        viewer_liked: false,
     })
 }
 
@@ -494,11 +544,124 @@ pub async fn space_open_account_ctx(
         base_url: input.base_url.clone(),
         space_session_token: input.space_session_token,
         space_root_key,
+        initial_owned_spaces: input.owned_spaces,
         user_agent: input.user_agent.clone(),
         client_package: input.client_package.clone(),
         client_version: input.client_version.clone(),
     })?;
     Ok(SpaceAccountCtxHandle { inner: ctx })
+}
+
+/// Open a read-only Space context from a username and fragment secret.
+#[wasm_bindgen(js_name = spaceOpenLinkCtx)]
+pub async fn space_open_link_ctx(input: JsValue) -> Result<SpaceLinkCtxHandle, WasmSpaceError> {
+    let input: OpenSpaceLinkCtxJsInput = swb::from_value(input)?;
+    let inner = SpaceLinkCtx::open(OpenSpaceLinkCtxInput {
+        base_url: input.base_url,
+        space_slug: input.space_username,
+        access_key: input.access_key,
+        user_agent: input.user_agent,
+        client_package: input.client_package,
+        client_version: input.client_version,
+    })
+    .await?;
+    Ok(SpaceLinkCtxHandle { inner })
+}
+
+/// Handle to a read-only Space link.
+#[wasm_bindgen]
+pub struct SpaceLinkCtxHandle {
+    inner: SpaceLinkCtx,
+}
+
+#[wasm_bindgen]
+impl SpaceLinkCtxHandle {
+    /// Return the decrypted profile bundled into this validated link.
+    #[wasm_bindgen(js_name = getProfile)]
+    pub fn get_profile(&self) -> Result<JsValue, WasmSpaceError> {
+        let mut profile = profile_to_js(self.inner.profile().clone());
+        profile.posts = Some(self.inner.posts());
+        swb::to_value(&profile).map_err(Into::into)
+    }
+
+    /// List and decrypt posts exposed by this link.
+    #[wasm_bindgen(js_name = listPosts)]
+    pub async fn list_posts(&self) -> Result<JsValue, WasmSpaceError> {
+        let page = self.inner.list_posts().await?;
+        let mut items = Vec::with_capacity(page.items.len());
+        for post in page.items {
+            let decrypted = self.inner.decrypt_post(&post)?;
+            items.push(link_post_to_js(post, decrypted)?);
+        }
+        swb::to_value(&PostPageJs {
+            items,
+            next_cursor: page.next_cursor,
+        })
+        .map_err(Into::into)
+    }
+
+    /// Subscribe this browser to new posts from the linked Space.
+    #[wasm_bindgen(js_name = subscribeWebPush)]
+    pub async fn subscribe_web_push(
+        &self,
+        endpoint: String,
+        p256dh: String,
+        auth: String,
+    ) -> Result<String, WasmSpaceError> {
+        self.inner
+            .subscribe_web_push(endpoint, p256dh, auth)
+            .await
+            .map_err(Into::into)
+    }
+
+    /// Remove this linked Space from the browser's push targets.
+    #[wasm_bindgen(js_name = unsubscribeWebPush)]
+    pub async fn unsubscribe_web_push(&self, endpoint: String) -> Result<(), WasmSpaceError> {
+        self.inner
+            .unsubscribe_web_push(endpoint)
+            .await
+            .map_err(Into::into)
+    }
+
+    /// Download and decrypt one post photo.
+    #[wasm_bindgen(js_name = downloadPostAsset)]
+    pub async fn download_post_asset(
+        &self,
+        encrypted_post_key: String,
+        key_version: i32,
+        object_key: String,
+    ) -> Result<Vec<u8>, WasmSpaceError> {
+        self.inner
+            .download_post_asset(&encrypted_post_key, key_version, &object_key)
+            .await
+            .map_err(Into::into)
+    }
+
+    /// Download and decrypt the linked Space avatar.
+    #[wasm_bindgen(js_name = downloadAvatar)]
+    pub async fn download_avatar(
+        &self,
+        object_id: String,
+        key_version: i32,
+    ) -> Result<Vec<u8>, WasmSpaceError> {
+        self.inner
+            .download_profile_asset("avatar", &object_id, key_version)
+            .await
+            .map_err(Into::into)
+    }
+
+    /// Download and decrypt the linked Space cover.
+    #[wasm_bindgen(js_name = downloadCover)]
+    pub async fn download_cover(
+        &self,
+        object_id: String,
+        key_version: i32,
+    ) -> Result<Vec<u8>, WasmSpaceError> {
+        self.inner
+            .download_profile_asset("cover", &object_id, key_version)
+            .await
+            .map_err(Into::into)
+    }
 }
 
 /// Handle to an authenticated space context.
@@ -509,6 +672,33 @@ pub struct SpaceAccountCtxHandle {
 
 #[wasm_bindgen]
 impl SpaceAccountCtxHandle {
+    /// Return the active Space link or create it lazily.
+    #[wasm_bindgen(js_name = getOrCreateSpaceLink)]
+    pub async fn get_or_create_space_link(
+        &self,
+        space_id: String,
+    ) -> Result<JsValue, WasmSpaceError> {
+        let value = self.inner.get_or_create_space_link(&space_id).await?;
+        swb::to_value(&CreatedSpaceLinkJs {
+            space_id: value.space_id,
+            space_slug: value.space_slug,
+            access_key: value.access_key,
+        })
+        .map_err(Into::into)
+    }
+
+    /// Replace the current Space link with a new fragment secret.
+    #[wasm_bindgen(js_name = rotateSpaceLink)]
+    pub async fn rotate_space_link(&self, space_id: String) -> Result<JsValue, WasmSpaceError> {
+        let value = self.inner.rotate_space_link(&space_id).await?;
+        swb::to_value(&CreatedSpaceLinkJs {
+            space_id: value.space_id,
+            space_slug: value.space_slug,
+            access_key: value.access_key,
+        })
+        .map_err(Into::into)
+    }
+
     /// Create a space with an encrypted JSON profile payload.
     #[wasm_bindgen(js_name = createSpace)]
     pub async fn create_space(
@@ -579,7 +769,7 @@ impl SpaceAccountCtxHandle {
             .resolve_owned_space_key(&space_id)
             .await?
             .ok_or_else(|| {
-                CoreSpaceError::InvalidInput(format!(
+                ente_space::SpaceError::InvalidInput(format!(
                     "space {space_id} is not owned by the account"
                 ))
             })?;
@@ -609,7 +799,7 @@ impl SpaceAccountCtxHandle {
             .resolve_owned_space_key(&space_id)
             .await?
             .ok_or_else(|| {
-                CoreSpaceError::InvalidInput(format!(
+                ente_space::SpaceError::InvalidInput(format!(
                     "space {space_id} is not owned by the account"
                 ))
             })?;
@@ -1162,6 +1352,24 @@ impl SpaceAccountCtxHandle {
         swb::to_value(&items).map_err(Into::into)
     }
 
+    /// List outgoing friend requests for the current account.
+    #[wasm_bindgen(js_name = listSentFriendRequests)]
+    pub async fn list_sent_friend_requests(
+        &self,
+        space_id: String,
+    ) -> Result<JsValue, WasmSpaceError> {
+        let requests = self.inner.list_sent_friend_requests(&space_id).await?;
+        let mut items = Vec::with_capacity(requests.len());
+        for request in requests {
+            items.push(SentFriendRequestJs {
+                request_id: request.request_id,
+                target: public_actor_to_js(request.target)?,
+                created_at: request.created_at,
+            });
+        }
+        swb::to_value(&items).map_err(Into::into)
+    }
+
     /// Confirm an incoming friend request.
     #[wasm_bindgen(js_name = confirmFriendRequest)]
     pub async fn confirm_friend_request(
@@ -1178,7 +1386,7 @@ impl SpaceAccountCtxHandle {
         .map_err(Into::into)
     }
 
-    /// Delete an incoming friend request.
+    /// Delete a pending friend request.
     #[wasm_bindgen(js_name = deleteFriendRequest)]
     pub async fn delete_friend_request(
         &self,

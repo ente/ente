@@ -144,6 +144,7 @@ struct ChatView: View {
         }
         .sheet(isPresented: $viewState.showSettings) {
             SettingsView(
+                knowledgeStore: viewModel.knowledgeStore,
                 onSignIn: {
                     viewState.pendingSignInRequest = true
                     viewState.showSettings = false
@@ -268,7 +269,7 @@ struct ChatView: View {
                         viewModel.beginEditing(message: message)
                     },
                     onCopy: { message in
-                        copyToPasteboard(message.text)
+                        copyToPasteboard(message.role == .assistant ? cleanAssistantText(storedText: message.text) : message.text)
                         showToast("Copied to clipboard", duration: 1)
                     },
                     onRetry: { message in

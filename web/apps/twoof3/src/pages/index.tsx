@@ -180,7 +180,7 @@ const HELP_FAQS = [
     },
     {
         question: "All this sounds magical, how does it work?",
-        answer: "It uses Shamir secret sharing. Your secret is split into three shares in a way where mathematically any two parts reconstruct it while one alone reveals nothing. Think of it like a lock which needs 2 of 3 keys to open.",
+        answer: "It uses Shamir secret sharing. Your secret is split into three shares in a way where mathematically any two parts reconstruct it while one alone reveals nothing about its contents. Think of it like a lock which needs 2 of 3 keys to open.",
     },
     {
         question: "Should I test recovery before storing the cards?",

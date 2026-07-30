@@ -17,6 +17,7 @@ import 'package:photos/services/social_notification_coordinator.dart';
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/components/buttons/icon_button_widget.dart";
+import "package:photos/ui/social/comment_collection_selection.dart";
 import "package:photos/ui/social/social_actor_contact_navigation.dart";
 import "package:photos/ui/social/widgets/collection_selector_widget.dart";
 import "package:photos/ui/social/widgets/comment_bubble_widget.dart";
@@ -41,6 +42,7 @@ Future<void> showFileCommentsBottomSheet(
   required int collectionID,
   required int fileID,
   String? highlightCommentID,
+  bool preferDraftCollection = true,
   List<Collection>? sharedCollections,
 }) {
   return showModalBottomSheet(
@@ -52,6 +54,7 @@ Future<void> showFileCommentsBottomSheet(
       collectionID: collectionID,
       fileID: fileID,
       highlightCommentID: highlightCommentID,
+      preferDraftCollection: preferDraftCollection,
       sharedCollections: sharedCollections,
     ),
   );
@@ -62,6 +65,7 @@ class _DraggableCommentsSheet extends StatefulWidget {
   final int collectionID;
   final int fileID;
   final String? highlightCommentID;
+  final bool preferDraftCollection;
   final List<Collection>? sharedCollections;
 
   const _DraggableCommentsSheet({
@@ -69,6 +73,7 @@ class _DraggableCommentsSheet extends StatefulWidget {
     required this.collectionID,
     required this.fileID,
     this.highlightCommentID,
+    required this.preferDraftCollection,
     this.sharedCollections,
   });
 
@@ -102,6 +107,7 @@ class _DraggableCommentsSheetState extends State<_DraggableCommentsSheet> {
         collectionID: widget.collectionID,
         fileID: widget.fileID,
         highlightCommentID: widget.highlightCommentID,
+        preferDraftCollection: widget.preferDraftCollection,
         sharedCollections: widget.sharedCollections,
         dragController: scrollController,
         sheetController: sheetController,
@@ -119,6 +125,10 @@ class FileCommentsBottomSheet extends StatefulWidget {
   /// Optional comment ID to scroll to and highlight.
   final String? highlightCommentID;
 
+  /// Whether an unsent draft in another collection may override
+  /// [collectionID] when the sheet opens.
+  final bool preferDraftCollection;
+
   /// Scroll controller for the drag handle (from DraggableScrollableSheet).
   final ScrollController dragController;
 
@@ -130,6 +140,7 @@ class FileCommentsBottomSheet extends StatefulWidget {
     required this.collectionID,
     required this.fileID,
     this.sharedCollections,
+    this.preferDraftCollection = true,
     required this.dragController,
     required this.sheetController,
     this.highlightCommentID,
@@ -183,9 +194,12 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
     _inputFocusNode = FocusNode()..addListener(_onInputFocusChange);
     _scrollController = ScrollController()..addListener(_onScroll);
     _currentUserID = Configuration.instance.getUserID()!;
-    _selectedCollectionID = _canRestoreDraftCollection
-        ? _lastSelectedDraftCollectionIDs[_draftFileKey] ?? widget.collectionID
-        : widget.collectionID;
+    _selectedCollectionID = resolveInitialCommentsCollectionID(
+      requestedCollectionID: widget.collectionID,
+      draftCollectionID: _lastSelectedDraftCollectionIDs[_draftFileKey],
+      preferDraftCollection: widget.preferDraftCollection,
+      hasHighlightedComment: widget.highlightCommentID != null,
+    );
     _highlightedCommentID = widget.highlightCommentID;
     _loadSharedCollections();
   }
@@ -251,7 +265,7 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
       final savedSelectedCollectionID =
           _lastSelectedDraftCollectionIDs[_draftFileKey];
       final nextSelectedCollectionID =
-          _canRestoreDraftCollection &&
+          _shouldPreferDraftCollection &&
               savedSelectedCollectionID != null &&
               sharedCollections.any(
                 (info) => info.collection.id == savedSelectedCollectionID,
@@ -674,7 +688,8 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
   _CommentDraftFileKey get _draftFileKey =>
       (userID: _currentUserID, fileID: widget.fileID);
 
-  bool get _canRestoreDraftCollection => widget.highlightCommentID == null;
+  bool get _shouldPreferDraftCollection =>
+      widget.preferDraftCollection && widget.highlightCommentID == null;
 
   _CommentDraftKey get _draftKey => (
     userID: _currentUserID,

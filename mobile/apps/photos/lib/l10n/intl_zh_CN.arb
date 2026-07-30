@@ -342,7 +342,6 @@
   "theyAlsoGetXGb": "他们也会获得 {storageAmountInGB} GB",
   "referralStorageForBoth": "对方升级后：他们可获得 {storageAmountInGB} GB，你也可获得 {storageAmountInGB} GB。",
   "freeStorageOnReferralSuccess": "每当有人使用您的代码注册付费计划时您将获得{storageAmountInGB} GB",
-  "shareTextReferralCode": "Ente Photos 是一个私密安全的照片之家 \n* 从 https://ente.com/app 下载 Ente Photos \n* 创建账号 \n* 在“设置 -> 推荐”中使用推荐码 {referralCode} \n* 升级到付费套餐后即可获得 {referralStorageInGB}GB 免费空间",
   "claimFreeStorage": "领取免费存储",
   "inviteYourFriends": "邀请您的朋友",
   "earnFreeStorage": "获得免费空间",

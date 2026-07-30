@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import "package:hugeicons/hugeicons.dart";
 import 'package:locker/l10n/l10n.dart';
 import 'package:locker/services/collections/models/collection.dart';
+import 'package:locker/services/configuration.dart';
 import 'package:locker/ui/components/collection_selection_widget.dart';
 import "package:locker/utils/file_icon_utils.dart";
 import 'package:path/path.dart' as path;
@@ -47,9 +48,11 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
     _files = List.from(widget.files);
     _availableCollections = List.from(widget.collections);
 
-    if (widget.selectedCollection != null &&
-        widget.selectedCollection!.type != CollectionType.uncategorized) {
-      _selectedCollectionIds.add(widget.selectedCollection!.id);
+    final selectedCollection = widget.selectedCollection;
+    if (selectedCollection != null &&
+        (selectedCollection.type != CollectionType.uncategorized ||
+            !selectedCollection.isOwner(Configuration.instance.getUserID()!))) {
+      _selectedCollectionIds.add(selectedCollection.id);
     }
   }
 

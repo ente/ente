@@ -1,23 +1,24 @@
 import { SpacePageMeta } from "components/SpacePageMeta";
 import { SpaceRouteFallback } from "components/SpaceRouteFallback";
-import React, { useEffect, useMemo, useState } from "react";
+import log from "ente-base/log";
+import React, { useEffect, useState } from "react";
 import {
     SetupProfileScreen,
     setupProfileBackground,
 } from "screens/SetupProfileScreen";
+import { savedSpaceSessionToken } from "services/spacePersistentSession";
 import {
     spaceUsernameAvailability,
     spaceUsernameValidationError,
 } from "services/spaceProfile";
 import { useSpaceAppState } from "state/spaceAppState";
-import { acceptPendingSpaceInvite } from "utils/spacePendingInvite";
+import { sendPendingSpaceFriendRequest } from "utils/spacePendingFriendRequest";
 import { createProfileSourceFromQuery, spaceRoutes } from "utils/spaceRoutes";
 import { useSpaceRouter } from "utils/spaceRouteTransitions";
 
 const Page: React.FC = () => {
     const router = useSpaceRouter();
     const {
-        onboardingEntrySource,
         pendingCreateProfile,
         profile,
         profileLoadError,
@@ -26,35 +27,33 @@ const Page: React.FC = () => {
         setPendingCreateProfile,
     } = useSpaceAppState();
     const backSource = createProfileSourceFromQuery(router.query.from);
-    const isAddFriendLinkOnboarding =
-        onboardingEntrySource == "add-friend-link";
     const [draftUsername, setDraftUsername] = useState(
         pendingCreateProfile?.username ?? "",
     );
     const [usernameStatus, setUsernameStatus] = useState<
         "available" | "unavailable"
     >();
-    const existingProfileRoute = useMemo(
-        () =>
-            isAddFriendLinkOnboarding || backSource == "login"
-                ? spaceRoutes.home
-                : spaceRoutes.invite,
-        [backSource, isAddFriendLinkOnboarding],
-    );
-
+    const [hasSpaceSession, setHasSpaceSession] = useState(false);
     useEffect(() => {
-        if (router.isReady) void refreshProfile();
-    }, [refreshProfile, router.isReady]);
+        if (!router.isReady) return;
+        if (!savedSpaceSessionToken()) {
+            void router.replace(spaceRoutes.onboarding);
+            return;
+        }
+
+        setHasSpaceSession(true);
+        void refreshProfile();
+    }, [refreshProfile, router]);
 
     useEffect(() => {
         if (profileLoadStatus == "ready" && profile) {
-            void acceptPendingSpaceInvite()
+            void sendPendingSpaceFriendRequest()
                 .catch((error: unknown) =>
-                    console.error("Failed to accept pending invite", error),
+                    log.error("Failed to send pending friend request", error),
                 )
-                .finally(() => void router.replace(existingProfileRoute));
+                .finally(() => void router.replace(spaceRoutes.home));
         }
-    }, [existingProfileRoute, profile, profileLoadStatus, router]);
+    }, [profile, profileLoadStatus, router]);
 
     useEffect(() => {
         if (profileLoadStatus != "ready" || profile) return;
@@ -83,7 +82,7 @@ const Page: React.FC = () => {
                     );
                 })
                 .catch((error: unknown) => {
-                    console.error("Username availability check failed", error);
+                    log.error("Username availability check failed", error);
                     if (!cancelled) {
                         setUsernameStatus(undefined);
                     }
@@ -96,7 +95,7 @@ const Page: React.FC = () => {
         };
     }, [draftUsername, profile, profileLoadStatus]);
 
-    if (profileLoadStatus != "ready" || profile) {
+    if (!hasSpaceSession || profileLoadStatus != "ready" || profile) {
         return (
             <SpaceRouteFallback
                 background={setupProfileBackground}

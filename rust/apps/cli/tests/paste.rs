@@ -1,3 +1,5 @@
+#![cfg(feature = "museum")]
+
 mod support;
 
 use support::{Cli, Museum, TestResult};

@@ -4,6 +4,7 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use camino::Utf8PathBuf;
 use lib_flutter_rust_bridge_codegen::codegen::{
@@ -66,12 +67,18 @@ fn run() -> Result<(), DynError> {
             }
             generate_frb(target)
         }
+        Some("napi") => {
+            if args.next().is_some() {
+                return Err(usage_error());
+            }
+            generate_napi()
+        }
         _ => Err(usage_error()),
     }
 }
 
 fn usage_error() -> DynError {
-    "usage: cargo codegen <native [ensu|cast]|frb [shared|photos]>".into()
+    "usage: cargo codegen <native [ensu|cast]|frb [shared|photos]|napi>".into()
 }
 
 fn generate_native(target: NativeTarget) -> Result<(), DynError> {
@@ -199,6 +206,51 @@ fn generate_frb_package(package_dir: &Path) -> Result<(), DynError> {
     result?;
 
     Ok(())
+}
+
+fn generate_napi() -> Result<(), DynError> {
+    let rust_root = rust_root()?;
+    let desktop_dir = repo_root()?.join("desktop");
+    let out_dir = desktop_dir.join("rust-bindings");
+    write_generated_gitignore(&out_dir)?;
+
+    let type_def_dir = target_dir()?.join("napi-type-defs");
+    match fs::remove_dir_all(&type_def_dir) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => {
+            return Err(format!("failed to clear {}: {error}", type_def_dir.display()).into());
+        }
+    }
+    fs::create_dir_all(&type_def_dir)?;
+    let force_build = SystemTime::now()
+        .duration_since(UNIX_EPOCH)?
+        .as_nanos()
+        .to_string();
+    run_command(
+        Command::new("cargo")
+            .arg("check")
+            .arg("--locked")
+            .arg("-p")
+            .arg("ente_photos_napi")
+            .arg("--target-dir")
+            .arg(target_dir()?)
+            .env("NAPI_TYPE_DEF_TMP_FOLDER", &type_def_dir)
+            .env("NAPI_FORCE_BUILD_ENTE_PHOTOS_NAPI", force_build)
+            .current_dir(&rust_root),
+        "failed to type-check the desktop Node bindings".to_owned(),
+    )?;
+
+    run_command(
+        Command::new("node")
+            .arg("scripts/napi.js")
+            .arg("dts")
+            .arg(&type_def_dir)
+            .arg(out_dir.join("index.d.ts"))
+            .current_dir(&desktop_dir),
+        "failed to render the TypeScript declarations (run npm install in desktop/ first)"
+            .to_owned(),
+    )
 }
 
 fn format_frb_bindings(target: FrbTarget) -> Result<(), DynError> {

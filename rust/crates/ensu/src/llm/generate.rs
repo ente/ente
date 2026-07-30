@@ -6,18 +6,17 @@ use llama_cpp_2::mtmd::{MtmdBitmap, MtmdInputText, mtmd_default_marker};
 use llama_cpp_2::openai::OpenAIChatTemplateParams;
 use llama_cpp_2::sampling::LlamaSampler;
 use llama_cpp_2::token::LlamaToken;
-use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Instant;
 
 use super::context::Context;
 use super::event::{EventSink, GenerationEvent, GenerationSummary, JobId};
-use super::{Error, format_error};
+use super::{Error, format_error, lock};
 
 static JOB_COUNTER: AtomicI64 = AtomicI64::new(1);
 static CANCEL_FLAGS: OnceLock<Mutex<HashMap<JobId, Arc<AtomicBool>>>> = OnceLock::new();
@@ -31,12 +30,12 @@ fn cancel_flags() -> &'static Mutex<HashMap<JobId, Arc<AtomicBool>>> {
 fn register_job() -> (JobId, Arc<AtomicBool>) {
     let job_id = JOB_COUNTER.fetch_add(1, Ordering::Relaxed);
     let flag = Arc::new(AtomicBool::new(false));
-    cancel_flags().lock().insert(job_id, flag.clone());
+    lock(cancel_flags()).insert(job_id, flag.clone());
     (job_id, flag)
 }
 
 fn cancel_all() {
-    for flag in cancel_flags().lock().values() {
+    for flag in lock(cancel_flags()).values() {
         flag.store(true, Ordering::Relaxed);
     }
 }
@@ -53,7 +52,7 @@ struct JobGuard(JobId);
 
 impl Drop for JobGuard {
     fn drop(&mut self) {
-        cancel_flags().lock().remove(&self.0);
+        lock(cancel_flags()).remove(&self.0);
     }
 }
 
@@ -808,7 +807,7 @@ pub fn cancel(job_id: JobId) {
         cancel_all();
         return;
     }
-    if let Some(flag) = cancel_flags().lock().get(&job_id) {
+    if let Some(flag) = lock(cancel_flags()).get(&job_id) {
         flag.store(true, Ordering::Relaxed);
     }
 }

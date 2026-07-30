@@ -4,7 +4,7 @@ use crate::api::methods::ApiMethods;
 use crate::models::{account::Account, metadata::FileMetadata};
 use crate::storage::Storage;
 use crate::sync::{SyncEngine, SyncStats, download::DownloadManager};
-use base64::Engine;
+use ente_core::b64;
 use ente_core::crypto;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -76,7 +76,7 @@ async fn sync_account(
     let api_client = AppClient::new(Some(account.endpoint.clone()), account.app)?;
 
     // Store token for this account
-    let token = base64::engine::general_purpose::URL_SAFE.encode(&secrets.token);
+    let token = b64::encode_url_safe(&secrets.token);
     api_client.set_token(&token);
 
     // Clear sync state if full sync requested
@@ -235,7 +235,6 @@ fn decrypt_collection_keys(
     master_key: &[u8],
     _secret_key: &[u8],
 ) -> Result<HashMap<i64, Vec<u8>>> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
 
     let mut keys = HashMap::new();
 
@@ -245,8 +244,8 @@ fn decrypt_collection_keys(
         }
 
         // Decrypt collection key
-        let encrypted_bytes = BASE64.decode(&collection.encrypted_key)?;
-        let nonce_bytes = BASE64.decode(&collection.key_decryption_nonce)?;
+        let encrypted_bytes = b64::decode(&collection.encrypted_key)?;
+        let nonce_bytes = b64::decode(&collection.key_decryption_nonce)?;
 
         let decrypted = crypto::Nonce::try_from_slice(&nonce_bytes).and_then(|nonce| {
             crypto::secretbox::decrypt(
@@ -293,7 +292,6 @@ async fn prepare_download_tasks(
     collections: &[crate::api::models::Collection],
     download_manager: &DownloadManager,
 ) -> Result<Vec<(crate::models::file::RemoteFile, PathBuf)>> {
-    use base64::engine::general_purpose::STANDARD as BASE64;
     use chrono::{TimeZone, Utc};
 
     let mut tasks = Vec::new();
@@ -313,8 +311,8 @@ async fn prepare_download_tasks(
         {
             // Decrypt file key first
             let file_key = {
-                let key_bytes = BASE64.decode(&file.encrypted_key)?;
-                let nonce = BASE64.decode(&file.key_decryption_nonce)?;
+                let key_bytes = b64::decode(&file.encrypted_key)?;
+                let nonce = b64::decode(&file.key_decryption_nonce)?;
                 crypto::secretbox::decrypt(
                     &key_bytes,
                     &crypto::Nonce::try_from_slice(&nonce)?,
@@ -325,8 +323,8 @@ async fn prepare_download_tasks(
             // Decrypt regular metadata
             let regular_meta = if !file.metadata.encrypted_data.is_empty() {
                 if !file.metadata.decryption_header.is_empty() {
-                    let encrypted_bytes = BASE64.decode(&file.metadata.encrypted_data)?;
-                    let header_bytes = BASE64.decode(&file.metadata.decryption_header)?;
+                    let encrypted_bytes = b64::decode(&file.metadata.encrypted_data)?;
+                    let header_bytes = b64::decode(&file.metadata.decryption_header)?;
 
                     let decrypted =
                         crypto::Header::try_from_slice(&header_bytes).and_then(|header| {
@@ -353,8 +351,8 @@ async fn prepare_download_tasks(
             // Decrypt public magic metadata if available
             let pub_meta = if let Some(ref magic) = file.pub_magic_metadata {
                 if !magic.data.is_empty() && !magic.header.is_empty() {
-                    let encrypted_bytes = BASE64.decode(&magic.data)?;
-                    let header_bytes = BASE64.decode(&magic.header)?;
+                    let encrypted_bytes = b64::decode(&magic.data)?;
+                    let header_bytes = b64::decode(&magic.header)?;
 
                     let decrypted =
                         crypto::Header::try_from_slice(&header_bytes).and_then(|header| {

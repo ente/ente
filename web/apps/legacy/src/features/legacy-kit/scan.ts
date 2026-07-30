@@ -39,6 +39,8 @@ interface DrawableImage {
 
 let decodeQrPromise: Promise<DecodeQR> | undefined;
 
+export class LegacyKitQRDecodeError extends Error {}
+
 const loadDecodeQr = () =>
     (decodeQrPromise ??= import("qr/decode.js")
         .then(({ default: decodeQR }) => decodeQR)
@@ -548,9 +550,11 @@ const decodeQrImage = async (image: DecodableImage) => {
         }
     }
 
-    throw lastError instanceof Error
-        ? lastError
-        : new Error("Could not read that QR code.");
+    throw new LegacyKitQRDecodeError(
+        lastError instanceof Error
+            ? lastError.message
+            : "Could not read that QR code.",
+    );
 };
 
 const textFromPDF = async (pdf: PDFDocumentProxy) => {
@@ -679,7 +683,9 @@ const decodeQrFromPDFBytes = async (bytes: Uint8Array) => {
         await pdf.destroy();
     }
 
-    throw new Error("Could not find a Legacy Kit QR code in that PDF.");
+    throw new LegacyKitQRDecodeError(
+        "Could not find a Legacy Kit QR code in that PDF.",
+    );
 };
 
 const decodeQrFromPDF = async (file: File) => {

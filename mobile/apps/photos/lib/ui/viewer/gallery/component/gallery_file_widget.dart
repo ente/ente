@@ -12,7 +12,7 @@ import "package:photos/events/file_uploaded_event.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/selected_files.dart";
-import "package:photos/module/download/file.dart";
+import "package:photos/module/share/picker_result_uri.dart";
 import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/ui/common/touch_cross_detector.dart";
@@ -243,8 +243,7 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
     } else {
       if (AppLifecycleService.instance.mediaExtensionAction.action ==
           IntentAction.pick) {
-        final ioFile = await getFile(file);
-        await MediaExtension().setResult("file://${ioFile!.path}");
+        await _returnPickerResult(file);
       } else {
         _routeToDetailPage(file, context);
       }
@@ -281,11 +280,15 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
   ) async {
     if (AppLifecycleService.instance.mediaExtensionAction.action ==
         IntentAction.pick) {
-      final ioFile = await getFile(file);
-      await MediaExtension().setResult("file://${ioFile!.path}");
+      await _returnPickerResult(file);
     } else {
       _routeToDetailPage(file, context);
     }
+  }
+
+  Future<void> _returnPickerResult(EnteFile file) async {
+    final uri = await getPickerResultUri(file);
+    if (uri != null) await MediaExtension().setResult(uri);
   }
 
   void _routeToDetailPage(EnteFile file, BuildContext context) {

@@ -23,8 +23,18 @@ func setupPostsControllerTest(t *testing.T) (*PostsController, *spacerepo.Module
 	})
 	gin.SetMode(gin.TestMode)
 	repos := spacerepo.NewModule(db, nil)
-	return NewModule(repos, nil).Posts, repos, context.Background()
+	return NewModule(repos, nil, noopSpaceActivityNotifier{}, nil).Posts, repos, context.Background()
 }
+
+type noopSpaceActivityNotifier struct{}
+
+func (noopSpaceActivityNotifier) OnSpacePostCreated(SpaceActivityActor)            {}
+func (noopSpaceActivityNotifier) OnSpacePostLiked(SpaceActivityActor, int64)       {}
+func (noopSpaceActivityNotifier) OnSpacePostReplied(SpaceActivityActor, int64)     {}
+func (noopSpaceActivityNotifier) OnSpaceMessageSent(SpaceActivityActor, int64)     {}
+func (noopSpaceActivityNotifier) OnSpaceMessageLiked(SpaceActivityActor, int64)    {}
+func (noopSpaceActivityNotifier) OnSpaceFriendAdded(SpaceActivityActor, int64)     {}
+func (noopSpaceActivityNotifier) OnSpaceFriendRequested(SpaceActivityActor, int64) {}
 
 func testSpaceBytes(value string) []byte {
 	return []byte(value)
@@ -39,7 +49,7 @@ func testUpdateProfile(ctx context.Context, module *spacerepo.Module, _ int64, s
 }
 
 func testRotateKey(ctx context.Context, module *spacerepo.Module, _ int64, spaceID string, keyVersion int, rootWrappedSpaceKey string, wrappedPrevKey string, encryptedProfile string) (*spacerepo.SpaceRecord, error) {
-	return module.Spaces.RotateKey(ctx, spaceID, keyVersion, testSpaceBytes(rootWrappedSpaceKey), testSpaceBytes(wrappedPrevKey), testSpaceBytes(encryptedProfile))
+	return module.Spaces.RotateKey(ctx, spaceID, keyVersion, testSpaceBytes(rootWrappedSpaceKey), testSpaceBytes(wrappedPrevKey), testSpaceBytes(encryptedProfile), nil, nil)
 }
 
 func testAddFriend(ctx context.Context, module *spacerepo.Module, requesterID int64, requesterSpaceID string, targetSpaceID string, targetFriendSealedSpaceKey string, targetKeyVersion int, requesterFriendSealedSpaceKey string, requesterKeyVersion int) error {

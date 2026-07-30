@@ -108,6 +108,23 @@ const UserResponse = z.object({
 
 export type UserResponse = z.infer<typeof UserResponse>;
 
+const ScheduledDeletionResponse = z.object({
+    scheduledDeletions: z.array(
+        z.object({
+            userID: z.number(),
+            userCreatedAt: z.number(),
+            scheduledAt: z.number(),
+            deletionStartsAt: z.number(),
+            storageConsumed: z.number(),
+            authenticatorEntryCount: z.number(),
+        }),
+    ),
+});
+
+export type ScheduledDeletion = z.infer<
+    typeof ScheduledDeletionResponse
+>["scheduledDeletions"][number];
+
 interface AddOTTRequest {
     email: string;
     code: string;
@@ -157,6 +174,47 @@ export const getUser = async (
 
     await ensureOk(response, "Network response was not ok");
     return UserResponse.parse(await response.json());
+};
+
+export const getScheduledDeletions = async (
+    session: Pick<StaffSession, "token">,
+    email: string,
+) => {
+    const response = await fetch(
+        apiURL("/admin/user/scheduled-deletions", { email }),
+        { headers: staffJSONRequestHeaders(session) },
+    );
+    await ensureOk(response, "Failed to fetch scheduled deletions");
+    return ScheduledDeletionResponse.parse(await response.json())
+        .scheduledDeletions;
+};
+
+export const recoverScheduledDeletion = async (
+    session: Pick<StaffSession, "token">,
+    userID: number,
+    emailID: string,
+) => {
+    const response = await fetch(apiURL("/admin/user/recover"), {
+        method: "POST",
+        headers: staffJSONRequestHeaders(session),
+        body: JSON.stringify({ userID, emailID }),
+    });
+    await ensureOk(response, "Failed to recover account");
+};
+
+export const unblockStorageWarningLogin = async (
+    session: Pick<StaffSession, "token">,
+    userID: number,
+) => {
+    const response = await fetch(
+        apiURL("/admin/user/unblock-storage-warning-login"),
+        {
+            method: "POST",
+            headers: staffJSONRequestHeaders(session),
+            body: JSON.stringify({ userID }),
+        },
+    );
+    await ensureOk(response, "Failed to unblock storage-warning login");
 };
 
 export const getSelectedUser = async (session: StaffSession) => {

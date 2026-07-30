@@ -267,13 +267,28 @@ func (c *SpacesController) RotateKey(ctx context.Context, current *repo.SpaceRec
 	if err != nil {
 		return nil, err
 	}
+	linkEncryptedSpaceKey, err := decodeOptionalEncodedSpaceField("linkEncryptedSpaceKey", req.LinkEncryptedSpaceKey, maxSpaceEncryptedKeyEncodedBytes, maxSpaceEncryptedKeyDecodedBytes)
+	if err != nil {
+		return nil, err
+	}
+	if req.ExpectedLinkID != nil {
+		hasExpectedLink := *req.ExpectedLinkID > 0
+		if *req.ExpectedLinkID < 0 || hasExpectedLink != (len(linkEncryptedSpaceKey) > 0) {
+			return nil, ente.NewBadRequestWithMessage("expectedLinkId does not match linkEncryptedSpaceKey")
+		}
+	} else if len(linkEncryptedSpaceKey) > 0 {
+		return nil, ente.NewBadRequestWithMessage("expectedLinkId is required with linkEncryptedSpaceKey")
+	}
 	if req.KeyVersion != current.CurrentVersion {
 		return nil, ente.NewBadRequestWithMessage("keyVersion does not match current space version")
 	}
-	space, err := c.SpacesRepo.RotateKey(ctx, current.SpaceID, req.KeyVersion, rootWrappedSpaceKey, wrappedPrevKey, encryptedProfile)
+	space, err := c.SpacesRepo.RotateKey(ctx, current.SpaceID, req.KeyVersion, rootWrappedSpaceKey, wrappedPrevKey, encryptedProfile, req.ExpectedLinkID, linkEncryptedSpaceKey)
 	if err != nil {
 		if errors.Is(stacktrace.RootCause(err), sql.ErrNoRows) {
 			return nil, ente.NewBadRequestWithMessage("keyVersion does not match current space version")
+		}
+		if errors.Is(err, repo.ErrSpaceLinkStateChanged) {
+			return nil, ente.NewConflictError("active space link changed; retry space key rotation")
 		}
 		return nil, err
 	}

@@ -10,6 +10,8 @@ import 'package:flutter/material.dart';
 class NotificationBannerWidget extends StatelessWidget {
   const NotificationBannerWidget({super.key});
 
+  static const _showDiscountOffer = false;
+
   @override
   Widget build(BuildContext context) {
     List<Widget> contents = [];
@@ -58,8 +60,9 @@ class NotificationBannerWidget extends StatelessWidget {
                     type: BannerType.freeStorage,
                   ),
                 ]);
-              } else if (userDetails!.usage < 5 * 1024 * 1024 * 1024 ||
-                  userDetails.subscription.productID == 'free') {
+              } else if (_showDiscountOffer &&
+                  (userDetails!.usage < 5 * 1024 * 1024 * 1024 ||
+                      userDetails.subscription.productID == 'free')) {
                 contents.addAll([
                   BannerWidget(
                     text: l10n.freeStorageOffer,

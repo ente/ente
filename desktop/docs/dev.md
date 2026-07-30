@@ -12,7 +12,7 @@ Use `npm ci` to install dependencies using the committed lockfile. You need this
 
 Use `npm install <package>` only when intentionally adding or updating dependencies, and review the resulting `package.json` and `package-lock.json` changes.
 
-The desktop app embeds the Photos web app, so local development also requires installing dependencies in `../web`:
+The desktop app embeds the Photos web app, so local development also requires installing dependencies in `../web`. The ML pipeline is implemented by the Rust crate shared with the mobile apps and built from source (see [Note: ML with Rust]), so a [Rust toolchain](https://rustup.rs) is also required.
 
 ```sh
 cd ../web
@@ -45,11 +45,15 @@ During development, you might find `npm run build:quick` helpful. It is a varian
 
 Installs skip dependency lifecycle scripts (`ignore-scripts` in `.npmrc`) so that installing cannot run arbitrary code from packages. The flip side is that our own postinstall does not run automatically either, so it must be invoked explicitly. `npm run dev` runs it automatically if it hasn't run for the currently installed dependencies; for other flows (e.g. `npm run build`) run it yourself after `npm ci`. It:
 
-- Runs the install scripts of the dependencies that fetch prebuilt binaries (`ffmpeg-static`, `onnxruntime-node`, `electron-winstaller`).
+- Runs the install scripts of the dependencies that fetch prebuilt binaries (`ffmpeg-static`, `electron-winstaller`).
 
 - Runs [electron-builder](https://www.electron.build/cli)'s `install-app-deps` command to rebuild native node modules (those written in C/C++) against `electron`'s packaged `node` version.
 
 - Downloads the `vips` binary used during development (see `scripts/vips.js`).
+
+- Downloads the ONNX Runtime libraries used by the ML pipeline (see `scripts/ort.js`).
+
+Postinstall does not compile the Rust ML addon. `npm run dev` builds an optimized host addon through `scripts/napi.js`; packaging builds optimized target addons through electron-builder's `beforeBuild` hook. `cargo codegen napi` only regenerates the TypeScript declarations in the gitignored `rust-bindings/` directory.
 
 ### lint, lint:fix
 

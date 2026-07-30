@@ -1,5 +1,7 @@
+import { SpaceFriendRequestCanceledToast } from "components/SpaceFriendRequestCanceledToast";
 import { SpacePageMeta } from "components/SpacePageMeta";
 import { SpaceRouteFallback } from "components/SpaceRouteFallback";
+import log from "ente-base/log";
 import React from "react";
 import { MessagesScreen, messagesBackground } from "screens/MessagesScreen";
 import type { SetupProfile } from "screens/SetupProfileScreen";
@@ -7,7 +9,9 @@ import {
     confirmCurrentFriendRequest,
     deleteCurrentFriendRequest,
     deleteCurrentMessage,
+    isFriendRequestCanceledError,
     loadCurrentMessageActivityPostPreview,
+    loadCurrentMessageConversationAvatar,
     loadCurrentMessageConversations,
     loadCurrentMessageThread,
     loadCurrentSpaceProfile,
@@ -115,6 +119,8 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
     const [isConversationsLoading, setIsConversationsLoading] =
         React.useState(true);
     const [isThreadLoading, setIsThreadLoading] = React.useState(false);
+    const [showFriendRequestCanceledToast, setShowFriendRequestCanceledToast] =
+        React.useState(false);
     const [messages, setMessages] = React.useState<SpaceMessage[]>([]);
     const [selectedFriendProfile, setSelectedFriendProfile] =
         React.useState<SpaceMessageConversation["friend"]>();
@@ -129,6 +135,7 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
         undefined,
     );
     const markedReadSpaceIdRef = React.useRef<string | undefined>(undefined);
+    const conversationsLoadGenerationRef = React.useRef(0);
     const previousSelectedSpaceIdRef = React.useRef<string | undefined>(
         selectedSpaceId,
     );
@@ -225,10 +232,7 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
             });
             void markCurrentMessagesRead(actorSpaceId, spaceId).catch(
                 (error: unknown) =>
-                    console.warn(
-                        "Failed to mark message conversation read",
-                        error,
-                    ),
+                    log.warn("Failed to mark message conversation read", error),
             );
         },
         [profile?.spaceId],
@@ -238,9 +242,13 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
         const actorSpaceId = profile?.spaceId;
         if (!actorSpaceId) return false;
 
+        const generation = ++conversationsLoadGenerationRef.current;
         setIsConversationsLoading(true);
         try {
             const page = await loadCurrentMessageConversations(actorSpaceId);
+            if (conversationsLoadGenerationRef.current != generation) {
+                return false;
+            }
             const items = page.items.sort((a, b) => {
                 const createdAtDiff =
                     b.latestActivity.createdAtMs - a.latestActivity.createdAtMs;
@@ -267,13 +275,75 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
                     )
                     .map((conversation) => conversation.friend),
             );
+            for (const conversation of items) {
+                const friend = conversation.friend;
+                if (
+                    isFriendRequestConversation(conversation) ||
+                    friend.avatarUrl ||
+                    !friend.avatarObjectID ||
+                    !friend.avatarKeyVersion
+                ) {
+                    continue;
+                }
+
+                const itemID = conversationId(conversation);
+                const itemFriendSpaceID = friendSpaceId(friend);
+                void loadCurrentMessageConversationAvatar(actorSpaceId, friend)
+                    .then((avatarUrl) => {
+                        if (
+                            !avatarUrl ||
+                            conversationsLoadGenerationRef.current != generation
+                        ) {
+                            return;
+                        }
+
+                        setConversations((currentConversations) =>
+                            currentConversations.map((currentConversation) => {
+                                const currentFriend =
+                                    currentConversation.friend;
+                                return conversationId(currentConversation) ==
+                                    itemID &&
+                                    currentFriend.avatarObjectID ==
+                                        friend.avatarObjectID &&
+                                    currentFriend.avatarKeyVersion ==
+                                        friend.avatarKeyVersion
+                                    ? {
+                                          ...currentConversation,
+                                          friend: {
+                                              ...currentFriend,
+                                              avatarUrl,
+                                          },
+                                      }
+                                    : currentConversation;
+                            }),
+                        );
+                        setFriends((currentFriends) =>
+                            currentFriends.map((currentFriend) =>
+                                friendSpaceId(currentFriend) ==
+                                    itemFriendSpaceID &&
+                                currentFriend.avatarObjectID ==
+                                    friend.avatarObjectID &&
+                                currentFriend.avatarKeyVersion ==
+                                    friend.avatarKeyVersion
+                                    ? { ...currentFriend, avatarUrl }
+                                    : currentFriend,
+                            ),
+                        );
+                    })
+                    .catch((error: unknown) =>
+                        log.warn(
+                            "Failed to load message conversation avatar",
+                            error,
+                        ),
+                    );
+            }
             if (passiveUnreadConversationIds.length > 0) {
                 void Promise.all(
                     passiveUnreadConversationIds.map((spaceId) =>
                         markCurrentMessagesRead(actorSpaceId, spaceId),
                     ),
                 ).catch((error: unknown) =>
-                    console.warn(
+                    log.warn(
                         "Failed to mark passive message activity read",
                         error,
                     ),
@@ -281,12 +351,21 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
             }
             return true;
         } catch (error: unknown) {
-            console.error("Failed to load message conversations", error);
+            log.error("Failed to load message conversations", error);
             return false;
         } finally {
-            setIsConversationsLoading(false);
+            if (conversationsLoadGenerationRef.current == generation) {
+                setIsConversationsLoading(false);
+            }
         }
     }, [profile?.spaceId, setFriends]);
+
+    React.useEffect(
+        () => () => {
+            conversationsLoadGenerationRef.current += 1;
+        },
+        [],
+    );
 
     const openConversation = React.useCallback(
         (conversation: SpaceMessageConversation) => {
@@ -301,13 +380,27 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
             const actorSpaceId = profile?.spaceId;
             if (!actorSpaceId) throw new Error("Missing space.");
 
-            await confirmCurrentFriendRequest(
-                actorSpaceId,
-                friendRequestIdFromConversation(conversation),
-            );
+            try {
+                await confirmCurrentFriendRequest(
+                    actorSpaceId,
+                    friendRequestIdFromConversation(conversation),
+                );
+            } catch (error: unknown) {
+                if (!isFriendRequestCanceledError(error)) throw error;
+                setConversations((currentConversations) =>
+                    currentConversations.filter(
+                        (candidate) =>
+                            conversationId(candidate) !=
+                            conversationId(conversation),
+                    ),
+                );
+                setShowFriendRequestCanceledToast(true);
+                void refreshConversations();
+                return;
+            }
             window.location.reload();
         },
-        [profile?.spaceId],
+        [profile?.spaceId, refreshConversations],
     );
 
     const deleteFriendRequest = React.useCallback(
@@ -315,10 +408,24 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
             const actorSpaceId = profile?.spaceId;
             if (!actorSpaceId) throw new Error("Missing space.");
 
-            await deleteCurrentFriendRequest(
-                actorSpaceId,
-                friendRequestIdFromConversation(conversation),
-            );
+            try {
+                await deleteCurrentFriendRequest(
+                    actorSpaceId,
+                    friendRequestIdFromConversation(conversation),
+                );
+            } catch (error: unknown) {
+                if (!isFriendRequestCanceledError(error)) throw error;
+                setConversations((currentConversations) =>
+                    currentConversations.filter(
+                        (candidate) =>
+                            conversationId(candidate) !=
+                            conversationId(conversation),
+                    ),
+                );
+                setShowFriendRequestCanceledToast(true);
+                void refreshConversations();
+                return;
+            }
             void refreshConversations();
         },
         [profile?.spaceId, refreshConversations],
@@ -434,7 +541,7 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
                 if (!cancelled) setSelectedFriendProfile(friend);
             })
             .catch((error: unknown) => {
-                console.error("Failed to load selected space profile", error);
+                log.error("Failed to load selected space profile", error);
                 if (!cancelled) {
                     setSelectedFriendProfileLoadFailedSpaceId(selectedSpaceId);
                 }
@@ -507,7 +614,7 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
                 }
             })
             .catch((error: unknown) =>
-                console.error("Failed to load message thread", error),
+                log.error("Failed to load message thread", error),
             )
             .finally(() => {
                 if (!cancelled) setIsThreadLoading(false);
@@ -555,9 +662,14 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
                 onCloseThread={closeConversation}
                 onConfirmFriendRequest={confirmFriendRequest}
                 onDeleteFriendRequest={deleteFriendRequest}
-                onOpenSelectedFriendProfile={(friend) =>
-                    void router.push(spaceRoutes.friend(friendSpaceId(friend)))
-                }
+                onOpenSelectedFriendProfile={(friend) => {
+                    const username = friend.username || friend.spaceSlug;
+                    if (username)
+                        void router.push(
+                            spaceRoutes.friendPage,
+                            spaceRoutes.friend(username),
+                        );
+                }}
                 onOpenQuotePost={(quote) =>
                     void router.push(
                         spaceRoutes.post(quote.spaceId, quote.postId),
@@ -663,6 +775,11 @@ export const SpaceMessagesPage: React.FC<SpaceMessagesPageProps> = ({
                 profile={profile}
                 selectedFriend={selectedFriend}
             />
+            {showFriendRequestCanceledToast && (
+                <SpaceFriendRequestCanceledToast
+                    onClose={() => setShowFriendRequestCanceledToast(false)}
+                />
+            )}
         </>
     );
 };

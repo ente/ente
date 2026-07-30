@@ -153,6 +153,7 @@ func TestValidateSpaceSlugRejectsReservedSlugs(t *testing.T) {
 		"shop",
 		"space",
 		"support",
+		"sw.js",
 		"take-control",
 		"talks",
 		"terms",
@@ -170,6 +171,27 @@ func TestValidateSpaceSlugRejectsReservedSlugs(t *testing.T) {
 			} else {
 				require.Contains(t, err.Error(), "spaceSlug is reserved")
 			}
+		})
+	}
+}
+
+func TestValidateSpaceSlugRejectsReservedFileSuffixes(t *testing.T) {
+	for _, slug := range []string{
+		"theme.css",
+		"page.htm",
+		"page.html",
+		"script.js",
+		"data.json",
+		"source.map",
+		"script.mjs",
+		"robots.txt",
+		"app.webmanifest",
+		"feed.xml",
+	} {
+		t.Run(slug, func(t *testing.T) {
+			_, err := ValidateSpaceSlug(slug)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "spaceSlug is reserved")
 		})
 	}
 }

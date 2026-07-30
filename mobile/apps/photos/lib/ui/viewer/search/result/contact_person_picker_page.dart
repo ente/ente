@@ -4,6 +4,7 @@ import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/ml/face/person.dart";
+import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/search_constants.dart";
 import "package:photos/ui/viewer/people/face_thumbnail_squircle.dart";
 import "package:photos/ui/viewer/people/person_face_widget.dart";
@@ -20,35 +21,49 @@ class ContactPersonPickerPersonCandidate extends ContactPersonPickerCandidate {
 }
 
 class ContactPersonPickerClusterCandidate extends ContactPersonPickerCandidate {
-  const ContactPersonPickerClusterCandidate(this.clusterID);
+  const ContactPersonPickerClusterCandidate(
+    this.clusterID, {
+    required this.fileCount,
+  });
 
   final String clusterID;
+  final int fileCount;
 }
 
 List<ContactPersonPickerCandidate> buildContactPersonPickerCandidates({
-  required Iterable<Map<String, dynamic>> faceResultParams,
+  required Iterable<GenericSearchResult> faceResults,
   required Iterable<PersonEntity> persons,
 }) {
   final personsByID = {for (final person in persons) person.remoteID: person};
-  final candidates = <ContactPersonPickerCandidate>[];
+  final personCandidates = <ContactPersonPickerPersonCandidate>[];
+  final clusterCandidates = <ContactPersonPickerClusterCandidate>[];
 
-  for (final params in faceResultParams) {
+  for (final result in faceResults) {
+    final params = result.params;
     final personID = params[kPersonParamID] as String?;
     if (personID != null) {
       final person = personsByID[personID];
       if (person != null) {
-        candidates.add(ContactPersonPickerPersonCandidate(person));
+        personCandidates.add(ContactPersonPickerPersonCandidate(person));
       }
       continue;
     }
 
     final clusterID = params[kClusterParamId] as String?;
     if (clusterID != null) {
-      candidates.add(ContactPersonPickerClusterCandidate(clusterID));
+      clusterCandidates.add(
+        ContactPersonPickerClusterCandidate(
+          clusterID,
+          fileCount: result.fileCount(),
+        ),
+      );
     }
   }
 
-  return candidates;
+  clusterCandidates.sort(
+    (first, second) => second.fileCount.compareTo(first.fileCount),
+  );
+  return [...personCandidates, ...clusterCandidates];
 }
 
 abstract class ContactPersonPickerResult {

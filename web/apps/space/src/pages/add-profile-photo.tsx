@@ -1,6 +1,7 @@
 import { SpacePageMeta } from "components/SpacePageMeta";
 import { SpaceRouteFallback } from "components/SpaceRouteFallback";
-import React, { useEffect, useMemo, useState } from "react";
+import log from "ente-base/log";
+import React, { useEffect, useState } from "react";
 import { SetupProfilePhotoScreen } from "screens/SetupProfilePhotoScreen";
 import { setupProfileBackground } from "screens/SetupProfileScreen";
 import { savedPendingSpaceInvite } from "services/spaceInvite";
@@ -9,14 +10,13 @@ import {
     spaceProfileErrorMessage,
 } from "services/spaceProfile";
 import { useSpaceAppState } from "state/spaceAppState";
-import { acceptPendingSpaceInvite } from "utils/spacePendingInvite";
+import { sendPendingSpaceFriendRequest } from "utils/spacePendingFriendRequest";
 import { spaceRoutes } from "utils/spaceRoutes";
 import { useSpaceRouter } from "utils/spaceRouteTransitions";
 
 const Page: React.FC = () => {
     const router = useSpaceRouter();
     const {
-        onboardingEntrySource,
         pendingCreateProfile,
         profile,
         profileLoadError,
@@ -26,34 +26,23 @@ const Page: React.FC = () => {
         setSkipNextHomeFeedSkeleton,
     } = useSpaceAppState();
     const createProfileSource = pendingCreateProfile?.source ?? "verify";
-    const isAddFriendLinkOnboarding =
-        onboardingEntrySource == "add-friend-link";
     const [setupError, setSetupError] = useState<string>();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const existingProfileRoute = useMemo(
-        () =>
-            isAddFriendLinkOnboarding || createProfileSource == "login"
-                ? spaceRoutes.home
-                : spaceRoutes.invite,
-        [createProfileSource, isAddFriendLinkOnboarding],
-    );
-
     useEffect(() => {
         if (profileLoadStatus != "ready" || isSubmitting) {
             return;
         }
 
         if (profile) {
-            void acceptPendingSpaceInvite()
+            void sendPendingSpaceFriendRequest()
                 .catch((error: unknown) =>
-                    console.error("Failed to accept pending invite", error),
+                    log.error("Failed to send pending friend request", error),
                 )
-                .finally(() => void router.replace(existingProfileRoute));
+                .finally(() => void router.replace(spaceRoutes.home));
         } else if (!pendingCreateProfile) {
             void router.replace(spaceRoutes.createProfile());
         }
     }, [
-        existingProfileRoute,
         isSubmitting,
         pendingCreateProfile,
         profile,
@@ -94,19 +83,16 @@ const Page: React.FC = () => {
                             },
                             savedPendingSpaceInvite()?.spaceId,
                         );
-                        const acceptedInvite = await acceptPendingSpaceInvite();
                         setProfile(savedProfile);
                         setPendingCreateProfile(null);
-                        if (!acceptedInvite) {
+                        const handledPendingFriendRequest =
+                            await sendPendingSpaceFriendRequest();
+                        if (!handledPendingFriendRequest) {
                             setSkipNextHomeFeedSkeleton(true);
                         }
-                        await router.push(
-                            isAddFriendLinkOnboarding
-                                ? spaceRoutes.home
-                                : spaceRoutes.invite,
-                        );
+                        await router.push(spaceRoutes.home);
                     } catch (error) {
-                        console.error("Space profile setup failed", error);
+                        log.error("Space profile setup failed", error);
                         setSetupError(spaceProfileErrorMessage(error));
                         setIsSubmitting(false);
                     }

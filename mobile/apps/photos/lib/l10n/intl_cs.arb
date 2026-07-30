@@ -319,7 +319,6 @@
   "theyAlsoGetXGb": "Získají také {storageAmountInGB} GB",
   "referralStorageForBoth": "{storageAmountInGB} GB pro ně + {storageAmountInGB} GB pro Vás když zvýší svůj tarif.",
   "freeStorageOnReferralSuccess": "{storageAmountInGB} GB pokaždé, když se někdo zaregistruje do placeného plánu a použije Váš kód",
-  "shareTextReferralCode": "Ente Photos je soukromý a bezpečný domov pro Vaše fotografie\n* Stáhněte si Ente Photos z https://ente.com/app\n* Založte si účet\n* Použijte referenční kód {referralCode} v Nastavení->Doporučení\n* Získejte {referralStorageInGB}GB zdarma, když přejdete na placený tarif",
   "claimFreeStorage": "Získat úložiště zdarma",
   "inviteYourFriends": "Pozvěte své přátele",
   "earnFreeStorage": "Získat úložiště zdarma",

@@ -64,7 +64,7 @@
 
     <key>BGTaskSchedulerPermittedIdentifiers</key>
     <array>
-        <string>io.ente.ensu.model-download</string>
+        <string>io.ente.ensu.asset-download</string>
     </array>
 
     <key>NSAppTransportSecurity</key>

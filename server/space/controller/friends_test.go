@@ -13,7 +13,7 @@ import (
 func setupFriendsControllerTest(t *testing.T) (*FriendsController, *spacerepo.Module, context.Context) {
 	t.Helper()
 	_, repos, ctx := setupPostsControllerTest(t)
-	return NewModule(repos, nil).Friends, repos, ctx
+	return NewModule(repos, nil, noopSpaceActivityNotifier{}, nil).Friends, repos, ctx
 }
 
 func TestFriendRelationshipReportsSelfFriendAndEmpty(t *testing.T) {
@@ -65,6 +65,25 @@ func TestListFriendsReturnsAvatarKeyVersion(t *testing.T) {
 	require.Equal(t, 2, resp[0].Friend.KeyVersion)
 	require.NotNil(t, resp[0].Friend.Avatar)
 	require.Equal(t, 1, resp[0].Friend.Avatar.KeyVersion)
+}
+
+func TestListSentFriendRequestsReturnsTarget(t *testing.T) {
+	friends, repos, ctx := setupFriendsControllerTest(t)
+	aliceID := insertSpaceControllerUser(t, repos, "alice-sent-request@example.com", "alice-public")
+	bobID := insertSpaceControllerUser(t, repos, "bob-sent-request@example.com", "bob-public")
+	aliceSpace, err := testCreateSpace(ctx, repos, aliceID, "alice_sent_request", "alice-space-key", "alice-public", "alice-secret", "alice-secret-nonce", "alice-profile")
+	require.NoError(t, err)
+	bobSpace, err := testCreateSpace(ctx, repos, bobID, "bob_sent_request", "bob-space-key", "bob-public", "bob-secret", "bob-secret-nonce", "bob-profile")
+	require.NoError(t, err)
+	_, _, _, err = repos.Friends.CreateFriendRequest(ctx, aliceID, aliceSpace.SpaceID, bobSpace.SpaceID, []byte("alice-share-key"), aliceSpace.CurrentVersion)
+	require.NoError(t, err)
+
+	resp, err := friends.ListSentRequests(ctx, aliceSpace)
+
+	require.NoError(t, err)
+	require.Len(t, resp, 1)
+	require.Equal(t, bobSpace.SpaceID, resp[0].Target.SpaceID)
+	require.Equal(t, bobSpace.SpaceSlug, resp[0].Target.SpaceSlug)
 }
 
 func TestAddFriendRejectsOwnSpace(t *testing.T) {

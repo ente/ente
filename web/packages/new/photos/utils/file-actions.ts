@@ -143,16 +143,8 @@ function getBaseActions(
         return ["restore", "deletePermanently"];
     }
 
-    // Uncategorized actions
-    if (collectionSummary?.attributes.has("uncategorized")) {
-        const actions: FileContextAction[] = ["download"];
-        if (hasOnlyOwnFiles) {
-            actions.push("moveToAlbum", "trash");
-        }
-        return actions;
-    }
-
-    // Shared incoming actions
+    // Incoming summaries also retain their underlying collection type,
+    // so shared actions must take precedence over type-specific actions.
     if (collectionSummary?.attributes.has("sharedIncoming")) {
         const actions: FileContextAction[] = [
             "favorite",
@@ -164,6 +156,15 @@ function getBaseActions(
             collectionSummary.attributes.has("sharedIncomingAdmin")
         ) {
             actions.push("removeFromAlbum");
+        }
+        return actions;
+    }
+
+    // Uncategorized actions
+    if (collectionSummary?.attributes.has("uncategorized")) {
+        const actions: FileContextAction[] = ["download"];
+        if (hasOnlyOwnFiles) {
+            actions.push("moveToAlbum", "trash");
         }
         return actions;
     }

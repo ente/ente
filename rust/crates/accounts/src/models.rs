@@ -5,32 +5,7 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-fn default_email_mfa_enabled() -> bool {
-    true
-}
-
-/// `/users/srp/attributes` response payload.
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct SrpAttributes {
-    /// SRP user ID.
-    #[serde(rename = "srpUserID")]
-    pub srp_user_id: Uuid,
-    /// Base64 SRP salt.
-    #[serde(rename = "srpSalt")]
-    pub srp_salt: String,
-    /// Argon memory limit.
-    #[serde(rename = "memLimit")]
-    pub mem_limit: i32,
-    /// Argon ops limit.
-    #[serde(rename = "opsLimit")]
-    pub ops_limit: i32,
-    /// Base64 KEK salt.
-    #[serde(rename = "kekSalt")]
-    pub kek_salt: String,
-    /// Whether email MFA is enabled.
-    #[serde(rename = "isEmailMFAEnabled", default = "default_email_mfa_enabled")]
-    pub is_email_mfa_enabled: bool,
-}
+pub use crate::auth::{KeyAttributes, SrpAttributes};
 
 /// Outer wrapper for SRP attributes.
 #[derive(Debug, Deserialize, Serialize)]
@@ -38,38 +13,6 @@ pub struct SrpAttributes {
 pub struct GetSrpAttributesResponse {
     /// Nested attributes payload.
     pub attributes: SrpAttributes,
-}
-
-/// Shared remote key attributes.
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct KeyAttributes {
-    /// Base64 KEK salt.
-    pub kek_salt: String,
-    /// Optional legacy field.
-    pub kek_hash: Option<String>,
-    /// Base64 encrypted master key.
-    pub encrypted_key: String,
-    /// Base64 nonce for encrypted key.
-    pub key_decryption_nonce: String,
-    /// Base64 public key.
-    pub public_key: String,
-    /// Base64 encrypted secret key.
-    pub encrypted_secret_key: String,
-    /// Base64 secret-key nonce.
-    pub secret_key_decryption_nonce: String,
-    /// Argon memory limit.
-    pub mem_limit: i32,
-    /// Argon ops limit.
-    pub ops_limit: i32,
-    /// Base64 encrypted master key with recovery key.
-    pub master_key_encrypted_with_recovery_key: Option<String>,
-    /// Base64 nonce for recovery-key-encrypted master key.
-    pub master_key_decryption_nonce: Option<String>,
-    /// Base64 encrypted recovery key with master key.
-    pub recovery_key_encrypted_with_master_key: Option<String>,
-    /// Base64 nonce for recovery key.
-    pub recovery_key_decryption_nonce: Option<String>,
 }
 
 /// Auth response emitted by login and verification endpoints.
@@ -351,9 +294,9 @@ pub struct UpdatedKeyAttr {
     /// Base64 nonce.
     pub key_decryption_nonce: String,
     /// Argon ops limit.
-    pub ops_limit: i32,
+    pub ops_limit: u32,
     /// Argon memory limit.
-    pub mem_limit: i32,
+    pub mem_limit: u32,
 }
 
 impl From<&KeyAttributes> for UpdatedKeyAttr {

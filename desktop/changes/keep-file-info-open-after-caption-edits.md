@@ -1,1 +1,0 @@
-- Fix the File Info panel closing after saving caption edits.

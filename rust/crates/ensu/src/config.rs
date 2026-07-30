@@ -1,3 +1,14 @@
+mod knowledge;
+
+pub use knowledge::knowledge_dataset;
+pub use knowledge::{AttributionConfig, KnowledgeDatasetConfig, KnowledgeEmbeddingConfig};
+pub(crate) use knowledge::{
+    KNOWLEDGE_ARTIFACT_FILENAMES, KNOWLEDGE_LICENSE_LABEL, KNOWLEDGE_LICENSE_URL,
+    KNOWLEDGE_MANIFEST_FILE, KNOWLEDGE_META_FILE, KNOWLEDGE_OFFSETS_FILE, KNOWLEDGE_VECTORS_FILE,
+    is_path_safe_component, knowledge_artifact_urls, knowledge_datasets,
+    knowledge_embedding_config, knowledge_index_contract,
+};
+
 #[derive(Debug, Clone)]
 pub struct ModelPreset {
     pub id: String,
@@ -20,6 +31,8 @@ pub struct Defaults {
     pub desktop_model_presets: Vec<ModelPreset>,
     pub transcription_model: ModelPreset,
     pub voice_activity_model: ModelPreset,
+    pub knowledge_embedding: KnowledgeEmbeddingConfig,
+    pub knowledge_datasets: Vec<KnowledgeDatasetConfig>,
 }
 
 const SYSTEM_PROMPT_DATE_PLACEHOLDER: &str = "$date";
@@ -173,6 +186,8 @@ pub fn defaults() -> Defaults {
         ],
         transcription_model: parakeet_v3_int8(),
         voice_activity_model: silero_vad_v4(),
+        knowledge_embedding: knowledge::knowledge_embedding_config(),
+        knowledge_datasets: knowledge::knowledge_datasets(),
     }
 }
 
@@ -194,6 +209,7 @@ mod tests {
                 preset.id
             );
         }
+        assert!(seen.insert(knowledge::knowledge_embedding_config().target_id));
     }
 
     #[test]

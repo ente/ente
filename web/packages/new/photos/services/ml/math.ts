@@ -64,13 +64,3 @@ export const dotProduct = (v1: Float32Array, v2: Float32Array) => {
     for (let i = 0; i < v1.length; i++) d += v1[i]! * v2[i]!;
     return d;
 };
-
-/**
- * Return the L2-norm ("magnitude") of the given vector.
- *
- * L2-norm is the sqrt of the sum of the squares of the components of the
- * vector. It can also be thought of as the sqrt of the dot product of the
- * vector with itself.
- */
-export const norm = (v: Float32Array) =>
-    Math.sqrt(v.reduce((a, x) => a + x * x, 0));

@@ -188,18 +188,17 @@ class FileUploader {
     );
     // Else wait for the existing upload to complete,
     // and add it to the relevant collection
-    return request.item.completer.future.then((uploadedFile) {
-      // If the fileUploader completer returned null,
+    return request.item.completer.future.then((uploadedFile) async {
       _logger.info(
         "original upload completer resolved, try adding the file to another "
         "collection",
       );
 
-      return CollectionsService.instance
-          .addOrCopyToCollection(collectionID, [uploadedFile])
-          .then((aVoid) {
-            return uploadedFile;
-          });
+      final fileInCollection = uploadedFile.copyWith();
+      await CollectionsService.instance.addOrCopyToCollection(collectionID, [
+        fileInCollection,
+      ]);
+      return fileInCollection;
     });
   }
 
@@ -379,20 +378,29 @@ class FileUploader {
     final String lockKey = file.localID!;
     bool isMultipartUpload = false;
 
+    late final bool acquiredLock;
     try {
-      await _uploadLocks.acquireLock(
+      acquiredLock = await _uploadLocks.tryAcquireLock(
         lockKey,
         _processType.toString(),
         DateTime.now().microsecondsSinceEpoch,
       );
     } catch (e, s) {
-      final lockInfo = await _uploadLocks.getLockData(lockKey);
-      _logger.warning(
-        "Upload lock acquisition failed for ${file.tag}: "
+      _logger.severe(
+        "Upload lock database failure for ${file.tag}: "
         "targetCollectionID=$collectionID, requestOwner=$_processType, "
-        "forcedUpload=$forcedUpload, lock=$lockInfo",
+        "forcedUpload=$forcedUpload",
         e,
         s,
+      );
+      rethrow;
+    }
+    if (!acquiredLock) {
+      final lockInfo = await _uploadLocks.getLockData(lockKey);
+      _logger.warning(
+        "Upload already active for ${file.tag}: "
+        "targetCollectionID=$collectionID, requestOwner=$_processType, "
+        "forcedUpload=$forcedUpload, lock=$lockInfo",
       );
       throw LockAlreadyAcquiredError();
     }

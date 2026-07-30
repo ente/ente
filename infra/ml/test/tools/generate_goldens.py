@@ -106,7 +106,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--model-base-url",
-        default="https://models.ente.io/",
+        default="https://models.ente.com/",
         help="Base URL for downloading ONNX model files.",
     )
     args = parser.parse_args()

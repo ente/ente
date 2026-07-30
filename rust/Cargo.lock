@@ -279,6 +279,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ash"
+version = "0.38.0+1.3.281"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bb44936d800fea8f016d7f2311c6a4f97aebd5dc86f09906139ec848cf3a46f"
+dependencies = [
+ "libloading 0.8.9",
+]
+
+[[package]]
 name = "askama"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -358,6 +367,19 @@ dependencies = [
  "event-listener-strategy",
  "futures-core",
  "pin-project-lite",
+]
+
+[[package]]
+name = "async-compat"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1ba85bc55464dcbf728b56d97e119d673f4cf9062be330a9a26f3acf504a590"
+dependencies = [
+ "futures-core",
+ "futures-io",
+ "once_cell",
+ "pin-project-lite",
+ "tokio",
 ]
 
 [[package]]
@@ -1357,6 +1379,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fb4a24b1aaf0fd0ce8b45161144d6f42cd91677fd5940fd431183eb023b3a2b8"
 
 [[package]]
+name = "convert_case"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "affbf0190ed2caf063e3def54ff444b449371d55c58e513a95ab98eca50adb49"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "cookie"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1601,6 +1632,12 @@ dependencies = [
  "ctor-proc-macro",
  "dtor",
 ]
+
+[[package]]
+name = "ctor"
+version = "1.0.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2e30e509674ef0ec91e21a7735766db37d163d46151b6a361d8b83dd79116bd"
 
 [[package]]
 name = "ctor-proc-macro"
@@ -2259,9 +2296,9 @@ checksum = "66b7e2430c6dff6a955451e2cfc438f09cea1965a9d6f87f7e3b90decc014099"
 name = "ensu-desktop"
 version = "0.1.18-beta"
 dependencies = [
+ "ente-assets",
  "ente-core",
  "ente-ensu",
- "ente-model-download",
  "keyring",
  "libc",
  "serde",
@@ -2281,18 +2318,40 @@ dependencies = [
 name = "ente-accounts"
 version = "0.0.0"
 dependencies = [
- "base64 0.22.1",
+ "bip39",
  "ente-core",
+ "ente-test-support",
+ "getrandom 0.2.17",
+ "hex",
+ "hmac 0.13.0",
  "mockito",
+ "rand_core 0.6.4",
  "serde",
  "serde_json",
+ "sha1 0.11.0",
  "sha2 0.11.0",
  "srp",
+ "subtle",
  "thiserror 2.0.18",
  "tokio",
  "urlencoding",
  "uuid",
  "zeroize",
+]
+
+[[package]]
+name = "ente-assets"
+version = "0.0.0"
+dependencies = [
+ "flate2",
+ "futures-util",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "tar",
+ "thiserror 2.0.18",
+ "tokio",
 ]
 
 [[package]]
@@ -2308,15 +2367,21 @@ dependencies = [
 name = "ente-contacts"
 version = "0.0.0"
 dependencies = [
+ "ente-accounts",
  "ente-core",
+ "ente-test-support",
+ "hmac 0.13.0",
  "md-5 0.11.0",
  "mockito",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
+ "sha1 0.11.0",
  "sha2 0.11.0",
  "thiserror 2.0.18",
  "tokio",
  "uuid",
+ "zeroize",
 ]
 
 [[package]]
@@ -2325,14 +2390,12 @@ version = "0.0.0"
 dependencies = [
  "argon2",
  "base64 0.22.1",
- "bip39",
  "blake2b_simd",
  "bytes",
  "crypto_secretstream",
  "futures-core",
  "getrandom 0.2.17",
  "gloo-timers",
- "hex",
  "log",
  "md-5 0.11.0",
  "mockito",
@@ -2341,8 +2404,6 @@ dependencies = [
  "salsa20",
  "serde",
  "serde_json",
- "sha2 0.11.0",
- "srp",
  "subtle",
  "thiserror 2.0.18",
  "tokio",
@@ -2352,56 +2413,38 @@ dependencies = [
 ]
 
 [[package]]
-name = "ente-e2e"
-version = "0.0.0"
-dependencies = [
- "base64 0.22.1",
- "ente-accounts",
- "ente-contacts",
- "ente-core",
- "ente-rs",
- "ente-space",
- "ente-test-support",
- "hmac 0.13.0",
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "sha1 0.11.0",
- "tokio",
- "uuid",
- "zeroize",
-]
-
-[[package]]
 name = "ente-ensu"
 version = "0.0.0"
 dependencies = [
+ "ente-assets",
  "ente-core",
  "ente-image",
- "ente-model-download",
  "llama-cpp-2",
+ "memmap2",
  "ort",
- "parking_lot",
+ "ort-sys",
  "regex",
  "rubato",
  "rusqlite",
  "self_cell",
  "serde",
  "serde_json",
- "sha2 0.11.0",
+ "tempfile",
  "thiserror 2.0.18",
  "tokio",
  "transcribe-rs",
+ "url",
  "uuid",
  "zeroize",
+ "zstd",
 ]
 
 [[package]]
 name = "ente-ensu-uniffi"
 version = "0.0.0"
 dependencies = [
+ "ente-assets",
  "ente-ensu",
- "ente-model-download",
  "thiserror 2.0.18",
  "uniffi",
  "uuid",
@@ -2422,21 +2465,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ente-model-download"
-version = "0.0.0"
-dependencies = [
- "flate2",
- "futures-util",
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "sha2 0.11.0",
- "tar",
- "thiserror 2.0.18",
- "tokio",
-]
-
-[[package]]
 name = "ente-paste"
 version = "0.0.0"
 dependencies = [
@@ -2454,8 +2482,9 @@ name = "ente-photos"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "ash",
+ "ente-assets",
  "ente-image",
- "ente-model-download",
  "fast_image_resize",
  "flate2",
  "half",
@@ -2482,7 +2511,6 @@ dependencies = [
 name = "ente-rs"
 version = "0.0.1"
 dependencies = [
- "base64 0.22.1",
  "chrono",
  "clap",
  "dialoguer",
@@ -2515,14 +2543,19 @@ dependencies = [
 name = "ente-space"
 version = "0.0.1"
 dependencies = [
+ "ente-accounts",
  "ente-core",
+ "ente-test-support",
+ "futures-util",
  "md-5 0.11.0",
  "mockito",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
  "tokio",
  "urlencoding",
+ "uuid",
  "zeroize",
 ]
 
@@ -2544,6 +2577,7 @@ version = "0.0.0"
 dependencies = [
  "dirs 5.0.1",
  "postgresql_embedded",
+ "tokio",
  "uuid",
 ]
 
@@ -2551,6 +2585,7 @@ dependencies = [
 name = "ente-wasm"
 version = "0.0.0"
 dependencies = [
+ "ente-accounts",
  "ente-contacts",
  "ente-core",
  "js-sys",
@@ -2570,6 +2605,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ente_photos_napi"
+version = "0.0.0"
+dependencies = [
+ "ente-photos",
+ "napi",
+ "napi-build",
+ "napi-derive",
+ "ort",
+]
+
+[[package]]
 name = "ente_photos_rust"
 version = "0.0.0"
 dependencies = [
@@ -2582,6 +2628,7 @@ dependencies = [
 name = "ente_rust"
 version = "0.0.0"
 dependencies = [
+ "ente-accounts",
  "ente-contacts",
  "ente-core",
  "flutter_rust_bridge",
@@ -2953,7 +3000,7 @@ dependencies = [
  "cbindgen",
  "chrono",
  "clap",
- "convert_case",
+ "convert_case 0.5.0",
  "derivative",
  "enum-iterator",
  "enum_dispatch",
@@ -3633,7 +3680,7 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 [[package]]
 name = "heic_decoder"
 version = "0.2.0"
-source = "git+https://github.com/ente/heic-decoder.git?rev=0998ddc52085b38fa359049d1fe28baf144fe79b#0998ddc52085b38fa359049d1fe28baf144fe79b"
+source = "git+https://github.com/ente/heic-decoder.git?rev=2017f4ddaf91017483f6eb71500f520fba47391a#2017f4ddaf91017483f6eb71500f520fba47391a"
 dependencies = [
  "archmage",
  "brotli",
@@ -3643,6 +3690,7 @@ dependencies = [
  "moxcms",
  "png 0.18.1",
  "rav1d",
+ "rayon",
  "safe_unaligned_simd",
  "scuffle-h265",
 ]
@@ -5393,6 +5441,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8ca58f447f06ed17d5fc4043ce1b10dd205e060fb3ce5b979b8ed8e59ff3f79"
 
 [[package]]
+name = "memmap2"
+version = "0.9.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1219ed1b7f229ee7104d281dd01d6802fe28bb6e95d292942c4daacdeb798c0"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "memoffset"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5557,6 +5614,63 @@ dependencies = [
 ]
 
 [[package]]
+name = "napi"
+version = "3.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de33522036981030a75c231829566bc63414e08101a6f5ff4ac6cef19c8e0941"
+dependencies = [
+ "bitflags 2.11.0",
+ "ctor 1.0.10",
+ "futures",
+ "napi-build",
+ "napi-sys",
+ "nohash-hasher",
+ "rustc-hash",
+]
+
+[[package]]
+name = "napi-build"
+version = "2.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c9c366d2c8c60b86fa632df75f745509b52f9128f91a6bad4c796e44abb505e1"
+
+[[package]]
+name = "napi-derive"
+version = "3.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a49c513341a61a16a10af6efcce46b30d0822ba2d4fb197d24d33dfc199c78d5"
+dependencies = [
+ "convert_case 0.11.0",
+ "ctor 1.0.10",
+ "napi-derive-backend",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "napi-derive-backend"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4747005fa3e2c9989ac45a723a514c5db2411238b72981a3cda4c701a9dfea17"
+dependencies = [
+ "convert_case 0.11.0",
+ "proc-macro2",
+ "quote",
+ "semver",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "napi-sys"
+version = "3.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85fbf1fa9f1babfe396d74bbbf52b3643770243e8f5b0b46715d4caf7f0dfc9a"
+dependencies = [
+ "libloading 0.9.0",
+]
+
+[[package]]
 name = "nasm-rs"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5649,6 +5763,12 @@ checksum = "418abd1b6d34fbf6cae440dc874771b0525a604428704c76e48b29a5e67b8003"
 dependencies = [
  "memchr",
 ]
+
+[[package]]
+name = "nohash-hasher"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
 
 [[package]]
 name = "nom"
@@ -6171,6 +6291,7 @@ name = "ort-sys"
 version = "2.0.0-rc.12"
 source = "git+https://github.com/pykeio/ort.git?rev=31c8f1443bb579bfddb82705288347697e468fb3#31c8f1443bb579bfddb82705288347697e468fb3"
 dependencies = [
+ "glob",
  "hmac-sha256",
  "lzma-rust2",
  "ureq",
@@ -8912,7 +9033,7 @@ dependencies = [
  "anyhow",
  "brotli",
  "cargo_metadata 0.19.2",
- "ctor",
+ "ctor 0.8.0",
  "dom_query",
  "dunce",
  "glob",
@@ -9666,6 +9787,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0ef62e69762fbb9386dcb6c87cd3dd05d525fa8a3a579a290892e60ddbda47e"
 dependencies = [
  "anyhow",
+ "async-compat",
  "bytes",
  "once_cell",
  "static_assertions",
