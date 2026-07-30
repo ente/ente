@@ -9,7 +9,9 @@ export interface ModelInfo {
     id: string;
     name: string;
     url: string;
+    sha256: string;
     mmprojUrl?: string;
+    mmprojSha256?: string;
     sizeHuman?: string;
     sizeBytes?: number;
     mmprojSizeBytes?: number;
@@ -18,9 +20,7 @@ export interface ModelInfo {
 }
 
 export interface ModelSettings {
-    useCustomModel: boolean;
-    modelUrl?: string;
-    mmprojUrl?: string;
+    modelId?: string;
     contextLength?: number;
     maxTokens?: number;
 }
@@ -41,8 +41,7 @@ export interface GenerateSummary {
 
 export type GenerateEvent =
     | { type: "text"; job_id: number; text: string; token_id?: number | null }
-    | { type: "done"; summary: GenerateSummary }
-    | { type: "error"; job_id: number; message: string };
+    | { type: "done"; summary: GenerateSummary };
 
 export interface GenerateChatRequest {
     messages: LlmMessage[];

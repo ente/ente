@@ -25,6 +25,10 @@ const toStandaloneDecodeSource = (source: string) =>
             )
             .replace(/^export function decodeQR\(/mu, "function decodeQR(")
             .replace(/^export default decodeQR;\n?/mu, "")
+            .replace(
+                /^export const _TESTS = /mu,
+                "const qrDecodeFocusedTests = ",
+            )
             .replace(/^export const _tests = /mu, "const qrDecodeTests = "),
         "return decodeQR;",
         "})();",

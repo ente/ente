@@ -1,4 +1,5 @@
 import "package:ente_components/ente_components.dart";
+import "package:ente_lock_screen/local_authentication_service.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
@@ -10,7 +11,6 @@ import "package:photos/generated/l10n.dart";
 import "package:photos/models/user_details.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/account/user_service.dart";
-import "package:photos/services/local_authentication_service.dart";
 import "package:photos/ui/account/email_entry_page.dart";
 import "package:photos/ui/account/login_page.dart";
 import "package:photos/ui/components/banners/offline_settings_banner.dart";
@@ -122,15 +122,6 @@ class _SettingsBody extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 8),
-              if (flagService.enableMultiCast)
-                _buildMenuItem(
-                  title: AppLocalizations.of(context).cast,
-                  icon: HugeIcons.strokeRoundedTv02,
-                  onTap: () async {
-                    await routeToPage(context, const CastSettingsPage());
-                  },
-                ),
-              if (flagService.enableMultiCast) const SizedBox(height: 8),
             ],
             // Privacy and personalization section
             _buildMenuItem(
@@ -343,6 +334,7 @@ class _SettingsBody extends StatelessWidget {
                       AppLocalizations.of(context).authToManageLegacy,
                     );
             if (hasAuthenticated) {
+              if (!context.mounted) return;
               await Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (BuildContext context) {
@@ -354,7 +346,7 @@ class _SettingsBody extends StatelessWidget {
           },
         ),
         _buildMenuItem(
-          title: AppLocalizations.of(context).familyPlans,
+          title: AppLocalizations.of(context).family,
           icon: HugeIcons.strokeRoundedUserMultiple,
           showOnlyLoadingState: true,
           shouldSurfaceExecutionStates: true,
@@ -438,6 +430,14 @@ class _SettingsBody extends StatelessWidget {
             await routeToPage(context, const VideoStreamingSettingsPage());
           },
         ),
+        if (flagService.enableMultiCast)
+          _buildMenuItem(
+            title: AppLocalizations.of(context).castSessions,
+            icon: HugeIcons.strokeRoundedTvSmart,
+            onTap: () async {
+              await routeToPage(context, const CastSettingsPage());
+            },
+          ),
         _buildMapsMenuItem(context),
       ],
     );
@@ -454,10 +454,12 @@ class _SettingsBody extends StatelessWidget {
           try {
             await setMapEnabled(!isEnabled);
           } catch (e) {
-            showShortToast(
-              context,
-              AppLocalizations.of(context).somethingWentWrong,
-            );
+            if (context.mounted) {
+              showShortToast(
+                context,
+                AppLocalizations.of(context).somethingWentWrong,
+              );
+            }
             rethrow;
           }
         },
@@ -516,12 +518,10 @@ class _SettingsBody extends StatelessWidget {
   }
 
   Future<void> _showVerifyIdentityDialog(BuildContext context) async {
-    await showDialog(
-      useRootNavigator: false,
-      context: context,
-      builder: (BuildContext context) {
-        return VerifyIdentifyDialog(self: true);
-      },
+    await showVerifyIdentitySheet(
+      context,
+      self: true,
+      title: AppLocalizations.of(context).verifyIDLabel,
     );
   }
 }

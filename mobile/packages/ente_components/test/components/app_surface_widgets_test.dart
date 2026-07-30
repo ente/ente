@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:ente_components/components/app_bar_component.dart';
 import 'package:ente_components/components/menu_component.dart';
@@ -17,12 +18,13 @@ Future<void> pumpComponent(
   double width = 420,
   double? height,
   TextScaler textScaler = TextScaler.noScaling,
+  bool boldText = false,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: ComponentTheme.lightTheme(),
       home: MediaQuery(
-        data: MediaQueryData(textScaler: textScaler),
+        data: MediaQueryData(textScaler: textScaler, boldText: boldText),
         child: Scaffold(
           body: Align(
             alignment: Alignment.topLeft,
@@ -53,6 +55,8 @@ void main() {
         ),
         selected: true,
         titleColor: ColorTokens.light.warning,
+        subtitleColor: ColorTokens.light.primary,
+        titleBold: true,
         iconColor: ColorTokens.light.primary,
         onTap: () async => tapped = true,
       ),
@@ -73,6 +77,14 @@ void main() {
     expect(
       tester.widget<Text>(find.text('Camera uploads')).style?.color,
       ColorTokens.light.warning,
+    );
+    expect(
+      tester.widget<Text>(find.text('Camera uploads')).style?.fontWeight,
+      TextStyles.bodyBold.fontWeight,
+    );
+    expect(
+      tester.widget<Text>(find.text('Enabled on Wi-Fi')).style?.color,
+      ColorTokens.light.primary,
     );
     expect(
       IconTheme.of(
@@ -128,6 +140,47 @@ void main() {
 
       await tester.pump(const Duration(seconds: 1));
       expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'MenuComponent clears hover after returning from a pushed route',
+    (tester) async {
+      await pumpComponent(
+        tester,
+        Builder(
+          builder: (context) => MenuComponent(
+            title: 'Security',
+            onTap: () => Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(
+                builder: (_) => const Scaffold(body: Text('Submenu')),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(mouse.removePointer);
+      await mouse.addPointer(location: Offset.zero);
+      await mouse.moveTo(tester.getCenter(find.text('Security')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Security'));
+      await tester.pumpAndSettle();
+      await mouse.moveTo(const Offset(700, 500));
+      await tester.pump();
+
+      Navigator.of(tester.element(find.text('Submenu'))).pop();
+      await tester.pumpAndSettle();
+
+      final surface = tester.widget<AnimatedContainer>(
+        find.byKey(const ValueKey('menu-item-surface')),
+      );
+      expect(
+        (surface.decoration! as BoxDecoration).color,
+        ColorTokens.light.fillLight,
+      );
     },
   );
 
@@ -535,9 +588,9 @@ void main() {
     );
     expect(
       tester.getCenter(find.byKey(const ValueKey('header-leading'))).dy,
-      closeTo(73, 1),
+      closeTo(89, 1),
     );
-    expect(tester.getCenter(find.byIcon(Icons.add)).dy, closeTo(73, 1));
+    expect(tester.getCenter(find.byIcon(Icons.add)).dy, closeTo(89, 1));
 
     await tester.tap(find.byKey(const ValueKey('header-leading')));
     await tester.pump();
@@ -608,6 +661,39 @@ void main() {
     expect(
       tester.getSize(find.byType(TooltipBubbleComponent)).width,
       lessThan(160),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('SliverAppBarComponent measures titles with bold text style', (
+    tester,
+  ) async {
+    const title = 'Summer Vacation';
+
+    await pumpComponent(
+      tester,
+      CustomScrollView(
+        slivers: [
+          const SliverAppBarComponent(
+            title: title,
+            actions: [Icon(Icons.more_vert)],
+          ),
+          SliverList.builder(
+            itemCount: 8,
+            itemBuilder: (context, index) {
+              return SizedBox(height: 60, child: Text('Item $index'));
+            },
+          ),
+        ],
+      ),
+      width: 320,
+      height: 360,
+      boldText: true,
+    );
+
+    expect(
+      tester.widget<Text>(find.text(title)).style?.fontWeight,
+      FontWeight.bold,
     );
     expect(tester.takeException(), isNull);
   });
@@ -775,7 +861,7 @@ void main() {
       expect(title.style?.fontSize, greaterThan(16));
       expect(title.style?.fontFamily, TextStyles.display2.fontFamily);
 
-      scrollController.jumpTo(58);
+      scrollController.jumpTo(74);
       await tester.pump();
 
       final collapsedTitle = tester.widget<Text>(find.text('Menu items'));
@@ -784,6 +870,37 @@ void main() {
       expect(tester.getTopLeft(find.text('Item 0')).dy, closeTo(56, 1));
     },
   );
+
+  testWidgets('SliverAppBarComponent reserves custom title height', (
+    tester,
+  ) async {
+    const customTitleKey = ValueKey('custom-title');
+    const firstItemKey = ValueKey('first-item');
+
+    await pumpComponent(
+      tester,
+      CustomScrollView(
+        slivers: [
+          SliverAppBarComponent(
+            title: 'Custom title',
+            titleBuilderHeight: 80,
+            titleBuilder: (_, _) =>
+                const SizedBox(key: customTitleKey, height: 80),
+          ),
+          const SliverToBoxAdapter(
+            child: SizedBox(key: firstItemKey, height: 80),
+          ),
+        ],
+      ),
+      width: 390,
+      height: 600,
+    );
+
+    expect(
+      tester.getBottomLeft(find.byKey(customTitleKey)).dy,
+      lessThanOrEqualTo(tester.getTopLeft(find.byKey(firstItemKey)).dy),
+    );
+  });
 
   testWidgets('AppBarComponent lets short content stick collapsed', (
     tester,
@@ -811,7 +928,7 @@ void main() {
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -40));
     await tester.pumpAndSettle();
 
-    expect(scrollController.offset, closeTo(58, 1));
+    expect(scrollController.offset, closeTo(74, 1));
     final collapsedTitle = tester.widget<Text>(find.text('Appearance'));
     expect(collapsedTitle.style?.fontSize, closeTo(20, 0.01));
     expect(collapsedTitle.style?.fontFamily, TextStyles.display3.fontFamily);
@@ -819,7 +936,7 @@ void main() {
 
     await tester.drag(find.byType(CustomScrollView), const Offset(0, 32));
     await tester.pumpAndSettle();
-    expect(scrollController.offset, closeTo(58, 1));
+    expect(scrollController.offset, closeTo(74, 1));
 
     await tester.drag(find.byType(CustomScrollView), const Offset(0, 120));
     await tester.pumpAndSettle();

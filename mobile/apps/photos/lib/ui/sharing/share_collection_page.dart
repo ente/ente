@@ -170,7 +170,7 @@ class _ShareCollectionPageState extends State<ShareCollectionPage> {
       ]);
     }
 
-    if (isOwner) {
+    if (isOwner && _collection.type != CollectionType.uncategorized) {
       children.addAll([
         const SizedBox(height: Spacing.xxl),
         ShareSectionTitle(

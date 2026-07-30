@@ -34,6 +34,20 @@ chmod +x "$workdir/input.AppImage"
 appdir="$workdir/squashfs-root"
 
 if [[ -d "$appdir/usr/lib" ]]; then
+    runtime_libs="$(
+        find "$appdir/usr/lib" \( -type f -o -type l \) \( \
+            -name 'libstdc++.so*' -o \
+            -name 'libgcc_s.so*' \
+        \) -print
+    )"
+    if [[ -n "$runtime_libs" ]]; then
+        echo "Removing bundled C++ runtime libraries from the AppImage:"
+        echo "$runtime_libs"
+        printf '%s\n' "$runtime_libs" | while IFS= read -r runtime_lib; do
+            rm -f "$runtime_lib"
+        done
+    fi
+
     blocked_libs="$(
         find "$appdir/usr/lib" \( -type f -o -type l \) \( \
             -name 'libGL.so*' -o \

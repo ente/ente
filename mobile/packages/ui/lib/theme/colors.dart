@@ -49,6 +49,17 @@ class EnteColorScheme extends ThemeExtension<EnteColorScheme> {
           Color.fromRGBO(52, 152, 255, 1),
         ],
       ),
+      EnteApp.photos => (
+        primary700: const Color.fromRGBO(8, 194, 37, 1),
+        primary500: const Color.fromRGBO(8, 194, 37, 1),
+        primary400: const Color.fromRGBO(6, 157, 30, 1),
+        primary300: const Color.fromRGBO(5, 124, 24, 1),
+        gradientButtonBgColor: const Color.fromRGBO(8, 194, 37, 1),
+        gradientButtonBgColors: const [
+          Color.fromRGBO(8, 194, 37, 1),
+          Color.fromRGBO(6, 157, 30, 1),
+        ],
+      ),
     };
 
     return brightness == Brightness.light

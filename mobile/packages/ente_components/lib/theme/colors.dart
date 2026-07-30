@@ -567,7 +567,7 @@ const Color strokeDarkLight = Color.fromRGBO(224, 224, 224, 1);
 const Color strokeDarkDark = Color.fromRGBO(62, 62, 62, 1);
 
 const Color strokeFaintLight = Color.fromRGBO(235, 235, 235, 1);
-const Color strokeFaintDark = Color.fromRGBO(33, 33, 33, 1);
+const Color strokeFaintDark = Color.fromRGBO(42, 42, 42, 1);
 
 // Accent Colors
 const Color accentOrangeLightLight = Color.fromRGBO(255, 247, 244, 1);

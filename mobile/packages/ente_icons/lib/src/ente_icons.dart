@@ -7,12 +7,12 @@ class EnteIcons {
   static const String _kFontPkg = 'ente_icons';
 
   static const IconData commentBubbleStroke = IconData(
-    0xe800,
+    0xe80a,
     fontFamily: _kFontFam,
     fontPackage: _kFontPkg,
   );
   static const IconData likeFilled = IconData(
-    0xe801,
+    0xe80b,
     fontFamily: _kFontFam,
     fontPackage: _kFontPkg,
   );
@@ -27,7 +27,7 @@ class EnteIcons {
     fontPackage: _kFontPkg,
   );
   static const IconData likeStroke = IconData(
-    0xe804,
+    0xe809,
     fontFamily: _kFontFam,
     fontPackage: _kFontPkg,
   );

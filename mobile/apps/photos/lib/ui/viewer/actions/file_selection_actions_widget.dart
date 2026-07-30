@@ -22,6 +22,7 @@ import 'package:photos/models/gallery_type.dart';
 import "package:photos/models/metadata/common_keys.dart";
 import "package:photos/models/ml/face/person.dart";
 import 'package:photos/models/selected_files.dart';
+import 'package:photos/module/download/gallery.dart';
 import "package:photos/service_locator.dart";
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/hidden_service.dart';
@@ -45,7 +46,6 @@ import "package:photos/ui/viewer/location/update_location_data_widget.dart";
 import "package:photos/ui/viewer/people/add_files_to_person_page.dart";
 import 'package:photos/utils/delete_file_util.dart';
 import "package:photos/utils/dialog_util.dart";
-import "package:photos/utils/file_download_util.dart";
 import 'package:photos/utils/magic_util.dart';
 import "package:photos/utils/share_util.dart";
 
@@ -609,7 +609,7 @@ class _FileSelectionActionsWidgetState
         skipNotify: true,
       );
     }
-    showCollectionActionSheet(
+    await showCollectionActionSheet(
       context,
       selectedFiles: widget.selectedFiles,
       actionType: CollectionActionType.moveFiles,
@@ -617,7 +617,7 @@ class _FileSelectionActionsWidgetState
   }
 
   Future<void> _moveFilesToHiddenAlbum() async {
-    showCollectionActionSheet(
+    await showCollectionActionSheet(
       context,
       selectedFiles: widget.selectedFiles,
       actionType: CollectionActionType.moveToHiddenCollection,
@@ -625,11 +625,14 @@ class _FileSelectionActionsWidgetState
   }
 
   Future<void> _addToAlbum() async {
-    showCollectionActionSheet(context, selectedFiles: widget.selectedFiles);
+    await showCollectionActionSheet(
+      context,
+      selectedFiles: widget.selectedFiles,
+    );
   }
 
   Future<void> _addToHiddenAlbum() async {
-    showCollectionActionSheet(
+    await showCollectionActionSheet(
       context,
       selectedFiles: widget.selectedFiles,
       actionType: CollectionActionType.addToHiddenAlbum,
@@ -657,6 +660,7 @@ class _FileSelectionActionsWidgetState
       );
     } catch (e, s) {
       _logger.warning("Failed to reject delete suggestions", e, s);
+      if (!mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }
@@ -788,6 +792,7 @@ class _FileSelectionActionsWidgetState
           relevantFiles: addedFiles,
         ),
       );
+      if (!mounted) return;
       showToast(
         context,
         AppLocalizations.of(context).addedFilesToPerson(
@@ -803,6 +808,7 @@ class _FileSelectionActionsWidgetState
     }
     final alreadyCount = result.alreadyAssignedFileIds.length;
     if (alreadyCount > 0) {
+      if (!mounted) return;
       showShortToast(
         context,
         AppLocalizations.of(context).filesAlreadyLinkedToPerson(
@@ -815,7 +821,9 @@ class _FileSelectionActionsWidgetState
 
   Future<void> _onGuestViewClick() async {
     final List<EnteFile> selectedFiles = widget.selectedFiles.files.toList();
-    if (await LocalAuthentication().isDeviceSupported()) {
+    final isDeviceSupported = await LocalAuthentication().isDeviceSupported();
+    if (!mounted) return;
+    if (isDeviceSupported) {
       final page = DetailPage(
         DetailPageConfiguration(
           selectedFiles,
@@ -825,6 +833,7 @@ class _FileSelectionActionsWidgetState
         ),
       );
       await localSettings.setOnGuestView(true);
+      if (!mounted) return;
       routeToPage(context, page, forceCustomPageRoute: true).ignore();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Bus.instance.fire(GuestViewEvent(true, false));
@@ -836,6 +845,7 @@ class _FileSelectionActionsWidgetState
         AppLocalizations.of(context).guestViewEnablePreSteps,
       );
     }
+    if (!mounted) return;
     widget.selectedFiles.clearAll();
   }
 
@@ -876,7 +886,7 @@ class _FileSelectionActionsWidgetState
         skipNotify: true,
       );
     }
-    showCollectionActionSheet(
+    await showCollectionActionSheet(
       context,
       selectedFiles: widget.selectedFiles,
       actionType: CollectionActionType.unHide,
@@ -907,30 +917,42 @@ class _FileSelectionActionsWidgetState
       isDismissible: true,
     );
     await dialog.show();
+    if (!mounted) {
+      await dialog.hide();
+      return;
+    }
     _cachedCollectionForSharedLink ??= await collectionActions
         .createSharedCollectionLink(context, split.ownedByCurrentUser);
 
+    if (!mounted) {
+      await dialog.hide();
+      return;
+    }
     if (_cachedCollectionForSharedLink == null) {
       await dialog.hide();
       return;
     }
     await dialog.hide();
+    if (!mounted) return;
     await _sendLink();
+    if (!mounted) return;
     widget.selectedFiles.clearAll();
-    if (mounted) {
-      setState(() => {});
-    }
+    setState(() => {});
   }
 
   Future<void> _setPersonCover() async {
     final EnteFile file = widget.selectedFiles.files.first;
-    final updatedPerson = await PersonService.instance.updateAvatar(
+    final result = await PersonService.instance.updateAvatar(
       widget.person!,
       file,
     );
+    final updatedPerson = result.person;
     widget.selectedFiles.clearAll();
     if (mounted) {
       setState(() => {});
+      if (result.contactPictureUpdateFailed) {
+        showShortToast(context, "Failed to update contact picture");
+      }
     }
     Bus.instance.fire(
       PeopleChangedEvent(
@@ -1079,7 +1101,7 @@ class _FileSelectionActionsWidgetState
             try {
               await deleteFilesOnDeviceOnly(context, filesToDelete);
             } catch (e) {
-              if (context.mounted) {
+              if (mounted) {
                 await showGenericErrorDialog(context: context, error: e);
               }
               rethrow;
@@ -1101,6 +1123,9 @@ class _FileSelectionActionsWidgetState
 
     if (actionResult?.action == ButtonAction.first) {
       widget.selectedFiles.clearAll();
+      if (mounted) {
+        await showMediaManagementHintSheet(context);
+      }
     }
   }
 
@@ -1113,6 +1138,7 @@ class _FileSelectionActionsWidgetState
     final existingLocalFolderNames = await Future.wait(
       files.map((file) => getExistingLocalFolderNameForDownloadSkipToast(file)),
     );
+    if (!mounted) return;
 
     final filesToDownload = <EnteFile>[];
     final skippedFiles = <EnteFile>[];
@@ -1126,7 +1152,9 @@ class _FileSelectionActionsWidgetState
         continue;
       }
       filesToDownload.add(
-        file.isRemoteFile ? file.copyWith() : (file.copyWith()..localID = null),
+        file.isRemoteOnlyFile
+            ? file.copyWith()
+            : (file.copyWith()..localID = null),
       );
     }
     final skippedFilesCount = skippedFiles.length;
@@ -1142,20 +1170,21 @@ class _FileSelectionActionsWidgetState
           addedToQueueCount = enqueueResult.addedCount;
         } catch (e) {
           _logger.warning("Failed to enqueue files for download", e);
+          if (!mounted) return;
           await showGenericErrorDialog(context: context, error: e);
           return;
         }
       } else {
         final totalFiles = filesToDownload.length;
         int downloadedFiles = 0;
+        final downloadingMessage = l10n.downloading;
 
         final dialog = createProgressDialog(
           context,
-          AppLocalizations.of(context).downloading +
-              " ($downloadedFiles/$totalFiles)",
+          "$downloadingMessage ($downloadedFiles/$totalFiles)",
           isDismissible: true,
         );
-        await dialog.show();
+        final didShowDialog = await dialog.show();
         try {
           final taskQueue = SimpleTaskQueue(maxConcurrent: 5);
           final futures = <Future>[];
@@ -1168,26 +1197,34 @@ class _FileSelectionActionsWidgetState
                       widget.type != GalleryType.sharedPublicCollection,
                 );
                 downloadedFiles++;
-                dialog.update(
-                  message:
-                      AppLocalizations.of(context).downloading +
-                      " ($downloadedFiles/$totalFiles)",
-                );
+                if (didShowDialog) {
+                  dialog.update(
+                    message:
+                        "$downloadingMessage ($downloadedFiles/$totalFiles)",
+                  );
+                }
               }),
             );
           }
           await Future.wait(futures);
           addedToQueueCount = downloadedFiles;
-          await dialog.hide();
-        } catch (e) {
-          _logger.warning("Failed to save files", e);
-          await dialog.hide();
-          await showGenericErrorDialog(context: context, error: e);
+          if (didShowDialog) {
+            await dialog.hide();
+          }
+        } catch (e, s) {
+          _logger.warning("Failed to save files", e, s);
+          if (didShowDialog) {
+            await dialog.hide();
+          }
+          if (mounted) {
+            await showGenericErrorDialog(context: context, error: e);
+          }
           return;
         }
       }
     }
 
+    if (!mounted) return;
     if (skippedFilesCount > 0) {
       String finalMessage;
       if (skippedFilesCount == 1) {

@@ -7,22 +7,22 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/ente-io/museum/pkg/controller/commonbilling"
+	"github.com/ente/museum/pkg/controller/commonbilling"
 
-	"github.com/ente-io/museum/pkg/repo/storagebonus"
+	"github.com/ente/museum/pkg/repo/storagebonus"
 
-	"github.com/ente-io/museum/pkg/controller/discord"
-	"github.com/ente-io/museum/pkg/controller/email"
-	"github.com/ente-io/museum/pkg/utils/billing"
-	"github.com/ente-io/museum/pkg/utils/network"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/controller/email"
+	"github.com/ente/museum/pkg/utils/billing"
+	"github.com/ente/museum/pkg/utils/network"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/repo"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/repo"
 )
 
 // BillingController provides abstractions for handling billing related queries
@@ -371,11 +371,7 @@ func (c *BillingController) HandleAccountDeletion(ctx context.Context, userID in
 		billingLogger.Info("user on free plan")
 		return true, nil
 	}
-	// The word "family" here is a misnomer - these are some manually created
-	// accounts for very early adopters, and are unrelated to Family Plans.
-	// Cancelation of these accounts will require manual intervention. Ideally,
-	// we should never be deleting such accounts.
-	if subscription.ProductID == ente.FamilyPlanProductID || subscription.ProductID == "" {
+	if subscription.ProductID == "" {
 		return false, stacktrace.NewError("unexpected product id %s", subscription.ProductID)
 	}
 	isCancelled = subscription.Attributes.IsCancelled

@@ -5,7 +5,7 @@ Pod::Spec.new do |s|
   s.description      = <<-DESC
 Native video editing operations for trim, crop, and rotate without re-encoding.
                        DESC
-  s.homepage         = 'https://github.com/ente-io/ente'
+  s.homepage         = 'https://github.com/ente/ente'
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Ente' => 'support@ente.com' }
   s.source           = { :path => '.' }

@@ -1,8 +1,6 @@
 name: ente_pure_utils
-description: The depencies should be maintained by pub.dev/flutter.dev
-version: 1.0.0
-publish_to: none
 
+resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
   flutter: ">=1.17.0"

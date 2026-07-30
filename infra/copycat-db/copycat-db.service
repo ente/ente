@@ -1,5 +1,5 @@
 [Unit]
-Documentation=https://github.com/ente-io/ente/blob/main/infra/copycat-db
+Documentation=https://github.com/ente/ente/blob/main/infra/copycat-db
 Requires=docker.service
 After=docker.service
 

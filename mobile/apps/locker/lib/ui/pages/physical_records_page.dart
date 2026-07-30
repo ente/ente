@@ -1,9 +1,7 @@
-import 'package:ente_ui/utils/toast_util.dart';
+import 'package:ente_components/ente_components.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:locker/l10n/l10n.dart';
 import 'package:locker/models/info/info_item.dart';
-import 'package:locker/ui/components/capsule_form_field.dart';
 import 'package:locker/ui/pages/base_info_page.dart';
 
 class PhysicalRecordsPage extends BaseInfoPage<PhysicalRecordData> {
@@ -27,8 +25,6 @@ class _PhysicalRecordsPageState
   @override
   void initState() {
     super.initState();
-    _nameController.addListener(_onFieldChanged);
-    _locationController.addListener(_onFieldChanged);
     _loadExistingData();
   }
 
@@ -49,8 +45,6 @@ class _PhysicalRecordsPageState
 
   @override
   void dispose() {
-    _nameController.removeListener(_onFieldChanged);
-    _locationController.removeListener(_onFieldChanged);
     _nameController.dispose();
     _locationController.dispose();
     _notesController.dispose();
@@ -92,12 +86,6 @@ class _PhysicalRecordsPageState
   }
 
   @override
-  bool get isSaveEnabled =>
-      super.isSaveEnabled &&
-      _nameController.text.trim().isNotEmpty &&
-      _locationController.text.trim().isNotEmpty;
-
-  @override
   PhysicalRecordData createInfoData() {
     return PhysicalRecordData(
       name: _nameController.text.trim(),
@@ -111,89 +99,56 @@ class _PhysicalRecordsPageState
   @override
   List<Widget> buildFormFields() {
     return [
-      CapsuleFormField(
-        labelText: context.l10n.name,
+      TextInputComponent(
+        label: context.l10n.name,
         hintText: context.l10n.recordNameHint,
         controller: _nameController,
+        isRequired: true,
         autofocus: true,
         textCapitalization: TextCapitalization.sentences,
         textInputAction: TextInputAction.next,
-        validator: (value) {
-          if (value == null || value.trim().isEmpty) {
-            return context.l10n.pleaseEnterRecordName;
-          }
-          return null;
-        },
+        onChanged: (_) => onFieldChanged(),
       ),
       const SizedBox(height: 24),
-      CapsuleFormField(
-        labelText: context.l10n.recordLocation,
+      TextInputComponent(
+        label: context.l10n.recordLocation,
         hintText: context.l10n.recordLocationHint,
         controller: _locationController,
+        isRequired: true,
         textCapitalization: TextCapitalization.sentences,
         textInputAction: TextInputAction.next,
-        validator: (value) {
-          if (value == null || value.trim().isEmpty) {
-            return context.l10n.pleaseEnterLocation;
-          }
-          return null;
-        },
+        onChanged: (_) => onFieldChanged(),
       ),
       const SizedBox(height: 24),
-      CapsuleFormField(
-        labelText: context.l10n.recordNotes,
+      TextInputComponent(
+        label: context.l10n.recordNotes,
         hintText: context.l10n.recordNotesHint,
         controller: _notesController,
-        maxLines: 3,
         minLines: 3,
+        maxLines: 12,
         textCapitalization: TextCapitalization.sentences,
         keyboardType: TextInputType.multiline,
         textInputAction: TextInputAction.newline,
-        lineHeight: 1.5,
       ),
     ];
-  }
-
-  void _onFieldChanged() {
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  void _copyValue(String value, String label) {
-    if (value.trim().isEmpty) {
-      return;
-    }
-    Clipboard.setData(ClipboardData(text: value));
-    if (!mounted) return;
-    showToast(context, context.l10n.copiedToClipboard(label));
   }
 
   @override
   List<Widget> buildViewFields() {
     final fields = <Widget>[
-      CapsuleDisplayField(
-        labelText: context.l10n.recordLocation,
+      buildViewField(
+        label: context.l10n.recordLocation,
         value: _locationController.text,
-        onCopy: _locationController.text.trim().isEmpty
-            ? null
-            : () => _copyValue(
-                _locationController.text,
-                context.l10n.recordLocation,
-              ),
       ),
     ];
 
     if (_notesController.text.trim().isNotEmpty) {
       fields.addAll([
         const SizedBox(height: 24),
-        CapsuleDisplayField(
-          labelText: context.l10n.recordNotes,
+        buildViewField(
+          label: context.l10n.recordNotes,
           value: _notesController.text,
           maxLines: 6,
-          lineHeight: 1.5,
-          onCopy: () =>
-              _copyValue(_notesController.text, context.l10n.recordNotes),
         ),
       ]);
     }

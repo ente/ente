@@ -1,18 +1,26 @@
-//! Argon2id password hashing and key derivation.
+//! Deriving keys from passwords with Argon2id.
 //!
-//! This module provides password-based key derivation using Argon2id.
+//! Argon2id stretches a low-entropy, human-chosen password into a key, spending
+//! tunable memory and time to make brute-force guessing expensive. Use it to
+//! turn a passphrase into a key; to derive subkeys from a key that is already
+//! high-entropy, use [`kdf`](super::kdf) instead.
+//!
+//! The same password, salt, and [`Params`] always produce the same key, so the
+//! salt and parameters must be stored alongside the data for other clients to
+//! reproduce it (see [`DerivedKey`]).
 
 use std::fmt;
 
 use argon2::{Algorithm, Argon2, Params as Argon2Params, Version};
 
-use crate::crypto::{CryptoError, Key, Result, Salt};
+use crate::crypto::{Error, Key, Result, Salt};
 
-/// Argon2id cost parameters.
+/// Argon2id cost parameters: how much memory to use and how many passes to make.
 ///
-/// Memory is in bytes (must be a multiple of 1024); ops is the iteration
-/// count. Use the presets unless re-deriving with parameters previously
-/// stored alongside the data (e.g. the server's key attributes).
+/// Higher values cost an attacker more but also slow legitimate derivation. Use
+/// the presets ([`INTERACTIVE`](Self::INTERACTIVE), [`MODERATE`](Self::MODERATE),
+/// [`SENSITIVE`](Self::SENSITIVE)) unless re-deriving a key with parameters that
+/// were stored alongside it, such as the server's key attributes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Params {
     /// Memory limit in bytes.
@@ -22,7 +30,7 @@ pub struct Params {
 }
 
 impl Params {
-    /// Parameters for interactive use (64 MiB, 2 ops) — fast, for UI
+    /// Parameters for interactive use (64 MiB, 2 ops): fast, for UI
     /// responsiveness.
     pub const INTERACTIVE: Self = Self {
         mem_limit: 67_108_864,
@@ -47,9 +55,9 @@ impl Params {
 
     /// The cheapest parameters Argon2 accepts (8 KiB, 1 op).
     ///
-    /// These provide essentially no brute-force protection. ONLY for inputs
-    /// that are already high-entropy keys — where the KDF is a formality —
-    /// never for human-chosen passwords.
+    /// These provide essentially no brute-force protection, and are only for
+    /// inputs that are already high-entropy keys (where the KDF is a
+    /// formality), never for human-chosen passwords.
     pub const MIN: Self = Self {
         mem_limit: 8_192,
         ops_limit: 1,
@@ -84,22 +92,28 @@ impl fmt::Debug for DerivedKey {
     }
 }
 
-/// Derive a key from a password using Argon2id.
+/// Derive a key from `password` and `salt` with the given Argon2id `params`.
 ///
-/// # Arguments
-/// * `password` - Password string (UTF-8).
-/// * `salt` - Salt to use for derivation.
-/// * `params` - Argon2 cost parameters.
+/// Deterministic: the same inputs always yield the same key, which is how other
+/// clients reproduce it. The result is a [`Key`], zeroized on drop. To make a
+/// new key, the `derive_*_key` helpers choose parameters and a salt for you.
 ///
-/// # Returns
-/// 32-byte derived key, zeroized on drop.
+/// # Errors
+///
+/// Returns
+/// [`InvalidKeyDerivationParams`](Error::InvalidKeyDerivationParams) if
+/// `params` fall below the accepted minimum or memory is not a multiple of 1024
+/// bytes.
+///
+/// Produces the same key as libsodium's `crypto_pwhash` with
+/// `crypto_pwhash_ALG_ARGON2ID13`.
 pub fn derive_key(password: &str, salt: &Salt, params: Params) -> Result<Key> {
     derive_key_impl(password.as_bytes(), salt, params)
 }
 
 fn derive_key_impl(password: &[u8], salt: &Salt, params: Params) -> Result<Key> {
     if params.mem_limit < Params::MIN.mem_limit {
-        return Err(CryptoError::InvalidKeyDerivationParams(format!(
+        return Err(Error::InvalidKeyDerivationParams(format!(
             "Memory limit {} is below minimum {}",
             params.mem_limit,
             Params::MIN.mem_limit
@@ -107,14 +121,14 @@ fn derive_key_impl(password: &[u8], salt: &Salt, params: Params) -> Result<Key> 
     }
 
     if !params.mem_limit.is_multiple_of(1024) {
-        return Err(CryptoError::InvalidKeyDerivationParams(format!(
+        return Err(Error::InvalidKeyDerivationParams(format!(
             "Memory limit {} must be a multiple of 1024 bytes",
             params.mem_limit
         )));
     }
 
     if params.ops_limit < Params::MIN.ops_limit {
-        return Err(CryptoError::InvalidKeyDerivationParams(format!(
+        return Err(Error::InvalidKeyDerivationParams(format!(
             "Operations limit {} is below minimum {}",
             params.ops_limit,
             Params::MIN.ops_limit
@@ -127,19 +141,23 @@ fn derive_key_impl(password: &[u8], salt: &Salt, params: Params) -> Result<Key> 
     let p_cost = 1; // Parallelism degree
 
     let argon2_params = Argon2Params::new(m_cost, t_cost, p_cost, Some(Key::BYTES))
-        .map_err(|e| CryptoError::InvalidKeyDerivationParams(e.to_string()))?;
+        .map_err(|e| Error::InvalidKeyDerivationParams(e.to_string()))?;
 
     let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, argon2_params);
 
     let mut key = [0u8; Key::BYTES];
     argon2
         .hash_password_into(password, salt.as_bytes(), &mut key)
-        .map_err(CryptoError::Argon2)?;
+        .map_err(Error::Argon2)?;
 
     Ok(Key::from_bytes(key))
 }
 
-/// Derive a key with interactive parameters and a newly generated salt.
+/// Derive a key from `password` with [`Params::INTERACTIVE`] and a freshly
+/// generated salt.
+///
+/// Returns the key together with the salt and parameters used, which must be
+/// stored to reproduce it.
 pub fn derive_interactive_key(password: &str) -> Result<DerivedKey> {
     let salt = Salt::generate();
     let key = derive_key(password, &salt, Params::INTERACTIVE)?;
@@ -150,7 +168,11 @@ pub fn derive_interactive_key(password: &str) -> Result<DerivedKey> {
     })
 }
 
-/// Derive a key with moderate parameters and a newly generated salt.
+/// Derive a key from `password` with [`Params::MODERATE`] and a freshly
+/// generated salt.
+///
+/// Returns the key together with the salt and parameters used, which must be
+/// stored to reproduce it.
 pub fn derive_moderate_key(password: &str) -> Result<DerivedKey> {
     let salt = Salt::generate();
     let key = derive_key(password, &salt, Params::MODERATE)?;
@@ -161,15 +183,18 @@ pub fn derive_moderate_key(password: &str) -> Result<DerivedKey> {
     })
 }
 
-/// Derive a key with the adaptive sensitive client policy and a newly
-/// generated salt.
+/// Derive a high-security key from `password`, adapting the cost to the device.
 ///
-/// Starts at moderate memory (256 MiB) with the ops limit scaled up to
-/// preserve [`Params::SENSITIVE`] strength (mem × ops), then halves memory and
-/// doubles ops on allocation failure, down to a 128 MiB floor (the server-side
-/// minimum for accepted account key attributes). This mirrors the established
-/// adaptive policy used by the existing web and Flutter clients so that newly
-/// generated key attributes remain consistent across platforms.
+/// Aims for [`Params::SENSITIVE`] strength but starts at moderate memory
+/// (256 MiB) with the ops limit scaled up to compensate, then halves memory and
+/// doubles ops whenever allocation fails, down to a 128 MiB floor (the
+/// server-side minimum for accepted account key attributes). Holding the
+/// product of memory and ops constant preserves the work factor while fitting
+/// low-memory devices, and matches the policy used by the web and Flutter
+/// clients so the same account derives consistently everywhere.
+///
+/// Returns the key together with the salt and parameters actually used, which
+/// must be stored to reproduce it.
 pub fn derive_sensitive_key(password: &str) -> Result<DerivedKey> {
     let salt = Salt::generate();
     derive_sensitive_adaptive(password.as_bytes(), &salt)
@@ -180,7 +205,7 @@ fn derive_sensitive_adaptive(password: &[u8], salt: &Salt) -> Result<DerivedKey>
         .mem_limit
         .is_multiple_of(Params::MODERATE.mem_limit)
     {
-        return Err(CryptoError::InvalidKeyDerivationParams(format!(
+        return Err(Error::InvalidKeyDerivationParams(format!(
             "Memory limit {} must be divisible by {}",
             Params::SENSITIVE.mem_limit,
             Params::MODERATE.mem_limit
@@ -195,11 +220,11 @@ fn derive_sensitive_adaptive(password: &[u8], salt: &Salt) -> Result<DerivedKey>
         .ops_limit
         .checked_mul(factor)
         .ok_or_else(|| {
-            CryptoError::InvalidKeyDerivationParams("Operations limit overflow".to_string())
+            Error::InvalidKeyDerivationParams("Operations limit overflow".to_string())
         })?;
 
     if u64::from(mem_limit) * u64::from(ops_limit) != desired_strength {
-        return Err(CryptoError::InvalidKeyDerivationParams(format!(
+        return Err(Error::InvalidKeyDerivationParams(format!(
             "Unexpected mem/ops limits: mem_limit {}, ops_limit {}",
             mem_limit, ops_limit
         )));
@@ -231,7 +256,7 @@ fn derive_sensitive_adaptive(password: &[u8], salt: &Salt) -> Result<DerivedKey>
         };
     }
 
-    Err(last_error.unwrap_or(CryptoError::KeyDerivationFailed))
+    Err(last_error.unwrap_or(Error::KeyDerivationFailed))
 }
 
 #[cfg(test)]
@@ -408,10 +433,7 @@ mod tests {
                 ops_limit: Params::INTERACTIVE.ops_limit,
             },
         );
-        assert!(matches!(
-            result,
-            Err(CryptoError::InvalidKeyDerivationParams(_))
-        ));
+        assert!(matches!(result, Err(Error::InvalidKeyDerivationParams(_))));
     }
 
     #[test]

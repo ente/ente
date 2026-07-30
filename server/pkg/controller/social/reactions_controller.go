@@ -1,19 +1,21 @@
 package social
 
 import (
-	"github.com/ente-io/museum/ente"
-	socialentity "github.com/ente-io/museum/ente/social"
-	"github.com/ente-io/museum/pkg/controller/access"
-	socialrepo "github.com/ente-io/museum/pkg/repo/social"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	socialentity "github.com/ente/museum/ente/social"
+	"github.com/ente/museum/pkg/controller/access"
+	"github.com/ente/museum/pkg/repo"
+	socialrepo "github.com/ente/museum/pkg/repo/social"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 
 // ReactionsController orchestrates reactions operations.
 type ReactionsController struct {
-	Repo         *socialrepo.ReactionsRepository
-	CommentsRepo *socialrepo.CommentsRepository
-	AccessCtrl   access.Controller
+	Repo           *socialrepo.ReactionsRepository
+	CommentsRepo   *socialrepo.CommentsRepository
+	CollectionRepo *repo.CollectionRepository
+	AccessCtrl     access.Controller
 }
 
 // UpsertReactionRequest holds the payload for creating or updating a reaction.
@@ -73,6 +75,11 @@ func (c *ReactionsController) Upsert(ctx *gin.Context, req UpsertReactionRequest
 			ActorUserID:  userID,
 		}); err != nil {
 			return "", stacktrace.Propagate(err, "")
+		}
+	}
+	if req.FileID != nil {
+		if err := validateFileInCollection(ctx, c.CollectionRepo, req.CollectionID, *req.FileID); err != nil {
+			return "", err
 		}
 	}
 

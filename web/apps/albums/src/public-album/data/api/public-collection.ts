@@ -86,8 +86,8 @@ export const verifyPublicAlbumPassword = async (
  *
  * This function modifies local state.
  *
- * @param accessToken A public collection access key obtained from the "t="
- * query parameter of the public URL.
+ * @param accessToken A public collection access key obtained from the public
+ * URL path token, or from the legacy "t" query parameter.
  *
  * The access key serves to both identify the public collection, and also
  * authenticate the request. See: [Note: Public album access token].

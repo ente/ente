@@ -5,6 +5,7 @@ import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/collection_updated_event.dart";
+import "package:photos/events/contact_relationships_invalidated_event.dart";
 import "package:photos/events/contacts_changed_event.dart";
 import "package:photos/events/event.dart";
 import "package:photos/events/location_tag_updated_event.dart";
@@ -23,6 +24,8 @@ import "package:photos/ui/viewer/location/add_location_sheet.dart";
 import "package:photos/ui/viewer/location/pick_center_point_widget.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/share_util.dart";
+
+const _kSearchPreviewFallbackClusterSize = 3;
 
 enum ResultType {
   collection,
@@ -195,6 +198,7 @@ extension SectionTypeExtensions on SectionType {
         return () async {
           final centerPoint = await showPickCenterPointSheet(context);
           if (centerPoint != null) {
+            if (!context.mounted) return;
             showAddLocationSheet(context, centerPoint);
           }
         };
@@ -220,8 +224,10 @@ extension SectionTypeExtensions on SectionType {
                     .createAlbum(text);
 
                 // Close the dialog now so that it does not flash when leaving the album again.
+                if (!context.mounted) return;
                 Navigator.of(context).pop();
 
+                if (!context.mounted) return;
                 // ignore: unawaited_futures
                 await routeToPage(
                   context,
@@ -236,6 +242,7 @@ extension SectionTypeExtensions on SectionType {
             },
           );
           if (result is Exception) {
+            if (!context.mounted) return;
             await showGenericErrorDialog(context: context, error: result);
           }
         };
@@ -256,9 +263,15 @@ extension SectionTypeExtensions on SectionType {
           minClusterSize: limit == null
               ? kMinimumClusterSizeAllFaces
               : kMinimumClusterSizeSearchResult,
+          fallbackMinClusterSize: limit == null
+              ? null
+              : _kSearchPreviewFallbackClusterSize,
         );
       case SectionType.magic:
-        return SearchService.instance.getMagicSectionResults(context!);
+        return SearchService.instance.getMagicSectionResults(
+          context!,
+          limit: limit,
+        );
       case SectionType.wrapped:
         return Future.value(const <SearchResult>[]);
       case SectionType.location:
@@ -294,6 +307,7 @@ extension SectionTypeExtensions on SectionType {
         return [Bus.instance.on<PeopleChangedEvent>()];
       case SectionType.contacts:
         return [
+          Bus.instance.on<ContactRelationshipsInvalidatedEvent>(),
           Bus.instance.on<PeopleChangedEvent>(),
           Bus.instance.on<ContactsChangedEvent>(),
         ];
@@ -316,6 +330,7 @@ extension SectionTypeExtensions on SectionType {
         return [];
       case SectionType.contacts:
         return [
+          Bus.instance.on<ContactRelationshipsInvalidatedEvent>(),
           Bus.instance.on<PeopleChangedEvent>(),
           Bus.instance.on<ContactsChangedEvent>(),
         ];

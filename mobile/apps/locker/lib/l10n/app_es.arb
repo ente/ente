@@ -132,7 +132,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "Por favor selecciona al menos una coleccion",
   "unknownItemType": "Tipo de elemento desconocido",
   "fileDeletedSuccessfully": "Elemento eliminado correctamente",
   "failedToDeleteFile": "Error al eliminar el elemento: {error}",
@@ -254,7 +253,6 @@
   "optionalNote": "Nota opcional",
   "upload": "Subir",
   "documentsHint": "Documentos",
-  "searchHint": "Buscar...",
   "searchEmptyTitle": "No se encontraron coincidencias",
   "searchEmptyDescription": "Intenta buscar otra cosa.",
   "searchEverywhereTitle": "Buscar en todas partes \"{query}\"",

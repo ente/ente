@@ -94,10 +94,7 @@ class _ChangeLogEntryTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            entry.title,
-            style: TextStyles.bodyBold.copyWith(color: colors.textBase),
-          ),
+          Text(entry.title, style: TextStyles.bodyBold),
           const SizedBox(height: 6),
           Text(
             entry.description,

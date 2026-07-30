@@ -1,17 +1,17 @@
 package api
 
 import (
-	"github.com/ente-io/museum/pkg/controller/collections"
+	"github.com/ente/museum/pkg/controller/collections"
 	"net/http"
 	"strconv"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/handler"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/handler"
+	"github.com/ente/museum/pkg/utils/time"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,7 +24,7 @@ type CollectionHandler struct {
 func (h *CollectionHandler) Create(c *gin.Context) {
 	log.Info("Collection create")
 	var collection ente.Collection
-	if err := c.ShouldBindJSON(&collection); err != nil {
+	if err := handler.BindJSON(c, &collection); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, "Could not bind request params"))
 		return
 	}
@@ -118,7 +118,7 @@ func (h *CollectionHandler) GetWithLimit(c *gin.Context) {
 // Share shares a collection with a user
 func (h *CollectionHandler) Share(c *gin.Context) {
 	var request ente.AlterShareRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -134,7 +134,7 @@ func (h *CollectionHandler) Share(c *gin.Context) {
 
 func (h *CollectionHandler) JoinLink(c *gin.Context) {
 	var request ente.JoinCollectionViaLinkRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -149,7 +149,7 @@ func (h *CollectionHandler) JoinLink(c *gin.Context) {
 // ShareURL generates a publicly sharable url
 func (h *CollectionHandler) ShareURL(c *gin.Context) {
 	var request ente.CreatePublicAccessTokenRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -166,7 +166,7 @@ func (h *CollectionHandler) ShareURL(c *gin.Context) {
 // UpdateShareURL generates a publicly sharable url
 func (h *CollectionHandler) UpdateShareURL(c *gin.Context) {
 	var req ente.UpdatePublicAccessTokenRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(c, &req); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -199,7 +199,7 @@ func (h *CollectionHandler) UnShareURL(c *gin.Context) {
 // UnShare unshares a collection with a user
 func (h *CollectionHandler) UnShare(c *gin.Context) {
 	var request ente.AlterShareRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -231,7 +231,7 @@ func (h *CollectionHandler) Leave(c *gin.Context) {
 // AddFiles adds files to a collection
 func (h *CollectionHandler) AddFiles(c *gin.Context) {
 	var request ente.AddFilesRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -250,7 +250,7 @@ func (h *CollectionHandler) AddFiles(c *gin.Context) {
 // RestoreFiles adds files from trash to given collection
 func (h *CollectionHandler) RestoreFiles(c *gin.Context) {
 	var request ente.AddFilesRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -270,9 +270,8 @@ func (h *CollectionHandler) RestoreFiles(c *gin.Context) {
 // Movefiles from one collection to another
 func (h *CollectionHandler) MoveFiles(c *gin.Context) {
 	var request ente.MoveFilesRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
-		handler.Error(c,
-			stacktrace.Propagate(ente.ErrBadRequest, "Request binding failed %s", err))
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, "Request binding failed"))
 		return
 	}
 	if len(request.Files) > DefaultMaxBatchSize {
@@ -294,7 +293,7 @@ func (h *CollectionHandler) MoveFiles(c *gin.Context) {
 // RemoveFilesV3 allow removing files from a collection when files and collection belong to two different users
 func (h *CollectionHandler) RemoveFilesV3(c *gin.Context) {
 	var request ente.RemoveFilesV3Request
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -314,7 +313,7 @@ func (h *CollectionHandler) RemoveFilesV3(c *gin.Context) {
 // of files owned by others in a shared collection. The request must exclude files owned by the actor.
 func (h *CollectionHandler) SuggestDeleteInSharedCollection(c *gin.Context) {
 	var request ente.SuggestDeleteRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -392,7 +391,7 @@ func (h *CollectionHandler) TrashV3(c *gin.Context) {
 // Rename updates the collection's name
 func (h *CollectionHandler) Rename(c *gin.Context) {
 	var request ente.RenameRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -406,7 +405,7 @@ func (h *CollectionHandler) Rename(c *gin.Context) {
 // Updates the magic metadata for a collection
 func (h *CollectionHandler) PrivateMagicMetadataUpdate(c *gin.Context) {
 	var request ente.UpdateCollectionMagicMetadata
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -420,7 +419,7 @@ func (h *CollectionHandler) PrivateMagicMetadataUpdate(c *gin.Context) {
 // PublicMagicMetadataUpdate updates the public magic metadata for a collection
 func (h *CollectionHandler) PublicMagicMetadataUpdate(c *gin.Context) {
 	var request ente.UpdateCollectionMagicMetadata
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
@@ -434,7 +433,7 @@ func (h *CollectionHandler) PublicMagicMetadataUpdate(c *gin.Context) {
 // ShareeMagicMetadataUpdate updates sharees magic metadata for shared collection.
 func (h *CollectionHandler) ShareeMagicMetadataUpdate(c *gin.Context) {
 	var request ente.UpdateCollectionMagicMetadata
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := handler.BindJSON(c, &request); err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}

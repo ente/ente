@@ -25,6 +25,7 @@ class _SessionsPageState extends State<SessionsPage> {
   @override
   void initState() {
     _fetchActiveSessions().onError((error, stackTrace) {
+      if (!mounted) return;
       showToast(
         context,
         AppLocalizations.of(context).failedToFetchActiveSessions,
@@ -120,6 +121,7 @@ class _SessionsPageState extends State<SessionsPage> {
     } catch (e) {
       await dialog.hide();
       _logger.severe('failed to terminate');
+      if (!mounted) return;
       // ignore: unawaited_futures
       showErrorBottomSheetComponent<void>(
         context: context,
@@ -149,9 +151,13 @@ class _SessionsPageState extends State<SessionsPage> {
     final l10n = AppLocalizations.of(context);
     final isLoggingOutFromThisDevice =
         session.token == Configuration.instance.getToken();
+    final displayedUserAgent = session.ua.length > 256
+        ? "${session.ua.substring(0, 253)}..."
+        : session.ua;
     final message = isLoggingOutFromThisDevice
         ? l10n.thisWillLogYouOutOfThisDevice
-        : "${l10n.thisWillLogYouOutOfTheFollowingDevice}\n\n${session.ua}";
+        : "${l10n.thisWillLogYouOutOfTheFollowingDevice}\n\n"
+              "$displayedUserAgent";
 
     showBottomSheetComponent<void>(
       context: context,

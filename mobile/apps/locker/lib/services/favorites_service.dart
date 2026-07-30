@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:ente_events/event_bus.dart';
-import 'package:flutter/material.dart';
 import 'package:locker/events/collections_updated_event.dart';
 import 'package:locker/services/collections/collections_service.dart';
 import 'package:locker/services/collections/models/collection.dart';
@@ -134,7 +133,7 @@ class FavoritesService {
     }
   }
 
-  Future<void> addToFavorites(BuildContext context, EnteFile file) async {
+  Future<void> addToFavorites(EnteFile file) async {
     final collectionID = await _getOrCreateFavoriteCollectionID();
 
     final List<EnteFile> files = [file];
@@ -154,11 +153,7 @@ class FavoritesService {
     _collectionService.sync().ignore();
   }
 
-  Future<void> updateFavorites(
-    BuildContext context,
-    List<EnteFile> files,
-    bool favFlag,
-  ) async {
+  Future<void> updateFavorites(List<EnteFile> files, bool favFlag) async {
     final int currentUserID = Configuration.instance.getUserID()!;
     if (files.any((f) => f.uploadedFileID == null)) {
       throw AssertionError("Can only favorite uploaded items");
@@ -201,7 +196,7 @@ class FavoritesService {
     _updateFavoriteFilesCache(files, favFlag: favFlag);
   }
 
-  Future<void> removeFromFavorites(BuildContext context, EnteFile file) async {
+  Future<void> removeFromFavorites(EnteFile file) async {
     final inUploadID = file.uploadedFileID;
     if (inUploadID == null) {
       // Do nothing, ignore

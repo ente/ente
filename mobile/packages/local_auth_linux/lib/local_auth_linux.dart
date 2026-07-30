@@ -36,22 +36,6 @@ class LinuxLocalAuthSetupStatus {
   final String? errorMessage;
 
   bool get setupRequired => polkitAvailable && !policyInstalled;
-
-  String get policyInstallCommand {
-    if (isFlatpak) {
-      return '''
-app_id="\${FLATPAK_ID:-io.ente.auth}"
-install_dir="\$(flatpak info --show-location "\$app_id")"
-policy="\$install_dir/files/share/enteauth/data/flutter_assets/assets/polkit/com.ente.auth.policy"
-sudo install -D -o root -g root -m 0644 "\$policy" /usr/share/polkit-1/actions/com.ente.auth.policy
-if command -v chcon >/dev/null 2>&1; then sudo chcon system_u:object_r:usr_t:s0 /usr/share/polkit-1/actions/com.ente.auth.policy || true; fi
-pkaction --action-id $actionId --verbose''';
-    }
-    return '''
-sudo install -D -o root -g root -m 0644 "$policyAssetPath" /usr/share/polkit-1/actions/com.ente.auth.policy
-if command -v chcon >/dev/null 2>&1; then sudo chcon system_u:object_r:usr_t:s0 /usr/share/polkit-1/actions/com.ente.auth.policy || true; fi
-pkaction --action-id $actionId --verbose''';
-  }
 }
 
 bool get _isFlatpak =>

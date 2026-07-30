@@ -1,11 +1,17 @@
-//! BLAKE2b hashing functions.
+//! Cryptographic hashing with BLAKE2b.
 //!
-//! This module provides BLAKE2b hashing with support for keyed hashing.
+//! BLAKE2b maps data of any length to a fixed-size digest (16 to 64 bytes, 32
+//! by default). Supplying a key turns it into a MAC. Hashing is available
+//! one-shot ([`hash`]), incrementally for data that arrives in pieces
+//! ([`HashState`]), or straight from a reader ([`hash_reader`]).
+//!
+//! The construction is libsodium's `crypto_generichash`; the implementation
+//! here wraps the pure-Rust `blake2b_simd` crate and produces the same digests.
 
 use blake2b_simd::{Params as Blake2bParams, State as Blake2bState};
 use std::io::Read;
 
-use crate::crypto::{CryptoError, Result};
+use crate::crypto::{Error, Result};
 
 /// Minimum hash output length in bytes.
 pub const HASH_BYTES_MIN: usize = 16;
@@ -25,20 +31,23 @@ pub const KEY_BYTES_MIN: usize = 16;
 /// Maximum key length in bytes for keyed hashing.
 pub const KEY_BYTES_MAX: usize = 64;
 
-/// Compute BLAKE2b hash of data.
+/// Hash `data` with BLAKE2b.
 ///
-/// # Arguments
-/// * `data` - Data to hash.
-/// * `out_len` - Optional output length (16-64 bytes). Defaults to 32.
-/// * `key` - Optional key for keyed hashing (0 or 16-64 bytes).
+/// `out_len` chooses the digest length (16 to 64 bytes), defaulting to 32.
+/// Passing a `key` of 16 to 64 bytes computes a keyed hash (a MAC); `None` or
+/// an empty key hashes without one.
 ///
-/// # Returns
-/// Hash output of the specified length.
+/// # Errors
+///
+/// Returns [`InvalidKeyLength`](Error::InvalidKeyLength) if `out_len` is
+/// outside 16 to 64 bytes, or if a non-empty `key` is outside that range.
+///
+/// Produces the same digest as libsodium's `crypto_generichash`.
 pub fn hash(data: &[u8], out_len: Option<usize>, key: Option<&[u8]>) -> Result<Vec<u8>> {
     let out_len = out_len.unwrap_or(HASH_BYTES);
 
     if !(HASH_BYTES_MIN..=HASH_BYTES_MAX).contains(&out_len) {
-        return Err(CryptoError::InvalidKeyLength {
+        return Err(Error::InvalidKeyLength {
             expected: HASH_BYTES_MAX,
             actual: out_len,
         });
@@ -50,7 +59,7 @@ pub fn hash(data: &[u8], out_len: Option<usize>, key: Option<&[u8]>) -> Result<V
     if let Some(k) = key {
         // libsodium: key must be 0 OR 16-64 bytes
         if !k.is_empty() && (k.len() < KEY_BYTES_MIN || k.len() > KEY_BYTES_MAX) {
-            return Err(CryptoError::InvalidKeyLength {
+            return Err(Error::InvalidKeyLength {
                 expected: KEY_BYTES_MAX,
                 actual: k.len(),
             });
@@ -64,40 +73,38 @@ pub fn hash(data: &[u8], out_len: Option<usize>, key: Option<&[u8]>) -> Result<V
     Ok(hash.as_bytes()[..out_len].to_vec())
 }
 
-/// Compute BLAKE2b hash with default parameters (32-byte output, no key).
+/// Hash `data` with BLAKE2b using the defaults: a 32-byte digest and no key.
 ///
-/// # Arguments
-/// * `data` - Data to hash.
-///
-/// # Returns
-/// 32-byte hash output.
+/// Shorthand for [`hash`] with `out_len` 32 and no key.
 pub fn hash_default(data: &[u8]) -> Result<Vec<u8>> {
     hash(data, Some(HASH_BYTES), None)
 }
 
-/// Streaming hash state for incremental hashing.
+/// Incremental BLAKE2b hasher, for data that arrives in pieces.
 ///
-/// This allows hashing large files or data streams without loading
-/// everything into memory.
+/// Build it with [`new`](Self::new), feed chunks with [`update`](Self::update),
+/// and produce the digest with [`finalize`](Self::finalize). The result is
+/// identical to passing the concatenation of the chunks to [`hash`], so a large
+/// input can be hashed without holding it all in memory.
 pub struct HashState {
     state: Blake2bState,
     out_len: usize,
 }
 
 impl HashState {
-    /// Create a new hash state.
+    /// Create a hasher with the given digest length and optional key.
     ///
-    /// # Arguments
-    /// * `out_len` - Optional output length (16-64 bytes). Defaults to 32.
-    /// * `key` - Optional key for keyed hashing (0 or 16-64 bytes).
+    /// `out_len` and `key` follow the same rules and defaults as [`hash`].
     ///
-    /// # Returns
-    /// A new hash state ready for incremental updates.
+    /// # Errors
+    ///
+    /// Returns [`InvalidKeyLength`](Error::InvalidKeyLength) if `out_len`
+    /// or a non-empty `key` is outside 16 to 64 bytes.
     pub fn new(out_len: Option<usize>, key: Option<&[u8]>) -> Result<Self> {
         let out_len = out_len.unwrap_or(HASH_BYTES);
 
         if !(HASH_BYTES_MIN..=HASH_BYTES_MAX).contains(&out_len) {
-            return Err(CryptoError::InvalidKeyLength {
+            return Err(Error::InvalidKeyLength {
                 expected: HASH_BYTES_MAX,
                 actual: out_len,
             });
@@ -109,7 +116,7 @@ impl HashState {
         if let Some(k) = key {
             // libsodium: key must be 0 OR 16-64 bytes
             if !k.is_empty() && (k.len() < KEY_BYTES_MIN || k.len() > KEY_BYTES_MAX) {
-                return Err(CryptoError::InvalidKeyLength {
+                return Err(Error::InvalidKeyLength {
                     expected: KEY_BYTES_MAX,
                     actual: k.len(),
                 });
@@ -124,40 +131,34 @@ impl HashState {
         Ok(HashState { state, out_len })
     }
 
-    /// Update the hash state with more data.
-    ///
-    /// # Arguments
-    /// * `data` - Data to add to the hash.
+    /// Feed more data into the hash.
     pub fn update(&mut self, data: &[u8]) -> Result<()> {
         self.state.update(data);
         Ok(())
     }
 
-    /// Finalize the hash and return the result.
-    ///
-    /// # Returns
-    /// Hash output of the configured length.
+    /// Consume the hasher and return the digest, of the configured length.
     pub fn finalize(self) -> Result<Vec<u8>> {
         let hash = self.state.finalize();
         Ok(hash.as_bytes()[..self.out_len].to_vec())
     }
 }
 
-/// Create a new hash state with default parameters (32-byte output, no key).
+/// Create an incremental [`HashState`] with the defaults: a 32-byte digest and
+/// no key.
 pub fn hash_state_new() -> Result<HashState> {
     HashState::new(Some(HASH_BYTES), None)
 }
 
-/// Hash data from a reader.
+/// Hash everything from `reader` with BLAKE2b.
 ///
-/// This allows hashing streams without loading everything into memory.
+/// Reads to EOF, hashing as it goes, so the source is never fully held in
+/// memory. `out_len` is the digest length (16 to 64 bytes, default 32).
 ///
-/// # Arguments
-/// * `reader` - Source to read data from.
-/// * `out_len` - Optional output length (16-64 bytes). Defaults to 32.
+/// # Errors
 ///
-/// # Returns
-/// Hash output of the specified length.
+/// Returns [`InvalidKeyLength`](Error::InvalidKeyLength) if `out_len` is
+/// out of range, or an [`Io`](Error::Io) error if the reader fails.
 pub fn hash_reader<R: Read>(reader: &mut R, out_len: Option<usize>) -> Result<Vec<u8>> {
     let mut state = HashState::new(out_len, None)?;
     let mut buffer = vec![0u8; 4096];

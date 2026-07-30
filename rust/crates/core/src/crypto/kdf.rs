@@ -1,7 +1,15 @@
-//! Key derivation functions using BLAKE2b.
+//! Deriving independent subkeys from a high-entropy key, with BLAKE2b.
 //!
-//! This module provides key derivation using BLAKE2b with salt and personalization.
-//! Maintains compatibility with libsodium's crypto_kdf_derive_from_key.
+//! Given one high-entropy key, this produces subkeys such that knowing a
+//! derived subkey reveals nothing about the parent key or its sibling subkeys.
+//! Each subkey is selected by a numeric id and an 8-byte context, so a single
+//! parent key can safely key many separate purposes.
+//!
+//! Unlike [`argon`](super::argon), the input must already be high-entropy (a
+//! key, not a password): this is fast keyed hashing, not password stretching.
+//!
+//! The construction is libsodium's `crypto_kdf_derive_from_key`; this pure-Rust
+//! implementation derives the same subkeys.
 
 use blake2b_simd::Params as Blake2bParams;
 
@@ -28,20 +36,27 @@ pub const LOGIN_SUBKEY_ID: u64 = 1;
 /// Login subkey context (used by derive_login_key).
 pub const LOGIN_SUBKEY_CONTEXT: &[u8; CONTEXT_BYTES] = b"loginctx";
 
-/// Derive a subkey from a master key.
+/// Derive a `subkey_len`-byte subkey of `key`, selected by `subkey_id` and
+/// `context`.
 ///
-/// # Wire Format
-/// - salt = subkey_id (8 bytes LE) || zeros (8 bytes)
-/// - personal = context (up to 8 bytes, zero-padded) || zeros (8 bytes)
+/// `subkey_id` and `context` together name the subkey: the same `key` yields
+/// independent subkeys for different ids or contexts, so `context` acts as a
+/// domain separator (conventionally a short, fixed application label).
+/// `subkey_len` must be between 16 and 64 bytes. The result is a [`SecretVec`],
+/// zeroized on drop.
 ///
-/// # Arguments
-/// * `key` - Master key.
-/// * `subkey_len` - Length of the derived subkey (16-64 bytes).
-/// * `subkey_id` - Subkey identifier (used as salt).
-/// * `context` - Context for domain separation (exactly 8 bytes).
+/// # Wire format
 ///
-/// # Returns
-/// Derived subkey of the specified length, zeroized on drop.
+/// BLAKE2b keyed with `key`, salt `subkey_id` (8 bytes little-endian followed
+/// by 8 zero bytes), personalization `context` (8 bytes followed by 8 zero
+/// bytes).
+///
+/// # Errors
+///
+/// Returns [`InvalidKeyLength`](crate::crypto::Error::InvalidKeyLength) if
+/// `subkey_len` is outside 16 to 64 bytes.
+///
+/// Produces the same subkey as libsodium's `crypto_kdf_derive_from_key`.
 pub fn derive_subkey(
     key: &Key,
     subkey_len: usize,
@@ -49,7 +64,7 @@ pub fn derive_subkey(
     context: &[u8; CONTEXT_BYTES],
 ) -> Result<SecretVec> {
     if !(SUBKEY_BYTES_MIN..=SUBKEY_BYTES_MAX).contains(&subkey_len) {
-        return Err(crate::crypto::CryptoError::InvalidKeyLength {
+        return Err(crate::crypto::Error::InvalidKeyLength {
             expected: SUBKEY_BYTES_MAX,
             actual: subkey_len,
         });
@@ -74,16 +89,12 @@ pub fn derive_subkey(
     Ok(SecretVec::new(hash.as_bytes()[..subkey_len].to_vec()))
 }
 
-/// Derive a login key from a master key.
+/// Derive the SRP login key from the user's master key.
 ///
-/// This is a specialized wrapper around `derive_subkey` used for SRP authentication.
-/// Returns the first 16 bytes of a 32-byte subkey derived with context "loginctx" and ID 1.
-///
-/// # Arguments
-/// * `master_key` - Master key to derive from (must be exactly 32 bytes).
-///
-/// # Returns
-/// 16-byte login key, zeroized on drop.
+/// A fixed specialization of [`derive_subkey`]: the first 16 bytes of the
+/// 32-byte subkey with id 1 and context `loginctx`. The login key is what the
+/// client proves knowledge of during SRP authentication, which keeps the master
+/// key itself off the wire. The result is a [`SecretVec`], zeroized on drop.
 pub fn derive_login_key(master_key: &Key) -> SecretVec {
     let subkey = derive_subkey(
         master_key,

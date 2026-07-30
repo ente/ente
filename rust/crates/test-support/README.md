@@ -1,6 +1,6 @@
 # ente-test-support
 
-Runs a local Museum backed by a temporary Postgres for use by various Rust integration tests.
+Runs a local Museum backed by temporary Postgres and object storage for use by various Rust integration tests.
 
 ## Setup
 

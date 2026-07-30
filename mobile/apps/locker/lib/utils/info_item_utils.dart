@@ -1,17 +1,16 @@
+import 'package:ente_components/ente_components.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:locker/models/info/info_item.dart';
+import 'package:locker/utils/file_icon_utils.dart';
+
+enum InfoIconColorRole { caution, purple, primary, warning }
 
 class InfoIconConfig {
   final dynamic icon;
-  final Color color;
-  final Color backgroundColor;
+  final InfoIconColorRole colorRole;
 
-  const InfoIconConfig({
-    required this.icon,
-    required this.color,
-    required this.backgroundColor,
-  });
+  const InfoIconConfig({required this.icon, required this.colorRole});
 }
 
 class InfoItemUtils {
@@ -19,23 +18,19 @@ class InfoItemUtils {
   static const Map<InfoType, InfoIconConfig> _infoTypeConfigs = {
     InfoType.note: InfoIconConfig(
       icon: HugeIcons.strokeRoundedNote,
-      color: Color.fromRGBO(255, 152, 0, 1),
-      backgroundColor: Color.fromRGBO(255, 152, 0, 0.06),
+      colorRole: InfoIconColorRole.caution,
     ),
     InfoType.physicalRecord: InfoIconConfig(
       icon: HugeIcons.strokeRoundedBriefcase01,
-      color: Color.fromRGBO(156, 39, 176, 1),
-      backgroundColor: Color.fromRGBO(156, 39, 176, 0.06),
+      colorRole: InfoIconColorRole.purple,
     ),
     InfoType.accountCredential: InfoIconConfig(
       icon: HugeIcons.strokeRoundedLockPassword,
-      color: Color.fromRGBO(16, 113, 255, 1),
-      backgroundColor: Color.fromRGBO(16, 113, 255, 0.06),
+      colorRole: InfoIconColorRole.primary,
     ),
     InfoType.emergencyContact: InfoIconConfig(
       icon: HugeIcons.strokeRoundedContactBook,
-      color: Color.fromRGBO(244, 67, 54, 1),
-      backgroundColor: Color.fromRGBO(244, 67, 54, 0.06),
+      colorRole: InfoIconColorRole.warning,
     ),
   };
 
@@ -44,24 +39,37 @@ class InfoItemUtils {
   }
 
   static Widget getInfoIcon(
+    BuildContext context,
     InfoType type, {
-    bool showBackground = true,
     double size = 24,
+    Color? backgroundColor,
   }) {
+    final colors = context.componentColors;
     final config = _getInfoConfig(type);
-
-    final icon = HugeIcon(icon: config.icon, color: config.color, size: size);
-
-    if (!showBackground) {
-      return icon;
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: config.backgroundColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(padding: const EdgeInsets.all(8.0), child: icon),
+    return buildRoleIcon(
+      icon: config.icon,
+      foregroundColor: _foregroundColor(config.colorRole, colors),
+      backgroundColor:
+          backgroundColor ?? _backgroundColor(config.colorRole, colors),
+      size: size,
     );
+  }
+
+  static Color _foregroundColor(InfoIconColorRole role, ColorTokens colors) {
+    return switch (role) {
+      InfoIconColorRole.caution => colors.caution,
+      InfoIconColorRole.purple => colors.purple,
+      InfoIconColorRole.primary => colors.primary,
+      InfoIconColorRole.warning => colors.warning,
+    };
+  }
+
+  static Color _backgroundColor(InfoIconColorRole role, ColorTokens colors) {
+    return switch (role) {
+      InfoIconColorRole.caution => colors.cautionLight,
+      InfoIconColorRole.purple => colors.purpleLight,
+      InfoIconColorRole.primary => colors.primaryLight,
+      InfoIconColorRole.warning => colors.warningLight,
+    };
   }
 }

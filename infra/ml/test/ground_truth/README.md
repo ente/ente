@@ -4,7 +4,7 @@ This directory stores the Python ground-truth assets for the ML indexing parity 
 
 - `manifest.json`: corpus definition and per-item metadata.
 - `schema.py`: strict shared result schema used by all runners.
-- `clip.py`, `face_detection.py`, `face_alignment.py`, `face_embedding.py`, `pipeline.py`: ONNX-backed Python reference pipeline that mirrors the mobile `analyzeImageStatic` flow using Pillow + OpenCV + ONNX Runtime.
+- `clip.py`, `face_detection.py`, `face_alignment.py`, `face_embedding.py`, `pipeline.py`: ONNX-backed Python reference pipeline for validating the production Rust ML indexing flow using Pillow + OpenCV + ONNX Runtime.
 
 Runtime outputs (`goldens/*.json`, `goldens/results.json`, and `infra/ml/test/out/parity/**`) are generated on demand and are gitignored.
 
@@ -36,12 +36,12 @@ If Pillow decode fails, Python ground truth now fails by default instead of sile
 ## Generate Goldens
 
 ```sh
-uv run --project infra/ml --no-sync --with pillow-heif python infra/ml/test/tools/generate_goldens.py \
+uv run --project infra/ml python infra/ml/test/tools/generate_goldens.py \
   --manifest infra/ml/test/ground_truth/manifest.json \
   --output-dir infra/ml/test/out/parity/python
 ```
 
-`generate_goldens.py` expects fixture files to already be present locally. `run_ml_parity_tests.sh` is responsible for clearing `infra/ml/test/test_data/ml-indexing/v1`, downloading fixtures, and then calling the generator.
+`generate_goldens.py` expects fixture files to already be present locally. `run_ml_parity_tests.sh` is responsible for syncing `infra/ml/test/test_data/ml-indexing/v1`, verifying fixture SHA-256 values, and then calling the generator.
 
 ## Compare Against Platforms
 

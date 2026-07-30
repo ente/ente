@@ -494,6 +494,7 @@ class _ButtonWidgetV2State extends State<ButtonWidgetV2>
           await Future.delayed(successDisplayDuration);
 
           if (widget.isInAlert) {
+            if (!mounted) return;
             _popWithButtonAction(context, buttonAction: widget.buttonAction);
           }
 

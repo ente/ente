@@ -3,11 +3,11 @@ package api
 import (
 	"net/http"
 
-	"github.com/ente-io/museum/ente"
-	fileData "github.com/ente-io/museum/ente/filedata"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/handler"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	fileData "github.com/ente/museum/ente/filedata"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/handler"
+	"github.com/ente/stacktrace"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -15,7 +15,7 @@ import (
 
 func (h *FileHandler) PutFileData(ctx *gin.Context) {
 	var req fileData.PutFileDataRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(ctx, &req); err != nil {
 		ctx.JSON(http.StatusBadRequest, ente.NewBadRequestWithMessage(err.Error()))
 		return
 	}
@@ -38,7 +38,7 @@ func (h *FileHandler) PutFileData(ctx *gin.Context) {
 }
 func (h *FileHandler) PutVideoData(ctx *gin.Context) {
 	var req fileData.VidPreviewRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(ctx, &req); err != nil {
 		logrus.WithField("req_id", requestid.Get(ctx)).WithError(err).Warn("Request binding failed")
 		handler.Error(ctx, ente.NewBadRequestWithMessage("invalid request body"))
 		return
@@ -62,7 +62,7 @@ func (h *FileHandler) PutVideoData(ctx *gin.Context) {
 
 func (h *FileHandler) GetFilesData(ctx *gin.Context) {
 	var req fileData.GetFilesData
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(ctx, &req); err != nil {
 		ctx.JSON(http.StatusBadRequest, ente.NewBadRequestWithMessage(err.Error()))
 		return
 	}
@@ -78,7 +78,7 @@ func (h *FileHandler) GetFilesData(ctx *gin.Context) {
 // This doesn't simulate perfect diff behaviour as we won't maintain a tombstone entries for the deleted API.
 func (h *FileHandler) FileDataStatusDiff(ctx *gin.Context) {
 	var req fileData.FDDiffRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	if err := handler.BindJSON(ctx, &req); err != nil {
 		ctx.JSON(http.StatusBadRequest, ente.NewBadRequestWithMessage(err.Error()))
 		return
 	}

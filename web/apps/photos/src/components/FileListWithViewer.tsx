@@ -6,7 +6,6 @@ import { useModalVisibility } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
 import { isSameDay } from "ente-base/date";
 import { formattedDate } from "ente-base/i18n-date";
-import log from "ente-base/log";
 import type { AddSaveGroup } from "ente-gallery/components/utils/save-groups";
 import {
     FileViewer,
@@ -23,6 +22,7 @@ import { moveToTrash } from "ente-new/photos/services/collection";
 import type { CollectionSummary } from "ente-new/photos/services/collection-summary";
 import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
 import { updateMapEnabled } from "ente-new/photos/services/settings";
+import { usePhotosAppContext } from "ente-new/photos/types/context";
 import { t } from "i18next";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
@@ -132,6 +132,8 @@ export type FileListWithViewerProps = {
         | "isInIncomingSharedCollection"
         | "isInHiddenSection"
         | "fileNormalCollectionIDs"
+        | "fileCollectionIDs"
+        | "hiddenCollectionIDs"
         | "collectionSummaries"
         | "collectionNameByID"
         | "pendingFavoriteUpdates"
@@ -178,6 +180,8 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     isInIncomingSharedCollection,
     isInHiddenSection,
     fileNormalCollectionIDs,
+    fileCollectionIDs,
+    hiddenCollectionIDs,
     collectionSummaries,
     collectionNameByID,
     pendingFavoriteUpdates,
@@ -213,6 +217,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     const { show: showMapDialog, props: mapDialogVisibilityProps } =
         useModalVisibility();
     const { onGenericError } = useBaseContext();
+    const { showNotification } = usePhotosAppContext();
     const { mapEnabled } = useSettingsSnapshot();
     const { mode: colorSchemeMode, systemMode } = useColorScheme();
     const theme = useTheme();
@@ -291,11 +296,19 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
             collection: Collection,
             enteFile: EnteFile,
         ) => {
+            if (uploadManager.isUploadInProgress()) {
+                showNotification({
+                    color: "critical",
+                    title: t("wait_for_active_upload_to_finish"),
+                });
+                return false;
+            }
             uploadManager.prepareForNewUpload();
             uploadManager.showUploadProgressDialog();
             void uploadManager.uploadFile(editedFile, collection, enteFile);
+            return true;
         };
-    }, [enableImageEditing]);
+    }, [enableImageEditing, showNotification]);
 
     const shouldShowMapButton =
         modePlus !== "search" &&
@@ -393,6 +406,8 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
                     isInIncomingSharedCollection,
                     favoriteFileIDs,
                     fileNormalCollectionIDs,
+                    fileCollectionIDs,
+                    hiddenCollectionIDs,
                     collectionSummaries,
                     collectionNameByID,
                     pendingFavoriteUpdates,
@@ -476,8 +491,6 @@ const MapIcon = styled("img")<{ $isDarkMode: boolean }>(
  */
 const fileTimelineDateString = (file: EnteFile) => {
     const date = fileCreationPhotoDate(file);
-    if (!Number.isFinite(date.getTime()))
-        log.error(`Invalid file creation date for ${file.id}`);
     return isSameDay(date, new Date())
         ? t("today")
         : isSameDay(date, new Date(Date.now() - 24 * 60 * 60 * 1000))

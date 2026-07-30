@@ -9,5 +9,5 @@ In some cases, your query might already have been answered in our help documenta
 Other ways to get in touch are:
 
 - [Ask in our Discord](https://discord.gg/z2YVKkycX3)
-- [Start a new discussion](https://github.com/ente-io/ente/discussions/new?category=q-a)
-- [Open a bug report in our issue tracker](https://github.com/ente-io/ente/issues/)
+- [Start a new discussion](https://github.com/ente/ente/discussions/new?category=q-a)
+- [Open a bug report in our issue tracker](https://github.com/ente/ente/issues/)

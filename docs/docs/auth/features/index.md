@@ -9,7 +9,7 @@ This page outlines the key features available in Ente Auth.
 
 ### Icons
 
-Ente Auth supports the icon pack provided by [simple-icons](https://github.com/simple-icons/simple-icons). If an icon you need is missing, please refer to the [docs/adding-icons](https://github.com/ente-io/ente/blob/main/mobile/apps/auth/docs/adding-icons.md) guide for instructions on how to contribute.
+Ente Auth supports the icon pack provided by [simple-icons](https://github.com/simple-icons/simple-icons). If an icon you need is missing, please refer to the [docs/adding-icons](https://github.com/ente/ente/blob/main/mobile/apps/auth/docs/adding-icons.md) guide for instructions on how to contribute.
 
 ### Search
 

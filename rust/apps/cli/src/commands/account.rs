@@ -7,15 +7,15 @@ use crate::{
     },
     storage::Storage,
 };
-use base64::Engine;
 use dialoguer::{Input, Password, Select};
 use ente_accounts::{
     AccountsClient, AccountsClientConfig, AuthFlow, AuthFlowUi, AuthenticatedAccount,
-    CreateAccountParams, Error as AccountsError, LoginParams, OtpPurpose, Result as AccountsResult,
-    SecondFactorMethod, SetupTwoFactorParams, TotpPurpose,
+    CreateAccountParams, LoginParams, OtpPurpose, SecondFactorMethod, SetupTwoFactorParams,
+    TotpPurpose,
 };
+use ente_core::b64;
 use ente_core::crypto::SecretVec;
-use ente_core::urls::PRODUCTION_API_BASE_URL;
+use ente_core::urls::PRODUCTION_API_ORIGIN;
 use std::{path::PathBuf, str::FromStr};
 use zeroize::Zeroizing;
 
@@ -113,7 +113,7 @@ impl AuthFlowUi for DialoguerAuthFlowUi {
         email: &str,
         purpose: OtpPurpose,
         resent: bool,
-    ) -> AccountsResult<String> {
+    ) -> ente_accounts::Result<String> {
         if let Some(code) = self.email_otp.take() {
             return Ok(code);
         }
@@ -136,7 +136,7 @@ impl AuthFlowUi for DialoguerAuthFlowUi {
         read_six_digit_code_for_accounts(&prompt)
     }
 
-    fn read_totp_code(&mut self, purpose: TotpPurpose) -> AccountsResult<String> {
+    fn read_totp_code(&mut self, purpose: TotpPurpose) -> ente_accounts::Result<String> {
         if let Some(code) = self.totp_code.take() {
             return Ok(code);
         }
@@ -149,7 +149,7 @@ impl AuthFlowUi for DialoguerAuthFlowUi {
         read_six_digit_code_for_accounts(prompt)
     }
 
-    fn report_retryable_error(&mut self, message: &str) -> AccountsResult<()> {
+    fn report_retryable_error(&mut self, message: &str) -> ente_accounts::Result<()> {
         println!("\n{message}");
         Ok(())
     }
@@ -157,7 +157,7 @@ impl AuthFlowUi for DialoguerAuthFlowUi {
     fn choose_second_factor(
         &mut self,
         methods: &[SecondFactorMethod],
-    ) -> AccountsResult<SecondFactorMethod> {
+    ) -> ente_accounts::Result<SecondFactorMethod> {
         if let Some(choice) = self.second_factor {
             return Ok(choice);
         }
@@ -175,38 +175,42 @@ impl AuthFlowUi for DialoguerAuthFlowUi {
             .items(&options)
             .default(0)
             .interact()
-            .map_err(|e| AccountsError::InvalidInput(e.to_string()))?;
+            .map_err(|e| ente_accounts::Error::InvalidInput(e.to_string()))?;
 
-        methods
-            .get(index)
-            .copied()
-            .ok_or_else(|| AccountsError::InvalidInput("Invalid second-factor selection".into()))
+        methods.get(index).copied().ok_or_else(|| {
+            ente_accounts::Error::InvalidInput("Invalid second-factor selection".into())
+        })
     }
 
-    fn present_passkey_verification(&mut self, url: &str) -> AccountsResult<()> {
+    fn present_passkey_verification(&mut self, url: &str) -> ente_accounts::Result<()> {
         println!("\nPasskey verification required");
         println!("Open this URL in your browser to verify your passkey:\n{url}");
 
-        if !self.passkey_presented {
-            if let Err(error) = open::that(url) {
-                log::error!("failed to open browser: {error}");
-            }
-            self.passkey_presented = true;
+        if !self.passkey_presented
+            && can_open_automatically(url)
+            && let Err(error) = open::that(url)
+        {
+            log::error!("failed to open browser: {error}");
         }
+        self.passkey_presented = true;
 
         Ok(())
     }
 
-    fn wait_for_passkey_verification(&mut self) -> AccountsResult<()> {
+    fn wait_for_passkey_verification(&mut self) -> ente_accounts::Result<()> {
         let _: String = Input::new()
             .with_prompt("Press Enter once you have completed passkey verification")
             .allow_empty(true)
             .interact_text()
-            .map_err(|e| AccountsError::InvalidInput(e.to_string()))?;
+            .map_err(|e| ente_accounts::Error::InvalidInput(e.to_string()))?;
         Ok(())
     }
 
-    fn present_totp_secret(&mut self, secret_code: &str, _qr_code: &str) -> AccountsResult<()> {
+    fn present_totp_secret(
+        &mut self,
+        secret_code: &str,
+        _qr_code: &str,
+    ) -> ente_accounts::Result<()> {
         println!("\nTOTP setup secret: {secret_code}");
         println!("Add this secret to your authenticator app, then enter the current code.");
         Ok(())
@@ -229,7 +233,7 @@ async fn list_accounts(storage: &Storage) -> Result<()> {
     println!("{}", "-".repeat(110));
 
     for account in accounts {
-        let endpoint_display = if account.endpoint == PRODUCTION_API_BASE_URL {
+        let endpoint_display = if account.endpoint == PRODUCTION_API_ORIGIN {
             "api.ente.com (prod)".to_string()
         } else if account.endpoint.starts_with("http://localhost") {
             format!(
@@ -423,7 +427,7 @@ async fn enable_two_factor(
         .ok_or_else(|| Error::NotFound(format!("Secrets not found for account {email}")))?;
 
     let client = new_accounts_client(&account.endpoint, app)?;
-    let token = base64::engine::general_purpose::URL_SAFE.encode(&secrets.token);
+    let token = b64::encode_url_safe(&secrets.token);
     client.set_auth_token(Some(token));
 
     let mut ui = DialoguerAuthFlowUi::new(None, totp_code, Some(SecondFactorMethod::Totp));
@@ -477,7 +481,7 @@ async fn get_token(storage: &Storage, email: &str, app_str: &str) -> Result<()> 
         .get_secrets(account.user_id, account.app)?
         .ok_or_else(|| Error::NotFound(format!("Secrets not found for account {email}")))?;
 
-    let token = base64::engine::general_purpose::URL_SAFE.encode(&secrets.token);
+    let token = b64::encode_url_safe(&secrets.token);
     println!("{token}");
 
     Ok(())
@@ -575,17 +579,23 @@ fn parse_second_factor(second_factor: Option<&str>) -> Result<Option<SecondFacto
 fn new_accounts_client(endpoint: &str, app: App) -> Result<AccountsClient> {
     AccountsClient::new(
         AccountsClientConfig::new(app.client_package())
-            .with_base_url(endpoint.to_string())
+            .with_origin(endpoint.to_string())
             .with_user_agent(USER_AGENT),
     )
     .map_err(Error::from)
 }
 
-fn is_retryable_password_error(error: &AccountsError) -> bool {
+fn is_retryable_password_error(error: &ente_accounts::Error) -> bool {
     matches!(
         error,
-        AccountsError::AuthenticationFailed(message) if message == "Incorrect password"
+        ente_accounts::Error::AuthenticationFailed(message) if message == "Incorrect password"
     ) || error.is_http_status(&[401])
+}
+
+fn can_open_automatically(url: &str) -> bool {
+    url.split_once("://").is_some_and(|(scheme, _)| {
+        scheme.eq_ignore_ascii_case("https") || scheme.eq_ignore_ascii_case("http")
+    })
 }
 
 fn read_six_digit_code(prompt: &str) -> Result<String> {
@@ -602,6 +612,20 @@ fn read_six_digit_code(prompt: &str) -> Result<String> {
         .map_err(|e| Error::InvalidInput(e.to_string()))
 }
 
-fn read_six_digit_code_for_accounts(prompt: &str) -> AccountsResult<String> {
-    read_six_digit_code(prompt).map_err(|error| AccountsError::InvalidInput(error.to_string()))
+fn read_six_digit_code_for_accounts(prompt: &str) -> ente_accounts::Result<String> {
+    read_six_digit_code(prompt)
+        .map_err(|error| ente_accounts::Error::InvalidInput(error.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::can_open_automatically;
+
+    #[test]
+    fn automatic_opening_is_limited_to_web_urls() {
+        assert!(can_open_automatically("https://accounts.ente.io"));
+        assert!(can_open_automatically("HTTP://localhost:3000"));
+        assert!(!can_open_automatically("ente-cli://passkey"));
+        assert!(!can_open_automatically("file:///etc/hosts"));
+    }
 }

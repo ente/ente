@@ -132,6 +132,7 @@ class _TwoFactorSetupPageState extends State<TwoFactorSetupPage>
     return GestureDetector(
       onTap: () async {
         await Clipboard.setData(ClipboardData(text: widget.secretCode));
+        if (!mounted) return;
         showShortToast(
           context,
           AppLocalizations.of(context).codeCopiedToClipboard,

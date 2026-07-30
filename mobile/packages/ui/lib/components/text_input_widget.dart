@@ -229,9 +229,11 @@ class _TextInputWidgetState extends State<TextInputWidget> {
   void _onSubmit() async {
     _debouncer.run(
       () => Future(() {
-        setState(() {
-          executionState = ExecutionState.inProgress;
-        });
+        if (mounted) {
+          setState(() {
+            executionState = ExecutionState.inProgress;
+          });
+        }
       }),
     );
     if (widget.shouldUnfocusOnCancelOrSubmit) {
@@ -240,6 +242,13 @@ class _TextInputWidgetState extends State<TextInputWidget> {
     try {
       await widget.onSubmit!.call(_textController.text);
     } catch (e) {
+      if (!mounted) {
+        _debouncer.cancelDebounce();
+        if (!widget.popNavAfterSubmission) {
+          rethrow;
+        }
+        return;
+      }
       executionState = ExecutionState.error;
       _debouncer.cancelDebounce();
       _exception = e as Exception;
@@ -250,6 +259,10 @@ class _TextInputWidgetState extends State<TextInputWidget> {
       if (!widget.popNavAfterSubmission) {
         rethrow;
       }
+    }
+    if (!mounted) {
+      _debouncer.cancelDebounce();
+      return;
     }
     widget.alwaysShowSuccessState && _debouncer.isActive()
         ? executionState = ExecutionState.successful
@@ -265,6 +278,9 @@ class _TextInputWidgetState extends State<TextInputWidget> {
     // idle state. This Future is for delaying the execution of the if
     // condition so that the calback in the debouncer finishes execution before.
     await Future.delayed(const Duration(milliseconds: 5));
+    if (!mounted) {
+      return;
+    }
     if (executionState == ExecutionState.inProgress ||
         executionState == ExecutionState.error) {
       if (executionState == ExecutionState.inProgress) {
@@ -284,6 +300,9 @@ class _TextInputWidgetState extends State<TextInputWidget> {
                       : 0,
                 ),
                 () {
+                  if (!mounted) {
+                    return;
+                  }
                   widget.popNavAfterSubmission
                       ? _popNavigatorStack(context)
                       : null;
@@ -302,10 +321,12 @@ class _TextInputWidgetState extends State<TextInputWidget> {
         setState(() {
           executionState = ExecutionState.idle;
           widget.popNavAfterSubmission
-              ? Future.delayed(
-                  const Duration(seconds: 0),
-                  () => _popNavigatorStack(context, e: _exception),
-                )
+              ? Future.delayed(const Duration(seconds: 0), () {
+                  if (!mounted) {
+                    return;
+                  }
+                  _popNavigatorStack(context, e: _exception);
+                })
               : null;
         });
       }
@@ -313,7 +334,12 @@ class _TextInputWidgetState extends State<TextInputWidget> {
       if (widget.popNavAfterSubmission) {
         Future.delayed(
           Duration(seconds: widget.alwaysShowSuccessState ? 1 : 0),
-          () => _popNavigatorStack(context),
+          () {
+            if (!mounted) {
+              return;
+            }
+            _popNavigatorStack(context);
+          },
         );
       }
     }

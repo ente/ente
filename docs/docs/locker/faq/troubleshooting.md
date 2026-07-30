@@ -28,6 +28,17 @@ To improve performance:
 3. Update to the latest app version
 4. Restart the app
 
+### Locker won't open on GrapheneOS. What should I do? {#locker-graphene-exploit-protection}
+
+On GrapheneOS, Locker may fail to open unless exploit protection compatibility mode is enabled for it.
+
+**On GrapheneOS:**
+
+1. Open device `Settings > Apps > Ente Locker`.
+2. Tap **Exploit protection compatibility mode** (under the app's settings).
+3. Turn it on.
+4. Force-close and reopen Locker.
+
 ### Why isn't my item appearing in search? {#locker-search-missing}
 
 Items may not appear in search because:
@@ -81,7 +92,7 @@ If you only have a PIN and forgot it, you may need to reinstall the app and log 
 
 ### How do I report a bug? {#locker-report-bug}
 
-Report bugs on GitHub: [github.com/ente-io/ente/issues](https://github.com/ente-io/ente/issues)
+Report bugs on GitHub: [github.com/ente/ente/issues](https://github.com/ente/ente/issues)
 
 Include:
 

@@ -1,10 +1,10 @@
 package user
 
 import (
-	"github.com/ente-io/museum/ente/details"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente/details"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 

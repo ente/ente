@@ -94,6 +94,7 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
           onTap: isFormValid
               ? () async {
                   await _updatePassword();
+                  if (!context.mounted) return;
                   FocusScope.of(context).unfocus();
                 }
               : null,
@@ -281,14 +282,17 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
         widget.sessions,
       );
       await dialog.hide();
+      if (!mounted) return;
       showShortToast(
         context,
         AppLocalizations.of(context).passwordChangedSuccessfully,
       );
+      if (!mounted) return;
       Navigator.of(context).pop();
     } catch (e, s) {
       _logger.severe("Failed to recover account", e, s);
       await dialog.hide();
+      if (!mounted) return;
       showGenericErrorBottomSheet(context: context, error: e).ignore();
     }
   }

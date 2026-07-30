@@ -3,6 +3,7 @@ import "dart:math" as math;
 import "dart:ui" as ui;
 
 import "package:audio_session/audio_session.dart";
+import "package:ente_components/theme/colors.dart" as components;
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter/rendering.dart";
@@ -157,7 +158,7 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
       _didRegisterWillPop = true;
     });
     unawaited(_initBackgroundMusic());
-    EnteWakeLockService.instance.updateWakeLock(
+    wakeLockService.updateWakeLock(
       enable: true,
       wakeLockFor: WakeLockFor.rewindViewer,
     );
@@ -181,7 +182,7 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
     _pageController.dispose();
     unawaited(_playerStateSubscription?.cancel());
     unawaited(_audioPlayer.dispose());
-    EnteWakeLockService.instance.updateWakeLock(
+    wakeLockService.updateWakeLock(
       enable: false,
       wakeLockFor: WakeLockFor.rewindViewer,
     );
@@ -525,6 +526,7 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
     if (!_didRegisterWillPop) {
       await _fadeOutAndStopMusic();
     }
+    if (!mounted) return;
     final bool didPop = await Navigator.of(context).maybePop();
     if (!didPop && mounted) {
       _isClosing = false;
@@ -941,9 +943,11 @@ class _WrappedViewerPageState extends State<WrappedViewerPage>
         hideInteractiveControls: hideShareControls,
       );
       if (bytes == null) {
+        if (!mounted) return;
         showShortToast(context, "Unable to prepare share");
         return;
       }
+      if (!mounted) return;
       await SharePlus.instance.share(
         ShareParams(
           files: <XFile>[

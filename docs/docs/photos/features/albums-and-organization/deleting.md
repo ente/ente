@@ -77,7 +77,7 @@ Trash is a special folder where deleted photos are held temporarily before perma
 **On mobile:**
 
 1. Open the Albums tab
-2. Scroll to the bottom
+2. Tap on 'v' icon at the right.
 3. Tap "Trash"
 
 **On web/desktop:**
@@ -103,9 +103,10 @@ If you accidentally deleted photos, you can restore them from Trash within 30 da
 ### On mobile
 
 1. Open the Albums tab
-2. Scroll to the bottom and tap "Trash"
-3. Select the photos you want to restore
-4. Tap the "Restore" button
+2. Tap on 'v' icon at the right.
+3. Tap "Trash"
+4. Select the photos you want to restore
+5. Tap the "Restore" button
 
 ### On web/desktop
 

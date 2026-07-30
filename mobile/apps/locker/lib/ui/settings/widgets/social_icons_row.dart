@@ -24,7 +24,7 @@ class SocialIconsRow extends StatelessWidget {
         SizedBox(width: 8),
         _SocialIconButton(
           icon: HugeIcons.strokeRoundedGithub,
-          url: "https://github.com/ente-io",
+          url: "https://github.com/ente",
         ),
         SizedBox(width: 8),
         _SocialIconButton(

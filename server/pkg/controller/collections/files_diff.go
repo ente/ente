@@ -3,9 +3,9 @@ package collections
 import (
 	"fmt"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller/access"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller/access"
+	"github.com/ente/stacktrace"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"

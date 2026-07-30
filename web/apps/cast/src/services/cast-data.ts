@@ -9,6 +9,11 @@ export interface CastData {
     castToken: string;
 }
 
+export const clearCastData = () => {
+    for (const key of ["collectionID", "collectionKey", "castToken"])
+        localStorage.removeItem(key);
+};
+
 /**
  * Save the data received after pairing with a sender into local storage.
  *

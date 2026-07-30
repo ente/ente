@@ -39,7 +39,7 @@ on traditional distros, or `/etc/polkit-1/actions/` on immutable distros (such a
 Fedora Atomic, Universal Blue, or similar) where `/usr/share` is read-only.
 
 ```sh
-policy_url="https://raw.githubusercontent.com/ente-io/ente/main/mobile/apps/auth/assets/polkit/com.ente.auth.policy"
+policy_url="https://raw.githubusercontent.com/ente/ente/main/mobile/apps/auth/assets/polkit/com.ente.auth.policy"
 policy_sha256="efba0409db9a0a53196fa8a7c9f4d4e874234b48287eb5242cf399f466e4c695"
 policy="$(mktemp)"
 

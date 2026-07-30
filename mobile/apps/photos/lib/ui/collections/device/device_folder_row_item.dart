@@ -7,7 +7,7 @@ import 'package:photos/models/device_collection.dart';
 import "package:photos/service_locator.dart";
 import "package:photos/ui/components/collection_share_badge.dart";
 import 'package:photos/ui/viewer/file/thumbnail_widget.dart';
-import 'package:photos/ui/viewer/gallery/device_folder_page.dart';
+import 'package:photos/ui/viewer/gallery/device/device_folder_page.dart';
 
 class DeviceFolderRowItem extends StatelessWidget {
   final DeviceCollection deviceCollection;

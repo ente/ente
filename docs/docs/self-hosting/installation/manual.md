@@ -63,7 +63,7 @@ If you wish to run Ente from source without using Docker, follow the steps descr
 Start by cloning Ente's repository from GitHub to your local machine.
 
 ```sh
-git clone https://github.com/ente-io/ente
+git clone https://github.com/ente/ente
 ```
 
 ## Step 2: Configure PostgreSQL database

@@ -18,6 +18,7 @@ import "package:photos/models/file/file_type.dart";
 import "package:photos/models/file_load_result.dart";
 import "package:photos/models/gallery_type.dart";
 import "package:photos/models/selected_files.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/filter/db_filters.dart";
@@ -29,7 +30,6 @@ import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/state/selection_state.dart";
-import "package:photos/utils/file_util.dart";
 
 class ExternalMediaPickerPage extends StatefulWidget {
   final MediaType? requestedType;

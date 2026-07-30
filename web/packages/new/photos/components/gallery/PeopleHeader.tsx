@@ -53,13 +53,13 @@ import {
     suggestionsAndChoicesForPerson,
     unpinCGroup,
 } from "ente-new/photos/services/ml";
-import {
-    type CGroupPerson,
-    type ClusterPerson,
-    type Person,
-    type PersonSuggestionsAndChoices,
-    type PersonSuggestionUpdates,
-    type PreviewableCluster,
+import type {
+    CGroupPerson,
+    ClusterPerson,
+    Person,
+    PersonSuggestionsAndChoices,
+    PersonSuggestionUpdates,
+    PreviewableCluster,
 } from "ente-new/photos/services/ml/people";
 import { t } from "i18next";
 import React, { useEffect, useReducer, useState } from "react";

@@ -1,5 +1,5 @@
 import "package:dotted_border/dotted_border.dart";
-import "package:ente_ui/theme/ente_theme.dart";
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 
 class EmptyStateWidget extends StatelessWidget {
@@ -28,15 +28,14 @@ class EmptyStateWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
 
     final content = GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: colorScheme.backdropBase,
+          color: colors.fillLight,
           borderRadius: BorderRadius.circular(24),
         ),
         padding: EdgeInsets.symmetric(
@@ -53,16 +52,14 @@ class EmptyStateWidget extends StatelessWidget {
             if (title != null && title!.isNotEmpty)
               Text(
                 title!,
-                style: textTheme.largeBold.copyWith(
-                  color: colorScheme.textBase,
-                ),
+                style: TextStyles.large,
                 textAlign: TextAlign.center,
               ),
             if (title != null && title!.isNotEmpty) const SizedBox(height: 12),
             if (subtitle != null && subtitle!.isNotEmpty)
               Text(
                 subtitle!,
-                style: textTheme.small.copyWith(color: colorScheme.textMuted),
+                style: TextStyles.body.copyWith(color: colors.textLight),
                 textAlign: TextAlign.center,
               ),
           ],
@@ -77,7 +74,7 @@ class EmptyStateWidget extends StatelessWidget {
     return DottedBorder(
       options: RoundedRectDottedBorderOptions(
         strokeWidth: 1,
-        color: colorScheme.textFaint,
+        color: colors.textLighter,
         dashPattern: const [5, 5],
         radius: const Radius.circular(24),
       ),

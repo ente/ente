@@ -10,6 +10,7 @@ import 'package:photos/theme/ente_theme.dart';
 import 'package:photos/ui/components/base_bottom_sheet.dart';
 import 'package:photos/ui/components/buttons/button_widget_v2.dart';
 import 'package:photos/ui/family/family_ui.dart';
+import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/utils/dialog_util.dart';
 import 'package:photos/utils/share_util.dart';
 
@@ -359,16 +360,18 @@ class _InviteMembersPageState extends State<InviteMembersPage> {
           ..clear()
           ..addAll(failedEmails);
       });
-      showFamilySnackBar(
-        context,
-        failedEmails.length == 1
-            ? AppLocalizations.of(
-                context,
-              ).failedToInvite(email: failedEmails.first)
-            : AppLocalizations.of(
-                context,
-              ).failedToInviteCount(count: failedEmails.length),
-      );
+      if (mounted) {
+        showToast(
+          context,
+          failedEmails.length == 1
+              ? AppLocalizations.of(
+                  context,
+                ).failedToInvite(email: failedEmails.first)
+              : AppLocalizations.of(
+                  context,
+                ).failedToInviteCount(count: failedEmails.length),
+        );
+      }
       throw const _HandledInviteActionException();
     } catch (error) {
       if (error is _HandledInviteActionException) {

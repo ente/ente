@@ -1,1 +1,0 @@
-- Fixed Auth startup crashes on Linux X11 sessions caused by Xlib threading initialization.

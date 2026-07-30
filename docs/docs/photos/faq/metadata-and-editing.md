@@ -27,7 +27,7 @@ Ente will try to read as much information from Exif metadata when the image is u
 
 The app still shows all the fields in the raw Exif data in the file info panel when someone taps on the "View all Exif" option, but otherwise the app is unaware of these fields.
 
-In particular, for the description associated with a photo, the exact logic to determine the description from the Exif when uploading the image can be seen [in this part of the code](https://github.com/ente-io/ente/blob/0dcb185744da469848b41b668fe4b647226b6fe2/web/packages/gallery/services/exif.ts#L609-L620).
+In particular, for the description associated with a photo, the exact logic to determine the description from the Exif when uploading the image can be seen [in this part of the code](https://github.com/ente/ente/blob/0dcb185744da469848b41b668fe4b647226b6fe2/web/packages/gallery/services/exif.ts#L609-L620).
 
 ### Where does Ente import photo dates from? {#photo-date-sources}
 
@@ -167,6 +167,14 @@ Photos sometimes have incorrect dates due to:
 3. Apply the correct date/time
 
 Ente will store your corrections and sync them across all your devices.
+
+### What do the Fix time options mean? {#fix-time-options}
+
+- **Exif:DateTimeOriginal**: The original capture timestamp saved in the file's EXIF metadata.
+- **Exif:DateTimeDigitized**: The timestamp for when the image was converted to a digital file, such as when it was scanned.
+- **Exif:MetadataDate**: The timestamp for when the metadata was last updated. Use this only if the capture timestamps are incorrect.
+- **File name**: Parses a date from the file name, if it contains one.
+- **Custom time**: lets you enter the exact date and time manually.
 
 ### Are my metadata edits reversible? {#edits-reversible}
 

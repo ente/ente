@@ -22,7 +22,7 @@ import {
 import { SpacedRow } from "ente-base/components/containers";
 import { DialogCloseIconButton } from "ente-base/components/mui/DialogCloseIconButton";
 import { useInterval, useIsSmallWidth } from "ente-base/components/utils/hooks";
-import { type ModalVisibilityProps } from "ente-base/components/utils/modal";
+import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
 import type { PublicAlbumsCredentials } from "ente-base/http";
 import { formattedListJoin, ut } from "ente-base/i18n";
@@ -39,7 +39,7 @@ import {
     resetMoreMenuButtonOnMenuClose,
     type FileViewerPhotoSwipeDelegate,
 } from "../lib/photoswipe";
-import { type Comment, type UnifiedReaction } from "../lib/social-types";
+import type { Comment, UnifiedReaction } from "../lib/social-types";
 import { AddNameModal } from "./AddNameModal";
 import { CommentsSidebar } from "./CommentsSidebar";
 import { FileInfo, type FileInfoExif } from "./FileInfo";
@@ -152,13 +152,15 @@ export const FileViewer: React.FC<FileViewerProps> = ({
     //
     // The word "dynamic" here means a prop on whose change we should not
     // recreate the photoswipe dialog.
-    const delegateRef = useRef<FileViewerPhotoSwipeDelegate | undefined>(
-        undefined,
-    );
+    const delegateRef = useRef<
+        FileViewerPhotoSwipeDelegate<FileViewerAnnotatedFile> | undefined
+    >(undefined);
 
     // We also need to maintain a ref to the currently displayed dialog since we
     // might need to ask it to refresh its contents.
-    const psRef = useRef<FileViewerPhotoSwipe | undefined>(undefined);
+    const psRef = useRef<
+        FileViewerPhotoSwipe<FileViewerAnnotatedFile> | undefined
+    >(undefined);
     const handleCloseRef = useRef<() => void>(() => undefined);
     const browserBackStateRef = useRef<string | undefined>(undefined);
 
@@ -403,7 +405,6 @@ export const FileViewer: React.FC<FileViewerProps> = ({
     activeAnnotatedFileRef.current = activeAnnotatedFile;
 
     const haveUser = false;
-    const isPublicAlbum = true;
 
     // Called when the like button (heart) is clicked in public album mode.
     const handleLikeClick = useCallback(() => {
@@ -826,7 +827,7 @@ export const FileViewer: React.FC<FileViewerProps> = ({
     );
 
     const performKeyAction = useCallback<
-        FileViewerPhotoSwipeDelegate["performKeyAction"]
+        FileViewerPhotoSwipeDelegate<FileViewerAnnotatedFile>["performKeyAction"]
     >(
         (action) => {
             switch (action) {
@@ -1173,8 +1174,6 @@ export const FileViewer: React.FC<FileViewerProps> = ({
 
             const pswp = new FileViewerPhotoSwipe({
                 initialIndex,
-                haveUser,
-                isPublicAlbum,
                 showSocialButtons,
                 enableComment,
                 showFullscreenButton,

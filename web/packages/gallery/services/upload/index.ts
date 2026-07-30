@@ -5,6 +5,7 @@ import type { ZipItem } from "ente-base/types/ipc";
 import { exportMetadataDirectoryName } from "ente-gallery/export-dirs";
 import type { Collection } from "ente-media/collection";
 import type { EnteFile } from "ente-media/file";
+import { tryParseTakeoutAlbumNameMetadataJSON } from "./metadata-json";
 import type { ExternalParsedMetadata } from "./upload-service";
 
 /**
@@ -189,6 +190,43 @@ export const uploadPathPrefix = (pathOrName: string) => {
 export type UploadItemAndPath = [UploadItem, string];
 
 /**
+ * Build a lookup of album-level Takeout `metadata.json` files by their
+ * containing folder path.
+ *
+ * This only indexes files named exactly `metadata.json`. If multiple entries
+ * exist for the same folder, the first one in the upload list is retained.
+ */
+const takeoutAlbumMetadataJSONItemsByFolderPath = (
+    uploadItemAndPaths: UploadItemAndPath[],
+) => {
+    const result = new Map<string, UploadItem>();
+    for (const [uploadItem, path] of uploadItemAndPaths) {
+        if (basename(path) == "metadata.json") {
+            const folderPath = dirname(path);
+            if (!result.has(folderPath)) result.set(folderPath, uploadItem);
+        }
+    }
+    return result;
+};
+
+/**
+ * Return the album-level Takeout `metadata.json` upload item for the given
+ * folder path, if one was included in the upload list.
+ *
+ * The `folderPath` must match the metadata file's containing folder exactly.
+ * The returned item is not parsed here; callers parse its `title` when they
+ * need an album-name suggestion.
+ */
+export const takeoutAlbumMetadataJSONItemForFolder = (
+    uploadItemAndPaths: UploadItemAndPath[],
+    folderPath: string,
+): UploadItem | undefined => {
+    return takeoutAlbumMetadataJSONItemsByFolderPath(uploadItemAndPaths).get(
+        folderPath,
+    );
+};
+
+/**
  * Group files that are that have the same parent folder into collections.
  *
  * This is used to segregate the list of {@link UploadItemAndPath}s that we
@@ -215,13 +253,16 @@ export type UploadItemAndPath = [UploadItem, string];
  * that do not have a parent folder. The function will throw if a default is not
  * provided and we encounter any such files without a parent.
  */
-export const groupItemsBasedOnParentFolder = (
+export const groupItemsBasedOnParentFolder = async (
     uploadItemAndPaths: UploadItemAndPath[],
     defaultFolderName: string | undefined,
 ) => {
     const result = new Map<string, UploadItemAndPath[]>();
+    const collectionNameByFolderPath = new Map<string, string>();
+    const albumMetadataJSONItemsByFolderPath =
+        takeoutAlbumMetadataJSONItemsByFolderPath(uploadItemAndPaths);
     for (const [uploadItem, pathOrName] of uploadItemAndPaths) {
-        const folderPath = dirname(pathOrName);
+        let folderPath = dirname(pathOrName);
         let folderName = basename(folderPath);
         // [Note: Fold "metadata" directory into parent folder]
         //
@@ -237,15 +278,28 @@ export const groupItemsBasedOnParentFolder = (
         // we can cluster the metadata JSON files in the same collection as the
         // file it is for.
         if (folderName == exportMetadataDirectoryName) {
-            folderName = basename(dirname(folderPath));
+            folderPath = dirname(folderPath);
+            folderName = basename(folderPath);
         }
         if (!folderName) {
             if (!defaultFolderName)
                 throw Error(`Leaf file (without default): ${pathOrName}`);
             folderName = defaultFolderName;
         }
-        if (!result.has(folderName)) result.set(folderName, []);
-        result.get(folderName)!.push([uploadItem, pathOrName]);
+
+        let collectionName = collectionNameByFolderPath.get(folderPath);
+        if (collectionName == undefined) {
+            const albumMetadataJSON =
+                albumMetadataJSONItemsByFolderPath.get(folderPath);
+            const albumName = albumMetadataJSON
+                ? await tryParseTakeoutAlbumNameMetadataJSON(albumMetadataJSON)
+                : undefined;
+            collectionName = albumName ?? folderName;
+            collectionNameByFolderPath.set(folderPath, collectionName);
+        }
+
+        if (!result.has(collectionName)) result.set(collectionName, []);
+        result.get(collectionName)!.push([uploadItem, pathOrName]);
     }
     return result;
 };
@@ -440,6 +494,7 @@ export type UploadResult =
     | { type: "unsupported" }
     | { type: "zeroSize" }
     | { type: "tooLarge" }
+    | { type: "partnerShared" }
     | { type: "largerThanAvailableStorage" }
     | { type: "blocked" }
     | { type: "failed" }

@@ -1,8 +1,9 @@
 //! Shared error types for account flows.
 
-use base64::DecodeError;
-use ente_core::{auth::AuthError, crypto::CryptoError, http::Error as HttpError};
+use ente_core::{b64, crypto, http};
 use thiserror::Error;
+
+use crate::auth;
 
 /// Result alias for the shared account crate.
 pub type Result<T> = std::result::Result<T, Error>;
@@ -11,8 +12,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Error, Debug)]
 pub enum Error {
     /// HTTP/transport or server error.
-    #[error("{0}")]
-    Http(#[from] HttpError),
+    #[error(transparent)]
+    Http(#[from] http::Error),
 
     /// Serialization/deserialization error.
     #[error("Serialization error: {0}")]
@@ -36,7 +37,7 @@ pub enum Error {
 
     /// Base64 decode error.
     #[error("Base64 decode error: {0}")]
-    Base64Decode(#[from] DecodeError),
+    Base64Decode(#[from] b64::DecodeError),
 
     /// Fallback catch-all.
     #[error("{0}")]
@@ -47,23 +48,7 @@ impl Error {
     /// Return the HTTP status code if the error came from the API.
     pub fn status_code(&self) -> Option<u16> {
         match self {
-            Error::Http(HttpError::Http { status, .. }) => Some(*status),
-            _ => None,
-        }
-    }
-
-    /// Return the structured server error code if available.
-    pub fn api_code(&self) -> Option<&str> {
-        match self {
-            Error::Http(HttpError::Http { code, .. }) => code.as_deref(),
-            _ => None,
-        }
-    }
-
-    /// Return the server-provided message if available.
-    pub fn api_message(&self) -> Option<&str> {
-        match self {
-            Error::Http(HttpError::Http { message, .. }) => Some(message.as_str()),
+            Error::Http(error) => error.status_code(),
             _ => None,
         }
     }
@@ -75,32 +60,30 @@ impl Error {
     }
 }
 
-impl From<CryptoError> for Error {
-    fn from(err: CryptoError) -> Self {
+impl From<crypto::Error> for Error {
+    fn from(err: crypto::Error) -> Self {
         match err {
-            CryptoError::Base64Decode(source) => Error::Base64Decode(source),
-            CryptoError::Io(source) => Error::Generic(source.to_string()),
+            crypto::Error::Io(source) => Error::Generic(source.to_string()),
             other => Error::Crypto(other.to_string()),
         }
     }
 }
 
-impl From<AuthError> for Error {
-    fn from(err: AuthError) -> Self {
+impl From<auth::Error> for Error {
+    fn from(err: auth::Error) -> Self {
+        use auth::Error as E;
         match err {
-            AuthError::IncorrectPassword => {
-                Error::AuthenticationFailed("Incorrect password".to_string())
-            }
-            AuthError::IncorrectRecoveryKey => {
+            E::IncorrectPassword => Error::AuthenticationFailed("Incorrect password".to_string()),
+            E::IncorrectRecoveryKey => {
                 Error::AuthenticationFailed("Incorrect recovery key".to_string())
             }
-            AuthError::InvalidKeyAttributes => Error::Crypto(err.to_string()),
-            AuthError::InsufficientMemory => Error::Crypto(err.to_string()),
-            AuthError::MissingField(field) => Error::Crypto(format!("Missing field: {field}")),
-            AuthError::Crypto(source) => source.into(),
-            AuthError::Decode(msg) => Error::Crypto(msg),
-            AuthError::InvalidKey(msg) => Error::Crypto(msg),
-            AuthError::Srp(msg) => Error::Srp(msg),
+            E::InvalidKeyAttributes => Error::Crypto(err.to_string()),
+            E::InsufficientMemory => Error::Crypto(err.to_string()),
+            E::MissingField(field) => Error::Crypto(format!("Missing field: {field}")),
+            E::Crypto(source) => source.into(),
+            E::Decode(msg) => Error::Crypto(msg),
+            E::InvalidKey(msg) => Error::Crypto(msg),
+            E::Srp(msg) => Error::Srp(msg),
         }
     }
 }

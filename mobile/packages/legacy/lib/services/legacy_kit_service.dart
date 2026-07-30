@@ -1,6 +1,8 @@
 import "package:ente_base/models/key_attributes.dart" as base;
 import "package:ente_configuration/base_configuration.dart";
 import "package:ente_contacts/contacts.dart" as contacts;
+import "package:ente_events/event_bus.dart";
+import "package:ente_legacy/events/legacy_kit_created_event.dart";
 import "package:ente_legacy/models/legacy_kit_models.dart";
 import "package:ente_rust/ente_rust.dart" as rust;
 import "package:logging/logging.dart";
@@ -59,7 +61,9 @@ class LegacyKitService {
       partNames: partNames,
       noticePeriodInHours: noticePeriodInHours,
     );
-    return LegacyKitCreateResult.fromRust(result);
+    final createdKit = LegacyKitCreateResult.fromRust(result);
+    Bus.instance.fire(LegacyKitCreatedEvent());
+    return createdKit;
   }
 
   Future<List<LegacyKitShare>> downloadShares(String kitId) async {

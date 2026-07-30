@@ -45,6 +45,7 @@ class SocialDebugScreen extends StatelessWidget {
                         onTap: () async {
                           await SocialSyncService.instance
                               .syncAllSharedCollections();
+                          if (!context.mounted) return;
                           showShortToast(context, "Social sync completed");
                         },
                       ),
@@ -55,6 +56,7 @@ class SocialDebugScreen extends StatelessWidget {
                         trailingIconIsMuted: true,
                         onTap: () async {
                           await CollectionsService.instance.sync();
+                          if (!context.mounted) return;
                           showShortToast(context, "Collection sync completed");
                         },
                       ),
@@ -65,6 +67,7 @@ class SocialDebugScreen extends StatelessWidget {
                         trailingIconIsMuted: true,
                         onTap: () async {
                           await SocialDB.instance.seedExampleData();
+                          if (!context.mounted) return;
                           showShortToast(context, "Example data seeded");
                         },
                       ),
@@ -76,6 +79,7 @@ class SocialDebugScreen extends StatelessWidget {
                         onTap: () async {
                           final count = await SocialDB.instance
                               .deleteAllComments();
+                          if (!context.mounted) return;
                           showShortToast(context, "Deleted $count comments");
                         },
                       ),
@@ -87,6 +91,7 @@ class SocialDebugScreen extends StatelessWidget {
                         onTap: () async {
                           final count = await SocialDB.instance
                               .deleteAllReactions();
+                          if (!context.mounted) return;
                           showShortToast(context, "Deleted $count reactions");
                         },
                       ),

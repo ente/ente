@@ -1,7 +1,7 @@
 name: log_viewer
 description: In-app log viewer with filtering capabilities for Ente apps
-version: 1.0.0
 
+resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
   flutter: ">=3.0.0"

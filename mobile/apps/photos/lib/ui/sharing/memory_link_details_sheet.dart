@@ -16,6 +16,7 @@ Future<bool?> showMemoryLinkDetailsSheet(
   BuildContext context, {
   required String shareUrl,
   required int shareId,
+  required String title,
 }) {
   final l10n = AppLocalizations.of(context);
   return showBaseBottomSheet<bool>(
@@ -80,7 +81,12 @@ Future<bool?> showMemoryLinkDetailsSheet(
               labelText: l10n.shareLink,
               shouldSurfaceExecutionStates: false,
               onTap: () async {
-                unawaited(shareText(shareUrl, context: context));
+                unawaited(
+                  shareText(
+                    formatMemoryShareText(title, shareUrl),
+                    context: context,
+                  ),
+                );
               },
             ),
             const SizedBox(height: 12),

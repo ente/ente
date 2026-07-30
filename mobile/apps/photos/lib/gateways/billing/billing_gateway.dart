@@ -15,7 +15,7 @@ class BillingGateway {
   ///
   /// Returns [BillingPlans] containing all available subscription plans.
   Future<BillingPlans> getUserPlans() async {
-    final response = await _enteDio.get("/billing/user-plans/");
+    final response = await _enteDio.get("/billing/user-plans");
     return BillingPlans.fromMap(response.data);
   }
 

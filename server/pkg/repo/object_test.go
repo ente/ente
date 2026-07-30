@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/internal/testutil"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/internal/testutil"
 	"github.com/lib/pq"
 )
 
@@ -26,6 +26,35 @@ func TestObjectLookupDBFallsBackToPrimaryDB(t *testing.T) {
 
 	if got := repository.objectLookupDB(); got != primaryDB {
 		t.Fatal("expected object lookup DB to fall back to DB")
+	}
+}
+
+func TestGetObjectReferenceStatuses(t *testing.T) {
+	repository, db := setupAccessibleObjectTest(t)
+
+	ownerID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       1,
+		Email:        "reference-status-owner@ente.com",
+		CreationTime: 1,
+	})
+	fileID := insertObjectTestFile(t, db, ownerID)
+	insertObjectTestKey(t, db, fileID, ente.FILE, "in-object-keys", 100, []string{"b2-eu-cen"})
+	if _, err := db.Exec(`INSERT INTO temp_objects(object_key, expiration_time) VALUES($1, $2)`, "in-temp-objects", int64(1)); err != nil {
+		t.Fatalf("failed to insert temp object: %v", err)
+	}
+
+	statuses, err := repository.GetObjectReferenceStatuses(t.Context(), []string{"in-object-keys", "in-temp-objects", "unreferenced"})
+	if err != nil {
+		t.Fatalf("GetObjectReferenceStatuses() error = %v", err)
+	}
+	if !statuses["in-object-keys"].InObjectKeys || statuses["in-object-keys"].InTempObjects {
+		t.Fatalf("unexpected object_keys status: %+v", statuses["in-object-keys"])
+	}
+	if statuses["in-temp-objects"].InObjectKeys || !statuses["in-temp-objects"].InTempObjects {
+		t.Fatalf("unexpected temp_objects status: %+v", statuses["in-temp-objects"])
+	}
+	if statuses["unreferenced"].InObjectKeys || statuses["unreferenced"].InTempObjects {
+		t.Fatalf("unexpected unreferenced status: %+v", statuses["unreferenced"])
 	}
 }
 

@@ -6,6 +6,7 @@ import 'package:ente_base/models/database.dart';
 import 'package:ente_base/models/key_attributes.dart';
 import 'package:ente_base/models/key_gen_result.dart';
 import 'package:ente_base/models/private_key_attributes.dart';
+import 'package:ente_configuration/app_identity.dart';
 import 'package:ente_configuration/constants.dart';
 import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_events/event_bus.dart';
@@ -20,7 +21,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tuple/tuple.dart';
 
-class BaseConfiguration {
+export 'package:ente_configuration/app_identity.dart';
+
+abstract class BaseConfiguration {
   static const endpoint = String.fromEnvironment(
     "endpoint",
     defaultValue: kDefaultProductionEndpoint,
@@ -34,6 +37,7 @@ class BaseConfiguration {
   static const userIDKey = "user_id";
   static const endPointKey = "endpoint";
   static const lastTempFolderClearTimeKey = "last_temp_folder_clear_time";
+  static const accountSecureStorageKeys = [keyKey, secretKeyKey];
 
   final kTempFolderDeletionTimeBuffer = const Duration(days: 1).inMicroseconds;
 
@@ -50,8 +54,9 @@ class BaseConfiguration {
 
   String? _volatilePassword;
 
-  // Descendants can override to append keys that must be cleared.
-  List<String> get secureStorageKeys => [];
+  EnteAppIdentity get appIdentity;
+
+  List<String> get secureStorageKeys;
 
   Future<void> init(List<EnteBaseDatabase> dbs) async {
     _databases = dbs;
@@ -63,12 +68,15 @@ class BaseConfiguration {
         accessibility: KeychainAccessibility.first_unlock_this_device,
       ),
     );
-    await _setupKeys();
+    // Set up folders before keys so the cache directory is initialized before
+    // _setupKeys() can trigger an auto-logout whose cleanup needs it.
     await _setupFolders();
+    await _setupKeys();
     _logger.info("User ID: ${getUserID()}");
   }
 
   Future<void> logout({bool autoLogout = false}) async {
+    await _clearTempFolderOnLogout();
     await _preferences.clear();
     await resetSecureStorage();
     for (final db in _databases) {
@@ -78,6 +86,19 @@ class BaseConfiguration {
     _cachedToken = null;
     _secretKey = null;
     Bus.instance.fire(SignedOutEvent());
+  }
+
+  Future<void> _clearTempFolderOnLogout() async {
+    final tempDirectory = io.Directory(_tempDocumentsDirPath);
+    try {
+      if (await tempDirectory.exists()) {
+        await tempDirectory.delete(recursive: true);
+      }
+      await tempDirectory.create(recursive: true);
+      _logger.info("Cleared temp folder on logout");
+    } catch (e, s) {
+      _logger.warning("Failed to clear temp folder on logout", e, s);
+    }
   }
 
   Future<void> resetSecureStorage() async {
@@ -362,6 +383,15 @@ class BaseConfiguration {
 
   Uint8List? getSecretKey() {
     return _secretKey == null ? null : CryptoUtil.base642bin(_secretKey!);
+  }
+
+  String decryptDeleteChallenge(String encryptedChallenge) {
+    final challenge = CryptoUtil.openSealSync(
+      CryptoUtil.base642bin(encryptedChallenge),
+      CryptoUtil.base642bin(getKeyAttributes()!.publicKey),
+      getSecretKey()!,
+    );
+    return utf8.decode(challenge);
   }
 
   Uint8List getRecoveryKey() {

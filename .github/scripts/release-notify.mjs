@@ -31,7 +31,7 @@ if (!config || !releaseTag) {
     throw new Error(`Usage: node .github/scripts/release-notify.mjs ${Object.keys(apps).join("|")} <release-tag>`);
 }
 
-const releaseUrl = `https://github.com/ente-io/nightly/releases/tag/${releaseTag}`;
+const releaseUrl = `https://github.com/ente/nightly/releases/tag/${releaseTag}`;
 
 const env = (name) => {
     const value = process.env[name];
@@ -70,7 +70,8 @@ if (config.testFlightId) {
 downloadLinks.push(`[GitHub Release](${releaseUrl})`);
 const downloadLine = `-# Download: ${downloadLinks.join(" | ")}`;
 
-const components = [{ type: 10, content: `## ${releaseTitle}` }];
+const heading = releaseTag.endsWith("-rc") ? "##" : "###";
+const components = [{ type: 10, content: `${heading} ${releaseTitle}` }];
 if (releaseBodyDiscord) {
     components.push({ type: 10, content: releaseBodyDiscord });
 }

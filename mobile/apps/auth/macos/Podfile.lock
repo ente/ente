@@ -167,7 +167,7 @@ SPEC CHECKSUMS:
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   local_auth_darwin: c3ee6cce0a8d56be34c8ccb66ba31f7f180aaebb
   package_info_plus: f0052d280d17aa382b932f399edf32507174e870
-  scoped_dir_access: da65241007b6c91d1da6e757b1af9086b283c228
+  scoped_dir_access: 6d48cfa2b5c90bf9ec7b8f43cf9fd55b3da431b3
   screen_retriever_macos: 452e51764a9e1cdb74b3c541238795849f21557f
   Sentry: da60d980b197a46db0b35ea12cb8f39af48d8854
   sentry_flutter: 27892878729f42701297c628eb90e7c6529f3684
@@ -183,4 +183,4 @@ SPEC CHECKSUMS:
 
 PODFILE CHECKSUM: 6ff827273ace187339fc5d3684072a26ad85c298
 
-COCOAPODS: 1.16.2
+COCOAPODS: 1.17.0

@@ -1,7 +1,6 @@
 import "package:ente_accounts/models/user_details.dart";
+import 'package:ente_components/ente_components.dart';
 import "package:ente_ui/components/loading_widget.dart";
-import "package:ente_ui/theme/colors.dart";
-import "package:ente_ui/theme/ente_theme.dart";
 import "package:flutter/material.dart";
 import "package:intl/intl.dart";
 import "package:locker/l10n/l10n.dart";
@@ -13,6 +12,7 @@ class UsageCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.componentColors;
     final inheritedDetails = InheritedUserDetails.of(context);
     final userDetails = inheritedDetails?.userDetails;
     final isCached = inheritedDetails?.isCached ?? false;
@@ -35,7 +35,10 @@ class UsageCardWidget extends StatelessWidget {
         child: Stack(
           children: [
             Positioned.fill(
-              child: CustomPaint(painter: _DotsPainter(), size: Size.infinite),
+              child: CustomPaint(
+                painter: _DotsPainter(colors.specialWhite),
+                size: Size.infinite,
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(16),
@@ -52,6 +55,10 @@ class UsageCardWidget extends StatelessWidget {
 }
 
 class _DotsPainter extends CustomPainter {
+  final Color dotColor;
+
+  const _DotsPainter(this.dotColor);
+
   static const double _dotRadius = 2.0;
   static const double _horizontalSpacing = 24.0;
   static const double _verticalSpacing = 24.0;
@@ -59,7 +66,7 @@ class _DotsPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = textBaseDark.withValues(alpha: 0.03)
+      ..color = dotColor.withValues(alpha: 0.03)
       ..style = PaintingStyle.fill;
 
     final horizontalCount = (size.width / _horizontalSpacing).ceil() + 1;
@@ -89,9 +96,10 @@ class _UsageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = getEnteTextTheme(context);
-    final colorScheme = getEnteColorScheme(context);
+    final colors = context.componentColors;
 
+    final cardText = colors.specialWhite;
+    final cardTextMuted = cardText.withValues(alpha: 0.7);
     final maxFileCount = _effectiveLockerFileLimit(
       userDetails,
     ).clamp(1, double.maxFinite).toInt();
@@ -116,41 +124,26 @@ class _UsageContent extends StatelessWidget {
       children: [
         Text(
           context.l10n.itemsStored,
-          style: textTheme.brandSmall.copyWith(
-            color: textMutedDark,
-            fontSize: 16,
-          ),
+          style: TextStyles.large.copyWith(color: cardTextMuted),
         ),
         const SizedBox(height: 4),
         if (isLoading)
-          const SizedBox(
+          SizedBox(
             height: 40,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: EnteLoadingWidget(
-                size: 24,
-                padding: 0,
-                color: textBaseDark,
-              ),
+              child: EnteLoadingWidget(size: 24, padding: 0, color: cardText),
             ),
           )
         else
           RichText(
             text: TextSpan(
-              style: textTheme.h2Bold.copyWith(
-                color: textBaseDark,
-                fontFamily: 'Montserrat',
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyles.h1.copyWith(color: cardText),
               children: [
                 TextSpan(text: formattedUsed),
                 TextSpan(
                   text: " ${context.l10n.of_} ",
-                  style: textTheme.h2Bold.copyWith(
-                    color: textMutedDark,
-                    fontFamily: 'Montserrat',
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyles.h1.copyWith(color: cardTextMuted),
                 ),
                 TextSpan(text: formattedMax),
               ],
@@ -165,7 +158,7 @@ class _UsageContent extends StatelessWidget {
                 width: double.infinity,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: const Color.fromRGBO(193, 193, 193, 0.11),
+                  color: colors.specialWhiteOverlay,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -176,7 +169,7 @@ class _UsageContent extends StatelessWidget {
                       width: constraints.maxWidth * familyProgress,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: textBaseDark,
+                        color: cardText,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     );
@@ -188,9 +181,7 @@ class _UsageContent extends StatelessWidget {
                     width: constraints.maxWidth * userProgress,
                     height: 8,
                     decoration: BoxDecoration(
-                      color: showFamilyBreakup
-                          ? colorScheme.primary700
-                          : colorScheme.primary700,
+                      color: colors.primary,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   );
@@ -208,27 +199,27 @@ class _UsageContent extends StatelessWidget {
                 height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: colorScheme.primary700,
+                  color: colors.primary,
                 ),
               ),
               const SizedBox(width: 4),
               Text(
                 context.l10n.usageYou,
-                style: textTheme.miniBold.copyWith(color: textBaseDark),
+                style: TextStyles.mini.copyWith(color: cardText),
               ),
               const SizedBox(width: 16),
               Container(
                 width: 8,
                 height: 8,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: textBaseDark,
+                  color: cardText,
                 ),
               ),
               const SizedBox(width: 4),
               Text(
                 context.l10n.usageFamily,
-                style: textTheme.miniBold.copyWith(color: textBaseDark),
+                style: TextStyles.mini.copyWith(color: cardText),
               ),
             ],
           )

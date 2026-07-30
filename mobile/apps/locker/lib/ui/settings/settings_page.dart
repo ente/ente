@@ -15,6 +15,7 @@ import "package:locker/ui/settings/pages/support_page.dart";
 import "package:locker/ui/settings/pages/theme_settings_page.dart";
 import "package:locker/ui/settings/widgets/app_version_widget.dart";
 import "package:locker/ui/settings/widgets/social_icons_row.dart";
+import "package:locker/utils/bottom_sheet_illustration.dart";
 
 class SettingsWidget extends StatelessWidget {
   final bool hasLoggedIn;
@@ -124,7 +125,7 @@ class SettingsWidget extends StatelessWidget {
       builder: (sheetContext) => BottomSheetComponent(
         title: context.l10n.warning,
         message: context.l10n.areYouSureYouWantToLogout,
-        illustration: Image.asset("assets/warning-grey.png"),
+        illustration: LockerBottomSheetIllustration.warningGrey,
         actions: [
           ButtonComponent(
             label: context.l10n.yesLogout,

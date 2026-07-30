@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/internal/testutil"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/internal/testutil"
 )
 
 func TestGetFileUrlRowByTokenReturnsActiveRowBeforeDisabledRow(t *testing.T) {

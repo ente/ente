@@ -98,6 +98,35 @@ void main() {
     );
   });
 
+  testWidgets("TextInputComponent unfocuses when tapping outside", (
+    tester,
+  ) async {
+    final focusNode = FocusNode();
+    addTearDown(focusNode.dispose);
+
+    await tester.pumpWidget(
+      _wrap(
+        Column(
+          children: [
+            TextInputComponent(label: "Email", focusNode: focusNode),
+            const SizedBox(height: 40),
+            const Text("Outside"),
+          ],
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(TextField));
+    await tester.pump();
+
+    expect(focusNode.hasFocus, isTrue);
+
+    await tester.tap(find.text("Outside"));
+    await tester.pump();
+
+    expect(focusNode.hasFocus, isFalse);
+  });
+
   testWidgets("TextInputComponent maps error and success states to borders", (
     tester,
   ) async {
@@ -146,6 +175,26 @@ void main() {
         _fieldDecoration(tester).border?.top.color,
         ColorTokens.light.strokeFaint,
       );
+    },
+  );
+
+  testWidgets(
+    "TextInputComponent forwards read-only state while staying enabled",
+    (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          const TextInputComponent(
+            label: "Username",
+            initialValue: "hello",
+            readOnly: true,
+          ),
+        ),
+      );
+
+      final input = tester.widget<TextField>(find.byType(TextField));
+      expect(input.readOnly, isTrue);
+      expect(input.enabled, isTrue);
+      expect(_fieldDecoration(tester).color, ColorTokens.light.fillLight);
     },
   );
 
@@ -352,6 +401,27 @@ void main() {
       expect(tester.getRect(fieldFinder).height, 52);
     },
   );
+
+  testWidgets("TextInputComponent grows the suffix slot to fit wide suffixes", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        const SizedBox(
+          width: 240,
+          child: TextInputComponent(
+            suffix: SizedBox(
+              key: ValueKey("wide-suffix"),
+              width: 80,
+              height: 48,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.getSize(find.byKey(const ValueKey("wide-suffix"))).width, 80);
+  });
 
   testWidgets("TextInputComponent centers single-line affixes vertically", (
     tester,

@@ -4,7 +4,6 @@ import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:photo_manager/photo_manager.dart";
-import "package:photos/core/configuration.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/l10n/l10n.dart";
 import "package:photos/service_locator.dart";
@@ -33,26 +32,35 @@ class BackupSettingsScreen extends StatelessWidget {
         _toggleItem(
           context,
           title: l10n.backupOverMobileData,
-          value: () => Configuration.instance.shouldBackupOverMobileData(),
+          value: () => backupSettings.shouldBackupOverMobileData(),
           onChanged: () async {
-            await Configuration.instance.setBackupOverMobileData(
-              !Configuration.instance.shouldBackupOverMobileData(),
+            final shouldBackupOverMobileData = !backupSettings
+                .shouldBackupOverMobileData();
+            await backupSettings.setBackupOverMobileData(
+              shouldBackupOverMobileData,
             );
+            if (shouldBackupOverMobileData) {
+              SyncService.instance.sync().ignore();
+            }
           },
         ),
         const SizedBox(height: 8),
         _toggleItem(
           context,
           title: l10n.backupVideos,
-          value: () => Configuration.instance.shouldBackupVideos(),
-          onChanged: () => Configuration.instance.setShouldBackupVideos(
-            !Configuration.instance.shouldBackupVideos(),
-          ),
+          value: () => backupSettings.shouldBackupVideos(),
+          onChanged: () async {
+            final shouldBackupVideos = !backupSettings.shouldBackupVideos();
+            await backupSettings.setBackupVideos(shouldBackupVideos);
+            if (shouldBackupVideos) {
+              SyncService.instance.sync().ignore();
+            } else {
+              SyncService.instance.onVideoBackupPaused();
+            }
+          },
         ),
-        if (flagService.enableOnlyBackupFuturePhotos) ...[
-          const SizedBox(height: 8),
-          _BackupOnlyNewPhotosToggle(debouncer: _onlyNewToggleDebouncer),
-        ],
+        const SizedBox(height: 8),
+        _BackupOnlyNewPhotosToggle(debouncer: _onlyNewToggleDebouncer),
         if (flagService.enableMobMultiPart) ...[
           const SizedBox(height: 8),
           _toggleItem(
@@ -87,13 +95,10 @@ class BackupSettingsScreen extends StatelessWidget {
           _toggleItem(
             context,
             title: l10n.disableAutoLock,
-            value: () =>
-                EnteWakeLockService.instance.shouldKeepAppAwakeAcrossSessions,
+            value: () => wakeLockService.shouldKeepAppAwakeAcrossSessions,
             onChanged: () async {
-              EnteWakeLockService.instance.updateWakeLock(
-                enable: !EnteWakeLockService
-                    .instance
-                    .shouldKeepAppAwakeAcrossSessions,
+              wakeLockService.updateWakeLock(
+                enable: !wakeLockService.shouldKeepAppAwakeAcrossSessions,
                 wakeLockFor: WakeLockFor.fasterBackupsOniOSByKeepingScreenAwake,
               );
             },
@@ -146,6 +151,7 @@ class _BackupOnlyNewPhotosToggle extends StatelessWidget {
           if (!hasPermission) {
             return;
           }
+          if (!context.mounted) return;
           final shouldProceed = await _maybeHandleFolderSelection(
             context: context,
           );
@@ -223,6 +229,7 @@ class _BackupOnlyNewPhotosToggle extends StatelessWidget {
     }
 
     if (result == _FolderPromptAction.selectFolders) {
+      if (!context.mounted) return false;
       final bool? selected = await handleFolderSelectionBackupFlow(
         context,
         fromOnlyNewPhotosToggle: true,

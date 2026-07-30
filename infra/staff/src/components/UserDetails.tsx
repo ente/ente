@@ -83,7 +83,6 @@ export const UserDetails: React.FC<UserDetailsProps> = ({ userData }) => {
     const handleEditSubscription = () => setUpdateSubscriptionOpen(true);
     const handleDisablePasskeys = () => setDisablePasskeysOpen(true);
     const handleTwoFactorChange = (enabled: boolean) => {
-        setTwoFactorEnabled(enabled);
         if (!enabled) {
             setDisable2FAOpen(true);
         }

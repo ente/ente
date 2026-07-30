@@ -27,7 +27,12 @@ class _LogFileViewerState extends State<LogFileViewer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(elevation: 0, title: const Text("Today's logs")),
+      appBar: AppBar(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        title: const Text("Today's logs"),
+      ),
       body: _getBody(),
     );
   }

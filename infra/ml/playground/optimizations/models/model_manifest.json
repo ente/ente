@@ -1,0 +1,108 @@
+{
+  "yolo_static_b1": {
+    "path": "infra/ml/playground/optimizations/models/yolov5s_face_640_640_static_b1.onnx",
+    "sha256": "e047647409403d52696035ecd445792173e50d7fbdcccac97b958a585db9aa3d",
+    "bytes": 32355091,
+    "nodes": 328,
+    "operators": {
+      "Add": 28,
+      "Concat": 21,
+      "Conv": 64,
+      "MaxPool": 4,
+      "Mul": 88,
+      "Pow": 3,
+      "Reshape": 6,
+      "Resize": 2,
+      "Sigmoid": 67,
+      "Slice": 36,
+      "Sub": 3,
+      "Transpose": 6
+    },
+    "inputs": {
+      "input": [
+        1,
+        3,
+        640,
+        640
+      ]
+    },
+    "outputs": {
+      "output": [
+        1,
+        25200,
+        16
+      ]
+    }
+  },
+  "mobilefacenet_portable_static_b1": {
+    "path": "infra/ml/playground/optimizations/models/mobilefacenet_portable_static_b1.onnx",
+    "sha256": "0763fc33f54e138476194da95987e133b3e976075a6b1d3e1b2caedb251b1a36",
+    "bytes": 5278803,
+    "nodes": 233,
+    "operators": {
+      "Add": 12,
+      "Conv": 52,
+      "Mul": 66,
+      "Relu": 66,
+      "Reshape": 3,
+      "Sub": 33,
+      "Transpose": 1
+    },
+    "inputs": {
+      "img_inputs": [
+        1,
+        112,
+        112,
+        3
+      ]
+    },
+    "outputs": {
+      "embeddings": [
+        1,
+        192
+      ]
+    }
+  },
+  "mobileclip_exact_gelu_opset20": {
+    "path": "infra/ml/playground/optimizations/models/mobileclip_s2_image_gelu_opset20.onnx",
+    "sha256": "205a430af825e501c5138e5bb9abea942482a7a4fd4a680e98e47cf0830dce7e",
+    "bytes": 143057352,
+    "nodes": 504,
+    "operators": {
+      "Add": 52,
+      "AveragePool": 1,
+      "BatchNormalization": 4,
+      "Concat": 4,
+      "Constant": 53,
+      "Conv": 189,
+      "Gelu": 54,
+      "MatMul": 17,
+      "Mul": 55,
+      "Pad": 1,
+      "ReduceMean": 3,
+      "Relu": 3,
+      "Reshape": 17,
+      "Shape": 4,
+      "Sigmoid": 3,
+      "Slice": 4,
+      "Softmax": 4,
+      "Split": 4,
+      "Squeeze": 12,
+      "Transpose": 20
+    },
+    "inputs": {
+      "input": [
+        1,
+        3,
+        256,
+        256
+      ]
+    },
+    "outputs": {
+      "output": [
+        1,
+        512
+      ]
+    }
+  }
+}

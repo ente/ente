@@ -65,11 +65,49 @@ void main() {
     await service.debugOpenAndSync(session);
 
     expect(service.hasHydratedCache, isTrue);
-    expect(service.getCachedContactByUserId(7), isNotNull);
-    expect(service.getCachedSavedNameByUserId(7), 'Alice');
-    expect(service.getCachedResolvedEmailByUserId(7), 'alice@test.test');
+    expect(service.getCachedContact(contactUserId: 7), isNotNull);
+    expect((await service.getContact(email: 'ALICE@test.test'))?.id, 'ct_1');
+    expect(service.getCachedSavedName(contactUserId: 7), 'Alice');
+    expect(service.getCachedSavedName(email: 'ALICE@test.test'), 'Alice');
+    expect(service.getCachedResolvedEmail(contactUserId: 7), 'alice@test.test');
+    expect(service.getCachedContacts().single.contactUserId, 7);
+    expect(
+      service.getCachedResolvedEmail(email: 'ALICE@test.test'),
+      'alice@test.test',
+    );
     expect(contactsService.openCalls, 1);
     expect(contactsService.syncCalls, 1);
+  });
+
+  test('user id lookup does not fall back to email', () async {
+    await service.debugOpenAndSync(session);
+
+    expect(
+      await service.getContact(contactUserId: 99, email: 'ALICE@test.test'),
+      isNull,
+    );
+    expect((await service.getContact(email: 'ALICE@test.test'))?.id, 'ct_1');
+  });
+
+  test('deletion tombstone evicts contact indexes', () async {
+    await service.debugOpenAndSync(session);
+
+    service.debugHydrateContacts(const [
+      contacts.ContactRecord(
+        id: 'ct_1',
+        contactUserId: 7,
+        email: 'alice@test.test',
+        data: contacts.ContactData(contactUserId: 7, name: 'Alice'),
+        profilePictureAttachmentId: null,
+        isDeleted: true,
+        createdAt: 1,
+        updatedAt: 3,
+      ),
+    ]);
+
+    expect(service.getCachedContact(contactUserId: 7), isNull);
+    expect(service.getCachedContact(email: 'ALICE@test.test'), isNull);
+    expect(service.getCachedContacts(), isEmpty);
   });
 
   test(
@@ -120,16 +158,16 @@ void main() {
       );
       await service.debugOpenAndSync(nextSession);
 
-      expect(service.getCachedSavedNameByUserId(9), 'Bob');
-      expect(service.getCachedSavedNameByUserId(7), isNull);
+      expect(service.getCachedSavedName(contactUserId: 9), 'Bob');
+      expect(service.getCachedSavedName(contactUserId: 7), isNull);
 
       contactsService.getContactsBarrier!.complete();
       await oldOpenAndSync;
 
-      expect(service.getCachedSavedNameByUserId(9), 'Bob');
-      expect(service.getCachedResolvedEmailByUserId(9), 'bob@test.test');
-      expect(service.getCachedSavedNameByUserId(7), isNull);
-      expect(service.getCachedResolvedEmailByUserId(7), isNull);
+      expect(service.getCachedSavedName(contactUserId: 9), 'Bob');
+      expect(service.getCachedResolvedEmail(contactUserId: 9), 'bob@test.test');
+      expect(service.getCachedSavedName(contactUserId: 7), isNull);
+      expect(service.getCachedResolvedEmail(contactUserId: 7), isNull);
     },
   );
 
@@ -182,16 +220,16 @@ void main() {
     );
     await service.debugOpenAndSync(nextSession);
 
-    expect(service.getCachedSavedNameByUserId(9), 'Bob');
-    expect(service.getCachedSavedNameByUserId(7), isNull);
+    expect(service.getCachedSavedName(contactUserId: 9), 'Bob');
+    expect(service.getCachedSavedName(contactUserId: 7), isNull);
 
     firstService.openBarrier!.complete();
     await oldOpenAndSync;
 
     expect(firstService.openCalls, 1);
     expect(secondService.openCalls, 1);
-    expect(service.getCachedSavedNameByUserId(9), 'Bob');
-    expect(service.getCachedSavedNameByUserId(7), isNull);
+    expect(service.getCachedSavedName(contactUserId: 9), 'Bob');
+    expect(service.getCachedSavedName(contactUserId: 7), isNull);
   });
 
   test(
@@ -224,6 +262,10 @@ void main() {
         await service.getProfilePictureBytesByUserId(7),
         Uint8List.fromList([1, 2, 3]),
       );
+      expect(
+        service.getCachedProfilePictureBytesByUserId(7),
+        Uint8List.fromList([1, 2, 3]),
+      );
       expect(contactsService.getProfilePictureCalls, 1);
     },
   );
@@ -231,13 +273,13 @@ void main() {
   test('logout event clears hydrated contact cache immediately', () async {
     await service.debugOpenAndSync(session);
 
-    expect(service.getCachedSavedNameByUserId(7), 'Alice');
+    expect(service.getCachedSavedName(contactUserId: 7), 'Alice');
 
     Bus.instance.fire(UserLoggedOutEvent());
     await Future<void>.delayed(Duration.zero);
 
-    expect(service.getCachedSavedNameByUserId(7), isNull);
-    expect(service.getCachedResolvedEmailByUserId(7), isNull);
+    expect(service.getCachedSavedName(contactUserId: 7), isNull);
+    expect(service.getCachedResolvedEmail(contactUserId: 7), isNull);
     expect(service.getCachedProfilePictureBytesByUserId(7), isNull);
     expect(service.hasHydratedCache, isFalse);
   });
@@ -296,6 +338,20 @@ class FakeContactsService extends Fake implements contacts.ContactsService {
       await barrier.future;
     }
     return response;
+  }
+
+  @override
+  Future<contacts.ContactRecord?> getContactByUserId(
+    int contactUserId, {
+    bool includeDeleted = false,
+  }) async {
+    for (final contact in localContacts) {
+      if (contact.contactUserId == contactUserId &&
+          (includeDeleted || !contact.isDeleted)) {
+        return contact;
+      }
+    }
+    return null;
   }
 
   @override

@@ -5,7 +5,7 @@ vendor: Ente
 packager: Ente Developers
 packagerEmail: auth@ente.com
 license: GPLv3
-url: https://github.com/ente-io/ente
+url: https://github.com/ente/ente
 package_name: enteauth
 include_build_number: false
 

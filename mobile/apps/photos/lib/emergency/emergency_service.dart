@@ -42,11 +42,12 @@ class EmergencyContactService {
       EmergencyContactService._privateConstructor();
 
   Future<bool> addContact(
-    BuildContext context,
+    BuildContext? context,
     String email, {
     int recoveryNoticeInDays = 30,
   }) async {
     if (!isValidEmail(email)) {
+      if (context == null || !context.mounted) return false;
       await showAlertBottomSheet(
         context,
         title: AppLocalizations.of(context).letsTryThatAgain,
@@ -55,6 +56,7 @@ class EmergencyContactService {
       );
       return false;
     } else if (email.trim() == Configuration.instance.getEmail()) {
+      if (context == null || !context.mounted) return false;
       await showAlertBottomSheet(
         context,
         title: AppLocalizations.of(context).oops,
@@ -65,6 +67,7 @@ class EmergencyContactService {
     }
     final String? publicKey = await _userService.getPublicKey(email);
     if (publicKey == null) {
+      if (context == null || !context.mounted) return false;
       await showInviteDialog(context, email);
       return false;
     }
@@ -232,7 +235,7 @@ class EmergencyContactService {
         srpUserID: username,
         srpSalt: base64Encode(salt),
         srpVerifier: base64Encode(SRP6Util.encodeBigInt(v)),
-        srpA: base64Encode(SRP6Util.encodeBigInt(A!)),
+        srpA: base64Encode(SRP6Util.getPadded(A!, 512)),
         isUpdate: false,
       );
       final setupSRPResponse = await _gateway.initPasswordChange(
@@ -249,7 +252,7 @@ class EmergencyContactService {
       await _gateway.changePassword(
         recoveryID: recoverySessions.id,
         setupID: setupSRPResponse.setupID,
-        srpM1: base64Encode(SRP6Util.encodeBigInt(clientM!)),
+        srpM1: base64Encode(SRP6Util.getPadded(clientM!, 32)),
         updatedKeyAttr: setKeysRequest.toMap(),
       );
     } catch (e, s) {

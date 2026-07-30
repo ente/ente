@@ -20,19 +20,22 @@ Future<void> handleFullPermissionBackupFlow(BuildContext context) async {
     return;
   }
 
-  await _requestPermissions();
+  final state = await _requestAndStoreGrantedPermissions();
   if (!context.mounted) return;
 
-  if (permissionService.hasGrantedFullPermission()) {
+  final hasFullPermission =
+      state == PermissionState.authorized ||
+      (state == null && permissionService.hasGrantedFullPermission());
+  if (hasFullPermission) {
     unawaited(_navigateToFolderSelection(context, isFirstBackup: false));
   } else if (Platform.isAndroid) {
     await PhotoManager.openSetting();
   } else {
+    final hasLimitedPermission =
+        state == PermissionState.limited ||
+        (state == null && permissionService.hasGrantedLimitedPermissions());
     // ignore: unawaited_futures
-    _showLimitedPermissionSheet(
-      context,
-      hasGrantedLimit: permissionService.hasGrantedLimitedPermissions(),
-    );
+    _showLimitedPermissionSheet(context, hasGrantedLimit: hasLimitedPermission);
   }
 }
 
@@ -71,11 +74,10 @@ Future<bool?> handleFolderSelectionBackupFlow(
 }
 
 bool _shouldRunFirstImportFlow() =>
-    flagService.enableOnlyBackupFuturePhotos &&
     !LocalSyncService.instance.hasCompletedFirstImport();
 
 Future<bool?> _handleFirstImportFlow(BuildContext context) async {
-  final state = await _requestPermissions();
+  final state = await _requestAndStoreGrantedPermissions();
   if (state == null || !context.mounted) return null;
 
   if (!_hasMinimalPermission(state)) {
@@ -98,10 +100,12 @@ Future<bool?> _handleFirstImportFlow(BuildContext context) async {
   );
 }
 
-Future<PermissionState?> _requestPermissions() async {
+Future<PermissionState?> _requestAndStoreGrantedPermissions() async {
   try {
     final state = await permissionService.requestPhotoMangerPermissions();
-    await permissionService.onUpdatePermission(state);
+    if (_hasMinimalPermission(state)) {
+      await permissionService.onUpdatePermission(state);
+    }
     return state;
   } catch (e, s) {
     _logger.severe("Failed to request permission", e, s);

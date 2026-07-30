@@ -1,0 +1,97 @@
+.green-bg {
+    background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAsTAAALEwEAmpwYAAABaWlDQ1BEaXNwbGF5IFAzAAB4nHWQvUvDUBTFT6tS0DqIDh0cMolD1NIKdnFoKxRFMFQFq1OafgltfCQpUnETVyn4H1jBWXCwiFRwcXAQRAcR3Zw6KbhoeN6XVNoi3sfl/Ticc7lcwBtQGSv2AijplpFMxKS11Lrke4OHnlOqZrKooiwK/v276/PR9d5PiFlNu3YQ2U9cl84ul3aeAlN//V3Vn8maGv3f1EGNGRbgkYmVbYsJ3iUeMWgp4qrgvMvHgtMunzuelWSc+JZY0gpqhrhJLKc79HwHl4plrbWD2N6f1VeXxRzqUcxhEyYYilBRgQQF4X/8044/ji1yV2BQLo8CLMpESRETssTz0KFhEjJxCEHqkLhz634PrfvJbW3vFZhtcM4v2tpCAzidoZPV29p4BBgaAG7qTDVUR+qh9uZywPsJMJgChu8os2HmwiF3e38M6Hvh/GMM8B0CdpXzryPO7RqFn4Er/QcXKWq8MSlPPgAAABBJREFUeAEBBQD6/wAIwiX/A7QB7/maltEAAAAASUVORK5CYII=")
+        repeat;
+}
+
+:where(a, button, [role="button"]) {
+    -webkit-tap-highlight-color: transparent;
+}
+
+html[data-space-route-motion] {
+    overflow-x: hidden;
+}
+
+html[data-space-route-motion]::view-transition-old(root),
+html[data-space-route-motion]::view-transition-new(root) {
+    animation-duration: 220ms;
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+    mix-blend-mode: normal;
+}
+
+html[data-space-route-motion="forward"]::view-transition-old(root) {
+    animation-name: space-route-forward-old;
+}
+
+html[data-space-route-motion="forward"]::view-transition-new(root) {
+    animation-name: space-route-forward-new;
+}
+
+html[data-space-route-motion="back"]::view-transition-old(root) {
+    animation-name: space-route-back-old;
+}
+
+html[data-space-route-motion="back"]::view-transition-new(root) {
+    animation-name: space-route-back-new;
+}
+
+@keyframes space-route-forward-old {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    to {
+        opacity: 0.92;
+        transform: translateX(-18px);
+    }
+}
+
+@keyframes space-route-forward-new {
+    from {
+        opacity: 0.96;
+        transform: translateX(28px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes space-route-back-old {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    to {
+        opacity: 0.92;
+        transform: translateX(18px);
+    }
+}
+
+@keyframes space-route-back-new {
+    from {
+        opacity: 0.96;
+        transform: translateX(-28px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html[data-space-route-motion]::view-transition-old(root),
+    html[data-space-route-motion]::view-transition-new(root) {
+        animation: none;
+    }
+}
+
+.pswp-space-viewer {
+    --pswp-root-z-index: 0;
+    --pswp-bg: #000000;
+    height: 100svh;
+}

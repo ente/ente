@@ -132,7 +132,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "Будь ласка, виберіть хоча б одну колекцію",
   "unknownItemType": "Невідомий тип елемента",
   "fileDeletedSuccessfully": "Елемент успішно видалено",
   "failedToDeleteFile": "Не вдалося видалити елемент: {error}",
@@ -253,7 +252,6 @@
   "optionalNote": "Необов'язкова нотатка",
   "upload": "Завантажити",
   "documentsHint": "Документи",
-  "searchHint": "Пошук...",
   "searchEmptyTitle": "Збігів не знайдено",
   "searchEmptyDescription": "Спробуйте пошукати щось інше.",
   "searchEverywhereTitle": "Шукати скрізь \"{query}\"",

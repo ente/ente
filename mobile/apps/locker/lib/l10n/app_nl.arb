@@ -132,7 +132,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "Selecteer minimaal één collectie",
   "unknownItemType": "Onbekend itemtype",
   "fileDeletedSuccessfully": "Item succesvol verwijderd",
   "failedToDeleteFile": "Kan item niet verwijderen: {error}",
@@ -254,7 +253,6 @@
   "optionalNote": "Optionele notitie",
   "upload": "Uploaden",
   "documentsHint": "Documenten",
-  "searchHint": "Zoeken...",
   "searchEmptyTitle": "Geen resultaten gevonden",
   "searchEmptyDescription": "Probeer iets anders te zoeken.",
   "searchEverywhereTitle": "Overal zoeken naar \"{query}\"",

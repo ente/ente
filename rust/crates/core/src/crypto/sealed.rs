@@ -1,18 +1,22 @@
-//! Sealed box (anonymous public-key encryption).
+//! Anonymous public-key encryption (sealed boxes).
 //!
-//! Sealed boxes provide encryption to a recipient's public key without revealing
-//! the sender's identity. This is achieved using an ephemeral key pair.
+//! A sealed box lets anyone encrypt a message to a recipient's public key so
+//! that only the holder of the matching secret key can read it, while the
+//! recipient learns nothing about who sent it. Each message uses a fresh
+//! ephemeral key pair whose public half is included in the output; the
+//! ephemeral secret is discarded, so even the sender cannot decrypt afterwards.
 //!
-//! # Wire Format (libsodium crypto_box_seal)
+//! The construction is libsodium's `crypto_box_seal`; the implementation here
+//! is pure Rust but wire-compatible (recorded per function below).
 //!
-//! Output: ephemeral_pk (32 bytes) || MAC (16 bytes) || ciphertext
+//! # Wire format
 //!
-//! - Nonce: BLAKE2b-24(ephemeral_pk || recipient_pk)
-//! - Shared secret: X25519(ephemeral_sk, recipient_pk)
-//! - Key: HSalsa20(shared_secret, zero_nonce)
-//! - Encryption: XSalsa20-Poly1305 (MAC || ciphertext format)
+//! `ephemeral_pk (32 bytes) ‖ MAC (16 bytes) ‖ ciphertext`, where:
 //!
-//! Note: Format is verified against libsodium in the validation suite.
+//! - the nonce is `BLAKE2b-24(ephemeral_pk ‖ recipient_pk)`,
+//! - the shared secret is `X25519(ephemeral_sk, recipient_pk)`,
+//! - the symmetric key is `HSalsa20(shared_secret, zero_nonce)`, and
+//! - the body is the `MAC ‖ ciphertext` of XSalsa20-Poly1305.
 
 use blake2b_simd::Params as Blake2bParams;
 use rand_core::{OsRng, RngCore};
@@ -24,7 +28,7 @@ use xsalsa20poly1305::aead::generic_array::GenericArray;
 use xsalsa20poly1305::aead::{Aead, KeyInit};
 use zeroize::Zeroize;
 
-use crate::crypto::{CryptoError, PublicKey, Result, SecretKey};
+use crate::crypto::{Error, PublicKey, Result, SecretKey};
 
 /// Size of a public key in bytes.
 pub const PUBLIC_KEY_BYTES: usize = PublicKey::BYTES;
@@ -74,17 +78,21 @@ fn is_contributory(shared_secret: &[u8; 32]) -> bool {
     shared_secret.ct_ne(&[0u8; 32]).into()
 }
 
-/// Seal (encrypt) plaintext for a recipient's public key.
+/// Encrypt `plaintext` so that only the holder of `recipient_pk`'s secret key
+/// can read it.
 ///
-/// Creates an ephemeral key pair and encrypts the message such that only
-/// the recipient can decrypt it, without revealing the sender's identity.
+/// A fresh ephemeral key pair is generated per call and its secret discarded,
+/// so the output carries no sender identity and the sender cannot decrypt it
+/// afterwards. Open it with [`open`].
 ///
-/// # Arguments
-/// * `plaintext` - Data to encrypt.
-/// * `recipient_pk` - Recipient's 32-byte public key.
+/// # Errors
 ///
-/// # Returns
-/// ephemeral_pk || MAC || ciphertext (libsodium crypto_box_seal format)
+/// Returns [`InvalidPublicKey`](Error::InvalidPublicKey) if `recipient_pk`
+/// is a low-order point, which would make the X25519 exchange yield an all-zero
+/// shared secret and provide no security.
+///
+/// Returns `ephemeral_pk ‖ MAC ‖ ciphertext`, wire-compatible with libsodium's
+/// `crypto_box_seal`.
 pub fn seal(plaintext: &[u8], recipient_pk: &PublicKey) -> Result<Vec<u8>> {
     let recipient_pk_arr: [u8; 32] = *recipient_pk.as_bytes();
     let recipient_pk_point = x25519_dalek::PublicKey::from(recipient_pk_arr);
@@ -101,7 +109,7 @@ pub fn seal(plaintext: &[u8], recipient_pk: &PublicKey) -> Result<Vec<u8>> {
     // SECURITY: Reject non-contributory (small-order point)
     if !is_contributory(shared_secret.as_bytes()) {
         ephemeral_secret_bytes.zeroize();
-        return Err(CryptoError::InvalidPublicKey);
+        return Err(Error::InvalidPublicKey);
     }
 
     // Derive encryption key
@@ -117,7 +125,7 @@ pub fn seal(plaintext: &[u8], recipient_pk: &PublicKey) -> Result<Vec<u8>> {
         .encrypt(GenericArray::from_slice(&nonce), plaintext)
         .map_err(|_| {
             box_key.zeroize();
-            CryptoError::EncryptionFailed
+            Error::EncryptionFailed
         })?;
 
     // Build output: ephemeral_pk || MAC || ciphertext
@@ -132,22 +140,28 @@ pub fn seal(plaintext: &[u8], recipient_pk: &PublicKey) -> Result<Vec<u8>> {
     Ok(result)
 }
 
-/// Open (decrypt) a sealed box.
+/// Decrypt a sealed box addressed to `recipient_pk` / `recipient_sk`.
 ///
-/// # Arguments
-/// * `ciphertext` - Sealed data (ephemeral_pk || MAC || ciphertext).
-/// * `recipient_pk` - Recipient's 32-byte public key.
-/// * `recipient_sk` - Recipient's 32-byte secret key.
+/// `ciphertext` is the `ephemeral_pk ‖ MAC ‖ ciphertext` produced by [`seal`].
+/// Both halves of the recipient key pair are needed: the secret key performs
+/// the X25519 exchange, and the public key reconstructs the nonce.
 ///
-/// # Returns
-/// Decrypted plaintext.
+/// # Errors
+///
+/// Returns [`CiphertextTooShort`](Error::CiphertextTooShort) if
+/// `ciphertext` is smaller than [`SEAL_OVERHEAD`],
+/// [`InvalidPublicKey`](Error::InvalidPublicKey) if the embedded ephemeral
+/// key is low-order, or [`DecryptionFailed`](Error::DecryptionFailed) if
+/// the MAC does not verify, which happens with the wrong key pair or tampering.
+///
+/// Wire-compatible with libsodium's `crypto_box_seal_open`.
 pub fn open(
     ciphertext: &[u8],
     recipient_pk: &PublicKey,
     recipient_sk: &SecretKey,
 ) -> Result<Vec<u8>> {
     if ciphertext.len() < SEAL_OVERHEAD {
-        return Err(CryptoError::CiphertextTooShort {
+        return Err(Error::CiphertextTooShort {
             minimum: SEAL_OVERHEAD,
             actual: ciphertext.len(),
         });
@@ -156,7 +170,7 @@ pub fn open(
     // Parse: ephemeral_pk (32) || MAC (16) || ciphertext
     let ephemeral_pk_bytes: [u8; 32] = ciphertext[..32]
         .try_into()
-        .map_err(|_| CryptoError::ArrayConversion)?;
+        .map_err(|_| Error::ArrayConversion)?;
     let encrypted = &ciphertext[32..]; // MAC || ciphertext
 
     let ephemeral_pk = x25519_dalek::PublicKey::from(ephemeral_pk_bytes);
@@ -168,7 +182,7 @@ pub fn open(
 
     // SECURITY: Reject non-contributory (small-order point)
     if !is_contributory(shared_secret.as_bytes()) {
-        return Err(CryptoError::InvalidPublicKey);
+        return Err(Error::InvalidPublicKey);
     }
 
     // Derive encryption key
@@ -183,7 +197,7 @@ pub fn open(
         .decrypt(GenericArray::from_slice(&nonce), encrypted)
         .map_err(|_| {
             box_key.zeroize();
-            CryptoError::DecryptionFailed
+            Error::DecryptionFailed
         })?;
     box_key.zeroize();
     Ok(plaintext)
@@ -302,10 +316,7 @@ mod tests {
         let bad_ciphertext = vec![0u8; 40]; // Less than SEAL_OVERHEAD
 
         let result = open(&bad_ciphertext, &pk, &sk);
-        assert!(matches!(
-            result,
-            Err(CryptoError::CiphertextTooShort { .. })
-        ));
+        assert!(matches!(result, Err(Error::CiphertextTooShort { .. })));
     }
 
     #[test]
@@ -338,7 +349,7 @@ mod tests {
         let zero_pk = PublicKey::from_bytes([0u8; 32]);
         let result = seal(b"test", &zero_pk);
         assert!(
-            matches!(result, Err(CryptoError::InvalidPublicKey)),
+            matches!(result, Err(Error::InvalidPublicKey)),
             "seal() should reject small-order public key, got: {:?}",
             result
         );
@@ -359,7 +370,7 @@ mod tests {
 
         let result = open(&fake_ciphertext, &pk, &sk);
         assert!(
-            matches!(result, Err(CryptoError::InvalidPublicKey)),
+            matches!(result, Err(Error::InvalidPublicKey)),
             "open() should reject small-order ephemeral key, got: {:?}",
             result
         );

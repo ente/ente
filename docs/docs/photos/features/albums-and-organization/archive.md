@@ -30,8 +30,8 @@ You can remove a photo (owned by you) or an album from your **home timeline** by
 
 **On mobile:**
 
-- Go to the Albums tab
-- Scroll to the bottom
+- Open the Albums tab
+- Tap on 'v' icon at the right.
 - Tap **Archive**
 
 **On web/desktop:**

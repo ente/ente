@@ -4,18 +4,18 @@ import (
 	"database/sql"
 	"errors"
 	goaway "github.com/TwiN/go-away"
-	"github.com/ente-io/museum/pkg/utils/random"
+	"github.com/ente/museum/pkg/utils/random"
 	"strings"
 
-	"github.com/ente-io/museum/ente"
-	entity "github.com/ente-io/museum/ente/storagebonus"
-	"github.com/ente-io/museum/pkg/controller/email"
-	"github.com/ente-io/museum/pkg/controller/lock"
+	"github.com/ente/museum/ente"
+	entity "github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/museum/pkg/controller/email"
+	"github.com/ente/museum/pkg/controller/lock"
 
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/repo/storagebonus"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo/storagebonus"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 )
 

@@ -1,0 +1,1 @@
+- Improved error handling for malformed authenticator app imports.

@@ -53,7 +53,7 @@ export const setupAutoUpdater = (mainWindow: BrowserWindow) => {
      * repository too, e.g.:
      *
      *       provider: github
-     *       owner: ente-io
+     *       owner: ente
      *       repo: test-desktop-updates
      *
      * Now we can use the "Check for updates..." menu option to trigger the
@@ -71,7 +71,7 @@ export const setupAutoUpdater = (mainWindow: BrowserWindow) => {
      * Let us say we have v2.0.0 about to go out. We have builds artifacts for
      * v2.0.0 also in some draft release in our normal release repository.
      *
-     * Create a new test repository, say `ente-io/test-desktop-updates`. In this
+     * Create a new test repository, say `ente/test-desktop-updates`. In this
      * repository, create a release v2.0.0, attaching the actual build
      * artifacts. Make this release the latest.
      *
@@ -81,7 +81,7 @@ export const setupAutoUpdater = (mainWindow: BrowserWindow) => {
      * new version number that we want to test updating to, e.g. `v1.0.0-test`.
      *
      * Then uncomment the following block of code. This tells the auto updater
-     * to use `ente-io/test-desktop-updates` to get updates.
+     * to use `ente/test-desktop-updates` to get updates.
      *
      * With these two changes (older version and setFeedURL), create a new
      * release signed build on CI. Install this build - it will check for
@@ -92,7 +92,7 @@ export const setupAutoUpdater = (mainWindow: BrowserWindow) => {
     /*
     autoUpdater.setFeedURL({
         provider: "github",
-        owner: "ente-io",
+        owner: "ente",
         repo: "test-desktop-updates",
     });
     */

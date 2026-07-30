@@ -164,7 +164,9 @@ class _CleanupHiddenFromDevicePageState
     final allFiles = await CollectionsService.instance.getHiddenFilesOnDevice();
     if (allFiles.isEmpty) return;
 
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context);
+    if (!mounted) return;
     final actionResult = await showActionSheet(
       context: context,
       title: l10n.deleteFromDeviceQuestion,
@@ -182,6 +184,7 @@ class _CleanupHiddenFromDevicePageState
               await deleteFilesOnDeviceOnly(context, allFiles);
             } catch (e) {
               if (context.mounted) {
+                if (!mounted) return;
                 await showGenericErrorDialog(context: context, error: e);
               }
               rethrow;
@@ -204,6 +207,7 @@ class _CleanupHiddenFromDevicePageState
     if (actionResult?.action == ButtonAction.first) {
       widget.onCleanupComplete?.call();
       if (context.mounted) {
+        if (!mounted) return;
         Navigator.of(context).pop();
       }
     }

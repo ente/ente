@@ -162,8 +162,6 @@ const HoverRiveLogo = memo(
                 <Box
                     component="canvas"
                     ref={canvasRef}
-                    width={sizePx}
-                    height={sizePx}
                     aria-label={`${alt} animation`}
                     sx={{
                         position: "absolute",

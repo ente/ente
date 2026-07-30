@@ -8,9 +8,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	"github.com/ente-io/museum/ente"
-	timeutil "github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	timeutil "github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/google/uuid"
 )
 

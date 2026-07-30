@@ -9,6 +9,7 @@ import "package:photos/models/file/file.dart";
 import "package:photos/models/rituals/ritual_models.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
+import "package:photos/services/notification_service.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/collections/album/column_item.dart";
@@ -535,6 +536,18 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                       ),
                                       onPressed: canSave
                                           ? () async {
+                                              if (sendReminderEnabled &&
+                                                  !await NotificationService
+                                                      .instance
+                                                      .hasGrantedPermissions() &&
+                                                  !await NotificationService
+                                                      .instance
+                                                      .requestPermissions(
+                                                        // ignore: use_build_context_synchronously
+                                                        context,
+                                                      )) {
+                                                return;
+                                              }
                                               final updated =
                                                   (ritual ??
                                                           ritualsService
@@ -555,6 +568,7 @@ Future<void> _showRitualEditor(BuildContext context, {Ritual? ritual}) async {
                                               await ritualsService.saveRitual(
                                                 updated,
                                               );
+                                              if (!context.mounted) return;
                                               Navigator.of(context).pop();
                                             }
                                           : null,
@@ -617,6 +631,7 @@ Future<Collection?> _pickAlbum(BuildContext context) async {
   );
   Collection? selected;
 
+  if (!context.mounted) return null;
   await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -814,6 +829,8 @@ class _AlbumPickerSheetState extends State<_AlbumPickerSheet> {
                             child: buildEmptyState(),
                           )
                         : ListView.separated(
+                            keyboardDismissBehavior:
+                                ScrollViewKeyboardDismissBehavior.onDrag,
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                             itemBuilder: (context, index) {
                               if (showNewAlbumRow && index == 0) {

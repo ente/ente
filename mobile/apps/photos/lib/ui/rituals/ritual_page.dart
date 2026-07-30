@@ -126,6 +126,7 @@ class _RitualPageState extends State<RitualPage> {
       );
       overlay.insert(entry);
       final boundary = await _waitForBoundaryReady(repaintKey: repaintKey);
+      if (!mounted) return;
       final double pixelRatio = (MediaQuery.devicePixelRatioOf(context) * 1.8)
           .clamp(2.4, 3.5);
       final ui.Image image = await boundary.toImage(pixelRatio: pixelRatio);
@@ -139,6 +140,7 @@ class _RitualPageState extends State<RitualPage> {
         "${dir.path}/ritual_share_${ritual.id}_${DateTime.now().millisecondsSinceEpoch}.png",
       );
       await file.writeAsBytes(data, flush: true);
+      if (!mounted) return;
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path)],

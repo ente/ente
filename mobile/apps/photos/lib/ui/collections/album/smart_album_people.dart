@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:ente_components/ente_components.dart";
 import "package:flutter/foundation.dart";
 import 'package:flutter/material.dart';
 import "package:logging/logging.dart";
@@ -15,8 +16,6 @@ import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
 import "package:photos/ui/components/action_sheet_widget.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
-import 'package:photos/ui/components/title_bar_title_widget.dart';
-import 'package:photos/ui/components/title_bar_widget.dart';
 import "package:photos/ui/viewer/search/result/people_section_all_page.dart"
     show PeopleSectionAllWidget;
 import "package:photos/utils/dialog_util.dart";
@@ -54,7 +53,9 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.componentColors;
     return Scaffold(
+      backgroundColor: colors.backgroundBase,
       bottomNavigationBar: Padding(
         padding: EdgeInsets.fromLTRB(
           16,
@@ -71,10 +72,9 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                     currentConfig!.personIDs,
                   )
                 : _selectedPeople.personIds.isNotEmpty;
-            return ButtonWidget(
-              buttonType: ButtonType.primary,
-              buttonSize: ButtonSize.large,
-              labelText: AppLocalizations.of(context).save,
+            return ButtonComponent(
+              variant: ButtonComponentVariant.primary,
+              label: AppLocalizations.of(context).save,
               shouldSurfaceExecutionStates: false,
               isDisabled: !areIdsChanged,
               onTap: areIdsChanged
@@ -121,6 +121,7 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                               .toList();
 
                           if (removedPersonIds.isNotEmpty) {
+                            if (!context.mounted) return;
                             final toDelete = await removeFilesDialog(context);
                             await dialog.show();
 
@@ -142,7 +143,7 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                                   await CollectionActions(
                                     CollectionsService.instance,
                                   ).moveFilesFromCurrentCollection(
-                                    context,
+                                    null,
                                     collection!,
                                     enteFiles[widget.collectionId] ?? [],
                                     isHidden: collection.isHidden(),
@@ -168,6 +169,7 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                         unawaited(smartAlbumsService.syncSmartAlbums());
 
                         await dialog.hide();
+                        if (!context.mounted) return;
                         Navigator.pop(context);
                       } catch (error, stackTrace) {
                         _logger.severe(
@@ -176,6 +178,7 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
                           stackTrace,
                         );
                         await dialog.hide();
+                        if (!context.mounted) return;
                         await showGenericErrorDialog(
                           context: context,
                           error: error,
@@ -187,19 +190,11 @@ class _SmartAlbumPeopleState extends State<SmartAlbumPeople> {
           },
         ),
       ),
-      body: CustomScrollView(
-        primary: false,
+      body: AppBarComponent(
+        title: AppLocalizations.of(context).people,
+        subtitle: AppLocalizations.of(context).peopleAutoAddDesc,
+        physics: const BouncingScrollPhysics(),
         slivers: <Widget>[
-          TitleBarWidget(
-            flexibleSpaceTitle: TitleBarTitleWidget(
-              title: AppLocalizations.of(context).people,
-            ),
-            expandedHeight: MediaQuery.textScalerOf(context).scale(120),
-            flexibleSpaceCaption: AppLocalizations.of(
-              context,
-            ).peopleAutoAddDesc,
-            actionIcons: const [],
-          ),
           SliverFillRemaining(
             child: PeopleSectionAllWidget(
               selectedPeople: _selectedPeople,

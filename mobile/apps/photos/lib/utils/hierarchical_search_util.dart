@@ -28,7 +28,6 @@ import "package:photos/services/machine_learning/face_ml/person/person_service.d
 import "package:photos/services/magic_cache_service.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/ui/viewer/gallery/state/search_filter_data_provider.dart";
-import "package:photos/utils/file_util.dart";
 
 Future<Set<int>> _getFileIDsOfPersonIncludingManualAssignments(
   String personID,

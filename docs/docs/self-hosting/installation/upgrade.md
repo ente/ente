@@ -7,6 +7,10 @@ description: Upgrading self-hosted Ente
 
 Upgrading Ente depends on the method of installation you have chosen.
 
+> [!IMPORTANT]
+>
+> If your compose file references `ghcr.io/ente-io/`, replace it with `ghcr.io/ente/`, then run `docker compose pull && docker compose up -d`.
+
 ## Quickstart
 
 > [!TIP]

@@ -1,4 +1,4 @@
-import { type NotificationAttributes } from "ente-new/photos/components/Notification";
+import type { NotificationAttributes } from "ente-base/components/Notification";
 import { createContext, useContext } from "react";
 
 /**

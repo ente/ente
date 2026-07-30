@@ -7,11 +7,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/ente-io/go-srp"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	emailUtil "github.com/ente-io/museum/pkg/utils/email"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/go-srp"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/auth"
+	emailUtil "github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -79,6 +79,11 @@ func (c *UserController) UpdateSrpAndKeyAttributes(context *gin.Context,
 	if err != nil {
 		return nil, err
 	}
+	if shouldClearTokens && c.SpaceAccessResetter != nil {
+		if err = c.SpaceAccessResetter.RevokeBrowserSessions(context, userID); err != nil {
+			return nil, err
+		}
+	}
 	err = c.UserAuthRepo.InsertOrUpdateSRPAuthAndKeyAttr(context, userID, req, setup)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to add entry in srp auth")
@@ -89,6 +94,11 @@ func (c *UserController) UpdateSrpAndKeyAttributes(context *gin.Context,
 		err = c.UserAuthRepo.RemoveAllOtherTokens(userID, token)
 		if err != nil {
 			return nil, err
+		}
+		if c.SpaceAccessResetter != nil {
+			if sweepErr := c.SpaceAccessResetter.RevokeBrowserSessions(context, userID); sweepErr != nil {
+				logrus.WithError(sweepErr).WithField("user_id", userID).Warn("failed to sweep space browser sessions after password update")
+			}
 		}
 	} else {
 		logrus.WithField("user_id", userID).Info("not clearing tokens")
@@ -101,7 +111,7 @@ func (c *UserController) UpdateSrpAndKeyAttributes(context *gin.Context,
 }
 
 func (c *UserController) GetSRPAttributes(context *gin.Context, email string) (*ente.GetSRPAttributesResponse, error) {
-	userID, err := c.UserRepo.GetUserIDWithEmail(email)
+	userID, err := c.UserRepo.GetUserIDWithEmailUnrestricted(email)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return nil, stacktrace.Propagate(err, "failed to get user id")

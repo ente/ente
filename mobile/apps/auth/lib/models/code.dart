@@ -161,14 +161,17 @@ class Code {
         _getType(uri),
         _getCounter(uri),
         rawData,
-        display: CodeDisplay.fromUri(uri) ?? CodeDisplay(),
+        display: display ?? CodeDisplay.fromUri(uri) ?? CodeDisplay(),
       );
       return code;
     } catch (e) {
       // if account name contains # without encoding,
       // rest of the url are treated as url fragment
       if (rawData.contains("#")) {
-        return Code.fromOTPAuthUrl(rawData.replaceAll("#", '%23'));
+        return Code.fromOTPAuthUrl(
+          rawData.replaceAll("#", '%23'),
+          display: display,
+        );
       } else {
         Logger(
           "Code",
@@ -224,7 +227,7 @@ class Code {
       if (uri.queryParameters.containsKey("issuer")) {
         String issuerName = uri.queryParameters['issuer']!;
         // Handle issuer name with period
-        // See https://github.com/ente-io/ente/pull/77
+        // See https://github.com/ente/ente/pull/77
         if (issuerName.contains("period=")) {
           return issuerName.substring(0, issuerName.indexOf("period="));
         }

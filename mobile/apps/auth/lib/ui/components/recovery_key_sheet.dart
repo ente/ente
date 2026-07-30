@@ -136,11 +136,13 @@ class _RecoveryKeySheetState extends State<RecoveryKeySheet> {
 
   Future<void> _shareRecoveryKey(String recoveryKey) async {
     try {
+      if (!mounted) return;
       if (_recoveryKeyFile.existsSync()) {
         await _recoveryKeyFile.delete();
       }
       _recoveryKeyFile.writeAsStringSync(recoveryKey);
 
+      if (!mounted) return;
       await shareFiles([
         XFile(_recoveryKeyFile.path, mimeType: 'text/plain'),
       ], context: context);

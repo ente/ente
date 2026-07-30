@@ -26,7 +26,7 @@ export const PasteFooter = () => {
     const tokens = getPasteThemeTokens(resolvedMode);
 
     return (
-        <Stack alignItems="center" spacing={1.1}>
+        <Stack spacing={1.1} sx={{ alignItems: "center" }}>
             <Box
                 component="a"
                 href="https://ente.com"
@@ -46,9 +46,11 @@ export const PasteFooter = () => {
             <Stack
                 direction="row"
                 spacing={1}
-                alignItems="center"
-                justifyContent="center"
-                flexWrap="nowrap"
+                sx={{
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexWrap: "nowrap",
+                }}
             >
                 <Typography
                     component="a"

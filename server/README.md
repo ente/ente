@@ -82,7 +82,7 @@ Everything that you might needed to run museum is all in here, since this is the
 
 Some people new to Docker/Go/Postgres might have general questions though. Unfortunately, because of limited engineering bandwidth **we will currently not be able to prioritize support queries related to self hosting**, and we request you to please not open issues around self hosting for the time being (feel free to create discussions though). The best way to summarize the status of self hosting is – **everything you need is here, but it is perhaps not readily documented, or flexible enough.**
 
-That said, we hope community members help each other out, e.g. in this repository's [Discussions](https://github.com/ente-io/ente/discussions), or on [our Discord](https://discord.gg/z2YVKkycX3). And whenever time permits, we will try to clarify, and also document such FAQs. Please feel free to open documentation PRs around this too.
+That said, we hope community members help each other out, e.g. in this repository's [Discussions](https://github.com/ente/ente/discussions), or on [our Discord](https://discord.gg/z2YVKkycX3). And whenever time permits, we will try to clarify, and also document such FAQs. Please feel free to open documentation PRs around this too.
 
 > [!TIP]
 >

@@ -1297,7 +1297,7 @@ const migrateExportRecordIfNeeded = async (
     // The last migration from versions prior to version 5 of the export record
     // was added in Sep 2023 (commit 1fe4d0443b29e77a91981d5800d2c4231118cb83)
     // and released as part of app version 1.6.41:
-    // https://github.com/ente-io/photos-desktop/releases/tag/v1.6.41.
+    // https://github.com/ente/photos-desktop/releases/tag/v1.6.41.
     //
     // There is no traffic from older versions anymore. Still, as an extra
     // precaution, do not proceed if the migration prior to 5 hasn't run by now.

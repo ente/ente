@@ -2,11 +2,11 @@ package usercache
 
 import (
 	"context"
-	"github.com/ente-io/museum/ente/cache"
-	bonus "github.com/ente-io/museum/ente/storagebonus"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/repo/storagebonus"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente/cache"
+	bonus "github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo/storagebonus"
+	"github.com/ente/stacktrace"
 )
 
 // Controller is the controller for the data cache.

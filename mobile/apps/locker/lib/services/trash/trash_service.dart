@@ -211,6 +211,10 @@ class TrashService {
     final params = <String, dynamic>{};
     params["lastUpdatedAt"] = _getSyncTime();
     final trashFiles = await _db.getTrashFiles();
+    if (trashFiles.isEmpty) {
+      _logger.info("Skipping empty trash because local trash is empty");
+      return;
+    }
     final fileIDs = trashFiles
         .map((trashFile) => trashFile.uploadedFileID!)
         .toList();

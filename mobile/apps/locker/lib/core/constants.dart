@@ -8,8 +8,7 @@ const int android11SDKINT = 30;
 const mnemonicKeyWordCount = 24;
 
 const kDefaultProductionEndpoint = 'https://api.ente.com';
-const String githubDiscussionsUrl =
-    "https://github.com/ente-io/ente/discussions";
+const String githubDiscussionsUrl = "https://github.com/ente/ente/discussions";
 
 const supportEmail = 'support@ente.com';
 

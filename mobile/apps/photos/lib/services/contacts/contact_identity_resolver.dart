@@ -1,7 +1,7 @@
 import "package:photos/extensions/user_extension.dart";
 import "package:photos/models/api/collection/user.dart";
-import "package:photos/service_locator.dart" show flagService;
 import "package:photos/services/photos_contacts_service.dart";
+import "package:photos/utils/contact_string_util.dart";
 
 String resolveDisplayName(User user) {
   final savedName = _savedContactName(user);
@@ -18,16 +18,18 @@ String resolveDisplayName(User user) {
 }
 
 String? resolveKnownEmail(User user) {
-  if (flagService.enableContact && user.id != null && user.id! > 0) {
-    final savedEmail = _knownEmailOrNull(
-      PhotosContactsService.instance.getCachedResolvedEmailByUserId(user.id),
-    );
-    if (savedEmail != null) {
-      return savedEmail;
-    }
+  final contactUserId = _validContactUserId(user);
+  final savedEmail = knownContactEmailOrNull(
+    PhotosContactsService.instance.getCachedResolvedEmail(
+      contactUserId: contactUserId,
+      email: contactUserId == null ? user.email : null,
+    ),
+  );
+  if (savedEmail != null) {
+    return savedEmail;
   }
 
-  return _knownEmailOrNull(user.email);
+  return knownContactEmailOrNull(user.email);
 }
 
 bool matchesResolvedContactQuery(User user, String lowerCaseQuery) {
@@ -42,28 +44,14 @@ bool matchesResolvedContactQuery(User user, String lowerCaseQuery) {
 }
 
 String? _savedContactName(User user) {
-  if (!flagService.enableContact || user.id == null || user.id! <= 0) {
-    return null;
-  }
-
-  final savedName = PhotosContactsService.instance
-      .getCachedSavedNameByUserId(user.id)
-      ?.trim();
-  if (savedName == null || savedName.isEmpty) {
-    return null;
-  }
-  return savedName;
+  final contactUserId = _validContactUserId(user);
+  return PhotosContactsService.instance.getCachedSavedName(
+    contactUserId: contactUserId,
+    email: contactUserId == null ? user.email : null,
+  );
 }
 
-String? _knownEmailOrNull(String? email) {
-  if (email == null) {
-    return null;
-  }
-
-  final trimmed = email.trim();
-  if (trimmed.isEmpty || trimmed == "unknown@unknown.com") {
-    return null;
-  }
-
-  return trimmed.endsWith("@unknown.com") ? null : trimmed;
+int? _validContactUserId(User user) {
+  final userId = user.id;
+  return userId != null && userId > 0 ? userId : null;
 }

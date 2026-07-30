@@ -11,13 +11,11 @@ import "package:photos/db/offline_files_db.dart";
 import 'package:photos/events/embedding_updated_event.dart';
 import "package:photos/models/file/file.dart";
 import "package:photos/models/ml/clip.dart";
-import "package:photos/models/ml/face/dimension.dart";
 import "package:photos/models/ml/ml_versions.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/machine_learning/ml_computer.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
-import "package:photos/services/machine_learning/semantic_search/clip/clip_image_encoder.dart";
 import "package:photos/services/machine_learning/semantic_search/query_result.dart";
 import "package:photos/services/search_service.dart";
 import "package:shared_preferences/shared_preferences.dart";
@@ -522,23 +520,5 @@ class SemanticSearchService {
         _imageEmbeddingsAreCached = false;
       }
     });
-  }
-
-  static Future<ClipResult> runClipImage(
-    int enteFileID,
-    Dimensions dimensions,
-    Uint8List rawRgbaBytes,
-    int clipImageAddress,
-  ) async {
-    final embedding = await ClipImageEncoder.predict(
-      dimensions,
-      rawRgbaBytes,
-      clipImageAddress,
-      enteFileID,
-    );
-
-    final clipResult = ClipResult(fileID: enteFileID, embedding: embedding);
-
-    return clipResult;
   }
 }

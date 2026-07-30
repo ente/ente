@@ -1,9 +1,11 @@
+export 'components/legacy_kit_recovery_wait_time_sheet.dart';
 export 'models/emergency_models.dart';
 export 'models/legacy_kit_models.dart';
 export 'pages/create_legacy_kit_sheet.dart';
 export 'pages/emergency_page.dart';
-export 'pages/legacy_kit_page.dart';
+export 'pages/legacy_congratulations_page.dart';
 export 'pages/other_contact_page.dart';
 export 'pages/recover_others_account.dart';
+export 'pages/share_legacy_kit_page.dart';
 export 'services/emergency_service.dart';
 export 'services/legacy_kit_service.dart';

@@ -1,9 +1,7 @@
 name: native_video_editor
 description: Native video editing operations for trim, crop, and rotate without re-encoding
-version: 1.0.0
-homepage: https://github.com/ente-io/ente
-publish_to: none
 
+resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
   flutter: ">=2.5.0"

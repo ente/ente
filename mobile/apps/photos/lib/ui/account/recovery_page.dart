@@ -1,11 +1,9 @@
+import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
 import 'package:photos/core/configuration.dart';
 import "package:photos/generated/l10n.dart";
-import "package:photos/theme/ente_theme.dart";
 import 'package:photos/ui/account/password_entry_page.dart';
 import "package:photos/ui/components/alert_bottom_sheet.dart";
-import "package:photos/ui/components/buttons/button_widget_v2.dart";
-import "package:photos/ui/components/text_input_widget_v2.dart";
 import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/utils/dialog_util.dart';
 
@@ -27,37 +25,35 @@ class _RecoveryPageState extends State<RecoveryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final colors = context.componentColors;
     final isFormValid = _recoveryKeyController.text.isNotEmpty;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: colorScheme.backgroundColour,
+      backgroundColor: colors.backgroundBase,
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: colorScheme.backgroundColour,
+        backgroundColor: colors.backgroundBase,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          color: colorScheme.content,
+          color: colors.iconColor,
           onPressed: () {
             Navigator.of(context).pop();
           },
         ),
         title: Text(
           AppLocalizations.of(context).recoverAccount,
-          style: textTheme.largeBold,
+          style: TextStyles.large.copyWith(color: colors.textBase),
         ),
         centerTitle: true,
       ),
       body: _getBody(),
       floatingActionButton: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: ButtonWidgetV2(
+        child: ButtonComponent(
           key: const ValueKey("recoveryButton"),
-          buttonType: ButtonTypeV2.primary,
-          labelText: AppLocalizations.of(context).logInLabel,
+          label: AppLocalizations.of(context).logInLabel,
           isDisabled: !isFormValid,
           onTap: isFormValid ? _onRecoverPressed : null,
         ),
@@ -72,24 +68,26 @@ class _RecoveryPageState extends State<RecoveryPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           const SizedBox(height: 12),
-          TextInputWidgetV2(
+          TextInputComponent(
             label: AppLocalizations.of(context).recoveryKey,
             hintText: AppLocalizations.of(context).enterYourRecoveryKey,
-            textEditingController: _recoveryKeyController,
+            controller: _recoveryKeyController,
+            keyboardType: TextInputType.multiline,
             maxLines: null,
             minLines: 5,
-            autoCorrect: false,
-            onChange: (value) {
+            autocorrect: false,
+            onChanged: (value) {
               setState(() {});
             },
           ),
           const SizedBox(height: 16),
           Align(
             alignment: Alignment.centerRight,
-            child: ButtonWidgetV2(
-              buttonType: ButtonTypeV2.link,
-              labelText: AppLocalizations.of(context).noRecoveryKey,
-              buttonSize: ButtonSizeV2.small,
+            child: ButtonComponent(
+              label: AppLocalizations.of(context).noRecoveryKey,
+              variant: ButtonComponentVariant.link,
+              size: ButtonComponentSize.small,
+              shouldSurfaceExecutionStates: false,
               onTap: () async {
                 // ignore: unawaited_futures
                 showAlertBottomSheet(
@@ -118,7 +116,9 @@ class _RecoveryPageState extends State<RecoveryPage> {
     try {
       await Configuration.instance.recover(_recoveryKeyController.text.trim());
       await dialog.hide();
+      if (!mounted) return;
       showShortToast(context, AppLocalizations.of(context).recoverySuccessful);
+      if (!mounted) return;
       // ignore: unawaited_futures
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
@@ -132,10 +132,12 @@ class _RecoveryPageState extends State<RecoveryPage> {
       );
     } catch (e) {
       await dialog.hide();
+      if (!mounted) return;
       String errMessage = AppLocalizations.of(context).incorrectRecoveryKeyBody;
       if (e is AssertionError) {
         errMessage = '$errMessage : ${e.message}';
       }
+      if (!mounted) return;
       // ignore: unawaited_futures
       showAlertBottomSheet(
         context,

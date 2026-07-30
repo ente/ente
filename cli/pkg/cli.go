@@ -2,8 +2,8 @@ package pkg
 
 import (
 	"fmt"
-	"github.com/ente-io/cli/internal/api"
-	"github.com/ente-io/cli/pkg/secrets"
+	"github.com/ente/cli/internal/api"
+	"github.com/ente/cli/pkg/secrets"
 	bolt "go.etcd.io/bbolt"
 	"os"
 	"path/filepath"

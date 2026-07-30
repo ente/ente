@@ -3,7 +3,7 @@
     "version": "0.0.0",
     "private": true,
     "dependencies": {
-        "@mui/icons-material": "7.3.11",
+        "@mui/icons-material": "9.2.0",
         "ente-accounts-rs": "*",
         "ente-base": "*",
         "ente-wasm": "*",

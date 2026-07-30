@@ -1,9 +1,8 @@
 import "dart:async";
 
-import "package:collection/collection.dart";
+import "package:ente_components/ente_components.dart";
 import 'package:flutter/material.dart';
 import "package:hugeicons/hugeicons.dart";
-import "package:photos/core/constants.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/album_sort_order_change_event.dart";
 import "package:photos/events/collection_updated_event.dart";
@@ -13,12 +12,11 @@ import 'package:photos/models/collection/collection_items.dart';
 import "package:photos/models/selected_albums.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
+import "package:photos/settings/local_settings.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/collections/flex_grid_view.dart";
-import "package:photos/ui/components/popup_menu/ente_popup_menu_button.dart";
 import "package:photos/ui/components/searchable_appbar.dart";
 import "package:photos/ui/viewer/actions/album_selection_overlay_bar.dart";
-import "package:photos/utils/local_settings.dart";
 
 enum UISectionType {
   incomingCollections,
@@ -295,48 +293,14 @@ class _CollectionListPageState extends State<CollectionListPage> {
     }
     if (widget.sectionType == UISectionType.archivedCollections ||
         widget.sectionType == UISectionType.hiddenCollections) {
-      await _sortCollectionsByCurrentPreferences(collections!);
+      await CollectionsService.instance.sortCollectionsByAlbumPreferences(
+        collections!,
+        sortKey: sortKey,
+        sortDirection: albumSortDirection,
+      );
     }
     if (mounted) {
       setState(() {});
     }
-  }
-
-  Future<void> _sortCollectionsByCurrentPreferences(
-    List<Collection> collectionsToSort,
-  ) async {
-    if (collectionsToSort.length < 2) {
-      return;
-    }
-
-    final currentSortKey = sortKey;
-    final currentSortDirection = albumSortDirection;
-
-    Map<int, int>? collectionIDToNewestPhotoTime;
-    if (currentSortKey == AlbumSortKey.newestPhoto) {
-      collectionIDToNewestPhotoTime = await CollectionsService.instance
-          .getCollectionIDToNewestFileTime();
-    }
-
-    collectionsToSort.sort((first, second) {
-      int comparison;
-      if (currentSortKey == AlbumSortKey.albumName) {
-        comparison = compareAsciiLowerCaseNatural(
-          first.displayName,
-          second.displayName,
-        );
-      } else if (currentSortKey == AlbumSortKey.newestPhoto) {
-        comparison =
-            (collectionIDToNewestPhotoTime?[second.id] ?? -1 * intMaxValue)
-                .compareTo(
-                  collectionIDToNewestPhotoTime?[first.id] ?? -1 * intMaxValue,
-                );
-      } else {
-        comparison = second.updationTime.compareTo(first.updationTime);
-      }
-      return currentSortDirection == AlbumSortDirection.ascending
-          ? comparison
-          : -comparison;
-    });
   }
 }

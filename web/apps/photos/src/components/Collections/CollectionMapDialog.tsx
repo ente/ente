@@ -21,8 +21,8 @@ import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
 import { downloadManager } from "ente-gallery/services/download";
 import { uniqueFilesByID } from "ente-gallery/utils/file";
-import { type Collection } from "ente-media/collection";
-import { type EnteFile } from "ente-media/file";
+import type { Collection } from "ente-media/collection";
+import type { EnteFile } from "ente-media/file";
 import {
     fileCreationPhotoSortTime,
     fileLocation,
@@ -34,7 +34,7 @@ import {
     addToFavoritesCollection,
     removeFromFavoritesCollection,
 } from "ente-new/photos/services/collection";
-import { type CollectionSummary } from "ente-new/photos/services/collection-summary";
+import type { CollectionSummary } from "ente-new/photos/services/collection-summary";
 import { updateFilesVisibility } from "ente-new/photos/services/file";
 import {
     savedCollectionFiles,
@@ -1659,7 +1659,7 @@ export const CollectionMapDialog: React.FC<CollectionMapDialogProps> = ({
         if (error) {
             return (
                 <CenteredBox>
-                    <Typography variant="body" color="text.secondary">
+                    <Typography variant="body" sx={{ color: "text.secondary" }}>
                         {error}
                     </Typography>
                 </CenteredBox>
@@ -1678,7 +1678,7 @@ export const CollectionMapDialog: React.FC<CollectionMapDialogProps> = ({
         if (!mapPoints.length || !mapCenter || !mapIndex) {
             return (
                 <CenteredBox onClose={onClose} closeLabel={t("close")}>
-                    <Typography variant="body" color="text.secondary">
+                    <Typography variant="body" sx={{ color: "text.secondary" }}>
                         {t("no_geotagged_photos")}
                     </Typography>
                 </CenteredBox>
@@ -2173,7 +2173,7 @@ function CollectionSidebar({
                                 </Typography>
                                 <Typography
                                     variant="small"
-                                    color="text.secondary"
+                                    sx={{ color: "text.secondary" }}
                                 >
                                     {t("zoom_out_to_see_photos")}
                                 </Typography>

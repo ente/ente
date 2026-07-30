@@ -28,8 +28,6 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
     enableDownload,
     onShowFeed,
     collectionTitle,
-    enableJoin,
-    onJoinAlbum,
 }) => {
     const iconStrokeWidth = 1.8;
     const [showCopiedMessage, setShowCopiedMessage] = useState(false);
@@ -92,15 +90,9 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({
                     )}
 
                     <MobileSignUpButton
-                        onClick={() => {
-                            if (enableJoin) {
-                                onJoinAlbum?.();
-                            } else {
-                                window.location.href = getEnteURL();
-                            }
-                        }}
+                        onClick={() => (window.location.href = getEnteURL())}
                     >
-                        {enableJoin ? t("join_album") : t("get_ente_photos")}
+                        {t("join_ente")}
                     </MobileSignUpButton>
                 </ButtonGroup>
             </MobileNavContainer>

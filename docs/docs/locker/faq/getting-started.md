@@ -14,7 +14,7 @@ Answers to common questions about installing Ente Locker and setting up your acc
 Install Ente Locker for Android from:
 
 - [Google Play Store](https://play.google.com/store/apps/details?id=io.ente.locker)
-- [GitHub releases](https://github.com/ente-io/ente/releases?q=locker)
+- [GitHub releases](https://github.com/ente/ente/releases?q=locker)
 
 Open the store, search for "Ente Locker", and tap Install.
 
@@ -162,6 +162,14 @@ If you cancel your Ente Photos subscription:
 - If you're over the free limits, you cannot add new items
 - All existing items remain accessible and are not deleted
 - You can delete items to get back under the free limits
+
+### What happens if my free account becomes inactive? {#inactive-free-account}
+
+If a free account has no active paid subscription and remains inactive for 12 consecutive months, we will notify you at your registered email address multiple times before deleting the account.
+
+If you have configured Legacy with trusted contacts, we will notify those trusted contacts as well, so they have a chance to recover the account if needed.
+
+To keep the account and its data, simply sign in before the date mentioned in the emails.
 
 ### What happens if Ente shuts down? {#locker-ente-shutdown}
 

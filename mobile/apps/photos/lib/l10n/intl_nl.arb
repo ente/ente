@@ -13,21 +13,7 @@
   "validEmailAddress": "Geldig e-mailadres",
   "enterValidEmail": "Voer een geldig e-mailadres in.",
   "deleteAccount": "Account verwijderen",
-  "askDeleteReason": "Wat is de voornaamste reden dat je jouw account verwijdert?",
-  "deleteAccountFeedbackPrompt": "We vinden het jammer je te zien gaan. Deel je feedback om ons te helpen verbeteren.",
-  "feedback": "Feedback",
-  "kindlyHelpUsWithThisInformation": "Help ons alsjeblieft met deze informatie",
-  "confirmDeletePrompt": "Ja, ik wil mijn account en de bijbehorende gegevens verspreid over alle apps permanent verwijderen.",
-  "confirmAccountDeletion": "Account verwijderen bevestigen",
-  "deleteAccountPermanentlyButton": "Account permanent verwijderen",
-  "yourAccountHasBeenDeleted": "Je account is verwijderd",
-  "selectReason": "Selecteer reden",
-  "deleteReason1": "Ik mis een belangrijke functie",
-  "deleteReason2": "De app of een bepaalde functie functioneert niet zoals ik verwacht",
-  "deleteReason3": "Ik heb een andere dienst gevonden die me beter bevalt",
-  "deleteReason4": "Mijn reden wordt niet vermeld",
   "sendEmail": "E-mail versturen",
-  "deleteRequestSLAText": "Je verzoek wordt binnen 72 uur verwerkt.",
   "entePhotosPerm": "Ente <i>heeft toestemming nodig om</i> je foto's te bewaren",
   "ok": "Oké",
   "createAccount": "Maak account",
@@ -417,9 +403,6 @@
   "videoSmallCase": "video",
   "photoSmallCase": "foto",
   "singleFileDeleteHighlight": "Het wordt uit alle albums verwijderd.",
-  "singleFileInBothLocalAndRemote": "Deze {fileType} staat zowel in Ente als op jouw apparaat.",
-  "singleFileInRemoteOnly": "Deze {fileType} zal worden verwijderd uit Ente.",
-  "singleFileDeleteFromDevice": "Deze {fileType} zal worden verwijderd van jouw apparaat.",
   "deleteFromEnte": "Verwijder van Ente",
   "yesDelete": "Ja, verwijderen",
   "movedToTrash": "Naar prullenbak verplaatst",
@@ -567,7 +550,6 @@
   "authToChangeEmailVerificationSetting": "Gelieve te verifiëren om de e-mailverificatie te wijzigen",
   "exportYourData": "Exporteer je gegevens",
   "logout": "Uitloggen",
-  "authToInitiateAccountDeletion": "Gelieve te verifiëren om het verwijderen van je account te starten",
   "areYouSureYouWantToLogout": "Weet je zeker dat je wilt uitloggen?",
   "yesLogout": "Ja, log uit",
   "aNewVersionOfEnteIsAvailable": "Er is een nieuwe versie van Ente beschikbaar.",
@@ -896,7 +878,6 @@
   "appleId": "Apple ID",
   "playstoreSubscription": "PlayStore abonnement",
   "appstoreSubscription": "PlayStore abonnement",
-  "subAlreadyLinkedErrMessage": "Jouw {id} is al aan een ander Ente account gekoppeld.\nAls je jouw {id} wilt gebruiken met dit account, neem dan contact op met onze klantenservice",
   "visitWebToManage": "Bezoek alstublieft {webUrl} om uw abonnement te beheren",
   "@visitWebToManage": {
     "description": "Shown when a Stripe subscriber needs to manage their subscription on the web.",
@@ -1106,10 +1087,7 @@
   "photosAddedByYouWillBeRemovedFromTheAlbum": "Foto's toegevoegd door u zullen worden verwijderd uit het album",
   "youveNoFilesInThisAlbumThatCanBeDeleted": "Je hebt geen bestanden in dit album die verwijderd kunnen worden",
   "youDontHaveAnyArchivedItems": "U heeft geen gearchiveerde bestanden.",
-  "ignoredFolderUploadReason": "Sommige bestanden in dit album worden genegeerd voor uploaden omdat ze eerder van Ente zijn verwijderd.",
   "resetIgnoredFiles": "Reset genegeerde bestanden",
-  "deviceFilesAutoUploading": "Bestanden toegevoegd aan dit album van dit apparaat zullen automatisch geüpload worden naar Ente.",
-  "turnOnBackupForAutoUpload": "Schakel back-up in om bestanden die toegevoegd zijn aan deze map op dit apparaat automatisch te uploaden.",
   "noHiddenPhotosOrVideos": "Geen verborgen foto's of video's",
   "toHideAPhotoOrVideo": "Om een foto of video te verbergen",
   "openTheItem": "• Open het item",
@@ -1356,10 +1334,6 @@
   "@searchResultPerson": {
     "description": "Search result subtitle label for person results"
   },
-  "searchResultShared": "Gedeeld",
-  "@searchResultShared": {
-    "description": "Search result subtitle label for shared-with-you results"
-  },
   "searchResultUploadedBy": "Geüpload door",
   "@searchResultUploadedBy": {
     "description": "Search result subtitle label for uploader results"
@@ -1443,10 +1417,6 @@
     "description": "Label of confirm button to add a new custom radius to the radius selector of a location tag"
   },
   "setRadius": "Radius instellen",
-  "androidBiometricHint": "Identiteit verifiëren",
-  "@androidBiometricHint": {
-    "description": "Hint message advising the user how to authenticate with biometrics. It is used on Android side. Maximum 60 characters."
-  },
   "androidBiometricNotRecognized": "Niet herkend. Probeer het opnieuw.",
   "@androidBiometricNotRecognized": {
     "description": "Message to let the user know that authentication was failed. It is used on Android side. Maximum 60 characters."
@@ -1454,14 +1424,6 @@
   "androidBiometricSuccess": "Succes",
   "@androidBiometricSuccess": {
     "description": "Message to let the user know that authentication was successful. It is used on Android side. Maximum 60 characters."
-  },
-  "androidCancelButton": "Annuleren",
-  "@androidCancelButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on Android side. Maximum 30 characters."
-  },
-  "androidSignInTitle": "Verificatie vereist",
-  "@androidSignInTitle": {
-    "description": "Message showed as a title in a dialog which indicates the user that they need to scan biometric to continue. It is used on Android side. Maximum 60 characters."
   },
   "androidBiometricRequiredTitle": "Biometrische verificatie vereist",
   "@androidBiometricRequiredTitle": {
@@ -1475,25 +1437,13 @@
   "@androidDeviceCredentialsSetupDescription": {
     "description": "Message advising the user to go to the settings and configure device credentials on their device. It shows in a dialog on Android side."
   },
-  "goToSettings": "Ga naar instellingen",
-  "@goToSettings": {
-    "description": "Message showed on a button that the user can click to go to settings pages from the current dialog. It is used on both Android and iOS side. Maximum 30 characters."
-  },
   "androidGoToSettingsDescription": "Biometrische verificatie is niet ingesteld op uw apparaat. Ga naar 'Instellingen > Beveiliging' om biometrische verificatie toe te voegen.",
   "@androidGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure biometric on their device. It shows in a dialog on Android side."
   },
-  "iOSLockOut": "Biometrische verificatie is uitgeschakeld. Vergrendel en ontgrendel uw scherm om het in te schakelen.",
-  "@iOSLockOut": {
-    "description": "Message advising the user to re-enable biometrics on their device. It shows in a dialog on iOS side."
-  },
   "iOSGoToSettingsDescription": "Biometrische authenticatie is niet ingesteld op uw apparaat. Schakel Touch ID of Face ID in op uw telefoon.",
   "@iOSGoToSettingsDescription": {
     "description": "Message advising the user to go to the settings and configure Biometrics for their device. It shows in a dialog on iOS side."
-  },
-  "iOSOkButton": "Oké",
-  "@iOSOkButton": {
-    "description": "Message showed on a button that the user can click to leave the current dialog. It is used on iOS side. Maximum 30 characters."
   },
   "openstreetmapContributors": "OpenStreetMap bijdragers",
   "hostedAtOsmFrance": "Gehost bij OSM France",
@@ -1526,7 +1476,6 @@
   "nothingSharedWithYouYet": "Nog niets met je gedeeld",
   "noAlbumsSharedByYouYet": "Nog geen albums gedeeld door jou",
   "sharedWithYou": "Gedeeld met jou",
-  "sharedByYou": "Gedeeld door jou",
   "inviteYourFriendsToEnte": "Vrienden uitnodigen voor Ente",
   "failedToDownloadVideo": "Downloaden van video mislukt",
   "hiding": "Verbergen...",
@@ -1538,7 +1487,6 @@
   "addToHiddenAlbum": "Toevoegen aan verborgen album",
   "moveToHiddenAlbum": "Verplaatsen naar verborgen album",
   "fileTypes": "Bestandstype",
-  "deleteConfirmDialogBody": "Dit account is gekoppeld aan andere Ente apps, als je er gebruik van maakt. Je geüploade gegevens worden in alle Ente apps gepland voor verwijdering, en je account wordt permanent verwijderd voor alle Ente diensten.",
   "hearUsWhereTitle": "Hoe heb je over Ente gehoord?",
   "hearUsExplanation": "Wij gebruiken geen tracking. Het zou helpen als je ons vertelt waar je ons gevonden hebt!",
   "viewAddOnButton": "Add-ons bekijken",
@@ -1599,16 +1547,6 @@
   "playOnTv": "Album afspelen op TV",
   "pair": "Koppelen",
   "deviceNotFound": "Apparaat niet gevonden",
-  "castInstruction": "Bezoek {castUrl} op het apparaat dat u wilt koppelen.\n\nVoer de code hieronder in om het album op uw TV af te spelen.",
-  "@castInstruction": {
-    "description": "Instructions shown when pairing a device to play an album on TV.",
-    "placeholders": {
-      "castUrl": {
-        "type": "String",
-        "example": "https://cast.ente.com"
-      }
-    }
-  },
   "deviceCodeHint": "Voer de code in",
   "joinDiscord": "Join de Discord",
   "locations": "Locaties",
@@ -1645,8 +1583,6 @@
   "enterDateOfBirth": "Verjaardag (optioneel)",
   "birthday": "Verjaardag",
   "removePersonLabel": "Verwijder persoonslabel",
-  "autoPairDesc": "Automatisch koppelen werkt alleen met apparaten die Chromecast ondersteunen.",
-  "manualPairDesc": "Koppelen met de PIN werkt met elk scherm waarop je jouw album wilt zien.",
   "connectToDevice": "Verbinding maken met apparaat",
   "autoCastDialogBody": "Je zult de beschikbare Cast apparaten hier zien.",
   "autoCastiOSPermission": "Zorg ervoor dat lokale netwerkrechten zijn ingeschakeld voor de Ente Photos app, in Instellingen.",
@@ -1658,7 +1594,6 @@
   "pairingComplete": "Koppeling voltooid",
   "savingEdits": "Bewerken opslaan...",
   "autoPair": "Automatisch koppelen",
-  "pairWithPin": "Koppelen met PIN",
   "faceRecognition": "Gezichtsherkenning",
   "foundFaces": "Gezichten gevonden",
   "clusteringProgress": "Voortgang clusteren",
@@ -1687,21 +1622,14 @@
   "enableMLIndexingDesc": "Ente ondersteunt on-device machine learning voor gezichtsherkenning, magisch zoeken en andere geavanceerde zoekfuncties",
   "magicSearchHint": "Magisch zoeken maakt het mogelijk om foto's op hun inhoud worden gezocht, bijvoorbeeld \"bloem\", \"rode auto\", \"identiteitsdocumenten\"",
   "panorama": "Panorama",
-  "reenterPassword": "Wachtwoord opnieuw invoeren",
-  "reenterPin": "PIN opnieuw invoeren",
   "deviceLock": "Apparaat vergrendeld",
   "pinLock": "PIN vergrendeling",
   "next": "Volgende",
-  "setNewPassword": "Nieuw wachtwoord instellen",
-  "enterPin": "PIN invoeren",
-  "setNewPin": "Nieuwe PIN instellen",
   "appLock": "App-vergrendeling",
   "lockScreenType": "Type vergrendeling",
   "noSystemLockFound": "Geen systeemvergrendeling gevonden",
-  "tapToUnlock": "Tik om te ontgrendelen",
   "tooManyIncorrectAttempts": "Te veel onjuiste pogingen",
   "videoInfo": "Video-info",
-  "autoLock": "Automatische vergrendeling",
   "immediately": "Onmiddellijk",
   "autoLockFeatureDescription": "Tijd waarna de app wordt vergrendeld wanneer deze in achtergrond-modus is gezet",
   "hideContent": "Inhoud verbergen",
@@ -2546,7 +2474,6 @@
   "deleteHiddenFilesFromDeviceDescription": "Lokale kopieën van verborgen bestanden van uw apparaat verwijderen",
   "deleteOnDeviceFiles": "Verwijderen uit apparaatbestanden",
   "noHiddenFilesOnDevice": "Geen verborgen bestanden op apparaat",
-  "welcome": "Welkom",
   "grantPermission": "Toestemming verlenen",
   "privateAI": "Privé AI",
   "moreThanJustAGallery": "Meer dan alleen een galerij.",
@@ -2561,10 +2488,6 @@
   "createAlbum": "Album aanmaken",
   "alreadyHaveAnAccount": "Heeft u al een account?",
   "dontHaveAnAccount": "Heeft u geen account?",
-  "searchAndDiscover": "Zoek en ontdek",
-  "shareYourMemories": "Deel je herinneringen",
-  "shareYourMemoriesDesc": "Deel albums, verzamel foto's en verzamel reacties met openbare links",
-  "privateAndSecureBackups": "Back-up met Privacy",
   "mlProgressBannerTitle": "Hou vol!",
   "mlProgressBannerDescription": "Je foto's worden op je apparaat verwerkt om gezichten, objecten en meer te detecteren.",
   "offlineFacesBannerTitle": "Wil je deze gezichten opslaan?",

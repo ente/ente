@@ -1,1 +1,0 @@
-- Show files skipped during upload (hidden files and unreadable zips) in the upload progress.

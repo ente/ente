@@ -154,7 +154,7 @@ const HELP_FAQS = [
                 is also{" "}
                 <Box
                     component="a"
-                    href="https://github.com/ente-io/ente"
+                    href="https://github.com/ente/ente"
                     target="_blank"
                     rel="noopener"
                     sx={{
@@ -180,7 +180,7 @@ const HELP_FAQS = [
     },
     {
         question: "All this sounds magical, how does it work?",
-        answer: "It uses Shamir secret sharing. Your secret is split into three shares in a way where mathematically any two parts reconstruct it while one alone reveals nothing. Think of it like a lock which needs 2 of 3 keys to open.",
+        answer: "It uses Shamir secret sharing. Your secret is split into three shares in a way where mathematically any two parts reconstruct it while one alone reveals nothing about its contents. Think of it like a lock which needs 2 of 3 keys to open.",
     },
     {
         question: "Should I test recovery before storing the cards?",
@@ -193,7 +193,7 @@ const HELP_FAQS = [
                 Yes! 2of3 is part of Ente&apos;s{" "}
                 <Box
                     component="a"
-                    href="https://github.com/ente-io/ente"
+                    href="https://github.com/ente/ente"
                     target="_blank"
                     rel="noopener"
                     sx={{
@@ -396,9 +396,11 @@ const ShareCardPanel = memo(
                 >
                     <Stack
                         direction="row"
-                        justifyContent="space-between"
-                        alignItems="center"
                         spacing={1}
+                        sx={{
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                        }}
                     >
                         <Typography
                             sx={{
@@ -472,10 +474,12 @@ const ShareCardPanel = memo(
                     {card && (
                         <Stack
                             direction="row"
-                            justifyContent="space-between"
-                            alignItems="center"
                             spacing={1}
-                            sx={{ mt: 0.15 }}
+                            sx={{
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                mt: 0.15,
+                            }}
                         >
                             <Button
                                 variant="text"
@@ -517,7 +521,7 @@ const ShareCardPanel = memo(
                         direction="row"
                         spacing={0.8}
                         useFlexGap
-                        flexWrap="wrap"
+                        sx={{ flexWrap: "wrap" }}
                     >
                         <ActionButton
                             disabled={!card || busy}
@@ -1084,9 +1088,11 @@ const Page = () => {
                     <Stack spacing={3}>
                         <Stack
                             direction="row"
-                            justifyContent="space-between"
-                            alignItems="center"
-                            sx={{ px: { xs: 0.5, md: 1 } }}
+                            sx={{
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                px: { xs: 0.5, md: 1 },
+                            }}
                         >
                             <Typography
                                 sx={{
@@ -1270,7 +1276,10 @@ const Page = () => {
                                     </Typography>
                                 </Stack>
 
-                                <Stack spacing={1.1} alignItems="flex-start">
+                                <Stack
+                                    spacing={1.1}
+                                    sx={{ alignItems: "flex-start" }}
+                                >
                                     <Button
                                         variant="contained"
                                         size="large"
@@ -1392,9 +1401,11 @@ const Page = () => {
                             }}
                         >
                             <Stack
-                                alignItems="center"
                                 spacing={0.75}
-                                sx={{ minHeight: { xs: 54, md: 72 } }}
+                                sx={{
+                                    alignItems: "center",
+                                    minHeight: { xs: 54, md: 72 },
+                                }}
                             >
                                 <Box
                                     sx={{
@@ -1570,9 +1581,12 @@ const Page = () => {
                                             >
                                                 <Stack
                                                     direction="row"
-                                                    justifyContent="space-between"
-                                                    alignItems="center"
                                                     spacing={1}
+                                                    sx={{
+                                                        justifyContent:
+                                                            "space-between",
+                                                        alignItems: "center",
+                                                    }}
                                                 >
                                                     <Box
                                                         sx={{
@@ -1695,9 +1709,11 @@ const Page = () => {
                                 <Stack
                                     direction={{ xs: "column", sm: "row" }}
                                     spacing={1.25}
-                                    alignItems={{
-                                        xs: "stretch",
-                                        sm: "flex-start",
+                                    sx={{
+                                        alignItems: {
+                                            xs: "stretch",
+                                            sm: "flex-start",
+                                        },
                                     }}
                                 >
                                     <Button
@@ -1748,12 +1764,14 @@ const Page = () => {
                                                 xs: "column",
                                                 sm: "row",
                                             }}
-                                            justifyContent="space-between"
-                                            alignItems={{
-                                                xs: "flex-start",
-                                                sm: "center",
-                                            }}
                                             spacing={1}
+                                            sx={{
+                                                justifyContent: "space-between",
+                                                alignItems: {
+                                                    xs: "flex-start",
+                                                    sm: "center",
+                                                },
+                                            }}
                                         >
                                             <Typography
                                                 sx={{
@@ -1875,8 +1893,8 @@ const Page = () => {
                                 <Stack spacing={0.9} sx={{ maxWidth: 680 }}>
                                     <Stack
                                         direction="row"
-                                        alignItems="center"
                                         spacing={0.8}
+                                        sx={{ alignItems: "center" }}
                                     >
                                         <Box
                                             sx={{
@@ -2106,9 +2124,12 @@ const Page = () => {
                                             >
                                                 <Stack
                                                     direction="row"
-                                                    justifyContent="space-between"
-                                                    alignItems="center"
                                                     spacing={1}
+                                                    sx={{
+                                                        justifyContent:
+                                                            "space-between",
+                                                        alignItems: "center",
+                                                    }}
                                                 >
                                                     <Box
                                                         sx={{
@@ -2282,7 +2303,7 @@ const Page = () => {
                                 </Box>
                                 <Box
                                     component="a"
-                                    href="https://github.com/ente-io/ente"
+                                    href="https://github.com/ente/ente"
                                     target="_blank"
                                     rel="noopener"
                                     aria-label="View source on GitHub"

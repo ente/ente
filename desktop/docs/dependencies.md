@@ -3,7 +3,6 @@
 - [Electron](#electron)
 - [Dev dependencies](#dev)
 - [Functionality](#functionality)
-- [Pinned](#pinned)
 
 ## Electron
 
@@ -61,8 +60,6 @@ Some extra ones specific to the code here are:
 
 - We don't need `ajv`, but it is a transitive dependency which breaks the build if we let its version be resolved transitively. Taking a direct dependency on it is the easiest workaround for now.
 
-- We override `yauzl` to `^3.3.1` because Electron's installer uses it via `extract-zip`. Older `yauzl` versions can stop extraction on Node 24.16, leaving Electron without `path.txt` and making `electron .` fail. Remove the override once Electron or `extract-zip` no longer resolve to the affected `yauzl` version.
-
 ## Functionality
 
 ### Format conversion
@@ -90,9 +87,3 @@ On macOS, we use the `sips` CLI tool for these tasks, but that is already availa
 ### Watch folders
 
 [chokidar](https://github.com/paulmillr/chokidar) is used as a file system watcher for the watch folders functionality.
-
-## Pinned
-
-- `electron-builder` is pinned to 26.0.14 because of https://github.com/electron-userland/electron-builder/issues/9161
-
-    To reproduce this locally, add `x64ArchFiles: "ffmpeg"` to `electron-builder.yml`, then run `node_modules/.bin/electron-builder --mac`.

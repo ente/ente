@@ -12,7 +12,7 @@ const (
 	SignUpOTTPurpose      = "signup"
 	LoginOTTPurpose       = "login"
 
-	ExpectedKDFStrength = 1073741824 * 4
+	ExpectedKDFStrength = int64(1073741824 * 4)
 )
 
 // User represents a user in the system
@@ -80,8 +80,8 @@ type KeyAttributes struct {
 	PublicKey                         string `json:"publicKey" binding:"required"`
 	EncryptedSecretKey                string `json:"encryptedSecretKey" binding:"required"`
 	SecretKeyDecryptionNonce          string `json:"secretKeyDecryptionNonce" binding:"required"`
-	MemLimit                          int    `json:"memLimit" binding:"required"`
-	OpsLimit                          int    `json:"opsLimit" binding:"required"`
+	MemLimit                          int64  `json:"memLimit" binding:"required"`
+	OpsLimit                          int64  `json:"opsLimit" binding:"required"`
 	MasterKeyEncryptedWithRecoveryKey string `json:"masterKeyEncryptedWithRecoveryKey"`
 	MasterKeyDecryptionNonce          string `json:"masterKeyDecryptionNonce"`
 	RecoveryKeyEncryptedWithMasterKey string `json:"recoveryKeyEncryptedWithMasterKey"`
@@ -114,8 +114,8 @@ type UpdateKeysRequest struct {
 	KEKSalt            string `json:"kekSalt" binding:"required"`
 	EncryptedKey       string `json:"encryptedKey" binding:"required"`
 	KeyDecryptionNonce string `json:"keyDecryptionNonce" binding:"required"`
-	MemLimit           int    `json:"memLimit" binding:"required"`
-	OpsLimit           int    `json:"opsLimit" binding:"required"`
+	MemLimit           int64  `json:"memLimit" binding:"required"`
+	OpsLimit           int64  `json:"opsLimit" binding:"required"`
 }
 
 func (u *UpdateKeysRequest) Validate() error {
@@ -177,6 +177,21 @@ func (r *DeleteAccountRequest) GetReasonAttr() map[string]string {
 type DeleteAccountResponse struct {
 	IsSubscriptionCancelled bool  `json:"isSubscriptionCancelled"`
 	UserID                  int64 `json:"userID"`
+}
+
+type AccountRecoveryRequest struct {
+	Token string `json:"token" binding:"required"`
+}
+
+type AccountRecoveryStatus string
+
+const (
+	AccountRecoveryReady     AccountRecoveryStatus = "ready"
+	AccountRecoveryRecovered AccountRecoveryStatus = "recovered"
+)
+
+type AccountRecoveryResponse struct {
+	Status AccountRecoveryStatus `json:"status"`
 }
 
 // TwoFactorSecret represents the two factor secret generator value, user enters in his authenticator app

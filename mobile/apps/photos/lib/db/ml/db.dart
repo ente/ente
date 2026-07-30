@@ -1284,7 +1284,7 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
     final db = await asyncDB;
     const String query =
         '''
-      SELECT f.$faceIDColumn
+      SELECT COUNT(*) as count
       FROM $facesTable f
       LEFT JOIN $faceClustersTable fc ON f.$faceIDColumn = fc.$faceIDColumn
       WHERE f.$faceScore > $kMinimumQualityFaceScore
@@ -1292,7 +1292,7 @@ class MLDataDB with SqlDbBase implements IMLDataDB<int> {
       AND fc.$faceIDColumn IS NULL
     ''';
     final List<Map<String, dynamic>> maps = await db.getAll(query);
-    return maps.length;
+    return maps.first['count'] as int;
   }
 
   /// WARNING: Only use this method if the person has just been created.

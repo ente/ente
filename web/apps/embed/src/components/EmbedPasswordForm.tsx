@@ -39,6 +39,7 @@ export const EmbedPasswordForm: React.FC<EmbedPasswordFormProps> = ({
                     {t("link_password_description")}
                 </Typography>
                 <SingleInputForm
+                    autoFocus={false}
                     inputType="password"
                     label={t("password")}
                     submitButtonColor="primary"

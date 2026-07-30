@@ -1,4 +1,0 @@
-# melos_managed_dependency_overrides: ente_crypto_api
-dependency_overrides:
-  ente_crypto_api:
-    path: ../ente_crypto_api

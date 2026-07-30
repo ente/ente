@@ -55,11 +55,12 @@ class _LoadingPhotosWidgetState extends State<LoadingPhotosWidget> {
       event,
     ) async {
       if (mounted && event.status == SyncStatus.completedFirstGalleryImport) {
-        if (permissionService.hasGrantedLimitedPermissions()) {
-          // Do nothing, let HomeWidget refresh
-        } else {
-          await _goToFolderSelection();
+        if (widget.isOnboardingFlow &&
+            permissionService.hasGrantedLimitedPermissions()) {
+          // Do nothing, let HomeWidget refresh.
+          return;
         }
+        await _goToFolderSelection();
       }
     });
 
@@ -127,6 +128,7 @@ class _LoadingPhotosWidgetState extends State<LoadingPhotosWidget> {
     } else {
       _importProgressEvent = Bus.instance.on<LocalImportProgressEvent>().listen(
         (event) {
+          if (!mounted) return;
           _loadingMessage = AppLocalizations.of(
             context,
           ).processingImport(folderName: event.folderName);

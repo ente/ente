@@ -22,7 +22,7 @@ jobs:
                   echo "museum_commit=${museum_commit}" >> $GITHUB_ENV
 
             - name: Checkout prod museum commit
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
               with:
                   ref: ${{ env.museum_commit }}
 
@@ -38,6 +38,6 @@ jobs:
                       --file server/Dockerfile \
                       --platform linux/amd64,linux/arm64 \
                       --build-arg GIT_COMMIT="${museum_commit}" \
-                      --tag ghcr.io/ente-io/server:${museum_commit} \
-                      --tag ghcr.io/ente-io/server:latest \
+                      --tag ghcr.io/ente/server:${museum_commit} \
+                      --tag ghcr.io/ente/server:latest \
                       server

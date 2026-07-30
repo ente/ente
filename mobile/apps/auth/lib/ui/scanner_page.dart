@@ -317,8 +317,10 @@ class ScannerPageState extends State<ScannerPage> {
     });
     bool shouldResumeCamera = true;
     try {
+      if (!mounted) return;
       await controller?.pause();
-      final GalleryImportResult? importResult = await pickCodeFromGallery(
+      if (!mounted) return;
+      final GalleryImportResult? importResult = await pickCodeFromImage(
         context,
         logger: _logger,
       );
@@ -327,6 +329,7 @@ class ScannerPageState extends State<ScannerPage> {
       }
       final googleAuthCodes = importResult.googleAuthCodes;
       if (googleAuthCodes != null) {
+        if (!mounted) return;
         final shouldImport = await confirmGoogleAuthImport(
           context,
           googleAuthCodes.length,

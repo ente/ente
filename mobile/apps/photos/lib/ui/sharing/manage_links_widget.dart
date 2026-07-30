@@ -190,6 +190,7 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
                     'enableDownload': selected,
                   });
                   if (!selected) {
+                    if (!context.mounted) return;
                     unawaited(
                       showErrorDialog(
                         context,
@@ -237,6 +238,7 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
                             final propToUpdate = await _getEncryptedPassword(
                               password,
                             );
+                            if (!context.mounted) return;
                             await _updateUrlSettings(
                               context,
                               propToUpdate,
@@ -271,8 +273,10 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
                   collection,
                 );
                 if (result && mounted) {
+                  if (!context.mounted) return;
                   Navigator.of(context).pop();
                   if (collection.isQuickLinkCollection()) {
+                    if (!context.mounted) return;
                     Navigator.of(context).pop();
                   }
                 }
@@ -308,6 +312,7 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
         showOnlyLoadingState: true,
         onTap: () async {
           await Clipboard.setData(ClipboardData(text: urlValue));
+          if (!context.mounted) return;
           showShortToast(
             context,
             AppLocalizations.of(context).linkCopiedToClipboard,
@@ -322,6 +327,7 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
             widget.collection!,
           );
           await Clipboard.setData(ClipboardData(text: embedHtml));
+          if (!context.mounted) return;
           showShortToast(
             context,
             AppLocalizations.of(context).linkCopiedToClipboard,
@@ -453,6 +459,7 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
       return;
     }
 
+    if (!context.mounted) return;
     await _updateShareUrlFromPicker(context, {
       'validTill': timeInMicrosecondsFromEpoch,
     });
@@ -544,9 +551,13 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
       }
     } catch (e) {
       if (e is LinkEditNotAllowedError) {
-        await _showLinkEditNotAllowedDialog(context);
+        if (context.mounted) {
+          await _showLinkEditNotAllowedDialog(context);
+        }
       } else {
-        await showGenericErrorDialog(context: context, error: e);
+        if (context.mounted) {
+          await showGenericErrorDialog(context: context, error: e);
+        }
       }
       rethrow;
     }
@@ -581,16 +592,20 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
         prop,
       );
       await dialog?.hide();
-      showShortToast(context, AppLocalizations.of(context).albumUpdated);
-      if (mounted) {
+      if (context.mounted) {
+        showShortToast(context, AppLocalizations.of(context).albumUpdated);
         setState(() {});
       }
     } catch (e) {
       await dialog?.hide();
       if (e is LinkEditNotAllowedError) {
-        await _showLinkEditNotAllowedDialog(context);
+        if (context.mounted) {
+          await _showLinkEditNotAllowedDialog(context);
+        }
       } else {
-        await showGenericErrorDialog(context: context, error: e);
+        if (context.mounted) {
+          await showGenericErrorDialog(context: context, error: e);
+        }
       }
       rethrow;
     }
@@ -619,6 +634,7 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
       ],
     );
     if (buttonResult?.action == ButtonAction.first) {
+      if (!context.mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (BuildContext context) {

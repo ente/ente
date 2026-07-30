@@ -1,0 +1,2 @@
+- Refreshed settings, setup, imports, and code management with a consistent Ente design.
+- Improved Google Authenticator imports by completing multi-part migrations before returning to your codes.

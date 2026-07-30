@@ -1,1 +1,0 @@
-- Improved QR code detection for rotated images on iOS.

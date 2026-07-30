@@ -196,6 +196,7 @@ class HelpSupportPage extends StatelessWidget {
   Future<void> _exportLogs(BuildContext context) async {
     try {
       final zipFilePath = await getZippedLogsFile(context);
+      if (!context.mounted) return;
       await exportLogs(context, zipFilePath);
     } catch (e, s) {
       _logger.severe("Failed to export logs", e, s);

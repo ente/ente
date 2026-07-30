@@ -4,7 +4,7 @@ on:
     pull_request:
         paths:
             - "mobile/native/android/apps/ensu/**"
-            - "mobile/native/android/packages/rust/**"
+            - "mobile/native/android/apps/ensu/rust/**"
             - "rust/apps/codegen/**"
             - "rust/crates/core/**"
             - "rust/crates/ensu/**"
@@ -27,7 +27,7 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+              uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
             # Restore-only; primed on main by warm-caches.yml.
             - name: Restore Rust cache
@@ -37,9 +37,16 @@ jobs:
                   shared-key: ensu-android
                   save-if: false
 
+            # cargo codegen native builds the uniffi library for the host, which
+            # on Linux enables the llama.cpp Vulkan backend.
+            - name: Install Vulkan build dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y libvulkan-dev glslc
+
             - run: cargo codegen native
               working-directory: rust
 
             - name: Build Ensu
               working-directory: mobile/native/android/apps/ensu
-              run: ./gradlew :app-ui:assembleDebug
+              run: ./gradlew :app:assembleDebug

@@ -42,6 +42,10 @@
       "hex": "EB1000"
     },
     {
+      "title": "aero.zip",
+      "slug": "aero_zip"
+    },
+    {
       "title": "Affiliprint",
       "slug": "affiliprint",
       "hex": "0000ff"
@@ -206,6 +210,9 @@
         "Battle net",
         "Blizzard"
       ]
+    },
+    {
+      "title": "Beefree"
     },
     {
       "title": "Belo"
@@ -406,7 +413,8 @@
       "title": "Capcom",
       "slug": "capcom",
       "altNames": [
-        "Capcom Co., Ltd."
+        "Capcom Co., Ltd.",
+        "CAPCOM ID"
       ]
     },
     {
@@ -650,6 +658,11 @@
       ]
     },
     {
+      "title": "Deutsche Post",
+      "slug": "deutschepost",
+      "hex": "ffcc00"
+    },
+    {
       "title": "DigiFinex",
       "altNames": [
         "Digi Finex",
@@ -660,10 +673,25 @@
       "title": "DirectAdmin"
     },
     {
+      "title": "Discogs",
+      "slug": "discogs",
+      "altNames": [
+        "discogs.com"
+      ]
+    },
+    {
       "title": "Discourse"
     },
     {
       "title": "DMarket"
+    },
+    {
+      "title": "Docker",
+      "slug": "docker",
+      "altNames": [
+        "Docker Hub",
+        "hub.docker.com"
+      ]
     },
     {
       "title": "DocuSeal"
@@ -893,6 +921,13 @@
       "title": "G2A"
     },
     {
+      "title": "Gandi.net",
+      "slug": "gandi_net",
+      "altNames": [
+        "gandi.net"
+      ]
+    },
+    {
       "title": "Garena"
     },
     {
@@ -915,6 +950,9 @@
     },
     {
       "title": "GMX"
+    },
+    {
+      "title": "GoDaddy"
     },
     {
       "title": "GommeHD.net",
@@ -984,6 +1022,9 @@
     },
     {
       "title": "Hornbach"
+    },
+    {
+      "title": "Hover"
     },
     {
       "title": "1984 Hosting",
@@ -1110,6 +1151,13 @@
       "hex": "D3D800"
     },
     {
+      "title": "JetBrains",
+      "slug": "jetbrains",
+      "altNames": [
+        "JetBrains Account"
+      ]
+    },
+    {
       "title": "JetBrains YouTrack",
       "slug": "jetbrains-youtrack",
       "altNames": [
@@ -1121,6 +1169,9 @@
       "altNames": [
         "\u575a\u679c\u4e91"
       ]
+    },
+    {
+      "title": "Jottacloud"
     },
     {
       "title": "JOYclub",
@@ -1260,6 +1311,15 @@
       "slug": "linkedin"
     },
     {
+      "title": "Linus Tech Tips",
+      "slug": "linus_tech_tips",
+      "altNames": [
+        "LTT",
+        "Linus Tech Tips Forums",
+        "LTT Forums"
+      ]
+    },
+    {
       "title": "Linux.Do",
       "slug": "linux_do",
       "altNames": [
@@ -1287,6 +1347,13 @@
       "altNames": [
         "luma",
         "lu.ma"
+      ]
+    },
+    {
+      "title": "MacRumors",
+      "slug": "macrumors",
+      "altNames": [
+        "MacRumors Forums"
       ]
     },
     {
@@ -1415,6 +1482,7 @@
     {
       "title": "Mozilla",
       "slug": "mozilla",
+      "hex": "000000",
       "altNames": [
         "Mozilla Account"
       ]
@@ -1518,7 +1586,7 @@
     },
     {
       "title": "Nintendo",
-      "hex": "E60012",
+      "hex": "000000",
       "altNames": [
         "\u4efb\u5929\u5802",
         "Nintendo Account"
@@ -1554,6 +1622,14 @@
     {
       "title": "NorthC",
       "slug": "northc"
+    },
+    {
+      "title": "Norton",
+      "slug": "norton",
+      "altNames": [
+        "NortonLifeLock",
+        "Norton 360"
+      ]
     },
     {
       "title": "Notesnook"
@@ -1609,6 +1685,13 @@
       "title": "OpenRouter",
       "slug": "openrouter",
       "hex": "FFFFFF"
+    },
+    {
+      "title": "Opera",
+      "slug": "opera",
+      "altNames": [
+        "auth.opera.com"
+      ]
     },
     {
       "title": "Oracle Cloud",
@@ -1688,6 +1771,10 @@
       ]
     },
     {
+      "title": "PenFed",
+      "slug": "penfed"
+    },
+    {
       "title": "Perkbox",
       "slug": "perkbox"
     },
@@ -1701,7 +1788,8 @@
     },
     {
       "title": "PSNProfiles",
-      "slug": "psnprofiles"
+      "slug": "psnprofiles",
+      "hex": "000000"
     },
     {
       "title": "Plus Crypto",
@@ -2013,6 +2101,9 @@
       ]
     },
     {
+      "title": "Smouter"
+    },
+    {
       "title": "SMSPool",
       "slug": "sms_pool_net",
       "altNames": [
@@ -2038,7 +2129,9 @@
     {
       "title": "Square Enix",
       "slug": "square_enix",
-      "hex": "ED1C24"
+      "altNames": [
+        "Square Enix ID"
+      ]
     },
     {
       "title": "Standard Notes",
@@ -2265,6 +2358,13 @@
       ]
     },
     {
+      "title": "Truth Social",
+      "slug": "truth_social",
+      "altNames": [
+        "truthsocial.com"
+      ]
+    },
+    {
       "title": "TU Dresden",
       "slug": "tu_dresden",
       "altNames": [
@@ -2272,6 +2372,16 @@
         "Dresden University of Technology"
       ],
       "hex": "00305d"
+    },
+    {
+      "title": "TunnelBear"
+    },
+    {
+      "title": "Tuta",
+      "slug": "tuta",
+      "altNames": [
+        "Tutanota"
+      ]
     },
     {
       "title": "Tweakers"
@@ -2360,6 +2470,13 @@
       ]
     },
     {
+      "title": "Venice AI",
+      "slug": "venice_ai",
+      "altNames": [
+        "Venice.ai"
+      ]
+    },
+    {
       "title": "VGN",
       "slug": "vgn",
       "altNames": [
@@ -2400,7 +2517,8 @@
       "title": "Warner Bros.",
       "slug": "warner_bros",
       "altNames": [
-        "Warner Brothers"
+        "Warner Brothers",
+        "WB Games Account"
       ]
     },
     {
@@ -2429,6 +2547,9 @@
     },
     {
       "title": "Wick"
+    },
+    {
+      "title": "Wikimedia"
     },
     {
       "title": "Windscribe"
@@ -2523,6 +2644,10 @@
       "title": "Zoom"
     },
     {
+      "title": "ZOOM Platform",
+      "slug": "zoom_platform"
+    },
+    {
       "title": "DLsite",
       "slug": "dlsite"
     },
@@ -2542,18 +2667,18 @@
       "title": "Recruit",
       "slug": "recruit",
       "altNames": [
-      "リクルート",
-      "リクルートID",
-      "recruit id",
-      "recruit holdings",
-      "rgf"
+        "リクルート",
+        "リクルートID",
+        "recruit id",
+        "recruit holdings",
+        "rgf"
       ]
     },
     {
       "title": "Coincheck",
       "slug": "coincheck",
       "altNames": [
-      "コインチェック"
+        "コインチェック"
       ]
     }
   ]

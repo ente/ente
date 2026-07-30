@@ -26,6 +26,7 @@ const handlePOST = async (request: Request) => {
     const originalBody = await request.text();
     const originalDSNString = extractDSN(originalBody);
     const { body, dsn } = mapDSN(originalBody, originalDSNString);
+    if (!isEnteSentryDSN(dsn)) return new Response(null, { status: 400 });
 
     const projectId = parseInt(dsn.pathname?.slice(1)?.split("/")[0] ?? "1");
 
@@ -81,6 +82,10 @@ const mapDSN = (originalBody: string, originalDSNString: string) => {
 
     return { body, dsn };
 };
+
+const isEnteSentryDSN = (dsn: URL) =>
+    dsn.protocol === "https:" &&
+    (dsn.host === "sentry.ente.com" || dsn.host === "sentry.ente.io");
 
 const dsnMappings: Record<string, string> = {
     // photos-mobile

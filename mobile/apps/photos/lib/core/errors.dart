@@ -114,48 +114,12 @@ class MultiPartError implements Exception {
   String toString() => "MultiPartError: $message";
 }
 
-class DuplicateUploadURLError extends Error {
-  final DateTime firstUsedAt;
-  final DateTime duplicateUsedAt;
-
-  DuplicateUploadURLError({
-    required this.firstUsedAt,
-    required this.duplicateUsedAt,
-  });
-
-  @override
-  String toString() =>
-      "DuplicateUploadURLError: Upload URL was reused. "
-      "First used at: $firstUsedAt, Duplicate attempt at: $duplicateUsedAt. "
-      "This indicates a race condition in parallel uploads.";
-}
-
 class EncSizeMismatchError implements Exception {
   final String message;
   EncSizeMismatchError(this.message);
 
   @override
   String toString() => "EncSizeMismatchError: $message";
-}
-
-class InvalidDateTimeError implements Exception {
-  final String assetId;
-  final String? assetTitle;
-  final String field;
-  final String originalError;
-
-  InvalidDateTimeError({
-    required this.assetId,
-    this.assetTitle,
-    required this.field,
-    required this.originalError,
-  });
-
-  @override
-  String toString() {
-    return 'InvalidDateTimeError: $field is invalid for asset '
-        '(id: $assetId, title: ${assetTitle ?? "unknown"}) - $originalError';
-  }
 }
 
 class BadMD5DigestError implements Exception {

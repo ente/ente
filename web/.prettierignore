@@ -1,2 +1,5 @@
 package-lock.json
 packages/wasm/pkg-srp/**
+packages/wasm/pkg/**
+packages/wasm/space/pkg/**
+packages/wasm/target/**

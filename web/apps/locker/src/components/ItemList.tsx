@@ -22,7 +22,7 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import ClearRoundedIcon from "@mui/icons-material/ClearRounded";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
@@ -1679,7 +1679,7 @@ const SelectionActionBar: React.FC<{
                     </Button>
                     <Button
                         color="critical"
-                        startIcon={<DeleteOutlineIcon />}
+                        startIcon={<DeleteOutlinedIcon />}
                         onClick={onDelete}
                         disabled={bulkDownloading || !canDelete}
                         sx={{
@@ -2200,7 +2200,7 @@ const CollectionContextMenu: React.FC<{
         )}
         {onDelete && (
             <OverflowMenuOption
-                startIcon={<DeleteOutlineIcon />}
+                startIcon={<DeleteOutlinedIcon />}
                 color="critical"
                 onClick={onDelete}
             >
@@ -2247,7 +2247,7 @@ const CollectionHeaderMenu: React.FC<{
         )}
         {onDelete && (
             <OverflowMenuOption
-                startIcon={<DeleteOutlineIcon />}
+                startIcon={<DeleteOutlinedIcon />}
                 color="critical"
                 onClick={onDelete}
             >

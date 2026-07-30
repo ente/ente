@@ -38,14 +38,15 @@ Future<void> changeVisibility(
   await dialog.show();
   try {
     await FileMagicService.instance.changeVisibility(files, newVisibility);
-    showShortToast(
-      context,
-      newVisibility == archiveVisibility
-          ? AppLocalizations.of(context).successfullyArchived
-          : AppLocalizations.of(context).successfullyUnarchived,
-    );
-
     await dialog.hide();
+    if (context.mounted) {
+      showShortToast(
+        context,
+        newVisibility == archiveVisibility
+            ? AppLocalizations.of(context).successfullyArchived
+            : AppLocalizations.of(context).successfullyUnarchived,
+      );
+    }
   } catch (e, s) {
     _logger.severe("failed to update file visibility", e, s);
     await dialog.hide();
@@ -92,14 +93,13 @@ Future<void> changeCollectionVisibility(
         "CollectionVisibilityChange: $visibilityAction",
       ),
     );
-    if (showProgressDialog) {
+    await dialog?.hide();
+    if (showProgressDialog && context.mounted) {
       showShortToast(
         context,
         _visActionSuccessfulText(context, visibilityAction),
       );
     }
-
-    await dialog?.hide();
   } catch (e, s) {
     _logger.severe("failed to update collection visibility", e, s);
     await dialog?.hide();
@@ -123,7 +123,9 @@ Future<void> changeSortOrder(
     );
   } catch (e, s) {
     _logger.severe("failed to update collection visibility", e, s);
-    showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
+    if (context.mounted) {
+      showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
+    }
     rethrow;
   }
 }
@@ -141,7 +143,9 @@ Future<void> updateOrder(
     );
   } catch (e, s) {
     _logger.severe("failed to update order", e, s);
-    showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
+    if (context.mounted) {
+      showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
+    }
     rethrow;
   }
 }
@@ -162,7 +166,9 @@ Future<void> updateShareeOrder(
     );
   } catch (e, s) {
     _logger.severe("failed to update sharee order", e, s);
-    showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
+    if (context.mounted) {
+      showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
+    }
     rethrow;
   }
 }
@@ -190,7 +196,9 @@ Future<void> changeCoverPhoto(
     );
   } catch (e, s) {
     _logger.severe("failed to update cover", e, s);
-    showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
+    if (context.mounted) {
+      showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
+    }
     rethrow;
   }
 }
@@ -236,8 +244,10 @@ Future<bool> editTime(
           ForceReloadHomeGalleryEvent("FileMetadataChange-$editTimeKey"),
         );
       }
-      showShortToast(context, AppLocalizations.of(context).done);
       await dialog.hide();
+      if (context.mounted) {
+        showShortToast(context, AppLocalizations.of(context).done);
+      }
     } catch (e, s) {
       _logger.severe("failed to update times $fileIdToTimeUpdate", e, s);
       await dialog.hide();
@@ -245,6 +255,7 @@ Future<bool> editTime(
     }
     return true;
   } catch (e) {
+    if (!context.mounted) return false;
     showShortToast(context, AppLocalizations.of(context).somethingWentWrong);
     return false;
   }
@@ -281,6 +292,7 @@ Future<void> editFilename(BuildContext context, EnteFile file) async {
   );
   if (result is Exception) {
     _logger.severe("Failed to rename file");
+    if (!context.mounted) return;
     await showGenericErrorDialog(context: context, error: result);
   }
 }
@@ -328,10 +340,10 @@ Future<void> _updatePublicMetadata(
     final Map<String, dynamic> update = {key: value};
     await FileMagicService.instance.updatePublicMagicMetadata(files, update);
     if (context != null) {
-      if (showDoneToast) {
+      await dialog?.hide();
+      if (showDoneToast && context.mounted) {
         showShortToast(context, AppLocalizations.of(context).done);
       }
-      await dialog?.hide();
     }
 
     if (_shouldReloadGallery(key)) {

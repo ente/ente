@@ -60,6 +60,8 @@ class AppBarComponent extends StatefulWidget {
 
   final String title;
   final HeaderAppBarTitleBuilder? titleBuilder;
+
+  /// Vertical space reserved for [titleBuilder] in both header states.
   final double? titleBuilderHeight;
   final VoidCallback? onTitleTap;
   final VoidCallback? onTitleDoubleTap;
@@ -228,7 +230,6 @@ class _AppBarComponentState extends State<AppBarComponent> {
         controller: _controller,
         physics: widget.physics,
         cacheExtent: widget.cacheExtent,
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
           SliverAppBarComponent(
             title: widget.title,
@@ -477,8 +478,14 @@ class _HeaderAppBarDelegate extends SliverPersistentHeaderDelegate {
     final expandedTextBlockHeight =
         expandedTitleHeight +
         (subtitle == null ? 0 : _subtitleGap + subtitleLineHeight);
-    final leadingTop =
+    final expandedContentTop =
         _expandedContentTop +
+        math.min(
+          subtitle == null ? 0.0 : subtitleLineHeight,
+          math.max(0.0, collapsedHeight - expandedTitleHeight),
+        );
+    final leadingTop =
+        expandedContentTop +
         _centerOffset(expandedTextBlockHeight, _headerControlSize);
     final actionsTop = lerpDouble(
       leadingTop,
@@ -492,7 +499,7 @@ class _HeaderAppBarDelegate extends SliverPersistentHeaderDelegate {
       titleProgress,
     )!;
     final titleTop = lerpDouble(
-      _expandedContentTop,
+      expandedContentTop,
       collapsedTitleTop,
       titleProgress,
     )!;
@@ -555,7 +562,7 @@ class _HeaderAppBarDelegate extends SliverPersistentHeaderDelegate {
                         left: titleLeft,
                         right: titleRight,
                         top:
-                            _expandedContentTop +
+                            expandedContentTop +
                             expandedTitleHeight +
                             _subtitleGap,
                         child: IgnorePointer(
@@ -564,7 +571,7 @@ class _HeaderAppBarDelegate extends SliverPersistentHeaderDelegate {
                               opacity: 1 - titleProgress,
                               child: Text(
                                 subtitle!,
-                                maxLines: 1,
+                                maxLines: _subtitleMaxLines,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyles.mini.copyWith(
                                   color: colors.textLight,
@@ -759,6 +766,7 @@ const _subtitleExpandedHeight = 110.0;
 const _expandedContentTop = 48.0;
 const _expandedContentBottomGap = Spacing.lg;
 const _subtitleGap = 2.0;
+const _subtitleMaxLines = 2;
 const _headerSnapTolerance = 1.0;
 const _headerSnapDuration = Duration(milliseconds: 160);
 const _titleTooltipShowDuration = Duration(seconds: 3);
@@ -810,6 +818,9 @@ _HeaderAppBarMetrics _resolveHeaderAppBarMetrics(
     TextStyles.display3,
   );
   final subtitleLineHeight = _scaledLineHeight(textScaler, TextStyles.mini);
+  final subtitleHeight = subtitle == null
+      ? 0.0
+      : subtitleLineHeight * _subtitleMaxLines;
   final defaultExpandedHeight = subtitle == null
       ? _titleOnlyExpandedHeight
       : _subtitleExpandedHeight;
@@ -821,8 +832,8 @@ _HeaderAppBarMetrics _resolveHeaderAppBarMetrics(
     ),
   );
   final expandedTextBlockHeight =
-      expandedTitleLineHeight +
-      (subtitle == null ? 0 : _subtitleGap + subtitleLineHeight);
+      (titleBuilderHeight ?? expandedTitleLineHeight) +
+      (subtitle == null ? 0 : _subtitleGap + subtitleHeight);
   final effectiveExpandedHeight = _maxDouble(
     expandedHeight ?? defaultExpandedHeight,
     _expandedContentTop +
@@ -898,11 +909,14 @@ class _MovingHeaderTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.componentColors;
-    final textStyle = TextStyle.lerp(
+    var textStyle = TextStyle.lerp(
       TextStyles.display2,
       TextStyles.display3,
       progress,
     )!.copyWith(color: colors.textBase);
+    if (MediaQuery.boldTextOf(context)) {
+      textStyle = textStyle.merge(const TextStyle(fontWeight: FontWeight.bold));
+    }
 
     final customTitleBuilder = titleBuilder;
     if (customTitleBuilder != null) {

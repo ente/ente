@@ -23,7 +23,7 @@
 		<key>CFBundleSignature</key>
 		<string>????</string>
 		<key>MinimumOSVersion</key>
-		<string>14.0</string>
+		<string>15.1</string>
 		<key>FlutterDeepLinkingEnabled</key>
 		<false/>
 		<key>LSApplicationQueriesSchemes</key>

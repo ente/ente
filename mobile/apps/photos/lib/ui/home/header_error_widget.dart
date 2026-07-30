@@ -1,8 +1,9 @@
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import 'package:flutter/material.dart';
+import "package:hugeicons/hugeicons.dart";
 import 'package:photos/core/errors.dart';
 import "package:photos/generated/l10n.dart";
-import "package:photos/ui/components/notification_widget.dart";
 import 'package:photos/ui/payment/subscription.dart';
 import 'package:photos/utils/email_util.dart';
 
@@ -16,52 +17,52 @@ class HeaderErrorWidget extends StatelessWidget {
     if (_error is NoActiveSubscriptionError) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6),
-        child: NotificationWidget(
-          startIcon: Icons.info_rounded,
-          actionIcon: Icons.arrow_forward,
-          text: AppLocalizations.of(context).subscribe,
-          subText: AppLocalizations.of(context).yourSubscriptionHasExpired,
-          onTap: () async => {
+        child: BannerComponent(
+          leadingIcon: HugeIcons.strokeRoundedInformationCircle,
+          title: AppLocalizations.of(context).subscribe,
+          subtitle: AppLocalizations.of(context).yourSubscriptionHasExpired,
+          state: BannerComponentState.failure,
+          onTap: () async {
             await routeToPage(
               context,
               getSubscriptionPage(),
               forceCustomPageRoute: true,
-            ),
+            );
           },
         ),
       );
     } else if (_error is StorageLimitExceededError) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6),
-        child: NotificationWidget(
-          startIcon: Icons.disc_full_rounded,
-          actionIcon: Icons.arrow_forward,
-          text: AppLocalizations.of(context).upgrade,
-          subText: AppLocalizations.of(context).storageLimitExceeded,
-          onTap: () async => {
+        child: BannerComponent(
+          leadingIcon: HugeIcons.strokeRoundedDatabase,
+          title: AppLocalizations.of(context).upgrade,
+          subtitle: AppLocalizations.of(context).storageLimitExceeded,
+          state: BannerComponentState.failure,
+          onTap: () async {
             await routeToPage(
               context,
               getSubscriptionPage(),
               forceCustomPageRoute: true,
-            ),
+            );
           },
         ),
       );
     } else {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6),
-        child: NotificationWidget(
-          startIcon: Icons.error_outline_rounded,
-          actionIcon: Icons.arrow_forward,
-          text: AppLocalizations.of(context).backupFailed,
-          subText: AppLocalizations.of(context).couldNotBackUpTryLater,
-          onTap: () async => {
+        child: BannerComponent(
+          leadingIcon: HugeIcons.strokeRoundedAlertCircle,
+          title: AppLocalizations.of(context).backupFailed,
+          subtitle: AppLocalizations.of(context).couldNotBackUpTryLater,
+          state: BannerComponentState.failure,
+          onTap: () {
             sendLogs(
               context,
               AppLocalizations.of(context).raiseTicket,
               "support@ente.com",
               subject: AppLocalizations.of(context).backupFailed,
-            ),
+            );
           },
         ),
       );

@@ -1,6 +1,10 @@
 package ente
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 const (
 	validArgonMemLimit = 128 * 1024 * 1024
@@ -16,6 +20,17 @@ func TestSetUserAttributesRequestValidate_RejectsUnexpectedKDFStrength(t *testin
 	}
 
 	assertBadRequestMessage(t, req.Validate(), "Unexpected KDF strength")
+}
+
+func TestSetUserAttributesRequestValidate_AllowsMinimumMemory(t *testing.T) {
+	req := SetUserAttributesRequest{
+		KeyAttributes: KeyAttributes{
+			MemLimit: 128 * 1024 * 1024,
+			OpsLimit: validArgonOpsLimit,
+		},
+	}
+
+	require.NoError(t, req.Validate())
 }
 
 func TestSetUserAttributesRequestValidate_RejectsLowMemoryLimit(t *testing.T) {
@@ -36,6 +51,15 @@ func TestUpdateKeysRequestValidate_RejectsUnexpectedKDFStrength(t *testing.T) {
 	}
 
 	assertBadRequestMessage(t, req.Validate(), "Unexpected KDF strength")
+}
+
+func TestUpdateKeysRequestValidate_AllowsMinimumMemory(t *testing.T) {
+	req := UpdateKeysRequest{
+		MemLimit: 128 * 1024 * 1024,
+		OpsLimit: validArgonOpsLimit,
+	}
+
+	require.NoError(t, req.Validate())
 }
 
 func TestUpdateKeysRequestValidate_RejectsLowMemoryLimit(t *testing.T) {

@@ -11,7 +11,7 @@ EMBEDDING_NORM_TOLERANCE = 1e-3
 FLOAT_TOLERANCE = 1e-8
 
 
-def _l2_norm(values: Sequence[float]) -> float:
+def l2_norm(values: Sequence[float]) -> float:
     return math.sqrt(sum(value * value for value in values))
 
 
@@ -50,7 +50,7 @@ def _validate_normalized_vector(
     expected_len: int,
 ) -> tuple[float, ...]:
     vector = _coerce_float_tuple(values, field_name=field_name, expected_len=expected_len)
-    norm = _l2_norm(vector)
+    norm = l2_norm(vector)
     if norm <= FLOAT_TOLERANCE:
         raise ValueError(f"{field_name} must not be zero")
 

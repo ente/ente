@@ -53,9 +53,9 @@ class MemoryLinkAlbumItem extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: _rowHeight),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: colors.fillBase,
+          color: colors.fillLight,
           border: Border.all(
-            color: isSelected ? colors.strokeDark : colors.fillBase,
+            color: isSelected ? colors.strokeDark : colors.fillLight,
           ),
           borderRadius: const BorderRadius.all(Radius.circular(_cardRadius)),
         ),

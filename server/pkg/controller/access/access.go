@@ -1,7 +1,7 @@
 package access
 
 import (
-	"github.com/ente-io/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo"
 	"github.com/gin-gonic/gin"
 )
 

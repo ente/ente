@@ -36,16 +36,22 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
   double _passwordStrength = 0.0;
   bool _emailIsValid = false;
   bool _hasAgreedToTOS = true;
-  bool _hasAgreedToE2E = false;
   bool _password1Visible = false;
   bool _password2Visible = false;
   bool _passwordsMatch = false;
+  bool _hasInstallSource = false;
 
   final _password1FocusNode = FocusNode();
   final _password2FocusNode = FocusNode();
   bool _password1InFocus = false;
   bool _password2InFocus = false;
   bool _passwordIsValid = false;
+
+  bool get _hasValidMatchingPasswords =>
+      _passwordIsValid &&
+      (_password?.isNotEmpty ?? false) &&
+      _cnfPassword.isNotEmpty &&
+      _password == _cnfPassword;
 
   @override
   void initState() {
@@ -61,6 +67,7 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
       });
     });
     super.initState();
+    _updateReferralSourceFieldVisibility();
   }
 
   @override
@@ -129,17 +136,21 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
             isKeypadOpen: isKeypadOpen,
             isFormValid: _isFormValid(),
             buttonText: context.strings.createAccount,
-            onPressedFunction: () {
-              UserService.instance.setEmail(_email!);
+            onPressedFunction: () async {
+              await UserService.instance.setEmail(_email!);
               widget.config.setVolatilePassword(_passwordController1.text);
-              UserService.instance.setRefSource(_referralSource);
-              UserService.instance.sendOtt(
-                context,
+              await UserService.instance.setRefSource(
+                await _referralSourceForSubmission(),
+              );
+              await UserService.instance.sendOtt(
+                context.mounted ? context : null,
                 _email!,
                 isCreateAccountScreen: true,
                 purpose: "signup",
               );
-              FocusScope.of(context).unfocus();
+              if (context.mounted) {
+                FocusScope.of(context).unfocus();
+              }
             },
           ),
         ],
@@ -299,7 +310,7 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                                 _passwordIsValid =
                                     _passwordStrength >=
                                     kMildPasswordStrengthThreshold;
-                                _passwordsMatch = _password == _cnfPassword;
+                                _passwordsMatch = _hasValidMatchingPasswords;
                               });
                             }
                           },
@@ -372,9 +383,7 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                           onChanged: (cnfPassword) {
                             setState(() {
                               _cnfPassword = cnfPassword;
-                              if (_password != null || _password != '') {
-                                _passwordsMatch = _password == _cnfPassword;
-                              }
+                              _passwordsMatch = _hasValidMatchingPasswords;
                             });
                           },
                         ),
@@ -396,49 +405,51 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          context.strings.hearUsWhereTitle,
-                          style: textTheme.bodyBold.copyWith(
-                            color: colorScheme.textBase,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          style: textTheme.body.copyWith(
-                            color: colorScheme.textBase,
-                          ),
-                          decoration: InputDecoration(
-                            fillColor: colorScheme.backdropBase,
-                            filled: true,
-                            hintStyle: TextStyle(color: colorScheme.textMuted),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            border: OutlineInputBorder(
-                              borderSide: BorderSide.none,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide.none,
-                              borderRadius: BorderRadius.circular(8),
+                        if (_showReferralSourceField) const SizedBox(height: 8),
+                        if (_showReferralSourceField)
+                          Text(
+                            context.strings.hearUsWhereTitle,
+                            style: textTheme.bodyBold.copyWith(
+                              color: colorScheme.textBase,
                             ),
                           ),
-                          onChanged: (value) {
-                            _referralSource = value.trim();
-                          },
-                          autocorrect: false,
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.next,
-                        ),
+                        if (_showReferralSourceField) const SizedBox(height: 8),
+                        if (_showReferralSourceField)
+                          TextFormField(
+                            style: textTheme.body.copyWith(
+                              color: colorScheme.textBase,
+                            ),
+                            decoration: InputDecoration(
+                              fillColor: colorScheme.backdropBase,
+                              filled: true,
+                              hintStyle: TextStyle(
+                                color: colorScheme.textMuted,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide.none,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide.none,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onChanged: (value) {
+                              _referralSource = value.trim();
+                            },
+                            autocorrect: false,
+                            keyboardType: TextInputType.text,
+                            textInputAction: TextInputAction.next,
+                          ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Column(
-                    children: [_getTOSAgreement(), _getPasswordAgreement()],
-                  ),
+                  _getTOSAgreement(),
                 ],
               ),
             ),
@@ -446,6 +457,30 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
         ],
       ),
     );
+  }
+
+  bool get _showReferralSourceField => !_hasInstallSource;
+
+  Future<void> _updateReferralSourceFieldVisibility() async {
+    final hasInstallSource = await UserService.instance.hasInstallSource();
+    _setHasInstallSource(hasInstallSource);
+  }
+
+  Future<String> _referralSourceForSubmission() async {
+    if (_hasInstallSource) {
+      return '';
+    }
+    final hasInstallSource = await UserService.instance.hasInstallSource();
+    _setHasInstallSource(hasInstallSource);
+    return hasInstallSource ? '' : _referralSource;
+  }
+
+  void _setHasInstallSource(bool hasInstallSource) {
+    if (mounted && hasInstallSource != _hasInstallSource) {
+      setState(() {
+        _hasInstallSource = hasInstallSource;
+      });
+    }
   }
 
   Widget _getTOSAgreement() {
@@ -510,64 +545,10 @@ class _EmailEntryPageState extends State<EmailEntryPage> {
     );
   }
 
-  Widget _getPasswordAgreement() {
-    final textTheme = getEnteTextTheme(context);
-    final colorScheme = getEnteColorScheme(context);
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _hasAgreedToE2E = !_hasAgreedToE2E;
-        });
-      },
-      behavior: HitTestBehavior.translucent,
-      child: Row(
-        children: [
-          Checkbox(
-            value: _hasAgreedToE2E,
-            side: CheckboxTheme.of(context).side,
-            fillColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) {
-                return colorScheme.primary700;
-              }
-              return Colors.transparent;
-            }),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(4),
-            ),
-            onChanged: (value) {
-              setState(() {
-                _hasAgreedToE2E = value!;
-              });
-            },
-          ),
-          Expanded(
-            child: StyledText(
-              text: context.strings.ackPasswordLostWarning,
-              style: textTheme.small.copyWith(color: colorScheme.textMuted),
-              tags: {
-                'underline': StyledTextActionTag(
-                  (String? text, Map<String?, String?> attrs) =>
-                      PlatformUtil.openWebView(
-                        context,
-                        context.strings.encryption,
-                        "https://ente.com/architecture",
-                      ),
-                  style: const TextStyle(decoration: TextDecoration.underline),
-                ),
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   bool _isFormValid() {
     return _emailIsValid &&
         _passwordsMatch &&
         _hasAgreedToTOS &&
-        _hasAgreedToE2E &&
         _passwordIsValid;
   }
 }

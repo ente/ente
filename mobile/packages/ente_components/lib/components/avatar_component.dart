@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:ente_components/theme/colors.dart';
 import 'package:ente_components/theme/spacing.dart';
 import 'package:ente_components/theme/text_styles.dart';
@@ -104,7 +106,68 @@ enum AvatarComponentSize {
   final TextStyle textStyle;
 }
 
-enum AvatarComponentColor { yellow, green, orange, pink, purple, blue, cyan }
+enum AvatarComponentColor {
+  yellow,
+  green,
+  orange,
+  pink,
+  purple,
+  blue,
+  cyan,
+  black,
+}
+
+const List<AvatarComponentColor> avatarComponentIdentityPalette = [
+  AvatarComponentColor.yellow,
+  AvatarComponentColor.green,
+  AvatarComponentColor.orange,
+  AvatarComponentColor.pink,
+  AvatarComponentColor.purple,
+  AvatarComponentColor.blue,
+  AvatarComponentColor.cyan,
+];
+
+String avatarInitials(String name) {
+  final words = name.trim().split(RegExp(r'\s+'));
+  if (words.first.isEmpty) return '?';
+
+  final initial = words.first.toUpperCase().characters.first;
+  return words.length == 1
+      ? initial
+      : '$initial${words.last.toUpperCase().characters.first}';
+}
+
+/// A stable FNV-1a seed for identity colors across processes and platforms.
+int avatarSeedForIdentity(String identityKey) {
+  var hash = 0x811c9dc5;
+  for (final byte in utf8.encode(identityKey.trim().toLowerCase())) {
+    hash ^= byte;
+    hash = (hash * 0x01000193) & 0xffffffff;
+  }
+  return hash;
+}
+
+AvatarComponentColor avatarComponentColorForIdentity(String identityKey) {
+  return avatarComponentIdentityPalette[avatarSeedForIdentity(identityKey) %
+      avatarComponentIdentityPalette.length];
+}
+
+Color avatarComponentColorValue(
+  BuildContext context,
+  AvatarComponentColor color,
+) {
+  final colors = context.componentColors;
+  return switch (color) {
+    AvatarComponentColor.yellow => colors.caution,
+    AvatarComponentColor.green => colors.primary,
+    AvatarComponentColor.orange => colors.accentOrange,
+    AvatarComponentColor.pink => colors.accentPink,
+    AvatarComponentColor.purple => colors.purple,
+    AvatarComponentColor.blue => colors.blue,
+    AvatarComponentColor.cyan => avatarCyan,
+    AvatarComponentColor.black => Colors.black,
+  };
+}
 
 /// Figma: https://www.figma.com/design/BuBNPPytxlVnqfmCUW0mgz/Ente-Visual-Design?node-id=2482-6547&m=dev
 /// Section: Labels and avatars / Avatar
@@ -225,11 +288,10 @@ class AvatarComponent extends StatelessWidget {
       );
     }
 
-    final text = initials.trim().isEmpty ? '?' : initials.trim().toUpperCase();
     return FittedBox(
       fit: BoxFit.scaleDown,
       child: Text(
-        text,
+        _displayInitials,
         maxLines: 1,
         textAlign: TextAlign.center,
         style: size.textStyle.copyWith(
@@ -240,30 +302,25 @@ class AvatarComponent extends StatelessWidget {
   }
 
   Color _backgroundColor(BuildContext context) {
-    final colors = context.componentColors;
     if (seed != null) {
       final palette = Theme.of(context).brightness == Brightness.dark
           ? avatarDark
           : avatarLight;
       return palette[seed!.abs() % palette.length];
     }
-
-    return switch (color) {
-      AvatarComponentColor.yellow => colors.caution,
-      AvatarComponentColor.green => colors.primary,
-      AvatarComponentColor.orange => colors.accentOrange,
-      AvatarComponentColor.pink => colors.accentPink,
-      AvatarComponentColor.purple => colors.purple,
-      AvatarComponentColor.blue => colors.blue,
-      AvatarComponentColor.cyan => avatarCyan,
-    };
+    return avatarComponentColorValue(context, color);
   }
 
   String? get _semanticLabel {
     if (image != null) return 'AvatarComponent image';
     if (icon != null) return 'Add avatar';
     if (initials.trim().isEmpty) return 'AvatarComponent';
-    return 'AvatarComponent $initials';
+    return 'AvatarComponent $_displayInitials';
+  }
+
+  String get _displayInitials {
+    final normalized = initials.trim().toUpperCase();
+    return normalized.isEmpty ? '?' : normalized.characters.take(2).join();
   }
 }
 

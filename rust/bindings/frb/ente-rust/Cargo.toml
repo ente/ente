@@ -6,9 +6,10 @@ edition = "2024"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-flutter_rust_bridge = "=2.12.0"
+ente-accounts.workspace = true
 ente-contacts.workspace = true
 ente-core.workspace = true
+flutter_rust_bridge.workspace = true
 
 [features]
 default = []
@@ -16,4 +17,3 @@ flutter = []
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
-missing_docs = "warn"

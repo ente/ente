@@ -144,15 +144,14 @@ class _VerifyIdentitySheetState extends State<VerifyIdentitySheet> {
         if (verificationID.isEmpty) {
           return;
         }
+        final shareMessage = widget.self
+            ? context.strings.shareMyVerificationID(verificationID)
+            : context.strings.shareTextConfirmOthersVerificationID(
+                verificationID,
+              );
         await Clipboard.setData(ClipboardData(text: verificationID));
         // ignore: unawaited_futures
-        shareText(
-          widget.self
-              ? context.strings.shareMyVerificationID(verificationID)
-              : context.strings.shareTextConfirmOthersVerificationID(
-                  verificationID,
-                ),
-        );
+        shareText(shareMessage);
       },
       child: Container(
         decoration: BoxDecoration(

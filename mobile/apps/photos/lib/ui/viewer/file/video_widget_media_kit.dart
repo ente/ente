@@ -12,9 +12,11 @@ import "package:photos/events/guest_view_event.dart";
 import "package:photos/events/pause_video_event.dart";
 import "package:photos/events/resume_video_event.dart";
 import "package:photos/events/stream_switched_event.dart";
+import "package:photos/events/video_mute_changed_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/module/download/task.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/files_service.dart";
@@ -28,7 +30,6 @@ import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/viewer/file/video_widget_media_kit_common.dart"
     as common;
 import "package:photos/utils/dialog_util.dart";
-import "package:photos/utils/file_util.dart";
 
 class VideoWidgetMediaKit extends StatefulWidget {
   final EnteFile file;
@@ -67,6 +68,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   bool _isAppInFG = true;
   late StreamSubscription<PauseVideoEvent> pauseVideoSubscription;
   late StreamSubscription<ResumeVideoEvent> resumeVideoSubscription;
+  StreamSubscription<VideoMuteChangedEvent>? _muteSubscription;
   bool isGuestView = false;
   late final StreamSubscription<GuestViewEvent> _guestViewEventSubscription;
   bool _isGuestView = false;
@@ -99,6 +101,13 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     ) {
       player.play();
     });
+    if (!widget.isFromMemories) {
+      _muteSubscription = Bus.instance.on<VideoMuteChangedEvent>().listen((
+        event,
+      ) {
+        player.setVolume(event.isMuted ? 0.0 : 100.0);
+      });
+    }
     _guestViewEventSubscription = Bus.instance.on<GuestViewEvent>().listen((
       event,
     ) {
@@ -138,7 +147,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
             }
           }
         });
-    EnteWakeLockService.instance.updateWakeLock(
+    wakeLockService.updateWakeLock(
       enable: true,
       wakeLockFor: WakeLockFor.videoPlayback,
     );
@@ -149,7 +158,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
   }
 
   void loadOriginal() {
-    if (widget.file.isRemoteFile) {
+    if (widget.file.isRemoteOnlyFile) {
       _loadNetworkVideo();
       _setFileSizeIfNull();
     } else if (widget.file.isSharedMediaToAppSandbox) {
@@ -193,7 +202,8 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     _guestViewEventSubscription.cancel();
     pauseVideoSubscription.cancel();
     resumeVideoSubscription.cancel();
-    removeCallBack(widget.file);
+    _muteSubscription?.cancel();
+    removeDownloadCallback(widget.file);
     _progressNotifier.dispose();
     WidgetsBinding.instance.removeObserver(this);
     if (_downloadTaskSubscription != null) {
@@ -203,13 +213,13 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     player.dispose();
     _captionUpdatedSubscription.cancel();
     _transformationController.dispose();
-    if (EnteWakeLockService.instance.shouldKeepAppAwakeAcrossSessions) {
-      EnteWakeLockService.instance.updateWakeLock(
+    if (wakeLockService.shouldKeepAppAwakeAcrossSessions) {
+      wakeLockService.updateWakeLock(
         enable: true,
         wakeLockFor: WakeLockFor.handlingMediaKitEdgeCase,
       );
     } else {
-      EnteWakeLockService.instance.updateWakeLock(
+      wakeLockService.updateWakeLock(
         enable: false,
         wakeLockFor: WakeLockFor.videoPlayback,
       );
@@ -314,6 +324,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
           }
         })
         .onError((error, stackTrace) {
+          if (!mounted) return;
           showErrorDialog(
             context,
             AppLocalizations.of(context).error,
@@ -345,6 +356,9 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
                 : PlaylistMode.none,
           );
           controller = VideoController(player);
+        }
+        if (!widget.isFromMemories) {
+          player.setVolume(localSettings.isMuted() ? 0.0 : 100.0);
         }
         player.open(Media(url), play: _isAppInFG);
       });

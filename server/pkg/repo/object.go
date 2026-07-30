@@ -7,8 +7,8 @@ import (
 	"math/rand"
 	"strconv"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
 )
 
@@ -16,6 +16,12 @@ type ObjectRepository struct {
 	DB                 *sql.DB
 	LatencySensitiveDB *sql.DB
 	QueueRepo          *QueueRepository
+}
+
+type ObjectReferenceStatus struct {
+	ObjectKey     string
+	InObjectKeys  bool
+	InTempObjects bool
 }
 
 func (repo *ObjectRepository) objectLookupDB() *sql.DB {
@@ -381,6 +387,59 @@ func (repo *ObjectRepository) DoesObjectOrTempObjectExist(objectKey string) (boo
 		         EXISTS (SELECT 1 FROM temp_objects WHERE object_key = $1))`,
 		objectKey).Scan(&exists)
 	return exists, stacktrace.Propagate(err, "")
+}
+
+func (repo *ObjectRepository) GetObjectReferenceStatuses(ctx context.Context, objectKeys []string) (map[string]ObjectReferenceStatus, error) {
+	statuses := make(map[string]ObjectReferenceStatus, len(objectKeys))
+	if len(objectKeys) == 0 {
+		return statuses, nil
+	}
+	for _, objectKey := range objectKeys {
+		statuses[objectKey] = ObjectReferenceStatus{ObjectKey: objectKey}
+	}
+
+	rows, err := repo.DB.QueryContext(ctx,
+		`SELECT object_key FROM object_keys WHERE object_key = ANY($1::text[])`,
+		pq.Array(objectKeys),
+	)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	for rows.Next() {
+		var objectKey string
+		if err = rows.Scan(&objectKey); err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		status := statuses[objectKey]
+		status.InObjectKeys = true
+		statuses[status.ObjectKey] = status
+	}
+	if err = rows.Close(); err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	if err = rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+
+	rows, err = repo.DB.QueryContext(ctx,
+		`SELECT object_key FROM temp_objects WHERE object_key = ANY($1::text[])`,
+		pq.Array(objectKeys),
+	)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var objectKey string
+		if err = rows.Scan(&objectKey); err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		status := statuses[objectKey]
+		status.InTempObjects = true
+		statuses[status.ObjectKey] = status
+	}
+	return statuses, stacktrace.Propagate(rows.Err(), "")
 }
 
 // GetObjectState returns various bits of information about an object that are

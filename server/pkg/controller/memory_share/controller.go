@@ -5,11 +5,11 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller/access"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller/access"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"github.com/lithammer/shortuuid/v3"
 )

@@ -11,9 +11,9 @@ import "package:photos/models/base/id.dart";
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_db_info_for_clustering.dart";
 import "package:photos/services/machine_learning/face_ml/face_filtering/face_filtering_constants.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
+import "package:photos/settings/local_settings.dart";
 import "package:photos/utils/isolate/isolate_operations.dart";
 import "package:photos/utils/isolate/super_isolate.dart";
-import "package:photos/utils/local_settings.dart";
 
 class FaceInfo {
   final String faceID;
@@ -78,9 +78,6 @@ class FaceClusteringService extends SuperIsolate {
       kRecommendedDistanceThreshold - kConservativeDistanceThreshold;
 
   static double defaultDistanceThreshold = kRecommendedDistanceThreshold;
-
-  @override
-  bool get isDartUiIsolate => false;
 
   @override
   String get isolateName => "FaceClusteringIsolate";

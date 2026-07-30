@@ -2,8 +2,8 @@ package cache
 
 import (
 	"fmt"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/ente/storagebonus"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/storagebonus"
 	"sync"
 )
 

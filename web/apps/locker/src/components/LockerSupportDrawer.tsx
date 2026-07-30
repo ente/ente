@@ -35,7 +35,7 @@ export const LockerSupportDrawer: React.FC<
     const handleHelp = () => openURL("https://ente.com/help/photos/");
     const handleBlog = () => openURL("https://ente.com/blog/");
     const handleRequestFeature = () =>
-        openURL("https://github.com/ente-io/ente/discussions");
+        openURL("https://github.com/ente/ente/discussions");
     const handleSupport = () => initiateEmail("support@ente.com");
 
     const viewLogs = async () => {

@@ -63,14 +63,14 @@ class SearchSectionEmptyCTAIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (sectionType.isCTAVisible == false) {
-      return const SizedBox(height: 115);
+      return const SizedBox.shrink();
     }
     final textTheme = getEnteTextTheme(context);
     final colorScheme = getEnteColorScheme(context);
     return GestureDetector(
       onTap: sectionType.ctaOnTap(context),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 14, 8, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Column(
           children: [
             DottedBorder(

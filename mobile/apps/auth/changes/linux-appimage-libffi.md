@@ -1,1 +1,0 @@
-- Fixed Auth AppImage startup on Linux systems where bundled dependencies could not find libffi.

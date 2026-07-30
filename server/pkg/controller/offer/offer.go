@@ -9,18 +9,18 @@ import (
 	"os"
 	"slices"
 
-	"github.com/ente-io/museum/pkg/controller/usercache"
+	"github.com/ente/museum/pkg/controller/usercache"
 
-	"github.com/ente-io/museum/ente"
-	storageBonusEntity "github.com/ente-io/museum/ente/storagebonus"
-	"github.com/ente-io/museum/pkg/controller/discord"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/repo/storagebonus"
-	"github.com/ente-io/museum/pkg/utils/billing"
-	"github.com/ente-io/museum/pkg/utils/config"
-	emailUtil "github.com/ente-io/museum/pkg/utils/email"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	storageBonusEntity "github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo/storagebonus"
+	"github.com/ente/museum/pkg/utils/billing"
+	"github.com/ente/museum/pkg/utils/config"
+	emailUtil "github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -99,7 +99,7 @@ func (c *OfferController) ApplyOffer(email string, productID string) error {
 		return stacktrace.Propagate(ente.ErrNotFound, "Could not find a valid time period for  %s", productID)
 	}
 
-	userID, err := c.UserRepo.GetUserIDWithEmail(email)
+	userID, err := c.UserRepo.GetUserIDWithEmailUnrestricted(email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Error("Product purchased with unknown email: " + email)

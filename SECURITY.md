@@ -1,6 +1,6 @@
 # Security Policy
 
-Ente believes that working with security researchers across the globe is crucial to keeping our users safe. If you believe you've found a security issue in our product or service, we encourage you to notify us by email at security@ente.com or by [filling out this form](https://github.com/ente-io/ente/security/advisories/new). We welcome working with you to resolve the issue promptly. Thanks in advance!
+Ente believes that working with security researchers across the globe is crucial to keeping our users safe. If you believe you've found a security issue in our product or service, we encourage you to notify us by email at security@ente.com or by [filling out this form](https://github.com/ente/ente/security/advisories/new). We welcome working with you to resolve the issue promptly. Thanks in advance!
 
 ## Disclosure Policy
 
@@ -11,13 +11,13 @@ Ente believes that working with security researchers across the globe is crucial
 
 ## In-scope
 
-- Security issues in any current release of Ente's services. Product downloads are available at [https://ente.com](https://ente.com). Source code is available at [https://github.com/ente-io](https://github.com/ente-io).
+- Security issues in any current release of Ente's services. Product downloads are available at [https://ente.com](https://ente.com). Source code is available at [https://github.com/ente](https://github.com/ente).
 
 ## Exclusions
 
 The following bug classes are out of scope:
 
-- Bugs that are already reported on any of [Ente's issue trackers](https://github.com/ente-io) or that we already know of (note that some of our issue tracking is private).
+- Bugs that are already reported on any of [Ente's issue trackers](https://github.com/ente) or that we already know of (note that some of our issue tracking is private).
 - Issues in an upstream software dependency (e.g., Flutter, Next.js, etc.) that are already reported to the upstream maintainer.
 - Attacks requiring physical access to a user's device.
 - Self-XSS.

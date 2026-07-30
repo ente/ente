@@ -243,4 +243,4 @@ For any security or privacy questions not covered here, please contact our team 
 
 ## Security
 
-If you believe you have found a security vulnerability, please responsibly disclose it by emailing security@ente.com or [using this link](https://github.com/ente-io/ente/security/advisories/new) instead of opening a public issue. We will investigate all legitimate reports. To know more, please see our [security policy](https://github.com/ente-io/ente/blob/main/SECURITY.md).
+If you believe you have found a security vulnerability, please responsibly disclose it by emailing security@ente.com or [using this link](https://github.com/ente/ente/security/advisories/new) instead of opening a public issue. We will investigate all legitimate reports. To know more, please see our [security policy](https://github.com/ente/ente/blob/main/SECURITY.md).

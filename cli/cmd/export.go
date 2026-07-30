@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/ente-io/cli/pkg/model"
+	"github.com/ente/cli/pkg/model"
 	"github.com/spf13/cobra"
 )
 

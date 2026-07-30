@@ -9,7 +9,7 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
-import { type ModalVisibilityProps } from "ente-base/components/utils/modal";
+import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import { t } from "i18next";
 import React, { useRef, useState } from "react";
 
@@ -217,7 +217,6 @@ export const AddNameModal: React.FC<AddNameModalProps> = ({
         <StyledDialog
             open={open}
             onClose={handleClose}
-            disableEscapeKeyDown={isSubmitting}
             slotProps={{ transition: { onExited: handleExited } }}
         >
             <DialogWrapper>

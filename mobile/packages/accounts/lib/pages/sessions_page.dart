@@ -28,7 +28,9 @@ class _SessionsPageState extends State<SessionsPage> {
   @override
   void initState() {
     _fetchActiveSessions().onError((error, stackTrace) {
-      showToast(context, "Failed to fetch active sessions");
+      if (mounted) {
+        showToast(context, "Failed to fetch active sessions");
+      }
     });
     super.initState();
   }
@@ -117,12 +119,14 @@ class _SessionsPageState extends State<SessionsPage> {
     } catch (e) {
       await dialog.hide();
       _logger.severe('failed to terminate');
-      // ignore: unawaited_futures
-      showErrorDialog(
-        context,
-        context.strings.oops,
-        context.strings.somethingWentWrongPleaseTryAgain,
-      );
+      if (mounted) {
+        // ignore: unawaited_futures
+        showErrorDialog(
+          context,
+          context.strings.oops,
+          context.strings.somethingWentWrongPleaseTryAgain,
+        );
+      }
     }
   }
 

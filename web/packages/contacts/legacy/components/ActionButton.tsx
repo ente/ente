@@ -1,4 +1,4 @@
-import { type ButtonProps } from "@mui/material";
+import type { ButtonProps } from "@mui/material";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { isSxArray } from "ente-base/components/utils/sx";
 import React from "react";

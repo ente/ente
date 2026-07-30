@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:adaptive_theme/adaptive_theme.dart';
 import "package:ente_pure_utils/ente_pure_utils.dart";
+import "package:ente_strings/l10n/strings_localizations.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:home_widget/home_widget.dart' as hw;
@@ -231,6 +232,7 @@ class _EnteAppState extends State<EnteApp> with WidgetsBindingObserver {
           supportedLocales: appSupportedLocales,
           localeListResolutionCallback: localResolutionCallBack,
           localizationsDelegates: const [
+            StringsLocalizations.delegate,
             ...AppLocalizations.localizationsDelegates,
           ],
         ),

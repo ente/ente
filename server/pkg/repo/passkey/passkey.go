@@ -9,16 +9,16 @@ import (
 	"strings"
 	"time"
 
-	emailUtil "github.com/ente-io/museum/pkg/utils/email"
-	ente_time "github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	emailUtil "github.com/ente/museum/pkg/utils/email"
+	ente_time "github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/utils/byteMarshaller"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/byteMarshaller"
 	"github.com/go-webauthn/webauthn/webauthn"
 )
 

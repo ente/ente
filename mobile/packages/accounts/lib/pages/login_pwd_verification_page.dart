@@ -115,13 +115,16 @@ class _LoginPasswordVerificationPageState
     await dialog.show();
     try {
       await UserService.instance.verifyEmailViaPassword(
-        context,
+        context.mounted ? context : null,
         widget.srpAttributes,
         password,
         dialog,
       );
     } on DioException catch (e, s) {
       await dialog.hide();
+      if (!context.mounted) {
+        return;
+      }
 
       if (e.response != null && e.response!.statusCode == 401) {
         _logger.severe('server reject, failed verify SRP login', e, s);
@@ -154,12 +157,15 @@ class _LoginPasswordVerificationPageState
         _logger.severe('loginKey derivation error', e, s);
         // LoginKey err, perform regular login via ott verification
         await UserService.instance.sendOtt(
-          context,
+          context.mounted ? context : null,
           email!,
           isCreateAccountScreen: true,
         );
         return;
       } else if (e is KeyDerivationError) {
+        if (!context.mounted) {
+          return;
+        }
         // device is not powerful enough to perform derive key
         final result = await showAlertBottomSheet<bool>(
           context,
@@ -177,7 +183,7 @@ class _LoginPasswordVerificationPageState
         );
         if (result == true) {
           await UserService.instance.sendOtt(
-            context,
+            context.mounted ? context : null,
             email!,
             isResetPasswordScreen: true,
           );
@@ -185,11 +191,13 @@ class _LoginPasswordVerificationPageState
         return;
       } else {
         _logger.severe('unexpected error while verifying password', e, s);
-        await _showContactSupportDialog(
-          context,
-          title: context.strings.oops,
-          message: context.strings.verificationFailedPleaseTryAgain,
-        );
+        if (context.mounted) {
+          await _showContactSupportDialog(
+            context,
+            title: context.strings.oops,
+            message: context.strings.verificationFailedPleaseTryAgain,
+          );
+        }
       }
     }
   }
@@ -213,7 +221,7 @@ class _LoginPasswordVerificationPageState
         ),
       ],
     );
-    if (result == true) {
+    if (result == true && context.mounted) {
       await sendLogs(context, "support@ente.com", postShare: () {});
     }
   }
@@ -355,9 +363,11 @@ class _LoginPasswordVerificationPageState
                               await dialog.show();
                               await widget.config.logout();
                               await dialog.hide();
-                              Navigator.of(
-                                context,
-                              ).popUntil((route) => route.isFirst);
+                              if (mounted) {
+                                Navigator.of(
+                                  context,
+                                ).popUntil((route) => route.isFirst);
+                              }
                             },
                             child: Text(
                               context.strings.changeEmail,

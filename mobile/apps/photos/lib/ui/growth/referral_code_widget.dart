@@ -1,9 +1,9 @@
 import "package:dotted_border/dotted_border.dart";
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/user_details.dart";
-import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/growth/change_referral_code_sheet.dart";
 import "package:photos/utils/dialog_util.dart";
 
@@ -23,13 +23,7 @@ class ReferralCodeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = getEnteTextTheme(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    const greenColor = Color(0xFF08C225);
-    final cardColor = isDarkMode
-        ? const Color(0xFF212121)
-        : const Color(0xFFFFFFFF);
+    final colors = context.componentColors;
 
     // The edit button is 24px (6px padding + 12px icon + 6px padding)
     // Plus 12px tap padding on each side = 48px total tap area
@@ -48,21 +42,24 @@ class ReferralCodeWidget extends StatelessWidget {
             right: shouldShowEdit ? overlapAmount + tapPadding : 0,
           ),
           child: DottedBorder(
-            options: const RoundedRectDottedBorderOptions(
-              color: greenColor,
+            options: RoundedRectDottedBorderOptions(
+              color: colors.primary,
               strokeWidth: 1,
-              dashPattern: [6, 6],
-              radius: Radius.circular(16),
+              dashPattern: const [6, 6],
+              radius: const Radius.circular(Radii.lg),
             ),
             child: Container(
               decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(16),
+                color: colors.fillLight,
+                borderRadius: BorderRadius.circular(Radii.lg),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 20),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 36,
+                vertical: Spacing.xl,
+              ),
               child: Text(
                 codeValue,
-                style: textTheme.small.copyWith(color: greenColor),
+                style: TextStyles.body.copyWith(color: colors.primary),
               ),
             ),
           ),
@@ -99,14 +96,14 @@ class ReferralCodeWidget extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(tapPadding),
                 child: Container(
-                  decoration: const BoxDecoration(
-                    color: greenColor,
+                  decoration: BoxDecoration(
+                    color: colors.primary,
                     shape: BoxShape.circle,
                   ),
                   padding: const EdgeInsets.all(6),
-                  child: const HugeIcon(
+                  child: HugeIcon(
                     icon: HugeIcons.strokeRoundedEdit03,
-                    color: Colors.white,
+                    color: colors.specialWhite,
                     size: 12,
                   ),
                 ),

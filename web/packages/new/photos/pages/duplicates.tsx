@@ -1,6 +1,6 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DoneIcon from "@mui/icons-material/Done";
-import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
+import RemoveCircleOutlinedIcon from "@mui/icons-material/RemoveCircleOutlined";
 import SortIcon from "@mui/icons-material/Sort";
 import {
     Box,
@@ -387,7 +387,7 @@ type OptionsMenuProps = Pick<NavbarProps, "onDeselectAll">;
 const OptionsMenu: React.FC<OptionsMenuProps> = ({ onDeselectAll }) => (
     <OverflowMenu ariaID="duplicates-options">
         <OverflowMenuOption
-            startIcon={<RemoveCircleOutlineIcon />}
+            startIcon={<RemoveCircleOutlinedIcon />}
             onClick={onDeselectAll}
         >
             {t("deselect_all")}
@@ -409,7 +409,7 @@ const LoadFailed: React.FC = () => (
 
 const NoDuplicatesFound: React.FC = () => (
     <CenteredFill>
-        <Typography color="text.muted" sx={{ textAlign: "center" }}>
+        <Typography sx={{ color: "text.muted", textAlign: "center" }}>
             {t("no_duplicates")}
         </Typography>
     </CenteredFill>
@@ -561,7 +561,9 @@ const ListItem: React.FC<ListChildComponentProps<DuplicatesListItemData>> =
                         paddingBlock: "24px 0px",
                     }}
                 >
-                    <Typography color={checked ? "text.base" : "text.muted"}>
+                    <Typography
+                        sx={{ color: checked ? "text.base" : "text.muted" }}
+                    >
                         {t("duplicate_group_description", { count, itemSize })}
                     </Typography>
                     {/* The size of this Checkbox is 42px. */}
@@ -653,7 +655,7 @@ const DeduplicateButton: React.FC<DeduplicateButtonProps> = ({
                             count: prunableCount,
                         })}
                     </Typography>
-                    <Typography variant="small" fontWeight="regular">
+                    <Typography variant="small" sx={{ fontWeight: "regular" }}>
                         {formattedByteSize(prunableSize)}
                     </Typography>
                 </>

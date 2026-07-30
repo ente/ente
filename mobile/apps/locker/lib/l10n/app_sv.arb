@@ -132,7 +132,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "Vaelj minst en samling",
   "unknownItemType": "Okaend objekttyp",
   "fileDeletedSuccessfully": "Objektet togs bort",
   "failedToDeleteFile": "Kunde inte ta bort objektet: {error}",
@@ -253,7 +252,6 @@
   "optionalNote": "Valfri anteckning",
   "upload": "Ladda upp",
   "documentsHint": "Dokument",
-  "searchHint": "Sök...",
   "searchEmptyTitle": "Inga traeffar hittades",
   "searchEmptyDescription": "Foersoek att soeka efter naagot annat.",
   "searchEverywhereTitle": "Soek oeoerallt efter \"{query}\"",

@@ -9,17 +9,18 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/ente-io/museum/ente"
-	fileData "github.com/ente-io/museum/ente/filedata"
-	"github.com/ente-io/museum/pkg/controller"
-	"github.com/ente-io/museum/pkg/controller/access"
-	"github.com/ente-io/museum/pkg/repo"
-	fileDataRepo "github.com/ente-io/museum/pkg/repo/filedata"
-	"github.com/ente-io/museum/pkg/utils/array"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/network"
-	"github.com/ente-io/museum/pkg/utils/s3config"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	fileData "github.com/ente/museum/ente/filedata"
+	"github.com/ente/museum/pkg/controller"
+	"github.com/ente/museum/pkg/controller/access"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/repo"
+	fileDataRepo "github.com/ente/museum/pkg/repo/filedata"
+	"github.com/ente/museum/pkg/utils/array"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/network"
+	"github.com/ente/museum/pkg/utils/s3config"
+	"github.com/ente/stacktrace"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -52,6 +53,7 @@ type Controller struct {
 	S3Config                *s3config.S3Config
 	FileRepo                *repo.FileRepository
 	CollectionRepo          *repo.CollectionRepository
+	DiscordController       *discord.DiscordController
 	downloadManagerCache    map[string]*s3manager.Downloader
 	// for downloading objects from s3 for replication
 	workerURL   string
@@ -64,6 +66,7 @@ func New(repo *fileDataRepo.Repository,
 	s3Config *s3config.S3Config,
 	fileRepo *repo.FileRepository,
 	collectionRepo *repo.CollectionRepository,
+	discordController *discord.DiscordController,
 ) *Controller {
 	embeddingDcs := []string{s3Config.GetHotBackblazeDC(), s3Config.GetHotWasabiDC(), s3Config.GetWasabiDerivedDC(), s3Config.GetDerivedStorageDataCenter(), "b5", "b6"}
 	cache := make(map[string]*s3manager.Downloader, len(embeddingDcs))
@@ -78,6 +81,7 @@ func New(repo *fileDataRepo.Repository,
 		S3Config:                s3Config,
 		FileRepo:                fileRepo,
 		CollectionRepo:          collectionRepo,
+		DiscordController:       discordController,
 		downloadManagerCache:    cache,
 	}
 }
@@ -131,7 +135,7 @@ func (c *Controller) InsertOrUpdateMetadata(ctx *gin.Context, req *fileData.PutF
 	dbInsertErr := c.Repo.InsertOrUpdate(context.Background(), row)
 	if dbInsertErr != nil {
 		logger.WithError(dbInsertErr).Error("insert or update failed")
-		return uploadErr
+		return stacktrace.Propagate(dbInsertErr, "failed to insert or update file data row")
 	}
 	//}()
 	return nil

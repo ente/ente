@@ -82,3 +82,4 @@ local.properties
 key.properties
 **/*.keystore
 **/*.jks
+devtools_options.yaml

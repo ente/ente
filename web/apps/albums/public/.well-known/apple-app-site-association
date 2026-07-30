@@ -12,6 +12,11 @@
             "?": { "t": "*" },
             "#": "*",
             "comment": "Matches URLs with no path, any query item 't', and any or no fragment"
+          },
+          {
+            "/": "/??????????",
+            "#": "*",
+            "comment": "Matches URLs with a path token and any or no fragment"
           }
         ]
       }

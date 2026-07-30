@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/ente-io/cli/cmd"
-	"github.com/ente-io/cli/internal"
-	"github.com/ente-io/cli/internal/api"
-	"github.com/ente-io/cli/pkg"
-	"github.com/ente-io/cli/pkg/secrets"
-	"github.com/ente-io/cli/utils/constants"
+	"github.com/ente/cli/cmd"
+	"github.com/ente/cli/internal"
+	"github.com/ente/cli/internal/api"
+	"github.com/ente/cli/pkg"
+	"github.com/ente/cli/pkg/secrets"
+	"github.com/ente/cli/utils/constants"
 	"github.com/spf13/viper"
 	"log"
 	"os"
@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-var AppVersion = "0.2.3"
+var AppVersion = "v0.3.0"
 
 func main() {
 	cliConfigDir, err := GetCLIConfigDir()

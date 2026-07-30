@@ -10,7 +10,7 @@ import type {
 import { getItemTitle } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
@@ -174,7 +174,7 @@ export const ItemDetailView: React.FC<ItemDetailViewProps> = ({
                                                 : undefined
                                         }
                                     >
-                                        <DeleteOutlineIcon fontSize="small" />
+                                        <DeleteOutlinedIcon fontSize="small" />
                                     </IconButton>
                                 </Box>
                             </Tooltip>

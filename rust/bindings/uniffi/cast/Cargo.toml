@@ -1,0 +1,12 @@
+[package]
+name = "ente-cast-uniffi"
+edition = "2024"
+
+[lib]
+name = "cast"
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+ente-core.workspace = true
+thiserror.workspace = true
+uniffi.workspace = true

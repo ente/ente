@@ -12,6 +12,7 @@ import "package:photos/models/search/hierarchical/album_filter.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 import 'package:photos/models/selected_files.dart';
 import 'package:photos/services/ignored_files_service.dart';
+import "package:photos/ui/components/empty_state_component.dart";
 import 'package:photos/ui/viewer/actions/file_selection_overlay_bar.dart';
 import 'package:photos/ui/viewer/gallery/gallery.dart';
 import 'package:photos/ui/viewer/gallery/gallery_app_bar_widget.dart';
@@ -86,6 +87,10 @@ class UnCategorizedPage extends StatelessWidget {
       sortAsyncFn: () => collection.pubMagicMetadata.asc ?? false,
       initialFiles: null,
       albumName: AppLocalizations.of(context).uncategorized,
+      emptyState: EmptyStateComponent(
+        assetPath: "assets/empty-uncategorized.png",
+        title: AppLocalizations.of(context).uncategorizedItemsWillShowUpHere,
+      ),
     );
     return GalleryBoundariesProvider(
       child: GalleryFilesState(

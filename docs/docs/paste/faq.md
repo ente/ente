@@ -99,7 +99,7 @@ The paste cannot be recovered. The password is part of the decryption key and wa
 
 ### Is Paste open source? {#paste-open-source}
 
-Yes. The web app source lives in Ente's main monorepo on [GitHub](https://github.com/ente-io/ente), alongside Ente Photos, Auth, and Locker. The server code is also open source.
+Yes. The web app source lives in Ente's main monorepo on [GitHub](https://github.com/ente/ente), alongside Ente Photos, Auth, and Locker. The server code is also open source.
 
 ## Self-hosting
 

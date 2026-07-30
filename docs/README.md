@@ -13,7 +13,7 @@ For a typo or a small fix, just edit the file directly on GitHub and open a pull
 For anything more involved, run a local preview:
 
 ```sh
-git clone https://github.com/ente-io/ente
+git clone https://github.com/ente/ente
 cd ente/docs
 npm ci
 npm run dev

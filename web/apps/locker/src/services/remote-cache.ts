@@ -121,9 +121,11 @@ export const getCollectionRecord = (collectionID: number) =>
 
 export const getCollectionRecords = () => [...encryptedCollections.values()];
 
-export const findCollectionByType = (type: string) =>
+export const findCollectionByType = (type: string, ownerID?: number) =>
     [...encryptedCollections.values()].find(
-        (candidate) => candidate.type === type,
+        (candidate) =>
+            candidate.type === type &&
+            (ownerID === undefined || candidate.ownerID === ownerID),
     );
 
 export const updateCollectionShareesInCache = (

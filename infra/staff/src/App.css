@@ -47,10 +47,13 @@
 }
 
 .fetch-button-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     margin: 0 10px;
 }
 
-.fetch-button-container button {
+.fetch-button-container .fetch-button {
     width: 150px;
     height: 56px;
     border: none;
@@ -58,11 +61,37 @@
     background-color: #1db954;
 }
 
-.fetch-button-container button:hover {
+.fetch-button-container .fetch-button:hover {
     background-color: #00b33c;
 }
 
+.fetch-button-container .ad-hoc-actions-button {
+    height: 40px;
+    border: 1px solid rgb(0 0 0 / 14%);
+    border-radius: 8px;
+    color: #4a4a4a;
+    font-weight: 600;
+    text-transform: none;
+}
+
+.fetch-button-container .ad-hoc-actions-button:hover {
+    background-color: rgb(29 185 84 / 8%);
+    border-color: rgb(29 185 84 / 42%);
+    color: #168f40;
+}
+
 @media (prefers-color-scheme: dark) {
+    .fetch-button-container .ad-hoc-actions-button {
+        border-color: rgb(255 255 255 / 35%);
+        color: rgb(255 255 255 / 87%);
+    }
+
+    .fetch-button-container .ad-hoc-actions-button:hover {
+        background-color: rgb(29 185 84 / 16%);
+        border-color: #1db954;
+        color: #5cdb89;
+    }
+
     .horizontal-group .MuiInputLabel-root {
         color: rgb(255 255 255 / 70%);
     }

@@ -1,0 +1,10 @@
+[package]
+name = "ente-wasm-core"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ente-core = { workspace = true }
+wasm-bindgen.workspace = true

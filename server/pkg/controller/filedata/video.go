@@ -2,11 +2,11 @@ package filedata
 
 import (
 	"context"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/ente/filedata"
-	"github.com/ente-io/museum/pkg/utils/auth"
-	"github.com/ente-io/museum/pkg/utils/network"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/filedata"
+	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/network"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -45,7 +45,7 @@ func (c *Controller) InsertVideoPreview(ctx *gin.Context, req *filedata.VidPrevi
 	size, uploadErr := c.uploadObject(obj, objectKey, bucketID)
 	if uploadErr != nil {
 		logger.WithError(uploadErr).Error("upload failed")
-		return nil
+		return stacktrace.Propagate(uploadErr, "failed to upload video preview metadata")
 	}
 	row := filedata.Row{
 		FileID:       req.FileID,

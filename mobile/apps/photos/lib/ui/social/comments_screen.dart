@@ -4,7 +4,6 @@ import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
-import "package:photos/db/files_db.dart";
 import "package:photos/events/comment_deleted_event.dart";
 import "package:photos/generated/l10n.dart";
 import "package:photos/models/api/collection/user.dart";
@@ -18,6 +17,7 @@ import 'package:photos/services/social_notification_coordinator.dart';
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/components/buttons/icon_button_widget.dart";
+import "package:photos/ui/social/comment_collection_selection.dart";
 import "package:photos/ui/social/social_actor_contact_navigation.dart";
 import "package:photos/ui/social/widgets/collection_selector_widget.dart";
 import "package:photos/ui/social/widgets/comment_bubble_widget.dart";
@@ -42,6 +42,8 @@ Future<void> showFileCommentsBottomSheet(
   required int collectionID,
   required int fileID,
   String? highlightCommentID,
+  bool preferDraftCollection = true,
+  List<Collection>? sharedCollections,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -52,6 +54,8 @@ Future<void> showFileCommentsBottomSheet(
       collectionID: collectionID,
       fileID: fileID,
       highlightCommentID: highlightCommentID,
+      preferDraftCollection: preferDraftCollection,
+      sharedCollections: sharedCollections,
     ),
   );
 }
@@ -61,12 +65,16 @@ class _DraggableCommentsSheet extends StatefulWidget {
   final int collectionID;
   final int fileID;
   final String? highlightCommentID;
+  final bool preferDraftCollection;
+  final List<Collection>? sharedCollections;
 
   const _DraggableCommentsSheet({
     required this.launchContext,
     required this.collectionID,
     required this.fileID,
     this.highlightCommentID,
+    required this.preferDraftCollection,
+    this.sharedCollections,
   });
 
   @override
@@ -99,6 +107,8 @@ class _DraggableCommentsSheetState extends State<_DraggableCommentsSheet> {
         collectionID: widget.collectionID,
         fileID: widget.fileID,
         highlightCommentID: widget.highlightCommentID,
+        preferDraftCollection: widget.preferDraftCollection,
+        sharedCollections: widget.sharedCollections,
         dragController: scrollController,
         sheetController: sheetController,
       ),
@@ -110,9 +120,14 @@ class FileCommentsBottomSheet extends StatefulWidget {
   final BuildContext launchContext;
   final int collectionID;
   final int fileID;
+  final List<Collection>? sharedCollections;
 
   /// Optional comment ID to scroll to and highlight.
   final String? highlightCommentID;
+
+  /// Whether an unsent draft in another collection may override
+  /// [collectionID] when the sheet opens.
+  final bool preferDraftCollection;
 
   /// Scroll controller for the drag handle (from DraggableScrollableSheet).
   final ScrollController dragController;
@@ -124,6 +139,8 @@ class FileCommentsBottomSheet extends StatefulWidget {
     required this.launchContext,
     required this.collectionID,
     required this.fileID,
+    this.sharedCollections,
+    this.preferDraftCollection = true,
     required this.dragController,
     required this.sheetController,
     this.highlightCommentID,
@@ -177,9 +194,12 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
     _inputFocusNode = FocusNode()..addListener(_onInputFocusChange);
     _scrollController = ScrollController()..addListener(_onScroll);
     _currentUserID = Configuration.instance.getUserID()!;
-    _selectedCollectionID = _canRestoreDraftCollection
-        ? _lastSelectedDraftCollectionIDs[_draftFileKey] ?? widget.collectionID
-        : widget.collectionID;
+    _selectedCollectionID = resolveInitialCommentsCollectionID(
+      requestedCollectionID: widget.collectionID,
+      draftCollectionID: _lastSelectedDraftCollectionIDs[_draftFileKey],
+      preferDraftCollection: widget.preferDraftCollection,
+      hasHighlightedComment: widget.highlightCommentID != null,
+    );
     _highlightedCommentID = widget.highlightCommentID;
     _loadSharedCollections();
   }
@@ -205,29 +225,17 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
     super.dispose();
   }
 
+  bool _isOpenedFromHiddenCollection() => CollectionsService.instance
+      .getHiddenCollectionIds()
+      .contains(widget.collectionID);
+
   Future<void> _loadSharedCollections() async {
-    final collectionIDs = await FilesDB.instance.getAllCollectionIDsOfFile(
-      widget.fileID,
-    );
-
-    // Filter to shared collections first (sync operation)
-    var sharedCollectionsList = collectionIDs
-        .map((id) => CollectionsService.instance.getCollectionByID(id))
-        .whereType<Collection>()
-        .where((c) => c.hasSharees || c.hasLink || !c.isOwner(_currentUserID))
-        .toList();
-
-    // Filter out hidden collections unless viewing from a hidden collection
-    final hiddenCollectionIds = CollectionsService.instance
-        .getHiddenCollectionIds();
-    final isInitialCollectionHidden = hiddenCollectionIds.contains(
-      widget.collectionID,
-    );
-    if (!isInitialCollectionHidden) {
-      sharedCollectionsList = sharedCollectionsList
-          .where((c) => !hiddenCollectionIds.contains(c.id))
-          .toList();
-    }
+    final sharedCollectionsList =
+        widget.sharedCollections ??
+        await CollectionsService.instance.getSharedCollectionsForFile(
+          widget.fileID,
+          includeHidden: _isOpenedFromHiddenCollection(),
+        );
 
     // Fetch data in parallel
     final sharedCollections = await Future.wait(
@@ -257,7 +265,7 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
       final savedSelectedCollectionID =
           _lastSelectedDraftCollectionIDs[_draftFileKey];
       final nextSelectedCollectionID =
-          _canRestoreDraftCollection &&
+          _shouldPreferDraftCollection &&
               savedSelectedCollectionID != null &&
               sharedCollections.any(
                 (info) => info.collection.id == savedSelectedCollectionID,
@@ -680,7 +688,8 @@ class _FileCommentsBottomSheetState extends State<FileCommentsBottomSheet> {
   _CommentDraftFileKey get _draftFileKey =>
       (userID: _currentUserID, fileID: widget.fileID);
 
-  bool get _canRestoreDraftCollection => widget.highlightCommentID == null;
+  bool get _shouldPreferDraftCollection =>
+      widget.preferDraftCollection && widget.highlightCommentID == null;
 
   _CommentDraftKey get _draftKey => (
     userID: _currentUserID,

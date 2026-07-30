@@ -23,7 +23,7 @@ For a quick preview, make sure your system meets the requirements mentioned belo
 Run this command on your terminal to setup Ente.
 
 ```sh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ente-io/ente/main/server/quickstart.sh)"
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ente/ente/main/server/quickstart.sh)"
 ```
 
 This creates a directory `my-ente` in the current working directory, prompts to start the cluster with needed containers after pulling the images required to run Ente.
@@ -69,4 +69,4 @@ You can import your codes from other authenticator providers to Ente Auth. Check
 
 ## Queries?
 
-If you need support, please ask on our community [Discord](https://ente.com/discord) or start a discussion on [GitHub](https://github.com/ente-io/ente/discussions/).
+If you need support, please ask on our community [Discord](https://ente.com/discord) or start a discussion on [GitHub](https://github.com/ente/ente/discussions/).

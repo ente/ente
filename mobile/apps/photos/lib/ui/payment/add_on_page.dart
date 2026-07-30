@@ -1,12 +1,11 @@
+import "package:ente_components/components/app_bar_component.dart";
+import "package:ente_components/theme/text_styles.dart";
+import "package:ente_components/theme/theme.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:intl/intl.dart";
 import "package:photos/gateways/storage_bonus/models/bonus.dart";
 import "package:photos/generated/l10n.dart";
-import "package:photos/theme/ente_theme.dart";
-import 'package:photos/ui/components/buttons/icon_button_widget.dart';
-import "package:photos/ui/components/title_bar_title_widget.dart";
-import "package:photos/ui/components/title_bar_widget.dart";
 
 class AddOnPage extends StatelessWidget {
   final BonusData bonusData;
@@ -31,26 +30,10 @@ class AddOnPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: CustomScrollView(
-        primary: false,
+      body: AppBarComponent(
+        title: AppLocalizations.of(context).addOns,
+        subtitle: AppLocalizations.of(context).addOnPageSubtitle,
         slivers: <Widget>[
-          TitleBarWidget(
-            flexibleSpaceTitle: TitleBarTitleWidget(
-              title: AppLocalizations.of(context).addOns,
-            ),
-            flexibleSpaceCaption: AppLocalizations.of(
-              context,
-            ).addOnPageSubtitle,
-            actionIcons: [
-              IconButtonWidget(
-                icon: Icons.close_outlined,
-                iconButtonType: IconButtonType.secondary,
-                onTap: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          ),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16),
             sliver: SliverList(
@@ -87,8 +70,7 @@ class AddOnViewSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textStyle = getEnteTextTheme(context);
+    final colors = context.componentColors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -97,7 +79,7 @@ class AddOnViewSection extends StatelessWidget {
           children: [
             Text(
               sectionName,
-              style: textStyle.body.copyWith(color: colorScheme.textMuted),
+              style: TextStyles.large.copyWith(color: colors.textLight),
             ),
             if (bonus.validTill != 0)
               Text(
@@ -113,7 +95,7 @@ class AddOnViewSection extends StatelessWidget {
                           )
                           .toString(),
                 ),
-                style: textStyle.body.copyWith(color: colorScheme.textMuted),
+                style: TextStyles.large.copyWith(color: colors.textLight),
               ),
           ],
         ),
@@ -123,7 +105,7 @@ class AddOnViewSection extends StatelessWidget {
             children: [
               TextSpan(
                 text: convertBytesToReadableFormat(bonus.storage).toString(),
-                style: textStyle.h3,
+                style: TextStyles.display2.copyWith(color: colors.textBase),
               ),
             ],
           ),

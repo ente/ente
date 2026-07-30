@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:ente_components/ente_components.dart";
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
@@ -9,19 +10,14 @@ import "package:photos/events/people_changed_event.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_clustering_service.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
-import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
-import "package:photos/services/machine_learning/ml_models_overview.dart";
 import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/components/buttons/button_widget.dart";
-import "package:photos/ui/components/captioned_text_widget.dart";
-import "package:photos/ui/components/menu_item_widget/menu_item_widget.dart";
 import "package:photos/ui/components/models/button_type.dart";
 import "package:photos/ui/components/settings/settings_grouped_card.dart";
-import "package:photos/ui/components/title_bar_title_widget.dart";
-import "package:photos/ui/components/title_bar_widget.dart";
 import "package:photos/ui/components/toggle_switch_widget.dart";
 import "package:photos/ui/notification/toast.dart";
+import "package:photos/ui/settings/components/settings_page_scaffold.dart";
 import "package:photos/utils/dialog_util.dart";
 
 final Logger _logger = Logger("MLUserDeveloperOptions");
@@ -82,238 +78,102 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    return Scaffold(
-      body: CustomScrollView(
-        primary: false,
-        slivers: <Widget>[
-          const TitleBarWidget(
-            flexibleSpaceTitle: TitleBarTitleWidget(title: "ML debug options"),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (delegateBuildContext, index) => Padding(
-                padding: const EdgeInsets.only(left: 16, right: 16),
-                child: Column(
-                  children: [
-                    Text(
-                      "Only use if you know what you're doing",
-                      textAlign: TextAlign.left,
-                      style: getEnteTextTheme(context).body.copyWith(
-                        color: getEnteColorScheme(context).textMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 48),
-                    widget.mlIsEnabled
-                        ? ButtonWidget(
-                            buttonType: ButtonType.neutral,
-                            labelText: "Purge empty indices",
-                            onTap: () async {
-                              await deleteEmptyIndices(context);
-                            },
-                          )
-                        : const SizedBox(),
-                    widget.mlIsEnabled
-                        ? const SizedBox(height: 24)
-                        : const SizedBox(),
-                    widget.mlIsEnabled
-                        ? ButtonWidget(
-                            buttonType: ButtonType.neutral,
-                            labelText: "Reset all local ML",
-                            onTap: () async {
-                              await deleteAllLocalML(context);
-                            },
-                          )
-                        : const SizedBox(),
-                    widget.mlIsEnabled
-                        ? const SizedBox(height: 24)
-                        : const SizedBox(),
-                    widget.mlIsEnabled
-                        ? MenuItemWidget(
-                            captionedTextWidget: const CaptionedTextWidget(
-                              title: "Remote fetch",
-                            ),
-                            menuItemColor: colorScheme.fillFaint,
-                            trailingWidget: ToggleSwitchWidget(
-                              value: () => localSettings.remoteFetchEnabled,
-                              onChanged: () async {
-                                try {
-                                  await localSettings.toggleRemoteFetch();
-                                  _logger.info(
-                                    'Remote fetch is turned ${localSettings.remoteFetchEnabled ? 'on' : 'off'}',
-                                  );
-                                  if (mounted) {
-                                    setState(() {});
-                                  }
-                                } catch (e, s) {
-                                  _logger.warning(
-                                    'Remote fetch toggle failed ',
-                                    e,
-                                    s,
-                                  );
-                                  await showGenericErrorDialog(
-                                    context: context,
-                                    error: e,
-                                  );
-                                }
-                              },
-                            ),
-                            singleBorderRadius: 8,
-                            alignCaptionedTextToLeft: true,
-                            isBottomBorderRadiusRemoved: true,
-                            isGestureDetectorDisabled: true,
-                          )
-                        : const SizedBox(),
-                    widget.mlIsEnabled
-                        ? const SizedBox(height: 24)
-                        : const SizedBox.shrink(),
-                    widget.mlIsEnabled
-                        ? MenuItemWidget(
-                            captionedTextWidget: const CaptionedTextWidget(
-                              title: "Run ML on interactions",
-                            ),
-                            menuItemColor: colorScheme.fillFaint,
-                            trailingWidget: ToggleSwitchWidget(
-                              value: () =>
-                                  localSettings.runMLDuringInteractionOverride,
-                              onChanged: () async {
-                                try {
-                                  final enabled = !localSettings
-                                      .runMLDuringInteractionOverride;
-                                  await computeController
-                                      .setMLInteractionOverride(
-                                        turnOn: enabled,
-                                      );
-                                  _logger.info(
-                                    'run ML during interaction is turned ${enabled ? 'on' : 'off'}',
-                                  );
-                                  if (mounted) {
-                                    setState(() {});
-                                  }
-                                } catch (e, s) {
-                                  _logger.warning(
-                                    'run ML during interaction toggle failed ',
-                                    e,
-                                    s,
-                                  );
-                                  await showGenericErrorDialog(
-                                    context: context,
-                                    error: e,
-                                  );
-                                }
-                              },
-                            ),
-                            singleBorderRadius: 8,
-                            alignCaptionedTextToLeft: true,
-                            isBottomBorderRadiusRemoved: true,
-                            isGestureDetectorDisabled: true,
-                          )
-                        : const SizedBox.shrink(),
-                    widget.mlIsEnabled
-                        ? const SizedBox(height: 24)
-                        : const SizedBox.shrink(),
-                    widget.mlIsEnabled
-                        ? _buildThresholdsCard(context)
-                        : const SizedBox.shrink(),
-                    widget.mlIsEnabled
-                        ? const SizedBox(height: 24)
-                        : const SizedBox.shrink(),
-                    ButtonWidget(
-                      buttonType: ButtonType.neutral,
-                      labelText: "Load face detection model",
-                      onTap: () async {
-                        try {
-                          await MLIndexingIsolate.instance.debugLoadSingleModel(
-                            MLModels.faceDetection,
-                          );
-                        } catch (e, s) {
-                          _logger.severe(
-                            "Could not load face detection model",
-                            e,
-                            s,
-                          );
-                          await showGenericErrorDialog(
-                            context: context,
-                            error: e,
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    ButtonWidget(
-                      buttonType: ButtonType.neutral,
-                      labelText: "Load face recognition model",
-                      onTap: () async {
-                        try {
-                          await MLIndexingIsolate.instance.debugLoadSingleModel(
-                            MLModels.faceEmbedding,
-                          );
-                        } catch (e, s) {
-                          _logger.severe(
-                            "Could not load face detection model",
-                            e,
-                            s,
-                          );
-                          await showGenericErrorDialog(
-                            context: context,
-                            error: e,
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    ButtonWidget(
-                      buttonType: ButtonType.neutral,
-                      labelText: "Load clip image model",
-                      onTap: () async {
-                        try {
-                          await MLIndexingIsolate.instance.debugLoadSingleModel(
-                            MLModels.clipImageEncoder,
-                          );
-                        } catch (e, s) {
-                          _logger.severe(
-                            "Could not load face detection model",
-                            e,
-                            s,
-                          );
-                          await showGenericErrorDialog(
-                            context: context,
-                            error: e,
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    ButtonWidget(
-                      buttonType: ButtonType.neutral,
-                      labelText: "Load clip text model",
-                      onTap: () async {
-                        try {
-                          await MLIndexingIsolate.instance.debugLoadSingleModel(
-                            MLModels.clipTextEncoder,
-                          );
-                        } catch (e, s) {
-                          _logger.severe(
-                            "Could not load face detection model",
-                            e,
-                            s,
-                          );
-                          await showGenericErrorDialog(
-                            context: context,
-                            error: e,
-                          );
-                        }
-                      },
-                    ),
-                    const SafeArea(child: SizedBox(height: 12)),
-                  ],
+    return SettingsPageScaffold(
+      title: "ML debug options",
+      children: [
+        Text(
+          "Only use if you know what you're doing",
+          textAlign: TextAlign.left,
+          style: getEnteTextTheme(
+            context,
+          ).body.copyWith(color: getEnteColorScheme(context).textMuted),
+        ),
+        const SizedBox(height: 48),
+        widget.mlIsEnabled
+            ? ButtonWidget(
+                buttonType: ButtonType.neutral,
+                labelText: "Purge empty indices",
+                onTap: () async {
+                  await deleteEmptyIndices(context);
+                },
+              )
+            : const SizedBox(),
+        widget.mlIsEnabled ? const SizedBox(height: 24) : const SizedBox(),
+        widget.mlIsEnabled
+            ? ButtonWidget(
+                buttonType: ButtonType.neutral,
+                labelText: "Reset all local ML",
+                onTap: () async {
+                  await deleteAllLocalML(context);
+                },
+              )
+            : const SizedBox(),
+        widget.mlIsEnabled ? const SizedBox(height: 24) : const SizedBox(),
+        widget.mlIsEnabled
+            ? MenuComponent(
+                title: "Remote fetch",
+                trailing: ToggleSwitchComponent.async(
+                  value: () => localSettings.remoteFetchEnabled,
+                  onChanged: () async {
+                    try {
+                      await localSettings.toggleRemoteFetch();
+                      _logger.info(
+                        'Remote fetch is turned ${localSettings.remoteFetchEnabled ? 'on' : 'off'}',
+                      );
+                      if (mounted) {
+                        setState(() {});
+                      }
+                    } catch (e, s) {
+                      _logger.warning('Remote fetch toggle failed ', e, s);
+                      if (!context.mounted) return;
+                      await showGenericErrorDialog(context: context, error: e);
+                    }
+                  },
                 ),
-              ),
-              childCount: 1,
-            ),
-          ),
-        ],
-      ),
+              )
+            : const SizedBox(),
+        widget.mlIsEnabled
+            ? const SizedBox(height: 24)
+            : const SizedBox.shrink(),
+        widget.mlIsEnabled
+            ? MenuComponent(
+                title: "Run ML on interactions",
+                trailing: ToggleSwitchComponent.async(
+                  value: () => localSettings.runMLDuringInteractionOverride,
+                  onChanged: () async {
+                    try {
+                      final enabled =
+                          !localSettings.runMLDuringInteractionOverride;
+                      await computeController.setMLInteractionOverride(
+                        turnOn: enabled,
+                      );
+                      _logger.info(
+                        'run ML during interaction is turned ${enabled ? 'on' : 'off'}',
+                      );
+                      if (mounted) {
+                        setState(() {});
+                      }
+                    } catch (e, s) {
+                      _logger.warning(
+                        'run ML during interaction toggle failed ',
+                        e,
+                        s,
+                      );
+                      if (!context.mounted) return;
+                      await showGenericErrorDialog(context: context, error: e);
+                    }
+                  },
+                ),
+              )
+            : const SizedBox.shrink(),
+        widget.mlIsEnabled
+            ? const SizedBox(height: 24)
+            : const SizedBox.shrink(),
+        widget.mlIsEnabled
+            ? _buildThresholdsCard(context)
+            : const SizedBox.shrink(),
+        const SizedBox(height: 12),
+      ],
     );
   }
 
@@ -323,8 +183,10 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
       await mlDataDB.deleteFaceIndexForFiles(emptyFileIDs.toList());
       await mlDataDB.deleteClipEmbeddings(emptyFileIDs.toList());
       await mlDataDB.deletePetDataForFiles(emptyFileIDs.toList());
+      if (!context.mounted) return;
       showShortToast(context, "Deleted ${emptyFileIDs.length} entries");
     } catch (e) {
+      if (!context.mounted) return;
       // ignore: unawaited_futures
       showGenericErrorDialog(context: context, error: e);
     }
@@ -335,8 +197,10 @@ class _MLUserDeveloperOptionsState extends State<MLUserDeveloperOptions> {
       await mlDataDB.dropClustersAndPersonTable(faces: true);
       await SemanticSearchService.instance.clearIndexes();
       Bus.instance.fire(PeopleChangedEvent());
+      if (!context.mounted) return;
       showShortToast(context, "All local ML cleared");
     } catch (e) {
+      if (!context.mounted) return;
       // ignore: unawaited_futures
       showGenericErrorDialog(context: context, error: e);
     }

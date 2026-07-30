@@ -83,13 +83,13 @@ Yes! Ente's custom domains feature lets you serve your public album links using 
 For example, instead of:
 
 ```
-https://albums.ente.com/?t=...
+https://albums.ente.com/...#...
 ```
 
 You can use:
 
 ```
-https://pics.example.org/?t=...
+https://pics.example.org/...#...
 ```
 
 **Requirements:**
@@ -431,7 +431,7 @@ Yes, you have several options:
 3. **Disable uploads**: Edit the link settings and turn off "Allow adding photos"
 4. **Change to view-only**: Convert the collect link to a regular public link (view only)
 
-You can manage these settings by going to your Sharing section and selecting the link you want to modify.
+You can manage these settings by opening the shared album (under the "Shared" tab in the Albums section) and selecting the link you want to modify.
 
 ### Can I see who added photos to my collect link? {#collect-link-attribution}
 
@@ -459,9 +459,10 @@ Anonymous viewers (people without an Ente account) can also show a name if they'
 
 Yes! Quick links automatically create a special album behind the scenes. You can convert this to a regular album at any time:
 
-1. Open the Sharing tab in the Ente app
-2. Find the quick link under "Quick links" section
-3. Select the option to convert it to a regular album
+1. Open the Albums tab in the Ente app
+2. Tap on 'v' icon at the right.
+3. Tap "Links"
+4. Find the quick link and select the option to convert it to a regular album
 
 This gives you more control over the album, including the ability to rename it and organize it like any other album.
 
@@ -509,7 +510,7 @@ When you add a shared photo to your own album, Ente creates a hard copy that you
 2. **Ownership is clear**: There's no ambiguity about who owns which version of the photo
 3. **No dependency**: Your organized albums don't break if someone stops sharing with you
 
-We understand this uses extra storage in some use cases (like family photo sharing). We're exploring reference-based solutions in the future where storage would only count if the original is deleted. See [this discussion](https://github.com/ente-io/ente/discussions/790) for more details.
+We understand this uses extra storage in some use cases (like family photo sharing). We're exploring reference-based solutions in the future where storage would only count if the original is deleted. See [this discussion](https://github.com/ente/ente/discussions/790) for more details.
 
 ### Why don't photos added via a shared link appear in my feed? {#shared-link-photos-not-in-feed}
 
@@ -531,20 +532,40 @@ Yes, if someone has shared an album with you, you can leave it at any time:
 
 After leaving, you'll no longer have access to the album. If you were a collaborator and uploaded photos, those photos will be removed from the album but remain in your own account.
 
+### What happens to the photos in a shared album if it's deleted or sharing stops? {#shared-album-deleted-content}
+
+It depends on who uploaded each photo:
+
+- **Photos you uploaded**: These always stay in your personal library, no matter what happens to the shared album. You don't lose anything you added yourself.
+- **Photos uploaded by others**: You lose access to these if the album is deleted, or if you leave or are removed from it. There is no automatic saving and no advance warning when this happens.
+
+When the album owner deletes a shared album, they see a dialog warning that the album will be deleted for everyone and that they will lose access to photos uploaded by others.
+
+**To save others' photos before that happens:**
+
+1. Open the shared album.
+2. Long-press to select photos, then tap **Select all**.
+3. Tap **Add to album** and choose one of your own albums.
+
+This creates copies that you fully own, so they remain in your library even if the shared album later goes away. Note that copies count towards your own storage. See [Why does adding shared photos to my albums count against my storage?](#shared-storage-count).
+
+### Why are there duplicate photos in a shared album we both add to? {#shared-album-duplicates}
+
+When two people add photos to a shared album, Ente does not detect or warn about duplicates across the different owners. If you and another member each add the same video or photo (for example, one received it through another sharing method and already had it), both copies appear in the album.
+
+Deduplication and the similar-images tool only work within albums you own, not across photos owned by different people in a shared album.
+
 ### How do I see all my shared albums? {#view-shared-albums}
 
 **On mobile:**
 
 - Open the Albums tab
-- Shared albums appear alongside your own albums
-- Look for the "Shared by" indicator under the album name
+- Tap the "Shared" tab to see albums you've shared, or the "Received" tab to see albums shared with you
 
 **On web/desktop:**
 
 - Shared albums appear in your album list
 - They're marked with a sharing icon
-
-You can also view all sharing activity in the Sharing tab/section.
 
 ## Permissions and Access
 
@@ -629,7 +650,7 @@ Create a public link for your album, then add an iframe to your HTML with the UR
 
 ```html
 <iframe
-    src="https://embed.ente.com/?t=...#..."
+    src="https://embed.ente.com/...#..."
     width="800"
     height="600"
     frameborder="0"
@@ -649,7 +670,7 @@ If you're using the easy method (copy embed HTML button), the app automatically 
 If you're creating the embed code manually and have a custom domain configured:
 
 - Replace your custom domain with `embed.ente.com` in the iframe src
-- For example: `https://embed.ente.com/?t=...` (not `https://pics.example.org/?t=...`)
+- For example: `https://embed.ente.com/...#...` (not `https://pics.example.org/...#...`)
 
 The embed will still work perfectly - it's just served from the embed subdomain instead of your custom domain.
 

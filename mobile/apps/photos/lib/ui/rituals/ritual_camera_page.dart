@@ -5,6 +5,7 @@ import "package:camera/camera.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:hugeicons/hugeicons.dart";
+import "package:permission_handler/permission_handler.dart";
 import "package:photos/l10n/l10n.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/models/rituals/ritual_models.dart";
@@ -55,16 +56,17 @@ class RitualCameraPage extends StatefulWidget {
 
 class _RitualCameraPageState extends State<RitualCameraPage>
     with WidgetsBindingObserver {
-  static CameraDescription? _cachedPreferredBackCamera;
   CameraController? _controller;
+  Future<void>? _cameraInitialization;
+  Future<void>? _cameraDisposal;
   List<CameraDescription> _cameras = <CameraDescription>[];
   CameraDescription? _activeCamera;
-  CameraDescription? _preferredBackCamera = _cachedPreferredBackCamera;
   late final PageController _pageController;
   late final ScrollController _thumbScrollController;
   Ritual? _ritual;
   _CameraScreenMode _mode = _CameraScreenMode.capture;
   int _selectedIndex = 0;
+  bool _restartCameraOnResume = false;
   bool _pausedForNavigation = false;
   bool _initializing = true;
   bool _capturing = false;
@@ -169,7 +171,7 @@ class _RitualCameraPageState extends State<RitualCameraPage>
     ritualsService.stateNotifier.removeListener(_ritualsListener);
     _focusHideTimer?.cancel();
     _zoomHintTimer?.cancel();
-    _controller?.dispose();
+    unawaited(_disposeCamera());
     _pageController.dispose();
     _thumbScrollController.dispose();
     _cleanupCaptures();
@@ -178,20 +180,21 @@ class _RitualCameraPageState extends State<RitualCameraPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final controller = _controller;
     if (state == AppLifecycleState.resumed) {
-      if (controller == null || !controller.value.isInitialized) {
+      if (_restartCameraOnResume) {
+        _restartCameraOnResume = false;
         unawaited(_initializeCamera(_activeCamera));
       }
       return;
     }
-    if (controller == null || !controller.value.isInitialized) {
-      return;
-    }
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
-      unawaited(controller.dispose());
-      _controller = null;
+      final controller = _controller;
+      if (controller == null || !controller.value.isInitialized) {
+        return;
+      }
+      _restartCameraOnResume = true;
+      unawaited(_disposeCamera());
     }
   }
 
@@ -223,65 +226,44 @@ class _RitualCameraPageState extends State<RitualCameraPage>
     }
   }
 
-  Future<CameraDescription?> _pickPreferredBackCamera() async {
-    if (_preferredBackCamera != null &&
-        _cameras.contains(_preferredBackCamera)) {
-      return _preferredBackCamera;
+  Future<void> _initializeCamera([CameraDescription? description]) {
+    final inFlight = _cameraInitialization;
+    if (inFlight != null) {
+      return inFlight;
     }
-    final List<CameraDescription> backCameras = _cameras
-        .where((camera) => camera.lensDirection == CameraLensDirection.back)
-        .toList(growable: false);
-    if (backCameras.isEmpty) {
-      return null;
-    }
-    if (backCameras.length == 1) {
-      _preferredBackCamera = backCameras.first;
-      return _preferredBackCamera;
-    }
-
-    int bestPixels = -1;
-    CameraDescription? bestCamera;
-    for (final camera in backCameras) {
-      if (!mounted) break;
-      final controller = CameraController(
-        camera,
-        ResolutionPreset.max,
-        enableAudio: false,
-      );
-      try {
-        await controller.initialize();
-        final Size? size = controller.value.previewSize;
-        final int pixels = size == null
-            ? -1
-            : (size.width * size.height).toInt();
-        if (pixels > bestPixels) {
-          bestPixels = pixels;
-          bestCamera = camera;
-        }
-      } catch (_) {
-        // Ignore cameras that fail to initialize.
-      } finally {
-        try {
-          await controller.dispose();
-        } catch (_) {
-          // Ignore dispose failures.
-        }
+    late final Future<void> initialization;
+    initialization = _initializeCameraOnce(description).whenComplete(() {
+      if (identical(_cameraInitialization, initialization)) {
+        _cameraInitialization = null;
       }
-    }
-    _preferredBackCamera = bestCamera ?? backCameras.first;
-    _cachedPreferredBackCamera = _preferredBackCamera;
-    return _preferredBackCamera;
+    });
+    _cameraInitialization = initialization;
+    return initialization;
   }
 
-  Future<void> _initializeCamera([CameraDescription? description]) async {
+  Future<void> _initializeCameraOnce(CameraDescription? description) async {
     if (!flagService.ritualsFlag) return;
+    if (!mounted) return;
     setState(() {
       _initializing = true;
       _error = null;
     });
+    CameraController? controller;
     try {
+      if (Platform.isAndroid) {
+        final permission = await Permission.camera.request();
+        if (!permission.isGranted) {
+          if (!mounted) return;
+          setState(() {
+            _error = context.l10n.ritualCameraStartError;
+            _initializing = false;
+          });
+          return;
+        }
+      }
       _cameras = _cameras.isEmpty ? await availableCameras() : _cameras;
       if (_cameras.isEmpty) {
+        if (!mounted) return;
         setState(() {
           _error = context.l10n.ritualCameraNotFound;
           _initializing = false;
@@ -289,38 +271,31 @@ class _RitualCameraPageState extends State<RitualCameraPage>
         return;
       }
       final CameraDescription target =
-          description ??
-          (_controller == null
-              ? await _pickPreferredBackCamera() ?? _cameras.first
-              : _preferredCamera() ?? _cameras.first);
-      final bool reuseExisting = _controller != null;
-      if (reuseExisting) {
-        await _controller!.setDescription(target);
-      } else {
-        final controller = CameraController(
-          target,
-          ResolutionPreset.max,
-          enableAudio: false,
-        );
-        await controller.initialize();
-        _controller = controller;
-      }
-      if (_controller != null) {
-        _minAvailableZoom = await _controller!.getMinZoomLevel();
-        _maxAvailableZoom = await _controller!.getMaxZoomLevel();
-        _currentZoom = 1.0;
-        _baseZoom = 1.0;
-        await _controller!.setZoomLevel(_currentZoom);
-      }
+          description ?? _preferredCamera() ?? _cameras.first;
+      await _disposeCamera();
+      controller = CameraController(
+        target,
+        ResolutionPreset.max,
+        enableAudio: false,
+      );
+      await controller.initialize();
+      _minAvailableZoom = await controller.getMinZoomLevel();
+      _maxAvailableZoom = await controller.getMaxZoomLevel();
+      _currentZoom = 1.0;
+      _baseZoom = 1.0;
+      await controller.setZoomLevel(_currentZoom);
       if (!mounted) {
-        await _controller?.dispose();
+        await controller.dispose();
         return;
       }
       setState(() {
+        _controller = controller;
         _activeCamera = target;
         _initializing = false;
       });
-    } catch (e) {
+    } catch (_) {
+      await controller?.dispose();
+      if (!mounted) return;
       setState(() {
         _error = context.l10n.ritualCameraStartError;
         _initializing = false;
@@ -328,11 +303,26 @@ class _RitualCameraPageState extends State<RitualCameraPage>
     }
   }
 
-  CameraDescription? _preferredCamera() {
-    if (_preferredBackCamera != null &&
-        _cameras.contains(_preferredBackCamera)) {
-      return _preferredBackCamera;
+  Future<void> _disposeCamera() async {
+    final disposal = _cameraDisposal;
+    if (disposal != null) {
+      await disposal;
+      return;
     }
+    final controller = _controller;
+    if (controller == null) return;
+    _controller = null;
+    late final Future<void> pendingDisposal;
+    pendingDisposal = controller.dispose().whenComplete(() {
+      if (identical(_cameraDisposal, pendingDisposal)) {
+        _cameraDisposal = null;
+      }
+    });
+    _cameraDisposal = pendingDisposal;
+    await pendingDisposal;
+  }
+
+  CameraDescription? _preferredCamera() {
     for (final camera in _cameras) {
       if (camera.lensDirection == CameraLensDirection.back) {
         return camera;
@@ -354,10 +344,6 @@ class _RitualCameraPageState extends State<RitualCameraPage>
   }
 
   CameraDescription? _backCameraForFlip() {
-    if (_preferredBackCamera != null &&
-        _cameras.contains(_preferredBackCamera)) {
-      return _preferredBackCamera;
-    }
     return _cameraForDirection(CameraLensDirection.back);
   }
 
@@ -459,6 +445,7 @@ class _RitualCameraPageState extends State<RitualCameraPage>
       );
       await _pausePreview();
       if (!mounted) return;
+      if (!navContext.mounted) return;
       await routeToPage(
         navContext,
         const AllRitualsScreen(),

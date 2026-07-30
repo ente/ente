@@ -18,7 +18,6 @@ export const AppLockReauthenticationDialog = () => {
     return (
         <Modal
             open
-            disableEscapeKeyDown
             aria-label={t("authenticate")}
             slotProps={{
                 backdrop: {

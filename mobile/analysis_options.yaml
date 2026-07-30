@@ -66,7 +66,7 @@ analyzer:
 
     unawaited_futures: warning # convert to warning after fixing existing issues
     invalid_dependency: info
-    use_build_context_synchronously: ignore # experimental lint, requires many changes
+    use_build_context_synchronously: error
     prefer_interpolation_to_compose_strings: ignore # later too many warnings
     prefer_double_quotes: ignore # too many warnings
     avoid_renaming_method_parameters: ignore # incorrect warnings for `equals` overrides

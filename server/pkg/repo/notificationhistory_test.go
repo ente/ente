@@ -3,7 +3,7 @@ package repo
 import (
 	"testing"
 
-	"github.com/ente-io/museum/internal/testutil"
+	"github.com/ente/museum/internal/testutil"
 	"github.com/lib/pq"
 )
 

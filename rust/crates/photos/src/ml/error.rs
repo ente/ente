@@ -20,8 +20,8 @@ pub enum MlError {
     Runtime(String),
 }
 
-impl From<ort::Error> for MlError {
-    fn from(value: ort::Error) -> Self {
+impl<R> From<ort::Error<R>> for MlError {
+    fn from(value: ort::Error<R>) -> Self {
         MlError::Ort(value.to_string())
     }
 }

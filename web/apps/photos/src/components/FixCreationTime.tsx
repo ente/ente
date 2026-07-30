@@ -6,6 +6,7 @@ import {
     FormControlLabel,
     FormLabel,
     LinearProgress,
+    Link,
     Radio,
     RadioGroup,
     Stack,
@@ -228,6 +229,26 @@ const OptionsForm: React.FC<OptionsFormProps> = ({
                 onSubmit={() => handleSubmit()}
                 onClose={onClose}
             />
+            {(step === undefined || step == "completed-with-errors") && (
+                <Typography
+                    variant="mini"
+                    sx={{
+                        mt: 1.5,
+                        color: "text.faint",
+                        opacity: 0.8,
+                        textAlign: "center",
+                    }}
+                >
+                    <Link
+                        href="https://ente.com/help/photos/faq/metadata-and-editing#fix-time-options"
+                        target="_blank"
+                        rel="noopener"
+                        color="inherit"
+                    >
+                        What do these options mean?
+                    </Link>
+                </Typography>
+            )}
         </>
     );
 };

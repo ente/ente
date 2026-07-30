@@ -43,10 +43,6 @@ iCloud Shared Photo Library lets one organiser share a photo library with up to 
 
 On iPhone or iPad running iOS 16.1 or later, Shared Library photos are available through the system Photos library alongside your Personal Library. If Ente has full access to your photo library, it can back up Shared Library photos as well.
 
-> [!IMPORTANT]
->
-> Before starting, make sure iCloud Photos has fully synced on the device. If originals have not fully downloaded yet, complete the sync first or use Apple's "Download and Keep Originals" option when needed.
-
 ### Import into Ente
 
 1. Install the Ente app on your iPhone or iPad.

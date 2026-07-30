@@ -2,7 +2,7 @@
  * @file types shared between the public API (main thread) and implementation
  * (worker thread). Also some constants, but no code.
  */
-import { type StateAddress } from "libsodium-wrappers-sumo";
+import type { StateAddress } from "libsodium-wrappers-sumo";
 
 /**
  * An opaque object meant to be threaded through various functions that deal

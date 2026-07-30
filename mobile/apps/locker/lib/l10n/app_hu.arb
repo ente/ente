@@ -132,7 +132,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "Kerem, valasszon legalabb egy gyujtemenyt",
   "unknownItemType": "Ismeretlen elemtipus",
   "fileDeletedSuccessfully": "Elem sikeresen torolve",
   "failedToDeleteFile": "Elem torlese sikertelen: {error}",
@@ -253,7 +252,6 @@
   "optionalNote": "Opcionalis jegyzet",
   "upload": "Feltoltes",
   "documentsHint": "Dokumentumok",
-  "searchHint": "Keresés...",
   "searchEmptyTitle": "Nincs talalat",
   "searchEmptyDescription": "Probaljon mas keresest.",
   "searchEverywhereTitle": "Kereses mindenhol: \"{query}\"",

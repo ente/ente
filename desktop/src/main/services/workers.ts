@@ -108,17 +108,54 @@ export const triggerCreateUtilityProcess = (
 const terminateMLProcessIfRunning = () => {
     if (_utilityProcessML) {
         log.debug(() => "Terminating running ML utility process");
+        _utilityProcessML.removeAllListeners("exit");
         _utilityProcessML.kill();
         _utilityProcessML = undefined;
     }
 };
+
+/**
+ * Fork a utility process running {@link scriptName}, mirroring its stdout and
+ * stderr into our log (prefixed with {@link logTag}), and logging an error if
+ * it exits on its own.
+ *
+ * The usual log flow for utility processes (see `log-worker.ts`) requires
+ * their module graph to have loaded. Without this mirroring, a crash during
+ * module load (e.g. a missing native library) would be written only to the
+ * inherited stderr, which is invisible in packaged apps, and the log file
+ * would not contain any trace of it.
+ *
+ * Callers that deliberately kill the returned process should remove its
+ * "exit" listeners first.
+ */
+const forkWatchedUtilityProcess = (scriptName: string, logTag: string) => {
+    const child = utilityProcess.fork(path.join(__dirname, scriptName), [], {
+        stdio: "pipe",
+    });
+    child.stdout?.on("data", (chunk: Buffer) =>
+        log.info(`${logTag} ${String(chunk).trimEnd()}`),
+    );
+    child.stderr?.on("data", (chunk: Buffer) =>
+        log.warn(`${logTag} ${String(chunk).trimEnd()}`),
+    );
+    child.on("exit", (code) => {
+        log.error(`${logTag} utility process exited with code ${code}`);
+    });
+    return child;
+};
+
+// Electron tears down utility processes on quit; don't report those exits.
+app.on("before-quit", () => {
+    _utilityProcessML?.removeAllListeners("exit");
+    _utilityProcessFFmpeg?.removeAllListeners("exit");
+});
 
 export const triggerCreateMLUtilityProcess = (window: BrowserWindow) => {
     terminateMLProcessIfRunning();
 
     const { port1, port2 } = new MessageChannelMain();
 
-    const child = utilityProcess.fork(path.join(__dirname, "ml-worker.js"));
+    const child = forkWatchedUtilityProcess("ml-worker.js", "[ml-worker]");
     const userDataPath = app.getPath("userData");
     child.postMessage(/* MLWorkerInitData */ { userDataPath }, [port1]);
 
@@ -193,6 +230,7 @@ export const ffmpegUtilityProcessEndpoint = () =>
 const terminateFFmpegProcessIfRunning = () => {
     if (_utilityProcessFFmpeg) {
         log.debug(() => "Terminating running FFmpeg utility process");
+        _utilityProcessFFmpeg.removeAllListeners("exit");
         _utilityProcessFFmpeg.kill();
         _utilityProcessFFmpeg = undefined;
         _utilityProcessFFmpegEndpoint = undefined;
@@ -206,11 +244,18 @@ const createFFmpegUtilityProcessEndpoint = () => {
 
     // Promise.withResolvers is currently in the node available to us.
     let resolve: ((endpoint: Endpoint) => void) | undefined;
-    const promise = new Promise<Endpoint>((r) => (resolve = r));
+    let reject: ((e: Error) => void) | undefined;
+    const promise = new Promise<Endpoint>((res, rej) => {
+        resolve = res;
+        reject = rej;
+    });
 
     const { port1, port2 } = new MessageChannelMain();
 
-    const child = utilityProcess.fork(path.join(__dirname, "ffmpeg-worker.js"));
+    const child = forkWatchedUtilityProcess(
+        "ffmpeg-worker.js",
+        "[ffmpeg-worker]",
+    );
     // Send a handle to the port (one end of the message channel) to the utility
     // process (alongwith any other init data). The utility process will reply
     // with an "ack" when it get it.
@@ -234,6 +279,15 @@ const createFFmpegUtilityProcessEndpoint = () => {
     });
 
     _utilityProcessFFmpeg = child;
+
+    // Recover from crashes: reject the endpoint promise if it is still
+    // pending, and clear the cached values so that the next FFmpeg operation
+    // spawns a new utility process.
+    child.on("exit", () => {
+        reject?.(new Error("The FFmpeg utility process exited"));
+        _utilityProcessFFmpeg = undefined;
+        _utilityProcessFFmpegEndpoint = undefined;
+    });
 
     // Resolve with the other end of the message channel (once we get an "ack"
     // from the utility process).

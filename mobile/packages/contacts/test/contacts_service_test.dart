@@ -47,11 +47,7 @@ void main() {
           id: 'ct_1',
           contactUserId: 2,
           email: 'b@test.test',
-          data: ContactData(
-            contactUserId: 2,
-            name: 'B',
-            birthDate: '2001-04-02',
-          ),
+          data: ContactData(contactUserId: 2, name: 'B'),
           profilePictureAttachmentId: 'att_1',
           isDeleted: false,
           createdAt: 10,

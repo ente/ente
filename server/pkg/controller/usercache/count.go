@@ -1,9 +1,9 @@
 package usercache
 
 import (
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/ente/cache"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/cache"
+	"github.com/ente/stacktrace"
 	"github.com/sirupsen/logrus"
 )
 

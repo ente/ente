@@ -21,21 +21,21 @@ import "package:photos/models/selected_albums.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/sync/remote_sync_service.dart";
+import "package:photos/settings/local_settings.dart";
 import "package:photos/theme/ente_theme.dart";
 import "package:photos/ui/collections/collection_list_page.dart";
 import "package:photos/ui/collections/device/device_folders_vertical_grid_view.dart";
 import "package:photos/ui/collections/flex_grid_view.dart";
 import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/components/empty_state_component.dart";
-import "package:photos/ui/components/popup_menu/ente_popup_menu_button.dart";
 import "package:photos/ui/tabs/albums/albums_manage_sheet.dart";
 import "package:photos/ui/tabs/albums/empty_states/on_ente_empty_state.dart";
+import "package:photos/ui/tabs/albums/empty_states/received_empty_state.dart";
 import "package:photos/ui/tabs/albums/empty_states/shared_empty_state.dart";
 import "package:photos/ui/viewer/actions/album_selection_overlay_bar.dart";
 import "package:photos/ui/viewer/actions/delete_empty_albums.dart";
-import "package:photos/utils/local_settings.dart";
 
-enum _AlbumsFilter { ente, onDevice, shared }
+enum _AlbumsFilter { ente, onDevice, shared, received }
 
 enum _AlbumsMenuAction { toggleView, name, lastUpdated }
 
@@ -65,12 +65,16 @@ class _AlbumsTabState extends State<AlbumsTab>
   static const Duration _kContentTransitionDuration = Duration(
     milliseconds: 150,
   );
+  static const double _kContentBottomPadding = 200;
 
   final ValueNotifier<_AlbumsFilter> _filter = ValueNotifier(
     _AlbumsFilter.ente,
   );
   final ValueNotifier<List<Collection>?> _enteCollections = ValueNotifier(null);
   final ValueNotifier<List<Collection>?> _sharedCollections = ValueNotifier(
+    null,
+  );
+  final ValueNotifier<List<Collection>?> _receivedCollections = ValueNotifier(
     null,
   );
   final ValueNotifier<bool> _shouldShowDeleteEmptyAlbums = ValueNotifier(false);
@@ -161,6 +165,7 @@ class _AlbumsTabState extends State<AlbumsTab>
     _loggedOutEvent = Bus.instance.on<UserLoggedOutEvent>().listen((_) {
       _enteCollections.value = null;
       _sharedCollections.value = null;
+      _receivedCollections.value = null;
     });
     _tabChangedEvent = Bus.instance.on<TabChangedEvent>().listen(
       _handleTabChanged,
@@ -225,6 +230,7 @@ class _AlbumsTabState extends State<AlbumsTab>
     if (!Configuration.instance.hasConfiguredAccount()) {
       _enteCollections.value = <Collection>[];
       _sharedCollections.value = <Collection>[];
+      _receivedCollections.value = <Collection>[];
       _shouldShowDeleteEmptyAlbums.value = false;
       return;
     }
@@ -238,13 +244,6 @@ class _AlbumsTabState extends State<AlbumsTab>
       _isLocalGalleryMode ? _AlbumsFilter.onDevice : _filter.value;
 
   bool get _hasSearchQuery => _searchQuery.trim().isNotEmpty;
-
-  double _keyboardAwareBottomPadding(double defaultPadding) {
-    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-    if (keyboardInset <= 0) return defaultPadding;
-    final keyboardPadding = keyboardInset + 50.0;
-    return keyboardPadding > defaultPadding ? keyboardPadding : defaultPadding;
-  }
 
   void _syncSortState() {
     _sortKey.value = localSettings.albumSortKey();
@@ -281,7 +280,8 @@ class _AlbumsTabState extends State<AlbumsTab>
   Future<void> _loadSharedCollections() async {
     final shared = await CollectionsService.instance.getSharedCollections();
     if (!mounted) return;
-    _sharedCollections.value = shared.incoming;
+    _sharedCollections.value = shared.outgoing;
+    _receivedCollections.value = shared.incoming;
   }
 
   void _selectFilter(_AlbumsFilter filter) {
@@ -357,7 +357,6 @@ class _AlbumsTabState extends State<AlbumsTab>
     required bool showCreateAlbum,
     required Widget emptyState,
     Widget? leadingSliver,
-    double? bottomPadding,
   }) {
     if (collections.isEmpty && _searchQuery.trim().isEmpty) {
       return SliverFillRemaining(hasScrollBody: false, child: emptyState);
@@ -375,7 +374,7 @@ class _AlbumsTabState extends State<AlbumsTab>
           shrinkWrap: true,
           shouldShowCreateAlbum: showCreateAlbum && !_hasSearchQuery,
           enableSelectionMode: !_isSearchActive,
-          bottomPadding: bottomPadding ?? 200,
+          bottomPadding: _kContentBottomPadding,
         ),
       ],
     );
@@ -464,7 +463,6 @@ class _AlbumsTabState extends State<AlbumsTab>
   }
 
   Widget _buildGlobalSearchResultsSliver(AppLocalizations strings) {
-    final bottomPadding = _keyboardAwareBottomPadding(200);
     if (_isLocalGalleryMode) {
       return SliverMainAxisGroup(
         slivers: [
@@ -480,24 +478,33 @@ class _AlbumsTabState extends State<AlbumsTab>
             sectionHeader: _buildSearchSectionHeader(strings.onDevice),
             emptyStateSliver: _buildGlobalSearchEmptyStateSliver(strings),
           ),
-          SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
+          const SliverToBoxAdapter(
+            child: SizedBox(height: _kContentBottomPadding),
+          ),
         ],
       );
     }
 
     final enteCollections = _enteCollections.value;
     final sharedCollections = _sharedCollections.value;
+    final receivedCollections = _receivedCollections.value;
     final filteredEnteCollections = enteCollections == null
         ? null
         : _filterCollectionsByQuery(enteCollections);
     final filteredSharedCollections = sharedCollections == null
         ? null
         : _filterCollectionsByQuery(sharedCollections);
+    final filteredReceivedCollections = receivedCollections == null
+        ? null
+        : _filterCollectionsByQuery(receivedCollections);
     final hasRemoteCollections =
         (filteredEnteCollections?.isNotEmpty ?? false) ||
-        (filteredSharedCollections?.isNotEmpty ?? false);
+        (filteredSharedCollections?.isNotEmpty ?? false) ||
+        (filteredReceivedCollections?.isNotEmpty ?? false);
     final hasFinishedLoadingRemoteCollections =
-        enteCollections != null && sharedCollections != null;
+        enteCollections != null &&
+        sharedCollections != null &&
+        receivedCollections != null;
     final shouldShowDeviceSearchState =
         hasFinishedLoadingRemoteCollections && !hasRemoteCollections;
 
@@ -523,11 +530,18 @@ class _AlbumsTabState extends State<AlbumsTab>
               : null,
         ),
         ..._buildCollectionSearchSectionSlivers(
-          title: strings.searchResultShared,
+          title: strings.sharedAlbumsLabel,
           tag: "album_search_shared",
           collections: filteredSharedCollections,
         ),
-        SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
+        ..._buildCollectionSearchSectionSlivers(
+          title: strings.receivedAlbumsLabel,
+          tag: "album_search_received",
+          collections: filteredReceivedCollections,
+        ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: _kContentBottomPadding),
+        ),
       ],
     );
   }
@@ -549,13 +563,17 @@ class _AlbumsTabState extends State<AlbumsTab>
         collections = _sharedCollections.value;
         showCreateAlbum = false;
         emptyState = const SharedEmptyState();
+      case _AlbumsFilter.received:
+        collections = _receivedCollections.value;
+        showCreateAlbum = false;
+        emptyState = const ReceivedEmptyState();
       case _AlbumsFilter.onDevice:
         return DeviceFolderVerticalGridSliver(
           searchQuery: _searchQuery.trim(),
           albumViewType: _viewType.value,
           sortKey: _sortKey.value,
           sortDirection: _sortDirection.value,
-          bottomPadding: _keyboardAwareBottomPadding(200),
+          bottomPadding: _kContentBottomPadding,
         );
     }
     if (collections == null) {
@@ -570,7 +588,6 @@ class _AlbumsTabState extends State<AlbumsTab>
       collections: collections,
       showCreateAlbum: showCreateAlbum,
       emptyState: emptyState,
-      bottomPadding: _keyboardAwareBottomPadding(200),
       leadingSliver: filter == _AlbumsFilter.ente && !_hasSearchQuery
           ? SliverToBoxAdapter(child: _buildDeleteEmptyAlbumsActionSlot())
           : null,
@@ -583,6 +600,10 @@ class _AlbumsTabState extends State<AlbumsTab>
         _enteCollections.value == null ? "ente_loading" : "ente_ready",
       _AlbumsFilter.shared =>
         _sharedCollections.value == null ? "shared_loading" : "shared_ready",
+      _AlbumsFilter.received =>
+        _receivedCollections.value == null
+            ? "received_loading"
+            : "received_ready",
       _AlbumsFilter.onDevice => "device",
     };
 
@@ -726,6 +747,7 @@ class _AlbumsTabState extends State<AlbumsTab>
     _filter.dispose();
     _enteCollections.dispose();
     _sharedCollections.dispose();
+    _receivedCollections.dispose();
     _shouldShowDeleteEmptyAlbums.dispose();
     _viewType.dispose();
     _sortKey.dispose();
@@ -866,7 +888,7 @@ class _AlbumsTabState extends State<AlbumsTab>
                       : Padding(
                           key: const ValueKey("album_filters"),
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
+                            horizontal: 16,
                             vertical: 8,
                           ),
                           child: Row(
@@ -878,59 +900,71 @@ class _AlbumsTabState extends State<AlbumsTab>
                                     final effectiveFilter = localGalleryMode
                                         ? _AlbumsFilter.onDevice
                                         : selected;
-                                    return SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      physics: const BouncingScrollPhysics(),
-                                      child: Row(
-                                        children: [
-                                          if (!localGalleryMode) ...[
-                                            _AlbumsFilterChip(
-                                              label: strings.ente,
-                                              selected:
-                                                  effectiveFilter ==
-                                                  _AlbumsFilter.ente,
-                                              onTap: () => _selectFilter(
-                                                _AlbumsFilter.ente,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                          ],
-                                          _AlbumsFilterChip(
-                                            label: strings.onDevice,
-                                            selected:
-                                                effectiveFilter ==
-                                                _AlbumsFilter.onDevice,
-                                            onTap: () => _selectFilter(
-                                              _AlbumsFilter.onDevice,
-                                            ),
+                                    return Stack(
+                                      children: [
+                                        SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          physics:
+                                              const BouncingScrollPhysics(),
+                                          padding: const EdgeInsets.only(
+                                            right: 72,
                                           ),
-                                          if (!localGalleryMode) ...[
-                                            const SizedBox(width: 8),
-                                            _AlbumsFilterChip(
-                                              label: strings.searchResultShared,
-                                              selected:
-                                                  effectiveFilter ==
-                                                  _AlbumsFilter.shared,
-                                              onTap: () => _selectFilter(
-                                                _AlbumsFilter.shared,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            _AlbumsFilterChip(
-                                              label: strings.more,
-                                              selected: false,
-                                              trailing: const Icon(
-                                                Icons.keyboard_arrow_down,
-                                                size: 18,
-                                              ),
-                                              onTap: () =>
-                                                  showAlbumsManageSheet(
-                                                    context,
+                                          child: Row(
+                                            children: [
+                                              if (!localGalleryMode) ...[
+                                                _AlbumsFilterChip(
+                                                  label: strings.ente,
+                                                  selected:
+                                                      effectiveFilter ==
+                                                      _AlbumsFilter.ente,
+                                                  onTap: () => _selectFilter(
+                                                    _AlbumsFilter.ente,
                                                   ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                              ],
+                                              _AlbumsFilterChip(
+                                                label: strings.onDevice,
+                                                selected:
+                                                    effectiveFilter ==
+                                                    _AlbumsFilter.onDevice,
+                                                onTap: () => _selectFilter(
+                                                  _AlbumsFilter.onDevice,
+                                                ),
+                                              ),
+                                              if (!localGalleryMode) ...[
+                                                const SizedBox(width: 8),
+                                                _AlbumsFilterChip(
+                                                  label:
+                                                      strings.sharedAlbumsLabel,
+                                                  selected:
+                                                      effectiveFilter ==
+                                                      _AlbumsFilter.shared,
+                                                  onTap: () => _selectFilter(
+                                                    _AlbumsFilter.shared,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                _AlbumsFilterChip(
+                                                  label: strings
+                                                      .receivedAlbumsLabel,
+                                                  selected:
+                                                      effectiveFilter ==
+                                                      _AlbumsFilter.received,
+                                                  onTap: () => _selectFilter(
+                                                    _AlbumsFilter.received,
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                        _AlbumsMoreButtonOverlay(
+                                          tooltip: strings.more,
+                                          onTap: () =>
+                                              showAlbumsManageSheet(context),
+                                        ),
+                                      ],
                                     );
                                   },
                                 ),
@@ -946,6 +980,7 @@ class _AlbumsTabState extends State<AlbumsTab>
                     _filter,
                     _enteCollections,
                     _sharedCollections,
+                    _receivedCollections,
                     _shouldShowDeleteEmptyAlbums,
                     _viewType,
                     _sortKey,
@@ -994,6 +1029,7 @@ class _AlbumsTabState extends State<AlbumsTab>
               _filter,
               _enteCollections,
               _sharedCollections,
+              _receivedCollections,
             ]),
             builder: (context, _) {
               final filter = _effectiveFilter;
@@ -1004,8 +1040,11 @@ class _AlbumsTabState extends State<AlbumsTab>
                   sectionType = UISectionType.homeCollections;
                   collections = _enteCollections.value;
                 case _AlbumsFilter.shared:
-                  sectionType = UISectionType.incomingCollections;
+                  sectionType = UISectionType.outgoingCollections;
                   collections = _sharedCollections.value;
+                case _AlbumsFilter.received:
+                  sectionType = UISectionType.incomingCollections;
+                  collections = _receivedCollections.value;
                 case _AlbumsFilter.onDevice:
                   return const SizedBox.shrink();
               }
@@ -1035,23 +1074,77 @@ class _AlbumsFilterChip extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
-    this.trailing,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
     return TagChipComponent(
       label: label,
-      trailing: trailing,
       state: selected
           ? TagChipComponentState.selected
           : TagChipComponentState.unselected,
       onTap: onTap,
+    );
+  }
+}
+
+class _AlbumsMoreButtonOverlay extends StatelessWidget {
+  const _AlbumsMoreButtonOverlay({required this.tooltip, required this.onTap});
+
+  final String tooltip;
+  final FutureOr<void> Function() onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final componentColors = context.componentColors;
+    final maskColor = componentColors.backgroundBase;
+
+    return Positioned.fill(
+      child: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            right: 0,
+            bottom: 0,
+            child: IgnorePointer(
+              child: SizedBox(
+                width: 72,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerRight,
+                      end: Alignment.centerLeft,
+                      colors: [
+                        maskColor,
+                        maskColor.withValues(alpha: 0.92),
+                        maskColor.withValues(alpha: 0.55),
+                        maskColor.withValues(alpha: 0.12),
+                        maskColor.withValues(alpha: 0),
+                      ],
+                      stops: const [0, 0.3, 0.55, 0.8, 1],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 4,
+            right: 0,
+            child: IconButtonComponent(
+              variant: IconButtonComponentVariant.primary,
+              shouldSurfaceExecutionStates: false,
+              tooltip: tooltip,
+              icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+              onTap: onTap,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

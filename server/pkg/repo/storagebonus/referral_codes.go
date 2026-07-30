@@ -4,11 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/ente-io/museum/ente"
+	"github.com/ente/museum/ente"
 	"net/http"
 
-	entity "github.com/ente-io/museum/ente/storagebonus"
-	"github.com/ente-io/stacktrace"
+	entity "github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/stacktrace"
 )
 
 const (

@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"github.com/ente-io/museum/ente"
+	"github.com/ente/museum/ente"
 )
 
 // Benchmark encryption operations

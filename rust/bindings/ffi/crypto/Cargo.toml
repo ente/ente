@@ -1,9 +1,0 @@
-[package]
-name = "ente_crypto_ffi"
-edition = "2024"
-
-[lib]
-crate-type = ["staticlib"]
-
-[dependencies]
-ente-core.workspace = true

@@ -13,10 +13,10 @@ import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/ml/face/box.dart";
 import "package:photos/models/ml/face/face.dart";
+import "package:photos/module/download/file.dart";
+import "package:photos/module/download/thumbnail.dart";
 import "package:photos/service_locator.dart" show isLocalGalleryMode;
 import "package:photos/services/machine_learning/face_thumbnail_generator.dart";
-import "package:photos/utils/file_util.dart";
-import "package:photos/utils/thumbnail_util.dart";
 
 final _logger = Logger("FaceCropUtils");
 

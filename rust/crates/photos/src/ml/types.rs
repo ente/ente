@@ -29,7 +29,7 @@ pub struct ClipResult {
     pub embedding: Vec<f32>,
 }
 
-pub fn to_face_id(file_id: i64, box_xyxy: [f32; 4]) -> String {
+pub(crate) fn to_face_id(file_id: i64, box_xyxy: [f32; 4]) -> String {
     fn to_face_segment(v: f32) -> String {
         let clamped = v.clamp(0.0, 0.999_999);
         let fixed = format!("{clamped:.5}");

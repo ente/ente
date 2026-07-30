@@ -1,9 +1,9 @@
 package access
 
 import (
-	"github.com/ente-io/museum/ente"
-	enteArray "github.com/ente-io/museum/pkg/utils/array"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	enteArray "github.com/ente/museum/pkg/utils/array"
+	"github.com/ente/stacktrace"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"

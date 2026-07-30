@@ -6,7 +6,7 @@ Pod::Spec.new do |s|
 Marks app-managed files and directories as excluded from iCloud and local
 device backups.
                        DESC
-  s.homepage         = 'https://github.com/ente-io/ente'
+  s.homepage         = 'https://github.com/ente/ente'
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Ente' => 'support@ente.com' }
   s.source           = { :path => '.' }

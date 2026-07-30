@@ -8,7 +8,7 @@ A Rust library that provides the `#[wasm_bindgen]` attribute macro. When you ann
 2. Handles type conversions between Rust and JS (e.g., `String` ↔ JS string, `i64` ↔ `BigInt`)
 3. Generates metadata that the wasm-bindgen CLI uses to create JS/TS glue code
 
-## [wasm-pack](https://github.com/drager/wasm-pack)
+## [wasm-pack](https://github.com/wasm-bindgen/wasm-pack)
 
 A CLI tool that orchestrates the WASM build process:
 

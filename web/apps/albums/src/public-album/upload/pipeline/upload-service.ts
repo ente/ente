@@ -1,18 +1,9 @@
 // TODO: Audit this file
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 
-import { extractExif } from "@/public-album/media/metadata/exif";
-import {
-    determineVideoDuration,
-    extractVideoMetadata,
-} from "@/public-album/media/processing/ffmpeg";
-import {
-    detectFileTypeInfoFromChunk,
-    isFileTypeNotSupportedError,
-} from "@/public-album/media/utils/detect-type";
 import type { BytesOrB64 } from "ente-base/crypto/types";
 import { streamEncryptionChunkSize } from "ente-base/crypto/types";
-import { type CryptoWorker } from "ente-base/crypto/worker";
+import type { CryptoWorker } from "ente-base/crypto/worker";
 import { nameAndExtension } from "ente-base/file-name";
 import {
     ensureOk,
@@ -22,6 +13,17 @@ import {
     type PublicAlbumsCredentials,
 } from "ente-base/http";
 import log from "ente-base/log";
+import { extractExif } from "ente-gallery/services/exif";
+import {
+    determineVideoDuration,
+    extractVideoMetadata,
+} from "ente-gallery/services/ffmpeg";
+import { tryParseEpochMicrosecondsFromFileName } from "ente-gallery/services/upload/date";
+import { computeMd5Base64 } from "ente-gallery/services/upload/md5";
+import {
+    detectFileTypeInfoFromChunk,
+    isFileTypeNotSupportedError,
+} from "ente-gallery/utils/detect-type";
 import { decryptRemoteFile, type EnteFile } from "ente-media/file";
 import {
     fileFileName,
@@ -47,8 +49,6 @@ import {
     type UploadPathPrefix,
     type UploadResult,
 } from ".";
-import { tryParseEpochMicrosecondsFromFileName } from "./date";
-import { computeMd5Base64 } from "./md5";
 import { matchJSONMetadata, type ParsedMetadataJSON } from "./metadata-json";
 import {
     completeMultipartUpload,

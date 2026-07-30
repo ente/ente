@@ -5,9 +5,9 @@
     "dependencies": {
         "@hugeicons/core-free-icons": "1.2.1",
         "@hugeicons/react": "1.1.6",
-        "@mui/material": "7.3.11",
-        "@mui/system": "7.3.11",
-        "@mui/x-date-pickers": "8.28.7",
+        "@mui/material": "9.2.0",
+        "@mui/system": "9.2.0",
+        "@mui/x-date-pickers": "9.8.0",
         "dayjs": "1.11.21",
         "ente-base": "*",
         "ente-gallery": "*",

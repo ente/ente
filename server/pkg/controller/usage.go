@@ -5,12 +5,12 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/ente-io/museum/ente"
-	bonus "github.com/ente-io/museum/ente/storagebonus"
-	"github.com/ente-io/museum/pkg/controller/storagebonus"
-	"github.com/ente-io/museum/pkg/controller/usercache"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	bonus "github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/museum/pkg/controller/storagebonus"
+	"github.com/ente/museum/pkg/controller/usercache"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/stacktrace"
 )
 
 // UsageController exposes functions which can be used to check around storage

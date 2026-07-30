@@ -1,11 +1,11 @@
-import {
-    fetchFileData,
-    fetchFilePreviewData,
-} from "@/public-album/data/api/public-file-data";
 import { decryptBlobBytes } from "ente-base/crypto";
 import type { EncryptedBlob } from "ente-base/crypto/types";
 import type { PublicAlbumsCredentials } from "ente-base/http";
 import log from "ente-base/log";
+import {
+    fetchFileData,
+    fetchFilePreviewData,
+} from "ente-gallery/services/file-data";
 import { fileLogID, type EnteFile } from "ente-media/file";
 import { FileType } from "ente-media/file-type";
 import { ensurePrecondition } from "ente-utils/ensure";

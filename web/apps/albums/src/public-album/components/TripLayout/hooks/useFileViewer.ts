@@ -1,4 +1,4 @@
-import { type EnteFile } from "ente-media/file";
+import type { EnteFile } from "ente-media/file";
 import { fileCreationPhotoSortTime } from "ente-media/file-metadata";
 import { useCallback, useState } from "react";
 import type { JourneyPoint } from "../types";

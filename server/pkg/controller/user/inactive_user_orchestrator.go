@@ -9,14 +9,13 @@ import (
 	"sync"
 	stdtime "time"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/controller/discord"
-	"github.com/ente-io/museum/pkg/controller/lock"
-	"github.com/ente-io/museum/pkg/repo"
-	emergencyRepo "github.com/ente-io/museum/pkg/repo/emergency"
-	emailUtil "github.com/ente-io/museum/pkg/utils/email"
-	"github.com/ente-io/museum/pkg/utils/rollout"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/controller/lock"
+	"github.com/ente/museum/pkg/repo"
+	emergencyRepo "github.com/ente/museum/pkg/repo/emergency"
+	emailUtil "github.com/ente/museum/pkg/utils/email"
+	"github.com/ente/museum/pkg/utils/time"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -62,9 +61,6 @@ const (
 	inactiveUserGap1mTo7d    = 23 * inactiveUserOneDayInMicroSeconds
 	inactiveUserGap7dTo1d    = 6 * inactiveUserOneDayInMicroSeconds
 	inactiveUserGap1dToFinal = inactiveUserOneDayInMicroSeconds
-
-	inactiveUserRolloutPercentage = 100
-	inactiveUserRolloutNonce      = "inactive-user-deletion-v1"
 )
 
 var inactiveUserDeletionTemplateIDs = []string{
@@ -102,22 +98,20 @@ type inactivityEmailStageConfig struct {
 }
 
 type inactiveUserRunStats struct {
-	ProcessedUsers       int
-	SentEmails           int
-	SuccessByStage       map[inactivityEmailStage]int
-	FailureByStage       map[inactivityEmailStage]int
-	PreStageFailures     int
-	SkippedRolloutDomain int
-	SkippedRolloutPct    int
+	ProcessedUsers      int
+	SentEmails          int
+	SuccessByStage      map[inactivityEmailStage]int
+	FailureByStage      map[inactivityEmailStage]int
+	PreStageFailures    int
+	PausedLegacyContact int
 }
 
 type inactiveCandidateResult struct {
-	UserID               int64
-	Stage                inactivityEmailStage
-	Sent                 bool
-	SkippedRolloutDomain bool
-	SkippedRolloutPct    bool
-	Err                  error
+	UserID              int64
+	Stage               inactivityEmailStage
+	Sent                bool
+	PausedLegacyContact bool
+	Err                 error
 }
 
 func newInactiveUserRunStats() inactiveUserRunStats {
@@ -142,26 +136,49 @@ func hasAnyStageSuccess(successByStage map[inactivityEmailStage]int) bool {
 	return false
 }
 
-func formatStageCounts(counts map[inactivityEmailStage]int) string {
+func hasInactiveUserRunSummaryActivity(stats inactiveUserRunStats) bool {
+	return hasAnyStageSuccess(stats.SuccessByStage) || stats.PausedLegacyContact > 0
+}
+
+func formatNonZeroStageCounts(counts map[inactivityEmailStage]int) string {
 	parts := make([]string, 0, len(inactivityEmailStageOrder))
 	for _, stage := range inactivityEmailStageOrder {
-		parts = append(parts, fmt.Sprintf("%s=%d", stage, counts[stage]))
+		if counts[stage] > 0 {
+			parts = append(parts, fmt.Sprintf("%s=%d", stage, counts[stage]))
+		}
 	}
-	return strings.Join(parts, ", ")
+	if len(parts) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("{%s}", strings.Join(parts, ", "))
 }
 
 func buildInactiveUserRunSummary(stats inactiveUserRunStats, runAt int64) string {
-	return fmt.Sprintf(
-		"Inactive user run summary (%s): processed=%d sent=%d | success={%s} | failures={%s} | pre_stage_failures=%d | skipped_rollout_domain=%d | skipped_rollout_percentage=%d",
-		stdtime.UnixMicro(runAt).UTC().Format(stdtime.RFC3339),
-		stats.ProcessedUsers,
-		stats.SentEmails,
-		formatStageCounts(stats.SuccessByStage),
-		formatStageCounts(stats.FailureByStage),
-		stats.PreStageFailures,
-		stats.SkippedRolloutDomain,
-		stats.SkippedRolloutPct,
-	)
+	parts := make([]string, 0, 6)
+	if stats.ProcessedUsers > 0 {
+		parts = append(parts, fmt.Sprintf("processed=%d", stats.ProcessedUsers))
+	}
+	if stats.SentEmails > 0 {
+		parts = append(parts, fmt.Sprintf("sent=%d", stats.SentEmails))
+	}
+	if success := formatNonZeroStageCounts(stats.SuccessByStage); success != "" {
+		parts = append(parts, fmt.Sprintf("success=%s", success))
+	}
+	if failures := formatNonZeroStageCounts(stats.FailureByStage); failures != "" {
+		parts = append(parts, fmt.Sprintf("failures=%s", failures))
+	}
+	if stats.PreStageFailures > 0 {
+		parts = append(parts, fmt.Sprintf("pre_stage_failures=%d", stats.PreStageFailures))
+	}
+	if stats.PausedLegacyContact > 0 {
+		parts = append(parts, fmt.Sprintf("paused_legacy_contact=%d", stats.PausedLegacyContact))
+	}
+
+	summary := fmt.Sprintf("Inactive user run summary (%s)", stdtime.UnixMicro(runAt).UTC().Format(stdtime.RFC3339))
+	if len(parts) == 0 {
+		return summary
+	}
+	return fmt.Sprintf("%s: %s", summary, strings.Join(parts, " | "))
 }
 
 // InactiveUserOrchestrator sends inactivity warning emails and final account
@@ -230,11 +247,8 @@ func (c *InactiveUserOrchestrator) ProcessInactiveUsers() {
 				log.WithError(result.Err).WithField("user_id", result.UserID).Error("Failed to process inactive user candidate")
 				continue
 			}
-			if result.SkippedRolloutDomain {
-				stats.SkippedRolloutDomain++
-			}
-			if result.SkippedRolloutPct {
-				stats.SkippedRolloutPct++
+			if result.PausedLegacyContact {
+				stats.PausedLegacyContact++
 			}
 			if result.Sent {
 				stats.SentEmails++
@@ -244,17 +258,17 @@ func (c *InactiveUserOrchestrator) ProcessInactiveUsers() {
 	}
 
 	log.WithFields(log.Fields{
-		"processed_users":            stats.ProcessedUsers,
-		"sent_emails":                stats.SentEmails,
-		"stage_success":              stats.SuccessByStage,
-		"stage_failures":             stats.FailureByStage,
-		"pre_stage_failures":         stats.PreStageFailures,
-		"skipped_rollout_domain":     stats.SkippedRolloutDomain,
-		"skipped_rollout_percentage": stats.SkippedRolloutPct,
-		"has_stage_movements":        hasAnyStageSuccess(stats.SuccessByStage),
+		"processed_users":       stats.ProcessedUsers,
+		"sent_emails":           stats.SentEmails,
+		"stage_success":         stats.SuccessByStage,
+		"stage_failures":        stats.FailureByStage,
+		"pre_stage_failures":    stats.PreStageFailures,
+		"paused_legacy_contact": stats.PausedLegacyContact,
+		"has_stage_movements":   hasAnyStageSuccess(stats.SuccessByStage),
+		"has_summary_activity":  hasInactiveUserRunSummaryActivity(stats),
 	}).Info("Completed inactive user processing")
 
-	if c.DiscordController != nil && hasAnyStageSuccess(stats.SuccessByStage) {
+	if c.DiscordController != nil && hasInactiveUserRunSummaryActivity(stats) {
 		c.DiscordController.NotifyAdminAction(buildInactiveUserRunSummary(stats, now))
 	}
 }
@@ -290,14 +304,13 @@ func (c *InactiveUserOrchestrator) processCandidateBatch(candidates []repo.UserI
 						}
 					}()
 
-					stage, sent, skippedRolloutDomain, skippedRolloutPct, err := c.processCandidate(candidate, now, emailSemaphore)
+					stage, sent, pausedLegacyContact, err := c.processCandidate(candidate, now, emailSemaphore)
 					resultCh <- inactiveCandidateResult{
-						UserID:               candidate.UserID,
-						Stage:                stage,
-						Sent:                 sent,
-						SkippedRolloutDomain: skippedRolloutDomain,
-						SkippedRolloutPct:    skippedRolloutPct,
-						Err:                  err,
+						UserID:              candidate.UserID,
+						Stage:               stage,
+						Sent:                sent,
+						PausedLegacyContact: pausedLegacyContact,
+						Err:                 err,
 					}
 				}(candidate)
 			}
@@ -319,109 +332,102 @@ func (c *InactiveUserOrchestrator) processCandidateBatch(candidates []repo.UserI
 	return results
 }
 
-func (c *InactiveUserOrchestrator) processCandidate(candidate repo.UserInactivityCandidate, now int64, emailSemaphore chan struct{}) (inactivityEmailStage, bool, bool, bool, error) {
+func (c *InactiveUserOrchestrator) processCandidate(candidate repo.UserInactivityCandidate, now int64, emailSemaphore chan struct{}) (inactivityEmailStage, bool, bool, error) {
 	stageHint, err := c.resolveNextStage(candidate.UserID, candidate.LastActivity, now)
 	if err != nil {
-		return inactivityEmailStageNone, false, false, false, err
+		return inactivityEmailStageNone, false, false, err
 	}
 	if stageHint == inactivityEmailStageNone {
-		return inactivityEmailStageNone, false, false, false, nil
+		return inactivityEmailStageNone, false, false, nil
 	}
 
 	user, err := c.UserRepo.Get(candidate.UserID)
 	if err != nil {
 		if errors.Is(err, ente.ErrUserDeleted) {
-			return inactivityEmailStageNone, false, false, false, nil
+			return inactivityEmailStageNone, false, false, nil
 		}
-		return stageHint, false, false, false, err
-	}
-
-	if !isInInactiveUserRollout(user.ID, user.Email) {
-		return inactivityEmailStageNone, false, false, true, nil
+		return stageHint, false, false, err
 	}
 
 	hasActivePaidEntitlement, err := c.hasActivePaidEntitlement(user.ID)
 	if err != nil {
-		return stageHint, false, false, false, err
+		return stageHint, false, false, err
 	}
 	if hasActivePaidEntitlement {
 		log.WithField("user_id", user.ID).Info("Skipping inactive user processing because user has active paid entitlement")
-		return inactivityEmailStageNone, false, false, false, nil
+		return inactivityEmailStageNone, false, false, nil
 	}
 
 	lastActivity, found, err := c.UserRepo.GetLatestActivity(user.ID)
 	if err != nil {
-		return stageHint, false, false, false, err
+		return stageHint, false, false, err
 	}
 	if !found {
 		// User is no longer active.
-		return inactivityEmailStageNone, false, false, false, nil
+		return inactivityEmailStageNone, false, false, nil
 	}
 
 	stage := stageHint
 	if lastActivity != candidate.LastActivity {
 		stage, err = c.resolveNextStage(user.ID, lastActivity, now)
 		if err != nil {
-			return stageHint, false, false, false, err
+			return stageHint, false, false, err
 		}
 	}
 	if stage == inactivityEmailStageNone {
-		return inactivityEmailStageNone, false, false, false, nil
+		return inactivityEmailStageNone, false, false, nil
 	}
 
 	config := inactivityStageConfig(stage)
 	if config.TemplateID == "" {
-		return inactivityEmailStageNone, false, false, false, nil
+		return inactivityEmailStageNone, false, false, nil
 	}
 
 	accountRecoveryLink := ""
 	if config.IsFinal {
 		if c.UserController == nil {
-			return stage, false, false, false, fmt.Errorf("inactive user deletion requires user controller")
+			return stage, false, false, fmt.Errorf("inactive user deletion requires user controller")
 		}
 		hasActivePaidEntitlement, err := c.hasActivePaidEntitlement(user.ID)
 		if err != nil {
-			return stage, false, false, false, err
+			return stage, false, false, err
 		}
 		if hasActivePaidEntitlement {
 			log.WithField("user_id", user.ID).Info("Skipping inactive user deletion because user has active paid entitlement")
-			return inactivityEmailStageNone, false, false, false, nil
+			return inactivityEmailStageNone, false, false, nil
 		}
 
 		// Re-check right before deletion to avoid deleting users who became active
 		// after earlier reads in long processing runs.
 		latestActivity, latestFound, err := c.UserRepo.GetLatestActivity(user.ID)
 		if err != nil {
-			return stage, false, false, false, err
+			return stage, false, false, err
 		}
 		if !latestFound {
-			return inactivityEmailStageNone, false, false, false, nil
+			return inactivityEmailStageNone, false, false, nil
 		}
 		latestStage, err := c.resolveNextStage(user.ID, latestActivity, now)
 		if err != nil {
-			return stage, false, false, false, err
+			return stage, false, false, err
 		}
 		if latestStage != inactivityEmailStageFinal {
 			log.WithField("user_id", user.ID).Info("Skipping inactive user deletion because user is no longer in final stage")
-			return inactivityEmailStageNone, false, false, false, nil
+			return inactivityEmailStageNone, false, false, nil
 		}
 		if c.EmergencyContactRepo != nil {
 			hasActiveLegacyContact, err := c.EmergencyContactRepo.HasActiveLegacyContact(context.Background(), user.ID)
 			if err != nil {
-				return stage, false, false, false, err
+				return stage, false, false, err
 			}
 			if hasActiveLegacyContact {
-				c.DiscordController.NotifyAdminAction(
-					fmt.Sprintf("Inactive user %d (%s) deletion paused at %s due to active legacy contact",
-						user.ID, user.Email, stdtime.UnixMicro(now).UTC().Format(stdtime.RFC3339)))
 				log.WithField("user_id", user.ID).Info("Skipping inactive user deletion because user has active legacy contact configured")
-				return inactivityEmailStageNone, false, false, false, nil
+				return inactivityEmailStageNone, false, true, nil
 			}
 		}
 
 		accountRecoveryLink, err = c.UserController.getAccountRecoveryLink(user.ID, user.Email)
 		if err != nil {
-			return stage, false, false, false, err
+			return stage, false, false, err
 		}
 
 		deleteLogger := log.WithFields(log.Fields{
@@ -429,7 +435,7 @@ func (c *InactiveUserOrchestrator) processCandidate(candidate repo.UserInactivit
 			"req_ctx": "inactive_account_deletion",
 		})
 		if _, err := c.UserController.HandleAutomatedAccountDeletion(context.Background(), user.ID, deleteLogger); err != nil {
-			return stage, false, false, false, err
+			return stage, false, false, err
 		}
 	}
 
@@ -457,11 +463,11 @@ func (c *InactiveUserOrchestrator) processCandidate(candidate repo.UserInactivit
 		templateData,
 		nil,
 	); err != nil {
-		return stage, false, false, false, err
+		return stage, false, false, err
 	}
 
 	if err := c.NotificationHistoryRepo.SetLastNotificationTimeToNow(user.ID, config.TemplateID); err != nil {
-		return stage, false, false, false, err
+		return stage, false, false, err
 	}
 
 	log.WithFields(log.Fields{
@@ -471,7 +477,7 @@ func (c *InactiveUserOrchestrator) processCandidate(candidate repo.UserInactivit
 		"deletion_date": deletionDate,
 	}).Info("Sent inactive user email")
 
-	return stage, true, false, false, nil
+	return stage, true, false, nil
 }
 
 func (c *InactiveUserOrchestrator) hasActivePaidEntitlement(userID int64) (bool, error) {
@@ -574,17 +580,6 @@ func inactivityStageConfig(stage inactivityEmailStage) inactivityEmailStageConfi
 	default:
 		return inactivityEmailStageConfig{}
 	}
-}
-
-func isEnteDomainRolloutUser(email string) bool {
-	return strings.HasSuffix(emailUtil.NormalizeEmail(email), "@ente.io")
-}
-
-func isInInactiveUserRollout(userID int64, email string) bool {
-	if isEnteDomainRolloutUser(email) {
-		return true
-	}
-	return rollout.IsInPercentageRollout(userID, inactiveUserRolloutNonce, inactiveUserRolloutPercentage)
 }
 
 func formatDeletionDateForStage(stage inactivityEmailStage, now int64) string {

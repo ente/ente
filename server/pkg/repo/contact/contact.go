@@ -8,10 +8,10 @@ import (
 	"slices"
 	"time"
 
-	"github.com/ente-io/museum/ente"
-	contactmodel "github.com/ente-io/museum/ente/contact"
-	"github.com/ente-io/museum/pkg/utils/crypto"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	contactmodel "github.com/ente/museum/ente/contact"
+	"github.com/ente/museum/pkg/utils/crypto"
+	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
 )
 
@@ -177,6 +177,30 @@ func (r *Repository) Get(ctx context.Context, userID int64, id string) (*contact
 		return nil, stacktrace.Propagate(err, "failed to get contact")
 	}
 	return entity, nil
+}
+
+type ContactUpdateState struct {
+	ContactUserID int64
+	IsDeleted     bool
+}
+
+func (r *Repository) GetContactUpdateState(ctx context.Context, userID int64, id string) (ContactUpdateState, error) {
+	var state ContactUpdateState
+	err := r.DB.QueryRowContext(
+		ctx,
+		`SELECT contact_user_id, is_deleted
+		   FROM contact_entity
+		  WHERE id = $1 AND user_id = $2`,
+		id,
+		userID,
+	).Scan(&state.ContactUserID, &state.IsDeleted)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ContactUpdateState{}, &ente.ErrNotFoundError
+		}
+		return ContactUpdateState{}, stacktrace.Propagate(err, "failed to get contact update state")
+	}
+	return state, nil
 }
 
 func (r *Repository) Update(ctx context.Context, userID int64, id string, req contactmodel.UpdateRequest) error {

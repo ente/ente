@@ -341,17 +341,21 @@ class _RecoverOthersAccountState extends State<RecoverOthersAccount> {
         widget.sessions,
       );
       await dialog.hide();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.strings.passwordChangedSuccessfully),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.of(context).pop();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.strings.passwordChangedSuccessfully),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pop();
+      }
     } catch (e, s) {
       _logger.severe("Failed to recover account", e, s);
       await dialog.hide();
-      await showGenericErrorDialog(context: context, error: e);
+      if (mounted) {
+        await showGenericErrorDialog(context: context, error: e);
+      }
     }
   }
 

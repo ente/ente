@@ -17,13 +17,16 @@ import "package:photos/ui/rituals/ritual_emoji_icon.dart";
 import "package:photos/ui/rituals/ritual_page.dart";
 import "package:photos/ui/rituals/ritual_privacy.dart";
 import "package:photos/ui/rituals/start_new_ritual_card.dart";
+import "package:photos/ui/viewer/search_tab/search_tab_horizontal_scroll.dart";
 
 class RitualsBanner extends StatelessWidget {
-  const RitualsBanner({super.key});
+  const RitualsBanner({super.key, required this.resultLimit});
 
   static const _cardRadius = 25.0;
-  static const _cardHeight = 100.0;
-  static const _cardWidth = 180.0;
+  static const _minCardHeight = 94.0;
+  static const _cardWidth = 167.5;
+
+  final int resultLimit;
 
   @override
   Widget build(BuildContext context) {
@@ -39,16 +42,23 @@ class RitualsBanner extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _RitualsHeader(
-              showChevron: rituals.isNotEmpty,
-              onTap: rituals.isNotEmpty
-                  ? () => routeToPage(context, const AllRitualsScreen())
-                  : null,
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: searchTabSectionHorizontalPadding,
+              ),
+              child: _RitualsHeader(
+                showChevron: rituals.isNotEmpty,
+                onTap: rituals.isNotEmpty
+                    ? () => routeToPage(context, const AllRitualsScreen())
+                    : null,
+              ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             if (rituals.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: searchTabSectionHorizontalPadding,
+                ),
                 child: StartNewRitualCard(
                   variant: StartNewRitualCardVariant.wide,
                   onTap: () async {
@@ -57,25 +67,29 @@ class RitualsBanner extends StatelessWidget {
                 ),
               )
             else
-              SizedBox(
-                height: _cardHeight,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  physics: const BouncingScrollPhysics(),
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (final (index, item) in _buildRowItems(
-                        context,
-                        rituals,
-                        summary,
-                      ).indexed) ...[
-                        if (index != 0) const SizedBox(width: 10),
-                        item,
+              Builder(
+                builder: (context) {
+                  final cardHeight = _cardHeightFor(context);
+                  final visibleRituals = rituals
+                      .take(resultLimit)
+                      .toList(growable: false);
+                  return SearchTabHorizontalScrollView(
+                    height: cardHeight,
+                    child: Row(
+                      children: [
+                        for (final (index, item) in _buildRowItems(
+                          context,
+                          visibleRituals,
+                          summary,
+                          cardHeight,
+                        ).indexed) ...[
+                          if (index != 0) const SizedBox(width: 10),
+                          item,
+                        ],
                       ],
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               ),
           ],
         );
@@ -115,19 +129,46 @@ class RitualsBanner extends StatelessWidget {
     BuildContext context,
     List<Ritual> rituals,
     RitualsSummary? summary,
+    double cardHeight,
   ) {
     return [
       for (final ritual in rituals)
         _RitualSummaryCard(
           ritual: ritual,
           progress: summary?.ritualProgress[ritual.id],
+          height: cardHeight,
         ),
       if (rituals.isNotEmpty)
         StartNewRitualCard(
           variant: StartNewRitualCardVariant.compact,
           onTap: () => _openNewRitualFlow(context),
+          compactHeight: cardHeight,
         ),
     ];
+  }
+
+  static double _cardHeightFor(BuildContext context) {
+    return math.max(
+      _summaryCardHeightFor(context),
+      StartNewRitualCard.compactHeightFor(context),
+    );
+  }
+
+  static double _summaryCardHeightFor(BuildContext context) {
+    const verticalPadding = 32.0;
+    const rowGap = 4.0;
+    final titleRowHeight = math.max(
+      28.0,
+      _singleLineTextHeight(context, _ritualSummaryTitleStyle(Colors.black)),
+    );
+    final actionRowHeight = math.max(
+      28.0,
+      _singleLineTextHeight(context, _streakTextStyle),
+    );
+    return math.max(
+      _minCardHeight,
+      verticalPadding + titleRowHeight + rowGap + actionRowHeight,
+    );
   }
 }
 
@@ -139,61 +180,58 @@ class _RitualsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = getEnteTextTheme(context);
     final colorScheme = getEnteColorScheme(context);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(
+      child: SizedBox(
+        height: 38,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
               context.l10n.ritualsTitle,
-              style: TextStyles.h2.copyWith(color: textTheme.largeBold.color),
+              style: TextStyles.display3.copyWith(color: colorScheme.textBase),
             ),
-          ),
-          if (showChevron)
-            Container(
-              color: Colors.transparent,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 12, 12, 12),
+            if (showChevron)
+              Container(
+                color: Colors.transparent,
+                width: 38,
+                height: 38,
                 child: Icon(
                   Icons.chevron_right_outlined,
                   color: colorScheme.blurStrokePressed,
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
 class _RitualSummaryCard extends StatelessWidget {
-  const _RitualSummaryCard({required this.ritual, required this.progress});
+  const _RitualSummaryCard({
+    required this.ritual,
+    required this.progress,
+    required this.height,
+  });
 
   final Ritual ritual;
   final RitualProgress? progress;
+  final double height;
 
   static const _cardRadius = RitualsBanner._cardRadius;
-  static const _cardHeight = RitualsBanner._cardHeight;
   static const _cardWidth = RitualsBanner._cardWidth;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = Theme.of(context).brightness == Brightness.dark
-        ? colorScheme.backgroundElevated2
-        : const Color(0xFFFAFAFA);
     final streak = progress?.currentStreak ?? 0;
 
     return SizedBox(
       width: _cardWidth,
-      height: _cardHeight,
+      height: height,
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(_cardRadius),
@@ -206,7 +244,7 @@ class _RitualSummaryCard extends StatelessWidget {
           },
           child: Container(
             decoration: BoxDecoration(
-              color: backgroundColor,
+              color: colorScheme.fill,
               borderRadius: BorderRadius.circular(_cardRadius),
             ),
             padding: const EdgeInsets.all(16),
@@ -217,7 +255,7 @@ class _RitualSummaryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     _RitualIcon(ritual: ritual),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         ritual.title.isEmpty
@@ -225,16 +263,16 @@ class _RitualSummaryCard extends StatelessWidget {
                             : ritual.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: textTheme.miniBold,
+                        style: _ritualSummaryTitleStyle(colorScheme.textBase),
                         textHeightBehavior: _tightTextHeightBehavior,
                       ),
                     ),
                   ],
                 ),
-                const Spacer(),
+                const SizedBox(height: 4),
                 Row(
                   children: [
-                    _StreakIndicator(streak: streak, isDark: isDark),
+                    _StreakIndicator(streak: streak),
                     const Spacer(),
                     _RitualCameraButton(
                       onTap: () => openRitualCamera(context, ritual),
@@ -258,19 +296,14 @@ class _RitualIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
-    return Container(
+    return SizedBox(
       width: 28,
       height: 28,
-      decoration: BoxDecoration(
-        color: colorScheme.backgroundElevated,
-        borderRadius: BorderRadius.circular(10),
-      ),
       child: Center(
         child: RitualEmojiIcon(
           ritual.icon,
-          style: textTheme.bodyBold.copyWith(height: 1),
+          style: textTheme.body.copyWith(fontSize: 18, height: 1),
           textHeightBehavior: _tightTextHeightBehavior,
         ),
       ),
@@ -279,17 +312,16 @@ class _RitualIcon extends StatelessWidget {
 }
 
 class _StreakIndicator extends StatelessWidget {
-  const _StreakIndicator({required this.streak, required this.isDark});
+  const _StreakIndicator({required this.streak});
 
   final int streak;
-  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        _StreakNumber(streak: streak, isDark: isDark),
+        _StreakNumber(streak: streak),
         const SizedBox(width: 4),
         const _LightningIcon(),
       ],
@@ -298,66 +330,31 @@ class _StreakIndicator extends StatelessWidget {
 }
 
 class _StreakNumber extends StatelessWidget {
-  const _StreakNumber({required this.streak, required this.isDark});
+  const _StreakNumber({required this.streak});
 
   final int streak;
-  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final text = streak.toString();
-    const style = TextStyle(
-      fontFamily: "Nunito",
-      fontSize: 24,
-      fontWeight: FontWeight.w900,
-      letterSpacing: -0.96,
-      height: 1,
-    );
 
-    if (isDark) {
-      return Text(
-        text,
-        style: style.copyWith(color: colorScheme.textBase),
-        textHeightBehavior: _tightTextHeightBehavior,
-      );
-    }
-
-    final gradient = _linearGradientFromCssAngle(
-      degrees: 178,
-      colors: const [Color(0xFF545454), Color(0xFF000000)],
-      stops: const [0.1192, 0.8251],
-    );
-
-    return Stack(
-      alignment: Alignment.centerLeft,
-      children: [
-        ExcludeSemantics(
-          child: Text(
-            text,
-            style: style.copyWith(
-              color: Colors.transparent,
-              shadows: [
-                Shadow(
-                  offset: const Offset(0, 5),
-                  blurRadius: 3.3,
-                  color: Colors.black.withValues(alpha: 0.07),
-                ),
-              ],
-            ),
-            textHeightBehavior: _tightTextHeightBehavior,
-          ),
-        ),
-        _GradientText(
-          text,
-          gradient: gradient,
-          style: style,
-          textHeightBehavior: _tightTextHeightBehavior,
-        ),
-      ],
+    return Text(
+      text,
+      style: _streakTextStyle.copyWith(color: colorScheme.textBase),
+      textHeightBehavior: _tightTextHeightBehavior,
     );
   }
 }
+
+const _streakTextStyle = TextStyle(
+  fontFamily: TextStyles.outfitFontFamily,
+  package: TextStyles.fontPackage,
+  fontSize: 24,
+  fontWeight: FontWeight.w900,
+  letterSpacing: -0.96,
+  height: 1,
+);
 
 class _LightningIcon extends StatelessWidget {
   const _LightningIcon();
@@ -386,24 +383,18 @@ class _RitualCameraButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark
-        ? colorScheme.strokeFaint
-        : Colors.black.withValues(alpha: 0.04);
+    final borderRadius = BorderRadius.circular(12);
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: colorScheme.backgroundElevated,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: borderColor),
-        ),
+        color: Colors.transparent,
+        borderRadius: borderRadius,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: borderRadius,
           child: SizedBox(
-            width: 32,
-            height: 32,
+            width: 28,
+            height: 28,
             child: Center(
               child: HugeIcon(
                 icon: HugeIcons.strokeRoundedCamera01,
@@ -423,45 +414,16 @@ const _tightTextHeightBehavior = TextHeightBehavior(
   applyHeightToLastDescent: false,
 );
 
-class _GradientText extends StatelessWidget {
-  const _GradientText(
-    this.text, {
-    required this.gradient,
-    required this.style,
-    this.textHeightBehavior,
-  });
-
-  final String text;
-  final Gradient gradient;
-  final TextStyle style;
-  final TextHeightBehavior? textHeightBehavior;
-
-  @override
-  Widget build(BuildContext context) {
-    return ShaderMask(
-      blendMode: BlendMode.srcIn,
-      shaderCallback: (bounds) => gradient.createShader(bounds),
-      child: Text(
-        text,
-        style: style.copyWith(color: Colors.white),
-        textHeightBehavior: textHeightBehavior,
-      ),
-    );
-  }
+TextStyle _ritualSummaryTitleStyle(Color color) {
+  return TextStyles.bodyBold.copyWith(color: color);
 }
 
-LinearGradient _linearGradientFromCssAngle({
-  required double degrees,
-  required List<Color> colors,
-  List<double>? stops,
-}) {
-  final radians = degrees * math.pi / 180;
-  final dx = math.sin(radians);
-  final dy = -math.cos(radians);
-  return LinearGradient(
-    begin: Alignment(-dx, -dy),
-    end: Alignment(dx, dy),
-    colors: colors,
-    stops: stops,
-  );
+double _singleLineTextHeight(BuildContext context, TextStyle style) {
+  final textPainter = TextPainter(
+    text: TextSpan(text: "Ag", style: style),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    textHeightBehavior: _tightTextHeightBehavior,
+  )..layout();
+  return textPainter.height;
 }

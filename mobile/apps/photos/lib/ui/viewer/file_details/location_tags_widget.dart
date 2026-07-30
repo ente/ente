@@ -1,6 +1,7 @@
 import "dart:async";
 import "dart:ui";
 
+import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:flutter_animate/flutter_animate.dart";
@@ -15,8 +16,7 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/states/location_screen_state.dart";
 import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/components/buttons/chip_button_widget.dart";
-import "package:photos/ui/components/info_item_widget.dart";
+import "package:photos/ui/common/loading_widget.dart";
 import "package:photos/ui/map/image_marker.dart";
 import "package:photos/ui/map/map_screen.dart";
 import "package:photos/ui/map/map_view.dart";
@@ -38,7 +38,6 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
   String? title;
   late Future<List<Widget>> locationTagChips;
   late StreamSubscription<LocationTagUpdatedEvent> _locTagUpdateListener;
-  VoidCallback? onTap;
   bool _loadedLocationTags = false;
 
   @override
@@ -64,42 +63,43 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 500),
-      switchInCurve: Curves.easeInOutExpo,
-      switchOutCurve: Curves.easeInOutExpo,
-      child: InfoItemWidget(
-        key: ValueKey(title),
-        leadingIconWidget: const HugeIcon(
-          icon: HugeIcons.strokeRoundedLocation01,
+    final colors = context.componentColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title ?? AppLocalizations.of(context).location,
+          style: TextStyles.h2,
         ),
-        title: title,
-        subtitleSection: locationTagChips,
-        onTap: onTap,
-        endSection: _loadedLocationTags
-            ? InfoMap(widget.file)
-            : const SizedBox.shrink(),
-
-        /// to be used when state issues are fixed when location is updated
-        // editOnTap: widget.file.ownerID == Configuration.instance.getUserID()!
-        //     ? () {
-        //         showBarModalBottomSheet(
-        //           shape: const RoundedRectangleBorder(
-        //             borderRadius: BorderRadius.vertical(
-        //               top: Radius.circular(5),
-        //             ),
-        //           ),
-        //           backgroundColor:
-        //               getEnteColorScheme(context).backgroundElevated,
-        //           barrierColor: backdropFaintDark,
-        //           context: context,
-        //           builder: (context) {
-        //             return UpdateLocationDataWidget([widget.file]);
-        //           },
-        //         );
-        //       }
-        //     : null,
-      ),
+        const SizedBox(height: Spacing.lg),
+        FutureBuilder<List<Widget>>(
+          future: locationTagChips,
+          builder: (context, snapshot) {
+            final Widget child;
+            if (snapshot.hasData) {
+              child = Wrap(
+                spacing: Spacing.sm,
+                runSpacing: Spacing.sm,
+                children: snapshot.data!,
+              );
+            } else {
+              child = EnteLoadingWidget(
+                padding: 3,
+                size: 11,
+                color: colors.strokeFaint,
+                alignment: Alignment.centerLeft,
+              );
+            }
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              switchInCurve: Curves.easeInOutExpo,
+              child: child,
+            );
+          },
+        ),
+        if (_loadedLocationTags) InfoMap(widget.file),
+      ],
     );
   }
 
@@ -112,27 +112,27 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
       if (mounted) {
         setState(() {
           title = AppLocalizations.of(context).location;
-          onTap = null;
         });
       }
+      if (!mounted) return const [];
       return [
-        ChipButtonWidget(
-          AppLocalizations.of(context).addLocation,
-          onTap: () => showAddLocationSheet(context, widget.file.location!),
+        FilterChipComponent(
+          label: AppLocalizations.of(context).addLocation,
+          onChanged: (_) =>
+              showAddLocationSheet(context, widget.file.location!),
         ),
       ];
     } else {
       if (mounted) {
         setState(() {
           title = AppLocalizations.of(context).location;
-          onTap = null;
         });
       }
       final result = locationTags
-          .map(
-            (locationTagEntity) => ChipButtonWidget(
-              locationTagEntity.item.name,
-              onTap: () {
+          .map<Widget>(
+            (locationTagEntity) => FilterChipComponent(
+              label: locationTagEntity.item.name,
+              onChanged: (_) {
                 routeToPage(
                   context,
                   LocationScreenStateProvider(
@@ -145,10 +145,13 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
           )
           .toList();
       result.add(
-        ChipButtonWidget(
-          null,
-          leadingIcon: Icons.add,
-          iconSize: 15,
+        IconButtonComponent(
+          icon: const HugeIcon(
+            icon: HugeIcons.strokeRoundedPlusSign,
+            size: IconSizes.small,
+          ),
+          variant: IconButtonComponentVariant.circular,
+          shouldSurfaceExecutionStates: false,
           onTap: () => showAddLocationSheet(context, widget.file.location!),
         ),
       );
@@ -200,7 +203,7 @@ class _InfoMapState extends State<InfoMap> {
           padding: const EdgeInsets.only(top: 8),
           child: ClipRRect(
             clipBehavior: Clip.antiAliasWithSaveLayer,
-            borderRadius: const BorderRadius.all(Radius.circular(8)),
+            borderRadius: const BorderRadius.all(Radius.circular(Radii.button)),
             child: SizedBox(
               height: 124,
               child: _hasEnabledMap
@@ -236,7 +239,7 @@ class _InfoMapState extends State<InfoMap> {
                         IgnorePointer(
                           child: Container(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(Radii.button),
                               border: Border.all(
                                 color: getEnteColorScheme(context).strokeFaint,
                               ),
@@ -282,7 +285,9 @@ class _InfoMapState extends State<InfoMap> {
                                   ),
                                   Container(
                                     decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(
+                                        Radii.button,
+                                      ),
                                       border: Border.all(
                                         color: getEnteColorScheme(
                                           context,
@@ -295,10 +300,12 @@ class _InfoMapState extends State<InfoMap> {
                                     onTap: () async {
                                       try {
                                         await setMapEnabled(true);
+                                        if (!mounted) return;
                                         setState(() {
                                           _hasEnabledMap = true;
                                         });
                                       } catch (e) {
+                                        if (!context.mounted) return;
                                         showShortToast(
                                           context,
                                           AppLocalizations.of(

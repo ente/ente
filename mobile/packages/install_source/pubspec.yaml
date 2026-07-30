@@ -1,0 +1,23 @@
+name: ente_install_source
+description: Android install-source attribution for Ente apps
+
+resolution: workspace
+environment:
+  sdk: ">=3.10.0 <4.0.0"
+  flutter: ">=1.17.0"
+
+dependencies:
+  dio: 5.9.2
+  flutter:
+    sdk: flutter
+  logging: 1.3.0
+
+dev_dependencies:
+  flutter_lints: 6.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: io.ente.install_source
+        pluginClass: EnteInstallSourcePlugin

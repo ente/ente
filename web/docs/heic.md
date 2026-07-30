@@ -60,4 +60,4 @@ FFmpeg support would be nice since we already bundle it both in the desktop app 
 
 Every other HEIC converter, binary or library (e.g. ImageMagick, GraphicsMagick, libvips, sharp and wasm-vips), I've seen eventually the uses the combination of libheif (for the HEIF container) + libde265 (for the HEVC decoding), with an option to swap libde265 with libx265 or kvazaar.
 
-Currently our web app uses [heic-convert](https://github.com/catdad-experiments/heic-convert), which provides packaged Wasm builds of libheif + libde265, and the desktop app uses a [custom build](https://github.com/ente-io/libvips-packaging) of `vips` on Linux and Windows, and Apple's `sips` on macOS.
+Currently our web app uses [heic-convert](https://github.com/catdad-experiments/heic-convert), which provides packaged Wasm builds of libheif + libde265, and the desktop app uses a [custom build](https://github.com/ente/libvips-packaging) of `vips` on Linux and Windows, and Apple's `sips` on macOS.

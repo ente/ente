@@ -15,7 +15,7 @@ const Page: React.FC = () => {
     // "404.html" (the static file generated from this file).
     //
     // One way around is to patch the package, e.g.
-    // https://github.com/ente-io/next-electron-server/pull/1/files
+    // https://github.com/ente/next-electron-server/pull/1/files
     //
     // However, redirecting back to the root is arguably a better fallback in
     // all cases (even when running on our website), since our app is a SPA.

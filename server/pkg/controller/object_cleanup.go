@@ -6,14 +6,16 @@ import (
 	"strings"
 	stime "time"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/ente/museum/pkg/external/wasabi"
+	"github.com/ente/stacktrace"
 	"github.com/spf13/viper"
 
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/s3config"
-	"github.com/ente-io/museum/pkg/utils/time"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/s3config"
+	"github.com/ente/museum/pkg/utils/time"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -262,6 +264,28 @@ func (c *ObjectCleanupController) DeleteObjectFromDataCenter(objectKey string, d
 	})
 	if err != nil {
 		return stacktrace.Propagate(err, "")
+	}
+	return nil
+}
+
+func (c *ObjectCleanupController) disableConditionalHoldIfPresent(dc string, objectKey string) error {
+	s3Client := c.S3Config.GetS3Client(dc)
+	bucket := c.S3Config.GetBucket(dc)
+	_, err := wasabi.PutObjectCompliance(&s3Client, &wasabi.PutObjectComplianceInput{
+		Bucket: bucket,
+		Key:    aws.String(objectKey),
+		ObjectComplianceConfiguration: &wasabi.ObjectComplianceConfiguration{
+			ConditionalHold: aws.Bool(false),
+		},
+	})
+	if err != nil {
+		// Missing objects do not need compliance-hold cleanup. Outdated objects may not
+		// have reached Wasabi, or may already be gone there, while still needing cleanup
+		// from the other active data centers.
+		if strings.Contains(err.Error(), "NoSuchKey") || strings.Contains(err.Error(), "NotFound") {
+			return nil
+		}
+		return stacktrace.Propagate(err, "Failed to update ObjectCompliance for %s/%s", *bucket, objectKey)
 	}
 	return nil
 }

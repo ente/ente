@@ -36,14 +36,14 @@ If you are looking to self-host Ente, we recommend you to read the [official doc
 
 There are many ways to support Ente and you don't have to be a programmer for that. You can spread the word, give feedback, report bugs, help us with translations, contribute documentation and community guides and more.
 
-To suggest new features and/or offer your perspective on how we should design (planned and upcoming features), use our [GitHub discussions](https://github.com/ente-io/ente/discussions)
+To suggest new features and/or offer your perspective on how we should design (planned and upcoming features), use our [GitHub discussions](https://github.com/ente/ente/discussions)
 
-You can find our contribution guidelines [here](https://github.com/ente-io/ente/blob/main/CONTRIBUTING.md).
+You can find our contribution guidelines [here](https://github.com/ente/ente/blob/main/CONTRIBUTING.md).
 
 You can always engage with our community and team to hang out, answer queries and stay updated:
 
 - Chat: [Discord](https://ente.com/discord)
-- Discussions: [GitHub](https://github.com/ente-io/ente/discussions)
+- Discussions: [GitHub](https://github.com/ente/ente/discussions)
 - Socials:
     - Twitter: [enteio](https://twitter.com/enteio)
     - Mastodon: [@ente@fosstodon.org](https://fosstodon.org/@ente)

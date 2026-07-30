@@ -1,0 +1,71 @@
+group 'io.ente.install_source'
+version '1.0'
+
+buildscript {
+    ext.kotlin_version = '2.1.10'
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.10.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+rootProject.allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+android {
+    namespace 'io.ente.install_source'
+    compileSdk 36
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+        playstore.java.srcDirs += 'src/playstore/kotlin'
+        fdroid.java.srcDirs += 'src/noReferrer/kotlin'
+        independent.java.srcDirs += 'src/noReferrer/kotlin'
+        dev.java.srcDirs += 'src/noReferrer/kotlin'
+    }
+
+    flavorDimensions "default"
+    productFlavors {
+        independent {
+            dimension "default"
+        }
+        dev {
+            dimension "default"
+        }
+        playstore {
+            dimension "default"
+        }
+        fdroid {
+            dimension "default"
+        }
+    }
+
+    defaultConfig {
+        minSdkVersion 21
+    }
+}
+
+dependencies {
+    playstoreImplementation 'com.android.installreferrer:installreferrer:2.2'
+}

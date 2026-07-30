@@ -232,6 +232,7 @@ class _DeduplicatePageState extends State<DeduplicatePage> {
                             await deleteDuplicates(totalSize);
                           } catch (e) {
                             log("Failed to delete duplicates", error: e);
+                            if (!mounted) return;
                             showGenericErrorDialog(
                               context: context,
                               error: e,
@@ -301,8 +302,10 @@ class _DeduplicatePageState extends State<DeduplicatePage> {
     }
     _deleteProgress.value = "";
     if (filesToDelele.isNotEmpty) {
+      if (!mounted) return;
       await deleteFilesFromRemoteOnly(context, filesToDelele);
       Bus.instance.fire(UserDetailsChangedEvent());
+      if (!mounted) return;
       Navigator.of(
         context,
       ).pop(DeduplicationResult(filesToDelele.length, totalSize));

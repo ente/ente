@@ -3,6 +3,18 @@ import 'dart:typed_data';
 
 import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_crypto_dart/ente_crypto_dart.dart' as dart_impl;
+import 'package:meta/meta.dart';
+
+@visibleForTesting
+Future<T> translateDartCryptoErrors<T>(Future<T> Function() operation) async {
+  try {
+    return await operation();
+  } on dart_impl.KeyDerivationError {
+    throw KeyDerivationError();
+  } on dart_impl.LoginKeyDerivationError {
+    throw LoginKeyDerivationError();
+  }
+}
 
 class EnteCryptoDartAdapter implements CryptoApi {
   const EnteCryptoDartAdapter();
@@ -122,9 +134,8 @@ class EnteCryptoDartAdapter implements CryptoApi {
     Uint8List password,
     Uint8List salt,
   ) async {
-    final result = await dart_impl.CryptoUtil.deriveSensitiveKey(
-      password,
-      salt,
+    final result = await translateDartCryptoErrors(
+      () => dart_impl.CryptoUtil.deriveSensitiveKey(password, salt),
     );
     return DerivedKeyResult(result.key, result.memLimit, result.opsLimit);
   }
@@ -134,9 +145,8 @@ class EnteCryptoDartAdapter implements CryptoApi {
     Uint8List password,
     Uint8List salt,
   ) async {
-    final result = await dart_impl.CryptoUtil.deriveInteractiveKey(
-      password,
-      salt,
+    final result = await translateDartCryptoErrors(
+      () => dart_impl.CryptoUtil.deriveInteractiveKey(password, salt),
     );
     return DerivedKeyResult(result.key, result.memLimit, result.opsLimit);
   }
@@ -147,11 +157,13 @@ class EnteCryptoDartAdapter implements CryptoApi {
     Uint8List salt,
     int memLimit,
     int opsLimit,
-  ) => dart_impl.CryptoUtil.deriveKey(password, salt, memLimit, opsLimit);
+  ) => translateDartCryptoErrors(
+    () => dart_impl.CryptoUtil.deriveKey(password, salt, memLimit, opsLimit),
+  );
 
   @override
   Future<Uint8List> deriveLoginKey(Uint8List key) =>
-      dart_impl.CryptoUtil.deriveLoginKey(key);
+      translateDartCryptoErrors(() => dart_impl.CryptoUtil.deriveLoginKey(key));
 
   @override
   Uint8List getSaltToDeriveKey() => dart_impl.CryptoUtil.getSaltToDeriveKey();

@@ -1,32 +1,47 @@
+import 'package:ente_components/ente_components.dart';
 import 'package:flutter/material.dart';
 import 'package:photos/theme/ente_theme.dart';
-import 'package:photos/ui/components/base_bottom_sheet.dart';
-import 'package:photos/ui/components/buttons/button_widget_v2.dart';
-import 'package:photos/ui/notification/toast.dart';
-
-Color familyPageBackgroundColor(BuildContext context) {
-  return getEnteColorScheme(context).backgroundColour;
-}
 
 class FamilyPageScaffold extends StatelessWidget {
   const FamilyPageScaffold({
     required this.child,
     this.title,
+    this.actions = const [],
+    this.scrollable = false,
     this.padding = const EdgeInsets.fromLTRB(16, 12, 16, 16),
     super.key,
   });
 
   final Widget child;
   final String? title;
+  final List<Widget> actions;
+  final bool scrollable;
   final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
+    final backgroundColor = context.componentColors.backgroundBase;
+    if (scrollable) {
+      assert(title != null);
+      return Scaffold(
+        backgroundColor: backgroundColor,
+        body: AppBarComponent(
+          title: title!,
+          actions: actions,
+          backgroundColor: backgroundColor,
+          slivers: [
+            SliverPadding(
+              padding: padding,
+              sliver: SliverToBoxAdapter(child: child),
+            ),
+          ],
+        ),
+      );
+    }
 
+    final textTheme = getEnteTextTheme(context);
     return Scaffold(
-      backgroundColor: familyPageBackgroundColor(context),
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: Padding(
           padding: padding,
@@ -43,7 +58,7 @@ class FamilyPageScaffold extends StatelessWidget {
                       child: Icon(
                         Icons.arrow_back,
                         size: 24,
-                        color: colorScheme.strokeBase,
+                        color: context.componentColors.textBase,
                       ),
                     ),
                   ),
@@ -62,63 +77,27 @@ class FamilyPageScaffold extends StatelessWidget {
   }
 }
 
-void showFamilySnackBar(BuildContext context, String message) {
-  showToast(context, message);
-}
-
 Future<bool> showFamilyConfirmationSheet(
   BuildContext context, {
   required String title,
   required String body,
   required String actionLabel,
 }) async {
-  final confirmed = await showBaseBottomSheet<bool>(
-    context,
-    title: title,
-    headerSpacing: 20,
-    padding: const EdgeInsets.all(16),
-    backgroundColor: getEnteColorScheme(context).backgroundColour,
-    child: _FamilyConfirmationContent(body: body, actionLabel: actionLabel),
+  final confirmed = await showBottomSheetComponent<bool>(
+    context: context,
+    builder: (sheetContext) => BottomSheetComponent(
+      title: title,
+      message: body,
+      actions: [
+        ButtonComponent(
+          label: actionLabel,
+          variant: ButtonComponentVariant.critical,
+          shouldSurfaceExecutionStates: false,
+          onTap: () => Navigator.of(sheetContext).pop(true),
+        ),
+      ],
+    ),
   );
 
   return confirmed == true;
-}
-
-class _FamilyConfirmationContent extends StatelessWidget {
-  const _FamilyConfirmationContent({
-    required this.body,
-    required this.actionLabel,
-  });
-
-  final String body;
-  final String actionLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          body,
-          style: textTheme.small.copyWith(
-            color: colorScheme.textMuted,
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: 20),
-        ButtonWidgetV2(
-          buttonType: ButtonTypeV2.critical,
-          labelText: actionLabel,
-          onTap: () async {
-            Navigator.of(context).pop(true);
-          },
-          shouldSurfaceExecutionStates: false,
-        ),
-      ],
-    );
-  }
 }

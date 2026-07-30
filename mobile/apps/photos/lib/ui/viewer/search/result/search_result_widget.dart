@@ -122,7 +122,7 @@ class SearchResultWidget extends StatelessWidget {
       case ResultType.faces:
         return localizations.searchResultPerson;
       case ResultType.shared:
-        return localizations.searchResultShared;
+        return localizations.shared;
       case ResultType.uploader:
         return localizations.searchResultUploadedBy;
       case ResultType.cameraMake:

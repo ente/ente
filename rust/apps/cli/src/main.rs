@@ -9,7 +9,7 @@ use ente_rs::{
 #[tokio::main]
 async fn main() {
     if let Err(e) = run().await {
-        eprintln!("{e}");
+        eprintln!("{}", ente_core::error::chain(&e));
         std::process::exit(1);
     }
 }

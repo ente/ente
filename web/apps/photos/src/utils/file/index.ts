@@ -3,8 +3,8 @@ import { downloadAndSaveFiles } from "ente-gallery/services/save";
 import type { EnteFile } from "ente-media/file";
 import { fileFileName, ItemVisibility } from "ente-media/file-metadata";
 import { FileType } from "ente-media/file-type";
-import { type SelectionContext } from "ente-new/photos/components/gallery";
-import { type FileOp } from "ente-new/photos/components/SelectedFileOptions";
+import type { SelectionContext } from "ente-new/photos/components/gallery";
+import type { FileOp } from "ente-new/photos/components/SelectedFileOptions";
 import {
     addToFavoritesCollection,
     deleteFromTrash,

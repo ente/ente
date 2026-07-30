@@ -240,6 +240,24 @@ void main() {
     );
   });
 
+  testWidgets("LabeledControlComponent wraps long labels", (tester) async {
+    const label =
+        "This is a deliberately long label that should wrap inside the control row";
+    await tester.pumpWidget(
+      _wrap(
+        const SizedBox(
+          width: 220,
+          child: LabeledControlComponent(
+            control: CheckboxComponent(selected: true, onChanged: null),
+            label: label,
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect(find.text(label), findsOneWidget);
+  });
+
   testWidgets("FilterChipComponent renders selected state with token colors", (
     tester,
   ) async {
@@ -340,6 +358,49 @@ void main() {
       tester.getSize(find.byKey(const ValueKey("filter-chip-surface"))).height,
       greaterThan(40),
     );
+  });
+
+  testWidgets("SelectionSummaryChipComponent invokes only enabled actions", (
+    tester,
+  ) async {
+    var tapCount = 0;
+    await tester.pumpWidget(
+      _wrap(
+        SelectionSummaryChipComponent(
+          label: "Select all",
+          semanticLabel: "Select all",
+          icon: const HugeIcon(
+            icon: HugeIcons.strokeRoundedTick02,
+            size: IconSizes.small,
+          ),
+          onTap: () => tapCount += 1,
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey("selection-summary-chip-surface")),
+    );
+    expect(tapCount, 1);
+
+    await tester.pumpWidget(
+      _wrap(
+        const SelectionSummaryChipComponent(
+          label: "Select all",
+          semanticLabel: "Select all",
+          icon: HugeIcon(
+            icon: HugeIcons.strokeRoundedTick02,
+            size: IconSizes.small,
+          ),
+        ),
+      ),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey("selection-summary-chip-surface")),
+    );
+    expect(tapCount, 1);
+    final label = tester.widget<Text>(find.text("Select all"));
+    expect(label.style?.color, ColorTokens.light.textLighter);
   });
 
   testWidgets("FilterChipComponent keeps avatar fixed by default", (

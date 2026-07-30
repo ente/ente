@@ -23,6 +23,19 @@ description: Frequently asked questions about Ente Auth
 4. Enter the account name, issuer, and secret (setup key).
 5. Save and verify the generated code.
 
+### Why does Ente Auth say "No QR code found in image"? {#qr-code-not-scanning}
+
+If the QR code is sharp and high-resolution but Ente Auth still won't scan it, the most likely cause is that the service is using a QR format Ente Auth doesn't recognise. Some sites embed proprietary or non-standard data instead of the standard `otpauth://` URI that authenticator apps expect.
+
+The easiest workaround is to add the code manually:
+
+1. Open Ente Auth.
+2. Tap the + button.
+3. Choose "Enter details manually".
+4. Enter the account name, issuer, and secret (setup key) shown by the service alongside the QR code.
+
+If the service only offers a QR code and no setup key, check its security settings for an option to "show setup key" or "can't scan?".
+
 ### How secure is Ente Auth?
 
 All codes you backup via Ente is stored with end-to-end encryption. This means only you can access your codes. Our apps are open source and our cryptography has been externally audited.
@@ -93,6 +106,10 @@ If your codes were created offline and you've since lost access to that device, 
 
 No, Ente Auth does not require an account. You can choose to use the app without backups if you prefer.
 
+### Can Ente Auth run fully offline with no connection to any server? {#auth-fully-offline}
+
+Yes. Choose **Use without backups** to use Auth entirely offline, with no account and no connection to Ente's servers. Learn more in [Using offline mode safely](/auth/features/offline-mode).
+
 ### Will I lose my offline codes if I create an account later?
 
 No. When you sign in after using Ente Auth offline, the desktop app migrates any remaining offline codes into the newly created account so you keep them.
@@ -148,6 +165,18 @@ This means that the parameters that were used to derive your master-key on your 
 
 If you recover your account using your current device and reset the password, a new key will be generated with different parameters. This new key will be equally strong and compatible with both devices.
 
+### Why do I get verification errors when signing in on a new device, but it works hours later? {#login-fails-low-ram}
+
+When you sign in to Ente Auth, the app performs a deliberately heavy cryptographic step that needs around 1 GB of free RAM on the device. This is part of how we keep your password secure. If a lot of other apps are running in the background, there often isn't enough free memory available and the sign-in fails. After a few hours, the operating system clears out enough background apps to free up that memory, which is why it eventually works.
+
+This is more likely on phones and tablets with 2-3 GB of RAM (older models such as iPhone 7, 8, SE, or older iPads).
+
+Try the following:
+
+1. Restart your device, then open Ente Auth immediately before other apps load.
+2. Close other apps (swipe them away in the app switcher) and try again.
+3. In the meantime, access your codes at [auth.ente.com](https://auth.ente.com) in a browser on another device.
+
 ### I can't change my app lock PIN. What do I do? {#cant-change-app-lock-pin}
 
 If the option to change the PIN doesn't appear, log out by tapping the back arrow on the app lock screen. Once logged out, the app lock is no longer in effect and you can set it up again from scratch when you sign back in.
@@ -161,3 +190,5 @@ Most of these failures come from network-level filtering between your device and
 - A VPN routing traffic in a way that interferes with Ente endpoints.
 
 If you use any of these, allowlist Ente's domains or temporarily disable the blocker and try again. After clearing the interference, signing in and syncing should work normally.
+
+If you were in the middle of resetting your password using your recovery key and the app showed an error partway through (for example, after multiple network drops), your new password may have already been registered on our server even though the app didn't get the success confirmation. Before retrying the reset flow, try signing in with the new password directly.

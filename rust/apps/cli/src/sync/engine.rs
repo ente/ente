@@ -1,19 +1,19 @@
 use crate::Result;
-use crate::api::client::ApiClient;
+use crate::api::client::AppClient;
 use crate::api::methods::ApiMethods;
 use crate::models::{account::Account, file::RemoteFile};
 use crate::storage::Storage;
 
 /// Core sync engine responsible for fetching and tracking remote changes
 pub struct SyncEngine {
-    api_client: ApiClient,
+    api_client: AppClient,
     storage: Storage,
     account: Account,
 }
 
 impl SyncEngine {
     /// Create a new sync engine for an account
-    pub fn new(api_client: ApiClient, storage: Storage, account: Account) -> Self {
+    pub fn new(api_client: AppClient, storage: Storage, account: Account) -> Self {
         Self {
             api_client,
             storage,
@@ -25,23 +25,17 @@ impl SyncEngine {
     pub async fn sync(&self) -> Result<SyncStats> {
         log::info!("Starting sync for account: {}", self.account.email);
 
-        let mut stats = SyncStats::default();
-
-        // Get account ID for auth - use email as account identifier
-        let account_id = &self.account.email;
-
-        // Sync collections first
-        stats.collections = self.sync_collections(account_id).await?;
-
-        // Then sync files
-        stats.files = self.sync_files(account_id).await?;
+        let stats = SyncStats {
+            collections: self.sync_collections().await?,
+            files: self.sync_files().await?,
+        };
 
         log::info!("Sync completed: {stats:?}");
         Ok(stats)
     }
 
     /// Sync collections (albums)
-    async fn sync_collections(&self, account_id: &str) -> Result<SyncResult> {
+    async fn sync_collections(&self) -> Result<SyncResult> {
         log::debug!("Syncing collections...");
 
         let sync_store = self.storage.sync();
@@ -52,7 +46,7 @@ impl SyncEngine {
             .unwrap_or(0);
 
         let api = ApiMethods::new(&self.api_client);
-        let collections = api.get_collections(account_id, last_sync).await?;
+        let collections = api.get_collections(last_sync).await?;
 
         let mut result = SyncResult {
             total: collections.len(),
@@ -120,7 +114,7 @@ impl SyncEngine {
     }
 
     /// Sync files incrementally
-    async fn sync_files(&self, account_id: &str) -> Result<SyncResult> {
+    async fn sync_files(&self) -> Result<SyncResult> {
         log::debug!("Syncing files...");
 
         let sync_store = self.storage.sync();
@@ -182,9 +176,7 @@ impl SyncEngine {
                     last_sync
                 );
 
-                let (files, more) = api
-                    .get_collection_files(account_id, collection.id, last_sync)
-                    .await?;
+                let (files, more) = api.get_collection_files(collection.id, last_sync).await?;
                 has_more = more;
                 batch_count += 1;
 

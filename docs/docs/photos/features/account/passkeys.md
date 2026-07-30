@@ -12,7 +12,7 @@ Passkeys are a new authentication mechanism that uses strong cryptography built 
 > Passkeys are the colloquial term for a WebAuthn (Web Authentication) credentials.
 >
 > - More details about why and how are in the Passkeys announcement [blog post](https://ente.com/blog/introducing-passkeys-on-ente/).
-> - And to know more technical details about how our passkey verification works, you can see this [technical note in our source code](https://github.com/ente-io/ente/blob/main/web/docs/webauthn-passkeys.md).
+> - And to know more technical details about how our passkey verification works, you can see this [technical note in our source code](https://github.com/ente/ente/blob/main/web/docs/webauthn-passkeys.md).
 
 ## Passkeys and TOTP
 

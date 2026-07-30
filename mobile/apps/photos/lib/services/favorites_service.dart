@@ -182,7 +182,7 @@ class FavoritesService {
     } else {
       final Collection? favCollection = await getFavoritesCollection();
       await _collectionActions.moveFilesFromCurrentCollection(
-        context,
+        null,
         favCollection!,
         files,
       );
@@ -217,7 +217,7 @@ class FavoritesService {
         );
       }
       await _collectionActions.moveFilesFromCurrentCollection(
-        context,
+        null,
         favCollection,
         [favFile],
       );

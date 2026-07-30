@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ente-io/museum/pkg/controller/discord"
-	"github.com/ente-io/museum/pkg/external/listmonk"
-	"github.com/ente-io/museum/pkg/external/zoho"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/pkg/controller/discord"
+	"github.com/ente/museum/pkg/external/listmonk"
+	"github.com/ente/museum/pkg/external/zoho"
+	"github.com/ente/stacktrace"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )

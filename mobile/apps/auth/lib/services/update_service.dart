@@ -5,6 +5,7 @@ import 'package:ente_auth/core/constants.dart';
 import 'package:ente_auth/services/notification_service.dart';
 import 'package:ente_network/network.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
+import 'package:flutter/services.dart' show appFlavor;
 import 'package:logging/logging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,7 +17,6 @@ class UpdateService {
 
   static final UpdateService instance = UpdateService._privateConstructor();
   static const kUpdateAvailableShownTimeKey = "update_available_shown_time_key";
-  static const String flavor = String.fromEnvironment('app.flavor');
 
   LatestVersionInfo? _latestVersion;
   final _logger = Logger("UpdateService");
@@ -29,7 +29,7 @@ class UpdateService {
   }
 
   Future<bool> shouldUpdate() async {
-    if (!isIndependent()) {
+    if (!supportsInAppUpdates()) {
       return false;
     }
     try {
@@ -43,7 +43,7 @@ class UpdateService {
   }
 
   bool shouldForceUpdate(LatestVersionInfo? info) {
-    if (!isIndependent()) {
+    if (!supportsInAppUpdates()) {
       return false;
     }
     try {
@@ -60,7 +60,7 @@ class UpdateService {
   }
 
   Future<bool> showUpdateNotification() async {
-    if (!isIndependent()) {
+    if (!supportsInAppUpdates()) {
       return false;
     }
     final shouldUpdate = await this.shouldUpdate();
@@ -100,7 +100,7 @@ class UpdateService {
     if (Platform.isAndroid) {
       // Note: in auth, currently we don't have a way to identify if the
       // app was installed from play store, f-droid or github based on pkg name
-      if (flavor == "playstore") {
+      if (appFlavor == "playstore") {
         return const Tuple2("Play Store", "market://details?id=io.ente.auth");
       }
       return const Tuple2(
@@ -136,10 +136,8 @@ class UpdateService {
     }
   }
 
-  bool isIndependent() {
-    return flavor == "independent" ||
-        _packageInfo.packageName.endsWith("independent") ||
-        PlatformDetector.isDesktop();
+  bool supportsInAppUpdates() {
+    return appFlavor == "independent" || PlatformDetector.isDesktop();
   }
 }
 

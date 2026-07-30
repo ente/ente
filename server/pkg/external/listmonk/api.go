@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/stacktrace"
 )
 
 // Listmonk credentials to interact with the Listmonk API.

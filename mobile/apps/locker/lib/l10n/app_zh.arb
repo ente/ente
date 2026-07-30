@@ -132,7 +132,6 @@
       }
     }
   },
-  "pleaseSelectAtLeastOneCollection": "请至少选择一个集合",
   "unknownItemType": "未知项目类型",
   "fileDeletedSuccessfully": "项目删除成功",
   "failedToDeleteFile": "删除项目失败：{error}",
@@ -253,7 +252,6 @@
   "optionalNote": "可选备注",
   "upload": "上传",
   "documentsHint": "文档",
-  "searchHint": "搜索...",
   "searchEmptyTitle": "未找到匹配项",
   "searchEmptyDescription": "请尝试搜索其他内容。",
   "searchEverywhereTitle": "在所有位置搜索\"{query}\"",

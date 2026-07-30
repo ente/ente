@@ -1,4 +1,4 @@
-# Docs - https://github.com/ente-io/ente/blob/main/web/docs/docker.md
+# Docs - https://github.com/ente/ente/blob/main/web/docs/docker.md
 
 FROM node:24 AS builder
 

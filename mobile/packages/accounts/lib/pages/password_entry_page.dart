@@ -53,6 +53,12 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
   bool _passwordsMatch = false;
   bool _isPasswordValid = false;
 
+  bool get _hasValidMatchingPasswords =>
+      _isPasswordValid &&
+      _passwordInInputBox.isNotEmpty &&
+      _passwordInInputConfirmationBox.isNotEmpty &&
+      _passwordInInputBox == _passwordInInputConfirmationBox;
+
   @override
   void initState() {
     super.initState();
@@ -296,9 +302,7 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
                               _isPasswordValid =
                                   _passwordStrength >=
                                   kMildPasswordStrengthThreshold;
-                              _passwordsMatch =
-                                  _passwordInInputBox ==
-                                  _passwordInInputConfirmationBox;
+                              _passwordsMatch = _hasValidMatchingPasswords;
                             });
                           },
                           textInputAction: TextInputAction.next,
@@ -382,11 +386,7 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
                           onChanged: (cnfPassword) {
                             setState(() {
                               _passwordInInputConfirmationBox = cnfPassword;
-                              if (_passwordInInputBox != '') {
-                                _passwordsMatch =
-                                    _passwordInInputBox ==
-                                    _passwordInInputConfirmationBox;
-                              }
+                              _passwordsMatch = _hasValidMatchingPasswords;
                             });
                           },
                         ),
@@ -430,11 +430,13 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
     if (logOutFromOthers == null) {
       return;
     }
-    final dialog = createProgressDialog(
-      context,
-      context.strings.generatingEncryptionKeys,
-    );
-    await dialog.show();
+    final dialog = mounted
+        ? createProgressDialog(
+            context,
+            context.strings.generatingEncryptionKeys,
+          )
+        : null;
+    await dialog?.show();
     try {
       final result = await widget.config.getAttributesForNewPassword(
         _passwordController1.text,
@@ -444,17 +446,21 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
         result.item2,
         logoutOtherDevices: logOutFromOthers,
       );
-      await dialog.hide();
-      showShortToast(context, context.strings.passwordChangedSuccessfully);
-      Navigator.of(context).pop();
-      if (widget.mode == PasswordEntryMode.reset) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
+      await dialog?.hide();
+      if (mounted) {
+        showShortToast(context, context.strings.passwordChangedSuccessfully);
+        Navigator.of(context).pop();
+        if (widget.mode == PasswordEntryMode.reset) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
       }
     } catch (e, s) {
       _logger.severe("Failed to change password", e, s);
-      await dialog.hide();
-      // ignore: unawaited_futures
-      showGenericErrorDialog(context: context, error: e);
+      await dialog?.hide();
+      if (mounted) {
+        // ignore: unawaited_futures
+        showGenericErrorDialog(context: context, error: e);
+      }
     }
   }
 
@@ -526,30 +532,36 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
       final result = await widget.config.generateKey(password);
       widget.config.resetVolatilePassword();
       await dialog.hide();
+      if (!mounted) {
+        return;
+      }
       onDone() async {
-        final dialog = createProgressDialog(
-          context,
-          context.strings.pleaseWait,
-        );
-        await dialog.show();
+        final dialog = mounted
+            ? createProgressDialog(context, context.strings.pleaseWait)
+            : null;
+        await dialog?.show();
         try {
           await UserService.instance.setAttributes(result);
-          await dialog.hide();
+          await dialog?.hide();
           widget.config.resetVolatilePassword();
-          // ignore: unawaited_futures
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (BuildContext context) {
-                return widget.homePage;
-              },
-            ),
-            (route) => false,
-          );
+          if (mounted) {
+            // ignore: unawaited_futures
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (BuildContext context) {
+                  return widget.homePage;
+                },
+              ),
+              (route) => false,
+            );
+          }
         } catch (e, s) {
           _logger.severe("Failed to configure account", e, s);
-          await dialog.hide();
-          // ignore: unawaited_futures
-          showGenericErrorDialog(context: context, error: e);
+          await dialog?.hide();
+          if (mounted) {
+            // ignore: unawaited_futures
+            showGenericErrorDialog(context: context, error: e);
+          }
         }
       }
 
@@ -569,6 +581,9 @@ class _PasswordEntryPageState extends State<PasswordEntryPage> {
     } catch (e) {
       _logger.severe(e);
       await dialog.hide();
+      if (!mounted) {
+        return;
+      }
       if (e is UnsupportedError) {
         // ignore: unawaited_futures
         showAlertBottomSheet(

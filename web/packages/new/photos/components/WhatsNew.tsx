@@ -79,11 +79,13 @@ const ChangelogContent: React.FC = () => {
     return (
         <Stack sx={{ gap: 2, mb: 1 }}>
             <Typography variant="h6">
-                {ut("Shared Albums Improvements")}
+                {ut(
+                    "Better upload and family plan management experience, smarter Takeout imports, and more",
+                )}
             </Typography>
             <Typography sx={{ color: "text.muted" }}>
                 {ut(
-                    "Upload files to shared albums. Add shared files to your albums or shared albums. Favorite files in shared albums. Indicator for shared files in map view.",
+                    "Redesigned upload experience. Google Takeout options for favorites and partner-shared photos. Manage your family plan in-app. Search people by name when tagging, and more.",
                 )}
             </Typography>
         </Stack>

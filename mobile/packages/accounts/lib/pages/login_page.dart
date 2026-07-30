@@ -41,22 +41,26 @@ class _LoginPageState extends State<LoginPage> {
       }
     }
     if (attr != null && !isEmailVerificationEnabled) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (BuildContext context) {
-            return LoginPasswordVerificationPage(widget.config, attr!);
-          },
-        ),
-      );
+      if (mounted) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (BuildContext context) {
+              return LoginPasswordVerificationPage(widget.config, attr!);
+            },
+          ),
+        );
+      }
     } else {
       await UserService.instance.sendOtt(
-        context,
+        mounted ? context : null,
         _email!,
         isCreateAccountScreen: false,
         purpose: 'login',
       );
     }
-    FocusScope.of(context).unfocus();
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+    }
   }
 
   @override

@@ -1,6 +1,6 @@
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/memories/memory.dart";
-import "package:photos/utils/file_util.dart";
+import "package:photos/module/download/file.dart";
 
 // The index inside a memory's file list that should be shown first to the
 // user: the first unseen file, or the one after the most recently seen if all

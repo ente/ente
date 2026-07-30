@@ -78,6 +78,13 @@ class _PeopleSelectionActionWidgetState
         .toList();
   }
 
+  bool _hasAssignedCluster(
+    String personID,
+    Map<String, PersonEntity> personMap,
+  ) {
+    return personMap[personID]?.data.assigned.isNotEmpty ?? false;
+  }
+
   void _selectionChangedListener() {
     if (mounted) {
       setState(() {});
@@ -104,6 +111,9 @@ class _PeopleSelectionActionWidgetState
             selectedPersonIds.length == 1 && selectedClusterIds.isEmpty;
         final onlyPersonSelected =
             selectedPersonIds.isNotEmpty && selectedClusterIds.isEmpty;
+        final onlySelectedPersonHasAssignedCluster =
+            onlyOnePerson &&
+            _hasAssignedCluster(selectedPersonIds.first, personMap);
         final ignoredSelectedPersonIds = selectedPersonIds
             .where((id) => personMap[id]?.data.isIgnored ?? false)
             .toList();
@@ -117,7 +127,7 @@ class _PeopleSelectionActionWidgetState
               (id) => (personMap[id]?.data.name ?? "").isNotEmpty,
             );
         final bool showEditAction = onlyOnePerson;
-        final bool showReviewAction = onlyOnePerson;
+        final bool showReviewAction = onlySelectedPersonHasAssignedCluster;
         final bool showMergeAction = onlyIgnoredPersonsSelected
             ? false
             : selectedClusterIds.isNotEmpty;
@@ -311,14 +321,14 @@ class _PeopleSelectionActionWidgetState
     final personID = selectedPersonIds.first;
     final person = personMap[personID];
     if (person == null) return;
+    final clusterID = person.data.assigned.isEmpty
+        ? null
+        : person.data.assigned.first.id;
 
+    if (!mounted) return;
     await routeToPage(
       context,
-      SaveOrEditPerson(
-        person.data.assigned.first.id,
-        person: person,
-        isEditing: true,
-      ),
+      SaveOrEditPerson(clusterID, person: person, isEditing: true),
     );
     widget.selectedPeople.clearAll();
   }
@@ -330,7 +340,9 @@ class _PeopleSelectionActionWidgetState
     final personID = selectedPersonIds.first;
     final person = personMap[personID];
     if (person == null) return;
+    if (person.data.assigned.isEmpty) return;
 
+    if (!mounted) return;
     await routeToPage(context, PersonReviewClusterSuggestion(person));
     widget.selectedPeople.clearAll();
   }
@@ -339,12 +351,13 @@ class _PeopleSelectionActionWidgetState
     final personMap = await personEntitiesMapFuture;
     final selectedPersonIds = _getSelectedPersonIds(personMap);
     if (selectedPersonIds.isEmpty) return;
-    showCollectionActionSheet(
+    if (!mounted) return;
+    widget.selectedPeople.clearAll();
+    await showCollectionActionSheet(
       context,
       selectedPeople: selectedPersonIds,
       actionType: CollectionActionType.autoAddPeople,
     );
-    widget.selectedPeople.clearAll();
   }
 
   Future<void> _updatePinState(bool shouldPin) async {
@@ -399,6 +412,7 @@ class _PeopleSelectionActionWidgetState
     final person = personMap[personID];
     if (person == null) return;
 
+    if (!mounted) return;
     await showChoiceDialog(
       context,
       title: AppLocalizations.of(context).areYouSureYouWantToResetThisPerson,
@@ -422,6 +436,7 @@ class _PeopleSelectionActionWidgetState
     if (selectedPersonIds.isEmpty && selectedClusterIds.isEmpty) return;
     final multiple = (selectedPersonIds.length + selectedClusterIds.length) > 1;
 
+    if (!mounted) return;
     final result = await showChoiceDialog(
       context,
       title: multiple
@@ -538,6 +553,7 @@ class _PeopleSelectionActionWidgetState
     }
     final multiple = ignoredSelectedPersonIds.length > 1;
 
+    if (!mounted) return;
     await showChoiceDialog(
       context,
       title: multiple

@@ -3,7 +3,7 @@ package contact
 import (
 	"database/sql"
 
-	"github.com/ente-io/museum/pkg/repo"
+	"github.com/ente/museum/pkg/repo"
 )
 
 const (

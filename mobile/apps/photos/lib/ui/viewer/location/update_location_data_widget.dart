@@ -160,6 +160,7 @@ class _UpdateLocationDataWidgetState extends State<UpdateLocationDataWidget> {
                     selectedLocation.value!,
                     context,
                   );
+                  if (!context.mounted) return;
                   Navigator.of(context).pop();
                 },
                 heroTag: 'add-location',

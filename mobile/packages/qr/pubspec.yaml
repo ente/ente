@@ -1,8 +1,7 @@
 name: ente_qr_ui
 description: Shared QR code utilities for Ente mobile apps
-version: 0.0.1
-publish_to: none
 
+resolution: workspace
 environment:
   sdk: ">=3.10.0 <4.0.0"
   flutter: ">=3.22.0"
@@ -10,11 +9,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_svg: 2.2.3
+  flutter_svg: 2.3.0
   path_provider: 2.1.5
   pretty_qr_code:
     git:
-      url: https://github.com/ente-io/flutter_pretty_qr_fork
+      url: https://github.com/ente/flutter_pretty_qr_fork
       ref: 80ebafb9c99ac22520092b008579013d2fcffbe1
   share_plus: 11.1.0
 

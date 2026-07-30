@@ -10,7 +10,7 @@ import { ensureElectron } from "ente-base/electron";
 import log from "ente-base/log";
 import { ensureMasterKeyFromSession } from "ente-base/session";
 import { ComlinkWorker } from "ente-base/worker/comlink-worker";
-import { type ProcessableUploadItem } from "ente-gallery/services/upload";
+import type { ProcessableUploadItem } from "ente-gallery/services/upload";
 import { createUtilityProcess } from "ente-gallery/utils/native-worker";
 import type { EnteFile } from "ente-media/file";
 import { FileType } from "ente-media/file-type";
@@ -144,7 +144,11 @@ const worker = () =>
 
 const createComlinkWorker = async () => {
     const electron = ensureElectron();
-    const delegate = { workerDidUpdateStatus, workerDidUnawaitedIndex };
+    const delegate = {
+        workerDidUpdateStatus,
+        workerDidUnawaitedIndex,
+        workerDidLoseElectronPort,
+    };
 
     // Obtain a message port from the Electron layer.
     const messagePort = await createUtilityProcess(electron, "ml");
@@ -354,24 +358,26 @@ export const mlSync = async (reason: ClusterFacesReason = "ml-sync") => {
     if (_state.isSyncing) return;
     _state.isSyncing = true;
 
-    if (_state.needsResetFailures) {
-        // CAS. See documentation for retryIndexingFailures why swapping the
-        // flag before performing the operation is fine.
-        _state.needsResetFailures = false;
-        await resetFailedFileStatuses();
+    try {
+        if (_state.needsResetFailures) {
+            // CAS. See documentation for retryIndexingFailures why swapping
+            // the flag before performing the operation is fine.
+            _state.needsResetFailures = false;
+            await resetFailedFileStatuses();
+        }
+
+        // Dependency order for the sync
+        //
+        //     files -> faces -> cgroups -> clusters -> people
+        //
+
+        // Fetch indexes, or index locally if needed.
+        await worker().then((w) => w.index());
+
+        await updateClustersAndPeople(reason);
+    } finally {
+        _state.isSyncing = false;
     }
-
-    // Dependency order for the sync
-    //
-    //     files -> faces -> cgroups -> clusters -> people
-    //
-
-    // Fetch indexes, or index locally if needed.
-    await worker().then((w) => w.index());
-
-    await updateClustersAndPeople(reason);
-
-    _state.isSyncing = false;
 };
 
 const updateClustersAndPeople = async (reason: ClusterFacesReason) => {
@@ -406,6 +412,11 @@ const debounceUpdateClustersAndPeople = pDebounce(
     updateClustersAndPeople,
     30 * 1e3,
 );
+
+const workerDidLoseElectronPort = () => {
+    log.error("Discarding the ML worker since its utility process exited");
+    void terminateMLWorker();
+};
 
 const workerDidUnawaitedIndex = () =>
     void debounceUpdateClustersAndPeople("live-upload-index");

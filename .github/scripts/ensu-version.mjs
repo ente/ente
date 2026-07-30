@@ -11,9 +11,9 @@ const files = {
     tauri: path.join(root, "rust/apps/ensu/src-tauri/tauri.conf.json"),
     cargoToml: path.join(root, "rust/apps/ensu/src-tauri/Cargo.toml"),
     cargoLock: path.join(root, "rust/Cargo.lock"),
-    android: path.join(root, "mobile/native/android/apps/ensu/app-ui/build.gradle.kts"),
-    xcode: path.join(root, "mobile/native/darwin/Apps/Ensu/Ensu.xcodeproj/project.pbxproj"),
-    plist: path.join(root, "mobile/native/darwin/Apps/Ensu/Ensu/Info.plist"),
+    android: path.join(root, "mobile/native/android/apps/ensu/app/build.gradle.kts"),
+    xcode: path.join(root, "mobile/native/apple/apps/ensu/Ensu.xcodeproj/project.pbxproj"),
+    plist: path.join(root, "mobile/native/apple/apps/ensu/Ensu/Info.plist"),
 };
 
 function read(file) {
@@ -53,9 +53,27 @@ function expect(label, actual, wanted) {
     if (actual !== wanted) throw new Error(`${label}: expected ${wanted}, found ${actual}`);
 }
 
+function sourceBuildNumber() {
+    const buildNumber = value(files.android, /versionCode = .*\?: (\d+)/);
+    if (!buildNumber) throw new Error("Android versionCode: no default found");
+    return buildNumber;
+}
+
+function setBuildNumber(buildNumber) {
+    replace(files.android, /(versionCode = .*\?: )\d+/, (_m, prefix) => `${prefix}${buildNumber}`);
+    replace(files.xcode, /CURRENT_PROJECT_VERSION = [^;]+;/g, `CURRENT_PROJECT_VERSION = ${buildNumber};`);
+}
+
 function check() {
     const version = sourceVersion();
     const releaseVersion = trimVersion(version);
+    const buildNumber = sourceBuildNumber();
+
+    const xcodeBuildNumbers = [...read(files.xcode).matchAll(/CURRENT_PROJECT_VERSION = ([^;]+);/g)];
+    if (!xcodeBuildNumbers.length) throw new Error("Xcode CURRENT_PROJECT_VERSION: no entries found");
+    for (const match of xcodeBuildNumbers) {
+        expect("Xcode CURRENT_PROJECT_VERSION", match[1], buildNumber);
+    }
 
     expect("tauri.conf.json", value(files.tauri, /^\s*"version"\s*:\s*"([^"]+)"/m), version);
     expect("package-lock.json", value(files.packageLock, /"name": "ensu-desktop",\n\s+"version": "([^"]+)"/), version);
@@ -89,8 +107,11 @@ function setVersion(version) {
 function usage() {
     console.error(`Usage:
   node .github/scripts/ensu-version.mjs get
+  node .github/scripts/ensu-version.mjs get-build-base
   node .github/scripts/ensu-version.mjs set 0.1.16-beta
-  node .github/scripts/ensu-version.mjs set 0.1.16`);
+  node .github/scripts/ensu-version.mjs set 0.1.16
+  node .github/scripts/ensu-version.mjs set-build 0.1.16 34
+  node .github/scripts/ensu-version.mjs bump-build`);
 }
 
 const [command = "get", ...args] = process.argv.slice(2);
@@ -99,8 +120,19 @@ try {
     if (command === "get") {
         check();
         console.log(sourceVersion());
+    } else if (command === "get-build-base") {
+        check();
+        console.log(sourceBuildNumber());
     } else if (command === "set") {
         setVersion(args[0]);
+        check();
+    } else if (command === "set-build") {
+        if (!/^\d+$/.test(args[1])) throw new Error(`Invalid Ensu build number: ${args[1]}`);
+        setVersion(args[0]);
+        setBuildNumber(args[1]);
+        check();
+    } else if (command === "bump-build") {
+        setBuildNumber(Number(sourceBuildNumber()) + 1);
         check();
     } else {
         usage();

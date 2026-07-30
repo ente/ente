@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ente-io/museum/ente/cast"
+	"github.com/ente/museum/ente/cast"
 
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/stacktrace"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -23,6 +23,7 @@ const (
 	FileLinkAccessKey    = "X-Public-FileLink-Access-ID"
 	CastContext          = "X-Cast-Context"
 	MemoryShareAccessKey = "X-Memory-Share-Access-ID"
+	AppContextKey        = "auth.app"
 
 	LinkDeviceTokenHeader         = "X-Auth-Link-Device-Token"
 	LinkDeviceTokenResponseHeader = "X-Ente-Link-Device-Token"
@@ -90,6 +91,15 @@ func GetApp(c *gin.Context) ente.App {
 	}
 
 	return ente.Photos
+}
+
+func GetAuthenticatedApp(c *gin.Context) (ente.App, bool) {
+	app, ok := c.Get(AppContextKey)
+	if !ok {
+		return "", false
+	}
+	enteApp, ok := app.(ente.App)
+	return enteApp, ok
 }
 
 func GetToken(c *gin.Context) string {

@@ -1,21 +1,18 @@
 import 'package:flutter/material.dart';
-import "package:photos/models/memories/memory.dart";
+import "package:photos/models/memories/smart_memory.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/ui/home/memories/full_screen_memory.dart";
 import "package:photos/ui/home/memories/memory_cover_util.dart";
 
-// TODO: Use a single instance variable for `allMemories` and `allTitles`
 class AllMemoriesPage extends StatefulWidget {
   final int initialPageIndex;
   final int inititalFileIndex;
-  final List<List<Memory>> allMemories;
-  final List<String> allTitles;
+  final List<SmartMemory> allMemories;
   final bool isFromWidgetOrNotifications;
 
   const AllMemoriesPage({
     super.key,
     required this.allMemories,
-    required this.allTitles,
     required this.initialPageIndex,
     this.inititalFileIndex = 0,
     this.isFromWidgetOrNotifications = false,
@@ -54,16 +51,17 @@ class _AllMemoriesPageState extends State<AllMemoriesPage>
         hitTestBehavior: HitTestBehavior.translucent,
         itemCount: widget.allMemories.length,
         itemBuilder: (context, index) {
+          final smartMemory = widget.allMemories[index];
           final initialMemoryIndex =
               widget.isFromWidgetOrNotifications && isFirstLoad
               ? widget.inititalFileIndex
-              : getNextMemoryIndex(widget.allMemories[index]);
+              : getNextMemoryIndex(smartMemory.memories);
           isFirstLoad = false;
           return FullScreenMemoryDataUpdater(
             initialIndex: initialMemoryIndex,
-            memories: widget.allMemories[index],
+            memories: smartMemory.memories,
             child: FullScreenMemory(
-              widget.allTitles[index],
+              smartMemory.title,
               initialMemoryIndex,
               onNextMemory: index < widget.allMemories.length - 1
                   ? () => pageController.nextPage(

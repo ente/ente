@@ -1,6 +1,5 @@
 import { WhatsNewDialog } from "@/components/WhatsNewDialog";
 import { setupAutoAppUpdates } from "@/services/app-update";
-import { ensuLogout } from "@/services/logout";
 import { isTauriRuntime } from "@/services/tauri-runtime";
 import {
     getPendingDesktopWhatsNew,
@@ -9,8 +8,8 @@ import {
 } from "@/services/whats-new";
 import { CssBaseline } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
-import { savedLocalUser } from "ente-accounts/services/accounts-db";
 import { staticAppTitle } from "ente-base/app";
+import { assertionFailed } from "ente-base/assert";
 import { CustomHead } from "ente-base/components/Head";
 import {
     LoadingIndicator,
@@ -42,7 +41,7 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
     const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
 
     useEffect(() => {
-        logStartupBanner(savedLocalUser()?.id);
+        logStartupBanner();
     }, []);
 
     useEffect(() => setupAutoAppUpdates(showMiniDialog), [showMiniDialog]);
@@ -93,10 +92,6 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
         };
     }, []);
 
-    const logout = useCallback(() => {
-        void ensuLogout();
-    }, []);
-
     const handleWhatsNewClose = useCallback(() => {
         markDesktopWhatsNewSeen();
         setIsWhatsNewOpen(false);
@@ -104,8 +99,8 @@ const App: React.FC<AppProps> = ({ Component, pageProps }) => {
     }, []);
 
     const baseContext = useMemo(
-        () => deriveBaseContext({ logout, showMiniDialog }),
-        [logout, showMiniDialog],
+        () => deriveBaseContext({ logout: assertionFailed, showMiniDialog }),
+        [showMiniDialog],
     );
 
     const title = staticAppTitle;

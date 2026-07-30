@@ -47,9 +47,7 @@ export const LockerAboutDrawer: React.FC<
                     icon={Github01Icon}
                     label={t("we_are_open_source")}
                     endIcon={<NorthEastIcon />}
-                    onClick={() =>
-                        openExternal("https://github.com/ente-io/ente")
-                    }
+                    onClick={() => openExternal("https://github.com/ente/ente")}
                 />
                 <LockerSidebarCardButton
                     icon={Shield01Icon}

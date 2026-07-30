@@ -488,6 +488,7 @@ class _FeedScreenState extends State<FeedScreen> {
 
       final targetContext = _navigationTargetItemKey.currentContext;
       if (targetContext != null) {
+        if (!targetContext.mounted) return false;
         await Scrollable.ensureVisible(
           targetContext,
           alignment: 0.1,

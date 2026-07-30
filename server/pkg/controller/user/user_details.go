@@ -2,14 +2,14 @@ package user
 
 import (
 	"errors"
-	"github.com/ente-io/museum/ente"
-	"github.com/ente-io/museum/ente/details"
-	bonus "github.com/ente-io/museum/ente/storagebonus"
-	"github.com/ente-io/museum/pkg/repo"
-	"github.com/ente-io/museum/pkg/utils/billing"
-	"github.com/ente-io/museum/pkg/utils/recover"
-	"github.com/ente-io/museum/pkg/utils/time"
-	"github.com/ente-io/stacktrace"
+	"github.com/ente/museum/ente"
+	"github.com/ente/museum/ente/details"
+	bonus "github.com/ente/museum/ente/storagebonus"
+	"github.com/ente/museum/pkg/repo"
+	"github.com/ente/museum/pkg/utils/billing"
+	"github.com/ente/museum/pkg/utils/recover"
+	"github.com/ente/museum/pkg/utils/time"
+	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/errgroup"
 )

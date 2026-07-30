@@ -22,7 +22,9 @@ function readMarkdown(file) {
 
 function changesetFiles(dir) {
     return fs
-        .readdirSync(dir)
+        .readdirSync(dir, { withFileTypes: true })
+        .filter((entry) => entry.isFile())
+        .map((entry) => entry.name)
         .filter((name) => name.endsWith(".md") && name !== "README.md")
         .sort()
         .map((name) => path.join(dir, name));
@@ -68,10 +70,12 @@ function playStoreBody(body) {
     return Array.from(body || "Bug fixes and improvements").slice(0, 500).join("");
 }
 
-function output(name, value) {
-    const delimiter = "RELEASE_NOTES_EOF";
+function output(name, text) {
+    let delimiter = "RELEASE_NOTES_EOF";
+    while (text.includes(delimiter)) delimiter += "_";
+
     console.log(`${name}<<${delimiter}`);
-    console.log(value);
+    console.log(text);
     console.log(delimiter);
 }
 

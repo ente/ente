@@ -136,6 +136,7 @@ class BillingService {
         ),
       );
     } catch (e) {
+      if (!context.mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }
   }

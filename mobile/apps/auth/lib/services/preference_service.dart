@@ -1,4 +1,5 @@
 import 'package:ente_auth/events/icons_changed_event.dart';
+import 'package:ente_auth/utils/debug_build_flags.dart';
 import 'package:ente_events/event_bus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -33,6 +34,9 @@ class PreferenceService {
   }
 
   bool hasShownCoachMark() {
+    if (shouldSkipAuthGuidance) {
+      return true;
+    }
     if (_prefs.containsKey(kHasShownCoachMarkKey)) {
       return _prefs.getBool(kHasShownCoachMarkKey)!;
     } else {

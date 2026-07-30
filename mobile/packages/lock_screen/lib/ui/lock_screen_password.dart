@@ -1,14 +1,10 @@
-import "dart:convert";
-
-import "package:ente_crypto_api/ente_crypto_api.dart";
+import "package:ente_components/ente_components.dart";
 import "package:ente_lock_screen/lock_screen_settings.dart";
 import "package:ente_lock_screen/ui/lock_screen_confirm_password.dart";
 import "package:ente_lock_screen/ui/lock_screen_options.dart";
+import "package:ente_lock_screen/ui/lock_screen_submit_fab.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/android_text_input_autofocus.dart";
-import "package:ente_ui/components/buttons/dynamic_fab.dart";
-import "package:ente_ui/components/text_input_widget.dart";
-import "package:ente_ui/theme/ente_theme.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
@@ -65,21 +61,10 @@ class _LockScreenPasswordState extends State<LockScreenPassword> {
 
   @override
   Widget build(BuildContext context) {
-    final colorTheme = getEnteColorScheme(context);
-    final textTheme = getEnteTextTheme(context);
-    final isKeypadOpen = MediaQuery.viewInsetsOf(context).bottom > 100;
-
-    FloatingActionButtonLocation? fabLocation() {
-      if (isKeypadOpen) {
-        return null;
-      } else {
-        return FloatingActionButtonLocation.centerFloat;
-      }
-    }
+    final colorTheme = context.componentColors;
 
     return Scaffold(
       backgroundColor: colorTheme.backgroundBase,
-      resizeToAvoidBottomInset: isKeypadOpen,
       appBar: AppBar(
         backgroundColor: colorTheme.backgroundBase,
         elevation: 0,
@@ -93,25 +78,17 @@ class _LockScreenPasswordState extends State<LockScreenPassword> {
         ),
         centerTitle: true,
         title: SvgPicture.asset(
-          'assets/svg/app-logo.svg',
-          colorFilter: ColorFilter.mode(colorTheme.primary700, BlendMode.srcIn),
+          LockScreenSettings.instance.appLogoAsset,
+          height: LockScreenSettings.instance.appLogoHeight,
+          colorFilter: ColorFilter.mode(colorTheme.primary, BlendMode.srcIn),
         ),
       ),
-      floatingActionButton: ValueListenableBuilder<bool>(
-        valueListenable: _isFormValid,
-        builder: (context, isFormValid, child) {
-          return DynamicFAB(
-            isKeypadOpen: isKeypadOpen,
-            buttonText: context.strings.next,
-            isFormValid: isFormValid,
-            onPressedFunction: () async {
-              _submitNotifier.value = !_submitNotifier.value;
-            },
-          );
-        },
+      floatingActionButton: LockScreenSubmitFab(
+        label: context.strings.next,
+        isFormValid: _isFormValid,
+        onSubmit: () => _submitNotifier.value = !_submitNotifier.value,
       ),
-      floatingActionButtonLocation: fabLocation(),
-      floatingActionButtonAnimator: NoScalingAnimation(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       body: SingleChildScrollView(
         child: Center(
           child: Padding(
@@ -131,24 +108,23 @@ class _LockScreenPasswordState extends State<LockScreenPassword> {
                       ? context.strings.enterAppLockPassword
                       : context.strings.setNewPassword,
                   textAlign: TextAlign.center,
-                  style: textTheme.bodyBold,
+                  style: TextStyles.bodyBold,
                 ),
                 const Padding(padding: EdgeInsets.all(12)),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: AndroidTextInputAutofocus(
                     focusNode: _focusNode,
-                    child: TextInputWidget(
+                    child: TextInputComponent(
+                      controller: _passwordController,
                       hintText: context.strings.password,
-                      autoFocus: true,
+                      autofocus: true,
                       focusNode: _focusNode,
                       textCapitalization: TextCapitalization.none,
+                      textInputAction: TextInputAction.done,
                       isPasswordInput: true,
-                      shouldSurfaceExecutionStates: false,
-                      onChange: (p0) {
-                        _passwordController.text = p0;
-                        _isFormValid.value =
-                            _passwordController.text.isNotEmpty;
+                      onChanged: (p0) {
+                        _isFormValid.value = p0.isNotEmpty;
                       },
                       onSubmit: (p0) {
                         return _confirmPassword();
@@ -167,30 +143,35 @@ class _LockScreenPasswordState extends State<LockScreenPassword> {
   }
 
   Future<bool> _confirmPasswordAuth(String inputtedPassword) async {
-    final Uint8List? salt = await _lockscreenSetting.getSalt();
-    final hash = CryptoUtil.cryptoPwHash(
-      utf8.encode(inputtedPassword),
-      salt!,
-      CryptoUtil.pwhashMemLimitInteractive,
-      CryptoUtil.pwhashOpsLimitSensitive,
-    );
-    if (widget.authPass == base64Encode(hash)) {
+    final matched = _lockscreenSetting.useLegacyHashFallback
+        ? await _lockscreenSetting.verifyWithLegacyFallback(
+            text: inputtedPassword,
+            storedHash: widget.authPass,
+            storageKey: LockScreenSettings.password,
+          )
+        : await _lockscreenSetting.verify(
+            text: inputtedPassword,
+            storedHash: widget.authPass,
+          );
+    if (matched) {
       await _lockscreenSetting.setInvalidAttemptCount(0);
 
-      widget.isAuthenticatingOnAppLaunch ||
-              widget.isAuthenticatingForInAppChange
-          ? Navigator.of(context).pop(true)
-          : Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => const LockScreenOptions(),
-              ),
-            );
+      if (mounted) {
+        widget.isAuthenticatingOnAppLaunch ||
+                widget.isAuthenticatingForInAppChange
+            ? Navigator.of(context).pop(true)
+            : Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const LockScreenOptions(),
+                ),
+              );
+      }
       return true;
     } else {
       if (widget.isAuthenticatingOnAppLaunch) {
         invalidAttemptsCount++;
         await _lockscreenSetting.setInvalidAttemptCount(invalidAttemptsCount);
-        if (invalidAttemptsCount > 4) {
+        if (invalidAttemptsCount > 4 && mounted) {
           Navigator.of(context).pop(false);
         }
       }
@@ -201,6 +182,8 @@ class _LockScreenPasswordState extends State<LockScreenPassword> {
   }
 
   Future<void> _confirmPassword() async {
+    if (_passwordController.text.isEmpty) return;
+
     if (widget.isChangingLockScreenSettings) {
       await _confirmPasswordAuth(_passwordController.text);
       return;
@@ -211,7 +194,9 @@ class _LockScreenPasswordState extends State<LockScreenPassword> {
               LockScreenConfirmPassword(password: _passwordController.text),
         ),
       );
-      _passwordController.clear();
+      if (mounted) {
+        _passwordController.clear();
+      }
     }
   }
 }

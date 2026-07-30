@@ -5,8 +5,8 @@ import type { EnteFile } from "ente-media/file";
 import { nullToUndefined } from "ente-utils/transform";
 import { z } from "zod";
 import { gunzip, gzip } from "../../utils/gzip";
-import { type RemoteCLIPIndex } from "./clip";
-import { type RemoteFaceIndex } from "./face";
+import type { RemoteCLIPIndex } from "./clip";
+import type { RemoteFaceIndex } from "./face";
 
 /**
  * The decrypted payload of a {@link RemoteFileData} for the "mldata"
