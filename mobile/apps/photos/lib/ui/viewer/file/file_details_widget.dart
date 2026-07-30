@@ -156,7 +156,7 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
     //Make sure the bottom most tile is always the same one, that is it should
     //not be rendered only if a condition is met.
     final fileDetailsTiles = <Widget>[];
-    final bool canEditCaption = isFileOwner && !file.isTrash;
+    final bool canEditCaption = isFileOwner && file.asTrashFile == null;
     fileDetailsTiles.add(
       !widget.file.isUploaded ||
               (!canEditCaption && (widget.file.caption?.isEmpty ?? true))
@@ -264,7 +264,7 @@ class _FileDetailsWidgetState extends State<FileDetailsWidget> {
       ),
     ]);
 
-    if (!file.isTrash) {
+    if (file.asTrashFile == null) {
       fileDetailsTiles.addAll([
         AlbumsItemWidget(file, _currentUserID),
         const SizedBox(height: Spacing.xxl),

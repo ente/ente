@@ -16,7 +16,6 @@ import "package:photos/events/stream_switched_event.dart";
 import "package:photos/events/video_mute_changed_event.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
-import "package:photos/models/file/trash_file.dart";
 import "package:photos/module/download/file.dart";
 import "package:photos/module/download/task.dart";
 import "package:photos/service_locator.dart";
@@ -173,8 +172,7 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
       widget.file.getAsset.then((asset) async {
         if (asset == null ||
             !(await asset.exists ||
-                (widget.file is TrashFile &&
-                    (widget.file as TrashFile).systemTrashID != null))) {
+                (widget.file.asTrashFile?.systemTrashID != null))) {
           if (widget.file.uploadedFileID != null) {
             _loadNetworkVideo();
           }

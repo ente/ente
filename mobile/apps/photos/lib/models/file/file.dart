@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:photos/core/constants.dart';
+import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file_type.dart';
-import "package:photos/models/file/trash_file.dart";
 import 'package:photos/models/location/location.dart';
 import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/module/download/file_url.dart";
@@ -118,8 +118,8 @@ class EnteFile {
     if (localID == null) {
       return Future.value(null);
     }
-    if (this is TrashFile && (this as TrashFile).systemTrashID != null) {
-      return AssetEntity.fromId((this as TrashFile).systemTrashID!.toString());
+    if (asTrashFile?.systemTrashID != null) {
+      return AssetEntity.fromId(asTrashFile!.systemTrashID!.toString());
     }
     return AssetEntity.fromId(localID!);
   }
