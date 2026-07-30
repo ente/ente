@@ -116,7 +116,7 @@ Future<void> showAlbumsManageSheet(BuildContext context) {
                 if (sheetContext.mounted) {
                   Navigator.of(sheetContext).pop();
                 }
-                unawaited(routeToPage(context, TrashPage()));
+                unawaited(routeToPage(context, const TrashPage()));
               },
             ),
           ],
