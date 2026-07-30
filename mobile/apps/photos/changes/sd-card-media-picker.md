@@ -1,1 +1,1 @@
-- Fixed picking SD card media from Ente in other Android apps.
+- Fixed picking SD card media from Ente in other Android apps. Thanks wangwillian0!
