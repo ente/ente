@@ -1,0 +1,1 @@
+- Improved handling of device out-of-storage errors.

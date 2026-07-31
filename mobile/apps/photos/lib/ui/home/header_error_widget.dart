@@ -54,8 +54,10 @@ class HeaderErrorWidget extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6),
         child: BannerComponent(
           leadingIcon: HugeIcons.strokeRoundedAlertCircle,
-          title: AppLocalizations.of(context).deviceStorageFull,
-          subtitle: AppLocalizations.of(context).backupPausedFreeUpDeviceStorage,
+          title: AppLocalizations.of(context).freeUpDeviceSpace,
+          subtitle: AppLocalizations.of(
+            context,
+          ).backupPausedFreeUpDeviceStorage,
           state: BannerComponentState.failure,
           onTap: () async {
             await routeToPage(

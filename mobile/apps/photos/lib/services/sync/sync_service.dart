@@ -37,8 +37,6 @@ class SyncService {
 
   static const kLastStorageLimitExceededNotificationPushTime =
       "last_storage_limit_exceeded_notification_push_time";
-  static const kLastDeviceStorageFullNotificationPushTime =
-      "last_device_storage_full_notification_push_time";
 
   SyncService._privateConstructor();
 
@@ -116,11 +114,11 @@ class SyncService {
       _logger.warning("Sync requested before init, skipping");
       return false;
     }
-    _syncStopRequested = false;
     if (_existingSync != null) {
       _logger.warning("Sync already in progress, skipping.");
       return _existingSync!.future;
     }
+    _syncStopRequested = false;
     _existingSync = Completer<bool>();
     bool successful = false;
     try {
@@ -152,8 +150,6 @@ class SyncService {
         SyncStatusUpdate(SyncStatus.error, error: StorageLimitExceededError()),
       );
     } on DeviceStorageFullError catch (e) {
-      _logger.warning("Backup paused, device storage is full", e);
-      _showDeviceStorageFullNotification();
       Bus.instance.fire(SyncStatusUpdate(SyncStatus.error, error: e));
     } on UnauthorizedError {
       _logger.info("Logging user out");
@@ -271,21 +267,6 @@ class SyncService {
       }
     } else {
       _logger.info("[SYNC] First import not completed, skipping remote");
-    }
-  }
-
-  void _showDeviceStorageFullNotification() async {
-    final lastNotificationShownTime =
-        _prefs.getInt(kLastDeviceStorageFullNotificationPushTime) ?? 0;
-    final now = DateTime.now().microsecondsSinceEpoch;
-    if ((now - lastNotificationShownTime) > microSecondsInDay) {
-      await _prefs.setInt(kLastDeviceStorageFullNotificationPushTime, now);
-      final s = await LanguageService.locals;
-      // ignore: unawaited_futures
-      NotificationService.instance.showNotification(
-        s.deviceStorageFull,
-        s.backupPausedFreeUpDeviceStorage,
-      );
     }
   }
 

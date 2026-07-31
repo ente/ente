@@ -226,7 +226,6 @@ Future<Uint8List?> _getThumbnailForUpload(
     return compressThumbnailToSizeLimit(thumbnailData);
   } catch (e) {
     if (isDeviceStorageFullError(e)) {
-      // Not a problem with the file; don't mark it as invalid/ignored.
       rethrow;
     }
     final String errMessage =
@@ -364,10 +363,6 @@ Future<Uint8List?> _getAppCacheThumbnailForUpload(EnteFile file) async {
   try {
     return await getThumbnailFromInAppCacheFile(file);
   } catch (e, s) {
-    if (isDeviceStorageFullError(e)) {
-      // Not a problem with the file; don't mark it as invalid/ignored.
-      rethrow;
-    }
     _logger.warning("failed to generate thumbnail", e, s);
     throw InvalidFileError(
       "thumbnail failed for appCache fileType: ${file.fileType.toString()}",
