@@ -706,7 +706,11 @@
     },
     {
       "title": "DonanımHaber",
-      "slug": "donanimhaber"
+      "slug": "donanimhaber",
+      "altNames": [
+        "Donanım Haber",
+        "Donanim Haber"
+      ]
     },
     {
       "title": "Doppler"
