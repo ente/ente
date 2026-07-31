@@ -49,7 +49,12 @@ import {
     type ModalVisibilityProps,
 } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
-import { basename, dirname, joinPath } from "ente-base/file-name";
+import {
+    basename,
+    dirname,
+    joinPath,
+    lowercaseExtension,
+} from "ente-base/file-name";
 import log from "ente-base/log";
 import type {
     CollectionMapping,
@@ -213,6 +218,13 @@ interface UploadConfirmation {
     includePartnerSharedFiles: boolean;
 }
 
+type UploadConfirmationState =
+    | { phase: "counting"; isTakeout: boolean }
+    | ({ phase: "ready" } & UploadConfirmation);
+
+const containsJSONFiles = (uploadItemAndPaths: UploadItemAndPath[]) =>
+    uploadItemAndPaths.some(([, path]) => lowercaseExtension(path) == "json");
+
 /**
  * Top level component that houses the infrastructure for handling uploads.
  */
@@ -251,8 +263,9 @@ export const Upload: React.FC<UploadProps> = ({
     const [percentComplete, setPercentComplete] = useState(0);
     const [hasLivePhotos, setHasLivePhotos] = useState(false);
     const [prefilledNewAlbumName, setPrefilledNewAlbumName] = useState("");
-    const [uploadConfirmation, setUploadConfirmation] =
-        useState<UploadConfirmation>();
+    const [uploadConfirmation, setUploadConfirmation] = useState<
+        UploadConfirmationState | undefined
+    >();
 
     const [openCollectionMappingChoice, setOpenCollectionMappingChoice] =
         useState(false);
@@ -865,12 +878,20 @@ export const Upload: React.FC<UploadProps> = ({
             return;
         }
 
+        const isTakeoutHint = containsJSONFiles(uploadItemAndPaths);
+        if (uploadItemAndPaths.length > 1 || isTakeoutHint)
+            setUploadConfirmation({
+                phase: "counting",
+                isTakeout: isTakeoutHint,
+            });
+
         try {
             const { count: fileCount, isTakeout } = await uploadableMediaCount([
                 uploadItemAndPaths,
             ]);
             if (uploadItemsAndPaths.current !== uploadItemAndPaths) return;
             if (fileCount == 1 && !isTakeout) {
+                setUploadConfirmation(undefined);
                 void commitUploadToExistingCollection(
                     collection,
                     uploadItemAndPaths,
@@ -879,6 +900,7 @@ export const Upload: React.FC<UploadProps> = ({
                 return;
             }
             setUploadConfirmation({
+                phase: "ready",
                 pendingUpload: {
                     type: "existing-collection",
                     collection,
@@ -959,6 +981,17 @@ export const Upload: React.FC<UploadProps> = ({
         }: NewCollectionsOptions = {},
     ) => {
         const uploadItemAndPaths = uploadItemsAndPaths.current;
+        const isTakeoutHint = containsJSONFiles(uploadItemAndPaths);
+        if (
+            enableV2 &&
+            !skipConfirmation &&
+            (uploadItemAndPaths.length > 1 || isTakeoutHint)
+        )
+            setUploadConfirmation({
+                phase: "counting",
+                isTakeout: isTakeoutHint,
+            });
+
         let collectionNameToUploadItems = new Map<
             string,
             UploadItemAndPath[]
@@ -1004,6 +1037,7 @@ export const Upload: React.FC<UploadProps> = ({
             ]);
             if (uploadItemsAndPaths.current !== uploadItemAndPaths) return;
             if (fileCount == 1 && !isTakeout) {
+                setUploadConfirmation(undefined);
                 void commitUploadToNewCollections(
                     uploadItemAndPaths,
                     collectionNameToUploadItems,
@@ -1014,6 +1048,7 @@ export const Upload: React.FC<UploadProps> = ({
                 return;
             }
             setUploadConfirmation({
+                phase: "ready",
                 pendingUpload: {
                     type: "new-collections",
                     uploadItemAndPaths,
@@ -1102,7 +1137,7 @@ export const Upload: React.FC<UploadProps> = ({
 
     const handleUploadConfirm = () => {
         const confirmation = uploadConfirmation;
-        if (!confirmation) return;
+        if (confirmation?.phase != "ready") return;
 
         setUploadConfirmation(undefined);
         const { pendingUpload, importFavorites, includePartnerSharedFiles } =
@@ -1140,20 +1175,18 @@ export const Upload: React.FC<UploadProps> = ({
         _event: React.ChangeEvent<HTMLInputElement>,
         checked: boolean,
     ) =>
-        setUploadConfirmation((confirmation) =>
-            confirmation
-                ? { ...confirmation, importFavorites: checked }
-                : undefined,
+        setUploadConfirmation((c) =>
+            c?.phase == "ready" ? { ...c, importFavorites: checked } : c,
         );
 
     const handleIncludePartnerSharedFilesChange = (
         _event: React.ChangeEvent<HTMLInputElement>,
         checked: boolean,
     ) =>
-        setUploadConfirmation((confirmation) =>
-            confirmation
-                ? { ...confirmation, includePartnerSharedFiles: checked }
-                : undefined,
+        setUploadConfirmation((c) =>
+            c?.phase == "ready"
+                ? { ...c, includePartnerSharedFiles: checked }
+                : c,
         );
 
     const waitInQueueAndUploadFiles = async (
@@ -1370,6 +1403,9 @@ export const Upload: React.FC<UploadProps> = ({
             createHidden: props.isInHiddenSection,
         });
 
+    const readyConfirmation =
+        uploadConfirmation?.phase == "ready" ? uploadConfirmation : undefined;
+
     return (
         <>
             <Inputs
@@ -1431,15 +1467,14 @@ export const Upload: React.FC<UploadProps> = ({
             {enableV2 && (
                 <UploadConfirmationDialog
                     open={!!uploadConfirmation}
+                    loading={uploadConfirmation?.phase == "counting"}
                     isTakeout={uploadConfirmation?.isTakeout ?? false}
-                    fileCount={uploadConfirmation?.fileCount ?? 0}
-                    albumCount={uploadConfirmation?.albumCount ?? 0}
-                    importFavorites={
-                        uploadConfirmation?.importFavorites ?? true
-                    }
+                    fileCount={readyConfirmation?.fileCount ?? 0}
+                    albumCount={readyConfirmation?.albumCount ?? 0}
+                    importFavorites={readyConfirmation?.importFavorites ?? true}
                     onImportFavoritesChange={handleImportFavoritesChange}
                     includePartnerSharedFiles={
-                        uploadConfirmation?.includePartnerSharedFiles ?? true
+                        readyConfirmation?.includePartnerSharedFiles ?? true
                     }
                     onIncludePartnerSharedFilesChange={
                         handleIncludePartnerSharedFilesChange
